@@ -132,7 +132,7 @@ class AppSession(requests.Session):
         metrics.add_token(self.token)
 
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:
-        kwargs.setdefault("timeout", 30)
+        kwargs.setdefault("timeout", 60)
         kwargs.setdefault("headers", {})
         kwargs["headers"].setdefault("User-Agent", str(self.user_agent))
         if self.token:
@@ -147,7 +147,5 @@ class AppSession(requests.Session):
         if response.ok:
             error_handler.pop_request()
         else:
-            error_handler.append_request(
-                status_code=response.status_code, response_json=response.json()
-            )
+            error_handler.append_request(status_code=response.status_code)
         return response

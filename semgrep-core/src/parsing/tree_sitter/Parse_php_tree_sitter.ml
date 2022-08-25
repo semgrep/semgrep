@@ -1013,13 +1013,25 @@ and map_callable_variable (env : env) (x : CST.callable_variable) =
         match v1 with
         | `Name tok ->
             (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
-            A.Id (map_name env tok)
+            map_function_name env tok
         | `Rese_id x -> map_reserved_identifier env x
         | `Qual_name x -> A.Id (map_qualified_name env x)
         | `Choice_choice_choice_dyna_var_name x -> map_callable_expression env x
       in
       let v2 = map_arguments env v2 in
       A.Call (v1, v2)
+
+and map_function_name env tok =
+  let id = _str env tok in
+  let str, tok = id in
+  match String.lowercase_ascii str with
+  | "die" -> A.IdSpecial (A.FuncLike A.Exit, tok)
+  | "empty" -> A.IdSpecial (A.FuncLike A.Empty, tok)
+  | "eval" -> A.IdSpecial (A.FuncLike A.Eval, tok)
+  | "exit" -> A.IdSpecial (A.FuncLike A.Exit, tok)
+  | "isset" -> A.IdSpecial (A.FuncLike A.Isset, tok)
+  | "unset" -> A.IdSpecial (A.FuncLike A.Unset, tok)
+  | _ -> A.Id [ id ]
 
 and map_catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) :
     A.catch =
@@ -1976,7 +1988,8 @@ and map_statement (env : env) (x : CST.statement) =
       in
       let v5 = (* ")" *) token env v5 in
       let v6 = map_semicolon env v6 in
-      A.Expr (A.Call (A.Id [ (A.builtin "unset", v1) ], (v2, v3 :: v4, v5)), v6)
+      A.Expr
+        (A.Call (A.IdSpecial (A.FuncLike A.Unset, v1), (v2, v3 :: v4, v5)), v6)
   | `Const_decl x ->
       let consts = map_const_declaration_ env x in
       let consts = Common.map (fun c -> A.ConstantDef c) consts in
@@ -2433,7 +2446,11 @@ and map_variable (env : env) (x : CST.variable) =
 and map_variable_name_ (env : env) (x : CST.variable_name_) : A.expr =
   match x with
   | `Dyna_var_name x -> map_dynamic_variable_name env x
-  | `Var_name x -> A.Id [ map_variable_name env x ]
+  | `Var_name x -> (
+      let str, tok = map_variable_name env x in
+      match str with
+      | "$this" -> IdSpecial (A.This, tok)
+      | _ -> A.Id [ (str, tok) ])
 
 and map_variadic_unpacking (env : env) ((v1, v2) : CST.variadic_unpacking) =
   let v1 = (* "..." *) token env v1 in

@@ -20,6 +20,7 @@ type t = {
 }
 [@@deriving show]
 
+(* less: use Set instead of list? *)
 type ranges = t list [@@deriving show]
 
 (*****************************************************************************)

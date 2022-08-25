@@ -175,16 +175,27 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                  extracted_ranges
                  ([], Hashtbl.create 5)
              in
+             let xconf =
+               { Match_env.config; equivs = []; matching_explanations = false }
+             in
              let res =
                try
+                 (* TODO: Maybe we should be using Run_semgrep running the same functions
+                    as for Semgrep CLI. *)
                  Match_rules.check
                    ~match_hook:(fun _ _ -> ())
-                   ~timeout:0. ~timeout_threshold:0 (config, []) rules xtarget
+                   ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
                with
                | exn ->
                    failwith
                      (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
              in
+             (* Check that the result can be marshalled, as this will be needed
+                 when using Parmap! See PA-1724. *)
+             (try Marshal.to_string res [ Marshal.Closures ] |> ignore with
+             | exn ->
+                 failwith
+                   (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn)));
              let eres =
                try
                  Common.map
@@ -215,8 +226,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                      let res =
                        Match_rules.check
                          ~match_hook:(fun _ _ -> ())
-                         ~timeout:0. ~timeout_threshold:0 (config, []) rules
-                         xtarget
+                         ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
                      in
                      Hashtbl.find_opt extract_result_map file
                      |> Option.fold ~some:(fun f -> f res) ~none:res)

@@ -1,6 +1,150 @@
+<!-- Do not edit. This changelog is updated at release time by towncrier from
+     individual files in changelog.d/.
+-->
+
 # Changelog
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+
+<!-- insertion point -->
+
+## [0.111.1](https://github.com/returntocorp/semgrep/releases/tag/v0.111.1) - 2022-08-23
+
+### Changed
+
+- Previously, the following error message appears when metrics are not uploaded within the set timeout timeframe:
+
+  Error in send: HTTPSConnectionPool(host='metrics.semgrep.dev', port=443): Read timed out. (read timeout=3)
+
+  As this causes users confusion when running the CLI, the log level of the message is reduced to appear for development and debugging purposes only. Note that metrics are still successfully uploaded, but the success status is not sent in time for the curent timeout set. (app-1398)
+
+### Fixed
+
+- taint-mode: Fixed the translation from Generic to IL for expressions like
+  `"some string".concat(x)`. Previously, when `x` was tainted, the `concat`
+  expression was not recognized as tainted and this caused false negatives. (pa-1787)
+
+## [0.111.0](https://github.com/returntocorp/semgrep/releases/tag/v0.111.0) - 2022-08-22
+
+### Added
+
+- Introduced experimental support for Swift (gh-2232)
+- Add configuration options for using a tree-sitter library installed anywhere
+  on the system. (gh-5944)
+- Updated the supply chain finding API:
+  - The API is now typed and defined entirely in semgrep_output_v0.atd
+  - Supply chain findings now have only one dependency match, not a list, and only one resolved url
+  - Supply chain findings now have a field called reachable and reachability_rule,
+    which indicate if the finding is reachable, and whether or not it was generated
+    by a reachability rule (rule that had a semgrep pattern)
+  - Supply chain findings now include a schema version
+  - The complete finding information sent to semgrep app now includes a mapping from lockfile
+    paths to the number of dependencies that were present in that lockfile (sca-197)
+
+### Fixed
+
+- When a YAML rule file had a string that contained an ISO timestamp, that would be parsed as a datetime object, which would then be rejected by Semgrep's rule schema validator. This is now fixed by keeping strings that contain an ISO timestamp as strings. (app-2157)
+- When parsing PHP with tree-sitter, parse `$this` similar to pfff, as an IdSpecial. This makes it possible to match `$this` when the pattern is parsed with pfff and the program with tree-sitter. (gh-5594)
+- Parse die() as exit() in tree-sitter PHP. This makes pfff and tree-sitter parse die() in the same way. (gh-5880)
+- All: Applied a fix so that qualified identifiers can unify with metavariables. Notably, this
+  affected Python decorators, among others. (pa-1700)
+- Fixed a regression in DeepSemgrep after the experimental taint labels feature
+  was introduced in 0.106.0. This prevented DeepSemgrep from reporting taint
+  findings when e.g. the sink was wrapped by another function. (pa-1750)
+- Fixed metavariable unification in JSON when one of the patterns is a single field. (pa-1763)
+- Changed symbolic propagation such that "redundant" matches are no
+  longer reported as findings. For instance:
+
+  ```py
+  def foo():
+    x = g(5)
+    f(x)
+  ```
+
+  If we are looking for the pattern `g(5)`, we should not match on line 3,
+  since we will match on line 2 anyways, and this is just repeating information that
+  we already know.
+
+  This patch changes it so that we do not match on line 3 anymore. (pa-1772)
+
+- Semgrep now passes -j to DeepSemgrep engine so --deep became noticeably faster. (pa-1776)
+- taint-mode: Due to a mistake in the instantiation of a visitor, named function
+  definitions were being analyzed twice! This is now fixed and you may observe
+  significant speed ups in some cases. (pa-1778)
+- Extract mode: fixed a possible exception in normal usage introduced due to
+  changes in handling of search/taint rules. (pa-1786)
+- Changed the fail-open message body (pm-194)
+
+### Infra/Release Changes
+
+- GHA Runner `macos-12` is unreliable and has begun failing without
+  a clear explanation as to why: this downgrades to `macos-11`,
+  since 10.15 is to be depracted ~10 from now. (devop-609)
+- Keep the tree-sitter library inside a local folder rather than requiring
+  a global installation. (gh-2956)
+
+## [0.110.0](https://github.com/returntocorp/semgrep/releases/tag/v0.110.0) - 2022-08-15
+
+### Changed
+
+- Parse several built-in PHP functions in the same way in pfff and tree-sitter. This makes it possible to match exit, eval, empty and isset, even if the pattern is parsed with pfff and the PHP file with tree-sitter. (gh-5382)
+- Use new semgrep-app endpoints that are pure GET with no side-effects and pure POST (app-2001)
+
+### Fixed
+
+- Skip fail-open for exit code 1 (app-2073)
+
+## [0.109.0](https://github.com/returntocorp/semgrep/releases/tag/v0.109.0) - 2022-08-11
+
+### Changed
+
+- `semgrep ci` now defaults to fail open and will always exit with exit code 0, which is equivalent to passing `--suppress-errors`.
+  To disable this behavior, you can pass `--no-suppress-errors` and semgrep will behave as it did previously, surfacing any exit codes that may result. (app-1951)
+
+### Fixed
+
+- taint-mode: Taint traces (`--dataflow-traces`) should no longer report "strange"
+  intermediate variables when there are record accesses involved. This happened e.g.
+  if `foo` was a tainted record and the code accessed some of its fields as in
+  `foo.bar.baz`. This was related to the use of auxiliary variables in the Dataflow IL.
+  These variables got tainted, but they had real tokens attached corresponding to the
+  dot `.` operator. Now we do not include these variables in the taint trace. (pa-1672)
+
+### Infra/Release Changes
+
+- GHA runner-image `macos-10.15` is deprecated and will be unsupported by 30AUG2022. We've tested and can upgrade to `macos-12` to avoid issues with brownouts or end of support. (devop-586)
+
+## [0.108.0](https://github.com/returntocorp/semgrep/releases/tag/v0.108.0) - 2022-08-03
+
+### Added
+
+- Metrics now include language-aggregated parse rates (files, bytes). The purpose
+  of this is to help drive parsing improvements more intelligently. See
+  [PRIVACY.md](PRIVACY.md) for more details. (pa-1678)
+
+### Changed
+
+- Updated SCA finding generation so that the following hold:
+  - One SCA finding per vulnerable dependency. If one rule matches multiple dependencies in one lockfile,
+    that will produce multiple findings. This still needs to be codified in the typed interface
+  - No findings in files that were not targeted. If foo.py depends on Pipfile.lock,
+    and foo.py is targeted but Pipfile.lock is not, then we can produce reachable findings
+    in foo.py but not non-reachable findings in Pipfile.lock. If Pipfile.lock is included in
+    our targets then we can produce non-reachable findings inside of it
+  - No massive single scan for lockfiles. (sca-127)
+
+### Fixed
+
+- Fixed issue when scan fails due to pending changes in submodule. (cli-272)
+- Semgrep CI now accepts more formats of git url for metadata provided to semgrep.dev and lets the user provide a fallback for repo name (SEMGREP_REPO_NAME) and repo url (SEMGREP_REPO_URL) if they are undefined by CI. (cli-280)
+- Fixed a crash that occurred when reporting results when join mode and taint mode were used together (gh-5839)
+- JS: Allowed decorators to appear in Semgrep patterns for class methods and fields. (pa-1677)
+- Quick fix for a regression introduced in 0.107.0 (presumably by taint labels)
+  that could cause some taint rules to crash Semgrep with:
+
+      Invalid_argument "output_value: abstract value (Custom)" (pa-1724)
+
+- Increase timeout for network calls to semgrep.dev from 30s to 60s (timeout-1)
 
 ## [0.107.0](https://github.com/returntocorp/semgrep/releases/tag/v0.107.0) - 2022-07-29
 

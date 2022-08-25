@@ -497,11 +497,11 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/pallets/input/flask/src/flask/debughelpers.py",
-          "start": { "col": 15, "line": 23, "offset": 645 }
+          "start": { "col": 13, "line": 23, "offset": 643 }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.string-concat-in-list.string-concat-in-list",
-          "end": { "col": 35, "line": 53, "offset": 1895 },
+          "end": { "col": 36, "line": 53, "offset": 1896 },
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
@@ -512,7 +512,7 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/pallets/input/flask/src/flask/debughelpers.py",
-          "start": { "col": 15, "line": 51, "offset": 1736 }
+          "start": { "col": 13, "line": 51, "offset": 1734 }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.is-comparison-string.identical-is-comparison",

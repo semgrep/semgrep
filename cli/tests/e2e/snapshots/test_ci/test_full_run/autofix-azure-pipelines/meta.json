@@ -19,5 +19,10 @@
     "scan_environment": "azure-pipelines",
     "is_full_scan": true,
     "is_sca_scan": false
-  }
+  },
+  "policy": [
+    "audit",
+    "comment",
+    "block"
+  ]
 }

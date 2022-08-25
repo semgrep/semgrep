@@ -30,7 +30,8 @@ ENV OPAMYES=true
 
 WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core
 COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/ .
-RUN scripts/install-tree-sitter-lib
+RUN ./configure \
+ && ./scripts/install-tree-sitter-lib
 
 WORKDIR /semgrep/semgrep-core/src/pfff
 COPY --chown=user semgrep-core/src/pfff/*.opam .
@@ -51,7 +52,7 @@ COPY --chown=user cli/src/semgrep/lang ./cli/src/semgrep/lang
 COPY --chown=user cli/src/semgrep/semgrep_interfaces ./cli/src/semgrep/semgrep_interfaces
 
 WORKDIR /semgrep/semgrep-core
-RUN opam exec -- dune build
+RUN opam exec -- make minimal-build
 
 WORKDIR /semgrep
 RUN /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version

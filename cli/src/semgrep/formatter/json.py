@@ -32,11 +32,8 @@ class JsonFormatter(BaseFormatter):
             dataflow_trace=rule_match.dataflow_trace,
         )
 
-        if rule_match.extra.get("dependency_matches"):
-            extra.dependency_matches = out.RawJson(
-                rule_match.extra.get("dependency_matches")
-            )
-            extra.dependency_match_only = rule_match.extra.get("dependency_match_only")
+        if rule_match.extra.get("sca_info"):
+            extra.sca_info = rule_match.extra.get("sca_info")
         if rule_match.extra.get("fixed_lines"):
             extra.fixed_lines = rule_match.extra.get("fixed_lines")
         if rule_match.fix:
@@ -72,6 +69,7 @@ class JsonFormatter(BaseFormatter):
             errors=[error.to_CliError() for error in semgrep_structured_errors],
             paths=cli_output_extra.paths,
             time=cli_output_extra.time,
+            explanations=cli_output_extra.explanations,
         )
         # Sort keys for predictable output. This helps with snapshot tests, etc.
         return json.dumps(output.to_json(), sort_keys=True, default=to_json)

@@ -1,20 +1,27 @@
 PYTEST ?= pipenv run pytest -v --tb=short --durations=10
 
+# Run everything that makes sense to run.
 .PHONY: default
 default:
 	$(MAKE) build
 	$(MAKE) test
+	$(MAKE) qa
 
 # Generate code. Needed at least when the interface changes.
 .PHONY: build
 build:
 	$(MAKE) check
 
-# Typecheck and run all tests from quickest to slowest.
+# Typecheck and run all basic tests from quickest to slowest.
 .PHONY: test
 test:
 	$(MAKE) kinda-quick-tests
 	$(PYTEST) -n auto -m 'not quick and not kinda_slow' tests
+
+# Run the extra tests on public repos and semgrep-rules
+.PHONY: qa
+qa:
+	$(PYTEST) -n auto tests/qa
 
 .PHONY: check
 check:

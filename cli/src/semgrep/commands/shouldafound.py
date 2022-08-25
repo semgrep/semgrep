@@ -70,9 +70,15 @@ def shouldafound(
     }
 
     if not yes:
-        click.echo("Will send to Semgrep.dev:", err=True)
+        click.echo(
+            "This information, including the following lines of code, will be sent to Semgrep.dev:",
+            err=True,
+        )
         click.echo(json.dumps(data, indent=2), err=True)
-        if not click.confirm("OK to send?", err=True):
+        if not click.confirm(
+            "Please confirm the code does not contain any sensitive information, and you wish to send!",
+            err=True,
+        ):
             click.echo("Aborted", err=True)
             sys.exit(0)
 

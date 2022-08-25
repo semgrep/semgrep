@@ -27,6 +27,15 @@ named(bar: baz:);
 // TODO figure out the type modifier part of a value argument
 
 closure { x in x };
+{ @foo [ self, x, y = 3]
+(self, name, realname : inout @escaping @autoclosure Int ) -> Int in
+return 2
+};
+
+{ @foo [ self, x, y = 3]
+self, name, realname : inout @escaping @autoclosure Int -> Int in
+return 2
+};
 
 // TODO this used to lead the parser into an infinite loop in CI. Test that it's
 // correctly parsed, even though that issue has been mitigated.
@@ -100,10 +109,9 @@ Thing<Int, String>.foo;
 
 // Selector expressions:
 
-// TODO handle selector expressions
-// #selector(5);
-// #selector(getter: 4);
-// #selector(setter: 4);
+#selector(5);
+#selector(getter: 4);
+#selector(setter: 4);
 
 // Open start range expressions:
 
@@ -233,7 +241,20 @@ nil;
 ({ x in x });
 ({});
 
-// TODO Special literals
+// Special literals
+#file;
+#fileID;
+#filePath;
+#line;
+#column;
+#function;
+#dsohandle;
+#colorLiteral(x : 5, y : 2);
+#fileLiteral(x : 5);
+#imageLiteral(x : 5);
+#keyPath(2 + 3);
+
+
 // TODO Playground literals
 
 // Array literals
@@ -297,3 +318,26 @@ foo?.bar;
 // aysnc ?
 
 async
+
+// Operators
+++;
+--;
+1 < 2;
+1 > 2;
+1 <= 2;
+1 >= 2;
+1 + 2;
+1 * 2;
+1 != 2;
+1 !== 2;
+1 === 2;
+1 == 2;
+!2;
+~2;
+
+// Declarations with operator names
+func +() {}
+func *() {}
+func ==() {}
+func /() {}
+func >>=() {}

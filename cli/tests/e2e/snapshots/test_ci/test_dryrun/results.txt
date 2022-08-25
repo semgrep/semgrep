@@ -1,5 +1,5 @@
 === command
-SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --dry-run
+SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --dry-run --no-suppress-errors
 === end of command
 
 === exit code
@@ -8,7 +8,17 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 
 === stdout - plain
 
-Findings:
+SCA Summary: 0 Reachable findings, 1 Unreachable finding
+
+
+Unreachable SCA Findings:
+
+  poetry.lock 
+     supply-chain1
+        found a dependency
+
+
+First-Party Findings:
 
   foo.py 
      eqeq-bad
@@ -32,6 +42,11 @@ Findings:
         useless comparison to 4
 
          19┆ baz == 4
+          ⋮┆----------------------------------------
+     taint-test
+        unsafe use of danger
+
+         27┆ sink(d2)
 
 === end of stdout - plain
 
@@ -39,17 +54,18 @@ Findings:
 Scan environment:
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown
-  semgrep.dev - authenticated as org_name
+  server      - https://semgrep.dev
 
 Fetching configuration from semgrep.dev
-Fetching rules from https://semgrep.dev/registry.
-Scanning 1 file with 4 python rules.
+Would have sent POST request to create scan
+Authenticated as org_name
+Scanning 1 file with 5 python rules.
 
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 6 findings (5 blocking) from 3 rules.
+  Found 8 findings (6 blocking) from 6 rules.
   Uploading findings to Semgrep App.
 Would have sent findings blob: {
     "token": null,
@@ -204,6 +220,97 @@ Would have sent findings blob: {
             "metadata": {},
             "is_blocking": true,
             "match_based_id": "428d340d1be54b3f1fbc781d56aef28eb2092d3f140cab3a5d03ad7a769e21803c79eb728c18dce723226b7f224e8f688395081ca05d48bc2c1590d312d26fca_0"
+        },
+        {
+            "check_id": "taint-test",
+            "path": "foo.py",
+            "line": 27,
+            "column": 5,
+            "end_line": 27,
+            "end_column": 13,
+            "message": "unsafe use of danger",
+            "severity": 1,
+            "index": 0,
+            "commit_date": <MASKED>
+            "syntactic_id": "05a6d6793a6242a49ff83113ef4a83b3",
+            "metadata": {},
+            "is_blocking": true,
+            "match_based_id": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0",
+            "dataflow_trace": {
+                "taint_source": {
+                    "location": {
+                        "path": "foo.py",
+                        "start": {
+                            "line": 26,
+                            "col": 10,
+                            "offset": 346
+                        },
+                        "end": {
+                            "line": 26,
+                            "col": 16,
+                            "offset": 352
+                        }
+                    },
+                    "content": "danger"
+                },
+                "intermediate_vars": [
+                    {
+                        "location": {
+                            "path": "foo.py",
+                            "start": {
+                                "line": 26,
+                                "col": 5,
+                                "offset": 341
+                            },
+                            "end": {
+                                "line": 26,
+                                "col": 7,
+                                "offset": 343
+                            }
+                        },
+                        "content": "d2"
+                    }
+                ]
+            }
+        },
+        {
+            "check_id": "supply-chain1",
+            "path": "poetry.lock",
+            "line": 0,
+            "column": 0,
+            "end_line": 0,
+            "end_column": 0,
+            "message": "found a dependency",
+            "severity": 2,
+            "index": 0,
+            "commit_date": <MASKED>
+            "syntactic_id": "ff8806e5d262f88aeebbc15b80d84f12",
+            "metadata": {
+                "dev.semgrep.actions": [
+                    "block"
+                ]
+            },
+            "is_blocking": false,
+            "match_based_id": "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0",
+            "sca_info": {
+                "reachable": false,
+                "reachability_rule": false,
+                "sca_finding_schema": 20220818,
+                "dependency_match": {
+                    "dependency_pattern": {
+                        "ecosystem": "pypi",
+                        "package": "badlib",
+                        "semver_range": "== 1.0.0"
+                    },
+                    "found_dependency": {
+                        "package": "badlib",
+                        "version": "1.0.0",
+                        "ecosystem": "pypi",
+                        "allowed_hashes": {}
+                    },
+                    "lockfile": "poetry.lock"
+                }
+            }
         }
     ],
     "searched_paths": [
@@ -212,7 +319,10 @@ Would have sent findings blob: {
     "rule_ids": [
         "eqeq-bad",
         "eqeq-five",
-        "eqeq-four"
+        "eqeq-four",
+        "taint-test",
+        "supply-chain1",
+        "supply-chain2"
     ],
     "cai_ids": [
         "__r2c-internal-cai_eqeq"
@@ -311,18 +421,22 @@ Would have sent ignores blob: {
 Would have sent complete blob: {
     "exit_code": 1,
     "stats": {
-        "findings": 9,
+        "findings": 11,
         "errors": [],
         "total_time": <MASKED>
         "unsupported_exts": {
             ".txt": 1
         },
+        "lockfile_scan_info": {
+            "poetry.lock": 1,
+            "yarn.lock": 1
+        },
         "parse_rate": {
             "python": {
                 "targets_parsed": 1,
                 "num_targets": 1,
-                "bytes_parsed": 336,
-                "num_bytes": 336
+                "bytes_parsed": 366,
+                "num_bytes": 366
             }
         }
     }

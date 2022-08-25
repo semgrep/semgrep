@@ -1,6 +1,7 @@
 import base64
 import collections
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -20,8 +21,15 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-from semdep.models import LockfileDependency
-from semdep.models import PackageManagers
+from semgrep.semgrep_interfaces.semgrep_output_v0 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Npm
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Pypi
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Gomod
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Gem
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Cargo
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Maven
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Gradle
 
 
 def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
@@ -37,7 +45,7 @@ def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
     return {algorithm: [base64.b16encode(decode_base_64).decode("ascii").lower()]}
 
 
-def parse_Yarnlock_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
+def parse_Yarnlock_str(lockfile_text: str) -> Generator[FoundDependency, None, None]:
     def extract_yarn_name(line: str) -> str:
         """
         "@babel/code-frame@^7.0.0", "@babel/code-frame@^7.10.4", "@babel/code-frame@^7.8.3":
@@ -65,26 +73,26 @@ def parse_Yarnlock_str(lockfile_text: str) -> Generator[LockfileDependency, None
     _comment, all_deps_text = lockfile_text.split("\n\n\n")
     dep_texts = all_deps_text.split("\n\n")
     if dep_texts == [""]:  # No dependencies
-        yield from []
+        return
     for dep_text in dep_texts:
         lines = dep_text.split("\n")
         package_name = extract_yarn_name(lines[0])
         version = remove_quotes(lines[1].split()[1])
         if len(lines) >= 3 and lines[2].strip().startswith("resolved"):
-            resolved = [
-                remove_trailing_octothorpe(remove_quotes(lines[2].split()[1]).strip())
-            ]
+            resolved = remove_trailing_octothorpe(
+                remove_quotes(lines[2].split()[1]).strip()
+            )
         else:
-            resolved = []
+            resolved = None
         integrity = (
             lines[3].split()[1]
             if len(lines) > 3 and lines[3].strip().startswith("integrity")
             else None
         )
-        yield LockfileDependency(
-            package_name,
-            version,
-            PackageManagers.NPM,
+        yield FoundDependency(
+            package=package_name,
+            version=version,
+            ecosystem=Ecosystem(Npm()),
             allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
             resolved_url=resolved,
         )
@@ -92,7 +100,7 @@ def parse_Yarnlock_str(lockfile_text: str) -> Generator[LockfileDependency, None
 
 def parse_NPM_package_lock_str(
     lockfile_text: str,
-) -> Generator[LockfileDependency, None, None]:
+) -> Generator[FoundDependency, None, None]:
     as_json = json.loads(lockfile_text)
     # Newer versions of NPM (>= v7) use 'packages'
     # But 'dependencies' is kept up to date, and 'packages' uses relative, not absolute names
@@ -119,16 +127,16 @@ def parse_NPM_package_lock_str(
 
         resolved_url = dep_blob.get("resolved")
         integrity = dep_blob.get("integrity")
-        yield LockfileDependency(
-            dep,
-            version,
-            PackageManagers.NPM,
+        yield FoundDependency(
+            package=dep,
+            version=version,
+            ecosystem=Ecosystem(Npm()),
             allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
-            resolved_url=[resolved_url] if resolved_url else None,
+            resolved_url=resolved_url,
         )
 
 
-def parse_Pipfile_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
+def parse_Pipfile_str(lockfile_text: str) -> Generator[FoundDependency, None, None]:
     def extract_pipfile_hashes(
         hashes: List[str],
     ) -> Dict[str, List[str]]:
@@ -141,7 +149,7 @@ def parse_Pipfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
 
     def parse_dependency_blob(
         root_blob: Dict[str, Any]
-    ) -> Generator[LockfileDependency, None, None]:
+    ) -> Generator[FoundDependency, None, None]:
         for dep in root_blob:
             dep_blob = root_blob[dep]
             version = dep_blob.get("version", None)
@@ -149,10 +157,10 @@ def parse_Pipfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
                 logger.info(f"no version for dependency: {dep}")
             else:
                 version = version.replace("==", "")
-                yield LockfileDependency(
-                    dep,
-                    version,
-                    PackageManagers.PYPI,
+                yield FoundDependency(
+                    package=dep,
+                    version=version,
+                    ecosystem=Ecosystem(Pypi()),
                     resolved_url=None,
                     allowed_hashes=extract_pipfile_hashes(dep_blob["hashes"])
                     if "hashes" in dep_blob
@@ -166,19 +174,23 @@ def parse_Pipfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
         yield from parse_dependency_blob(develop_deps)
 
 
-def parse_Gemfile_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
-    def parse_dep(s: str) -> LockfileDependency:
+def parse_Gemfile_str(lockfile_text: str) -> Generator[FoundDependency, None, None]:
+    def parse_dep(s: str) -> FoundDependency:
         # s == "    $DEP ($VERSION)"
         dep, paren_version = s.strip().split(" ")
         version = paren_version[1:-1]
-        return LockfileDependency(
-            dep, version, PackageManagers.GEM, resolved_url=None, allowed_hashes={}
+        return FoundDependency(
+            package=dep,
+            version=version,
+            ecosystem=Ecosystem(Gem()),
+            resolved_url=None,
+            allowed_hashes={},
         )
 
     lines = lockfile_text.split("\n")
     # No dependencies specified
     if "GEM" not in lines:
-        yield from []
+        return
     GEM_idx = lines.index("GEM") + 1
     GEM_end_idx = lines[GEM_idx:].index(
         ""
@@ -189,9 +201,9 @@ def parse_Gemfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
     )
 
 
-def parse_Go_sum_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
+def parse_Go_sum_str(lockfile_text: str) -> Generator[FoundDependency, None, None]:
     # We currently ignore the +incompatible flag, pseudo versions, and the difference between a go.mod and a direct download
-    def parse_dep(s: str) -> LockfileDependency:
+    def parse_dep(s: str) -> FoundDependency:
         dep, version, hash = s.split()
         # drop 'v'
         version = version[1:]
@@ -209,12 +221,12 @@ def parse_Go_sum_str(lockfile_text: str) -> Generator[LockfileDependency, None, 
 
         # drop h1: and =
         hash = hash[3:-1]
-        return LockfileDependency(
-            dep,
-            version,
-            PackageManagers.GOMOD,
+        return FoundDependency(
+            package=dep,
+            version=version,
+            ecosystem=Ecosystem(Gomod()),
             # go.sum dep names are already URLs
-            resolved_url=[dep],
+            resolved_url=dep,
             allowed_hashes={"gomod": [hash]},
         )
 
@@ -225,8 +237,8 @@ def parse_Go_sum_str(lockfile_text: str) -> Generator[LockfileDependency, None, 
     yield from (parse_dep(dep) for dep in lines)
 
 
-def parse_Cargo_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
-    def parse_dep(s: str) -> LockfileDependency:
+def parse_Cargo_str(lockfile_text: str) -> Generator[FoundDependency, None, None]:
+    def parse_dep(s: str) -> FoundDependency:
         lines = s.split("\n")[1:]
         dep = lines[0].split("=")[1].strip()[1:-1]
         version = lines[1].split("=")[1].strip()[1:-1]
@@ -234,10 +246,10 @@ def parse_Cargo_str(lockfile_text: str) -> Generator[LockfileDependency, None, N
             hash = {"sha256": [lines[3].split("=")[1].strip()[1:-1]]}
         else:
             hash = {}
-        return LockfileDependency(
-            dep,
-            version,
-            PackageManagers.CARGO,
+        return FoundDependency(
+            package=dep,
+            version=version,
+            ecosystem=Ecosystem(Cargo()),
             resolved_url=None,
             allowed_hashes=hash,
         )
@@ -246,7 +258,7 @@ def parse_Cargo_str(lockfile_text: str) -> Generator[LockfileDependency, None, N
     yield from (parse_dep(dep) for dep in deps)
 
 
-def parse_Pom_str(manifest_text: str) -> Generator[LockfileDependency, None, None]:
+def parse_Pom_str(manifest_text: str) -> Generator[FoundDependency, None, None]:
     NAMESPACE = "{http://maven.apache.org/POM/4.0.0}"
 
     def parse_dep(
@@ -254,7 +266,7 @@ def parse_Pom_str(manifest_text: str) -> Generator[LockfileDependency, None, Non
         # Optional[ET.Element]
         el: Any
         # ET.Element
-    ) -> Optional[LockfileDependency]:
+    ) -> Optional[FoundDependency]:
         dep_el = el.find(f"{NAMESPACE}artifactId")
         if dep_el is None:
             return None
@@ -285,8 +297,12 @@ def parse_Pom_str(manifest_text: str) -> Generator[LockfileDependency, None, Non
         except InvalidVersion:
             return None
 
-        return LockfileDependency(
-            dep, version, PackageManagers.MAVEN, resolved_url=None, allowed_hashes={}
+        return FoundDependency(
+            package=dep,
+            version=version,
+            ecosystem=Ecosystem(Maven()),
+            resolved_url=None,
+            allowed_hashes={},
         )
 
     root = ET.fromstring(manifest_text)
@@ -300,8 +316,8 @@ def parse_Pom_str(manifest_text: str) -> Generator[LockfileDependency, None, Non
             yield dep_opt
 
 
-def parse_Gradle_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
-    def parse_dep(line: str) -> Optional[LockfileDependency]:
+def parse_Gradle_str(lockfile_text: str) -> Generator[FoundDependency, None, None]:
+    def parse_dep(line: str) -> Optional[FoundDependency]:
         dep = line.split(":")
         if len(dep) != 3:
             logger.info("Parse error in gradle lockfile")
@@ -313,8 +329,12 @@ def parse_Gradle_str(lockfile_text: str) -> Generator[LockfileDependency, None, 
         except InvalidVersion:
             logger.info("No valid version found for {name}")
             return None
-        return LockfileDependency(
-            name, version, PackageManagers.GRADLE, resolved_url=None, allowed_hashes={}
+        return FoundDependency(
+            package=name,
+            version=version,
+            ecosystem=Ecosystem(Gradle()),
+            resolved_url=None,
+            allowed_hashes={},
         )
 
     lines = lockfile_text.splitlines()[
@@ -324,15 +344,15 @@ def parse_Gradle_str(lockfile_text: str) -> Generator[LockfileDependency, None, 
     yield from (dep for dep in deps if dep)
 
 
-def parse_Poetry_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
-    def parse_dep(s: str) -> LockfileDependency:
+def parse_Poetry_str(lockfile_text: str) -> Generator[FoundDependency, None, None]:
+    def parse_dep(s: str) -> FoundDependency:
         lines = s.split("\n")[1:]
         dep = lines[0].split("=")[1].strip()[1:-1]
         version = lines[1].split("=")[1].strip()[1:-1]
-        return LockfileDependency(
-            dep,
-            version,
-            PackageManagers.PYPI,
+        return FoundDependency(
+            package=dep,
+            version=version,
+            ecosystem=Ecosystem(Pypi()),
             resolved_url=None,
             allowed_hashes={},
         )
@@ -354,20 +374,21 @@ LOCKFILE_PARSERS = {
 }
 
 
+@lru_cache(maxsize=1000)
 def parse_lockfile_str(
     lockfile_text: str, filepath_for_reference: Path
-) -> Generator[LockfileDependency, None, None]:
+) -> List[FoundDependency]:
     # coupling with the github action, which decides to send files with these names back to us
     filepath = filepath_for_reference.name.lower()
     if filepath in LOCKFILE_PARSERS:
         try:
-            yield from LOCKFILE_PARSERS[filepath](lockfile_text)
+            return list(LOCKFILE_PARSERS[filepath](lockfile_text))
         # Such a general except clause is suspect, but the parsing error could be any number of
         # python errors, since our parsers are just using stdlib string processing functions
         # This will avoid catching dangerous to catch things like KeyboardInterrupt and SystemExit
         except Exception as e:
             logger.error(f"Failed to parse {filepath_for_reference} with exception {e}")
-            yield from []
+            return []
     else:
         raise SemgrepError(
             f"don't know how to parse this filename: {filepath_for_reference}"

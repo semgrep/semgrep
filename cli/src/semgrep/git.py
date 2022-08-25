@@ -190,7 +190,9 @@ class BaselineHandler:
             return self._dirty_paths_by_status
 
         logger.debug("Initializing dirty paths")
-        git_status_output = git_check_output(["git", "status", "--porcelain", "-z"])
+        git_status_output = git_check_output(
+            ["git", "status", "--porcelain", "-z", "--ignore-submodules"]
+        )
         logger.debug(f"Git status output: {git_status_output}")
         output = zsplit(git_status_output)
         logger.debug("finished getting dirty paths")

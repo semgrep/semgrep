@@ -1,0 +1,50 @@
+rules:
+  - id: tainted-file-path
+    languages:
+      - java
+    severity: ERROR
+    message: Detected user input controlling a file path. An attacker could control
+      the location of this file, to include going backwards in the directory
+      with '../'. To address this, ensure that user-controlled variables in file
+      paths are sanitized. You may also consider using a utility method such as
+      org.apache.commons.io.FilenameUtils.getName(...) to only retrieve the file
+      name from the path.
+    metadata:
+      cwe: "CWE-23: Relative Path Traversal"
+      owasp:
+        - A01:2021 - Broken Access Control
+        - A05:2017 - Broken Access Control
+      references:
+        - https://owasp.org/www-community/attacks/Path_Traversal
+      category: security
+      technology:
+        - java
+        - spring
+      license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $METHODNAME(..., @$REQ($LOOKUP) $TYPE $SOURCE,...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  $METHODNAME(..., @$REQ $TYPE $SOURCE,...) {
+                    ...
+                  }
+          - metavariable-regex:
+              metavariable: $REQ
+              regex: (RequestBody|PathVariable|RequestParam|RequestHeader|CookieValue)
+          - pattern: $SOURCE
+    pattern-sinks:
+      - pattern-either:
+          - pattern-either:
+              - pattern: new FileInputStream(...)
+              - pattern: new java.io.FileInputStream(...)
+              - pattern: new FileReader(...)
+              - pattern: new java.io.FileReader(...)
+              - pattern: new File(...)
+              - pattern: new java.io.File(...)
+              - pattern: $SOMETHING.getResourceAsStream(...)
+

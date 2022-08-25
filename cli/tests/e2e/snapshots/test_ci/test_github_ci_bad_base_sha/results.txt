@@ -1,5 +1,5 @@
 === command
-CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_ACTOR="some_test_username" GITHUB_REF="some/branch-name" GITHUB_EVENT_PATH="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --debug --no-force-color
+CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_ACTOR="some_test_username" GITHUB_REF="some/branch-name" GITHUB_EVENT_PATH="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --debug --no-force-color --no-suppress-errors
 === end of command
 
 === exit code
@@ -15,7 +15,7 @@ Findings:
         useless comparison to 5
 
          ▶▶┆ Autofix ▶ bar == 2
-          1┆ bar == 2
+          1┆ bar == 5
 
 === end of stdout - plain
 
@@ -23,7 +23,7 @@ Findings:
 Scan environment:
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment github-actions, triggering event is pull_request
-  semgrep.dev - authenticated as org_name
+  server      - https://semgrep.dev
 
 head branch (bar) has latest commit 17b3114fb3d41437abc2a3e6499db84ad921e6f0, fetching that commit now.
 Trying to shallow fetch branch foo from origin
@@ -38,15 +38,11 @@ Trying to fetch branch foo from origin as base branch
 Trying to fetch branch bar as commit from origin as head branch tip commit
 Using f7ee3123ed098941662685dd8b726fceee48f78d as the merge-base of f7ee3123ed098941662685dd8b726fceee48f78d and 17b3114fb3d41437abc2a3e6499db84ad921e6f0
 Fetching configuration from semgrep.dev
+Getting scan configurations
 Starting scan
-Using https://semgrep.dev<MASKED>
-Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
+Authenticated as org_name
 semgrep version <MASKED>
-Fetching rules from https://semgrep.dev<MASKED>
-trying to download from https://semgrep.dev<MASKED>
-finished downloading from https://semgrep.dev<MASKED>
-loaded 1 configs in<MASKED>
-running 4 rules from 1 config remote-url_0
+running 7 rules from 1 config semgrep-app-rules
 Initializing git status
 Running git diff
 Finished git diff. Parsing git status output
@@ -66,8 +62,11 @@ Rules:
 - eqeq-bad
 - eqeq-five
 - eqeq-four
+- supply-chain1
+- supply-chain2
+- taint-test
 Passing whole rules directly to semgrep_core
-Scanning 1 file with 4 python rules.
+Scanning 1 file with 5 python rules.
 Running semgrep-core with command:
 /<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug
 --- semgrep-core stderr ---
@@ -120,6 +119,25 @@ Running semgrep-core with command:
       "message": "useless comparison to 3",
       "pattern": "$X == 3",
       "severity": "INFO"
+    },
+    {
+      "id": "taint-test",
+      "languages": [
+        "python"
+      ],
+      "message": "unsafe use of danger",
+      "mode": "taint",
+      "pattern-sinks": [
+        {
+          "pattern": "sink($X)"
+        }
+      ],
+      "pattern-sources": [
+        {
+          "pattern": "danger"
+        }
+      ],
+      "severity": "WARNING"
     }
   ]
 }
@@ -134,9 +152,12 @@ Running semgrep-core with command:
 <MASKED>
 <MASKED>
 <MASKED>
+<MASKED>
+<MASKED>
 --- end semgrep-core stderr ---
+skipped 'bar.py' [rule RuleId(value='taint-test')]: SkipReason(value=IrrelevantRule()): No need to perform deeper matching because target does not contain some elements necessary for the rule to match 'taint-test'
 semgrep ran in <MASKED> on 1 files
-findings summary: 1 error, 0 info
+findings summary: 1 error, 0 info, 0 warning
   Current version has 1 finding.
 
 Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
@@ -182,7 +203,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
 CI scan completed successfully.
-  Found 1 finding (0 blocking) from 3 rules.
+  Found 1 finding (0 blocking) from 6 rules.
   Uploading findings to Semgrep App.
 Sending findings blob: {
     "token": null,
@@ -204,10 +225,7 @@ Sending findings blob: {
                 "dev.semgrep.actions": []
             },
             "is_blocking": false,
-            "match_based_id": "81ccf0034358a3caf8caef04451dc035f1b37240ce39ce08044ed5dcaafbe171d65792c5a3119e04e6802388c431ec8967d98a6c5666b1f4502a45df8b1eedd6_0",
-            "fixed_lines": [
-                "bar == 2"
-            ]
+            "match_based_id": "81ccf0034358a3caf8caef04451dc035f1b37240ce39ce08044ed5dcaafbe171d65792c5a3119e04e6802388c431ec8967d98a6c5666b1f4502a45df8b1eedd6_0"
         }
     ],
     "searched_paths": [
@@ -216,7 +234,10 @@ Sending findings blob: {
     "rule_ids": [
         "eqeq-bad",
         "eqeq-five",
-        "eqeq-four"
+        "eqeq-four",
+        "taint-test",
+        "supply-chain1",
+        "supply-chain2"
     ],
     "cai_ids": [
         "__r2c-internal-cai_eqeq"
@@ -232,6 +253,10 @@ Sending complete blob: {
         "errors": [],
         "total_time":<MASKED>
         "unsupported_exts": {},
+        "lockfile_scan_info": {
+            "poetry.lock": 1,
+            "yarn.lock": 1
+        },
         "parse_rate": {
             "python": {
                 "targets_parsed": 1,
@@ -243,6 +268,6 @@ Sending complete blob: {
     }
 }
   No blocking findings so exiting with code 0
-Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is True
+Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
 
 === end of stderr - plain

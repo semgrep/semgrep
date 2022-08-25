@@ -37,6 +37,7 @@ let config =
     report_time = false;
     error_recovery = false;
     profile_start = 0.0;
+    matching_explanations = false;
     pattern_string = "";
     pattern_file = "";
     rules_file = "";

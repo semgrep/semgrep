@@ -20,8 +20,13 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
+from typing import Union
 
+from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
+from semdep.parse_lockfile import parse_lockfile_str
 from semgrep.git import BaselineHandler
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v0 import FoundDependency
 
 # usually this would be a try...except ImportError
 # but mypy understands only this
@@ -111,24 +116,11 @@ class FileTargetingLog:
     # "None" indicates that all lines were skipped
     core_failure_lines_by_file: Mapping[Path, Optional[int]] = Factory(dict)
 
-    by_language: Dict[Language, Set[Path]] = Factory(lambda: defaultdict(set))
+    by_language: Dict[Union[Language, Ecosystem], Set[Path]] = Factory(
+        lambda: defaultdict(set)
+    )
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
-
-    @property
-    def rule_ids_with_skipped_paths(self) -> FrozenSet[str]:
-        """All rule IDs that have skipped paths.
-
-        Note that if a rule ID defines excludes/includes,
-        but they didn't skip any paths,
-        that rule ID will not show up here.
-        """
-        return frozenset(
-            {
-                *(rule_id for rule_id, skips in self.rule_includes.items() if skips),
-                *(rule_id for rule_id, skips in self.rule_excludes.items() if skips),
-            }
-        )
 
     @property
     def unsupported_lang_paths(self) -> Set[Path]:
@@ -376,6 +368,7 @@ class Target:
         If list is empty then returns an empty set
         """
         files: FrozenSet[Path] = frozenset()
+
         if output:
             files = frozenset(
                 p
@@ -489,6 +482,7 @@ class TargetManager:
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
     file_ignore: Optional[FileIgnore] = None
+    lockfile_scan_info: Dict[str, int] = {}
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
@@ -555,21 +549,32 @@ class TargetManager:
         return cast(List[Path], result)
 
     def filter_by_language(
-        self, language: Language, *, candidates: FrozenSet[Path]
+        self, language: Union[Language, Ecosystem], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
-        Returns only paths that have the correct extension or shebang.
+        Returns only paths that have the correct extension or shebang, or are the correct lockfile format
 
         Finds all files in a collection of paths that either:
         - end with one of a set of extension
         - is a script that executes with one of a set of programs
+        - are lockfiles associated with a given ecosystem
         """
-        kept = frozenset(
-            path
-            for path in candidates
-            if any(str(path).endswith(ext) for ext in language.definition.exts)
-            or self.executes_with_shebang(path, language.definition.shebangs)
-        )
+        if isinstance(language, Language):
+            kept = frozenset(
+                path
+                for path in candidates
+                if any(str(path).endswith(ext) for ext in language.definition.exts)
+                or self.executes_with_shebang(path, language.definition.shebangs)
+            )
+        else:
+            kept = frozenset(
+                path
+                for path in candidates
+                if any(
+                    str(path.parts[-1]) == lockfile_name
+                    for lockfile_name in ECOSYSTEM_TO_LOCKFILES[language]
+                )
+            )
         return FilteredFiles(kept, frozenset(candidates - kept))
 
     def filter_known_extensions(self, *, candidates: FrozenSet[Path]) -> FilteredFiles:
@@ -637,10 +642,10 @@ class TargetManager:
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
-    def get_files_for_language(self, lang: Language) -> FilteredFiles:
+    def get_files_for_language(self, lang: Union[Language, Ecosystem]) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
-        an extension matching LANG that match any pattern in INCLUDES and do not
+        an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not
         match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
         If a file in TARGET has a known extension that is not for langugage LANG then
         it is also filtered out
@@ -712,3 +717,17 @@ class TargetManager:
         self.ignore_log.rule_excludes[rule_id].update(paths.removed)
 
         return paths.kept
+
+    @lru_cache(maxsize=None)
+    def get_lockfile_dependencies(
+        self, ecosystem: Ecosystem
+    ) -> Dict[Path, List[FoundDependency]]:
+        lockfiles = self.get_files_for_language(ecosystem).kept
+        parsed: Dict[Path, List[FoundDependency]] = {}
+        for lockfile in lockfiles:
+            deps = parse_lockfile_str(lockfile.read_text(encoding="utf8"), lockfile)
+            if lockfile not in self.lockfile_scan_info:
+                # We haven't seen this file during reachable finding generation
+                self.lockfile_scan_info[str(lockfile)] = len(deps)
+            parsed[lockfile] = deps
+        return parsed

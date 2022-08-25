@@ -178,6 +178,7 @@ class OutputHandler:
             ProfilingData()
         )  # (rule, target) -> duration
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
+        self.explanations: Optional[List[out.MatchingExplanation]] = None
 
         self.final_error: Optional[Exception] = None
         formatter_type = FORMATTERS.get(self.settings.output_format)
@@ -287,6 +288,7 @@ class OutputHandler:
         ignore_log: Optional[FileTargetingLog] = None,
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
+        explanations: Optional[List[out.MatchingExplanation]] = None,
         severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
     ) -> None:
@@ -311,6 +313,8 @@ class OutputHandler:
 
         if profiling_data:
             self.profiling_data = profiling_data
+        if explanations:
+            self.explanations = explanations
         if severities:
             self.severities = severities
 
@@ -412,6 +416,7 @@ class OutputHandler:
             skipped=None,
         )
         cli_timing: Optional[out.CliTiming] = None
+        explanations: Optional[List[out.MatchingExplanation]] = self.explanations
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
         # - The text formatter uses it to store settings
@@ -457,7 +462,9 @@ class OutputHandler:
             self.rules,
             self.rule_matches,
             self.semgrep_structured_errors,
-            out.CliOutputExtra(paths=cli_paths, time=cli_timing),
+            out.CliOutputExtra(
+                paths=cli_paths, time=cli_timing, explanations=explanations
+            ),
             extra,
             self.severities,
         )

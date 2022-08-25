@@ -2,27 +2,24 @@
 # Major targets
 ###############################################################################
 
-# This extracts the folder where the libtree-sitter.{so|a} files are located.
-# It is needed to build the code in tree-sitter-lang.
-# This is not elegant. Alternatives include:
-# - Having a 'configure' script in tree-sitter-lang, which would
-#   tweak the dune setup.
-# - Having a 'configure' script that produces a makefile to be included in
-#   this makefile.
-# - Having a wrapper script set the environment variables and call dune,
-#   e.g. './scripts/with-config dune build'.
-#
-TREESITTER_LIBDIR ?= $(shell pkg-config --libs-only-L tree-sitter \
-                           | sed -e 's/^-L//')
-export TREESITTER_LIBDIR
+# Set environment variables used by dune files to locate the
+# C headers and libraries of the tree-sitter runtime library.
+# This file is created by ocaml-tree-sitter-core's configure script.
+include src/ocaml-tree-sitter-core/tree-sitter-config.mk
 
 .PHONY: all
 all:
 	rm -f bin
-	dune build
-	dune build ./_build/default/tests/test.exe
+	$(MAKE) minimal-build
+	dune build ./_build/default/tests/test.bc
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
+
+# Minimal build of the semgrep-core executable. Intended for the docker build.
+# Requires the environment variables set by the included file above.
+.PHONY: minimal-build
+minimal-build:
+	dune build
 
 .PHONY: clean
 clean:

@@ -251,6 +251,13 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
         MV.E { e = B.L b_lit; _ } )
       when config.constant_propagation ->
         G.equal_literal a_lit b_lit
+    (* We're adding this in as a hack, so that idents without id_infos can be allowed to
+       match to metavariables. Notably, this allows things like qualified identifiers
+       (within decorators) to match to metavariables.
+       This almost certainly should break something at some point in the future, but for
+       now we can allow it.
+    *)
+    | MV.Id ((s1, _), None), MV.Id ((s2, _), Some _) -> s1 = s2
     (* general case, equality modulo-position-and-svalue.
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!

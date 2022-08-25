@@ -1,34 +1,26 @@
 from pathlib import Path
 from typing import Dict
-from typing import Generator
+from typing import Iterator
 from typing import List
+from typing import Set
 from typing import Tuple
 
 import semgrep.output_from_core as core
-from semdep.find_lockfiles import DependencyTrie
-from semdep.models import LockfileDependency
-from semdep.models import PackageManagers
+from semdep.find_lockfiles import find_single_lockfile
 from semdep.package_restrictions import dependencies_range_match_any
-from semdep.package_restrictions import ProjectDependsOnEntry
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.semgrep_interfaces.semgrep_output_v0 import DependencyMatch
+from semgrep.semgrep_interfaces.semgrep_output_v0 import DependencyPattern
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v0 import ScaInfo
+from semgrep.target_manager import TargetManager
+
+SCA_FINDING_SCHEMA = 20220818
 
 
-PACKAGE_MANAGER_MAP = {
-    "pypi": PackageManagers.PYPI,
-    "npm": PackageManagers.NPM,
-    "gem": PackageManagers.GEM,
-    "gomod": PackageManagers.GOMOD,
-    "cargo": PackageManagers.CARGO,
-    "maven": PackageManagers.MAVEN,
-    "gradle": PackageManagers.GRADLE,
-}
-
-
-def parse_depends_on_yaml(
-    entries: List[Dict[str, str]]
-) -> Generator[ProjectDependsOnEntry, None, None]:
+def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyPattern]:
     """
     Convert the entries in the Yaml to ProjectDependsOnEntry objects that specify
     namespace, package name, and semver ranges
@@ -38,77 +30,48 @@ def parse_depends_on_yaml(
         namespace = entry.get("namespace")
         if namespace is None:
             raise SemgrepError(f"project-depends-on is missing `namespace`")
-        pm = PACKAGE_MANAGER_MAP.get(namespace)
-        if pm is None:
-            raise SemgrepError(
-                f"unknown package namespace: {namespace}, only {list(PACKAGE_MANAGER_MAP.keys())} are supported"
-            )
-        package_name = entry.get("package")
-        if package_name is None:
+        try:
+            ecosystem = Ecosystem.from_json(namespace.lower())
+        except ValueError:
+            raise SemgrepError(f"unknown package ecosystem: {namespace}")
+        package = entry.get("package")
+        if package is None:
             raise SemgrepError(f"project-depends-on is missing `package`")
         semver_range = entry.get("version")
         if semver_range is None:
             raise SemgrepError(f"project-depends-on is missing `version`")
-        yield ProjectDependsOnEntry(
-            namespace=pm, package_name=package_name, semver_range=semver_range
+        yield DependencyPattern(
+            ecosystem=ecosystem, package=package, semver_range=semver_range
         )
 
 
-def run_dependency_aware_rule(
-    matches: List[RuleMatch],
-    rule: Rule,
-    dep_trie: DependencyTrie,
-) -> Tuple[List[RuleMatch], List[SemgrepError]]:
-    """
-    Run a dependency aware rule. These rules filters the results based on the precense or absence
-    of dependencies. Dependencies are determined by searching for lockfiles under the first entry
-    in the `targets` argument.
-    """
+def generate_unreachable_sca_findings(
+    rule: Rule, target_manager: TargetManager, exlcude: Set[Path]
+) -> Tuple[List[RuleMatch], List[SemgrepError], Set[Path]]:
     depends_on_keys = rule.project_depends_on
     dep_rule_errors: List[SemgrepError] = []
 
-    if len(depends_on_keys) == 0:
-        # no dependencies to process, so skip
-        return matches, []
-
     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
-    final_matches: List[RuleMatch] = []
+    ecosystems = list(rule.ecosystems)
 
-    namespaces = rule.namespaces
-    dependencies: List[Tuple[Path, List[LockfileDependency]]] = []
-    for ns in namespaces:
-        if ns in dep_trie.all_deps:
-            dependencies.extend(dep_trie.all_deps[ns].items())
-
-    for lockfile_path, deps in dependencies:
-        try:
-            output = list(
-                dependencies_range_match_any(depends_on_entries, lockfile_path, deps)
-            )
-            if not output:
+    non_reachable_matches = []
+    targeted_lockfiles = set()
+    for ecosystem in ecosystems:
+        lockfile_data = target_manager.get_lockfile_dependencies(ecosystem)
+        for lockfile_path, deps in lockfile_data.items():
+            if lockfile_path in exlcude:
                 continue
-
-            output_for_json = [
-                {
-                    "dependency_pattern": vars(dep_pat),
-                    "found_dependency": vars(found_dep),
-                    "lockfile": str(lockfile),
-                }
-                for dep_pat, found_dep, lockfile in output
-            ]
-
-            reachable = []
-            matches_remaining = []
-            for match in matches:
-                if lockfile_path in (dep_trie.find_dependencies(match.path) or {}):
-                    match.extra["dependency_match_only"] = False
-                    match.extra["dependency_matches"] = output_for_json
-                    reachable.append(match)
-                else:
-                    matches_remaining.append(match)
-            matches = matches_remaining
-            if not reachable:
-                dependency_only_match = RuleMatch(
+            targeted_lockfiles.add(lockfile_path)
+            dependency_matches = list(
+                dependencies_range_match_any(depends_on_entries, list(deps))
+            )
+            for dep_pat, found_dep in dependency_matches:
+                dep_match = DependencyMatch(
+                    dependency_pattern=dep_pat,
+                    found_dependency=found_dep,
+                    lockfile=str(lockfile_path),
+                )
+                match = RuleMatch(
                     message=rule.message,
                     metadata=rule.metadata,
                     severity=rule.severity,
@@ -126,14 +89,59 @@ def run_dependency_aware_rule(
                         extra=core.CoreMatchExtra(metavars=core.Metavars({})),
                     ),
                     extra={
-                        "dependency_match_only": True,
-                        "dependency_matches": output_for_json,
+                        "sca_info": ScaInfo(
+                            sca_finding_schema=SCA_FINDING_SCHEMA,
+                            reachable=False,
+                            reachability_rule=rule.should_run_on_semgrep_core,
+                            dependency_match=dep_match,
+                        )
                     },
                 )
-                final_matches.append(dependency_only_match)
-            else:
-                final_matches.extend(reachable)
+                non_reachable_matches.append(match)
+    return non_reachable_matches, dep_rule_errors, targeted_lockfiles
 
-        except SemgrepError as e:
-            dep_rule_errors.append(e)
-    return final_matches, dep_rule_errors
+
+def generate_reachable_sca_findings(
+    matches: List[RuleMatch], rule: Rule, target_manager: TargetManager
+) -> Tuple[List[RuleMatch], List[SemgrepError], Set[Path]]:
+    depends_on_keys = rule.project_depends_on
+    dep_rule_errors: List[SemgrepError] = []
+
+    depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
+    ecosystems = list(rule.ecosystems)
+
+    # Reachability rule
+    reachable_matches = []
+    matched_lockfiles = set()
+    for ecosystem in ecosystems:
+        for match in matches:
+            try:
+                lockfile_data = find_single_lockfile(match.path, ecosystem)
+                if lockfile_data is None:
+                    continue
+                lockfile_path, deps = lockfile_data
+                if str(lockfile_path) not in target_manager.lockfile_scan_info:
+                    # If the lockfile is not part of the actual targets or we just haven't parsed this lockfile yet
+                    target_manager.lockfile_scan_info[str(lockfile_path)] = len(deps)
+
+                dependency_matches = list(
+                    dependencies_range_match_any(depends_on_entries, deps)
+                )
+                if dependency_matches:
+                    matched_lockfiles.add(lockfile_path)
+                for dep_pat, found_dep in dependency_matches:
+                    dep_match = DependencyMatch(
+                        dependency_pattern=dep_pat,
+                        found_dependency=found_dep,
+                        lockfile=str(lockfile_path),
+                    )
+                    match.extra["sca_info"] = ScaInfo(
+                        sca_finding_schema=SCA_FINDING_SCHEMA,
+                        reachable=True,
+                        reachability_rule=rule.should_run_on_semgrep_core,
+                        dependency_match=dep_match,
+                    )
+                    reachable_matches.append(match)
+            except SemgrepError as e:
+                dep_rule_errors.append(e)
+    return reachable_matches, dep_rule_errors, matched_lockfiles

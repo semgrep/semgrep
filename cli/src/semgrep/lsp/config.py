@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Collection
+from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -13,6 +14,7 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.commands.ci
+import semgrep.output_from_core as core
 import semgrep.semgrep_main
 from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
@@ -131,8 +133,8 @@ class LSPConfig:
             else f" to {state.env.semgrep_url}"
         )
         metadata_dict = metadata.to_dict()
-        scan_handler.start_scan(metadata_dict)
-        return scan_handler.scan_rules_url
+        scan_handler.fetch_and_init_scan_config(metadata_dict)
+        return scan_handler.rules
 
     # =====================
     # Semgrep LSP settings
@@ -239,7 +241,9 @@ class LSPConfig:
             ProfileManager,
             ProfilingData,
             ParsingData,
+            Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         """Generate a scanner according to the config"""
@@ -281,7 +285,9 @@ class LSPConfig:
             ProfileManager,
             ProfilingData,
             ParsingData,
+            Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         return self._scanner(configs=self.configs)
@@ -300,7 +306,9 @@ class LSPConfig:
             ProfileManager,
             ProfilingData,
             ParsingData,
+            Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         return self._scanner(configs=[self.scan_url])

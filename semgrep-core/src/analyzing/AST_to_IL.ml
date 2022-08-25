@@ -100,6 +100,12 @@ let fixme_stmt kind gany =
 (* Helpers *)
 (*****************************************************************************)
 let fresh_var ?(str = "_tmp") _env tok =
+  let tok =
+    (* We don't want "fake" auxiliary variables to have non-fake tokens, otherwise
+       we confuse ourselves! E.g. during taint-tracking we don't want to add these
+       variables to the taint trace. *)
+    if Parse_info.is_fake tok then tok else Parse_info.fake_info tok str
+  in
   let i = H.gensym () in
   { ident = (str, tok); sid = i; id_info = G.empty_id_info () }
 
@@ -496,15 +502,16 @@ and expr_aux env ?(void = false) e_gen =
         args ) ->
       (* obj.concat(args) *)
       (* NOTE: Often this will be string concatenation but not necessarily! *)
-      let obj' = lval env obj in
-      let obj_arg' = mk_e (Fetch obj') (SameAs obj) in
+      let obj_arg' = expr env obj in
       let args' = arguments env args in
       let res =
         match env.lang with
         (* Ruby's concat method is side-effectful and updates the object. *)
         (* TODO: The lval in the LHs should have a differnt svalue than the
          * one in the RHS. *)
-        | Lang.Ruby -> obj'
+        | Lang.Ruby -> (
+            try lval env obj with
+            | Fixme _ -> fresh_lval ~str:"Fixme" env tok)
         | _ -> fresh_lval env tok
       in
       add_instr env
