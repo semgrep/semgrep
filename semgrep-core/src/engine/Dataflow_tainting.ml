@@ -23,7 +23,6 @@ module R = Rule
 module LV = IL_lvalue_helpers
 module T = Taint
 module Taints = T.Taint_set
-module S = Specialize_formula
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -63,17 +62,17 @@ type 'spec tmatch = { spec : 'spec; pm : PM.t; overlap : overlap }
 
 type a_propagator = {
   kind : [ `From | `To ];
-  prop : S.taint_propagator;
+  prop : R.taint_propagator;
   var : var;
 }
 
 type config = {
   filepath : Common.filename;
   rule_id : string;
-  is_source : G.any -> S.taint_source tmatch list;
+  is_source : G.any -> R.taint_source tmatch list;
   is_propagator : AST_generic.any -> a_propagator tmatch list;
-  is_sink : G.any -> S.taint_sink tmatch list;
-  is_sanitizer : G.any -> S.taint_sanitizer tmatch list;
+  is_sink : G.any -> R.taint_sink tmatch list;
+  is_sanitizer : G.any -> R.taint_sanitizer tmatch list;
   unify_mvars : bool;
   handle_findings :
     var option -> T.finding list -> Taints.t Dataflow_core.env -> unit;
@@ -178,7 +177,7 @@ let labels_in_taint taints : LabelSet.t =
          match t.orig with
          | Src src ->
              let _, ts = T.pm_of_trace src in
-             Some ts.S.label
+             Some ts.R.label
          | Arg _ -> None)
   |> LabelSet.of_seq
 

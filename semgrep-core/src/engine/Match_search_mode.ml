@@ -21,7 +21,6 @@ module G = AST_generic
 module PI = Parse_info
 module MV = Metavariable
 module RP = Report
-module S = Specialize_formula
 module RM = Range_with_metavars
 module E = Semgrep_error_code
 module ME = Matching_explanation
@@ -99,14 +98,21 @@ let debug_matches = ref false
 (*****************************************************************************)
 (* The types are now defined in Match_env.ml *)
 
+type selector = {
+  mvar : MV.mvar;
+  pattern : AST_generic.any;
+  pid : int;
+  pstr : string R.wrap;
+}
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 let ( let* ) = Option.bind
 
-let xpatterns_in_formula (e : S.sformula) : (Xpattern.t * bool) list =
+let xpatterns_in_formula (e : R.formula) : (Xpattern.t * bool) list =
   let res = ref [] in
-  e |> S.visit_sformula (fun xpat b -> Common.push (xpat, b) res);
+  e |> R.visit_new_formula (fun xpat b -> Common.push (xpat, b) res);
   !res
 
 let partition_xpatterns xs =
@@ -252,7 +258,7 @@ let run_selector_on_ranges env selector_opt ranges =
   | None, ranges ->
       (* Nothing to select. *)
       ranges
-  | Some { S.pattern; pid; pstr; _ }, ranges ->
+  | Some { pattern; pid; pstr; _ }, ranges ->
       (* Find matches of `pattern` *but* only inside `ranges`, this prevents
        * matching and allocations that are wasteful because they are going to
        * be thrown away later when interesecting the results. *)
@@ -491,10 +497,10 @@ and nested_formula_has_matches env formula opt_context =
 (* Formula evaluation *)
 (*****************************************************************************)
 
-and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
+and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
     RM.ranges * Matching_explanation.t option =
   match e with
-  | S.Leaf ({ XP.pid = id; pstr = pstr, tok; _ } as xpat) ->
+  | R.P ({ XP.pid = id; pstr = pstr, tok; _ } as xpat) ->
       let match_results =
         try Hashtbl.find_all env.pattern_matches id with
         | Not_found -> []
@@ -513,10 +519,8 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
       in
       let expl = if_explanations env ranges children (Out.XPat pstr, tok) in
       (ranges, expl)
-  | S.Taint (tok, tspec) ->
-      let evaluate_formula sformula =
-        evaluate_formula env opt_context sformula
-      in
+  | R.Taint (tok, tspec) ->
+      let evaluate_formula formula = evaluate_formula env opt_context formula in
       let ranges, expls =
         Match_tainting_mode.get_matches_raw env tspec evaluate_formula
       in
@@ -526,26 +530,18 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
           (Out.Taint, tok)
       in
       (ranges, expl)
-  | S.Inside (tok, formula) ->
+  | R.Inside (tok, formula) ->
       let ranges, expls = evaluate_formula env opt_context formula in
       let expl = if_explanations env ranges [ expls ] (Out.Inside, tok) in
       (Common.map (fun r -> { r with RM.kind = RM.Inside }) ranges, expl)
-  | S.Or (tok, xs) ->
+  | R.Or (tok, xs) ->
       let ranges, expls =
         xs |> Common.map (evaluate_formula env opt_context) |> Common2.unzip
       in
       let ranges = List.flatten ranges in
       let expl = if_explanations env ranges expls (Out.Or, tok) in
       (ranges, expl)
-  | S.And
-      ( tok,
-        {
-          selector_opt;
-          positives = pos;
-          negatives = neg;
-          conditionals = conds;
-          focus;
-        } ) -> (
+  | R.And { conj_tok; conjuncts; conditions = conds; focus; _ } -> (
       (* we now treat pattern: and pattern-inside: differently. We first
        * process the pattern: and then the pattern-inside.
        * This fixed only one mismatch in semgrep-rules.
@@ -559,6 +555,52 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
        *      intersect_ranges acc (evaluate_formula env x)
        * ...
        *)
+
+      (* This code used to live in Specialize_formula.
+         We shouldn't need to translate the entire formula for just the
+         `And`s, though. I think we can just split the positives, negatives,
+         and selectors when we actually get to evaluating it.
+      *)
+      let selector_equal s1 s2 = s1.mvar = s2.mvar in
+      let selector_from_formula f =
+        match f with
+        | R.P { Xpattern.pat = Sem (pattern, _); pid; pstr } -> (
+            match pattern with
+            | G.E { e = G.N (G.Id ((mvar, _), _)); _ }
+              when MV.is_metavar_name mvar ->
+                Some { mvar; pattern; pid; pstr }
+            | _ -> None)
+        | _ -> None
+      in
+      let rec remove_selectors (selector, acc) formulas =
+        match formulas with
+        | [] -> (selector, acc)
+        | x :: xs ->
+            let selector, acc =
+              match (selector, selector_from_formula x) with
+              | None, None -> (None, x :: acc)
+              | Some s, None -> (Some s, x :: acc)
+              | None, Some s -> (Some s, acc)
+              | Some s1, Some s2 when selector_equal s1 s2 -> (Some s1, acc)
+              | Some s1, Some _s2 ->
+                  (* patterns:
+                     * ...
+                     * - pattern: $X
+                     * - pattern: $Y
+                  *)
+                  (* TODO: Should we fail here or just reported as a warning? This
+                     * is something to catch with the meta-checker. *)
+                  (Some s1, x :: acc)
+            in
+            remove_selectors (selector, acc) xs
+      in
+      let pos, neg = Rule.split_and conjuncts in
+      let selector_opt, pos =
+        (* We only want a selector if there is something to select from. *)
+        match remove_selectors (None, []) pos with
+        | _, [] -> (None, pos)
+        | sel, pos -> (sel, pos)
+      in
 
       (* let's start with the positive ranges *)
       let posrs, posrs_expls =
@@ -658,14 +700,13 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
           let expl =
             if_explanations env ranges
               (posrs_expls @ negs_expls @ filter_expls @ focus_expls)
-              (Out.And, tok)
+              (Out.And, conj_tok)
           in
           (ranges, expl))
-  | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
+  | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"
 
 and matches_of_formula xconf rule xtarget formula opt_context :
     RP.rule_profiling RP.match_result * RM.ranges =
-  let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
   let mvar_context : Metavariable.bindings option =
     Option.map (fun s -> s.RM.mvars) opt_context

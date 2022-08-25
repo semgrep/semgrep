@@ -367,29 +367,41 @@ let register_exception_printer () = Printexc.register_printer opt_string_of_exn
 (* Visitor/extractor *)
 (*****************************************************************************)
 (* currently used in Check_rule.ml metachecker *)
-let rec visit_new_formula f formula =
-  match formula with
-  | P p -> f p
-  | Inside (_, formula) -> visit_new_formula f formula
-  | Taint (_, { sources; propagators; sanitizers; sinks }) ->
-      let apply g l =
-        Common.map (g (visit_new_formula f)) l |> ignore;
-        ()
-      in
-      apply visit_source (sources |> snd);
-      apply visit_propagate propagators;
-      apply visit_sink (sinks |> snd);
-      apply visit_sanitizer sanitizers;
-      ()
-  | Not (_, x) -> visit_new_formula f x
-  | Or (_, xs)
-  | And { conjuncts = xs; _ } ->
-      xs |> List.iter (visit_new_formula f)
 
-and visit_source f { source_formula; _ } = f source_formula
-and visit_sink f { sink_formula; _ } = f sink_formula
-and visit_propagate f { propagate_formula; _ } = f propagate_formula
-and visit_sanitizer f { sanitizer_formula; _ } = f sanitizer_formula
+(* OK, this is only a little disgusting, but...
+   Evaluation order means that we will only visit children after parents.
+   So we keep a reference cell around, and set it to true whenever we descend
+   under an inside.
+   That way, pattern leaves underneath an Inside will properly be paired with
+   a true boolean.
+*)
+let visit_new_formula f formula =
+  let bref = ref false in
+  let rec visit_new_formula f formula =
+    match formula with
+    | P p -> f p !bref
+    | Inside (_, formula) ->
+        bref := true;
+        visit_new_formula f formula
+    | Taint (_, { sources; propagators; sanitizers; sinks }) ->
+        let apply g l =
+          Common.map (g (visit_new_formula f)) l |> ignore;
+          ()
+        in
+        apply visit_source (sources |> snd);
+        apply visit_propagate propagators;
+        apply visit_sink (sinks |> snd);
+        apply visit_sanitizer sanitizers;
+        ()
+    | Not (_, x) -> visit_new_formula f x
+    | Or (_, xs)
+    | And { conjuncts = xs; _ } ->
+        xs |> List.iter (visit_new_formula f)
+  and visit_source f { source_formula; _ } = f source_formula
+  and visit_sink f { sink_formula; _ } = f sink_formula
+  and visit_propagate f { propagate_formula; _ } = f propagate_formula
+  and visit_sanitizer f { sanitizer_formula; _ } = f sanitizer_formula in
+  visit_new_formula f formula
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function

@@ -21,7 +21,6 @@ module R = Rule
 module PM = Pattern_match
 module RM = Range_with_metavars
 module RP = Report
-module S = Specialize_formula
 module T = Taint
 module PI = Parse_info
 module MV = Metavariable
@@ -79,9 +78,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 type debug_taint = {
-  sources : (RM.t * S.taint_source) list;
+  sources : (RM.t * R.taint_source) list;
   sanitizers : RM.ranges;
-  sinks : (RM.t * S.taint_sink) list;
+  sinks : (RM.t * R.taint_sink) list;
 }
 
 (*****************************************************************************)
@@ -117,7 +116,7 @@ type propagator_match = {
   rwm : RM.t;
   from : Range.t;  (** The range matched by the `from` metavariable. *)
   to_ : Range.t;  (** The range matched by the `to` metavariable. *)
-  spec : S.taint_propagator;
+  spec : R.taint_propagator;
 }
 (** Taint will flow from `from` to `to_` through the axiliary variable `id`. *)
 
@@ -145,16 +144,16 @@ let find_range_w_metas evaluate_fn specs =
          let range, expls = range_w_metas_of_pformula evaluate_fn f in
          (range |> Common.map (fun rwm -> (rwm, x)), expls))
 
-let find_sanitizers_matches evaluate_fn (specs : S.taint_sanitizer list) :
-    (bool * RM.t * S.taint_sanitizer) list * ME.t list =
+let find_sanitizers_matches evaluate_fn (specs : R.taint_sanitizer list) :
+    (bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
   |> concat_map_with_expls (fun sanitizer ->
          let ranges, expls =
-           range_w_metas_of_pformula evaluate_fn sanitizer.S.sanitizer_formula
+           range_w_metas_of_pformula evaluate_fn sanitizer.R.sanitizer_formula
          in
          ( ranges
            |> Common.map (fun pf ->
-                  (sanitizer.S.not_conflicting, pf, sanitizer)),
+                  (sanitizer.R.not_conflicting, pf, sanitizer)),
            expls ))
 
 (* Finds all matches of `pattern-propagators`. *)
@@ -162,11 +161,11 @@ let find_propagators_matches evaluate_fn propagators_spec =
   let ( let* ) = Option.bind in
   let module MV = Metavariable in
   propagators_spec
-  |> List.concat_map (fun (p : S.taint_propagator) ->
+  |> List.concat_map (fun (p : R.taint_propagator) ->
          let mvar_pfrom, tok_pfrom = p.from in
          let mvar_pto, tok_pto = p.to_ in
          let ranges_w_metavars, _expsTODO =
-           range_w_metas_of_pformula evaluate_fn p.S.propagate_formula
+           range_w_metas_of_pformula evaluate_fn p.R.propagate_formula
          in
          (* Now, for each match of the propagator pattern, we try to construct
           * a `propagator_match`. We just need to look up what code is captured
@@ -328,7 +327,7 @@ let ( let* ) = Option.bind
 (* Main entry points *)
 (*****************************************************************************)
 
-let get_taint_config env evaluate_fn (spec : S.taint_spec) handle_findings =
+let get_taint_config env evaluate_fn (spec : R.taint_spec) handle_findings =
   let xconf =
     Match_env.adjust_xconfig_with_rule_options env.Match_env.xconf
       env.rule.options
@@ -336,17 +335,17 @@ let get_taint_config env evaluate_fn (spec : S.taint_spec) handle_findings =
   let sources_ranges, expls_sources =
     find_range_w_metas evaluate_fn
       (spec.sources |> snd
-      |> Common.map (fun (src : S.taint_source) -> (src.source_formula, src)))
+      |> Common.map (fun (src : R.taint_source) -> (src.source_formula, src)))
   and propagators_ranges = find_propagators_matches evaluate_fn spec.propagators
   and sinks_ranges, expls_sinks =
     find_range_w_metas evaluate_fn
       (spec.sinks |> snd
-      |> Common.map (fun (sink : S.taint_sink) -> (sink.sink_formula, sink)))
+      |> Common.map (fun (sink : R.taint_sink) -> (sink.sink_formula, sink)))
   in
   let sanitizers_ranges, _exps_sanitizersTODO =
     find_sanitizers_matches evaluate_fn spec.sanitizers
   in
-  let (sanitizers_ranges : (RM.t * S.taint_sanitizer) list) =
+  let (sanitizers_ranges : (RM.t * R.taint_sanitizer) list) =
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
      * filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
      * to assume that any other function will handle tainted data safely.
