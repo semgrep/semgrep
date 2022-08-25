@@ -320,6 +320,7 @@ Would have sent findings and ignores blog: {
         "eqeq-bad",
         "eqeq-five",
         "eqeq-four",
+        "__r2c-internal-cai_eqeq",
         "taint-test",
         "supply-chain1",
         "supply-chain2"
