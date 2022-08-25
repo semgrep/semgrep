@@ -69,7 +69,7 @@
   (action
     ; "$ORIGIN" is a special rpath that means to load from the directory
     ; where the referring object was loaded from.
-    (run %{cc} -shared -o %{target} %{deps} -Wl,-rpath=$ORIGIN
+    (run %{cc} -shared -o %{target} %{deps} -Wl,-rpath,$ORIGIN
            %{read-lines:python3-config-cflags.txt})
   )
 )
