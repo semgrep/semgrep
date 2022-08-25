@@ -217,7 +217,6 @@ class ScanHandler:
         """
         state = get_state()
         all_ids = [r.id for r in rules]
-        _, rule_ids = partition(all_ids, lambda r_id: "r2c-internal-cai" in r_id)
 
         all_matches = [
             match
@@ -238,7 +237,7 @@ class ScanHandler:
                 for match in new_matches
             ],
             "searched_paths": [str(t) for t in targets],
-            "rule_ids": rule_ids,
+            "rule_ids": all_ids,
             "ignores": [
                 match.to_app_finding_format(commit_date).to_json()
                 for match in new_ignored
