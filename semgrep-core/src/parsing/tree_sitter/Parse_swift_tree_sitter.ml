@@ -3339,6 +3339,9 @@ let parse_pattern str =
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in
       match map_source_file env cst with
+      | G.Pr [ { s = G.ExprStmt (e, _); _ } ] -> G.E e
+      | G.Ss [ { s = G.ExprStmt (e, _); _ } ] -> G.E e
+      | G.S { s = G.ExprStmt (e, _); _ } -> G.E e
       | G.Pr [ x ] -> G.S x
       | G.Pr xs -> G.Ss xs
       | G.Ss [ x ] -> G.S x
