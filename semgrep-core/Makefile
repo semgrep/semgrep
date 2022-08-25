@@ -11,7 +11,7 @@ include src/ocaml-tree-sitter-core/tree-sitter-config.mk
 all:
 	rm -f bin
 	$(MAKE) minimal-build
-	dune build ./_build/default/tests/test.bc
+	dune build ./_build/default/tests/test.exe
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
 
