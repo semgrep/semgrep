@@ -500,19 +500,18 @@ def test_full_run(
 
     snapshot.assert_match(json.dumps(scan_create_json, indent=2), "meta.json")
 
-    findings_json = post_calls[1].kwargs["json"]
-    for f in findings_json["findings"]:
+    findings_and_ignores_json = post_calls[1].kwargs["json"]
+    for f in findings_and_ignores_json["findings"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
-    snapshot.assert_match(json.dumps(findings_json, indent=2), "findings.json")
-
-    ignores_json = post_calls[2].kwargs["json"]
-    for f in ignores_json["findings"]:
+    for f in findings_and_ignores_json["ignores"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
-    snapshot.assert_match(json.dumps(ignores_json, indent=2), "ignores.json")
+    snapshot.assert_match(
+        json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
+    )
 
-    complete_json = post_calls[3].kwargs["json"]
+    complete_json = post_calls[2].kwargs["json"]
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
 
