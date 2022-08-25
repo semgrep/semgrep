@@ -572,30 +572,14 @@ let parse_xpattern_expr env e =
 let find_formula env (rule_dict : dict) : key * G.expr =
   let find key_str = Hashtbl.find_opt rule_dict.h key_str in
   match
-    ( find "pattern",
-      find "and",
-      find "or",
-      find "regex",
-      find "taint",
-      find "not",
-      find "inside" )
+    find_some_opt find
+      [ "pattern"; "and"; "or"; "regex"; "taint"; "not"; "inside" ]
   with
-  | None, None, None, None, None, None, None ->
+  | None ->
       error env rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
          `pattern-regex`, `pattern-comby` to be present"
-  | Some (key, value), None, None, None, None, None, None
-  | None, Some (key, value), None, None, None, None, None
-  | None, None, Some (key, value), None, None, None, None
-  | None, None, None, Some (key, value), None, None, None
-  | None, None, None, None, Some (key, value), None, None
-  | None, None, None, None, None, Some (key, value), None
-  | None, None, None, None, None, None, Some (key, value) ->
-      (key, value)
-  | _ ->
-      error env rule_dict.first_tok
-        "Expected only one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, or `pattern-comby`"
+  | Some (key, value) -> (key, value)
 
 let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
   match value.G.e with
@@ -885,16 +869,23 @@ let rec parse_pattern env (value : G.expr) : R.formula =
   (* If that doesn't work, it should be a key-value pairing.
    *)
   | Right dict -> (
-      let formula = parse_pair env (find_formula env dict) in
+      (* This is ugly, but here's why. *)
+      (* First, we need to figure out if there's a `where`. *)
       let where_formula =
-        take_opt dict env
-          (fun env (s, t) value ->
-            constrain_where env (t, t) (s, t) value formula)
-          "where"
+        take_opt dict env (fun _env key value -> (key, value)) "where"
       in
       match where_formula with
-      | Some res -> res
-      | None -> formula)
+      (* If there's a `where`, then there must be one key left, the other of which is the
+         pattern. *)
+      | _ when Hashtbl.length dict.h <> 1 ->
+          error env dict.first_tok
+            "Expected exactly one key of `pattern`, `pattern-either`, \
+             `patterns`, `pattern-regex`, or `pattern-comby`"
+      (* Otherwise, use the where formula if it exists, to modify the formula we know must exist. *)
+      | None -> parse_pair env (find_formula env dict)
+      | Some (((_, t) as key), value) ->
+          parse_pair env (find_formula env dict)
+          |> constrain_where env (t, t) key value)
 
 and produce_constraint env dict indicator =
   match indicator with
