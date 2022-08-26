@@ -4,7 +4,7 @@ set -eux
 
 brew update # Needed to sidestep bintray brownout
 brew install opam pkg-config coreutils pcre gettext
-brew upate
+brew update
 opam init --no-setup --bare;
 #coupling: this should be the same version than in our Dockerfile
 if opam switch 4.14.0 ; then
