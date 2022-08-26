@@ -459,7 +459,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: semgrep-osx-${{ github.sha }}
+          name: semgrep-osx
           path: artifacts
 
   test-macos-release:
@@ -472,7 +472,7 @@ jobs:
       - name: download artifacts
         uses: actions/download-artifact@v3
         with:
-          name: semgrep-osx-${{ github.sha }}
+          name: semgrep-osx
           path: artifacts
       - name: Remove pcre dynamic lib
         run: rm /usr/local/opt/pcre/lib/libpcre.1.dylib || true
