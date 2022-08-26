@@ -3,11 +3,17 @@
 set -eux
 
 brew update # Needed to sidestep bintray brownout
-brew install opam pkg-config coreutils pcre
+brew install opam pkg-config coreutils pcre gettext
+brew upate
 opam init --no-setup --bare;
 #coupling: this should be the same version than in our Dockerfile
-opam switch create 4.14.0
-opam switch 4.14.0
+if opam switch 4.14.0 ; then
+    echo "Switch 4.14.0 exists, continuing"
+else
+    echo "Switch 4.14.0 doesn't yet exist, creating..."
+    opam switch create 4.14.0
+    opam switch 4.14.0
+fi
 git submodule update --init --recursive --depth 1
 
 eval "$(opam env)"
