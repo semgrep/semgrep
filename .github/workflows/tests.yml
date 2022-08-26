@@ -475,7 +475,7 @@ jobs:
           name: semgrep-osx
           path: artifacts
       - name: Remove pcre dynamic lib
-        run: rm /usr/local/opt/pcre/lib/libpcre.1.dylib
+        run: rm /usr/local/opt/pcre/lib/libpcre.1.dylib || true
       - name: test build artifacts
         run: |
           chmod +x ./artifacts/semgrep-core
