@@ -34,7 +34,7 @@ update_init_py() {
 }
 
 update_version_ml() {
-  target=semgrep-core/src/cli-lib/version.ml
+  target=semgrep-core/src/cli/version.ml
   targets+=" $target"
   echo "Updating $target"
   sed_in_place 's/let version = ".*"/let version = "'"$release"'"/g' "$target"

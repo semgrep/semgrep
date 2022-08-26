@@ -30,13 +30,7 @@ def dump_parsed_ast(
         if to_json:
             args = ["-json"] + args
 
-        # Use the executable even if the module is available.  This
-        # one-off usage does not employ the usual progress protocol on
-        # stdout, and does different things with the child's stderr than
-        # the normal case (namely, it discards it or passes it through
-        # depending on --quiet).  StreamingSemgrepCore could be extended
-        # with these capabilities in the future if desired.
-        cmd = [SemgrepCore.executable_path()] + args
+        cmd = [SemgrepCore.path()] + args
         try:
             output = sub_check_output(cmd)
         except subprocess.CalledProcessError as ex:

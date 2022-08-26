@@ -68,7 +68,7 @@ Rules:
 Passing whole rules directly to semgrep_core
 Scanning 1 file with 5 python rules.
 Running semgrep-core with command:
-/<MASKED>/semgrep<MASKED> -json -rules <MASKED>-json_time -fast --debug
+/<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug
 --- semgrep-core stderr ---
 <MASKED>
 <MASKED>
