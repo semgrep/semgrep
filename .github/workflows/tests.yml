@@ -469,9 +469,6 @@ jobs:
     if: (!contains(github.event_name, 'pull_request')) || contains(github.event.pull_request.head.ref, 'release-')
     needs: [build-macos-release]
     steps:
-      - name: ensure correct permissions on artifacts
-        run: |
-          chmod -R 755 ./artifacts
       - name: download artifacts
         uses: actions/download-artifact@v3
         with:
