@@ -552,18 +552,18 @@ and evaluate_formula_with_taint_info (env : env) (opt_context : RM.t option)
         (ranges, expl)
     | R.And { conj_tok; conjuncts; conditions = conds; focus; _ } -> (
         (* we now treat pattern: and pattern-inside: differently. We first
-           * process the pattern: and then the pattern-inside.
-           * This fixed only one mismatch in semgrep-rules.
-           *
-           * old: the old code was simpler ... but incorrect.
-           *  (match pos with
-           *  | [] -> failwith "empty And; no positive terms in And"
-           *  | start::pos ->
-           *     let res = evaluate_formula env start in
-           *    let res = pos |> List.fold_left (fun acc x ->
-           *      intersect_ranges acc (evaluate_formula env x)
-           * ...
-        *)
+         * process the pattern: and then the pattern-inside.
+         * This fixed only one mismatch in semgrep-rules.
+         *
+         * old: the old code was simpler ... but incorrect.
+         *  (match pos with
+         *  | [] -> failwith "empty And; no positive terms in And"
+         *  | start::pos ->
+         *     let res = evaluate_formula env start in
+         *    let res = pos |> List.fold_left (fun acc x ->
+         *      intersect_ranges acc (evaluate_formula env x)
+         * ...
+         *)
 
         (* This code used to live in Specialize_formula.
            We shouldn't need to translate the entire formula for just the
@@ -616,12 +616,12 @@ and evaluate_formula_with_taint_info (env : env) (opt_context : RM.t option)
           Common.map (evaluate_formula env opt_context) pos |> Common2.unzip
         in
         (* subtle: we need to process and intersect the pattern-inside after
-           * (see tests/OTHER/rules/inside.yaml).
-           * TODO: this is ugly; AND should be commutative, so we should just
-           * merge ranges, not just filter one or the other.
-           * update: however we have some tests that rely on pattern-inside:
-           * being special, see tests/OTHER/rules/and_inside.yaml.
-        *)
+         * (see tests/OTHER/rules/inside.yaml).
+         * TODO: this is ugly; AND should be commutative, so we should just
+         * merge ranges, not just filter one or the other.
+         * update: however we have some tests that rely on pattern-inside:
+         * being special, see tests/OTHER/rules/and_inside.yaml.
+         *)
         let posrs, posrs_inside =
           posrs
           |> Common.partition_either (fun xs ->
@@ -671,20 +671,20 @@ and evaluate_formula_with_taint_info (env : env) (opt_context : RM.t option)
                    (ranges, [])
             in
             (* let's apply additional filters.
-               * TODO: Note that some metavariable-regexp may be part of an
-               * AND where not all patterns define the metavar, e.g.,
-               *   pattern-inside: def $FUNC() ...
-               *   pattern: return $X
-               *   metavariable-regexp: $FUNC regex: (foo|bar)
-               * in which case the order in which we do the operation matters
-               * (at this point intersect_range will have filtered the
-               *  range of the pattern_inside).
-               * alternative solutions?
-               *  - bind closer metavariable-regexp with the relevant pattern
-               *  - propagate metavariables when intersecting ranges
-               *  - distribute filter_range in intersect_range?
-               * See https://github.com/returntocorp/semgrep/issues/2664
-            *)
+             * TODO: Note that some metavariable-regexp may be part of an
+             * AND where not all patterns define the metavar, e.g.,
+             *   pattern-inside: def $FUNC() ...
+             *   pattern: return $X
+             *   metavariable-regexp: $FUNC regex: (foo|bar)
+             * in which case the order in which we do the operation matters
+             * (at this point intersect_range will have filtered the
+             *  range of the pattern_inside).
+             * alternative solutions?
+             *  - bind closer metavariable-regexp with the relevant pattern
+             *  - propagate metavariables when intersecting ranges
+             *  - distribute filter_range in intersect_range?
+             * See https://github.com/returntocorp/semgrep/issues/2664
+             *)
             let ranges, filter_expls =
               conds
               |> List.fold_left
@@ -717,8 +717,8 @@ and evaluate_formula_with_taint_info (env : env) (opt_context : RM.t option)
     | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"
   in
   let ranges, expl = evaluate_formula env opt_context e in
-  let taint_info = !taint_acc in
-  (ranges, expl, taint_info)
+  let taint_infos = !taint_acc in
+  (ranges, expl, taint_infos)
 
 and matches_of_formula xconf rule xtarget formula opt_context :
     RP.rule_profiling RP.match_result
