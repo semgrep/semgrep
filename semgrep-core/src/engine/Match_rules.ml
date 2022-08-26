@@ -111,18 +111,12 @@ let check ~match_hook ~timeout ~timeout_threshold xconf rules xtarget =
                        | `Search _ as mode ->
                            Match_search_mode.check_rule { r with mode }
                              match_hook xconf xtarget
-                       | `Taint _ as mode ->
-                           (* TODO: 'debug_taint' should just be part of 'res'
-                            * (i.e., add a "debugging" field to 'Report.match_result'). *)
-                           let res, _TODO_debug_taint =
-                             Match_tainting_mode.check_rule { r with mode }
-                               match_hook xconf xtarget
-                           in
-                           res
+                           |> fst
                        | `Extract extract_spec ->
                            Match_search_mode.check_rule
                              { r with mode = `Search extract_spec.formula }
-                             match_hook xconf xtarget)
+                             match_hook xconf xtarget
+                           |> fst)
                  in
                  match match_result with
                  | Some res -> Left res

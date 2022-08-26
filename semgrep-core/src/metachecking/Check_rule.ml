@@ -97,6 +97,26 @@ let unknown_metavar_in_comparison env f =
         let metavars = words |> List.filter Metavariable.is_metavar_name in
         Set.union (Set.of_list metavars) (Set.of_list ellipsis_metavars)
     | Inside (_, f) -> collect_metavars f
+    | Taint (_, { sources; sanitizers; sinks; propagators }) ->
+        let union_sets sets = List.fold_left Set.union Set.empty sets in
+        List.map union_sets
+          [
+            Common.map collect_metavars
+              (Common.map
+                 (fun source -> source.R.source_formula)
+                 (sources |> snd));
+            Common.map collect_metavars
+              (Common.map (fun sink -> sink.R.sink_formula) (sinks |> snd));
+            Common.map collect_metavars
+              (Common.map
+                 (fun propagator -> propagator.R.propagator_formula)
+                 propagators);
+            Common.map collect_metavars
+              (Common.map
+                 (fun sanitizer -> sanitizer.R.sanitizer_formula)
+                 sanitizers);
+          ]
+        |> union_sets
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
         let mv_sets = Common.map collect_metavars xs in
@@ -177,7 +197,6 @@ let check r =
   | `Search f
   | `Extract { formula = f; _ } ->
       check_formula { r; errors = ref [] } r.languages f
-  | `Taint _ -> (* TODO *) []
 
 let semgrep_check config metachecks rules =
   let match_to_semgrep_error m =
@@ -294,7 +313,7 @@ let stat_files fparser xs =
                     pr2 (spf "regexp: %s" s)));
   pr2 (spf "good = %d, no regexp found = %d" !good !bad)
 
-let rec expr_to_string expr =
+let expr_to_string expr =
   let { AST_generic.e_range; _ } = expr in
   match e_range with
   | Some (start, end_) ->
@@ -303,6 +322,40 @@ let rec expr_to_string expr =
       seek_in source_file start.charpos;
       really_input_string source_file extract_size
   | None -> failwith "invalid source/sink requires"
+
+let rec translate_taint_source source : [> `O of (string * Yaml.value) list ] =
+  let (`O source_f) = translate_formula source.source_formula in
+  `O
+    (source_f
+    @
+    if source.label = Rule.default_source_label then []
+    else
+      [ ("label", `String source.label) ]
+      @
+      match source.source_requires.e with
+      | G.L (G.Bool (true, _)) -> []
+      | _ -> [ ("requires", `String (expr_to_string source.source_requires)) ])
+
+and translate_taint_sink sink : [> `O of (string * Yaml.value) list ] =
+  let (`O sink_f) = translate_formula sink.sink_formula in
+  `O
+    (sink_f
+    @
+    match sink.sink_requires.e with
+    | G.N (G.Id (name, _)) when fst name = Rule.default_source_label -> []
+    | _ -> [ ("requires", `String (expr_to_string sink.sink_requires)) ])
+
+and translate_taint_sanitizer san : [> `O of (string * Yaml.value) list ] =
+  let (`O san_f) = translate_formula san.sanitizer_formula in
+  `O
+    (san_f
+    @ if san.not_conflicting then [ ("not-conflicting", `Bool true) ] else [])
+
+and translate_taint_propagator prop : [> `O of (string * Yaml.value) list ] =
+  let (`O prop_f) = translate_formula prop.propagator_formula in
+  `O
+    (prop_f
+    @ [ ("from", `String (fst prop.from)); ("to", `String (fst prop.to_)) ])
 
 and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
   match cond with
@@ -343,6 +396,31 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
       | Regexp _ -> `O [ ("regex", `String (fst pstr)) ]
       | Comby _ -> failwith "comby not supported in new")
   | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]
+  | Taint (_, { sinks; sources; sanitizers; propagators }) ->
+      `O
+        [
+          ( "taint",
+            `O
+              ([
+                 ( "sources",
+                   `A (Common.map translate_taint_source (sources |> snd)) );
+               ]
+              @ (if propagators = [] then []
+                else
+                  [
+                    ( "propagators",
+                      `A (Common.map translate_taint_propagator propagators) );
+                  ])
+              @ (if sanitizers = [] then []
+                else
+                  [
+                    ( "sanitizers",
+                      `A (Common.map translate_taint_sanitizer sanitizers) );
+                  ])
+              @ [
+                  ("sinks", `A (Common.map translate_taint_sink (sinks |> snd)));
+                ]) );
+        ]
   | And { conjuncts; focus; conditions; _ } ->
       `O
         (("and", `A (Common.map translate_formula conjuncts :> Yaml.value list))

@@ -5,6 +5,7 @@ val check_rule :
   Match_env.xconfig ->
   Xtarget.t ->
   Report.rule_profiling Report.match_result
+  * Match_tainting_mode.taint_info list
 
 (* called from check_rule above and from Match_tainting_mode *)
 val matches_of_formula :
@@ -13,4 +14,6 @@ val matches_of_formula :
   Xtarget.t ->
   Rule.formula ->
   Range_with_metavars.t option ->
-  Report.rule_profiling Report.match_result * Range_with_metavars.ranges
+  Report.rule_profiling Report.match_result
+  * Range_with_metavars.ranges
+  * Match_tainting_mode.taint_info list

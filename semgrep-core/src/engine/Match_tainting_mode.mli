@@ -6,23 +6,28 @@ type debug_taint = {
   sinks : (Range_with_metavars.t * Rule.taint_sink) list;
       (** Ranges matched by `pattern-sinks:` *)
 }
+
+type taint_info = {
+  config : Dataflow_tainting.config;
+  debug_taint : debug_taint;
+  spec : Rule.taint_spec;
+}
 (** To facilitate debugging of taint rules. *)
 
 (* It could be a private function, but it is also used by Deep Semgrep. *)
-val taint_config_of_rule :
-  Match_env.xconfig ->
-  Common.filename ->
-  AST_generic.program * Parse_info.token_location list ->
-  Rule.taint_rule ->
+
+val get_taint_config :
+  Match_env.env ->
+  (Rule.formula -> Range_with_metavars.t list * Matching_explanation.t option) ->
+  Rule.taint_spec ->
   (Dataflow_tainting.var option ->
   Taint.finding list ->
   Taint.taints Dataflow_var_env.t ->
   unit) ->
-  Dataflow_tainting.config * debug_taint * Matching_explanation.t list
+  Matching_explanation.t list * taint_info
 
-val check_rule :
-  Rule.taint_rule ->
-  (string -> Pattern_match.t -> unit) ->
-  Match_env.xconfig ->
-  Xtarget.t ->
-  Report.rule_profiling Report.match_result * debug_taint
+val evaluate_taint :
+  Match_env.env ->
+  Rule.taint_spec ->
+  (Rule.formula -> Range_with_metavars.t list * Matching_explanation.t option) ->
+  Range_with_metavars.t list * Matching_explanation.t list * taint_info

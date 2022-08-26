@@ -68,11 +68,8 @@ let test_dfg_tainting rules_file file =
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let _search_rules, taint_rules, _extract_rules = Rule.partition_rules rules in
-  let rule = List.hd taint_rules in
-  pr2 "Tainting";
-  pr2 "========";
-  let handle_findings _ _ _ = () in
+  let search_rules, _extract_rules = Rule.partition_rules rules in
+  let rule = List.hd search_rules in
   let xconf =
     {
       Match_env.config = Config_semgrep.default_config;
@@ -80,32 +77,50 @@ let test_dfg_tainting rules_file file =
       matching_explanations = false;
     }
   in
-  let config, debug_taint, _exps =
-    Match_tainting_mode.taint_config_of_rule xconf file (ast, []) rule
-      handle_findings
+  let xtarget =
+    {
+      Xtarget.file;
+      xlang = rule.languages;
+      lazy_content = lazy (Common.read_file file);
+      lazy_ast_and_errors = lazy (ast, []);
+    }
   in
-  Common.pr2 "\nSources";
-  Common.pr2 "-------";
-  pr2_ranges file (debug_taint.sources |> Common.map fst);
-  Common.pr2 "\nSanitizers";
-  Common.pr2 "----------";
-  pr2_ranges file debug_taint.sanitizers;
-  Common.pr2 "\nSinks";
-  Common.pr2 "-----";
-  pr2_ranges file (debug_taint.sinks |> Common.map fst);
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (k, _v) def ->
-            test_tainting lang file config def;
-            (* go into nested functions *)
-            k def);
-      }
+  pr2 "Tainting";
+  pr2 "========";
+  let _, taint_infos =
+    Match_search_mode.check_rule rule (fun _ _ -> ()) xconf xtarget
   in
-  (* Check each function definition. *)
-  v (AST_generic.Pr ast)
+  List.iteri
+    (fun pat_i ({ config; debug_taint; spec } : Match_tainting_mode.taint_info) ->
+      Common.(pr2 (spf "\nTaint pattern %d" pat_i));
+      Common.pr2 "_______________";
+
+      Common.pr2 ([%show: Rule.taint_spec] spec);
+      Common.pr2 "_______________";
+
+      Common.pr2 "\nSources";
+      Common.pr2 "-------";
+      pr2_ranges file (debug_taint.sources |> Common.map fst);
+      Common.pr2 "\nSanitizers";
+      Common.pr2 "----------";
+      pr2_ranges file debug_taint.sanitizers;
+      Common.pr2 "\nSinks";
+      Common.pr2 "-----";
+      pr2_ranges file (debug_taint.sinks |> Common.map fst);
+      let v =
+        V.mk_visitor
+          {
+            V.default_visitor with
+            V.kfunction_definition =
+              (fun (k, _v) def ->
+                test_tainting lang file config def;
+                (* go into nested functions *)
+                k def);
+          }
+      in
+      (* Check each function definition. *)
+      v (AST_generic.Pr ast))
+    taint_infos
 
 let actions () =
   [

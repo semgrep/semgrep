@@ -161,10 +161,46 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
           None
       | R.Inside _ ->
           logger#warning "Not Inside";
+          None
+      | R.Taint _ ->
+          logger#warning "Not Taint";
           None)
   | R.Inside (t, formula) ->
       let* formula = remove_not formula in
       Some (R.Inside (t, formula))
+  | R.Taint (t, { sources; sinks; propagators; sanitizers }) ->
+      let lift f (x, y) = (x, f y) in
+      let sources =
+        (List.filter_map (fun source ->
+             let* source_formula = remove_not source.R.source_formula in
+             Some { source with R.source_formula })
+        |> lift)
+          sources
+      in
+      let propagators =
+        List.filter_map
+          (fun propagator ->
+            let* propagator_formula =
+              remove_not propagator.R.propagator_formula
+            in
+            Some { propagator with R.propagator_formula })
+          propagators
+      in
+      let sinks =
+        (List.filter_map (fun sink ->
+             let* sink_formula = remove_not sink.R.sink_formula in
+             Some { sink with R.sink_formula })
+        |> lift)
+          sinks
+      in
+      let sanitizers =
+        List.filter_map
+          (fun sanitizer ->
+            let* sanitizer_formula = remove_not sanitizer.R.sanitizer_formula in
+            Some { sanitizer with R.sanitizer_formula })
+          sanitizers
+      in
+      Some (R.Taint (t, { sources; sinks; sanitizers; propagators }))
   | R.P pat -> Some (P pat)
 
 let remove_not_final f =
@@ -202,6 +238,24 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * )
    *)
   | R.Inside (_, formula) -> cnf formula
+  | R.Taint (t, { sources; sinks; _ }) ->
+      R.And
+        {
+          conj_tok = t;
+          conjuncts =
+            [
+              R.Or
+                ( t,
+                  Common.map
+                    (fun source -> source.R.source_formula)
+                    (sources |> snd) );
+              R.Or
+                (t, Common.map (fun sink -> sink.R.sink_formula) (sinks |> snd));
+            ];
+          conditions = [];
+          focus = [];
+        }
+      |> cnf
   | R.And { conjuncts = xs; conditions = conds; _ } ->
       let ys = Common.map cnf xs in
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
@@ -553,30 +607,6 @@ let regexp_prefilter_of_formula f : prefilter option =
   with
   | GeneralPattern -> None
 
-let regexp_prefilter_of_taint_rule (_rule_id, rule_tok) taint_spec =
-  (* We must be able to match some source _and_ some sink. *)
-  let sources =
-    taint_spec.R.sources |> snd
-    |> Common.map (fun (src : R.taint_source) -> src.source_formula)
-  in
-  let sinks =
-    taint_spec.R.sinks |> snd
-    |> Common.map (fun (sink : R.taint_sink) -> sink.sink_formula)
-  in
-  let f =
-    (* Note that this formula would likely not yield any meaningful result
-     * if executed by search-mode, but it works for the purpose of this
-     * analysis! *)
-    R.And
-      {
-        conj_tok = rule_tok;
-        conjuncts = [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ];
-        conditions = [];
-        focus = [];
-      }
-  in
-  regexp_prefilter_of_formula f
-
 let hmemo = Hashtbl.create 101
 
 let regexp_prefilter_of_rule (r : R.rule) =
@@ -588,7 +618,6 @@ let regexp_prefilter_of_rule (r : R.rule) =
         | `Search f
         | `Extract { formula = f; _ } ->
             regexp_prefilter_of_formula f
-        | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
       with
       (* TODO: see tests/OTHER/rules/tainted-filename.yaml *)
       | CNF_exploded ->

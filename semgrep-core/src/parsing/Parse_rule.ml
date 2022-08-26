@@ -994,6 +994,35 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
   | "pattern" -> R.P (get_string_pattern value)
   | "not" -> R.Not (t, parse_pattern env value)
   | "inside" -> R.Inside (t, parse_pattern env value)
+  | "taint" ->
+      let dict = yaml_to_dict env key value in
+      let parse_specs parse_spec env key x =
+        ( snd key,
+          parse_list env key
+            (fun env -> parse_spec env (fst key ^ "list item", snd key))
+            x )
+      in
+      let sources, propagators_opt, sanitizers_opt, sinks =
+        ( take dict env
+            (parse_specs (parse_taint_source ~is_old:false))
+            "sources",
+          take_opt dict env
+            (parse_specs (parse_taint_propagator ~is_old:false))
+            "propagators",
+          take_opt dict env
+            (parse_specs (parse_taint_sanitizer ~is_old:false))
+            "sanitizers",
+          take dict env (parse_specs (parse_taint_sink ~is_old:false)) "sinks"
+        )
+      in
+      R.Taint
+        ( t,
+          {
+            sources;
+            propagators = optlist_to_list (Option.map snd propagators_opt);
+            sanitizers = optlist_to_list (Option.map snd sanitizers_opt);
+            sinks;
+          } )
   | "and" ->
       let conjuncts = parse_listi env key parse_pattern value in
       let pos, _ = R.split_and conjuncts in
@@ -1140,20 +1169,22 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
             (parse_specs (parse_taint_sink ~is_old:true))
             "pattern-sinks" )
       in
-      `Taint
-        {
-          sources;
-          propagators =
-            (* optlist_to_list *)
-            (match propagators_opt with
-            | None -> []
-            | Some (_, xs) -> xs);
-          sanitizers =
-            (match sanitizers_opt with
-            | None -> []
-            | Some (_, xs) -> xs);
-          sinks;
-        }
+      `Search
+        (R.Taint
+           ( G.fake "xd",
+             {
+               sources;
+               propagators =
+                 (* optlist_to_list *)
+                 (match propagators_opt with
+                 | None -> []
+                 | Some (_, xs) -> xs);
+               sanitizers =
+                 (match sanitizers_opt with
+                 | None -> []
+                 | Some (_, xs) -> xs);
+               sinks;
+             } ))
   | Some ("extract", _) ->
       let formula = parse_pair_old env (find_formula_old env rule_dict) in
       let dst_lang =

@@ -64,6 +64,7 @@ and formula =
    *)
   | P of Xpattern.t (* a leaf pattern *)
   | Inside of tok * formula
+  | Taint of tok * taint_spec
   | And of conjunction
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
@@ -249,11 +250,9 @@ and paths = {
 [@@deriving show]
 
 type search_mode = [ `Search of formula ] [@@deriving show]
-type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
 type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
-type mode = [ search_mode | taint_mode | extract_mode ] [@@deriving show]
+type mode = [ search_mode | extract_mode ] [@@deriving show]
 type search_rule = search_mode rule_info [@@deriving show]
-type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
 type rule = mode rule_info [@@deriving show]
 
@@ -265,14 +264,12 @@ type rules = rule list [@@deriving show]
 (* Helpers *)
 (*****************************************************************************)
 
-let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list =
+let partition_rules (rules : rules) : search_rule list * extract_rule list =
   rules
-  |> Common.partition_either3 (fun r ->
+  |> Common.partition_either (fun r ->
          match r.mode with
-         | `Search _ as s -> Left3 { r with mode = s }
-         | `Taint _ as t -> Middle3 { r with mode = t }
-         | `Extract _ as e -> Right3 { r with mode = e })
+         | `Search _ as s -> Left { r with mode = s }
+         | `Extract _ as e -> Right { r with mode = e })
 
 (*****************************************************************************)
 (* Error Management *)
@@ -382,27 +379,42 @@ let visit_new_formula f formula =
     | Inside (_, formula) ->
         bref := true;
         visit_new_formula f formula
+    | Taint (_, { sources; propagators; sanitizers; sinks }) ->
+        let apply g l =
+          Common.map (g (visit_new_formula f)) l |> ignore;
+          ()
+        in
+        apply visit_source (sources |> snd);
+        apply visit_propagate propagators;
+        apply visit_sink (sinks |> snd);
+        apply visit_sanitizer sanitizers;
+        ()
     | Not (_, x) -> visit_new_formula f x
     | Or (_, xs)
     | And { conjuncts = xs; _ } ->
         xs |> List.iter (visit_new_formula f)
-  in
+  and visit_source f { source_formula; _ } = f source_formula
+  and visit_sink f { sink_formula; _ } = f sink_formula
+  and visit_propagate f { propagator_formula; _ } = f propagator_formula
+  and visit_sanitizer f { sanitizer_formula; _ } = f sanitizer_formula in
   visit_new_formula f formula
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
   | And { conj_tok = t; _ }
   | Or (t, _)
+  | Inside (t, _)
+  | Taint (t, _)
   | Not (t, _) ->
       t
   | P p -> snd p.pstr
-  | Inside (t, _) -> t
 
 let kind_of_formula = function
   | P _ -> "pattern"
   | Or _
   | And _
   | Inside _
+  | Taint _
   | Not _ ->
       "formula"
 
@@ -443,6 +455,7 @@ let split_and : formula list -> formula list * (tok * formula) list =
          | P _
          | And _
          | Inside _
+         | Taint _
          | Or _ ->
              Left e
          (* negatives *)
