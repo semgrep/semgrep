@@ -107,10 +107,8 @@ let option_bind_list opt f =
   | Some x -> f x
 
 (* Finds all matches of a taint-spec pattern formula. *)
-let range_w_metas_of_pformula (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    (rule : Rule.t) (pformula : Rule.pformula) : RM.ranges * ME.t list =
-  let rule_id = fst rule.R.id in
-  let formula = Rule.formula_of_pformula ~rule_id pformula in
+let range_w_metas_of_formula (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
+    (rule : Rule.t) (formula : Rule.formula) : RM.ranges * ME.t list =
   (* !! Calling Match_search_mode here !! *)
   let report, ranges =
     Match_search_mode.matches_of_formula xconf rule xtarget formula None
@@ -145,13 +143,13 @@ let concat_map_with_expls f xs =
   (res, List.flatten !all_expls)
 
 let find_range_w_metas (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    (rule : Rule.t) (specs : (R.pformula * 'a) list) :
+    (rule : Rule.t) (specs : (R.formula * 'a) list) :
     (RM.t * 'a) list * ME.t list =
   (* TODO: Make an Or formula and run a single query. *)
   (* if perf is a problem, we could build an interval set here *)
   specs
   |> concat_map_with_expls (fun (pf, x) ->
-         let ranges, expls = range_w_metas_of_pformula xconf xtarget rule pf in
+         let ranges, expls = range_w_metas_of_formula xconf xtarget rule pf in
          (ranges |> Common.map (fun rwm -> (rwm, x)), expls))
 
 let find_sanitizers_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
@@ -160,7 +158,8 @@ let find_sanitizers_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
   specs
   |> concat_map_with_expls (fun (sanitizer : R.taint_sanitizer) ->
          let ranges, exps =
-           range_w_metas_of_pformula xconf xtarget rule sanitizer.formula
+           range_w_metas_of_formula xconf xtarget rule
+             sanitizer.sanitizer_formula
          in
          ( ranges
            |> Common.map (fun x ->
@@ -175,7 +174,7 @@ let find_propagators_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
          let mvar_pfrom, tok_pfrom = p.from in
          let mvar_pto, tok_pto = p.to_ in
          let ranges_w_metavars, _expsTODO =
-           range_w_metas_of_pformula xconf xtarget rule p.formula
+           range_w_metas_of_formula xconf xtarget rule p.propagator_formula
          in
          (* Now, for each match of the propagator pattern, we try to construct
           * a `propagator_match`. We just need to look up what code is captured
@@ -352,13 +351,15 @@ let taint_config_of_rule xconf file ast_and_errors
   let (sources_ranges : (RM.t * R.taint_source) list), expls_sources =
     find_range_w_metas xconf xtarget rule
       (spec.sources |> snd
-      |> Common.map (fun (src : Rule.taint_source) -> (src.formula, src)))
+      |> Common.map (fun (src : Rule.taint_source) -> (src.source_formula, src))
+      )
   and (propagators_ranges : propagator_match list) =
     find_propagators_matches xconf xtarget rule spec.propagators
   and (sinks_ranges : (RM.t * R.taint_sink) list), expls_sinks =
     find_range_w_metas xconf xtarget rule
       (spec.sinks |> snd
-      |> Common.map (fun (sink : Rule.taint_sink) -> (sink.formula, sink)))
+      |> Common.map (fun (sink : Rule.taint_sink) -> (sink.sink_formula, sink))
+      )
   in
   let sanitizers_ranges, _exps_sanitizersTODO =
     find_sanitizers_matches xconf xtarget rule spec.sanitizers

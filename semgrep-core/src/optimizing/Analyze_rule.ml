@@ -133,12 +133,13 @@ let option_map f xs =
 let rec (remove_not : Rule.formula -> Rule.formula option) =
  fun f ->
   match f with
-  | R.And (t, { conjuncts = xs; conditions = conds; focus }) ->
+  | R.And { conj_tok = t; conjuncts = xs; conditions = conds; focus } ->
       let ys = Common.map_filter remove_not xs in
       if null ys then (
         logger#warning "null And after remove_not";
         None)
-      else Some (R.And (t, { conjuncts = ys; conditions = conds; focus }))
+      else
+        Some (R.And { conj_tok = t; conjuncts = ys; conditions = conds; focus })
   | R.Or (t, xs) ->
       (* See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map remove_not xs in
@@ -157,8 +158,14 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
           None
       | R.And _ ->
           logger#warning "Not And";
+          None
+      | R.Inside _ ->
+          logger#warning "Not Inside";
           None)
-  | R.P (pat, inside) -> Some (P (pat, inside))
+  | R.Inside (t, formula) ->
+      let* formula = remove_not formula in
+      Some (R.Inside (t, formula))
+  | R.P pat -> Some (P pat)
 
 let remove_not_final f =
   let final_opt = remove_not f in
@@ -180,7 +187,7 @@ type cnf_step0 = step0 cnf [@@deriving show]
 let rec (cnf : Rule.formula -> cnf_step0) =
  fun f ->
   match f with
-  | R.P (pat, _inside) -> And [ Or [ LPat pat ] ]
+  | R.P pat -> And [ Or [ LPat pat ] ]
   | R.Not (_, _f) ->
       (* should be filtered by remove_not *)
       failwith "call remove_not before cnf"
@@ -194,7 +201,8 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * | R.And _xs -> failwith "Not And"
    * )
    *)
-  | R.And (_, { conjuncts = xs; conditions = conds; _ }) ->
+  | R.Inside (_, formula) -> cnf formula
+  | R.And { conjuncts = xs; conditions = conds; _ } ->
       let ys = Common.map cnf xs in
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
       And (ys @ zs |> Common.map (function And ors -> ors) |> List.flatten)
@@ -545,29 +553,27 @@ let regexp_prefilter_of_formula f : prefilter option =
   with
   | GeneralPattern -> None
 
-let regexp_prefilter_of_taint_rule (rule_id, rule_tok) taint_spec =
+let regexp_prefilter_of_taint_rule (_rule_id, rule_tok) taint_spec =
   (* We must be able to match some source _and_ some sink. *)
   let sources =
     taint_spec.R.sources |> snd
-    |> Common.map (fun (src : R.taint_source) ->
-           R.formula_of_pformula ~rule_id src.formula)
+    |> Common.map (fun (src : R.taint_source) -> src.source_formula)
   in
   let sinks =
     taint_spec.R.sinks |> snd
-    |> Common.map (fun (sink : R.taint_sink) ->
-           R.formula_of_pformula ~rule_id sink.formula)
+    |> Common.map (fun (sink : R.taint_sink) -> sink.sink_formula)
   in
   let f =
     (* Note that this formula would likely not yield any meaningful result
      * if executed by search-mode, but it works for the purpose of this
      * analysis! *)
     R.And
-      ( rule_tok,
-        {
-          conjuncts = [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ];
-          conditions = [];
-          focus = [];
-        } )
+      {
+        conj_tok = rule_tok;
+        conjuncts = [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ];
+        conditions = [];
+        focus = [];
+      }
   in
   regexp_prefilter_of_formula f
 
@@ -579,9 +585,8 @@ let regexp_prefilter_of_rule (r : R.rule) =
   Common.memoized hmemo k (fun () ->
       try
         match r.mode with
-        | `Search pf
-        | `Extract { pformula = pf; _ } ->
-            let f = R.formula_of_pformula ~rule_id pf in
+        | `Search f
+        | `Extract { formula = f; _ } ->
             regexp_prefilter_of_formula f
         | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
       with

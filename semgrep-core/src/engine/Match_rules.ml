@@ -121,7 +121,7 @@ let check ~match_hook ~timeout ~timeout_threshold xconf rules xtarget =
                            res
                        | `Extract extract_spec ->
                            Match_search_mode.check_rule
-                             { r with mode = `Search extract_spec.pformula }
+                             { r with mode = `Search extract_spec.formula }
                              match_hook xconf xtarget)
                  in
                  match match_result with

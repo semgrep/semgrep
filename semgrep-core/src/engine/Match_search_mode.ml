@@ -21,7 +21,6 @@ module G = AST_generic
 module PI = Parse_info
 module MV = Metavariable
 module RP = Report
-module S = Specialize_formula
 module RM = Range_with_metavars
 module E = Semgrep_error_code
 module ME = Matching_explanation
@@ -99,15 +98,21 @@ let debug_matches = ref false
 (*****************************************************************************)
 (* The types are now defined in Match_env.ml *)
 
+type selector = {
+  mvar : MV.mvar;
+  pattern : AST_generic.any;
+  pid : int;
+  pstr : string R.wrap;
+}
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 let ( let* ) = Option.bind
 
-let xpatterns_in_formula (e : S.sformula) : (Xpattern.t * R.inside option) list
-    =
+let xpatterns_in_formula (e : R.formula) : (Xpattern.t * bool) list =
   let res = ref [] in
-  e |> S.visit_sformula (fun xpat inside -> Common.push (xpat, inside) res);
+  e |> R.visit_new_formula (fun xpat b -> Common.push (xpat, b) res);
   !res
 
 let partition_xpatterns xs =
@@ -153,14 +158,12 @@ let lazy_force x = Lazy.force x [@@profiling]
  * this will raise Impossible... Thus, now we have to pass the language(s) that
  * we are specifically targeting. *)
 let (mini_rule_of_pattern :
-      Xlang.t ->
-      Pattern.t * R.inside option * Xpattern.pattern_id * string ->
-      MR.t) =
+      Xlang.t -> Pattern.t * bool * Xpattern.pattern_id * string -> MR.t) =
  fun xlang (pattern, inside, id, pstr) ->
   {
     MR.id = string_of_int id;
     pattern;
-    inside = Option.is_some inside;
+    inside;
     (* parts that are not really needed I think in this context, since
      * we just care about the matching result.
      *)
@@ -213,8 +216,7 @@ let debug_semgrep config mini_rules file lang ast =
 
 let matches_of_patterns ?mvar_context ?range_filter (xconf : xconfig)
     (xtarget : Xtarget.t)
-    (patterns :
-      (Pattern.t * R.inside option * Xpattern.pattern_id * string) list) :
+    (patterns : (Pattern.t * bool * Xpattern.pattern_id * string) list) :
     RP.times RP.match_result =
   let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
     xtarget
@@ -256,7 +258,7 @@ let run_selector_on_ranges env selector_opt ranges =
   | None, ranges ->
       (* Nothing to select. *)
       ranges
-  | Some { S.pattern; pid; pstr; _ }, ranges ->
+  | Some { pattern; pid; pstr; _ }, ranges ->
       (* Find matches of `pattern` *but* only inside `ranges`, this prevents
        * matching and allocations that are wasteful because they are going to
        * be thrown away later when interesecting the results. *)
@@ -264,7 +266,7 @@ let run_selector_on_ranges env selector_opt ranges =
         let r = Range.range_of_token_locations tok1 tok2 in
         List.exists (fun rwm -> Range.( $<=$ ) r rwm.RM.r) ranges
       in
-      let patterns = [ (pattern, None, pid, fst pstr) ] in
+      let patterns = [ (pattern, false, pid, fst pstr) ] in
       let res =
         matches_of_patterns ~range_filter env.xconf env.xtarget patterns
       in
@@ -315,8 +317,7 @@ let apply_focus_on_ranges env focus_mvars ranges : RM.ranges =
 (*****************************************************************************)
 
 let matches_of_xpatterns ~mvar_context (xconf : xconfig) (xtarget : Xtarget.t)
-    (xpatterns : (Xpattern.t * R.inside option) list) : RP.times RP.match_result
-    =
+    (xpatterns : (Xpattern.t * bool) list) : RP.times RP.match_result =
   let { Xtarget.file; lazy_content; _ } = xtarget in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
@@ -373,7 +374,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
           |> Common.map (fun pat ->
                  let match_result =
                    matches_of_patterns env.xconf env.xtarget
-                     [ (pat, None, xpat.pid, "TODO") ]
+                     [ (pat, false, xpat.pid, "TODO") ]
                  in
                  let matches = match_result.matches in
                  (* TODO: equivalent to an abstract_content, so not great *)
@@ -496,74 +497,111 @@ and nested_formula_has_matches env formula opt_context =
 (* Formula evaluation *)
 (*****************************************************************************)
 
-and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
+and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
     RM.ranges * Matching_explanation.t option =
   match e with
-  | S.Leaf (({ XP.pid = id; pstr = pstr, tok; _ } as xpat), inside) ->
+  | R.P ({ XP.pid = id; pstr = pstr, tok; _ } as xpat) ->
       let match_results =
         try Hashtbl.find_all env.pattern_matches id with
         | Not_found -> []
       in
-      let kind =
-        match inside with
-        | Some R.Inside -> RM.Inside
-        | None when Xpattern.is_regexp xpat -> RM.Regexp
-        | None -> RM.Plain
-      in
+      let kind = if Xpattern.is_regexp xpat then RM.Regexp else RM.Plain in
       let ranges =
         match_results
         |> Common.map RM.match_result_to_range
         |> Common.map (fun r -> { r with RM.kind })
       in
       (* we can decompose the pattern in subpatterns to provide
-       * intermediate explanations for complex patterns like A...B
-       *)
+          * intermediate explanations for complex patterns like A...B
+      *)
       let children =
         children_explanations_of_xpat env xpat |> Common.map (fun x -> Some x)
       in
       let expl = if_explanations env ranges children (Out.XPat pstr, tok) in
       (ranges, expl)
-  | S.Or (tok, xs) ->
+  | R.Inside (tok, formula) ->
+      let ranges, expls = evaluate_formula env opt_context formula in
+      let expl = if_explanations env ranges [ expls ] (Out.Inside, tok) in
+      (Common.map (fun r -> { r with RM.kind = RM.Inside }) ranges, expl)
+  | R.Or (tok, xs) ->
       let ranges, expls =
         xs |> Common.map (evaluate_formula env opt_context) |> Common2.unzip
       in
       let ranges = List.flatten ranges in
       let expl = if_explanations env ranges expls (Out.Or, tok) in
       (ranges, expl)
-  | S.And
-      ( tok,
-        {
-          selector_opt;
-          positives = pos;
-          negatives = neg;
-          conditionals = conds;
-          focus;
-        } ) -> (
+  | R.And { conj_tok; conjuncts; conditions = conds; focus; _ } -> (
       (* we now treat pattern: and pattern-inside: differently. We first
-       * process the pattern: and then the pattern-inside.
-       * This fixed only one mismatch in semgrep-rules.
-       *
-       * old: the old code was simpler ... but incorrect.
-       *  (match pos with
-       *  | [] -> failwith "empty And; no positive terms in And"
-       *  | start::pos ->
-       *     let res = evaluate_formula env start in
-       *    let res = pos |> List.fold_left (fun acc x ->
-       *      intersect_ranges acc (evaluate_formula env x)
-       * ...
-       *)
+          * process the pattern: and then the pattern-inside.
+          * This fixed only one mismatch in semgrep-rules.
+          *
+          * old: the old code was simpler ... but incorrect.
+          *  (match pos with
+          *  | [] -> failwith "empty And; no positive terms in And"
+          *  | start::pos ->
+          *     let res = evaluate_formula env start in
+          *    let res = pos |> List.fold_left (fun acc x ->
+          *      intersect_ranges acc (evaluate_formula env x)
+          * ...
+      *)
+
+      (* This code used to live in Specialize_formula.
+          We shouldn't need to translate the entire formula for just the
+          `And`s, though. I think we can just split the positives, negatives,
+          and selectors when we actually get to evaluating it.
+      *)
+      let selector_equal s1 s2 = s1.mvar = s2.mvar in
+      let selector_from_formula f =
+        match f with
+        | R.P { Xpattern.pat = Sem (pattern, _); pid; pstr } -> (
+            match pattern with
+            | G.E { e = G.N (G.Id ((mvar, _), _)); _ }
+              when MV.is_metavar_name mvar ->
+                Some { mvar; pattern; pid; pstr }
+            | _ -> None)
+        | _ -> None
+      in
+      let rec remove_selectors (selector, acc) formulas =
+        match formulas with
+        | [] -> (selector, acc)
+        | x :: xs ->
+            let selector, acc =
+              match (selector, selector_from_formula x) with
+              | None, None -> (None, x :: acc)
+              | Some s, None -> (Some s, x :: acc)
+              | None, Some s -> (Some s, acc)
+              | Some s1, Some s2 when selector_equal s1 s2 -> (Some s1, acc)
+              | Some s1, Some _s2 ->
+                  (* patterns:
+                      * ...
+                      * - pattern: $X
+                      * - pattern: $Y
+                  *)
+                  (* TODO: Should we fail here or just reported as a warning? This
+                      * is something to catch with the meta-checker. *)
+                  (Some s1, x :: acc)
+            in
+            remove_selectors (selector, acc) xs
+      in
+      let pos, neg = Rule.split_and conjuncts in
+      let selector_opt, pos =
+        (* We only want a selector if there is something to select from. *)
+        match remove_selectors (None, []) pos with
+        | _, [] -> (None, pos)
+        | sel, pos -> (sel, pos)
+      in
 
       (* let's start with the positive ranges *)
       let posrs, posrs_expls =
         Common.map (evaluate_formula env opt_context) pos |> Common2.unzip
       in
       (* subtle: we need to process and intersect the pattern-inside after
-       * (see tests/OTHER/rules/inside.yaml).
-       * TODO: this is ugly; AND should be commutative, so we should just
-       * merge ranges, not just filter one or the other.
-       * update: however we have some tests that rely on pattern-inside:
-       * being special, see tests/OTHER/rules/and_inside.yaml.
-       *)
+          * (see tests/OTHER/rules/inside.yaml).
+          * TODO: this is ugly; AND should be commutative, so we should just
+          * merge ranges, not just filter one or the other.
+          * update: however we have some tests that rely on pattern-inside:
+          * being special, see tests/OTHER/rules/and_inside.yaml.
+      *)
       let posrs, posrs_inside =
         posrs
         |> Common.partition_either (fun xs ->
@@ -611,20 +649,20 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
                  (ranges, [])
           in
           (* let's apply additional filters.
-           * TODO: Note that some metavariable-regexp may be part of an
-           * AND where not all patterns define the metavar, e.g.,
-           *   pattern-inside: def $FUNC() ...
-           *   pattern: return $X
-           *   metavariable-regexp: $FUNC regex: (foo|bar)
-           * in which case the order in which we do the operation matters
-           * (at this point intersect_range will have filtered the
-           *  range of the pattern_inside).
-           * alternative solutions?
-           *  - bind closer metavariable-regexp with the relevant pattern
-           *  - propagate metavariables when intersecting ranges
-           *  - distribute filter_range in intersect_range?
-           * See https://github.com/returntocorp/semgrep/issues/2664
-           *)
+              * TODO: Note that some metavariable-regexp may be part of an
+              * AND where not all patterns define the metavar, e.g.,
+              *   pattern-inside: def $FUNC() ...
+              *   pattern: return $X
+              *   metavariable-regexp: $FUNC regex: (foo|bar)
+              * in which case the order in which we do the operation matters
+              * (at this point intersect_range will have filtered the
+              *  range of the pattern_inside).
+              * alternative solutions?
+              *  - bind closer metavariable-regexp with the relevant pattern
+              *  - propagate metavariables when intersecting ranges
+              *  - distribute filter_range in intersect_range?
+              * See https://github.com/returntocorp/semgrep/issues/2664
+          *)
           let ranges, filter_expls =
             conds
             |> List.fold_left
@@ -651,14 +689,13 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
           let expl =
             if_explanations env ranges
               (posrs_expls @ negs_expls @ filter_expls @ focus_expls)
-              (Out.And, tok)
+              (Out.And, conj_tok)
           in
           (ranges, expl))
-  | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
+  | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"
 
 and matches_of_formula xconf rule xtarget formula opt_context :
     RP.rule_profiling RP.match_result * RM.ranges =
-  let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
   let mvar_context : Metavariable.bindings option =
     Option.map (fun s -> s.RM.mvars) opt_context
@@ -697,10 +734,9 @@ and matches_of_formula xconf rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ({ R.mode = `Search pformula; _ } as r) hook xconf xtarget =
+let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
   let rule_id = fst r.id in
-  let formula = R.formula_of_pformula ~rule_id pformula in
   let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> Report.ErrorSet.map (error_with_rule_id rule_id) in
   {
