@@ -48,7 +48,7 @@ type mvar = string [@@deriving show, eq, hash]
  * use of AST_generic.any for patterns.
  *
  * coupling: if you add a constructor here, you probably also want to
- * modify Matching_generic.equal_ast_binded_code!
+ * modify Matching_generic.equal_ast_bound_code!
  *)
 type mvalue =
   (* TODO: get rid of Id, N generalize it *)
