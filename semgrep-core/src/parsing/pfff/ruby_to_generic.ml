@@ -60,6 +60,20 @@ let wrap _of_a (v1, v2) =
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
 let ident x = wrap string x
 
+let concatenate_string_wraps xs =
+  let strings, toks = List.split xs in
+  match toks with
+  | [] -> None
+  | x :: xs -> Some (String.concat "" strings, PI.combine_infos x xs)
+
+let concatenate_literal_fragments xs =
+  let rec concat acc = function
+    | StrChars x :: xs -> concat (x :: acc) xs
+    | [] -> concatenate_string_wraps (List.rev acc)
+    | _ -> None
+  in
+  concat [] xs
+
 let rec expr e =
   (match e with
   | Literal x -> literal x
@@ -455,14 +469,14 @@ and literal x =
             (("Subshell", l), [ G.E (interpolated_string (l, xs, r) |> G.e) ]))
   | Regexp ((l, xs, r), opt) -> (
       let literal_or_template =
-        match xs with
+        match concatenate_literal_fragments xs with
         (* /.../ matches any regexp literal or template *)
-        | [ StrChars ("...", tok) ] -> Right (G.Ellipsis tok)
+        | Some ("...", tok) -> Right (G.Ellipsis tok)
         (* literal regexp or metavariable such as /$X/ which will match
            only literal regexps *)
-        | [ StrChars (s, t2) ] -> Left (G.Regexp ((l, (s, t2), r), opt))
+        | Some (s, t2) -> Left (G.Regexp ((l, (s, t2), r), opt))
         (* template *)
-        | xs -> Right (interpolated_string (l, xs, r))
+        | None -> Right (interpolated_string (l, xs, r))
       in
       match literal_or_template with
       | Left lit -> G.L lit
