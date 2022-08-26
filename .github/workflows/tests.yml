@@ -473,13 +473,13 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: semgrep-osx
-          path: artifacts
+          path: test-artifacts
       - name: Remove pcre dynamic lib
         run: rm /usr/local/opt/pcre/lib/libpcre.1.dylib || true
       - name: test build artifacts
         run: |
-          chmod +x ./artifacts/semgrep-core
-          ./artifacts/semgrep-core -help
+          chmod +x ./test-artifacts/semgrep-core
+          ./test-artifacts/semgrep-core -help
 
   build-ubuntu:
     name: build Ubuntu release
