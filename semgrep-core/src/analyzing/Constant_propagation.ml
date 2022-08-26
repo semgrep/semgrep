@@ -117,12 +117,11 @@ let is_js env =
 let add_constant_env ident (sid, svalue) env =
   match svalue with
   | Lit _
-  | Cst _ ->
+  | Cst _
+  | Sym _ ->
       logger#trace "adding constant in env %s" (H.str_of_ident ident);
       Hashtbl.add env.constants (H.str_of_ident ident, sid) svalue
-  | Sym _
-  | NotCst ->
-      ()
+  | NotCst -> ()
 
 let find_id env id id_info =
   match id_info with
@@ -563,17 +562,25 @@ let propagate_basic lang prog =
                 attrs;
                 _;
               },
-              VarDef { vinit = Some { e = L literal; _ }; _ } )
+              VarDef { vinit = Some e; _ } )
           (* note that some languages such as Python do not have VarDef.
            * todo? should add those somewhere instead of in_lvalue detection?*)
             -> (
               match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
               | Some stats ->
-                  if
-                    H.has_keyword_attr Const attrs
-                    || H.has_keyword_attr Final attrs
-                    || (!(stats.lvalue) = 1 && is_js env)
-                  then add_constant_env id (sid, Lit literal) env;
+                  (if
+                   H.has_keyword_attr Const attrs
+                   || H.has_keyword_attr Final attrs
+                   || !(stats.lvalue) = 1
+                  then
+                   match e.e with
+                   | L literal -> add_constant_env id (sid, Lit literal) env
+                   (* For any other expression, it is OK to propagate it symbolically so long as
+                      the lvalue is only assigned to once.
+                      Although we may propagate expressions with identifiers in them, those identifiers
+                      will simply not have an `svalue` if they are non-propagated as well.
+                   *)
+                   | _ -> add_constant_env id (sid, Sym e) env);
                   k x
               | None ->
                   logger#debug "No stats for (%s,%d)" (H.str_of_ident id) sid;
