@@ -218,6 +218,15 @@ and map_expr x : B.expr =
       let v1 = map_dotted_ident v1 in
       let v2 = map_of_list map_expr v2 in
       `Constructor (v1, v2)
+  | RegexpTemplate ((l, v1, _r), _opt) ->
+      (* new: TODO in next version: support regexp templates found in Ruby
+         like /hello #{name}/ *)
+      `L
+        (match v1 with
+        | { e = G.L (G.String x); _ } ->
+            let static_regexp = map_wrap map_of_string x in
+            `Regexp static_regexp
+        | _dropped_template -> `Regexp ("", map_tok l))
   | Lambda v1 ->
       let v1 = map_function_definition v1 in
       `Lambda v1

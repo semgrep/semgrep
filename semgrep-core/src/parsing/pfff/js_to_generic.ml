@@ -201,7 +201,7 @@ and xml_kind = function
 
 and xhp_attr v = expr v
 
-and literal x =
+and literal x : G.literal =
   match x with
   | Bool v1 ->
       let v1 = wrap bool v1 in
@@ -453,8 +453,8 @@ and type_ x =
   | TyName xs -> G.TyN (H.name_of_ids xs) |> G.t
   (* TODO: use TyExpr now? or special TyLiteral? *)
   | TyLiteral l ->
-      let l = literal l in
-      G.OtherType (("LitType", PI.unsafe_fake_info ""), [ G.E (G.L l |> G.e) ])
+      let l = G.L (literal l) in
+      G.OtherType (("LitType", PI.unsafe_fake_info ""), [ G.E (l |> G.e) ])
       |> G.t
   | TyQuestion (tok, t) ->
       let t = type_ t in

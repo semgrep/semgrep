@@ -318,6 +318,10 @@ let (mk_visitor :
       | Constructor (v1, v2) ->
           let v1 = v_name v1 and v2 = v_bracket (v_list v_expr) v2 in
           ()
+      | RegexpTemplate (v1, v2) ->
+          let v1 = v_bracket v_expr v1 in
+          let v2 = v_option (v_wrap v_string) v2 in
+          ()
       | Lambda v1 ->
           let v1 = v_function_definition v1 in
           ()

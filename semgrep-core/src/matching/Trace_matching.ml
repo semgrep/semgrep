@@ -3,6 +3,8 @@
    get compared.
 *)
 
+open Printf
+
 (*
    For peace of mind regarding performance, this is not configurable
    at runtime. Having a constant flag 'on' set to 'false' ensures
@@ -10,11 +12,12 @@
 *)
 let on = false
 
+(* max_depth: Print the nodes just deep enough to see something useful. *)
+let max_depth = 3
+
 let print_pair name vof a b =
-  (* Print the nodes just deep enough to see something useful. *)
-  let max_depth = 3 in
-  Printf.printf "----- m_%s -----\n%s pattern:\n%s\n~~~~~\n%s target:\n%s\n\n"
-    name name
+  printf "----- m_%s -----\n%s pattern:\n%s\n~~~~~\n%s target:\n%s\n\n" name
+    name
     (vof a |> OCaml.string_of_v ~max_depth)
     name
     (vof b |> OCaml.string_of_v ~max_depth)
@@ -35,3 +38,5 @@ let print_definition_pair = print_pair "definition" Meta_AST.vof_definition
 let print_directive_pair = print_pair "directive" Meta_AST.vof_directive
 let print_expr_pair = print_pair "expr" Meta_AST.vof_expr
 let print_stmt_pair = print_pair "stmt" Meta_AST.vof_stmt
+let print_argument_pair = print_pair "arguments" Meta_AST.vof_argument
+let print_arguments_pair = print_pair "arguments" Meta_AST.vof_arguments
