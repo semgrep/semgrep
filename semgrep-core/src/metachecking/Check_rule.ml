@@ -99,7 +99,7 @@ let unknown_metavar_in_comparison env f =
     | Inside (_, f) -> collect_metavars f
     | Taint (_, { sources; sanitizers; sinks; propagators }) ->
         let union_sets sets = List.fold_left Set.union Set.empty sets in
-        List.map union_sets
+        Common.map union_sets
           [
             Common.map collect_metavars
               (Common.map
