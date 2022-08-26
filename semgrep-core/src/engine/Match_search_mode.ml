@@ -596,12 +596,12 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
         Common.map (evaluate_formula env opt_context) pos |> Common2.unzip
       in
       (* subtle: we need to process and intersect the pattern-inside after
-          * (see tests/OTHER/rules/inside.yaml).
-          * TODO: this is ugly; AND should be commutative, so we should just
-          * merge ranges, not just filter one or the other.
-          * update: however we have some tests that rely on pattern-inside:
-          * being special, see tests/OTHER/rules/and_inside.yaml.
-      *)
+       * (see tests/OTHER/rules/inside.yaml).
+       * TODO: this is ugly; AND should be commutative, so we should just
+       * merge ranges, not just filter one or the other.
+       * update: however we have some tests that rely on pattern-inside:
+       * being special, see tests/OTHER/rules/and_inside.yaml.
+       *)
       let posrs, posrs_inside =
         posrs
         |> Common.partition_either (fun xs ->
@@ -649,20 +649,20 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                  (ranges, [])
           in
           (* let's apply additional filters.
-              * TODO: Note that some metavariable-regexp may be part of an
-              * AND where not all patterns define the metavar, e.g.,
-              *   pattern-inside: def $FUNC() ...
-              *   pattern: return $X
-              *   metavariable-regexp: $FUNC regex: (foo|bar)
-              * in which case the order in which we do the operation matters
-              * (at this point intersect_range will have filtered the
-              *  range of the pattern_inside).
-              * alternative solutions?
-              *  - bind closer metavariable-regexp with the relevant pattern
-              *  - propagate metavariables when intersecting ranges
-              *  - distribute filter_range in intersect_range?
-              * See https://github.com/returntocorp/semgrep/issues/2664
-          *)
+           * TODO: Note that some metavariable-regexp may be part of an
+           * AND where not all patterns define the metavar, e.g.,
+            *   pattern-inside: def $FUNC() ...
+           *   pattern: return $X
+           *   metavariable-regexp: $FUNC regex: (foo|bar)
+           * in which case the order in which we do the operation matters
+           * (at this point intersect_range will have filtered the
+           *  range of the pattern_inside).
+           * alternative solutions?
+           *  - bind closer metavariable-regexp with the relevant pattern
+           *  - propagate metavariables when intersecting ranges
+           *  - distribute filter_range in intersect_range?
+           * See https://github.com/returntocorp/semgrep/issues/2664
+           *)
           let ranges, filter_expls =
             conds
             |> List.fold_left
