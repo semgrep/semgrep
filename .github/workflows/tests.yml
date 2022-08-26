@@ -237,7 +237,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces semgrep-core/tests/semgrep-rules
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
