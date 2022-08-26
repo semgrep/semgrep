@@ -1,26 +1,26 @@
-# ERROR:
+# MATCH:
 /a/
 
-# ERROR:
+# MATCH:
 /[0-9]/
 
-# ERROR:
+# MATCH:
 /.+/
 
-# ERROR:
+# MATCH:
 /\./
 
-# ERROR:
+# MATCH:
 /\w+/
 
-# ERROR:
+# MATCH:
 /\\/
 
-# ERROR:
+# MATCH:
 /\z/
 
-# ERROR:
+# MATCH:
 /\a\z/
 
-# ERROR:
+# to match this regexp template, use /.../ (implemented) or /$...X/ (TODO)
 /foo#{2 + 2}/

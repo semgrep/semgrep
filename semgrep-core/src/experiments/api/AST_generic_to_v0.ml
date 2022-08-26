@@ -350,6 +350,10 @@ and map_literal = function
   | String v1 ->
       let v1 = map_wrap map_of_string v1 in
       `String v1
+  (* new: TODO: lots of tokens skipped, should use PI.combine_info *)
+  | Regexp ((_, v1, _), _) ->
+      let v1 = map_wrap map_of_string v1 in
+      `Regexp v1
   | Null v1 ->
       let v1 = map_tok v1 in
       `Null v1

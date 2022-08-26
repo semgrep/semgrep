@@ -1,11 +1,11 @@
-# ERROR:
+# MATCH:
 //
 
-# ERROR:
+# MATCH:
 /hello!*/
 
-# ERROR:
+# MATCH:
 /#{name}/
 
-# ERROR:
+# MATCH:
 /hello #{name}/

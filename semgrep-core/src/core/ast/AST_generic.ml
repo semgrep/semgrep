@@ -607,7 +607,7 @@ and literal =
   | String of string wrap
   (* Regexp literals only. Some languages such as Ruby support regexp
      templates. Those are represented separately using RegexpTemplate. *)
-  (*  | Regexp of string wrap bracket (* // *) * string wrap option (* modifiers *)*)
+  | Regexp of string wrap bracket (* // *) * string wrap option (* modifiers *)
   | Atom of tok (* ':' in Ruby, ''' in Scala *) * string wrap
   | Unit of tok
   (* a.k.a Void *)
