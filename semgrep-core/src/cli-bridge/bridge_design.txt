@@ -68,7 +68,7 @@ Finding shared libraries
 In the Python CLI, the existing logic for locating semgrep-core has been
 adapted to also locate semgrep_bridge_python.so.  That file then looks
 for semgrep_bridge_core.so in whatever directory it was loaded from by
-taking advantage of the "-Wl,-rpath,$ORIGIN" linker option.
+taking advantage of the "-Wl,-rpath=$ORIGIN" linker option.
 
 
 Analysis runs in a forked child

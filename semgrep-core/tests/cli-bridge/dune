@@ -12,7 +12,7 @@
       -I ../../src/cli-bridge
 
       ; Avoid the need to specify LD_LIBRARY_PATH in the test below.
-      -Wl,-rpath,../../src/cli-bridge
+      -Wl,-rpath=../../src/cli-bridge
 
       -ldl -lm)
   )
