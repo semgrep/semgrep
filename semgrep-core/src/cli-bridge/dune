@@ -1,0 +1,107 @@
+; Semgrep as a shared library.
+(executables
+  (names semgrep_bridge_core)
+  (libraries
+     cli_lib
+  )
+  (foreign_stubs
+    (language c)
+    (include_dirs
+      %{ocaml_where}
+    )
+    (names
+      bridge_ml
+    )
+  )
+
+  ; Generate a .so file.
+  ;
+  ; Unfortunately, ocamldebug cannot be used on a .so file even if it
+  ; contains bytecode (which is possible with direct ocamlopt
+  ; invocations, but not from dune), so there is no point in trying to
+  ; generate bytecode for this target.
+  (modes (native shared_object))
+)
+
+
+; Write the output of "python3-config --cflags" to a file.  The result
+; has one switch per line for use with %{read-lines:...}.
+(rule
+  (target python3-config-cflags.txt)
+  (action
+    (with-stdout-to %{target}
+      (progn
+        ; Split into separate lines (using "fmt -1", which I hope is
+        ; sufficiently portable), and remove -O3 and -DNDEBUG since they
+        ; make debugging more difficult (and execution speed within the
+        ; C code of the bridge should be inconsequential).
+        (bash "python3-config --cflags | fmt -1 | grep -E -v -- '-O3|-DNDEBUG'")
+
+        ; Add flags that are needed to make objects compatible with
+        ; Python modules, but for some reason are not in --cflags.
+        (echo "-pthread\n-fPIC\n")
+      )
+    )
+  )
+)
+
+
+; python-link-flags.txt contains the linker flags to create a shared
+; library that can be loaded as a Python module.
+
+; When using Apple 'ld', we need "-undefined dynamic_lookup" in order to
+; tolerate unresolved symbols that are provided by the Python
+; interpreter, such as '_PyBuffer_Release'.
+(rule
+  (target python-link-flags.txt)
+  (enabled_if (= %{system} macosx))
+  (action
+    (with-stdout-to %{target}
+      (echo "-undefined\ndynamic_lookup\n")
+    )
+  )
+)
+
+; When using GNU 'ld', no extra flags are required (and the flags needed
+; for Apple would be rejected as invalid).
+(rule
+  (target python-link-flags.txt)
+  (enabled_if (<> %{system} macosx))
+  (action
+    (with-stdout-to %{target}
+      (echo "")
+    )
+  )
+)
+
+
+; semgrep_bridge_python.so contains the Python bindings.  It is meant to
+; be directly invoked from the Python CLI wrapper, specifically
+; cli/src/semgrep/semgrep_core.py.
+(rule
+  (target semgrep_bridge_python.so)
+  (deps
+    bridge_py.c
+    dlhelp.c
+
+    ; semgrep_bridge_core.so is not a compile-time dependency here
+    ; because it is loaded explicitly using dlopen.
+  )
+  (action
+    (run %{cc} -shared -o %{target} %{deps}
+           %{read-lines:python3-config-cflags.txt}
+           %{read-lines:python-link-flags.txt}
+    )
+  )
+)
+
+
+; Install the shared objects alongside the semgrep-core executable.
+(install
+  (package semgrep)
+  (section bin)
+  (files
+    semgrep_bridge_core.so
+    semgrep_bridge_python.so
+  )
+)

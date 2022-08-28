@@ -19,6 +19,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
+from typing import TYPE_CHECKING
 
 from attr import asdict
 from attr import field
@@ -26,6 +27,7 @@ from attr import frozen
 from ruamel.yaml import YAML
 from tqdm import tqdm
 
+import semgrep.fork_subprocess as fork_subprocess
 import semgrep.output_from_core as core
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
@@ -51,6 +53,20 @@ from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+# Size in bytes of the input buffer for reading analysis outputs.
+INPUT_BUFFER_LIMIT: int = 1024 * 1024 * 1024
+
+# Number of bytes to read at once when reading the stdout produced by
+# semgrep-core.
+#
+# This must be less than INPUT_BUFFER_LIMIT, otherwise a deadlock can
+# result where the parent is waiting for this many bytes but the child
+# has filled its buffer, so it blocks.
+#
+# test/e2e/test_performance.py is one test that exercises this risk.
+LARGE_READ_SIZE: int = 1024 * 1024 * 512
 
 
 def setrlimits_preexec_fn() -> None:
@@ -120,6 +136,18 @@ def uniq_error_id(
     )
 
 
+def open_and_ignore(fname: str) -> None:
+    """
+    Attempt to open 'fname' simply so a record of having done so will
+    be seen by 'strace'.
+    """
+    try:
+        with open(fname, "rb") as in_file:
+            pass  # Not expected, but not a problem.
+    except BaseException:
+        pass  # Expected outcome
+
+
 class StreamingSemgrepCore:
     """
     Handles running semgrep-core in a streaming fashion
@@ -145,6 +173,10 @@ class StreamingSemgrepCore:
         self._stderr = ""
         self._progress_bar: Optional[tqdm] = None  # type: ignore
 
+        # Map from file name to contents, to be checked before the real
+        # file system when servicing requests from semgrep-core.
+        self.vfs_map: Dict[str, bytes] = {}
+
     @property
     def stdout(self) -> str:
         # stdout of semgrep-core sans "." and extra target counts
@@ -155,9 +187,7 @@ class StreamingSemgrepCore:
         # stderr of semgrep-core command
         return self._stderr
 
-    async def _core_stdout_processor(
-        self, stream: Optional[asyncio.StreamReader]
-    ) -> None:
+    async def _core_stdout_processor(self, stream: asyncio.StreamReader) -> None:
         """
         Asynchronously process stdout of semgrep-core
 
@@ -172,10 +202,6 @@ class StreamingSemgrepCore:
         stdout_lines: List[bytes] = []
         num_total_targets: int = self._total
         num_scanned_targets: int = 0
-
-        # appease mypy. stream is only None if call to create_subproccess_exec
-        # sets stdout/stderr stream to None
-        assert stream
 
         # Start out reading two bytes at a time (".\n")
         get_input: Callable[
@@ -205,9 +231,9 @@ class StreamingSemgrepCore:
             else:
                 stdout_lines.append(line_bytes)
                 # Once we see a non-"." char it means we are reading a large json blob
-                # so increase the buffer read size (kept below subprocess buffer limit below)
+                # so increase the buffer read size.
                 reading_json = True
-                get_input = lambda s: s.read(n=1024 * 1024 * 512)
+                get_input = lambda s: s.read(n=LARGE_READ_SIZE)
 
     async def _core_stderr_processor(
         self, stream: Optional[asyncio.StreamReader]
@@ -235,27 +261,111 @@ class StreamingSemgrepCore:
             line = line_bytes.decode("utf-8", "replace")
             stderr_lines.append(line)
 
-    async def _stream_subprocess(self) -> int:
-        process = await asyncio.create_subprocess_exec(
-            *self._cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            limit=1024 * 1024 * 1024,  # buffer limit to read in bytes
-            preexec_fn=setrlimits_preexec_fn,
+    def _handle_read_file(self, fname: str) -> Tuple[bytes, int]:
+        """
+        Handler for semgrep_analyze 'read_file' callback.
+        """
+        try:
+            if fname in self.vfs_map:
+                contents = self.vfs_map[fname]
+                logger.debug(f"read_file: in memory {fname}: {len(contents)} bytes")
+                return (contents, 0)
+            with open(fname, "rb") as in_file:
+                contents = in_file.read()
+                logger.debug(f"read_file: disk read {fname}: {len(contents)} bytes")
+                return (contents, 0)
+        except BaseException as e:
+            logger.debug(f"read_file: reading {fname}: exn: {e!r}")
+            exnClass = type(e).__name__
+            return (f"{fname}: {exnClass}: {e}".encode(), 1)
+
+    async def _handle_process_outputs(
+        self, stdout: asyncio.StreamReader, stderr: asyncio.StreamReader
+    ) -> None:
+        """
+        Wait for both output streams to reach EOF, processing and
+        accumulating the results in the meantime.
+        """
+        results = await asyncio.gather(
+            self._core_stdout_processor(stdout),
+            self._core_stderr_processor(stderr),
+            return_exceptions=True,
         )
 
         # Raise any exceptions from processing stdout/err
-        results = await asyncio.gather(
-            self._core_stdout_processor(process.stdout),
-            self._core_stderr_processor(process.stderr),
-            return_exceptions=True,
-        )
         for r in results:
             if isinstance(r, Exception):
                 raise SemgrepError(f"Error while running rules: {r}")
 
+    async def _stream_exec_subprocess(self) -> int:
+        """
+        Run semgrep-core via fork/exec, consuming its output
+        asynchronously.
+
+        Return its exit code when it terminates.
+        """
+        process = await asyncio.create_subprocess_exec(
+            *self._cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            limit=INPUT_BUFFER_LIMIT,
+            preexec_fn=setrlimits_preexec_fn,
+        )
+
+        # Ensured by passing stdout/err named parameters above.
+        assert process.stdout
+        assert process.stderr
+
+        await self._handle_process_outputs(process.stdout, process.stderr)
+
         # Return exit code of cmd. process should already be done
         return await process.wait()
+
+    def _run_forked_analysis_in_child(self) -> None:
+        """
+        Run semgrep_analyze from within the child process.
+        """
+        # Like in the exec case, try to expand limits in the child.
+        setrlimits_preexec_fn()
+
+        # TYPE_CHECKING is always false at run time, but by doing this,
+        # mypy will know which module 'semgrep_bridge_python' refers to,
+        # and hence check the calls to it.
+        if TYPE_CHECKING:
+            import semgrep_bridge_python
+        else:
+            semgrep_bridge_python = SemgrepCore.get_bridge_module()
+
+        # Currently, we delay initializing the OCaml runtime until we
+        # are in the forked child.  Later, we may want to hoist this to
+        # the parent somewhere so multiple queries can be more
+        # efficiently performed in the context of a Snowflake UDF.
+        semgrep_bridge_python.startup()
+
+        # Invoke the semgrep_bridge_python module.
+        err = semgrep_bridge_python.semgrep_analyze(self._cmd, self._handle_read_file)
+
+        if err != None:
+            # Convey an error back to the parent.
+            print(err, file=sys.stderr)
+            sys.exit(2)
+
+        semgrep_bridge_python.shutdown()
+
+    async def _stream_fork_subprocess(self) -> int:
+        """
+        Run semgrep_bridge_python.so in a forked (but not exec'd) child
+        process, consuming its output asynchronously.
+
+        Return its exit code when it terminates.
+        """
+        process = await fork_subprocess.start_fork_subprocess(
+            lambda: self._run_forked_analysis_in_child(), limit=INPUT_BUFFER_LIMIT
+        )
+
+        await self._handle_process_outputs(process.stdout, process.stderr)
+
+        return process.wait()
 
     def execute(self) -> int:
         """
@@ -264,6 +374,8 @@ class StreamingSemgrepCore:
 
         Blocks til completion and returns exit code
         """
+        open_and_ignore("/tmp/core-runner-semgrep-BEGIN")
+
         terminal = get_state().terminal
         if (
             sys.stderr.isatty()
@@ -278,10 +390,15 @@ class StreamingSemgrepCore:
                 bar_format="  {l_bar}{bar}|{n_fmt}/{total_fmt} tasks",
             )
 
-        rc = asyncio.run(self._stream_subprocess())
+        if SemgrepCore.using_bridge_module():
+            rc = asyncio.run(self._stream_fork_subprocess())
+        else:
+            rc = asyncio.run(self._stream_exec_subprocess())
+
         if self._progress_bar:
             self._progress_bar.close()
 
+        open_and_ignore("/tmp/core-runner-semgrep-END")
         return rc
 
 
@@ -471,14 +588,14 @@ class CoreRunner:
         # See if semgrep output contains a JSON error that we can decode.
         try:
             return cast(Dict[str, Any], json.loads(semgrep_output))
-        except ValueError:
+        except ValueError as exn:
             if returncode == -11 or returncode == -9:
                 # Killed by signal 11 (segmentation fault), this could be a
                 # stack overflow that was not intercepted by the OCaml runtime.
                 soft_limit, _hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
                 tip = f" Semgrep exceeded system resources. This may be caused by\n\n    1. Stack overflow. Try increasing the stack limit to `{soft_limit}` by running `ulimit -s {soft_limit}` before running Semgrep.\n    2. Out of memory. Try increasing the memory available to your container (if running in CI). If that is not possible, run `semgrep` with `--max-memory $YOUR_MEMORY_LIMIT`.\n    3. Some extremely niche compiler/c-bindings bug. (We've never seen this, but it's always possible.)\n\nYou can also try reducing the number of processes Semgrep uses by running `semgrep` with `--jobs 1` (or some other number of jobs). If you are running in CI, please try running the same command locally."
             else:
-                tip = "Semgrep encountered an internal error."
+                tip = f"Semgrep encountered an internal error: {exn}."
             self._fail(
                 f"{tip}",
                 shell_command,
@@ -613,15 +730,22 @@ class CoreRunner:
             plan = self._plan_core_run(rules, target_manager, all_targets)
             plan.log()
             parsing_data.add_targets(plan)
-            target_file.write(json.dumps(plan.to_json()))
+            target_file_contents = json.dumps(plan.to_json())
+            target_file.write(target_file_contents)
             target_file.flush()
 
-            rule_file.write(
-                json.dumps(
-                    {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
-                )
+            rule_file_contents = json.dumps(
+                {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
             )
+            rule_file.write(rule_file_contents)
             rule_file.flush()
+
+            # Create a map to feed to semgrep-core as an alternative to
+            # having it actually read the files.
+            vfs_map: Dict[str, bytes] = {
+                target_file.name: target_file_contents.encode("UTF-8"),
+                rule_file.name: rule_file_contents.encode("UTF-8"),
+            }
 
             # Run semgrep
             cmd = [SemgrepCore.path()] + [
@@ -716,10 +840,17 @@ class CoreRunner:
             logger.debug(" ".join(cmd))
 
             if dump_command_for_core:
-                print(" ".join(cmd))
+                # Even if using the bridge, print the command as if
+                # using the executable since presumably the user wants
+                # to copy+paste it to a shell.  (The real command is
+                # still visible in the log message above.)
+                printed_cmd = cmd.copy()
+                printed_cmd[0] = SemgrepCore.executable_path()
+                print(" ".join(printed_cmd))
                 sys.exit(0)
 
             runner = StreamingSemgrepCore(cmd, plan.num_targets)
+            runner.vfs_map = vfs_map
             returncode = runner.execute()
 
             # Process output

@@ -23,6 +23,8 @@ jobs:
           github_cache_dir="/__w"
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
+      - name: Install python3-config
+        run: sudo apk add python3-dev
       - name: Checkout
         uses: actions/checkout@v3
       - id: submodule-status
@@ -161,6 +163,8 @@ jobs:
     steps:
       - name: Install pipenv
         run: sudo pip install pipenv==2022.6.7
+      - name: Install python3-config
+        run: sudo apk add python3-dev
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
