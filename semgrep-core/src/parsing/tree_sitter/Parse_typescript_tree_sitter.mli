@@ -19,3 +19,5 @@ val parse :
   ?dialect:dialect ->
   string ->
   Ast_js.a_program Tree_sitter_run.Parsing_result.t
+
+val parse_pattern : string -> Ast_js.any Tree_sitter_run.Parsing_result.t

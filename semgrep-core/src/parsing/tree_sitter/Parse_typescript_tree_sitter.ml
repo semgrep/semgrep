@@ -1164,144 +1164,149 @@ and initializer_opt env v =
 
 and primary_expression (env : env) (x : CST.primary_expression) : expr =
   match x with
-  | `Choice_subs_exp x -> (
+  | `Semg_exp_ellips tok ->
+      let tok = token env tok in
+      Ellipsis tok
+  | `Choice_choice_subs_exp x -> (
       match x with
-      | `Subs_exp x -> subscript_expression env x
-      | `Member_exp x -> member_expression env x
-      | `Paren_exp x -> parenthesized_expression env x
-      | `Choice_unde x -> identifier_ env x
-      | `Choice_decl x -> reserved_identifier env x |> idexp
-      | `This tok -> this env tok (* "this" *)
-      | `Super tok -> super env tok (* "super" *)
-      | `Num tok ->
-          let n = number env tok (* number *) in
-          L (Num n)
-      | `Str x ->
-          let s = string_ env x in
-          L (String s)
-      | `Temp_str x ->
-          let t1, xs, t2 = template_string env x in
-          Apply (IdSpecial (Encaps false, t1), (t1, xs, t2))
-      | `Regex (v1, v2, v3, v4) ->
-          let v1 = token env v1 (* "/" *) in
-          let v2 = str env v2 (* regex_pattern *) in
-          let v3 = token env v3 (* "/" *) in
-          let v4 =
-            match v4 with
-            | Some tok -> Some (str env tok) (* pattern [a-z]+ *)
-            | None -> None
-          in
-          L (Regexp ((v1, v2, v3), v4))
-      | `True tok -> L (Bool (true, token env tok) (* "true" *))
-      | `False tok -> L (Bool (false, token env tok) (* "false" *))
-      | `Null tok -> IdSpecial (Null, token env tok) (* "null" *)
-      | `Import tok -> identifier env tok (* import *) |> idexp
-      | `Obj x ->
-          let o = object_ env x in
-          Obj o
-      | `Array x -> array_ env x
-      | `Func x ->
-          let f, idopt = function_ env x in
-          Fun (f, idopt)
-      | `Arrow_func (v1, v2, v3, v4) ->
-          let v1 =
-            match v1 with
-            | Some tok -> [ attr (Async, token env tok) ] (* "async" *)
-            | None -> []
-          in
-          let v2, tret =
-            match v2 with
-            | `Choice_choice_decl x ->
-                let id = id_or_reserved_id env x in
-                ([ ParamClassic (mk_param id) ], None)
-            | `Call_sign x ->
-                let _tparams, (params, tret) = call_signature env x in
-                (params, tret)
-          in
-          let v3 = token env v3 (* "=>" *) in
-          let v4 =
-            match v4 with
-            | `Exp x ->
-                let e = expression env x in
-                Return (v3, Some e, PI.sc v3)
-            | `Stmt_blk x -> statement_block env x
-          in
-          let f_kind = (G.Arrow, v3) in
-          let f =
-            {
-              f_attrs = v1;
-              f_params = v2;
-              f_body = v4;
-              f_rettype = tret;
-              f_kind;
-            }
-          in
-          Fun (f, None)
-      | `Gene_func (v1, v2, v3, v4, v5, v6) ->
-          let v1 =
-            match v1 with
-            | Some tok -> [ (Async, token env tok) ] (* "async" *)
-            | None -> []
-          in
-          let v2 = token env v2 (* "function" *) in
-          let v3 = [ (Generator, token env v3) ] (* "*" *) in
-          let v4 =
-            match v4 with
-            | Some tok -> Some (identifier env tok) (* identifier *)
-            | None -> None
-          in
-          let _tparams, (v5, tret) = call_signature env v5 in
-          let v6 = statement_block env v6 in
-          let attrs = v1 @ v3 |> Common.map attr in
-          let f_kind = (G.LambdaKind, v2) in
-          let f =
-            {
-              f_attrs = attrs;
-              f_params = v5;
-              f_body = v6;
-              f_rettype = tret;
-              f_kind;
-            }
-          in
-          Fun (f, v4)
-      | `Class (v1, v2, v3, v4, v5, v6) ->
-          let v1 = Common.map (decorator env) v1 in
-          let v2 = token env v2 (* "class" *) in
-          let v3 =
-            match v3 with
-            | Some tok -> Some (identifier env tok) (* identifier *)
-            | None -> None
-          in
-          (* TODO types *)
-          let _v4 =
-            match v4 with
-            | Some x -> type_parameters env x
-            | None -> []
-          in
-          let c_extends, c_implements =
-            match v5 with
-            | Some x -> class_heritage env x
-            | None -> ([], [])
-          in
-          let v6 = class_body env v6 in
-          let class_ =
-            {
-              c_kind = (G.Class, v2);
-              c_attrs = v1;
-              c_extends;
-              c_implements;
-              c_body = v6;
-            }
-          in
-          Class (class_, v3)
-      | `Meta_prop (v1, v2, v3) ->
-          let v1 = token env v1 (* "new" *) in
-          let v2 = token env v2 (* "." *) in
-          let v3 = token env v3 (* "target" *) in
-          let t = PI.combine_infos v1 [ v2; v3 ] in
-          IdSpecial (NewTarget, t)
-      | `Call_exp x -> call_expression env x)
-  | `Non_null_exp x -> non_null_expression env x
+      | `Choice_subs_exp x -> (
+          match x with
+          | `Subs_exp x -> subscript_expression env x
+          | `Member_exp x -> member_expression env x
+          | `Paren_exp x -> parenthesized_expression env x
+          | `Choice_unde x -> identifier_ env x
+          | `Choice_decl x -> reserved_identifier env x |> idexp
+          | `This tok -> this env tok (* "this" *)
+          | `Super tok -> super env tok (* "super" *)
+          | `Num tok ->
+              let n = number env tok (* number *) in
+              L (Num n)
+          | `Str x ->
+              let s = string_ env x in
+              L (String s)
+          | `Temp_str x ->
+              let t1, xs, t2 = template_string env x in
+              Apply (IdSpecial (Encaps false, t1), (t1, xs, t2))
+          | `Regex (v1, v2, v3, v4) ->
+              let v1 = token env v1 (* "/" *) in
+              let v2 = str env v2 (* regex_pattern *) in
+              let v3 = token env v3 (* "/" *) in
+              let v4 =
+                match v4 with
+                | Some tok -> Some (str env tok) (* pattern [a-z]+ *)
+                | None -> None
+              in
+              L (Regexp ((v1, v2, v3), v4))
+          | `True tok -> L (Bool (true, token env tok) (* "true" *))
+          | `False tok -> L (Bool (false, token env tok) (* "false" *))
+          | `Null tok -> IdSpecial (Null, token env tok) (* "null" *)
+          | `Import tok -> identifier env tok (* import *) |> idexp
+          | `Obj x ->
+              let o = object_ env x in
+              Obj o
+          | `Array x -> array_ env x
+          | `Func x ->
+              let f, idopt = function_ env x in
+              Fun (f, idopt)
+          | `Arrow_func (v1, v2, v3, v4) ->
+              let v1 =
+                match v1 with
+                | Some tok -> [ attr (Async, token env tok) ] (* "async" *)
+                | None -> []
+              in
+              let v2, tret =
+                match v2 with
+                | `Choice_choice_decl x ->
+                    let id = id_or_reserved_id env x in
+                    ([ ParamClassic (mk_param id) ], None)
+                | `Call_sign x ->
+                    let _tparams, (params, tret) = call_signature env x in
+                    (params, tret)
+              in
+              let v3 = token env v3 (* "=>" *) in
+              let v4 =
+                match v4 with
+                | `Exp x ->
+                    let e = expression env x in
+                    Return (v3, Some e, PI.sc v3)
+                | `Stmt_blk x -> statement_block env x
+              in
+              let f_kind = (G.Arrow, v3) in
+              let f =
+                {
+                  f_attrs = v1;
+                  f_params = v2;
+                  f_body = v4;
+                  f_rettype = tret;
+                  f_kind;
+                }
+              in
+              Fun (f, None)
+          | `Gene_func (v1, v2, v3, v4, v5, v6) ->
+              let v1 =
+                match v1 with
+                | Some tok -> [ (Async, token env tok) ] (* "async" *)
+                | None -> []
+              in
+              let v2 = token env v2 (* "function" *) in
+              let v3 = [ (Generator, token env v3) ] (* "*" *) in
+              let v4 =
+                match v4 with
+                | Some tok -> Some (identifier env tok) (* identifier *)
+                | None -> None
+              in
+              let _tparams, (v5, tret) = call_signature env v5 in
+              let v6 = statement_block env v6 in
+              let attrs = v1 @ v3 |> Common.map attr in
+              let f_kind = (G.LambdaKind, v2) in
+              let f =
+                {
+                  f_attrs = attrs;
+                  f_params = v5;
+                  f_body = v6;
+                  f_rettype = tret;
+                  f_kind;
+                }
+              in
+              Fun (f, v4)
+          | `Class (v1, v2, v3, v4, v5, v6) ->
+              let v1 = Common.map (decorator env) v1 in
+              let v2 = token env v2 (* "class" *) in
+              let v3 =
+                match v3 with
+                | Some tok -> Some (identifier env tok) (* identifier *)
+                | None -> None
+              in
+              (* TODO types *)
+              let _v4 =
+                match v4 with
+                | Some x -> type_parameters env x
+                | None -> []
+              in
+              let c_extends, c_implements =
+                match v5 with
+                | Some x -> class_heritage env x
+                | None -> ([], [])
+              in
+              let v6 = class_body env v6 in
+              let class_ =
+                {
+                  c_kind = (G.Class, v2);
+                  c_attrs = v1;
+                  c_extends;
+                  c_implements;
+                  c_body = v6;
+                }
+              in
+              Class (class_, v3)
+          | `Meta_prop (v1, v2, v3) ->
+              let v1 = token env v1 (* "new" *) in
+              let v2 = token env v2 (* "." *) in
+              let v3 = token env v3 (* "target" *) in
+              let t = PI.combine_infos v1 [ v2; v3 ] in
+              IdSpecial (NewTarget, t)
+          | `Call_exp x -> call_expression env x)
+      | `Non_null_exp x -> non_null_expression env x)
 
 and call_expression (env : env) (x : CST.call_expression) =
   match x with
@@ -3161,14 +3166,17 @@ and map_anon_choice_type_id_a85f573 (env : env)
 
 let toplevel env x = statement env x
 
-let program (env : env) ((v1, v2) : CST.program) : a_program =
-  let _v1 =
-    match v1 with
-    | Some tok -> Some (token env tok) (* pattern #!.* *)
-    | None -> None
-  in
-  let v2 = List.concat_map (toplevel env) v2 in
-  v2
+let program (env : env) (x : CST.program) : any =
+  match x with
+  | `Opt_hash_bang_line_rep_choice_export_stmt (v1, v2) ->
+      let _v1 =
+        match v1 with
+        | Some tok -> Some (token env tok) (* pattern #!.* *)
+        | None -> None
+      in
+      let v2 = List.concat_map (toplevel env) v2 in
+      Program v2
+  | `Switch_case v1 -> Partial (PartialSwitchCase (switch_case env v1))
 
 (*****************************************************************************)
 (* Entry point *)
@@ -3205,4 +3213,16 @@ let parse ?dialect file =
         Printexc.record_backtrace true;
         CST.dump_tree cst);
 
+      match program env cst with
+      | Program p -> p
+      | _ -> failwith "not a program")
+
+let parse_pattern str =
+  H.wrap_parser
+    (* TODO Should we use Tree_sitter_tsx so that we permit TSX constructs in
+     * patterns? Or try both, since TSX is not strictly a superset? *)
+      (fun () -> (Tree_sitter_typescript.Parse.string str :> cst_result))
+    (fun cst ->
+      let file = "<pattern>" in
+      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
       program env cst)

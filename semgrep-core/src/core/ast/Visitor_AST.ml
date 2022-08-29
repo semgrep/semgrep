@@ -688,6 +688,7 @@ let (mk_visitor :
     in
     vin.kstmts (k, all_functions) xs
   and v_cases_and_body x =
+    v_partial ~recurse:false (PartialSwitchCase x);
     match x with
     | CasesAndBody (v1, v2) ->
         let v1 = v_list v_case v1 and v2 = v_stmt v2 in
@@ -1010,6 +1011,7 @@ let (mk_visitor :
             v_tok v2;
             v_expr v3)
       | PartialLambdaOrFuncDef v1 -> if recurse then v_function_definition v1
+      | PartialSwitchCase v1 -> if recurse then v_cases_and_body v1
     in
     vin.kpartial (k, all_functions) x
   and v_entity x =
