@@ -21,18 +21,6 @@
   ; invocations, but not from dune), so there is no point in trying to
   ; generate bytecode for this target.
   (modes (native shared_object))
-
-  ; Only build this if semgrep-core is built with dynamic linking, as
-  ; otherwise the platform doesn't support shared libraries.
-  ;
-  ; Oof.  Dune does not allow 'read' to be used in an 'enabled_if'
-  ; expression.
-  ;(enabled_if
-  ;  (= %{read:../cli/flags.sexp} "( :standard )\n")
-  ;)
-  ;
-  ; This also does not work:
-  ;(enabled_if %{ocaml-config:supports_shared_libraries})
 )
 
 
@@ -58,19 +46,52 @@
 )
 
 
+; python-link-flags.txt contains the linker flags to create a shared
+; library that can be loaded as a Python module.
+
+; When using Apple 'ld', we need "-undefined dynamic_lookup" in order to
+; tolerate unresolved symbols that are provided by the Python
+; interpreter, such as '_PyBuffer_Release'.
+(rule
+  (target python-link-flags.txt)
+  (enabled_if (= %{system} macosx))
+  (action
+    (with-stdout-to %{target}
+      (echo "-undefined\ndynamic_lookup\n")
+    )
+  )
+)
+
+; When using GNU 'ld', no extra flags are required (and the flags needed
+; for Apple would be rejected as invalid).
+(rule
+  (target python-link-flags.txt)
+  (enabled_if (<> %{system} macosx))
+  (action
+    (with-stdout-to %{target}
+      (echo "")
+    )
+  )
+)
+
+
 ; semgrep_bridge_python.so contains the Python bindings.  It is meant to
-; be directly invoked from the Python CLI wrapper, cli.py.
+; be directly invoked from the Python CLI wrapper, specifically
+; cli/src/semgrep/semgrep_core.py.
 (rule
   (target semgrep_bridge_python.so)
   (deps
     bridge_py.c
-    semgrep_bridge_core.so
+    dlhelp.c
+
+    ; semgrep_bridge_core.so is not a compile-time dependency here
+    ; because it is loaded explicitly using dlopen.
   )
   (action
-    ; "$ORIGIN" is a special rpath that means to load from the directory
-    ; where the referring object was loaded from.
-    (run %{cc} -shared -o %{target} %{deps} -Wl,-rpath=$ORIGIN
-           %{read-lines:python3-config-cflags.txt})
+    (run %{cc} -shared -o %{target} %{deps}
+           %{read-lines:python3-config-cflags.txt}
+           %{read-lines:python-link-flags.txt}
+    )
   )
 )
 

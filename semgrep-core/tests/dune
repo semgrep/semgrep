@@ -1,4 +1,4 @@
-(test
+(executable
  (name test)
  (libraries
     str
@@ -38,3 +38,7 @@
       ppx_deriving.show
    ))
 )
+
+(rule
+ (alias runtest)
+ (action (run ./test.exe -e)))

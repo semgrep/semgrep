@@ -98,8 +98,22 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Ts
     | Lang.Js
     | Lang.Vue ->
-        let any = Parse_js.any_of_string str in
-        Js_to_generic.any any
+        (* This is a simplified version of run_either in Parse_target.ml. We
+         * don't need most of the logic there when we're parsing patterns, so it
+         * doesn't make sense to reuse it. However, we should abstract this out
+         * if we start using fallback parsers for patterns in other languages.
+         * *)
+        let js_ast =
+          try Parse_js.any_of_string str with
+          | Timeout _ as e -> Exception.catch_and_reraise e
+          | exn -> (
+              let e = Exception.catch exn in
+              let res = Parse_typescript_tree_sitter.parse_pattern str in
+              match (res.program, res.errors) with
+              | Some p, [] -> p
+              | _ -> Exception.reraise e)
+        in
+        Js_to_generic.any js_ast
     | Lang.Json ->
         let any = Parse_json.any_of_string str in
         Json_to_generic.any any

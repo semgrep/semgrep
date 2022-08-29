@@ -2,25 +2,12 @@
 /a/
 
 # ERROR:
-/[0-9]/
+/a/i
 
-# ERROR:
-/.+/
+/a*/
 
-# ERROR:
-/\./
+/aa/
 
-# ERROR:
-/\w+/
+/b/
 
-# ERROR:
-/\\/
-
-# ERROR:
-/\z/
-
-# ERROR:
-/\a\z/
-
-# TODO to be consistent with interpolation in strings, we should match here
-/foo#{2 + 2}/
+/#{a}/

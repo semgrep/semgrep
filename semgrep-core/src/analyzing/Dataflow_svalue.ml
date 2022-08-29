@@ -17,7 +17,8 @@ open IL
 module G = AST_generic
 module F = IL
 module D = Dataflow_core
-module VarMap = Dataflow_core.VarMap
+module Var_env = Dataflow_var_env
+module VarMap = Var_env.VarMap
 module LV = IL_lvalue_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -27,7 +28,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 (* map for each node/var whether a variable is constant *)
-type mapping = G.svalue Dataflow_core.mapping
+type mapping = G.svalue Var_env.mapping
 
 module DataflowX = Dataflow_core.Make (struct
   type node = F.node
@@ -305,7 +306,7 @@ let eval_binop_string ?tok op s1 s2 =
       G.Lit (literal_of_string ?tok (s1 ^ s2))
   | __else__ -> G.Cst G.Cstr
 
-let rec eval (env : G.svalue D.env) exp : G.svalue =
+let rec eval (env : G.svalue Var_env.t) exp : G.svalue =
   match exp.e with
   | Fetch lval -> eval_lval env lval
   | Literal li -> G.Lit li
@@ -319,7 +320,7 @@ let rec eval (env : G.svalue D.env) exp : G.svalue =
 and eval_lval env lval =
   match lval with
   | { base = Var x; offset = NoOffset } -> (
-      let opt_c = D.VarMap.find_opt (str_of_name x) env in
+      let opt_c = VarMap.find_opt (str_of_name x) env in
       match (!(x.id_info.id_svalue), opt_c) with
       | None, None -> G.NotCst
       | Some c, None
@@ -463,14 +464,14 @@ let update_env_with env var sval =
    * remove variables from the environment when they become non-constant!
    * This improves perf by a lot when proccessing large graphs. *)
   match sval with
-  | G.NotCst -> D.VarMap.remove (str_of_name var) env
-  | __else__ -> D.VarMap.add (str_of_name var) sval env
+  | G.NotCst -> VarMap.remove (str_of_name var) env
+  | __else__ -> VarMap.add (str_of_name var) sval env
 
 let transfer :
     lang:Lang.t ->
-    enter_env:G.svalue Dataflow_core.env ->
+    enter_env:G.svalue Var_env.t ->
     flow:F.cfg ->
-    G.svalue Dataflow_core.transfn =
+    G.svalue Var_env.transfn =
  fun ~lang ~enter_env ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
@@ -502,7 +503,7 @@ let transfer :
         | Call (Some { base = Var var; offset = NoOffset }, func, args) ->
             let args_val = Common.map (eval inp') args in
             if result_of_function_call_is_constant lang func args_val then
-              D.VarMap.add (str_of_name var) (G.Cst G.Cstr) inp'
+              VarMap.add (str_of_name var) (G.Cst G.Cstr) inp'
             else
               (* symbolic propagation *)
               (* Call to an arbitrary function, we are intraprocedural so we cannot
@@ -520,14 +521,14 @@ let transfer :
             (* Method call `var.f(args)` that returns void, we conservatively
              * assume that it may be updating `var`; e.g. in Ruby strings are
              * mutable. *)
-            D.VarMap.remove (str_of_name var) inp'
+            VarMap.remove (str_of_name var) inp'
         | ___else___ -> (
             (* In any other case, assume non-constant.
              * This covers e.g. `x.f = E`, `x[E1] = E2`, `*x = E`, etc. *)
             let lvar_opt = LV.lvar_of_instr_opt instr in
             match lvar_opt with
             | None -> inp'
-            | Some lvar -> D.VarMap.remove (str_of_name lvar) inp'))
+            | Some lvar -> VarMap.remove (str_of_name lvar) inp'))
   in
 
   { D.in_env = inp'; out_env = out' }
@@ -538,9 +539,9 @@ let transfer :
 
 let (fixpoint : Lang.t -> IL.name list -> F.cfg -> mapping) =
  fun lang _inputs flow ->
-  let enter_env = D.VarMap.empty in
-  DataflowX.fixpoint ~eq
-    ~init:(DataflowX.new_node_array flow (Dataflow_core.empty_inout ()))
+  let enter_env = VarMap.empty in
+  DataflowX.fixpoint ~eq_env:(Var_env.eq_env eq)
+    ~init:(DataflowX.new_node_array flow (Var_env.empty_inout ()))
     ~trans:(transfer ~lang ~enter_env ~flow) (* svalue is a forward analysis! *)
     ~forward:true ~flow
 
@@ -599,9 +600,7 @@ let update_svalue (flow : F.cfg) mapping =
          LV.rlvals_of_node node.n
          |> List.iter (function
               | { base = Var var; _ } -> (
-                  match
-                    D.VarMap.find_opt (str_of_name var) ni_info.D.in_env
-                  with
+                  match VarMap.find_opt (str_of_name var) ni_info.D.in_env with
                   | None -> ()
                   | Some c ->
                       if no_cycles var c then

@@ -10,11 +10,17 @@ set -eux
 
 # Because we're running this on a remote machine, we don't want to reinstall
 # everything every time
-
+brew install opam pkg-config coreutils pcre gettext
 brew update # Needed to sidestep bintray brownout
 
 #coupling: this should be the same version than in our Dockerfile
-opam switch 4.14.0
+if opam switch 4.14.0 ; then
+    echo "Switch 4.14.0 exists, continuing"
+else
+    echo "Switch 4.14.0 doesn't yet exist, creating..."
+    opam switch create 4.14.0
+    opam switch 4.14.0
+fi
 git submodule update --init --recursive --depth 1
 
 eval "$(opam env)"

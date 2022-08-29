@@ -1,12 +1,21 @@
 // bridge_py.c
 // Bridge layer that interfaces to Python.
 
+// Python
 #define PY_SSIZE_T_CLEAN               // Use Py_ssize_t for sizes of Python objects.
 #include <Python.h>                    // Python API
 
-#include "bridge_ml.h"                 // bridge_ml_*
+// this dir
+#define BRIDGE_ML_USE_DLOPEN           // Use dlopen to load the library.
+#include "bridge_ml.h"                 // bridge_ml_*, dlhelp_*
 
+// libc
+#include <assert.h>                    // assert
 #include <stdlib.h>                    // free
+
+
+// Handle to the shared library.
+static void *bridge_ml_handle = NULL;
 
 
 // Docstring for the entire module.
@@ -31,6 +40,20 @@ Start the OCaml runtime.  Required before calling 'semgrep_analyze'.");
 
 static PyObject *bridge_startup(PyObject *self, PyObject *args)
 {
+  if (!bridge_ml_handle) {
+    char const *myself_filename =
+      dlhelp_get_filename_with_address(&bridge_startup);
+    bridge_ml_handle = dlhelp_dlopen_relative(
+      "SEMGREP_BRIDGE_CORE_LIB",
+      myself_filename,
+      myself_filename,
+      "semgrep_bridge_core.so",
+      0 /*flags*/);
+    assert(bridge_ml_handle);
+
+    bridge_ml_get_symbols(bridge_ml_handle, myself_filename);
+  }
+
   bridge_ml_startup();
   return Py_None;
 }
@@ -50,6 +73,10 @@ cannot be started again in the same process.");
 static PyObject *bridge_shutdown(PyObject *self, PyObject *args)
 {
   bridge_ml_shutdown();
+
+  // I could also close the library here.  For now, for simplicity, I
+  // choose not to.
+
   return Py_None;
 }
 
@@ -311,7 +338,7 @@ static struct PyModuleDef bridgeModule = {
 // Initialization function called by the Python interpreter.
 //
 // The name of the function corresponds to the module name in Python,
-// "semgrep_bridge".
+// "semgrep_bridge_python".
 PyMODINIT_FUNC PyInit_semgrep_bridge_python(void)
 {
   return PyModule_Create(&bridgeModule);

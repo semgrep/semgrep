@@ -209,10 +209,6 @@ let rec expr env (x : expr) =
                    let x = expr env x in
                    G.Arg x)) )
       |> G.e
-  | TypedExpr (v1, v2) ->
-      let v1 = expr env v1 in
-      let v2 = type_ env v2 in
-      G.Cast (v2, unsafe_fake ":", v1) |> G.e
   | TypedMetavar (v1, v2, v3) ->
       let v1 = name env v1 in
       let v3 = type_ env v3 in
@@ -605,69 +601,6 @@ and stmt_aux env x =
         }
       in
       [ G.DefStmt (ent, G.ClassDef def) |> G.s ]
-  | ExprStmt (TypedExpr (Name (id, _kind, _ref), ty)) ->
-      (* no need to guard with assign_to_vardef here *)
-      let id = name env id in
-      let ty = type_ env ty in
-      let ent = G.basic_entity id in
-      let def = G.VarDef { G.vtype = Some ty; vinit = None } in
-      [ G.DefStmt (ent, def) |> G.s ]
-  (* TODO: v1 contains actually a list of lhs, because a = b = c is
-   * translated in Assign ([a;b], c)
-   *)
-  | Assign (v1, v2, v3) -> (
-      let v1 = list (expr env) v1 and v2 = info v2 and v3 = expr env v3 in
-
-      match v1 with
-      | [] -> raise Impossible
-      | [ a ] -> (
-          (* Trying to convert certain Assign in VarDef, which can benefit
-           * Codegraph.
-           *)
-          let to_vardef id idinfo topt =
-            let ent =
-              { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = [] }
-            in
-            let var = G.VarDef { G.vinit = Some v3; vtype = topt } in
-            [ G.DefStmt (ent, var) |> G.s ]
-          in
-          let default_res = [ G.exprstmt (G.Assign (a, v2, v3) |> G.e) ] in
-          match a.G.e with
-          (* x: t = ... is definitely a VarDef. This one does not need
-           * to be guarded by env.assign_to_vardef because it does not
-           * cause any regressions.
-           *)
-          | G.Cast (t, _, { e = G.N (G.Id (id, idinfo)); _ }) ->
-              to_vardef id idinfo (Some t)
-          (* x = ... at toplevel. This one is guarded by assign_to_vardef
-           * because it causes regressions in semgrep, probably because
-           * we do the translation for the target but not for the pattern.
-           * So, this is disabled in semgrep (and enabled in codegraph).
-           *)
-          | G.N (G.Id (id, idinfo))
-            when env.context = InSourceToplevel && env.assign_to_vardef ->
-              let s = fst id in
-              if not (is_in_scope env s) then (
-                env.current_scope <- s :: env.current_scope;
-                to_vardef id idinfo None)
-              else default_res
-          (* TODO: We should turn more Assign in G.VarDef!
-           * Is it bad for semgrep to turn all those Assign in VarDef?
-           * In theory no because we have some magic equivalences to
-           * convert some Vardef back in Assign in Generic_vs_generic anyway.
-           * In practice this leads to regressions in semgrep-rules, probably
-           * because we transform them in the target but not in the pattern
-           *)
-          | _ -> default_res)
-      | xs ->
-          [
-            G.exprstmt
-              (G.Assign (G.Container (G.Tuple, G.fake_bracket xs) |> G.e, v2, v3)
-              |> G.e);
-          ])
-  | AugAssign (v1, (v2, tok), v3) ->
-      let v1 = expr env v1 and v2 = operator v2 and v3 = expr env v3 in
-      [ G.exprstmt (G.AssignOp (v1, (v2, tok), v3) |> G.e) ]
   | Return (t, v1) ->
       let v1 = option (expr env) v1 in
       [ G.Return (t, v1, G.sc) |> G.s ]
@@ -729,6 +662,81 @@ and stmt_aux env x =
         | Some e2 -> [ G.E (G.LetPattern (H.expr_to_pattern e2, v1) |> G.e) ]
       in
       [ G.OtherStmtWithStmt (G.OSWS_With, anys, v3) |> G.s ]
+  | Switch (t, v1, v2) ->
+      let expr = expr env v1 in
+      let cases_and_body = list (cases_and_body env) v2 in
+      [ G.Switch (t, Some (G.Cond expr), cases_and_body) |> G.s ]
+  (* TODO: v1 contains actually a list of lhs, because a = b = c is
+   * translated in Assign ([a;b], c)
+   *)
+  | Assign (v1, v2, v3) -> (
+      let v1 =
+        list
+          (fun (x, y) ->
+            (expr env x, option (fun (tk, ty) -> (info tk, type_ env ty)) y))
+          v1
+      and v2 = info v2
+      and v3 = expr env v3 in
+      let v1 =
+        Common.map
+          (fun (e, tyopt) ->
+            match tyopt with
+            | None -> e
+            | Some (tok, ty) -> G.Cast (ty, tok, e) |> G.e)
+          v1
+      in
+      match v1 with
+      | [] -> raise Impossible
+      | [ a ] -> (
+          (* Trying to convert certain Assign in VarDef, which can benefit
+           * Codegraph.
+           *)
+          let to_vardef id idinfo topt =
+            let ent =
+              { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = [] }
+            in
+            let var = G.VarDef { G.vinit = Some v3; vtype = topt } in
+            [ G.DefStmt (ent, var) |> G.s ]
+          in
+          let default_res = [ G.exprstmt (G.Assign (a, v2, v3) |> G.e) ] in
+          match a.G.e with
+          (* x: t = ... is definitely a VarDef. This one does not need
+           * to be guarded by env.assign_to_vardef because it does not
+           * cause any regressions.
+           *)
+          | G.Cast (t, _, { e = G.N (G.Id (id, idinfo)); _ }) ->
+              to_vardef id idinfo (Some t)
+          (* x = ... at toplevel. This one is guarded by assign_to_vardef
+           * because it causes regressions in semgrep, probably because
+           * we do the translation for the target but not for the pattern.
+           * So, this is disabled in semgrep (and enabled in codegraph).
+           *)
+          | G.N (G.Id (id, idinfo))
+            when env.context = InSourceToplevel && env.assign_to_vardef ->
+              let s = fst id in
+              if not (is_in_scope env s) then (
+                env.current_scope <- s :: env.current_scope;
+                to_vardef id idinfo None)
+              else default_res
+          (* TODO: We should turn more Assign in G.VarDef!
+           * Is it bad for semgrep to turn all those Assign in VarDef?
+           * In theory no because we have some magic equivalences to
+           * convert some Vardef back in Assign in Generic_vs_generic anyway.
+           * In practice this leads to regressions in semgrep-rules, probably
+           * because we transform them in the target but not in the pattern
+           *)
+          | _ -> default_res)
+      | xs ->
+          [
+            G.exprstmt
+              (G.Assign (G.Container (G.Tuple, G.fake_bracket xs) |> G.e, v2, v3)
+              |> G.e);
+          ])
+  | AugAssign (v1, (v2, tok), v3) ->
+      let v1 = expr env v1 and v2 = operator v2 and v3 = expr env v3 in
+      [ G.exprstmt (G.AssignOp (v1, (v2, tok), v3) |> G.e) ]
+  | Cast (e, tok, ty) ->
+      [ G.exprstmt (G.Cast (type_ env ty, info tok, expr env e) |> G.e) ]
   | Raise (t, v1) -> (
       match v1 with
       | Some (e, None) ->
@@ -825,6 +833,19 @@ and stmt_aux env x =
   | Exec (tok, e, _eopt, _eopt2) ->
       let id = Name (("exec", tok), Load, ref NotResolved) in
       stmt_aux env (ExprStmt (Call (id, fb [ Arg e ])))
+
+and cases_and_body env = function
+  | CasesAndBody (cases, stmts) ->
+      G.CasesAndBody (list (case env) cases, list_stmt1 env stmts)
+  | CaseEllipsis tok ->
+      let x = info tok in
+      G.CaseEllipsis x
+
+and case env = function
+  | Case (tok, pat) ->
+      let x = info tok in
+      let pat = expr env pat in
+      G.Case (x, H.expr_to_pattern pat)
 
 and ident_and_id_info env x =
   let x = name env x in

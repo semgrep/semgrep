@@ -90,7 +90,7 @@ type regexp = Re.re
 
 val regexp_matcher_of_regexp_string : string -> string -> bool
 
-val equal_ast_binded_code :
+val equal_ast_bound_code :
   Config_semgrep.t -> Metavariable.mvalue -> Metavariable.mvalue -> bool
 
 (* generic matchers *)

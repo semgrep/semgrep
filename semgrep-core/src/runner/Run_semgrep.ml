@@ -134,7 +134,7 @@ let print_match ?str config match_ ii_of_any =
                  |> List.filter PI.is_origintok
                  |> Common.map PI.str_of_info
                  |> Matching_report.join_with_space_if_needed
-             | None -> failwith (spf "the metavariable '%s' was not binded" x))
+             | None -> failwith (spf "the metavariable '%s' was not bound" x))
     in
     pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
     ());

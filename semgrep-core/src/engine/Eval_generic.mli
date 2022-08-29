@@ -15,7 +15,7 @@ exception NotHandled of code
 exception NotInEnv of Metavariable.mvar
 
 (* raise NotHandled if the code is outside the subset of expressions allowed
- * raise NotInEnv if a metavariable is not binded in the environment.
+ * raise NotInEnv if a metavariable is not bound in the environment.
  *)
 val eval : env -> code -> value
 

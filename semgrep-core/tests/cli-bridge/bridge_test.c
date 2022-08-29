@@ -1,8 +1,11 @@
 // bridge_test.c
 // main() function to call directly into bridge_ml.c.
 
-#include "bridge_ml.h"                 // bridge_ml_*
+#define BRIDGE_ML_USE_DLOPEN           // We will use dlopen.
 
+#include "bridge_ml.h"                 // bridge_ml_*, dlhelp_*
+
+// libc
 #include <ctype.h>                     // isdigit
 #include <stdio.h>                     // printf
 #include <stdlib.h>                    // free, atoi
@@ -70,6 +73,16 @@ int main(int argc, char **argv)
   printf("in bridge_test\n");
   fflush(stdout);
 
+  void *libhandle = dlhelp_dlopen_relative(
+    "BRIDGE_TEST_LIBNAME",
+    argv[0],
+    argv[0],
+    "semgrep_bridge_core.so",
+    0 /*flags*/);
+
+  bridge_ml_get_symbols(libhandle, "bridge_test");
+
+
   bridge_ml_startup();
 
   char *errorMessage = bridge_ml_semgrep_analyze(
@@ -86,6 +99,10 @@ int main(int argc, char **argv)
   }
 
   bridge_ml_shutdown();
+
+
+  // Close the library.
+  dlhelp_dlclose(argv[0], libhandle);
 
   printf("returning from bridge_test\n");
   return 0;

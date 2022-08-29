@@ -100,7 +100,8 @@ let test_dfg_svalue ~parse_program file =
             let mapping = Dataflow_svalue.fixpoint lang inputs flow in
             Dataflow_svalue.update_svalue flow mapping;
             DataflowY.display_mapping flow mapping
-              (Pretty_print_AST.svalue_to_string lang);
+              (Dataflow_var_env.env_to_str
+                 (Pretty_print_AST.svalue_to_string lang));
             let s = AST_generic.show_any (S (H.funcbody_to_stmt def.fbody)) in
             pr2 s);
       }

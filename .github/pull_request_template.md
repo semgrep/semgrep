@@ -1,6 +1,6 @@
 PR checklist:
 
-- [ ] Each source file starts with an up-to-date [summary of why it exists](https://semgrep.dev/docs/contributing/contributing-code/#explaining)
+- [ ] Purpose of the code is [evident to future readers](https://semgrep.dev/docs/contributing/contributing-code/#explaining-code)
 - [ ] Tests included or PR comment includes a reproducible test plan
 - [ ] Documentation is up-to-date
 - [ ] A changelog entry was [added to changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry) for any user-facing change

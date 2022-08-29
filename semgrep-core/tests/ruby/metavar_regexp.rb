@@ -1,2 +1,2 @@
-#ERROR: match
+# ERROR: match
 foo(/abc/, "abc")

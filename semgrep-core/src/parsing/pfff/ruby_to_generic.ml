@@ -17,6 +17,7 @@ open Ast_ruby
 module G = AST_generic
 module H = AST_generic_helpers
 module PI = Parse_info
+module MV = Metavariable
 
 (*****************************************************************************)
 (* Prelude *)
@@ -58,6 +59,20 @@ let wrap _of_a (v1, v2) =
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
 let ident x = wrap string x
+
+let concatenate_string_wraps xs =
+  let strings, toks = List.split xs in
+  match toks with
+  | [] -> None
+  | x :: xs -> Some (String.concat "" strings, PI.combine_infos x xs)
+
+let concatenate_literal_fragments xs =
+  let rec concat acc = function
+    | StrChars x :: xs -> concat (x :: acc) xs
+    | [] -> concatenate_string_wraps (List.rev acc)
+    | _ -> None
+  in
+  concat [] xs
 
 let rec expr e =
   (match e with
@@ -317,11 +332,11 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
           | [ StrChars (s, t2) ] ->
               let t = PI.combine_infos l [ t2; r ] in
               Left (s, t)
-          | _ -> Right (string_contents_list (l, xs, r) |> G.e)))
+          | _ -> Right (interpolated_string (l, xs, r) |> G.e)))
   (* sgrep-ext: this should be covered in the caller *)
   | MethodEllipsis t -> raise (Parse_info.Parsing_error t)
 
-and string_contents_list (t1, xs, t2) : G.expr_kind =
+and interpolated_string (t1, xs, t2) : G.expr_kind =
   let xs = list (string_contents t1) xs in
   G.Call
     ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t1) |> G.e,
@@ -421,7 +436,7 @@ and atom tcolon x =
       | [ StrChars (s, t2) ] ->
           let t = PI.combine_infos l [ t2; r ] in
           G.L (G.Atom (tcolon, (s, t)))
-      | _ -> string_contents_list (l, xs, r))
+      | _ -> interpolated_string (l, xs, r))
 
 and literal x =
   match x with
@@ -448,24 +463,24 @@ and literal x =
       | Double (l, [ StrChars (s, t2) ], r) ->
           let t = PI.combine_infos l [ t2; r ] in
           G.L (G.String (s, t))
-      (* TODO: generate interpolation Special *)
-      | Double xs -> string_contents_list xs
+      | Double x -> interpolated_string x
       | Tick (l, xs, r) ->
           G.OtherExpr
-            (("Subshell", l), [ G.E (string_contents_list (l, xs, r) |> G.e) ]))
-  | Regexp ((l, xs, r), opt) ->
-      let rec f strs toks = function
-        | [ StrChars (s, t) ] ->
-            let str = String.concat "" (s :: strs) in
-            let tok = PI.combine_infos t toks in
-            G.L (G.Regexp ((l, (str, tok), r), opt))
-        | StrChars (s, t) :: tl -> f (s :: strs) (t :: toks) tl
-        | StrExpr _ :: _
-        | [] ->
-            (* TODO *)
-            string_contents_list (l, xs, r)
+            (("Subshell", l), [ G.E (interpolated_string (l, xs, r) |> G.e) ]))
+  | Regexp ((l, xs, r), opt) -> (
+      let literal_or_template =
+        match concatenate_literal_fragments xs with
+        (* /.../ matches any regexp literal or template *)
+        | Some ("...", tok) -> Right (G.Ellipsis tok)
+        (* literal regexp or metavariable such as /$X/ which will match
+           only literal regexps *)
+        | Some (s, t2) -> Left (G.Regexp ((l, (s, t2), r), opt))
+        (* template *)
+        | None -> Right (interpolated_string (l, xs, r))
       in
-      f [] [] (List.rev xs)
+      match literal_or_template with
+      | Left lit -> G.L lit
+      | Right template -> G.RegexpTemplate ((l, template |> G.e, r), opt))
 
 and expr_special_cases e =
   (* Code parsed as expressions in Ruby that we want to represent

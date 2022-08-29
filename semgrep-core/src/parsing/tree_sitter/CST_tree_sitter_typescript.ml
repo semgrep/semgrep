@@ -1206,32 +1206,35 @@ and pattern = [
 ]
 
 and primary_expression = [
-    `Choice_subs_exp of [
-        `Subs_exp of subscript_expression
-      | `Member_exp of member_expression
-      | `Paren_exp of parenthesized_expression
-      | `Choice_unde of identifier_
-      | `Choice_decl of reserved_identifier
-      | `This of Token.t (* "this" *)
-      | `Super of Token.t (* "super" *)
-      | `Num of number (*tok*)
-      | `Str of string_
-      | `Temp_str of template_string
-      | `Regex of regex
-      | `True of Token.t (* "true" *)
-      | `False of Token.t (* "false" *)
-      | `Null of Token.t (* "null" *)
-      | `Import of import (*tok*)
-      | `Obj of object_
-      | `Array of array_
-      | `Func of function_
-      | `Arrow_func of arrow_function
-      | `Gene_func of generator_function
-      | `Class of class_
-      | `Meta_prop of meta_property
-      | `Call_exp of call_expression
+    `Choice_choice_subs_exp of [
+        `Choice_subs_exp of [
+            `Subs_exp of subscript_expression
+          | `Member_exp of member_expression
+          | `Paren_exp of parenthesized_expression
+          | `Choice_unde of identifier_
+          | `Choice_decl of reserved_identifier
+          | `This of Token.t (* "this" *)
+          | `Super of Token.t (* "super" *)
+          | `Num of number (*tok*)
+          | `Str of string_
+          | `Temp_str of template_string
+          | `Regex of regex
+          | `True of Token.t (* "true" *)
+          | `False of Token.t (* "false" *)
+          | `Null of Token.t (* "null" *)
+          | `Import of import (*tok*)
+          | `Obj of object_
+          | `Array of array_
+          | `Func of function_
+          | `Arrow_func of arrow_function
+          | `Gene_func of generator_function
+          | `Class of class_
+          | `Meta_prop of meta_property
+          | `Call_exp of call_expression
+        ]
+      | `Non_null_exp of non_null_expression
     ]
-  | `Non_null_exp of non_null_expression
+  | `Semg_exp_ellips of Token.t (* "..." *)
 ]
 
 and primary_type = [
@@ -1584,10 +1587,13 @@ and variable_declarator = [
 ]
 [@@deriving sexp_of]
 
-type program = (
-    hash_bang_line (*tok*) option
-  * statement list (* zero or more *)
-)
+type program = [
+    `Opt_hash_bang_line_rep_choice_export_stmt of (
+        hash_bang_line (*tok*) option
+      * statement list (* zero or more *)
+    )
+  | `Switch_case of switch_case
+]
 [@@deriving sexp_of]
 
 type empty_statement (* inlined *) = Token.t (* ";" *)
