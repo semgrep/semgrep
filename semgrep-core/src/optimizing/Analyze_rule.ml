@@ -133,13 +133,12 @@ let option_map f xs =
 let rec (remove_not : Rule.formula -> Rule.formula option) =
  fun f ->
   match f with
-  | R.And { conj_tok = t; conjuncts = xs; conditions = conds; focus } ->
+  | R.And (t, { conjuncts = xs; conditions = conds; focus }) ->
       let ys = Common.map_filter remove_not xs in
       if null ys then (
         logger#warning "null And after remove_not";
         None)
-      else
-        Some (R.And { conj_tok = t; conjuncts = ys; conditions = conds; focus })
+      else Some (R.And (t, { conjuncts = ys; conditions = conds; focus }))
   | R.Or (t, xs) ->
       (* See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map remove_not xs in
@@ -202,7 +201,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * )
    *)
   | R.Inside (_, formula) -> cnf formula
-  | R.And { conjuncts = xs; conditions = conds; _ } ->
+  | R.And (_, { conjuncts = xs; conditions = conds; _ }) ->
       let ys = Common.map cnf xs in
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
       And (ys @ zs |> Common.map (function And ors -> ors) |> List.flatten)
@@ -568,12 +567,12 @@ let regexp_prefilter_of_taint_rule (_rule_id, rule_tok) taint_spec =
      * if executed by search-mode, but it works for the purpose of this
      * analysis! *)
     R.And
-      {
-        conj_tok = rule_tok;
-        conjuncts = [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ];
-        conditions = [];
-        focus = [];
-      }
+      ( rule_tok,
+        {
+          conjuncts = [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ];
+          conditions = [];
+          focus = [];
+        } )
   in
   regexp_prefilter_of_formula f
 

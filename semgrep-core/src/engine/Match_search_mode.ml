@@ -250,6 +250,54 @@ let matches_of_patterns ?mvar_context ?range_filter (xconf : xconfig)
 (* Specializations *)
 (*****************************************************************************)
 
+(* This code used to live in Specialize_formula.
+    We shouldn't need to translate the entire formula for just the
+    `And`s, though. I think we can just split the positives, negatives,
+    and selectors when we actually get to evaluating it.
+*)
+let selector_equal s1 s2 = s1.mvar = s2.mvar
+
+let selector_from_formula f =
+  match f with
+  | R.P { Xpattern.pat = Sem (pattern, _); pid; pstr } -> (
+      match pattern with
+      | G.E { e = G.N (G.Id ((mvar, _), _)); _ } when MV.is_metavar_name mvar ->
+          Some { mvar; pattern; pid; pstr }
+      | _ -> None)
+  | _ -> None
+
+let rec remove_selectors (selector, acc) formulas =
+  match formulas with
+  | [] -> (selector, acc)
+  | x :: xs ->
+      let selector, acc =
+        match (selector, selector_from_formula x) with
+        | None, None -> (None, x :: acc)
+        | Some s, None -> (Some s, x :: acc)
+        | None, Some s -> (Some s, acc)
+        | Some s1, Some s2 when selector_equal s1 s2 -> (Some s1, acc)
+        | Some s1, Some _s2 ->
+            (* patterns:
+                * ...
+                * - pattern: $X
+                * - pattern: $Y
+            *)
+            (* TODO: Should we fail here or just reported as a warning? This
+                * is something to catch with the meta-checker. *)
+            (Some s1, x :: acc)
+      in
+      remove_selectors (selector, acc) xs
+
+let specialize_and ({ conjuncts; _ } : Rule.conjunction) =
+  let pos, neg = Rule.split_and conjuncts in
+  let selector_opt, pos =
+    (* We only want a selector if there is something to select from. *)
+    match remove_selectors (None, []) pos with
+    | _, [] -> (None, pos)
+    | sel, pos -> (sel, pos)
+  in
+  (selector_opt, pos, neg)
+
 let run_selector_on_ranges env selector_opt ranges =
   match (selector_opt, ranges) with
   | _, [] ->
@@ -530,7 +578,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
       let ranges = List.flatten ranges in
       let expl = if_explanations env ranges expls (Out.Or, tok) in
       (ranges, expl)
-  | R.And { conj_tok; conjuncts; conditions = conds; focus; _ } -> (
+  | R.And (t, ({ conditions = conds; focus; _ } as conj)) -> (
       (* we now treat pattern: and pattern-inside: differently. We first
           * process the pattern: and then the pattern-inside.
           * This fixed only one mismatch in semgrep-rules.
@@ -545,51 +593,8 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
           * ...
       *)
 
-      (* This code used to live in Specialize_formula.
-          We shouldn't need to translate the entire formula for just the
-          `And`s, though. I think we can just split the positives, negatives,
-          and selectors when we actually get to evaluating it.
-      *)
-      let selector_equal s1 s2 = s1.mvar = s2.mvar in
-      let selector_from_formula f =
-        match f with
-        | R.P { Xpattern.pat = Sem (pattern, _); pid; pstr } -> (
-            match pattern with
-            | G.E { e = G.N (G.Id ((mvar, _), _)); _ }
-              when MV.is_metavar_name mvar ->
-                Some { mvar; pattern; pid; pstr }
-            | _ -> None)
-        | _ -> None
-      in
-      let rec remove_selectors (selector, acc) formulas =
-        match formulas with
-        | [] -> (selector, acc)
-        | x :: xs ->
-            let selector, acc =
-              match (selector, selector_from_formula x) with
-              | None, None -> (None, x :: acc)
-              | Some s, None -> (Some s, x :: acc)
-              | None, Some s -> (Some s, acc)
-              | Some s1, Some s2 when selector_equal s1 s2 -> (Some s1, acc)
-              | Some s1, Some _s2 ->
-                  (* patterns:
-                      * ...
-                      * - pattern: $X
-                      * - pattern: $Y
-                  *)
-                  (* TODO: Should we fail here or just reported as a warning? This
-                      * is something to catch with the meta-checker. *)
-                  (Some s1, x :: acc)
-            in
-            remove_selectors (selector, acc) xs
-      in
-      let pos, neg = Rule.split_and conjuncts in
-      let selector_opt, pos =
-        (* We only want a selector if there is something to select from. *)
-        match remove_selectors (None, []) pos with
-        | _, [] -> (None, pos)
-        | sel, pos -> (sel, pos)
-      in
+      (* First, split up the conjunction. *)
+      let selector_opt, pos, neg = specialize_and conj in
 
       (* let's start with the positive ranges *)
       let posrs, posrs_expls =
@@ -689,7 +694,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
           let expl =
             if_explanations env ranges
               (posrs_expls @ negs_expls @ filter_expls @ focus_expls)
-              (Out.And, conj_tok)
+              (Out.And, t)
           in
           (ranges, expl))
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"

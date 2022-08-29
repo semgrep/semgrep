@@ -55,7 +55,7 @@ type 'a loc = {
  *
  * less? enforce invariant that Not can only appear in And?
  *)
-and formula =
+type formula =
   (* pattern: and pattern-inside: are actually slightly different so
    * we need to keep the information around.
    * (see tests/OTHER/rules/inside.yaml)
@@ -63,8 +63,11 @@ and formula =
    * (see tests/OTHER/rules/negation_exact.yaml)
    *)
   | P of Xpattern.t (* a leaf pattern *)
+  (* todo: try to remove this at some point, but difficult. See
+   * https://github.com/returntocorp/semgrep/issues/1218
+   *)
   | Inside of tok * formula
-  | And of conjunction
+  | And of tok * conjunction
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
@@ -78,7 +81,6 @@ and formula =
  * See also split_and().
  *)
 and conjunction = {
-  conj_tok : tok;
   (* pattern-inside:'s and pattern:'s *)
   conjuncts : formula list;
   (* metavariable-xyz:'s *)
@@ -384,14 +386,14 @@ let visit_new_formula f formula =
         visit_new_formula f formula
     | Not (_, x) -> visit_new_formula f x
     | Or (_, xs)
-    | And { conjuncts = xs; _ } ->
+    | And (_, { conjuncts = xs; _ }) ->
         xs |> List.iter (visit_new_formula f)
   in
   visit_new_formula f formula
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And { conj_tok = t; _ }
+  | And (t, _) -> t
   | Or (t, _)
   | Not (t, _) ->
       t

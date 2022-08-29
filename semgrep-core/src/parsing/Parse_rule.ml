@@ -727,7 +727,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
       let pos, _ = R.split_and conjuncts in
       if pos = [] && not env.in_metavariable_pattern then
         raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
-      R.And { conj_tok = t; conjuncts; focus; conditions }
+      R.And (t, { conjuncts; focus; conditions })
   | "pattern-regex" ->
       let x = parse_string_wrap env key value in
       let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
@@ -978,13 +978,13 @@ and constrain_where env (t1, _t2) where_key (value : G.expr) formula : R.formula
         and fold them together.
     *)
     match formula with
-    | And { conj_tok; conjuncts; conditions = conditions2; focus = focus2 } ->
-        (conj_tok, conditions @ conditions2, focus @ focus2, conjuncts)
+    | And (tok, { conjuncts; conditions = conditions2; focus = focus2 }) ->
+        (tok, conditions @ conditions2, focus @ focus2, conjuncts)
     (* Otherwise, we consider the modified pattern a degenerate singleton `And`.
     *)
     | _ -> (t1, conditions, focus, [ formula ])
   in
-  R.And { conj_tok = tok; conjuncts; conditions; focus }
+  R.And (tok, { conjuncts; conditions; focus })
 
 and parse_pair env ((key, value) : key * G.expr) : R.formula =
   let env = { env with path = fst key :: env.path } in
@@ -999,7 +999,7 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
       let pos, _ = R.split_and conjuncts in
       if pos = [] && not env.in_metavariable_pattern then
         raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
-      R.And { conj_tok = t; conjuncts; focus = []; conditions = [] }
+      R.And (t, { conjuncts; focus = []; conditions = [] })
   | "or" -> R.Or (t, parse_listi env key parse_pattern value)
   | "regex" ->
       let x = parse_string_wrap env key value in
