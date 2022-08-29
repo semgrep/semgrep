@@ -1,7 +1,6 @@
 """
 Main function to exclude from list of rules rules with certain id's
 """
-
 from typing import List
 from typing import Sequence
 
