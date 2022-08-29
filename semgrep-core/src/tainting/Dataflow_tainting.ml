@@ -17,7 +17,8 @@ open IL
 module G = AST_generic
 module F = IL
 module D = Dataflow_core
-module VarMap = Dataflow_core.VarMap
+module Var_env = Dataflow_var_env
+module VarMap = Var_env.VarMap
 module PM = Pattern_match
 module R = Rule
 module LV = IL_lvalue_helpers
@@ -56,7 +57,7 @@ module LabelSet = Set.Make (String)
 (* Types *)
 (*****************************************************************************)
 
-type var = Dataflow_core.var
+type var = Var_env.var
 type overlap = float
 type 'spec tmatch = { spec : 'spec; pm : PM.t; overlap : overlap }
 
@@ -74,11 +75,10 @@ type config = {
   is_sink : G.any -> R.taint_sink tmatch list;
   is_sanitizer : G.any -> R.taint_sanitizer tmatch list;
   unify_mvars : bool;
-  handle_findings :
-    var option -> T.finding list -> Taints.t Dataflow_core.env -> unit;
+  handle_findings : var option -> T.finding list -> Taints.t Var_env.t -> unit;
 }
 
-type mapping = Taints.t Dataflow_core.mapping
+type mapping = Taints.t Var_env.mapping
 
 (* HACK: Tracks tainted functions intrafile. *)
 type fun_env = (var, Taints.t) Hashtbl.t
@@ -101,7 +101,7 @@ let hook_function_taint_signature = ref None
 (* Helpers *)
 (*****************************************************************************)
 
-let union_vars = Dataflow_core.varmap_union Taints.union
+let union_vars = Var_env.varmap_union Taints.union
 
 let union_map_taints_and_vars env f xs =
   xs
@@ -634,10 +634,10 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
 let (transfer :
       config ->
       fun_env ->
-      Taints.t Dataflow_core.env ->
+      Taints.t Var_env.t ->
       string option ->
       flow:F.cfg ->
-      Taints.t Dataflow_core.transfn) =
+      Taints.t Var_env.transfn) =
  fun config fun_env enter_env opt_name ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
@@ -697,16 +697,14 @@ let (transfer :
 (*****************************************************************************)
 
 let (fixpoint :
-      ?in_env:Taints.t Dataflow_core.VarMap.t ->
-      ?name:Dataflow_core.var ->
+      ?in_env:Taints.t Var_env.t ->
+      ?name:Var_env.var ->
       ?fun_env:fun_env ->
       config ->
       F.cfg ->
       mapping) =
  fun ?in_env ?name:opt_name ?(fun_env = Hashtbl.create 1) config flow ->
-  let init_mapping =
-    DataflowX.new_node_array flow (Dataflow_core.empty_inout ())
-  in
+  let init_mapping = DataflowX.new_node_array flow (Var_env.empty_inout ()) in
   let enter_env =
     match in_env with
     | None -> VarMap.empty
@@ -714,7 +712,9 @@ let (fixpoint :
   in
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
-  DataflowX.fixpoint ~eq:Taints.equal ~init:init_mapping
+  DataflowX.fixpoint
+    ~eq_env:(Var_env.eq_env Taints.equal)
+    ~init:init_mapping
     ~trans:(transfer config fun_env enter_env opt_name ~flow)
       (* tainting is a forward analysis! *)
     ~forward:true ~flow

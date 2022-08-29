@@ -1,23 +1,15 @@
 type nodei = int
 
-(* The comparison function uses only the name of a variable (a string), so
- * two variables at different positions in the code will be agglomerated
- * correctly in the Set or Map.
+(* A set of nodes (via their indices),
+ * used for example in the reaching analysis.
  *)
-type var = string
-
-module VarMap : Map.S with type key = String.t
-module VarSet : Set.S with type elt = String.t
+module NodeiSet : Set.S with type elt = Int.t
 
 (* Return value of a dataflow analysis.
  * The array is indexed by nodei.
  *)
-type 'a mapping = 'a inout array
-and 'a inout = { in_env : 'a env; out_env : 'a env }
-and 'a env = 'a VarMap.t
-
-val empty_env : unit -> 'a VarMap.t
-val empty_inout : unit -> 'a inout
+type 'env mapping = 'env inout array
+and 'env inout = { in_env : 'env; out_env : 'env }
 
 (* The transition/transfer function. It is usually made from the
  * gens and kills.
@@ -31,24 +23,9 @@ val empty_inout : unit -> 'a inout
  * value associated to a var, its reference variable get also
  * the update.
  *)
-type 'a transfn = 'a mapping -> nodei -> 'a inout
-
-val varmap_union : ('a -> 'a -> 'a) -> 'a env -> 'a env -> 'a env
-val varmap_diff : ('a -> 'a -> 'a) -> ('a -> bool) -> 'a env -> 'a env -> 'a env
-
-(* common/useful 'a for mapping: a set of nodes (via their indices),
- * used for example in the reaching analysis.
- *)
-module NodeiSet : Set.S with type elt = Int.t
+type 'env transfn = 'env mapping -> nodei -> 'env inout
 
 (* helpers *)
-val union_env : NodeiSet.t env -> NodeiSet.t env -> NodeiSet.t env
-val diff_env : NodeiSet.t env -> NodeiSet.t env -> NodeiSet.t env
-val add_var_and_nodei_to_env : var -> nodei -> NodeiSet.t env -> NodeiSet.t env
-
-val add_vars_and_nodei_to_env :
-  VarSet.t -> nodei -> NodeiSet.t env -> NodeiSet.t env
-
 val ns_to_str : NodeiSet.t -> string
 
 (* we use now a functor so we can reuse the same code for dataflow on
@@ -65,15 +42,15 @@ end
 module Make (F : Flow) : sig
   (* main entry point *)
   val fixpoint :
-    eq:('a -> 'a -> bool) ->
-    init:'a mapping ->
-    trans:'a transfn ->
+    eq_env:('env -> 'env -> bool) ->
+    init:'env mapping ->
+    trans:'env transfn ->
     flow:F.flow ->
     forward:bool ->
-    'a mapping
+    'env mapping
 
   val new_node_array : F.flow -> 'a -> 'a array
 
   (* debugging output *)
-  val display_mapping : F.flow -> 'a mapping -> ('a -> string) -> unit
+  val display_mapping : F.flow -> 'env mapping -> ('env -> string) -> unit
 end

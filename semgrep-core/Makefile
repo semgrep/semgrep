@@ -11,7 +11,7 @@ include src/ocaml-tree-sitter-core/tree-sitter-config.mk
 all:
 	rm -f bin
 	$(MAKE) minimal-build
-	dune build ./_build/default/tests/test.bc
+	dune build ./_build/default/tests/test.exe
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
 
@@ -43,6 +43,10 @@ install:
 	dune install
 	rm -f ../cli/src/semgrep/bin/semgrep-core
 	cp _build/install/default/bin/semgrep-core ../cli/src/semgrep/bin/
+	rm -f ../cli/src/semgrep/bin/semgrep_bridge_core.so
+	cp _build/install/default/bin/semgrep_bridge_core.so ../cli/src/semgrep/bin/
+	rm -f ../cli/src/semgrep/bin/semgrep_bridge_python.so
+	cp _build/install/default/bin/semgrep_bridge_python.so ../cli/src/semgrep/bin/
 
 ###############################################################################
 # Developer targets
@@ -57,6 +61,12 @@ dev:
 	rm -f ../cli/src/semgrep/bin/semgrep-core
 	ln -s ../../../../semgrep-core/bin/semgrep-core \
 	  ../cli/src/semgrep/bin/semgrep-core
+	rm -f ../cli/src/semgrep/bin/semgrep_bridge_core.so
+	ln -s ../../../../semgrep-core/bin/semgrep_bridge_core.so \
+	  ../cli/src/semgrep/bin/semgrep_bridge_core.so
+	rm -f ../cli/src/semgrep/bin/semgrep_bridge_python.so
+	ln -s ../../../../semgrep-core/bin/semgrep_bridge_python.so \
+	  ../cli/src/semgrep/bin/semgrep_bridge_python.so
 
 .PHONY: e2etest
 e2etest:

@@ -16,7 +16,7 @@ symlinks:
 
 .PHONY: test
 test:
-	dune exec src/test/test.exe
+	dune exec -- src/test/test.exe -e
 	$(MAKE) symlinks
 	$(MAKE) examples > /dev/null
 	$(MAKE) show-perf > /dev/null

@@ -23,6 +23,8 @@ jobs:
           github_cache_dir="/__w"
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
+      - name: Install python3-config
+        run: sudo apk add python3-dev
       - name: Checkout
         uses: actions/checkout@v3
       - id: submodule-status
@@ -161,6 +163,8 @@ jobs:
     steps:
       - name: Install pipenv
         run: sudo pip install pipenv==2022.6.7
+      - name: Install python3-config
+        run: sudo apk add python3-dev
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
@@ -440,7 +444,7 @@ jobs:
 
   build-macos-release:
     name: build macOS release
-    runs-on: macos-10.15
+    runs-on: ["self-hosted", "macOS", "X64"]
     # there are too many PR events which deplete our macOS concurrency limit
     if: (!contains(github.event_name, 'pull_request')) || contains(github.event.pull_request.head.ref, 'release-')
     steps:
@@ -464,7 +468,7 @@ jobs:
 
   test-macos-release:
     name: test macOS release
-    runs-on: macos-10.15
+    runs-on: ["self-hosted", "macOS", "X64"]
     # there are too many PR events which deplete our macOS concurrency limit
     if: (!contains(github.event_name, 'pull_request')) || contains(github.event.pull_request.head.ref, 'release-')
     needs: [build-macos-release]
@@ -473,13 +477,13 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: semgrep-osx
-          path: artifacts
+          path: test-artifacts
       - name: Remove pcre dynamic lib
-        run: rm /usr/local/opt/pcre/lib/libpcre.1.dylib
+        run: rm /usr/local/opt/pcre/lib/libpcre.1.dylib || true
       - name: test build artifacts
         run: |
-          chmod +x ./artifacts/semgrep-core
-          ./artifacts/semgrep-core -help
+          chmod +x ./test-artifacts/semgrep-core
+          ./test-artifacts/semgrep-core -help
 
   build-ubuntu:
     name: build Ubuntu release

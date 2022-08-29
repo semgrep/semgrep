@@ -350,7 +350,7 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
       (* bugfix: this used to be a >!> below, but this does not work! We need
        * to also explore subexprs, whatever the result of 'first_fun a b'.
        * Indeed, if the deep pattern was <... $X ...>, $X will always
-       * match (unless it was binded before), but we actually need to
+       * match (unless it was bound before), but we actually need to
        * enumerate all possible subexprs and make $X bind to all
        * possibles subexprs.
        *)
@@ -376,6 +376,14 @@ let m_with_symbolic_propagation ~is_root f b =
           f b1
       | ___else___ -> fail ())
     ~else_:(fail ())
+
+(* Match regexp matching options such as 'i' in '/a*/i' *)
+let m_regexp_options a_opt b_opt =
+  match (a_opt, b_opt) with
+  (* less_is_ok: *)
+  | None, _ -> return ()
+  | Some a, Some b -> m_ellipsis_or_metavar_or_string a b
+  | Some _, None -> fail ()
 
 (* start of recursive need *)
 (* TODO: factorize with metavariable and aliasing logic in m_expr
@@ -813,7 +821,7 @@ and m_expr ?(is_root = false) a b =
   | G.L a1, B.L b1 -> m_literal a1 b1
   (* equivalence: constant propagation and evaluation!
    * TODO: too late, must do that before 'metavar:' so that
-   * const a = "foo"; ... a == "foo" would be catched by $X == $X.
+   * const a = "foo"; ... a == "foo" would be caught by $X == $X.
    *)
   | G.L a1, _b ->
       if_config
@@ -948,6 +956,14 @@ and m_expr ?(is_root = false) a b =
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
       m_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
+  (* Pattern /.../ matches both regexp templates and regexp literals,
+     whereas /$X/ matches only literals. *)
+  | ( G.RegexpTemplate ((_l, { e = G.Ellipsis _; _ }, _r), a_opt),
+      (B.RegexpTemplate (_, b_opt) | B.L (B.Regexp (_, b_opt))) ) ->
+      m_regexp_options a_opt b_opt
+  | G.RegexpTemplate (a, a_opt), B.RegexpTemplate (b, b_opt) ->
+      let* () = m_bracket m_expr a b in
+      m_regexp_options a_opt b_opt
   | G.Comprehension (a1, a2), B.Comprehension (b1, b2) ->
       let* () = m_container_operator a1 b1 in
       m_bracket m_comprehension a2 b2
@@ -995,6 +1011,7 @@ and m_expr ?(is_root = false) a b =
   | G.Comprehension _, _
   | G.Record _, _
   | G.Constructor _, _
+  | G.RegexpTemplate _, _
   | G.Lambda _, _
   | G.AnonClass _, _
   | G.N _, _
@@ -1442,6 +1459,7 @@ and m_xml_body a b =
 (* Arguments list iso *)
 (*---------------------------------------------------------------------------*)
 and m_arguments a b =
+  Trace_matching.(if on then print_arguments_pair a b);
   match (a, b) with
   | a, b -> m_bracket m_list__m_argument a b
 
@@ -1553,6 +1571,7 @@ and m_arguments_concat a b =
       fail ()
 
 and m_argument a b =
+  Trace_matching.(if on then print_argument_pair a b);
   match (a, b) with
   (* TODO: iso on keyword argument, keyword is optional in pattern.
    * TODO: maybe Arg (N (Id "$S")) should be allowed to match

@@ -10,6 +10,7 @@
    dyp
 
    commons commons_core
+   semgrep_core
    pfff-config pfff-h_program-lang
 
    pfff-lang_GENERIC_base

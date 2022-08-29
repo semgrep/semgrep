@@ -21,4 +21,4 @@ case "$(basename "$0")" in
 esac
 
 cd _build/default/tests
-./test.exe "$subcommand" "$@"
+./test.exe "$subcommand" -e "$@"

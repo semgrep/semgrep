@@ -1,4 +1,4 @@
-type var = Dataflow_core.var
+type var = Dataflow_var_env.var
 (** A string of the form "<source name>:<sid>". *)
 
 type overlap = float
@@ -61,7 +61,7 @@ type config = {
   handle_findings :
     var option (** function name ('None' if anonymous) *) ->
     Taint.finding list ->
-    Taint.taints Dataflow_core.env ->
+    Taint.taints Dataflow_var_env.t ->
     unit;
       (** Callback to report findings. *)
 }
@@ -70,7 +70,7 @@ type config = {
   * For a source to taint a sink, the bindings of both source and sink must be
   * unifiable. See 'unify_meta_envs'. *)
 
-type mapping = Taint.taints Dataflow_core.mapping
+type mapping = Taint.taints Dataflow_var_env.mapping
 (** Mapping from variables to taint sources (if the variable is tainted).
   * If a variable is not in the map, then it's not tainted. *)
 
@@ -86,7 +86,7 @@ val hook_function_taint_signature :
 (** Deep Semgrep *)
 
 val fixpoint :
-  ?in_env:Taint.taints Dataflow_core.VarMap.t ->
+  ?in_env:Taint.taints Dataflow_var_env.VarMap.t ->
   ?name:var ->
   ?fun_env:fun_env (** Poor-man's interprocedural HACK (TO BE DEPRECATED) *) ->
   config ->

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from typing import Dict
+
 import click
 
 from semgrep.commands.ci import ci
@@ -56,10 +58,10 @@ def cli(ctx: click.Context) -> None:
     state = get_state()
     state.terminal.init_for_cli()
 
+    commands: Dict[str, click.Command] = ctx.command.commands  # type: ignore
+
     subcommand: str = (
-        ctx.invoked_subcommand
-        if ctx.invoked_subcommand in ctx.command.commands  # type: ignore
-        else "unset"
+        ctx.invoked_subcommand if ctx.invoked_subcommand in commands else "unset"
     )
 
     state.app_session.authenticate()

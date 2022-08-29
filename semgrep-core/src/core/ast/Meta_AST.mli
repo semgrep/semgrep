@@ -8,6 +8,8 @@
 val vof_any : AST_generic.any -> OCaml.v
 
 (* internals used by other dumpers, e.g., Meta_IL.ml *)
+val vof_argument : AST_generic.argument -> OCaml.v
+val vof_arguments : AST_generic.arguments -> OCaml.v
 val vof_literal : AST_generic.literal -> OCaml.v
 val vof_type_ : AST_generic.type_ -> OCaml.v
 val vof_arithmetic_operator : AST_generic.operator -> OCaml.v
