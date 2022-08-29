@@ -63,7 +63,7 @@ let included_in config rv1 rv2 =
             match List.assoc_opt mvar rv2.mvars with
             | None -> true
             | Some mval2 ->
-                Matching_generic.equal_ast_binded_code config mval1 mval2)
+                Matching_generic.equal_ast_bound_code config mval1 mval2)
 
 (* when we know x <= y, are the ranges also in the good Inside direction *)
 let inside_compatible x y =

@@ -227,6 +227,7 @@ and composite_kind =
   | CSet
   | CDict (* could be merged with Record *)
   | Constructor of name (* OCaml *)
+  | Regexp
 [@@deriving show { with_path = false }]
 
 type argument = exp [@@deriving show]

@@ -201,7 +201,7 @@ and xml_kind = function
 
 and xhp_attr v = expr v
 
-and literal x =
+and literal x : G.literal =
   match x with
   | Bool v1 ->
       let v1 = wrap bool v1 in
@@ -347,8 +347,7 @@ and stmt x =
       G.For (t, v1, v2) |> G.s
   | Switch (v0, v1, v2) ->
       let v0 = info v0 in
-      let v1 = expr v1
-      and v2 = list case v2 |> List.map (fun x -> G.CasesAndBody x) in
+      let v1 = expr v1 and v2 = list case v2 in
       G.Switch (v0, Some (G.Cond v1), v2) |> G.s
   | Continue (t, v1, sc) ->
       let v1 = option label v1 in
@@ -439,10 +438,10 @@ and for_header = function
 and case = function
   | Case (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
-      ([ G.Case (t, H.expr_to_pattern v1) ], v2)
+      G.CasesAndBody ([ G.Case (t, H.expr_to_pattern v1) ], v2)
   | Default (t, v1) ->
       let v1 = stmt v1 in
-      ([ G.Default t ], v1)
+      G.CasesAndBody ([ G.Default t ], v1)
 
 (* used to be an AST_generic.type_ with no conversion needed, but now that
  * we moved AST_generic.ml out of pfff, we need the boilerplate below
@@ -453,8 +452,8 @@ and type_ x =
   | TyName xs -> G.TyN (H.name_of_ids xs) |> G.t
   (* TODO: use TyExpr now? or special TyLiteral? *)
   | TyLiteral l ->
-      let l = literal l in
-      G.OtherType (("LitType", PI.unsafe_fake_info ""), [ G.E (G.L l |> G.e) ])
+      let l = G.L (literal l) in
+      G.OtherType (("LitType", PI.unsafe_fake_info ""), [ G.E (l |> G.e) ])
       |> G.t
   | TyQuestion (tok, t) ->
       let t = type_ t in
@@ -806,6 +805,9 @@ and partial = function
       let v2 = info v2 in
       let v3 = expr v3 in
       G.PartialSingleField (v1, v2, v3)
+  | PartialSwitchCase v1 ->
+      let v1 = case v1 in
+      G.PartialSwitchCase v1
 
 and any = function
   | Property v1 ->

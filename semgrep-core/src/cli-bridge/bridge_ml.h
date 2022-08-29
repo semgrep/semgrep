@@ -7,12 +7,18 @@
 #include <stddef.h>                    // size_t
 
 
+// In order to facilitate using this library with an explicit dlopen()
+// call rather than implicit loading, all of the function signatures are
+// first declared as a typedef, and then the function itself is declared
+// using that typedef.
+
+
 // Start or stop the OCaml runtime.
 //
 // It is not possible to start the runtime more than once unless the
 // containing shared library is completely unloaded and reloaded.
-void bridge_ml_startup();
-void bridge_ml_shutdown();
+typedef void bridge_ml_startup_t(void);
+typedef void bridge_ml_shutdown_t(void);
 
 // Result codes for the function pointers here.
 typedef enum BridgeErrorCode {
@@ -48,9 +54,50 @@ typedef BridgeErrorCode (*ReadFileFunc)(
 //
 // If there is an error, return an error message in a malloc'd string
 // that must subsequently be free'd.  Returns NULL if there is no error.
-char *bridge_ml_semgrep_analyze(
+typedef char *bridge_ml_semgrep_analyze_t(
   char const * const *argv,
   ReadFileFunc read_file, void *read_file_extra);
+
+
+// If BRIDGE_ML_USE_DLOPEN is defined, then we intend to load the
+// library explicitly using dlopen().  This should only be defined when
+// this file is directly included by a .c file, since it allocates space
+// in the corresponding object file.
+#ifdef BRIDGE_ML_USE_DLOPEN
+
+#include "dlhelp.h"                    // dlhelp_dlsym
+
+// Pointers to the functions in the shared library.
+static bridge_ml_startup_t         *bridge_ml_startup;
+static bridge_ml_shutdown_t        *bridge_ml_shutdown;
+static bridge_ml_semgrep_analyze_t *bridge_ml_semgrep_analyze;
+
+// Load the library symbols.
+static void bridge_ml_get_symbols(
+  void *libhandle,           // Returned by 'dlopen'.
+  char const *errorContext)  // Context for error messages.
+{
+  #define BRIDGE_ML_GET_SYM(funcname) \
+    dlhelp_dlsym((void**)&funcname, errorContext, libhandle, #funcname)
+
+  BRIDGE_ML_GET_SYM(bridge_ml_startup);
+  BRIDGE_ML_GET_SYM(bridge_ml_shutdown);
+  BRIDGE_ML_GET_SYM(bridge_ml_semgrep_analyze);
+
+  #undef BRIDGE_ML_GET_SYM
+}
+
+
+#else // !BRIDGE_ML_USE_DLOPEN
+
+// These are the declarations for the actual functions, only usable when
+// using implicit loading when the program loads.
+extern bridge_ml_startup_t         bridge_ml_startup;
+extern bridge_ml_shutdown_t        bridge_ml_shutdown;
+extern bridge_ml_semgrep_analyze_t bridge_ml_semgrep_analyze;
+
+
+#endif // !BRIDGE_ML_USE_DLOPEN
 
 
 #endif // CLI_BRIDGE_BRIDGE_ML_H

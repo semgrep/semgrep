@@ -34,7 +34,7 @@ let regexp_matcher big_str file regexp =
          let line, column = line_col_of_charpos file charpos in
          let loc2 = { PI.str; charpos; file; line; column } in
 
-         (* return regexp binded group $1 $2 etc *)
+         (* return regexp bound group $1 $2 etc *)
          let n = Pcre.num_of_subs sub in
          let env =
            match n with

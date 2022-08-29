@@ -1,7 +1,7 @@
 (* Iain Proctor, Yoann Padioleau, Jiao Li
  *
  * Copyright (C) 2009-2010 Facebook
- * Copyright (C) 2019 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -55,15 +55,6 @@ end
 
 type nodei = int
 
-(* The comparison function uses only the name of a variable (a string), so
- * two variables at different positions in the code will be agglomerated
- * correctly in the Set or Map.
- *)
-type var = string
-
-(* convenient aliases *)
-module VarMap = Map.Make (String)
-module VarSet = Set.Make (String)
 module NodeiSet = Set.Make (Int)
 
 (* The final dataflow result; a map from each program point to a map containing
@@ -73,82 +64,18 @@ module NodeiSet = Set.Make (Int)
  * are always int and array gives a 6x speedup according to Iain
  * so let's use array.
  *)
-type 'a mapping = 'a inout array
+type 'env mapping = 'env inout array
 
 (* the In and Out sets, as in Appel Modern Compiler in ML book *)
-and 'a inout = { in_env : 'a env; out_env : 'a env }
-and 'a env = 'a VarMap.t
-
-let empty_env () = VarMap.empty
-let empty_inout () = { in_env = empty_env (); out_env = empty_env () }
+and 'env inout = { in_env : 'env; out_env : 'env }
 
 (*****************************************************************************)
 (* Equality *)
 (*****************************************************************************)
 
-(* the environment is polymorphic, so we require to pass an eq for 'a *)
-let eq_env eq env1 env2 = VarMap.equal eq env1 env2
-
-let eq_inout eq io1 io2 =
-  let eqe = eq_env eq in
+let eq_inout eq_env io1 io2 =
+  let eqe = eq_env in
   eqe io1.in_env io2.in_env && eqe io1.out_env io2.out_env
-
-(*****************************************************************************)
-(* Env manipulation *)
-(*****************************************************************************)
-
-let (varmap_union : ('a -> 'a -> 'a) -> 'a env -> 'a env -> 'a env) =
- fun union_op env1 env2 ->
-  let union _ x y = Some (union_op x y) in
-  VarMap.union union env1 env2
-
-let (varmap_diff :
-      ('a -> 'a -> 'a) -> ('a -> bool) -> 'a env -> 'a env -> 'a env) =
- fun diff_op is_empty env1 env2 ->
-  let merge _ opt_x opt_y =
-    match (opt_x, opt_y) with
-    | None, _ -> None
-    | Some x, None -> Some x
-    | Some x, Some y ->
-        let diff = diff_op x y in
-        if is_empty diff then None else Some diff
-  in
-  VarMap.merge merge env1 env2
-
-(* useful helpers when the environment maps to a set of Nodes, e.g.,
- * for reaching definitions.
- *)
-let (union_env : NodeiSet.t env -> NodeiSet.t env -> NodeiSet.t env) =
- fun env1 env2 ->
-  let union _ x y = Some (NodeiSet.union x y) in
-  VarMap.union union env1 env2
-
-let (diff_env : NodeiSet.t env -> NodeiSet.t env -> NodeiSet.t env) =
- fun env1 env2 ->
-  let merge _ opt_x opt_y =
-    match (opt_x, opt_y) with
-    | None, _ -> None
-    | Some x, None -> Some x
-    | Some x, Some y ->
-        let diff = NodeiSet.diff x y in
-        if NodeiSet.is_empty diff then None else Some diff
-  in
-  VarMap.merge merge env1 env2
-
-let (add_var_and_nodei_to_env :
-      var -> nodei -> NodeiSet.t env -> NodeiSet.t env) =
- fun var ni env ->
-  let set =
-    try NodeiSet.add ni (VarMap.find var env) with
-    | Not_found -> NodeiSet.singleton ni
-  in
-  VarMap.add var set env
-
-let (add_vars_and_nodei_to_env :
-      VarSet.t -> nodei -> NodeiSet.t env -> NodeiSet.t env) =
- fun varset ni env ->
-  let acc = env in
-  VarSet.fold (fun var acc -> add_var_and_nodei_to_env var ni acc) varset acc
 
 (*****************************************************************************)
 (* Debugging support *)
@@ -166,15 +93,10 @@ let array_fold_left_idx f =
 let ns_to_str ns =
   "{" ^ NodeiSet.fold (fun n s -> csv_append s (string_of_int n)) ns "" ^ "}"
 
-let (env_to_str : ('a -> string) -> 'a env -> string) =
- fun val2str env ->
-  VarMap.fold (fun dn v s -> s ^ dn ^ ":" ^ val2str v ^ " ") env ""
-
-let (inout_to_str : ('a -> string) -> 'a inout -> string) =
- fun val2str inout ->
-  spf "IN= %15s  OUT = %15s"
-    (env_to_str val2str inout.in_env)
-    (env_to_str val2str inout.out_env)
+let (inout_to_str : ('env -> string) -> 'env inout -> string) =
+ fun env_to_str inout ->
+  spf "IN= %15s  OUT = %15s" (env_to_str inout.in_env)
+    (env_to_str inout.out_env)
 
 (*****************************************************************************)
 (* Main generic entry point *)
@@ -192,10 +114,10 @@ let (inout_to_str : ('a -> string) -> 'a inout -> string) =
  * value associated to a var, its reference variable get also
  * the update.
  *)
-type 'a transfn = 'a mapping -> nodei -> 'a inout
+type 'env transfn = 'env mapping -> nodei -> 'env inout
 
 module Make (F : Flow) = struct
-  let mapping_to_str (f : F.flow) val2str mapping =
+  let mapping_to_str (f : F.flow) env_to_str mapping =
     array_fold_left_idx
       (fun s ni v ->
         s
@@ -204,15 +126,15 @@ module Make (F : Flow) = struct
                (fun s (ni, _) -> csv_append s (string_of_int ni))
                "")
             (F.short_string_of_node (f.graph#nodes#find ni))
-            (inout_to_str val2str v))
+            (inout_to_str env_to_str v))
       "" mapping
 
-  let (display_mapping : F.flow -> 'a mapping -> ('a -> string) -> unit) =
-   fun flow mapping string_of_val ->
+  let (display_mapping : F.flow -> 'env mapping -> ('env -> string) -> unit) =
+   fun flow mapping env_to_str ->
     pr (* nosemgrep: no-print-in-semgrep *)
-      (mapping_to_str flow string_of_val mapping)
+      (mapping_to_str flow env_to_str mapping)
 
-  let rec fixpoint_worker eq mapping trans flow succs workset =
+  let rec fixpoint_worker eq_env mapping trans flow succs workset =
     if NodeiSet.is_empty workset then mapping
     else
       let ni = NodeiSet.choose workset in
@@ -220,12 +142,12 @@ module Make (F : Flow) = struct
       let old = mapping.(ni) in
       let new_ = trans mapping ni in
       let work'' =
-        if eq_inout eq old new_ then work'
+        if eq_inout eq_env old new_ then work'
         else (
           mapping.(ni) <- new_;
           NodeiSet.union work' (succs flow ni))
       in
-      fixpoint_worker eq mapping trans flow succs work''
+      fixpoint_worker eq_env mapping trans flow succs work''
 
   let forward_succs (f : F.flow) n =
     (f.graph#successors n)#fold
@@ -238,19 +160,19 @@ module Make (F : Flow) = struct
       NodeiSet.empty
 
   let (fixpoint :
-        eq:('a -> 'a -> bool) ->
-        init:'a mapping ->
-        trans:'a transfn ->
+        eq_env:('env -> 'env -> bool) ->
+        init:'env mapping ->
+        trans:'env transfn ->
         flow:F.flow ->
         forward:bool ->
-        'a mapping) =
-   fun ~eq ~init ~trans ~flow ~forward ->
+        'env mapping) =
+   fun ~eq_env ~init ~trans ~flow ~forward ->
     let succs = if forward then forward_succs else backward_succs in
     let work =
       (* This prevents dead code from getting analyzed. *)
       flow.reachable
     in
-    fixpoint_worker eq init trans flow succs work
+    fixpoint_worker eq_env init trans flow succs work
 
   (*****************************************************************************)
   (* Helpers *)

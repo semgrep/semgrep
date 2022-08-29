@@ -447,6 +447,19 @@ and expr_kind =
    * how user think.
    *)
   | Constructor of name * expr list bracket
+  (* Regexp templates are interpolated strings. Constant regexps aren't
+     represented here but under 'literal' so as to benefit from constant
+     propagation. This is meant to be similar to how string literals
+     and string templates are handled or should be handled eventually.
+
+     The current type allows any expr because it makes matching simpler.
+     However, only the following fragment kinds are legitimate:
+     - literal fragment
+     - inserted expression
+     - semgrep ellipsis (...)
+     - semgrep metavariable ($X and $...X)
+  *)
+  | RegexpTemplate of expr bracket (* // *) * string wrap option (* modifiers *)
   (* see also New(...) for other values *)
   | N of name
   | IdSpecial of
@@ -592,6 +605,8 @@ and literal =
                   escaped  unescaped
   *)
   | String of string wrap
+  (* Regexp literals only. Some languages such as Ruby support regexp
+     templates. Those are represented separately using RegexpTemplate. *)
   | Regexp of string wrap bracket (* // *) * string wrap option (* modifiers *)
   | Atom of tok (* ':' in Ruby, ''' in Scala *) * string wrap
   | Unit of tok
@@ -1785,6 +1800,7 @@ and partial =
   | PartialSingleField of string wrap (* id or str *) * tok (*:*) * expr
   (* not really a partial, but the partial machinery can help with that *)
   | PartialLambdaOrFuncDef of function_definition
+  | PartialSwitchCase of case_and_body
 
 (*****************************************************************************)
 (* Any *)

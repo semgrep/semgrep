@@ -1,4 +1,6 @@
-type mapping = AST_generic.svalue Dataflow_core.mapping
+(** Dataflow S-value analysis (constant and symbolic propagation) *)
+
+type mapping = AST_generic.svalue Dataflow_var_env.mapping
 
 (* Indicates guarantees on the return value of a function
  * We could also reuse AST_generic.Cst, but this will make it easier
