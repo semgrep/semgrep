@@ -245,7 +245,7 @@ jobs:
           path: artifacts.tar.gz
 
   build-wheels-osx:
-    runs-on: ["self-hosted", "macOS", "X64"]
+    runs-on: macos-12
     needs: [build-core-osx]
     steps:
       - name: Checkout
@@ -456,7 +456,7 @@ jobs:
     name: Update on Homebrew-Core
     needs: [sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
 
-    runs-on: ["self-hosted", "macOS", "X64"]
+    runs-on: macos-12
     if: ${{ !contains(github.ref,'-test-release') }}
     steps:
       - name: Setup Python
