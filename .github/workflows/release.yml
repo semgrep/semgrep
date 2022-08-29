@@ -143,6 +143,8 @@ jobs:
           github_cache_dir="/__w"
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
+      - name: Install python3-config
+        run: sudo apk add python3-dev
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
       - name: Checkout

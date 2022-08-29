@@ -186,7 +186,10 @@ REPOS = [
         ["javascript", "typescript"],
         xfail_reason="Failure to parse typescript",
     ),
-    Repo("https://github.com/dropbox/changes"),
+    Repo(
+        "https://github.com/dropbox/changes",
+        xfail_reason="bower/.../insight/.../inquirer/.../rx/.../outro.js is an unbalanced JS fragment",
+    ),
     Repo(
         "https://github.com/dropbox/pyston-perf",
         xfail_reason="templates",
