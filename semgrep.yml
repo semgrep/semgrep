@@ -147,6 +147,18 @@ rules:
     paths:
       include:
         - cli/src/*
+  - id: reraise-timeout
+    patterns:
+      - pattern: try ... with | $X -> ...
+      - pattern-not: try ... with | Timeout _ as e -> ...
+      - pattern-not: try ... with | Timeout $X -> ...
+    message: >-
+      Catch and re-raise Timeout exceptions to avoid swallowing them
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - semgrep-core/src/*
 # not ready yet
 #  - id: no-exit-in-semgrep
 #    pattern: |
