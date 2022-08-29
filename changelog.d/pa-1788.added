@@ -1,1 +1,0 @@
-JS/TS: Allow standalone switch cases as patterns (e.g. `case 5: ...`)

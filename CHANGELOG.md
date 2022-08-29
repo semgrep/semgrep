@@ -8,6 +8,18 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.112.0](https://github.com/returntocorp/semgrep/releases/tag/v0.112.0) - 2022-08-29
+
+### Added
+
+- JS/TS: Allow standalone switch cases as patterns (e.g. `case 5: ...`) (pa-1788)
+
+### Fixed
+
+- Fix an incorrect autofix application when the fix includes Python f strings (gh-2995)
+- Ruby: A pattern of the form `/.../` can now match any regexp, including regexp templates such as `/hello #{name}/`. (gh-5147)
+- Python: Now support `match` statements (pa-1739)
+
 ## [0.111.1](https://github.com/returntocorp/semgrep/releases/tag/v0.111.1) - 2022-08-23
 
 ### Changed
