@@ -406,7 +406,7 @@ let eval_bool env e =
         logger#trace "not a boolean: %s" (show_value res);
         false
   with
-  (* this can happen when a metavar is binded to a complex expression,
+  (* this can happen when a metavar is bound to a complex expression,
    * in which case it's filtered in bindings_to_env(), in which case
    * it generates a NotInEnv when we run eval with such an environment.
    *)

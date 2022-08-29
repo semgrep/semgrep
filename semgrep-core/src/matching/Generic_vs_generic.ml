@@ -350,7 +350,7 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
       (* bugfix: this used to be a >!> below, but this does not work! We need
        * to also explore subexprs, whatever the result of 'first_fun a b'.
        * Indeed, if the deep pattern was <... $X ...>, $X will always
-       * match (unless it was binded before), but we actually need to
+       * match (unless it was bound before), but we actually need to
        * enumerate all possible subexprs and make $X bind to all
        * possibles subexprs.
        *)
