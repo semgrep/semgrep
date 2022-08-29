@@ -83,8 +83,7 @@ type config = {
   is_sink : G.any -> R.taint_sink tmatch list;
   is_sanitizer : G.any -> R.taint_sanitizer tmatch list;
   unify_mvars : bool;
-  handle_findings :
-    var option -> T.finding list -> taint_info Var_env.t -> unit;
+  handle_findings : var option -> T.finding list -> taint_info Var_env.t -> unit;
 }
 
 type mapping = taint_info Var_env.mapping
@@ -785,7 +784,7 @@ let (transfer :
 
 let (fixpoint :
       ?in_env:taint_info Var_env.t ->
-      ?name:Dataflow_core.var ->
+      ?name:Var_env.var ->
       ?fun_env:fun_env ->
       config ->
       F.cfg ->
@@ -800,7 +799,7 @@ let (fixpoint :
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint
-    ~eq_env:(Var_env.eq_env Taints.equal)
+    ~eq_env:(Var_env.eq_env equal_taint_info)
     ~init:init_mapping
     ~trans:(transfer config fun_env enter_env opt_name ~flow)
       (* tainting is a forward analysis! *)
