@@ -47,6 +47,11 @@ let exec_all ?iflags ?flags ?rex ?pos ?callout subj =
   | Not_found -> Ok [||]
   | Pcre.Error err -> Error err
 
+let exec_to_strings ?iflags ?flags ?rex ?pos ?callout subj =
+  match exec_all ?iflags ?flags ?rex ?pos ?callout subj with
+  | Ok a -> Ok (Array.map Pcre.get_substrings a)
+  | Error _ as e -> e
+
 let split ?iflags ?flags ?rex ?pos ?max ?callout subj =
   try Ok (Pcre.split ?iflags ?flags ?rex ?pos ?max ?callout subj) with
   | Pcre.Error err -> Error err

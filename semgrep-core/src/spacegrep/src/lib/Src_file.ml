@@ -68,10 +68,14 @@ let of_file ?source ?max_len file =
     | None -> File file
     | Some x -> x
   in
-  let ic = open_in_bin file in
-  Fun.protect
-    ~finally:(fun () -> close_in_noerr ic)
-    (fun () -> of_channel ~source ?max_len ic)
+  (* This needs to work on named pipes such as those created by bash with
+     so-called "process substitution" (for those, 'in_channel_length' returns
+     but then we can't read the file again).
+     It's convenient for testing using the spacegrep command line:
+     $ spacegrep hello <(echo 'hello')
+  *)
+  let contents = Common.read_file ?max_len file in
+  { source; contents }
 
 let to_lexbuf x = Lexing.from_string x.contents
 

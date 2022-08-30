@@ -79,7 +79,9 @@ let fold_one ~accept_file_name ~accept_dir_name visit_tracker f acc root =
               |> Common.map (fun name -> Filename.concat path name)
             in
             List.fold_left fold acc children
-      | Some Unix.S_REG -> if accept_file_name name then f acc path else acc
+      | Some Unix.S_REG
+      | Some Unix.S_FIFO ->
+          if accept_file_name name then f acc path else acc
       | None
       | Some _ ->
           (* leave broken symlinks and special files alone *)
