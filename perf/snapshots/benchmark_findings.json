@@ -108,6 +108,351 @@
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zilencer/management/commands/rundjangoserver.py",
           "start": { "col": 14, "line": 31, "offset": 1142 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 15,
+            "line": 1088,
+            "offset": 48253
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/events.py",
+          "start": {
+            "col": 1,
+            "line": 1000,
+            "offset": 45064
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 16,
+            "line": 279,
+            "offset": 10200
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
+          "start": {
+            "col": 1,
+            "line": 226,
+            "offset": 8478
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 22,
+            "line": 280,
+            "offset": 10266
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": {
+            "col": 5,
+            "line": 257,
+            "offset": 9524
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 22,
+            "line": 299,
+            "offset": 11130
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": {
+            "col": 5,
+            "line": 282,
+            "offset": 10272
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 22,
+            "line": 315,
+            "offset": 11872
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": {
+            "col": 5,
+            "line": 308,
+            "offset": 11452
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 22,
+            "line": 370,
+            "offset": 14146
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": {
+            "col": 5,
+            "line": 361,
+            "offset": 13617
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 22,
+            "line": 990,
+            "offset": 37311
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": {
+            "col": 5,
+            "line": 971,
+            "offset": 36524
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 26,
+            "line": 183,
+            "offset": 7293
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/webhooks/librato/view.py",
+          "start": {
+            "col": 1,
+            "line": 159,
+            "offset": 6516
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 37,
+            "line": 487,
+            "offset": 18191
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/views/users.py",
+          "start": {
+            "col": 1,
+            "line": 359,
+            "offset": 13123
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 41,
+            "line": 219,
+            "offset": 8373
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
+          "start": {
+            "col": 1,
+            "line": 192,
+            "offset": 7470
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 57,
+            "line": 306,
+            "offset": 11446
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": {
+            "col": 5,
+            "line": 301,
+            "offset": 11136
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 58,
+            "line": 329,
+            "offset": 12514
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": {
+            "col": 5,
+            "line": 324,
+            "offset": 12202
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 6,
+            "line": 299,
+            "offset": 10724
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
+          "start": {
+            "col": 1,
+            "line": 282,
+            "offset": 10203
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 61,
+            "line": 322,
+            "offset": 12196
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": {
+            "col": 5,
+            "line": 317,
+            "offset": 11878
+          }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": {
+            "col": 94,
+            "line": 503,
+            "offset": 20652
+          },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/views/auth.py",
+          "start": {
+            "col": 1,
+            "line": 462,
+            "offset": 19227
+          }
         }
       ]
     }
