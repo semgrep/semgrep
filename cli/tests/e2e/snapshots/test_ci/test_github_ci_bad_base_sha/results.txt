@@ -42,7 +42,7 @@ Getting scan configurations
 Starting scan
 Authenticated as org_name
 semgrep version <MASKED>
-running 7 rules from 1 config semgrep-app-rules
+running 6 rules from 1 config semgrep-app-rules
 Initializing git status
 Running git diff
 Finished git diff. Parsing git status output
@@ -58,7 +58,6 @@ finished getting dirty paths
 {}
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev<MASKED>
 Rules:
-- __r2c-internal-cai_eqeq
 - eqeq-bad
 - eqeq-five
 - eqeq-four
@@ -66,7 +65,7 @@ Rules:
 - supply-chain2
 - taint-test
 Passing whole rules directly to semgrep_core
-Scanning 1 file with 5 python rules.
+Scanning 1 file with 4 python rules.
 Running semgrep-core with command:
 /<MASKED>/semgrep<MASKED> -json -rules <MASKED>-json_time -fast --debug
 --- semgrep-core stderr ---
@@ -112,15 +111,6 @@ Running semgrep-core with command:
       "severity": "ERROR"
     },
     {
-      "id": "__r2c-internal-cai_eqeq",
-      "languages": [
-        "python"
-      ],
-      "message": "useless comparison to 3",
-      "pattern": "$X == 3",
-      "severity": "INFO"
-    },
-    {
       "id": "taint-test",
       "languages": [
         "python"
@@ -153,11 +143,10 @@ Running semgrep-core with command:
 <MASKED>
 <MASKED>
 <MASKED>
-<MASKED>
 --- end semgrep-core stderr ---
 skipped 'bar.py' [rule RuleId(value='taint-test')]: SkipReason(value=IrrelevantRule()): No need to perform deeper matching because target does not contain some elements necessary for the rule to match 'taint-test'
 semgrep ran in <MASKED> on 1 files
-findings summary: 1 error, 0 info, 0 warning
+findings summary: 1 error, 0 warning
   Current version has 1 finding.
 
 Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
@@ -235,7 +224,6 @@ Sending findings and ignores blob: {
         "eqeq-bad",
         "eqeq-five",
         "eqeq-four",
-        "__r2c-internal-cai_eqeq",
         "taint-test",
         "supply-chain1",
         "supply-chain2"
