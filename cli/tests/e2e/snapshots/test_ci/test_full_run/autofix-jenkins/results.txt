@@ -3,50 +3,10 @@ JENKINS_URL="some_url" GIT_URL="https://github.com/org/repo.git/" GIT_BRANCH="so
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
-
-SCA Summary: 0 Reachable findings, 1 Unreachable finding
-
-
-Unreachable SCA Findings:
-
-  poetry.lock 
-     supply-chain1
-        found a dependency
-
-
-First-Party Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ x == 2
-         15┆ x == 2
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
 
 === end of stdout - plain
 
@@ -58,14 +18,20 @@ Scan environment:
 
 Fetching configuration from semgrep.dev
 Authenticated as org_name
-Scanning 1 file with 5 python rules.
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
-  Has findings for blocking rules so exiting with code 1
+argument 1 must be str, not None
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 334, in ci
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 320, in main
+    configs_obj, config_errors = get_config(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 644, in get_config
+    config, errors = Config.from_rules_yaml(config_strs[0])
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 247, in from_rules_yaml
+    parse_config_string(resolved_config_key, config, filename=None)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 477, in parse_config_string
+    contents = _jsonnet.evaluate_snippet(filename, contents)
+TypeError: argument 1 must be str, not None
 
 === end of stderr - plain

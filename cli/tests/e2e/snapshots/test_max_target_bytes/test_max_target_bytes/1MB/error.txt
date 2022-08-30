@@ -1,10 +1,22 @@
+STATIC ERROR: rules/eqeq.yaml:1:6: did not expect: ":"
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 817, in scan
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 320, in main
+    configs_obj, config_errors = get_config(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 650, in get_config
+    config, errors = Config.from_config_list(config_strs, project_url)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 278, in from_config_list
+    resolved_config = ConfigPath(config, project_url).resolve_config()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 131, in resolve_config
+    config = self._load_config_from_local_path()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 182, in _load_config_from_local_path
+    config = parse_config_at_path(loc)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 464, in parse_config_at_path
+    return parse_config_string(config_id, loc.read_text(), str(loc))
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 477, in parse_config_string
+    contents = _jsonnet.evaluate_snippet(filename, contents)
+RuntimeError: STATIC ERROR: rules/eqeq.yaml:1:6: did not expect: ":"
 
-Scanning across multiple languages:
-    python | 3 rules × 11 files
-        js | 1 rule  ×  3 files
-
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-Ran 4 rules on 14 files: 2 findings.
