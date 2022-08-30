@@ -15,6 +15,7 @@ from typing import Tuple
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
+import _jsonnet
 import requests
 from ruamel.yaml import YAMLError
 
@@ -470,6 +471,14 @@ def parse_config_string(
         raise SemgrepError(
             f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
         )
+
+    # TODO: We could guard this code if filename ends with .jsonnet?
+    try:
+        contents = _jsonnet.evaluate_snippet(filename, contents)
+    except json.decoder.JSONDecodeError:
+        pass
+
+    # Should we guard this code if filename ends with .jsonnet?
     try:
         # we pretend it came from YAML so we can keep later code simple
         data = YamlTree.wrap(json.loads(contents), EmptySpan)
