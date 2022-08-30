@@ -16,7 +16,7 @@ val taint_config_of_rule :
   Rule.taint_rule ->
   (Dataflow_tainting.var option ->
   Taint.finding list ->
-  Dataflow_tainting.taint_info Dataflow_var_env.t ->
+  Dataflow_tainting.lval_env ->
   unit) ->
   Dataflow_tainting.config * debug_taint * Matching_explanation.t list
 

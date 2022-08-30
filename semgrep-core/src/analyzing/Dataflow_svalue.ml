@@ -538,9 +538,7 @@ let transfer :
             match lvar_opt with
             | None -> inp'
             (* ????? *)
-            | Some (lvar, [])
-            | Some (_, lvar :: _) ->
-                VarMap.remove (str_of_name lvar) inp'))
+            | Some var -> VarMap.remove (str_of_name var) inp'))
   in
 
   { D.in_env = inp'; out_env = out' }
