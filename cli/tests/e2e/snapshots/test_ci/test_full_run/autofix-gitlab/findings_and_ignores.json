@@ -140,22 +140,6 @@
       "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1"
     },
     {
-      "check_id": "__r2c-internal-cai_eqeq",
-      "path": "foo.py",
-      "line": 21,
-      "column": 5,
-      "end_line": 21,
-      "end_column": 16,
-      "message": "useless comparison to 3",
-      "severity": 0,
-      "index": 0,
-      "commit_date": "sanitized",
-      "syntactic_id": "985498b46aff45ebdffe6a26af8524ab",
-      "metadata": {},
-      "is_blocking": true,
-      "match_based_id": "428d340d1be54b3f1fbc781d56aef28eb2092d3f140cab3a5d03ad7a769e21803c79eb728c18dce723226b7f224e8f688395081ca05d48bc2c1590d312d26fca_0"
-    },
-    {
       "check_id": "taint-test",
       "path": "foo.py",
       "line": 27,
@@ -215,7 +199,6 @@
     "eqeq-bad",
     "eqeq-five",
     "eqeq-four",
-    "__r2c-internal-cai_eqeq",
     "taint-test",
     "supply-chain1",
     "supply-chain2"
