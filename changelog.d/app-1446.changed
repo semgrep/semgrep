@@ -1,0 +1,1 @@
+Use new semgrep-app endpoint that combines the two POST requests to upload findings and ignored findings into one POST request.
