@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 
@@ -27,6 +28,10 @@ def in_semgrep_rules_repo(tmpdir_factory):
     # Remove subdir that doesnt contain rules
     # shutil.rmtree(repo_dir / "stats")
     monkeypatch.chdir(repo_dir)
+    if not os.listdir("."):
+        raise Exception(
+            "The semgrep-rules folder is empty. Was it properly checked out as a git submodule?"
+        )
     yield
     monkeypatch.undo()
 
