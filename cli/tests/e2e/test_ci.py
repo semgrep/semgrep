@@ -185,11 +185,6 @@ def automocks(mocker):
           severity: ERROR
           metadata:
             dev.semgrep.actions: ["block"]
-        - id: __r2c-internal-cai_eqeq
-          pattern: $X == 3
-          message: "useless comparison to 3"
-          languages: [python]
-          severity: INFO
         - id: taint-test
           message: "unsafe use of danger"
           languages: [python]
