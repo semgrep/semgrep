@@ -5,5 +5,5 @@ rules:
   pattern: f(g(x))
   message: Test
   languages:
-  - c 
+  - javascript 
   severity: WARNING

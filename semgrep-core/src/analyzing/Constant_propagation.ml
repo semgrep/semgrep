@@ -571,16 +571,18 @@ let propagate_basic lang prog =
                   (if
                    H.has_keyword_attr Const attrs
                    || H.has_keyword_attr Final attrs
-                   || !(stats.lvalue) = 1
+                   || (!(stats.lvalue) = 1 && is_js env)
                   then
                    match e.e with
                    | L literal -> add_constant_env id (sid, Lit literal) env
-                   (* For any other expression, it is OK to propagate it symbolically so long as
+                   (* For any other symbolic expression, it is OK to propagate it symbolically so long as
                       the lvalue is only assigned to once.
                       Although we may propagate expressions with identifiers in them, those identifiers
                       will simply not have an `svalue` if they are non-propagated as well.
                    *)
-                   | _ -> add_constant_env id (sid, Sym e) env);
+                   | _ when Dataflow_svalue.is_symbolic_expr e ->
+                       add_constant_env id (sid, Sym e) env
+                   | _ -> ());
                   k x
               | None ->
                   logger#debug "No stats for (%s,%d)" (H.str_of_ident id) sid;

@@ -1,11 +1,11 @@
 
-int x = 2;
+var x = 2
 
-int y = g(x);
+var y = g(x)
 
-x = 3;
+var x = 3
 
-int main() {
+function foo() {
   // No finding here, because `x` is not known to be assigned to once!
-  int z = f(y)
+  var z = f(y)
 }

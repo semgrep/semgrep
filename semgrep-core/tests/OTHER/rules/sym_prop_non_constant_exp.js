@@ -1,14 +1,14 @@
 
-int x = 2;
+var x = 2
 
-int y = g(x);
+var y = g(x)
 
 // ruleid: find-propagated-non-constant-exp 
-int h = f(y);
+var h = f(y)
 
-x = 3;
+x = 3
 
-int main() {
+function foo() {
   // ruleid: find-propagated-non-constant-exp 
-  int z = f(y)
+  var z = f(y)
 }
