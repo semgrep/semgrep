@@ -4,7 +4,7 @@ import pytest
 from click.testing import CliRunner
 
 from semgrep.cli import cli
-from semgrep.config_resolver import ConfigPath
+from semgrep.config_resolver import ConfigLoader
 
 
 @pytest.mark.quick
@@ -19,7 +19,7 @@ def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
           severity: ERROR
         """
     ).lstrip()
-    mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
+    mocker.patch.object(ConfigLoader, "_make_config_request", return_value=file_content)
 
     runner = CliRunner(
         env={

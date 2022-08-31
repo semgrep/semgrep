@@ -126,6 +126,7 @@ install_requires = [
     "tqdm~=4.46",
     "packaging~=21.0",
     "jsonschema~=4.6",
+    "jsonnet~=0.18",
     "wcmatch~=8.3",
     "peewee~=3.14",
     "defusedxml~=0.7.1",

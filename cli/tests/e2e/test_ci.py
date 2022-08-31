@@ -14,7 +14,7 @@ from tests.e2e.test_baseline import _git_merge
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
 from semgrep.app.session import AppSession
-from semgrep.config_resolver import ConfigPath
+from semgrep.config_resolver import ConfigLoader
 from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
@@ -216,7 +216,7 @@ def automocks(mocker):
         """
     ).lstrip()
 
-    mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
+    mocker.patch.object(ConfigLoader, "_make_config_request", return_value=file_content)
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",

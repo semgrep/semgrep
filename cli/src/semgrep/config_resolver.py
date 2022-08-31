@@ -1,6 +1,7 @@
 import json
 import os
 import time
+from collections import namedtuple
 from collections import OrderedDict
 from enum import auto
 from enum import Enum
@@ -15,7 +16,9 @@ from typing import Tuple
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
+import _jsonnet  # type: ignore
 import requests
+import ruamel.yaml
 from ruamel.yaml import YAMLError
 
 from semgrep import __VERSION__
@@ -69,12 +72,15 @@ DEFAULT_CONFIG = {
 }
 
 
+ConfigInfo = namedtuple("ConfigInfo", "config_id, contents, filename")
+
+
 class ConfigType(Enum):
     REGISTRY = auto()
     LOCAL = auto()
 
 
-class ConfigPath:
+class ConfigLoader:
     _origin = ConfigType.LOCAL
     _config_path = ""
     _project_url = None
@@ -120,18 +126,11 @@ class ConfigPath:
             state.metrics.is_using_registry = True
             state.metrics.add_registry_url(self._config_path)
 
-    def resolve_config(self) -> Mapping[str, YamlTree]:
-        """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
-        start_t = time.time()
-
+    def load_config(self) -> List[ConfigInfo]:
         if self._origin == ConfigType.REGISTRY:
-            config = self._download_config()
+            return self._download_config()
         else:
-            config = self._load_config_from_local_path()
-
-        if config:
-            logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
-        return config
+            return self._load_config_from_local_path()
 
     def _nice_semgrep_url(self, url: str) -> str:
         """
@@ -145,20 +144,20 @@ class ConfigPath:
             return url.replace("/c/", "/")
         return url
 
-    def _download_config(self) -> Mapping[str, YamlTree]:
+    def _download_config(self) -> List[ConfigInfo]:
         """
         Download a configuration from semgrep.dev
         """
         config_url = self._config_path
         logger.debug(f"trying to download from {self._nice_semgrep_url(config_url)}")
         try:
-            config = parse_config_string(
+            config = ConfigInfo(
                 "remote-url",
                 self._make_config_request(),
                 filename=f"{config_url[:20]}...",
             )
             logger.debug(f"finished downloading from {config_url}")
-            return config
+            return [config]
         except InvalidRuleSchemaError as e:
             notice = f"\nRules downloaded from {config_url} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
             notice_color = with_color(Colors.red, notice, bold=True)
@@ -169,7 +168,7 @@ class ConfigPath:
                 terminal_wrap(f"Failed to download config from {config_url}: {str(e)}")
             )
 
-    def _load_config_from_local_path(self) -> Dict[str, YamlTree]:
+    def _load_config_from_local_path(self) -> List[ConfigInfo]:
         """
         Return config file(s) as dictionary object
         """
@@ -178,9 +177,9 @@ class ConfigPath:
         logger.debug(f"Loading local config from {loc}")
         if loc.exists():
             if loc.is_file():
-                config = parse_config_at_path(loc)
+                config = [read_config_at_path(loc)]
             elif loc.is_dir():
-                config = parse_config_folder(loc)
+                config = read_config_folder(loc)
             else:
                 raise SemgrepError(f"config location `{loc}` is not a file or folder!")
         else:
@@ -215,8 +214,58 @@ class ConfigPath:
     def is_registry_url(self) -> bool:
         return self._origin == ConfigType.REGISTRY
 
+
+def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigInfo:
+    """
+    Assumes file at loc exists
+    """
+    config_id = str(loc)
+    if base_path:
+        config_id = str(loc).replace(str(base_path), "")
+
+    return ConfigInfo(config_id, loc.read_text(), str(loc))
+
+
+def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigInfo]:
+    configs = []
+    for l in loc.rglob("*"):
+        # Allow manually specified paths with ".", but don't auto-expand them
+        correct_suffix = is_config_suffix(l)
+        if not _is_hidden_config(l.relative_to(loc)) and correct_suffix:
+            if l.is_file():
+                configs.append(read_config_at_path(l, loc if relative else None))
+    return configs
+
+
+def parse_config_info_list(
+    loaded_config_infos: List[ConfigInfo],
+) -> Dict[str, YamlTree]:
+    config = {}
+    for (config_id, contents, filename) in loaded_config_infos:
+        config.update(parse_config_string(config_id, contents, filename))
+    return config
+
+
+class ConfigPath:
+    def __init__(self, config_str: str, project_url: Optional[str] = None) -> None:
+        self._config_str = config_str
+        self._project_url = project_url
+
+    def resolve_config(self) -> Dict[str, YamlTree]:
+        """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
+        start_t = time.time()
+
+        config = parse_config_info_list(
+            ConfigLoader(self._config_str, self._project_url).load_config()
+        )
+
+        if config:
+            logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
+        return config
+
     def __str__(self) -> str:
-        return self._config_path
+        # TODO return the resolved config_path
+        return self._config_str
 
 
 class Config:
@@ -450,17 +499,29 @@ def indent(msg: str) -> str:
     return "\n".join(["\t" + line for line in msg.splitlines()])
 
 
-def parse_config_at_path(
-    loc: Path, base_path: Optional[Path] = None
-) -> Dict[str, YamlTree]:
-    """
-    Assumes file at loc exists
-    """
-    config_id = str(loc)
-    if base_path:
-        config_id = str(loc).replace(str(base_path), "")
+def import_callback(_base: str, path: str) -> Tuple[str, str]:
+    logger.debug(f"import_callback for {path}")
 
-    return parse_config_string(config_id, loc.read_text(), str(loc))
+    # On the fly conversion from yaml to json.
+    # Can now do 'local x = import "foo.yml";'
+    if path and path.split(".")[-1] == "yml":
+        yaml = ruamel.yaml.YAML(typ="safe")
+        with open(path) as fpi:
+            data = yaml.load(fpi)
+        contents = json.dumps(data)
+        filename = path
+        return filename, contents
+
+    # Registry-aware import!
+    # Can now do 'local x = import "p/python";'!!
+    config_infos = ConfigLoader(path, None).load_config()
+    if len(config_infos) == 0:
+        raise SemgrepError(f"No valid configs imported")
+    elif len(config_infos) > 1:
+        raise SemgrepError(f"Currently configs cannot be imported from a directory")
+    else:
+        (_config_id, contents, filename) = config_infos[0]
+        return filename, contents
 
 
 def parse_config_string(
@@ -470,6 +531,14 @@ def parse_config_string(
         raise SemgrepError(
             f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
         )
+
+    # TODO: Make this check less jank
+    if filename and filename.split(".")[-1] == "jsonnet":
+        contents = _jsonnet.evaluate_snippet(
+            filename, contents, import_callback=import_callback
+        )
+
+    # Should we guard this code and checks whether filename ends with .json?
     try:
         # we pretend it came from YAML so we can keep later code simple
         data = YamlTree.wrap(json.loads(contents), EmptySpan)
@@ -489,17 +558,6 @@ def parse_config_string(
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
     return {config_id: data}
-
-
-def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, YamlTree]:
-    configs = {}
-    for l in loc.rglob("*"):
-        # Allow manually specified paths with ".", but don't auto-expand them
-        correct_suffix = is_config_suffix(l)
-        if not _is_hidden_config(l.relative_to(loc)) and correct_suffix:
-            if l.is_file():
-                configs.update(parse_config_at_path(l, loc if relative else None))
-    return configs
 
 
 def _is_hidden_config(loc: Path) -> bool:
@@ -522,12 +580,12 @@ def load_default_config() -> Dict[str, YamlTree]:
     """
     default_file = Path(DEFAULT_CONFIG_FILE)
     default_folder = Path(DEFAULT_CONFIG_FOLDER)
+    config_infos = []
     if default_file.exists():
-        return parse_config_at_path(default_file)
+        config_infos = [read_config_at_path(default_file)]
     elif default_folder.exists():
-        return parse_config_folder(default_folder, relative=True)
-    else:
-        return {}
+        config_infos = read_config_folder(default_folder, relative=True)
+    return parse_config_info_list(config_infos)
 
 
 def is_registry_id(config_str: str) -> bool:
