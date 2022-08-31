@@ -382,7 +382,6 @@ def mock_autofix(request, mocker):
             # Sent in metadata but no functionality change
             "SEMGREP_PR_ID": "35",
             "SEMGREP_BRANCH": BRANCH_NAME,
-            "GIT_ENV": "true",
         },
     ],
     ids=[
