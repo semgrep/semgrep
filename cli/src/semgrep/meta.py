@@ -35,7 +35,7 @@ def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
     p = Parser(sstp_url)
     result = p.parse()
     protocol = result.protocol
-    if protocol != "http" and protocol != "http":
+    if protocol != "http" and protocol != "https":
         # let's just pick https
         protocol = "https"
 

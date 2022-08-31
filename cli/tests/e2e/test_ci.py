@@ -22,6 +22,7 @@ from semgrep.meta import GitMeta
 
 pytestmark = pytest.mark.kinda_slow
 
+REPO_ORG_NAME = "org_name"
 REPO_DIR_NAME = "project_name"
 AUTHOR_EMAIL = "test_environment@test.r2c.dev"
 AUTHOR_NAME = "Environment Test"
@@ -374,6 +375,14 @@ def mock_autofix(request, mocker):
             "TRAVIS_PULL_REQUEST": "35",
             "TRAVIS_COMMIT_MESSAGE": COMMIT_MESSAGE,
         },
+        {  # Special SCM with org in path
+            "CI": "true",
+            "SEMGREP_REPO_NAME": f"{REPO_ORG_NAME}/{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "SEMGREP_REPO_URL": f"https://some.enterprise.url.com/{REPO_ORG_NAME}/{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            # Sent in metadata but no functionality change
+            "SEMGREP_PR_ID": "35",
+            "SEMGREP_BRANCH": BRANCH_NAME,
+        },
     ],
     ids=[
         "local",
@@ -389,6 +398,7 @@ def mock_autofix(request, mocker):
         "azure-pipelines",
         "buildkite",
         "travis",
+        "self-hosted",
     ],
 )
 @pytest.mark.skipif(
