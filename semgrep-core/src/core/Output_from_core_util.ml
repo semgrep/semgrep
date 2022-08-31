@@ -18,7 +18,7 @@ let position_of_token_location loc =
   }
 
 let position_range min_loc max_loc =
-  let len_max = String.length max_loc.PI.str in
+  let end_loc = PI.mk_end_token_location max_loc in
   (* alt: could call position_of_token_location but more symetric like that*)
   ( {
       line = min_loc.PI.line;
@@ -26,9 +26,9 @@ let position_range min_loc max_loc =
       offset = min_loc.PI.charpos;
     },
     {
-      line = max_loc.PI.line;
-      col = adjust_column (max_loc.PI.column + len_max);
-      offset = max_loc.PI.charpos + len_max;
+      line = end_loc.line;
+      col = adjust_column end_loc.column;
+      offset = end_loc.charpos;
     } )
 
 let location_of_token_location loc =
