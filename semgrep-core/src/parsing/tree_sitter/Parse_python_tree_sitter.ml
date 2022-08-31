@@ -1139,7 +1139,6 @@ let map_decorator (env : env) ((v1, v2, v3) : CST.decorator) =
   let get_dotted_name x = List.rev (get_dotted_name_rev x) in
   let dotted_name, args =
     match v2 with
-    (* We won't support this for now. *)
     | `Call (e, `Gene_exp x) ->
         let x = map_generator_expression env x in
         (get_dotted_name e, Some (fb [ Arg x ]))
