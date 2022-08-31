@@ -131,12 +131,14 @@ let lval_env_eq le1 le2 =
 let lval_env_to_str taint_to_str { tainted; propagated; cleaned } =
   (* FIXME: lval_to_str *)
   LvalMap.fold
-    (fun dn v s -> s ^ IL.show_lval dn ^ ":" ^ taint_to_str v ^ " ")
+    (fun dn v s -> s ^ LV.string_of_lval dn ^ ":" ^ taint_to_str v ^ " ")
     tainted "[TAINTED]"
   ^ VarMap.fold
       (fun dn v s -> s ^ dn ^ ":" ^ taint_to_str v ^ " ")
       propagated "[PROPAGATED]"
-  ^ LvalSet.fold (fun dn s -> s ^ IL.show_lval dn ^ " ") cleaned "[CLEANED]"
+  ^ LvalSet.fold
+      (fun dn s -> s ^ LV.string_of_lval dn ^ " ")
+      cleaned "[CLEANED]"
 
 let union_lval_env le1 le2 =
   let tainted = lvalmap_union Taints.union le1.tainted le2.tainted in
@@ -782,7 +784,7 @@ let (transfer :
               check_tainted_var { env with lval_env = lval_env' } name |> snd
           | Some _
           | None ->
-              env.lval_env
+              lval_env'
         in
         match (Taints.is_empty taints, opt_lval) with
         (* Instruction returns safe data, remove taint from `var`. *)
@@ -805,7 +807,7 @@ let (transfer :
             lval_env')
     | NReturn (tok, e) -> (
         (* TODO: Move most of this to check_tainted_return. *)
-        let taints, var_env' = check_tainted_return env tok e in
+        let taints, lval_env' = check_tainted_return env tok e in
         let findings = findings_of_tainted_return taints tok in
         report_findings env findings;
         let pmatches =
@@ -824,8 +826,8 @@ let (transfer :
                    Hashtbl.add fun_env str pmatches
              | Some tained' ->
                  Hashtbl.replace fun_env str (Taints.union pmatches tained'));
-            var_env'
-        | None -> var_env')
+            lval_env'
+        | None -> lval_env')
     | _ -> in'
   in
   { D.in_env = in'; out_env = out' }

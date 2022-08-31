@@ -4,6 +4,7 @@ module LvalOrdered : sig
   val compare : t -> t -> int
 end
 
+val string_of_lval : IL.lval -> string
 val lval_is_var_and_dots : IL.lval -> bool
 val lval_is_dotted_prefix : IL.lval -> IL.lval -> bool
 val lval_of_instr_opt : IL.instr -> IL.lval option

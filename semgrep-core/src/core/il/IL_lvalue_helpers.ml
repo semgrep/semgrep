@@ -102,6 +102,21 @@ module LvalOrdered = struct
     | _, _ -> Stdlib.compare lval1 lval2
 end
 
+let string_of_base base =
+  match base with
+  | Var x -> str_of_name x
+  | VarSpecial _ -> "<VarSpecial>"
+  | Mem _ -> "<Mem>"
+
+let string_of_offset offset =
+  match offset with
+  | Dot a -> str_of_name a
+  | Index _ -> "[...]"
+
+let string_of_lval { base; rev_offset } =
+  string_of_base base
+  ^ String.concat "." (List.rev_map string_of_offset rev_offset)
+
 let lval_is_var_and_dots { base; rev_offset } =
   match base with
   | Var _ ->
