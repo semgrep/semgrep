@@ -1,3 +1,5 @@
+import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -24,9 +26,14 @@ def in_semgrep_rules_repo(tmpdir_factory):
     # since it's a shared resource. If writes are necessary, make a copy
     # of the folder to create a safe read-write workspace.
     #
-    # Remove subdir that doesnt contain rules
-    # shutil.rmtree(repo_dir / "stats")
+    # Remove subdir that contains yaml files that are not rules, causing
+    # 'semgrep scan --validate --config=.' to fail.
+    shutil.rmtree(repo_dir / "stats")
     monkeypatch.chdir(repo_dir)
+    if not os.listdir("."):
+        raise Exception(
+            "The semgrep-rules folder is empty. Was it properly checked out as a git submodule?"
+        )
     yield
     monkeypatch.undo()
 
