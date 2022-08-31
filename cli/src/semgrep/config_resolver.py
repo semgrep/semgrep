@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 
 import _jsonnet  # type: ignore
 import requests
+import ruamel.yaml
 from ruamel.yaml import YAMLError
 
 from semgrep import __VERSION__
@@ -499,6 +500,20 @@ def indent(msg: str) -> str:
 
 
 def import_callback(_base: str, path: str) -> Tuple[str, str]:
+    logger.debug(f"import_callback for {path}")
+
+    # On the fly conversion from yaml to json.
+    # Can now do 'local x = import "foo.yml";'
+    if path and path.split(".")[-1] == "yml":
+        yaml = ruamel.yaml.YAML(typ="safe")
+        with open(path) as fpi:
+            data = yaml.load(fpi)
+        contents = json.dumps(data)
+        filename = path
+        return filename, contents
+
+    # Registry-aware import!
+    # Can now do 'local x = import "p/python";'!!
     config_infos = ConfigLoader(path, None).load_config()
     if len(config_infos) == 0:
         raise SemgrepError(f"No valid configs imported")
@@ -519,14 +534,11 @@ def parse_config_string(
 
     # TODO: Make this check less jank
     if filename and filename.split(".")[-1] == "jsonnet":
-        try:
-            contents = _jsonnet.evaluate_snippet(
-                filename, contents, import_callback=import_callback
-            )
-        except json.decoder.JSONDecodeError:
-            pass
+        contents = _jsonnet.evaluate_snippet(
+            filename, contents, import_callback=import_callback
+        )
 
-    # Should we guard this code if filename ends with .jsonnet?
+    # Should we guard this code and checks whether filename ends with .json?
     try:
         # we pretend it came from YAML so we can keep later code simple
         data = YamlTree.wrap(json.loads(contents), EmptySpan)
