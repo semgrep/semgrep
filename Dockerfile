@@ -1,3 +1,6 @@
+###############################################################################
+# Overview
+###############################################################################
 #
 # First, build a *static* 'semgrep-core' binary on Alpine because it comes set
 # up for it (requires using musl rather than glibc).
@@ -5,6 +8,10 @@
 # Then 'semgrep-core' alone is copied to a container which takes care
 # of the 'semgrep-python' wrapping.
 #
+
+###############################################################################
+# Step1: build semgrep-core
+###############################################################################
 
 # The docker base image below in the FROM currently uses OCaml 4.14.0
 # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
@@ -19,7 +26,10 @@
 FROM returntocorp/ocaml:alpine-2022-06-09@sha256:99b453a838c9d94414991c0fd7be4711aa1bcc120f576e0f0653c7b921ea9718 as semgrep-core
 
 USER root
-# for ocaml-pcre now used in semgrep-core
+# Here is why we need those apk packages:
+# - pcre-dev: for ocaml-pcre now used in semgrep-core
+# - python3: used during building for processing lang.json
+# - python3-dev: for the semgrep Python bridge to build Python C extensions
 # TODO: update root image to include python 3.9
 RUN apk add --no-cache pcre-dev python3 python3-dev &&\
      pip install --no-cache-dir pipenv==2022.6.7
@@ -28,6 +38,7 @@ USER user
 
 ENV OPAMYES=true
 
+# The subset of 'make setup' useful to build semgrep-core
 WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core
 COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/ .
 RUN ./configure \
@@ -45,18 +56,24 @@ RUN opam install --deps-only \
      /semgrep/semgrep-core/src/ocaml-tree-sitter-core \
      /semgrep/semgrep-core
 
+# Copy all the source files needed to build semgrep-core
 WORKDIR /semgrep
 COPY --chown=user semgrep-core/ ./semgrep-core
 COPY --chown=user interfaces/ ./interfaces
 COPY --chown=user cli/src/semgrep/lang ./cli/src/semgrep/lang
 COPY --chown=user cli/src/semgrep/semgrep_interfaces ./cli/src/semgrep/semgrep_interfaces
 
+# Let's build it
 WORKDIR /semgrep/semgrep-core
 RUN opam exec -- make minimal-build
 
+# Sanity check
 WORKDIR /semgrep
 RUN /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
 
+###############################################################################
+# Step2: Build the final docker image with Python wrapper and semgrep-core bin
+###############################################################################
 #
 # We change container, bringing the 'semgrep-core' binary with us.
 #
@@ -70,7 +87,14 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
      PYTHONIOENCODING=utf8 \
      PYTHONUNBUFFERED=1
 
-RUN apk add --no-cache --virtual=.run-deps bash git git-lfs openssh
+# Here is why we need those apk packages:
+# - bash: for entrypoint.sh (see below) and probably many other things
+# - git, git-lfs, openssh: so that the semgrep docker image can be used in
+#   github actions and get git submodules and use ssh to get those submodules
+# - libstdc++: for the Python jsonnet binding now used in the semgrep CLI
+#   note: do not put libstdc++6, you'll get 'missing library' or 'unresolved
+#   symbol' errors
+RUN apk add --no-cache --virtual=.run-deps bash git git-lfs openssh libstdc++
 COPY cli ./
 
 # hadolint ignore=DL3013
@@ -87,6 +111,7 @@ RUN chmod +x /entrypoint.sh
 # Let the user know how their container was built
 COPY dockerfiles/semgrep.Dockerfile /Dockerfile
 
+# Get semgrep-core from step1
 COPY --from=semgrep-core /semgrep/semgrep-core/_build/default/src/cli/Main.exe /usr/local/bin/semgrep-core
 
 ENV SEMGREP_IN_DOCKER=1 \
@@ -95,6 +120,9 @@ ENV SEMGREP_IN_DOCKER=1 \
 
 WORKDIR /src
 
+# In case of problems, if you need to debug the docker image, run 'docker build .',
+# identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
+# to interactively explore the docker image.
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["semgrep", "--help"]
 LABEL maintainer="support@r2c.dev"
