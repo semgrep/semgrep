@@ -1,38 +1,9 @@
 {
   "errors": [
     {
-      "code": 4,
-      "level": "error",
-      "long_msg": "In semgrep YAML configuration, null values are prohibited",
-      "short_msg": "null values prohibited",
-      "spans": [
-        {
-          "context_end": {
-            "col": 0,
-            "line": 3
-          },
-          "context_start": {
-            "col": 0,
-            "line": 1
-          },
-          "end": {
-            "col": 9,
-            "line": 2
-          },
-          "file": "rules/syntax/bad11.yaml",
-          "source_hash": "7a019471428f78e4d02c4c06c76fd7195445c3ccb10b555af042346e63d8c3de",
-          "start": {
-            "col": 5,
-            "line": 2
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
-    },
-    {
       "code": 7,
       "level": "error",
-      "message": "Ran with --strict and got 1 error while loading configs",
+      "message": "No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config\n",
       "type": "SemgrepError"
     }
   ],

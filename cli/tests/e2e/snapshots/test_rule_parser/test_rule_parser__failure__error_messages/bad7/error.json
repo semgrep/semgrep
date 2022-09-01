@@ -1,30 +1,9 @@
 {
   "errors": [
     {
-      "code": 4,
-      "level": "error",
-      "long_msg": "123 is not of type 'string'",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 12,
-            "line": 3
-          },
-          "file": "rules/syntax/bad7.yaml",
-          "source_hash": "99c414681ffa893e6d96ca71e262787fd058d3da094abe7425e470a21879205c",
-          "start": {
-            "col": 9,
-            "line": 3
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
-    },
-    {
       "code": 7,
       "level": "error",
-      "message": "Ran with --strict and got 1 error while loading configs",
+      "message": "No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config\n",
       "type": "SemgrepError"
     }
   ],

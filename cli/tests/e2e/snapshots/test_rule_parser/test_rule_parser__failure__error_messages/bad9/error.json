@@ -1,30 +1,9 @@
 {
   "errors": [
     {
-      "code": 4,
-      "level": "error",
-      "long_msg": "Additional properties are not allowed ('patter' was unexpected)",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 7,
-            "line": 5
-          },
-          "file": "rules/syntax/bad9.yaml",
-          "source_hash": "22b38817e2ddc7b6ad25b80aaf6a01451159c7a0233eaef3ed58642355a05379",
-          "start": {
-            "col": 9,
-            "line": 4
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
-    },
-    {
       "code": 7,
       "level": "error",
-      "message": "Ran with --strict and got 1 error while loading configs",
+      "message": "No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config\n",
       "type": "SemgrepError"
     }
   ],

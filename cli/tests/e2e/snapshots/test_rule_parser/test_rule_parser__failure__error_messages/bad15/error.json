@@ -1,30 +1,9 @@
 {
   "errors": [
     {
-      "code": 4,
-      "level": "error",
-      "long_msg": "These options were both specified, but they are mutually exclusive: 'pattern', 'patterns'",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 1,
-            "line": 10
-          },
-          "file": "rules/syntax/bad15.yaml",
-          "source_hash": "21e9affa6ddbf82df21c7daf4b11db6a72fe061d06794ab28f208f20461d666a",
-          "start": {
-            "col": 5,
-            "line": 2
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
-    },
-    {
       "code": 7,
       "level": "error",
-      "message": "Ran with --strict and got 1 error while loading configs",
+      "message": "No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config\n",
       "type": "SemgrepError"
     }
   ],

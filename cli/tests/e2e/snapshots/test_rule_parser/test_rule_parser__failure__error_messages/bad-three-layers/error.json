@@ -1,30 +1,9 @@
 {
   "errors": [
     {
-      "code": 4,
-      "level": "error",
-      "long_msg": "One of these properties is missing: 'languages'",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 1,
-            "line": 8
-          },
-          "file": "rules/syntax/bad-three-layers.yaml",
-          "source_hash": "230ae0cfd32c4a669eb5edbc9f5a3574609dfe147a7440bfcb85c35e1828ac54",
-          "start": {
-            "col": 5,
-            "line": 2
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
-    },
-    {
       "code": 7,
       "level": "error",
-      "message": "Ran with --strict and got 1 error while loading configs",
+      "message": "No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config\n",
       "type": "SemgrepError"
     }
   ],

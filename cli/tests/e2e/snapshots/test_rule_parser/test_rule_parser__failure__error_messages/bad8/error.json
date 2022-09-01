@@ -1,30 +1,9 @@
 {
   "errors": [
     {
-      "code": 4,
-      "level": "error",
-      "long_msg": "One of these properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'r2c-internal-project-depends-on'",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 1,
-            "line": 7
-          },
-          "file": "rules/syntax/bad8.yaml",
-          "source_hash": "f821234ba9175efc8d66b3226996144ba05bdc0aea35a50321cbb9c6f349f6a0",
-          "start": {
-            "col": 5,
-            "line": 2
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
-    },
-    {
       "code": 7,
       "level": "error",
-      "message": "Ran with --strict and got 1 error while loading configs",
+      "message": "No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config\n",
       "type": "SemgrepError"
     }
   ],

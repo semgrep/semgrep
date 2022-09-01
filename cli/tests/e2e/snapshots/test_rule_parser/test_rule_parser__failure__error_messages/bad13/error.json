@@ -1,30 +1,9 @@
 {
   "errors": [
     {
-      "code": 4,
-      "level": "error",
-      "long_msg": "One of these properties is missing: 'pattern-sinks'",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 1,
-            "line": 9
-          },
-          "file": "rules/syntax/bad13.yaml",
-          "source_hash": "358a5e8907bbb75166d11a3e3347b3750abde97709ce141a6f5d67f82879822a",
-          "start": {
-            "col": 5,
-            "line": 2
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
-    },
-    {
       "code": 7,
       "level": "error",
-      "message": "Ran with --strict and got 1 error while loading configs",
+      "message": "No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config\n",
       "type": "SemgrepError"
     }
   ],

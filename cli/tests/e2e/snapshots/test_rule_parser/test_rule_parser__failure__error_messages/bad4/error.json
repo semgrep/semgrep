@@ -1,30 +1,9 @@
 {
   "errors": [
     {
-      "code": 4,
-      "level": "error",
-      "long_msg": "{'pattern-inside': 'def foo($X):\\n    ...\\n', 'pattern': '$X = 1'} is not of type 'array'",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 5,
-            "line": 8
-          },
-          "file": "rules/syntax/bad4.yaml",
-          "source_hash": "df19d059fbcde7ca517f3dcbd6d58733d738f332467bc02d1d11051ab62e2549",
-          "start": {
-            "col": 7,
-            "line": 4
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
-    },
-    {
       "code": 7,
       "level": "error",
-      "message": "Ran with --strict and got 1 error while loading configs",
+      "message": "No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config\n",
       "type": "SemgrepError"
     }
   ],
