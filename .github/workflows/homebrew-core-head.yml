@@ -21,6 +21,8 @@ jobs:
         run: brew install semgrep --HEAD
       - name: Check installed correctly
         run: brew test semgrep --HEAD
+      - name: Clean up semgrep installation
+        run: brew uninstall semgrep
 
   notify-failure:
     needs: [brew-build]
