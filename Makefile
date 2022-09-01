@@ -52,7 +52,7 @@ rebuild:
 #
 .PHONY: setup
 setup:
-	git submodule update --init
+	git submodule update --init || echo not a git repository
 	# Fetch, build and install the tree-sitter runtime library locally.
 	cd semgrep-core/src/ocaml-tree-sitter-core \
 	&& ./configure \
