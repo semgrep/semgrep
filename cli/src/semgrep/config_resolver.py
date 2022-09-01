@@ -72,7 +72,7 @@ DEFAULT_CONFIG = {
 }
 
 
-ConfigInfo = namedtuple("ConfigInfo", "config_id, contents, filename")
+ConfigInfo = namedtuple("ConfigInfo", "config_id, contents, filename config_url")
 
 
 class ConfigType(Enum):
@@ -154,15 +154,11 @@ class ConfigLoader:
             config = ConfigInfo(
                 "remote-url",
                 self._make_config_request(),
-                filename=f"{config_url[:20]}...",
+                f"{config_url[:20]}...",
+                config_url,
             )
             logger.debug(f"finished downloading from {config_url}")
             return [config]
-        except InvalidRuleSchemaError as e:
-            notice = f"\nRules downloaded from {config_url} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
-            notice_color = with_color(Colors.red, notice, bold=True)
-            logger.error(notice_color)
-            raise e
         except Exception as e:
             raise SemgrepError(
                 terminal_wrap(f"Failed to download config from {config_url}: {str(e)}")
@@ -223,7 +219,7 @@ def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigIn
     if base_path:
         config_id = str(loc).replace(str(base_path), "")
 
-    return ConfigInfo(config_id, loc.read_text(), str(loc))
+    return ConfigInfo(config_id, loc.read_text(), str(loc), None)
 
 
 def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigInfo]:
@@ -241,8 +237,15 @@ def parse_config_info_list(
     loaded_config_infos: List[ConfigInfo],
 ) -> Dict[str, YamlTree]:
     config = {}
-    for (config_id, contents, filename) in loaded_config_infos:
-        config.update(parse_config_string(config_id, contents, filename))
+    for (config_id, contents, filename, config_url) in loaded_config_infos:
+        try:
+            config.update(parse_config_string(config_id, contents, filename))
+        except InvalidRuleSchemaError as e:
+            if config_url:
+                notice = f"\nRules downloaded from {config_url} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
+                notice_color = with_color(Colors.red, notice, bold=True)
+                logger.error(notice_color)
+                raise e
     return config
 
 
@@ -520,7 +523,7 @@ def import_callback(_base: str, path: str) -> Tuple[str, str]:
     elif len(config_infos) > 1:
         raise SemgrepError(f"Currently configs cannot be imported from a directory")
     else:
-        (_config_id, contents, filename) = config_infos[0]
+        (_config_id, contents, filename, _config_url_opt) = config_infos[0]
         return filename, contents
 
 
