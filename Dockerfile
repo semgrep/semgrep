@@ -54,12 +54,13 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
 RUN apk add --no-cache --virtual=.run-deps bash git git-lfs openssh
 COPY cli ./
 
-# hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base
 RUN SEMGREP_SKIP_BIN=true pip install /semgrep
 # running this pre-compiles some python files for faster startup times
 RUN semgrep --version
-RUN apk del .build-deps && mkdir -p /tmp/.cache
+# ??
+RUN mkdir -p /tmp/.cache
+RUN apk del .build-deps
 # those files are not needed anymore
 RUN rm -rf /semgrep
 
