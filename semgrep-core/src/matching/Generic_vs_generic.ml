@@ -2467,7 +2467,7 @@ and m_pattern a b =
   | G.PatWhen (a1, a2), B.PatWhen (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_expr a2 b2
   | G.OtherPat (a1, a2), B.OtherPat (b1, b2) ->
-      m_other_pattern_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.PatId _, _
   | G.PatLiteral _, _
   | G.PatConstructor _, _
@@ -2487,8 +2487,6 @@ and m_pattern a b =
 and m_field_pattern a b =
   match (a, b) with
   | (a1, a2), (b1, b2) -> m_dotted_name a1 b1 >>= fun () -> m_pattern a2 b2
-
-and m_other_pattern_operator = m_other_xxx
 
 (*****************************************************************************)
 (* Definitions *)
