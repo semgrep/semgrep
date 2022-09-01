@@ -7,3 +7,8 @@ def foo(a, b):
         SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK
         == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK
     )
+
+x = """
+    abc
+    def
+"""

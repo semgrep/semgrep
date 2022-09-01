@@ -8,6 +8,56 @@
   },
   "results": [
     {
+      "check_id": "rules.assign-multiline-comment",
+      "end": {
+        "col": 4,
+        "line": 14,
+        "offset": 248
+      },
+      "extra": {
+        "fingerprint": "9d1118226495e3021eba55e101363e71d9c9f13e15ea40d11864a747896a602c3e62e3ddae1bd8fc1100668730628116751075c5ccc20f774d3bbe1641fde13f_0",
+        "is_ignored": false,
+        "lines": "x = \"\"\"\n    abc\n    def\n\"\"\"",
+        "message": "found an assignment of a multiline comment",
+        "metadata": {},
+        "metavars": {
+          "$MULTILINE": {
+            "abstract_content": "\n    abc\n    def\n",
+            "end": {
+              "col": 1,
+              "line": 14,
+              "offset": 245
+            },
+            "start": {
+              "col": 8,
+              "line": 11,
+              "offset": 228
+            }
+          },
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 2,
+              "line": 11,
+              "offset": 222
+            },
+            "start": {
+              "col": 1,
+              "line": 11,
+              "offset": 221
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/multiline/stupid.py",
+      "start": {
+        "col": 1,
+        "line": 11,
+        "offset": 221
+      }
+    },
+    {
       "check_id": "rules.eqeq-is-bad",
       "end": {
         "col": 55,
