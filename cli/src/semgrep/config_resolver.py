@@ -246,6 +246,8 @@ def parse_config_info_list(
                 notice_color = with_color(Colors.red, notice, bold=True)
                 logger.error(notice_color)
                 raise e
+            else:
+                raise e
     return config
 
 
