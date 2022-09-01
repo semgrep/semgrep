@@ -55,6 +55,9 @@ RUN apk add --no-cache --virtual=.run-deps bash git git-lfs openssh
 COPY cli ./
 
 RUN apk add --no-cache --virtual=.build-deps build-base
+
+# DL3013: Pin versions in pip.
+# hadolint ignore=DL3013
 RUN SEMGREP_SKIP_BIN=true pip install /semgrep
 # running this pre-compiles some python files for faster startup times
 RUN semgrep --version
