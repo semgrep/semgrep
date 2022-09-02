@@ -8,10 +8,10 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 
 === stdout - plain
 
-SCA Summary: 0 Reachable findings, 1 Unreachable finding
+Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
 
 
-Unreachable SCA Findings:
+Unreachable Supply Chain Findings:
 
   poetry.lock 
      supply-chain1
