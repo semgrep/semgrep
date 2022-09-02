@@ -18,18 +18,14 @@ let position_of_token_location loc =
   }
 
 let position_range min_loc max_loc =
-  let end_loc = PI.mk_end_token_location max_loc in
+  let end_line, end_col, end_charpos = PI.get_token_end_info max_loc in
   (* alt: could call position_of_token_location but more symetric like that*)
   ( {
       line = min_loc.PI.line;
       col = adjust_column min_loc.PI.column;
       offset = min_loc.PI.charpos;
     },
-    {
-      line = end_loc.line;
-      col = adjust_column end_loc.column;
-      offset = end_loc.charpos;
-    } )
+    { line = end_line; col = adjust_column end_col; offset = end_charpos } )
 
 let location_of_token_location loc =
   let start, end_ = position_range loc loc in
