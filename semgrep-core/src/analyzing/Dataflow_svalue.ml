@@ -522,7 +522,7 @@ let transfer :
             update_env_with inp' var cexp
         | Call
             ( None,
-              { e = Fetch { base = Var var; rev_offset = [ Dot _ ]; _ }; _ },
+              { e = Fetch { base = Var var; rev_offset = Dot _ :: _; _ }; _ },
               _ ) ->
             (* Method call `var.f(args)` that returns void, we conservatively
              * assume that it may be updating `var`; e.g. in Ruby strings are
@@ -537,8 +537,7 @@ let transfer :
             let lvar_opt = LV.lvar_of_instr_opt instr in
             match lvar_opt with
             | None -> inp'
-            (* ????? *)
-            | Some var -> VarMap.remove (str_of_name var) inp'))
+            | Some lvar -> VarMap.remove (str_of_name lvar) inp'))
   in
 
   { D.in_env = inp'; out_env = out' }
