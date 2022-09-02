@@ -177,9 +177,9 @@ let subexprs_of_expr with_symbolic_propagation e =
             | XmlXml xml -> Some (Xml xml |> AST_generic.e)
             | _ -> None)
           xml_body
+  | RegexpTemplate ((_l, e, _r), _opt) -> [ e ]
   (* currently skipped over but could recurse *)
   | Constructor _
-  | RegexpTemplate _
   | AnonClass _
   | LetPattern _ ->
       []

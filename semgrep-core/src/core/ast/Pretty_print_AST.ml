@@ -766,7 +766,14 @@ and literal env l =
       | Lang.R
       | Lang.Swift ->
           "\"" ^ s ^ "\"")
-  | x -> todo (E (L x |> G.e))
+  | Regexp ((_, (s, _), _), rmod) -> (
+      "/" ^ s ^ "/"
+      ^
+      match rmod with
+      | None -> ""
+      | Some (s, _) -> s)
+  | (Atom _ | Unit _ | Null _ | Undefined _ | Imag _ | Ratio _) as x ->
+      todo (E (L x |> G.e))
 
 and arguments env xs =
   match xs with
