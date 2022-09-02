@@ -44,14 +44,8 @@ let test_tainting lang file config def =
     |> String.concat ", "
     |> fun str -> "{ " ^ str ^ " }"
   in
-  let taint_info_to_str =
-    Dataflow_tainting.(
-      function
-      | MarkedClean -> "CLEAN"
-      | Tainted taint -> taint_to_str taint)
-  in
   DataflowX.display_mapping flow mapping
-    (Dataflow_var_env.env_to_str taint_info_to_str)
+    (Dataflow_tainting.lval_env_to_str taint_to_str)
 
 let test_dfg_tainting rules_file file =
   let lang = List.hd (Lang.langs_of_filename file) in

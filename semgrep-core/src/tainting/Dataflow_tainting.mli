@@ -1,6 +1,12 @@
 type var = Dataflow_var_env.var
 (** A string of the form "<source name>:<sid>". *)
 
+type lval_env
+
+val lval_env_empty : lval_env
+val lval_env_to_str : (Taint.taints -> string) -> lval_env -> var
+val add_taint_to_var_in_env : lval_env -> IL.name -> Taint.taints -> lval_env
+
 type overlap = float
 (** Overlap ratio, only applies to AST nodes that fall in the range of a
  * source/sanitizer/sink annotation. It is a number in [0.0, 1.0], where
@@ -14,8 +20,6 @@ type a_propagator = {
   prop : Rule.taint_propagator;
   var : var; (* REMOVE USE prop.id *)
 }
-
-type taint_info = Tainted of Taint.taints | MarkedClean
 
 type config = {
   filepath : Common.filename;  (** File under analysis, for Deep Semgrep. *)
@@ -63,7 +67,7 @@ type config = {
   handle_findings :
     var option (** function name ('None' if anonymous) *) ->
     Taint.finding list ->
-    taint_info Dataflow_var_env.t ->
+    lval_env ->
     unit;
       (** Callback to report findings. *)
 }
@@ -72,7 +76,7 @@ type config = {
   * For a source to taint a sink, the bindings of both source and sink must be
   * unifiable. See 'unify_meta_envs'. *)
 
-type mapping = taint_info Dataflow_var_env.mapping
+type mapping = lval_env Dataflow_core.mapping
 (** Mapping from variables to taint sources (if the variable is tainted).
   * If a variable is not in the map, then it's not tainted. *)
 
@@ -88,7 +92,7 @@ val hook_function_taint_signature :
 (** Deep Semgrep *)
 
 val fixpoint :
-  ?in_env:taint_info Dataflow_var_env.VarMap.t ->
+  ?in_env:lval_env ->
   ?name:var ->
   ?fun_env:fun_env (** Poor-man's interprocedural HACK (TO BE DEPRECATED) *) ->
   config ->
