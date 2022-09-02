@@ -96,7 +96,7 @@ let result_of_function_call_is_constant lang f args =
                     ident = ("escapeshellarg" | "htmlspecialchars_decode"), _;
                     _;
                   };
-              offset = NoOffset;
+              rev_offset = [];
             };
         _;
       },
@@ -108,11 +108,15 @@ let result_of_function_call_is_constant lang f args =
         (* If there is an offset, the full resolved name will be found
            there. Otherwise, it will be found in the base *)
         e =
-          ( Fetch { offset = Dot { ident; id_info = { id_resolved; _ }; _ }; _ }
+          ( Fetch
+              {
+                rev_offset = Dot { ident; id_info = { id_resolved; _ }; _ } :: _;
+                _;
+              }
           | Fetch
               {
                 base = Var { ident; id_info = { id_resolved; _ }; _ };
-                offset = NoOffset | Index _;
+                rev_offset = Index _ :: _ | [];
               } );
         _;
       },
@@ -319,7 +323,7 @@ let rec eval (env : G.svalue Var_env.t) exp : G.svalue =
 
 and eval_lval env lval =
   match lval with
-  | { base = Var x; offset = NoOffset } -> (
+  | { base = Var x; rev_offset = [] } -> (
       let opt_c = VarMap.find_opt (str_of_name x) env in
       match (!(x.id_info.id_svalue), opt_c) with
       | None, None -> G.NotCst
@@ -496,11 +500,11 @@ let transfer :
     | NInstr instr -> (
         (* TODO: For now we only handle the simplest cases. *)
         match instr.i with
-        | Assign ({ base = Var var; offset = NoOffset }, exp) ->
+        | Assign ({ base = Var var; rev_offset = [] }, exp) ->
             (* var = exp *)
             let cexp = eval_or_sym_prop inp' exp in
             update_env_with inp' var cexp
-        | Call (Some { base = Var var; offset = NoOffset }, func, args) ->
+        | Call (Some { base = Var var; rev_offset = [] }, func, args) ->
             let args_val = Common.map (eval inp') args in
             if result_of_function_call_is_constant lang func args_val then
               VarMap.add (str_of_name var) (G.Cst G.Cstr) inp'
@@ -512,15 +516,20 @@ let transfer :
               let ccall = sym_prop instr.iorig in
               update_env_with inp' var ccall
         | CallSpecial
-            (Some { base = Var var; offset = NoOffset }, (Concat, _), args) ->
+            (Some { base = Var var; rev_offset = [] }, (Concat, _), args) ->
             (* var = concat(args) *)
             let cexp = eval_concat inp' args in
             update_env_with inp' var cexp
-        | Call (None, { e = Fetch { base = Var var; offset = Dot _; _ }; _ }, _)
-          ->
+        | Call
+            ( None,
+              { e = Fetch { base = Var var; rev_offset = [ Dot _ ]; _ }; _ },
+              _ ) ->
             (* Method call `var.f(args)` that returns void, we conservatively
              * assume that it may be updating `var`; e.g. in Ruby strings are
-             * mutable. *)
+             * mutable.
+             * TODO: If we make const-prop field sensitive, then we should
+             * handle the more general `rev_offset = Dot _ :: _` case.
+             *)
             VarMap.remove (str_of_name var) inp'
         | ___else___ -> (
             (* In any other case, assume non-constant.
@@ -528,7 +537,8 @@ let transfer :
             let lvar_opt = LV.lvar_of_instr_opt instr in
             match lvar_opt with
             | None -> inp'
-            | Some lvar -> VarMap.remove (str_of_name lvar) inp'))
+            (* ????? *)
+            | Some var -> VarMap.remove (str_of_name var) inp'))
   in
 
   { D.in_env = inp'; out_env = out' }
