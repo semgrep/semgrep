@@ -1,8 +1,8 @@
 
-SCA Summary: 1 Reachable finding, 1 Unreachable finding
+Semgrep Supply Chain Summary: 1 Reachable finding, 1 Unreachable finding
 
 
-Reachable SCA Findings:
+Reachable Supply Chain Findings:
 
   targets/dependency_aware/monorepo/webapp1/app.js with lockfile targets/dependency_aware/monorepo/webapp1/yarn.lock
      rules.dependency_aware.js-sca
@@ -10,7 +10,7 @@ Reachable SCA Findings:
 
           1┆ bad()
 
-Unreachable SCA Findings:
+Unreachable Supply Chain Findings:
 
   targets/dependency_aware/monorepo/webapp2/yarn.lock 
      rules.dependency_aware.js-sca

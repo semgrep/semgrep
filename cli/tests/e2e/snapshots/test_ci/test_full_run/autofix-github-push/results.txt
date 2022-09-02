@@ -8,10 +8,10 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
 
 === stdout - plain
 
-SCA Summary: 0 Reachable findings, 1 Unreachable finding
+Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
 
 
-Unreachable SCA Findings:
+Unreachable Supply Chain Findings:
 
   poetry.lock 
      supply-chain1
