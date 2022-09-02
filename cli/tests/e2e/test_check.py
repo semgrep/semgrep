@@ -222,7 +222,7 @@ def test_multi_subshell_input(snapshot):
 @pytest.mark.kinda_slow
 def test_multiline(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/eqeq.yaml", target_name="multiline").stdout,
+        run_semgrep_in_tmp("rules/multiline.yaml", target_name="multiline").stdout,
         "results.json",
     )
 
