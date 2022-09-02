@@ -366,6 +366,16 @@ let exp_is_sanitized env exp =
 
 let add_taint_to_lval_in_env ({ tainted; propagated; cleaned } as lval_env) lval
     taints =
+  let taints =
+    match lval with
+    | { base = Var var; rev_offset = [] } ->
+        let var_tok = snd var.ident in
+        if Parse_info.is_fake var_tok then taints
+        else
+          taints
+          |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
+    | _ -> taints
+  in
   if Taints.is_empty taints then lval_env
   else
     {
@@ -382,11 +392,6 @@ let add_taint_to_lval_in_env ({ tainted; propagated; cleaned } as lval_env) lval
 
 (* Add `var -> taints` to `var_env`. *)
 let add_taint_to_var_in_env lval_env var taints =
-  let taints =
-    let var_tok = snd var.ident in
-    if Parse_info.is_fake var_tok then taints
-    else taints |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
-  in
   let fixme = { base = Var var; rev_offset = [] } in
   add_taint_to_lval_in_env lval_env fixme taints
 
