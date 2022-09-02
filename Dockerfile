@@ -22,7 +22,9 @@ USER root
 # for ocaml-pcre now used in semgrep-core
 # TODO: update root image to include python 3.9
 RUN apk add --no-cache pcre-dev python3 python3-dev &&\
-     pip install --no-cache-dir pipenv==2022.6.7
+     pip install --no-cache-dir pipenv==2022.6.7 &&\
+     mkdir -p /semgrep/semgrep-core/src/ocaml-tree-sitter-core &&\
+     chown -R user /semgrep
 
 USER user
 
@@ -34,11 +36,11 @@ RUN ./configure \
  && ./scripts/install-tree-sitter-lib
 
 WORKDIR /semgrep/semgrep-core/src/pfff
-COPY --chown=user semgrep-core/src/pfff/*.opam .
+COPY --chown=user semgrep-core/src/pfff/*.opam ./
 WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core
-COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/*.opam .
+COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/*.opam ./
 WORKDIR /semgrep/semgrep-core
-COPY --chown=user semgrep-core/*.opam .
+COPY --chown=user semgrep-core/*.opam ./
 
 RUN opam install --deps-only \
      /semgrep/semgrep-core/src/pfff \
