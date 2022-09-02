@@ -8,10 +8,10 @@ CI="true" CIRCLECI="true" CIRCLE_PROJECT_USERNAME="project_name" CIRCLE_PROJECT_
 
 === stdout - plain
 
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
+SCA Summary: 0 Reachable findings, 1 Unreachable finding
 
 
-Unreachable Supply Chain Findings:
+Unreachable SCA Findings:
 
   poetry.lock 
      supply-chain1

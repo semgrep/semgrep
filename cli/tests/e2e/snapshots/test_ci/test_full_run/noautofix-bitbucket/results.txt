@@ -8,10 +8,10 @@ CI="true" BITBUCKET_BUILD_NUMBER="hi" BITBUCKET_REPO_FULL_NAME="project_name/pro
 
 === stdout - plain
 
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
+SCA Summary: 0 Reachable findings, 1 Unreachable finding
 
 
-Unreachable Supply Chain Findings:
+Unreachable SCA Findings:
 
   poetry.lock 
      supply-chain1

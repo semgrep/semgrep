@@ -8,10 +8,10 @@ JENKINS_URL="some_url" SEMGREP_REPO_URL="https://random.url.org/some/path" SEMGR
 
 === stdout - plain
 
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
+SCA Summary: 0 Reachable findings, 1 Unreachable finding
 
 
-Unreachable Supply Chain Findings:
+Unreachable SCA Findings:
 
   poetry.lock 
      supply-chain1

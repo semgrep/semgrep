@@ -283,7 +283,7 @@ def ci(
     if scan_handler:
         logger.info(f"  server      - {state.env.semgrep_url}")
     if sca:
-        logger.info("  running a supply chain scan")
+        logger.info("  running an SCA scan")
     logger.info("")
 
     try:
