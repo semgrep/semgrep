@@ -496,13 +496,13 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
     Some (D.str_of_name name)
   in
   let add_to_env env id ii =
-    let var = D.str_of_name (AST_to_IL.var_of_id_info id ii) in
+    let var = AST_to_IL.var_of_id_info id ii in
     let taint =
       taint_config.D.is_source (G.Tk (snd id))
       |> Common.map (fun (x : _ D.tmatch) -> (x.pm, x.spec))
       |> T.taints_of_pms
     in
-    Var_env.VarMap.add var taint env
+    D.add_taint_to_var_in_env env var taint
   in
   let in_env =
     (* For each argument, check if it's a source and, if so, add it to the input
@@ -541,7 +541,7 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
                 | _ -> env)
               env fields
         | _ -> env)
-      Var_env.VarMap.empty fdef.G.fparams
+      D.lval_env_empty fdef.G.fparams
   in
   let _, xs = AST_to_IL.function_definition lang fdef in
   let flow = CFG_build.cfg_of_stmts xs in
