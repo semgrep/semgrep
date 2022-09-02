@@ -75,10 +75,9 @@ COPY --chown=user cli/src/semgrep/semgrep_interfaces ./cli/src/semgrep/semgrep_i
 
 # Let's build it
 WORKDIR /semgrep/semgrep-core
-RUN opam exec -- make minimal-build
-
-# Sanity check
-RUN /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
+RUN opam exec -- make minimal-build &&\
+     # Sanity check
+     /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
 
 ###############################################################################
 # Step2: Build the final docker image with Python wrapper and semgrep-core bin
