@@ -1919,14 +1919,13 @@ and m_attribute a b =
       (* 'm_name' handles aliasing for attributes! *)
       m_name a1 b1 >>= fun () -> m_bracket m_list__m_argument a2 b2
   | G.OtherAttribute (a1, a2), B.OtherAttribute (b1, b2) ->
-      m_other_attribute_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.KeywordAttr _, _
   | G.NamedAttr _, _
   | G.OtherAttribute _, _ ->
       fail ()
 
 and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
-and m_other_attribute_operator = m_other_xxx
 
 (*****************************************************************************)
 (* Statement list *)
@@ -2469,7 +2468,7 @@ and m_pattern a b =
   | G.PatWhen (a1, a2), B.PatWhen (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_expr a2 b2
   | G.OtherPat (a1, a2), B.OtherPat (b1, b2) ->
-      m_other_pattern_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.PatId _, _
   | G.PatLiteral _, _
   | G.PatConstructor _, _
@@ -2489,8 +2488,6 @@ and m_pattern a b =
 and m_field_pattern a b =
   match (a, b) with
   | (a1, a2), (b1, b2) -> m_dotted_name a1 b1 >>= fun () -> m_pattern a2 b2
-
-and m_other_pattern_operator = m_other_xxx
 
 (*****************************************************************************)
 (* Definitions *)
@@ -2844,7 +2841,7 @@ and m_type_definition_kind a b =
       (* TODO: m_list__m_type_ ? *)
       (m_list m_type_) a2 b2
   | G.OtherTypeKind (a1, a2), B.OtherTypeKind (b1, b2) ->
-      m_other_type_kind_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.AbstractType a1, B.AbstractType b1 -> m_tok a1 b1
   | G.OrType _, _
   | G.AndType _, _
@@ -2869,8 +2866,6 @@ and m_or_type a b =
   | G.OrEnum _, _
   | G.OrUnion _, _ ->
       fail ()
-
-and m_other_type_kind_operator = m_other_xxx
 
 and _m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
@@ -2994,13 +2989,11 @@ and m_module_definition_kind a b =
   | G.ModuleStruct (a1, a2), B.ModuleStruct (b1, b2) ->
       (m_option m_dotted_name) a1 b1 >>= fun () -> (m_list m_item) a2 b2
   | G.OtherModule (a1, a2), B.OtherModule (b1, b2) ->
-      m_other_module_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ModuleAlias _, _
   | G.ModuleStruct _, _
   | G.OtherModule _, _ ->
       fail ()
-
-and m_other_module_operator = m_other_xxx
 
 (* ------------------------------------------------------------------------- *)
 (* Macro definition *)
