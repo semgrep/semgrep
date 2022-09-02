@@ -513,7 +513,7 @@ class TextFormatter(BaseFormatter):
         findings_output = []
         if reachable or unreachable:
             findings_output.append(
-                f"\n{with_color(Colors.foreground, 'SCA Summary')}: {unit_str(len(reachable),with_color(Colors.red,'Reachable finding'))}, {unit_str(len(unreachable),with_color(Colors.yellow,'Unreachable finding'))}\n"
+                f"\n{with_color(Colors.foreground, 'Semgrep Supply Chain Summary')}: {with_color(Colors.red,unit_str(len(reachable),'Reachable finding'))}, {with_color(Colors.yellow,unit_str(len(unreachable),'Unreachable finding'))}\n"
             )
         if reachable:
             reachable_output = self._build_text_output(
@@ -525,7 +525,7 @@ class TextFormatter(BaseFormatter):
             )
 
             findings_output.append(
-                f"\n{with_color(Colors.red, 'Reachable SCA Findings:')}\n"
+                f"\n{with_color(Colors.red, 'Reachable Supply Chain Findings:')}\n"
                 + "\n".join(reachable_output)
             )
 
@@ -539,7 +539,7 @@ class TextFormatter(BaseFormatter):
             )
 
             findings_output.append(
-                f"\n{with_color(Colors.yellow, 'Unreachable SCA Findings:')}\n"
+                f"\n{with_color(Colors.yellow, 'Unreachable Supply Chain Findings:')}\n"
                 + "\n".join(unreachable_output)
             )
 
