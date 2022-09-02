@@ -24,6 +24,9 @@ USER root
 RUN apk add --no-cache pcre-dev python3 python3-dev &&\
      pip install --no-cache-dir pipenv==2022.6.7
 
+RUN mkdir -p /semgrep/semgrep-core/src/ocaml-tree-sitter-core 
+RUN chown -R user /semgrep
+
 USER user
 
 ENV OPAMYES=true
@@ -34,11 +37,11 @@ RUN ./configure \
  && ./scripts/install-tree-sitter-lib
 
 WORKDIR /semgrep/semgrep-core/src/pfff
-COPY --chown=user semgrep-core/src/pfff/*.opam .
+COPY --chown=user semgrep-core/src/pfff/*.opam ./
 WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core
-COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/*.opam .
+COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/*.opam ./
 WORKDIR /semgrep/semgrep-core
-COPY --chown=user semgrep-core/*.opam .
+COPY --chown=user semgrep-core/*.opam ./
 
 RUN opam install --deps-only \
      /semgrep/semgrep-core/src/pfff \
