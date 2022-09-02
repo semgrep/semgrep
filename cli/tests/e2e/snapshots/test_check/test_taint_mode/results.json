@@ -16,40 +16,6 @@
       },
       "extra": {
         "dataflow_trace": {
-          "intermediate_vars": [
-            {
-              "content": "a",
-              "location": {
-                "end": {
-                  "col": 6,
-                  "line": 3,
-                  "offset": 62
-                },
-                "path": "targets/taint/taint.py",
-                "start": {
-                  "col": 5,
-                  "line": 3,
-                  "offset": 61
-                }
-              }
-            },
-            {
-              "content": "b",
-              "location": {
-                "end": {
-                  "col": 10,
-                  "line": 8,
-                  "offset": 145
-                },
-                "path": "targets/taint/taint.py",
-                "start": {
-                  "col": 9,
-                  "line": 8,
-                  "offset": 144
-                }
-              }
-            }
-          ],
           "taint_source": {
             "content": "source1()",
             "location": {

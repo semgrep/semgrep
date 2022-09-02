@@ -214,24 +214,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       },
       "extra": {
         "dataflow_trace": {
-          "intermediate_vars": [
-            {
-              "content": "d2",
-              "location": {
-                "end": {
-                  "col": 7,
-                  "line": 26,
-                  "offset": 343
-                },
-                "path": "foo.py",
-                "start": {
-                  "col": 5,
-                  "line": 26,
-                  "offset": 341
-                }
-              }
-            }
-          ],
           "taint_source": {
             "content": "danger",
             "location": {

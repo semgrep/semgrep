@@ -170,25 +170,7 @@
             }
           },
           "content": "danger"
-        },
-        "intermediate_vars": [
-          {
-            "location": {
-              "path": "foo.py",
-              "start": {
-                "line": 26,
-                "col": 5,
-                "offset": 341
-              },
-              "end": {
-                "line": 26,
-                "col": 7,
-                "offset": 343
-              }
-            },
-            "content": "d2"
-          }
-        ]
+        }
       }
     }
   ],
