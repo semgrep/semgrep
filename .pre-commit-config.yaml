@@ -135,15 +135,7 @@ repos:
           - dockerfile
         exclude: "^dockerfiles/linuxbrew[.]Dockerfile$"
         entry: hadolint/hadolint:v2.8.0-alpine hadolint
-        # Disabled checks:
-        # Pin versions in apt get install
-        #   https://github.com/hadolint/hadolint/wiki/DL3008
-        # Pin versions in apk add
-        #   https://github.com/hadolint/hadolint/wiki/DL3018
-        # Multiple consecutive RUN instructions. Consider
-        # consolidation.
-        #   https://github.com/hadolint/hadolint/wiki/DL3059
-        args: ["--ignore", "DL3008", "--ignore", "DL3018", "--ignore", "DL3059"]
+        args: ["--ignore", "DL3008", "--ignore", "DL3018"]
 
   # Run develop semgrep. Only used in CI
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
