@@ -1,0 +1,9 @@
+rules:
+- id: find-propagated-non-constant-exp 
+  options:
+    symbolic_propagation: true
+  pattern: f(g(x))
+  message: Test
+  languages:
+  - javascript 
+  severity: WARNING
