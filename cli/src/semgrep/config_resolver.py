@@ -1,7 +1,6 @@
 import json
 import os
 import time
-from collections import namedtuple
 from collections import OrderedDict
 from enum import auto
 from enum import Enum
@@ -10,6 +9,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Mapping
+from typing import NamedTuple
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -72,7 +72,10 @@ DEFAULT_CONFIG = {
 }
 
 
-ConfigInfo = namedtuple("ConfigInfo", "config_id, contents, filename config_url")
+class ConfigFile(NamedTuple):
+    config_id: Optional[str]  # None for remote files
+    contents: str
+    config_path: str
 
 
 class ConfigType(Enum):
@@ -126,9 +129,15 @@ class ConfigLoader:
             state.metrics.is_using_registry = True
             state.metrics.add_registry_url(self._config_path)
 
-    def load_config(self) -> List[ConfigInfo]:
+    def load_config(self) -> List[ConfigFile]:
+        """
+        Loads a config based on self's state.
+        A config path produces a list of ConfigFiles because
+        it may be a path to a folders of configs, each of
+        which produces a file
+        """
         if self._origin == ConfigType.REGISTRY:
-            return self._download_config()
+            return [self._download_config()]
         else:
             return self._load_config_from_local_path()
 
@@ -144,27 +153,26 @@ class ConfigLoader:
             return url.replace("/c/", "/")
         return url
 
-    def _download_config(self) -> List[ConfigInfo]:
+    def _download_config(self) -> ConfigFile:
         """
         Download a configuration from semgrep.dev
         """
         config_url = self._config_path
         logger.debug(f"trying to download from {self._nice_semgrep_url(config_url)}")
         try:
-            config = ConfigInfo(
-                "remote-url",
+            config = ConfigFile(
+                None,
                 self._make_config_request(),
-                f"{config_url[:20]}...",
                 config_url,
             )
             logger.debug(f"finished downloading from {config_url}")
-            return [config]
+            return config
         except Exception as e:
             raise SemgrepError(
                 terminal_wrap(f"Failed to download config from {config_url}: {str(e)}")
             )
 
-    def _load_config_from_local_path(self) -> List[ConfigInfo]:
+    def _load_config_from_local_path(self) -> List[ConfigFile]:
         """
         Return config file(s) as dictionary object
         """
@@ -211,7 +219,7 @@ class ConfigLoader:
         return self._origin == ConfigType.REGISTRY
 
 
-def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigInfo:
+def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigFile:
     """
     Assumes file at loc exists
     """
@@ -219,10 +227,10 @@ def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigIn
     if base_path:
         config_id = str(loc).replace(str(base_path), "")
 
-    return ConfigInfo(config_id, loc.read_text(), str(loc), None)
+    return ConfigFile(config_id, loc.read_text(), str(loc))
 
 
-def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigInfo]:
+def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
     configs = []
     for l in loc.rglob("*"):
         # Allow manually specified paths with ".", but don't auto-expand them
@@ -233,16 +241,26 @@ def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigInfo]:
     return configs
 
 
-def parse_config_info_list(
-    loaded_config_infos: List[ConfigInfo],
+def parse_config_files(
+    loaded_config_infos: List[ConfigFile],
 ) -> Dict[str, YamlTree]:
+    """
+    Parse a list of config files into rules
+    This assumes that config_id is set for local rules
+    but is None for registry rules
+    """
     config = {}
-    for (config_id, contents, filename, config_url) in loaded_config_infos:
+    for (config_id, contents, config_path) in loaded_config_infos:
         try:
+            if not config_id:  # registry rules don't have config ids
+                config_id = "remote-url"
+                filename = f"{config_path[:20]}..."
+            else:
+                filename = config_path
             config.update(parse_config_string(config_id, contents, filename))
         except InvalidRuleSchemaError as e:
-            if config_url:
-                notice = f"\nRules downloaded from {config_url} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
+            if not config_id:
+                notice = f"\nRules downloaded from {config_path} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
                 notice_color = with_color(Colors.red, notice, bold=True)
                 logger.error(notice_color)
                 raise e
@@ -260,7 +278,7 @@ class ConfigPath:
         """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
         start_t = time.time()
 
-        config = parse_config_info_list(
+        config = parse_config_files(
             ConfigLoader(self._config_str, self._project_url).load_config()
         )
 
@@ -505,10 +523,22 @@ def indent(msg: str) -> str:
 
 
 def import_callback(_base: str, path: str) -> Tuple[str, str]:
+    """
+    Instructions to jsonnet for how to resolve
+    import expressions (`local $NAME = $PATH`).
+    The base is the directory of the file and the
+    path is $PATH in the local expression. We will
+    later pass this function to jsonnet, which will
+    use it when resolving imports. By implementing
+    this callback, we support yaml files (jsonnet
+    can otherwise only build against json files)
+    and config specifiers like `p/python`.
+    """
     logger.debug(f"import_callback for {path}")
 
     # On the fly conversion from yaml to json.
     # Can now do 'local x = import "foo.yml";'
+    # TODO: Make this check less jank
     if path and path.split(".")[-1] == "yml":
         yaml = ruamel.yaml.YAML(typ="safe")
         with open(path) as fpi:
@@ -525,8 +555,8 @@ def import_callback(_base: str, path: str) -> Tuple[str, str]:
     elif len(config_infos) > 1:
         raise SemgrepError(f"Currently configs cannot be imported from a directory")
     else:
-        (_config_id, contents, filename, _config_url_opt) = config_infos[0]
-        return filename, contents
+        (_config_id, contents, config_path) = config_infos[0]
+        return config_path, contents
 
 
 def parse_config_string(
@@ -539,6 +569,9 @@ def parse_config_string(
 
     # TODO: Make this check less jank
     if filename and filename.split(".")[-1] == "jsonnet":
+        logger.error(
+            "Support for Jsonnet rules is experimental and currently meant for internal use only. The syntax may change or be removed at any point."
+        )
         contents = _jsonnet.evaluate_snippet(
             filename, contents, import_callback=import_callback
         )
@@ -590,7 +623,7 @@ def load_default_config() -> Dict[str, YamlTree]:
         config_infos = [read_config_at_path(default_file)]
     elif default_folder.exists():
         config_infos = read_config_folder(default_folder, relative=True)
-    return parse_config_info_list(config_infos)
+    return parse_config_files(config_infos)
 
 
 def is_registry_id(config_str: str) -> bool:
