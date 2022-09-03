@@ -55,7 +55,7 @@ USELESS_EQEQ = """rules:
 @pytest.fixture(scope="function")
 def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
     monkeypatch.setattr(
-        "semgrep.config_resolver.ConfigPath._make_config_request",
+        "semgrep.config_resolver.ConfigLoader._make_config_request",
         lambda s: USELESS_EQEQ,
     )
     yield
