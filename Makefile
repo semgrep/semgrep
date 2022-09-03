@@ -52,7 +52,7 @@ rebuild:
 # For a fresh repo you will need at least to run first 'git submodule update --init'.
 .PHONY: build-docker
 build-docker:
-	docker build .
+	docker build -t semgrep .
 
 
 # This is a best effort to install some external dependencies.

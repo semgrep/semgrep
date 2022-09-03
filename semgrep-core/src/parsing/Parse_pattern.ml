@@ -44,6 +44,46 @@ let extract_pattern_from_tree_sitter_result
                pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err));
       failwith "error parsing the pattern"
 
+type 'ast parser =
+  | Pfff of (string -> 'ast)
+  | TreeSitter of (string -> 'ast Tree_sitter_run.Parsing_result.t)
+
+let run_parser ~print_errors p str =
+  let parse () =
+    match p with
+    | Pfff f -> f str
+    | TreeSitter f ->
+        let res = f str in
+        extract_pattern_from_tree_sitter_result res print_errors
+  in
+  try Ok (parse ()) with
+  | Timeout _ as e -> Exception.catch_and_reraise e
+  | exn -> Error (Exception.catch exn)
+
+(* This is a simplified version of run_either in Parse_target.ml. We don't need
+ * most of the logic there when we're parsing patterns, so it doesn't make sense
+ * to reuse it. *)
+let run_either ~print_errors parsers program =
+  let rec f parsers =
+    match parsers with
+    | [] ->
+        Error
+          (Exception.trace
+             (Failure "internal error: No pattern parser available"))
+    | p :: xs -> (
+        match run_parser ~print_errors p program with
+        | Ok res -> Ok res
+        | Error e -> (
+            match f xs with
+            | Ok res -> Ok res
+            | Error _ ->
+                (* Return the error from the first parser. *)
+                Error e))
+  in
+  match f parsers with
+  | Ok res -> res
+  | Error e -> Exception.reraise e
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -98,20 +138,13 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Ts
     | Lang.Js
     | Lang.Vue ->
-        (* This is a simplified version of run_either in Parse_target.ml. We
-         * don't need most of the logic there when we're parsing patterns, so it
-         * doesn't make sense to reuse it. However, we should abstract this out
-         * if we start using fallback parsers for patterns in other languages.
-         * *)
         let js_ast =
-          try Parse_js.any_of_string str with
-          | Timeout _ as e -> Exception.catch_and_reraise e
-          | exn -> (
-              let e = Exception.catch exn in
-              let res = Parse_typescript_tree_sitter.parse_pattern str in
-              match (res.program, res.errors) with
-              | Some p, [] -> p
-              | _ -> Exception.reraise e)
+          str
+          |> run_either ~print_errors
+               [
+                 Pfff Parse_js.any_of_string;
+                 TreeSitter Parse_typescript_tree_sitter.parse_pattern;
+               ]
         in
         Js_to_generic.any js_ast
     | Lang.Json ->
@@ -125,7 +158,14 @@ let parse_pattern lang ?(print_errors = false) str =
         let any = Parse_cpp.any_of_string Flag_parsing_cpp.Cplusplus str in
         Cpp_to_generic.any any
     | Lang.Java ->
-        let any = Parse_java.any_of_string str in
+        let any =
+          str
+          |> run_either ~print_errors
+               [
+                 Pfff Parse_java.any_of_string;
+                 TreeSitter Parse_java_tree_sitter.parse_pattern;
+               ]
+        in
         Java_to_generic.any any
     | Lang.Go ->
         let any = Parse_go.any_of_string str in

@@ -1,4 +1,4 @@
-# This file is copied from https://github.com/coala/git-url-parse/blob/master/giturlparse/parser.py
+# This file is forked from https://github.com/coala/git-url-parse/blob/master/giturlparse/parser.py
 # MIT license here: https://github.com/coala/git-url-parse/blob/master/LICENSE
 
 # Copyright (c) 2017 John Dewey
@@ -56,6 +56,11 @@ POSSIBLE_REGEXES = (
                r'(?P<resource>[a-z0-9_.-]*)[:]*'
                r'(?P<port>[\d]+){0,1}'
                r'(?P<pathname>\/?(?P<owner>.+)/(?P<name>.+).git)$'),
+    re.compile(r'((?P<user>\w+)@)?'
+                r'((?P<resource>[\w\.\-]+))'
+                r'[\:\/]{1,2}'
+                r'(?P<pathname>((?P<owner>([\w\-]+\/)?\w+)/)?'
+                r'((?P<name>[\w\-]+)(\.git|\/)?)?)$'),
     re.compile(r'((?P<user>\w+)@)?'
                r'((?P<resource>[\w\.\-]+))'
                r'[\:\/]{1,2}'

@@ -340,6 +340,8 @@ let get_resolved_type lang (vinit, vtype) =
       | Some { e = L (Float (_, tok)); _ } -> make_type "float" tok
       | Some { e = L (Char (_, tok)); _ } -> make_type "char" tok
       | Some { e = L (String (_, tok)); _ } -> make_type string_str tok
+      | Some { e = L (Regexp ((_, (_, tok), _), _)); _ } ->
+          make_type "regexp" tok
       | Some { e = RegexpTemplate ((l, _fragments, _r), _); _ } ->
           (* TODO: need proper location instead of just the opening '/'? *)
           make_type "regexp" l

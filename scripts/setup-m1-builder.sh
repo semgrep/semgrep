@@ -27,7 +27,8 @@ git submodule update --init --recursive --depth 1
 eval "$(opam env)"
 # Remove pcre dynamically linked to force MacOS to use static
 # This needs to be done before make setup since it is used there
-rm /usr/local/opt/pcre/lib/libpcre.1.dylib# Setup python symbolic links
+rm /usr/local/opt/pcre/lib/libpcre.1.dylib
+# Setup python symbolic links
 # Brew install won't alias python3 to python :/
 ln -s /opt/homebrew/bin/python3 /opt/homebrew/bin/python
 ln -s /opt/homebrew/bin/pip3 /opt/homebrew/bin/pip

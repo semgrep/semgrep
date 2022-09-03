@@ -12,7 +12,7 @@
 ###############################################################################
 # Step1: build semgrep-core
 ###############################################################################
-
+#
 # The docker base image below in the FROM currently uses OCaml 4.14.0
 # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
 #
@@ -32,24 +32,35 @@ USER root
 # - python3-dev: for the semgrep Python bridge to build Python C extensions
 # TODO: update root image to include python 3.9
 RUN apk add --no-cache pcre-dev python3 python3-dev &&\
-     pip install --no-cache-dir pipenv==2022.6.7
+     pip install --no-cache-dir pipenv==2022.6.7 &&\
+     # This mkdir/chown is needed on Arch Linux where the WORKDIR command does not honor
+     # the USER directive and all the directories are created as root
+     # (as it should be according to the spec, see https://github.com/moby/moby/issues/36677)
+     # The COPY --chown=user below are correctly adjusting the permissions of the files
+     # except the enclosing directory itself which would be owned by root. This would then
+     # prevent some commands (e.g., install-tree-sitter-lib, dune) to create files
+     # in the enclosing directory.
+     mkdir -p /semgrep/semgrep-core/src/ocaml-tree-sitter-core &&\
+     chown -R user /semgrep
 
 USER user
 
 ENV OPAMYES=true
 
-# The subset of 'make setup' useful to build semgrep-core
+#TODO? we could reduce this to
+# COPY --chown=user . /semgrep
+# RUN make setup
 WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core
 COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/ .
 RUN ./configure \
  && ./scripts/install-tree-sitter-lib
 
 WORKDIR /semgrep/semgrep-core/src/pfff
-COPY --chown=user semgrep-core/src/pfff/*.opam .
+COPY --chown=user semgrep-core/src/pfff/*.opam ./
 WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core
-COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/*.opam .
+COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/*.opam ./
 WORKDIR /semgrep/semgrep-core
-COPY --chown=user semgrep-core/*.opam .
+COPY --chown=user semgrep-core/*.opam ./
 
 RUN opam install --deps-only \
      /semgrep/semgrep-core/src/pfff \
@@ -65,11 +76,9 @@ COPY --chown=user cli/src/semgrep/semgrep_interfaces ./cli/src/semgrep/semgrep_i
 
 # Let's build it
 WORKDIR /semgrep/semgrep-core
-RUN opam exec -- make minimal-build
-
-# Sanity check
-WORKDIR /semgrep
-RUN /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
+RUN opam exec -- make minimal-build &&\
+     # Sanity check
+     /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
 
 ###############################################################################
 # Step2: Build the final docker image with Python wrapper and semgrep-core bin
@@ -109,7 +118,7 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Let the user know how their container was built
-COPY dockerfiles/semgrep.Dockerfile /Dockerfile
+COPY Dockerfile /Dockerfile
 
 # Get semgrep-core from step1
 COPY --from=semgrep-core /semgrep/semgrep-core/_build/default/src/cli/Main.exe /usr/local/bin/semgrep-core
@@ -119,6 +128,11 @@ ENV SEMGREP_IN_DOCKER=1 \
      SEMGREP_USER_AGENT_APPEND="Docker"
 
 WORKDIR /src
+
+# /semgrep is not needed anymore;
+# semgrep is now available /usr/local/bin thx to the 'pip install' command above
+# (this weirdly does not reduce the size of the docker image though)
+RUN rm -rf /semgrep
 
 # In case of problems, if you need to debug the docker image, run 'docker build .',
 # identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
