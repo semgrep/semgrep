@@ -17,7 +17,6 @@ open Ast_ruby
 module G = AST_generic
 module H = AST_generic_helpers
 module PI = Parse_info
-module MV = Metavariable
 
 (*****************************************************************************)
 (* Prelude *)
