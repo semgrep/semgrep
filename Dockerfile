@@ -67,6 +67,7 @@ RUN opam install --deps-only \
      /semgrep/semgrep-core/src/ocaml-tree-sitter-core \
      /semgrep/semgrep-core
 
+# Copy all the source files needed to build semgrep-core
 WORKDIR /semgrep
 COPY --chown=user semgrep-core/ ./semgrep-core
 COPY --chown=user interfaces/ ./interfaces
@@ -99,7 +100,10 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
 # - bash: for entrypoint.sh (see below) and probably many other things
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
 #   github actions and get git submodules and use ssh to get those submodules
-RUN apk add --no-cache --virtual=.run-deps bash git git-lfs openssh
+# - libstdc++: for the Python jsonnet binding now used in the semgrep CLI
+#   note: do not put libstdc++6, you'll get 'missing library' or 'unresolved
+#   symbol' errors
+RUN apk add --no-cache --virtual=.run-deps bash git git-lfs openssh libstdc++
 COPY cli ./
 
 # hadolint ignore=DL3013
@@ -116,6 +120,7 @@ RUN chmod +x /entrypoint.sh
 # Let the user know how their container was built
 COPY Dockerfile /Dockerfile
 
+# Get semgrep-core from step1
 COPY --from=semgrep-core /semgrep/semgrep-core/_build/default/src/cli/Main.exe /usr/local/bin/semgrep-core
 
 ENV SEMGREP_IN_DOCKER=1 \
