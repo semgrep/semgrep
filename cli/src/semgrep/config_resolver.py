@@ -259,7 +259,7 @@ def parse_config_files(
                 filename = config_path
             config.update(parse_config_string(config_id, contents, filename))
         except InvalidRuleSchemaError as e:
-            if not config_id:
+            if config_id == "remote-url":
                 notice = f"\nRules downloaded from {config_path} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
                 notice_color = with_color(Colors.red, notice, bold=True)
                 logger.error(notice_color)
@@ -539,7 +539,7 @@ def import_callback(_base: str, path: str) -> Tuple[str, str]:
     # On the fly conversion from yaml to json.
     # Can now do 'local x = import "foo.yml";'
     # TODO: Make this check less jank
-    if path and path.split(".")[-1] == "yml":
+    if path and (path.split(".")[-1] == "yml" or path.split(".")[-1] == "yaml"):
         yaml = ruamel.yaml.YAML(typ="safe")
         with open(path) as fpi:
             data = yaml.load(fpi)
