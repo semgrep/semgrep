@@ -8,8 +8,8 @@
       "spans": [
         {
           "end": {
-            "col": 60,
-            "line": 1
+            "col": 49,
+            "line": 2
           },
           "file": "targets/bad/invalid_python.py",
           "start": {
