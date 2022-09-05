@@ -84,6 +84,9 @@ val make_match_result :
 val add_run_time :
   float -> partial_profiling match_result -> file_profiling match_result
 
+val modify_match_result_profiling :
+  'a match_result -> ('a -> 'b) -> 'b match_result
+
 val add_rule : Rule.rule -> times match_result -> rule_profiling match_result
 val collate_pattern_results : times match_result list -> times match_result
 

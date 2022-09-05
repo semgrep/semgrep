@@ -3,8 +3,9 @@ rules:
   languages:
   - python
   match:
-    and:
-    - foo($ARG)
-    - where: re.match(".*bar.*", $ARG)
+    pattern: foo($ARG)
+    where:
+    - metavariable: $ARG
+      regex: .*bar.*
   message: rule_template_message
   severity: ERROR

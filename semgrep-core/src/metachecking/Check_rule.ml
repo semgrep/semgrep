@@ -83,7 +83,7 @@ let error env t s =
 let unknown_metavar_in_comparison env f =
   let rec collect_metavars f : MV.mvar Set.t =
     match f with
-    | P ({ pat = _pat; pstr = pstr, _; pid = _pid }, _) ->
+    | P { pat = _pat; pstr = pstr, _; pid = _pid } ->
         (* TODO currently this guesses that the metavariables are the strings
            that have a valid metavariable name. We should ideally have each
            matcher expose the metavariables it detects. *)
@@ -96,6 +96,7 @@ let unknown_metavar_in_comparison env f =
         let words = List.concat_map (String.split_on_char '.') words_with_dot in
         let metavars = words |> List.filter Metavariable.is_metavar_name in
         Set.union (Set.of_list metavars) (Set.of_list ellipsis_metavars)
+    | Inside (_, f) -> collect_metavars f
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
         let mv_sets = Common.map collect_metavars xs in
@@ -148,7 +149,7 @@ let unknown_metavar_in_comparison env f =
 (* call Check_pattern subchecker *)
 let check_pattern (lang : Xlang.t) f =
   visit_new_formula
-    (fun { pat; pstr = _pat_str; pid = _ } ->
+    (fun { pat; pstr = _pat_str; pid = _ } _ ->
       match (pat, lang) with
       | Sem (semgrep_pat, _lang), L (lang, _rest) ->
           Check_pattern.check lang semgrep_pat
@@ -171,12 +172,10 @@ let check_formula env (lang : Xlang.t) f =
 (*****************************************************************************)
 
 let check r =
-  let rule_id = fst r.id in
   (* less: maybe we could also have formula_old specific checks *)
   match r.mode with
-  | `Search pf
-  | `Extract { pformula = pf; _ } ->
-      let f = Rule.formula_of_pformula ~rule_id pf in
+  | `Search f
+  | `Extract { formula = f; _ } ->
       check_formula { r; errors = ref [] } r.languages f
   | `Taint _ -> (* TODO *) []
 
