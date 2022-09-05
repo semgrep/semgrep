@@ -481,7 +481,15 @@ and primary_expression (env : env) (x : CST.primary_expression) =
           | `Module tok -> name_of_id env tok (* "module" *))
       | `Paren_exp x -> parenthesized_expression env x
       | `Obj_crea_exp x -> object_creation_expression env x
-      | `Field_access x -> field_access env x
+      | `Field_access x -> (
+          let e = field_access env x in
+          (* TODO: this should not be needed if the issue below was fixed:
+           * https://github.com/tree-sitter/tree-sitter-java/issues/121
+           *)
+          match e with
+          | Dot (NameId id, _tdot, ("class", tclass)) ->
+              ClassLiteral (TClass [ (id, None) ], tclass)
+          | _ -> e)
       | `Array_access x -> array_access env x
       | `Meth_invo (v1, v2) ->
           let v1 =
