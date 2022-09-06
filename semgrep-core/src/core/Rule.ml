@@ -24,7 +24,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Data structures to represent a Semgrep rule (=~ AST of a rule).
  *
  * See also Mini_rule.ml where formula and many other features disappear.
- *
  *)
 
 (*****************************************************************************)
@@ -37,7 +36,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type tok = AST_generic.tok [@@deriving show, eq, hash]
 type 'a wrap = 'a AST_generic.wrap [@@deriving show, eq, hash]
 
-(* To help report pattern errors in simple mode in the playground *)
+(* To help report pattern errors in the playground *)
 type 'a loc = {
   pattern : 'a;
   t : tok;
@@ -56,17 +55,7 @@ type 'a loc = {
  * less? enforce invariant that Not can only appear in And?
  *)
 type formula =
-  (* pattern: and pattern-inside: are actually slightly different so
-   * we need to keep the information around.
-   * (see tests/OTHER/rules/inside.yaml)
-   * The same is true for pattern-not and pattern-not-inside
-   * (see tests/OTHER/rules/negation_exact.yaml)
-   *)
   | P of Xpattern.t (* a leaf pattern *)
-  (* todo: try to remove this at some point, but difficult. See
-   * https://github.com/returntocorp/semgrep/issues/1218
-   *)
-  | Inside of tok * formula
   | And of tok * conjunction
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
@@ -74,8 +63,17 @@ type formula =
    * TODO? Could this change if we were moving to a different range semantic?
    *)
   | Not of tok * formula
+  (* pattern: and pattern-inside: are actually slightly different so
+   * we need to keep the information around.
+   * (see tests/OTHER/rules/inside.yaml)
+   * The same is true for pattern-not and pattern-not-inside
+   * (see tests/OTHER/rules/negation_exact.yaml)
+   * todo: try to remove this at some point, but difficult. See
+   * https://github.com/returntocorp/semgrep/issues/1218
+   *)
+  | Inside of tok * formula
 
-(* The conjuncts must contain at least
+(* The conjunction must contain at least
  * one positive "term" (unless it's inside a CondNestedFormula, in which
  * case there is not such a restriction).
  * See also split_and().
@@ -106,106 +104,84 @@ and metavar_cond =
 
 and metavar_analysis_kind = CondEntropy | CondReDoS [@@deriving show, eq]
 
-(* extra conditions, usually on metavariable content *)
-and extra =
-  | MetavarRegexp of MV.mvar * Xpattern.regexp * bool
-  | MetavarPattern of MV.mvar * Xlang.t option * formula
-  | MetavarComparison of metavariable_comparison
-  | MetavarAnalysis of MV.mvar * metavar_analysis_kind
-(* old: | PatWherePython of string, but it was too dangerous.
- * MetavarComparison is not as powerful, but safer.
- *)
-
-(* See also engine/Eval_generic.ml *)
-and metavariable_comparison = {
-  metavariable : MV.mvar option;
-  comparison : AST_generic.expr;
-  (* I don't think those are really needed; they can be inferred
-   * from the values *)
-  strip : bool option;
-  base : int option;
-}
 (*****************************************************************************)
 (* Taint-specific types *)
 (*****************************************************************************)
 
+(* The sources/sanitizers/sinks used to be a simple 'formula list',
+ * but with taint labels things are bit more complicated.
+ *)
+type taint_spec = {
+  sources : tok * taint_source list;
+  sanitizers : taint_sanitizer list;
+  sinks : tok * taint_sink list;
+  propagators : taint_propagator list;
+}
+
 and taint_source = {
   source_formula : formula;
   label : string;
-      (** The label to attach to the data.
-  Alt: We could have an optional label instead, allow taint that is not labeled,
-       and allow sinks that work for any kind of taint? *)
+      (* The label to attach to the data.
+       * Alt: We could have an optional label instead, allow taint that is not
+       * labeled, and allow sinks that work for any kind of taint? *)
   source_requires : AST_generic.expr;
-      (** A Boolean expression over taint labels, using Python syntax.
-       The operators allowed are 'not', 'or', and 'and'. The expression is
-       evaluated using the `Eval_generic` machinery.
-
-       The expression that is being checked as a source must satisfy this in order
-       to the label to be produced. Note that with 'requires' a taint source behaves
-       a bit like a propagator. *)
+      (* A Boolean expression over taint labels, using Python syntax.
+       * The operators allowed are 'not', 'or', and 'and'. The expression is
+       * evaluated using the `Eval_generic` machinery.
+       *
+       * The expression that is being checked as a source must satisfy this
+       * in order to the label to be produced. Note that with 'requires' a
+       * taint source behaves a bit like a propagator. *)
 }
 
+(* Note that, with taint labels, we can attach a label "SANITIZED" to the
+ * data to flag that it has been sanitized... so do we still need sanitizers?
+ * I am not sure to be honest, I think we will have to gain some experience in
+ * using labels first.
+ * Sanitizers do allow you to completely remove taint from data, although I
+ * think that can be simulated with labels too. We could translate (internally)
+ * `pattern-sanitizers` as `pattern-sources` with a `"__SANITIZED__"` label,
+ * and then rewrite the `requires` of all sinks as `(...) not __SANITIZED__`.
+ * But not-conflicting sanitizers cannot be simulated that way. That said, I
+ * think we should replace not-conflicting sanitizers with some `options:`,
+ * because they are a bit confusing to use sometimes.
+ *)
 and taint_sanitizer = {
-  not_conflicting : bool;
-      (** If [not_conflicting] is enabled, the sanitizer cannot conflict with
-    a sink or a source (i.e., match the exact same range) otherwise
-    it is filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
-    to assume that any other function will handle tainted data safely.
-    Without this, `$F(...)` would automatically sanitize any other function
-    call acting as a sink or a source.
-
-    THINK: In retrospective, I'm not sure this was a good idea. We should add
-    an option to disable the assumption that function calls always propagate
-    taint, and deprecate not-conflicting sanitizers. *)
   sanitizer_formula : formula;
+  not_conflicting : bool;
+      (* If [not_conflicting] is enabled, the sanitizer cannot conflict with
+       * a sink or a source (i.e., match the exact same range) otherwise
+       * it is filtered out. This allows to e.g. declare `$F(...)` as a
+       * sanitizer, to assume that any other function will handle tainted
+       * data safely.
+       * Without this, `$F(...)` would automatically sanitize any other
+       * function call acting as a sink or a source.
+       *
+       * THINK: In retrospective, I'm not sure this was a good idea.
+       * We should add an option to disable the assumption that function
+       * calls always propagate taint, and deprecate not-conflicting
+       * sanitizers.
+       *)
 }
-(** Note that, with taint labels, we can attach a label "SANITIZED" to the data
- to flag that it has been sanitized... so do we still need sanitizers? I am not
- sure to be honest, I think we will have to gain some experience in using labels
- first. Sanitizers do allow you to completely remove taint from data, although I
- think that can be simulated with labels too. We could translate (internally)
- `pattern-sanitizers` as `pattern-sources` with a `"__SANITIZED__"` label, and
- then rewrite the `requires` of all sinks as `(...) not __SANITIZED__`. But
- not-conflicting sanitizers cannot be simulated that way. That said, I think we
- should replace not-conflicting sanitizers with some `options:`, because they are
- a bit confusing to use sometimes. *)
-
-and taint_propagator = {
-  propagator_formula : formula;
-  from : MV.mvar wrap;
-  to_ : MV.mvar wrap;
-}
-(** e.g. if we want to specify that adding tainted data to a `HashMap` makes the
- * `HashMap` tainted too, then "formula" could be `(HashMap $H).add($X)`,
- * with "from" being `$X` and "to" being `$H`. So if `$X` is tainted then `$H`
- * will also be marked as tainted. *)
 
 and taint_sink = {
   sink_formula : formula;
   sink_requires : AST_generic.expr;
-      (** A Boolean expression over taint labels. See also 'taint_source'.
-     The sink will only trigger a finding if the data that reaches it
-     has a set of labels attached that satisfies the 'requires'.  *)
+      (* A Boolean expression over taint labels. See also 'taint_source'.
+       * The sink will only trigger a finding if the data that reaches it
+       * has a set of labels attached that satisfies the 'requires'.
+       *)
 }
 
-and taint_spec = {
-  sources : tok * taint_source list;
-  propagators : taint_propagator list;
-  sanitizers : taint_sanitizer list;
-  sinks : tok * taint_sink list;
-}
-
-(* Method to combine extracted ranges within a file:
-    - either treat them as separate files; or
-    - concatentate them together
-*)
-and extract_reduction = Separate | Concat
-
-and extract_spec = {
-  formula : formula;
-  reduce : extract_reduction;
-  dst_lang : Xlang.t;
-  extract : string;
+(* e.g. if we want to specify that adding tainted data to a `HashMap` makes
+ *  the `HashMap` tainted too, then "formula" could be `(HashMap $H).add($X)`,
+ * with "from" being `$X` and "to" being `$H`. So if `$X` is tainted then `$H`
+ * will also be marked as tainted.
+ *)
+and taint_propagator = {
+  propagator_formula : formula;
+  from : MV.mvar wrap;
+  to_ : MV.mvar wrap;
 }
 [@@deriving show]
 
@@ -216,12 +192,28 @@ let default_sink_requires tok =
   G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
 
 (*****************************************************************************)
+(* Extract mode (semgrep as a preprocessor) *)
+(*****************************************************************************)
+
+type extract_spec = {
+  formula : formula;
+  reduce : extract_reduction;
+  dst_lang : Xlang.t;
+  (* e.g., $...BODY, $CMD *)
+  extract : MV.mvar;
+}
+
+(* Method to combine extracted ranges within a file:
+    - either treat them as separate files; or
+    - concatentate them together
+*)
+and extract_reduction = Separate | Concat [@@deriving show]
+
+(*****************************************************************************)
 (* The rule *)
 (*****************************************************************************)
 
-(* TODO? just reuse Error_code.severity *)
-type severity = Error | Warning | Info | Inventory | Experiment
-[@@deriving show]
+type rule_id = string [@@deriving show]
 
 type 'mode rule_info = {
   (* MANDATORY fields *)
@@ -241,25 +233,33 @@ type 'mode rule_info = {
   metadata : JSON.t option;
 }
 
-and rule_id = string
-
 and paths = {
   (* not regexp but globs *)
   include_ : string list;
   exclude : string list;
 }
+
+(* TODO? just reuse Error_code.severity *)
+and severity = Error | Warning | Info | Inventory | Experiment
 [@@deriving show]
 
+(* Polymorhic variants used to improve type checking of rules (see below) *)
 type search_mode = [ `Search of formula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
 type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
 type mode = [ search_mode | taint_mode | extract_mode ] [@@deriving show]
+
+(* If you know your function accepts only a certain kind of rule,
+ * you can use those precise types below.
+ *)
 type search_rule = search_mode rule_info [@@deriving show]
 type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
+
+(* the general type *)
 type rule = mode rule_info [@@deriving show]
 
-(* alias *)
+(* aliases *)
 type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
 
@@ -411,29 +411,6 @@ let kind_of_formula = function
 (*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
-
-(* Substitutes `$MVAR` with `int($MVAR)` in cond. *)
-(* This now changes all such metavariables. We expect in most cases there should
-   just be one, anyways.
-*)
-let rewrite_metavar_comparison_strip cond =
-  let visitor =
-    Map_AST.mk_visitor
-      {
-        Map_AST.default_visitor with
-        Map_AST.kexpr =
-          (fun (k, _) e ->
-            (* apply on children *)
-            let e = k e in
-            match e.G.e with
-            | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s
-              ->
-                let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int |> G.e, G.fake_bracket [ G.Arg e ]) |> G.e
-            | _ -> e);
-      }
-  in
-  visitor.Map_AST.vexpr cond
 
 (* return list of "positive" x list of Not *)
 let split_and : formula list -> formula list * (tok * formula) list =
