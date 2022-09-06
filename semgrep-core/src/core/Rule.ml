@@ -283,7 +283,7 @@ let partition_rules (rules : rules) :
 (* This is used to let the user know which rule the engine was using when
  * a Timeout or OutOfMemory exn occured.
  *)
-let (last_matched_rule : rule_id option ref) = ref None
+let last_matched_rule : rule_id option ref = ref None
 
 (* Those are recoverable errors; We can just skip the rules containing
  * those errors.
@@ -413,8 +413,7 @@ let kind_of_formula = function
 (*****************************************************************************)
 
 (* return list of "positive" x list of Not *)
-let split_and : formula list -> formula list * (tok * formula) list =
- fun xs ->
+let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
   |> Common.partition_either (fun e ->
          match e with
