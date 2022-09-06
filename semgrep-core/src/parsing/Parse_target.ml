@@ -320,6 +320,7 @@ let rec just_parse_with_lang lang file =
               (Parse_json.parse_program file, Parse_info.correct_stat file));
         ]
         Json_to_generic.program
+  | Lang.Jsonnet -> failwith "Jsonnet is not supported yet"
   | Lang.Cpp ->
       run file
         [
