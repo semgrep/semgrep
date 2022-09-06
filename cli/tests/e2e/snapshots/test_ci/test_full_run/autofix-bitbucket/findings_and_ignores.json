@@ -224,7 +224,8 @@
             "package": "badlib",
             "version": "1.0.0",
             "ecosystem": "pypi",
-            "allowed_hashes": {}
+            "allowed_hashes": {},
+            "transitivity": "unknown"
           },
           "lockfile": "poetry.lock"
         }
