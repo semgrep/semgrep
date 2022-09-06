@@ -278,7 +278,7 @@ let eval_binop_int tok op opt_i1 opt_i2 =
       let r = i1 - i2 in
       if sign i1 <> sign i2 && sign r <> sign i1 then G.Cst G.Cint
         (* overflow *)
-      else G.Lit (literal_of_int (i1 + i2))
+      else G.Lit (literal_of_int (i1 - i2))
   | G.Mult, Some i1, Some i2 ->
       let overflow =
         i1 <> 0 && i2 <> 0
