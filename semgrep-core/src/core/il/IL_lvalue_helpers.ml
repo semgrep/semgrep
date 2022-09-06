@@ -13,30 +13,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
 open IL
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Lvalue/Rvalue helpers working on the IL
- *)
 
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-let lval_of_instr_opt x =
-  match x.i with
-  | Assign (lval, _)
-  | AssignAnon (lval, _)
-  | Call (Some lval, _, _)
-  | CallSpecial (Some lval, _, _) ->
-      Some lval
-  | Call _
-  | CallSpecial _ ->
-      None
-  | FixmeInstr _ -> None
+let compare_name x y =
+  let ident_cmp = String.compare (fst x.ident) (fst y.ident) in
+  if ident_cmp <> 0 then ident_cmp else Int.compare x.sid y.sid
 
 let rexps_of_instr x =
   match x.i with
@@ -76,7 +61,7 @@ and lvals_in_lval lval =
       (function
         | Index e -> lvals_of_exp e
         | _ -> [])
-      lval.offset
+      lval.rev_offset
   in
   base_lvals @ offset_lvals
 
@@ -88,43 +73,54 @@ let rlvals_of_instr x =
   lvals_of_exps exps
 
 (*****************************************************************************)
-(* API *)
+(* Public *)
 (*****************************************************************************)
 
-let dotted_lvars_of_lval = function
-  | { base = Var name; offset } -> (
-      let id, tok = name.ident in
-      let str_of_name name = Common.spf "%s-%d" (fst name.ident) name.sid in
-      let dot_strs =
-        List.fold_right
-          (fun o s ->
-            match (s, o) with
-            | Some (s :: ss), Dot name ->
-                let x = s ^ "." ^ str_of_name name in
-                Some (x :: s :: ss)
-            | Some [], Dot name -> Some [ "." ^ str_of_name name ]
-            (* We only care about tracking taint through fields
-             * So if we hit a non-Dot offset, we just give up
-             *)
-            | Some _, Index _
-            | None, _ ->
-                None)
-          offset (Some [])
-      in
-      match dot_strs with
-      | None -> []
-      | Some dot_strs ->
-          let add_dots dots = { name with ident = (id ^ ";" ^ dots, tok) } in
-          Common.map add_dots dot_strs)
-  | _ -> []
+let lval_is_var_and_dots { base; rev_offset } =
+  match base with
+  | Var _ ->
+      rev_offset
+      |> List.for_all (function
+           | Dot _ -> true
+           | Index _ -> false)
+  | VarSpecial _
+  | Mem _ ->
+      false
+
+let lval_is_dotted_prefix lval1 lval2 =
+  let eq_name x y = compare_name x y = 0 in
+  let rec offset_prefix os1 os2 =
+    match (os1, os2) with
+    | [], _ -> true
+    | _ :: _, [] -> false
+    | Index _ :: _, _
+    | _, Index _ :: _ ->
+        false
+    | Dot a :: os1, Dot b :: os2 -> eq_name a b && offset_prefix os1 os2
+  in
+  match (lval1, lval2) with
+  | { base = Var x; rev_offset = ro1 }, { base = Var y; rev_offset = ro2 } ->
+      eq_name x y && offset_prefix (List.rev ro1) (List.rev ro2)
+  | _ -> false
+
+let lval_of_instr_opt x =
+  match x.i with
+  | Assign (lval, _)
+  | AssignAnon (lval, _)
+  | Call (Some lval, _, _)
+  | CallSpecial (Some lval, _, _) ->
+      Some lval
+  | Call _
+  | CallSpecial _ ->
+      None
+  | FixmeInstr _ -> None
 
 let lvar_of_instr_opt x =
-  let* lval = lval_of_instr_opt x in
-  match lval with
-  | { base = Var base_name; _ } ->
-      let dots = dotted_lvars_of_lval lval in
-      Some (base_name, dots)
-  | _ -> None
+  match lval_of_instr_opt x with
+  | Some { base = Var x; _ } -> Some x
+  | Some _
+  | None ->
+      None
 
 let rlvals_of_node = function
   | Enter
@@ -142,3 +138,26 @@ let rlvals_of_node = function
   | NOther _
   | NTodo _ ->
       []
+
+module LvalOrdered = struct
+  type t = lval
+
+  let compare lval1 lval2 =
+    (* Right now we only care about comparing lvals of the form `x.a_1. ... . a_n,
+       so it's OK if `Stdlib.compare` may not be the ideal comparison function for
+       the remaining cases. *)
+    match (lval1, lval2) with
+    | { base = Var x; rev_offset = ro1 }, { base = Var y; rev_offset = ro2 } ->
+        let name_cmp = compare_name x y in
+        if name_cmp <> 0 then name_cmp
+        else
+          List.compare
+            (fun offset1 offset2 ->
+              match (offset1, offset2) with
+              | Dot a, Dot b -> compare_name a b
+              | Index _, _
+              | _, Index _ ->
+                  Stdlib.compare offset1 offset2)
+            ro1 ro2
+    | _, _ -> Stdlib.compare lval1 lval2
+end

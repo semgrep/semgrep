@@ -1,0 +1,3 @@
+taint-mode: Experimental support for basic field-sensitive taint tracking. If `x`
+is tainted, but `x.a.b` is set to something safe, `sink(x.a.b)` will no longer
+be reported.
