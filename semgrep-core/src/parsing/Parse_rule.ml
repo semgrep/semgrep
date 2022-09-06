@@ -21,6 +21,7 @@ module MR = Mini_rule
 module G = AST_generic
 module PI = Parse_info
 module Set = Set_
+module MV = Metavariable
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -74,6 +75,52 @@ type dict = {
   (* for error reports on missing fields *)
   first_tok : R.tok;
 }
+
+(* This was in Rule.ml before and represent the old (but still current)
+ * way to write metavariable conditions.
+ *)
+(* extra conditions, usually on metavariable content *)
+type extra =
+  | MetavarRegexp of MV.mvar * Xpattern.regexp * bool
+  | MetavarPattern of MV.mvar * Xlang.t option * Rule.formula
+  | MetavarComparison of metavariable_comparison
+  | MetavarAnalysis of MV.mvar * Rule.metavar_analysis_kind
+(* old: | PatWherePython of string, but it was too dangerous.
+ * MetavarComparison is not as powerful, but safer.
+ *)
+
+(* See also engine/Eval_generic.ml *)
+and metavariable_comparison = {
+  metavariable : MV.mvar option;
+  comparison : AST_generic.expr;
+  (* I don't think those are really needed; they can be inferred
+   * from the values *)
+  strip : bool option;
+  base : int option;
+}
+
+(* Substitutes `$MVAR` with `int($MVAR)` in cond. *)
+(* This now changes all such metavariables. We expect in most cases there should
+   just be one, anyways.
+*)
+let rewrite_metavar_comparison_strip cond =
+  let visitor =
+    Map_AST.mk_visitor
+      {
+        Map_AST.default_visitor with
+        Map_AST.kexpr =
+          (fun (k, _) e ->
+            (* apply on children *)
+            let e = k e in
+            match e.G.e with
+            | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s
+              ->
+                let py_int = G.Id (("int", tok), G.empty_id_info ()) in
+                G.Call (G.N py_int |> G.e, G.fake_bracket [ G.Arg e ]) |> G.e
+            | _ -> e);
+      }
+  in
+  visitor.Map_AST.vexpr cond
 
 (*****************************************************************************)
 (* Error Management *)
@@ -687,14 +734,14 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
             let find key_str = Hashtbl.find_opt dict.h key_str in
             let process_extra extra =
               match extra with
-              | R.MetavarRegexp (mvar, regex, b) -> R.CondRegexp (mvar, regex, b)
+              | MetavarRegexp (mvar, regex, b) -> R.CondRegexp (mvar, regex, b)
               | MetavarPattern (mvar, xlang_opt, formula) ->
                   R.CondNestedFormula (mvar, xlang_opt, formula)
               | MetavarComparison { comparison; strip; _ } ->
                   R.CondEval
                     (match strip with
                     (* TODO *)
-                    | Some true -> R.rewrite_metavar_comparison_strip comparison
+                    | Some true -> rewrite_metavar_comparison_strip comparison
                     | _ -> comparison)
               | MetavarAnalysis (mvar, kind) -> R.CondAnalysis (mvar, kind)
             in
@@ -760,7 +807,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
 
 (* This is now mutually recursive because of metavariable-pattern: which can
  * contain itself a formula! *)
-and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
+and parse_extra (env : env) (key : key) (value : G.expr) : extra =
   match fst key with
   | "metavariable-analysis" ->
       let mv_analysis_dict = yaml_to_dict env key value in
@@ -772,7 +819,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
         | "redos" -> R.CondReDoS
         | other -> error_at_key env key ("Unsupported analyzer: " ^ other)
       in
-      R.MetavarAnalysis (metavar, kind)
+      MetavarAnalysis (metavar, kind)
   | "metavariable-regex" ->
       let mv_regex_dict =
         try yaml_to_dict env key value with
@@ -784,7 +831,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
           take mv_regex_dict env parse_string_wrap "regex",
           take_opt mv_regex_dict env parse_bool "constant-propagation" )
       in
-      R.MetavarRegexp
+      MetavarRegexp
         ( metavar,
           parse_regexp env regexp,
           match const_prop with
@@ -812,7 +859,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       let formula_old =
         parse_pair_old env' (find_formula_old env mv_pattern_dict)
       in
-      R.MetavarPattern (metavar, opt_xlang, formula_old)
+      MetavarPattern (metavar, opt_xlang, formula_old)
   | "metavariable-comparison" ->
       let mv_comparison_dict = yaml_to_dict env key value in
       let metavariable, comparison, strip, base =
@@ -829,7 +876,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
            ^ ": 'metavariable' field is missing, but it is mandatory if \
               'strip: true'")
       | __else__ -> ());
-      R.MetavarComparison { R.metavariable; comparison; strip; base }
+      MetavarComparison { metavariable; comparison; strip; base }
   | _ -> error_at_key env key ("wrong parse_extra field: " ^ fst key)
 
 and parse_formula_old_from_dict (env : env) (rule_dict : dict) : R.formula =
@@ -907,7 +954,7 @@ and produce_constraint env dict indicator =
         (* if strip=true we rewrite the condition and insert Python's `int`
             * function to parse the integer value of mvar. *)
         match strip with
-        | Some true -> R.rewrite_metavar_comparison_strip cond
+        | Some true -> rewrite_metavar_comparison_strip cond
         | _ -> cond
       in
       Left (t, R.CondEval cond)
