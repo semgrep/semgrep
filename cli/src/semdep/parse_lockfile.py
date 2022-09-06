@@ -127,12 +127,12 @@ def parse_NPM_package_lock_str(
     # https://docs.npmjs.com/cli/v8/configuring-npm/package-lock-json
     if "dependencies" in as_json:
         deps = as_json["dependencies"]
-    elif "packages" in as_json:
-        deps = as_json["packages"]
     else:
         logger.info("Found package-lock with no 'dependencies' or 'packages'")
         return
 
+    manifest = json.loads(manifest_text) if manifest_text else None
+    manifest_deps = manifest["dependencies"] if manifest else None
     for dep, dep_blob in deps.items():
         version = dep_blob.get("version")
         if not version:
@@ -145,6 +145,15 @@ def parse_NPM_package_lock_str(
             logger.info(f"no version for dependency: {dep}")
             continue
 
+        if manifest_deps:
+            transitivity = (
+                Transitivity(Direct())
+                if dep in manifest_deps
+                else Transitivity(Transitive())
+            )
+        else:
+            transitivity = Transitivity(Unknown())
+
         resolved_url = dep_blob.get("resolved")
         integrity = dep_blob.get("integrity")
         yield FoundDependency(
@@ -153,7 +162,7 @@ def parse_NPM_package_lock_str(
             ecosystem=Ecosystem(Npm()),
             allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
             resolved_url=resolved_url,
-            transitivity=Transitivity(Unknown()),
+            transitivity=transitivity,
         )
 
 
