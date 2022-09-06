@@ -13,6 +13,7 @@ let lang_has_no_dollar_ids =
     | Julia
     | Ocaml
     | Json
+    | Jsonnet
     | Yaml
     | Hcl
     | Csharp

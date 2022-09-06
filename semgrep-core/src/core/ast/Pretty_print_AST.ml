@@ -87,6 +87,7 @@ let print_bool env = function
       | Lang.Cpp
       | Lang.Js
       | Lang.Json
+      | Lang.Jsonnet
       | Lang.Yaml
       | Lang.Ocaml
       | Lang.Ruby
@@ -122,6 +123,7 @@ let print_bool env = function
       | Lang.C
       | Lang.Cpp
       | Lang.Json
+      | Lang.Jsonnet
       | Lang.Yaml
       | Lang.Js
       | Lang.Ocaml
@@ -261,6 +263,7 @@ and if_stmt env level (tok, e, s, sopt) =
     | Lang.Cpp
     | Lang.Csharp
     | Lang.Json
+    | Lang.Jsonnet
     | Lang.Js
     | Lang.Ts
     | Lang.Vue
@@ -326,6 +329,7 @@ and while_stmt env level (tok, e, s) =
     | Lang.Csharp
     | Lang.Kotlin
     | Lang.Json
+    | Lang.Jsonnet
     | Lang.Js
     | Lang.Ts
     | Lang.Vue
@@ -371,6 +375,7 @@ and do_while stmt env level (s, e) =
     | Lang.Python3
     | Lang.Go
     | Lang.Json
+    | Lang.Jsonnet
     | Lang.Ocaml
     | Lang.Rust
     | Lang.R ->
@@ -415,6 +420,7 @@ and for_stmt env level (for_tok, hdr, s) =
         F.sprintf "%s %s:\n%s"
     | Lang.Ruby -> F.sprintf "%s %s\ndo %s\nend"
     | Lang.Json
+    | Lang.Jsonnet
     | Lang.Ocaml ->
         failwith "JSON/OCaml has for loops????"
   in
@@ -504,6 +510,7 @@ and def_stmt env (entity, def_kind) =
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s <- %s" id e )
       | Lang.Json
+      | Lang.Jsonnet
       | Lang.Ocaml ->
           failwith "I think JSON/OCaml have no variable definitions"
     in
@@ -555,6 +562,7 @@ and return env (tok, eopt) _sc =
   | Lang.Ruby
   | Lang.Ocaml
   | Lang.Json
+  | Lang.Jsonnet
   | Lang.Js
   | Lang.Swift
   | Lang.Ts
@@ -599,6 +607,7 @@ and break env (tok, lbl) _sc =
   | Lang.Ruby
   | Lang.Ocaml
   | Lang.Json
+  | Lang.Jsonnet
   | Lang.Js
   | Lang.Ts
   | Lang.Vue
@@ -644,6 +653,7 @@ and continue env (tok, lbl) _sc =
   | Lang.Ruby
   | Lang.Ocaml
   | Lang.Json
+  | Lang.Jsonnet
   | Lang.Js
   | Lang.Swift
   | Lang.Ts
@@ -756,6 +766,7 @@ and literal env l =
       | Lang.Csharp
       | Lang.Kotlin
       | Lang.Json
+      | Lang.Jsonnet
       | Lang.Js
       | Lang.Vue
       | Lang.Ocaml
