@@ -46,6 +46,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               },
               "ecosystem": "pypi",
               "package": "awscli",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli/Pipfile.lock"
@@ -93,6 +94,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               },
               "ecosystem": "pypi",
               "package": "awscli",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli/Pipfile.lock"
@@ -140,6 +142,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               },
               "ecosystem": "pypi",
               "package": "awscli",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli/Pipfile.lock"
@@ -187,6 +190,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               },
               "ecosystem": "pypi",
               "package": "awscli",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli/Pipfile.lock"
@@ -234,6 +238,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               },
               "ecosystem": "pypi",
               "package": "awscli",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli/Pipfile.lock"
@@ -281,6 +286,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               },
               "ecosystem": "pypi",
               "package": "awscli",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli/Pipfile.lock"
@@ -328,6 +334,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               },
               "ecosystem": "pypi",
               "package": "awscli",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli/Pipfile.lock"
@@ -375,6 +382,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               },
               "ecosystem": "pypi",
               "package": "awscli",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli/Pipfile.lock"
