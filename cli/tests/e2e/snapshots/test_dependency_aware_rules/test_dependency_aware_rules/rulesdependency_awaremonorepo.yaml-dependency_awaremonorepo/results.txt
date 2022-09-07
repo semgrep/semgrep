@@ -44,6 +44,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "npm",
               "package": "bad-lib",
               "resolved_url": "https://registry.yarnpkg.com/ansi-html/-/ansi-html-0.0.7.tgz",
+              "transitivity": "unknown",
               "version": "0.0.7"
             },
             "lockfile": "targets/dependency_aware/monorepo/webapp1/yarn.lock"
@@ -87,6 +88,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "npm",
               "package": "bad-lib",
               "resolved_url": "https://registry.yarnpkg.com/ansi-html/-/ansi-html-0.0.7.tgz",
+              "transitivity": "unknown",
               "version": "0.0.7"
             },
             "lockfile": "targets/dependency_aware/monorepo/webapp2/yarn.lock"

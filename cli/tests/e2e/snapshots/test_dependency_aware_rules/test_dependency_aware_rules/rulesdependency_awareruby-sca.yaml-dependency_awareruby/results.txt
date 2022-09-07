@@ -41,6 +41,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "allowed_hashes": {},
               "ecosystem": "gem",
               "package": "parallel",
+              "transitivity": "unknown",
               "version": "1.21.0"
             },
             "lockfile": "targets/dependency_aware/ruby/Gemfile.lock"
