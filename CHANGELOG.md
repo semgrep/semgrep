@@ -8,6 +8,30 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.112.0](https://github.com/returntocorp/semgrep/releases/tag/v0.112.0) - 2022-09-07
+
+### Added
+
+- JS/TS: Allow standalone switch cases as patterns (e.g. `case 5: ...`) (pa-1788)
+- Symbolic propagation: Added propagation of all variables which are assigned to a single time. This will affect global variables and class attributes, in particular. (pa-1821)
+
+### Changed
+
+- Use new semgrep-app endpoint that combines the two POST requests to upload findings and ignored findings into one POST request. (app-1446)
+
+### Fixed
+
+- Update git url parser to support optional "org" after hostname. Example: https://some.enterprise.scm/myorg/owner/repo. (app-2202)
+- Fix an incorrect autofix application when the fix includes Python f strings (gh-2995)
+- Fix matching and autofix with bare tuples in Python array accesses (e.g. x[1, 2]) (gh-3387)
+- Ruby: A pattern of the form `/.../` can now match any regexp, including regexp templates such as `/hello #{name}/`. (gh-5147)
+- Fix parsing of Java constructors with privacy modifiers as patterns, e.g. the pattern `public Foo() { }` (gh-5558)
+- Java: correctly parse class literal patterns (gh-6002)
+- Solidity: correctly parse try statements (gh-6031)
+- Python: Now support `match` statements (pa-1739)
+- Fixed bug in constant propagation that caused incorrect constants to be inferred
+  in the presence of subtraction. (pa-1846)
+
 ## [0.111.1](https://github.com/returntocorp/semgrep/releases/tag/v0.111.1) - 2022-08-23
 
 ### Changed

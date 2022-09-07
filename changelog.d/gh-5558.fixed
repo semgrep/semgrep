@@ -1,1 +1,0 @@
-Fix parsing of Java constructors with privacy modifiers as patterns, e.g. the pattern `public Foo() { }`
