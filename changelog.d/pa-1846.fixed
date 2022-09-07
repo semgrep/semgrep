@@ -1,2 +1,0 @@
-Fixed bug in constant propagation that caused incorrect constants to be inferred
-in the presence of subtraction.

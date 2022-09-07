@@ -1,1 +1,0 @@
-Symbolic propagation: Added propagation of all variables which are assigned to a single time. This will affect global variables and class attributes, in particular.
