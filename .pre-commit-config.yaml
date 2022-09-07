@@ -117,6 +117,23 @@ repos:
         types: [python]
         exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
         args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
+      #coupling: ran also in .circleci/config.yml
+      - id: semgrep
+        name: Semgrep with local semgrep.yml
+        args:
+          [
+            "--config",
+            "semgrep.yml",
+            "--error",
+            "--exclude",
+            "tests",
+            "--exclude",
+            "TODO",
+            "--exclude",
+            "_build",
+            "--autofix",
+            ".",
+          ]
 
   - repo: local
     hooks:

@@ -32,7 +32,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 let id x = x
 let option = Option.map
-let list = List.map
+let list = Common.map
 let bool = id
 let string = id
 let error = AST_generic.error
@@ -118,7 +118,7 @@ let special (x, tok) =
           (fun args ->
             G.Call
               ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, tok) |> G.e,
-                args |> List.map (fun e -> G.Arg e) |> fb ))
+                args |> Common.map (fun e -> G.Arg e) |> fb ))
       else
         SR_NeedArgs
           (fun args ->
@@ -138,7 +138,7 @@ let special (x, tok) =
                                   *)
                                  (G.ConcatString G.TaggedTemplateLiteral, tok)
                                |> G.e,
-                               rest |> List.map (fun e -> G.Arg e) |> fb )
+                               rest |> Common.map (fun e -> G.Arg e) |> fb )
                           |> G.e);
                       ] ))
   | ArithOp op -> SR_Special (G.Op (H.conv_op op), tok)
@@ -234,7 +234,7 @@ and expr (x : expr) =
       G.Cast (v3, v2, v1)
   | ExprTodo (v1, v2) ->
       let v2 = list expr v2 in
-      G.OtherExpr (v1, v2 |> List.map (fun e -> G.E e))
+      G.OtherExpr (v1, v2 |> Common.map (fun e -> G.E e))
   | L x -> G.L (literal x)
   | Id v1 ->
       let v1 = name v1 in
@@ -286,20 +286,20 @@ and expr (x : expr) =
       let v2 = bracket (list expr) v2 in
       match x with
       | SR_Special v ->
-          G.Call (G.IdSpecial v |> G.e, bracket (List.map G.arg) v2)
+          G.Call (G.IdSpecial v |> G.e, bracket (Common.map G.arg) v2)
       | SR_Literal l ->
           logger#info "Weird: literal in call position";
           (* apparently there's code like (null)("fs"), no idea what that is *)
-          G.Call (G.L l |> G.e, bracket (List.map G.arg) v2)
+          G.Call (G.L l |> G.e, bracket (Common.map G.arg) v2)
       | SR_NeedArgs f -> f (G.unbracket v2)
       | SR_Other categ ->
           (* ex: NewTarget *)
           G.Call
             ( G.OtherExpr (categ, []) |> G.e,
-              bracket (List.map (fun e -> G.Arg e)) v2 ))
+              bracket (Common.map (fun e -> G.Arg e)) v2 ))
   | Apply (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list expr) v2 in
-      G.Call (v1, bracket (List.map (fun e -> G.Arg e)) v2)
+      G.Call (v1, bracket (Common.map (fun e -> G.Arg e)) v2)
   | New (tok, e, args) ->
       let tok = info tok in
       let e = expr e in
@@ -398,7 +398,7 @@ and for_header = function
       | Left vars ->
           let vars =
             vars
-            |> List.map (fun x ->
+            |> Common.map (fun x ->
                    let a, b = var_of_var x in
                    G.ForInitVar (a, b))
           in
@@ -462,10 +462,10 @@ and type_ x =
       let t = type_ t in
       G.TyArray ((lt, None, rt), t) |> G.t
   | TyTuple (lt, xs, rt) ->
-      let xs = List.map tuple_type_member xs in
+      let xs = Common.map tuple_type_member xs in
       G.TyTuple (lt, xs, rt) |> G.t
   | TyFun (params, typ_opt) ->
-      let params = List.map parameter_binding params in
+      let params = Common.map parameter_binding params in
       let rett =
         match typ_opt with
         | None -> G.ty_builtin ("void", PI.unsafe_fake_info "void")
@@ -482,7 +482,7 @@ and type_ x =
       let t1 = type_ t1 in
       let t2 = type_ t2 in
       G.TyAnd (t1, tk, t2) |> G.t
-  | TypeTodo (categ, xs) -> G.OtherType (categ, List.map any xs) |> G.t
+  | TypeTodo (categ, xs) -> G.OtherType (categ, Common.map any xs) |> G.t
 
 and tuple_type_member x =
   match x with
@@ -583,7 +583,7 @@ and attribute = function
         | Some x -> x
         | None -> fb []
       in
-      let args = list argument args |> List.map G.arg in
+      let args = list argument args |> Common.map G.arg in
       let name = H.name_of_ids ids in
       G.NamedAttr (t, name, (t1, args, t2))
 
@@ -735,7 +735,7 @@ and require_to_import_in_stmt_opt st =
         | Obj (_, xs, _) ->
             let ys =
               xs
-              |> List.map (function
+              |> Common.map (function
                    | FieldColon
                        {
                          fld_name = PN id1;
@@ -773,7 +773,7 @@ and list_stmt xs =
    * other goodies coming with import in semgrep (e.g., equivalence aliasing)
    *)
   xs
-  |> List.map (fun st ->
+  |> Common.map (fun st ->
          match require_to_import_in_stmt_opt st with
          | Some xs -> xs
          | None -> [ stmt st ])

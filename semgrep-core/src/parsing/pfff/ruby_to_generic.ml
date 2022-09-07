@@ -37,7 +37,7 @@ module PI = Parse_info
 (*****************************************************************************)
 let id x = x
 let option = Option.map
-let list = List.map
+let list = Common.map
 let bool = id
 let string = id
 let fake tok s = Parse_info.fake_info tok s
@@ -128,7 +128,7 @@ let rec expr e =
           in
           G.DotAccess (e, t, fld))
   | Splat (t, eopt) ->
-      let xs = option expr eopt |> Option.to_list |> List.map G.arg in
+      let xs = option expr eopt |> Option.to_list |> Common.map G.arg in
       let special = G.IdSpecial (G.Spread, t) |> G.e in
       G.Call (special, fb xs)
   | CodeBlock ((t1, _, t2), params_opt, xs) ->
@@ -339,7 +339,7 @@ and interpolated_string (t1, xs, t2) : G.expr_kind =
   let xs = list (string_contents t1) xs in
   G.Call
     ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t1) |> G.e,
-      (t1, xs |> List.map (fun e -> G.Arg e), t2) )
+      (t1, xs |> Common.map (fun e -> G.Arg e), t2) )
 
 and string_contents tok = function
   | StrChars s -> G.L (G.String s) |> G.e
@@ -593,14 +593,14 @@ and stmt st =
         | Some e -> Some (G.Cond e)
       in
       G.Switch
-        (t, condopt, whens @ default |> List.map (fun x -> G.CasesAndBody x))
+        (t, condopt, whens @ default |> Common.map (fun x -> G.CasesAndBody x))
       |> G.s
   | ExnBlock b -> body_exn b
 
 and when_clause (t, pats, sts) =
   let pats = list pattern pats in
   let st = list_stmt1 sts in
-  (pats |> List.map (fun pat -> G.Case (t, pat)), st)
+  (pats |> Common.map (fun pat -> G.Case (t, pat)), st)
 
 and args_to_label_ident xs = xs |> args_to_exprs |> exprs_to_label_ident
 

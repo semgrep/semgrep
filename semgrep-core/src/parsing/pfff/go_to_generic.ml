@@ -30,7 +30,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 let id x = x
 let string = id
-let list = List.map
+let list = Common.map
 let option = Option.map
 let either = OCaml.map_of_either
 let arithmetic_operator = id
@@ -64,7 +64,7 @@ let return_type_of_results results =
       Some
         (G.TyTuple
            (xs
-           |> List.map (function
+           |> Common.map (function
                 | G.Param { G.ptype = Some t; _ } -> t
                 | G.Param { G.ptype = None; _ } -> raise Impossible
                 | G.ParamEllipsis t -> G.TyEllipsis t |> G.t
@@ -267,7 +267,7 @@ let top_func () =
         and v3 = expr v3 in
         G.Call
           ( G.IdSpecial (G.Op (H.conv_op v2), tok) |> G.e,
-            fb ([ v1; v3 ] |> List.map G.arg) )
+            fb ([ v1; v3 ] |> Common.map G.arg) )
     | CompositeLit (v1, v2) ->
         let v1 = type_ v1
         and l, v2, r = bracket (list init_for_composite_lit) v2 in
@@ -531,7 +531,7 @@ let top_func () =
             G.ForEach (pattern, v2, v3)
         | Some (xs, _tokEqOrColonEqTODO) ->
             let pattern =
-              G.PatTuple (xs |> List.map H.expr_to_pattern |> G.fake_bracket)
+              G.PatTuple (xs |> Common.map H.expr_to_pattern |> G.fake_bracket)
             in
             G.ForEach (pattern, v2, v3))
   and case_clause = function
@@ -550,12 +550,12 @@ let top_func () =
         | Right t -> G.PatType t)
   and case_kind = function
     | CaseExprs (tok, v1) ->
-        v1 |> List.map (fun x -> G.Case (tok, expr_or_type_to_pattern x))
+        v1 |> Common.map (fun x -> G.Case (tok, expr_or_type_to_pattern x))
     | CaseAssign (tok, v1, v2, v3) ->
         let v1 = list expr_or_type v1 and v3 = expr v3 in
         let v1 =
           v1
-          |> List.map (function
+          |> Common.map (function
                | Left e -> e
                | Right _ -> error tok "TODO: Case Assign with Type?")
         in
