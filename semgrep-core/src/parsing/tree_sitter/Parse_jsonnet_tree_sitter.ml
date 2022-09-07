@@ -110,7 +110,7 @@ let map_h (env : env) (x : CST.h) =
   | `COLONCOLONCOLON tok -> (* ":::" *) token env tok
 
 let map_str_single (env : env) (xs : CST.str_single) =
-  List.map
+  Common.map
     (fun x ->
       match x with
       | `Imm_tok_prec_p1_pat_59587ce x -> map_imm_tok_prec_p1_pat_59587ce env x
@@ -118,7 +118,7 @@ let map_str_single (env : env) (xs : CST.str_single) =
     xs
 
 let map_str_double (env : env) (xs : CST.str_double) =
-  List.map
+  Common.map
     (fun x ->
       match x with
       | `Imm_tok_prec_p1_pat_c7f65b4 x -> map_imm_tok_prec_p1_pat_c7f65b4 env x
@@ -249,7 +249,7 @@ and map_bind (env : env) (x : CST.bind) =
       todo env (v1, v2, v3, v4, v5, v6)
 
 and map_compspec (env : env) (xs : CST.compspec) =
-  List.map
+  Common.map
     (fun x ->
       match x with
       | `Fors x -> map_forspec env x
@@ -284,7 +284,7 @@ and map_expr (env : env) (x : CST.expr) : expr =
         | Some (v1, v2, v3) ->
             let v1 = map_document env v1 in
             let v2 =
-              List.map
+              Common.map
                 (fun (v1, v2) ->
                   let v1 = (* "," *) token env v1 in
                   let v2 = map_document env v2 in
@@ -383,7 +383,7 @@ and map_expr (env : env) (x : CST.expr) : expr =
       let v1 = (* "local" *) token env v1 in
       let v2 = map_bind env v2 in
       let v3 =
-        List.map
+        Common.map
           (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
             let v2 = map_bind env v2 in
@@ -526,7 +526,7 @@ and map_objinside (env : env) (x : CST.objinside) =
   | `Member_rep_COMMA_member_opt_COMMA (v1, v2, v3) ->
       let v1 = map_member env v1 in
       let v2 =
-        List.map
+        Common.map
           (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
             let v2 = map_member env v2 in
@@ -542,7 +542,7 @@ and map_objinside (env : env) (x : CST.objinside) =
   | `Rep_objl_COMMA_LBRACK_expr_RBRACK_COLON_expr_rep_COMMA_objl_opt_COMMA_fors_opt_comp
       (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
       let v1 =
-        List.map
+        Common.map
           (fun (v1, v2) ->
             let v1 = map_objlocal env v1 in
             let v2 = (* "," *) token env v2 in
@@ -555,7 +555,7 @@ and map_objinside (env : env) (x : CST.objinside) =
       let v5 = (* ":" *) token env v5 in
       let v6 = map_document env v6 in
       let v7 =
-        List.map
+        Common.map
           (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
             let v2 = map_objlocal env v2 in
@@ -595,7 +595,7 @@ and map_param (env : env) ((v1, v2) : CST.param) =
 and map_params (env : env) ((v1, v2, v3) : CST.params) =
   let v1 = map_param env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_param env v2 in
