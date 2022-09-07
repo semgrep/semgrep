@@ -129,7 +129,7 @@ def parse_package_lock(
     if "dependencies" in as_json:
         deps = as_json["dependencies"]
     else:
-        logger.info("Found package-lock with no 'dependencies' or 'packages'")
+        logger.info("Found package-lock with no 'dependencies'")
         return
 
     manifest = json.loads(manifest_text) if manifest_text else None
@@ -404,17 +404,33 @@ def parse_gradle(
 def parse_poetry(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
+    # poetry.lock file are not quite valid TOML >:(
+
+    manifest = toml.loads(manifest_text)
+    try:
+        manifest_deps = manifest["tool"]["poetry"]["dependencies"]
+    except KeyError:
+        manifest_deps = None
+
     def parse_dep(s: str) -> FoundDependency:
         lines = s.split("\n")[1:]
         dep = lines[0].split("=")[1].strip()[1:-1]
         version = lines[1].split("=")[1].strip()[1:-1]
+        if manifest_deps:
+            transitivity = (
+                Transitivity(Direct())
+                if dep in manifest_deps
+                else Transitivity(Transitive())
+            )
+        else:
+            transitivity = Transitivity(Unknown())
         return FoundDependency(
             package=dep,
             version=version,
             ecosystem=Ecosystem(Pypi()),
             resolved_url=None,
             allowed_hashes={},
-            transitivity=Transitivity(Unknown()),
+            transitivity=transitivity,
         )
 
     deps = lockfile_text.split("[[package]]")[1:]  # drop the empty string at the start
