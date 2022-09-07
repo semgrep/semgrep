@@ -684,9 +684,9 @@ let resolve lang prog =
               (match name_middle with
               | Some (QDots [ (m, None) ]) -> (
                   match lookup_scope_opt m env with
-                  (* this is quite specific to OCaml *)
                   | Some { entname = ImportedModule (DottedName xs), _sidm; _ }
                     ->
+                      (* this is quite specific to OCaml *)
                       (* The entity is fully qualified, no need for sid *)
                       let sid = 0 in
                       let resolved =
@@ -694,6 +694,8 @@ let resolve lang prog =
                       in
                       set_resolved env id_info resolved
                   | Some { entname = ImportedEntity xs, _sid; _ } ->
+                      (* Resolve types for use in typed metavars *)
+                      (* Added for Java *)
                       let sid = 0 in
                       let resolved =
                         untyped_ent (ImportedEntity (xs @ [ id ]), sid)
