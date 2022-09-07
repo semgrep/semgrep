@@ -170,8 +170,11 @@ def parse_package_lock(
 def parse_pipfile(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
-    manifest = toml.loads(manifest_text)
-    manifest_deps = manifest["packages"] if "packages" in manifest else None
+    manifest = toml.loads(manifest_text) if manifest_text else None
+    if manifest:
+        manifest_deps = manifest["packages"] if "packages" in manifest else None
+    else:
+        manifest_deps = None
 
     def extract_pipfile_hashes(
         hashes: List[str],
@@ -406,9 +409,9 @@ def parse_poetry(
 ) -> Generator[FoundDependency, None, None]:
     # poetry.lock file are not quite valid TOML >:(
 
-    manifest = toml.loads(manifest_text)
+    manifest = toml.loads(manifest_text) if manifest_text else None
     try:
-        manifest_deps = manifest["tool"]["poetry"]["dependencies"]
+        manifest_deps = manifest["tool"]["poetry"]["dependencies"] if manifest else None
     except KeyError:
         manifest_deps = None
 
