@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-
+open Common
 module In = Input_to_core_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -32,8 +32,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
     - producing a mechanism for the caller to map matches found in the
       generated targets to matches in the original file
 *)
-
-let ( let* ) = Option.bind
 
 (*****************************************************************************)
 (* Helpers *)

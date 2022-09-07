@@ -26,8 +26,6 @@ module SJ = Output_from_core_j (* JSON conversions *)
 module Out = Output_from_core_t (* atdgen definitions *)
 module OutH = Output_from_core_util
 
-let ( let* ) = Option.bind
-
 (*****************************************************************************)
 (* JSON *)
 (*****************************************************************************)

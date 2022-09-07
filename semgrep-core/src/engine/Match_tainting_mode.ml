@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-
+open Common
 module D = Dataflow_tainting
 module Var_env = Dataflow_var_env
 module G = AST_generic
@@ -87,8 +87,6 @@ type debug_taint = {
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let ( let* ) = Option.bind
-
 module F2 = IL
 
 module DataflowY = Dataflow_core.Make (struct
@@ -330,7 +328,6 @@ let any_is_in_sinks_matches rule any matches =
          else None)
 
 let lazy_force x = Lazy.force x [@@profiling]
-let ( let* ) = Option.bind
 
 (*****************************************************************************)
 (* Main entry points *)

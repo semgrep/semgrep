@@ -425,7 +425,6 @@ let eval_or_sym_prop env exp =
  * otherwise it should be initialized with _|_.
  *)
 let union_env =
-  let ( let* ) = Option.bind in
   VarMap.merge (fun _ c1_opt c2_opt ->
       let* c1 = c1_opt in
       let* c2 = c2_opt in
