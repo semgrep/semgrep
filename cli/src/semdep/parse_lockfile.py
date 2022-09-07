@@ -10,6 +10,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+import toml  # type: ignore
 from defusedxml import ElementTree as ET  # type: ignore
 from packaging.version import InvalidVersion
 from packaging.version import Version
@@ -50,7 +51,7 @@ def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
     return {algorithm: [base64.b16encode(decode_base_64).decode("ascii").lower()]}
 
 
-def parse_Yarnlock_str(
+def parse_yarn(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
     def version_sources(line: str) -> Tuple[str, List[Tuple[str, str]]]:
@@ -118,7 +119,7 @@ def parse_Yarnlock_str(
         )
 
 
-def parse_NPM_package_lock_str(
+def parse_package_lock(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
     as_json = json.loads(lockfile_text)
@@ -166,9 +167,12 @@ def parse_NPM_package_lock_str(
         )
 
 
-def parse_Pipfile_str(
+def parse_pipfile(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
+    manifest = toml.loads(manifest_text)
+    manifest_deps = manifest["packages"] if "packages" in manifest else None
+
     def extract_pipfile_hashes(
         hashes: List[str],
     ) -> Dict[str, List[str]]:
@@ -189,6 +193,14 @@ def parse_Pipfile_str(
                 logger.info(f"no version for dependency: {dep}")
             else:
                 version = version.replace("==", "")
+                if manifest_deps:
+                    transitivity = (
+                        Transitivity(Direct())
+                        if dep in manifest_deps
+                        else Transitivity(Transitive())
+                    )
+                else:
+                    transitivity = Transitivity(Unknown())
                 yield FoundDependency(
                     package=dep,
                     version=version,
@@ -197,7 +209,7 @@ def parse_Pipfile_str(
                     allowed_hashes=extract_pipfile_hashes(dep_blob["hashes"])
                     if "hashes" in dep_blob
                     else {},
-                    transitivity=Transitivity(Unknown()),
+                    transitivity=transitivity,
                 )
 
     as_json = json.loads(lockfile_text)
@@ -207,7 +219,7 @@ def parse_Pipfile_str(
         yield from parse_dependency_blob(develop_deps)
 
 
-def parse_Gemfile_str(
+def parse_gemfile(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
     def parse_dep(s: str) -> FoundDependency:
@@ -237,7 +249,7 @@ def parse_Gemfile_str(
     )
 
 
-def parse_Go_sum_str(
+def parse_go_sum(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
     # We currently ignore the +incompatible flag, pseudo versions, and the difference between a go.mod and a direct download
@@ -276,17 +288,13 @@ def parse_Go_sum_str(
     yield from (parse_dep(dep) for dep in lines)
 
 
-def parse_Cargo_str(
+def parse_cargo(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
-    def parse_dep(s: str) -> FoundDependency:
-        lines = s.split("\n")[1:]
-        dep = lines[0].split("=")[1].strip()[1:-1]
-        version = lines[1].split("=")[1].strip()[1:-1]
-        if len(lines) >= 3 and lines[3].startswith("checksum"):
-            hash = {"sha256": [lines[3].split("=")[1].strip()[1:-1]]}
-        else:
-            hash = {}
+    def parse_dep(blob: Dict[str, Any]) -> FoundDependency:
+        dep = blob["name"]
+        version = blob["version"]
+        hash = {"sha256": [blob["checksum"]]} if "checksum" in blob else {}
         return FoundDependency(
             package=dep,
             version=version,
@@ -296,11 +304,12 @@ def parse_Cargo_str(
             transitivity=Transitivity(Unknown()),
         )
 
-    deps = lockfile_text.split("[[package]]")[1:]
+    lockfile = toml.loads(lockfile_text)
+    deps = lockfile["package"] if "package" in lockfile else []
     yield from (parse_dep(dep) for dep in deps)
 
 
-def parse_Pom_str(
+def parse_pom(
     manifest_text: str, _: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
     NAMESPACE = "{http://maven.apache.org/POM/4.0.0}"
@@ -361,7 +370,7 @@ def parse_Pom_str(
             yield dep_opt
 
 
-def parse_Gradle_str(
+def parse_gradle(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
     def parse_dep(line: str) -> Optional[FoundDependency]:
@@ -392,7 +401,7 @@ def parse_Gradle_str(
     yield from (dep for dep in deps if dep)
 
 
-def parse_Poetry_str(
+def parse_poetry(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
     def parse_dep(s: str) -> FoundDependency:
@@ -413,15 +422,15 @@ def parse_Poetry_str(
 
 
 LOCKFILE_PARSERS = {
-    "pipfile.lock": parse_Pipfile_str,  # Python
-    "yarn.lock": parse_Yarnlock_str,  # JavaScript
-    "package-lock.json": parse_NPM_package_lock_str,  # JavaScript
-    "gemfile.lock": parse_Gemfile_str,  # Ruby
-    "go.sum": parse_Go_sum_str,  # Go
-    "cargo.lock": parse_Cargo_str,  # Rust
-    "pom.xml": parse_Pom_str,  # Java
-    "gradle.lockfile": parse_Gradle_str,  # Java
-    "poetry.lock": parse_Poetry_str,  # Python
+    "pipfile.lock": parse_pipfile,  # Python
+    "yarn.lock": parse_yarn,  # JavaScript
+    "package-lock.json": parse_package_lock,  # JavaScript
+    "gemfile.lock": parse_gemfile,  # Ruby
+    "go.sum": parse_go_sum,  # Go
+    "cargo.lock": parse_cargo,  # Rust
+    "pom.xml": parse_pom,  # Java
+    "gradle.lockfile": parse_gradle,  # Java
+    "poetry.lock": parse_poetry,  # Python
 }
 
 
