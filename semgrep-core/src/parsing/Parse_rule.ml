@@ -796,7 +796,11 @@ let find_formula env (rule_dict : dict) : key * G.expr =
   | Some (key, value) -> (key, value)
 
 (* intermediate type used for processing 'where' *)
-type principal_constraint = Ccompare | Cfocus | Cmetavar | Canalyzer
+type principal_constraint =
+  | Ccompare
+  (* | Cfocus *)
+  | Cmetavar
+  | Canalyzer
 
 let find_constraint dict =
   fold_dict
@@ -805,13 +809,25 @@ let find_constraint dict =
       | None -> (
           match s with
           | "comparison" -> Some Ccompare
-          | "focus" -> Some Cfocus
+          (* | "focus" -> Some Cfocus *)
           | "analyzer" -> Some Canalyzer
           (* This can appear in a metavariable-analysis as well, but it shouldn't
              matter since this case occurs after the `analyzer` one. *)
           | "metavariable" -> Some Cmetavar
           | _ -> None))
     dict None
+
+let parse_focus_opt env dict =
+  take_opt dict env parse_string_wrap "focus"
+  |> Option.map (fun (mvar, tok) -> (tok, mvar))
+
+let parse_focus_list env dict =
+  let rec loop rev_acc =
+    match parse_focus_opt env dict with
+    | None -> List.rev rev_acc
+    | Some focus -> loop (focus :: rev_acc)
+  in
+  loop []
 
 let rec parse_formula_from_dict (env : env) (rule_dict : dict) : R.formula =
   let formula = parse_pair env (find_formula env rule_dict) in
@@ -849,24 +865,24 @@ and parse_formula env (value : G.expr) : R.formula =
                    t )))
   (* If that doesn't work, it should be a key-value pairing.
    *)
-  | Right dict -> (
+  | Right dict ->
       (* This is ugly, but here's why. *)
       (* First, we need to figure out if there's a `where`. *)
-      let where_formula =
+      let opt_where_clause =
         take_opt dict env (fun _env key value -> (key, value)) "where"
       in
-      match where_formula with
-      (* If there's a `where`, then there must be one key left, the other of which is the
-         pattern. *)
-      | _ when Hashtbl.length dict.h <> 1 ->
-          error env dict.first_tok
-            "Expected exactly one key of `pattern`, `pattern-either`, \
-             `patterns`, `pattern-regex`, or `pattern-comby`"
-      (* Otherwise, use the where formula if it exists, to modify the formula we know must exist. *)
-      | None -> parse_pair env (find_formula env dict)
-      | Some (((_, t) as key), value) ->
-          parse_pair env (find_formula env dict)
-          |> constrain_where env (t, t) key value)
+      let focus = parse_focus_list env dict in
+      if Hashtbl.length dict.h <> 1 then
+        (* There must be exactly one key left, the pattern formula! *)
+        error env dict.first_tok
+          "Expected exactly one key of `pattern`, `pattern-either`, \
+           `patterns`, `pattern-regex`, or `pattern-comby`"
+      else
+        (* Use the where clause (if it exists) and the focus clauses,
+           to modify the formula we know must exist. *)
+        parse_pair env (find_formula env dict)
+        |> add_where_to_formula env opt_where_clause
+        |> add_focus_to_formula env focus
 
 and produce_constraint env dict indicator =
   match indicator with
@@ -891,12 +907,7 @@ and produce_constraint env dict indicator =
         | Some true -> rewrite_metavar_comparison_strip cond
         | _ -> cond
       in
-      Left (t, R.CondEval cond)
-  | Cfocus ->
-      (* focus: ...
-       *)
-      let s, t = take dict env parse_string_wrap "focus" in
-      Right (t, s)
+      (t, R.CondEval cond)
   | Canalyzer ->
       (* metavariable: ...
          analyzer: ...
@@ -911,7 +922,7 @@ and produce_constraint env dict indicator =
             error_at_key env ("analyzer", analyze_t)
               ("Unsupported analyzer: " ^ other)
       in
-      Left (t, CondAnalysis (metavar, kind))
+      (t, CondAnalysis (metavar, kind))
   | Cmetavar -> (
       (* metavariable: ...
          <pattern-pair>
@@ -936,36 +947,48 @@ and produce_constraint env dict indicator =
       match formula with
       | R.P { pat = Xpattern.Regexp regexp; _ } ->
           (* TODO: always on by default *)
-          Left (t, CondRegexp (metavar, regexp, true))
-      | _ -> Left (t, CondNestedFormula (metavar, opt_xlang, formula)))
+          (t, CondRegexp (metavar, regexp, true))
+      | _ -> (t, CondNestedFormula (metavar, opt_xlang, formula)))
 
-and constrain_where env (t1, _t2) where_key (value : G.expr) formula : R.formula
-    =
-  let env = { env with path = "where" :: env.path } in
-  (* TODO: first token, or principal token? *)
-  let parse_where_pair env (where_value : G.expr) =
-    let dict = yaml_to_dict env where_key where_value in
-    match find_constraint dict with
-    | Some indicator -> produce_constraint env dict indicator
-    | _ -> error_at_expr env value "Wrong where constraint fields"
-  in
-  (* TODO *)
-  let conditions, focus =
-    parse_listi env where_key parse_where_pair value
-    |> Common.partition_either (fun x -> x)
-  in
-  let tok, conditions, focus, conjuncts =
-    (* If the modified pattern is also an `And`, collect the conditions and focus
-        and fold them together.
+and add_where_to_formula env opt_where_formula formula : R.formula =
+  match opt_where_formula with
+  | None -> formula
+  | Some (((_, t1) as where_key), (value : G.expr)) ->
+      let env = { env with path = "where" :: env.path } in
+      (* TODO: first token, or principal token? *)
+      let parse_where_pair env (where_value : G.expr) =
+        let dict = yaml_to_dict env where_key where_value in
+        match find_constraint dict with
+        | Some indicator -> produce_constraint env dict indicator
+        | _ -> error_at_expr env value "Wrong where constraint fields"
+      in
+      let conditions = parse_listi env where_key parse_where_pair value in
+      let tok, conditions, focus, conjuncts =
+        (* If the modified pattern is also an `And`, collect the conditions and focus
+            and fold them together.
+        *)
+        match formula with
+        | And (tok, { conjuncts; conditions = conditions2; focus = focus2 }) ->
+            (tok, conditions @ conditions2, focus2, conjuncts)
+        (* Otherwise, we consider the modified pattern a degenerate singleton `And`.
     *)
-    match formula with
-    | And (tok, { conjuncts; conditions = conditions2; focus = focus2 }) ->
-        (tok, conditions @ conditions2, focus @ focus2, conjuncts)
-    (* Otherwise, we consider the modified pattern a degenerate singleton `And`.
-    *)
-    | _ -> (t1, conditions, focus, [ formula ])
-  in
-  R.And (tok, { conjuncts; conditions; focus })
+        | _ -> (t1, conditions, [], [ formula ])
+      in
+      R.And (tok, { conjuncts; conditions; focus })
+
+and add_focus_to_formula _env focus formula =
+  match focus with
+  | [] -> formula
+  | (t1, _) :: _ as focus ->
+      let tok, conditions, focus, conjuncts =
+        (* If the formula is an `And`, simply add to the existing `focus`. *)
+        match formula with
+        | And (tok, { conjuncts; conditions = conditions2; focus = focus2 }) ->
+            (tok, conditions2, focus @ focus2, conjuncts)
+        (* Otherwise, we consider the modified pattern a degenerate singleton `And`. *)
+        | _ -> (t1, [], focus, [ formula ])
+      in
+      R.And (tok, { conjuncts; conditions; focus })
 
 and parse_pair env ((key, value) : key * G.expr) : R.formula =
   let env = { env with path = fst key :: env.path } in
