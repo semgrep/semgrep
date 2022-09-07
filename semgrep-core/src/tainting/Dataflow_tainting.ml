@@ -41,8 +41,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * so it was moved to semgrep-core/src/engine
  *)
 
-let ( let* ) = Option.bind
-
 module DataflowX = Dataflow_core.Make (struct
   type node = F.node
   type edge = F.edge
@@ -213,7 +211,6 @@ and eval_label_args ~labels args =
 
 (* Produces a finding for every taint source that is unifiable with the sink. *)
 let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
-  let ( let* ) = Option.bind in
   let labels = labels_in_taint taints in
   let sink_pm, ts = T.pm_of_trace sink in
   let req = eval_label_requires ~labels ts.sink_requires in

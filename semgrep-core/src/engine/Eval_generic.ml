@@ -324,7 +324,8 @@ let text_of_binding mvar mval =
           Some (Range.content_at_range file range))
 
 let string_of_binding mvar mval =
-  Option.bind (text_of_binding mvar mval) @@ fun x -> Some (mvar, AST x)
+  let* x = text_of_binding mvar mval in
+  Some (mvar, AST x)
 
 let bindings_to_env (config : Config_semgrep.t) bindings =
   let constant_propagation = config.constant_propagation in
