@@ -383,7 +383,9 @@ let visit_new_formula f formula =
     | P p -> f p !bref
     | Inside (_, formula) ->
         bref := true;
-        visit_new_formula f formula
+        let res = visit_new_formula f formula in
+        bref := false;
+        res
     | Not (_, x) -> visit_new_formula f x
     | Or (_, xs)
     | And (_, { conjuncts = xs; _ }) ->
