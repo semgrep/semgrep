@@ -682,23 +682,21 @@ let resolve lang prog =
                 name_top = None;
               } ->
               (match name_middle with
-              | Some (QDots [ (m, None) ]) -> (
+              | Some (QDots ((m, None) :: rest_of_middle)) -> (
                   match lookup_scope_opt m env with
+                  (* Resolve modules for OCaml *)
                   | Some { entname = ImportedModule (DottedName xs), _sidm; _ }
-                    ->
-                      (* this is quite specific to OCaml *)
+                  (* Resolve classes for use in typed metavars (Java) *)
+                  (* Note that we only need to resolve the first name
+                     because that is the only one that could be
+                     imported *)
+                  | Some { entname = ImportedEntity xs, _sidm; _ } ->
                       (* The entity is fully qualified, no need for sid *)
                       let sid = 0 in
+                      let rest_of_middle = List.map fst rest_of_middle in
                       let resolved =
-                        untyped_ent (ImportedEntity (xs @ [ id ]), sid)
-                      in
-                      set_resolved env id_info resolved
-                  | Some { entname = ImportedEntity xs, _sid; _ } ->
-                      (* Resolve types for use in typed metavars *)
-                      (* Added for Java *)
-                      let sid = 0 in
-                      let resolved =
-                        untyped_ent (ImportedEntity (xs @ [ id ]), sid)
+                        untyped_ent
+                          (ImportedEntity (xs @ rest_of_middle @ [ id ]), sid)
                       in
                       set_resolved env id_info resolved
                   | _ -> ())

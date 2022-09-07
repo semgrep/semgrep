@@ -1,1 +1,1 @@
-(world.Hello.internalB $B).t()
+new world.Hello.internalB.t()
