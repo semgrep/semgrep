@@ -1,1 +1,0 @@
-Fixed a regression introduced with the previous release, involving a bug with `pattern-inside`.

@@ -8,6 +8,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.112.1](https://github.com/returntocorp/semgrep/releases/tag/v0.112.1) - 2022-09-08
+
+### Fixed
+
+- Fixed a regression introduced with the previous release, involving a bug with `pattern-inside`. (gh-6059)
+
 ## [0.112.0](https://github.com/returntocorp/semgrep/releases/tag/v0.112.0) - 2022-09-07
 
 ### Added
