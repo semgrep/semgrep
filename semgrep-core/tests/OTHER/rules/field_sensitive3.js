@@ -1,4 +1,3 @@
-// If `a.b.c` is tainted, then all its prefixes are also tainted
 function f() {
     a.b.c = source
 

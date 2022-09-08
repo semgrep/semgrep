@@ -1,4 +1,5 @@
-// If `a.b` is marked clean, then anything that is prefix of `a.b` should become clean
+// If `a.b` is marked clean, then any l-value that starts with `a.b` should
+// become clean too!
 function f() {
     a.b.c = source
     a.b.d = source
