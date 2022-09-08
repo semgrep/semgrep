@@ -294,10 +294,14 @@ def parse_go_sum(
 def parse_cargo(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
-    def parse_dep(blob: Dict[str, Any]) -> FoundDependency:
-        dep = blob["name"]
-        version = blob["version"]
-        hash = {"sha256": [blob["checksum"]]} if "checksum" in blob else {}
+    def parse_dep(s: str) -> FoundDependency:
+        lines = s.split("\n")[1:]
+        dep = lines[0].split("=")[1].strip()[1:-1]
+        version = lines[1].split("=")[1].strip()[1:-1]
+        if len(lines) >= 3 and lines[3].startswith("checksum"):
+            hash = {"sha256": [lines[3].split("=")[1].strip()[1:-1]]}
+        else:
+            hash = {}
         return FoundDependency(
             package=dep,
             version=version,
@@ -307,8 +311,7 @@ def parse_cargo(
             transitivity=Transitivity(Unknown()),
         )
 
-    lockfile = toml.loads(lockfile_text)
-    deps = lockfile["package"] if "package" in lockfile else []
+    deps = lockfile_text.split("[[package]]")[1:]
     yield from (parse_dep(dep) for dep in deps)
 
 
