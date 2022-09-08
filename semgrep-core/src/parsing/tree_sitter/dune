@@ -17,6 +17,7 @@
    tree-sitter-lang.hcl
    tree-sitter-lang.html
    tree-sitter-lang.java
+   tree-sitter-lang.jsonnet
    tree-sitter-lang.julia
    tree-sitter-lang.kotlin
    tree-sitter-lang.lua

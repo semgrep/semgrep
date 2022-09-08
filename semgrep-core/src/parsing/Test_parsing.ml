@@ -147,6 +147,9 @@ let dump_tree_sitter_cst lang file =
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
+  | Lang.Jsonnet ->
+      Tree_sitter_jsonnet.Parse.file file
+      |> dump_and_print_errors Tree_sitter_jsonnet.CST.dump_tree
   | Lang.Solidity ->
       Tree_sitter_solidity.Parse.file file
       |> dump_and_print_errors Tree_sitter_solidity.CST.dump_tree
@@ -233,6 +236,9 @@ let test_parse_tree_sitter lang root_paths =
                      |> fail_on_error |> ignore
                  | Lang.Js ->
                      Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
+                 | Lang.Jsonnet ->
+                     Tree_sitter_jsonnet.Parse.file file
+                     |> fail_on_error |> ignore
                  | Lang.Ts ->
                      Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
                  | Lang.Rust ->
