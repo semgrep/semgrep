@@ -30,7 +30,7 @@
     <img src="https://img.shields.io/docker/pulls/returntocorp/semgrep.svg?style=flat-square" alt="Docker Pulls" />
   </a>
   <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
-    <img src="https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue" alt="Follow @r2cdev on Twitter" />
+    <img src="https://img.shields.io/twitter/follow/semgrep?label=Follow%20semgrep&style=social&color=blue" alt="Follow @semgrep on Twitter" />
   </a>
 </p>
 </br>

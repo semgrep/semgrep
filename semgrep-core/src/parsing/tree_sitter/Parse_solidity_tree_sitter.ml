@@ -2021,16 +2021,36 @@ and map_statement (env : env) (x : CST.statement) : stmt =
       Continue (tbreak, LNone, sc) |> G.s
   | `Try_stmt (v1, v2, v3, v4, v5) ->
       let ttry = (* "try" *) token env v1 in
+      (* Solidity try statement is a bit unusual, see for example:
+       *   try foo() (Param p1, Param p2) { return p1; } catch { return 1; }
+       * We internally convert part of it in a Lambda below, for the example:
+       *   try ((Param p1, Param p2) -> { return p; })(foo()) catch {...}.
+       * There is no Lambda construct in Solidity so we don't risk
+       * a collision with other constructs.
+       *)
       (* must be an external funcall or contract creation according to doc *)
-      let _eTODO = map_expression env v2 in
-      let _ret_type_TODO =
+      let e = map_expression env v2 in
+      let params =
         match v3 with
-        | Some x -> Some (map_return_type_definition env x)
-        | None -> None
+        | Some x ->
+            let _treturn, params = map_return_type_definition env x in
+            params
+        | None -> []
       in
       let st = map_block_statement env v4 in
+      let fun_ =
+        {
+          fkind = (LambdaKind, ttry);
+          fparams = params;
+          frettype = None;
+          fbody = FBStmt st;
+        }
+      in
+      let lambda = Lambda fun_ |> G.e in
+      let call = Call (lambda, fb [ Arg e ]) |> G.e in
+      let try_stmt = G.exprstmt call in
       let catches = Common.map (map_catch_clause env) v5 in
-      Try (ttry, st, catches, None) |> G.s
+      Try (ttry, try_stmt, catches, None) |> G.s
   | `Ret_stmt (v1, v2, v3) ->
       let tret = (* "return" *) token env v1 in
       let eopt =

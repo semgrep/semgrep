@@ -8,10 +8,10 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 
 === stdout - plain
 
-SCA Summary: 0 Reachable findings, 1 Unreachable finding
+Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
 
 
-Unreachable SCA Findings:
+Unreachable Supply Chain Findings:
 
   poetry.lock 
      supply-chain1
@@ -73,7 +73,7 @@ Scan environment:
 
 Fetching configuration from semgrep.dev
 Fetching rules from https://semgrep.dev/registry.
-Scanning 1 file with 5 python rules.
+Scanning 1 file with 4 python rules.
 
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.

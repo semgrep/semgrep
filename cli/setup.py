@@ -134,14 +134,17 @@ install_requires = [
     "python-lsp-jsonrpc~=1.0.0",
 ]
 
+extras_require = {"experiments": ["jsonnet~=0.18"]}
+
 setuptools.setup(
     name="semgrep",
-    version="0.111.1",
+    version="0.112.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
     cmdclass=cmdclass,
     install_requires=install_requires,
+    extras_require=extras_require,
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",

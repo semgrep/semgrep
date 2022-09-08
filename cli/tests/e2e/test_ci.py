@@ -14,7 +14,7 @@ from tests.e2e.test_baseline import _git_merge
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
 from semgrep.app.session import AppSession
-from semgrep.config_resolver import ConfigPath
+from semgrep.config_resolver import ConfigLoader
 from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
@@ -22,6 +22,7 @@ from semgrep.meta import GitMeta
 
 pytestmark = pytest.mark.kinda_slow
 
+REPO_ORG_NAME = "org_name"
 REPO_DIR_NAME = "project_name"
 AUTHOR_EMAIL = "test_environment@test.r2c.dev"
 AUTHOR_NAME = "Environment Test"
@@ -185,11 +186,6 @@ def automocks(mocker):
           severity: ERROR
           metadata:
             dev.semgrep.actions: ["block"]
-        - id: __r2c-internal-cai_eqeq
-          pattern: $X == 3
-          message: "useless comparison to 3"
-          languages: [python]
-          severity: INFO
         - id: taint-test
           message: "unsafe use of danger"
           languages: [python]
@@ -220,7 +216,7 @@ def automocks(mocker):
         """
     ).lstrip()
 
-    mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
+    mocker.patch.object(ConfigLoader, "_make_config_request", return_value=file_content)
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
@@ -379,6 +375,14 @@ def mock_autofix(request, mocker):
             "TRAVIS_PULL_REQUEST": "35",
             "TRAVIS_COMMIT_MESSAGE": COMMIT_MESSAGE,
         },
+        {  # Special SCM with org in path
+            "CI": "true",
+            "SEMGREP_REPO_NAME": f"{REPO_ORG_NAME}/{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "SEMGREP_REPO_URL": f"https://some.enterprise.url.com/{REPO_ORG_NAME}/{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            # Sent in metadata but no functionality change
+            "SEMGREP_PR_ID": "35",
+            "SEMGREP_BRANCH": BRANCH_NAME,
+        },
     ],
     ids=[
         "local",
@@ -394,6 +398,7 @@ def mock_autofix(request, mocker):
         "azure-pipelines",
         "buildkite",
         "travis",
+        "self-hosted",
     ],
 )
 @pytest.mark.skipif(
@@ -500,21 +505,34 @@ def test_full_run(
 
     snapshot.assert_match(json.dumps(scan_create_json, indent=2), "meta.json")
 
-    findings_json = post_calls[1].kwargs["json"]
-    for f in findings_json["findings"]:
+    findings_and_ignores_json = post_calls[1].kwargs["json"]
+    for f in findings_and_ignores_json["findings"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
-    snapshot.assert_match(json.dumps(findings_json, indent=2), "findings.json")
-
-    ignores_json = post_calls[2].kwargs["json"]
-    for f in ignores_json["findings"]:
+    for f in findings_and_ignores_json["ignores"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
-    snapshot.assert_match(json.dumps(ignores_json, indent=2), "ignores.json")
+    snapshot.assert_match(
+        json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
+    )
 
-    complete_json = post_calls[3].kwargs["json"]
+    complete_json = post_calls[2].kwargs["json"]
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
+
+
+bridge_module_import_line_re = re.compile(
+    r"^Bridge module imported: .*\n", re.MULTILINE
+)
+
+
+def drop_bridge_module_import_line(text: str) -> str:
+    """
+    Remove from 'text' any line that is indicating that the bridge
+    module was loaded.  The test should work either with the bridge or
+    the executable, but the line is present only in the former case.
+    """
+    return bridge_module_import_line_re.sub("", text)
 
 
 def test_github_ci_bad_base_sha(
@@ -635,13 +653,15 @@ def test_github_ci_bad_base_sha(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
                 # Mask variable debug output
-                re.compile(r"/(.*)/semgrep-core"),
+                re.compile(r"/(.*)/semgrep(-core|_bridge_python.so)"),
+                drop_bridge_module_import_line,
                 re.compile(r"loaded 1 configs in(.*)"),
                 re.compile(r".*https://semgrep.dev(.*).*"),
                 re.compile(r"(.*Main\.Dune__exe__Main.*)"),
                 re.compile(r"(.*Main\.Run_semgrep.*)"),
                 re.compile(r"(.*Main\.Common.*)"),
                 re.compile(r"(.*Main\.Parse_target.*)"),
+                re.compile(r"(.*Main\.Cli_lib.*)"),
                 re.compile(r"semgrep ran in (.*) on 1 files"),
                 re.compile(r"\"total_time\":(.*)"),
                 re.compile(r"\"commit_date\":(.*)"),

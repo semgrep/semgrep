@@ -254,6 +254,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Java
     | Js
     | Json
+    | Jsonnet
     | Julia
     | Kotlin
     | Lua

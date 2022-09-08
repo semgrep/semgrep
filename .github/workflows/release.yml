@@ -143,6 +143,8 @@ jobs:
           github_cache_dir="/__w"
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
+      - name: Install python3-config
+        run: sudo apk add python3-dev
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
       - name: Checkout
@@ -163,7 +165,7 @@ jobs:
 
   build-core-osx:
     name: Build the OSX binaries
-    runs-on: macos-10.15
+    runs-on: ["self-hosted", "macOS", "X64"]
     steps:
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
@@ -245,7 +247,7 @@ jobs:
           path: artifacts.tar.gz
 
   build-wheels-osx:
-    runs-on: macos-10.15
+    runs-on: macos-12
     needs: [build-core-osx]
     steps:
       - name: Checkout
@@ -456,7 +458,7 @@ jobs:
     name: Update on Homebrew-Core
     needs: [sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
 
-    runs-on: macos-10.15
+    runs-on: macos-12
     if: ${{ !contains(github.ref,'-test-release') }}
     steps:
       - name: Setup Python

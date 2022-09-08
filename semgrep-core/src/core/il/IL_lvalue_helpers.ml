@@ -13,6 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+open Common
 open IL
 
 (*****************************************************************************)
@@ -24,8 +25,6 @@ open IL
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-let ( let* ) = Option.bind
 
 let lval_of_instr_opt x =
   match x.i with

@@ -40,6 +40,7 @@ type visitor_in = {
   kdef : (definition -> unit) * visitor_out -> definition -> unit;
   kdir : (directive -> unit) * visitor_out -> directive -> unit;
   kparam : (parameter -> unit) * visitor_out -> parameter -> unit;
+  ktparam : (type_parameter -> unit) * visitor_out -> type_parameter -> unit;
   kcatch : (catch -> unit) * visitor_out -> catch -> unit;
   kident : (ident -> unit) * visitor_out -> ident -> unit;
   kname : (name -> unit) * visitor_out -> name -> unit;
@@ -68,6 +69,7 @@ let default_visitor =
     kdir = (fun (k, _) x -> k x);
     kattr = (fun (k, _) x -> k x);
     kparam = (fun (k, _) x -> k x);
+    ktparam = (fun (k, _) x -> k x);
     kcatch = (fun (k, _) x -> k x);
     kident = (fun (k, _) x -> k x);
     kname = (fun (k, _) x -> k x);
@@ -630,13 +632,17 @@ let (mk_visitor :
    *)
   and v_todo_kind (_str, tok) = v_tok tok
   and v_other_type_operator _ = ()
-  and v_type_parameter = function
-    | TParamEllipsis v1 -> v_tok v1
-    | TP v1 -> v_type_parameter_classic v1
-    | OtherTypeParam (t, xs) ->
-        let t = v_todo_kind t in
-        let xs = v_list v_any xs in
-        ()
+  and v_type_parameter x =
+    let k x =
+      match x with
+      | TParamEllipsis v1 -> v_tok v1
+      | TP v1 -> v_type_parameter_classic v1
+      | OtherTypeParam (t, xs) ->
+          let t = v_todo_kind t in
+          let xs = v_list v_any xs in
+          ()
+    in
+    vin.ktparam (k, all_functions) x
   and v_type_parameter_classic
       {
         tp_id = v1;
@@ -688,6 +694,7 @@ let (mk_visitor :
     in
     vin.kstmts (k, all_functions) xs
   and v_cases_and_body x =
+    v_partial ~recurse:false (PartialSwitchCase x);
     match x with
     | CasesAndBody (v1, v2) ->
         let v1 = v_list v_case v1 and v2 = v_stmt v2 in
@@ -1010,6 +1017,7 @@ let (mk_visitor :
             v_tok v2;
             v_expr v3)
       | PartialLambdaOrFuncDef v1 -> if recurse then v_function_definition v1
+      | PartialSwitchCase v1 -> if recurse then v_cases_and_body v1
     in
     vin.kpartial (k, all_functions) x
   and v_entity x =

@@ -60,7 +60,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *
  *   Why not returning a binding option ? because we need sometimes
  *   to return multiple possible bindings for one matching code.
- *   For instance with the pattern do 'f(..., $X, ...)', $X could be binded
+ *   For instance with the pattern do 'f(..., $X, ...)', $X could be bound
  *   to different parts of the code.
  *
  *   Note that the empty list means a match failure.
@@ -208,7 +208,7 @@ let extend_stmts_match_span rightmost_stmt (env : tin) =
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
  *)
-let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
+let rec equal_ast_bound_code (config : Config_semgrep.t) (a : MV.mvalue)
     (b : MV.mvalue) : bool =
   let res =
     match (a, b) with
@@ -306,10 +306,10 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
          * (this is useful in the Javascript transpilation context of
          * complex pattern parameter).
          *)
-        equal_ast_binded_code config a (MV.Id (b_id, Some b_id_info))
+        equal_ast_bound_code config a (MV.Id (b_id, Some b_id_info))
     (* TODO: we should get rid of that too, we should properly bind to MV.N *)
     | MV.E { e = G.N (G.Id (a_id, a_id_info)); _ }, MV.Id _ ->
-        equal_ast_binded_code config (MV.Id (a_id, Some a_id_info)) b
+        equal_ast_bound_code config (MV.Id (a_id, Some a_id_info)) b
     | _, _ -> false
   in
 
@@ -327,7 +327,7 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
        * Moreover here we know both valu and valu' are regular code,
        * not patterns, so we can just use the generic '=' of OCaml.
        *)
-      if equal_ast_binded_code tin.config valu valu' then Some tin
+      if equal_ast_bound_code tin.config valu valu' then Some tin
         (* valu remains the metavar witness *)
       else None
   | None ->

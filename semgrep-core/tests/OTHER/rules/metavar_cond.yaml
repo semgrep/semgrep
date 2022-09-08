@@ -3,8 +3,7 @@ rules:
   languages:
   - python
   match:
-    and:
-    - foo($ARG)
+    pattern: foo($ARG)
     where:
     - metavariable: $ARG
       regex: .*bar.*

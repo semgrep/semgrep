@@ -1,0 +1,9 @@
+rules:
+- id: find-propagated-exp 
+  options:
+    symbolic_propagation: true
+  pattern: f(g(2))
+  message: Test
+  languages:
+  - javascript 
+  severity: WARNING

@@ -51,12 +51,12 @@ let mk_var_or_func tlet params tret body =
   | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E { e = G.Lambda def; _ } ]) ->
       G.FuncDef def
   | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) ->
-      G.VarDef { G.vinit = Some e; vtype = None }
+      G.VarDef { G.vinit = Some e; vtype = tret }
   (* this is useful only for Ellipsis and DeepEllipsis for now, but
    * it could handle more later.
    *)
-  | [], G.ExprStmt (x, _sc) -> G.VarDef { G.vinit = Some x; vtype = None }
-  | [], _st -> G.VarDef { G.vinit = Some (G.stmt_to_expr body); vtype = None }
+  | [], G.ExprStmt (x, _sc) -> G.VarDef { G.vinit = Some x; vtype = tret }
+  | [], _st -> G.VarDef { G.vinit = Some (G.stmt_to_expr body); vtype = tret }
   | _ :: _, _body ->
       G.FuncDef
         {

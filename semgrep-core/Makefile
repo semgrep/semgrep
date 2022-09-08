@@ -5,6 +5,10 @@
 # Set environment variables used by dune files to locate the
 # C headers and libraries of the tree-sitter runtime library.
 # This file is created by ocaml-tree-sitter-core's configure script.
+#
+# Because of these required environment variables, we can't call dune directly
+# to build semgrep-core.
+#
 include src/ocaml-tree-sitter-core/tree-sitter-config.mk
 
 .PHONY: all
@@ -43,6 +47,10 @@ install:
 	dune install
 	rm -f ../cli/src/semgrep/bin/semgrep-core
 	cp _build/install/default/bin/semgrep-core ../cli/src/semgrep/bin/
+	rm -f ../cli/src/semgrep/bin/semgrep_bridge_core.so
+	cp _build/install/default/bin/semgrep_bridge_core.so ../cli/src/semgrep/bin/
+	rm -f ../cli/src/semgrep/bin/semgrep_bridge_python.so
+	cp _build/install/default/bin/semgrep_bridge_python.so ../cli/src/semgrep/bin/
 
 ###############################################################################
 # Developer targets
@@ -57,6 +65,17 @@ dev:
 	rm -f ../cli/src/semgrep/bin/semgrep-core
 	ln -s ../../../../semgrep-core/bin/semgrep-core \
 	  ../cli/src/semgrep/bin/semgrep-core
+	rm -f ../cli/src/semgrep/bin/semgrep_bridge_core.so
+	ln -s ../../../../semgrep-core/bin/semgrep_bridge_core.so \
+	  ../cli/src/semgrep/bin/semgrep_bridge_core.so
+	rm -f ../cli/src/semgrep/bin/semgrep_bridge_python.so
+	ln -s ../../../../semgrep-core/bin/semgrep_bridge_python.so \
+	  ../cli/src/semgrep/bin/semgrep_bridge_python.so
+
+# Run utop with all the semgrep-core libraries loaded.
+.PHONY: utop
+utop:
+	dune utop
 
 .PHONY: e2etest
 e2etest:

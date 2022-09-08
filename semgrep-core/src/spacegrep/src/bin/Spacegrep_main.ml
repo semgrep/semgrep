@@ -77,83 +77,85 @@ let run_all ~search_param ~debug ~force ~warn ~comment_style patterns docs :
   let num_matches = ref 0 in
   let skipped = ref [] in
   let matches =
-    List.filter_map
-      (fun (get_doc_src : ?max_len:int -> unit -> Src_file.t) ->
-        let matches, run_time =
-          Match.timef (fun () ->
-              (*
+    docs
+    |> List.filter_map
+         (fun (get_doc_src : ?max_len:int -> unit -> Src_file.t) ->
+           let matches, run_time =
+             Match.timef (fun () ->
+                 (*
                  We inspect the first 4096 bytes to guess whether the
                  file type. This saves time on large files, by reading
                  typically just one block from the file system.
               *)
-              let peek_length = 4096 in
-              let partial_doc_src = get_doc_src ~max_len:peek_length () in
-              let doc_type = File_type.classify partial_doc_src in
-              incr num_files;
-              let path = Src_file.source_string partial_doc_src in
-              match (doc_type, force) with
-              | Minified, false ->
-                  if warn then eprintf "ignoring minified file: %s\n%!" path;
-                  skipped :=
-                    {
-                      path;
-                      reason = Minified;
-                      details =
-                        "not a source file: target file appears to be minified";
-                    }
-                    :: !skipped;
-                  None
-              | Binary, false ->
-                  if warn then eprintf "ignoring gibberish file: %s\n%!" path;
-                  skipped :=
-                    {
-                      path;
-                      reason = Binary;
-                      details = "target looks like a binary file";
-                    }
-                    :: !skipped;
-                  None
-              | _ -> (
-                  incr num_analyzed;
-                  let doc_src =
-                    if Src_file.length partial_doc_src < peek_length then
-                      (* it's actually complete, no need to re-input the file *)
-                      partial_doc_src
-                    else get_doc_src ()
-                  in
-                  if debug then
-                    printf "parse document: %s\n%!"
-                      (Src_file.source_string doc_src);
-                  let doc, parse_time =
-                    Match.timef (fun () -> parse_doc comment_style doc_src)
-                  in
-                  let matches_in_file =
-                    List.mapi
-                      (fun pat_id (pat_src, pat) ->
-                        if debug then
-                          printf
-                            "match document from %s against pattern from %s\n%!"
-                            (Src_file.source_string doc_src)
-                            (Src_file.source_string pat_src);
-                        let matches_for_pat, match_time =
-                          Match.timed_search search_param doc_src pat doc
-                        in
-                        num_matches :=
-                          !num_matches + List.length matches_for_pat;
-                        (pat_id, matches_for_pat, match_time))
-                      patterns
-                  in
-                  match matches_in_file with
-                  | [] -> None
-                  | _ ->
-                      incr num_matching_files;
-                      Some (doc_src, matches_in_file, parse_time)))
-        in
-        match matches with
-        | None -> None
-        | Some (doc_src, matches_in_file, parse_time) ->
-            Some (doc_src, matches_in_file, parse_time, run_time))
-      docs
+                 let peek_length = 4096 in
+                 let partial_doc_src = get_doc_src ~max_len:peek_length () in
+                 let doc_type = File_type.classify partial_doc_src in
+                 incr num_files;
+                 let path = Src_file.source_string partial_doc_src in
+                 match (doc_type, force) with
+                 | Minified, false ->
+                     if warn then eprintf "ignoring minified file: %s\n%!" path;
+                     skipped :=
+                       {
+                         path;
+                         reason = Minified;
+                         details =
+                           "not a source file: target file appears to be \
+                            minified";
+                       }
+                       :: !skipped;
+                     None
+                 | Binary, false ->
+                     if warn then eprintf "ignoring gibberish file: %s\n%!" path;
+                     skipped :=
+                       {
+                         path;
+                         reason = Binary;
+                         details = "target looks like a binary file";
+                       }
+                       :: !skipped;
+                     None
+                 | _ -> (
+                     incr num_analyzed;
+                     let doc_src =
+                       if Src_file.length partial_doc_src < peek_length then
+                         (* it's actually complete, no need to re-input the file *)
+                         partial_doc_src
+                       else get_doc_src ()
+                     in
+                     if debug then
+                       printf "parse document: %s\n%!"
+                         (Src_file.source_string doc_src);
+                     let doc, parse_time =
+                       Match.timef (fun () -> parse_doc comment_style doc_src)
+                     in
+                     let matches_in_file =
+                       List.mapi
+                         (fun pat_id (pat_src, pat) ->
+                           if debug then
+                             printf
+                               "match document from %s against pattern from %s\n\
+                                %!"
+                               (Src_file.source_string doc_src)
+                               (Src_file.source_string pat_src);
+                           let matches_for_pat, match_time =
+                             Match.timed_search search_param doc_src pat doc
+                           in
+                           num_matches :=
+                             !num_matches + List.length matches_for_pat;
+                           (pat_id, matches_for_pat, match_time))
+                         patterns
+                     in
+                     match matches_in_file with
+                     | [] -> None
+                     | _ ->
+                         incr num_matching_files;
+                         Some (doc_src, matches_in_file, parse_time)))
+           in
+           match matches with
+           | None -> None
+           | Some (doc_src, matches_in_file, parse_time) ->
+               Some (doc_src, matches_in_file, parse_time, run_time))
   in
   {
     matches;

@@ -462,89 +462,102 @@ and new_id env tok = str env tok
 
 and primary_expression (env : env) (x : CST.primary_expression) =
   match x with
-  | `Lit x -> Literal (literal env x)
-  | `Class_lit (v1, v2, v3) ->
-      let v1 = unannotated_type env v1 in
-      let _v2 = token env v2 (* "." *) in
-      let v3 = token env v3 (* "class" *) in
-      ClassLiteral (v1, v3)
-  | `This tok -> This (token env tok) (* "this" *)
-  | `Id tok -> name_of_id env tok (* pattern [a-zA-Z_]\w* *)
-  | `Choice_open x -> (
+  | `Semg_ellips tok ->
+      let tok = (* "..." *) token env tok in
+      Ellipsis tok
+  | `Choice_lit x -> (
       match x with
-      | `Open tok -> name_of_id env tok (* "open" *)
-      | `Module tok -> name_of_id env tok (* "module" *))
-  | `Paren_exp x -> parenthesized_expression env x
-  | `Obj_crea_exp x -> object_creation_expression env x
-  | `Field_access x -> field_access env x
-  | `Array_access x -> array_access env x
-  | `Meth_invo (v1, v2) ->
-      let v1 =
-        match v1 with
-        | `Choice_id x ->
-            let id = id_extra env x in
-            NameId id
-        | `Choice_prim_exp_DOT_opt_super_DOT_opt_type_args_choice_id
-            (v1, v2, v3, v4, v5) ->
-            let v1 =
-              match v1 with
-              | `Prim_exp x -> primary_expression env x
-              | `Super tok -> super env tok
-              (* "super" *)
-            in
-            let v2 = token env v2 (* "." *) in
-            let v3 =
-              match v3 with
-              | Some (v1bis, v2bis) ->
-                  let v1bis = super_id_field env v1bis (* "super" *) in
-                  let v2bis = token env v2bis (* "." *) in
-                  fun v5 -> Dot (Dot (v1, v2, v1bis), v2bis, v5)
-              | None -> fun v5 -> Dot (v1, v2, v5)
-            in
-            let _v4TODO = option (type_arguments env) v4 in
-            let v5 = id_extra env v5 in
-            v3 v5
-      in
-      let v2 = argument_list env v2 in
-      Call (v1, v2)
-  | `Meth_ref (v1, v2, v3, v4) ->
-      let v1 =
-        match v1 with
-        | `Type x ->
-            let t = type_ env x in
-            Right t
-        | `Prim_exp x -> Left (primary_expression env x)
-        | `Super tok -> Left (super env tok)
-        (* "super" *)
-      in
-      let v2 = token env v2 (* "::" *) in
-      let v3 = option (type_arguments env) v3 in
-      let v4 =
-        match v4 with
-        | `New tok -> new_id env tok (* "new" *)
-        | `Id tok -> str env tok
-        (* pattern [a-zA-Z_]\w* *)
-      in
-      MethodRef (v1, v2, v3, v4)
-  | `Array_crea_exp (v1, v2, v3) ->
-      let v1 = token env v1 (* "new" *) in
-      let v2 = basic_type_extra env v2 in
-      let exprs, dims, init =
-        match v3 with
-        | `Rep1_dimens_expr_opt_dimens (v1, v2) ->
-            let v1 = Common.map (dimensions_expr env) v1 in
-            let v2 =
-              match v2 with
-              | Some x -> dimensions env x
-              | None -> []
-            in
-            (v1, v2, None)
-        | `Dimens_array_init (v1, v2) ->
-            let v1 = dimensions env v1 in
-            let v2 = array_initializer env v2 in
-            ([], v1, Some (ArrayInit v2))
-      in
-      NewArray (v1, v2, exprs, List.length dims, init)
+      | `Lit x -> Literal (literal env x)
+      | `Class_lit (v1, v2, v3) ->
+          let v1 = unannotated_type env v1 in
+          let _v2 = token env v2 (* "." *) in
+          let v3 = token env v3 (* "class" *) in
+          ClassLiteral (v1, v3)
+      | `This tok -> This (token env tok) (* "this" *)
+      | `Id tok -> name_of_id env tok (* pattern [a-zA-Z_]\w* *)
+      | `Choice_open x -> (
+          match x with
+          | `Open tok -> name_of_id env tok (* "open" *)
+          | `Module tok -> name_of_id env tok (* "module" *))
+      | `Paren_exp x -> parenthesized_expression env x
+      | `Obj_crea_exp x -> object_creation_expression env x
+      | `Field_access x -> (
+          let e = field_access env x in
+          (* TODO: this should not be needed if the issue below was fixed:
+           * https://github.com/tree-sitter/tree-sitter-java/issues/121
+           *)
+          match e with
+          | Dot (NameId id, _tdot, ("class", tclass)) ->
+              ClassLiteral (TClass [ (id, None) ], tclass)
+          | _ -> e)
+      | `Array_access x -> array_access env x
+      | `Meth_invo (v1, v2) ->
+          let v1 =
+            match v1 with
+            | `Choice_id x ->
+                let id = id_extra env x in
+                NameId id
+            | `Choice_prim_exp_DOT_opt_super_DOT_opt_type_args_choice_id
+                (v1, v2, v3, v4, v5) ->
+                let v1 =
+                  match v1 with
+                  | `Prim_exp x -> primary_expression env x
+                  | `Super tok -> super env tok
+                  (* "super" *)
+                in
+                let v2 = token env v2 (* "." *) in
+                let v3 =
+                  match v3 with
+                  | Some (v1bis, v2bis) ->
+                      let v1bis = super_id_field env v1bis (* "super" *) in
+                      let v2bis = token env v2bis (* "." *) in
+                      fun v5 -> Dot (Dot (v1, v2, v1bis), v2bis, v5)
+                  | None -> fun v5 -> Dot (v1, v2, v5)
+                in
+                let _v4TODO = option (type_arguments env) v4 in
+                let v5 = id_extra env v5 in
+                v3 v5
+          in
+          let v2 = argument_list env v2 in
+          Call (v1, v2)
+      | `Meth_ref (v1, v2, v3, v4) ->
+          let v1 =
+            match v1 with
+            | `Type x ->
+                let t = type_ env x in
+                Right t
+            | `Prim_exp x -> Left (primary_expression env x)
+            | `Super tok -> Left (super env tok)
+            (* "super" *)
+          in
+          let v2 = token env v2 (* "::" *) in
+          let v3 = option (type_arguments env) v3 in
+          let v4 =
+            match v4 with
+            | `New tok -> new_id env tok (* "new" *)
+            | `Id tok -> str env tok
+            (* pattern [a-zA-Z_]\w* *)
+          in
+          MethodRef (v1, v2, v3, v4)
+      | `Array_crea_exp (v1, v2, v3) ->
+          let v1 = token env v1 (* "new" *) in
+          let v2 = basic_type_extra env v2 in
+          let exprs, dims, init =
+            match v3 with
+            | `Rep1_dimens_expr_opt_dimens (v1, v2) ->
+                let v1 = Common.map (dimensions_expr env) v1 in
+                let v2 =
+                  match v2 with
+                  | Some x -> dimensions env x
+                  | None -> []
+                in
+                (v1, v2, None)
+            | `Dimens_array_init (v1, v2) ->
+                let v1 = dimensions env v1 in
+                let v2 = array_initializer env v2 in
+                ([], v1, Some (ArrayInit v2))
+          in
+          NewArray (v1, v2, exprs, List.length dims, init))
 
 and dimensions_expr (env : env) ((v1, v2, v3, v4) : CST.dimensions_expr) =
   let _v1 = Common.map (annotation env) v1 in
@@ -1792,15 +1805,20 @@ and formal_parameters (env : env) ((v1, v2, v3, v4) : CST.formal_parameters) =
   let _v4 = token env v4 (* ")" *) in
   v2 @ v3
 
-and formal_parameter (env : env) ((v1, v2, v3) : CST.formal_parameter) =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
-  let v2 = unannotated_type env v2 in
-  let v3 = variable_declarator_id env v3 in
-  ParamClassic (AST.canon_var v1 (Some v2) v3)
+and formal_parameter (env : env) (x : CST.formal_parameter) =
+  match x with
+  | `Opt_modifs_unan_type_var_decl_id (v1, v2, v3) ->
+      let v1 =
+        match v1 with
+        | Some x -> modifiers env x
+        | None -> []
+      in
+      let v2 = unannotated_type env v2 in
+      let v3 = variable_declarator_id env v3 in
+      ParamClassic (AST.canon_var v1 (Some v2) v3)
+  | `Semg_ellips tok ->
+      let tok = (* "..." *) token env tok in
+      ParamEllipsis tok
 
 and receiver_parameter (env : env) ((v1, v2, v3, v4) : CST.receiver_parameter) =
   let _v1 = Common.map (annotation env) v1 in
@@ -1871,9 +1889,13 @@ and method_declaration (env : env) ((v1, v2, v3) : CST.method_declaration) =
   let _tparams, t, id, params, throws = v2 in
   { (AST.method_header v1 t (IdentDecl id, params) throws) with m_body = v3 }
 
-let program (env : env) file (xs : CST.program) =
-  let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
-  Common.map (statement env ~tok) xs
+let program (env : env) file (x : CST.program) =
+  match x with
+  | `Rep_stmt xs ->
+      let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
+      AProgram (Common.map (statement env ~tok) xs)
+  | `Cons_decl x -> AStmt (DeclStmt (Method (constructor_declaration env x)))
+  | `Exp x -> AExpr (expression env x)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -1884,4 +1906,14 @@ let parse file =
     (fun () -> Tree_sitter_java.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+      match program env file cst with
+      | AProgram xs -> xs
+      | _ -> failwith "not a program")
+
+let parse_pattern str =
+  H.wrap_parser
+    (fun () -> Tree_sitter_java.Parse.string str)
+    (fun cst ->
+      let file = "<pattern>" in
+      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
       program env file cst)

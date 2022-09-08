@@ -68,7 +68,7 @@ let single_or_tuple e xs =
 (* Disable warnings against unused variables *)
 [@@@warning "-26-27"]
 
-let todo (env : env) _ = failwith "not implemented"
+let _todo (env : env) _ = failwith "not implemented"
 let _complicated (env : env) _ = failwith "not implemented"
 
 let map_keyword_identifier (env : env) (x : CST.keyword_identifier) : name =
@@ -439,7 +439,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v1 = map_type_ env v1 in
       let v2 = (* "as" *) token env v2 in
       let v3 = map_type_ env v3 in
-      todo env (v1, v2, v3)
+      invalid ()
 
 and map_expression_list (env : env) ((v1, v2) : CST.expression_list) : expr list
     =
@@ -1139,8 +1139,9 @@ let map_decorator (env : env) ((v1, v2, v3) : CST.decorator) =
   let get_dotted_name x = List.rev (get_dotted_name_rev x) in
   let dotted_name, args =
     match v2 with
-    (* We won't support this for now. *)
-    | `Call (e, `Gene_exp _) -> todo env ()
+    | `Call (e, `Gene_exp x) ->
+        let x = map_generator_expression env x in
+        (get_dotted_name e, Some (fb [ Arg x ]))
     | `Call (e, `Arg_list args) ->
         (get_dotted_name e, Some (map_argument_list env args))
     | _ -> (get_dotted_name v2, None)

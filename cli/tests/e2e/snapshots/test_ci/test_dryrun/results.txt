@@ -8,10 +8,10 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 
 === stdout - plain
 
-SCA Summary: 0 Reachable findings, 1 Unreachable finding
+Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
 
 
-Unreachable SCA Findings:
+Unreachable Supply Chain Findings:
 
   poetry.lock 
      supply-chain1
@@ -59,7 +59,7 @@ Scan environment:
 Fetching configuration from semgrep.dev
 Would have sent POST request to create scan
 Authenticated as org_name
-Scanning 1 file with 5 python rules.
+Scanning 1 file with 4 python rules.
 
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
@@ -67,7 +67,7 @@ Some files were skipped or only partially analyzed.
 CI scan completed successfully.
   Found 8 findings (6 blocking) from 6 rules.
   Uploading findings to Semgrep App.
-Would have sent findings blob: {
+Would have sent findings and ignores blob: {
     "token": null,
     "gitlab_token": null,
     "findings": [
@@ -206,22 +206,6 @@ Would have sent findings blob: {
             "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1"
         },
         {
-            "check_id": "__r2c-internal-cai_eqeq",
-            "path": "foo.py",
-            "line": 21,
-            "column": 5,
-            "end_line": 21,
-            "end_column": 16,
-            "message": "useless comparison to 3",
-            "severity": 0,
-            "index": 0,
-            "commit_date": <MASKED>
-            "syntactic_id": "985498b46aff45ebdffe6a26af8524ab",
-            "metadata": {},
-            "is_blocking": true,
-            "match_based_id": "428d340d1be54b3f1fbc781d56aef28eb2092d3f140cab3a5d03ad7a769e21803c79eb728c18dce723226b7f224e8f688395081ca05d48bc2c1590d312d26fca_0"
-        },
-        {
             "check_id": "taint-test",
             "path": "foo.py",
             "line": 27,
@@ -324,12 +308,7 @@ Would have sent findings blob: {
         "supply-chain1",
         "supply-chain2"
     ],
-    "cai_ids": [
-        "__r2c-internal-cai_eqeq"
-    ]
-}
-Would have sent ignores blob: {
-    "findings": [
+    "ignores": [
         {
             "check_id": "eqeq-bad",
             "path": "foo.py",
@@ -421,7 +400,7 @@ Would have sent ignores blob: {
 Would have sent complete blob: {
     "exit_code": 1,
     "stats": {
-        "findings": 11,
+        "findings": 10,
         "errors": [],
         "total_time": <MASKED>
         "unsupported_exts": {

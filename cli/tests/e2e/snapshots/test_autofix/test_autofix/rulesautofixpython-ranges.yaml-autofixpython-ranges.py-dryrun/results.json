@@ -211,6 +211,170 @@
         "line": 5,
         "offset": 49
       }
+    },
+    {
+      "check_id": "rules.autofix.range-test",
+      "end": {
+        "col": 9,
+        "line": 6,
+        "offset": 69
+      },
+      "extra": {
+        "fingerprint": "a86a52b2849e7a68109786c88d302b5cfc7a22aae0e8fe435f2897b958edd1f53f8cb86e452038b4cc3441711e98b0d152b3a8756abb5d372a061be67fe8a075_0",
+        "fix": "bar([1])",
+        "fixed_lines": [
+          "bar([1])"
+        ],
+        "is_ignored": false,
+        "lines": "foo([1])",
+        "message": "change it",
+        "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "[1]",
+            "end": {
+              "col": 8,
+              "line": 6,
+              "offset": 68
+            },
+            "start": {
+              "col": 5,
+              "line": 6,
+              "offset": 65
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/autofix/python-ranges.py",
+      "start": {
+        "col": 1,
+        "line": 6,
+        "offset": 61
+      }
+    },
+    {
+      "check_id": "rules.autofix.range-test",
+      "end": {
+        "col": 12,
+        "line": 7,
+        "offset": 81
+      },
+      "extra": {
+        "fingerprint": "2674dc1c4d71f0f347362a2152a2bf1eb579e6f35fab08511fda60c95317374dab399d43c68a88fb2b7b6a8a3239b2b1d394950337f01f304573a2e97a3912be_0",
+        "fix": "bar([1, 2])",
+        "fixed_lines": [
+          "bar([1, 2])"
+        ],
+        "is_ignored": false,
+        "lines": "foo([1, 2])",
+        "message": "change it",
+        "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "[1 2]",
+            "end": {
+              "col": 11,
+              "line": 7,
+              "offset": 80
+            },
+            "start": {
+              "col": 5,
+              "line": 7,
+              "offset": 74
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/autofix/python-ranges.py",
+      "start": {
+        "col": 1,
+        "line": 7,
+        "offset": 70
+      }
+    },
+    {
+      "check_id": "rules.autofix.range-test",
+      "end": {
+        "col": 10,
+        "line": 8,
+        "offset": 91
+      },
+      "extra": {
+        "fingerprint": "4d762c31d17b326be1d279a92f743a2e957e5373cebcb16e3baa78e620acb1941129d451a4adfb3df5e4f46fa3b598cfabe729e11f4596cfe0bde1b83f486fe7_0",
+        "fix": "bar(x[1])",
+        "fixed_lines": [
+          "bar(x[1])"
+        ],
+        "is_ignored": false,
+        "lines": "foo(x[1])",
+        "message": "change it",
+        "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "x[1]",
+            "end": {
+              "col": 9,
+              "line": 8,
+              "offset": 90
+            },
+            "start": {
+              "col": 5,
+              "line": 8,
+              "offset": 86
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/autofix/python-ranges.py",
+      "start": {
+        "col": 1,
+        "line": 8,
+        "offset": 82
+      }
+    },
+    {
+      "check_id": "rules.autofix.range-test",
+      "end": {
+        "col": 13,
+        "line": 9,
+        "offset": 104
+      },
+      "extra": {
+        "fingerprint": "9e37fe43065974b24e36178e30b2a71c566aa71fdfd626f0266a34ef0d78f6691031be71dd6261fa9675c4ae7cf5a03fb59b72a1a9c24864752d80ff93da2d27_0",
+        "fix": "bar(x[1, 2])",
+        "fixed_lines": [
+          "bar(x[1, 2])"
+        ],
+        "is_ignored": false,
+        "lines": "foo(x[1, 2])",
+        "message": "change it",
+        "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "x[1 2]",
+            "end": {
+              "col": 12,
+              "line": 9,
+              "offset": 103
+            },
+            "start": {
+              "col": 5,
+              "line": 9,
+              "offset": 96
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/autofix/python-ranges.py",
+      "start": {
+        "col": 1,
+        "line": 9,
+        "offset": 92
+      }
     }
   ],
   "version": "0.42"

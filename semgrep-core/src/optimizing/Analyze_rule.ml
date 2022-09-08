@@ -133,13 +133,12 @@ let option_map f xs =
 let rec (remove_not : Rule.formula -> Rule.formula option) =
  fun f ->
   match f with
-  | R.And { conj_tok = t; conjuncts = xs; conditions = conds; focus } ->
+  | R.And (t, { conjuncts = xs; conditions = conds; focus }) ->
       let ys = Common.map_filter remove_not xs in
       if null ys then (
         logger#warning "null And after remove_not";
         None)
-      else
-        Some (R.And { conj_tok = t; conjuncts = ys; conditions = conds; focus })
+      else Some (R.And (t, { conjuncts = ys; conditions = conds; focus }))
   | R.Or (t, xs) ->
       (* See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map remove_not xs in
@@ -240,23 +239,25 @@ let rec (cnf : Rule.formula -> cnf_step0) =
   | R.Inside (_, formula) -> cnf formula
   | R.Taint (t, { sources; sinks; _ }) ->
       R.And
-        {
-          conj_tok = t;
-          conjuncts =
-            [
-              R.Or
-                ( t,
-                  Common.map
-                    (fun source -> source.R.source_formula)
-                    (sources |> snd) );
-              R.Or
-                (t, Common.map (fun sink -> sink.R.sink_formula) (sinks |> snd));
-            ];
-          conditions = [];
-          focus = [];
-        }
+        ( t,
+          {
+            conjuncts =
+              [
+                R.Or
+                  ( t,
+                    Common.map
+                      (fun source -> source.R.source_formula)
+                      (sources |> snd) );
+                R.Or
+                  ( t,
+                    Common.map (fun sink -> sink.R.sink_formula) (sinks |> snd)
+                  );
+              ];
+            conditions = [];
+            focus = [];
+          } )
       |> cnf
-  | R.And { conjuncts = xs; conditions = conds; _ } ->
+  | R.And (_, { conjuncts = xs; conditions = conds; _ }) ->
       let ys = Common.map cnf xs in
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
       And (ys @ zs |> Common.map (function And ors -> ors) |> List.flatten)

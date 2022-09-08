@@ -84,6 +84,17 @@ val exec_all :
   string ->
   (Pcre.substrings array, Pcre.error) result
 
+(* Return all captured subgroups as strings.
+   This is useful for debugging in utop. *)
+val exec_to_strings :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  ?rex:Pcre.regexp ->
+  ?pos:int ->
+  ?callout:Pcre.callout ->
+  string ->
+  (string array array, Pcre.error) result
+
 (* Return '[| |]' in case of a PCRE error. The error is logged. *)
 val exec_all_noerr :
   ?iflags:Pcre.irflag ->

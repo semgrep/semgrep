@@ -324,7 +324,8 @@ let text_of_binding mvar mval =
           Some (Range.content_at_range file range))
 
 let string_of_binding mvar mval =
-  Option.bind (text_of_binding mvar mval) @@ fun x -> Some (mvar, AST x)
+  let* x = text_of_binding mvar mval in
+  Some (mvar, AST x)
 
 let bindings_to_env (config : Config_semgrep.t) bindings =
   let constant_propagation = config.constant_propagation in
@@ -406,7 +407,7 @@ let eval_bool env e =
         logger#trace "not a boolean: %s" (show_value res);
         false
   with
-  (* this can happen when a metavar is binded to a complex expression,
+  (* this can happen when a metavar is bound to a complex expression,
    * in which case it's filtered in bindings_to_env(), in which case
    * it generates a NotInEnv when we run eval with such an environment.
    *)
