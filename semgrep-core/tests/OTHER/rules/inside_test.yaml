@@ -1,0 +1,16 @@
+rules:
+- id: inside-test 
+  languages:
+    - go
+  message: inside should work properly here! 
+  patterns:
+    - pattern-inside: func $FUNCNAME(...) { ... }
+    - pattern-either:
+        - pattern: |
+            x := $VALUE
+            ...
+            if cond { ... }
+    - pattern-not: |
+        x = $OTHERVALUE
+        ...
+  severity: WARNING
