@@ -543,6 +543,10 @@ and nested_formula_has_matches env formula opt_context =
 (* Formula evaluation *)
 (*****************************************************************************)
 
+(* Evaluating a formula may yield taint information, which includes info for debugging taint.
+   This used to happen on a per-rule basis, when we had taint mode, but now it may occur multiple times,
+   so we should collect all the instances together.
+*)
 and evaluate_formula_with_taint_info (env : env) (opt_context : RM.t option)
     (e : R.formula) :
     RM.ranges

@@ -159,8 +159,8 @@ let find_sanitizers_matches evaluate_fn (specs : R.taint_sanitizer list) :
            range_w_metas_of_pformula evaluate_fn sanitizer.R.sanitizer_formula
          in
          ( ranges
-           |> Common.map (fun pf ->
-                  (sanitizer.R.not_conflicting, pf, sanitizer)),
+           |> Common.map (fun x ->
+                  (sanitizer.Rule.not_conflicting, x, sanitizer)),
            exps ))
 
 (* Finds all matches of `pattern-propagators`. *)

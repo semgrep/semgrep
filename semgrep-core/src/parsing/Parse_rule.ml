@@ -1168,7 +1168,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       `Search
         (R.Taint
-           ( G.fake "xd",
+           ( G.fake "taint",
              {
                sources;
                propagators =

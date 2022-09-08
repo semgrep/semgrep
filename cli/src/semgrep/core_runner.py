@@ -980,9 +980,7 @@ class CoreRunner:
 
         parsed_errors = []
 
-        with tempfile.NamedTemporaryFile(
-            "w", suffix=".yaml", delete=False
-        ) as rule_file:
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml") as rule_file:
 
             yaml = YAML()
             yaml.dump(
@@ -999,8 +997,6 @@ class CoreRunner:
                 ]
                 + list(configs)
             )
-
-            print(f"{' '.join(cmd)}")
 
             runner = StreamingSemgrepCore(cmd, 1)  # only scanning combined rules
             returncode = runner.execute()

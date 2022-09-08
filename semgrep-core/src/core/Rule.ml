@@ -378,8 +378,7 @@ let visit_new_formula f formula =
     match formula with
     | P p -> f p !bref
     | Inside (_, formula) ->
-        bref := true;
-        visit_new_formula f formula
+        Common.save_excursion bref true (fun () -> visit_new_formula f formula)
     | Taint (_, { sources; propagators; sanitizers; sinks }) ->
         let apply g l =
           Common.map (g (visit_new_formula f)) l |> ignore;
