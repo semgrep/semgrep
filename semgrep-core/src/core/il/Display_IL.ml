@@ -1,17 +1,22 @@
 open IL
 
-let string_of_lval x =
-  (match x.base with
-  | Var n ->
-      (* coupling: Dataflow_xyz.str_of_name *)
-      Common.spf "%s:%d" (fst n.ident) n.sid
-  | VarSpecial _ -> "<varspecial>"
-  | Mem _ -> "<Mem>")
-  ^
-  match x.offset with
-  | NoOffset -> ""
-  | Dot n -> "." ^ str_of_name n
+let string_of_base base =
+  match base with
+  | Var x -> str_of_name x ^ ":" ^ string_of_int x.sid
+  | VarSpecial _ -> "<VarSpecial>"
+  | Mem _ -> "<Mem>"
+
+let string_of_offset offset =
+  match offset with
+  | Dot a -> str_of_name a
   | Index _ -> "[...]"
+
+let string_of_lval { base; rev_offset } =
+  string_of_base base
+  ^
+  if rev_offset <> [] then
+    "." ^ String.concat "." (List.rev_map string_of_offset rev_offset)
+  else ""
 
 let string_of_exp e =
   match e.e with

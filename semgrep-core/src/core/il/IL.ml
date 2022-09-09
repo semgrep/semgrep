@@ -153,8 +153,16 @@ let any_of_orig = function
 (* Lvalue *)
 (*****************************************************************************)
 
-(* An lvalue, represented as in CIL as a pair. *)
-type lval = { base : base; offset : offset }
+type lval = { base : base; rev_offset : offset list }
+(** An lvalue, represented similarly as in CIL as a pair: base and offsets.
+
+  The offset list is *reversed*, so the first element in this list is the _last_
+  offset!
+
+  old: Previously we only kept one offset in lval and instead we used auxiliary
+       variables. But then we added field sensitivity to taint-mode and all those
+       extra variables became a problem, they would force us to add alias analysis
+       to handle even trivial cases of field sensitivity. *)
 
 and base =
   | Var of name
@@ -164,11 +172,7 @@ and base =
   | Mem of exp
 
 and offset =
-  | NoOffset
-  (* What about nested field access? foo.x.y?
-   * - use intermediate variable for that. TODO? same semantic?
-   * - do as in CIL and have recursive offset and stop with NoOffset.
-   * What about computed field names?
+  (* What about computed field names?
    * - handle them in Special?
    * - convert in Index with a string exp?
    * Note that Dot is used to access many different kinds of entities:

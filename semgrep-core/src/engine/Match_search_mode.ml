@@ -108,8 +108,6 @@ type selector = {
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let ( let* ) = Option.bind
-
 let xpatterns_in_formula (e : R.formula) : (Xpattern.t * bool) list =
   let res = ref [] in
   e |> R.visit_new_formula (fun xpat b -> Common.push (xpat, b) res);

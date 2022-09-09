@@ -149,7 +149,6 @@ let add_suffix_to_name suffix name =
 let name_of_id id = Id (id, empty_id_info ())
 
 let name_of_dot_access e =
-  let ( let* ) = Option.bind in
   let rec fetch_ids = function
     | G.N (G.Id (x, _)) -> Some [ x ]
     | G.DotAccess (e1, _, G.FN (G.Id (x, _))) ->

@@ -61,7 +61,7 @@ type config = {
   handle_findings :
     var option (** function name ('None' if anonymous) *) ->
     Taint.finding list ->
-    Taint.taints Dataflow_var_env.t ->
+    Taint_lval_env.t ->
     unit;
       (** Callback to report findings. *)
 }
@@ -70,7 +70,7 @@ type config = {
   * For a source to taint a sink, the bindings of both source and sink must be
   * unifiable. See 'unify_meta_envs'. *)
 
-type mapping = Taint.taints Dataflow_var_env.mapping
+type mapping = Taint_lval_env.t Dataflow_core.mapping
 (** Mapping from variables to taint sources (if the variable is tainted).
   * If a variable is not in the map, then it's not tainted. *)
 
@@ -86,7 +86,7 @@ val hook_function_taint_signature :
 (** Deep Semgrep *)
 
 val fixpoint :
-  ?in_env:Taint.taints Dataflow_var_env.VarMap.t ->
+  ?in_env:Taint_lval_env.t ->
   ?name:var ->
   ?fun_env:fun_env (** Poor-man's interprocedural HACK (TO BE DEPRECATED) *) ->
   config ->

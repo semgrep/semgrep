@@ -1,0 +1,16 @@
+rules:
+  - id: user-input
+    languages: [python]
+    mode: taint
+    pattern-sources:
+    - pattern: flask.request
+    pattern-sinks:
+    - patterns:
+      - pattern: flask.render_template("$TEMPLATE", ..., $KWARG=$VAR, ...)
+      - metavariable-regex:
+          metavariable: $TEMPLATE
+          regex: ".*(?<!html)$"
+    message: |
+      Detected a XSS vulnerability: '$VAR' is rendered
+      unsafely in '$TEMPLATE'.
+    severity: ERROR

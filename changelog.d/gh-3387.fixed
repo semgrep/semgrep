@@ -1,1 +1,0 @@
-Fix matching and autofix with bare tuples in Python array accesses (e.g. x[1, 2])

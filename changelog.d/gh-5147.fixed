@@ -1,1 +1,0 @@
-Ruby: A pattern of the form `/.../` can now match any regexp, including regexp templates such as `/hello #{name}/`.

@@ -382,8 +382,7 @@ let visit_new_formula f formula =
     match formula with
     | P p -> f p !bref
     | Inside (_, formula) ->
-        bref := true;
-        visit_new_formula f formula
+        Common.save_excursion bref true (fun () -> visit_new_formula f formula)
     | Not (_, x) -> visit_new_formula f x
     | Or (_, xs)
     | And (_, { conjuncts = xs; _ }) ->
