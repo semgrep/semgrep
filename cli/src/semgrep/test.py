@@ -251,6 +251,13 @@ def get_expected_and_reported_lines(
 
 
 def _generate_check_output_line(check_id: str, check_results: Mapping[str, Any]) -> str:
+    soft_errors = check_results["errors"]
+    json_error_report = []
+    if soft_errors:
+        # Display partial parsing errors and such. These are tolerated
+        # when running a semgrep scan but fatal in test mode.
+        json_error_report = [f"errors: {json.dumps(soft_errors, indent=2)}"]
+
     def _generate_missed_vs_incorrect_lines(matches: Mapping[str, Any]) -> str:
         expected_lines = matches["expected_lines"]
         reported_lines = matches["reported_lines"]
@@ -260,16 +267,17 @@ def _generate_check_output_line(check_id: str, check_results: Mapping[str, Any])
         )
         return f"{missed}, {incorrect}"
 
-    missed_vs_incorrect_lines = "\t\n".join(
+    missed_vs_incorrect_lines = [
         _generate_missed_vs_incorrect_lines(matches)
         for _, matches in check_results["matches"].items()
-    )
+    ]
+    all_errors = "\n\t".join(json_error_report + missed_vs_incorrect_lines)
 
     test_file_names = " ".join(
         test_file for test_file, _ in check_results["matches"].items()
     )
 
-    return f"\t✖ {check_id.ljust(60)} {missed_vs_incorrect_lines} \n\ttest file path: {test_file_names}\n\n"
+    return f"\t✖ {check_id.ljust(60)}\n\t{all_errors}\n\ttest file path: {test_file_names}\n\n"
 
 
 def _generate_fixcheck_output_line(
@@ -442,6 +450,9 @@ def generate_test_results(
 ) -> None:
     config_filenames = get_config_filenames(config)
     config_test_filenames = get_config_test_filenames(config, config_filenames, target)
+
+    # Extract the subset of tests using autofix.
+    # They'll be run later again, with autofix on (why run them twice?).
     config_fixtest_filenames: Dict[
         Path, List[Tuple[Path, Path]]
     ] = get_config_fixtest_filenames(target, config_test_filenames)
@@ -470,24 +481,27 @@ def generate_test_results(
         for filename, error, output in config_with_errors
     ]
 
-    tested = {
-        filename: get_expected_and_reported_lines(
-            output, config_test_filenames[filename]
+    tested = [
+        (
+            filename,
+            get_expected_and_reported_lines(output, config_test_filenames[filename]),
+            output["errors"] if "errors" in output else [],
         )
         for filename, _, output in config_without_errors
-    }
+    ]
 
     results_output: Mapping[str, Mapping[str, Any]] = {
         str(filename): {
             "checks": {
                 check_id: {
-                    "passed": checkid_passed(filename_and_matches),
+                    "passed": checkid_passed(filename_and_matches) and not errors,
                     "matches": filename_and_matches,
+                    "errors": errors,
                 }
                 for check_id, filename_and_matches in matches.items()
             }
         }
-        for filename, matches in tested.items()
+        for filename, matches, errors in tested
     }
 
     fixtest_filenames: Dict[Path, List[Tuple[Path, Path]]] = {
@@ -511,11 +525,12 @@ def generate_test_results(
     # this saves execution time: fix will not be correct, if regular test is not correct
     passed_test_filenames = [
         filename
-        for _config_filename, matches in tested.items()
+        for _config_filename, matches, soft_errors in tested
         for _check_id, filename_and_matches in matches.items()
         for filename, expected_and_reported_lines in filename_and_matches.items()
         if expected_and_reported_lines["expected_lines"]
         == expected_and_reported_lines["reported_lines"]
+        and not soft_errors
     ]
     configs_with_fixtests = {
         config: [
@@ -537,7 +552,10 @@ def generate_test_results(
         for config, testfiles in config_with_fixtests
     ]
 
-    invoke_semgrep_fn2 = functools.partial(
+    # This is the invocation of semgrep for testing autofix.
+    #
+    # TODO: should 'deep' be set to 'deep=deep' or always 'deep=False'?
+    invoke_semgrep_with_autofix_fn = functools.partial(
         invoke_semgrep_multi,
         no_git_ignore=True,
         no_rewrite_rule_ids=True,
@@ -547,7 +565,7 @@ def generate_test_results(
     )
 
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-        results = pool.starmap(invoke_semgrep_fn2, config_with_tempfiles)
+        results = pool.starmap(invoke_semgrep_with_autofix_fn, config_with_tempfiles)
 
     fixtest_comparisons = {
         temp_copies[target]: fixtest
