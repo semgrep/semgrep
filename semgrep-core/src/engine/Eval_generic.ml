@@ -281,6 +281,10 @@ and eval_op op values code =
       match v2 with
       | List xs -> Bool (List.mem v1 xs)
       | _ -> Bool false)
+  | G.NotIn, [ v1; v2 ] -> (
+      match v2 with
+      | List xs -> Bool (not (List.mem v1 xs))
+      | _ -> Bool false)
   (* less: it would be better to show the actual values not handled,
    * rather than the code, because this may differ as the code does not
    * contained the resolved content of metavariables *)
