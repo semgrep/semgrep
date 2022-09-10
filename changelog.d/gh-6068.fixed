@@ -1,0 +1,1 @@
+`semgrep --test` now fails when encountering a parsing error in target code.
