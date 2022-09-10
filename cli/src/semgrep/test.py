@@ -277,7 +277,7 @@ def _generate_check_output_line(check_id: str, check_results: Mapping[str, Any])
         test_file for test_file, _ in check_results["matches"].items()
     )
 
-    return f"\t✖ {check_id.ljust(60)}\n\t{all_errors}\n\ttest file path: {test_file_names}\n\n"
+    return f"\t✖ {check_id}\n\t{all_errors}\n\ttest file path: {test_file_names}\n\n"
 
 
 def _generate_fixcheck_output_line(
