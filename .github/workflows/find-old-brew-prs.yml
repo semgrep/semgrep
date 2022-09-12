@@ -1,0 +1,49 @@
+# Check if we have old Homebrew PRs hanging around unmerged
+name: Check for Old Homebrew PRs
+
+on:
+  workflow_dispatch:
+  # Fire at 08:27 PDT
+  schedule:
+    - cron: "27 15 * * *"
+
+jobs:
+  old-prs:
+    name: Check for old PRs in brew core
+    runs-on: ubuntu-22.04
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Check for Old PRs
+        run: |
+          getPrsOlderThanOneDay() {
+              gh --repo homebrew/homebrew-core pr list --state open -S semgrep --json number,createdAt,title --jq '(now - 86400) as $date | .[] | select (.createdAt | fromdateiso8601 < $date)'
+          }
+
+          NUM_OLD_PRS=$(getPrsOlderThanOneDay | wc -l)
+
+          if test "${NUM_OLD_PRS}" -gt "0"; then
+              echo "found PRs - see below for more info!"
+              getPrsOlderThanOneDay
+              exit 1
+          else
+              echo "No old PRs."
+              exit 0
+          fi
+
+  notify-failure:
+    needs: [old-prs]
+    name: Notify of Failure
+    runs-on: ubuntu-22.04
+    if: failure()
+    steps:
+      - name: Notify Failure
+        run: |
+          curl --request POST \
+          --url  ${{ secrets.OLD_PRS_NOTIFICATIONS_URL }} \
+          --header 'content-type: application/json' \
+          --data '{
+            "pr-numbers": "0"
+          }'
