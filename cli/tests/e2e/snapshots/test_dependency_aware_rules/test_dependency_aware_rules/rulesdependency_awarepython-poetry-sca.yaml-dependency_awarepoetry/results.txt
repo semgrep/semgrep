@@ -41,7 +41,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "allowed_hashes": {},
               "ecosystem": "pypi",
               "package": "faker",
-              "transitivity": "unknown",
+              "transitivity": "direct",
               "version": "13.11.1"
             },
             "lockfile": "targets/dependency_aware/poetry/poetry.lock"
