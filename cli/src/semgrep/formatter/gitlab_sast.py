@@ -39,7 +39,7 @@ class GitlabSastFormatter(BaseFormatter):
     def _format_rule_match(self, rule_match: RuleMatch) -> Mapping[str, Any]:
         # create UUID from sha256 hash
         return {
-            "id": str(rule_match.uuid),
+            "id": str(rule_match.syntactic_id),
             "category": "sast",
             # CVE is a required field from Gitlab schema.
             # It also is part of the determination for uniqueness
@@ -48,11 +48,7 @@ class GitlabSastFormatter(BaseFormatter):
             # https://gitlab.com/gitlab-org/gitlab/-/issues/262648
             # Gitlab themselves mock a CVE for findings that lack a CVE
             # Format: path:hash-of-file-path:check_id
-            "cve": "{}:{}:{}".format(
-                rule_match.path,
-                hashlib.sha256(bytes(rule_match.path)).hexdigest(),
-                rule_match.rule_id,
-            ),
+            "cve": "",
             "message": rule_match.message,
             "severity": _to_gitlab_severity(rule_match.severity),
             # Semgrep is designed to be a low-FP tool by design.
