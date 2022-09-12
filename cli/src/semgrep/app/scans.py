@@ -139,8 +139,8 @@ class ScanHandler:
         self._policy_names = body["policy_names"]
         self._rules = body["rule_config"]
         self._autofix = body.get("autofix") or False
-        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
-        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
+        self._skipped_syntactic_ids = body.get("skipped_syntactic_ids") or []
+        self._skipped_match_based_ids = body.get("skipped_match_based_ids") or []
         self.ignore_patterns = body.get("ignored_files") or []
 
     def start_scan(self, meta: Dict[str, Any]) -> None:
