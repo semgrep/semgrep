@@ -727,16 +727,8 @@ class CoreRunner:
         profiling_data: ProfilingData = ProfilingData()
         parsing_data: ParsingData = ParsingData()
 
-        rule_file_name = (
-            str(state.env.user_data_folder / "semgrep_rules.json")
-            if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w", suffix=".json").name
-        )
-        target_file_name = (
-            str(state.env.user_data_folder / "semgrep_targets.txt")
-            if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w").name
-        )
+        rule_file_name = str(state.env.user_data_folder / "semgrep_rules.json")
+        target_file_name = str(state.env.user_data_folder / "semgrep_targets.txt")
 
         with open(rule_file_name, "w+") as rule_file, open(
             target_file_name, "w+"
