@@ -789,20 +789,6 @@ class CoreRunner:
             if self._optimizations != "none":
                 cmd.append("-fast")
 
-            # This is an experiment based on a conversation with security. We allow
-            # users to pass in a file (like equivalences, but specifically for types)
-            # to define a metatype. When they use this metatype in a rule, we also
-            # check whether any of the metatype's subtypes are present in the code.
-            # In addition, we still check for the metatype, to allow the name to be
-            # reused
-            metatypes_path = (
-                state.env.user_data_folder
-                / "r2c-internal-experiment-metatypes-file.yaml"
-            )
-
-            if metatypes_path.is_file():
-                cmd += ["-metatypes", str(metatypes_path)]
-
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
             if deep:
