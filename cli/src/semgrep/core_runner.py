@@ -908,8 +908,16 @@ class CoreRunner:
                     parsing_data.add_error(err)
             errors.extend(parsed_errors)
 
-        os.remove(rule_file_name)
-        os.remove(target_file_name)
+        try:
+            # We use NamedTemporaryFile for the rules and targets files to
+            # create files with random names, but because of how we open
+            # the files we need to remove them ourselves. However, we are
+            # not guaranteed that a different implementation would not
+            # remove the file. Therefore, we wrap this in a try-except
+            os.remove(rule_file_name)
+            os.remove(target_file_name)
+        except FileNotFoundError:
+            logger.warning("Rules and targets file already removed")
 
         return (
             outputs,
