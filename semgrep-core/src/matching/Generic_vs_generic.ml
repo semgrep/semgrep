@@ -452,7 +452,6 @@ let rec m_name a b =
       | _ ->
           (* Try matching against parent classes *)
           try_parents dotted)
-  (* extension: metatypes *)
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
