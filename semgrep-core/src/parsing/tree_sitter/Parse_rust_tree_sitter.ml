@@ -3185,7 +3185,7 @@ and map_declaration_statement (env : env) (*_outer_attrs _visibility*) x :
           v1
       in
       let attrs = deoptionalize [ unsafe_attr ] in
-      let impl = token env v2 (* "impl" *) in
+      let impl = ident env v2 (* "impl" *) in
       let tparams =
         match v3 with
         | Some x -> map_type_parameters env x
@@ -3215,8 +3215,8 @@ and map_declaration_statement (env : env) (*_outer_attrs _visibility*) x :
       let _where_clauseTODO = Option.map (fun x -> map_where_clause env x) v6 in
       let body = map_decls_or_semi env v7 in
       (* TODO not sure what to put for the name *)
-      let ent = G.basic_entity ~attrs ~tparams ("impl", impl) in
-      let def = G.OtherDef (("Impl", impl), [ G.T ty; G.Ss body ]) in
+      let ent = G.basic_entity ~attrs ~tparams impl in
+      let def = G.OtherDef (("Impl", snd impl), [ G.T ty; G.Ss body ]) in
       [ G.DefStmt (ent, def) |> G.s ]
   | `Trait_item (_v0TODO, v1, v2, v3, v4, v5, v6, v7) ->
       let unsafe_attr =
