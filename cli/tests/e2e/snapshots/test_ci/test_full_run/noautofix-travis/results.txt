@@ -3,50 +3,10 @@ CI="true" TRAVIS="true" TRAVIS_REPO_SLUG="project_name/project_name" TRAVIS_PULL
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
-
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
-
-
-Unreachable Supply Chain Findings:
-
-  poetry.lock 
-     supply-chain1
-        found a dependency
-
-
-First-Party Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ x == 2
-         15┆ x == 5
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
 
 === end of stdout - plain
 
@@ -59,13 +19,19 @@ Scan environment:
 Fetching configuration from semgrep.dev
 Authenticated as org_name
 Scanning 1 file with 4 python rules.
+[ERROR] Fatal error at line :1:
+ Unix.Unix_error(Unix.ENOENT, "stat", "targets/exclude_include/included/included.js")
+====[ BEGIN error trace ]====
+Unix.Unix_error(Unix.ENOENT, "stat", "targets/exclude_include/included/included.js")
+Raised by primitive operation at Common2.unix_stat.(fun) in file "src/pfff/commons/common2.ml", line 3087, characters 4-18
+Called from Common2.filesize in file "src/pfff/commons/common2.ml", line 3093, characters 7-23
+Called from Find_target.sort_targets_by_decreasing_size.(fun) in file "src/targeting/Find_target.ml", line 13, characters 40-71
+Called from Common.fast_map in file "src/pfff/commons/Common.ml", line 441, characters 16-19
+Called from Find_target.sort_targets_by_decreasing_size in file "src/targeting/Find_target.ml", line 12, characters 2-83
+Called from Run_semgrep.map_targets in file "src/runner/Run_semgrep.ml", line 174, characters 16-67
+Called from Run_semgrep.semgrep_with_rules in file "src/runner/Run_semgrep.ml", line 615, characters 4-1023
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 698, characters 21-58
+=====[ END error trace ]=====
 
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
-  Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain

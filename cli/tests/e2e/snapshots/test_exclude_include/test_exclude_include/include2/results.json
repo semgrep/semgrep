@@ -1,5 +1,13 @@
 {
-  "errors": [],
+  "errors": [
+    {
+      "code": 3,
+      "level": "warn",
+      "message": "Syntax error at line /home/runner/.config/.semgrep/semgrep_rules.json:59:\n `:` was unexpected",
+      "path": "/home/runner/.config/.semgrep/semgrep_rules.json",
+      "type": "Syntax error"
+    }
+  ],
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": []

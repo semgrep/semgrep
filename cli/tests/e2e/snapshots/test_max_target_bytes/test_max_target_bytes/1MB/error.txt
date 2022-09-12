@@ -3,8 +3,3 @@ Scanning across multiple languages:
     python | 3 rules × 11 files
         js | 1 rule  ×  3 files
 
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-Ran 4 rules on 14 files: 2 findings.

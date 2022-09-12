@@ -3,27 +3,10 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-0
+2
 === end of exit code
 
 === stdout - plain
-
-Findings:
-
-  bar.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ bar == 2
-          1┆ bar == 5
-
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ foo == 2
-          2┆ foo == 5
 
 === end of stdout - plain
 
@@ -48,13 +31,6 @@ Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e68
 
 Scanning 1 file.
 Returning to original head revision 7b5cda417c780f1f96c888e1d7bd062f46df236e
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 2 findings (0 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
-  No blocking findings so exiting with code 0
+[ERROR] [Errno 2] No such file or directory: '/home/runner/.config/.semgrep/semgrep_rules.json'
 
 === end of stderr - plain

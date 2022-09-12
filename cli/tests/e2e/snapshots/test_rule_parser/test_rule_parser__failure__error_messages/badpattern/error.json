@@ -26,7 +26,7 @@
             "col": 34,
             "line": 11
           },
-          "file": "tmp/masked/path",
+          "file": "/home/runner/.config/.semgrep/semgrep_rules.json",
           "start": {
             "col": 22,
             "line": 11
