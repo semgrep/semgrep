@@ -725,187 +725,192 @@ and statement (env : env) ~tok (x : CST.statement) : Ast_java.stmt =
 
 and statement_aux env x : Ast_java.stmt list =
   match x with
-  | `Decl x -> [ declaration env x ]
-  | `Exp_stmt (v1, v2) ->
-      let v1 = expression env v1 in
-      let v2 = token env v2 (* ";" *) in
-      [ Expr (v1, v2) ]
-  | `Labe_stmt (v1, v2, v3) ->
-      let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
-      let v2 = token env v2 (* ":" *) in
-      let v3 = statement env ~tok:v2 v3 in
-      [ Label (v1, v3) ]
-  | `If_stmt (v1, v2, v3, v4) ->
-      let v1 = token env v1 (* "if" *) in
-      let v2 = parenthesized_expression env v2 in
-      let v3 = statement env ~tok:v1 v3 in
-      let v4 =
-        match v4 with
-        | Some (v1, v2) ->
-            let v1 = token env v1 (* "else" *) in
-            let v2 = statement env ~tok:v1 v2 in
-            Some v2
-        | None -> None
-      in
-      [ If (v1, v2, v3, v4) ]
-  | `While_stmt (v1, v2, v3) ->
-      let v1 = token env v1 (* "while" *) in
-      let v2 = parenthesized_expression env v2 in
-      let v3 = statement env ~tok:v1 v3 in
-      [ While (v1, v2, v3) ]
-  | `For_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
-      let v1 = token env v1 (* "for" *) in
-      let _v2 = token env v2 (* "(" *) in
-      let v3 =
-        match v3 with
-        | `Local_var_decl x ->
-            let xs = local_variable_declaration env x in
-            ForInitVars xs
-        | `Opt_exp_rep_COMMA_exp_SEMI (v1, v2) ->
-            let v1 =
-              match v1 with
-              | Some (v1, v2) ->
-                  let v1 = expression env v1 in
-                  let v2 =
-                    Common.map
-                      (fun (v1, v2) ->
-                        let _v1 = token env v1 (* "," *) in
-                        let v2 = expression env v2 in
-                        v2)
-                      v2
-                  in
-                  v1 :: v2
-              | None -> []
-            in
-            let _v2 = token env v2 (* ";" *) in
-            ForInitExprs v1
-      in
-      let v4 =
-        match v4 with
-        | Some x -> [ expression env x ]
-        | None -> []
-      in
-      let _v5 = token env v5 (* ";" *) in
-      let v6 =
-        match v6 with
-        | Some (v1, v2) ->
-            let v1 = expression env v1 in
-            let v2 =
-              Common.map
-                (fun (v1, v2) ->
-                  let _v1 = token env v1 (* "," *) in
-                  let v2 = expression env v2 in
-                  v2)
-                v2
-            in
-            v1 :: v2
-        | None -> []
-      in
-      let v7 = token env v7 (* ")" *) in
-      let v8 = statement env ~tok:v7 v8 in
-      [ For (v1, ForClassic (v3, v4, v6), v8) ]
-  | `Enha_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-      let v1 = token env v1 (* "for" *) in
-      let _v2 = token env v2 (* "(" *) in
-      let v3 =
-        match v3 with
-        | Some x -> modifiers env x
-        | None -> []
-      in
-      let v4 = unannotated_type env v4 in
-      let v5 = variable_declarator_id env v5 in
-      let _v6 = token env v6 (* ":" *) in
-      let v7 = expression env v7 in
-      let v8 = token env v8 (* ")" *) in
-      let v9 = statement env ~tok:v8 v9 in
-      let vdef = canon_var v3 (Some v4) v5 in
-      [ For (v1, Foreach (vdef, v7), v9) ]
-  | `Blk x -> [ block env x ]
-  | `SEMI tok ->
-      let t = token env tok (* ";" *) in
-      [ EmptyStmt t ]
-  | `Assert_stmt x -> [ assert_statement env x ]
-  | `Switch_exp (v1, v2, v3) ->
-      let v1 = token env v1 (* "switch" *) in
-      let v2 = parenthesized_expression env v2 in
-      let v3 = switch_block env v3 in
-      [ Switch (v1, v2, v3) ]
-  | `Do_stmt (v1, v2, v3, v4, v5) ->
-      let v1 = token env v1 (* "do" *) in
-      let v2 = statement env ~tok:v1 v2 in
-      let _v3 = token env v3 (* "while" *) in
-      let v4 = parenthesized_expression env v4 in
-      let _v5 = token env v5 (* ";" *) in
-      [ Do (v1, v2, v4) ]
-  | `Brk_stmt (v1, v2, v3) ->
-      let v1 = token env v1 (* "break" *) in
-      let v2 =
-        match v2 with
-        | Some tok -> Some (identifier env tok) (* pattern [a-zA-Z_]\w* *)
-        | None -> None
-      in
-      let _v3 = token env v3 (* ";" *) in
-      [ Break (v1, v2) ]
-  | `Cont_stmt (v1, v2, v3) ->
-      let v1 = token env v1 (* "continue" *) in
-      let v2 =
-        match v2 with
-        | Some tok -> Some (identifier env tok) (* pattern [a-zA-Z_]\w* *)
-        | None -> None
-      in
-      let _v3 = token env v3 (* ";" *) in
-      [ Continue (v1, v2) ]
-  | `Ret_stmt (v1, v2, v3) ->
-      let v1 = token env v1 (* "return" *) in
-      let v2 =
-        match v2 with
-        | Some x -> Some (expression env x)
-        | None -> None
-      in
-      let _v3 = token env v3 (* ";" *) in
-      [ Return (v1, v2) ]
-  | `Yield_stmt (v1, v2, v3) ->
-      let v1 = token env v1 (* "yield" *) in
-      let v2 = Some (expression env v2) in
-      let _v3 = token env v3 (* ";" *) in
-      [ Return (v1, v2) ]
-  | `Sync_stmt (v1, v2, v3) ->
-      let _v1 = token env v1 (* "synchronized" *) in
-      let v2 = parenthesized_expression env v2 in
-      let v3 = block env v3 in
-      [ Sync (v2, v3) ]
-  | `Local_var_decl x ->
-      let xs = local_variable_declaration env x in
-      xs |> Common.map (fun x -> LocalVar x)
-  | `Throw_stmt (v1, v2, v3) ->
-      let v1 = token env v1 (* "throw" *) in
-      let v2 = expression env v2 in
-      let _v3 = token env v3 (* ";" *) in
-      [ Throw (v1, v2) ]
-  | `Try_stmt (v1, v2, v3) ->
-      let v1 = token env v1 (* "try" *) in
-      let v2 = block env v2 in
-      let v3 =
-        match v3 with
-        | `Rep1_catch_clause xs -> (Common.map (catch_clause env) xs, None)
-        | `Rep_catch_clause_fina_clause (v1, v2) ->
-            let v1 = Common.map (catch_clause env) v1 in
-            let v2 = finally_clause env v2 in
-            (v1, Some v2)
-      in
-      let v3a, v3b = v3 in
-      [ Try (v1, None, v2, v3a, v3b) ]
-  | `Try_with_resous_stmt (v1, v2, v3, v4, v5) ->
-      let v1 = token env v1 (* "try" *) in
-      let v2 = resource_specification env v2 in
-      let v3 = block env v3 in
-      let v4 = Common.map (catch_clause env) v4 in
-      let v5 =
-        match v5 with
-        | Some x -> Some (finally_clause env x)
-        | None -> None
-      in
-      [ Try (v1, Some v2, v3, v4, v5) ]
+  | `Semg_ellips tok ->
+      let tok = (* "..." *) token env tok in
+      [ Expr (Ellipsis tok, AST_generic.sc) ]
+  | `Choice_decl x -> (
+      match x with
+      | `Decl x -> [ declaration env x ]
+      | `Exp_stmt (v1, v2) ->
+          let v1 = expression env v1 in
+          let v2 = token env v2 (* ";" *) in
+          [ Expr (v1, v2) ]
+      | `Labe_stmt (v1, v2, v3) ->
+          let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
+          let v2 = token env v2 (* ":" *) in
+          let v3 = statement env ~tok:v2 v3 in
+          [ Label (v1, v3) ]
+      | `If_stmt (v1, v2, v3, v4) ->
+          let v1 = token env v1 (* "if" *) in
+          let v2 = parenthesized_expression env v2 in
+          let v3 = statement env ~tok:v1 v3 in
+          let v4 =
+            match v4 with
+            | Some (v1, v2) ->
+                let v1 = token env v1 (* "else" *) in
+                let v2 = statement env ~tok:v1 v2 in
+                Some v2
+            | None -> None
+          in
+          [ If (v1, v2, v3, v4) ]
+      | `While_stmt (v1, v2, v3) ->
+          let v1 = token env v1 (* "while" *) in
+          let v2 = parenthesized_expression env v2 in
+          let v3 = statement env ~tok:v1 v3 in
+          [ While (v1, v2, v3) ]
+      | `For_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
+          let v1 = token env v1 (* "for" *) in
+          let _v2 = token env v2 (* "(" *) in
+          let v3 =
+            match v3 with
+            | `Local_var_decl x ->
+                let xs = local_variable_declaration env x in
+                ForInitVars xs
+            | `Opt_exp_rep_COMMA_exp_SEMI (v1, v2) ->
+                let v1 =
+                  match v1 with
+                  | Some (v1, v2) ->
+                      let v1 = expression env v1 in
+                      let v2 =
+                        Common.map
+                          (fun (v1, v2) ->
+                            let _v1 = token env v1 (* "," *) in
+                            let v2 = expression env v2 in
+                            v2)
+                          v2
+                      in
+                      v1 :: v2
+                  | None -> []
+                in
+                let _v2 = token env v2 (* ";" *) in
+                ForInitExprs v1
+          in
+          let v4 =
+            match v4 with
+            | Some x -> [ expression env x ]
+            | None -> []
+          in
+          let _v5 = token env v5 (* ";" *) in
+          let v6 =
+            match v6 with
+            | Some (v1, v2) ->
+                let v1 = expression env v1 in
+                let v2 =
+                  Common.map
+                    (fun (v1, v2) ->
+                      let _v1 = token env v1 (* "," *) in
+                      let v2 = expression env v2 in
+                      v2)
+                    v2
+                in
+                v1 :: v2
+            | None -> []
+          in
+          let v7 = token env v7 (* ")" *) in
+          let v8 = statement env ~tok:v7 v8 in
+          [ For (v1, ForClassic (v3, v4, v6), v8) ]
+      | `Enha_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
+          let v1 = token env v1 (* "for" *) in
+          let _v2 = token env v2 (* "(" *) in
+          let v3 =
+            match v3 with
+            | Some x -> modifiers env x
+            | None -> []
+          in
+          let v4 = unannotated_type env v4 in
+          let v5 = variable_declarator_id env v5 in
+          let _v6 = token env v6 (* ":" *) in
+          let v7 = expression env v7 in
+          let v8 = token env v8 (* ")" *) in
+          let v9 = statement env ~tok:v8 v9 in
+          let vdef = canon_var v3 (Some v4) v5 in
+          [ For (v1, Foreach (vdef, v7), v9) ]
+      | `Blk x -> [ block env x ]
+      | `SEMI tok ->
+          let t = token env tok (* ";" *) in
+          [ EmptyStmt t ]
+      | `Assert_stmt x -> [ assert_statement env x ]
+      | `Switch_exp (v1, v2, v3) ->
+          let v1 = token env v1 (* "switch" *) in
+          let v2 = parenthesized_expression env v2 in
+          let v3 = switch_block env v3 in
+          [ Switch (v1, v2, v3) ]
+      | `Do_stmt (v1, v2, v3, v4, v5) ->
+          let v1 = token env v1 (* "do" *) in
+          let v2 = statement env ~tok:v1 v2 in
+          let _v3 = token env v3 (* "while" *) in
+          let v4 = parenthesized_expression env v4 in
+          let _v5 = token env v5 (* ";" *) in
+          [ Do (v1, v2, v4) ]
+      | `Brk_stmt (v1, v2, v3) ->
+          let v1 = token env v1 (* "break" *) in
+          let v2 =
+            match v2 with
+            | Some tok -> Some (identifier env tok) (* pattern [a-zA-Z_]\w* *)
+            | None -> None
+          in
+          let _v3 = token env v3 (* ";" *) in
+          [ Break (v1, v2) ]
+      | `Cont_stmt (v1, v2, v3) ->
+          let v1 = token env v1 (* "continue" *) in
+          let v2 =
+            match v2 with
+            | Some tok -> Some (identifier env tok) (* pattern [a-zA-Z_]\w* *)
+            | None -> None
+          in
+          let _v3 = token env v3 (* ";" *) in
+          [ Continue (v1, v2) ]
+      | `Ret_stmt (v1, v2, v3) ->
+          let v1 = token env v1 (* "return" *) in
+          let v2 =
+            match v2 with
+            | Some x -> Some (expression env x)
+            | None -> None
+          in
+          let _v3 = token env v3 (* ";" *) in
+          [ Return (v1, v2) ]
+      | `Yield_stmt (v1, v2, v3) ->
+          let v1 = token env v1 (* "yield" *) in
+          let v2 = Some (expression env v2) in
+          let _v3 = token env v3 (* ";" *) in
+          [ Return (v1, v2) ]
+      | `Sync_stmt (v1, v2, v3) ->
+          let _v1 = token env v1 (* "synchronized" *) in
+          let v2 = parenthesized_expression env v2 in
+          let v3 = block env v3 in
+          [ Sync (v2, v3) ]
+      | `Local_var_decl x ->
+          let xs = local_variable_declaration env x in
+          xs |> Common.map (fun x -> LocalVar x)
+      | `Throw_stmt (v1, v2, v3) ->
+          let v1 = token env v1 (* "throw" *) in
+          let v2 = expression env v2 in
+          let _v3 = token env v3 (* ";" *) in
+          [ Throw (v1, v2) ]
+      | `Try_stmt (v1, v2, v3) ->
+          let v1 = token env v1 (* "try" *) in
+          let v2 = block env v2 in
+          let v3 =
+            match v3 with
+            | `Rep1_catch_clause xs -> (Common.map (catch_clause env) xs, None)
+            | `Rep_catch_clause_fina_clause (v1, v2) ->
+                let v1 = Common.map (catch_clause env) v1 in
+                let v2 = finally_clause env v2 in
+                (v1, Some v2)
+          in
+          let v3a, v3b = v3 in
+          [ Try (v1, None, v2, v3a, v3b) ]
+      | `Try_with_resous_stmt (v1, v2, v3, v4, v5) ->
+          let v1 = token env v1 (* "try" *) in
+          let v2 = resource_specification env v2 in
+          let v3 = block env v3 in
+          let v4 = Common.map (catch_clause env) v4 in
+          let v5 =
+            match v5 with
+            | Some x -> Some (finally_clause env x)
+            | None -> None
+          in
+          [ Try (v1, Some v2, v3, v4, v5) ])
 
 and block (env : env) ((v1, v2, v3) : CST.block) =
   let v1 = token env v1 (* "{" *) in
@@ -948,7 +953,7 @@ and switch_block (env : env) ((v1, v2, v3) : CST.switch_block) =
                 | `Throw_stmt x -> `Throw_stmt x
                 | `Blk x -> `Blk x
               in
-              [ statement env ~tok:v1 s ] ))
+              [ statement env ~tok:v1 (`Choice_decl s) ] ))
           rules
   in
   let _v3 = token env v3 (* "}" *) in
