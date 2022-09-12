@@ -912,19 +912,19 @@ class CoreRunner:
                     parsing_data.add_error(err)
             errors.extend(parsed_errors)
 
+        # We use NamedTemporaryFile for the rules and targets files to
+        # create files with random names, but because of how we open
+        # the files we need to remove them ourselves. However, we are
+        # not guaranteed that a different implementation would not
+        # remove the file. Therefore, we wrap these in try-except.
         try:
-            # We use NamedTemporaryFile for the rules and targets files to
-            # create files with random names, but because of how we open
-            # the files we need to remove them ourselves. However, we are
-            # not guaranteed that a different implementation would not
-            # remove the file. Therefore, we wrap this in a try-except.
-
-            # This assumes that the files are removed together, which we
-            # currently deem a reasonable assumption
             os.remove(rule_file_name)
+        except FileNotFoundError:
+            logger.warning(f"Rules file {rule_file_name} already removed")
+        try:
             os.remove(target_file_name)
         except FileNotFoundError:
-            logger.warning("Rules and targets file already removed")
+            logger.warning(f"Targets file {target_file_name} already removed")
 
         return (
             outputs,
