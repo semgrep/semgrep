@@ -1,0 +1,3 @@
+Fix CI behavior with ignored blocking findings. These findings should not block the build since they were ignored.
+Bug was in the interface definition, so this is another place where typed interfaces would have saved us. The
+variable name in semgrep-app did not match the name expected by semgrep CLI.
