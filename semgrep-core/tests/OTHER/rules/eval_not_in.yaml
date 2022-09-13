@@ -1,0 +1,14 @@
+rules:
+- id: eval-not-in 
+  languages:
+    - python
+  message: found a metavariable not in the desired list 
+  patterns:
+    - pattern-inside: |
+        def $FUNCNAME(...):
+          ...
+    - pattern: foo($SINGULAR)
+    - metavariable-comparison:
+        comparison: $SINGULAR not in [150, 312]
+        metavariable: $SINGULAR
+  severity: ERROR

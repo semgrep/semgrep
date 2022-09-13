@@ -1,0 +1,1 @@
+Allowed metavariable-comparison to make use of the `not in` operator.
