@@ -15,7 +15,7 @@
         "offset": 109
       },
       "extra": {
-        "fingerprint": "1b34b4b90c917649e9ae8294a83cc4f11a38297b8c72402bd54b3bb89ee512ffc7748a271aa7db8be75aa0d5f34a8f00c5aa7e93b5175179e99a76191c3d83ec_0",
+        "fingerprint": "ed6dc7e3673fc935c6fd4ffe9770a3689e58bb6e19a95d74fcd445f03872c1468e204434e7f3008bcec4bf1e67e7834ae247fa702ba1fde581dabc9c274f9af5_0",
         "fix_regex": {
           "regex": "(.*)\\}",
           "replacement": "\\1\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}\n"
@@ -36,16 +36,16 @@
         "metadata": {},
         "metavars": {
           "$RESNAME": {
-            "abstract_content": "example1",
+            "abstract_content": "\"example1\"",
             "end": {
-              "col": 34,
+              "col": 35,
               "line": 1,
-              "offset": 33
+              "offset": 34
             },
             "start": {
-              "col": 26,
+              "col": 25,
               "line": 1,
-              "offset": 25
+              "offset": 24
             }
           }
         },
@@ -66,7 +66,7 @@
         "offset": 220
       },
       "extra": {
-        "fingerprint": "6e09cd0ae5d00c5a271e22057cbed7b45fbedf7e71cf25733dc6254c63f34c258758bd949ad30cce88230ed22240f09f16dd310c2ce5ef8bb801644c481584d0_0",
+        "fingerprint": "2b060f85e1cd6d6c68af76297d92c81b5cb800dae9c4a84c5ffc4ffefd2a7ca2e15ab3a7af2150b94646a7dd69450a6d5ceee4df24a2fea6bf36374d35039883_0",
         "fix_regex": {
           "regex": "(.*)\\}",
           "replacement": "\\1\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}\n"
@@ -87,16 +87,16 @@
         "metadata": {},
         "metavars": {
           "$RESNAME": {
-            "abstract_content": "example2",
+            "abstract_content": "\"example2\"",
             "end": {
-              "col": 34,
+              "col": 35,
               "line": 6,
-              "offset": 144
+              "offset": 145
             },
             "start": {
-              "col": 26,
+              "col": 25,
               "line": 6,
-              "offset": 136
+              "offset": 135
             }
           }
         },
