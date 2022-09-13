@@ -367,7 +367,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           },
           "reachability_rule": false,
           "reachable": false,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "ERROR"
       },

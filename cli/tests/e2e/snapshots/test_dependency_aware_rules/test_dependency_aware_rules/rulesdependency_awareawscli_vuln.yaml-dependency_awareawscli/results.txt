@@ -53,7 +53,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           },
           "reachability_rule": true,
           "reachable": true,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "WARNING"
       },
@@ -101,7 +101,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           },
           "reachability_rule": true,
           "reachable": true,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "WARNING"
       },
@@ -149,7 +149,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           },
           "reachability_rule": true,
           "reachable": false,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "WARNING"
       },
@@ -197,7 +197,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           },
           "reachability_rule": true,
           "reachable": true,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "WARNING"
       },
@@ -245,7 +245,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           },
           "reachability_rule": true,
           "reachable": true,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "WARNING"
       },
@@ -293,7 +293,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           },
           "reachability_rule": true,
           "reachable": true,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "WARNING"
       },
@@ -341,7 +341,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           },
           "reachability_rule": true,
           "reachable": true,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "WARNING"
       },
@@ -389,7 +389,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           },
           "reachability_rule": false,
           "reachable": false,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "WARNING"
       },
