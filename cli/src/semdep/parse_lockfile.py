@@ -180,6 +180,10 @@ def parse_package_lock(
 def parse_pipfile(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
+    lockfile_text = "\n".join(
+        line + f', "line_number": {i}' if line.strip().startswith('"version"') else line
+        for i, line in enumerate(lockfile_text.split("\n"))
+    )
     manifest = tomli.loads(manifest_text) if manifest_text else None
     if manifest:
         manifest_deps = manifest["packages"] if "packages" in manifest else None
@@ -201,11 +205,12 @@ def parse_pipfile(
     ) -> Generator[FoundDependency, None, None]:
         for dep in root_blob:
             dep_blob = root_blob[dep]
-            version = dep_blob.get("version", None)
+            version = dep_blob.get("version")
             if not version:
                 logger.info(f"no version for dependency: {dep}")
             else:
                 version = version.replace("==", "")
+                line_number = dep_blob.get("line_number")
                 if manifest_deps:
                     transitivity = (
                         Transitivity(Direct())
@@ -223,6 +228,7 @@ def parse_pipfile(
                     if "hashes" in dep_blob
                     else {},
                     transitivity=transitivity,
+                    line_number=int(line_number) if line_number else None,
                 )
 
     as_json = json.loads(lockfile_text)
@@ -420,7 +426,7 @@ def parse_gradle(
 def parse_poetry(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
-    # poetry.lock file are not quite valid TOML >:(
+    # poetry.lock files are not quite valid TOML >:(
 
     manifest = tomli.loads(manifest_text) if manifest_text else None
     try:
@@ -430,7 +436,8 @@ def parse_poetry(
 
     def parse_dep(s: str) -> FoundDependency:
         lines = s.split("\n")[1:]
-        dep = lines[0].split("=")[1].strip()[1:-1]
+        _, dep, line_number = lines[0].split(" = ")
+        dep = dep.strip(' "')
         version = lines[1].split("=")[1].strip()[1:-1]
         if manifest_deps:
             transitivity = (
@@ -447,8 +454,13 @@ def parse_poetry(
             resolved_url=None,
             allowed_hashes={},
             transitivity=transitivity,
+            line_number=int(line_number),
         )
 
+    lockfile_text = "\n".join(
+        line + f" = {i}" if line.strip().startswith("name") else line
+        for i, line in enumerate(lockfile_text.split("\n"))
+    )
     deps = lockfile_text.split("[[package]]")[1:]  # drop the empty string at the start
     yield from (parse_dep(dep) for dep in deps)
 
