@@ -129,7 +129,7 @@ def parse_package_lock(
     if "dependencies" in as_json:
         deps = as_json["dependencies"]
     else:
-        logger.info("Found package-lock with no 'dependencies'")
+        logger.debug("Found package-lock with no 'dependencies'")
         return
 
     manifest = json.loads(manifest_text) if manifest_text else None
