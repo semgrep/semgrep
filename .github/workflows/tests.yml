@@ -447,8 +447,6 @@ jobs:
   build-macos-release:
     name: build macOS release
     runs-on: ["self-hosted", "macOS", "X64"]
-    # there are too many PR events which deplete our macOS concurrency limit
-    if: (!contains(github.event_name, 'pull_request'))
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -471,8 +469,6 @@ jobs:
   test-macos-release:
     name: test macOS release
     runs-on: ["self-hosted", "macOS", "X64"]
-    # there are too many PR events which deplete our macOS concurrency limit
-    if: (!contains(github.event_name, 'pull_request'))
     needs: [build-macos-release]
     steps:
       - name: download artifacts
