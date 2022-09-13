@@ -171,6 +171,8 @@ let unsafe_match_to_match (x : Pattern_match.t) : Out.core_match =
         message = Some x.rule_id.message;
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
+        (* TODO compute autofixes *)
+        rendered_fix = None;
       };
   }
 
