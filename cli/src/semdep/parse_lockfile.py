@@ -120,7 +120,7 @@ def parse_yarn(
             allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
             resolved_url=resolved,
             transitivity=transitivity,
-            line_number=int(line_number),
+            line_number=int(line_number) + 1,
         )
 
 
@@ -173,7 +173,7 @@ def parse_package_lock(
             allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
             resolved_url=resolved_url,
             transitivity=transitivity,
-            line_number=int(line_number) if line_number else None,
+            line_number=int(line_number) + 1 if line_number else None,
         )
 
 
@@ -228,7 +228,7 @@ def parse_pipfile(
                     if "hashes" in dep_blob
                     else {},
                     transitivity=transitivity,
-                    line_number=int(line_number) if line_number else None,
+                    line_number=int(line_number) + 1 if line_number else None,
                 )
 
     as_json = json.loads(lockfile_text)
@@ -454,7 +454,7 @@ def parse_poetry(
             resolved_url=None,
             allowed_hashes={},
             transitivity=transitivity,
-            line_number=int(line_number),
+            line_number=int(line_number) + 1,
         )
 
     lockfile_text = "\n".join(
