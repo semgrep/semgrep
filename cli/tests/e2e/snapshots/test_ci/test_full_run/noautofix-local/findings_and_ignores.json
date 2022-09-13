@@ -241,6 +241,7 @@
     "supply-chain1",
     "supply-chain2"
   ],
+  "cai_ids": [],
   "ignores": [
     {
       "check_id": "eqeq-bad",
