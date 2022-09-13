@@ -62,7 +62,7 @@ def parse_yarn(
         constraint_strs = line[:-1].split(",")
         constraints = []
         for c in constraint_strs:
-            c = c.strip().strip('"')
+            c = c.strip('" ')
             if c[0] == "@":
                 name, constraint = c[1:].split("@")
                 name = "@" + name
