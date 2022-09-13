@@ -74,14 +74,15 @@ def parse_yarn(
     def remove_trailing_octothorpe(s: str) -> str:
         return "#".join(s.split("#")[:-1]) if "#" in s else s
 
-    def remove_quotes(s: str) -> str:
-        return s[1:-1]
-
     if manifest_text:
         manifest = json.loads(manifest_text)
         manifest_deps = manifest["dependencies"]
     else:
         manifest_deps = None
+    lockfile_text = "\n".join(
+        line + f" {i}" if line.strip().startswith("version") else line
+        for i, line in enumerate(lockfile_text.split("\n"))
+    )
     _comment, all_deps_text = lockfile_text.split("\n\n\n")
     dep_texts = all_deps_text.split("\n\n")
     if dep_texts == [""]:  # No dependencies
@@ -89,11 +90,10 @@ def parse_yarn(
     for dep_text in dep_texts:
         lines = dep_text.split("\n")
         package_name, constraints = version_sources(lines[0])
-        version = remove_quotes(lines[1].split()[1])
+        _, version, line_number = lines[1].split()
+        version = version.strip('" ')
         if len(lines) >= 3 and lines[2].strip().startswith("resolved"):
-            resolved = remove_trailing_octothorpe(
-                remove_quotes(lines[2].split()[1]).strip()
-            )
+            resolved = remove_trailing_octothorpe(lines[2].split()[1].strip('" '))
         else:
             resolved = None
         integrity = (
@@ -120,12 +120,17 @@ def parse_yarn(
             allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
             resolved_url=resolved,
             transitivity=transitivity,
+            line_number=int(line_number),
         )
 
 
 def parse_package_lock(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
+    lockfile_text = "\n".join(
+        line + f'"line_number": {i},' if line.strip().startswith('"version"') else line
+        for i, line in enumerate(lockfile_text.split("\n"))
+    )
     as_json = json.loads(lockfile_text)
     # Newer versions of NPM (>= v7) use 'packages'
     # But 'dependencies' is kept up to date, and 'packages' uses relative, not absolute names
@@ -149,7 +154,7 @@ def parse_package_lock(
         except InvalidVersion:
             logger.info(f"no version for dependency: {dep}")
             continue
-
+        line_number = dep_blob.get("line_number")
         if manifest_deps:
             transitivity = (
                 Transitivity(Direct())
@@ -168,6 +173,7 @@ def parse_package_lock(
             allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
             resolved_url=resolved_url,
             transitivity=transitivity,
+            line_number=int(line_number) if line_number else None,
         )
 
 
