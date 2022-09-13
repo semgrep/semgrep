@@ -23,7 +23,7 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-from semgrep.semgrep_interfaces.semgrep_output_v0 import FoundDependency, Transitivity
+from semgrep.semgrep_interfaces.semgrep_output_v0 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Pypi
