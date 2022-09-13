@@ -1,0 +1,2 @@
+Fixed a `TypeError: unbound method set.intersection() needs an argument` crash
+that occurred when all of a scan's rules were multilang (`regex` or `generic`).
