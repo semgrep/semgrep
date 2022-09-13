@@ -399,3 +399,38 @@ def test_unsupported_lang_paths(tmp_path, monkeypatch):
     assert_path_sets_equal(
         target_manager.ignore_log.unsupported_lang_paths, expected_unsupported
     )
+
+
+@pytest.mark.quick
+def test_unsupported_lang_paths_2(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    targets: List[str] = []
+
+    # we will "scan" only for generic and regex
+    paths = {
+        ".": ["a.rb", "b.erb"],
+        "dir": ["c.erb", "d.rkt"],
+    }
+
+    expected_unsupported = set()
+
+    for dir_name in paths:
+        dir = tmp_path
+        if not dir_name == ".":
+            dir = tmp_path / dir_name
+            dir.mkdir()
+        for file_name in paths[dir_name]:
+            path = dir / file_name
+            path.touch()
+            targets.append(str(path))
+            expected_unsupported.add(path)
+
+    target_manager = TargetManager(targets)
+
+    target_manager.get_files_for_language(LANG_GENERIC)
+    target_manager.get_files_for_language(LANG_REGEX)
+
+    assert_path_sets_equal(
+        target_manager.ignore_log.unsupported_lang_paths, expected_unsupported
+    )
