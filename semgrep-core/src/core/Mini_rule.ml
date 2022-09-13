@@ -47,6 +47,7 @@ type rule = {
    * to know what what was the corresponding pattern.
    *)
   pattern_string : string;
+  fix : string option;
 }
 
 and rules = rule list (*e: type [[Rule.rules]] *) [@@deriving show]
