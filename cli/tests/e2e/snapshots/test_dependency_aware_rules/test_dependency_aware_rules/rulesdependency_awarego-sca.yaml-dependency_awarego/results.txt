@@ -46,13 +46,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "gomod",
               "package": "github.com/cheekybits/genny",
               "resolved_url": "github.com/cheekybits/genny",
+              "transitivity": "unknown",
               "version": "1.0.0"
             },
             "lockfile": "targets/dependency_aware/go/go.sum"
           },
           "reachability_rule": true,
           "reachable": true,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "WARNING"
       },

@@ -120,13 +120,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "allowed_hashes": {},
               "ecosystem": "maven",
               "package": "log4j-core",
+              "transitivity": "unknown",
               "version": "0.0.1"
             },
             "lockfile": "targets/dependency_aware/log4j/pom.xml"
           },
           "reachability_rule": true,
           "reachable": true,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "WARNING"
       },

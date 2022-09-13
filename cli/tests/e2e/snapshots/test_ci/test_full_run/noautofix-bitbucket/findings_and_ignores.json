@@ -210,7 +210,7 @@
       "sca_info": {
         "reachable": false,
         "reachability_rule": false,
-        "sca_finding_schema": 20220818,
+        "sca_finding_schema": 20220913,
         "dependency_match": {
           "dependency_pattern": {
             "ecosystem": "pypi",
@@ -221,7 +221,8 @@
             "package": "badlib",
             "version": "1.0.0",
             "ecosystem": "pypi",
-            "allowed_hashes": {}
+            "allowed_hashes": {},
+            "transitivity": "unknown"
           },
           "lockfile": "poetry.lock"
         }

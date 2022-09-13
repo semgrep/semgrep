@@ -17,7 +17,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v0 import ScaInfo
 from semgrep.target_manager import TargetManager
 
-SCA_FINDING_SCHEMA = 20220818
+SCA_FINDING_SCHEMA = 20220913
 
 
 def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyPattern]:

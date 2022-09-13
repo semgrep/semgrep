@@ -132,6 +132,7 @@ install_requires = [
     "urllib3~=1.26",
     "typing-extensions~=4.2",
     "python-lsp-jsonrpc~=1.0.0",
+    "tomli~=2.0.1",
 ]
 
 extras_require = {"experiments": ["jsonnet~=0.18"]}
