@@ -1434,7 +1434,7 @@ and definition_kind =
    *)
   | UseOuterDecl of tok (* 'global' or 'nonlocal' in Python, 'use' in PHP *)
   (* e.g., MacroDecl and MacroVar in C++, method alias in Ruby,
-   * BitField in C/C++, Event/Modifier in Solidity
+   * BitField in C/C++, Event/Modifier in Solidity, impl in Rust
    *)
   | OtherDef of todo_kind * any list
 
