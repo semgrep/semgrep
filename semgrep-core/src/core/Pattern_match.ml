@@ -101,6 +101,8 @@ and rule_id = {
   id : string;
   (* other parts of a rule (or mini_rule) used in JSON_report.ml *)
   message : string;
+  fix : string option;
+  languages : Lang.t list;
   (* used for debugging (could be removed at some point) *)
   pattern_string : string;
 }

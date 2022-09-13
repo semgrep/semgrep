@@ -75,7 +75,13 @@ let error env msg =
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
 let fake_rule_id (id, str) =
-  { PM.id = string_of_int id; pattern_string = str; message = "" }
+  {
+    PM.id = string_of_int id;
+    pattern_string = str;
+    message = "";
+    fix = None;
+    languages = [];
+  }
 
 let adjust_xconfig_with_rule_options xconf options =
   let config = Common.( ||| ) options xconf.config in

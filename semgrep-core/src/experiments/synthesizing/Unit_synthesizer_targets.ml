@@ -63,6 +63,7 @@ let ranges_matched lang file pattern : Range.t list =
       severity = R.Error;
       languages = [ lang ];
       pattern_string = "test: no need for pattern string";
+      fix = None;
     }
   in
   let equiv = [] in
