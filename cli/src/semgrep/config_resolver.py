@@ -16,7 +16,6 @@ from typing import Tuple
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
-import _jsonnet  # type: ignore
 import requests
 import ruamel.yaml
 from ruamel.yaml import YAMLError
@@ -572,6 +571,17 @@ def parse_config_string(
         logger.error(
             "Support for Jsonnet rules is experimental and currently meant for internal use only. The syntax may change or be removed at any point."
         )
+
+        # Importing jsonnet here so that people who aren't using
+        # jsonnet rules don't need to deal with jsonnet as a
+        # dependency, especially while this is internal.
+        try:
+            import _jsonnet  # type: ignore
+        except ImportError:
+            logger.error(
+                "Running jsonnet rules requires the python jsonnet library. Please run `pip install jsonnet` and try again."
+            )
+
         contents = _jsonnet.evaluate_snippet(
             filename, contents, import_callback=import_callback
         )

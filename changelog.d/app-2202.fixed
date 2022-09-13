@@ -1,1 +1,0 @@
-Update git url parser to support optional "org" after hostname. Example: https://some.enterprise.scm/myorg/owner/repo.

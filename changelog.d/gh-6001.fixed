@@ -1,0 +1,4 @@
+Resolve imported classes when there are multiple chained classes.
+For example, if you `import world.Hello`, and create a
+`new Hello.internal_class()`, you can match that with
+`new world.Hello.internal_class()`.

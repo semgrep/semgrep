@@ -727,6 +727,10 @@ class CoreRunner:
         profiling_data: ProfilingData = ProfilingData()
         parsing_data: ParsingData = ParsingData()
 
+        # Note: temporary file behavior varies based on OS according to
+        # https://docs.python.org/3/library/tempfile.html. In the future
+        # if we support Windows semgrep-core may not be able to open
+        # these files
         rule_file_name = (
             str(state.env.user_data_folder / "semgrep_rules.json")
             if dump_command_for_core
@@ -788,20 +792,6 @@ class CoreRunner:
 
             if self._optimizations != "none":
                 cmd.append("-fast")
-
-            # This is an experiment based on a conversation with security. We allow
-            # users to pass in a file (like equivalences, but specifically for types)
-            # to define a metatype. When they use this metatype in a rule, we also
-            # check whether any of the metatype's subtypes are present in the code.
-            # In addition, we still check for the metatype, to allow the name to be
-            # reused
-            metatypes_path = (
-                state.env.user_data_folder
-                / "r2c-internal-experiment-metatypes-file.yaml"
-            )
-
-            if metatypes_path.is_file():
-                cmd += ["-metatypes", str(metatypes_path)]
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
@@ -908,8 +898,19 @@ class CoreRunner:
                     parsing_data.add_error(err)
             errors.extend(parsed_errors)
 
-        os.remove(rule_file_name)
-        os.remove(target_file_name)
+        # We use NamedTemporaryFile for the rules and targets files to
+        # create files with random names, but because of how we open
+        # the files we need to remove them ourselves. However, we are
+        # not guaranteed that a different implementation would not
+        # remove the file. Therefore, we wrap these in try-except.
+        try:
+            os.remove(rule_file_name)
+        except FileNotFoundError:
+            logger.warning(f"Rules file {rule_file_name} already removed")
+        try:
+            os.remove(target_file_name)
+        except FileNotFoundError:
+            logger.warning(f"Targets file {target_file_name} already removed")
 
         return (
             outputs,

@@ -44,6 +44,5 @@ typing_extensions = "*"
 importlib_resources = ">=1.4.0"
 
 [packages]
-semgrep = {editable = true,path = "."}
 jsonschema = "==4.6.1"
-jsonnet = "*"
+semgrep = {editable = true, extras = ["experiments"], path = "."}

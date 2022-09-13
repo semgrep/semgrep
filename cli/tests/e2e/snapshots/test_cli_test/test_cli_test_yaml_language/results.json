@@ -7,6 +7,7 @@
     "rules/cli_test/language/yaml_language.yaml": {
       "checks": {
         "yaml-language": {
+          "errors": [],
           "matches": "<masked in tests>",
           "passed": true
         }

@@ -11,6 +11,7 @@
     "rules/fixtest/test3.yaml": {
       "checks": {
         "test3": {
+          "errors": [],
           "matches": "<masked in tests>",
           "passed": true
         }

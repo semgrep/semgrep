@@ -1,0 +1,6 @@
+taint-mode: Experimental support for basic field-sensitive taint tracking.
+Semgrep can now track `x.a` and `x.b` separately, so that e.g. `x.a` can be
+tainted at the same time as `x.b` is clean, hence `sink(x.a)` would produce
+a finding but `sink(x.b)` would not. It is also possible for `x` to be tainted
+while `x.a` is clean. We expect this to have an net positive effect by reducing
+false positives.
