@@ -363,13 +363,14 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "allowed_hashes": {},
               "ecosystem": "pypi",
               "package": "badlib",
+              "transitivity": "unknown",
               "version": "1.0.0"
             },
             "lockfile": "poetry.lock"
           },
           "reachability_rule": false,
           "reachable": false,
-          "sca_finding_schema": 20220818
+          "sca_finding_schema": 20220913
         },
         "severity": "ERROR"
       },
