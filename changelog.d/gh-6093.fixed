@@ -1,0 +1,2 @@
+Fixes bug where set.intersection() was being called witho no argument and throwing an error.
+Handles null case where user scans only with generic languages like regex rules.
