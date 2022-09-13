@@ -270,6 +270,7 @@ let regression_tests_for_lang ~with_caching files lang =
                  severity = R.Error;
                  languages = [ lang ];
                  pattern_string = "test: no need for pattern string";
+                 fix = None;
                }
              in
              (* old: semgrep-core used to support user-defined
