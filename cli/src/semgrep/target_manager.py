@@ -726,7 +726,7 @@ class TargetManager:
         lockfiles = self.get_files_for_language(ecosystem).kept
         parsed: Dict[Path, List[FoundDependency]] = {}
         for lockfile in lockfiles:
-            path, lockfile_pattern = lockfile.parents[0], lockfile.parts[-1]
+            path, lockfile_pattern = lockfile.parent, lockfile.parts[-1]
             manifest_pattern = LOCKFILE_TO_MANIFEST[lockfile_pattern]
             manifest_path = path / manifest_pattern if manifest_pattern else None
             deps = parse_lockfile_str(
