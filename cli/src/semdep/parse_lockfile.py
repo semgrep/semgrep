@@ -55,6 +55,10 @@ def parse_yarn(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
     def version_sources(line: str) -> Tuple[str, List[Tuple[str, str]]]:
+        # Takes a (multi-)key from the yarn.lock file and turns it into a list
+        # A line might look like this
+        # "foo@^1.0.0", "foo@^1.1.1":
+        # This produces [("foo","^1.0.0"),("foo","^1.1.1")]
         constraint_strs = line[:-1].split(",")
         constraints = []
         for c in constraint_strs:
