@@ -121,35 +121,45 @@ let map_template_literal (env : env) (xs : CST.template_literal) :
       let tok = PI.rewrap_str str (token env x) in
       Some (str, tok)
 
-let map_identifier (env : env) (x : CST.identifier) : ident =
-  match x with
-  | `Tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc tok ->
-      (* tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc *) str env tok
-  | `Semg_meta tok -> (* semgrep_metavariable *) str env tok
+let map_identifier ?(prefix = "") (env : env) (x : CST.identifier) : ident =
+  let s, tok =
+    match x with
+    | `Tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc tok ->
+        (* tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc *) str env tok
+    | `Semg_meta tok -> (* semgrep_metavariable *) str env tok
+  in
+  (* This prefix is "local", if we are defining some locals.
+   *)
+  (prefix ^ s, tok)
 
 let map_string_lit (env : env) ((v1, v2, v3) : CST.string_lit) =
   let v1 = (* quoted_template_start *) token env v1 in
   let v2 = map_template_literal env v2 in
   let v3 = (* quoted_template_end *) token env v3 in
   match v2 with
-  | Some (s, t) -> G.String (s, PI.combine_infos v1 [ t; v3 ])
-  | None -> G.String ("", PI.combine_infos v1 [ v3 ])
+  | Some (s, t) -> (s, PI.combine_infos v1 [ t; v3 ])
+  | None -> ("", PI.combine_infos v1 [ v3 ])
 
 let map_variable_expr (env : env) (x : CST.variable_expr) = map_identifier env x
 
 let map_get_attr (env : env) ((v1, v2) : CST.get_attr) =
   let v1 = (* "." *) token env v1 in
-  let v2 = map_variable_expr env v2 in
+  let s, t = map_variable_expr env v2 in
   fun e ->
-    let n = H2.name_of_id v2 in
-    G.DotAccess (e, v1, FN n) |> G.e
+    match e.e with
+    | N (Id (("var", _), id_info)) -> N (Id (("var." ^ s, t), id_info)) |> G.e
+    | N (Id (("local", _), id_info)) ->
+        N (Id (("local." ^ s, t), id_info)) |> G.e
+    | _ ->
+        let n = H2.name_of_id (s, t) in
+        G.DotAccess (e, v1, FN n) |> G.e
 
 let map_literal_value (env : env) (x : CST.literal_value) : literal =
   match x with
   | `Nume_lit x -> map_numeric_lit env x
   | `Bool_lit x -> Bool (map_bool_lit env x)
   | `Null_lit tok -> (* "null" *) Null (token env tok)
-  | `Str_lit x -> map_string_lit env x
+  | `Str_lit x -> G.String (map_string_lit env x)
 
 let rec map_anon_choice_get_attr_7bbf24f (env : env)
     (x : CST.anon_choice_get_attr_7bbf24f) =
@@ -546,8 +556,9 @@ and map_tuple_elems (env : env) ((v1, v2, v3) : CST.tuple_elems) : expr list =
   in
   v1 :: v2
 
-let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : definition =
-  let v1 = (* identifier *) map_identifier env v1 in
+let map_attribute ?(prefix = "") (env : env) ((v1, v2, v3) : CST.attribute) :
+    definition =
+  let v1 = (* identifier *) map_identifier ~prefix env v1 in
   let _v2 = (* "=" *) token env v2 in
   let v3 = map_expression env v3 in
   let ent = G.basic_entity v1 in
@@ -560,15 +571,37 @@ let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : definition =
 let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
   (* TODO? usually 'resource', 'locals', 'variable', other? *)
   let id = (* identifier *) map_identifier env v1 in
+  (* This prefix is carried down, so that we can change definitions of variables to those names.
+     This simplifies later analysis, since we don't need to deal with `DotAccess`es.
+  *)
+  let prefix =
+    match id with
+    | "locals", _ -> "local."
+    | _ -> ""
+  in
+  (* This function changes an identifier to be prefixed with a "var.", only if this is a `variable` block.
+     This is because we want the variable block to be defining this new name, to simplify later analysis.
+  *)
+  let prefix_decl (s, t) =
+    match id with
+    | "variable", _ -> ("var." ^ s, t)
+    | _ -> (s, t)
+  in
   let args_id =
     Common.map
       (fun x ->
+        (* String literals and ideentifiers in this position are considered the same
+           by Terraform. So no need to treat them differently, they both are useful as
+           full names.
+           We change the identifier if this is a `variable` block, to change the declared name.
+        *)
         match x with
         | `Str_lit x ->
-            let x = map_string_lit env x in
-            L x |> G.e
+            let id = map_string_lit env x |> prefix_decl in
+            let n = H2.name_of_id id in
+            N n |> G.e
         | `Id tok ->
-            let id = (* identifier *) map_identifier env tok in
+            let id = (* identifier *) map_identifier env tok |> prefix_decl in
             let n = H2.name_of_id id in
             N n |> G.e)
       v2
@@ -576,7 +609,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
   let lb = (* "{" *) token env v3 in
   let body =
     match v4 with
-    | Some x -> map_body env x
+    | Some x -> map_body ~prefix env x
     | None -> []
   in
   let rb = (* "}" *) token env v5 in
@@ -604,12 +637,12 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
 (* We convert to a field, to be similar to map_object_, so some
  * patterns like 'a=1 ... b=2' can match block body as well as objects.
  *)
-and map_body (env : env) (xs : CST.body) : field list =
+and map_body ?(prefix = "") (env : env) (xs : CST.body) : field list =
   Common.map
     (fun x ->
       match x with
       | `Attr x ->
-          let def = map_attribute env x in
+          let def = map_attribute ~prefix env x in
           def |> G.fld
       | `Blk x ->
           let blk = map_block env x in
