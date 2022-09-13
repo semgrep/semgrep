@@ -5,6 +5,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
@@ -160,7 +161,7 @@ class ScanHandler:
         errors: List[SemgrepError],
         rules: List[Rule],
         targets: Set[Path],
-        ignored_targets: Set[Path],
+        ignored_targets: FrozenSet[Path],
         parse_rate: ParsingData,
         total_time: float,
         commit_date: str,
