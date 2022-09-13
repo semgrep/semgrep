@@ -27,6 +27,7 @@
         },
         "ecosystem": "pypi",
         "package": "awscli",
+        "transitivity": "direct",
         "version": "1.11.82"
       },
       "lockfile": "foo/Pipfile.lock"
