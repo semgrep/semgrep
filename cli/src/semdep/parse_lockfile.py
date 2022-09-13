@@ -10,7 +10,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-import toml  # type: ignore
+import tomli
 from defusedxml import ElementTree as ET  # type: ignore
 from packaging.version import InvalidVersion
 from packaging.version import Version
@@ -170,7 +170,7 @@ def parse_package_lock(
 def parse_pipfile(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
-    manifest = toml.loads(manifest_text) if manifest_text else None
+    manifest = tomli.loads(manifest_text) if manifest_text else None
     if manifest:
         manifest_deps = manifest["packages"] if "packages" in manifest else None
     else:
@@ -412,7 +412,7 @@ def parse_poetry(
 ) -> Generator[FoundDependency, None, None]:
     # poetry.lock file are not quite valid TOML >:(
 
-    manifest = toml.loads(manifest_text) if manifest_text else None
+    manifest = tomli.loads(manifest_text) if manifest_text else None
     try:
         manifest_deps = manifest["tool"]["poetry"]["dependencies"] if manifest else None
     except KeyError:
