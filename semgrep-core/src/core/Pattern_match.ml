@@ -39,8 +39,7 @@
 (* The locations of variables which taint propagates through *)
 type tainted_tokens = Parse_info.t list [@@deriving show]
 
-(* The tokens associated with a single pattern match involved in a taint trace
- * *)
+(* The tokens associated with a single pattern match involved in a taint trace *)
 type pattern_match_tokens = Parse_info.t list [@@deriving show]
 
 (* Simplified version of Taint.source_to_sink meant for finding reporting *)

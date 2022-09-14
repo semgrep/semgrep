@@ -84,7 +84,7 @@ and conjunction = {
   (* metavariable-xyz:'s *)
   conditions : (tok * metavar_cond) list;
   (* focus-metavariable:'s *)
-  focus : (tok * MV.mvar) list;
+  focus : (tok * MV.mvar list) list;
 }
 
 and metavar_cond =
