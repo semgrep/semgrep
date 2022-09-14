@@ -332,8 +332,12 @@ class ScanHandler:
             json=findings_and_ignores,
         )
         # TODO: delete this once all on-prem app instances are gone
-        if response.status_code == 404:
-            response = state.app_session.post(
+        if (
+            response.status_code == 404
+            and state.env.semgrep_url != "https://semgrep.dev"
+        ):
+            # order matters here - findings sends back errors but ignores doesn't
+            ignores_response = state.app_session.post(
                 f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/ignores",
                 json={"findings": ignores},
             )
