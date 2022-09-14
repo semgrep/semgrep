@@ -322,41 +322,92 @@ let run_selector_on_ranges env selector_opt ranges =
       |> Common.map RM.match_result_to_range
       |> RM.intersect_ranges env.xconf.config !debug_matches ranges
 
-let apply_focus_on_ranges env focus_mvars ranges : RM.ranges =
-  (* this will return a new range (or a no match) *)
-  let apply_focus_mvar (range : RM.t) (focus_mvar : MV.mvar) : RM.t option =
-    let* _mvar, mval =
-      List.find_opt
-        (fun (mvar, _mval) -> MV.equal_mvar focus_mvar mvar)
-        range.RM.mvars
+let apply_focus_on_ranges env (focus_mvars_list : S.focus_mv_list list)
+    (ranges : RM.ranges) : RM.ranges =
+  (* this will return a list of new ranges that have been restricted by the variables in focus_mvars *)
+  let apply_focus_mvars (focus_mvars : MV.mvar list) (range : RM.t) : RM.t stack
+      =
+    let fm_mvals =
+      focus_mvars
+      |> List.fold_left
+           (fun acc focus_mvar ->
+             let res =
+               List.find_opt
+                 (fun (mvar, _mval) -> MV.equal_mvar focus_mvar mvar)
+                 range.RM.mvars
+             in
+             match res with
+             | None -> acc
+             | Some (_mvar, mval) -> (focus_mvar, mval) :: acc)
+           []
     in
-    let* range_loc = Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval) in
-    let focus_match =
-      {
-        PM.rule_id = fake_rule_id (-1, focus_mvar);
-        PM.file = env.xtarget.file;
-        PM.range_loc;
-        PM.tokens = lazy (MV.ii_of_mval mval);
-        PM.env = range.mvars;
-        PM.taint_trace = None;
-      }
+    let fm_mval_range_locs =
+      fm_mvals
+      |> List.filter_map (fun (focus_mvar, mval) ->
+             let* range_loc =
+               Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval)
+             in
+             Some (focus_mvar, mval, range_loc))
     in
-    let focus_range = RM.match_result_to_range focus_match in
-    (* Essentially, we are intersecting the ranges. *)
-    if Range.( $<=$ ) focus_range.r range.r then Some focus_range
-    else if Range.( $<=$ ) range.r focus_range.r then Some range
-    else None
+    let focus_matches =
+      fm_mval_range_locs
+      |> List.map (fun (focus_mvar, mval, range_loc) ->
+             {
+               PM.rule_id = fake_rule_id (-1, focus_mvar);
+               PM.file = env.xtarget.file;
+               PM.range_loc;
+               PM.tokens = lazy (MV.ii_of_mval mval);
+               PM.env = range.mvars;
+               PM.taint_trace = None;
+             })
+    in
+    let focused_ranges = List.map RM.match_result_to_range focus_matches in
+    focused_ranges
   in
-  let apply_focus_mvars init_range =
-    focus_mvars
-    |> List.fold_left
-         (fun opt_range (_tok, focus_mvar) ->
-           let* range = opt_range in
-           let final = apply_focus_mvar range focus_mvar in
-           final)
-         (Some init_range)
+  let apply_focus_mvars_list init_range =
+    (* focus_mvars_list and focus_ranges_list are lists of focus statements under a single `patterns`,
+     * ie: [focus-metavariable: $A, $B; focus-metavariable: $X, $Y]
+     *)
+    let focused_ranges_list =
+      focus_mvars_list
+      |> List.map (fun (_tok, focus_mvars) ->
+             (* focus_mvars is [$A, $B] in a single "focus-metavariable: $A, $B" *)
+             let focused_ranges = apply_focus_mvars focus_mvars init_range in
+             focused_ranges)
+    in
+    let intersect_ranges (list1 : RM.t stack) (list2 : RM.t stack) : RM.t stack
+        =
+      let intersect (r1 : RM.t) (r2 : RM.t) : RM.t option =
+        if Range.( $<=$ ) r1.r r2.r then Some r1
+        else if Range.( $<=$ ) r2.r r1.r then Some r2
+        else None
+      in
+      match (list1, list2) with
+      | [ range1 ], [ range2 ] -> (
+          match intersect range1 range2 with
+          | Some r -> [ r ]
+          | None -> [])
+      | [], _
+      | _, [] ->
+          failwith "Cannot have an empty `focus-metavariables`"
+      | _, _ ->
+          failwith
+            "Semgrep currently does not support multiple `focus-metavariable` \
+             statements with multiple metavariables under a single `patterns`."
+    in
+    let rec intersect_ranges_list (l : RM.t stack stack) : RM.t stack =
+      match l with
+      | [] -> failwith "No focus-metavariable statements found."
+      | [ first ] -> first
+      | first :: second :: tail ->
+          (* Intersecting two separate focus-metavariable statements at a time *)
+          intersect_ranges_list ([ intersect_ranges first second ] @ tail)
+    in
+    intersect_ranges_list focused_ranges_list
   in
-  ranges |> List.filter_map apply_focus_mvars
+  match focus_mvars_list with
+  | [] -> ranges
+  | _ -> List.concat_map apply_focus_mvars_list ranges
 
 (*****************************************************************************)
 (* Evaluating xpatterns *)
@@ -632,7 +683,6 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                    RM.intersect_ranges env.xconf.config !debug_matches acc r)
                  ranges
           in
-
           (* optimization of `pattern: $X` *)
           let ranges = run_selector_on_ranges env selector_opt ranges in
 

@@ -330,6 +330,17 @@ let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
       error_at_expr env value
         "Wrong field for a pattern, expected string or dictionary"
 
+let parse_focus_mvs env (key : key) x =
+  (* pr (G.show_expr_kind x.G.e); *)
+  match x.G.e with
+  | G.N (G.Id ((s, _), _))
+  | G.L (String (s, _)) ->
+      [ s ]
+  | G.Container (Array, _) -> parse_string_list env key x
+  | _ ->
+      error_at_key env key
+        ("Expected a string or a list of strings for " ^ fst key)
+
 (*****************************************************************************)
 (* Parsers for core fields (languages:, severity:) *)
 (*****************************************************************************)
