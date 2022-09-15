@@ -297,8 +297,16 @@ def ci(
                 # Note this needs to happen within fix_head_if_github_action
                 # so that metadata of current commit is correct
                 if scan_handler:
-                    scan_handler.fetch_and_init_scan_config(metadata_dict)
-                    scan_handler.start_scan(metadata_dict)
+                    try:
+                        scan_handler.fetch_and_init_scan_config(metadata_dict)
+                        scan_handler.start_scan(metadata_dict)
+                    except Exception as e:
+                        if (
+                            state.env.semgrep_url != "https://semgrep.dev"
+                        ):  # support old on-prem apps
+                            scan_handler.fetch_config_and_start_scan_old(metadata_dict)
+                        else:
+                            raise e
                     logger.info(f"Authenticated as {scan_handler.deployment_name}")
                     config = (scan_handler.rules,)
             except Exception as e:

@@ -310,6 +310,7 @@ Would have sent findings and ignores blob: {
         "supply-chain1",
         "supply-chain2"
     ],
+    "cai_ids": [],
     "ignores": [
         {
             "check_id": "eqeq-bad",
