@@ -8,6 +8,32 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.113.0](https://github.com/returntocorp/semgrep/releases/tag/v0.113.0) - 2022-09-15
+
+### Added
+
+- Adds backwards-compatibility with older versions of semgrep-app. Only relevant for customers with on-prem versions of the app. (gh-6098)
+- taint-mode: Experimental support for basic field-sensitive taint tracking.
+  Semgrep can now track `x.a` and `x.b` separately, so that e.g. `x.a` can be
+  tainted at the same time as `x.b` is clean, hence `sink(x.a)` would produce
+  a finding but `sink(x.b)` would not. It is also possible for `x` to be tainted
+  while `x.a` is clean. We expect this to have an net positive effect by reducing
+  false positives. (pa-1278)
+- Update the supply chain API to include information about the transitivity of matched dependencies (sca-199)
+
+### Fixed
+
+- Resolve imported classes when there are multiple chained classes.
+  For example, if you `import world.Hello`, and create a
+  `new Hello.internal_class()`, you can match that with
+  `new world.Hello.internal_class()`. (gh-6001)
+- Java: Correctly parse ellipsis in the body of top-level constructor patterns with privacy modifiers (e.g. public Foo() { ... }) (gh-6051)
+- `semgrep --test` now fails when encountering a parsing error in target code. (gh-6068)
+- Allowed metavariable-comparison to make use of the `not in` operator. (gh-6072)
+- Fixed parsing of Rust impl definitions (gh-6078)
+- Fixed a `TypeError: unbound method set.intersection() needs an argument` crash
+  that occurred when all of a scan's rules were multilang (`regex` or `generic`). (gh-6093)
+
 ## [0.112.1](https://github.com/returntocorp/semgrep/releases/tag/v0.112.1) - 2022-09-08
 
 ### Fixed

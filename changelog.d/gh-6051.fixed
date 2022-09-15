@@ -1,1 +1,0 @@
-Java: Correctly parse ellipsis in the body of top-level constructor patterns with privacy modifiers (e.g. public Foo() { ... })
