@@ -91,7 +91,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
                 (Common.map
                    (fun (_, cond) -> translate_metavar_cond cond)
                    conditions
-                @ Common.map (fun (_, mv) -> `O [ ("focus", `String mv) ]) focus
+                @ Common.map (fun (_, mv_list) -> `O [ ("focus", `A (Common.map (fun mvar -> `String mvar) mv_list)) ]) focus
                 ) );
           ]))
   | Or (_, fs) ->
