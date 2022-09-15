@@ -656,12 +656,6 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
                     | _ -> comparison)
               | MetavarAnalysis (mvar, kind) -> R.CondAnalysis (mvar, kind)
             in
-            (* _env is only here because the call site below expects that this function takes an env *)
-            let extract_mvar _env (expr : G.expr) =
-              match read_string_wrap expr.e with
-              | Some (mvar, _) -> mvar
-              | None -> failwith "Error: This should never happen. Found a focus-metavariable with non-string value(s)."
-            in
             match
               ( find "focus-metavariable",
                 find "metavariable-analysis",
@@ -671,7 +665,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
             with
             | None, None, None, None, None -> Left3 (get_nested_formula 0 expr)
             | Some (((_, t) as key), value), None, None, None, None ->
-                Middle3 (t, parse_list env key extract_mvar value)
+                Middle3 (t, parse_focus_mvs env key value)
             | None, Some (key, value), None, None, None
             | None, None, Some (key, value), None, None
             | None, None, None, Some (key, value), None
@@ -977,7 +971,7 @@ and constrain_where env (t1, _t2) where_key (value : G.expr) formula : R.formula
     *)
     match formula with
     | And (tok, { conjuncts; conditions = conditions2; focus = focus2 }) ->
-        (tok, conditions @ conditions2, focus2, conjuncts)
+        (tok, conditions @ conditions2, focus @ focus2, conjuncts)
     (* Otherwise, we consider the modified pattern a degenerate singleton `And`.
     *)
     | _ -> (t1, conditions, focus, [ formula ])
