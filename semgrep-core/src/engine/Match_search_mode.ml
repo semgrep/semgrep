@@ -351,7 +351,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     in
     let focus_matches =
       fm_mval_range_locs
-      |> List.map (fun (focus_mvar, mval, range_loc) ->
+      |> Common.map (fun (focus_mvar, mval, range_loc) ->
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
                PM.file = env.xtarget.file;
@@ -361,7 +361,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                PM.taint_trace = None;
              })
     in
-    let focused_ranges = List.map RM.match_result_to_range focus_matches in
+    let focused_ranges = Common.map RM.match_result_to_range focus_matches in
     focused_ranges
   in
   let apply_focus_mvars_list init_range =
@@ -370,7 +370,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
      *)
     let focused_ranges_list =
       focus_mvars_list
-      |> List.map (fun (_tok, focus_mvars) ->
+      |> Common.map (fun (_tok, focus_mvars) ->
              (* focus_mvars is [$A, $B] in a single "focus-metavariable: $A, $B" *)
              let focused_ranges = apply_focus_mvars focus_mvars init_range in
              focused_ranges)
