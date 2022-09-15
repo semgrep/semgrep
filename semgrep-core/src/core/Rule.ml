@@ -73,6 +73,8 @@ type formula =
    *)
   | Inside of tok * formula
 
+and focus_mv_list = tok * MV.mvar list [@@deriving show]
+
 (* The conjunction must contain at least
  * one positive "term" (unless it's inside a CondNestedFormula, in which
  * case there is not such a restriction).
@@ -84,7 +86,7 @@ and conjunction = {
   (* metavariable-xyz:'s *)
   conditions : (tok * metavar_cond) list;
   (* focus-metavariable:'s *)
-  focus : (tok * MV.mvar list) list;
+  focus : focus_mv_list list;
 }
 
 and metavar_cond =

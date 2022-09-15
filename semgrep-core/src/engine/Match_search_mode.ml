@@ -322,7 +322,7 @@ let run_selector_on_ranges env selector_opt ranges =
       |> Common.map RM.match_result_to_range
       |> RM.intersect_ranges env.xconf.config !debug_matches ranges
 
-let apply_focus_on_ranges env (focus_mvars_list : S.focus_mv_list list)
+let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     (ranges : RM.ranges) : RM.ranges =
   (* this will return a list of new ranges that have been restricted by the variables in focus_mvars *)
   let apply_focus_mvars (focus_mvars : MV.mvar list) (range : RM.t) : RM.t stack
