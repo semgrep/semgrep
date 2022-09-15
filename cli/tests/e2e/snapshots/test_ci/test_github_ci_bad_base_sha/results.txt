@@ -38,6 +38,7 @@ Trying to fetch branch foo from origin as base branch
 Trying to fetch branch bar as commit from origin as head branch tip commit
 Using f7ee3123ed098941662685dd8b726fceee48f78d as the merge-base of f7ee3123ed098941662685dd8b726fceee48f78d and 17b3114fb3d41437abc2a3e6499db84ad921e6f0
 Fetching configuration from semgrep.dev
+Git root path: <MASKED>/copy
 Getting scan configurations
 Starting scan
 Authenticated as org_name

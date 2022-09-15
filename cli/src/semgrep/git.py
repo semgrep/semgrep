@@ -25,6 +25,13 @@ def zsplit(s: str) -> List[str]:
         return []
 
 
+def get_git_root_path() -> Path:
+    git_output = git_check_output(["git", "rev-parse", "--show-toplevel"])
+    root_path = Path(git_output)
+    logger.debug(f"Git root path: {root_path}")
+    return root_path
+
+
 class GitStatus(NamedTuple):
     added: List[Path]
     modified: List[Path]
