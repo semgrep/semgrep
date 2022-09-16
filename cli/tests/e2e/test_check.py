@@ -706,14 +706,6 @@ def test_pattern_regex_empty_file(run_semgrep_in_tmp, snapshot):
     )
 
 
-@pytest.mark.slow
-def test_cdn_ruleset_resolution(run_semgrep_in_tmp, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp("p/ci").stdout,
-        "results.json",
-    )
-
-
 @pytest.mark.kinda_slow
 def test_inventory_finding_output(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
