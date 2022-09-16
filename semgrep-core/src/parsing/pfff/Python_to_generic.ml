@@ -735,6 +735,13 @@ and stmt_aux env x =
   | AugAssign (v1, (v2, tok), v3) ->
       let v1 = expr env v1 and v2 = operator v2 and v3 = expr env v3 in
       [ G.exprstmt (G.AssignOp (v1, (v2, tok), v3) |> G.e) ]
+  | Cast (Name (id, _kind, _ref), _tok, ty) ->
+      (* no need to guard with assign_to_vardef here *)
+      let id = name env id in
+      let ty = type_ env ty in
+      let ent = G.basic_entity id in
+      let def = G.VarDef { G.vtype = Some ty; vinit = None } in
+      [ G.DefStmt (ent, def) |> G.s ]
   | Cast (e, tok, ty) ->
       [ G.exprstmt (G.Cast (type_ env ty, info tok, expr env e) |> G.e) ]
   | Raise (t, v1) -> (
