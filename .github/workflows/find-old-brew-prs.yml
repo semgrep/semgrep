@@ -3,6 +3,9 @@ name: Check for Old Homebrew PRs
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "23 8 * * *"
+    - cron: "23 20 * * *"
 
 jobs:
   old-prs:
