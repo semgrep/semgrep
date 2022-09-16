@@ -12,8 +12,5 @@ foo (
 	4
 )
 
-foo (
-	# ruleid: focus_metavariable2
-	a
-)
-
+# ok: focus_metavariable2
+goo (1, 2)

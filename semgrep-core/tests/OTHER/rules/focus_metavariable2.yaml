@@ -7,9 +7,9 @@ rules:
           - $X
           - $Y
       - patterns:
-        - pattern: foo($Z)
-        - focus-metavariable:
-          - $Z
+        - pattern: goo($A, $B)
+        - focus-metavariable: $A
+        - focus-metavariable: $B
     message: Test for multiple metavariables
     languages:
       - py
