@@ -18,7 +18,16 @@ Unreachable Supply Chain Findings:
         found a dependency
 
 
-First-Party Findings:
+First-Party Non-blocking Findings:
+
+  foo.py 
+     eqeq-five
+        useless comparison to 5
+
+         ▶▶┆ Autofix ▶ x == 2
+         15┆ x == 2
+
+First-Party Blocking Findings:
 
   foo.py 
      eqeq-bad
@@ -31,12 +40,6 @@ First-Party Findings:
           7┆ a == a
           ⋮┆----------------------------------------
          11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ x == 2
-         15┆ x == 2
           ⋮┆----------------------------------------
      eqeq-four
         useless comparison to 4

@@ -18,7 +18,19 @@ Unreachable Supply Chain Findings:
         found a dependency
 
 
-First-Party Findings:
+First-Party Non-blocking Findings:
+
+  foo.py 
+     eqeq-five
+        useless comparison to 5
+
+         ▶▶┆ Autofix ▶ x == 2
+         15┆ x == 5
+          ⋮┆----------------------------------------
+         ▶▶┆ Autofix ▶ y == 2
+         16┆ y == 5  # nosemgrep
+
+First-Party Blocking Findings:
 
   foo.py 
      eqeq-bad
@@ -41,15 +53,6 @@ First-Party Findings:
          23┆ b == b # Triage ignored by syntactic_id
           ⋮┆----------------------------------------
          24┆ a == a # Triage ignored by match_based_id
-          ⋮┆----------------------------------------
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ x == 2
-         15┆ x == 5
-          ⋮┆----------------------------------------
-         ▶▶┆ Autofix ▶ y == 2
-         16┆ y == 5  # nosemgrep
           ⋮┆----------------------------------------
      eqeq-four
         useless comparison to 4
