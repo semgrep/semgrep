@@ -330,8 +330,13 @@ let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
       error_at_expr env value
         "Wrong field for a pattern, expected string or dictionary"
 
-let parse_focus_mvs env (key : key) x =
-  match x.G.e with
+(* env: general data about the current rule
+ * key: the word `focus-metavariable` from the original rule.
+ * x: the AST expression for the values in the rule that are under
+ *    `focus-metavariable`.
+ *)
+let parse_focus_mvs env (key : key) (x : G.expr) =
+  match x.e with
   | G.N (G.Id ((s, _), _))
   | G.L (String (s, _)) ->
       [ s ]
