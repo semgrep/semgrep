@@ -1,0 +1,1 @@
+Fixes https://github.com/returntocorp/semgrep/issues/5686. You can now have multiple metavariables under `focus-metavariable`.
