@@ -55,10 +55,12 @@ class ProjectConfig:
     FILE_VERSION = "v1"
 
     version: str = field(default=FILE_VERSION)
-    tags: List[str] = field(default=list)
+    tags: Optional[List[str]] = field(default=None)
 
     @tags.validator
-    def check_tags(self, _attribute: Any, value: List[str]) -> None:
+    def check_tags(self, _attribute: Any, value: Optional[List[str]]) -> None:
+        if value is None:
+            return
         if not isinstance(value, list):
             raise ValueError("tags must be a list of strings")
         for val in value:
@@ -119,4 +121,7 @@ class ProjectConfig:
         data = asdict(self)
         # Strip out version
         data.pop("version", None)
+        # Strip out tags if None
+        if data.get("tags") is None:
+            data.pop("tags", None)
         return data
