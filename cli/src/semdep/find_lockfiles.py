@@ -25,6 +25,18 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Gradle()): ["gradle.lockfile"],
 }
 
+LOCKFILE_TO_MANIFEST = {
+    "Pipfile.lock": "Pipfile",
+    "poetry.lock": "pyproject.toml",
+    "package-lock.json": "package.json",
+    "yarn.lock": "package.json",
+    "Gemfile.lock": None,
+    "go.sum": None,
+    "Cargo.lock": None,
+    "pom.xml": None,
+    "gradle.lockfile": None,
+}
+
 
 def find_single_lockfile(
     p: Path, ecosystem: Ecosystem
@@ -36,9 +48,15 @@ def find_single_lockfile(
     for path in p.parents:
         for lockfile_pattern in ECOSYSTEM_TO_LOCKFILES[ecosystem]:
             lockfile_path = path / lockfile_pattern
+            manifest_pattern = LOCKFILE_TO_MANIFEST[lockfile_pattern]
+            manifest_path = path / manifest_pattern if manifest_pattern else None
             if lockfile_path.exists():
                 return lockfile_path, parse_lockfile_str(
-                    lockfile_path.read_text(encoding="utf8"), lockfile_path
+                    lockfile_path.read_text(encoding="utf8"),
+                    lockfile_path,
+                    manifest_path.read_text(encoding="utf8")
+                    if manifest_path and manifest_path.exists()
+                    else None,
                 )
             else:
                 continue

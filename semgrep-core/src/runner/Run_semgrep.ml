@@ -314,11 +314,6 @@ let exn_to_error file (e : Exception.t) =
 (* Parsing (non-cached) *)
 (*****************************************************************************)
 
-(* Experiment *)
-let process_metatypes metatypes_file =
-  let metatypes = Parse_rule.parse_metatypes metatypes_file in
-  Hooks.metatypes := Some metatypes
-
 (* TODO? this is currently deprecated, but pad still has hope the
  * feature can be resurrected.
  *)
@@ -598,8 +593,6 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     extract_targets_of_config config rule_ids extract_rules
   in
   (* TODO: possibly extract (recursively) from generated stuff *)
-  if not (config.metatypes_file = "") then
-    process_metatypes config.metatypes_file;
   let target_info, skipped = targets_of_config config rule_ids in
   (* Note that rules here is only the search/taint rules from the above
    * partition; i.e., it doesn't contain any extract mode rules. However,

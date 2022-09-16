@@ -1,3 +1,58 @@
+; cli-bridge/dune
+; Primary targets: semgrep_bridge_{core,python}.so
+
+
+; Link flags to pass to ocamlopt to generate a shared library.
+;
+; The goal here is to ensure the library is "two level" as opposed to
+; "flat" since "brew audit" insists on the former.  (That is just a
+; check performed by the Homebrew system; there is no effect on this
+; library's behavior.)
+(rule
+  (target ocamlopt-link-flags.txt)
+  (enabled_if (= %{system} macosx))
+  (action
+    (with-stdout-to %{target}
+      (progn
+        ; Pass "-twolevel_namespace" to the linker.  Since it eventually
+        ; appears later on the compiler command line, it overrides the
+        ; "-flat_namespace" that ocamlopt passes.
+        ;
+        ; It is not clear why ocamlopt does that; it was added to ocaml
+        ; 'configure' in commit c4411b3972 (2002-11-15) without
+        ; explanation when ocaml macos shared library support was first
+        ; added.  (That logic was later moved to 'configure.ac'.)
+        ;
+        ; To verify this has had its intended effect, run "otool -hV" on
+        ; the generated .so file and check that "TWOLEVEL" appears in
+        ; the output.
+        (echo "-ccopt\n")
+        (echo "-Wl,-twolevel_namespace\n")
+
+        ; Also pass "-undefined error", since ocamlopt also passes
+        ; "-undefined warning", which 'ld' rejects when combined with
+        ; "-twolevel_namespace".
+        (echo "-ccopt\n")
+        (echo "-Wl,-undefined\n")
+        (echo "-ccopt\n")
+        (echo "-Wl,error\n")
+      )
+    )
+  )
+)
+
+; On other systems, we do not need any extra flags.
+(rule
+  (target ocamlopt-link-flags.txt)
+  (enabled_if (<> %{system} macosx))
+  (action
+    (with-stdout-to %{target}
+      (echo "")
+    )
+  )
+)
+
+
 ; Semgrep as a shared library.
 (executables
   (names semgrep_bridge_core)
@@ -12,6 +67,9 @@
     (names
       bridge_ml
     )
+  )
+  (flags
+    %{read-lines:ocamlopt-link-flags.txt}
   )
 
   ; Generate a .so file.

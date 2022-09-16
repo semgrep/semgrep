@@ -334,6 +334,7 @@ def test_rule_match_to_app_finding(snapshot, mocker):
                     "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb",
                 ]
             },
+            transitivity=out.Transitivity(out.Direct()),
         ),
         lockfile="foo/Pipfile.lock",
     )

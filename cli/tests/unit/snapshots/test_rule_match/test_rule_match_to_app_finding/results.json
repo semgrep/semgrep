@@ -27,13 +27,14 @@
         },
         "ecosystem": "pypi",
         "package": "awscli",
+        "transitivity": "direct",
         "version": "1.11.82"
       },
       "lockfile": "foo/Pipfile.lock"
     },
     "reachability_rule": true,
     "reachable": true,
-    "sca_finding_schema": 20220818
+    "sca_finding_schema": 20220913
   },
   "severity": 2,
   "syntactic_id": "0639a4883ba9b83e767a5dc4c09e001a"

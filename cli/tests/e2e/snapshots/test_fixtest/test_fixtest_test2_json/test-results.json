@@ -9,6 +9,7 @@
     "rules/fixtest/test2.yaml": {
       "checks": {
         "test2": {
+          "errors": [],
           "matches": "<masked in tests>",
           "passed": true
         }

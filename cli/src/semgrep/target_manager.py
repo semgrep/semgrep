@@ -23,6 +23,7 @@ from typing import Tuple
 from typing import Union
 
 from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
+from semdep.find_lockfiles import LOCKFILE_TO_MANIFEST
 from semdep.parse_lockfile import parse_lockfile_str
 from semgrep.git import BaselineHandler
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
@@ -116,6 +117,8 @@ class FileTargetingLog:
     # "None" indicates that all lines were skipped
     core_failure_lines_by_file: Mapping[Path, Optional[int]] = Factory(dict)
 
+    # Indicates which files were NOT scanned by each language
+    # e.g. for python, should be a list of all non-python-compatible files
     by_language: Dict[Union[Language, Ecosystem], Set[Path]] = Factory(
         lambda: defaultdict(set)
     )
@@ -123,18 +126,25 @@ class FileTargetingLog:
     rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
 
     @property
-    def unsupported_lang_paths(self) -> Set[Path]:
-        # paths of all files that were ignored by ALL non-generic langs
-        return (
-            set.intersection(
-                *[
-                    paths
-                    for lang, paths in self.by_language.items()
-                    if lang not in UNSUPPORTED_EXT_IGNORE_LANGS
-                ]
-            )
+    def unsupported_lang_paths(self) -> FrozenSet[Path]:
+        """
+        RETURNS: paths of all files that were ignored by ALL non-generic langs
+
+        Note: if only generic languages were scanned, returns all file paths
+        """
+        unsupported_lang_paths = (
+            [
+                unsupported_paths
+                for lang, unsupported_paths in self.by_language.items()
+                if lang not in UNSUPPORTED_EXT_IGNORE_LANGS
+            ]
             if self.by_language
-            else set()
+            else []
+        )
+        return (
+            frozenset(set.intersection(*unsupported_lang_paths))
+            if unsupported_lang_paths
+            else self.target_manager.get_all_files()
         )
 
     def __str__(self) -> str:
@@ -642,6 +652,10 @@ class TargetManager:
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
+    def get_all_files(self) -> FrozenSet[Path]:
+        return frozenset(f for target in self.targets for f in target.files())
+
+    @lru_cache(maxsize=None)
     def get_files_for_language(self, lang: Union[Language, Ecosystem]) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
@@ -652,7 +666,7 @@ class TargetManager:
 
         Note also filters out any directory and descendants of `.git`
         """
-        all_files = frozenset(f for target in self.targets for f in target.files())
+        all_files = self.get_all_files()
 
         files = self.filter_by_language(lang, candidates=all_files)
         self.ignore_log.by_language[lang].update(files.removed)
@@ -725,7 +739,16 @@ class TargetManager:
         lockfiles = self.get_files_for_language(ecosystem).kept
         parsed: Dict[Path, List[FoundDependency]] = {}
         for lockfile in lockfiles:
-            deps = parse_lockfile_str(lockfile.read_text(encoding="utf8"), lockfile)
+            path, lockfile_pattern = lockfile.parent, lockfile.parts[-1]
+            manifest_pattern = LOCKFILE_TO_MANIFEST[lockfile_pattern]
+            manifest_path = path / manifest_pattern if manifest_pattern else None
+            deps = parse_lockfile_str(
+                lockfile.read_text(encoding="utf8"),
+                lockfile,
+                manifest_path.read_text(encoding="utf8")
+                if manifest_path and manifest_path.exists()
+                else None,
+            )
             if lockfile not in self.lockfile_scan_info:
                 # We haven't seen this file during reachable finding generation
                 self.lockfile_scan_info[str(lockfile)] = len(deps)
