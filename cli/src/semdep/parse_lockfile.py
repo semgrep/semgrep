@@ -76,7 +76,7 @@ def parse_yarn(
 
     if manifest_text:
         manifest = json.loads(manifest_text)
-        manifest_deps = manifest["dependencies"]
+        manifest_deps = manifest["dependencies"] if "dependencies" in manifest else None
     else:
         manifest_deps = None
     lockfile_text = "\n".join(
@@ -140,7 +140,11 @@ def parse_package_lock(
     else:
         logger.debug("Found package-lock with no 'dependencies'")
         return
-
+    if manifest_text:
+        manifest = json.loads(manifest_text)
+        manifest_deps = manifest["dependencies"] if "dependencies" in manifest else None
+    else:
+        manifest_deps = None
     manifest = json.loads(manifest_text) if manifest_text else None
     manifest_deps = manifest["dependencies"] if manifest else None
     for dep, dep_blob in deps.items():
