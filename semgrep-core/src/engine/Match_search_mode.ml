@@ -366,7 +366,11 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                PM.taint_trace = None;
              })
     in
-    let focused_ranges = List.filter_map (fun fms -> intersect (RM.match_result_to_range fms) range) focus_matches in
+    let focused_ranges =
+      List.filter_map
+        (fun fms -> intersect (RM.match_result_to_range fms) range)
+        focus_matches
+    in
     focused_ranges
   in
   let apply_focus_mvars_list init_range =
@@ -388,7 +392,8 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
           | Some r -> [ r ]
           | None -> [])
       | [ _ ], []
-      | [], [ _ ] -> []
+      | [], [ _ ] ->
+          []
       | [], _
       | _, [] ->
           failwith "Cannot have an empty `focus-metavariables`"
