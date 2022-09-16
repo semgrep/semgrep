@@ -1,0 +1,17 @@
+rules:
+  - id: test
+    pattern-either:
+      - patterns:
+        - pattern: foo($X, ..., $Y)
+        - focus-metavariable:
+          - $X
+          - $Y
+      - patterns:
+        - pattern: foo($Z)
+        - focus-metavariable:
+          - $Z
+    message: Test for multiple metavariables
+    languages:
+      - py
+    severity: ERROR
+
