@@ -498,7 +498,7 @@ class TextFormatter(BaseFormatter):
             if "sca_info" not in match.extra:
                 if match.is_blocking:
                     first_party_blocking.append(match)
-                    rule_id = match.match.rule_id
+                    rule_id = match.match.rule_id.value
                     if rule_id not in first_party_blocking_rules:
                         first_party_blocking_rules.append(rule_id)
                 else:
@@ -580,9 +580,21 @@ class TextFormatter(BaseFormatter):
                 "\nBlocking Findings:\n" + "\n".join(first_party_blocking_output)
             )
 
+        first_party_blocking_rules_output = []
+        if first_party_blocking_rules:
+            formatted_first_party_blocking_rules = [
+                with_color(Colors.foreground, rule_id, bold=True)
+                for rule_id in first_party_blocking_rules
+            ]
+            first_party_blocking_rules_output = [
+                "\nBlocking Rules Fired:\n   "
+                + "   \n   ".join(formatted_first_party_blocking_rules)
+            ]
+
         return "\n".join(
             [
                 *findings_output,
+                *first_party_blocking_rules_output,
                 *timing_output,
             ]
         )
