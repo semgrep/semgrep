@@ -331,7 +331,6 @@ let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
         "Wrong field for a pattern, expected string or dictionary"
 
 let parse_focus_mvs env (key : key) x =
-  (* pr (G.show_expr_kind x.G.e); *)
   match x.G.e with
   | G.N (G.Id ((s, _), _))
   | G.L (String (s, _)) ->
