@@ -393,7 +393,7 @@ def mock_autofix(request, mocker):
             "GITHUB_RUN_ID": "35",
             "GITHUB_ACTOR": "some_test_username",
             "GITHUB_REF": BRANCH_NAME,
-            "SEMGREP_PROJECT_CONFIG": "tags:\n- tag1: value-1\n- tag2-as-string\n",
+            "SEMGREP_PROJECT_CONFIG": "tags:\n- tag1\n- tag_key:tag_val\n",
         },
     ],
     ids=[

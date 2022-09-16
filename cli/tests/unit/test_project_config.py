@@ -2,17 +2,14 @@ from pathlib import Path
 from typing import Sequence
 
 import pytest
+import ruamel.yaml
 from tests.conftest import make_semgrepconfig_file
 
 from semgrep.project import ProjectConfig
 
-CONFIG_TAGS = "tags:\n- tag1: value-1\n- tag2-as-string\n"
-CONFIG_TAGS_MONOREPO_1 = (
-    "tags:\n- tag1: value-1\n- tag2-as-string\n- service: service-1\n"
-)
-CONFIG_TAGS_MONOREPO_2 = (
-    "tags:\n- tag1: value-1\n- tag2-as-string\n- service: service-2\n"
-)
+CONFIG_TAGS = "tags:\n- tag1\n- tag_key:tag_val\n"
+CONFIG_TAGS_MONOREPO_1 = "tags:\n- tag1\n- service:service-1\n"
+CONFIG_TAGS_MONOREPO_2 = "tags:\n- tag1\n- service:service-2\n"
 
 
 def create_mock_dir(git_tmp_path, files: Sequence[str]) -> None:
@@ -68,13 +65,8 @@ def test_projectconfig_load_all_basic(git_tmp_path, mocker):
     mocker.patch("semgrep.project.get_git_root_path", return_value=git_tmp_path)
     proj_config = ProjectConfig.load_all()
 
-    expected_metadata = {
-        "tags": [
-            {"tag1": "value-1"},
-            "tag2-as-string",
-        ]
-    }
-    assert proj_config.metadata == expected_metadata
+    expected_tags = ["tag1", "tag_key:tag_val"]
+    assert proj_config.tags == expected_tags
 
 
 @pytest.mark.quick
@@ -98,19 +90,25 @@ def test_projectconfig_load_all_monorepo(git_tmp_path, mocker):
     mocker.patch("semgrep.project.get_git_root_path", return_value=git_tmp_path)
     proj_config = ProjectConfig.load_all()
 
-    expected_metadata = {
-        "tags": [{"tag1": "value-1"}, "tag2-as-string", {"service": "service-1"}]
-    }
-    assert proj_config.metadata == expected_metadata
+    expected_tags = ["tag1", "service:service-1"]
+    assert proj_config.tags == expected_tags
+
+
+@pytest.mark.quick
+def test_projectconfig_load_from_file_invalid_format(tmp_path):
+    tmp_file = tmp_path / ".semgrepconfig"
+    yaml = ruamel.yaml.YAML(typ="safe")
+    invalid_cfg = {"version": "v1", "tags": {"tag1": "value1"}}
+    with tmp_file.open("w") as f:
+        yaml.dump(invalid_cfg, f)
+
+    with pytest.raises(ValueError):
+        ProjectConfig.load_from_file(tmp_file)
 
 
 @pytest.mark.quick
 def test_projectconfig_todict():
-    project_config = ProjectConfig(
-        {"tags": [{"tag1": "value-1"}, "tag2-as-string", {"service": "service-1"}]}
-    )
+    project_config = ProjectConfig(version="v1", tags=["tag1", "tag2"])
 
-    expected = {
-        "tags": ['{"tag1": "value-1"}', "tag2-as-string", '{"service": "service-1"}']
-    }
+    expected = {"tags": ["tag1", "tag2"]}
     assert project_config.to_dict() == expected

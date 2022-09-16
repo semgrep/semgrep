@@ -1,9 +1,7 @@
 """
 Utility for identifying the URL of the current git project
 """
-import json
 import re
-from copy import deepcopy
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -11,8 +9,9 @@ from typing import List
 from typing import Optional
 
 import ruamel.yaml
+from attr import asdict
 from attr import define
-from attr import Factory
+from attr import field
 
 from semgrep.git import get_git_root_path
 from semgrep.util import git_check_output
@@ -42,7 +41,29 @@ def get_project_url() -> Optional[str]:
 
 @define
 class ProjectConfig:
-    metadata: Dict[str, Any] = Factory(dict)
+    """
+    Class that handles loading and validating semgrepconfig files.
+
+    Example:
+
+    version: v1
+    tags:
+        - tag1
+        - tag2
+    """
+
+    FILE_VERSION = "v1"
+
+    version: str = field(default=FILE_VERSION)
+    tags: List[str] = field(default=list)
+
+    @tags.validator
+    def check_tags(self, _attribute: Any, value: List[str]) -> None:
+        if not isinstance(value, list):
+            raise ValueError("tags must be a list of strings")
+        for val in value:
+            if not isinstance(val, str):
+                raise ValueError("tags must be a list of strings")
 
     @staticmethod
     def is_project_config_file(file_path: Path) -> bool:
@@ -69,12 +90,13 @@ class ProjectConfig:
         return conf_files
 
     @classmethod
-    def load_from_file(cls, file_path: Path) -> Dict[str, Any]:
+    def load_from_file(cls, file_path: Path) -> "ProjectConfig":
         yaml = ruamel.yaml.YAML(typ="safe")
         logger.debug(f"Loading semgrepconfig file: {file_path}")
         with file_path.open("r") as fp:
             config: Dict[str, Any] = yaml.load(fp)
-            return config
+            cfg = cls(**config)
+            return cfg
 
     @classmethod
     def load_all(cls) -> "ProjectConfig":
@@ -82,27 +104,19 @@ class ProjectConfig:
         cwd_path = Path.cwd()
         conf_files = cls._find_all_config_files(src_directory, cwd_path)
 
-        # Sort by depth asc
+        # Sort by depth asc so deeper configs take precedence
         conf_files.sort(key=lambda x: len(x.parts))
 
         # Merge metadata from all config files
         all_metadata: Dict[Any, Any] = {}
         for conf_file in conf_files:
-            local_metadata = cls.load_from_file(conf_file)
-            all_metadata = {**all_metadata, **local_metadata}
-        return cls(all_metadata)
+            project_conf = cls.load_from_file(conf_file)
+            project_conf_data = asdict(project_conf)
+            all_metadata = {**all_metadata, **project_conf_data}
+        return cls(**all_metadata)
 
     def to_dict(self) -> Dict[str, Any]:
-        # Convert all tag values to strings
-        data = deepcopy(self.metadata)
-        tags = data.pop("tags", None)
-        if tags:
-            data["tags"] = []
-            for tag in tags:
-                if isinstance(tag, dict):
-                    data["tags"].append(json.dumps(tag))
-                else:
-                    data["tags"].append(str(tag))
+        data = asdict(self)
         # Strip out version
         data.pop("version", None)
         return data
