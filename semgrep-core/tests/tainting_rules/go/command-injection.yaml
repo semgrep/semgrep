@@ -1,0 +1,36 @@
+rules:
+  - id: command-injection
+    message:
+      This test confirms that taint works with multiple focus-metavariables
+    languages:
+      - go
+    severity: ERROR
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  ($REQ : http.Request).$FIELD
+              - pattern: |
+                  ($REQ : *http.Request).$FIELD()
+          - metavariable-regex:
+              metavariable: $FIELD
+              regex: ^(BasicAuth|Body|Cookie|Cookies|Form|FormValue|GetBody|Host|MultipartReader|ParseForm|ParseMultipartForm|PostForm|PostFormValue|Referer|RequestURI|Trailer|TransferEncoding|URL|UserAgent)$
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: syscall.Exec($PATH, $ARGS, ...)
+              - pattern-inside: syscall.ForkExec($PATH, $ARGS, ...)
+              - pattern-inside: |
+                  &exec.Cmd {$PATH, $ARGS, ...}
+              - patterns:
+                  - pattern-inside: |
+                      &exec.Cmd { ... }
+                  - pattern-either:
+                      - pattern-inside: |
+                          Path: $PATH
+                      - pattern-inside: |
+                          Args: $ARGS
+          - focus-metavariable:
+              - $PATH
+              - $ARGS
