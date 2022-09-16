@@ -336,7 +336,8 @@ let parse_focus_mvs env (key : key) x =
   | G.N (G.Id ((s, _), _))
   | G.L (String (s, _)) ->
       [ s ]
-  | G.Container (Array, _) -> parse_string_list env key x
+  | G.Container (Array, (_, mvs, _)) ->
+      Common.map (fun mv -> fst (parse_string_wrap env key mv)) mvs
   | _ ->
       error_at_key env key
         ("Expected a string or a list of strings for " ^ fst key)
