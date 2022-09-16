@@ -73,6 +73,10 @@ type formula =
    *)
   | Inside of tok * formula
 
+(* Represents all of the metavariables that are being focused by a single
+   `focus-metavariable`. *)
+and focus_mv_list = tok * MV.mvar list [@@deriving show]
+
 (* The conjunction must contain at least
  * one positive "term" (unless it's inside a CondNestedFormula, in which
  * case there is not such a restriction).
@@ -84,7 +88,7 @@ and conjunction = {
   (* metavariable-xyz:'s *)
   conditions : (tok * metavar_cond) list;
   (* focus-metavariable:'s *)
-  focus : (tok * MV.mvar) list;
+  focus : focus_mv_list list;
 }
 
 and metavar_cond =
