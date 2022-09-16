@@ -3,50 +3,10 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
-
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
-
-
-Unreachable Supply Chain Findings:
-
-  poetry.lock 
-     supply-chain1
-        found a dependency
-
-
-First-Party Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ x == 2
-         15┆ x == 2
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
 
 === end of stdout - plain
 
@@ -57,15 +17,18 @@ Scan environment:
   server      - https://semgrep.dev
 
 Fetching configuration from semgrep.dev
-Authenticated as org_name
-Scanning 1 file with 4 python rules.
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
-  Has findings for blocking rules so exiting with code 1
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 312, in ci
+    raise e
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 302, in ci
+    proj_config = ProjectConfig.load_all()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/project.py", line 116, in load_all
+    return cls(**all_metadata)
+  File "<attrs generated init semgrep.project.ProjectConfig>", line 6, in __init__
+    __attr_validator_tags(self, __attr_tags, self.tags)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/project.py", line 63, in check_tags
+    raise ValueError("tags must be a list of strings")
+ValueError: tags must be a list of strings
+Could not start scan tags must be a list of strings
 
 === end of stderr - plain

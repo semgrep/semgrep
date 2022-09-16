@@ -20,8 +20,8 @@
     "is_full_scan": false,
     "is_sca_scan": false,
     "tags": [
-      "{\"tag1\": \"value-1\"}",
-      "tag2-as-string"
+      "tag1",
+      "tag_key:tag_val"
     ]
   },
   "policy": [

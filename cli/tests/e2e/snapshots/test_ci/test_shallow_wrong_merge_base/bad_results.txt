@@ -3,27 +3,10 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-0
+2
 === end of exit code
 
 === stdout - plain
-
-Findings:
-
-  bar.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ bar == 2
-          1┆ bar == 5
-
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ foo == 2
-          2┆ foo == 5
 
 === end of stdout - plain
 
@@ -37,24 +20,19 @@ Fixing git state for github action pull request
 Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
 Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
 Fetching configuration from semgrep.dev
-Authenticated as org_name
-Scanning 2 files with 4 python rules.
-  Current version has 3 findings.
-
-Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e689'.
-  Will report findings introduced by these commits:
-    * 7b5cda4 commit #4
-    * 5b37988 commit #3
-
-Scanning 1 file.
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 312, in ci
+    raise e
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 302, in ci
+    proj_config = ProjectConfig.load_all()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/project.py", line 116, in load_all
+    return cls(**all_metadata)
+  File "<attrs generated init semgrep.project.ProjectConfig>", line 6, in __init__
+    __attr_validator_tags(self, __attr_tags, self.tags)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/project.py", line 63, in check_tags
+    raise ValueError("tags must be a list of strings")
+ValueError: tags must be a list of strings
+Could not start scan tags must be a list of strings
 Returning to original head revision 7b5cda417c780f1f96c888e1d7bd062f46df236e
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 2 findings (0 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
-  No blocking findings so exiting with code 0
 
 === end of stderr - plain
