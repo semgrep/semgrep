@@ -140,7 +140,10 @@ let unknown_metavar_in_comparison env f =
                | CondAnalysis (mv, _) ->
                    if not (Set.mem mv mvs) then mv_error mv t);
         focus
-        |> List.iter (fun (t, mv) -> if not (Set.mem mv mvs) then mv_error mv t);
+        |> List.iter (fun (t, mv_list) ->
+               mv_list
+               |> List.iter (fun mv ->
+                      if not (Set.mem mv mvs) then mv_error mv t));
         mvs
   in
   let _ = collect_metavars f in

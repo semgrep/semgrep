@@ -330,6 +330,22 @@ let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
       error_at_expr env value
         "Wrong field for a pattern, expected string or dictionary"
 
+(* env: general data about the current rule
+ * key: the word `focus-metavariable` from the original rule.
+ * x: the AST expression for the values in the rule that are under
+ *    `focus-metavariable`.
+ *)
+let parse_focus_mvs env (key : key) (x : G.expr) =
+  match x.e with
+  | G.N (G.Id ((s, _), _))
+  | G.L (String (s, _)) ->
+      [ s ]
+  | G.Container (Array, (_, mvs, _)) ->
+      Common.map (fun mv -> fst (parse_string_wrap env key mv)) mvs
+  | _ ->
+      error_at_key env key
+        ("Expected a string or a list of strings for " ^ fst key)
+
 (*****************************************************************************)
 (* Parsers for core fields (languages:, severity:) *)
 (*****************************************************************************)
@@ -654,7 +670,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
             with
             | None, None, None, None, None -> Left3 (get_nested_formula 0 expr)
             | Some (((_, t) as key), value), None, None, None, None ->
-                Middle3 (t, parse_string env key value)
+                Middle3 (t, parse_focus_mvs env key value)
             | None, Some (key, value), None, None, None
             | None, None, Some (key, value), None, None
             | None, None, None, Some (key, value), None
@@ -800,16 +816,16 @@ type principal_constraint = Ccompare | Cfocus | Cmetavar | Canalyzer
 
 let find_constraint dict =
   fold_dict
-    (fun s _ -> function
+    (fun s ((_, tok), _) -> function
       | Some res -> Some res
       | None -> (
           match s with
-          | "comparison" -> Some Ccompare
-          | "focus" -> Some Cfocus
-          | "analyzer" -> Some Canalyzer
+          | "comparison" -> Some (tok, Ccompare)
+          | "focus" -> Some (tok, Cfocus)
+          | "analyzer" -> Some (tok, Canalyzer)
           (* This can appear in a metavariable-analysis as well, but it shouldn't
              matter since this case occurs after the `analyzer` one. *)
-          | "metavariable" -> Some Cmetavar
+          | "metavariable" -> Some (tok, Cmetavar)
           | _ -> None))
     dict None
 
@@ -868,7 +884,7 @@ and parse_formula env (value : G.expr) : R.formula =
           parse_pair env (find_formula env dict)
           |> constrain_where env (t, t) key value)
 
-and produce_constraint env dict indicator =
+and produce_constraint env dict tok indicator =
   match indicator with
   | Ccompare ->
       (* comparison: ...
@@ -895,8 +911,8 @@ and produce_constraint env dict indicator =
   | Cfocus ->
       (* focus: ...
        *)
-      let s, t = take dict env parse_string_wrap "focus" in
-      Right (t, s)
+      let mv_list = take dict env parse_focus_mvs "focus" in
+      Right (tok, mv_list)
   | Canalyzer ->
       (* metavariable: ...
          analyzer: ...
@@ -946,7 +962,7 @@ and constrain_where env (t1, _t2) where_key (value : G.expr) formula : R.formula
   let parse_where_pair env (where_value : G.expr) =
     let dict = yaml_to_dict env where_key where_value in
     match find_constraint dict with
-    | Some indicator -> produce_constraint env dict indicator
+    | Some (tok, indicator) -> produce_constraint env dict tok indicator
     | _ -> error_at_expr env value "Wrong where constraint fields"
   in
   (* TODO *)
