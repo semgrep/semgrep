@@ -307,7 +307,8 @@ let run_selector_on_ranges env selector_opt ranges =
   | Some { pattern; pid; pstr; _ }, ranges ->
       (* Find matches of `pattern` *but* only inside `ranges`, this prevents
        * matching and allocations that are wasteful because they are going to
-       * be thrown away later when interesecting the results. *)
+       * be thrown away later when interesecting the results.
+       *)
       let range_filter (tok1, tok2) =
         let r = Range.range_of_token_locations tok1 tok2 in
         List.exists (fun rwm -> Range.( $<=$ ) r rwm.RM.r) ranges
@@ -332,6 +333,11 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
   (* this will return a list of new ranges that have been restricted by the variables in focus_mvars *)
   let apply_focus_mvars (focus_mvars : MV.mvar list) (range : RM.t) : RM.t stack
       =
+    (* A list that groups each metavariable under all of the `focus-metavariables`
+     * within a `patterns` with the "metavariable value" that each one captures.
+     * We then expand each tuple with more information about the matches by
+     * transforming them to different types.
+     *)
     let fm_mvals =
       focus_mvars
       |> List.fold_left
@@ -367,10 +373,12 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
              })
     in
     let focused_ranges =
+      (* Filter out focused ranges that are outside of the original range *)
       List.filter_map
         (fun fms -> intersect (RM.match_result_to_range fms) range)
         focus_matches
     in
+    (* A union of the fm_mval ranges *)
     focused_ranges
   in
   let apply_focus_mvars_list init_range =
@@ -380,7 +388,13 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     let focused_ranges_list =
       focus_mvars_list
       |> Common.map (fun (_tok, focus_mvars) ->
-             (* focus_mvars is [$A, $B] in a single "focus-metavariable: $A, $B" *)
+             (* focus_mvars is a list of the metavariables under a single
+                focus-metavariable statement.
+
+                eg: focus_mvars = [$A, $B] for
+                " - focus-metavariable:
+                    - $A
+                    - $B"*)
              let focused_ranges = apply_focus_mvars focus_mvars init_range in
              focused_ranges)
     in

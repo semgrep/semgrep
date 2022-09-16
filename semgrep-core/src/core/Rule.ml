@@ -73,6 +73,8 @@ type formula =
    *)
   | Inside of tok * formula
 
+(* Represents all of the metavariables that are being focused by a single
+   `focus-metavariable`. *)
 and focus_mv_list = tok * MV.mvar list [@@deriving show]
 
 (* The conjunction must contain at least
