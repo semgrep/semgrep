@@ -3,47 +3,36 @@ name: Check for Old Homebrew PRs
 
 on:
   workflow_dispatch:
-  # Fire at 08:27 PDT
-  schedule:
-    - cron: "27 15 * * *"
 
 jobs:
   old-prs:
     name: Check for old PRs in brew core
     runs-on: ubuntu-22.04
+    services:
+      datadog-agent:
+        image: datadog/agent:latest
+        ports:
+          - 8125:8125/udp
+        env:
+          DD_API_KEY: ${{ secrets.SEMGREP_DD_API_KEY }}
+          DD_INSIDE_CI: "true"
+          DD_HOSTNAME: "none"
+          DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "1"
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
       - name: Check for Old PRs
         run: |
-          getPrsOlderThanOneDay() {
-              gh --repo homebrew/homebrew-core pr list --state open -S semgrep --json number,createdAt,title --jq '(now - 86400) as $date | .[] | select (.createdAt | fromdateiso8601 < $date)'
+          getPrAge() {
+            # Format (per-line): test.semgrep.pr.age:783514.7839610577|g|#6058
+            gh --repo homebrew/homebrew-core pr list --state open -S semgrep --json number,createdAt \
+              --jq 'now as $date | .[] | [(.createdAt | $date - fromdateiso8601 | tostring), .number] | "semgrep.homebrew.pr.age:" + join("|g|#pr-number:")'
           }
 
-          NUM_OLD_PRS=$(getPrsOlderThanOneDay | wc -l)
+          PR_AGES=$(getPrAge)
 
-          if test "${NUM_OLD_PRS}" -gt "0"; then
-              echo "found PRs - see below for more info!"
-              getPrsOlderThanOneDay
-              exit 1
-          else
-              echo "No old PRs."
-              exit 0
-          fi
-
-  notify-failure:
-    needs: [old-prs]
-    name: Notify of Failure
-    runs-on: ubuntu-22.04
-    if: failure()
-    steps:
-      - name: Notify Failure
-        run: |
-          curl --request POST \
-          --url  ${{ secrets.OLD_PRS_NOTIFICATIONS_URL }} \
-          --header 'content-type: application/json' \
-          --data '{
-            "pr-numbers": "0"
-          }'
+          while IFS= read -r metric_datagram; do
+            echo "$metric_datagram"
+            echo -n "$metric_datagram" | nc -4u -w0 127.0.0.1 8125
+            sleep 10
+          done <<< "$PR_AGES"
