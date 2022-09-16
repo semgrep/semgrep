@@ -4,7 +4,6 @@
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
       "targets/basic/inside.py",
-      "targets/basic/md5.go",
       "targets/basic/metavariable-comparison-bad-content.py",
       "targets/basic/metavariable-comparison-base.py",
       "targets/basic/metavariable-comparison-strip.py",
@@ -22,94 +21,6 @@
       "targets/basic/stupid.py"
     ]
   },
-  "results": [
-    {
-      "check_id": "go.lang.security.audit.crypto.bad_imports.insecure-module-used",
-      "end": {
-        "col": 24,
-        "line": 10,
-        "offset": 116
-      },
-      "extra": {
-        "fingerprint": "ea9697b1d3899319ee7f703949739bbe449cd0a3318a2354e0d9663eb469309b1701d5cbbf54adb51d00fe3a0dbd9ba0dd80cef0a45bb24b814edc2f677fe431_0",
-        "is_ignored": false,
-        "lines": "    hasher := md5.New()",
-        "message": "Detected use of an insecure cryptographic hashing method. This method is known to be broken and easily compromised. Use SHA256 or SHA3 instead.",
-        "metadata": {
-          "category": "security",
-          "confidence": "MEDIUM",
-          "cwe": "CWE-327: Use of a Broken or Risky Cryptographic Algorithm",
-          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
-          "owasp": "A9: Using Components with Known Vulnerabilities",
-          "references": [
-            "https://godoc.org/golang.org/x/crypto/sha3"
-          ],
-          "shortlink": "https://sg.run/l2gj",
-          "source": "https://semgrep.dev/r/go.lang.security.audit.crypto.bad_imports.insecure-module-used",
-          "source-rule-url": "https://github.com/securego/gosec",
-          "technology": [
-            "go"
-          ]
-        },
-        "metavars": {
-          "$FUNC": {
-            "abstract_content": "New",
-            "end": {
-              "col": 22,
-              "line": 10,
-              "offset": 114
-            },
-            "start": {
-              "col": 19,
-              "line": 10,
-              "offset": 111
-            }
-          }
-        },
-        "severity": "WARNING"
-      },
-      "path": "targets/basic/md5.go",
-      "start": {
-        "col": 15,
-        "line": 10,
-        "offset": 107
-      }
-    },
-    {
-      "check_id": "go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5",
-      "end": {
-        "col": 24,
-        "line": 10,
-        "offset": 116
-      },
-      "extra": {
-        "fingerprint": "9691c668f70ea82285e857e2fe212abfc93038c4d8fde8d653df8e5c099d0a0938b1b96ab236c9d62ee1ee2f0a35ac25646f928cb34df534da5624775fac1e9a_0",
-        "is_ignored": false,
-        "lines": "    hasher := md5.New()",
-        "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
-        "metadata": {
-          "category": "security",
-          "confidence": "MEDIUM",
-          "cwe": "CWE-327: Use of a Broken or Risky Cryptographic Algorithm",
-          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
-          "owasp": "A9: Using Components with Known Vulnerabilities",
-          "shortlink": "https://sg.run/2xB5",
-          "source": "https://semgrep.dev/r/go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5",
-          "source-rule-url": "https://github.com/securego/gosec#available-rules",
-          "technology": [
-            "go"
-          ]
-        },
-        "metavars": {},
-        "severity": "WARNING"
-      },
-      "path": "targets/basic/md5.go",
-      "start": {
-        "col": 15,
-        "line": 10,
-        "offset": 107
-      }
-    }
-  ],
+  "results": [],
   "version": "0.42"
 }
