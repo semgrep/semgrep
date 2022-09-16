@@ -156,13 +156,13 @@ let any_of_orig = function
 type lval = { base : base; rev_offset : offset list }
 (** An lvalue, represented similarly as in CIL as a pair: base and offsets.
 
-  The offset list is *reversed*, so the first element in this list is the _last_
-  offset!
+   The offset list is *reversed*, so the first element in this list is the _last_
+   offset!
 
-  old: Previously we only kept one offset in lval and instead we used auxiliary
-       variables. But then we added field sensitivity to taint-mode and all those
-       extra variables became a problem, they would force us to add alias analysis
-       to handle even trivial cases of field sensitivity. *)
+   old: Previously we only kept one offset in lval and instead we used auxiliary
+        variables. But then we added field sensitivity to taint-mode and all those
+        extra variables became a problem, they would force us to add alias analysis
+        to handle even trivial cases of field sensitivity. *)
 
 and base =
   | Var of name
@@ -216,7 +216,7 @@ and exp_kind =
   | Cast of G.type_ * exp
   (* This could be put in call_special, but dumped IL are then less readable
    * (they are too many intermediate _tmp variables then) *)
-  | Operator of G.operator wrap * exp list
+  | Operator of G.operator wrap * argument list
   | FixmeExp of
       fixme_kind
       * G.any (* fixme source *)
@@ -234,7 +234,7 @@ and composite_kind =
   | Regexp
 [@@deriving show { with_path = false }]
 
-type argument = exp [@@deriving show]
+and argument = Unnamed of exp | Named of ident * exp [@@deriving show]
 
 (*****************************************************************************)
 (* Instruction *)

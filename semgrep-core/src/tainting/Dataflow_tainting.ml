@@ -428,9 +428,10 @@ let rec check_tainted_expr env exp : Taints.t * Lval_env.t =
     | Literal _
     | FixmeExp (_, _, None) ->
         (Taints.empty, env.lval_env)
-    | Composite (_, (_, es, _))
+    | Composite (_, (_, es, _)) -> union_map_taints_and_vars env check es
     | Operator (_, es) ->
-        union_map_taints_and_vars env check es
+        union_map_taints_and_vars env check
+          (Common.map IL_lvalue_helpers.exp_of_arg es)
     | Record fields ->
         union_map_taints_and_vars env
           (fun env -> function
@@ -463,11 +464,51 @@ let rec check_tainted_expr env exp : Taints.t * Lval_env.t =
       (taints, var_env)
 
 let check_function_signature env fun_exp args_taints =
-  let taints_of_arg i =
-    let taint_opt = List.nth_opt args_taints i in
-    if Option.is_none taint_opt then
-      logger#error "cannot match taint variable with function arguments";
-    taint_opt
+  let taints_of_fdef_and_arg fdef =
+    let pos_args_taints, named_args_taints =
+      Common.partition_either Fun.id args_taints
+    in
+    let argpos_to_taints = Hashtbl.create 11 in
+    (* We first process the positional arguments, and then the named arguments.
+       This is OK because in Python, positional arguments must appear before named arguments.
+    *)
+    let remaining_params =
+      List.fold_left
+        (fun (i, params) taints ->
+          match params with
+          | [] -> failwith "more args than there are params to function"
+          | _ :: rest ->
+              Hashtbl.add argpos_to_taints (Left i) taints;
+              (i + 1, rest))
+        (0, fdef.G.fparams) pos_args_taints
+      |> snd
+    in
+    List.iter
+      (fun ((s, _), taints) ->
+        match
+          List.find_map
+            (function
+              | G.Param { pname = Some (s', _); _ } ->
+                  if String.equal s s' then Some s' else None
+              | _ -> None)
+            remaining_params
+        with
+        | None -> failwith "cannot find arg"
+        | Some s -> Hashtbl.add argpos_to_taints (Right s) taints)
+      named_args_taints;
+    fun (s, i) ->
+      let taint_opt =
+        match
+          ( Hashtbl.find_opt argpos_to_taints (Right s),
+            Hashtbl.find_opt argpos_to_taints (Left i) )
+        with
+        | Some taints, _ -> Some taints
+        | _, Some taints -> Some taints
+        | _ -> None
+      in
+      if Option.is_none taint_opt then
+        logger#error "cannot match taint variable with function arguments";
+      taint_opt
   in
   match (!hook_function_taint_signature, fun_exp) with
   | ( Some hook,
@@ -496,15 +537,17 @@ let check_function_signature env fun_exp args_taints =
         eorig = SameAs eorig;
         _;
       } ) ->
-      let* fun_sig = hook env.config eorig in
+      let fdef, fun_sig_opt = hook env.config eorig in
+      let taints_of_arg = taints_of_fdef_and_arg fdef in
+      let* fun_sig = fun_sig_opt in
       Some
         (fun_sig
         |> List.filter_map (function
              | T.SrcToReturn (src, tokens, _return_tok) ->
                  let src = T.Call (eorig, tokens, src) in
                  Some (Taints.singleton { orig = Src src; tokens = [] })
-             | T.ArgToReturn (i, tokens, _return_tok) ->
-                 let* arg_taints = taints_of_arg i in
+             | T.ArgToReturn (argpos, tokens, _return_tok) ->
+                 let* arg_taints = taints_of_arg argpos in
                  Some
                    (arg_taints
                    |> Taints.map (fun taint ->
@@ -512,9 +555,9 @@ let check_function_signature env fun_exp args_taints =
                             List.rev_append tokens (snd ident :: taint.tokens)
                           in
                           { taint with tokens }))
-             | T.ArgToSink (i, tokens, sink) ->
+             | T.ArgToSink (argpos, tokens, sink) ->
                  let sink = T.Call (eorig, tokens, sink) in
-                 let* arg_taints = taints_of_arg i in
+                 let* arg_taints = taints_of_arg argpos in
                  arg_taints
                  |> Taints.iter (fun t ->
                         findings_of_tainted_sink env (Taints.singleton t) sink
@@ -542,9 +585,21 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
           args
           |> List.fold_left_map
                (fun lval_env arg ->
-                 check_expr { env with lval_env } arg |> Common2.swap)
+                 let taints, lval_env =
+                   check_expr { env with lval_env }
+                     (IL_lvalue_helpers.exp_of_arg arg)
+                 in
+                 match arg with
+                 | Unnamed _ -> (lval_env, Left taints)
+                 | Named (id, _) -> (lval_env, Right (id, taints)))
                env.lval_env
           |> Common2.swap
+        in
+        let all_taints =
+          args_taints
+          |> Common.map (function
+               | Left taints -> taints
+               | Right (_, taints) -> taints)
         in
         let e_taints, lval_env = check_expr { env with lval_env } e in
         let call_taints =
@@ -553,10 +608,12 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
           | None ->
               (* Default is to assume that the function will propagate
                * the taint of its arguments. *)
-              List.fold_left Taints.union e_taints args_taints
+              List.fold_left Taints.union e_taints all_taints
         in
         (call_taints, lval_env)
-    | CallSpecial (_, _, args) -> union_map_taints_and_vars env check_expr args
+    | CallSpecial (_, _, args) ->
+        union_map_taints_and_vars env check_expr
+          (Common.map IL_lvalue_helpers.exp_of_arg args)
     | FixmeInstr _ -> (Taints.empty, env.lval_env)
   in
   let sanitizer_pms = orig_is_sanitized env.config instr.iorig in
