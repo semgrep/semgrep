@@ -324,6 +324,11 @@ let run_selector_on_ranges env selector_opt ranges =
 
 let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     (ranges : RM.ranges) : RM.ranges =
+  let intersect (r1 : RM.t) (r2 : RM.t) : RM.t option =
+    if Range.( $<=$ ) r1.r r2.r then Some r1
+    else if Range.( $<=$ ) r2.r r1.r then Some r2
+    else None
+  in
   (* this will return a list of new ranges that have been restricted by the variables in focus_mvars *)
   let apply_focus_mvars (focus_mvars : MV.mvar list) (range : RM.t) : RM.t stack
       =
@@ -361,7 +366,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                PM.taint_trace = None;
              })
     in
-    let focused_ranges = Common.map RM.match_result_to_range focus_matches in
+    let focused_ranges = List.filter_map (fun fms -> intersect (RM.match_result_to_range fms) range) focus_matches in
     focused_ranges
   in
   let apply_focus_mvars_list init_range =
@@ -377,16 +382,13 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     in
     let intersect_ranges (list1 : RM.t stack) (list2 : RM.t stack) : RM.t stack
         =
-      let intersect (r1 : RM.t) (r2 : RM.t) : RM.t option =
-        if Range.( $<=$ ) r1.r r2.r then Some r1
-        else if Range.( $<=$ ) r2.r r1.r then Some r2
-        else None
-      in
       match (list1, list2) with
       | [ range1 ], [ range2 ] -> (
           match intersect range1 range2 with
           | Some r -> [ r ]
           | None -> [])
+      | [ _ ], []
+      | [], [ _ ] -> []
       | [], _
       | _, [] ->
           failwith "Cannot have an empty `focus-metavariables`"
