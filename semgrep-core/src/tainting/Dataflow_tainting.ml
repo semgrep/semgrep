@@ -537,9 +537,8 @@ let check_function_signature env fun_exp args_taints =
         eorig = SameAs eorig;
         _;
       } ) ->
-      let fdef, fun_sig_opt = hook env.config eorig in
+      let* fdef, fun_sig = hook env.config eorig in
       let taints_of_arg = taints_of_fdef_and_arg fdef in
-      let* fun_sig = fun_sig_opt in
       Some
         (fun_sig
         |> List.filter_map (function
