@@ -30,12 +30,17 @@ let compare_name x y =
   else if x.sid = -1 || y.sid = -1 then 0
   else Int.compare x.sid y.sid
 
+let exp_of_arg arg =
+  match arg with
+  | Unnamed exp -> exp
+  | Named (_, exp) -> exp
+
 let rexps_of_instr x =
   match x.i with
   | Assign (_, exp) -> [ exp ]
   | AssignAnon _ -> []
-  | Call (_, e1, args) -> e1 :: args
-  | CallSpecial (_, _, args) -> args
+  | Call (_, e1, args) -> e1 :: Common.map exp_of_arg args
+  | CallSpecial (_, _, args) -> Common.map exp_of_arg args
   | FixmeInstr _ -> []
 
 (* opti: could use a set *)
@@ -44,9 +49,8 @@ let rec lvals_of_exp e =
   | Fetch lval -> lval :: lvals_in_lval lval
   | Literal _ -> []
   | Cast (_, e) -> lvals_of_exp e
-  | Composite (_, (_, xs, _))
-  | Operator (_, xs) ->
-      lvals_of_exps xs
+  | Composite (_, (_, xs, _)) -> lvals_of_exps xs
+  | Operator (_, xs) -> lvals_of_exps (Common.map exp_of_arg xs)
   | Record ys ->
       lvals_of_exps
         (ys
