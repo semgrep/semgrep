@@ -86,7 +86,8 @@ let matches_of_spacegrep config spacegreps file =
           | Binary ->
               logger#info "ignoring gibberish file: %s\n%!" file;
               None
-          | _ ->
+          | Text
+          | Short ->
               let src =
                 if
                   Spacegrep.Src_file.length partial_doc_src < peek_length
