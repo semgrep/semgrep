@@ -76,7 +76,7 @@ def parse_yarn(
 
     if manifest_text:
         manifest = json.loads(manifest_text)
-        manifest_deps = manifest["dependencies"] if "dependencies" in manifest else None
+        manifest_deps = manifest["dependencies"] if "dependencies" in manifest else {}
     else:
         manifest_deps = None
     lockfile_text = "\n".join(
@@ -142,11 +142,9 @@ def parse_package_lock(
         return
     if manifest_text:
         manifest = json.loads(manifest_text)
-        manifest_deps = manifest["dependencies"] if "dependencies" in manifest else None
+        manifest_deps = manifest["dependencies"] if "dependencies" in manifest else {}
     else:
         manifest_deps = None
-    manifest = json.loads(manifest_text) if manifest_text else None
-    manifest_deps = manifest["dependencies"] if manifest else None
     for dep, dep_blob in deps.items():
         version = dep_blob.get("version")
         if not version:
@@ -190,7 +188,7 @@ def parse_pipfile(
     )
     manifest = tomli.loads(manifest_text) if manifest_text else None
     if manifest:
-        manifest_deps = manifest["packages"] if "packages" in manifest else None
+        manifest_deps = manifest["packages"] if "packages" in manifest else {}
     else:
         manifest_deps = None
 
@@ -432,10 +430,13 @@ def parse_poetry(
 ) -> Generator[FoundDependency, None, None]:
     # poetry.lock files are not quite valid TOML >:(
 
-    manifest = tomli.loads(manifest_text) if manifest_text else None
-    try:
-        manifest_deps = manifest["tool"]["poetry"]["dependencies"] if manifest else None
-    except KeyError:
+    if manifest_text:
+        manifest = tomli.loads(manifest_text)
+        try:
+            manifest_deps = manifest["tool"]["poetry"]["dependencies"]
+        except KeyError:
+            manifest_deps = {}
+    else:
         manifest_deps = None
 
     def parse_dep(s: str) -> FoundDependency:
