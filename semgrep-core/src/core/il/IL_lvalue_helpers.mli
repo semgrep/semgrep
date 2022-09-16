@@ -1,3 +1,5 @@
+val exp_of_arg : IL.argument -> IL.exp
+
 (** Lvalue/Rvalue helpers working on the IL *)
 
 val lval_is_var_and_dots : IL.lval -> bool
