@@ -560,10 +560,10 @@ class TextFormatter(BaseFormatter):
                 extra["dataflow_traces"],
             )
             findings_output.append(
-                "\nFirst-Party Non-blocking Findings:\n"
+                "\nFirst-Party Non-Blocking Findings:\n"
                 + "\n".join(first_party_nonblocking_output)
             ) if (reachable or unreachable) else findings_output.append(
-                "\nNon-blocking Findings:\n" + "\n".join(first_party_nonblocking_output)
+                "\nNon-Blocking Findings:\n" + "\n".join(first_party_nonblocking_output)
             )
         if first_party_blocking:
             first_party_blocking_output = self._build_text_output(
