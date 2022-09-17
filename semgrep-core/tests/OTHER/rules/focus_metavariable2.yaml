@@ -1,5 +1,5 @@
 rules:
-  - id: test
+  - id: focus_metavariable2
     pattern-either:
       - patterns:
         - pattern: foo($X, ..., $Y)

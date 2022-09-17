@@ -7,7 +7,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   	fmt.Printf("Path Sink:\n")
   	cmd := &exec.Cmd {
   	  // Path is the path of the command to run.
-  	  // match: net-http-command-injection-taint
+  	  // MATCH: net-http-command-injection-taint
   	  Path: username,
   	  // Args holds command line arguments, including the command as Args[0].
   	  Args: []string{ "tr", "--help" },
@@ -20,7 +20,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   	  // Path is the path of the command to run.
   	  Path: "/usr/bin/tr",
   	  // Args holds command line arguments, including the command as Args[0].
-  	  // match: net-http-command-injection-taint
+  	  // MATCH: net-http-command-injection-taint
   	  Args: []string{ username, "--help" },
   	  Stdout: os.Stdout,
   	  Stderr: os.Stderr,
@@ -37,7 +37,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   	  Stderr: os.Stderr,
   	}
 
-  	// match: net-http-command-injection-taint
+  	// MATCH: net-http-command-injection-taint
   	syscall.Exec(username, []string{"-a", "-l", "-h"})
 
   	// ok: net-http-command-injection-taint
