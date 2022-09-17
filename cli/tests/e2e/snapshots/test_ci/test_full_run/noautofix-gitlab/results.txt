@@ -8,7 +8,7 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
 
 === stdout - plain
 
-Non-blocking Findings:
+Non-Blocking Findings:
 
   foo.py 
      eqeq-five
