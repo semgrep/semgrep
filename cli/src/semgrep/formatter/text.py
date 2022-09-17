@@ -586,10 +586,17 @@ class TextFormatter(BaseFormatter):
                 with_color(Colors.foreground, rule_id, bold=True)
                 for rule_id in first_party_blocking_rules
             ]
-            first_party_blocking_rules_output = [
-                "\nBlocking Rules Fired:\n   "
-                + "   \n   ".join(formatted_first_party_blocking_rules)
-            ]
+            first_party_blocking_rules_output = (
+                [
+                    "\nFirst-Party Blocking Rules Fired:\n   "
+                    + "   \n   ".join(formatted_first_party_blocking_rules)
+                ]
+                if (reachable or unreachable)
+                else [
+                    "\nBlocking Rules Fired:\n   "
+                    + "   \n   ".join(formatted_first_party_blocking_rules)
+                ]
+            )
 
         return "\n".join(
             [
