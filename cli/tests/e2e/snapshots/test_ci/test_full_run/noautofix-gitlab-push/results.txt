@@ -18,7 +18,16 @@ Unreachable Supply Chain Findings:
         found a dependency
 
 
-First-Party Findings:
+First-Party Non-Blocking Findings:
+
+  foo.py 
+     eqeq-five
+        useless comparison to 5
+
+         ▶▶┆ Autofix ▶ x == 2
+         15┆ x == 5
+
+First-Party Blocking Findings:
 
   foo.py 
      eqeq-bad
@@ -32,12 +41,6 @@ First-Party Findings:
           ⋮┆----------------------------------------
          11┆ y == y
           ⋮┆----------------------------------------
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ x == 2
-         15┆ x == 5
-          ⋮┆----------------------------------------
      eqeq-four
         useless comparison to 4
 
@@ -47,6 +50,11 @@ First-Party Findings:
         unsafe use of danger
 
          27┆ sink(d2)
+
+First-Party Blocking Rules Fired:
+   eqeq-bad   
+   eqeq-four   
+   taint-test
 
 === end of stdout - plain
 
