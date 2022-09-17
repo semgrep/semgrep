@@ -16,6 +16,11 @@ let test_remove_eos_assertions () =
       ("AA", Some "AA");
       ("AAA", Some "AAA");
       ("AAAA", Some "AAAA");
+      ({|\$|}, Some {|\$|});
+      ({|A\$|}, Some {|A\$|});
+      ({|AA\$|}, Some {|AA\$|});
+      ({|AAA\$|}, Some {|AAA\$|});
+      ({|AAAA\$|}, Some {|AAAA\$|});
       ("^", Some "");
       ("$", Some "");
       ({|\A|}, Some "");
@@ -30,10 +35,10 @@ let test_remove_eos_assertions () =
       ("^AAA$", Some "AAA");
       ("^^", None);
       ("$$", None);
-      ({|A\A|}, None);
+      ({|A\A|}, Some {|A\A|});
       ("[$]*", None);
       ("(?:^)", None);
-      ({|\\A|}, None);
+      ({|\\A|}, Some {|\\A|});
       ({|(?<!.|\n)|}, None);
       (* DIY beginning-of-string assertion = \A *)
       ({|(?!.|\n)|}, None) (* DIY end-of-string assertion = \z *);
