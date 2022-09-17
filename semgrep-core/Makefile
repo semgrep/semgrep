@@ -36,6 +36,9 @@ clean:
 #
 .PHONY: test
 test: all
+	# ensure that '--help' is available and that we don't load test data
+	# until the tests need to run.
+	./_build/default/tests/test.exe --help 2>&1 >/dev/null
 	$(MAKE) -C src/spacegrep test
 	dune runtest -f --no-buffer
 

@@ -74,8 +74,17 @@ let tests () = List.flatten [
 (* Entry point *)
 (*****************************************************************************)
 
+(*
+   This allows running the test program with '--help' from any folder
+   without getting an error due to not being able to load test data.
+*)
+let tests_with_delayed_error () =
+  try tests ()
+  with e ->
+     ["cannot load test data - not a real test", (fun () -> raise e)]
+
 let main () =
-  let alcotest_tests = Testutil.to_alcotest (tests ()) in
+  let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in
   Alcotest.run "semgrep-core" alcotest_tests
 
 let () = main ()
