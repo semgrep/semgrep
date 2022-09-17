@@ -8,7 +8,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 
 === stdout - plain
 
-Findings:
+Non-blocking Findings:
 
   bar.py 
      eqeq-five
