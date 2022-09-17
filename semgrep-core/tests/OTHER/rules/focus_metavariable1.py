@@ -1,4 +1,4 @@
-# ruleid: test
+# ruleid: focus_metavariable1
 foo (1 + 2,
 # OK: test
 	1)
