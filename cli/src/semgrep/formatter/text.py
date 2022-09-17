@@ -499,7 +499,7 @@ class TextFormatter(BaseFormatter):
                 if match.is_blocking:
                     first_party_blocking.append(match)
                     rule_id = match.match.rule_id.value
-                    if rule_id not in first_party_blocking_rules:
+                    if rule_id not in first_party_blocking_rules and rule_id != "-":
                         first_party_blocking_rules.append(rule_id)
                 else:
                     first_party_nonblocking.append(match)
