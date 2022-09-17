@@ -736,6 +736,13 @@ and stmt_aux env x =
       let v1 = expr env v1 and v2 = operator v2 and v3 = expr env v3 in
       [ G.exprstmt (G.AssignOp (v1, (v2, tok), v3) |> G.e) ]
   | Cast (Name (id, _kind, _ref), _tok, ty) ->
+      (* In the following example, `x : int` is not a type cast but a variable
+       * declaration:
+       *
+       *      class Test:
+       *        x : int
+       *        ...
+       *)
       (* no need to guard with assign_to_vardef here *)
       let id = name env id in
       let ty = type_ env ty in
