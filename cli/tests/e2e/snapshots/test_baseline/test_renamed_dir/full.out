@@ -1,5 +1,5 @@
 
-Findings:
+Blocking Findings:
 
   dir_new/bar.py 
           1┆ y = 23478921
@@ -7,3 +7,6 @@ Findings:
 
   dir_new/foo.py 
           1┆ x = 23478921
+
+Blocking Rules Fired:
+   -

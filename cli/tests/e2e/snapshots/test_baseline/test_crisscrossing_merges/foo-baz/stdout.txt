@@ -1,5 +1,5 @@
 
-Findings:
+Blocking Findings:
 
   bar.py 
           1┆ bar = 23478921
@@ -17,3 +17,6 @@ Findings:
          15┆ foo = 23478921
           ⋮┆----------------------------------------
          17┆ foo = 23478921
+
+Blocking Rules Fired:
+   -

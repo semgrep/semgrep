@@ -1,5 +1,5 @@
 
-Findings:
+Blocking Findings:
 
   baz.py 
           1┆ baz = 23478921
@@ -29,3 +29,6 @@ Findings:
           7┆ foo = 23478921
           ⋮┆----------------------------------------
           9┆ foo = 23478921
+
+Blocking Rules Fired:
+   -
