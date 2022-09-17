@@ -732,7 +732,7 @@ def test_experiment_finding_output(run_semgrep_in_tmp, snapshot):
     )
 
 
-@pytest.mark.kinda_fast
+@pytest.mark.quick
 def multi_focus_metavariable(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
