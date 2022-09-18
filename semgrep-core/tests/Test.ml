@@ -77,6 +77,9 @@ let tests () = List.flatten [
 (*
    This allows running the test program with '--help' from any folder
    without getting an error due to not being able to load test data.
+
+   See https://github.com/mirage/alcotest/issues/358 for a request
+   to allow what we want without this workaround.
 *)
 let tests_with_delayed_error () =
   try tests ()
