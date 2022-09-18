@@ -2443,6 +2443,12 @@ let map_source_file (env : env) (x : CST.source_file) : any =
   | `Exp x ->
       let e = map_expression env x in
       E e
+  | `Modi_defi x ->
+      let x = map_modifier_definition env x in
+      S (DefStmt x |> G.s)
+  | `Cons_defi x ->
+      let x = map_constructor_definition env x in
+      S (DefStmt x |> G.s)
 
 (*****************************************************************************)
 (* Entry point *)
