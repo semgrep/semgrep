@@ -2973,7 +2973,9 @@ and m_module_definition_kind a b =
   match (a, b) with
   | G.ModuleAlias a1, B.ModuleAlias b1 -> m_dotted_name a1 b1
   | G.ModuleStruct (a1, a2), B.ModuleStruct (b1, b2) ->
-      (m_option m_dotted_name) a1 b1 >>= fun () -> (m_list m_item) a2 b2
+      let* () = (m_option m_dotted_name) a1 b1 in
+      (* similar to the Block vs Block case *)
+      m_stmts_deep ~inside:false ~less_is_ok:false a2 b2
   | G.OtherModule (a1, a2), B.OtherModule (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ModuleAlias _, _

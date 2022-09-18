@@ -2546,7 +2546,7 @@ and map_scoped_type_identifier_in_expression_position (env : env)
 and map_statement (env : env) (x : CST.statement) : G.stmt list =
   match x with
   | `Exp_stmt x -> [ map_expression_statement env x ]
-  | `Choice_const_item x -> map_declaration_statement env x
+  | `Choice_choice_const_item x -> map_declaration_statement env x
 
 (* ruin:
    | `Item x -> map_item env x
@@ -2898,8 +2898,15 @@ and map_decls_or_semi env v1 =
       let _, block, _ = map_declaration_list env x in
       block
 
+and map_declaration_statement (env : env) x : G.stmt list =
+  match x with
+  | `Choice_const_item x -> map_declaration_statement_bis env x
+  | `Ellips v1 ->
+      let t = token env v1 in
+      [ Ellipsis t |> G.e |> G.exprstmt ]
+
 (* was called map_item_kind by ruin *)
-and map_declaration_statement (env : env) (*_outer_attrs _visibility*) x :
+and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :
     G.stmt list =
   match x with
   (* was moved out of declaration_statement in source_file or item by ruin *)
