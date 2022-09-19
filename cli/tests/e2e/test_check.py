@@ -706,14 +706,6 @@ def test_pattern_regex_empty_file(run_semgrep_in_tmp, snapshot):
     )
 
 
-@pytest.mark.slow
-def test_cdn_ruleset_resolution(run_semgrep_in_tmp, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp("p/ci").stdout,
-        "results.json",
-    )
-
-
 @pytest.mark.kinda_slow
 def test_inventory_finding_output(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
@@ -733,6 +725,19 @@ def test_experiment_finding_output(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp(
             "rules/experiment-rule.yaml",
             target_name="auto/fingerprints",
+            strict=False,
+            output_format=OutputFormat.TEXT,
+        ).stderr,
+        "output.txt",
+    )
+
+
+@pytest.mark.quick
+def multi_focus_metavariable(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/multi-focus-metavariable.yaml",
+            target_name="targets/multi-focus-metavariable.py",
             strict=False,
             output_format=OutputFormat.TEXT,
         ).stderr,

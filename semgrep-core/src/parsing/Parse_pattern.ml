@@ -155,8 +155,16 @@ let parse_pattern lang ?(print_errors = false) str =
         let any = Parse_c.any_of_string str in
         C_to_generic.any any
     | Lang.Cpp ->
-        (* TODO: use tree-sitter-cpp at some point, probably more robust *)
-        let any = Parse_cpp.any_of_string Flag_parsing_cpp.Cplusplus str in
+        let any =
+          str
+          |> run_either ~print_errors
+               [
+                 Pfff
+                   (fun x ->
+                     Parse_cpp.any_of_string Flag_parsing_cpp.Cplusplus x);
+                 TreeSitter Parse_cpp_tree_sitter.parse_pattern;
+               ]
+        in
         Cpp_to_generic.any any
     | Lang.Java ->
         let any =

@@ -1,5 +1,5 @@
 rules:
-  - id: test
+  - id: focus_metavariable1
     patterns:
       - pattern-inside: foo($X, ...)
       - focus-metavariable: $X

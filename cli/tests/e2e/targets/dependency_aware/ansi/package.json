@@ -3,7 +3,7 @@
     "name": "test",
     "version": "1.0.0",
     "main": "ansi.js",
-    "dependencies": {
+    "devDependencies": {
       "lodash" : "4.17.20"
     }
   }

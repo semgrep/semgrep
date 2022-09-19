@@ -483,7 +483,7 @@ let map_ms_declspec_modifier (env : env)
   DeclSpec (v1, (v2, v3, v4))
 
 let map_anon_choice_type_id_d3c4b5f (env : env)
-    (x : CST.anon_choice_type_id_d3c4b5f) =
+    (x : CST.anon_choice_stmt_id_d3c4b5f) =
   match x with
   | `Id tok -> str env tok (* pattern [a-zA-Z_]\w* *)
   (* TODO: should return an either? *)
@@ -713,7 +713,7 @@ let map_preproc_params (env : env) ((v1, v2, v3) : CST.preproc_params) =
   (v1, v2, v3)
 
 let map_anon_choice_type_id_efddc5b (env : env)
-    (x : CST.anon_choice_type_id_efddc5b) : ident_or_op =
+    (x : CST.anon_choice_stmt_id_efddc5b) : ident_or_op =
   match x with
   | `Id tok -> IdIdent (str env tok) (* pattern [a-zA-Z_]\w* *)
   | `Op_name tok ->
@@ -1113,7 +1113,7 @@ and map_anon_choice_prep_else_in_field_decl_list_97ea65e (env : env)
 
 (* used for field initializer in ctor/dtor *)
 and map_anon_choice_type_id_ae28a26 (env : env)
-    (x : CST.anon_choice_type_id_ae28a26) : name =
+    (x : CST.anon_choice_stmt_id_ae28a26) : name =
   match x with
   | `Id tok ->
       let x = str env tok (* pattern [a-zA-Z_]\w* *) in
@@ -1129,7 +1129,7 @@ and map_anon_choice_type_id_ae28a26 (env : env)
       name_scoped v1 v2 v3
 
 and map_anon_choice_type_id_ec78ce4 (env : env)
-    (x : CST.anon_choice_type_id_ec78ce4) =
+    (x : CST.anon_choice_stmt_id_ec78ce4) =
   match x with
   | `Id tok ->
       let x = str env tok (* pattern [a-zA-Z_]\w* *) in
@@ -1142,7 +1142,7 @@ and map_anon_choice_type_id_ec78ce4 (env : env)
       x
 
 and map_anon_choice_type_id_f1f5a37 (env : env)
-    (x : CST.anon_choice_type_id_f1f5a37) : name =
+    (x : CST.anon_choice_stmt_id_f1f5a37) : name =
   match x with
   | `Id tok ->
       let x = str env tok (* pattern [a-zA-Z_]\w* *) in
@@ -1835,6 +1835,18 @@ and map_explicit_function_specifier (env : env)
       Explicit (v1, Some (v2, v3, v4))
 
 and map_expression (env : env) (x : CST.expression) : expr =
+  match x with
+  | `Choice_choice_cond_exp x -> map_expression_bis env x
+  | `Semg_ellips v1 ->
+      let t = token env v1 in
+      Ellipsis t
+  | `Deep_ellips (v1, v2, v3) ->
+      let l = token env v1 in
+      let e = map_expression env v2 in
+      let r = token env v3 in
+      DeepEllipsis (l, e, r)
+
+and map_expression_bis (env : env) x : expr =
   match x with
   | `Choice_cond_exp x -> (
       match x with
@@ -3407,3 +3419,14 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       map_translation_unit env cst)
+
+let parse_pattern str =
+  H.wrap_parser
+    (fun () -> Tree_sitter_cpp.Parse.string str)
+    (fun cst ->
+      let file = "<pattern>" in
+      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let xs = map_translation_unit env cst in
+      match xs with
+      | [ s ] -> Toplevel s
+      | xs -> Toplevels xs)

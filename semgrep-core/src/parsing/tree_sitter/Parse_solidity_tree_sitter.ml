@@ -2245,7 +2245,6 @@ let map_function_definition (env : env)
 
 let map_modifier_definition (env : env)
     ((v1, v2, v3, v4, v5) : CST.modifier_definition) : definition =
-  (* TODO: use a special attribute for that? *)
   let tmodif = (* "modifier" *) token env v1 in
   let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
   let params =
@@ -2263,6 +2262,7 @@ let map_modifier_definition (env : env)
         | `Over_spec x -> map_override_specifier env x)
       v4
   in
+  let attrs = G.unhandled_keywordattr ("modifier", tmodif) :: attrs in
   let fbody = map_anon_choice_semi_f2fe6be env v5 in
   let ent = G.basic_entity id ~attrs in
   let def =
@@ -2443,6 +2443,12 @@ let map_source_file (env : env) (x : CST.source_file) : any =
   | `Exp x ->
       let e = map_expression env x in
       E e
+  | `Modi_defi x ->
+      let x = map_modifier_definition env x in
+      S (DefStmt x |> G.s)
+  | `Cons_defi x ->
+      let x = map_constructor_definition env x in
+      S (DefStmt x |> G.s)
 
 (*****************************************************************************)
 (* Entry point *)

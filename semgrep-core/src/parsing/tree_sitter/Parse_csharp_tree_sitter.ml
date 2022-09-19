@@ -995,25 +995,30 @@ and array_rank_specifier (env : env) ((v1, v2, v3) : CST.array_rank_specifier) =
   (* TODO we could give each expression brackets, instead of using the same brackets for all expressions *)
   (v1, v2, v3)
 
-and argument (env : env) ((v1, v2, v3) : CST.argument) : G.argument =
-  let v1 = Option.map (name_colon env) v1 in
-  let _v2TODO =
-    match v2 with
-    | Some x -> (
-        match x with
-        | `Ref tok -> Some (token env tok) (* "ref" *)
-        | `Out tok -> Some (token env tok) (* "out" *)
-        | `In tok -> Some (token env tok) (* "in" *))
-    | None -> None
-  in
-  let v3 =
-    match v3 with
-    | `Exp x -> expression env x
-    | `Decl_exp x -> declaration_expression env x
-  in
-  match v1 with
-  | None -> G.Arg v3
-  | Some id -> G.ArgKwd (id, v3)
+and argument (env : env) (x : CST.argument) : G.argument =
+  match x with
+  | `Opt_name_colon_opt_choice_ref_choice_exp (v1, v2, v3) -> (
+      let v1 = Option.map (name_colon env) v1 in
+      let _v2TODO =
+        match v2 with
+        | Some x -> (
+            match x with
+            | `Ref tok -> Some (token env tok) (* "ref" *)
+            | `Out tok -> Some (token env tok) (* "out" *)
+            | `In tok -> Some (token env tok) (* "in" *))
+        | None -> None
+      in
+      let v3 =
+        match v3 with
+        | `Exp x -> expression env x
+        | `Decl_exp x -> declaration_expression env x
+      in
+      match v1 with
+      | None -> G.Arg v3
+      | Some id -> G.ArgKwd (id, v3))
+  | `Semg_vari_meta v1 ->
+      let id = str env v1 in
+      G.Arg (N (H2.name_of_id id) |> G.e)
 
 and initializer_expression (env : env)
     ((v1, v2, v3, v4) : CST.initializer_expression) : expr list G.bracket =

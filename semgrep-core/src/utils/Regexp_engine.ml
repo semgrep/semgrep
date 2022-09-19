@@ -129,8 +129,9 @@ let remove_end_of_string_assertions_from_string src : string option =
         match (a0, a1) with
         | '^', '$' -> Some ""
         | '^', c -> String.make 1 c |> finish
-        | c, '$' -> String.make 1 c |> finish
         | '\\', ('A' | 'Z' | 'z') -> Some ""
+        | '\\', _ -> Some src
+        | c, '$' -> String.make 1 c |> finish
         | _, _ -> src |> finish
       else
         (* "XXX" or longer *)
@@ -140,7 +141,7 @@ let remove_end_of_string_assertions_from_string src : string option =
           | '\\', 'A' -> String.sub src 2 (len - 2)
           | _ -> src
         in
-        (* "X" or longer *)
+        (* remaining string: "X" or longer *)
         let len = String.length src in
         let z1 = src.[len - 1] in
         if len = 1 then
@@ -148,15 +149,13 @@ let remove_end_of_string_assertions_from_string src : string option =
           | '$' -> Some ""
           | _ -> src |> finish
         else
-          (* "XX" or longer *)
+          (* remaining string: "XX" or longer *)
           let z0 = src.[len - 2] in
-          let src =
-            match (z0, z1) with
-            | _, '$' -> String.sub src 0 (len - 1)
-            | '\\', ('Z' | 'z') -> String.sub src 0 (len - 2)
-            | _ -> src
-          in
-          finish src
+          match (z0, z1) with
+          | '\\', ('Z' | 'z') -> Some (String.sub src 0 (len - 2))
+          | '\\', _ -> Some src
+          | _, '$' -> String.sub src 0 (len - 1) |> finish
+          | _ -> src |> finish
 
 let remove_end_of_string_assertions (src_pat, _old) =
   match remove_end_of_string_assertions_from_string src_pat with

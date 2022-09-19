@@ -26,6 +26,7 @@ from semgrep.core_runner import CoreRunner
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
+from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.git import BaselineHandler
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
@@ -279,6 +280,7 @@ def main(
     jobs: int = 1,
     include: Optional[Sequence[str]] = None,
     exclude: Optional[Sequence[str]] = None,
+    exclude_rule: Optional[Sequence[str]] = None,
     strict: bool = False,
     autofix: bool = False,
     replacement: Optional[str] = None,
@@ -313,6 +315,9 @@ def main(
     if exclude is None:
         exclude = []
 
+    if exclude_rule is None:
+        exclude_rule = []
+
     project_url = get_project_url()
     profiler = ProfileManager()
 
@@ -329,6 +334,7 @@ def main(
     else:
         shown_severities = {RuleSeverity(s) for s in severity}
         filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
+    filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
 
     output_handler.handle_semgrep_errors(config_errors)
 
