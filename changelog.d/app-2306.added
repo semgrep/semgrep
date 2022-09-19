@@ -1,0 +1,1 @@
+Modify the CLI output to separate non-blocking and blocking findings and show a list of the blocking rules that fired.
