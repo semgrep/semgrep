@@ -1507,26 +1507,30 @@ and map_expression_statement (env : env) (x : CST.expression_statement) : G.stmt
       let expr = G.Ellipsis ellipsis |> G.e in
       G.ExprStmt (expr, sc) |> G.s
 
-and map_field_declaration (env : env) ((v1, v2, v3, v4) : CST.field_declaration)
-    : G.field =
-  let attrs =
-    match v1 with
-    | Some x -> map_visibility_modifier env x
-    | None -> []
-  in
-  let ident = ident env v2 in
-  (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-  let _colon = token env v3 (* ":" *) in
-  let ty = map_type_ env v4 in
-  let var_def = { G.vinit = None; G.vtype = Some ty } in
-  let ent =
-    {
-      G.name = G.EN (G.Id (ident, G.empty_id_info ()));
-      G.attrs;
-      G.tparams = [];
-    }
-  in
-  G.fld (ent, G.FieldDefColon var_def)
+and map_field_declaration (env : env) (x : CST.field_declaration) : G.field =
+  match x with
+  | `Opt_visi_modi_id_COLON_type (v1, v2, v3, v4) ->
+      let attrs =
+        match v1 with
+        | Some x -> map_visibility_modifier env x
+        | None -> []
+      in
+      let ident = ident env v2 in
+      (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+      let _colon = token env v3 (* ":" *) in
+      let ty = map_type_ env v4 in
+      let var_def = { G.vinit = None; G.vtype = Some ty } in
+      let ent =
+        {
+          G.name = G.EN (G.Id (ident, G.empty_id_info ()));
+          G.attrs;
+          G.tparams = [];
+        }
+      in
+      G.fld (ent, G.FieldDefColon var_def)
+  | `Ellips v1 ->
+      let t = token env v1 in
+      G.fieldEllipsis t
 
 (* for struct definition *)
 and map_field_declaration_list (env : env)
@@ -1553,18 +1557,23 @@ and map_field_declaration_list (env : env)
   let rbrace = token env v4 (* "}" *) in
   (lbrace, fields, rbrace)
 
-and map_field_declaration_type (env : env)
-    ((v1, v2, v3, v4) : CST.field_declaration) : G.type_ =
-  let _attrsTODO =
-    match v1 with
-    | Some x -> map_visibility_modifier env x
-    | None -> []
-  in
-  let _identTODO = ident env v2 in
-  (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-  let _colon = token env v3 (* ":" *) in
-  let ty = map_type_ env v4 in
-  ty
+and map_field_declaration_type (env : env) (x : CST.field_declaration) : G.type_
+    =
+  match x with
+  | `Opt_visi_modi_id_COLON_type (v1, v2, v3, v4) ->
+      let _attrsTODO =
+        match v1 with
+        | Some x -> map_visibility_modifier env x
+        | None -> []
+      in
+      let _identTODO = ident env v2 in
+      (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+      let _colon = token env v3 (* ":" *) in
+      let ty = map_type_ env v4 in
+      ty
+  | `Ellips v1 ->
+      let t = token env v1 in
+      TyEllipsis t |> G.t
 
 (* for enum definition (OrConstructor) *)
 and map_field_declaration_list_types (env : env)
@@ -1591,18 +1600,25 @@ and map_field_declaration_list_types (env : env)
   let _rbrace = token env v4 (* "}" *) in
   types
 
-and map_field_declaration_union (env : env)
-    ((v1, v2, v3, v4) : CST.field_declaration) : G.or_type_element =
-  let _attrsTODO =
-    match v1 with
-    | Some x -> map_visibility_modifier env x
-    | None -> []
-  in
-  let ident = ident env v2 in
-  (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-  let _colon = token env v3 (* ":" *) in
-  let ty = map_type_ env v4 in
-  G.OrUnion (ident, ty)
+and map_field_declaration_union (env : env) (x : CST.field_declaration) :
+    G.or_type_element =
+  match x with
+  | `Opt_visi_modi_id_COLON_type (v1, v2, v3, v4) ->
+      let _attrsTODO =
+        match v1 with
+        | Some x -> map_visibility_modifier env x
+        | None -> []
+      in
+      let ident = ident env v2 in
+      (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+      let _colon = token env v3 (* ":" *) in
+      let ty = map_type_ env v4 in
+      G.OrUnion (ident, ty)
+  | `Ellips v1 ->
+      let t = token env v1 in
+      (* TODO *)
+      let ty = TyEllipsis t |> G.t in
+      G.OrUnion (("...", t), ty)
 
 (* for union definition *)
 and map_field_declaration_list_union (env : env)
