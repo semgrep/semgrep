@@ -1,7 +1,7 @@
 import asyncio
 import collections
+import contextlib
 import json
-import os
 import resource
 import shlex
 import subprocess
@@ -727,24 +727,25 @@ class CoreRunner:
         profiling_data: ProfilingData = ProfilingData()
         parsing_data: ParsingData = ParsingData()
 
-        # Note: temporary file behavior varies based on OS according to
-        # https://docs.python.org/3/library/tempfile.html. In the future
-        # if we support Windows semgrep-core may not be able to open
-        # these files
-        rule_file_name = (
-            str(state.env.user_data_folder / "semgrep_rules.json")
+        # Create an exit stack context manager to properly handle closing
+        # either the temp files for an actual run or else the dump files for
+        # a future direct run of semgrep-core. This method of file management
+        # is OS-agnostic and should be portable across POSIX and Windows
+        # systems. It also ensures that NamedTemporaryFile objects will delete
+        # their corresponding temp files after closing streams to them.
+        exit_stack = contextlib.ExitStack()
+        rule_file = exit_stack.enter_context(
+            (state.env.user_data_folder / "semgrep_rules.json").open("w+")
             if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w", suffix=".json").name
+            else tempfile.NamedTemporaryFile("w+", suffix=".json")
         )
-        target_file_name = (
-            str(state.env.user_data_folder / "semgrep_targets.txt")
+        target_file = exit_stack.enter_context(
+            (state.env.user_data_folder / "semgrep_targets.txt").open("w+")
             if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w").name
+            else tempfile.NamedTemporaryFile("w+")
         )
 
-        with open(rule_file_name, "w+") as rule_file, open(
-            target_file_name, "w+"
-        ) as target_file:
+        with exit_stack:
 
             plan = self._plan_core_run(rules, target_manager, all_targets)
             plan.log()
@@ -897,20 +898,6 @@ class CoreRunner:
                 ):
                     parsing_data.add_error(err)
             errors.extend(parsed_errors)
-
-        # We use NamedTemporaryFile for the rules and targets files to
-        # create files with random names, but because of how we open
-        # the files we need to remove them ourselves. However, we are
-        # not guaranteed that a different implementation would not
-        # remove the file. Therefore, we wrap these in try-except.
-        try:
-            os.remove(rule_file_name)
-        except FileNotFoundError:
-            logger.warning(f"Rules file {rule_file_name} already removed")
-        try:
-            os.remove(target_file_name)
-        except FileNotFoundError:
-            logger.warning(f"Targets file {target_file_name} already removed")
 
         return (
             outputs,
