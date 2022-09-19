@@ -101,9 +101,7 @@ let language_exceptions =
     (* GA languages *)
 
     (* TODO: why not regexp_string? NA for naming_import? *)
-    ( Lang.Csharp,
-      [ "equivalence_naming_import"; "metavar_ellipsis_args"; "regexp_string" ]
-    );
+    (Lang.Csharp, [ "equivalence_naming_import"; "regexp_string" ]);
     (* TODO: metavar_anno sounds like an NA, but the other?? *)
     (Lang.Go, [ "metavar_class_def"; "metavar_import"; "metavar_anno" ]);
     (* TODO: NA for Java? *)
