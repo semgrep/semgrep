@@ -38,7 +38,7 @@ clean:
 test: all
 	# The test executable has a few options that can be useful
 	# in some contexts.
-	# The following ensures that we can call 'test.exe --help'
+	# The following command ensures that we can call 'test.exe --help'
 	# without having to chdir into the test data folder.
 	./_build/default/tests/test.exe --help 2>&1 >/dev/null
 	$(MAKE) -C src/spacegrep test
