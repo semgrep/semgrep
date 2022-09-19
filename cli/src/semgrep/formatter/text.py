@@ -584,7 +584,10 @@ class TextFormatter(BaseFormatter):
         if first_party_blocking_rules:
             formatted_first_party_blocking_rules = [
                 with_color(Colors.foreground, rule_id, bold=True)
-                for rule_id in set(first_party_blocking_rules)
+                for rule_id in sorted(
+                    set(first_party_blocking_rules),
+                    key=first_party_blocking_rules.index,
+                )
             ]
             first_party_blocking_rules_output = (
                 [
