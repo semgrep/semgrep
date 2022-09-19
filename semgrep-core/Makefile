@@ -36,8 +36,10 @@ clean:
 #
 .PHONY: test
 test: all
-	# ensure that '--help' is available and that we don't load test data
-	# until the tests need to run.
+	# The test executable has a few options that can be useful
+	# in some contexts.
+	# The following ensures that we can call 'test.exe --help'
+	# without having to chdir into the test data folder.
 	./_build/default/tests/test.exe --help 2>&1 >/dev/null
 	$(MAKE) -C src/spacegrep test
 	dune runtest -f --no-buffer
