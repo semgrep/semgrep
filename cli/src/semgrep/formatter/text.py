@@ -499,7 +499,7 @@ class TextFormatter(BaseFormatter):
                 if match.is_blocking:
                     first_party_blocking.append(match)
                     rule_id = match.match.rule_id.value
-                    if rule_id not in first_party_blocking_rules and rule_id != "-":
+                    if rule_id != "-":
                         first_party_blocking_rules.append(rule_id)
                 else:
                     first_party_nonblocking.append(match)
@@ -584,7 +584,7 @@ class TextFormatter(BaseFormatter):
         if first_party_blocking_rules:
             formatted_first_party_blocking_rules = [
                 with_color(Colors.foreground, rule_id, bold=True)
-                for rule_id in first_party_blocking_rules
+                for rule_id in set(first_party_blocking_rules)
             ]
             first_party_blocking_rules_output = (
                 [
