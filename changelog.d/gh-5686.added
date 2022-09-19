@@ -1,4 +1,0 @@
-Fixes https://github.com/returntocorp/semgrep/issues/5686.
-You can now have multiple metavariables under `focus-metavariable`, which allows Semgrep to highlight the
-values matched by multiple metavariables more easily in certain circumstances.
-See the gist in the description of the original issue for an example.
