@@ -42,9 +42,9 @@ Blocking Findings:
          27┆ sink(d2)
 
 Blocking Rules Fired:
-   eqeq-bad   
    eqeq-four   
-   taint-test
+   taint-test   
+   eqeq-bad
 
 === end of stdout - plain
 

@@ -25,8 +25,8 @@ Blocking Findings:
           3┆ return a + b == a + b
 
 Blocking Rules Fired:
-   rules.eqeq-is-bad   
-   rules.javascript-basic-eqeq-bad
+   rules.javascript-basic-eqeq-bad   
+   rules.eqeq-is-bad
 
 === end of stdout - plain
 
@@ -53,8 +53,8 @@ Blocking Findings:
           3┆ return [1m[24ma + b == a + b[0m
 
 Blocking Rules Fired:
-   [1m[24mrules.eqeq-is-bad[0m   
-   [1m[24mrules.javascript-basic-eqeq-bad[0m
+   [1m[24mrules.javascript-basic-eqeq-bad[0m   
+   [1m[24mrules.eqeq-is-bad[0m
 
 === end of stdout - color
 

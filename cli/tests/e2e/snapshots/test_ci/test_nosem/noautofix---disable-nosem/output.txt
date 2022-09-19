@@ -67,9 +67,9 @@ First-Party Blocking Findings:
          27┆ sink(d2)
 
 First-Party Blocking Rules Fired:
-   eqeq-bad   
    eqeq-four   
-   taint-test
+   taint-test   
+   eqeq-bad
 
 === end of stdout - plain
 
