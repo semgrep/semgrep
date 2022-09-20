@@ -1,8 +1,12 @@
 name: crons
 on:
+  #TODO: if I put pull_request: instead of push: it does not work, weird
   push:
     branches:
       - crons
+  #TODO: at some point also set up an actual cron like
+  #  schedule:
+  #  - cron: "43 20 * * *"
 
 jobs:
   update-semgrep-rules-submodule:
@@ -22,13 +26,13 @@ jobs:
       - run: git status
       #TODO: how to create a fresh branch name each time to avoid conflicts
       # when the cron run multiple times?
-      - run: git checkout -b crons_update_semgrep_rules_5
+      - run: git checkout -b crons_update_semgrep_rules_6
       # from https://ao.ms/how-to-use-git-commit-in-github-actions/
       - name: setup git config
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
       - run: git commit -a -m"update semgrep rules"
-      - run: git push origin crons_update_semgrep_rules_5
+      - run: git push origin crons_update_semgrep_rules_6
       #TODO: the PR does not seem to trigger the regular workflows. It's blocked at pre-commit
       - run: gh pr create --title 'Cron - update semgrep-rules' --body 'Regular update' --base develop --reviewer aryx
