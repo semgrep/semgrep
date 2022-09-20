@@ -1,11 +1,20 @@
-#TODO? skip the compiler as it may contain lots of test files?
-https://github.com/golang/go.git
-https://github.com/kubernetes/kubernetes.git
-https://github.com/moby/moby.git
-https://github.com/gohugoio/hugo.git
-https://github.com/gin-gonic/gin.git
-https://github.com/fatedier/frp.git
-https://github.com/astaxie/build-web-application-with-golang.git
-https://github.com/gogs/gogs.git
-https://github.com/v2ray/v2ray-core.git
-https://github.com/syncthing/syncthing.git
+
+# Popular projects
+# TODO? should we skip the compiler as it may contain lots of test files?
+https://github.com/golang/go
+https://github.com/gohugoio/hugo
+https://github.com/gin-gonic/gin
+https://github.com/fatedier/frp
+https://github.com/astaxie/build-web-application-with-golang
+https://github.com/gogs/gogs
+https://github.com/v2ray/v2ray-core
+https://github.com/syncthing/syncthing
+
+# Popular and used by R2C
+https://github.com/kubernetes/kubernetes
+https://github.com/moby/moby
+
+# Used by R2C
+https://github.com/github/hub
+https://github.com/argoproj/argo-cd
+https://github.com/hashicorp/terraform
