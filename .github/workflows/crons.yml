@@ -20,3 +20,4 @@ jobs:
           submodules: recursive
       - run: ls -l semgrep-core/tests/
       - run: cd semgrep-core/tests/semgrep-rules; git checkout develop; git pull
+      - run: git status
