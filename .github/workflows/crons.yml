@@ -1,0 +1,13 @@
+name: Crons to run periodically for Semgrep
+on:
+  pull_request:
+    branches:
+      - crons
+
+jobs:
+  hello-world:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: ls -l
+      - run: pwd
