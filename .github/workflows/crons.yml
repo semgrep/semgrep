@@ -26,4 +26,4 @@ jobs:
           git config user.email "<>"
       - run: git commit -a -m"update semgrep rules"
       - run: git push origin crons_update_semgrep_rules
-      - run: gh pr list
+      - run: gh pr create --title 'Cron - update semgrep-rules' --base develop --reviewer aryx
