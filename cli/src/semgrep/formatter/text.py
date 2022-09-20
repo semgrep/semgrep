@@ -500,7 +500,7 @@ class TextFormatter(BaseFormatter):
                     first_party_blocking.append(match)
                     rule_id = match.match.rule_id.value
                     # When ephemeral rules are run with the -e or --pattern flag in the command-line, the rule_id is set to -.
-                    # The short rule is ran in the command-line and has no associated rule_id
+                    # The rule is ran in the command-line and has no associated rule_id
                     if rule_id != "-":
                         first_party_blocking_rules.append(rule_id)
                 else:
