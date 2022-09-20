@@ -491,10 +491,17 @@ class TextFormatter(BaseFormatter):
     ) -> str:
         reachable = []
         unreachable = []
-        first_party = []
+        first_party_blocking = []
+        first_party_nonblocking = []
+        first_party_blocking_rules = []
         for match in rule_matches:
             if "sca_info" not in match.extra:
-                first_party.append(match)
+                if match.is_blocking:
+                    first_party_blocking.append(match)
+                    rule_id = match.match.rule_id.value
+                    first_party_blocking_rules.append(rule_id)
+                else:
+                    first_party_nonblocking.append(match)
             elif match.extra["sca_info"].reachable:
                 reachable.append(match)
             else:
@@ -543,30 +550,62 @@ class TextFormatter(BaseFormatter):
                 + "\n".join(unreachable_output)
             )
 
-        if (reachable or unreachable) and first_party:
-            first_party_output = self._build_text_output(
-                first_party,
+        if first_party_nonblocking:
+            first_party_nonblocking_output = self._build_text_output(
+                first_party_nonblocking,
                 extra.get("color_output", False),
                 extra["per_finding_max_lines_limit"],
                 extra["per_line_max_chars_limit"],
                 extra["dataflow_traces"],
             )
             findings_output.append(
-                "\nFirst-Party Findings:\n" + "\n".join(first_party_output)
+                "\nFirst-Party Non-Blocking Findings:\n"
+                + "\n".join(first_party_nonblocking_output)
+            ) if (reachable or unreachable) else findings_output.append(
+                "\nNon-Blocking Findings:\n" + "\n".join(first_party_nonblocking_output)
             )
-        elif first_party:
-            first_party_output = self._build_text_output(
-                first_party,
+        if first_party_blocking:
+            first_party_blocking_output = self._build_text_output(
+                first_party_blocking,
                 extra.get("color_output", False),
                 extra["per_finding_max_lines_limit"],
                 extra["per_line_max_chars_limit"],
                 extra["dataflow_traces"],
             )
-            findings_output.append("\nFindings:\n" + "\n".join(first_party_output))
+            findings_output.append(
+                "\nFirst-Party Blocking Findings:\n"
+                + "\n".join(first_party_blocking_output)
+            ) if (reachable or unreachable) else findings_output.append(
+                "\nBlocking Findings:\n" + "\n".join(first_party_blocking_output)
+            )
+
+        first_party_blocking_rules_output = []
+        # When ephemeral rules are run with the -e or --pattern flag in the command-line, the rule_id is set to -.
+        # The short rule is ran in the command-line and has no associated rule_id
+        if first_party_blocking_rules and first_party_blocking_rules != ["-"]:
+            formatted_first_party_blocking_rules = [
+                with_color(Colors.foreground, rule_id, bold=True)
+                for rule_id in sorted(
+                    set(first_party_blocking_rules),
+                    key=first_party_blocking_rules.index,
+                )
+            ]
+            first_party_blocking_rules_output = (
+                [
+                    "\nFirst-Party Blocking Rules Fired:\n   "
+                    + "   \n   ".join(formatted_first_party_blocking_rules)
+                ]
+                if (reachable or unreachable)
+                else [
+                    "\nBlocking Rules Fired:\n   "
+                    + "   \n   ".join(formatted_first_party_blocking_rules)
+                ]
+            )
 
         return "\n".join(
             [
                 *findings_output,
+                *first_party_blocking_rules_output,
                 *timing_output,
             ]
         )
