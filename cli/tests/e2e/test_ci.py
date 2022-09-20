@@ -400,6 +400,7 @@ def mock_autofix(request, mocker):
         "gitlab-push",
         "circleci",
         "jenkins",
+        "jenkins-overwrite-repo-name",
         "jenkins-missing-vars",
         "bitbucket",
         "azure-pipelines",
