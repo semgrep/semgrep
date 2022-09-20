@@ -1,6 +1,10 @@
 name: Update Semgrep Rules
 on:
   workflow_dispatch: {}
+  # TODO: Remove this trigger
+  push:
+    branches:
+      - "cron"
   #TODO: at some point also set up an actual cron like
   #  schedule:
   #  - cron: "43 20 * * *"
