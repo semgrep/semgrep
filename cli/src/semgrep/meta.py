@@ -587,6 +587,9 @@ class JenkinsMeta(GitMeta):
         This assumes that the url is in the github format.
         """
         name = get_repo_name_from_repo_url(os.getenv("GIT_URL"))
+        repo_name = os.getenv("SEMGREP_REPO_NAME")
+        if repo_name:
+            return repo_name
         return name if name else super().repo_name
 
     @property
