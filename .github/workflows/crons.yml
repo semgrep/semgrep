@@ -19,6 +19,11 @@ jobs:
       - run: echo MODIF >> README.md
       - run: git status
       - run: git checkout -b crons_update_semgrep_rules
+      # from https://ao.ms/how-to-use-git-commit-in-github-actions/
+      - name: setup git config
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
       - run: git commit -a -m"update semgrep rules"
       - run: git push origin crons_update_semgrep_rules
       - run: gh pr list
