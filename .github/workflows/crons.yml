@@ -1,5 +1,8 @@
 name: Crons to run periodically for Semgrep
-on: push
+on:
+  push:
+    branches:
+      - crons
 
 jobs:
   hello-world:
