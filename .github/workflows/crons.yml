@@ -11,3 +11,9 @@ jobs:
       - uses: actions/checkout@v3
       - run: ls -l
       - run: pwd
+  update-semgrep-rules-submodule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: ls semgrep-core/tests/semgrep-rules
+      - run: cd semgrep-core/tests/semgrep-rules; git checkout develop; git pull
