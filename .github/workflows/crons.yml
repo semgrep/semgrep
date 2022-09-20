@@ -1,3 +1,4 @@
+name: crons
 on:
   push:
     branches:
