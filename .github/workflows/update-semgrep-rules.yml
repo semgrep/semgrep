@@ -1,6 +1,9 @@
 name: Update Semgrep Rules
 on:
+  # Allow for manual triggering of this workflow
   workflow_dispatch: {}
+  # TODO: Remove this trigger
+  pull_request: {}
   # TODO: Remove this trigger
   push:
     branches:
@@ -13,6 +16,10 @@ jobs:
   update-semgrep-rules-submodule:
     runs-on: ubuntu-latest
     steps:
+      # Use the semgrep-ci bot as the auth
+      # Using the built-in secrets.GITHUB_TOKEN won't allow for downstream jobs to fire.
+      # The flow here is that we use this custom (internally-developed) docker image to get a JWT, and then that is used to the
+      # token that git can use to fetch the code.
       - name: Get JWT for semgrep-ci GitHub App
         id: jwt
         uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
@@ -20,6 +27,7 @@ jobs:
           EXPIRATION: 600 # seconds
           ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }} # semgrep-ci GitHub App id
           PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+      # See above comments
       - name: Get token for semgrep-ci GitHub App
         id: token
         run: |
@@ -30,6 +38,9 @@ jobs:
           jq -r .token)"
           echo "::add-mask::$TOKEN"
           echo "::set-output name=token::$TOKEN"
+      # Recursively checkout all submodules
+      # ensure that we're on the default branch (develop)
+      # Use the token provided by the JWT token getter above
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -52,6 +63,7 @@ jobs:
           message: "chore: Bump Semgrep Rules Submodule"
           new_branch: update-semgrep-rules-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Open PR
+        # Use the token generated from the semgrep-ci Github App - this ensures that PR checks will run on the PR opened by this workflow.
         env:
           GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
         run: |
