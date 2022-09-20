@@ -10,7 +10,6 @@
 
 https://github.com/ant-design/ant-design
 https://github.com/angular/angular
-https://github.com/microsoft/vscode
 https://github.com/ionic-team/ionic
 https://github.com/angular/angular-cli
 https://github.com/akveo/ngx-admin
@@ -32,6 +31,12 @@ https://github.com/swimlane/ngx-datatable
 https://github.com/NativeScript/NativeScript
 https://github.com/ant-design/ant-design-mobile
 https://github.com/basarat/typescript-book
+
+# popular and used by R2C
+https://github.com/microsoft/vscode
+
+# Used by R2C
+https://github.com/getsentry/sentry
 
 # Too many weird test cases in the following:
 # https://github.com/DefinitelyTyped/DefinitelyTyped

@@ -10,14 +10,10 @@ https://github.com/vinta/awesome-python
 https://github.com/ytdl-org/youtube-dl
 https://github.com/tensorflow/models
 https://github.com/nvbn/thefuck
-https://github.com/django/django
-https://github.com/pallets/flask
 https://github.com/keras-team/keras
 https://github.com/httpie/httpie
 https://github.com/josephmisiti/awesome-machine-learning
 https://github.com/ansible/ansible
-# This repo has some metaprogramming stuff that doesn't parse as valid Python
-# https://github.com/huggingface/transformers
 https://github.com/scikit-learn/scikit-learn
 https://github.com/psf/requests
 https://github.com/home-assistant/core
@@ -27,10 +23,21 @@ https://github.com/minimaxir/big-list-of-naughty-strings
 https://github.com/soimort/you-get
 https://github.com/ageitgey/face_recognition
 https://github.com/apache/superset
-# cpython seems to have some augmented Python syntax and unrealistic test cases
-# https://github.com/python/cpython
 https://github.com/deepfakes/faceswap
 https://github.com/3b1b/manim
 https://github.com/shadowsocks/shadowsocks
 https://github.com/tiangolo/fastapi
 https://github.com/fighting41love/funNLP
+# This repo has some metaprogramming stuff that doesn't parse as valid Python
+# https://github.com/huggingface/transformers
+# cpython seems to have some augmented Python syntax and unrealistic test cases
+# https://github.com/python/cpython
+
+# popular and used by R2C
+https://github.com/django/django
+https://github.com/pallets/flask
+
+# used by R2C
+https://github.com/python/mypy
+https://github.com/getredash/redash
+https://github.com/getsentry/sentry

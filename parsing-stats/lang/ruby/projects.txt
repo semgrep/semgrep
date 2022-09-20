@@ -30,7 +30,6 @@ https://github.com/jekyll/jekyll
 https://github.com/discourse/discourse
 https://github.com/fastlane/fastlane
 https://github.com/gitlabhq/gitlabhq
-https://github.com/Homebrew/brew
 https://github.com/heartcombo/devise
 https://github.com/hashicorp/vagrant
 https://github.com/diaspora/diaspora
@@ -46,7 +45,6 @@ https://github.com/activeadmin/activeadmin
 https://github.com/faker-ruby/faker
 https://github.com/kaminari/kaminari
 https://github.com/heartcombo/simple_form
-https://github.com/Homebrew/homebrew-core
 https://github.com/thoughtbot/factory_bot
 https://github.com/lewagon/setup
 https://github.com/realm/jazzy
@@ -54,3 +52,7 @@ https://github.com/chef/chef
 https://github.com/puma/puma
 https://github.com/pry/pry
 https://github.com/github-changelog-generator/github-changelog-generator
+
+# Popular and used by R2C
+https://github.com/Homebrew/brew
+https://github.com/Homebrew/homebrew-core

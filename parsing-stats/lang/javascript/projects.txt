@@ -25,3 +25,6 @@ https://github.com/hakimel/reveal.js.git
 # a preprocessor over each file to turn it into standard javascript.
 #
 #https://github.com/nodejs/node.git
+
+# Used by R2C
+https://github.com/getredash/redash

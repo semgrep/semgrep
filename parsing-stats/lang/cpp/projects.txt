@@ -8,13 +8,11 @@ https://github.com/microsoft/terminal
 https://github.com/apple/swift
 https://github.com/opencv/opencv
 https://github.com/bitcoin/bitcoin
-https://github.com/protocolbuffers/protobuf
 https://github.com/pytorch/pytorch
 https://github.com/tesseract-ocr/tesseract
 https://github.com/godotengine/godot
 https://github.com/x64dbg/x64dbg
 https://github.com/BVLC/caffe
-https://github.com/grpc/grpc
 https://github.com/ariya/phantomjs
 https://github.com/ocornut/imgui
 https://github.com/rethinkdb/rethinkdb
@@ -32,3 +30,7 @@ https://github.com/mongodb/mongo
 https://github.com/apache/incubator-mxnet
 https://github.com/facebook/rocksdb
 https://github.com/ApolloAuto/apollo
+
+# popular and used by R2C
+https://github.com/protocolbuffers/protobuf
+https://github.com/grpc/grpc
