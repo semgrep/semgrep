@@ -8,8 +8,10 @@ from semgrep.semgrep_main import invoke_semgrep
 
 
 @pytest.mark.slow
-def test_api(capsys, run_semgrep_in_tmp):
+def test_api(unique_home_dir, capsys, run_semgrep_in_tmp):
     # Test that exposed python API works and prints out nothing to stderr or stdout
+    # unique_home_dir is used to ensure that the test runs with it's own
+    # settings.yaml file to avoid reading one corrupted by another concurrent test run.
     output = invoke_semgrep(
         Path("rules/eqeq.yaml"),
         [Path("targets/bad/invalid_python.py"), Path("targets/basic/stupid.py")],

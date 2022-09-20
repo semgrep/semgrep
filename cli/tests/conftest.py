@@ -359,6 +359,15 @@ def _run_semgrep(
     return result
 
 
+@pytest.fixture()
+def unique_home_dir(monkeypatch, tmp_path):
+    """
+    Assign the home directory to a unique temporary directory.
+    """
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    yield tmp_path
+
+
 @pytest.fixture
 def run_semgrep():
     yield partial(_run_semgrep, strict=False, target_name=None, output_format=None)
