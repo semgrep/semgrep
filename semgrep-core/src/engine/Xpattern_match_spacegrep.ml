@@ -5,12 +5,12 @@
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
- * special exception on linking described in file license.txt.
+ * special exception on linking described in file LICENSE.
  *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
- * license.txt for more details.
+ * LICENSE for more details.
  *)
 open Xpattern_matcher
 module PI = Parse_info
@@ -86,7 +86,8 @@ let matches_of_spacegrep config spacegreps file =
           | Binary ->
               logger#info "ignoring gibberish file: %s\n%!" file;
               None
-          | _ ->
+          | Text
+          | Short ->
               let src =
                 if
                   Spacegrep.Src_file.length partial_doc_src < peek_length

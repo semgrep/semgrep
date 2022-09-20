@@ -1,0 +1,1 @@
+Scala: add support for ellipsis in match body (e.g., `$X match { ... }`)

@@ -92,8 +92,8 @@ let run_all ~search_param ~debug ~force ~warn ~comment_style patterns docs :
                  let doc_type = File_type.classify partial_doc_src in
                  incr num_files;
                  let path = Src_file.source_string partial_doc_src in
-                 match (doc_type, force) with
-                 | Minified, false ->
+                 match doc_type with
+                 | Minified when not force ->
                      if warn then eprintf "ignoring minified file: %s\n%!" path;
                      skipped :=
                        {
@@ -105,7 +105,7 @@ let run_all ~search_param ~debug ~force ~warn ~comment_style patterns docs :
                        }
                        :: !skipped;
                      None
-                 | Binary, false ->
+                 | Binary when not force ->
                      if warn then eprintf "ignoring gibberish file: %s\n%!" path;
                      skipped :=
                        {
@@ -115,11 +115,15 @@ let run_all ~search_param ~debug ~force ~warn ~comment_style patterns docs :
                        }
                        :: !skipped;
                      None
-                 | _ -> (
+                 | Minified
+                 | Binary
+                 | Short
+                 | Text -> (
                      incr num_analyzed;
                      let doc_src =
                        if Src_file.length partial_doc_src < peek_length then
-                         (* it's actually complete, no need to re-input the file *)
+                         (* it's actually complete, no need to re-input
+                            the file *)
                          partial_doc_src
                        else get_doc_src ()
                      in

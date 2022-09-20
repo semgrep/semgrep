@@ -5,12 +5,12 @@
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
- * special exception on linking described in file license.txt.
+ * special exception on linking described in file LICENSE.
  *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
- * license.txt for more details.
+ * LICENSE for more details.
  *)
 open Common
 open AST_scala
@@ -479,14 +479,16 @@ and v_argument v =
   let v = v_expr v in
   G.Arg v
 
-and v_case_clauses v =
-  v_list
-    (fun a ->
-      a |> v_case_clause |> fun (icase, p, s) ->
-      G.case_of_pat_and_stmt ~tok:(Some icase) (p, s))
-    v
+and v_case_clauses v : G.case_and_body list = v_list v_case_clause v
 
-and v_case_clause
+and v_case_clause v : G.case_and_body =
+  match v with
+  | CC x ->
+      let icase, p, s = v_case_clause_classic x in
+      G.case_of_pat_and_stmt ~tok:(Some icase) (p, s)
+  | CaseEllipsis ii -> G.CaseEllipsis ii
+
+and v_case_clause_classic
     {
       casetoks = v_casetoks;
       casepat = v_casepat;
@@ -627,9 +629,15 @@ and v_catch_clause (v1, v2) : G.catch list =
   let v1 = v_tok v1 in
   match v2 with
   | CatchCases (_lb, xs, _rb) ->
-      let actions = List.map v_case_clause xs in
-      actions
-      |> List.map (fun (icase, pat, st) -> (icase, G.CatchPattern pat, st))
+      xs
+      |> List.map (function
+           | CC x ->
+               let icase, pat, st = v_case_clause_classic x in
+               (icase, G.CatchPattern pat, st)
+           | CaseEllipsis ii ->
+               (* TODO: refactor G.catch to allow CatchEllipsis? *)
+               let st = G.Ellipsis ii |> G.e |> G.exprstmt in
+               (ii, G.CatchPattern (G.PatEllipsis ii), st))
   | CatchExpr e ->
       let e = v_expr e in
       let pat = G.PatUnderscore v1 in

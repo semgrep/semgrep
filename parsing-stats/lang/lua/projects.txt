@@ -1,7 +1,5 @@
 # TODO? should we skip the interpreter? it may contain lots of test files.
 https://github.com/lua/lua
-#RPC error at clone so skipped for now
-#https://git.net-core.org/tome/t-engine4.git
 https://github.com/EmmyLua/VSCode-EmmyLua
 https://github.com/EvandroLG/pegasus.lua
 https://github.com/Kong/kong
@@ -29,3 +27,5 @@ https://github.com/openresty/lua-resty-redis
 https://github.com/rxi/json.lua
 https://github.com/rxi/lite
 https://github.com/Ruin0x11/OpenNefia
+#RPC error at clone so skipped for now
+#https://git.net-core.org/tome/t-engine4.git

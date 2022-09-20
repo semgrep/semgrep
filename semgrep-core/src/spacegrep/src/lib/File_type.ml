@@ -4,15 +4,24 @@
 
 type t =
   | Text (* looks like source code *)
+  | Short (* text of short length that doesn't look like source code *)
   | Minified (* looks like source code from which whitespace was removed *)
-  | Binary
-
-(* doesn't look like source code *)
+  | Binary (* doesn't look like source code *)
 
 let to_string = function
   | Text -> "text"
+  | Short -> "short"
   | Minified -> "minified"
   | Binary -> "binary"
+
+(* A Short file has at most than many bytes.
+
+   The goal is to allow spacegrep to process short text files even
+   if they contain no newlines and no indentation. The problem with
+   files that have no 2D layout is that spacegrep can be slow to process them
+   and it's wasteful because they're not human-readable source code anyway.
+*)
+let max_short_length = 500
 
 let classify src =
   let contents = Src_file.contents src in
@@ -61,4 +70,7 @@ let classify src =
        >= 0.01
   in
 
-  if is_binary then Binary else if has_enough_lines then Text else Minified
+  if is_binary then Binary
+  else if has_enough_lines then Text
+  else if length <= max_short_length then Short
+  else Minified
