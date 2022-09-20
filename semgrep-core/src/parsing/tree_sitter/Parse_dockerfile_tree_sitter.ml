@@ -210,6 +210,7 @@ let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * str =
                  | `Imm_tok_pat_bcfc287 tok ->
                      String_content (str env tok (* pattern [^@\s\$]+ *))
                  | `Imme_expa x -> expansion env x)
+          |> simplify_fragments
         in
         let loc = Loc.of_list string_fragment_loc fragments in
         (loc, fragments)
@@ -231,6 +232,7 @@ let image_digest (env : env) ((v1, v2) : CST.image_digest) : tok * str =
                  | `Imm_tok_pat_d2727a0 tok ->
                      String_content (str env tok (* pattern [a-zA-Z0-9:]+ *))
                  | `Imme_expa x -> expansion env x)
+          |> simplify_fragments
         in
         let loc = Loc.of_list string_fragment_loc fragments in
         (loc, fragments)
@@ -251,7 +253,7 @@ let image_name (env : env) ((x, xs) : CST.image_name) =
                String_content (str env tok (* pattern [^@:\s\$]+ *))
            | `Imme_expa x -> expansion env x)
   in
-  let fragments = first_fragment :: fragments in
+  let fragments = first_fragment :: fragments |> simplify_fragments in
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
 
@@ -269,7 +271,7 @@ let image_alias (env : env) ((x, xs) : CST.image_alias) : str =
                String_content (str env tok (* pattern [-a-zA-Z0-9_]+ *))
            | `Imme_expa x -> expansion env x)
   in
-  let fragments = first_fragment :: other_fragments in
+  let fragments = first_fragment :: other_fragments |> simplify_fragments in
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
 
@@ -293,7 +295,7 @@ let user_name_or_group (env : env) ((x, xs) : CST.user_name_or_group) : str =
     | `Expa x -> expansion env x
   in
   let tail = Common.map (immediate_user_name_or_group_fragment env) xs in
-  let fragments = head :: tail in
+  let fragments = head :: tail |> simplify_fragments in
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
 
@@ -307,6 +309,7 @@ let unquoted_string (env : env) (xs : CST.unquoted_string) : str =
         | `BSLASHSPACE tok -> String_content (str env tok (* "\\ " *))
         | `Imme_expa x -> expansion env x)
       xs
+    |> simplify_fragments
   in
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
@@ -355,7 +358,7 @@ let stopsignal_value (env : env) ((x, xs) : CST.stopsignal_value) : str =
         | `Imme_expa x -> expansion env x)
       xs
   in
-  let fragments = first_fragment :: other_fragments in
+  let fragments = first_fragment :: other_fragments |> simplify_fragments in
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
 
@@ -379,6 +382,7 @@ let double_quoted_string (env : env) ((v1, v2, v3) : CST.double_quoted_string) :
   let loc = (wrap_tok open_, wrap_tok close) in
   let fragments =
     (String_content open_ :: contents) @ [ String_content close ]
+    |> simplify_fragments
   in
   (loc, fragments)
 
