@@ -17,6 +17,9 @@ Blocking Findings:
           ⋮┆----------------------------------------
          12┆ assertTrue(x == x)
 
+Blocking Rules Fired:
+   -
+
 === end of stdout - plain
 
 === stderr - plain

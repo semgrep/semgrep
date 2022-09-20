@@ -5,3 +5,6 @@ Blocking Findings:
          15┆ bar = 23478921
           ⋮┆----------------------------------------
          17┆ bar = 23478921
+
+Blocking Rules Fired:
+   -
