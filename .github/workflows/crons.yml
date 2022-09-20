@@ -21,3 +21,7 @@ jobs:
       - run: ls -l semgrep-core/tests/
       - run: cd semgrep-core/tests/semgrep-rules; git checkout develop; git pull
       - run: git status
+      - run: git checkout -b crons_update_semgrep_rules
+      - run: git commit -a -m"update semgrep rules"
+      - run: git push origin crons_update_semgrep_rules
+      - run: hub pull-request -b develop
