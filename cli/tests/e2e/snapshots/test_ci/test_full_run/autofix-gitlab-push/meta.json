@@ -22,7 +22,7 @@
     "start_sha": null,
     "is_sca_scan": false
   },
-  "policy": [
+  "policy_names": [
     "audit",
     "comment",
     "block"
