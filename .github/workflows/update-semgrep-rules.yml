@@ -1,0 +1,55 @@
+name: Update Semgrep Rules
+on:
+  workflow_dispatch: {}
+  #TODO: at some point also set up an actual cron like
+  #  schedule:
+  #  - cron: "43 20 * * *"
+
+jobs:
+  update-semgrep-rules-submodule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get JWT for semgrep-ci GitHub App
+        id: jwt
+        uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+        env:
+          EXPIRATION: 600 # seconds
+          ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }} # semgrep-ci GitHub App id
+          PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+      - name: Get token for semgrep-ci GitHub App
+        id: token
+        run: |
+          TOKEN="$(curl -X POST \
+          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+          jq -r .token)"
+          echo "::add-mask::$TOKEN"
+          echo "::set-output name=token::$TOKEN"
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+          ref: "${{ github.event.repository.default_branch }}"
+          token: "${{ steps.token.outputs.token }}"
+      - name: Update Submodule
+        id: update-submodule
+        working-directory: ./semgrep-core/tests/semgrep-rules
+        run: |
+          git checkout develop
+          git pull
+      - run: git status
+      - name: Add and Commit New Files
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: cli/tests/e2e/snapshots
+          author_name: ${{ github.actor }}
+          author_email: ${{ github.actor }}@users.noreply.github.com
+          message: "chore: Bump Semgrep Rules Submodule"
+          new_branch: update-semgrep-rules-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Open PR
+        env:
+          GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
+        run: |
+          gh pr create --title 'Update Semgrep-Rules Submodule' --body 'Please confirm correctness of the changes here and ensure all tests pass' \
+            --base develop --head update-semgrep-rules-${{ github.run_id }}-${{ github.run_attempt }} --reviewer aryx
