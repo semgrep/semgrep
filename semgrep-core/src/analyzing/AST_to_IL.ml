@@ -218,6 +218,13 @@ let composite_of_container : G.container_operator -> IL.composite_kind =
   | Set -> CSet
   | Dict -> CDict
 
+let mk_unnamed_args (exps : IL.exp list) = Common.map (fun x -> Unnamed x) exps
+
+let is_hcl lang =
+  match lang with
+  | Lang.Hcl -> true
+  | _ -> false
+  
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -536,6 +543,62 @@ and expr_aux env ?(void = false) e_gen =
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
+  | G.Call
+      ( ({ e = N (Id (("module", _), _)); _ } as e),
+        ((_, [ G.Arg { e = Record (_, fields, _); _ } ], _) as args) )
+    when is_hcl env.lang -> (
+      let mod_sources, _, mod_args =
+        Common.partition_either3
+          (function
+            | G.F
+                {
+                  s =
+                    DefStmt
+                      ( { name = EN (Id (("source", _), _)); _ },
+                        VarDef
+                          {
+                            vinit =
+                              Some
+                                {
+                                  e =
+                                    N
+                                      (Id
+                                        ( _,
+                                          {
+                                            id_resolved =
+                                              Some
+                                                ( G.ResolvedName (dotted_id, _),
+                                                  _ );
+                                            _;
+                                          } )) as name;
+                                  _;
+                                };
+                            _;
+                          } );
+                  _;
+                } ->
+                Left3 name
+            | G.F
+                {
+                  s =
+                    DefStmt
+                      ( { name = EN (Id ((arg_name, _), _)); _ },
+                        VarDef { vinit = Some arg_exp; _ } );
+                  _;
+                } ->
+                Right3 (arg_name, arg_exp)
+            | _ ->
+                (* bTODO: Ignore all other cases. They correspond neither to the module's name, or its arguments. *)
+                Middle3 ())
+          fields
+      in
+      match mod_sources with
+      | [ mod_source ] -> call_generic env ~void tok
+      | _ ->
+          (* Don't know how to interpret multiple sources. Just let this go to the wildcard case.
+         *)
+          let tok = G.fake "call" in
+          call_generic env ~void tok e args)
   | G.New (tok, ty, args) ->
       (* TODO: lift up New in IL like we did in AST_generic *)
       let special = (New, tok) in
