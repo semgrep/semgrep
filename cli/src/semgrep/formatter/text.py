@@ -499,7 +499,10 @@ class TextFormatter(BaseFormatter):
                 if match.is_blocking:
                     first_party_blocking.append(match)
                     rule_id = match.match.rule_id.value
-                    first_party_blocking_rules.append(rule_id)
+                    # When ephemeral rules are run with the -e or --pattern flag in the command-line, the rule_id is set to -.
+                    # The short rule is ran in the command-line and has no associated rule_id
+                    if rule_id != "-":
+                        first_party_blocking_rules.append(rule_id)
                 else:
                     first_party_nonblocking.append(match)
             elif match.extra["sca_info"].reachable:
@@ -580,9 +583,7 @@ class TextFormatter(BaseFormatter):
             )
 
         first_party_blocking_rules_output = []
-        # When ephemeral rules are run with the -e or --pattern flag in the command-line, the rule_id is set to -.
-        # The short rule is ran in the command-line and has no associated rule_id
-        if first_party_blocking_rules and "-" not in first_party_blocking_rules:
+        if first_party_blocking_rules:
             formatted_first_party_blocking_rules = [
                 with_color(Colors.foreground, rule_id, bold=True)
                 for rule_id in sorted(
