@@ -74,6 +74,11 @@ type t = {
   (* metavars for the pattern match *)
   env : Metavariable.bindings;
   (* Lazy since construction involves forcing lazy token lists. *)
+  (* We used to have `[@equal fun _a _b -> true]` here, but this causes issues with
+     multiple findings to the same sink (but different sources) being removed
+     in deduplication.
+     We now rely on equality of taint traces, which in turn relies on equality of `Parse_info.t`.
+  *)
   taint_trace : taint_trace Lazy.t option;
 }
 
