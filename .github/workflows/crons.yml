@@ -15,15 +15,20 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-      - run: git checkout --force -B develop refs/remotes/origin/develop
+      #TODO: neither command work :( I can't change branch
+      #- run: git checkout develop
+      #- run: git checkout --force -B develop refs/remotes/origin/develop
       - run: cd semgrep-core/tests/semgrep-rules; git checkout develop; git pull
       - run: git status
-      - run: git checkout -b crons_update_semgrep_rules_4
+      #TODO: how to create a fresh branch name each time to avoid conflicts
+      # when the cron run multiple times?
+      - run: git checkout -b crons_update_semgrep_rules_5
       # from https://ao.ms/how-to-use-git-commit-in-github-actions/
       - name: setup git config
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
       - run: git commit -a -m"update semgrep rules"
-      - run: git push origin crons_update_semgrep_rules_4
+      - run: git push origin crons_update_semgrep_rules_5
+      #TODO: the PR does not seem to trigger the regular workflows. It's blocked at pre-commit
       - run: gh pr create --title 'Cron - update semgrep-rules' --body 'Regular update' --base develop --reviewer aryx
