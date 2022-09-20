@@ -1,2 +1,0 @@
-Fixed incorrect stripping of '\$' (literal dollar sign) in regexps used in the
-context of `metavariable-regex`.

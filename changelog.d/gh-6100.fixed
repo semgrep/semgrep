@@ -1,7 +1,0 @@
-Hold references to `NamedTemporaryFile` objects while their corresponding
-temporary files are still in use by the core runner. Failure to explicitly hold
-references to these objects on some Python implementations, such as PyPy,
-results in them sometimes being garbage-collected during processing. This,
-in turn, triggers removal of the temp files while they are still in use by
-the core runner or the worker subprocesses, resulting in various crashes and
-processing failures.

@@ -8,6 +8,34 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.114.0](https://github.com/returntocorp/semgrep/releases/tag/v0.114.0) - 2022-09-19
+
+### Added
+
+- Add functionality to exclude rules by id passing it by cli flag --exclude-rule (cli-2530)
+- Fixes https://github.com/returntocorp/semgrep/issues/5686.
+  You can now have multiple metavariables under `focus-metavariable`, which allows Semgrep to highlight the
+  values matched by multiple metavariables more easily in certain circumstances.
+  See the gist in the description of the original issue for an example. (gh-5686)
+
+### Fixed
+
+- C++: support ellipsis in right-hand-side of an assignment (gh-1923)
+- Rust: support ellipsis in struct declarations (gh-3759)
+- Fixed incorrect stripping of '\$' (literal dollar sign) in regexps used in the
+  context of `metavariable-regex`. (gh-5987)
+- Solidity: support constructor and modifier patterns (gh-6053)
+- C#: support for metavariable ellipsis (e.g., `$...ARGS`) in arguments (gh-6065)
+- Rust: support ellipsis inside module mody (gh-6066)
+- Hold references to `NamedTemporaryFile` objects while their corresponding
+  temporary files are still in use by the core runner. Failure to explicitly hold
+  references to these objects on some Python implementations, such as PyPy,
+  results in them sometimes being garbage-collected during processing. This,
+  in turn, triggers removal of the temp files while they are still in use by
+  the core runner or the worker subprocesses, resulting in various crashes and
+  processing failures. (gh-6100)
+- Swift: Fix parsing of statement ellipsis without a preceding semicolon (pa-1809)
+
 ## [0.113.0](https://github.com/returntocorp/semgrep/releases/tag/v0.113.0) - 2022-09-15
 
 ### Added
