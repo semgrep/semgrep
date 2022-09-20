@@ -582,7 +582,7 @@ class TextFormatter(BaseFormatter):
         first_party_blocking_rules_output = []
         # When ephemeral rules are run with the -e or --pattern flag in the command-line, the rule_id is set to -.
         # The short rule is ran in the command-line and has no associated rule_id
-        if first_party_blocking_rules and first_party_blocking_rules != ["-"]:
+        if first_party_blocking_rules and "-" not in first_party_blocking_rules:
             formatted_first_party_blocking_rules = [
                 with_color(Colors.foreground, rule_id, bold=True)
                 for rule_id in sorted(
