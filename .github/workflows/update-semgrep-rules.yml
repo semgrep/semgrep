@@ -10,6 +10,7 @@ on:
   push:
     branches:
       - "cron"
+  pull_request: {}
   #TODO: at some point also set up an actual cron like
   #  schedule:
   #  - cron: "43 20 * * *"
