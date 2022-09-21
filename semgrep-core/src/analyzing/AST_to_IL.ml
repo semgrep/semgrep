@@ -566,9 +566,7 @@ and expr_aux env ?(void = false) e_gen =
                                         ( _,
                                           {
                                             id_resolved =
-                                              Some
-                                                ( G.ResolvedName (dotted_id, _),
-                                                  _ );
+                                              { contents = Some _; _ };
                                             _;
                                           } )) as name;
                                   _;
@@ -582,22 +580,24 @@ and expr_aux env ?(void = false) e_gen =
                 {
                   s =
                     DefStmt
-                      ( { name = EN (Id ((arg_name, _), _)); _ },
+                      ( { name = EN (Id (arg_id, _)); _ },
                         VarDef { vinit = Some arg_exp; _ } );
                   _;
                 } ->
-                Right3 (arg_name, arg_exp)
+                Right3 (G.ArgKwd (arg_id, arg_exp))
             | _ ->
                 (* bTODO: Ignore all other cases. They correspond neither to the module's name, or its arguments. *)
                 Middle3 ())
           fields
       in
+      let tok = G.fake "call" in
       match mod_sources with
-      | [ mod_source ] -> call_generic env ~void tok
+      | [ mod_source ] ->
+          call_generic env ~void tok (mod_source |> G.e)
+            (G.fake_bracket mod_args)
       | _ ->
           (* Don't know how to interpret multiple sources. Just let this go to the wildcard case.
          *)
-          let tok = G.fake "call" in
           call_generic env ~void tok e args)
   | G.New (tok, ty, args) ->
       (* TODO: lift up New in IL like we did in AST_generic *)
