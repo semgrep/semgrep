@@ -3,7 +3,7 @@ on:
   # Allow for manual triggering in https://github.com/returntocorp/semgrep/actions
   # See https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow
   workflow_dispatch: {}
-  # This push-event-trigger is useful to test improvements to the workflow by pushing to this
+  # This push-event trigger is useful to test improvements to the workflow by pushing to this
   # special 'cron' branch. We do that for our parsing-stat crons and it avoids to have
   # to wait for the cron to kick in at the scheduled time.
   # TODO: not sure why, but using 'pull_request' instead of 'push' does not work
@@ -13,8 +13,18 @@ on:
   pull_request: {}
   #TODO: at some point also set up an actual cron like
   #  schedule:
+  # ┌────────── minute (0 - 59)
+  # │ ┌────────── hour (0 - 23)
+  # │ │ ┌────────── day of the month (1 - 31)
+  # │ │ │ ┌────────── month (1 - 12)
+  # │ │ │ │ ┌────────── day of the week (0 - 6)
+  # │ │ │ │ │
+  # │ │ │ │ │
+  # │ │ │ │ │
+  # * * * * *
   #  - cron: "43 20 * * *"
 
+#TODO: how to handle failures if the cron fails? Who gets the error notification?
 jobs:
   update-semgrep-rules-submodule:
     runs-on: ubuntu-latest
@@ -48,6 +58,7 @@ jobs:
           jq -r .token)"
           echo "::add-mask::$TOKEN"
           echo "::set-output name=token::$TOKEN"
+
       # Recursively checkout all submodules
       # ensure that we're on the default branch (develop)
       # Use the token provided by the JWT token getter above
@@ -62,10 +73,11 @@ jobs:
           # the token, and so 'ref:' and 'token:' below handles that for us instead.
           ref: "${{ github.event.repository.default_branch }}"
           token: "${{ steps.token.outputs.token }}"
-      - name: Update Submodule
+      - name: Update semgrep-rules (the main purpose of this workflow)
         run: cd semgrep-core/tests/semgrep-rules; git checkout origin/develop
         env:
           GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
+        #alternative way to do it:
         #working-directory: ./semgrep-core/tests/semgrep-rules
         #run: |
         #  git checkout develop
@@ -74,16 +86,16 @@ jobs:
       - run: echo FOO >> README.md
       - run: git status
       # from https://ao.ms/how-to-use-git-commit-in-github-actions/
-      - run: git checkout -b crons_update_semgrep_rules_8
-      - name: Setup git config
+      - name: Creating the branch and commiting to it
+        env:
+          BRANCHNAME: "update-semgrep-rules-${{ github.run_id }}-${{ github.run_attempt }}"
+          GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
         run: |
+          git checkout -b $BRANCHNAME
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
-      - name: Add and Commit New Files
-        run: git commit -a -m"update semgrep rules"
-      - run: git push origin crons_update_semgrep_rules_8
-        env:
-          GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
+          git commit -a -m"update semgrep rules"
+          git push origin $BRANCHNAME
       #TODO: using EndBug/add-and-commit below does not currently work, I get:
       #  Errors during submodule fetch:
       #    semgrep-core/tests/semgrep-rules
@@ -103,7 +115,7 @@ jobs:
       #    new_branch: update-semgrep-rules-${{ github.run_id }}-${{ github.run_attempt }}
       #  env:
       #    GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
-      - name: Open PR
+      - name: Create the Pull request with gh
         # Use the token generated from the semgrep-ci Github App - this ensures
         # that PR checks will run on the PR opened by this workflow!
         env:
@@ -111,4 +123,5 @@ jobs:
         run: |
           gh pr create --title 'Cron - update semgrep-rules' --body 'Please confirm correctness of the changes here and ensure all tests pass' \
             --base develop --reviewer aryx
-        #TODO: --head update-semgrep-rules-${{ github.run_id }}-${{ github.run_attempt }}
+        #TODO: --reviewer returntocorp/pa when ready
+        #needed? --head update-semgrep-rules-${{ github.run_id }}-${{ github.run_attempt }}
