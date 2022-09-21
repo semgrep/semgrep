@@ -1,4 +1,13 @@
+# Cron to automatically update the semgrep/semgrep-core/tests/semgrep-rules
+# submodule to its latest version. This will allow to detect ASAP (or at
+# least not too late) when semgrep-core can't check all the rules and tests
+# in semgrep-rules (which are updated frequently).
+# Note that semgrep-rules CI itself is testing whether
+# the latest develop docker image of semgrep can check semgrep-rules, so
+# we should rarely get regressions when updating the semgrep-rules submodule.
+
 name: Update Semgrep Rules
+
 on:
   # Allow for manual triggering in https://github.com/returntocorp/semgrep/actions
   # See https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow

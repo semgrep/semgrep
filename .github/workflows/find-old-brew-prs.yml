@@ -1,9 +1,12 @@
-# Check if we have old Homebrew PRs hanging around unmerged
+# Cron workflow to check whether we have old Homebrew PRs hanging around unmerged.
+# Those Homebrew PRs were created by release.yml
+
 name: Check for Old Homebrew PRs
 
 on:
   workflow_dispatch:
   schedule:
+    # every day at 8:23 and 20:23
     - cron: "23 8,20 * * *"
 
 jobs:

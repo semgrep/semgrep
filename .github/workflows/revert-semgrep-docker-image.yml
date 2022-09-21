@@ -1,4 +1,8 @@
+# Workflow to manually revert the semgrep 'latest' docker image
+# to a previous version.
+
 name: Revert Semgrep Docker Image
+
 on:
   workflow_dispatch:
     inputs:

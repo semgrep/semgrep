@@ -1,4 +1,7 @@
-# Validate a Release
+# Validate the artifacts produced by release.yml.
+# This can be manually triggered or automatically by start-release.yml
+# once release.yml has finished.
+
 name: validate-release
 
 on:
