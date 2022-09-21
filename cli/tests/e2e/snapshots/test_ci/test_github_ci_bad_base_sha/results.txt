@@ -51,6 +51,7 @@ Git status:
 added: [PosixPath('bar.py')]
 modified: []
 removed: []
+renamed: {}
 unmerged: []
 Initializing dirty paths
 Git status output: 
@@ -220,6 +221,7 @@ Sending findings and ignores blob: {
     "searched_paths": [
         "bar.py"
     ],
+    "renamed_paths": [],
     "rule_ids": [
         "eqeq-bad",
         "eqeq-five",
