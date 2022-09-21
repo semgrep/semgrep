@@ -24,7 +24,7 @@
       "tag_key:tag_val"
     ]
   },
-  "policy": [
+  "policy_names": [
     "audit",
     "comment",
     "block"
