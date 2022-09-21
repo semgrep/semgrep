@@ -52,6 +52,7 @@ let tests () = List.flatten [
   Unit_memory_limit.tests;
   Unit_SPcre.tests;
   Unit_regexp_engine.tests;
+  Unit_immutable_buffer.tests;
 
   Unit_synthesizer.tests;
   Unit_synthesizer_targets.tests;
