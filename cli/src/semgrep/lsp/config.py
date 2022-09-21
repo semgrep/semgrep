@@ -236,6 +236,7 @@ class LSPConfig:
             RuleMatchMap,
             List[SemgrepError],
             Set[Path],
+            Set[Path],
             FileTargetingLog,
             List[Rule],
             ProfileManager,
@@ -280,6 +281,7 @@ class LSPConfig:
             RuleMatchMap,
             List[SemgrepError],
             Set[Path],
+            Set[Path],
             FileTargetingLog,
             List[Rule],
             ProfileManager,
@@ -300,6 +302,7 @@ class LSPConfig:
         Tuple[
             RuleMatchMap,
             List[SemgrepError],
+            Set[Path],
             Set[Path],
             FileTargetingLog,
             List[Rule],

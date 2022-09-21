@@ -37,6 +37,7 @@ class GitStatus(NamedTuple):
     modified: List[Path]
     removed: List[Path]
     unmerged: List[Path]
+    renamed: Dict[str, Path]  # keys are new names, values are old paths
 
 
 class StatusCode:
@@ -141,6 +142,7 @@ class BaselineHandler:
         modified = []
         removed = []
         unmerged = []
+        renamed = {}  # maps new names for renamed files to their old file paths
         while status_output:
             code = status_output.pop(0)
             fname = status_output.pop(0)
@@ -169,6 +171,7 @@ class BaselineHandler:
             if code[0] == StatusCode.Renamed and new_fname:
                 removed.append(path)
                 added.append(Path(new_fname))
+                renamed[new_fname] = path
             if code == StatusCode.Added:
                 added.append(path)
             if code == StatusCode.Modified:
@@ -179,10 +182,10 @@ class BaselineHandler:
                 removed.append(path)
 
         logger.debug(
-            f"Git status:\nadded: {added}\nmodified: {modified}\nremoved: {removed}\nunmerged: {unmerged}"
+            f"Git status:\nadded: {added}\nmodified: {modified}\nremoved: {removed}\nrenamed: {renamed}\nunmerged: {unmerged}"
         )
 
-        return GitStatus(added, modified, removed, unmerged)
+        return GitStatus(added, modified, removed, unmerged, renamed)
 
     def _get_dirty_paths_by_status(self) -> Dict[str, List[Path]]:
         """
