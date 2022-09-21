@@ -251,6 +251,56 @@ let union_taints_filtering_labels ~new_ curr =
           if req then Taints.add new_taint taints else taints)
     new_ curr
 
+let find_args_taints args_taints fdef =
+  let pos_args_taints, named_args_taints =
+    Common.partition_either Fun.id args_taints
+  in
+  let argpos_to_taints = Hashtbl.create 11 in
+  (* We first process the positional arguments, and then the named arguments.
+     This is OK because in Python, positional arguments must appear before named arguments.
+  *)
+  let remaining_params =
+    List.fold_left
+      (fun (i, params) taints ->
+        match params with
+        | [] ->
+            logger#error
+              "More args to function than there are positional arguments in \
+               function signature";
+            (i + 1, [])
+        | _ :: rest ->
+            Hashtbl.add argpos_to_taints (Left i) taints;
+            (i + 1, rest))
+      (0, fdef.G.fparams) pos_args_taints
+    |> snd
+  in
+  List.iter
+    (fun ((s, _), taints) ->
+      match
+        List.find_map
+          (function
+            | G.Param { pname = Some (s', _); _ } ->
+                if String.equal s s' then Some s' else None
+            | _ -> None)
+          remaining_params
+      with
+      | None -> logger#error "Cannot find named argument in function signature"
+      | Some s -> Hashtbl.add argpos_to_taints (Right s) taints)
+    named_args_taints;
+  fun (s, i) ->
+    let taint_opt =
+      match
+        ( Hashtbl.find_opt argpos_to_taints (Right s),
+          Hashtbl.find_opt argpos_to_taints (Left i) )
+      with
+      | Some taints, _ -> Some taints
+      | _, Some taints -> Some taints
+      | _ -> None
+    in
+    if Option.is_none taint_opt then
+      logger#error "cannot match taint variable with function arguments";
+    taint_opt
+
 (*****************************************************************************)
 (* Tainted *)
 (*****************************************************************************)
@@ -464,52 +514,6 @@ let rec check_tainted_expr env exp : Taints.t * Lval_env.t =
       (taints, var_env)
 
 let check_function_signature env fun_exp args_taints =
-  let taints_of_fdef_and_arg fdef =
-    let pos_args_taints, named_args_taints =
-      Common.partition_either Fun.id args_taints
-    in
-    let argpos_to_taints = Hashtbl.create 11 in
-    (* We first process the positional arguments, and then the named arguments.
-       This is OK because in Python, positional arguments must appear before named arguments.
-    *)
-    let remaining_params =
-      List.fold_left
-        (fun (i, params) taints ->
-          match params with
-          | [] -> failwith "more args than there are params to function"
-          | _ :: rest ->
-              Hashtbl.add argpos_to_taints (Left i) taints;
-              (i + 1, rest))
-        (0, fdef.G.fparams) pos_args_taints
-      |> snd
-    in
-    List.iter
-      (fun ((s, _), taints) ->
-        match
-          List.find_map
-            (function
-              | G.Param { pname = Some (s', _); _ } ->
-                  if String.equal s s' then Some s' else None
-              | _ -> None)
-            remaining_params
-        with
-        | None -> failwith "cannot find arg"
-        | Some s -> Hashtbl.add argpos_to_taints (Right s) taints)
-      named_args_taints;
-    fun (s, i) ->
-      let taint_opt =
-        match
-          ( Hashtbl.find_opt argpos_to_taints (Right s),
-            Hashtbl.find_opt argpos_to_taints (Left i) )
-        with
-        | Some taints, _ -> Some taints
-        | _, Some taints -> Some taints
-        | _ -> None
-      in
-      if Option.is_none taint_opt then
-        logger#error "cannot match taint variable with function arguments";
-      taint_opt
-  in
   match (!hook_function_taint_signature, fun_exp) with
   | ( Some hook,
       {
@@ -538,7 +542,7 @@ let check_function_signature env fun_exp args_taints =
         _;
       } ) ->
       let* fdef, fun_sig = hook env.config eorig in
-      let taints_of_arg = taints_of_fdef_and_arg fdef in
+      let taints_of_arg = find_args_taints args_taints fdef in
       Some
         (fun_sig
         |> List.filter_map (function
