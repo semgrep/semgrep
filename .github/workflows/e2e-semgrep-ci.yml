@@ -1,4 +1,7 @@
+#TODO: The goal of this workflow is ???
+
 name: Semgrep CI E2E Test
+
 on:
   workflow_dispatch:
     inputs:

@@ -1,3 +1,5 @@
+# The goal of this workflow is mostly to run pre-commit on every pull requests.
+
 name: lint
 
 on:
@@ -8,6 +10,8 @@ on:
       - develop
 
 jobs:
+  # Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
+  # our pre-commit configuration.
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -21,6 +25,7 @@ jobs:
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
       #TODO: why this is needed? pre-commit/action@v3 requires this setup-python to run?
+      # what is this cache-dependency-path?
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
