@@ -163,6 +163,12 @@ let unsafe_match_to_match (x : Pattern_match.t) : Out.core_match =
         | (lazy trace) -> taint_trace_to_dataflow_trace trace)
       x.taint_trace
   in
+  let rendered_fix =
+    let* fix_pattern = x.rule_id.fix in
+    let* lang = List.nth_opt x.rule_id.languages 0 in
+    let target_contents = lazy (Common.read_file x.file) in
+    Autofix.render_fix lang x.env ~fix_pattern ~target_contents
+  in
   {
     Out.rule_id = x.rule_id.id;
     location = { path = x.file; start = startp; end_ = endp };
@@ -171,8 +177,7 @@ let unsafe_match_to_match (x : Pattern_match.t) : Out.core_match =
         message = Some x.rule_id.message;
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
-        (* TODO compute autofixes *)
-        rendered_fix = None;
+        rendered_fix;
       };
   }
 

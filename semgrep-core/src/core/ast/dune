@@ -12,6 +12,7 @@
    commons
    pfff-h_program-lang
 
+   semgrep_utils
  )
  (preprocess
    (pps

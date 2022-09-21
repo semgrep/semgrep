@@ -156,8 +156,11 @@ let lazy_force x = Lazy.force x [@@profiling]
  * this will raise Impossible... Thus, now we have to pass the language(s) that
  * we are specifically targeting. *)
 let (mini_rule_of_pattern :
-      Xlang.t -> Pattern.t * bool * Xpattern.pattern_id * string -> MR.t) =
- fun xlang (pattern, inside, id, pstr) ->
+      Xlang.t ->
+      Rule.t ->
+      Pattern.t * bool * Xpattern.pattern_id * string ->
+      MR.t) =
+ fun xlang rule (pattern, inside, id, pstr) ->
   {
     MR.id = string_of_int id;
     pattern;
@@ -175,6 +178,7 @@ let (mini_rule_of_pattern :
           raise Impossible);
     (* useful for debugging timeout *)
     pattern_string = pstr;
+    fix = rule.Rule.fix;
   }
 
 (*****************************************************************************)
@@ -212,7 +216,7 @@ let debug_semgrep config mini_rules file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns ?mvar_context ?range_filter (xconf : xconfig)
+let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (xtarget : Xtarget.t)
     (patterns : (Pattern.t * bool * Xpattern.pattern_id * string) list) :
     RP.times RP.match_result =
@@ -228,7 +232,7 @@ let matches_of_patterns ?mvar_context ?range_filter (xconf : xconfig)
       let matches, match_time =
         Common.with_time (fun () ->
             let mini_rules =
-              patterns |> Common.map (mini_rule_of_pattern xlang)
+              patterns |> Common.map (mini_rule_of_pattern xlang rule)
             in
 
             if !debug_timeout || !debug_matches then
@@ -315,7 +319,8 @@ let run_selector_on_ranges env selector_opt ranges =
       in
       let patterns = [ (pattern, false, pid, fst pstr) ] in
       let res =
-        matches_of_patterns ~range_filter env.xconf env.xtarget patterns
+        matches_of_patterns ~range_filter env.rule env.xconf env.xtarget
+          patterns
       in
       logger#info "run_selector_on_ranges: found %d matches"
         (List.length res.matches);
@@ -434,8 +439,9 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns ~mvar_context (xconf : xconfig) (xtarget : Xtarget.t)
-    (xpatterns : (Xpattern.t * bool) list) : RP.times RP.match_result =
+let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
+    (xtarget : Xtarget.t) (xpatterns : (Xpattern.t * bool) list) :
+    RP.times RP.match_result =
   let { Xtarget.file; lazy_content; _ } = xtarget in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
@@ -447,7 +453,7 @@ let matches_of_xpatterns ~mvar_context (xconf : xconfig) (xtarget : Xtarget.t)
   (* final result *)
   RP.collate_pattern_results
     [
-      matches_of_patterns ~mvar_context xconf xtarget patterns;
+      matches_of_patterns ~mvar_context rule xconf xtarget patterns;
       (let config = (xconf.config, xconf.equivs) in
        Xpattern_match_spacegrep.matches_of_spacegrep config spacegreps file);
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content file;
@@ -491,7 +497,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
           subs
           |> Common.map (fun pat ->
                  let match_result =
-                   matches_of_patterns env.xconf env.xtarget
+                   matches_of_patterns env.rule env.xconf env.xtarget
                      [ (pat, false, xpat.pid, "TODO") ]
                  in
                  let matches = match_result.matches in
@@ -775,7 +781,7 @@ and matches_of_formula xconf rule xtarget formula opt_context :
     Option.map (fun s -> s.RM.mvars) opt_context
   in
   let res =
-    matches_of_xpatterns mvar_context xconf xtarget xpatterns
+    matches_of_xpatterns mvar_context rule xconf xtarget xpatterns
     |> RP.add_rule rule
   in
   logger#trace "found %d matches" (List.length res.matches);
