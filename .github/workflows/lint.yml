@@ -1,4 +1,7 @@
+# The goal of this workflow is mostly to run pre-commit on every pull requests.
+
 name: lint
+
 on:
   workflow_dispatch:
   pull_request:
@@ -7,14 +10,22 @@ on:
       - develop
 
 jobs:
+  # Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
+  # our pre-commit configuration.
   pre-commit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        #TODO: why do we need this ref:? doesn't checkout@v3 grabs the right branch by default?
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+      # We grab those submodules below because they are the one needed by 'mypy' which
+      # runs as part of pre-commit to check our Python code.
+      # alt: we could also use 'submodules: recursive' instead, but that would be slower
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+      #TODO: why this is needed? pre-commit/action@v3 requires this setup-python to run?
+      # what is this cache-dependency-path?
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -22,6 +33,8 @@ jobs:
           cache-dependency-path: .github/workflows/lint.yml
       - uses: pre-commit/action@v3.0.0
 
+  #TODO: what is the difference with the 'pre-commit' job above? looks only
+  # the extra_args below but what is it for? What will not work without that?
   pre-commit-manual:
     runs-on: ubuntu-latest
     steps:
@@ -43,6 +56,7 @@ jobs:
     # ocaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu-2022-06-09
     steps:
+      #TODO: why do we need those hacks? What does not work otherwise?
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
@@ -59,6 +73,7 @@ jobs:
           sudo -u user opam install -y ocamlformat.0.21.0
           sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
 
+  #TODO: is it still useful now that we switched to changelog.d/?
   changelog-reminder:
     name: Changelog Reminder
     runs-on: ubuntu-latest
@@ -72,12 +87,16 @@ jobs:
       - id: semgrep_diff
         name: Get semgrep package diff
         uses: technote-space/get-diff-action@v6.1.0
+        #TODO: should we extend that beyond just cli/src?
+        # is it still needed now that we have a ../pull_request_template.md
+        # that also reminds to add a changelog entry
         with:
           GET_FILE_DIFF: true
           PATTERNS: cli/src/semgrep/**
       - id: changelog_diff
         name: Get changelog diff
         uses: technote-space/get-diff-action@v6.1.0
+        #TODO: should we get rid of this whole job now that we use changelog.d/?
         with:
           GET_FILE_DIFF: true
           FILES: CHANGELOG.md

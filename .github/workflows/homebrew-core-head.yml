@@ -1,9 +1,12 @@
-# Verify Homebrew Core Formula Works
+# Cron to verify that the Homebrew Core Formula Works.
+# This formula is created by ???
+
 name: Homebrew Nightly Verification
 
 on:
   workflow_dispatch:
   schedule:
+    # every day at 9:26
     - cron: "26 9 * * *"
 
 jobs:

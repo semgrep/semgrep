@@ -1,10 +1,14 @@
-# This workflow runs on 'pull_request_target' so that PRs from forks are able
-# to run an action that uses the SEMGREP_APP_TOKEN secret
-# Note that any modification of this file in a PR does not reflect on said PR
-# Changes must be merged to develop first
+# The goal of this workflow is to dogfood Semgrep and Semgrep-app by
+# running returntocorp/semgrep-action@v1 on our own semgrep repo.
+
 name: semgrep
+
 on:
   workflow_dispatch:
+  # This workflow runs on 'pull_request_target' so that PRs from forks are able
+  # to run an action that uses the SEMGREP_APP_TOKEN secret
+  # Note that any modification of this file in a PR does not reflect on said PR
+  # Changes must be merged to develop first
   pull_request_target:
 
 jobs:
@@ -12,7 +16,8 @@ jobs:
     name: semgrep with r2c registry
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
       - name: Semgrep
         id: semgrep
         uses: returntocorp/semgrep-action@v1
