@@ -11,18 +11,19 @@ on:
     branches:
       - "cron"
   pull_request: {}
-  #TODO: at some point also set up an actual cron like
-  #  schedule:
-  # ┌────────── minute (0 - 59)
-  # │ ┌────────── hour (0 - 23)
-  # │ │ ┌────────── day of the month (1 - 31)
-  # │ │ │ ┌────────── month (1 - 12)
-  # │ │ │ │ ┌────────── day of the week (0 - 6)
-  # │ │ │ │ │
-  # │ │ │ │ │
-  # │ │ │ │ │
-  # * * * * *
-  #  - cron: "43 20 * * *"
+  schedule:
+    # cron table memento:
+    # ┌────────── minute (0 - 59)
+    # │ ┌────────── hour (0 - 23)
+    # │ │ ┌────────── day of the month (1 - 31)
+    # │ │ │ ┌────────── month (1 - 12)
+    # │ │ │ │ ┌────────── day of the week (0 - 6)
+    # │ │ │ │ │
+    # │ │ │ │ │
+    # │ │ │ │ │
+    # * * * * *
+    # Run at 00:00 UTC every monday/wed/fri
+    - cron: "0 0 * * 0,2,4"
 
 #TODO: how to handle failures if the cron fails? Who gets the error notification?
 jobs:
@@ -83,7 +84,7 @@ jobs:
         #  git checkout develop
         #  git pull
       # just for debugging
-      - run: echo FOO >> README.md
+      # - run: echo FOO >> README.md
       - run: git status
       # from https://ao.ms/how-to-use-git-commit-in-github-actions/
       - name: Creating the branch and commiting to it
