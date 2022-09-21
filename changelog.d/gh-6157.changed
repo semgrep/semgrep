@@ -1,2 +1,2 @@
-Changed renamed file behavior on diff scans (scans in which a baseline ref is provided).
+Changed behavior for renamed files on diff scans (scans in which a baseline ref is provided).
 Semgrep will not show old issues to developers when they rename a file now.
