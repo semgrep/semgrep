@@ -8,6 +8,7 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
+from tests.conftest import make_semgrepconfig_file
 from tests.e2e.test_baseline import _git_commit
 from tests.e2e.test_baseline import _git_merge
 
@@ -390,6 +391,17 @@ def mock_autofix(request, mocker):
             "SEMGREP_PR_ID": "35",
             "SEMGREP_BRANCH": BRANCH_NAME,
         },
+        {  # Github PR with additional project metadata
+            "CI": "true",
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_EVENT_NAME": "pull_request",
+            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            # Sent in metadata but no functionality change
+            "GITHUB_RUN_ID": "35",
+            "GITHUB_ACTOR": "some_test_username",
+            "GITHUB_REF": BRANCH_NAME,
+            "SEMGREP_PROJECT_CONFIG": "tags:\n- tag1\n- tag_key:tag_val\n",
+        },
     ],
     ids=[
         "local",
@@ -407,6 +419,7 @@ def mock_autofix(request, mocker):
         "buildkite",
         "travis",
         "self-hosted",
+        "github-pr-semgrepconfig",
     ],
 )
 @pytest.mark.skipif(
@@ -421,7 +434,7 @@ def test_full_run(
     run_semgrep,
     mock_autofix,
 ):
-    _, base_commit, head_commit = git_tmp_path_with_commit
+    repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
 
     # Set envvars that depend on commit hashes:
     if env.get("GITLAB_CI"):
@@ -470,6 +483,10 @@ def test_full_run(
     if env.get("TRAVIS"):
         env["TRAVIS_COMMIT"] = head_commit
     env["SEMGREP_APP_TOKEN"] = "fake-key-from-tests"
+
+    if env.get("SEMGREP_PROJECT_CONFIG"):
+        contents = env.get("SEMGREP_PROJECT_CONFIG")
+        make_semgrepconfig_file(repo_copy_base, contents)
 
     result = run_semgrep(
         options=["ci", "--no-suppress-errors"],

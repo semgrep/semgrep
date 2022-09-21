@@ -30,6 +30,7 @@ from semgrep.meta import GitMeta
 from semgrep.metrics import MetricsState
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
+from semgrep.project import ProjectConfig
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
@@ -299,6 +300,8 @@ def ci(
                 # so that metadata of current commit is correct
                 if scan_handler:
                     try:
+                        proj_config = ProjectConfig.load_all()
+                        metadata_dict = {**metadata_dict, **proj_config.to_dict()}
                         scan_handler.fetch_and_init_scan_config(metadata_dict)
                         scan_handler.start_scan(metadata_dict)
                     except Exception as e:
