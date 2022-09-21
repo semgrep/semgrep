@@ -74,14 +74,14 @@ jobs:
       - run: echo FOO >> README.md
       - run: git status
       # from https://ao.ms/how-to-use-git-commit-in-github-actions/
-      - run: git checkout -b crons_update_semgrep_rules_7
+      - run: git checkout -b crons_update_semgrep_rules_8
       - name: Setup git config
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
       - name: Add and Commit New Files
         run: git commit -a -m"update semgrep rules"
-      - run: git push origin crons_update_semgrep_rules_7
+      - run: git push origin crons_update_semgrep_rules_8
         env:
           GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
       #TODO: using EndBug/add-and-commit below does not currently work, I get:
