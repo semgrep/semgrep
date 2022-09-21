@@ -218,6 +218,8 @@ let composite_of_container : G.container_operator -> IL.composite_kind =
   | Set -> CSet
   | Dict -> CDict
 
+let mk_unnamed_args (exps : IL.exp list) = Common.map (fun x -> Unnamed x) exps
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -439,7 +441,9 @@ and expr_aux env ?(void = false) e_gen =
         match args with
         | [] -> impossible (G.E e_gen)
         | obj :: args' ->
-            let obj_var, _obj_lval = mk_aux_var env tok obj in
+            let obj_var, _obj_lval =
+              mk_aux_var env tok (IL_lvalue_helpers.exp_of_arg obj)
+            in
             let method_name =
               fresh_var env tok ~str:(Parse_info.str_of_info tok)
             in
@@ -480,7 +484,9 @@ and expr_aux env ?(void = false) e_gen =
           let one = G.Int (Some 1, tok) in
           let one_exp = mk_e (Literal one) (related_tok tok) in
           let opexp =
-            mk_e (Operator (op, [ lvalexp; one_exp ])) (related_tok tok)
+            mk_e
+              (Operator (op, [ Unnamed lvalexp; Unnamed one_exp ]))
+              (related_tok tok)
           in
           add_instr env (mk_i (Assign (lval, opexp)) eorig);
           lvalexp
@@ -500,7 +506,7 @@ and expr_aux env ?(void = false) e_gen =
         args ) ->
       (* obj.concat(args) *)
       (* NOTE: Often this will be string concatenation but not necessarily! *)
-      let obj_arg' = expr env obj in
+      let obj_arg' = Unnamed (expr env obj) in
       let args' = arguments env args in
       let res =
         match env.lang with
@@ -571,7 +577,9 @@ and expr_aux env ?(void = false) e_gen =
       let lval = lval env e1 in
       let lvalexp = mk_e (Fetch lval) (SameAs e1) in
       let opexp =
-        mk_e (Operator (op, [ lvalexp; exp ])) (related_tok (snd op))
+        mk_e
+          (Operator (op, [ Unnamed lvalexp; Unnamed exp ]))
+          (related_tok (snd op))
       in
       add_instr env (mk_i (Assign (lval, opexp)) eorig);
       lvalexp
@@ -655,7 +663,8 @@ and expr_aux env ?(void = false) e_gen =
   | G.Await (tok, e1orig) ->
       let e1 = expr env e1orig in
       let tmp = fresh_lval env tok in
-      add_instr env (mk_i (CallSpecial (Some tmp, (Await, tok), [ e1 ])) eorig);
+      add_instr env
+        (mk_i (CallSpecial (Some tmp, (Await, tok), [ Unnamed e1 ])) eorig);
       mk_e (Fetch tmp) NoOrig
   | G.Yield (tok, e1orig_opt, _) ->
       let yield_args =
@@ -663,12 +672,16 @@ and expr_aux env ?(void = false) e_gen =
         | None -> []
         | Some e1orig -> [ expr env e1orig ]
       in
-      add_instr env (mk_i (CallSpecial (None, (Yield, tok), yield_args)) eorig);
+      add_instr env
+        (mk_i
+           (CallSpecial (None, (Yield, tok), mk_unnamed_args yield_args))
+           eorig);
       mk_unit tok NoOrig
   | G.Ref (tok, e1orig) ->
       let e1 = expr env e1orig in
       let tmp = fresh_lval env tok in
-      add_instr env (mk_i (CallSpecial (Some tmp, (Ref, tok), [ e1 ])) eorig);
+      add_instr env
+        (mk_i (CallSpecial (Some tmp, (Ref, tok), [ Unnamed e1 ])) eorig);
       mk_e (Fetch tmp) NoOrig
   | G.Constructor (cname, (tok1, esorig, tok2)) ->
       let cname = var_of_name cname in
@@ -764,15 +777,15 @@ and arguments env xs = xs |> G.unbracket |> Common.map (argument env)
 
 and argument env arg =
   match arg with
-  | G.Arg e -> expr env e
-  | G.ArgKwd (_, e)
-  | G.ArgKwdOptional (_, e) ->
+  | G.Arg e -> Unnamed (expr env e)
+  | G.ArgKwd (id, e)
+  | G.ArgKwdOptional (id, e) ->
       (* TODO: Handle the keyword/label somehow (when relevant). *)
-      expr env e
-  | G.ArgType { t = TyExpr e; _ } -> expr env e
+      Named (id, expr env e)
+  | G.ArgType { t = TyExpr e; _ } -> Unnamed (expr env e)
   | _ ->
       let any = G.Ar arg in
-      fixme_exp ToDo any (Related any)
+      Unnamed (fixme_exp ToDo any (Related any))
 
 and record env ((_tok, origfields, _) as record_def) =
   let e_gen = G.Record record_def |> G.e in
@@ -1237,14 +1250,15 @@ and for_each env tok (pat, tok2, e) st =
     mk_s
       (Instr
          (mk_i
-            (CallSpecial (Some hasnext_lval, (ForeachHasNext, tok2), [ e' ]))
+            (CallSpecial
+               (Some hasnext_lval, (ForeachHasNext, tok2), [ Unnamed e' ]))
             (related_tok tok2)))
   in
   let next_call =
     mk_s
       (Instr
          (mk_i
-            (CallSpecial (Some next_lval, (ForeachNext, tok2), [ e' ]))
+            (CallSpecial (Some next_lval, (ForeachNext, tok2), [ Unnamed e' ]))
             (related_tok tok2)))
   in
   (* same semantic? or need to take Ref? or pass lval
@@ -1281,7 +1295,8 @@ and switch_expr_and_cases_to_exp env tok switch_expr_orig switch_expr cases =
                   Operator
                     ( (G.Eq, tok),
                       [
-                        { e = Literal l; eorig = related_tok tok }; switch_expr;
+                        Unnamed { e = Literal l; eorig = related_tok tok };
+                        Unnamed switch_expr;
                       ] );
                 eorig = related_tok tok;
               }
@@ -1291,7 +1306,7 @@ and switch_expr_and_cases_to_exp env tok switch_expr_orig switch_expr cases =
             let c_ss, c' = expr_with_pre_stmts env c in
             ( ss @ c_ss,
               {
-                e = Operator ((G.Eq, tok), [ c'; switch_expr ]);
+                e = Operator ((G.Eq, tok), [ Unnamed c'; Unnamed switch_expr ]);
                 eorig = related_tok tok;
               }
               :: es )
@@ -1306,7 +1321,11 @@ and switch_expr_and_cases_to_exp env tok switch_expr_orig switch_expr cases =
             (ss, fixme_exp ToDo (G.Tk tok) (related_tok tok) :: es))
       ([], []) cases
   in
-  (ss, { e = Operator ((Or, tok), es); eorig = SameAs switch_expr_orig })
+  ( ss,
+    {
+      e = Operator ((Or, tok), mk_unnamed_args es);
+      eorig = SameAs switch_expr_orig;
+    } )
 
 and cases_to_exp env tok cases =
   (* If we have no scrutinee, the cases are boolean expressions, so we Or them together *)
@@ -1330,7 +1349,7 @@ and cases_to_exp env tok cases =
             (ss, fixme_exp ToDo (G.Tk tok) (related_tok tok) :: es))
       ([], []) cases
   in
-  (ss, { e = Operator ((Or, tok), es); eorig = related_tok tok })
+  (ss, { e = Operator ((Or, tok), mk_unnamed_args es); eorig = related_tok tok })
 
 and cases_and_bodies_to_stmts env tok break_label translate_cases = function
   | [] -> ([ mk_s (Goto (tok, break_label)) ], [])
@@ -1415,7 +1434,9 @@ and python_with_stmt env manager opt_pat body =
         (Instr
            (mk_i
               (CallSpecial
-                 (Some mgr_class, (Typeof, G.sc), [ mk_e (Fetch mgr) NoOrig ]))
+                 ( Some mgr_class,
+                   (Typeof, G.sc),
+                   [ Unnamed (mk_e (Fetch mgr) NoOrig) ] ))
               NoOrig));
     ]
   in
@@ -1437,7 +1458,7 @@ and python_with_stmt env manager opt_pat body =
                 (Call
                    ( Some tmp,
                      mk_e (Fetch mgr_method) NoOrig,
-                     [ mk_e (Fetch mgr) NoOrig ] ))
+                     [ Unnamed (mk_e (Fetch mgr) NoOrig) ] ))
                 NoOrig));
       ]
     in

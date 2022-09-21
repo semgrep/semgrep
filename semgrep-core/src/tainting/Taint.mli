@@ -13,7 +13,7 @@ type 'a call_trace =
 
 type source = Rule.taint_source call_trace [@@deriving show]
 type sink = Rule.taint_sink call_trace [@@deriving show]
-type arg_pos = int [@@deriving show]
+type arg_pos = string * int [@@deriving show]
 
 type source_to_sink = {
   source : source;

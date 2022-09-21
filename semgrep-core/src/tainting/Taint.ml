@@ -30,7 +30,7 @@ type 'a call_trace =
 
 type source = Rule.taint_source call_trace [@@deriving show]
 type sink = Rule.taint_sink call_trace [@@deriving show]
-type arg_pos = int [@@deriving show]
+type arg_pos = string * int [@@deriving show]
 
 type source_to_sink = {
   source : source;
@@ -81,7 +81,10 @@ module Taint_set = Set.Make (struct
   (* TODO: Rely on ppx_deriving.ord ? *)
   let compare_orig t1 t2 =
     match (t1, t2) with
-    | Arg i, Arg j -> Int.compare i j
+    | Arg (s, i), Arg (s', j) -> (
+        match String.compare s s' with
+        | 0 -> Int.compare i j
+        | other -> other)
     | Src p, Src q -> compare_dm p q
     | Arg _, Src _ -> -1
     | Src _, Arg _ -> 1
@@ -106,7 +109,7 @@ let taints_of_pms pms = pms |> Common.map taint_of_pm |> Taint_set.of_list
 (* USEFUL FOR DEBUGGING *)
 let _show_taint_label taint =
   match taint.orig with
-  | Arg i -> Printf.sprintf "arg#%d" i
+  | Arg (s, i) -> Printf.sprintf "arg(%s)#%d" s i
   | Src src ->
       let _, ts = pm_of_trace src in
       ts.label
