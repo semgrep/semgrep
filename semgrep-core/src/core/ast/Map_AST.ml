@@ -27,6 +27,10 @@ type visitor_in = {
   kstmt : (stmt -> stmt) * visitor_out -> stmt -> stmt;
   kinfo : (tok -> tok) * visitor_out -> tok -> tok;
   kidinfo : (id_info -> id_info) * visitor_out -> id_info -> id_info;
+  kargs :
+    (argument list -> argument list) * visitor_out ->
+    argument list ->
+    argument list;
 }
 
 and visitor_out = {
@@ -42,6 +46,7 @@ let default_visitor =
     kstmt = (fun (k, _) x -> k x);
     kinfo = (fun (k, _) x -> k x);
     kidinfo = (fun (k, _) x -> k x);
+    kargs = (fun (k, _) x -> k x);
   }
 
 let map_id x = x
@@ -464,7 +469,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_of_incdec x = x
   and map_of_prepost x = x
   and map_arithmetic_operator x = x
-  and map_arguments v = map_bracket (map_of_list map_argument) v
+  and map_arguments v = map_bracket map_argument_list v
+  and map_argument_list v =
+    let k = map_of_list map_argument in
+    vin.kargs (k, all_functions) v
   and map_argument = function
     | Arg v1 ->
         let v1 = map_expr v1 in
@@ -1273,6 +1281,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
 let mk_fix_token_locations fix =
   mk_visitor
     {
+      default_visitor with
       kidinfo =
         (fun (_k, _vout) ii ->
           (* The id_info contains locations that should not be modified, and they

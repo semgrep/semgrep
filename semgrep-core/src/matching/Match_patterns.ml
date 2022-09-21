@@ -136,6 +136,7 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
     PM.id = mr.Mini_rule.id;
     message = mr.Mini_rule.message;
     pattern_string = mr.Mini_rule.pattern_string;
+    fix = mr.Mini_rule.fix;
   }
 
 let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
