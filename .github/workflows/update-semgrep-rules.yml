@@ -71,6 +71,7 @@ jobs:
         #  git checkout develop
         #  git pull
       # just for debugging
+      - run: echo FOO >> README.md
       - run: git status
       - name: Add and Commit New Files
         # We could do the 'git add' ourselves, but we also need to handle the case where
@@ -79,11 +80,13 @@ jobs:
         # See https://github.com/EndBug/add-and-commit
         uses: EndBug/add-and-commit@v9
         with:
-          add: semgrep-core/tests/semgrep-rules
+          add: README.md semgrep-core/tests/semgrep-rules
           author_name: ${{ github.actor }}
           author_email: ${{ github.actor }}@users.noreply.github.com
           message: "chore: Bump Semgrep Rules Submodule"
           new_branch: update-semgrep-rules-${{ github.run_id }}-${{ github.run_attempt }}
+        env:
+          GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
       - name: Open PR
         # Use the token generated from the semgrep-ci Github App - this ensures
         # that PR checks will run on the PR opened by this workflow!
