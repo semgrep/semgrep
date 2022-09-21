@@ -108,6 +108,7 @@ def invoke_semgrep(
         _,
         _,
         _,
+        _,
         filtered_rules,
         profiler,
         profiling_data,
@@ -241,23 +242,30 @@ def run_rules(
 
 
 def remove_matches_in_baseline(
-    head_matches_by_rule: RuleMatchMap, baseline_matches_by_rule: RuleMatchMap
+    head_matches_by_rule: RuleMatchMap,
+    baseline_matches_by_rule: RuleMatchMap,
+    file_renames: Dict[str, Path],
 ) -> RuleMatchMap:
     """
     Remove the matches in head_matches_by_rule that also occur in baseline_matches_by_rule
     """
     logger.verbose("Removing matches that exist in baseline scan")
     kept_matches_by_rule: RuleMatchMap = {}
-
+    # kept_matches_by_rule_new: RuleMatchMap = {}
     num_removed = 0
 
     for rule, matches in head_matches_by_rule.items():
+        if len(matches) == 0:
+            continue
         baseline_matches = {
             match.ci_unique_key for match in baseline_matches_by_rule.get(rule, [])
         }
         kept_matches_by_rule[rule] = [
             match for match in matches if match.ci_unique_key not in baseline_matches
         ]
+        # kept_matches_by_rule_new[rule] = [
+        #     match for match in matches if match.get_path_changed_ci_unique_key(file_renames) not in baseline_matches
+        # ] TODO: exchange this for kept_matches_by_rule once we confirm that we are detecting path renames appropriately
         num_removed += len(matches) - len(kept_matches_by_rule[rule])
 
     logger.verbose(
@@ -298,6 +306,7 @@ def main(
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
+    Set[Path],
     Set[Path],
     FileTargetingLog,
     List[Rule],
@@ -434,9 +443,9 @@ def main(
     if baseline_handler:
         logger.info(f"  Current version has {unit_str(findings_count, 'finding')}.")
         logger.info("")
-        baseline_targets: Set[Path] = set(paths_with_matches) - set(
-            baseline_handler.status.added
-        )
+        baseline_targets: Set[Path] = set(paths_with_matches).union(
+            set(baseline_handler.status.renamed.values())
+        ) - set(baseline_handler.status.added)
         if not paths_with_matches:
             logger.info(
                 "Skipping baseline scan, because there are no current findings."
@@ -487,7 +496,9 @@ def main(
                         deep,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
-                        rule_matches_by_rule, baseline_rule_matches_by_rule
+                        rule_matches_by_rule,
+                        baseline_rule_matches_by_rule,
+                        baseline_handler.status.renamed,
                     )
                     output_handler.handle_semgrep_errors(baseline_semgrep_errors)
             except Exception as e:
@@ -517,10 +528,14 @@ def main(
     if autofix:
         apply_fixes(filtered_matches_by_rule.kept, dryrun)
 
+    renamed_targets = set(
+        baseline_handler.status.renamed.values() if baseline_handler else []
+    )
     return (
         filtered_matches_by_rule.kept,
         semgrep_errors,
         all_targets,
+        renamed_targets,
         target_manager.ignore_log,
         filtered_rules,
         profiler,

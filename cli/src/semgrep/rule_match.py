@@ -205,6 +205,19 @@ class RuleMatch:
             path = self.path
         return (self.rule_id, str(path), self.syntactic_context, self.index)
 
+    def get_path_changed_ci_unique_key(self, rename_dict: Dict[str, Path]) -> Tuple:
+        """
+        A unique key that accounts for filepath renames.
+
+        Results in fewer unique findings than cli_unique_key.
+        """
+        try:
+            path = str(self.path.relative_to(Path.cwd()))
+        except (ValueError, FileNotFoundError):
+            path = str(self.path)
+        renamed_path = str(rename_dict[path]) if path in rename_dict else path
+        return (self.rule_id, renamed_path, self.syntactic_context, self.index)
+
     @ordering_key.default
     def get_ordering_key(self) -> Tuple:
         """
