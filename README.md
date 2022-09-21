@@ -157,3 +157,4 @@ $ python3 -m pip install --upgrade semgrep
 # Using Docker
 $ docker pull returntocorp/semgrep:latest
 ```
+FOO
