@@ -23,6 +23,18 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* This module allows to use semgrep-core -test_rules <files_or_dirs>
+ * to automatically run all the semgrep rules in yaml files or directories
+ * and make sure they match correctly (as specified by the special ruleid:
+ * comment in it).
+ *
+ * This is also now used for regression testing as part of 'make test' in
+ * semgrep-core. See Unit_engine.full_rule_semgrep_rules_regression_tests().
+ *
+ * This module provides a service similar to what semgrep --test provides,
+ * but without requiring the Python wrapper. It is also significantly
+ * faster than semgrep --test (not sure why).
+ *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -48,6 +60,41 @@ let single_xlang_from_rules file rules =
            (Xlang.show fst));
       fst
 
+(* returns true if the file should be excluded because it does not
+ * contain a semgrep rule *)
+let exclude_yaml_file filepath =
+  (* .test.yaml files are YAML target files rather than config files! *)
+  Filename.check_suffix filepath ".test.yaml"
+  || Filename.check_suffix filepath ".test.fixed.yaml"
+
+let find_target_of_yaml_file file =
+  try
+    let d, b, ext = Common2.dbe_of_filename file in
+    Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
+    |> Common.find_some (fun file2 ->
+           let path2 = Filename.concat d file2 in
+           (* Config files have a single .yaml extension (assumption),
+            * but test files may have multiple extensions, e.g.
+            * ".test.yaml" (YAML test files), ".sites-available.conf",
+            * ... *)
+           match Common2.dbe_of_filename_many_ext_opt file2 with
+           | None -> None
+           | Some (_, b2, ext2) ->
+               if
+                 b = b2 && ext <> ext2
+                 (* .yaml.j2 are Jinja2 templates to generate Semgrep files *)
+                 && ext2 <> "yaml.j2"
+                 (* those are autofix test files that should be skipped *)
+                 && (not (ext2 =~ ".*fixed"))
+                 (* ugly: jsonnet exclusion below because of some .jsonnet and
+                  * .yaml ambiguities in tests/OTHER/rules
+                  *)
+                 && ext2 <> "jsonnet"
+               then Some path2
+               else None)
+  with
+  | Not_found -> failwith (spf "could not find a target for %s" file)
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -59,12 +106,10 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
          | FT.Config FT.Yaml -> true
          (* old: we were allowing Jsonnet before, but better to skip
           * them for now to avoid adding a jsonnet dependency in our docker/CI
-          * FT.Config ((* | FT.Json*) FT.Jsonnet) when not unit_testing -> true
+          * FT.Config (FT.Json FT.Jsonnet) when not unit_testing -> true
           *)
          | _ -> false)
-    |> Common.exclude (fun filepath ->
-           (* .test.yaml files are YAML target files rather than config files! *)
-           Filename.check_suffix filepath ".test.yaml")
+    |> Common.exclude exclude_yaml_file
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
 
@@ -85,32 +130,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                | Some fn -> fn file rules
                | None -> single_xlang_from_rules file rules
              in
-             let target =
-               try
-                 let d, b, ext = Common2.dbe_of_filename file in
-                 Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
-                 |> Common.find_some (fun file2 ->
-                        let path2 = Filename.concat d file2 in
-                        (* Config files have a single .yaml extension (assumption),
-                         * but test files may have multiple extensions, e.g.
-                         * ".test.yaml" (YAML test files), ".sites-available.conf",
-                         * ... *)
-                        match Common2.dbe_of_filename_many_ext_opt file2 with
-                        | None -> None
-                        | Some (_, b2, ext2) ->
-                            if
-                              b = b2 && ext <> ext2
-                              (* .yaml.j2 files are Jinja2 templates to generate Semgrep config files *)
-                              && ext2 <> "yaml.j2"
-                              (* ugly: jsonnet exclusion below because of some .jsonnet and .yaml
-                               * ambiguities in tests/OTHER/rules *)
-                              && ext2 <> "jsonnet"
-                            then Some path2
-                            else None)
-               with
-               | Not_found ->
-                   failwith (spf "could not find a target for %s" file)
-             in
+             let target = find_target_of_yaml_file file in
              logger#info "processing target %s" target;
              (* ugly: this is just for tests/OTHER/rules/inception2.yaml, to use JSON
               * to parse the pattern but YAML to parse the target *)
