@@ -816,6 +816,7 @@ def scan(
                     filtered_matches_by_rule,
                     semgrep_errors,
                     all_targets,
+                    _,
                     ignore_log,
                     filtered_rules,
                     profiler,
