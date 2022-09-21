@@ -251,7 +251,6 @@ def remove_matches_in_baseline(
     """
     logger.verbose("Removing matches that exist in baseline scan")
     kept_matches_by_rule: RuleMatchMap = {}
-    # kept_matches_by_rule_new: RuleMatchMap = {}
     num_removed = 0
 
     for rule, matches in head_matches_by_rule.items():
@@ -261,11 +260,11 @@ def remove_matches_in_baseline(
             match.ci_unique_key for match in baseline_matches_by_rule.get(rule, [])
         }
         kept_matches_by_rule[rule] = [
-            match for match in matches if match.ci_unique_key not in baseline_matches
+            match
+            for match in matches
+            if match.get_path_changed_ci_unique_key(file_renames)
+            not in baseline_matches
         ]
-        # kept_matches_by_rule_new[rule] = [
-        #     match for match in matches if match.get_path_changed_ci_unique_key(file_renames) not in baseline_matches
-        # ] TODO: exchange this for kept_matches_by_rule once we confirm that we are detecting path renames appropriately
         num_removed += len(matches) - len(kept_matches_by_rule[rule])
 
     logger.verbose(
