@@ -1,0 +1,1 @@
+Change default behavior of Jenkins CI configurations. If the SEMGREP_REPO_NAME environment variable is set, use it. Otherwise, default autodetection.
