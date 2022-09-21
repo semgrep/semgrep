@@ -7,8 +7,6 @@
    Extends AST_bash.
 *)
 
-module B = AST_bash
-
 (*****************************************************************************)
 (* Token info *)
 (*****************************************************************************)
@@ -51,9 +49,16 @@ type string_fragment =
   | Expansion of (* $X in program mode, ${X}, ${X ... } *) (loc * expansion)
   | Frag_semgrep_metavar of (* $X in pattern mode *) string wrap
 
-(* Used for quoted and unquoted strings for now *)
+(* Used for quoted and unquoted strings for now.
+   Must be created with the 'create_str' function to ensure that
+   consecutive literal fragments are collapsed.
+   Converting str -> unchecked_str is done with the type coercion operator :>
+*)
 type unchecked_str = loc * string_fragment list
-type str = (* private *) unchecked_str
+type str = private unchecked_str
+
+val create_str : unchecked_str -> str
+
 type str_or_ellipsis = Str_str of str | Str_semgrep_ellipsis of tok
 
 type array_elt =
@@ -158,136 +163,32 @@ type instruction =
 type program = instruction list
 
 (***************************************************************************)
-(* Enforce invariants that can't be expressed just with types *)
-(***************************************************************************)
-
-(*
-   Collapse consecutive literal string fragments.
-
-   This is useful to detect special fragments that otherwise could get split,
-   such as the ellipsis for COPY/ADD that get split into "." and "..".
-*)
-let simplify_fragments (fragments : string_fragment list) : string_fragment list
-    =
-  let concat toks tail =
-    match toks with
-    | [] -> tail
-    | first :: others ->
-        let tok = Parse_info.combine_infos first others in
-        String_content (Parse_info.str_of_info tok, tok) :: tail
-  in
-  let rec simplify acc = function
-    | [] -> concat (List.rev acc) []
-    | String_content (_, tok) :: xs -> simplify (tok :: acc) xs
-    | special :: xs -> concat (List.rev acc) (special :: simplify [] xs)
-  in
-  simplify [] fragments
-
-let create_str ((loc, fragments) : unchecked_str) : str =
-  (loc, simplify_fragments fragments)
-
-(***************************************************************************)
 (* Location extraction *)
 (***************************************************************************)
 
-let wrap_tok ((_, tok) : _ wrap) = tok
-let wrap_loc ((_, tok) : _ wrap) = (tok, tok)
-let bracket_loc ((open_, _, close) : _ bracket) = (open_, close)
-
-let var_or_metavar_tok = function
-  | Var_ident (_, tok) -> tok
-  | Var_semgrep_metavar (_, tok) -> tok
-
-let var_or_metavar_loc x =
-  let tok = var_or_metavar_tok x in
-  (tok, tok)
-
-let expansion_tok = function
-  | Expand_var (_, tok) -> tok
-  | Expand_semgrep_metavar (_, tok) -> tok
-
-let expansion_loc x =
-  let tok = expansion_tok x in
-  (tok, tok)
-
-let string_fragment_loc = function
-  | String_content (_, tok) -> (tok, tok)
-  | Expansion (loc, _) -> loc
-  | Frag_semgrep_metavar (_, tok) -> (tok, tok)
-
-let str_loc ((loc, _) : str) = loc
-
-let str_or_ellipsis_loc = function
-  | Str_str str -> str_loc str
-  | Str_semgrep_ellipsis tok -> (tok, tok)
-
-(* Re-using the type used for double-quoted strings in bash *)
-let quoted_string_loc = bracket_loc
-
 (*
-   The default shell depends on the platform on which docker runs (Unix or
-   Windows). For now, we assume the shell is the Bourne shell which we
-   treat as Bash. In the future, we could require the caller to specify
-   if the dockerfile is for Windows and call is a dockerfile-windows dialect.
-   Guessing the platform from the base image name would be possible in
-   some cases but always, so that may not be a good solution.
-
-   Here we have an Other case which is used after a SHELL directive
-   which changes the shell to an unsupported shell (i.e. not sh or bash).
+   The functions below extract the location associated with any node.
+   They all run in O(1) with respect to the tree depth.
 *)
-let argv_or_shell_loc = function
-  | Command_semgrep_ellipsis tok -> (tok, tok)
-  | Argv (loc, _) -> loc
-  | Sh_command (loc, _) -> loc
-  | Other_shell_command (_, x) -> wrap_loc x
-
-let param_loc ((loc, _) : param) : loc = loc
-let image_spec_loc (x : image_spec) = x.loc
-let image_alias_loc = str_loc
-
-let label_pair_loc = function
-  | Label_semgrep_ellipsis tok -> (tok, tok)
-  | Label_pair (loc, _, _, _) -> loc
-
-let string_array_loc = bracket_loc
-
-let array_or_paths_loc = function
-  | Array (loc, _)
-  | Paths (loc, _) ->
-      loc
-
-let cmd_loc ((loc, _, _) : cmd) = loc
-
-let healthcheck_loc = function
-  | Healthcheck_semgrep_metavar (_, tok) -> (tok, tok)
-  | Healthcheck_none tok -> (tok, tok)
-  | Healthcheck_cmd (loc, _, _) -> loc
-
-let expose_port_loc = function
-  | Expose_semgrep_ellipsis tok -> (tok, tok)
-  | Expose_port ((_, tok1), Some (_, tok2)) -> (tok1, tok2)
-  | Expose_port ((_, tok), None) -> (tok, tok)
-  | Expose_fragment x -> string_fragment_loc x
-
-let instruction_loc = function
-  | From (loc, _, _, _, _) -> loc
-  | Run (loc, _, _) -> loc
-  | Cmd cmd -> cmd_loc cmd
-  | Label (loc, _, _) -> loc
-  | Expose (loc, _, _) -> loc
-  | Env (loc, _, _) -> loc
-  | Add (loc, _, _, _, _) -> loc
-  | Copy (loc, _, _, _, _) -> loc
-  | Entrypoint (loc, _, _) -> loc
-  | Volume (loc, _, _) -> loc
-  | User (loc, _, _, _) -> loc
-  | Workdir (loc, _, _) -> loc
-  | Arg (loc, _, _, _) -> loc
-  | Onbuild (loc, _, _) -> loc
-  | Stopsignal (loc, _, _) -> loc
-  | Healthcheck (loc, _, _) -> loc
-  | Shell (loc, _, _) -> loc
-  | Maintainer (loc, _, _) -> loc
-  | Cross_build_xxx (loc, _, _) -> loc
-  | Instr_semgrep_ellipsis tok -> (tok, tok)
-  | Instr_semgrep_metavar (_, tok) -> (tok, tok)
+val wrap_tok : 'a wrap -> tok
+val wrap_loc : 'a wrap -> loc
+val bracket_loc : 'a bracket -> loc
+val var_or_metavar_tok : var_or_metavar -> tok
+val var_or_metavar_loc : var_or_metavar -> loc
+val expansion_tok : expansion -> tok
+val expansion_loc : expansion -> loc
+val string_fragment_loc : string_fragment -> loc
+val str_loc : str -> loc
+val str_or_ellipsis_loc : str_or_ellipsis -> loc
+val quoted_string_loc : 'a bracket -> loc
+val argv_or_shell_loc : argv_or_shell -> loc
+val param_loc : param -> loc
+val image_spec_loc : image_spec -> loc
+val image_alias_loc : str -> loc
+val label_pair_loc : label_pair -> loc
+val string_array_loc : 'a bracket -> loc
+val array_or_paths_loc : array_or_paths -> loc
+val cmd_loc : cmd -> loc
+val healthcheck_loc : healthcheck -> loc
+val expose_port_loc : expose_port -> loc
+val instruction_loc : instruction -> loc

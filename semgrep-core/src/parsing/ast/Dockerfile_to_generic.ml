@@ -79,7 +79,8 @@ let string_fragment_expr (x : string_fragment) : G.expr =
   | Expansion (loc, x) -> expansion_expr loc x
   | Frag_semgrep_metavar s -> metavar_expr s
 
-let str_expr ((loc, frags) : str) : G.expr =
+let str_expr (x : str) : G.expr =
+  let loc, frags = (x :> unchecked_str) in
   let frags = Common.map string_fragment_expr frags in
   match frags with
   | [ x ] -> x
