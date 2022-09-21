@@ -14,10 +14,10 @@ Here is a short description of the workflows in this directory:
   the developer forgot to setup pre-commit.
 
 - tests.yml: building semgrep and running our semgrep testsuite for our PRs.
-  It also runs benchmarks, test our MacOS, Linux, and docker build, and more.
+  It also runs benchmarks, test our MacOS, Linux, and Docker build, and more.
 
 - semgrep.yml: dogfood Semgrep by using our Semgrep Github action
-  and submitting findings to Semgrep App.
+  and submitting findings to Semgrep App for bugs in the semgrep repo itself.
 
 - start-release.yml: workflow to manually trigger a new Semgrep release.
   This internally creates a new branch, call 'make release' on it, and
@@ -26,20 +26,20 @@ Here is a short description of the workflows in this directory:
   start other workflows. Here are the dependent workflows:
 
   - release.yml: this workflow is triggered after start-release.yml created
-    a candidate release PR and pushed a vXxx branch. It then performs lots of task such
-    as creating the Linux and MacOS binary artifacts,
-    publishing to PyPy, homebrew, updating our semgrep develop docker image, etc.
+    a candidate release PR and pushed a vXxx branch. It then performs lots of tasks
+    such as creating the Linux and MacOS binary artifacts,
+    publishing to PyPy, HomeBrew, updating our semgrep develop Docker image, etc.
 
   - validate-release.yml: this workflow is activated by start-release.yml
     once release.yml finished. It performs checks to make sure
-    the artifacts produced by release.yml are valid
+    the artifacts produced by release.yml are valid.
 
   - open-bump-pr.yml: this workflow is activated once we have a new semgrep release
     (after validate-release.yml) and in turn bumps to the new semgrep version
     many dependent repositories (semgrep-rpc, semgrep-action, semgrep-app)
 
-- find-old-brew-prs.yml: cron to check whether the homebrew PR created by
-  release.yml has been accepted or is hanging around unmerged
+- find-old-brew-prs.yml: cron to check whether the HomeBrew PR created by
+  release.yml has been accepted or is hanging around unmerged.
 
 - homebrew-core-head.yml: cron to check that the Homebrew Core Formula
   created by release.yml works (TODO: why can't this be part of validate-release.yml?
@@ -51,6 +51,7 @@ Here is a short description of the workflows in this directory:
   submodule to its latest version
 
 - revert-semgrep-docker-image.yml: interactive workflow
-  to manually revert the semgrep 'latest' docker image.
+  to manually revert the semgrep 'latest' Docker image.
 
-- e2e-semgrep-ci.yml: ???
+- e2e-semgrep-ci.yml: end-to-end testing of the 'semgrep ci' subcommand,
+  and our 'develop' Docker image, which are used by all the users of Semgrep App.
