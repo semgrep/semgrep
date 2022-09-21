@@ -192,6 +192,7 @@
   "searched_paths": [
     "foo.py"
   ],
+  "renamed_paths": [],
   "rule_ids": [
     "eqeq-bad",
     "eqeq-five",
