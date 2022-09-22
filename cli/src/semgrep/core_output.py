@@ -156,11 +156,12 @@ def core_matches_to_rule_matches(
         rule = rule_table[match.rule_id.value]
         matched_values, propagated_values = read_metavariables(match)
         message = interpolate(rule.message, matched_values, propagated_values)
-        fix = (
-            interpolate(rule.fix, matched_values, propagated_values)
-            if rule.fix
-            else None
-        )
+        if match.extra.rendered_fix:
+            fix = match.extra.rendered_fix
+        elif rule.fix:
+            fix = interpolate(rule.fix, matched_values, propagated_values)
+        else:
+            fix = None
         fix_regex = None
 
         # this validation for fix_regex code was in autofix.py before

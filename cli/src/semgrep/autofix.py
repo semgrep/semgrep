@@ -68,9 +68,6 @@ def _basic_fix(
     rule_match: RuleMatch, file_offsets: FileOffsets, fix: str
 ) -> Tuple[Fix, FileOffsets]:
 
-    if rule_match.match.extra.rendered_fix:
-        fix = rule_match.match.extra.rendered_fix
-
     p = rule_match.path
     lines = _get_lines(p)
 
