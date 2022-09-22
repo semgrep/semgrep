@@ -485,6 +485,7 @@ jobs:
       - uses: dawidd6/action-homebrew-bump-formula@v3
         with:
           token: ${{ secrets.HOMEBREW_PR_TOKEN }}
+          # see https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/semgrep.rb
           formula: semgrep
           org: returntocorp
           force: true

@@ -1,6 +1,8 @@
-# The goal of this workflow is mostly to check that semgrep-core and semgrep builds,
-# that we can build a docker image as well as Linux and MacOS binaries,
-# and to run our testsuite and benchmarks.
+# The goals of this workflow are to check that:
+# - we can build semgrep-core and semgrep
+# - we can build a Docker image as well as Linux and MacOS binaries
+# - all our tests (the one in semgrep-core and the one in semgrep-cli) are passing
+# - we don't have any perf regressions in our benchmarks
 
 name: tests
 

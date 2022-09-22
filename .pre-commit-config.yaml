@@ -1,5 +1,9 @@
 # Semgrep pre-commit configuration.
 # See https://pre-commit.com/ for more information.
+# Once pre-commit is installed, you can run locally with `pre-commit run --all`.
+#
+# This config defines also 2 "jobs" with the `stages: [manual]` directive
+# which are only exercised in CI (see .github/workflows/lint.yml).
 
 exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations"
 
@@ -107,6 +111,7 @@ repos:
         additional_dependencies: ["flake8-bugbear==22.1.11"]
         args: ["--select=B,E9,F4,F63,F7,F82"]
 
+  # Dogfood! running semgrep in pre-commit!
   - repo: https://github.com/returntocorp/semgrep
     rev: "v0.100.0"
     hooks:
@@ -140,8 +145,11 @@ repos:
         entry: hadolint/hadolint:v2.8.0-alpine hadolint
         args: ["--ignore", "DL3008", "--ignore", "DL3018"]
 
-  # Run develop semgrep. Only used in CI
+  # Run develop semgrep. Only used in CI since it's slower for local developmemt.
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
+  # TODO: how is this different from the code above where we dogfood semgrep?
+  # we also hardcoding a v0.100.0 here, we don't use the 'develop' docker image as
+  # said above.
   - repo: https://github.com/returntocorp/semgrep
     rev: "v0.100.0"
     hooks:
