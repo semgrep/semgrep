@@ -120,7 +120,8 @@ gitclean:
 	git clean -dfX
 	git submodule foreach --recursive git clean -dfX
 
-# Prepare a release branch interactively.
+# Prepare a release branch.
+# This is mainly called by .github/workflows/start-release.yml
 # It's safe to run it multiple times.
 .PHONY: release
 release:

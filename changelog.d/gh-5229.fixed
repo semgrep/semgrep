@@ -1,0 +1,3 @@
+Dockerfile mode: Fix failure to match where image name and image alias should
+be the same. The problem was due to some names and identifiers being
+fragmented due to parsing rules and not pieced back together.

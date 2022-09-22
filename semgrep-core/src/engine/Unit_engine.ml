@@ -643,8 +643,6 @@ let full_rule_semgrep_rules_regression_tests () =
                        =~ ".*/terraform/aws/security/aws-fsx-lustre-files-ystem.yaml"
                     (* TODO: parse error, weird *)
                     || s =~ ".*/unicode/security/bidi.yml"
-                    || s
-                       =~ ".*/javascript/audit/detect-replaceall-sanitization.yaml"
                     (* TODO many mismatches *)
                     || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
                     || s

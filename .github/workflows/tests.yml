@@ -1,3 +1,9 @@
+# The goals of this workflow are to check that:
+# - we can build semgrep-core and semgrep
+# - we can build a Docker image as well as Linux and MacOS binaries
+# - all our tests (the one in semgrep-core and the one in semgrep-cli) are passing
+# - we don't have any perf regressions in our benchmarks
+
 name: tests
 
 on:
@@ -17,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2022-06-09
     steps:
+      #TODO: why do we need this? What does not work if we don't have this?
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
