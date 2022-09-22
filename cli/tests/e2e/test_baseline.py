@@ -216,7 +216,8 @@ def test_renamed_dir(git_tmp_path, snapshot):
     ), "If you fail this assertion, above snapshot was incorrectly changed"
     snapshot.assert_match(output.stderr, "full.err")
 
-    # Baseline scan should also report findings due to changed paths
+    # Diff scan should report no findings due to
+    # renamed file detection and diffing logic
     baseline_output = run_sentinel_scan(base_commit="HEAD^")
     snapshot.assert_match(baseline_output.stdout, "diff.out")
     snapshot.assert_match(baseline_output.stderr, "diff.err")
@@ -276,7 +277,7 @@ def test_file_changed_to_dir(git_tmp_path, snapshot):
     ), "If you fail this assertion, above snapshot was incorrectly changed"
     snapshot.assert_match(output.stderr, "full.err")
 
-    # Baseline scan should report no findings
+    # Diff scan should report no findings
     baseline_output = run_sentinel_scan(base_commit="HEAD^")
     snapshot.assert_match(baseline_output.stdout, "diff.out")
     snapshot.assert_match(baseline_output.stderr, "diff.err")
@@ -307,7 +308,7 @@ def test_dir_changed_to_file(git_tmp_path, snapshot):
     ), "If you fail this assertion, above snapshot was incorrectly changed"
     snapshot.assert_match(output.stderr, "full.err")
 
-    # Baseline scan should report no findings
+    # Diff scan should report no findings
     baseline_output = run_sentinel_scan(base_commit="HEAD^")
     snapshot.assert_match(baseline_output.stdout, "diff.out")
     snapshot.assert_match(baseline_output.stderr, "diff.err")
@@ -590,7 +591,7 @@ def test_renamed_file(git_tmp_path, snapshot, new_name):
     old_name = "foo.py"
     old_path = git_tmp_path / old_name
     # write lots of static text so git will recognize the file as renamed
-    old_path.write_text("1\n\n" * 100)
+    old_path.write_text("1\n\n" * 100 + f"x = {SENTINEL_1}")
     base_commit = _git_commit(1, add=True)
 
     subprocess.run(
@@ -599,7 +600,7 @@ def test_renamed_file(git_tmp_path, snapshot, new_name):
         capture_output=True,
     )
     new_path = git_tmp_path / new_name
-    new_path.write_text("1\n\n" * 100 + f"x = {SENTINEL_1}")
+    new_path.write_text("1\n\n" * 100 + f"x = {SENTINEL_1}\n\n" + f"y = {SENTINEL_1}")
     _git_commit(2, add=True)
 
     # Non-baseline scan should report 1 finding
@@ -610,9 +611,9 @@ def test_renamed_file(git_tmp_path, snapshot, new_name):
         output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
     )
 
-    # Baseline scan should report same finding
+    # Diff scan should report no findings
     baseline_output = run_sentinel_scan(base_commit=base_commit)
-    assert baseline_output.stdout == output.stdout
+    snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
     snapshot.assert_match(
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
         "baseline_error.txt",
