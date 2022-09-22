@@ -22,6 +22,11 @@ open IL
 let compare_name x y =
   let ident_cmp = String.compare (fst x.ident) (fst y.ident) in
   if ident_cmp <> 0 then ident_cmp
+    (* If their names match, and either of the names have an unresolved sid,
+       then let's just say that they are the same.
+       In particular, this will help with Terraform, where we purposefully introduce
+       unresolved names as the parameters to fake functions.
+    *)
   else if x.sid = -1 || y.sid = -1 then 0
   else Int.compare x.sid y.sid
 
