@@ -21,7 +21,9 @@ open IL
 
 let compare_name x y =
   let ident_cmp = String.compare (fst x.ident) (fst y.ident) in
-  if ident_cmp <> 0 then ident_cmp else Int.compare x.sid y.sid
+  if ident_cmp <> 0 then ident_cmp
+  else if x.sid = -1 || y.sid = -1 then 0
+  else Int.compare x.sid y.sid
 
 let rexps_of_instr x =
   match x.i with
