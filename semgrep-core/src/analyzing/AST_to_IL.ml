@@ -218,13 +218,11 @@ let composite_of_container : G.container_operator -> IL.composite_kind =
   | Set -> CSet
   | Dict -> CDict
 
-let mk_unnamed_args (exps : IL.exp list) = Common.map (fun x -> Unnamed x) exps
-
 let is_hcl lang =
   match lang with
   | Lang.Hcl -> true
   | _ -> false
-  
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -545,8 +543,21 @@ and expr_aux env ?(void = false) e_gen =
       expr env e
   | G.Call
       ( ({ e = N (Id (("module", _), _)); _ } as e),
-        ((_, [ G.Arg { e = Record (_, fields, _); _ } ], _) as args) )
+        ((_, [ _; G.Arg { e = Record (_, fields, _); _ } ], _) as args) )
     when is_hcl env.lang -> (
+      (* bTERRAFORM:
+         OK, so here's the idea.
+         Terraform modules are translated in the form of `Call`, but we would like to
+         interpret them as actual function calls to fake function definitions.
+         This step in the translation to IL just manufactures that fake function
+         definition.
+         This function is named the same as the "module name" for a given module,
+         which is of the form `dir/module_name` for a module at directory `dir`.
+         The parameters are all of the `variable` blocks.
+
+         We have to translate into an actual IL Call construct with the correct
+         name so that we can let the taint engine do the work.
+      *)
       let mod_sources, _, mod_args =
         Common.partition_either3
           (function
@@ -554,28 +565,25 @@ and expr_aux env ?(void = false) e_gen =
                 {
                   s =
                     DefStmt
-                      ( { name = EN (Id (("source", _), _)); _ },
-                        VarDef
-                          {
-                            vinit =
-                              Some
-                                {
-                                  e =
-                                    N
-                                      (Id
-                                        ( _,
-                                          {
-                                            id_resolved =
-                                              { contents = Some _; _ };
-                                            _;
-                                          } )) as name;
-                                  _;
-                                };
-                            _;
-                          } );
+                      ( {
+                          name =
+                            EN
+                              (Id
+                                 ( ("source", _),
+                                   {
+                                     id_resolved =
+                                       {
+                                         contents = Some (G.ResolvedName _, _);
+                                         _;
+                                       };
+                                     _;
+                                   } ) as name);
+                          _;
+                        },
+                        VarDef _ );
                   _;
                 } ->
-                Left3 name
+                Left3 (G.N name |> G.e)
             | G.F
                 {
                   s =
@@ -593,11 +601,11 @@ and expr_aux env ?(void = false) e_gen =
       let tok = G.fake "call" in
       match mod_sources with
       | [ mod_source ] ->
-          call_generic env ~void tok (mod_source |> G.e)
-            (G.fake_bracket mod_args)
+          call_generic env ~void tok mod_source (G.fake_bracket mod_args)
       | _ ->
           (* Don't know how to interpret multiple sources. Just let this go to the wildcard case.
-         *)
+           *)
+          logger#warning "Translating Terraform module with multiple/no sources";
           call_generic env ~void tok e args)
   | G.New (tok, ty, args) ->
       (* TODO: lift up New in IL like we did in AST_generic *)
@@ -615,6 +623,13 @@ and expr_aux env ?(void = false) e_gen =
       let tok = G.fake "call" in
       call_generic env ~void tok e args
   | G.L lit -> mk_e (Literal lit) eorig
+  | G.DotAccess ({ e = N (Id (("var", _), _)); _ }, _, FN (Id ((s, t), id_info)))
+    ->
+      (* We need to change all uses of a variable, which looks like a DotAccess, to a name which
+         reads the same. This is so that our parameters to our function can properly be recognized
+         as tainted by the taint engine.
+      *)
+      expr_aux env (G.N (Id (("var." ^ s, t), id_info)) |> G.e)
   | G.N _
   | G.DotAccess (_, _, _)
   | G.ArrayAccess (_, _)
