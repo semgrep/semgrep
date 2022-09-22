@@ -1,4 +1,6 @@
-# Open a PR to bump the version of semgrep in semgrep-app
+# Open a PR to bump the version of semgrep in semgrep-app, semgrep-rpc, or semgrep-action.
+# This is called by start-release.yml once validate-release.yml has finished.
+
 name: open-bump-pr
 
 on:
