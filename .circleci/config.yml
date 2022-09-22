@@ -1,5 +1,21 @@
+##########################################################################################
+# Prelude
+##########################################################################################
+# The main goals of this pipeline are to:
+# - dogfood Semgrep by running `semgrep --config semgrep.yml` on each semgrep PRs.
+#   This also checks that Semgrep can run in alternate CI platforms like Circle CI
+#   (and not just in Github actions).
+# - have a cron that update our parsing statistics as well as some benchmarks,
+#   which are then accessible at https://dashboard.semgrep.dev/metrics
+
 version: 2.1
+
+##########################################################################################
+# The jobs
+##########################################################################################
+
 jobs:
+  # Dogfood!
   semgrep:
     docker:
       - image: returntocorp/semgrep:develop
@@ -47,8 +63,14 @@ jobs:
       - store_artifacts:
           path: parsing-stats/results.txt
 
+##########################################################################################
+# The workflows
+##########################################################################################
+
 workflows:
   version: 2
+
+  # no triggers, runs on every PRs
   semgrep:
     jobs:
       - semgrep
