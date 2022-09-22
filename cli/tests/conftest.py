@@ -30,6 +30,11 @@ from semgrep.lsp.server import SemgrepLSPServer
 TESTS_PATH = Path(__file__).parent
 
 
+def make_semgrepconfig_file(dir_path: Path, contents: str) -> None:
+    semgrepconfig_path = dir_path / ".semgrepconfig"
+    semgrepconfig_path.write_text(contents)
+
+
 def mark_masked(obj, path):
     path_items = path.split(".")
     key = path_items[0]
