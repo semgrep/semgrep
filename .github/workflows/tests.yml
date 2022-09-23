@@ -23,17 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2022-06-09
     steps:
-      #TODO: why do we need this? What does not work if we don't have this?
-      - name: Pre-checkout fixes
-        run: |
-          sudo chmod -R 777 /github
-          github_cache_dir="/__w"
-          sudo mkdir -p "$github_cache_dir"
-          sudo chmod -R 777 "$github_cache_dir"
+      # see lint.yml comment about that
+      - run: sudo chmod -R 777 /github /__w
+      - uses: actions/checkout@v3
       - name: Install python3-config
         run: sudo apk add python3-dev
-      - name: Checkout
-        uses: actions/checkout@v3
       - id: submodule-status
         name: Get submodule version
         run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
@@ -172,12 +166,7 @@ jobs:
         run: sudo pip install pipenv==2022.6.7
       - name: Install python3-config
         run: sudo apk add python3-dev
-      - name: Pre-checkout fixes
-        run: |
-          sudo chmod -R 777 /github
-          github_cache_dir="/__w"
-          sudo mkdir -p "$github_cache_dir"
-          sudo chmod -R 777 "$github_cache_dir"
+      - run: sudo chmod -R 777 /github /__w
       - name: Checkout
         uses: actions/checkout@v3
         with:

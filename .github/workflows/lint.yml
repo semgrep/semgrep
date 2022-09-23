@@ -1,6 +1,6 @@
 # The goal of this workflow is mostly to run pre-commit on every pull requests.
 
-#TODO? could be renamed pre-commit really. We used to run other "lint-style" command
+#TODO? we could rename to 'pre-commit' really. We used to run another "lint-style" command
 # for the changelog, but we don't anymore, so all that remains is just pre-commit stuff
 name: lint
 
@@ -17,9 +17,7 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - run: ls -al /
       - uses: actions/checkout@v3
-      - run: ls -al /
       # We grab those submodules below because they are the one needed by 'mypy', which
       # runs as part of pre-commit to check our Python code.
       # alt: we could also use 'submodules: recursive' instead, but that would be slower
@@ -41,11 +39,11 @@ jobs:
   # is the extra_args: directive, which runs semgrep/.pre-commit-config.yaml#L150,
   # which runs Semgrep Bandit and Semgrep Python, which we don't run on normal pre-commit
   # since they would slow down pre-commit on local development.
-  # (TODO: actually it looks like we also run Semgrep Bandit/Python in normal pre-commit)
-  # The intention is a test that runs semgrep-pre-commit.
-  # TODO? should we split this out to a different config?
   # We could add the last step of this job in the pre-commit job above, but jobs can run
   # in parallel, hence the copy-paste.
+  # The intention is a test that runs semgrep-pre-commit.
+  # (TODO: actually it looks like we also run Semgrep Bandit/Python in normal pre-commit)
+  # TODO? should we split this out to a different config?
   pre-commit-manual:
     runs-on: ubuntu-latest
     steps:
@@ -61,16 +59,19 @@ jobs:
 
   pre-commit-ocaml:
     # Even if there's a container: below, we still need a runs-on:, to say which VM will
-    # run the docker container.
-    # See https://github.com/orgs/community/discussions/25534
+    # run the docker container. See https://github.com/orgs/community/discussions/25534
     runs-on: ubuntu-latest
     # Custom image provides 'ocamlformat' with a specific version needed to check
     # OCaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu-2022-06-09
     steps:
+      # Apparently GHA when running a container: does a bunch of
+      # `docker create` on /github and /__w but with the wrong permissions
+      # (all of this after it pulled the custom container), hence the chmod below.
       # I wish we could have a .github/pre-gha-checkout to factorize and document
       # this mess, but we're before the checkout@v3 so there is no .github yet :)
-      - run: sudo chmod -R 777 /github /__w
+      - name: Pre-checkout GHA fixes
+        run: sudo chmod -R 777 /github /__w
       - uses: actions/checkout@v3
       - name: Check OCaml code
         run: |
