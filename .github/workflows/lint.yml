@@ -17,7 +17,9 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
+      - run: ls -al /
       - uses: actions/checkout@v3
+      - run: ls -al /
       # We grab those submodules below because they are the one needed by 'mypy', which
       # runs as part of pre-commit to check our Python code.
       # alt: we could also use 'submodules: recursive' instead, but that would be slower
@@ -58,16 +60,17 @@ jobs:
           extra_args: --hook-stage manual
 
   pre-commit-ocaml:
-    runs-on: ubuntu-latest
     # Custom image provides 'ocamlformat' with a specific version needed to check
     # OCaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu-2022-06-09
     steps:
+      - run: ls -al /
       - uses: actions/checkout@v3
       - name: Check OCaml code
         run: |
           #TODO? why do we need that?
           sudo -u user git config --global --add safe.directory "$GITHUB_WORKSPACE"
           # install correct version of ocamlformat
+          # coupling: must be the same than in semgrep-core/dev/dev.opam
           sudo -u user opam install -y ocamlformat.0.21.0
           sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
