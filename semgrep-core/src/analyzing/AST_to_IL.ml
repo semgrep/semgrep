@@ -223,10 +223,70 @@ let is_hcl lang =
   | Lang.Hcl -> true
   | _ -> false
 
+let rec hcl_translate_module_call env void (e, args, fields) =
+  (* bTERRAFORM:
+      Terraform modules are translated in the form of `Call`, but we would like to
+      interpret them as actual function calls to fake function definitions.
+      This step in the translation to IL just manufactures that fake function
+      definition.
+      This function is named the same as the "module name" for a given module,
+      which is of the form `dir/module_name` for a module at directory `dir`.
+      The parameters are all of the `variable` blocks.
+
+      We have to translate into an actual IL Call construct with the correct
+      name so that we can let the taint engine do the work.
+  *)
+  let mod_sources, _, mod_args =
+    Common.partition_either3
+      (function
+        | G.F
+            {
+              s =
+                DefStmt
+                  ( {
+                      name =
+                        EN
+                          (Id
+                             ( ("source", _),
+                               {
+                                 id_resolved =
+                                   { contents = Some (G.ResolvedName _, _); _ };
+                                 _;
+                               } ) as name);
+                      _;
+                    },
+                    VarDef _ );
+              _;
+            } ->
+            Left3 (G.N name |> G.e)
+        | G.F
+            {
+              s =
+                DefStmt
+                  ( { name = EN (Id (arg_id, _)); _ },
+                    VarDef { vinit = Some arg_exp; _ } );
+              _;
+            } ->
+            Right3 (G.ArgKwd (arg_id, arg_exp))
+        | _ ->
+            (* bTODO: Ignore all other cases. They correspond neither to the module's name, or its arguments. *)
+            Middle3 ())
+      fields
+  in
+  let tok = G.fake "call" in
+  match mod_sources with
+  | [ mod_source ] ->
+      call_generic env ~void tok mod_source (G.fake_bracket mod_args)
+  | _ ->
+      (* Don't know how to interpret multiple sources. Just let this go to the wildcard case.
+        *)
+      logger#warning "Translating Terraform module with multiple/no sources";
+      call_generic env ~void tok e args
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
-let rec lval env eorig =
+and lval env eorig =
   match eorig.G.e with
   | G.N n -> name env n
   | G.IdSpecial (G.This, tok) -> lval_of_base (VarSpecial (This, tok))
@@ -544,69 +604,8 @@ and expr_aux env ?(void = false) e_gen =
   | G.Call
       ( ({ e = N (Id (("module", _), _)); _ } as e),
         ((_, [ _; G.Arg { e = Record (_, fields, _); _ } ], _) as args) )
-    when is_hcl env.lang -> (
-      (* bTERRAFORM:
-         OK, so here's the idea.
-         Terraform modules are translated in the form of `Call`, but we would like to
-         interpret them as actual function calls to fake function definitions.
-         This step in the translation to IL just manufactures that fake function
-         definition.
-         This function is named the same as the "module name" for a given module,
-         which is of the form `dir/module_name` for a module at directory `dir`.
-         The parameters are all of the `variable` blocks.
-
-         We have to translate into an actual IL Call construct with the correct
-         name so that we can let the taint engine do the work.
-      *)
-      let mod_sources, _, mod_args =
-        Common.partition_either3
-          (function
-            | G.F
-                {
-                  s =
-                    DefStmt
-                      ( {
-                          name =
-                            EN
-                              (Id
-                                 ( ("source", _),
-                                   {
-                                     id_resolved =
-                                       {
-                                         contents = Some (G.ResolvedName _, _);
-                                         _;
-                                       };
-                                     _;
-                                   } ) as name);
-                          _;
-                        },
-                        VarDef _ );
-                  _;
-                } ->
-                Left3 (G.N name |> G.e)
-            | G.F
-                {
-                  s =
-                    DefStmt
-                      ( { name = EN (Id (arg_id, _)); _ },
-                        VarDef { vinit = Some arg_exp; _ } );
-                  _;
-                } ->
-                Right3 (G.ArgKwd (arg_id, arg_exp))
-            | _ ->
-                (* bTODO: Ignore all other cases. They correspond neither to the module's name, or its arguments. *)
-                Middle3 ())
-          fields
-      in
-      let tok = G.fake "call" in
-      match mod_sources with
-      | [ mod_source ] ->
-          call_generic env ~void tok mod_source (G.fake_bracket mod_args)
-      | _ ->
-          (* Don't know how to interpret multiple sources. Just let this go to the wildcard case.
-           *)
-          logger#warning "Translating Terraform module with multiple/no sources";
-          call_generic env ~void tok e args)
+    when is_hcl env.lang ->
+      hcl_translate_module_call env void (e, args, fields)
   | G.New (tok, ty, args) ->
       (* TODO: lift up New in IL like we did in AST_generic *)
       let special = (New, tok) in
@@ -624,7 +623,7 @@ and expr_aux env ?(void = false) e_gen =
       call_generic env ~void tok e args
   | G.L lit -> mk_e (Literal lit) eorig
   | G.DotAccess ({ e = N (Id (("var", _), _)); _ }, _, FN (Id ((s, t), id_info)))
-    ->
+    when is_hcl env.lang ->
       (* We need to change all uses of a variable, which looks like a DotAccess, to a name which
          reads the same. This is so that our parameters to our function can properly be recognized
          as tainted by the taint engine.
