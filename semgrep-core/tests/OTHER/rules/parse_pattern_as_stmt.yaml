@@ -1,0 +1,8 @@
+rules:
+  - id: program-pattern 
+    pattern: |
+      import $I = $FOO; 
+    message: "This should not parse as a Program, or it will break the matching." 
+    languages:
+      - typescript
+    severity: ERROR
