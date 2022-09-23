@@ -68,7 +68,7 @@ jobs:
     # OCaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu-2022-06-09
     steps:
-      - run: ls -al /
+      - run: chmod -R 777 /github /__w
       - uses: actions/checkout@v3
       - name: Check OCaml code
         run: |
