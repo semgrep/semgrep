@@ -1,0 +1,2 @@
+Fixed nondeterministic failure of test_api test (again) by splitting out the
+subprocess call into a separate test and passing SEMGREP_SETTINGS_FILE env var.
