@@ -1,0 +1,1 @@
+Changed command line flag for supply chain scans from `--sca` to `--supply-chain`
