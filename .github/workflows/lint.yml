@@ -60,6 +60,10 @@ jobs:
           extra_args: --hook-stage manual
 
   pre-commit-ocaml:
+    # Even if there's a container: below, we still need a runs-on:, to say which VM will
+    # run the docker container.
+    # See https://github.com/orgs/community/discussions/25534
+    runs-on: ubuntu-latest
     # Custom image provides 'ocamlformat' with a specific version needed to check
     # OCaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu-2022-06-09
