@@ -68,13 +68,14 @@ jobs:
     # OCaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu-2022-06-09
     steps:
-      - run: ./.github/pre-gha-checkout
+      # I wish we could have a .github/pre-gha-checkout to factorize and document
+      # this mess, but we're before the checkout@v3 so there is no .github yet :)
+      - run: sudo chmod -R 777 /github /__w
       - uses: actions/checkout@v3
       - name: Check OCaml code
         run: |
           #TODO? why do we need that?
           sudo -u user git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          # install correct version of ocamlformat
           # coupling: must be the same than in semgrep-core/dev/dev.opam
           sudo -u user opam install -y ocamlformat.0.21.0
           sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
