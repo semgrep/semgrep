@@ -442,7 +442,7 @@ and expr_aux env ?(void = false) e_gen =
         | [] -> impossible (G.E e_gen)
         | obj :: args' ->
             let obj_var, _obj_lval =
-              mk_aux_var env tok (IL_lvalue_helpers.exp_of_arg obj)
+              mk_aux_var env tok (IL_helpers.exp_of_arg obj)
             in
             let method_name =
               fresh_var env tok ~str:(Parse_info.str_of_info tok)

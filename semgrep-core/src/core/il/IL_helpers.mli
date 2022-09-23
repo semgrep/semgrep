@@ -1,4 +1,4 @@
-val exp_of_arg : IL.argument -> IL.exp
+val exp_of_arg : IL.exp IL.argument -> IL.exp
 
 (** Lvalue/Rvalue helpers working on the IL *)
 
