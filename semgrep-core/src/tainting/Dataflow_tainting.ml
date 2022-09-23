@@ -21,7 +21,7 @@ module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
 module PM = Pattern_match
 module R = Rule
-module LV = IL_lvalue_helpers
+module LV = IL_helpers
 module T = Taint
 module Lval_env = Taint_lval_env
 module Taints = T.Taint_set
@@ -254,7 +254,11 @@ let union_taints_filtering_labels ~new_ curr =
 
 let find_args_taints args_taints fdef =
   let pos_args_taints, named_args_taints =
-    Common.partition_either Fun.id args_taints
+    List.partition_map
+      (function
+        | Unnamed taints -> Left taints
+        | Named (id, taints) -> Right (id, taints))
+      args_taints
   in
   let named_arg_map =
     named_args_taints
@@ -262,7 +266,8 @@ let find_args_taints args_taints fdef =
          (fun map ((s, _), taint) -> SMap.add s taint map)
          SMap.empty
   in
-  let argpos_to_taints = Hashtbl.create 16 in
+  let name_to_taints = Hashtbl.create 10 in
+  let idx_to_taints = Hashtbl.create 10 in
   (* We first process the named arguments, and then positional arguments.
    *)
   let remaining_params =
@@ -277,7 +282,7 @@ let find_args_taints args_taints fdef =
                | Some taints ->
                    (* If this parameter is one of our arguments, insert a mapping and then remove it
                       from the list of remaining parameters.*)
-                   Hashtbl.add argpos_to_taints (Right s') taints;
+                   Hashtbl.add name_to_taints s' taints;
                    acc
                    (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
                | None -> param :: acc (* Same as above. *))
@@ -297,15 +302,14 @@ let find_args_taints args_taints fdef =
                   function signature";
                (i + 1, [])
            | _ :: rest ->
-               Hashtbl.add argpos_to_taints (Left i) taints;
+               Hashtbl.add idx_to_taints i taints;
                (i + 1, rest))
          (0, remaining_params)
   in
   fun (s, i) ->
     let taint_opt =
       match
-        ( Hashtbl.find_opt argpos_to_taints (Right s),
-          Hashtbl.find_opt argpos_to_taints (Left i) )
+        (Hashtbl.find_opt name_to_taints s, Hashtbl.find_opt idx_to_taints i)
       with
       | Some taints, _ -> Some taints
       | _, Some taints -> Some taints
@@ -494,8 +498,9 @@ let rec check_tainted_expr env exp : Taints.t * Lval_env.t =
         (Taints.empty, env.lval_env)
     | Composite (_, (_, es, _)) -> union_map_taints_and_vars env check es
     | Operator (_, es) ->
-        union_map_taints_and_vars env check
-          (Common.map IL_lvalue_helpers.exp_of_arg es)
+        es
+        |> Common.map IL_helpers.exp_of_arg
+        |> union_map_taints_and_vars env check
     | Record fields ->
         union_map_taints_and_vars env
           (fun env -> function
@@ -598,25 +603,19 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
     | Assign (_, e) -> check_expr env e
     | AssignAnon _ -> (Taints.empty, env.lval_env) (* TODO *)
     | Call (_, e, args) ->
-        let args_taints, lval_env =
+        let args_taints, (lval_env, all_taints) =
           args
           |> List.fold_left_map
-               (fun lval_env arg ->
+               (fun (lval_env, all_taints) arg ->
                  let taints, lval_env =
-                   check_expr { env with lval_env }
-                     (IL_lvalue_helpers.exp_of_arg arg)
+                   check_expr { env with lval_env } (IL_helpers.exp_of_arg arg)
                  in
+                 let new_acc = (lval_env, taints :: all_taints) in
                  match arg with
-                 | Unnamed _ -> (lval_env, Left taints)
-                 | Named (id, _) -> (lval_env, Right (id, taints)))
-               env.lval_env
+                 | Unnamed _ -> (new_acc, Unnamed taints)
+                 | Named (id, _) -> (new_acc, Named (id, taints)))
+               (env.lval_env, [])
           |> Common2.swap
-        in
-        let all_taints =
-          args_taints
-          |> Common.map (function
-               | Left taints -> taints
-               | Right (_, taints) -> taints)
         in
         let e_taints, lval_env = check_expr { env with lval_env } e in
         let call_taints =
@@ -629,8 +628,9 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         in
         (call_taints, lval_env)
     | CallSpecial (_, _, args) ->
-        union_map_taints_and_vars env check_expr
-          (Common.map IL_lvalue_helpers.exp_of_arg args)
+        args
+        |> Common.map IL_helpers.exp_of_arg
+        |> union_map_taints_and_vars env check_expr
     | FixmeInstr _ -> (Taints.empty, env.lval_env)
   in
   let sanitizer_pms = orig_is_sanitized env.config instr.iorig in
