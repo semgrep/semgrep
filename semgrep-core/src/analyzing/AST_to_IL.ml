@@ -780,7 +780,6 @@ and argument env arg =
   | G.Arg e -> Unnamed (expr env e)
   | G.ArgKwd (id, e)
   | G.ArgKwdOptional (id, e) ->
-      (* TODO: Handle the keyword/label somehow (when relevant). *)
       Named (id, expr env e)
   | G.ArgType { t = TyExpr e; _ } -> Unnamed (expr env e)
   | _ ->
