@@ -1,1 +1,1 @@
-Added support for named arguments in taint tracking.
+Added support for named arguments in taint tracking. This is only relevant for DeepSemgrep users.

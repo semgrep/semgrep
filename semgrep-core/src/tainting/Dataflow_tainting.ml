@@ -51,6 +51,7 @@ module DataflowX = Dataflow_core.Make (struct
 end)
 
 module LabelSet = Set.Make (String)
+module SMap = Map.Make (String)
 
 (*****************************************************************************)
 (* Types *)
@@ -255,38 +256,51 @@ let find_args_taints args_taints fdef =
   let pos_args_taints, named_args_taints =
     Common.partition_either Fun.id args_taints
   in
-  let argpos_to_taints = Hashtbl.create 11 in
-  (* We first process the positional arguments, and then the named arguments.
-     This is OK because in Python, positional arguments must appear before named arguments.
-  *)
-  let remaining_params =
-    List.fold_left
-      (fun (i, params) taints ->
-        match params with
-        | [] ->
-            logger#error
-              "More args to function than there are positional arguments in \
-               function signature";
-            (i + 1, [])
-        | _ :: rest ->
-            Hashtbl.add argpos_to_taints (Left i) taints;
-            (i + 1, rest))
-      (0, fdef.G.fparams) pos_args_taints
-    |> snd
+  let named_arg_map =
+    named_args_taints
+    |> List.fold_left
+         (fun map ((s, _), taint) -> SMap.add s taint map)
+         SMap.empty
   in
-  List.iter
-    (fun ((s, _), taints) ->
-      match
-        List.find_map
-          (function
-            | G.Param { pname = Some (s', _); _ } ->
-                if String.equal s s' then Some s' else None
-            | _ -> None)
-          remaining_params
-      with
-      | None -> logger#error "Cannot find named argument in function signature"
-      | Some s -> Hashtbl.add argpos_to_taints (Right s) taints)
-    named_args_taints;
+  let argpos_to_taints = Hashtbl.create 16 in
+  (* We first process the named arguments, and then positional arguments.
+   *)
+  let remaining_params =
+    (* Here, we take all the named arguments and remove them from the list of parameters.
+     *)
+    fdef.G.fparams
+    |> List.fold_right
+         (fun param acc ->
+           match param with
+           | G.Param { pname = Some (s', _); _ } -> (
+               match SMap.find_opt s' named_arg_map with
+               | Some taints ->
+                   (* If this parameter is one of our arguments, insert a mapping and then remove it
+                      from the list of remaining parameters.*)
+                   Hashtbl.add argpos_to_taints (Right s') taints;
+                   acc
+                   (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
+               | None -> param :: acc (* Same as above. *))
+           | _ -> param :: acc)
+         []
+  in
+  let _ =
+    (* We then process all of the positional arguments in order of the remaining parameters.
+     *)
+    pos_args_taints
+    |> List.fold_left
+         (fun (i, remaining_params) taints ->
+           match remaining_params with
+           | [] ->
+               logger#error
+                 "More args to function than there are positional arguments in \
+                  function signature";
+               (i + 1, [])
+           | _ :: rest ->
+               Hashtbl.add argpos_to_taints (Left i) taints;
+               (i + 1, rest))
+         (0, remaining_params)
+  in
   fun (s, i) ->
     let taint_opt =
       match
