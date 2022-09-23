@@ -273,21 +273,20 @@ let find_args_taints args_taints fdef =
   let remaining_params =
     (* Here, we take all the named arguments and remove them from the list of parameters.
      *)
-    fdef.G.fparams
-    |> List.fold_right
-         (fun param acc ->
-           match param with
-           | G.Param { pname = Some (s', _); _ } -> (
-               match SMap.find_opt s' named_arg_map with
-               | Some taints ->
-                   (* If this parameter is one of our arguments, insert a mapping and then remove it
-                      from the list of remaining parameters.*)
-                   Hashtbl.add name_to_taints s' taints;
-                   acc
-                   (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
-               | None -> param :: acc (* Same as above. *))
-           | _ -> param :: acc)
-         []
+    List.fold_right
+      (fun param acc ->
+        match param with
+        | G.Param { pname = Some (s', _); _ } -> (
+            match SMap.find_opt s' named_arg_map with
+            | Some taints ->
+                (* If this parameter is one of our arguments, insert a mapping and then remove it
+                   from the list of remaining parameters.*)
+                Hashtbl.add name_to_taints s' taints;
+                acc
+                (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
+            | None -> param :: acc (* Same as above. *))
+        | _ -> param :: acc)
+      fdef.G.fparams []
   in
   let _ =
     (* We then process all of the positional arguments in order of the remaining parameters.
@@ -316,7 +315,8 @@ let find_args_taints args_taints fdef =
       | _ -> None
     in
     if Option.is_none taint_opt then
-      logger#error "cannot match taint variable with function arguments";
+      logger#error
+        "cannot match taint variable with function arguments (%i: %s)" i s;
     taint_opt
 
 (*****************************************************************************)
