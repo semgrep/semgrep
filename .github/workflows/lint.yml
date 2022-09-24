@@ -66,6 +66,8 @@ jobs:
     container: returntocorp/ocaml:ubuntu-2022-09-24
     # HOME is tampered by GHA and modified from /root to /home/github
     # which then confuses opam which can not find its ~/.opam (which is at /root/.opam)
+    # hence the ugly use of sudo below (an alternative is to prefix some commands
+    # with HOME=root ...
     steps:
       - run: |
           ls -al /root
@@ -76,9 +78,10 @@ jobs:
       - uses: actions/checkout@v3
       - name: Check OCaml code
         run: |
-          ls -al /root
+          pwd
+          ls -l /home/github
           #TODO? why do we need that?
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           # coupling: must be the same than in semgrep-core/dev/dev.opam
           sudo opam install -y ocamlformat.0.21.0
-          sudo pre-commit run --verbose --all lint-ocaml
+          sudo opam exec -- pre-commit run --verbose --all lint-ocaml
