@@ -76,10 +76,10 @@ jobs:
       - uses: actions/checkout@v3
       - name: Check OCaml code
         run: |
-          pwd
-          echo $HOME
           # coupling: must be the same than in semgrep-core/dev/dev.opam
           sudo opam install -y ocamlformat.0.21.0
           #TODO? why do we need that?
-          sudo git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          #sudo git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          pwd
+          ls -al .
           sudo opam exec -- pre-commit run --verbose --all lint-ocaml
