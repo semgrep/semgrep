@@ -63,20 +63,13 @@ jobs:
     runs-on: ubuntu-latest
     # Custom image provides 'ocamlformat' with a specific version needed to check
     # OCaml code (must be the same than the one in semgrep-core/dev/dev.opam)
-    container: returntocorp/ocaml:ubuntu-2022-06-09
+    container: returntocorp/ocaml:ubuntu-2022-09-24
     steps:
-      # Apparently GHA when running a container: does a bunch of
-      # `docker create` on /github and /__w but with the wrong permissions
-      # (all of this after it pulled the custom container), hence the chmod below.
-      # I wish we could have a .github/pre-gha-checkout to factorize and document
-      # this mess, but we're before the checkout@v3 so there is no .github yet :)
-      - name: Pre-checkout GHA fixes
-        run: sudo chmod -R 777 /github /__w
       - uses: actions/checkout@v3
       - name: Check OCaml code
         run: |
           #TODO? why do we need that?
-          sudo -u user git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           # coupling: must be the same than in semgrep-core/dev/dev.opam
-          sudo -u user opam install -y ocamlformat.0.21.0
-          sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
+          opam install -y ocamlformat.0.21.0
+          opam exec -- pre-commit run --verbose --all lint-ocaml
