@@ -1,6 +1,6 @@
 # This workflow performs additional tasks on a PR when
 # someone (or start-release.yml) push to a vXXX branch.
-# Those tasks are to to push a new develop docker image, create
+# Those tasks are to push a new develop docker image, create
 # release artifacts with the Linux and MacOS semgrep packages,
 # update PyPy and homebrew, etc.
 
