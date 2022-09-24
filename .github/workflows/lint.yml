@@ -81,7 +81,7 @@ jobs:
           # coupling: must be the same than in semgrep-core/dev/dev.opam
           sudo opam install -y ocamlformat.0.21.0
           #TODO? why do we need that?
-          #sudo git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          sudo git config --global --add safe.directory "$GITHUB_WORKSPACE"
           #   fatal: detected dubious ownership in repository at '/__w/semgrep/semgrep'
           #   To add an exception for this directory, call:
           #         git config --global --add safe.directory /__w/semgrep/semgrep
