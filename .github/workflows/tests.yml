@@ -168,7 +168,9 @@ jobs:
     # TODO: use the artifact of build-core in this job
     name: test semgrep-core
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2022-06-09
+    container: returntocorp/ocaml:alpine-2022-09-24
+    env:
+      HOME: /root
     steps:
       - name: Install pipenv
         run: sudo pip install pipenv==2022.6.7
