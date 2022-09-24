@@ -65,7 +65,7 @@ jobs:
     # OCaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu-2022-09-24
     # HOME is tampered by GHA and modified from /root to /home/github
-    # which then confuses opam which can not find its ~/.opam
+    # which then confuses opam which can not find its ~/.opam (which is at /root/.opam)
     steps:
       - run: |
           ls -al /root
@@ -80,5 +80,5 @@ jobs:
           #TODO? why do we need that?
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           # coupling: must be the same than in semgrep-core/dev/dev.opam
-          HOME=/root opam install -y ocamlformat.0.21.0
-          HOME=/root opam exec -- pre-commit run --verbose --all lint-ocaml
+          sudo opam install -y ocamlformat.0.21.0
+          sudo pre-commit run --verbose --all lint-ocaml
