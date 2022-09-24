@@ -69,6 +69,7 @@ jobs:
           ls -al /root
           which opam
           which ocamlc
+          opam env
       - uses: actions/checkout@v3
       - name: Check OCaml code
         run: |
