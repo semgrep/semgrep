@@ -64,29 +64,22 @@ jobs:
     # Custom image provides 'ocamlformat' with a specific version needed to check
     # OCaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu-2022-09-24
-    # HOME is tampered by GHA and modified from /root to /home/github
+    # HOME in the container is tampered by GHA and modified from /root to /home/github
     # which then confuses opam which can not find its ~/.opam (which is at /root/.opam)
     # hence the ugly use of sudo below (an alternative is to prefix some commands
     # with HOME=root ...
     steps:
-      - name: Check environment variable tampering
+      - uses: actions/checkout@v3
+      - name: Check OCaml code
         env:
           HOME: /root
         run: |
-          pwd
-          echo $HOME
-      - uses: actions/checkout@v3
-      - name: Check OCaml code
-        run: |
           # coupling: must be the same than in semgrep-core/dev/dev.opam
-          sudo opam install -y ocamlformat.0.21.0
+          opam install -y ocamlformat.0.21.0
           #TODO? why do we need that?
-          sudo git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           #   fatal: detected dubious ownership in repository at '/__w/semgrep/semgrep'
           #   To add an exception for this directory, call:
           #         git config --global --add safe.directory /__w/semgrep/semgrep
-          pwd
-          ls -al .
-          echo $GITHUB_WORKSPACE
-          sudo opam exec -- pre-commit run --verbose --all lint-ocaml
+          opam exec -- pre-commit run --verbose --all lint-ocaml
           #sudo opam exec -- pre-commit run --verbose --all lint-ocaml || cat /root/.cache/pre-commit/pre-commit.log
