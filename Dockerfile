@@ -37,7 +37,7 @@ RUN make setup
 # Let's build just semgrep-core
 WORKDIR /src/semgrep/semgrep-core
 # An alternative to the eval is to use 'opam exec -- ...'
-RUN eval $(opam env) && make minimal-build &&\
+RUN eval "$(opam env)" && make minimal-build &&\
      # Sanity check
      /src/semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
 
