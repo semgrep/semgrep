@@ -72,7 +72,7 @@ jobs:
           which opam
           which ocamlc
           echo $HOME
-          opam exec -- opam env
+          HOME=/root opam exec -- opam env
       - uses: actions/checkout@v3
       - name: Check OCaml code
         run: |
@@ -80,5 +80,5 @@ jobs:
           #TODO? why do we need that?
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           # coupling: must be the same than in semgrep-core/dev/dev.opam
-          opam exec -- opam install -y ocamlformat.0.21.0
-          opam exec -- pre-commit run --verbose --all lint-ocaml
+          HOME=/root opam install -y ocamlformat.0.21.0
+          HOME=/root opam exec -- pre-commit run --verbose --all lint-ocaml
