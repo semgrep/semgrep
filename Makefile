@@ -3,10 +3,45 @@
 ###############################################################################
 # This Makefile is targeted at developers.
 # For a one-shot production build, look into Dockerfile.
+# 
+# This Makefile assumes some commands have been run before to install
+# the correct development environment supporting the different languages
+# used for semgrep development: 
+#  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
+#  - for Python: 'python3', 'pip', 'pipenv', 'python-config'
+#  - for OCaml: 'opam' and the right OCaml switch (currently 4.14)
+# You will also need obviously 'make', but also 'git', and many other
+# common dev tools (e.g., 'docker').
+#
+# Once this basic development environment has been setup
+# (either via apk commands in a Dockerfile, or with some steps: apt-get
+# in GHA, or with your own brew/apt-get/pacman/whatever on your own machine),
+# you can then use:
+#
+#     $ make setup
+#
+# to install the dependencies proper to semgrep (e.g., the necessary OPAM
+# packages used by semgrep-core).
+# Then to compile semgrep simply type:
+#
+#     $ make
+#
+# See INSTALL.md for more information
+# See also https://semgrep.dev/docs/contributing/contributing-code/
 
 ###############################################################################
 # Portability tricks
 ###############################################################################
+
+# This Makefile should work equally under Linux (Alpine, Ubuntu, Arch linux),
+# macOS, or from a Dockerfile, and hopefully also under Windows WSL.
+# This is why you should avoid to use platform-specific commands like
+# package managers (e.g., apk, apt-get, brew) here. Instead you should
+# put those system-wide installation commands in the Dockerfile, or
+# in GHA workflows, or in scripts/ (e.g., scripts/install-alpine-semgrep-core).
+
+# If you really have to use platform-specific commands or flags, try to use
+# macros like the one below to make the Makefile portable.
 
 # Used to select commands with different usage under GNU/Linux and *BSD/Darwin
 # such as 'sed'.
