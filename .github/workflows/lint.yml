@@ -65,9 +65,13 @@ jobs:
     # OCaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu-2022-09-24
     steps:
+      - run: |
+          ls -al /root
+          opam info
       - uses: actions/checkout@v3
       - name: Check OCaml code
         run: |
+          ls -al /root
           #TODO? why do we need that?
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           # coupling: must be the same than in semgrep-core/dev/dev.opam
