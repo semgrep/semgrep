@@ -82,4 +82,5 @@ jobs:
           #sudo git config --global --add safe.directory "$GITHUB_WORKSPACE"
           pwd
           ls -al .
-          sudo opam exec -- pre-commit run --verbose --all lint-ocaml
+          echo $GITHUB_WORKSPACE
+          sudo opam exec -- pre-commit run --verbose --all lint-ocaml || cat /root/.cache/pre-commit/pre-commit.log
