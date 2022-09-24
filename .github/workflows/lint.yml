@@ -79,9 +79,8 @@ jobs:
       - name: Check OCaml code
         run: |
           pwd
-          ls -l /home/github
           #TODO? why do we need that?
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          sudo -u root git config --global --add safe.directory "$GITHUB_WORKSPACE"
           # coupling: must be the same than in semgrep-core/dev/dev.opam
-          sudo opam install -y ocamlformat.0.21.0
-          sudo opam exec -- pre-commit run --verbose --all lint-ocaml
+          sudo -u root opam install -y ocamlformat.0.21.0
+          sudo -u root opam exec -- pre-commit run --verbose --all lint-ocaml
