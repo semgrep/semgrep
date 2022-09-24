@@ -69,18 +69,17 @@ jobs:
     # hence the ugly use of sudo below (an alternative is to prefix some commands
     # with HOME=root ...
     steps:
-      - run: |
-          ls -al /root
-          which opam
-          which ocamlc
+      - name: Check environment variable tampering
+        run: |
+          pwd
           echo $HOME
-          HOME=/root opam exec -- opam env
       - uses: actions/checkout@v3
       - name: Check OCaml code
         run: |
           pwd
-          #TODO? why do we need that?
-          sudo -u root git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          echo $HOME
           # coupling: must be the same than in semgrep-core/dev/dev.opam
-          sudo -u root opam install -y ocamlformat.0.21.0
-          sudo -u root opam exec -- pre-commit run --verbose --all lint-ocaml
+          sudo opam install -y ocamlformat.0.21.0
+          #TODO? why do we need that?
+          sudo git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          sudo opam exec -- pre-commit run --verbose --all lint-ocaml
