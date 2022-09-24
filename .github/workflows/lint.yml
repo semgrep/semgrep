@@ -70,13 +70,13 @@ jobs:
     # with HOME=root ...
     steps:
       - name: Check environment variable tampering
-        env: HOME:/root
+        env:
+          HOME: /root
         run: |
           pwd
           echo $HOME
       - uses: actions/checkout@v3
       - name: Check OCaml code
-        env: HOME:/root
         run: |
           # coupling: must be the same than in semgrep-core/dev/dev.opam
           sudo opam install -y ocamlformat.0.21.0
