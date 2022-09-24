@@ -3,10 +3,10 @@
 ###############################################################################
 # This Makefile is targeted at developers.
 # For a one-shot production build, look into Dockerfile.
-# 
+#
 # This Makefile assumes some commands have been run before to install
 # the correct development environment supporting the different languages
-# used for semgrep development: 
+# used for semgrep development:
 #  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
 #  - for Python: 'python3', 'pip', 'pipenv', 'python-config'
 #  - for OCaml: 'opam' and the right OCaml switch (currently 4.14)
