@@ -22,6 +22,8 @@ jobs:
     name: build semgrep-core
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2022-09-24
+    env:
+      HOME: /root
     steps:
       #TODO: why do we need this? What does not work if we don't have this?
       - name: Pre-checkout fixes
