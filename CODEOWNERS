@@ -1,0 +1,20 @@
+# Together with the correct GitHub project setting, this limits who can
+# approve pull requests.
+# It's also used by GitHub to suggest reviewers.
+
+# Default owners:
+# Program Analysis team at r2c
+* @returntocorp/pa
+
+# Python CLI code base.
+#
+# Too many people? Not enough people?
+# Consider updating GitHub teams rather than
+# adding individuals here.
+cli @returntocorp/pa @returntocorp/cli @returntocorp/sca
+
+# CI
+.github @returntocorp/devops @returntocorp/pa
+
+# CI not supported by DevOps
+.circleci @returntocorp/pa
