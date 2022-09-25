@@ -14,8 +14,8 @@
 # Step1: build semgrep-core
 ###############################################################################
 
-# The Docker image below (after the 'FROM') is prepackaged with OCaml, 'opam',
-# and lots of packages that are used by semgrep-core and installed in
+# The Docker image below (after the 'FROM') is prepackaged with 'ocamlc',
+# 'opam', and lots of packages that are used by semgrep-core and installed in
 # 'make setup' further below.
 # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
 # Thanks to this container, 'make setup' finishes very quickly because it's
@@ -25,10 +25,13 @@
 #    but building a Docker image would take longer because
 #    of all the necessary Semgrep dependencies installed in 'make setup'.
 #    Note also that ocaml/opam:alpine default user is 'opam', not 'root', which
-#    is not without problems when used inside GHA or even inside this Dockerfile.
+#    is not without problems when used inside Github actions (GHA) or even inside
+#    this Dockerfile.
 #
-#  - alpine, but installing opam/ocaml from scratch on Alpine would take
-#    longer (and is not trivial).
+#  - basic alpine, but this would require some extra 'apk' commands to install opam
+#    and extra commands to setup OCaml with this opam from scratch. This would take
+#    far longer, and is also not trivial as 'opam' itself requires lots of extra
+#    tools like gcc, make, which are not provided by default on Alpine.
 #
 # Note that the Docker base image below currently uses OCaml 4.14.0
 # coupling: if you modify the OCaml version there, you probably also need
@@ -40,7 +43,6 @@
 # Note that many .github/workflows/ use returntocorp/ocaml:alpine, which should
 # be the latest, but may differ from this one.
 FROM returntocorp/ocaml:alpine-2022-09-24 as semgrep-core-container
-
 
 # Here is why we need those apk packages below:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
