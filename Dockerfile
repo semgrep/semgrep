@@ -26,7 +26,7 @@
 # Thanks to this container, 'make setup' finishes very quickly because it's
 # mostly a noop. Alternative base container candidates are:
 #
-#  - 'ocaml/opam:alpine', the official OCaml/opam Docker image, 
+#  - 'ocaml/opam:alpine', the official OCaml/opam Docker image,
 #    but building our Docker image would take longer because
 #    of all the necessary Semgrep dependencies installed in 'make setup'.
 #
