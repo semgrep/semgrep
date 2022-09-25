@@ -1,31 +1,52 @@
 ###############################################################################
 # Overview
 ###############################################################################
-# First, build a *static* 'semgrep-core' binary on Alpine
-# (requires using musl rather than glibc).
+# First, we build a fully *static* 'semgrep-core' binary on Alpine. This
+# binary does not even depend on Glibc because Alpine uses Musl instead
+# which can be statically linked.
 #
-# Then 'semgrep-core' alone is copied to a container which takes care
-# of the 'semgrep-cli' Python wrapping.
+# Then 'semgrep-core' alone is copied to another Alpine-based container
+# which takes care of the 'semgrep-cli' Python wrapping.
+#
+# We use Alpine because it allows to generate the smallest Docker images.
 
 ###############################################################################
 # Step1: build semgrep-core
 ###############################################################################
-# The docker base image below in the FROM currently uses OCaml 4.14.0
+
+# The Docker image below (after the 'FROM') is prepackaged with OCaml, 'opam',
+# and lots of packages that are used by semgrep-core and installed in
+# 'make setup' further below.
 # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
+# Thanks to this container, 'make setup' finishes very quickly because it's
+# mostly a noop. Alternative container candidates are:
+#
+#  - ocaml/opam:alpine, the official OCaml/opam container, 
+#    but building a Docker image would take longer because
+#    of all the necessary Semgrep dependencies installed in 'make setup'.
+#    Note also that ocaml/opam:alpine default user is 'opam', not 'root', which
+#    is not without problems when used inside GHA or even inside this Dockerfile.
+#
+#  - alpine, but installing opam/ocaml from scratch on Alpine would take
+#    longer (and is not trivial).
+#
+# Note that the Docker base image below currently uses OCaml 4.14.0
 # coupling: if you modify the OCaml version there, you probably also need
 # to modify:
 # - scripts/{osx-release,osx-m1-release,setup-m1-builder}.sh
 # - doc/SEMGREP_CORE_CONTRIBUTING.md
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
+#
 # Note that many .github/workflows/ use returntocorp/ocaml:alpine, which should
 # be the latest, but may differ from this one.
 FROM returntocorp/ocaml:alpine-2022-09-24 as semgrep-core-container
 
-# Here is why we need those apk packages:
+
+# Here is why we need those apk packages below:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
-# - python3: used during building for processing lang.json
+# - python3: used also during building semgrep-core for processing lang.json
 # - python3-dev: for the semgrep Python bridge to build Python C extensions
-# TODO: update root image to include python 3.9
+# TODO: update the root image to include python 3.9 so those apk are fast too
 RUN apk add --no-cache pcre-dev python3 python3-dev &&\
      pip install --no-cache-dir pipenv==2022.6.7
 
@@ -56,10 +77,10 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
      PYTHONIOENCODING=utf8 \
      PYTHONUNBUFFERED=1
 
-# Here is why we need those apk packages:
+# Here is why we need those apk packages below:
 # - bash: for entrypoint.sh (see below) and probably many other things
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
-#   Github actions and get git submodules and use ssh to get those submodules
+#   Github actions (GHA) and get git submodules and use ssh to get those submodules
 # - libstdc++: for the Python jsonnet binding now used in the semgrep CLI
 #   note: do not put libstdc++6, you'll get 'missing library' or 'unresolved
 #   symbol' errors
