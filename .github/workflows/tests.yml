@@ -18,21 +18,22 @@ on:
       - "**.md"
 
 jobs:
-  build-core:
-    name: build semgrep-core
+  build-semgrep-core:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2022-09-24
+    # We need this hack because GHA tampers with the HOME in container
+    # and this does not play well with 'opam' installed in /root
     env:
       HOME: /root
     steps:
-      #TODO: why do we need this? What does not work if we don't have this?
-      - name: Install python3-config
-        run: sudo apk add python3-dev
-      - name: Checkout
-        uses: actions/checkout@v3
+      #TODO: why do we need this? why it's not in install-alpine-semgrep-core?
+      - run: sudo apk add python3-dev
+      - uses: actions/checkout@v3
+      #TODO: this seems needed later for caching
       - id: submodule-status
         name: Get submodule version
         run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
+      #TODO? what fails with that?
       - name: Remove broken symlinks
         run: find -L . -type l -exec rm {} \;
       - id: core-cache
@@ -41,68 +42,54 @@ jobs:
         with:
           path: ocaml-build-artifacts.tgz
           key: "${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-${{ steps.submodule-status.outputs.versions-hash }}"
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         if: steps.core-cache.outputs.cache-hit != 'true'
         with:
           submodules: recursive
-      - name: Install pipenv
-        if: steps.core-cache.outputs.cache-hit != 'true'
+      - if: steps.core-cache.outputs.cache-hit != 'true'
         run: sudo pip install pipenv==2022.6.7
       - name: Cache OCaml build files
         if: steps.core-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v3
         with:
           path: |
-            /home/user/.cache/pipenv
-            /home/user/.local/share/virtualenvs
-            /home/user/.dune
-            /home/user/.opam/download-cache
-            /home/user/.opam/*/.opam-switch/packages
-            /home/user/.opam/*/.opam-switch/sources
+            /root/.cache/pipenv
+            /root/.local/share/virtualenvs
+            /root/.dune
+            /root/.opam/download-cache
+            /root/.opam/*/.opam-switch/packages
+            /root/.opam/*/.opam-switch/sources
           key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
         if: steps.core-cache.outputs.cache-hit != 'true'
-        run: ./scripts/install-alpine-semgrep-core
         env:
           DUNE_CACHE: enabled
           DUNE_CACHE_STORAGE_MODE: copy
-          DUNE_CACHE_ROOT: /home/user/.dune
+          DUNE_CACHE_ROOT: /root/.dune
           DUNE_CACHE_TRANSPORT: direct
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        run: ./scripts/install-alpine-semgrep-core
+      - uses: actions/upload-artifact@v3
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
 
   build-docker:
-    name: build docker image
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Build image
-        uses: docker/build-push-action@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
         with:
           load: true
           tags: candidate-image
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
-
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Check the semgrep Docker image
-        run: ./scripts/validate-docker-build.sh candidate-image
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
+      - uses: actions/checkout@v3
+      - run: ./scripts/validate-docker-build.sh candidate-image
+      - uses: docker/login-action@v2
         if: github.actor != 'dependabot[bot]' && (github.event.pull_request.head.repo.full_name == github.repository || github.ref == 'refs/heads/develop')
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-
       - id: meta
         name: Set tags and labels
         uses: docker/metadata-action@v4
@@ -157,7 +144,7 @@ jobs:
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
 
   test-core:
-    # TODO: use the artifact of build-core in this job
+    # TODO: use the artifact of build-semgrep-core in this job
     name: test semgrep-core
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2022-09-24
@@ -176,19 +163,19 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            /home/user/.cache/pipenv
-            /home/user/.local/share/virtualenvs
-            /home/user/.dune
-            /home/user/.opam/download-cache
-            /home/user/.opam/*/.opam-switch/packages
-            /home/user/.opam/*/.opam-switch/sources
+            /root/.cache/pipenv
+            /root/.local/share/virtualenvs
+            /root/.dune
+            /root/.opam/download-cache
+            /root/.opam/*/.opam-switch/packages
+            /root/.opam/*/.opam-switch/sources
           key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
         env:
           DUNE_CACHE: enabled
           DUNE_CACHE_STORAGE_MODE: copy
-          DUNE_CACHE_ROOT: /home/user/.dune
+          DUNE_CACHE_ROOT: /root/.dune
           DUNE_CACHE_TRANSPORT: direct
       - name: Test semgrep-core
         run: |
@@ -221,7 +208,7 @@ jobs:
   test-cli:
     name: test semgrep-cli
     runs-on: ubuntu-latest
-    needs: [build-core]
+    needs: [build-semgrep-core]
     permissions:
       contents: write
       pull-requests: write
@@ -302,7 +289,7 @@ jobs:
   test-qa:
     name: quality assurance on semgrep
     runs-on: ubuntu-latest
-    needs: [build-core]
+    needs: [build-semgrep-core]
     strategy:
       fail-fast: false
       matrix:
@@ -351,7 +338,7 @@ jobs:
   benchmarks-lite:
     name: benchmarks (lite)
     runs-on: ubuntu-latest
-    needs: [build-core]
+    needs: [build-semgrep-core]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -387,7 +374,7 @@ jobs:
   benchmarks-full:
     name: benchmarks (full)
     runs-on: ubuntu-latest
-    needs: [build-core]
+    needs: [build-semgrep-core]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -480,7 +467,7 @@ jobs:
 
   build-ubuntu:
     name: build Ubuntu release
-    needs: [build-core]
+    needs: [build-semgrep-core]
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
