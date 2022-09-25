@@ -138,30 +138,23 @@ jobs:
   build-core:
     name: semgrep-core make test and semgrep make test/qa-test
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2022-06-09
+    container: returntocorp/ocaml:alpine-2022-09-24
+    # We need this hack because GHA tampers with the HOME in container
+    # and this does not play well with 'opam' installed in /root
+    env:
+      HOME: /root
     steps:
-      - name: Install pipenv
-        run: sudo pip install pipenv==2022.6.7
-      - name: Pre-checkout fixes
-        run: |
-          sudo chmod -R 777 /github
-          github_cache_dir="/__w"
-          sudo mkdir -p "$github_cache_dir"
-          sudo chmod -R 777 "$github_cache_dir"
-      - name: Install python3-config
-        run: sudo apk add python3-dev
+      #TODO: why do we need this? should be in install-alpine-semgrep-core
+      - run: sudo pip install pipenv==2022.6.7
+      - run: sudo apk add python3-dev
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           submodules: true
-      - name: Post-checkout fixes
-        run: ./.github/post-checkout
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v3
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
