@@ -9,6 +9,10 @@
 # which takes care of the 'semgrep-cli' Python wrapping.
 #
 # We use Alpine because it allows to generate the smallest Docker images.
+# We use this two-steps process because *building* semgrep-core itself
+# requires lots of tools (ocamlc, gcc, make, etc.), with big containers,
+# but those tools are not necessary when *running* semgrep.
+# This is a standard practice in the Docker world.
 
 ###############################################################################
 # Step1: build semgrep-core
@@ -16,21 +20,28 @@
 
 # The Docker image below (after the 'FROM') is prepackaged with 'ocamlc',
 # 'opam', and lots of packages that are used by semgrep-core and installed in
-# 'make setup' further below.
+# the 'make setup' command further below.
 # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
+# for this list of packages.
 # Thanks to this container, 'make setup' finishes very quickly because it's
-# mostly a noop. Alternative container candidates are:
+# mostly a noop. Alternative base container candidates are:
 #
-#  - ocaml/opam:alpine, the official OCaml/opam container, 
-#    but building a Docker image would take longer because
+#  - 'ocaml/opam:alpine', the official OCaml/opam Docker image, 
+#    but building our Docker image would take longer because
 #    of all the necessary Semgrep dependencies installed in 'make setup'.
+#
+#    We build a new Semgrep Docker image on each pull-request (PR) so we don't
+#    want to wait 30min each time just for 'docker build' to finish.
+#
 #    Note also that ocaml/opam:alpine default user is 'opam', not 'root', which
 #    is not without problems when used inside Github actions (GHA) or even inside
 #    this Dockerfile.
 #
-#  - basic alpine, but this would require some extra 'apk' commands to install opam
-#    and extra commands to setup OCaml with this opam from scratch. This would take
-#    far longer, and is also not trivial as 'opam' itself requires lots of extra
+#  - 'alpine', the official Alpine Docker image, but this would require some
+#    extra 'apk' commands to install opam, and extra commands to setup OCaml
+#    with this opam from scratch, and more importantly this would take
+#    far more time to finish. Moreover, it is not trivial to work from such
+#    a base container as 'opam' itself requires lots of extra
 #    tools like gcc, make, which are not provided by default on Alpine.
 #
 # Note that the Docker base image below currently uses OCaml 4.14.0
