@@ -336,7 +336,6 @@ jobs:
 
   # Run abbreviated version of benchmarks to check that they work
   benchmarks-lite:
-    name: benchmarks (lite)
     runs-on: ubuntu-latest
     needs: [build-semgrep-core]
     steps:
@@ -372,7 +371,6 @@ jobs:
 
   # Run each benchmark twice to decrease effect of natural variance
   benchmarks-full:
-    name: benchmarks (full)
     runs-on: ubuntu-latest
     needs: [build-semgrep-core]
     steps:
@@ -427,7 +425,6 @@ jobs:
           perf/compare-bench-findings cli/findings.json
 
   build-macos-release:
-    name: build macOS release
     runs-on: ["self-hosted", "macOS", "X64"]
     steps:
       - name: Checkout
@@ -465,8 +462,7 @@ jobs:
           chmod +x ./test-artifacts/semgrep-core
           ./test-artifacts/semgrep-core -help
 
-  build-ubuntu:
-    name: build Ubuntu release
+  build-ubuntu-release:
     needs: [build-semgrep-core]
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-16.04
