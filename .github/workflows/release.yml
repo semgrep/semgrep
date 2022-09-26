@@ -1,4 +1,9 @@
-# Create Draft Release
+# This workflow performs additional tasks on a PR when
+# someone (or start-release.yml) push to a vXXX branch.
+# Those tasks are to to push a new develop docker image, create
+# release artifacts with the Linux and MacOS semgrep packages,
+# update PyPy and homebrew, etc.
+
 name: release
 
 on:
@@ -480,6 +485,7 @@ jobs:
       - uses: dawidd6/action-homebrew-bump-formula@v3
         with:
           token: ${{ secrets.HOMEBREW_PR_TOKEN }}
+          # see https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/semgrep.rb
           formula: semgrep
           org: returntocorp
           force: true

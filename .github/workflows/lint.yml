@@ -1,4 +1,9 @@
+# The goal of this workflow is mostly to run pre-commit on every pull requests.
+
+#TODO? we could rename to 'pre-commit' really. We used to run another "lint-style" command
+# for the changelog, but we don't anymore, so all that remains is just pre-commit stuff
 name: lint
+
 on:
   workflow_dispatch:
   pull_request:
@@ -7,27 +12,42 @@ on:
       - develop
 
 jobs:
+  # Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
+  # our pre-commit configuration.
   pre-commit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+      # We grab those submodules below because they are the one needed by 'mypy', which
+      # runs as part of pre-commit to check our Python code.
+      # alt: we could also use 'submodules: recursive' instead, but that would be slower
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+      # pre-commit is a Python script, hence this action.
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
+          # This caches the pip installed dependencies that pre-commit uses.
+          # Otherwise it will need to reinstall everytime.
+          # TODO? who will need to reinstall everytime? github action? How much does this
+          # cache directive speedup this workflow?
           cache: pip
           cache-dependency-path: .github/workflows/lint.yml
       - uses: pre-commit/action@v3.0.0
 
+  # This is mostly a copy-paste of the pre-commit job above. The only difference
+  # is the extra_args: directive, which runs semgrep/.pre-commit-config.yaml#L150,
+  # which runs Semgrep Bandit and Semgrep Python, which we don't run on normal pre-commit
+  # since they would slow down pre-commit on local development.
+  # We could add the last step of this job in the pre-commit job above, but jobs can run
+  # in parallel, hence the copy-paste.
+  # The intention is a test that runs semgrep-pre-commit.
+  # (TODO: actually it looks like we also run Semgrep Bandit/Python in normal pre-commit)
+  # TODO? should we split this out to a different config?
   pre-commit-manual:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -38,57 +58,25 @@ jobs:
           extra_args: --hook-stage manual
 
   pre-commit-ocaml:
+    # Even if there's a container: below, we still need a runs-on:, to say which VM will
+    # run the docker container. See https://github.com/orgs/community/discussions/25534
     runs-on: ubuntu-latest
     # Custom image provides 'ocamlformat' with a specific version needed to check
-    # ocaml code (must be the same than the one in semgrep-core/dev/dev.opam)
+    # OCaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu-2022-06-09
     steps:
-      - name: Pre-checkout fixes
-        run: |
-          sudo chmod -R 777 /github
-          github_cache_dir="/__w"
-          sudo mkdir -p "$github_cache_dir"
-          sudo chmod -R 777 "$github_cache_dir"
+      # Apparently GHA when running a container: does a bunch of
+      # `docker create` on /github and /__w but with the wrong permissions
+      # (all of this after it pulled the custom container), hence the chmod below.
+      # I wish we could have a .github/pre-gha-checkout to factorize and document
+      # this mess, but we're before the checkout@v3 so there is no .github yet :)
+      - name: Pre-checkout GHA fixes
+        run: sudo chmod -R 777 /github /__w
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
       - name: Check OCaml code
         run: |
+          #TODO? why do we need that?
           sudo -u user git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          # install correct version of ocamlformat
+          # coupling: must be the same than in semgrep-core/dev/dev.opam
           sudo -u user opam install -y ocamlformat.0.21.0
           sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
-
-  changelog-reminder:
-    name: Changelog Reminder
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - id: semgrep_diff
-        name: Get semgrep package diff
-        uses: technote-space/get-diff-action@v6.1.0
-        with:
-          GET_FILE_DIFF: true
-          PATTERNS: cli/src/semgrep/**
-      - id: changelog_diff
-        name: Get changelog diff
-        uses: technote-space/get-diff-action@v6.1.0
-        with:
-          GET_FILE_DIFF: true
-          FILES: CHANGELOG.md
-
-      - name: Send reminder
-        uses: unsplash/comment-on-pr@v1.3.1
-        if: >
-          steps.semgrep_diff.outputs.insertions > 20
-          && steps.changelog_diff.outputs.insertions == 0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          msg: You added quite a few lines in semgrep, but didn't update the changelog. Consider doing so!
-          check_for_duplicate_msg: yes

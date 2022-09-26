@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -24,7 +25,15 @@ def test_api(unique_home_dir, capsys, run_semgrep_in_tmp):
     assert captured.out == ""
     assert captured.err == ""
 
+
+@pytest.mark.slow
+def test_api_via_cli(unique_home_dir, run_semgrep_in_tmp):
     # Check that logging code isnt handled by default root handler and printed to stderr
+    # This is run as a separate test from the one above so that it has a separate, temp directory
+    env = os.environ.copy()
+    # Assign env var for settings.yaml to the per-test unique home directory
+    # so it doesn't use the default (~/.semgrep/settings.yaml)
+    env["SEMGREP_SETTINGS_FILE"] = str(unique_home_dir / ".semgrep/settings.yaml")
     x = subprocess.run(
         [
             sys.executable,
@@ -33,6 +42,7 @@ def test_api(unique_home_dir, capsys, run_semgrep_in_tmp):
         ],
         encoding="utf-8",
         capture_output=True,
+        env=env,
     )
     assert x.stdout == ""
     assert x.stderr == ""
