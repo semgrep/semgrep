@@ -17,6 +17,8 @@ open Common
 open AST_generic
 module MV = Metavariable
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (******************************************************************************)
 (* Handles AST printing for the purposes of autofix.
  *
@@ -31,6 +33,18 @@ module MV = Metavariable
  *)
 (******************************************************************************)
 
+type ast_node_source =
+  (* Indicates that a node came from the target file via a metavar binding *)
+  | Target
+  (* Indicates that a node came from the fix pattern *)
+  | FixPattern
+
+(* So that we can print by lifting the original source for unchanged AST nodes,
+ * this indicates whether a given AST node came from the target file (via
+ * metavariable bindings) or from the rule's fix pattern. Nodes that do not
+ * appear in this table came from neither. *)
+type ast_node_table = (AST_generic.any, ast_node_source) Hashtbl.t
+
 module PythonPrinter = Hybrid_print.Make (struct
   class printer = Ugly_print_AST.python_printer
 end)
@@ -38,7 +52,10 @@ end)
 let get_printer lang external_printer : Ugly_print_AST.printer_t option =
   match lang with
   | Lang.Python -> Some (new PythonPrinter.printer external_printer)
-  | _ -> None
+  | _ ->
+      logger#info "Failed to render autofix: no printer available for %s"
+        (Lang.to_string lang);
+      None
 
 let original_source_of_ast source any =
   let* start, end_ = Visitor_AST.range_of_any_opt any in
@@ -50,11 +67,11 @@ let original_source_of_ast source any =
 
 (* Add each metavariable value to the lookup table so that it can be identified
  * during printing *)
-let add_metavars tbl metavars =
+let add_metavars (tbl : ast_node_table) metavars =
   List.iter
     (fun (_, mval) ->
       let any = MV.mvalue_to_any mval in
-      Hashtbl.replace tbl any `Metavar;
+      Hashtbl.replace tbl any Target;
       (* For each metavariable binding that is a list of things, we need to
        * iterate through and add each item in the list to the table as well.
        *
@@ -71,14 +88,14 @@ let add_metavars tbl metavars =
        * *)
       match mval with
       | MV.Args args ->
-          List.iter (fun arg -> Hashtbl.replace tbl (Ar arg) `Metavar) args
+          List.iter (fun arg -> Hashtbl.replace tbl (Ar arg) Target) args
       (* TODO iterate through other metavariable values that are lists *)
       | _ -> ())
     metavars
 
-(* Add each AST node to the lookup table so that it can be identified during
- * printing *)
-let add_ast_nodes tbl ast =
+(* Add each AST node from the fix pattern AST to the lookup table so that it can
+ * be identified during printing *)
+let add_fix_pattern_ast_nodes (tbl : ast_node_table) ast =
   let visitor =
     Visitor_AST.(
       mk_visitor
@@ -86,7 +103,7 @@ let add_ast_nodes tbl ast =
           default_visitor with
           kargument =
             (fun (k, _) arg ->
-              Hashtbl.replace tbl (Ar arg) `Pattern;
+              Hashtbl.replace tbl (Ar arg) FixPattern;
               k arg)
             (* TODO visit every node that is part of AST_generic.any *);
         })
@@ -101,15 +118,15 @@ let make_external_printer ~metavars ~target_contents ~fix_pattern_ast
    * things as appropriate. For now, this seems to work fine, and anyway,
    * failing to look up a node is not catastrophic: it will only mean that in
    * some cases we may fail to print. *)
-  let tbl = Hashtbl.create 8 in
+  let tbl : ast_node_table = Hashtbl.create 8 in
   add_metavars tbl metavars;
-  add_ast_nodes tbl fix_pattern_ast;
+  add_fix_pattern_ast_nodes tbl fix_pattern_ast;
   fun any ->
     let* node = Hashtbl.find_opt tbl any in
     let* str =
       match node with
-      | `Metavar -> original_source_of_ast (Lazy.force target_contents) any
-      | `Pattern -> original_source_of_ast fix_pattern any
+      | Target -> original_source_of_ast (Lazy.force target_contents) any
+      | FixPattern -> original_source_of_ast fix_pattern any
     in
     Some (Immutable_buffer.of_string str)
 
@@ -124,5 +141,8 @@ let print_ast ~lang ~metavars ~target_contents ~fix_pattern_ast ~fix_pattern
       ~fix_pattern
   in
   let* printer = get_printer lang external_printer in
-  let* print_result = printer#print_any fixed_ast in
-  Some (Immutable_buffer.to_string print_result)
+  match printer#print_any fixed_ast with
+  | Some print_result -> Some (Immutable_buffer.to_string print_result)
+  | None ->
+      logger#info "Failed to render autofix: could not print AST";
+      None

@@ -15,6 +15,10 @@
 
 open Common
 module G = AST_generic
+module B = Immutable_buffer
+
+let b = B.of_string
+let combine = B.combine
 
 (******************************************************************************)
 (* UglyPrinter prints syntactically-correct code without attempting to format it
@@ -104,19 +108,16 @@ class python_printer : printer_t =
     inherit base_printer
 
     method! print_arguments (_b1, args, _b2) =
-      (* TODO Consider using original token when available? *)
-      let b1 = Immutable_buffer.of_string "(" in
-      let b2 = Immutable_buffer.of_string ")" in
       let* args = map_all self#print_argument args in
-      let args = Immutable_buffer.combine ~sep:", " args in
-      Some (Immutable_buffer.combine [ b1; args; b2 ])
+      (* TODO Consider using original tokens for parens when available? *)
+      Some (combine [ b "("; combine ~sep:", " args; b ")" ])
 
     method! print_expr_kind =
       function
       | G.Call (e, args) ->
           let* e = self#print_expr e in
           let* args = self#print_arguments args in
-          Some (Immutable_buffer.combine [ e; args ])
-      | G.N (G.Id ((str, _), _)) -> Some (Immutable_buffer.of_string str)
+          Some (combine [ e; args ])
+      | G.N (G.Id ((str, _), _)) -> Some (b str)
       | _ -> None
   end
