@@ -1,1 +1,0 @@
-Adds support for a .semgrepconfig file. Users can add metadata (such as a list of tags) to the .semgrepconfig YAML file which will automatically be assigned to the project.
