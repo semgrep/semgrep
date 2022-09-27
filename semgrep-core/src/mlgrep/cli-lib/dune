@@ -1,0 +1,14 @@
+; Implementation of the 'semgrep' command-line in OCaml.
+; This builds a library. The executable's entry point is defined in ../cli
+;
+(library
+  (name Semgrep_CLI_lib)
+  (wrapped false)
+  (libraries
+    ; External libraries
+    cmdliner
+
+    ; Internal libraries
+    cli_lib  ; semgrep-core's CLI
+  )
+)

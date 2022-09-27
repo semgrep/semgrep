@@ -53,15 +53,15 @@ implementation with no reliance on Python at all.
 ### Phase 3: feature completion
 
 Translate what remains of the Python implementation to
-OCaml. `semgrep-o` is now on feature parity with `semgrep`.
+OCaml. `mlgrep` is now on feature parity with `semgrep`.
 
-`semgrep-o` is now being shipped to users who can choose to use it
+`mlgrep` is now being shipped to users who can choose to use it
 instead of `semgrep`. This is a phase of intense quality assurance for
-`semgrep-o`.
+`mlgrep`.
 
 ## Delivery
 
-`semgrep-o` becomes `semgrep`. We stop shipping or maintaining the Python
+`mlgrep` becomes `semgrep`. We stop shipping or maintaining the Python
 implementation.
 
 All improvements and fixes are made only to the OCaml implementation.
