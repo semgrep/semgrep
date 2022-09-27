@@ -39,15 +39,12 @@ let _validate_lang option lang_str =
 (*************************************************************************)
 
 let o_autofix =
-  let info =
-    Arg.info [ "a"; "autofix" ]
-      ~doc:
-        "Apply autofix patches. WARNING: data loss can occur with this flag. \
-         Make sure your files are stored in a version control system. Note \
-         that this mode is experimental and not guaranteed to function \
-         properly."
-  in
-  Arg.value (Arg.flag info)
+  CLI_common.negatable_flag ~options:[ "a"; "autofix" ]
+    ~neg_options:[ "no-autofix" ]
+    ~doc:
+      "Apply autofix patches. WARNING: data loss can occur with this flag. \
+       Make sure your files are stored in a version control system. Note that \
+       this mode is experimental and not guaranteed to function properly."
 
 let o_baseline_commit =
   let info =
