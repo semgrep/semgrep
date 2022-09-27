@@ -52,7 +52,7 @@
 # - doc/SEMGREP_CORE_CONTRIBUTING.md
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 #
-# Note that many .github/workflows/ use returntocorp/ocaml:alpine, which should
+# Note that some .github/workflows/ use returntocorp/ocaml:alpine, which should
 # be the latest, but may differ from this one.
 FROM returntocorp/ocaml:alpine-2022-09-24 as semgrep-core-container
 
@@ -133,22 +133,20 @@ ENV SEMGREP_IN_DOCKER=1 \
     SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
     SEMGREP_USER_AGENT_APPEND="Docker"
 
-# The command we tell people to run for testing semgrep in docker is
+# The command we tell people to run for testing semgrep in Docker is
 #   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
-# (see https://semgrep.dev/docs/getting-started/ )
-# hence this WORKDIR
+# (see https://semgrep.dev/docs/getting-started/ ), hence the WORKDIR directive below
 WORKDIR /src
 
-# semgrep is now available /usr/local/bin thx to the 'pip install' command
+# 'semgrep' is now available in /usr/local/bin thx to the 'pip install' command
 # above, so let's remove /semgrep which is not needed anymore.
 #
 # Note that this is only a cleanup. This does not reduce the size of
 # the Docker image. Indeed, this is how Docker images work. The state
 # of the filesystem after each Docker instruction is called a layer
-# and remains available in the final image, similarly to diffs in a
-# git history. To save space, we'd have to start another docker build
-# stage like we already do between the ocaml build and the python
-# build.
+# and remains available in the final image (similarly to diffs in a
+# git history). To save space, we'd have to start another docker build
+# stage like we already do between the ocaml build and the Python build.
 RUN rm -rf /semgrep
 
 # In case of problems, if you need to debug the docker image, run 'docker build .',
