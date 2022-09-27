@@ -13,6 +13,7 @@
 # requires lots of tools (ocamlc, gcc, make, etc.), with big containers,
 # but those tools are not necessary when *running* semgrep.
 # This is a standard practice in the Docker world.
+# See https://docs.docker.com/build/building/multi-stage/
 
 ###############################################################################
 # Step1: build semgrep-core
@@ -61,7 +62,7 @@ FROM returntocorp/ocaml:alpine-2022-09-24 as semgrep-core-container
 # - python3-dev: for the semgrep Python bridge to build Python C extensions
 # TODO: update the root image to include python 3.9 so those apk are fast too
 RUN apk add --no-cache pcre-dev python3 python3-dev &&\
-     pip install --no-cache-dir pipenv==2022.6.7
+    pip install --no-cache-dir pipenv==2022.6.7
 
 WORKDIR /src/semgrep
 COPY . .
@@ -71,9 +72,10 @@ RUN make setup
 # Let's build just semgrep-core
 WORKDIR /src/semgrep/semgrep-core
 # An alternative to the eval is to use 'opam exec -- ...'
-RUN eval "$(opam env)" && make minimal-build &&\
-     # Sanity check
-     /src/semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
+RUN eval "$(opam env)" &&\
+    make minimal-build &&\
+    # Sanity check
+    /src/semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
 
 ###############################################################################
 # Step2: Build the final docker image with Python wrapper and semgrep-core bin
@@ -86,9 +88,9 @@ WORKDIR /semgrep
 
 #???
 ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
-     PIP_NO_CACHE_DIR=true \
-     PYTHONIOENCODING=utf8 \
-     PYTHONUNBUFFERED=1
+    PIP_NO_CACHE_DIR=true \
+    PYTHONIOENCODING=utf8 \
+    PYTHONUNBUFFERED=1
 
 # Here is why we need those apk packages below:
 # - bash: for entrypoint.sh (see below) and probably many other things
@@ -97,22 +99,23 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
 # - libstdc++: for the Python jsonnet binding now used in the semgrep CLI
 #   note: do not put libstdc++6, you'll get 'missing library' or 'unresolved
 #   symbol' errors
-RUN apk add --no-cache --virtual=.run-deps bash git git-lfs openssh libstdc++
+RUN apk add --no-cache --virtual=.run-deps\
+     bash git git-lfs openssh libstdc++
 
 # We just need the Python code in cli/.
 # The semgrep-core stuff would be copied from the other container
 COPY cli ./
 
-# Use pip to install semgrep
+# Let's now simply use 'pip' to install semgrep.
 # Note the difference between .run-deps and .build-deps below.
 # TODO? what does --virtual= mean? why all in one command below?
 # TODO? why the mkdir -p /tmp/.cache?
 # hadolint ignore=DL3013
-RUN apk add --no-cache --virtual=.build-deps build-base && \
-     SEMGREP_SKIP_BIN=true pip install /semgrep && \
+RUN apk add --no-cache --virtual=.build-deps build-base &&\
+     SEMGREP_SKIP_BIN=true pip install /semgrep &&\
      # running this pre-compiles some python files for faster startup times
-     semgrep --version && \
-     apk del .build-deps && \
+     semgrep --version &&\
+     apk del .build-deps &&\
      mkdir -p /tmp/.cache
 
 # TODO: we should remove this (we were supposed to get rid of it in June 2022)
@@ -127,12 +130,25 @@ COPY --from=semgrep-core-container /src/semgrep/semgrep-core/_build/default/src/
 
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
-     SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
-     SEMGREP_USER_AGENT_APPEND="Docker"
+    SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
+    SEMGREP_USER_AGENT_APPEND="Docker"
 
-# /semgrep is not needed anymore;
-# semgrep is now available /usr/local/bin thx to the 'pip install' command above
-# TODO: this weirdly does not reduce the size of the docker image though
+# The command we tell people to run for testing semgrep in docker is
+#   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
+# (see https://semgrep.dev/docs/getting-started/ )
+# hence this WORKDIR
+WORKDIR /src
+
+# semgrep is now available /usr/local/bin thx to the 'pip install' command
+# above, so let's remove /semgrep which is not needed anymore. 
+#
+# Note that this is only a cleanup. This does not reduce the size of
+# the Docker image. Indeed, this is how Docker images work. The state
+# of the filesystem after each Docker instruction is called a layer
+# and remains available in the final image, similarly to diffs in a
+# git history. To save space, we'd have to start another docker build
+# stage like we already do between the ocaml build and the python
+# build.
 RUN rm -rf /semgrep
 
 # In case of problems, if you need to debug the docker image, run 'docker build .',
