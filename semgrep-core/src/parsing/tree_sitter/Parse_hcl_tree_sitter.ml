@@ -565,6 +565,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
       (fun x ->
         match x with
         | `Str_lit x ->
+            (* Parse this to a name as it has the same semantics. *)
             let x = map_string_lit env x in
             N (Id (x, empty_id_info ())) |> G.e
         | `Id tok ->
