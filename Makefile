@@ -1,7 +1,47 @@
-#
-# This makefile is targeted at developers.
+###############################################################################
+# Prelude
+###############################################################################
+# This Makefile is targeted at developers.
 # For a one-shot production build, look into Dockerfile.
 #
+# This Makefile assumes some commands have been run before to install
+# the correct development environment supporting the different languages
+# used for semgrep development:
+#  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
+#  - for Python: 'python3', 'pip', 'pipenv', 'python-config'
+#  - for OCaml: 'opam' and the right OCaml switch (currently 4.14)
+# You will also need obviously 'make', but also 'git', and many other
+# common dev tools (e.g., 'docker').
+#
+# Once this basic development environment has been setup
+# (either via apk commands in a Dockerfile, or with some steps: apt-get
+# in GHA, or with your own brew/apt-get/pacman/whatever on your own machine),
+# you can then use:
+#
+#     $ make setup
+#
+# to install the dependencies proper to semgrep (e.g., the necessary OPAM
+# packages used by semgrep-core).
+# Then to compile semgrep simply type:
+#
+#     $ make
+#
+# See INSTALL.md for more information
+# See also https://semgrep.dev/docs/contributing/contributing-code/
+
+###############################################################################
+# Portability tricks
+###############################################################################
+
+# This Makefile should work equally under Linux (Alpine, Ubuntu, Arch linux),
+# macOS, or from a Dockerfile, and hopefully also under Windows WSL.
+# This is why you should avoid to use platform-specific commands like
+# package managers (e.g., apk, apt-get, brew) here. Instead you should
+# put those system-wide installation commands in the Dockerfile, or
+# in GHA workflows, or in scripts/ (e.g., scripts/install-alpine-semgrep-core).
+
+# If you really have to use platform-specific commands or flags, try to use
+# macros like the one below to make the Makefile portable.
 
 # Used to select commands with different usage under GNU/Linux and *BSD/Darwin
 # such as 'sed'.
@@ -18,10 +58,13 @@ else
   SED = sed -i ''
 endif
 
+###############################################################################
+# Build (and clean) targets
+###############################################################################
+
 # Routine build. It assumes all dependencies and configuration are already
 # in place and correct. It should be fast since it's called often during
 # development.
-#
 .PHONY: build
 build:
 	$(MAKE) build-core
@@ -29,18 +72,12 @@ build:
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
-.PHONY: install
-install:
-	$(MAKE) -C semgrep-core install
-	python3 -m pip install semgrep
-
 .PHONY: build-core
 build-core:
 	$(MAKE) -C semgrep-core
 	$(MAKE) -C semgrep-core install
 
 # Update and rebuild everything within the project.
-#
 .PHONY: rebuild
 rebuild:
 	git submodule update --init
@@ -54,19 +91,42 @@ rebuild:
 build-docker:
 	docker build -t semgrep .
 
+# Remove from the project tree everything that's not under source control
+# and was not created by 'make setup'.
+#
+.PHONY: clean
+clean:
+	-$(MAKE) -C semgrep-core clean
+	-$(MAKE) -C cli clean
+
+###############################################################################
+# Install targets
+###############################################################################
+
+.PHONY: install
+install:
+	$(MAKE) -C semgrep-core install
+	python3 -m pip install semgrep
+
+###############################################################################
+# Setup targets
+###############################################################################
 
 # This is a best effort to install some external dependencies.
 # Should run infrequently.
-#
+# This target is portable and should work equally on Linux (Alpine and Ubuntu),
+# macOS, and inside Docker.
+# It only assumes you have 'git' and 'opam' installed, and a working
+# Python (e.g., python3, pip, pipenv, python-config) and OCaml (e.g., ocamlc).
+# Note that 'make setup' is now called from our Dockerfile so do not
+# run 'opam update' below to not slow down things.
 .PHONY: setup
 setup:
-	git submodule update --init
 	# Fetch, build and install the tree-sitter runtime library locally.
 	cd semgrep-core/src/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally).
-	opam update -y
 	opam install -y --deps-only ./semgrep-core/src/pfff
 	opam install -y --deps-only ./semgrep-core/src/ocaml-tree-sitter-core
 	opam install -y --deps-only ./semgrep-core
@@ -94,20 +154,20 @@ homebrew-setup:
 	opam install -y --deps-only --no-depexts ./semgrep-core/src/ocaml-tree-sitter-core
 	opam install -y --deps-only --no-depexts ./semgrep-core
 
+###############################################################################
+# Developer targets
+###############################################################################
+
+.PHONY: update
+update:
+	git submodule update --init
+	opam update -y
+
 # Install development dependencies in addition to build dependencies.
-#
 .PHONY: dev-setup
 dev-setup:
 	$(MAKE) setup
 	opam install -y --deps-only ./semgrep-core/dev
-
-# Remove from the project tree everything that's not under source control
-# and was not created by 'make setup'.
-#
-.PHONY: clean
-clean:
-	-$(MAKE) -C semgrep-core clean
-	-$(MAKE) -C cli clean
 
 # Same as 'make clean' but may remove additional files, such as external
 # libraries installed locally.
