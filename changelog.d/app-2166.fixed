@@ -1,2 +1,0 @@
-Fixed nondeterministic failure of test_api test due to invalid settings file by
-configuring home directory to temporary directory.

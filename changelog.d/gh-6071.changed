@@ -1,6 +1,0 @@
-generic mode: allow text input without human-readable indentation up to 500
-bytes. This value is subject to change. This relaxing is intended to
-facilitate testing where someone might copy-paste a long line without a
-trailing newline. Semgrep users should not expect files that are not
-human-readable to be processed in semgrep's generic mode, or in any mode for
-the matter.
