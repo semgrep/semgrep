@@ -31,8 +31,11 @@ jobs:
       - id: submodule-status
         name: Get submodule version
         run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
-      #TODO ????
-      - name: Remove broken symlinks
+      # Without the step below, the core-cache step further below would fail with:
+      #	  Error: The template is not valid. .github/workflows/tests.yml (Line: 39, Col: 16):
+      #     hashFiles('semgrep-core/**, .github/workflows/tests.yml, scripts/install-alpine-semgrep-core') failed.
+      # Fail to hash files under directory '/home/runner/work/semgrep/semgrep'
+      - name: Remove broken symlinks for hashFiles in core-cache steps
         run: find -L . -type l -exec rm {} \;
       - id: core-cache
         name: Check if this semgrep-core binary is cached
