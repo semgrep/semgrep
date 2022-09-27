@@ -107,9 +107,9 @@ class ConfigLoader:
         elif is_policy_id(config_str):
             state.metrics.add_feature("config", "policy")
             self._config_path = url_for_policy(config_str)
-        elif is_sca(config_str):
+        elif is_supply_chain(config_str):
             state.metrics.add_feature("config", "sca")
-            self._config_path = url_for_sca()
+            self._config_path = url_for_supply_chain()
         elif is_registry_id(config_str):
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
             self._config_path = registry_id_to_url(config_str)
@@ -694,7 +694,7 @@ def is_policy_id(config_str: str) -> bool:
     return config_str == "policy"
 
 
-def url_for_sca() -> str:
+def url_for_supply_chain() -> str:
     env = get_state().env
     repo_name = os.environ.get("SEMGREP_REPO_NAME")
 
@@ -710,8 +710,8 @@ def url_for_sca() -> str:
     return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
 
 
-def is_sca(config_str: str) -> bool:
-    return config_str == "sca"
+def is_supply_chain(config_str: str) -> bool:
+    return config_str == "supply-chain"
 
 
 def saved_snippet_to_url(snippet_id: str) -> str:
