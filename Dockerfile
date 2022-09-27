@@ -140,7 +140,7 @@ ENV SEMGREP_IN_DOCKER=1 \
 WORKDIR /src
 
 # semgrep is now available /usr/local/bin thx to the 'pip install' command
-# above, so let's remove /semgrep which is not needed anymore. 
+# above, so let's remove /semgrep which is not needed anymore.
 #
 # Note that this is only a cleanup. This does not reduce the size of
 # the Docker image. Indeed, this is how Docker images work. The state
