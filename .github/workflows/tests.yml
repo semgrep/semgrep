@@ -31,6 +31,9 @@ jobs:
       - id: submodule-status
         name: Get submodule version
         run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
+      #TODO ????
+      - name: Remove broken symlinks
+        run: find -L . -type l -exec rm {} \;
       - id: core-cache
         name: Check if this semgrep-core binary is cached
         uses: actions/cache@v3
