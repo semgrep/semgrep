@@ -32,24 +32,21 @@ let man =
   [
     `S Manpage.s_description;
     `P
-      "Searches TARGET paths for matches to rules or patterns. Defaults to\n\
-      \  searching entire current working directory.";
+      "Searches TARGET paths for matches to rules or patterns. Defaults to \
+       searching entire current working directory.";
     `P "To get started quickly, run";
     `Pre "semgrep --config auto .";
     `P
-      "This will automatically fetch rules for your project from the Semgrep\n\
-      \  Registry. NOTE: Using `--config auto` will log in to the Semgrep \
-       Registry\n\
-      \  with your project URL.";
+      "This will automatically fetch rules for your project from the Semgrep \
+       Registry. NOTE: Using `--config auto` will log in to the Semgrep \
+       Registry with your project URL.";
     `P "For more information about Semgrep, go to https://semgrep.dev.";
     `P
-      "NOTE: By default, Semgrep will report pseudonymous usage metrics to its\n\
-      \  server if you pull your configuration from the Semgrep registy. To \
-       learn\n\
-      \  more about how and why these metrics are collected, please see\n\
-      \  https://semgrep.dev/docs/metrics. To modify this behavior, see the \
-       --metrics\n\
-      \  option below.";
+      "NOTE: By default, Semgrep will report pseudonymous usage metrics to its \
+       server if you pull your configuration from the Semgrep registy. To \
+       learn more about how and why these metrics are collected, please see \
+       https://semgrep.dev/docs/metrics. To modify this behavior, see the \
+       --metrics option below.";
   ]
   @ CLI_common.help_page_bottom
 
