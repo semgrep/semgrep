@@ -132,8 +132,8 @@ let map_string_lit (env : env) ((v1, v2, v3) : CST.string_lit) =
   let v2 = map_template_literal env v2 in
   let v3 = (* quoted_template_end *) token env v3 in
   match v2 with
-  | Some (s, t) -> G.String (s, PI.combine_infos v1 [ t; v3 ])
-  | None -> G.String ("", PI.combine_infos v1 [ v3 ])
+  | Some (s, t) -> (s, PI.combine_infos v1 [ t; v3 ])
+  | None -> ("", PI.combine_infos v1 [ v3 ])
 
 let map_variable_expr (env : env) (x : CST.variable_expr) = map_identifier env x
 
@@ -149,7 +149,7 @@ let map_literal_value (env : env) (x : CST.literal_value) : literal =
   | `Nume_lit x -> map_numeric_lit env x
   | `Bool_lit x -> Bool (map_bool_lit env x)
   | `Null_lit tok -> (* "null" *) Null (token env tok)
-  | `Str_lit x -> map_string_lit env x
+  | `Str_lit x -> String (map_string_lit env x)
 
 let rec map_anon_choice_get_attr_7bbf24f (env : env)
     (x : CST.anon_choice_get_attr_7bbf24f) =
@@ -566,7 +566,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
         match x with
         | `Str_lit x ->
             let x = map_string_lit env x in
-            L x |> G.e
+            N (Id (x, empty_id_info ())) |> G.e
         | `Id tok ->
             let id = (* identifier *) map_identifier env tok in
             let n = H2.name_of_id id in

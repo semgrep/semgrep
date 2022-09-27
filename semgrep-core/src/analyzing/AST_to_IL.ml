@@ -867,7 +867,7 @@ and record env ((_tok, origfields, _) as record_def) =
   let e_gen = G.Record record_def |> G.e in
   let fields =
     origfields
-    |> Common.map (function
+    |> Common.map_filter (function
          | G.F
              {
                s =
@@ -884,7 +884,7 @@ and record env ((_tok, origfields, _) as record_def) =
                | ___else___ -> todo (G.E e_gen)
              in
              let field_def = expr env fdeforig in
-             Field (id, field_def)
+             Some (Field (id, field_def))
          | G.F
              {
                s =
@@ -898,7 +898,10 @@ and record env ((_tok, origfields, _) as record_def) =
                      _ );
                _;
              } ->
-             Spread (expr env e)
+             Some (Spread (expr env e))
+         | _ when is_hcl env.lang ->
+             logger#warning "Skipping HCL record field during IL translation";
+             None
          | G.F _ -> todo (G.E e_gen))
   in
   mk_e (Record fields) (SameAs e_gen)
