@@ -1,11 +1,19 @@
 (*
    'semgrep scan' subcommand
+
+   Translated from scan.py
 *)
+
+open Printf
 
 (* Provide 'Term', 'Arg', and 'Manpage' modules. *)
 open Cmdliner
 
-type conf = { bar : bool }
+type conf = {
+  autofix : bool;
+  baseline_commit : string option;
+  metrics : Metrics.State.t;
+}
 
 (* All the business logic after command-line parsing. *)
 let run _conf =
@@ -13,18 +21,68 @@ let run _conf =
   0
 
 (*************************************************************************)
+(* Various utilities *)
+(*************************************************************************)
+
+let _get_cpu_count () =
+  (* Parmap subtracts 1 from the number of detected cores.
+     This comes with no guarantees. *)
+  max 1 (Parmap.get_default_ncores () + 1)
+
+let _validate_lang option lang_str =
+  match lang_str with
+  | None -> failwith (sprintf "%s and -l/--lang must both be specified" option)
+  | Some lang -> lang
+
+(*************************************************************************)
 (* Command-line parsing: turn argv into conf *)
 (*************************************************************************)
 
-let bar_term =
-  let info = Arg.info [ "bar" ] ~doc:"Enable the bar!" in
+let o_autofix =
+  let info =
+    Arg.info [ "a"; "autofix" ]
+      ~doc:
+        "Apply autofix patches. WARNING: data loss can occur with this flag. \
+         Make sure your files are stored in a version control system. Note \
+         that this mode is experimental and not guaranteed to function \
+         properly."
+  in
   Arg.value (Arg.flag info)
+
+let o_baseline_commit =
+  let info =
+    Arg.info [ "baseline_commit" ]
+      ~doc:
+        "Only show results that are not found in this commit hash. Aborts run \
+         if not currently in a git directory, there are unstaged changes, or \
+         given baseline hash doesn't exist"
+      ~env:(Cmd.Env.info "SEMGREP_BASELINE_COMMIT")
+    (* TODO: support also SEMGREP_BASELINE_REF; unfortunately cmdliner
+             supports only one environment variable per option *)
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
+let o_metrics =
+  let info =
+    Arg.info [ "metrics" ]
+      ~doc:
+        "Configures how usage metrics are sent to the Semgrep server. If \
+         'auto', metrics are sent whenever the --config value pulls from the \
+         Semgrep server. If 'on', metrics are always sent. If 'off', metrics \
+         are disabled altogether and not sent. If absent, the \
+         SEMGREP_SEND_METRICS environment variable value will be used. If no \
+         environment variable, defaults to 'auto'."
+      ~env:(Cmd.Env.info "SEMGREP_SEND_METRICS")
+  in
+  Arg.value (Arg.opt Metrics.State.converter Metrics.State.Auto info)
 
 (*** Subcommand 'scan' ***)
 
 let cmdline_term run =
-  let combine bar = run { bar } in
-  Term.(const combine $ bar_term)
+  let combine autofix baseline_commit metrics =
+    run { autofix; baseline_commit; metrics }
+  in
+  Term.(const combine $ o_autofix $ o_baseline_commit $ o_metrics)
 
 let doc = "run semgrep rules on files"
 
