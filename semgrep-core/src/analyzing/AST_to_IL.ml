@@ -900,6 +900,10 @@ and record env ((_tok, origfields, _) as record_def) =
              } ->
              Some (Spread (expr env e))
          | _ when is_hcl env.lang ->
+             (* For HCL constructs such as `lifecycle` blocks within a module call, the
+                IL translation engine will brick the whole record if it is encountered.
+                To avoid this, we will just ignore any unrecognized fields for HCL specifically.
+             *)
              logger#warning "Skipping HCL record field during IL translation";
              None
          | G.F _ -> todo (G.E e_gen))
