@@ -216,7 +216,7 @@ and exp_kind =
   | Cast of G.type_ * exp
   (* This could be put in call_special, but dumped IL are then less readable
    * (they are too many intermediate _tmp variables then) *)
-  | Operator of G.operator wrap * exp list
+  | Operator of G.operator wrap * exp argument list
   | FixmeExp of
       fixme_kind
       * G.any (* fixme source *)
@@ -234,7 +234,7 @@ and composite_kind =
   | Regexp
 [@@deriving show { with_path = false }]
 
-type argument = exp [@@deriving show]
+and 'a argument = Unnamed of 'a | Named of ident * 'a [@@deriving show]
 
 (*****************************************************************************)
 (* Instruction *)
@@ -249,8 +249,8 @@ and instr_kind =
   (* was called Set in CIL, but a bit ambiguous with Set module *)
   | Assign of lval * exp
   | AssignAnon of lval * anonymous_entity
-  | Call of lval option * exp (* less: enforce lval? *) * argument list
-  | CallSpecial of lval option * call_special wrap * argument list
+  | Call of lval option * exp (* less: enforce lval? *) * exp argument list
+  | CallSpecial of lval option * call_special wrap * exp argument list
   (* todo: PhiSSA! *)
   | FixmeInstr of fixme_kind * G.any
 
@@ -375,7 +375,7 @@ type any = L of lval | E of exp | I of instr | S of stmt | Ss of stmt list
 (*****************************************************************************)
 (* L/Rvalue helpers *)
 (*****************************************************************************)
-(* see IL_lvalue_helpers.ml *)
+(* see IL_helpers.ml *)
 
 (*****************************************************************************)
 (* Helpers *)
