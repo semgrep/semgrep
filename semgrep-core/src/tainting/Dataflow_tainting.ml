@@ -479,14 +479,15 @@ let check_function_signature env fun_exp args_taints =
                 Var
                   {
                     ident;
+                    (* TODO: This may be too permissive. Since the hook will later only
+                       look at the function name, we have no way to distinguish between
+                       two objects separately calling the function. However, for our
+                       current cases, I believe this makes no difference since in our
+                       examples we don't use any information from the object in the 
+                       function. *)
                     id_info =
                       {
-                        G.id_resolved =
-                          {
-                            contents =
-                              Some ((G.ImportedEntity _ | G.ResolvedName _), _);
-                          };
-                        _;
+                        G.id_resolved = { contents = Some _; }; _;
                       };
                     _;
                   };
