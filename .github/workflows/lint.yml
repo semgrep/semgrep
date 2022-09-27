@@ -73,7 +73,7 @@ jobs:
     # An alternative would be to run commands with 'sudo' or prefixed with 'HOME=root ...'
     steps:
       - uses: actions/checkout@v3
-      - name: Check OCaml code
+      - name: Check OCaml code with ocamlformat
         env:
           HOME: /root
         run: |
@@ -87,6 +87,8 @@ jobs:
           # by default returns an error. The 'safe.directory' directive just whitelists
           # the directory so pre-commit below (which internally runs some 'git' commands)
           # does not fail.
+          # TODO: Not sure why we need to do that here but have no issue in the
+          # other pre-commit jobs. Maybe because pre-commit/action@v3.0.0 does extra stuff?
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           opam exec -- pre-commit run --verbose --all lint-ocaml
           # to debug errors in pre-commit, use instead:
