@@ -1,8 +1,8 @@
-This directory contains Github actions "workflows" to automate certain
+This directory contains Github actions (GHA) "workflows" to automate certain
 tasks (e.g., running our testsuite on each PR, automate the release).
 Basically help to build, test, and deploy Semgrep.
 See https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions
-for more information on Github actions or our Notion page on Github actions.
+for more information on GHA or our Notion page on "Github actions".
 
 Most of those workflows have the 'workflow_dispatch:' directive so you can
 also trigger them manually here: https://github.com/returntocorp/semgrep/actions
