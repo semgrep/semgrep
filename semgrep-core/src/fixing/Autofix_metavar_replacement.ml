@@ -24,11 +24,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * metavariables are bound. *)
 (******************************************************************************)
 
-let make_metavar_tbl bindings =
-  let tbl = Hashtbl.create (List.length bindings) in
-  List.iter (fun (mvar, mvalue) -> Hashtbl.replace tbl mvar mvalue) bindings;
-  tbl
-
 let replace metavar_tbl pattern_ast =
   (* Use a mapper to traverse the AST. For each metavar, look up what it is
    * bound to. If the kind of node matches, replace the metavar in the pattern
@@ -135,6 +130,6 @@ let has_remaining_metavars metavar_tbl ast =
  *   attempted. In this case, this function should detect that and return None.
  * *)
 let replace_metavars metavars pattern_ast =
-  let metavar_tbl = make_metavar_tbl metavars in
+  let metavar_tbl = Common.hash_of_list metavars in
   let res = replace metavar_tbl pattern_ast in
   if has_remaining_metavars metavar_tbl res then None else Some res

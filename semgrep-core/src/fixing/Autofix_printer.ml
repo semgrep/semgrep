@@ -94,7 +94,16 @@ let add_metavars (tbl : ast_node_table) metavars =
     metavars
 
 (* Add each AST node from the fix pattern AST to the lookup table so that it can
- * be identified during printing *)
+ * be identified during printing.
+ *
+ * We add all nodes here, regardless of whether they made it intact into the
+ * fixed pattern AST. Despite this, we will only use the original text for nodes
+ * that have made it into the fixed pattern AST unchanged. If a node was
+ * modified, e.g. if it contained a metavariable that was replaced, that node
+ * will not be equal to the original node when we look it up during printing,
+ * and therefore we won't get a hashtbl hit, and so we won't use the text for
+ * the original node.
+ * *)
 let add_fix_pattern_ast_nodes (tbl : ast_node_table) ast =
   let visitor =
     Visitor_AST.(
