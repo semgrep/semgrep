@@ -472,30 +472,14 @@ let check_function_signature env fun_exp args_taints =
   match (!hook_function_taint_signature, fun_exp) with
   | ( Some hook,
       {
-        e =
-          Fetch
-            {
-              base =
-                Var
-                  {
-                    ident;
-                    (* TODO: This may be too permissive. Since the hook will later only
-                       look at the function name, we have no way to distinguish between
-                       two objects separately calling the function. However, for our
-                       current cases, I believe this makes no difference since in our
-                       examples we don't use any information from the object in the 
-                       function. *)
-                    id_info =
-                      {
-                        G.id_resolved = { contents = Some _; }; _;
-                      };
-                    _;
-                  };
-              rev_offset = _;
-              _;
-            };
+        e = Fetch { base = Var { ident; _ }; rev_offset = []; _ };
         eorig = SameAs eorig;
         _;
+      } )
+  | ( Some hook,
+      {
+        e = Fetch { base = _; rev_offset = (Dot { ident; _ })::_; _ };
+        eorig = SameAs eorig;
       } ) ->
       let* fun_sig = hook env.config eorig in
       Some
