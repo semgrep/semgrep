@@ -15,7 +15,7 @@
 
 module T = Taint
 module Taints = T.Taint_set
-module LV = IL_lvalue_helpers
+module LV = IL_helpers
 module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
 module LvalMap = Map.Make (LV.LvalOrdered)

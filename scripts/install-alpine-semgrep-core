@@ -1,10 +1,13 @@
 #! /usr/bin/env bash
 #
-# Build the semgrep-core statically-linked against musl, on alpine linux,
+# Build the semgrep-core statically-linked against Musl, on Alpine Linux,
 # with opam pre-installed.
 #
 # This script assumes we're at the root of the checked-out semgrep repository.
 #
+#TODO? deprecated? remove this script in favor of using simply 'make'
+# now that we have platform-specific targets in the Makefile
+
 set -eu
 
 # This is useful to locate 'dune' and for any build command not called
@@ -31,32 +34,16 @@ if [[ "$(basename "$(pwd)")" != semgrep ]]; then
   cd semgrep
 fi
 
-echo "Install missing packages"
-sudo apk add --no-cache m4 pcre-dev
-
 echo "Install submodules"
 git submodule update --init --recursive --depth 1
 
-(
-  cd semgrep-core/src/ocaml-tree-sitter-core
-  echo "Install tree-sitter runtime and prepare ocaml-tree-sitter source"
-  ./configure
-  ./scripts/install-tree-sitter-lib
-
-  echo "Install ocaml-tree-sitter-core dependencies"
-  opam install --deps-only -y .
-)
-
-echo "Install pfff dependencies"
-(
-  cd semgrep-core/src/pfff
-  opam install --deps-only -y .
-)
+echo "Install missing packages"
+make install-deps-ALPINE-for-semgrep-core
+make install-deps-for-semgrep-core
 
 echo "Install semgrep-core"
 (
   cd semgrep-core
-  opam install --deps-only -y .
   make all
   make install
 )
