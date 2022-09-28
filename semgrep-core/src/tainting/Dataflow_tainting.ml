@@ -470,19 +470,7 @@ let check_function_signature env fun_exp args_taints =
     taint_opt
   in
   match (!hook_function_taint_signature, fun_exp) with
-  | ( Some hook,
-      (* Case `$F()` *)
-      {
-        e = Fetch { base = Var { ident; _ }; rev_offset = []; _ };
-        eorig = SameAs eorig;
-        _;
-      } )
-  | ( Some hook,
-      (* Case `$X. ... .$F()` *)
-      {
-        e = Fetch { base = _; rev_offset = Dot { ident; _ } :: _; _ };
-        eorig = SameAs eorig;
-      } ) ->
+  | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
       let* fun_sig = hook env.config eorig in
       Some
         (fun_sig
@@ -492,6 +480,16 @@ let check_function_signature env fun_exp args_taints =
                  Some (Taints.singleton { orig = Src src; tokens = [] })
              | T.ArgToReturn (i, tokens, _return_tok) ->
                  let* arg_taints = taints_of_arg i in
+                 (* Get the token of the function *)
+                 let* ident =
+                   match f with
+                   (* Case `$F()` *)
+                   | { base = Var { ident; _ }; rev_offset = []; _ }
+                   (* Case `$X. ... .$F()` *)
+                   | { base = _; rev_offset = Dot { ident; _ } :: _; _ } ->
+                       Some ident
+                   | _ -> None
+                 in
                  Some
                    (arg_taints
                    |> Taints.map (fun taint ->
