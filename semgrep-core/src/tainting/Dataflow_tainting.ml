@@ -471,14 +471,16 @@ let check_function_signature env fun_exp args_taints =
   in
   match (!hook_function_taint_signature, fun_exp) with
   | ( Some hook,
+      (* Case `$F()` *)
       {
         e = Fetch { base = Var { ident; _ }; rev_offset = []; _ };
         eorig = SameAs eorig;
         _;
       } )
   | ( Some hook,
+      (* Case `$X. ... .$F()` *)
       {
-        e = Fetch { base = _; rev_offset = (Dot { ident; _ })::_; _ };
+        e = Fetch { base = _; rev_offset = Dot { ident; _ } :: _; _ };
         eorig = SameAs eorig;
       } ) ->
       let* fun_sig = hook env.config eorig in
