@@ -534,32 +534,7 @@ let rec check_tainted_expr env exp : Taints.t * Lval_env.t =
 
 let check_function_signature env fun_exp args_taints =
   match (!hook_function_taint_signature, fun_exp) with
-  | ( Some hook,
-      {
-        e =
-          Fetch
-            {
-              base =
-                Var
-                  {
-                    ident;
-                    id_info =
-                      {
-                        G.id_resolved =
-                          {
-                            contents =
-                              Some ((G.ImportedEntity _ | G.ResolvedName _), _);
-                          };
-                        _;
-                      };
-                    _;
-                  };
-              rev_offset = _;
-              _;
-            };
-        eorig = SameAs eorig;
-        _;
-      } ) ->
+  | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
       let* fdef, fun_sig = hook env.config eorig in
       let taints_of_arg = find_args_taints args_taints fdef in
       Some
@@ -570,6 +545,16 @@ let check_function_signature env fun_exp args_taints =
                  Some (Taints.singleton { orig = Src src; tokens = [] })
              | T.ArgToReturn (argpos, tokens, _return_tok) ->
                  let* arg_taints = taints_of_arg argpos in
+                 (* Get the token of the function *)
+                 let* ident =
+                   match f with
+                   (* Case `$F()` *)
+                   | { base = Var { ident; _ }; rev_offset = []; _ }
+                   (* Case `$X. ... .$F()` *)
+                   | { base = _; rev_offset = Dot { ident; _ } :: _; _ } ->
+                       Some ident
+                   | _ -> None
+                 in
                  Some
                    (arg_taints
                    |> Taints.map (fun taint ->
