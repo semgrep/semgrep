@@ -700,6 +700,7 @@ def test_github_ci_bad_base_sha(
                 re.compile(r"\"commit_date\":(.*)"),
                 re.compile(r"-targets (.*) -timeout"),
                 re.compile(r"-rules (.*).json"),
+                re.compile(r".*Failed to render autofix.*"),
                 str(git_tmp_path),
                 str(tmp_path),
             ]
