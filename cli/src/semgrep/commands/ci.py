@@ -143,7 +143,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     """,
 )
 @click.option(
-    "--sca",
+    "--supply-chain",
     is_flag=True,
     hidden=True,
 )
@@ -194,7 +194,7 @@ def ci(
     sarif: bool,
     quiet: bool,
     rewrite_rule_ids: bool,
-    sca: bool,
+    supply_chain: bool,
     scan_unknown_extensions: bool,
     time_flag: bool,
     timeout_threshold: int,
@@ -284,7 +284,7 @@ def ci(
     )
     if scan_handler:
         logger.info(f"  server      - {state.env.semgrep_url}")
-    if sca:
+    if supply_chain:
         logger.info("  running a supply chain scan")
     logger.info("")
 
@@ -292,7 +292,7 @@ def ci(
         with fix_head_if_github_action(metadata):
             if scan_handler:
                 metadata_dict = metadata.to_dict()
-                metadata_dict["is_sca_scan"] = sca
+                metadata_dict["is_sca_scan"] = supply_chain
 
             try:
                 logger.info("Fetching configuration from semgrep.dev")

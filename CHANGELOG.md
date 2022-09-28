@@ -8,6 +8,35 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.115.0](https://github.com/returntocorp/semgrep/releases/tag/v0.115.0) - 2022-09-27
+
+### Added
+
+- Adds support for a .semgrepconfig file. Users can add metadata (such as a list of tags) to the .semgrepconfig YAML file which will automatically be assigned to the project. (app-2112)
+- Modify the CLI output to separate non-blocking and blocking findings and show a list of the blocking rules that fired. (app-2306)
+
+### Changed
+
+- generic mode: allow text input without human-readable indentation up to 500
+  bytes. This value is subject to change. This relaxing is intended to
+  facilitate testing where someone might copy-paste a long line without a
+  trailing newline. Semgrep users should not expect files that are not
+  human-readable to be processed in semgrep's generic mode, or in any mode for
+  the matter. (gh-6071)
+- Changed behavior for renamed files on diff scans (scans in which a baseline ref is provided).
+  Semgrep will not show old issues to developers when they rename a file now. (gh-6157)
+
+### Fixed
+
+- Fixed nondeterministic failure of test_api test due to invalid settings file by
+  configuring home directory to temporary directory. (app-2166)
+- Change default behavior of Jenkins CI configurations. If the SEMGREP_REPO_NAME environment variable is set, use it. Otherwise, default autodetection. (app-2331)
+- Dockerfile mode: Fix failure to match where image name and image alias should
+  be the same. The problem was due to some names and identifiers being
+  fragmented due to parsing rules and not pieced back together. (gh-5229)
+- Scala: add support for ellipsis in match body (e.g., `$X match { ... }`) (gh-6131)
+- Added a fix for a bug involving parsing of TS imports, where they were not allowed to appear as patterns to a rule. (pa-1910)
+
 ## [0.114.0](https://github.com/returntocorp/semgrep/releases/tag/v0.114.0) - 2022-09-19
 
 ### Added

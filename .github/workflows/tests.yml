@@ -18,28 +18,24 @@ on:
       - "**.md"
 
 jobs:
-  build-core:
-    name: build semgrep-core
+  build-semgrep-core:
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2022-06-09
+    container: returntocorp/ocaml:alpine-2022-09-24
+    # We need this hack because GHA tampers with the HOME in container
+    # and this does not play well with 'opam' installed in /root
+    env:
+      HOME: /root
     steps:
-      #TODO: why do we need this? What does not work if we don't have this?
-      - name: Pre-checkout fixes
-        run: |
-          sudo chmod -R 777 /github
-          github_cache_dir="/__w"
-          sudo mkdir -p "$github_cache_dir"
-          sudo chmod -R 777 "$github_cache_dir"
-      - name: Install python3-config
-        run: sudo apk add python3-dev
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+      # This is needed later for caching, to generate the cache key
       - id: submodule-status
         name: Get submodule version
         run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
-      - name: Post-checkout fixes
-        run: ./.github/post-checkout
-      - name: Remove broken symlinks
+      # Without the step below, the core-cache step further below would fail with:
+      #	  Error: The template is not valid. .github/workflows/tests.yml (Line: 39, Col: 16):
+      #     hashFiles('semgrep-core/**, .github/workflows/tests.yml, scripts/install-alpine-semgrep-core') failed.
+      # Fail to hash files under directory '/home/runner/work/semgrep/semgrep'
+      - name: Remove broken symlinks for hashFiles in core-cache steps
         run: find -L . -type l -exec rm {} \;
       - id: core-cache
         name: Check if this semgrep-core binary is cached
@@ -47,68 +43,51 @@ jobs:
         with:
           path: ocaml-build-artifacts.tgz
           key: "${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-${{ steps.submodule-status.outputs.versions-hash }}"
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         if: steps.core-cache.outputs.cache-hit != 'true'
         with:
           submodules: recursive
-      - name: Install pipenv
-        if: steps.core-cache.outputs.cache-hit != 'true'
-        run: sudo pip install pipenv==2022.6.7
       - name: Cache OCaml build files
         if: steps.core-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v3
         with:
           path: |
-            /home/user/.cache/pipenv
-            /home/user/.local/share/virtualenvs
-            /home/user/.dune
-            /home/user/.opam/download-cache
-            /home/user/.opam/*/.opam-switch/packages
-            /home/user/.opam/*/.opam-switch/sources
+            /root/.dune
+            /root/.opam/download-cache
+            /root/.opam/*/.opam-switch/packages
+            /root/.opam/*/.opam-switch/sources
           key: ${{ runner.os }}-ocamlbuild
+      #TODO: use just 'make install-deps-and-build-ALPINE-semgrep-core' instead
       - name: Build semgrep-core
         if: steps.core-cache.outputs.cache-hit != 'true'
-        run: ./scripts/install-alpine-semgrep-core
         env:
           DUNE_CACHE: enabled
           DUNE_CACHE_STORAGE_MODE: copy
-          DUNE_CACHE_ROOT: /home/user/.dune
+          DUNE_CACHE_ROOT: /root/.dune
           DUNE_CACHE_TRANSPORT: direct
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        run: ./scripts/install-alpine-semgrep-core
+      - uses: actions/upload-artifact@v3
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
 
   build-docker:
-    name: build docker image
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Build image
-        uses: docker/build-push-action@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
         with:
           load: true
           tags: candidate-image
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
-
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Check the semgrep Docker image
-        run: ./scripts/validate-docker-build.sh candidate-image
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
+      - uses: actions/checkout@v3
+      - run: ./scripts/validate-docker-build.sh candidate-image
+      - uses: docker/login-action@v2
         if: github.actor != 'dependabot[bot]' && (github.event.pull_request.head.repo.full_name == github.repository || github.ref == 'refs/heads/develop')
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-
       - id: meta
         name: Set tags and labels
         uses: docker/metadata-action@v4
@@ -163,44 +142,31 @@ jobs:
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
 
   test-core:
-    # TODO: use the artifact of build-core in this job
+    # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2022-06-09
+    container: returntocorp/ocaml:alpine-2022-09-24
+    env:
+      HOME: /root
     steps:
-      - name: Install pipenv
-        run: sudo pip install pipenv==2022.6.7
-      - name: Install python3-config
-        run: sudo apk add python3-dev
-      - name: Pre-checkout fixes
-        run: |
-          sudo chmod -R 777 /github
-          github_cache_dir="/__w"
-          sudo mkdir -p "$github_cache_dir"
-          sudo chmod -R 777 "$github_cache_dir"
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           submodules: true
-      - name: Post-checkout fixes
-        run: ./.github/post-checkout
       - name: Cache OCaml build files
         uses: actions/cache@v3
         with:
           path: |
-            /home/user/.cache/pipenv
-            /home/user/.local/share/virtualenvs
-            /home/user/.dune
-            /home/user/.opam/download-cache
-            /home/user/.opam/*/.opam-switch/packages
-            /home/user/.opam/*/.opam-switch/sources
+            /root/.dune
+            /root/.opam/download-cache
+            /root/.opam/*/.opam-switch/packages
+            /root/.opam/*/.opam-switch/sources
           key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
         env:
           DUNE_CACHE: enabled
           DUNE_CACHE_STORAGE_MODE: copy
-          DUNE_CACHE_ROOT: /home/user/.dune
+          DUNE_CACHE_ROOT: /root/.dune
           DUNE_CACHE_TRANSPORT: direct
       - name: Test semgrep-core
         run: |
@@ -233,7 +199,7 @@ jobs:
   test-cli:
     name: test semgrep-cli
     runs-on: ubuntu-latest
-    needs: [build-core]
+    needs: [build-semgrep-core]
     permissions:
       contents: write
       pull-requests: write
@@ -241,17 +207,14 @@ jobs:
       matrix:
         python: ["3.7", "3.8", "3.9", "3.10"]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
           cache: pipenv
-      - name: Install pipenv
-        run: pip install pipenv==2022.6.7
+      - run: pip install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -314,23 +277,20 @@ jobs:
   test-qa:
     name: quality assurance on semgrep
     runs-on: ubuntu-latest
-    needs: [build-core]
+    needs: [build-semgrep-core]
     strategy:
       fail-fast: false
       matrix:
         split: [1, 2, 3, 4]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces semgrep-core/tests/semgrep-rules
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
           cache: pipenv
-      - name: Install pipenv
-        run: pip install pipenv==2022.6.7
+      - run: pip install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -361,21 +321,17 @@ jobs:
 
   # Run abbreviated version of benchmarks to check that they work
   benchmarks-lite:
-    name: benchmarks (lite)
     runs-on: ubuntu-latest
-    needs: [build-core]
+    needs: [build-semgrep-core]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.7"
           cache: pipenv
-      - name: Install pipenv
-        run: pip install pipenv==2022.6.7
+      - run: pip install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -397,21 +353,17 @@ jobs:
 
   # Run each benchmark twice to decrease effect of natural variance
   benchmarks-full:
-    name: benchmarks (full)
     runs-on: ubuntu-latest
-    needs: [build-core]
+    needs: [build-semgrep-core]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.7"
           cache: pipenv
-      - name: Install pipenv
-        run: pip install pipenv==2022.6.7
+      - run: pip install pipenv==2022.6.7
       - name: Run timing benchmark
         run: |
           pip3 install semgrep==0.94.0
@@ -452,19 +404,16 @@ jobs:
           perf/compare-bench-findings cli/findings.json
 
   build-macos-release:
-    name: build macOS release
     runs-on: ["self-hosted", "macOS", "X64"]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
-      - name: Install pipenv
-        run: sudo python3 -m pip install pipenv
+      # TODO why not the specific 2022.6.7 version here?
+      - run: sudo python3 -m pip install pipenv
       - name: Run OSX build
         run: ./scripts/osx-release.sh
       - name: Upload artifacts
@@ -490,9 +439,8 @@ jobs:
           chmod +x ./test-artifacts/semgrep-core
           ./test-artifacts/semgrep-core -help
 
-  build-ubuntu:
-    name: build Ubuntu release
-    needs: [build-core]
+  build-ubuntu-release:
+    needs: [build-semgrep-core]
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-16.04
     steps:

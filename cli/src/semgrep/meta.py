@@ -595,6 +595,11 @@ class JenkinsMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
+
+        repo_url = os.getenv("SEMGREP_REPO_URL")
+        if repo_url:
+            return repo_url
+
         url = get_url_from_sstp_url(os.getenv("GIT_URL", os.getenv("GIT_URL_1")))
         return url if url else super().repo_url
 

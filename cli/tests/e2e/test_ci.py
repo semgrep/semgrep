@@ -338,6 +338,13 @@ def mock_autofix(request, mocker):
             "GIT_BRANCH": BRANCH_NAME,
             "BUILD_URL": "https://jenkins.build.url",
         },
+        {  # Jenkins overwrite repo_url
+            "JENKINS_URL": "some_url",
+            "SEMGREP_REPO_URL": "https://random.url.org/some/path",
+            "GIT_URL": "https://github.com/org/repo.git/",
+            "GIT_BRANCH": BRANCH_NAME,
+            "BUILD_URL": "https://jenkins.build.url",
+        },
         {  # Jenkins, not defined GIT_URL
             "JENKINS_URL": "some_url",
             "SEMGREP_REPO_URL": "https://random.url.org/some/path",
@@ -413,6 +420,7 @@ def mock_autofix(request, mocker):
         "circleci",
         "jenkins",
         "jenkins-overwrite-repo-name",
+        "jenkins-overwrite-repo-url",
         "jenkins-missing-vars",
         "bitbucket",
         "azure-pipelines",
@@ -692,6 +700,7 @@ def test_github_ci_bad_base_sha(
                 re.compile(r"\"commit_date\":(.*)"),
                 re.compile(r"-targets (.*) -timeout"),
                 re.compile(r"-rules (.*).json"),
+                re.compile(r".*Failed to render autofix.*"),
                 str(git_tmp_path),
                 str(tmp_path),
             ]
