@@ -5,10 +5,7 @@
     "errors": [],
     "total_time": 0.5,
     "unsupported_exts": {},
-    "lockfile_scan_info": {
-      "poetry.lock": 1,
-      "yarn.lock": 1
-    },
+    "lockfile_scan_info": {},
     "parse_rate": {
       "python": {
         "targets_parsed": 1,

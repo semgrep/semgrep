@@ -20,7 +20,7 @@ from typing import Union
 
 import colorama
 import pytest
-from click.testing import CliRunner
+from tests.semgrep_runner import SemgrepRunner
 
 from semgrep import __VERSION__
 from semgrep.cli import cli
@@ -346,7 +346,7 @@ def _run_semgrep(
     args = " ".join(shlex.quote(str(c)) for c in [*options, *targets])
     env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
 
-    runner = CliRunner(env=env, mix_stderr=False)
+    runner = SemgrepRunner(env=env, mix_stderr=False)
     click_result = runner.invoke(cli, args, input=stdin)
     result = SemgrepResult(
         f"{env_string} semgrep {args}",
