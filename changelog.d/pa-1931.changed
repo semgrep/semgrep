@@ -1,0 +1,3 @@
+Semgrep-core will no longer accept a rule file containing only one rule object,
+rules must be given in an array unde the `rules:` key. This change does not
+affect Semgrep CLI which never accepted that relaxed format.
