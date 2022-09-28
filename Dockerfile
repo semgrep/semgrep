@@ -21,15 +21,15 @@
 
 # The Docker image below (after the 'FROM') is prepackaged with 'ocamlc',
 # 'opam', and lots of packages that are used by semgrep-core and installed in
-# the 'make setup' command further below.
+# the 'make install-deps' command further below.
 # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
 # for this list of packages.
-# Thanks to this container, 'make setup' finishes very quickly because it's
+# Thanks to this container, 'make install-deps' finishes very quickly because it's
 # mostly a noop. Alternative base container candidates are:
 #
 #  - 'ocaml/opam:alpine', the official OCaml/opam Docker image,
 #    but building our Docker image would take longer because
-#    of all the necessary Semgrep dependencies installed in 'make setup'.
+#    of all the necessary Semgrep dependencies installed in 'make install-deps'.
 #
 #    We build a new Semgrep Docker image on each pull-request (PR) so we don't
 #    want to wait 30min each time just for 'docker build' to finish.
@@ -56,18 +56,12 @@
 # be the latest, but may differ from this one.
 FROM returntocorp/ocaml:alpine-2022-09-24 as semgrep-core-container
 
-# Here is why we need those apk packages below:
-# - pcre-dev: for ocaml-pcre now used in semgrep-core
-# - python3: used also during building semgrep-core for processing lang.json
-# - python3-dev: for the semgrep Python bridge to build Python C extensions
-# TODO: update the root image to include python 3.9 so those apk are fast too
-RUN apk add --no-cache pcre-dev python3 python3-dev &&\
-    pip install --no-cache-dir pipenv==2022.6.7
-
 WORKDIR /src/semgrep
 COPY . .
-#TODO? git clean -dfX?
-RUN make setup
+#TODO: update the root image to include python 3.9 so the apk commands
+# run internally in make 'install-deps-alpine-xxx' below are fast too
+RUN make install-deps-ALPINE-for-semgrep-core &&\
+    make install-deps-for-semgrep-core
 
 # Let's build just semgrep-core
 WORKDIR /src/semgrep/semgrep-core

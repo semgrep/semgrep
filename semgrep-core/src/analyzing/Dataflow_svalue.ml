@@ -19,7 +19,7 @@ module F = IL
 module D = Dataflow_core
 module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
-module LV = IL_lvalue_helpers
+module LV = IL_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -335,7 +335,7 @@ and eval_lval env lval =
 
 and eval_op env wop args =
   let op, tok = wop in
-  let cs = Common.map (eval env) args in
+  let cs = args |> Common.map IL_helpers.exp_of_arg |> Common.map (eval env) in
   match (op, cs) with
   | G.Plus, [ c1 ] -> c1
   | op, [ G.Lit (G.Bool (b, _)) ] -> eval_unop_bool op b
@@ -504,7 +504,9 @@ let transfer :
             let cexp = eval_or_sym_prop inp' exp in
             update_env_with inp' var cexp
         | Call (Some { base = Var var; rev_offset = [] }, func, args) ->
-            let args_val = Common.map (eval inp') args in
+            let args_val =
+              Common.map (fun arg -> eval inp' (IL_helpers.exp_of_arg arg)) args
+            in
             if result_of_function_call_is_constant lang func args_val then
               VarMap.add (str_of_name var) (G.Cst G.Cstr) inp'
             else
@@ -517,7 +519,9 @@ let transfer :
         | CallSpecial
             (Some { base = Var var; rev_offset = [] }, (Concat, _), args) ->
             (* var = concat(args) *)
-            let cexp = eval_concat inp' args in
+            let cexp =
+              args |> Common.map IL_helpers.exp_of_arg |> eval_concat inp'
+            in
             update_env_with inp' var cexp
         | Call
             ( None,
