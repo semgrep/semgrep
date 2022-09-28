@@ -66,7 +66,6 @@ endif
 .PHONY: build
 build:
 	$(MAKE) build-core
-	$(MAKE) -C toy-matcher
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
