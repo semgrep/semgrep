@@ -19,8 +19,8 @@ let default_semgrep_app_config_url = "api/agent/deployments/scans/config"
 let default_timeout = 30 (* seconds *)
 let settings_filename = "settings.yml"
 let yml_extensions = [ ".yml"; ".yaml" ]
-let yml_suffixes = List.map (fun ext -> [ ext ]) yml_extensions
-let yml_test_suffixes = List.map (fun ext -> [ ".test"; ext ]) yml_extensions
+let yml_suffixes = Common.map (fun ext -> [ ext ]) yml_extensions
+let yml_test_suffixes = Common.map (fun ext -> [ ".test"; ext ]) yml_extensions
 let fixtest_suffix = ".fixed"
 
 let returntocorp_lever_url =

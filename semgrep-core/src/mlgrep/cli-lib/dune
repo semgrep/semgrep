@@ -7,6 +7,7 @@
   (libraries
     ; External libraries
     cmdliner
+    commons
 
     ; Internal libraries
     cli_lib  ; semgrep-core's CLI
