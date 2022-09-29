@@ -354,12 +354,14 @@ def mock_autofix(request, mocker):
         },
         {  # Jenkins overwrite ci_job_url
             "JENKINS_URL": "some_url",
+            "SEMGREP_JOB_URL": "https://random.url.org/some/path",
             "GIT_URL": "https://github.com/org/repo.git/",
             "GIT_BRANCH": BRANCH_NAME,
             "BUILD_URL": "https://jenkins.build.url",
         },
         {  # Jenkins overwite commit_sha
             "JENKINS_URL": "some_url",
+            "SEMGREP_COMMIT": "some random commit",
             "GIT_URL": "https://github.com/org/repo.git/",
             "GIT_BRANCH": BRANCH_NAME,
             "BUILD_URL": "https://jenkins.build.url",
