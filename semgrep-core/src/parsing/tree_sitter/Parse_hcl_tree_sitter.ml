@@ -127,13 +127,13 @@ let map_identifier (env : env) (x : CST.identifier) : ident =
       (* tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc *) str env tok
   | `Semg_meta tok -> (* semgrep_metavariable *) str env tok
 
-let map_string_lit ~with_quotes (env : env) ((v1, v2, v3) : CST.string_lit) =
+let map_string_lit (env : env) ((v1, v2, v3) : CST.string_lit) =
   let v1 = (* quoted_template_start *) token env v1 in
   let v2 = map_template_literal env v2 in
   let v3 = (* quoted_template_end *) token env v3 in
   match v2 with
-  | Some (s, t) -> (s, if with_quotes then PI.combine_infos v1 [ t; v3 ] else t)
-  | None -> ("", PI.combine_infos v1 [ v3 ])
+  | Some (s, t) -> G.String (s, PI.combine_infos v1 [ t; v3 ])
+  | None -> G.String ("", PI.combine_infos v1 [ v3 ])
 
 let map_variable_expr (env : env) (x : CST.variable_expr) = map_identifier env x
 
@@ -149,7 +149,7 @@ let map_literal_value (env : env) (x : CST.literal_value) : literal =
   | `Nume_lit x -> map_numeric_lit env x
   | `Bool_lit x -> Bool (map_bool_lit env x)
   | `Null_lit tok -> (* "null" *) Null (token env tok)
-  | `Str_lit x -> String (map_string_lit ~with_quotes:true env x)
+  | `Str_lit x -> map_string_lit env x
 
 let rec map_anon_choice_get_attr_7bbf24f (env : env)
     (x : CST.anon_choice_get_attr_7bbf24f) =
@@ -565,9 +565,8 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
       (fun x ->
         match x with
         | `Str_lit x ->
-            (* Parse this to a name as it has the same semantics. *)
-            let x = map_string_lit ~with_quotes:false env x in
-            N (Id (x, empty_id_info ())) |> G.e
+            let x = map_string_lit env x in
+            L x |> G.e
         | `Id tok ->
             let id = (* identifier *) map_identifier env tok in
             let n = H2.name_of_id id in
