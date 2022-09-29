@@ -8,9 +8,18 @@
    since we fall back to the 'scan' subcommand if none is given.
 *)
 
+open Printf
+
 (* This is used to determine if we should fall back to assuming 'scan'. *)
 let known_subcommands =
   [ "ci"; "login"; "logout"; "lsp"; "publish"; "scan"; "shouldafound" ]
+
+(* Exit with a code that a proper semgrep implementation would never return.
+   Uncaught OCaml exception result in exit code 2.
+   This is to ensure that the tests that expect error status 2 fail. *)
+let missing_subcommand () =
+  eprintf "This semgrep subcommand is not implemented\n%!";
+  exit 98
 
 let dispatch_subcommand argv =
   match Array.to_list argv with
@@ -31,13 +40,13 @@ let dispatch_subcommand argv =
         subcmd_argv0 :: subcmd_args |> Array.of_list
       in
       match subcmd with
-      | "ci" -> failwith "this subcommand is not implemented"
-      | "login" -> failwith "this subcommand is not implemented"
-      | "logout" -> failwith "this subcommand is not implemented"
-      | "lsp" -> failwith "this subcommand is not implemented"
-      | "publish" -> failwith "this subcommand is not implemented"
+      | "ci" -> missing_subcommand ()
+      | "login" -> missing_subcommand ()
+      | "logout" -> missing_subcommand ()
+      | "lsp" -> missing_subcommand ()
+      | "publish" -> missing_subcommand ()
       | "scan" -> Scan.main subcmd_argv
-      | "shouldafound" -> failwith "this subcommand is not implemented"
+      | "shouldafound" -> missing_subcommand ()
       | _ -> (* should have defaulted to 'scan' above *) assert false)
 
 let main argv =

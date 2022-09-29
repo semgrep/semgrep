@@ -1,7 +1,7 @@
 from textwrap import dedent
 
 import pytest
-from click.testing import CliRunner
+from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
 from semgrep.config_resolver import ConfigLoader
@@ -21,7 +21,7 @@ def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
     ).lstrip()
     mocker.patch.object(ConfigLoader, "_make_config_request", return_value=file_content)
 
-    runner = CliRunner(
+    runner = SemgrepRunner(
         env={
             "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
             "SEMGREP_APP_TOKEN": "",
