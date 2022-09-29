@@ -275,7 +275,6 @@ let extract_and_concat erule_table xtarget rule_ids matches =
          |> List.rev
          (* Read the extracted text from the source file *)
          |> Common.map (fun { start_pos; start_line; start_col; end_pos } ->
-                let _x = open_in_bin xtarget.Xtarget.file in
                 let contents =
                   Common.with_open_infile xtarget.Xtarget.file (fun chan ->
                       let extract_size = end_pos - start_pos in

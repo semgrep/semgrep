@@ -90,10 +90,7 @@ let is_executable =
   Or (has_extension [ ".exe" ], Test_path f)
 
 let get_first_line path =
-  let ic = open_in_bin path in
-  Fun.protect
-    ~finally:(fun () -> close_in_noerr ic)
-    (fun () ->
+  Common.with_open_infile path (fun ic ->
       try input_line ic with
       | End_of_file -> (* empty file *) "")
 
@@ -102,10 +99,7 @@ let get_first_line path =
    a single filesystem block.
 *)
 let get_first_block ?(block_size = 4096) path =
-  let ic = open_in_bin path in
-  Fun.protect
-    ~finally:(fun () -> close_in_noerr ic)
-    (fun () ->
+  Common.with_open_infile path (fun ic ->
       let len = min block_size (in_channel_length ic) in
       really_input_string ic len)
 

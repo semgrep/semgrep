@@ -41,35 +41,33 @@ type 'a env = {
 
 (* mostly a copy-paste of Parse_info.full_charpos_to_pos_large *)
 let line_col_to_pos file =
-  let chan = open_in_bin file in
   let size = Common2.filesize file + 2 in
-
-  let charpos = ref 0 in
-  let line = ref 0 in
   let h = Hashtbl.create size in
+  Common.with_open_infile file (fun chan ->
+      let charpos = ref 0 in
+      let line = ref 0 in
 
-  let full_charpos_to_pos_aux () =
-    try
-      while true do
-        let s = input_line chan in
-        incr line;
+      let full_charpos_to_pos_aux () =
+        try
+          while true do
+            let s = input_line chan in
+            incr line;
 
-        (* '... +1 do'  cos input_line dont return the trailing \n *)
-        for i = 0 to String.length s - 1 + 1 do
-          Hashtbl.add h (!line, i) (!charpos + i)
-        done;
-        charpos := !charpos + String.length s + 1
-      done
-    with
-    | End_of_file ->
-        (* bugfix: this is wrong:  Hashtbl.add h (!line, 0) !charpos;
-         * because an ident on the last line would get
-         * the last charpos.
-         *)
-        ()
-  in
-  full_charpos_to_pos_aux ();
-  close_in chan;
+            (* '... +1 do'  cos input_line dont return the trailing \n *)
+            for i = 0 to String.length s - 1 + 1 do
+              Hashtbl.add h (!line, i) (!charpos + i)
+            done;
+            charpos := !charpos + String.length s + 1
+          done
+        with
+        | End_of_file ->
+            (* bugfix: this is wrong:  Hashtbl.add h (!line, 0) !charpos;
+             * because an ident on the last line would get
+             * the last charpos.
+             *)
+            ()
+      in
+      full_charpos_to_pos_aux ());
   h
 
 let token env (tok : Tree_sitter_run.Token.t) =
