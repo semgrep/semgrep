@@ -623,8 +623,8 @@ class JenkinsMeta(GitMeta):
 
     @property
     def commit_sha(self) -> Optional[str]:
-        commit = os.getenv("SEMGREP_COMMIT") 
-        if commit: 
+        commit = os.getenv("SEMGREP_COMMIT")
+        if commit:
             return commit
 
         return os.getenv("GIT_COMMIT")
