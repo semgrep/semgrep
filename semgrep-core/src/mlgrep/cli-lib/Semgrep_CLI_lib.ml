@@ -19,11 +19,30 @@ let known_subcommands =
    This is to ensure that the tests that expect error status 2 fail. *)
 let missing_subcommand () =
   eprintf "This semgrep subcommand is not implemented\n%!";
-  exit 98
+  exit Error.not_implemented_in_mlgrep
+
+let main_help_msg =
+  "Usage: semgrep [OPTIONS] COMMAND [ARGS]...\n\n\
+  \  To get started quickly, run `semgrep scan --config auto`\n\n\
+  \  Run `semgrep SUBCOMMAND --help` for more information on each subcommand\n\n\
+  \  If no subcommand is passed, will run `scan` subcommand by default\n\n\
+   Options:\n\
+  \  -h, --help  Show this message and exit.\n\n\
+   Commands:\n\
+  \  ci            The recommended way to run semgrep in CI\n\
+  \  login         Obtain and save credentials for semgrep.dev\n\
+  \  logout        Remove locally stored credentials to semgrep.dev\n\
+  \  lsp           [EXPERIMENTAL] Start the Semgrep LSP server\n\
+  \  publish       Upload rule to semgrep.dev\n\
+  \  scan          Run semgrep rules on files\n\
+  \  shouldafound  Report a false negative in this project.\n"
 
 let dispatch_subcommand argv =
   match Array.to_list argv with
   | [] -> assert false
+  | [ _; ("-h" | "--help") ] ->
+      print_string main_help_msg;
+      exit Error.ok_exit_code
   | argv0 :: args -> (
       let subcmd, subcmd_args =
         match args with
