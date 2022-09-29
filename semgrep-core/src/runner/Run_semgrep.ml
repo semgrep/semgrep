@@ -23,6 +23,7 @@ module In = Input_to_core_j
 module Out = Output_from_core_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
+let debug_extract_mode = ref false
 
 (*****************************************************************************)
 (* Purpose *)
@@ -526,8 +527,8 @@ let extract_targets_of_config config rule_ids extractors =
   in
   let extract_targets = extract_target_info.target_mappings in
   let match_hook str match_ =
-    if config.output_format = Text then (
-      print_string "extracted content from ";
+    if !debug_extract_mode && config.output_format = Text then (
+      pr2 "extracted content from ";
       print_match ~str config match_ Metavariable.ii_of_mval)
   in
   logger#info "extracting nested content from %d files, skipping %d files"

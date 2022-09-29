@@ -1,12 +1,25 @@
-# See pfff/semgrep.yml for more information.
-# Put semgrep-specific rules here. More general OCaml or Python rules should
-# go in the semgrep-rules repository under ocaml/ or python/.
+# This file contains Semgrep rules.
+# See https://semgrep.dev for more information.
+#
+# You can use this file locally either with:
+#  - docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep:develop --config semgrep.yml
+# or if you have already installed semgrep:
+#  - semgrep --config semgrep.yml .
+#
+# This file is also used in CI, see .circleci/config.yml
+#
+# Put semgrep-specific rules here.
+# Put general OCaml or Python rules in the semgrep-rules repository
+# under ocaml/ or python/.
+# Use semgrep-core/src/pfff/semgrep.yml for rules related to using pfff
+# libraries.
 
 rules:
   - id: no-print-in-semgrep
     patterns:
       - pattern-either:
           - pattern: pr ...
+          - pattern: print_string ...
       - pattern-not-inside: |
           if !Flag.debug
           then ...
@@ -31,6 +44,17 @@ rules:
         - runner/*.ml
         - experiments/*
         - Check_*.ml
+
+  #TODO: this could be moved in pfff/semgrep.yml at some point
+  - id: no-open-in
+    pattern-either:
+      - pattern: open_in_bin ...
+      - pattern: open_in ...
+    message: >-
+      It is easy to forget to close `open_in` with `close_in`.
+      Use `Common.with_open_infile()` instead.
+    languages: [ocaml]
+    severity: ERROR
 
   - id: use-pytest-mock
     pattern: import unittest.mock
