@@ -1,12 +1,13 @@
-id: decorated-method 
-message: found a decorated method 
-languages:
-  - typescript
-severity: WARNING
-patterns:
-  - pattern-inside: |
-      class $CLASSNAME {
-        ...
-      }
-  - pattern: |
-      @Input() $INPUT: string
+rules:
+- id: decorated-method 
+  message: found a decorated method 
+  languages:
+    - typescript
+  severity: WARNING
+  patterns:
+    - pattern-inside: |
+        class $CLASSNAME {
+          ...
+        }
+    - pattern: |
+        @Input() $INPUT: string
