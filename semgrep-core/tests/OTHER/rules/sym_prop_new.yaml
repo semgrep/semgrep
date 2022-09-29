@@ -1,0 +1,10 @@
+rules:
+  - id: test
+    options:
+      symbolic_propagation: true
+    pattern: new B().test(...)
+    message: Semgrep found a match
+    languages:
+      - java
+    severity: WARNING
+
