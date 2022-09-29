@@ -361,7 +361,7 @@ def mock_autofix(request, mocker):
         },
         {  # Jenkins overwite commit_sha
             "JENKINS_URL": "some_url",
-            "SEMGREP_COMMIT": "some random commit",
+            "SEMGREP_COMMIT": "<some_random_commit>",
             "GIT_URL": "https://github.com/org/repo.git/",
             "GIT_BRANCH": BRANCH_NAME,
             "BUILD_URL": "https://jenkins.build.url",
