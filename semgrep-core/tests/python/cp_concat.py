@@ -1,0 +1,4 @@
+#ERROR:
+x = ("pass"
+    "word")
+
