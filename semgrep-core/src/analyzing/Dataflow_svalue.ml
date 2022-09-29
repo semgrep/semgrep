@@ -527,15 +527,17 @@ let transfer :
               update_env_with inp' var ccall
         | CallSpecial
             (Some { base = Var var; rev_offset = [] }, (special, _), args) ->
+            let args = Common.map IL_helpers.exp_of_arg args in
             let cexp =
-              (* We try to evalaute the special function. *)
+              (* We try to evaluate the special function, if we know how. *)
               if special = Concat then
                 (* var = concat(args) *)
-                args |> Common.map IL_helpers.exp_of_arg |> eval_concat inp'
+                eval_concat inp' args
               else G.NotCst
             in
             let cexp =
-              (* If we could not evaluate it, then we do sym-prop. *)
+              (* If we don't know how to evaluate this function, or if the
+               * evaluation fails, then we do sym-prop. *)
               if cexp = G.NotCst then sym_prop instr.iorig else cexp
             in
             update_env_with inp' var cexp
