@@ -14,7 +14,7 @@
     "on": "pull_request",
     "pull_request_author_username": null,
     "pull_request_author_image_url": null,
-    "pull_request_id": "35",
+    "pull_request_id": "99999",
     "pull_request_title": null,
     "scan_environment": "buildkite",
     "is_full_scan": true,
