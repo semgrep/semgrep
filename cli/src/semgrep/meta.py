@@ -828,11 +828,11 @@ class BuildkiteMeta(GitMeta):
 
     @property
     def pr_id(self) -> Optional[str]:
-        # might be "false" if there is no PR id
         pr_id = os.getenv("SEMGREP_PR_ID")
         if pr_id:
             return pr_id
 
+        # might be "false" if there is no PR id
         pr_id = os.getenv("BUILDKITE_PULL_REQUEST")
         return None if pr_id == "false" else pr_id
 
