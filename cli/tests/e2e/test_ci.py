@@ -345,6 +345,27 @@ def mock_autofix(request, mocker):
             "GIT_BRANCH": BRANCH_NAME,
             "BUILD_URL": "https://jenkins.build.url",
         },
+        {  # Jenkins overwrite branch
+            "JENKINS_URL": "some_url",
+            "SEMGREP_BRANCH": "branch/some-other-branch-name",
+            "GIT_URL": "https://github.com/org/repo.git/",
+            "GIT_BRANCH": BRANCH_NAME,
+            "BUILD_URL": "https://jenkins.build.url",
+        },
+        {  # Jenkins overwrite ci_job_url
+            "JENKINS_URL": "some_url",
+            "SEMGREP_JOB_URL": "https://random.url.org/some/path",
+            "GIT_URL": "https://github.com/org/repo.git/",
+            "GIT_BRANCH": BRANCH_NAME,
+            "BUILD_URL": "https://jenkins.build.url",
+        },
+        {  # Jenkins overwite commit_sha
+            "JENKINS_URL": "some_url",
+            "SEMGREP_COMMIT": "<some_random_commit>",
+            "GIT_URL": "https://github.com/org/repo.git/",
+            "GIT_BRANCH": BRANCH_NAME,
+            "BUILD_URL": "https://jenkins.build.url",
+        },
         {  # Jenkins, not defined GIT_URL
             "JENKINS_URL": "some_url",
             "SEMGREP_REPO_URL": "https://random.url.org/some/path",
@@ -421,6 +442,9 @@ def mock_autofix(request, mocker):
         "jenkins",
         "jenkins-overwrite-repo-name",
         "jenkins-overwrite-repo-url",
+        "jenkins-overwrite-branch",
+        "jenkins-overwrite-ci-job-url",
+        "jenkins-overwrite-commit-sha",
         "jenkins-missing-vars",
         "bitbucket",
         "azure-pipelines",
@@ -521,8 +545,12 @@ def test_full_run(
     scan_create_json = post_calls[0].kwargs["json"]
     meta_json = scan_create_json["meta"]
 
-    assert meta_json["commit"] == head_commit
-    meta_json["commit"] = "sanitized"
+    if "SEMGREP_COMMIT" in env:
+        assert meta_json["commit"] == env["SEMGREP_COMMIT"]
+        meta_json["commit"] = "sanitized semgrep commit"
+    else:
+        assert meta_json["commit"] == head_commit
+        meta_json["commit"] = "sanitized"
 
     assert meta_json["semgrep_version"] == __VERSION__
     meta_json["semgrep_version"] = "<sanitized version>"
