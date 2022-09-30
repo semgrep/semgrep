@@ -545,7 +545,10 @@ def test_full_run(
     scan_create_json = post_calls[0].kwargs["json"]
     meta_json = scan_create_json["meta"]
 
-    assert meta_json["commit"] == head_commit
+    if "SEMGREP_COMMIT" in env:
+        assert meta_json["commit"] == env["SEMGREP_COMMIT"]
+    else:
+        assert meta_json["commit"] == head_commit
     meta_json["commit"] = "sanitized"
 
     assert meta_json["semgrep_version"] == __VERSION__
