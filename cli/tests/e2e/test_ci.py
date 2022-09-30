@@ -331,16 +331,13 @@ def mock_autofix(request, mocker):
             "GIT_BRANCH": BRANCH_NAME,
             "BUILD_URL": "https://jenkins.build.url",
         },
-        {  # Jenkins overwrite repo_name
+        {  # Jenkins overwrite autodetected variables
             "JENKINS_URL": "some_url",
             "SEMGREP_REPO_NAME": "a/repo/name",
-            "GIT_URL": "https://github.com/org/repo.git/",
-            "GIT_BRANCH": BRANCH_NAME,
-            "BUILD_URL": "https://jenkins.build.url",
-        },
-        {  # Jenkins overwrite repo_url
-            "JENKINS_URL": "some_url",
             "SEMGREP_REPO_URL": "https://random.url.org/some/path",
+            "SEMGREP_BRANCH": "branch/some-other-branch-name",
+            "SEMGREP_JOB_URL": "https://random.url.org/some/path",
+            "SEMGREP_COMMIT": "<some_random_commit>",
             "GIT_URL": "https://github.com/org/repo.git/",
             "GIT_BRANCH": BRANCH_NAME,
             "BUILD_URL": "https://jenkins.build.url",
@@ -419,8 +416,7 @@ def mock_autofix(request, mocker):
         "gitlab-push",
         "circleci",
         "jenkins",
-        "jenkins-overwrite-repo-name",
-        "jenkins-overwrite-repo-url",
+        "jenkins-overwrite-autodetected-variables",
         "jenkins-missing-vars",
         "bitbucket",
         "azure-pipelines",
@@ -521,8 +517,12 @@ def test_full_run(
     scan_create_json = post_calls[0].kwargs["json"]
     meta_json = scan_create_json["meta"]
 
-    assert meta_json["commit"] == head_commit
-    meta_json["commit"] = "sanitized"
+    if "SEMGREP_COMMIT" in env:
+        assert meta_json["commit"] == env["SEMGREP_COMMIT"]
+        meta_json["commit"] = "sanitized semgrep commit"
+    else:
+        assert meta_json["commit"] == head_commit
+        meta_json["commit"] = "sanitized"
 
     assert meta_json["semgrep_version"] == __VERSION__
     meta_json["semgrep_version"] = "<sanitized version>"
