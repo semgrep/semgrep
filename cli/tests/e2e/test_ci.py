@@ -360,11 +360,6 @@ def mock_autofix(request, mocker):
         },
         {  # Azure Pipelines
             "BUILD_BUILDID": "some_id",
-            "SEMGREP_REPO_NAME": "a/repo/name",
-            "SEMGREP_REPO_URL": "https://random.url.org/some/path",
-            "SEMGREP_BRANCH": "branch/some-other-branch-name",
-            "SEMGREP_JOB_URL": "https://another.random.url.org/some/path",
-            "SEMGREP_COMMIT": "<some_random_commit>",
             "BUILD_REPOSITORY_URI": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
             "SYSTEM_PULLREQUEST_SOURCEBRANCH": BRANCH_NAME,
             "SYSTEM_TEAMFOUNDATIONSERVERURI": "https://azure.pipeline.url/",
@@ -374,6 +369,11 @@ def mock_autofix(request, mocker):
         },
         {  # Azure Pipelines, overwrite autodetected variables
             "BUILD_BUILDID": "some_id",
+            "SEMGREP_REPO_NAME": "a/repo/name",
+            "SEMGREP_REPO_URL": "https://random.url.org/some/path",
+            "SEMGREP_BRANCH": "branch/some-other-branch-name",
+            "SEMGREP_JOB_URL": "https://another.random.url.org/some/path",
+            "SEMGREP_COMMIT": "<some_random_commit>",
             "BUILD_REPOSITORY_URI": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
             "SYSTEM_PULLREQUEST_SOURCEBRANCH": BRANCH_NAME,
             "SYSTEM_TEAMFOUNDATIONSERVERURI": "https://azure.pipeline.url/",
