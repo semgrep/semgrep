@@ -547,9 +547,10 @@ def test_full_run(
 
     if "SEMGREP_COMMIT" in env:
         assert meta_json["commit"] == env["SEMGREP_COMMIT"]
+        meta_json["commit"] = "sanitized semgrep commit"
     else:
         assert meta_json["commit"] == head_commit
-    meta_json["commit"] = "sanitized"
+        meta_json["commit"] = "sanitized"
 
     assert meta_json["semgrep_version"] == __VERSION__
     meta_json["semgrep_version"] = "<sanitized version>"
