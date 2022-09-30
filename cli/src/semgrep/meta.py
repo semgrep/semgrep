@@ -685,6 +685,10 @@ class BitbucketMeta(GitMeta):
 
     @property
     def pr_id(self) -> Optional[str]:
+        pr_id = os.getenv("SEMGREP_PR_ID")
+        if pr_id:
+            return pr_id
+
         return os.getenv("BITBUCKET_PR_ID")
 
 

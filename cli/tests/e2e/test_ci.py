@@ -366,6 +366,7 @@ def mock_autofix(request, mocker):
             "SEMGREP_BRANCH": "branch/some-other-branch-name",
             "SEMGREP_JOB_URL": "https://another.random.url.org/some/path",
             "SEMGREP_COMMIT": "<some_random_commit>",
+            "SEMGREP_PR_ID": "99999",
             "BITBUCKET_REPO_FULL_NAME": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
             "BITBUCKET_GIT_HTTP_ORIGIN": f"http://bitbucket.org/{REPO_DIR_NAME}/{REPO_DIR_NAME}",
             "BITBUCKET_BRANCH": BRANCH_NAME,
