@@ -3,9 +3,10 @@
     <a href="https://semgrep.dev"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep.svg" height="100" alt="Semgrep logo"/></a>
 </p>
 <h3 align="center">
-  Lightweight static analysis for many languages.
+  Code scanning at ludicrous speed.
   </br>
-  Find bugs and enforce code standards.
+  Find bugs and reachable dependency vulnerabilities in code.
+  <br />Enforce your code standards on every commit.
 </h3>
 <p align="center">
   <a href="https://formulae.brew.sh/formula/semgrep">
@@ -35,11 +36,11 @@
 </p>
 </br>
 
-Semgrep is a fast, open-source, static analysis tool for finding bugs and enforcing code standards at editor, commit, and CI time. [Get started →.](#getting-started)
+Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. [Get started →.](#getting-started)
 
 Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**.
 
-Its rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs. Here's a quick rule for finding Python `print()` statements, run it online in Semgrep's Playground by clicking the image:
+Its rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs. Here's a quick rule for finding Python `print()` statements. Run it online in Semgrep’s Playground by clicking the image:
 
 <p align="center">
     <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/doc/playground-example.png" width="582" alt="Semgrep rule example for finding Python print() statements"/></a>
@@ -48,11 +49,15 @@ Its rules look like the code you already write; no abstract syntax trees, regex 
 The Semgrep ecosystem includes:
 
 - Semgrep - The open-source command line tool at the heart of everything (this project).
-- [Semgrep Playground](https://semgrep.dev/editor) - An online interactive tool for writing and sharing rules.
-- [Semgrep Registry](https://semgrep.dev/explore) - 2,000+ community-driven rules covering security, correctness, and performance bugs.
-- [Semgrep App](https://semgrep.dev/manage) - Deploy, manage, and monitor Semgrep at scale with free and paid tiers. Integrates with CI providers such as GitHub, GitLab, CircleCI, and more.
+- [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain) - high-signal dependency scanner that detects reachable open source vulnerabilities in third-party libraries and functions across the SDLC.
+- [Semgrep App](https://semgrep.dev/manage) - Deploy, manage, and monitor Semgrep and Semgrep Supply Chain at scale with free and paid tiers. Integrates with CI providers such as GitHub, GitLab, CircleCI, and more.
 
-Join 100,000 other developers and security engineers already using Semgrep at companies like Chef, Dropbox, Figma, HashiCorp, Snowflake, and Trail of Bits. Also check out [tools powered by Semgrep](https://semgrep.dev/docs/extensions/#semgrep-as-an-engine)!
+and:
+
+- [Semgrep Playground](https://semgrep.dev/editor) - An online interactive tool for writing and sharing rules.
+- [Semgrep Registry](https://semgrep.dev/explore) - 2,000+ community-driven rules covering security, correctness, and dependency vulnerabilities.
+
+Join hundreds of thousands of other developers and security engineers already using Semgrep at companies like GitLab, Dropbox, Slack, Figma, Shopify, HashiCorp, Snowflake, and Trail of Bits.
 
 Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev).
 
@@ -96,6 +101,7 @@ $ semgrep -e '$X == $X' --lang=py path/to/src
 $ semgrep --config auto
 ```
 
+To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrpe.dev/contact-us).
 Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
 
 ### Rule examples
@@ -117,7 +123,7 @@ Visit [Docs > Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/)
 
 ### Extensions
 
-Visit [Docs > Extensions](https://semgrep.dev/docs/extensions/) to learn about Semgrep in your editor or pre-commit. When integrated into CI and configured to scan pull requests, Semgrep will only report issues introduced by that pull request; this lets you start using Semgrep without fixing or ignoring pre-existing issues!
+Visit [Docs > Extensions](https://semgrep.dev/docs/extensions/) to learn about using Semgrep in your editor or pre-commit. When integrated into CI and configured to scan pull requests, Semgrep will only report issues introduced by that pull request; this lets you start using Semgrep without fixing or ignoring pre-existing issues!
 
 ### Documentation
 
@@ -131,7 +137,7 @@ Using configs from local files (like `--config=xyz.yml`) does **not** enable met
 
 To disable Registry rule metrics, use `--metrics=off`.
 
-[PRIVACY.md](PRIVACY.md) describes the principles that guide data-collection decisions and the breakdown of the data that are and are not collected when the metrics are enabled.
+The Semgrep [privacy policy](https://semgrep.dev/docs/metrics) describes the principles that guide data-collection decisions and the breakdown of the data that are and are not collected when the metrics are enabled.
 
 ### More
 
@@ -140,7 +146,7 @@ To disable Registry rule metrics, use `--metrics=off`.
 - [Build instructions for developers](INSTALL.md)
 - [Ask questions in the r2c Community Slack](https://r2c.dev/slack)
 - [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
-- [r2c YouTube channel with Semgrep presentation videos](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg)
+- [Semgrep YouTube channel](https://www.youtube.com/c/semgrep)
 - [License (LGPL-2.1)](LICENSE)
 
 ### Upgrading
