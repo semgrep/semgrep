@@ -336,7 +336,7 @@ def mock_autofix(request, mocker):
             "SEMGREP_REPO_NAME": "a/repo/name",
             "SEMGREP_REPO_URL": "https://random.url.org/some/path",
             "SEMGREP_BRANCH": "branch/some-other-branch-name",
-            "SEMGREP_JOB_URL": "https://random.url.org/some/path",
+            "SEMGREP_JOB_URL": "https://another.random.url.org/some/path",
             "SEMGREP_COMMIT": "<some_random_commit>",
             "GIT_URL": "https://github.com/org/repo.git/",
             "GIT_BRANCH": BRANCH_NAME,
