@@ -23,6 +23,8 @@ jobs:
     working_directory: /src
     steps:
       - checkout
+      # we now need the submodules because semgrep.jsonnet include semgrep-core/pfff/semgrep.yml
+      - run: git submodule update --init --recursive --recommend-shallow semgrep-core/src/pfff
       # Dogfooding to the edge by using jsonnet and the new syntax!
       - run: |
           #TODO at some point this will be done in the Dockerfile
