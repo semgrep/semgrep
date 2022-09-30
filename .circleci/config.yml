@@ -23,7 +23,8 @@ jobs:
     working_directory: /src
     steps:
       - checkout
-      - run: semgrep --config semgrep.yml --error --verbose --exclude tests --exclude TODO --exclude _build .
+      # Dogfooding to the edge by using jsonnet and the new syntax!
+      - run: semgrep --config semgrep.jsonnet --error --verbose --exclude tests
 
   # For the benchmarks below, we had two alternatives:
   # A. run semgrep container from existing container: requires mounting
