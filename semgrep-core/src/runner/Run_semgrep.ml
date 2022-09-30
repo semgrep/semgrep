@@ -311,6 +311,20 @@ let exn_to_error file (e : Exception.t) =
       E.mk_error loc s AstBuilderError
   | _ -> E.exn_to_error file e
 
+(* Return an exception
+ * - always, if there are no rules but just invalid rules
+ * - when users want to fail fast, if there are valid and invalid rules
+ * TODO: right now we always fail when there is one invalid rule, because
+ * we don't have a fail_fast flag (we could use the flag for -strict)
+ *)
+let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
+  match (rules, invalid_rules) with
+  | [], [] -> ()
+  | [], err :: _ -> raise (Rule.InvalidRule err)
+  | _, err :: _ (* TODO fail fast only when in strict mode? *) ->
+      raise (Rule.InvalidRule err)
+  | _, [] -> ()
+
 (*****************************************************************************)
 (* Parsing (non-cached) *)
 (*****************************************************************************)
@@ -517,15 +531,13 @@ let targets_of_config (config : Runner_config.t)
 
 (**
    Generate the list of targets to run extract rules against given a config,
-   the ids for rules to run against the generated targets and a set of extract
-   rules used to perform the extraction.
+   the ids for rules to run against the generated targets, and a set of
+   extract rules used to perform the extraction.
 *)
-let extract_targets_of_config config rule_ids extractors =
+let extracted_targets_of_config config rule_ids extractors =
   let erule_ids = Common.map (fun r -> fst r.R.id) extractors in
-  let extract_target_info, extract_skipped =
-    targets_of_config config erule_ids
-  in
-  let extract_targets = extract_target_info.target_mappings in
+  let etargets, eskipped = targets_of_config config erule_ids in
+  let extract_targets = etargets.target_mappings in
   let match_hook str match_ =
     if !debug_extract_mode && config.output_format = Text then (
       pr2 "extracted content from ";
@@ -533,26 +545,25 @@ let extract_targets_of_config config rule_ids extractors =
   in
   logger#info "extracting nested content from %d files, skipping %d files"
     (List.length extract_targets)
-    (List.length extract_skipped);
-  List.concat_map
-    (fun t ->
-      (* TODO: addt'l filtering required for rule_ids when targets are
-         passed explicitly? *)
-      let file = t.In.path in
-      let xlang = Xlang.of_string t.In.language in
-      let xtarget = xtarget_of_file config xlang file in
-      let extract_targets =
-        Match_extract_mode.extract_nested_lang ~match_hook
-          ~timeout:config.timeout ~timeout_threshold:config.timeout_threshold
-          extractors xtarget rule_ids
-      in
-      (* Print number of extra targets so Python knows *)
-      (match config.output_format with
-      | Json true when extract_targets <> [] ->
-          pr (string_of_int (List.length extract_targets))
-      | _ -> ());
-      extract_targets)
-    extract_targets
+    (List.length eskipped);
+  extract_targets
+  |> List.concat_map (fun t ->
+         (* TODO: addt'l filtering required for rule_ids when targets are
+            passed explicitly? *)
+         let file = t.In.path in
+         let xlang = Xlang.of_string t.In.language in
+         let xtarget = xtarget_of_file config xlang file in
+         let extract_targets =
+           Match_extract_mode.extract_nested_lang ~match_hook
+             ~timeout:config.timeout ~timeout_threshold:config.timeout_threshold
+             extractors xtarget rule_ids
+         in
+         (* Print number of extra targets so Python knows *)
+         (match config.output_format with
+         | Json true when extract_targets <> [] ->
+             pr (string_of_int (List.length extract_targets))
+         | _ -> ());
+         extract_targets)
   |> fun extracted_ranges ->
   (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
        Hashtbl.add fn_tbl t.In.path fn;
@@ -564,58 +575,57 @@ let extract_targets_of_config config rule_ids extractors =
 (* Semgrep -config *)
 (*****************************************************************************)
 
-(* This is the main function used by the semgrep python wrapper right now.
+(* This is the main function used by the semgrep Python wrapper right now.
  * It takes a set of rules and a set of targets (targets derived from config,
- * and potentially also extract rules) and recursively process those targets.
+ * and potentially also extract rules) and iteratively process those targets.
  *)
 let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
-  (* Return an exception
-     - always, if there are no rules but just invalid rules
-     - when users want to fail fast, if there are valid and invalid rules *)
-  (match (rules, invalid_rules) with
-  | [], [] -> ()
-  | [], err :: _ -> raise (Rule.InvalidRule err)
-  | _, err :: _ (* TODO fail fast when only when strict? *) ->
-      raise (Rule.InvalidRule err)
-  | _, [] -> ());
+  sanity_check_rules_and_invalid_rules config rules invalid_rules;
 
   let rules, extract_rules =
-    Common.partition_either
-      (fun r ->
-        match r.Rule.mode with
-        | `Extract _ as e -> Right { r with mode = e }
-        | mode -> Left { r with mode })
-      rules
+    rules
+    |> Common.partition_either (fun r ->
+           match r.Rule.mode with
+           | `Extract _ as e -> Right { r with mode = e }
+           | mode -> Left { r with mode })
   in
+  let rule_ids = rules |> Common.map (fun r -> fst r.R.id) in
 
-  let rule_ids = Common.map (fun r -> fst r.R.id) rules in
-
-  let extracted_targets, extract_result_map =
-    extract_targets_of_config config rule_ids extract_rules
-  in
-  (* TODO: possibly extract (recursively) from generated stuff *)
+  (* The basic targets.
+   * TODO: possibly extract (recursively) from generated stuff? *)
   let target_info, skipped = targets_of_config config rule_ids in
-  (* Note that rules here is only the search/taint rules from the above
+
+  (* The "extracted" targets we generated on the fly by calling
+   * our extractors (extract mode rules) on the relevant basic targets.
+   *)
+  let extracted_targets, extract_result_map =
+    extracted_targets_of_config config rule_ids extract_rules
+  in
+
+  let all_targets = target_info.target_mappings @ extracted_targets in
+
+  (* Note that 'rules' here contains only search/taint rules from the above
    * partition; i.e., it doesn't contain any extract mode rules. However,
    * target_info.rule_ids might include extract mode rules previously used on
    * this target. mk_rule_table resolves this by ignoring any rule id it can't
    * find in the rules list.
    *)
   let rule_table = mk_rule_table rules target_info.rule_ids in
+
+  (* Let's go! *)
   logger#info "processing %d files, skipping %d files"
     (List.length target_info.target_mappings)
     (List.length skipped);
   let file_results =
-    target_info.target_mappings @ extracted_targets
+    all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config (fun target ->
            let file = target.In.path in
            let xlang = Xlang.of_string target.In.language in
            let rules =
              (* Assumption: find_opt will return None iff a r_id
                  is in skipped_rules *)
-             List.filter_map
-               (fun r_num -> Hashtbl.find_opt rule_table r_num)
-               target.In.rule_nums
+             target.In.rule_nums
+             |> List.filter_map (fun r_num -> Hashtbl.find_opt rule_table r_num)
            in
 
            let xtarget = xtarget_of_file config xlang file in
@@ -630,16 +640,18 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                matching_explanations = config.matching_explanations;
              }
            in
-           let res =
+           let matches =
              Match_rules.check ~match_hook ~timeout:config.timeout
                ~timeout_threshold:config.timeout_threshold xconf rules xtarget
            in
+           (* Print when each file is done so Python knows *)
            (match config.output_format with
            | Json true -> pr "."
            | _ -> ());
-           (* Print when each file is done so Python knows *)
-           Hashtbl.find_opt extract_result_map file
-           |> Option.fold ~some:(fun f -> f res) ~none:res)
+           (* adjust the match location for extracted targets *)
+           match Hashtbl.find_opt extract_result_map file with
+           | Some f -> f matches
+           | None -> matches)
   in
   let res = RP.make_final_result file_results rules ~rules_parse_time in
   logger#info "found %d matches, %d errors" (List.length res.matches)
