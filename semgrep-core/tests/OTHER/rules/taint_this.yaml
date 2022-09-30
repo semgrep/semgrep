@@ -1,0 +1,15 @@
+rules:
+  - id: test
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern: this.$X
+    pattern-sinks:
+      - patterns:
+          - pattern: $X.eval(...)
+    languages:
+      - typescript
+      - javascript
+    message: |
+      Semgrep found a match
+    severity: WARNING
