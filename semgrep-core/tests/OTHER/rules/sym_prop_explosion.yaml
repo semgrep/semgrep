@@ -1,0 +1,9 @@
+rules:
+   - id: test
+     options:
+       symbolic_propagation: true
+     pattern: ff(ff(ff(ff(..., -66936), ..., -18897), ..., 135416), ..., 103682)
+     message: Test
+     languages:
+       - javascript
+     severity: ERROR

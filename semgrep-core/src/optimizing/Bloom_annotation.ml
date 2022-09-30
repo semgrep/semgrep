@@ -114,11 +114,18 @@ let rec statement_strings stmt =
             | IdSpecial (_, tok) -> push (Parse_info.str_of_info tok) res
             | _ -> k x);
         V.ksvalue =
-          (fun (k, _) x ->
+          (fun (_k, _) x ->
             match x with
             | Lit (String (str, _tok)) ->
                 if not (Pattern.is_special_string_literal str) then push str res
-            | _ -> k x);
+            | Lit _
+            | Cst _
+            | Sym _
+            | NotCst ->
+                (* Should NOT go into symbolic values, see "CAREFUL" note in
+                 * AST_generic.svalue. BUT, if we don't, then the Bloom filter
+                 * may skip statements that should be matched via sym-prop... *)
+                ());
         (* The default behavior of kid_info is to not call the continutation *)
         (* We want to recurse so that we can index processed information like constants *)
         V.kid_info = (fun (k, _) x -> k x);
