@@ -385,6 +385,7 @@ def mock_autofix(request, mocker):
             "SEMGREP_BRANCH": "branch/some-other-branch-name",
             "SEMGREP_JOB_URL": "https://another.random.url.org/some/path",
             "SEMGREP_COMMIT": "<some_random_commit>",
+            "SEMGREP_PR_ID": "99999",
             "BUILDKITE_REPO": f"git@github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
             "BUILDKITE_BRANCH": BRANCH_NAME,
             "BUILDKITE_BUILD_URL": "https://buildkite.build.url/something",
