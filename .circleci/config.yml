@@ -43,6 +43,7 @@ jobs:
       - run:
           name: benchmarks
           command: |
+            echo "lmeow"
             cd perf
             ./run-benchmarks --upload || true
 
