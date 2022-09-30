@@ -25,7 +25,10 @@ jobs:
       - checkout
       # Dogfooding to the edge by using jsonnet and the new syntax!
       - run: |
+          #TODO at some point this will be done in the Dockerfile
+          apk add make g++
           pip install jsonnet
+          # Let's go
           semgrep --config semgrep.jsonnet --error --verbose --exclude tests
 
   # For the benchmarks below, we had two alternatives:

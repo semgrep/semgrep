@@ -104,6 +104,8 @@ COPY cli ./
 # Note the difference between .run-deps and .build-deps below.
 # TODO? what does --virtual= mean? why all in one command below?
 # TODO? why the mkdir -p /tmp/.cache?
+# TODO: for jsonnet, you need for the build-deps before 'pip install jsonnet'
+#  'apk add g++ make'
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base &&\
      SEMGREP_SKIP_BIN=true pip install /semgrep &&\
