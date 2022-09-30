@@ -638,6 +638,10 @@ class BitbucketMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
+        repo_name = os.getenv("SEMGREP_REPO_NAME")
+        if repo_name:
+            return repo_name
+
         name = os.getenv("BITBUCKET_REPO_FULL_NAME")
         if name is None:
             # try pulling from url
@@ -646,15 +650,27 @@ class BitbucketMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
+        repo_url = os.getenv("SEMGREP_REPO_URL")
+        if repo_url:
+            return repo_url
+
         url = get_url_from_sstp_url(os.getenv("BITBUCKET_GIT_HTTP_ORIGIN"))
         return url if url else super().repo_url
 
     @property
     def branch(self) -> Optional[str]:
+        branch = os.getenv("SEMGREP_BRANCH")
+        if branch:
+            return branch
+
         return os.getenv("BITBUCKET_BRANCH")
 
     @property
     def ci_job_url(self) -> Optional[str]:
+        job_url = os.getenv("SEMGREP_JOB_URL")
+        if job_url:
+            return job_url
+
         url = "{}/addon/pipelines/home#!/results/{}".format(
             os.getenv("BITBUCKET_GIT_HTTP_ORIGIN"), os.getenv("BITBUCKET_PIPELINE_UUID")
         )
@@ -662,6 +678,9 @@ class BitbucketMeta(GitMeta):
 
     @property
     def commit_sha(self) -> Optional[str]:
+        commit = os.getenv("SEMGREP_COMMIT")
+        if commit:
+            return commit
         return os.getenv("BITBUCKET_COMMIT")
 
     @property
