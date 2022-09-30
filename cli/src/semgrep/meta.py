@@ -679,11 +679,19 @@ class AzurePipelinesMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
+        repo_name = os.getenv("SEMGREP_REPO_NAME")
+        if repo_name:
+            return repo_name
+
         name = get_repo_name_from_repo_url(self.repo_url)
         return name if name else super().repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
+        repo_url = os.getenv("SEMGREP_REPO_URL")
+        if repo_url:
+            return repo_url
+
         url = os.getenv("SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI") or os.getenv(
             "BUILD_REPOSITORY_URI"
         )
@@ -691,6 +699,10 @@ class AzurePipelinesMeta(GitMeta):
 
     @property
     def branch(self) -> Optional[str]:
+        branch = os.getenv("SEMGREP_BRANCH")
+        if branch:
+            return branch
+
         branch_or_tag = (
             os.getenv("SYSTEM_PULLREQUEST_SOURCEBRANCH")
             or os.getenv("BUILD_SOURCEBRANCH")
@@ -703,6 +715,10 @@ class AzurePipelinesMeta(GitMeta):
 
     @property
     def ci_job_url(self) -> Optional[str]:
+        job_url = os.getenv("SEMGREP_JOB_URL")
+        if job_url:
+            return job_url
+
         if (
             os.getenv("SYSTEM_TEAMFOUNDATIONSERVERURI")
             and os.getenv("SYSTEM_TEAMPROJECTID")
@@ -720,6 +736,10 @@ class AzurePipelinesMeta(GitMeta):
 
     @property
     def commit_sha(self) -> Optional[str]:
+        commit = os.getenv("SEMGREP_COMMIT")
+        if commit:
+            return commit
+
         return os.getenv("SYSTEM_PULLREQUEST_SOURCECOMMITID") or os.getenv(
             "BUILD_SOURCEVERSION"
         )
