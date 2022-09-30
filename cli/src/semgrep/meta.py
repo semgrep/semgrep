@@ -778,27 +778,51 @@ class TravisMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
+        repo_name = os.getenv("SEMGREP_REPO_NAME")
+        if repo_name:
+            return repo_name
+
         repo_name = os.getenv("TRAVIS_REPO_SLUG")
         return repo_name if repo_name else super().repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
+        repo_url = os.getenv("SEMGREP_REPO_URL")
+        if repo_url:
+            return repo_url
+
         return f"https://github.com/{self.repo_name}"
 
     @property
     def branch(self) -> Optional[str]:
+        branch = os.getenv("SEMGREP_BRANCH")
+        if branch:
+            return branch
+
         return os.getenv("TRAVIS_PULL_REQUEST_BRANCH") or os.getenv("TRAVIS_BRANCH")
 
     @property
     def ci_job_url(self) -> Optional[str]:
+        job_url = os.getenv("SEMGREP_JOB_URL")
+        if job_url:
+            return job_url
+
         return os.getenv("TRAVIS_JOB_WEB_URL")
 
     @property
     def commit_sha(self) -> Optional[str]:
+        commit = os.getenv("SEMGREP_COMMIT")
+        if commit:
+            return commit
+
         return os.getenv("TRAVIS_COMMIT")
 
     @property
     def pr_id(self) -> Optional[str]:
+        pr_id = os.getenv("SEMGREP_PR_ID")
+        if pr_id:
+            return pr_id
+
         return os.getenv("TRAVIS_PULL_REQUEST")
 
     def to_dict(self) -> Dict[str, Any]:
