@@ -591,6 +591,10 @@ class CircleCIMeta(GitMeta):
 
     @property
     def pr_id(self) -> Optional[str]:
+        pr_id = os.getenv("SEMGREP_PR_ID")
+        if pr_id:
+            return pr_id
+
         # have to use the pull request url to get the id
         return os.getenv("CIRCLE_PULL_REQUEST", "").split("/")[-1]
 

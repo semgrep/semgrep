@@ -332,6 +332,7 @@ def mock_autofix(request, mocker):
             "SEMGREP_BRANCH": "branch/some-other-branch-name",
             "SEMGREP_JOB_URL": "https://another.random.url.org/some/path",
             "SEMGREP_COMMIT": "<some_random_commit>",
+            "SEMGREP_PR_ID": "99999",
             "CIRCLECI": "true",
             "CIRCLE_PROJECT_USERNAME": REPO_DIR_NAME,
             "CIRCLE_PROJECT_REPONAME": REPO_DIR_NAME,
