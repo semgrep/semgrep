@@ -10,6 +10,6 @@
     commons
 
     ; Internal libraries
-    cli_lib  ; semgrep-core's CLI
+    Semgrep_scan
   )
 )

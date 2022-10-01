@@ -22,20 +22,26 @@ let missing_subcommand () =
   exit Error.not_implemented_in_mlgrep
 
 let main_help_msg =
-  "Usage: semgrep [OPTIONS] COMMAND [ARGS]...\n\n\
-  \  To get started quickly, run `semgrep scan --config auto`\n\n\
-  \  Run `semgrep SUBCOMMAND --help` for more information on each subcommand\n\n\
-  \  If no subcommand is passed, will run `scan` subcommand by default\n\n\
-   Options:\n\
-  \  -h, --help  Show this message and exit.\n\n\
-   Commands:\n\
-  \  ci            The recommended way to run semgrep in CI\n\
-  \  login         Obtain and save credentials for semgrep.dev\n\
-  \  logout        Remove locally stored credentials to semgrep.dev\n\
-  \  lsp           [EXPERIMENTAL] Start the Semgrep LSP server\n\
-  \  publish       Upload rule to semgrep.dev\n\
-  \  scan          Run semgrep rules on files\n\
-  \  shouldafound  Report a false negative in this project.\n"
+  {|Usage: semgrep [OPTIONS] COMMAND [ARGS]...
+
+  To get started quickly, run `semgrep scan --config auto`
+
+  Run `semgrep SUBCOMMAND --help` for more information on each subcommand
+
+  If no subcommand is passed, will run `scan` subcommand by default
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  ci            The recommended way to run semgrep in CI
+  login         Obtain and save credentials for semgrep.dev
+  logout        Remove locally stored credentials to semgrep.dev
+  lsp           [EXPERIMENTAL] Start the Semgrep LSP server
+  publish       Upload rule to semgrep.dev
+  scan          Run semgrep rules on files
+  shouldafound  Report a false negative in this project.
+|}
 
 let dispatch_subcommand argv =
   match Array.to_list argv with
@@ -64,7 +70,7 @@ let dispatch_subcommand argv =
       | "logout" -> missing_subcommand ()
       | "lsp" -> missing_subcommand ()
       | "publish" -> missing_subcommand ()
-      | "scan" -> Scan.main subcmd_argv
+      | "scan" -> Semgrep_scan.main subcmd_argv
       | "shouldafound" -> missing_subcommand ()
       | _ -> (* should have defaulted to 'scan' above *) assert false)
 

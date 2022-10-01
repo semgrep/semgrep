@@ -31,7 +31,3 @@ let not_implemented_in_mlgrep = 99
 type level =
   | Warn (* = 3; Always an error *)
   | Error (* = 4; Only an error if "strict" is set *)
-
-type semgrep_error = unit
-
-exception Semgrep_error of semgrep_error
