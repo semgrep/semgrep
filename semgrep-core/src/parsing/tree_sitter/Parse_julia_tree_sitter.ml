@@ -1204,8 +1204,9 @@ let parse file =
       with
       (* TODO: to delete once todo() has been removed *)
       | Failure "not implemented" as exn ->
+          let e = Exception.catch exn in
           H.debug_sexp_cst_after_error (CST.sexp_of_source_file cst);
-          raise exn)
+          Exception.reraise e)
 
 let parse_pattern str =
   H.wrap_parser
