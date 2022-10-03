@@ -20,21 +20,10 @@ local semgrep_rules = [
   }
 ];
 
-#TODO: we should fix the offending code (or add a nosemgrep comment)
-# instead of skipping those rules!
 local todo_skipped_for_now = [
-   "physical-inequality",
-   "no-List-find-outside-try",
-   "ocaml.lang.best-practice.ifs.ocamllint-useless-else",
-   "ocaml.lang.correctness.physical_vs_structural.physical-equal",
-   "ocaml.lang.best-practice.hashtbl.hashtbl-find-outside-try",
-   "ocaml.lang.correctness.physical_vs_structural.physical-not-equal",
-   "ocaml.lang.best-practice.ifs.ocamllint-backwards-if",
-   "ocaml.lang.best-practice.string.ocamllint-str-first-chars",
-   "ocaml.lang.best-practice.list.list-find-outside-try",
-   "ocaml.lang.portability.crlf-support.broken-input-line",
-   "ocaml.lang.correctness.physical-vs-structural.physical-equal",
-   "ocaml.lang.correctness.physical-vs-structural.physical-not-equal",
+  #TODO? what is the fix for that?
+  "ocaml.lang.portability.crlf-support.broken-input-line",
+  #TODO: do a better rule, pfff-specific, with advice to use Exception.ml
   "ocaml.lang.best-practice.exception.bad-reraise",
 ];
 

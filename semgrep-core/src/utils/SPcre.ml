@@ -72,7 +72,7 @@ let log_error subj err =
   let string_fragment =
     let len = String.length subj in
     if len < 200 then subj
-    else sprintf "%s ... (%i bytes)" (String.sub subj 0 200) len
+    else sprintf "%s ... (%i bytes)" (Str.first_chars subj 200) len
   in
   logger#error "PCRE error: %s on input %S" (string_of_error err)
     string_fragment

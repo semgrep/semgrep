@@ -152,9 +152,9 @@ let remove_end_of_string_assertions_from_string src : string option =
           (* remaining string: "XX" or longer *)
           let z0 = src.[len - 2] in
           match (z0, z1) with
-          | '\\', ('Z' | 'z') -> Some (String.sub src 0 (len - 2))
+          | '\\', ('Z' | 'z') -> Some (Str.first_chars src (len - 2))
           | '\\', _ -> Some src
-          | _, '$' -> String.sub src 0 (len - 1) |> finish
+          | _, '$' -> Str.first_chars src (len - 1) |> finish
           | _ -> src |> finish
 
 let remove_end_of_string_assertions (src_pat, _old) =

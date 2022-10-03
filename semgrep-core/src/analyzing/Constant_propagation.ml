@@ -530,7 +530,6 @@ let add_special_constants env lang prog =
                logger#trace "adding special terraform constant for %s" (fst id);
                add_constant_env id (terraform_sid, Lit literal) env
            | _ -> ())
-  else ()
 
 (*****************************************************************************)
 (* Entry point *)

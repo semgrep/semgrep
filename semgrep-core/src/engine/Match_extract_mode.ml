@@ -434,14 +434,15 @@ let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
       xtarget
   in
   let separate_matches, combine_matches =
-    Common.partition_either
-      (fun (m : Pattern_match.t) ->
-        let erule = Hashtbl.find erule_table m.rule_id.id in
-        let (`Extract { Rule.reduce; _ }) = erule.mode in
-        match reduce with
-        | Separate -> Left m
-        | Concat -> Right m)
-      res.matches
+    res.matches
+    |> Common.partition_either (fun (m : Pattern_match.t) ->
+           match Hashtbl.find_opt erule_table m.rule_id.id with
+           | Some erule -> (
+               let (`Extract { Rule.reduce; _ }) = erule.mode in
+               match reduce with
+               | Separate -> Left m
+               | Concat -> Right m)
+           | None -> raise Impossible)
   in
   let separate =
     extract_as_separate erule_table xtarget rule_ids separate_matches

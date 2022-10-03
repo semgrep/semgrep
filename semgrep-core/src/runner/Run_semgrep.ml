@@ -107,8 +107,7 @@ let rec print_taint_call_trace ~format ~spaces = function
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
 
 let print_taint_trace ~format taint_trace =
-  if format <> Matching_report.Normal then ()
-  else
+  if format = Matching_report.Normal then (
     let (lazy { Pattern_match.source; tokens; sink }) = taint_trace in
     pr "  * Taint comes from:";
     print_taint_call_trace ~format ~spaces:4 source;
@@ -120,7 +119,7 @@ let print_taint_trace ~format taint_trace =
     | Pattern_match.Toks _ -> ()
     | Call _ ->
         pr "  * This is how taint reaches the sink:";
-        print_taint_call_trace ~format ~spaces:4 sink
+        print_taint_call_trace ~format ~spaces:4 sink)
 
 let print_match ?str config match_ ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
