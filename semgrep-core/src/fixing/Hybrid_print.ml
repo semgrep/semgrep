@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 
+open Common
 module G = AST_generic
 
 (******************************************************************************)
@@ -33,27 +34,40 @@ module type Printer = sig
   class printer : Ugly_print_AST.printer_t
 end
 
+let with_fallback value fallback =
+  match value with
+  | Ok x -> Ok x
+  | Error e1 -> (
+      match fallback with
+      | (lazy (Ok x)) -> Ok x
+      | (lazy (Error e2)) ->
+          Error
+            (spf
+               "Failed to print AST with hybrid printer. First error:\n\
+                %s\n\n\
+                Second error:\n\
+                %s"
+               e1 e2))
+
 (* Classes are not first-class. Functors are the only way to create a class that
  * inherits from some undetermined other class of a particular type. There will
  * be a small amount of boilerplate associated with this per language. *)
 module Make (Fallback : Printer) : sig
   class printer :
-    (AST_generic.any -> Immutable_buffer.t option) -> Ugly_print_AST.printer_t
+    (AST_generic.any -> (Immutable_buffer.t, string) result)
+    -> Ugly_print_AST.printer_t
 end = struct
-  class printer (primary : AST_generic.any -> Immutable_buffer.t option) :
+  class printer
+    (primary : AST_generic.any -> (Immutable_buffer.t, string) result) :
     Ugly_print_AST.printer_t =
     object
       inherit Fallback.printer as fallback
 
       method! print_any any =
-        match primary any with
-        | Some x -> Some x
-        | None -> fallback#print_any any
+        with_fallback (primary any) (lazy (fallback#print_any any))
 
       method! print_argument arg =
-        match primary (G.Ar arg) with
-        | Some x -> Some x
-        | None -> fallback#print_argument arg
+        with_fallback (primary (G.Ar arg)) (lazy (fallback#print_argument arg))
 
       (* TODO Fill in more cases as needed. *)
     end

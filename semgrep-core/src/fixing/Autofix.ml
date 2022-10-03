@@ -16,6 +16,7 @@
 open Common
 
 let logger = Logging.get_logger [ __MODULE__ ]
+let ( let/ ) = Result.bind
 
 (******************************************************************************)
 (* Main module for AST-based autofix. This module will attempt to synthesize a
@@ -35,11 +36,11 @@ let validate_fix lang text =
   (* Since the fix is likely a program fragment, and not a valid top level
    * program, attempt to parse it as a pattern *)
   match parse_pattern lang text with
-  | Ok _ -> true
+  | Ok _ -> Ok text
   | Error e ->
-      logger#info "Rendered autofix does not parse. Aborting: `%s`:\n%s" text
-        (Exception.to_string e);
-      false
+      Error
+        (spf "Rendered autofix does not parse. Aborting: `%s`:\n%s" text
+           (Exception.to_string e))
 
 let rec fail_on_overlapping_fixes = function
   | f1 :: f2 :: tl ->
@@ -68,45 +69,53 @@ let rec fail_on_overlapping_fixes = function
  *   node that is unhandled).
  * *)
 let render_fix lang metavars ~fix_pattern ~target_contents =
-  (* Fixes are not exactly patterns, but they can contain metavariables that
-   * should be substituted with the nodes to which they are bound in the match.
-   * Because they can contain metavariables, we need to parse them as patterns.
-   * *)
-  let* fix_pattern_ast =
-    match parse_pattern lang fix_pattern with
-    | Ok x -> Some x
-    | Error e ->
-        logger#info "Failed to parse autofix `%s`:\n%s" fix_pattern
-          (Exception.to_string e);
-        None
-  in
+  let result =
+    (* Fixes are not exactly patterns, but they can contain metavariables that
+     * should be substituted with the nodes to which they are bound in the match.
+     * Because they can contain metavariables, we need to parse them as patterns.
+     * *)
+    let/ fix_pattern_ast =
+      parse_pattern lang fix_pattern
+      |> Result.map_error (fun e ->
+             spf "Failed to parse fix pattern:\n%s" (Exception.to_string e))
+    in
 
-  (* Look through the fix pattern's AST and replace metavariables with the nodes to
-   * which they are bound in the match. This should generate a well-formed AST,
-   * which when printed to text, should replace the range in the original match.
-   *
-   * We need to do this instead of just replacing metavars with their original
-   * text during printing. It's important for correctness to construct a
-   * well-formed AST as an intermediate step. For example, an ellipsis
-   * metavariable ($...X) might be bound to zero arguments in a function call
-   * (foo(1, $...X) would match foo(1), for example). If we were to skip this
-   * step, we would end up printing the extraneous comma before `$...X`.
-   *
-   * As we improve autofix, we may also want to perform other operations over
-   * the fixed AST.
-   * *)
-  let* fixed_pattern_ast =
-    Autofix_metavar_replacement.replace_metavars metavars fix_pattern_ast
-  in
+    (* Look through the fix pattern's AST and replace metavariables with the nodes to
+     * which they are bound in the match. This should generate a well-formed AST,
+     * which when printed to text, should replace the range in the original match.
+     *
+     * We need to do this instead of just replacing metavars with their original
+     * text during printing. It's important for correctness to construct a
+     * well-formed AST as an intermediate step. For example, an ellipsis
+     * metavariable ($...X) might be bound to zero arguments in a function call
+     * (foo(1, $...X) would match foo(1), for example). If we were to skip this
+     * step, we would end up printing the extraneous comma before `$...X`.
+     *
+     * As we improve autofix, we may also want to perform other operations over
+     * the fixed AST.
+     * *)
+    let/ fixed_pattern_ast =
+      Autofix_metavar_replacement.replace_metavars metavars fix_pattern_ast
+    in
 
-  (* Try to print the fixed pattern AST. *)
-  let* text =
-    Autofix_printer.print_ast ~lang ~metavars ~target_contents ~fix_pattern_ast
-      ~fix_pattern fixed_pattern_ast
-  in
+    (* Try to print the fixed pattern AST. *)
+    let/ text =
+      Autofix_printer.print_ast ~lang ~metavars ~target_contents
+        ~fix_pattern_ast ~fix_pattern fixed_pattern_ast
+    in
 
-  (* Perform sanity checks for the resulting fix. If they fail, return None *)
-  if validate_fix lang text then Some text else None
+    (* Perform sanity checks for the resulting fix. *)
+    validate_fix lang text
+  in
+  match result with
+  | Ok x -> Some x
+  | Error err ->
+      let msg = spf "Failed to render fix `%s`:\n%s" fix_pattern err in
+      (* Print line-by-line so that each line is preceded by the logging header.
+       * Looks nicer and makes it easier to mask in e2e test output. *)
+      String.split_on_char '\n' msg
+      |> List.iter (fun line -> logger#info "%s" line);
+      None
 
 (* Apply the fix for the list of matches to the given file, returning the
  * resulting file contents. Currently used only for tests, but with some changes

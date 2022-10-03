@@ -147,6 +147,7 @@ Running semgrep-core with command:
 <MASKED>
 <MASKED>
 <MASKED>
+<MASKED>
 --- end semgrep-core stderr ---
 skipped 'bar.py' [rule RuleId(value='taint-test')]: SkipReason(value=IrrelevantRule()): No need to perform deeper matching because target does not contain some elements necessary for the rule to match 'taint-test'
 semgrep ran in <MASKED> on 1 files
