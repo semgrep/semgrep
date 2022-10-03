@@ -626,7 +626,18 @@ and const_type = Cbool | Cint | Cstr | Cany
  * time. If this becomes a problem then we may want to have separate analyses
  * for constant and symbolic propagation, but having a single one is more
  * efficient (time- and memory-wise). *)
-and svalue = Lit of literal | Cst of const_type | Sym of expr | NotCst
+and svalue =
+  | Lit of literal
+  | Cst of const_type
+  | Sym of expr
+  (* !CAREFUL with Sym!
+   * Consider that the smbolic value may itself contain variables that also have
+   * symbolic values, and so on. While we (should) prevent cycles, the AST "expanded"
+   * with these symbolic values may be exponentially larger than the base AST. This
+   * can happen with crypto code. Due to memory sharing this is not a problem for the
+   * AST representation itself, but you must be careful when e.g. iterating over ASTs
+   * using ksvalue (see Visitor_AST); or e.g. when constructing the Meta_AST. *)
+  | NotCst
 
 and container_operator =
   | Array (* todo? designator? use ArrayAccess for designator? *)
