@@ -45,17 +45,6 @@ rules:
         - experiments/*
         - Check_*.ml
 
-  #TODO: this could be moved in pfff/semgrep.yml at some point
-  - id: no-open-in
-    pattern-either:
-      - pattern: open_in_bin ...
-      - pattern: open_in ...
-    message: >-
-      It is easy to forget to close `open_in` with `close_in`.
-      Use `Common.with_open_infile()` instead.
-    languages: [ocaml]
-    severity: ERROR
-
   - id: use-pytest-mock
     pattern: import unittest.mock
     message: >-
