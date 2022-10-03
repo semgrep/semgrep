@@ -297,7 +297,7 @@ let compare_fixes lang ~file ~fix matches =
          * than the CLI, we should reuse that code here. *)
         List.fold_left
           (fun file_text ((start, end_), fix) ->
-            let before = String.sub file_text 0 start in
+            let before = Str.first_chars file_text start in
             let after = Str.string_after file_text end_ in
             before ^ fix ^ after)
           file_text fixes

@@ -611,7 +611,7 @@ let update_svalue (flow : F.cfg) mapping =
           (fun ii ->
             (* Note the use of physical equality, we are looking for the *same*
              * id_svalue ref, that tells us it's the same variable occurrence. *)
-            var.id_info.id_svalue != ii.id_svalue)
+            var.id_info.id_svalue != (* nosemgrep *) ii.id_svalue)
           (G.E e)
     | G.NotCst
     | G.Cst _

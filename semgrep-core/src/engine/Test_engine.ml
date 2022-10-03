@@ -289,14 +289,13 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              res :: eres
              |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
                     res.matches |> List.iter JSON_report.match_to_error);
-             if not (Report.ErrorSet.is_empty res.errors) then
-               let errors =
-                 Report.ErrorSet.elements res.errors
-                 |> Common.map Semgrep_error_code.show_error
-                 |> String.concat "-----\n"
-               in
-               failwith (spf "parsing error(s) on %s:\n%s" file errors)
-             else ();
+             (if not (Report.ErrorSet.is_empty res.errors) then
+              let errors =
+                Report.ErrorSet.elements res.errors
+                |> Common.map Semgrep_error_code.show_error
+                |> String.concat "-----\n"
+              in
+              failwith (spf "parsing error(s) on %s:\n%s" file errors));
              let actual_errors = !E.g_errors in
              actual_errors
              |> List.iter (fun e ->

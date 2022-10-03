@@ -685,7 +685,7 @@ let (mk_visitor :
      * explicit in Generic so we cannot match expression patterns against
      * attributes. This equivalence enables exactly that, and we can e.g.
      * match `@f(a)` with `f($X)`. *)
-    if attr_expr then v_expr (e (Call (e (N name), args))) else ()
+    if attr_expr then v_expr (e (Call (e (N name), args)))
   and v_other_attribute_operator _ = ()
   and v_stmts xs =
     let k xs =

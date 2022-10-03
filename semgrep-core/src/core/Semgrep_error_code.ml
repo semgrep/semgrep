@@ -264,6 +264,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
          pr2
            (spf "this one finding was not expected: %s:%d (%s)" src l
               (actual_findings
+              (* nosemgrep: ocaml.lang.best-practice.list.list-find-outside-try *)
               |> List.find (fun err ->
                      let loc = err.loc in
                      src =$= loc.PI.file && l =|= loc.PI.line)

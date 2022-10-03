@@ -37,7 +37,7 @@ let eval test path =
 let string_chop_prefix ~pref s =
   let len = String.length s in
   let preflen = String.length pref in
-  if len >= preflen && String.sub s 0 preflen = pref then
+  if len >= preflen && Str.first_chars s preflen = pref then
     Some (String.sub s preflen (len - preflen))
   else None
 
