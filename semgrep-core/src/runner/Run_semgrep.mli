@@ -1,4 +1,4 @@
-(**********************************************************************************
+(*****************************************************************************
  * # Notes
  *
  * ## semgrep CLI vs semgrep core
@@ -89,7 +89,7 @@
  *
  * We also have had stack overflows. OCaml <=4.14.0, we avoided this using
  * `Common.map`, which is tail-recursive, instead of `List.map`.
-**********************************************************************************)
+ *****************************************************************************)
 
 val semgrep_dispatch : Runner_config.t -> unit
 (** Main entry point to the semgrep engine. This is called from Main.ml *)
@@ -149,23 +149,21 @@ val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error
   See also JSON_report.json_of_exn for non-target related exn handling.
 *)
 
-val mk_rule_table :
-  Rule.rule list -> Rule.rule_id list -> (int, Rule.rule) Hashtbl.t
+val mk_rule_table : Rule.t list -> Rule.rule_id list -> (int, Rule.t) Hashtbl.t
 (** Helper to create the table of rules to run for each file **)
 
-val extract_targets_of_config :
+val extracted_targets_of_config :
   Runner_config.t ->
   Rule.rule_id list ->
   Rule.extract_rule list ->
   Input_to_core_t.target list
   * ( Common.filename,
-      Report.partial_profiling Report.match_result ->
-      Report.partial_profiling Report.match_result )
+      Match_extract_mode.match_result_location_adjuster )
     Hashtbl.t
 (**
-   Generate the list of targets to run extract rules against given a config,
-   the ids for rules to run against the generated targets and a set of extract
-   rules used to perform the extraction.
+   Generate a list of new targets, which are extracted from extract rules.
+   The rule ids correspond to the rules to run against the generated
+   targets.
 *)
 
 val targets_of_config :
@@ -175,6 +173,7 @@ val targets_of_config :
 (**
   Compute the set of targets, either by reading what was passed
   in -target, or by using Find_target.files_of_dirs_or_files.
+  The rule ids argument is useful only when you don't use -target.
  *)
 
 val filter_files_with_too_many_matches_and_transform_as_timeout :

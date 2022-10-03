@@ -1,3 +1,12 @@
+(* A function which maps a match result from the *extracted* target
+ * (e.g., '/tmp/extract-foo.rb') to a match result to the
+ * *original* target (e.g., 'src/foo.erb').
+ *)
+
+type match_result_location_adjuster =
+  Report.partial_profiling Report.match_result ->
+  Report.partial_profiling Report.match_result
+
 (*
    Generates a list of targets corresponding to extract mode rule matches in
    the provided target file. The resulting target will be configured to run
@@ -12,12 +21,4 @@ val extract_nested_lang :
   Rule.extract_rule list ->
   Xtarget.t ->
   Rule.rule_id list ->
-  (Input_to_core_t.target
-   (* function maps results from the returned target(s) to results for the
-      argument target. Could instead be
-          (a -> a) -> a Report.match_result -> a Report.match_result
-      although this is a bit less ergonomic for the caller.
-   *)
-  * (Report.partial_profiling Report.match_result ->
-    Report.partial_profiling Report.match_result))
-  list
+  (Input_to_core_t.target * match_result_location_adjuster) list

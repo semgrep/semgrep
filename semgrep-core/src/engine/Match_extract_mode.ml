@@ -34,19 +34,35 @@ let logger = Logging.get_logger [ __MODULE__ ]
 *)
 
 (*****************************************************************************)
-(* Helpers *)
+(* Types *)
 (*****************************************************************************)
+(* A function which maps a match result from the *extracted* target
+ * (e.g., '/tmp/extract-foo.rb') to a match result to the
+ * *original* target (e.g., 'src/foo.erb').
+ *
+ * We could use instead:
+ *
+ *        (a -> a) -> a Report.match_result -> a Report.match_result
+ *
+ * although this is a bit less ergonomic for the caller.
+ *)
+type match_result_location_adjuster =
+  Report.partial_profiling Report.match_result ->
+  Report.partial_profiling Report.match_result
 
 (* A type for nonempty lists *)
 type 'a nonempty = Nonempty of 'a * 'a list
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let ( @: ) x (Nonempty (y, xs)) = Nonempty (x, y :: xs)
 let nonempty_to_list (Nonempty (x, xs)) = x :: xs
 
 (* from Run_semgrep *)
 let mk_rule_table rules =
-  let rule_pairs = Common.map (fun r -> (fst r.Rule.id, r)) rules in
-  Common.hash_of_list rule_pairs
+  rules |> Common.map (fun r -> (fst r.Rule.id, r)) |> Common.hash_of_list
 
 (** Collects a list into a list of equivalence classes (themselves nonempty
     lists) according to the given equality predicate. `eq` must be an

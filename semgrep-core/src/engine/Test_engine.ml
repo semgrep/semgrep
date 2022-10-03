@@ -218,39 +218,42 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                    (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn)));
              let eres =
                try
-                 Common.map
-                   (fun t ->
-                     let file = t.Input_to_core_t.path in
-                     let xlang = Xlang.of_string t.Input_to_core_t.language in
-                     let lazy_ast_and_errors =
-                       lazy
-                         (match xlang with
-                         | L (lang, _) ->
-                             let { Parse_target.ast; skipped_tokens; _ } =
-                               Parse_target.parse_and_resolve_name lang file
-                             in
-                             (ast, skipped_tokens)
-                         | LRegex
-                         | LGeneric ->
-                             assert false)
-                     in
-                     let xtarget =
-                       {
-                         Xtarget.file;
-                         xlang;
-                         lazy_content = lazy (Common.read_file file);
-                         lazy_ast_and_errors;
-                       }
-                     in
+                 extract_targets
+                 |> Common.map (fun t ->
+                        let file = t.Input_to_core_t.path in
+                        let xlang =
+                          Xlang.of_string t.Input_to_core_t.language
+                        in
+                        let lazy_ast_and_errors =
+                          lazy
+                            (match xlang with
+                            | L (lang, _) ->
+                                let { Parse_target.ast; skipped_tokens; _ } =
+                                  Parse_target.parse_and_resolve_name lang file
+                                in
+                                (ast, skipped_tokens)
+                            | LRegex
+                            | LGeneric ->
+                                assert false)
+                        in
+                        let xtarget =
+                          {
+                            Xtarget.file;
+                            xlang;
+                            lazy_content = lazy (Common.read_file file);
+                            lazy_ast_and_errors;
+                          }
+                        in
 
-                     let res =
-                       Match_rules.check
-                         ~match_hook:(fun _ _ -> ())
-                         ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
-                     in
-                     Hashtbl.find_opt extract_result_map file
-                     |> Option.fold ~some:(fun f -> f res) ~none:res)
-                   extract_targets
+                        let matches =
+                          Match_rules.check
+                            ~match_hook:(fun _ _ -> ())
+                            ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
+                        in
+                        (* adjust the match location for extracted files *)
+                        match Hashtbl.find_opt extract_result_map file with
+                        | Some f -> f matches
+                        | None -> matches)
                with
                | exn ->
                    failwith
