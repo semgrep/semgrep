@@ -396,6 +396,24 @@ let handle_taint_propagators env x taints =
   in
   (taints, var_env)
 
+(* coupling: check_tainted_var *)
+let check_tainted_tok env tok =
+  let source_pms, sanitizer_pms, sink_pms =
+    if Parse_info.is_origintok tok then
+      ( env.config.is_source (G.Tk tok),
+        env.config.is_sanitizer (G.Tk tok),
+        env.config.is_sink (G.Tk tok) )
+    else ([], [], [])
+  in
+  match sanitizer_pms with
+  | _ :: _ -> (Taints.empty, env.lval_env)
+  | [] ->
+      let taints = source_pms |> taints_of_matches in
+      let sinks = sink_pms |> Common.map trace_of_match in
+      let findings = findings_of_tainted_sinks env taints sinks in
+      report_findings env findings;
+      (taints, env.lval_env)
+
 (* Test whether a variable occurrence is tainted, and if it is also a sink,
  * report the finding too (by side effect).
  *
@@ -457,12 +475,12 @@ let rec check_tainted_expr env exp : Taints.t * Lval_env.t =
   let check env = check_tainted_expr env in
   let check_base env = function
     | Var var -> check_tainted_var env var
-    | VarSpecial _ -> (Taints.empty, env.lval_env)
+    | VarSpecial (_, tok) -> check_tainted_tok env tok
     | Mem e -> check env e
   in
   let check_offset env = function
     | Index e -> check env e
-    | Dot _ -> (Taints.empty, env.lval_env)
+    | Dot fld -> check_tainted_tok env (snd fld.ident)
   in
   let check_subexpr exp =
     match exp.e with
