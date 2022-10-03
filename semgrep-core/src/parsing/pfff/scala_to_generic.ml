@@ -41,7 +41,7 @@ let v_string = id
 let v_int = id
 let v_float = id
 let v_bool = id
-let v_list = List.map
+let v_list = Common.map
 let v_option = Option.map
 
 let cases_to_lambda lb cases : G.function_definition =
@@ -141,7 +141,7 @@ and v_import_spec = function
       let v1 = (v_list v_import_selector) v1 in
       fun tk path ->
         v1
-        |> List.map (fun (id, opt) ->
+        |> Common.map (fun (id, opt) ->
                let alias =
                  match opt with
                  | None -> None
@@ -185,7 +185,7 @@ let rec v_literal = function
       in
       let args =
         v2
-        |> List.map (function
+        |> Common.map (function
              | Left lit -> G.Arg (G.L lit |> G.e)
              | Right e ->
                  let special =
@@ -227,12 +227,12 @@ and v_type_kind = function
   | TyApplied (v1, v2) -> (
       let v1 = v_type_ v1 and v2 = v_bracket (v_list v_type_) v2 in
       let lp, xs, rp = v2 in
-      let args = xs |> List.map (fun x -> G.TA x) in
+      let args = xs |> Common.map (fun x -> G.TA x) in
       match v1.t with
       | G.TyN n -> G.TyApply (G.TyN n |> G.t, (lp, args, rp))
       | _ ->
           todo_type "TyAppliedComplex"
-            (G.T v1 :: (xs |> List.map (fun x -> G.T x))))
+            (G.T v1 :: (xs |> Common.map (fun x -> G.T x))))
   | TyInfix (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_ident v2 and v3 = v_type_ v3 in
       G.TyApply (G.TyN (H.name_of_ids [ v2 ]) |> G.t, fb [ G.TA v1; G.TA v3 ])
@@ -244,7 +244,7 @@ and v_type_kind = function
       and _v2 = v_tok v2
       and v3 = v_type_ v3 in
       let ts =
-        v1 |> G.unbracket |> List.map (fun t -> G.Param (G.param_of_type t))
+        v1 |> G.unbracket |> Common.map (fun t -> G.Param (G.param_of_type t))
       in
       G.TyFun (ts, v3)
   | TyTuple v1 ->
@@ -266,12 +266,13 @@ and v_type_kind = function
         ((match v1 with
          | None -> []
          | Some t -> [ G.T t ])
-        @ (defs |> List.map (fun def -> G.Def def)))
+        @ (defs |> Common.map (fun def -> G.Def def)))
   | TyExistential (v1, v2, v3) ->
       let v1 = v_type_ v1 in
       let _v2 = v_tok v2 in
       let _lb, defs, _rb = v_refinement v3 in
-      todo_type "TyExistential" (G.T v1 :: (defs |> List.map (fun x -> G.Def x)))
+      todo_type "TyExistential"
+        (G.T v1 :: (defs |> Common.map (fun x -> G.Def x)))
   | TyWith (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_tok v2 and v3 = v_type_ v3 in
       G.TyAnd (v1, v2, v3)
@@ -391,7 +392,7 @@ and v_expr e : G.expr =
       todo_expr "ExprUnderscore" [ G.Tk v1 ]
   | InstanciatedExpr (v1, v2) ->
       let v1 = v_expr v1 and _, v2, _ = v_bracket (v_list v_type_) v2 in
-      todo_expr "InstanciatedExpr" (G.E v1 :: List.map (fun t -> G.T t) v2)
+      todo_expr "InstanciatedExpr" (G.E v1 :: Common.map (fun t -> G.T t) v2)
   | TypedExpr (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ascription v3 in
       G.Cast (v3, v2, v1) |> G.e
@@ -630,7 +631,7 @@ and v_catch_clause (v1, v2) : G.catch list =
   match v2 with
   | CatchCases (_lb, xs, _rb) ->
       xs
-      |> List.map (function
+      |> Common.map (function
            | CC x ->
                let icase, pat, st = v_case_clause_classic x in
                (icase, G.CatchPattern pat, st)
@@ -653,10 +654,10 @@ and v_block_stat x : G.item list =
   match x with
   | D v1 ->
       let v1 = v_definition v1 in
-      v1 |> List.map (fun def -> G.DefStmt def |> G.s)
+      v1 |> Common.map (fun def -> G.DefStmt def |> G.s)
   | I v1 ->
       let v1 = v_import v1 in
-      v1 |> List.map (fun dir -> G.DirectiveStmt dir |> G.s)
+      v1 |> Common.map (fun dir -> G.DirectiveStmt dir |> G.s)
   | E v1 ->
       let v1 = v_expr_for_stmt v1 in
       [ v1 ]
@@ -698,7 +699,7 @@ and v_modifier_kind = function
 
 and v_annotation (v1, v2, v3) : G.attribute =
   let v1 = v_tok v1 and v2 = v_type_ v2 and v3 = v_list v_arguments v3 in
-  let args = v3 |> List.map G.unbracket |> List.flatten in
+  let args = v3 |> Common.map G.unbracket |> List.flatten in
   match v2.t with
   | TyN name -> G.NamedAttr (v1, name, fb args)
   | _ ->
@@ -884,7 +885,7 @@ and v_template_definition
   let cbody =
     match body with
     | None -> G.empty_body
-    | Some (lb, xs, rb) -> (lb, xs |> List.map (fun st -> G.F st), rb)
+    | Some (lb, xs, rb) -> (lb, xs |> Common.map (fun st -> G.F st), rb)
   in
   { G.ckind; cextends; cmixins; cimplements = []; cparams; cbody }
 

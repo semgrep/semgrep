@@ -45,7 +45,7 @@ let expr ?(unescape_strings = false) x =
             | Record (lp, xs, rp) ->
                 let ys =
                   xs
-                  |> List.map (function
+                  |> Common.map (function
                        | G.F
                            {
                              s =
@@ -63,7 +63,7 @@ let expr ?(unescape_strings = false) x =
                 in
                 let zs =
                   ys
-                  |> List.map (function
+                  |> Common.map (function
                        | Left (id, e) ->
                            let key =
                              (* we don't want $FLD: 1 to be transformed

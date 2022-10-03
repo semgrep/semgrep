@@ -25,14 +25,13 @@
 # a backslash, e.g. "\:foo".
 
 semgrep-core/tests/
-
-# submodule, generated code
-semgrep-core/tree-sitter-lang/
-
-pfff/
 cli/tests/e2e/targets/
 cli/tests/performance/targets/
 cli/tests/e2e/snapshots/
+
+# no need to ignore submodules, this is done by default
+# semgrep-core/src/pfff/
+# semgrep-core/tree-sitter-lang/
 
 # rules being tested for performance
 perf/rules/
