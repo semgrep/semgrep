@@ -720,6 +720,10 @@ let (transfer :
             (* Either we cannot obtain a simple dotted lvalue to track, or the
              * instruction returns 'void'. *)
             lval_env')
+    | NCond (_tok, e)
+    | NThrow (_tok, e) ->
+        let _, lval_env' = check_tainted_expr env e in
+        lval_env'
     | NReturn (tok, e) -> (
         (* TODO: Move most of this to check_tainted_return. *)
         let taints, lval_env' = check_tainted_return env tok e in
@@ -743,7 +747,15 @@ let (transfer :
                  Hashtbl.replace fun_env str (Taints.union pmatches tained'));
             lval_env'
         | None -> lval_env')
-    | _ -> in'
+    | NGoto _
+    | Enter
+    | Exit
+    | TrueNode
+    | FalseNode
+    | Join
+    | NOther _
+    | NTodo _ ->
+        in'
   in
   { D.in_env = in'; out_env = out' }
 
