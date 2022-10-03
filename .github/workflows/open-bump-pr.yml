@@ -58,7 +58,7 @@ jobs:
       # instead of calling a workflow from another repo. doing that (calling workflow in another repo)
       # comes with a bunch more eng effort to set up proper secrets passing, and I've decided it's better to do this.
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.9"
       - name: Checkout semgrep-app Repo
