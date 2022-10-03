@@ -90,12 +90,7 @@ val hook_function_taint_signature :
 (** Deep Semgrep *)
 
 val fixpoint :
-  ?in_env:Taint_lval_env.t ->
-  ?name:var ->
-  ?fun_env:fun_env (** Poor-man's interprocedural HACK (TO BE DEPRECATED) *) ->
-  config ->
-  IL.cfg ->
-  mapping
+  ?in_env:Taint_lval_env.t -> ?name:var -> config -> IL.cfg -> mapping
 (** Main entry point, [fixpoint config cfg] returns a mapping (effectively a set)
   * containing all the tainted variables in [cfg]. Besides, if it infers any taint
   * 'findings', it will invoke [config.handle_findings] which can perform any
@@ -103,8 +98,4 @@ val fixpoint :
   *
   * @param in_env are the assumptions made on the function's parameters.
   * @param name is the name of the function being analyzed, if it has a name.
-  * @param fun_env is a set of tainted functions in the same file, it is a HACK
-  *    to provide some poor-man's interprocedural capabilities. If the function
-  *    being analyzed has a name, and taint reaches a `return` statement, the
-  *    function name will be added to this environment by side-effect.
   * *)
