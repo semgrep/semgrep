@@ -232,11 +232,12 @@ let dump_il file =
   let lang = List.hd (Lang.langs_of_filename file) in
   let ast = Parse_target.parse_program file in
   Naming_AST.resolve lang ast;
-  let report_func_def_with_name fdef name =
+  let report_func_def_with_name ent_opt fdef =
     let name =
-      match name with
+      match ent_opt with
       | None -> "<lambda>"
-      | Some name -> G.show_name name
+      | Some { G.name = EN n; _ } -> G.show_name n
+      | Some _ -> "<entity>"
     in
     pr2 (spf "Function name: %s" name);
     let s =
@@ -250,24 +251,7 @@ let dump_il file =
     let s = IL.show_any (IL.Ss xs) in
     pr2 s
   in
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kexpr =
-          (fun (_k, _) expr ->
-            match expr.e with
-            | Lambda fdef -> report_func_def_with_name fdef None
-            | _ -> ());
-        V.kdef =
-          (fun (_k, _) (ent, dkind) ->
-            match (ent, dkind) with
-            | { name = EN n; _ }, FuncDef fdef ->
-                report_func_def_with_name fdef (Some n)
-            | _ -> ());
-      }
-  in
-  v (AST_generic.Pr ast)
+  Visit_function_defs.visit report_func_def_with_name ast
 
 let dump_v0_json file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in

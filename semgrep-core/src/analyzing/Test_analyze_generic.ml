@@ -60,19 +60,12 @@ let test_cfg_il ~parse_program file =
   let ast = parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
-
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (_k, _) def ->
-            let _, xs = AST_to_IL.function_definition lang def in
-            let cfg = CFG_build.cfg_of_stmts xs in
-            Display_IL.display_cfg cfg);
-      }
-  in
-  v (Pr ast)
+  Visit_function_defs.visit
+    (fun _ fdef ->
+      let _, xs = AST_to_IL.function_definition lang fdef in
+      let cfg = CFG_build.cfg_of_stmts xs in
+      Display_IL.display_cfg cfg)
+    ast
 
 module F2 = IL
 
