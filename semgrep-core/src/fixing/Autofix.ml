@@ -41,8 +41,20 @@ let validate_fix lang text =
         (Exception.to_string e);
       false
 
+let rec fail_on_overlapping_fixes = function
+  | f1 :: f2 :: tl ->
+      let (_, end1), f1_text = f1 in
+      let (start2, _), f2_text = f2 in
+      if end1 > start2 then
+        failwith
+          (spf "found overlapping fixes:\n\n  %s\n\n  %s" f1_text f2_text);
+      fail_on_overlapping_fixes (f2 :: tl)
+  | [ _ ]
+  | [] ->
+      ()
+
 (******************************************************************************)
-(* Entry Point *)
+(* Entry Points *)
 (******************************************************************************)
 
 (* Attempts to render a fix. If successful, returns the text that should replace
@@ -95,3 +107,52 @@ let render_fix lang metavars ~fix_pattern ~target_contents =
 
   (* Perform sanity checks for the resulting fix. If they fail, return None *)
   if validate_fix lang text then Some text else None
+
+(* Apply the fix for the list of matches to the given file, returning the
+ * resulting file contents. Currently used only for tests, but with some changes
+ * could be used in production as well. *)
+let apply_fixes lang matches ~file =
+  let file_text = Common.read_file file in
+  let fixes =
+    Common.map
+      (fun pm ->
+        let fix_range =
+          let start, end_ = pm.Pattern_match.range_loc in
+          let _, _, end_charpos = Parse_info.get_token_end_info end_ in
+          (start.Parse_info.charpos, end_charpos)
+        in
+        (* TODO in production, don't assume that all matches have fixes *)
+        let fix_pattern = Option.get pm.Pattern_match.rule_id.fix in
+        match
+          render_fix lang pm.Pattern_match.env ~fix_pattern
+            ~target_contents:(lazy file_text)
+        with
+        | Some fix -> (fix_range, fix)
+        (* TODO option rather than exception if used in production *)
+        | None -> failwith (spf "could not render fix for %s" file))
+      matches
+  in
+  let fixes =
+    List.sort (fun ((start1, _), _) ((start2, _), _) -> start1 - start2) fixes
+  in
+  (* TODO we probably don't want to do this if we use this code in
+   * production *)
+  fail_on_overlapping_fixes fixes;
+  (* Switch to bottom to top order so that we don't need to track offsets as
+   * we apply multiple patches *)
+  let fixes = List.rev fixes in
+  let fixed_text =
+    (* Apply the fixes. These string operations are inefficient but should
+     * be fine for tests.
+     *
+     * TODO if we use this in production, consider more efficient string
+     * operations.
+     *)
+    List.fold_left
+      (fun file_text ((start, end_), fix) ->
+        let before = Str.first_chars file_text start in
+        let after = Str.string_after file_text end_ in
+        before ^ fix ^ after)
+      file_text fixes
+  in
+  fixed_text

@@ -13,6 +13,7 @@
    spacegrep
 
    semgrep_core
+   semgrep_fixing
    semgrep_matching
    semgrep_tainting
    ; the engine used to not depend on the language-specific parsers

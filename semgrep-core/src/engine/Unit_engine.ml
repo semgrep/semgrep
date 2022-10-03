@@ -227,18 +227,6 @@ let related_file_of_target ~ext ~file =
     let candidate2 = Common2.filename_of_dbe (d, b, ext) in
     if Sys.file_exists candidate2 then Some candidate2 else None
 
-let rec fail_on_overlapping_fixes = function
-  | f1 :: f2 :: tl ->
-      let (_, end1), f1_text = f1 in
-      let (start2, _), f2_text = f2 in
-      if end1 > start2 then
-        failwith
-          (spf "found overlapping fixes:\n\n  %s\n\n  %s" f1_text f2_text);
-      fail_on_overlapping_fixes (f2 :: tl)
-  | [ _ ]
-  | [] ->
-      ()
-
 (* Allows the  semgrep-core test runner that we use to test matches to also test
  * autofix. The format is pretty simple: add a `.fix` file with the fix pattern
  * and a `.fixed` file with the expected contents of the target after fixes are
@@ -253,56 +241,17 @@ let rec fail_on_overlapping_fixes = function
  * Semgrep's `--test` flag can also test autofix
  * (https://github.com/returntocorp/semgrep/pull/5190), but it has the same
  * problems as the existing autofix e2e tests for these purposes. *)
-let compare_fixes lang ~file ~fix matches =
-  match fix with
-  | None -> ()
-  | Some fix ->
-      let expected_fixed_text =
-        let expected_fixed_file =
-          match related_file_of_target ~ext:"fixed" ~file with
-          | Some file -> file
-          | None -> failwith (spf "could not find fixed file for %s" file)
-        in
-        Common.read_file expected_fixed_file
-      in
-      let file_text = Common.read_file file in
-      let fixes =
-        Common.map
-          (fun pm ->
-            let fix_range =
-              let start, end_ = pm.Pattern_match.range_loc in
-              let _, _, end_charpos = Parse_info.get_token_end_info end_ in
-              (start.Parse_info.charpos, end_charpos)
-            in
-            match
-              Autofix.render_fix lang pm.P.env ~fix_pattern:fix
-                ~target_contents:(lazy file_text)
-            with
-            | Some fix -> (fix_range, fix)
-            | None -> failwith (spf "could not render fix for %s" file))
-          matches
-      in
-      let fixes =
-        List.sort
-          (fun ((start1, _), _) ((start2, _), _) -> start1 - start2)
-          fixes
-      in
-      fail_on_overlapping_fixes fixes;
-      (* Switch to bottom to top order so that we don't need to track offsets as
-       * we apply multiple patches *)
-      let fixes = List.rev fixes in
-      let fixed_text =
-        (* Apply the fixes. These string operations are inefficient but should
-         * be fine for tests. If we end up applying fixes in semgrep-core rather
-         * than the CLI, we should reuse that code here. *)
-        List.fold_left
-          (fun file_text ((start, end_), fix) ->
-            let before = Str.first_chars file_text start in
-            let after = Str.string_after file_text end_ in
-            before ^ fix ^ after)
-          file_text fixes
-      in
-      Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
+let compare_fixes lang ~file matches =
+  let expected_fixed_text =
+    let expected_fixed_file =
+      match related_file_of_target ~ext:"fixed" ~file with
+      | Some file -> file
+      | None -> failwith (spf "could not find fixed file for %s" file)
+    in
+    Common.read_file expected_fixed_file
+  in
+  let fixed_text = Autofix.apply_fixes lang matches ~file in
+  Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
 
 (*
    For each input file with the language's extension, locate a pattern file
@@ -339,7 +288,7 @@ let regression_tests_for_lang ~with_caching files lang =
                      (spf "fail to parse pattern %s with lang = %s (exn = %s)"
                         sgrep_file (Lang.to_string lang) (Common.exn_to_s exn))
              in
-             let fix =
+             let fix_pattern =
                let* fix_file = related_file_of_target ~ext:"fix" ~file in
                Some (Common.read_file fix_file)
              in
@@ -355,7 +304,7 @@ let regression_tests_for_lang ~with_caching files lang =
                  severity = R.Error;
                  languages = [ lang ];
                  pattern_string = "test: no need for pattern string";
-                 fix;
+                 fix = fix_pattern;
                }
              in
              (* old: semgrep-core used to support user-defined
@@ -384,7 +333,9 @@ let regression_tests_for_lang ~with_caching files lang =
                      (Config_semgrep.default_config, equiv)
                      [ rule ] (file, lang, ast)
                  in
-                 compare_fixes lang ~file ~fix matches;
+                 (match fix_pattern with
+                 | Some _ -> compare_fixes lang ~file matches
+                 | None -> ());
                  let actual = !E.g_errors in
                  let expected = E.expected_error_lines_of_files [ file ] in
                  E.compare_actual_to_expected_for_alcotest actual expected) ))
