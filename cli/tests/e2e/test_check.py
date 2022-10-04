@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 from tests.conftest import _clean_output_json
 from tests.conftest import _clean_stdout
+from tests.semgrep_runner import SEMGREP_BASE_COMMAND
+from tests.semgrep_runner import SEMGREP_BASE_COMMAND_STR
 
 from semgrep.constants import OutputFormat
 
@@ -157,7 +159,7 @@ def test_stdin_input(snapshot):
     settings_file = tempfile.NamedTemporaryFile().name
     Path(settings_file).write_text("has_shown_metrics_notification: true")
     process = subprocess.Popen(
-        ["python3", "-m", "semgrep", "--json", "-e", "a", "--lang", "js", "-"],
+        SEMGREP_BASE_COMMAND + ["--json", "-e", "a", "--lang", "js", "-"],
         encoding="utf-8",
         env={
             **os.environ,
@@ -181,7 +183,7 @@ def test_subshell_input(snapshot):
         [
             "bash",
             "-c",
-            "python3 -m semgrep --json -e 'a' --lang js <(echo 'a')",
+            f"{SEMGREP_BASE_COMMAND_STR} --json -e 'a' --lang js <(echo 'a')",
         ],
         encoding="utf-8",
         env={
@@ -205,7 +207,7 @@ def test_multi_subshell_input(snapshot):
         [
             "bash",
             "-c",
-            "python3 -m semgrep --json -e 'a' --lang js <(echo 'a') <(echo 'b + a')",
+            f"{SEMGREP_BASE_COMMAND_STR} --json -e 'a' --lang js <(echo 'a') <(echo 'b + a')",
         ],
         encoding="utf-8",
         env={
@@ -529,7 +531,7 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
     # Do not just delete this assertion. It means the actual test below does
     # not accurately verify that we are solving the stack exhaustion
     output = subprocess.run(
-        f"ulimit -s 1000 && semgrep --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
+        f"ulimit -s 1000 && {SEMGREP_BASE_COMMAND_STR} --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
         shell=True,
         capture_output=True,
         encoding="utf-8",
@@ -542,7 +544,7 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
 
     # If only set soft limit, semgrep should raise it as necessary so we don't hit soft limit
     output = subprocess.run(
-        f"ulimit -S -s 1000 && semgrep --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
+        f"ulimit -S -s 1000 && {SEMGREP_BASE_COMMAND_STR} --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
         shell=True,
         capture_output=True,
         encoding="utf-8",
