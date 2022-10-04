@@ -107,7 +107,9 @@ COPY cli ./
 # Here is why we need the apk packages below:
 #  - build-base: ??
 #  - make, g++: to compile the jsonnet C++ library which is installed
-#    by 'pip install jsonnet'
+#    by 'pip install jsonnet'.
+#    TODO: at some point we should not need the 'pip install jsonnet' because
+#    jsonnet would be mentioned in the setup.py for semgrep as a dependency.
 # TODO? why the mkdir -p /tmp/.cache?
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
