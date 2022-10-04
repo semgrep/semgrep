@@ -16,6 +16,7 @@ module E = Semgrep_error_code
 
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
+let tests_path_parsing = "../../../tests/parsing"
 
 (*****************************************************************************)
 (* Helpers *)
@@ -53,7 +54,7 @@ let lang_parsing_tests () =
   let pack_parsing_tests_for_lang lang dir ext =
     let slang = Lang.show lang in
     pack_tests slang
-      (let dir = Filename.concat (Filename.concat tests_path dir) "parsing" in
+      (let dir = Filename.concat tests_path_parsing dir in
        let files = Common2.glob (spf "%s/*%s" dir ext) in
        parsing_tests_for_lang files lang)
   in
@@ -81,7 +82,7 @@ let lang_parsing_tests () =
        * See cpp/parsing_partial/
        *)
       pack_tests "C++ partial parsing"
-        (let dir = Filename.concat tests_path "cpp/parsing_partial" in
+        (let dir = Filename.concat tests_path_parsing "cpp/parsing_partial" in
          let files = Common2.glob (spf "%s/*.cpp" dir) in
          let lang = Lang.Cpp in
          partial_parsing_tests_for_lang files lang);
@@ -97,7 +98,7 @@ let lang_parsing_tests () =
  * will report some "Fatal error" and abort.
  *)
 let parsing_error_tests () =
-  let dir = Filename.concat tests_path "OTHER/parsing_errors" in
+  let dir = Filename.concat tests_path "parsing_errors" in
   pack_tests "Parsing error detection"
     (let tests = Common2.glob (spf "%s/*" dir) in
      tests
@@ -117,7 +118,7 @@ let parsing_error_tests () =
                     () )))
 
 let parsing_rules_tests () =
-  let dir = Filename.concat tests_path "OTHER/rule_formats" in
+  let dir = Filename.concat tests_path "rule_formats" in
   pack_tests "Parsing rules"
     (let tests =
        Common2.glob (spf "%s/*.yaml" dir) @ Common2.glob (spf "%s/*.json" dir)

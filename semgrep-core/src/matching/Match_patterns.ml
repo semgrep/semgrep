@@ -494,7 +494,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
      * but in Semgrep.ml they get agglomerated under the same rule id, in
      * which case we want to dedup them.
      * old: this uniq_by was introducing regressions in semgrep!
-     * See tests/OTHER/rules/regression_uniq_or_ellipsis.go but it's fixed now.
+     * See tests/rules/regression_uniq_or_ellipsis.go but it's fixed now.
      *)
     |> PM.uniq
 

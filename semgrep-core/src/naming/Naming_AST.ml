@@ -268,7 +268,7 @@ let set_resolved env id_info x =
    * this could lead to cycle in the AST because of id_type
    * that will reference a type, that could containi an OT_Expr, containing
    * an Id, that could contain the same id_type, and so on.
-   * See tests/python/naming/shadow_name_type.py for a patological example
+   * See tests/naming/python/shadow_name_type.py for a patological example
    * See also tests/rust/parsing/misc_recursion.rs for another example.
    *)
   if not !(env.in_type) then id_info.id_type := x.enttype
@@ -453,7 +453,7 @@ let resolve lang prog =
                   (* todo: actually we should first go inside x.fparams.ptype
                    * without the new_params (this would also prevent cycle if
                    * a parameter name is the same than type name used in ptype
-                   * (see tests/python/naming/shadow_name_type.py) *)
+                   * (see tests/naming/python/shadow_name_type.py) *)
                   k x)));
       V.kclass_definition =
         (fun (k, _v) x ->
