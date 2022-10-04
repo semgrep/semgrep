@@ -33,32 +33,43 @@ class CoreRunner:
     """
 *)
 
+module C = Semgrep_output_v0_t
+
 type path = string
 
 type result = {
   (* TODO: key by rule ID rather than whole rule? *)
   findings_by_rule : (Rule.t, Rule_match.t list) Map_.t;
-  errors : Error.semgrep_error list;
+  errors : Error.t list;
   all_targets : path Set_.t;
   (*profiling_data: profiling_data; TODO: do we need to translate this? *)
-  parsing_date : parsing_data;
-  explanations : matching_explanation list option;
+  parsing_data : Parsing_data.t;
+  explanations : C.matching_explanation list option;
 }
 
 (*
    Take in rules and targets and return object with findings.
 *)
-let invoke_semgrep ~jobs ~(* int *) timeout ~(* int *) max_memory (* int *)
-    ~timeout_threshold ~(* int *) optimizations (* int *)
-    ?core_opts_str (* string to be split according to shell parsing rules *)
-    ~target_manager ~(* TargetManager *) rules (* rule list *)
-    ~(*~dump_command_for_core (* bool *)*)
-     deep (* bool *) () : result =
+let invoke_semgrep ~(jobs : int) ~(timeout : int) ~(max_memory : int)
+    ~(timeout_threshold : int) ~(optimizations : int)
+    ?(core_opts_str :
+       string option (* string to be split according to shell parsing rules *))
+    ~(target_manager : Target_manager.t) ~(rules : Rule.t list)
+    ~(dump_command_for_core : bool) ~(deep : bool) () : result =
+  ignore jobs;
+  ignore timeout;
+  ignore max_memory;
+  ignore timeout_threshold;
+  ignore optimizations;
+  ignore core_opts_str;
+  ignore target_manager;
+  ignore rules;
+  ignore dump_command_for_core;
+  ignore deep;
   {
     findings_by_rule = Map_.empty;
     errors = [];
-    all_targets;
-    profiling_data;
-    parsing_date;
-    explanations;
+    all_targets = Set_.empty;
+    parsing_data = Parsing_data.TODO;
+    explanations = None;
   }
