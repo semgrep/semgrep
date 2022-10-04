@@ -1,8 +1,3 @@
-(* Cli_lib.ml *)
-(* This contains the main command line parsing logic.  It is packaged
- * as a library so it can be used both for the stand-alone semgrep-core
- * binary as well as the semgrep_bridge.so shared library. *)
-
 (*
  * The author disclaims copyright to this source code.  In place of
  * a legal notice, here is a blessing:
@@ -20,40 +15,13 @@ module J = JSON
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
-(* Purpose *)
+(* Prelude *)
 (*****************************************************************************)
-(* A semantic grep.
- * See https://semgrep.dev/ for more information.
+(* This module contains the main command line parsing logic.
  *
- * Right now there is:
- *  - good support for: Python, Java, C#, Go, Ruby,
- *    Javascript (and JSX), Typescript (and TSX), JSON
- *  - partial support for: C, C++, PHP, OCaml, Kotlin, Scala, Rust, Lua,
- *    YAML, HTML, Vue, Bash, Docker
- *  - almost support for: R
- *
- * opti: git grep foo | xargs semgrep -e 'foo(...)'
- *
- * related:
- *  - Structural Search and Replace (SSR) in Jetbrains IDE
- *    http://www.jetbrains.com/idea/documentation/ssr.html
- *    http://tv.jetbrains.net/videocontent/intellij-idea-static-analysis-custom-rules-with-structural-search-replace
- *  - gogrep: https://github.com/mvdan/gogrep/
- *  - ruleguard: https://github.com/quasilyte/go-ruleguard
- *    (use gogrep internally)
- *  - phpgrep: https://github.com/quasilyte/phpgrep
- *    https://github.com/VKCOM/noverify/blob/master/docs/dynamic-rules.md
- *    https://speakerdeck.com/quasilyte/phpgrep-syntax-aware-code-search
- *  - rubocop pattern
- *    https://github.com/marcandre/rubocop/blob/master/manual/node_pattern.md
- *  - astpath, using XPATH on ASTs https://github.com/hchasestevens/astpath
- *  - ack http://beyondgrep.com/
- *  - cgrep http://awgn.github.io/cgrep/
- *  - hound https://codeascraft.com/2015/01/27/announcing-hound-a-lightning-fast-code-search-tool/
- *  - many grep-based linters (in Zulip, autodesk, bento, etc.)
- *
- * See also codequery for more structural queries.
- * See also old information at https://github.com/facebook/pfff/wiki/Sgrep.
+ * It is packaged as a library so it can be used both for the stand-alone
+ * semgrep-core binary as well as the semgrep_bridge.so shared library.
+ * The code here used to be in Main.ml.
  *)
 
 (*****************************************************************************)
@@ -264,11 +232,12 @@ let dump_il file =
   let lang = List.hd (Lang.langs_of_filename file) in
   let ast = Parse_target.parse_program file in
   Naming_AST.resolve lang ast;
-  let report_func_def_with_name fdef name =
+  let report_func_def_with_name ent_opt fdef =
     let name =
-      match name with
+      match ent_opt with
       | None -> "<lambda>"
-      | Some name -> G.show_name name
+      | Some { G.name = EN n; _ } -> G.show_name n
+      | Some _ -> "<entity>"
     in
     pr2 (spf "Function name: %s" name);
     let s =
@@ -282,24 +251,7 @@ let dump_il file =
     let s = IL.show_any (IL.Ss xs) in
     pr2 s
   in
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kexpr =
-          (fun (_k, _) expr ->
-            match expr.e with
-            | Lambda fdef -> report_func_def_with_name fdef None
-            | _ -> ());
-        V.kdef =
-          (fun (_k, _) (ent, dkind) ->
-            match (ent, dkind) with
-            | { name = EN n; _ }, FuncDef fdef ->
-                report_func_def_with_name fdef (Some n)
-            | _ -> ());
-      }
-  in
-  v (AST_generic.Pr ast)
+  Visit_function_defs.visit report_func_def_with_name ast
 
 let dump_v0_json file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in

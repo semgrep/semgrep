@@ -98,7 +98,8 @@ module DataflowY = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
-let convert_rule_id (id, _tok) = { PM.id; message = ""; pattern_string = id }
+let convert_rule_id (id, _tok) =
+  { PM.id; message = ""; pattern_string = id; fix = None; languages = [] }
 
 let option_bind_list opt f =
   match opt with
@@ -488,7 +489,7 @@ let pm_of_finding finding =
   | T.ArgToReturn _ ->
       None
 
-let check_fundef lang fun_env taint_config opt_ent fdef =
+let check_fundef lang taint_config opt_ent fdef =
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
@@ -544,7 +545,7 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
   in
   let _, xs = AST_to_IL.function_definition lang fdef in
   let flow = CFG_build.cfg_of_stmts xs in
-  Dataflow_tainting.fixpoint ~in_env ?name ~fun_env taint_config flow |> ignore
+  Dataflow_tainting.fixpoint ~in_env ?name taint_config flow |> ignore
 
 let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) =
@@ -571,32 +572,9 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     taint_config_of_rule xconf file (ast, []) rule handle_findings
   in
 
-  let fun_env = Hashtbl.create 8 in
-
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kdef =
-          (fun (k, v) ((ent, def_kind) as def) ->
-            match def_kind with
-            | G.FuncDef fdef ->
-                check_fundef lang fun_env taint_config (Some ent) fdef;
-                (* go into nested functions
-                   but do NOT revisit the function definition again
-                   with `kfunction_definition` below! *)
-                let body = H.funcbody_to_stmt fdef.G.fbody in
-                v (G.S body)
-            | __else__ -> k def);
-        V.kfunction_definition =
-          (fun (k, _v) def ->
-            check_fundef lang fun_env taint_config None def;
-            (* go into nested functions *)
-            k def);
-      }
-  in
   (* Check each function definition. *)
-  v (G.Pr ast);
+  Visit_function_defs.visit (check_fundef lang taint_config) ast;
+
   (* Check the top-level statements.
    * In scripting languages it is not unusual to write code outside
    * function declarations and we want to check this too. We simply
@@ -605,7 +583,7 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
         let flow = CFG_build.cfg_of_stmts xs in
-        Dataflow_tainting.fixpoint ~fun_env taint_config flow |> ignore)
+        Dataflow_tainting.fixpoint taint_config flow |> ignore)
   in
   let matches =
     !matches

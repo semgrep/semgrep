@@ -382,9 +382,10 @@ and vof_svalue = function
   | Cst v1 ->
       let v1 = vof_const_type v1 in
       OCaml.VSum ("Cst", [ v1 ])
-  | Sym v1 ->
-      let v1 = vof_expr v1 in
-      OCaml.VSum ("Sym", [ v1 ])
+  | Sym _v1 ->
+      (* Do NOT go into symbolic values, see "CAREFUL" note in
+       * AST_generic.svalue. *)
+      OCaml.VSum ("Sym", [])
   | NotCst -> OCaml.VSum ("NotCst", [])
 
 and vof_container_operator = function

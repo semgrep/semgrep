@@ -1,0 +1,9 @@
+rules:
+- id: use-of-weak-rsa-key
+  patterns:
+    - pattern: |
+        rsa.GenerateKey(..., 1947)
+  message: RSA < 2048
+  languages:
+    - go
+  severity: WARNING

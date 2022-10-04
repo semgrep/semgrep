@@ -34,19 +34,35 @@ let logger = Logging.get_logger [ __MODULE__ ]
 *)
 
 (*****************************************************************************)
-(* Helpers *)
+(* Types *)
 (*****************************************************************************)
+(* A function which maps a match result from the *extracted* target
+ * (e.g., '/tmp/extract-foo.rb') to a match result to the
+ * *original* target (e.g., 'src/foo.erb').
+ *
+ * We could use instead:
+ *
+ *        (a -> a) -> a Report.match_result -> a Report.match_result
+ *
+ * although this is a bit less ergonomic for the caller.
+ *)
+type match_result_location_adjuster =
+  Report.partial_profiling Report.match_result ->
+  Report.partial_profiling Report.match_result
 
 (* A type for nonempty lists *)
 type 'a nonempty = Nonempty of 'a * 'a list
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let ( @: ) x (Nonempty (y, xs)) = Nonempty (x, y :: xs)
 let nonempty_to_list (Nonempty (x, xs)) = x :: xs
 
 (* from Run_semgrep *)
 let mk_rule_table rules =
-  let rule_pairs = Common.map (fun r -> (fst r.Rule.id, r)) rules in
-  Common.hash_of_list rule_pairs
+  rules |> Common.map (fun r -> (fst r.Rule.id, r)) |> Common.hash_of_list
 
 (** Collects a list into a list of equivalence classes (themselves nonempty
     lists) according to the given equality predicate. `eq` must be an
@@ -275,10 +291,12 @@ let extract_and_concat erule_table xtarget rule_ids matches =
          |> List.rev
          (* Read the extracted text from the source file *)
          |> Common.map (fun { start_pos; start_line; start_col; end_pos } ->
-                let source_file = open_in_bin xtarget.Xtarget.file in
-                let extract_size = end_pos - start_pos in
-                seek_in source_file start_pos;
-                let contents = really_input_string source_file extract_size in
+                let contents =
+                  Common.with_open_infile xtarget.Xtarget.file (fun chan ->
+                      let extract_size = end_pos - start_pos in
+                      seek_in chan start_pos;
+                      really_input_string chan extract_size)
+                in
                 logger#trace
                   "Extract rule %s extracted the following from %s at bytes \
                    %d-%d\n\
@@ -366,10 +384,12 @@ let extract_as_separate erule_table xtarget rule_ids matches =
                    None
              in
              (* Read the extracted text from the source file *)
-             let source_file = open_in_bin m.file in
-             let extract_size = end_extract_pos - start_extract_pos in
-             seek_in source_file start_extract_pos;
-             let contents = really_input_string source_file extract_size in
+             let contents =
+               Common.with_open_infile m.file (fun chan ->
+                   let extract_size = end_extract_pos - start_extract_pos in
+                   seek_in chan start_extract_pos;
+                   really_input_string chan extract_size)
+             in
              logger#trace
                "Extract rule %s extracted the following from %s at bytes %d-%d\n\
                 %s"
@@ -414,14 +434,15 @@ let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
       xtarget
   in
   let separate_matches, combine_matches =
-    Common.partition_either
-      (fun (m : Pattern_match.t) ->
-        let erule = Hashtbl.find erule_table m.rule_id.id in
-        let (`Extract { Rule.reduce; _ }) = erule.mode in
-        match reduce with
-        | Separate -> Left m
-        | Concat -> Right m)
-      res.matches
+    res.matches
+    |> Common.partition_either (fun (m : Pattern_match.t) ->
+           match Hashtbl.find_opt erule_table m.rule_id.id with
+           | Some erule -> (
+               let (`Extract { Rule.reduce; _ }) = erule.mode in
+               match reduce with
+               | Separate -> Left m
+               | Concat -> Right m)
+           | None -> raise Impossible)
   in
   let separate =
     extract_as_separate erule_table xtarget rule_ids separate_matches

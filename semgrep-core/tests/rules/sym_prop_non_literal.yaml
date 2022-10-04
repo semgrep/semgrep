@@ -1,0 +1,9 @@
+rules:
+- id: sym_prop_non_literal 
+  options:
+    symbolic_propagation: true
+  pattern: x(). ... .z()
+  message: Semgrep found a match
+  languages:
+    - java
+  severity: WARNING

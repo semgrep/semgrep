@@ -9,13 +9,13 @@ let tests parse_program =
     [
       ( "regression files",
         fun () ->
-          let dir = Config_pfff.tests_path "python/naming" in
+          let dir = Config_pfff.tests_path "naming/python" in
           let files1 = Common2.glob (spf "%s/*.py" dir) in
-          let dir = Config_pfff.tests_path "go/naming" in
+          let dir = Config_pfff.tests_path "naming/go" in
           let files2 = Common2.glob (spf "%s/*.go" dir) in
-          let dir = Config_pfff.tests_path "js/naming" in
+          let dir = Config_pfff.tests_path "naming/js" in
           let files3 = Common2.glob (spf "%s/*.js" dir) in
-          let dir = Config_pfff.tests_path "java/naming" in
+          let dir = Config_pfff.tests_path "naming/java" in
           let files4 = Common2.glob (spf "%s/*.java" dir) in
 
           files1 @ files2 @ files3 @ files4

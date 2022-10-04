@@ -1,0 +1,13 @@
+rules:
+- id: decorated-field-pattern 
+  message: Matched a decorated field
+  languages:
+    - typescript
+  severity: WARNING
+  patterns:
+    - pattern-inside: |
+        class $CLASSNAME {
+          ...
+        }
+    - pattern: |
+        @$DEC() $INPUT: string

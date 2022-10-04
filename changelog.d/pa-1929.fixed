@@ -1,0 +1,1 @@
+taint-mode: It is now possible for `this` or `this.x` to be a source of taint.

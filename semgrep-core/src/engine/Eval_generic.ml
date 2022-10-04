@@ -74,7 +74,7 @@ let metavar_of_json s = function
 (* JSON format used internally in semgrep-python for metavariable-comparison.
  * metavariable-comparison is actually now handled directly in semgrep-core,
  * so this format is not used anymore in semgrep-python, but we still
- * use it for some of our regression tests in tests/OTHER/eval/.
+ * use it for some of our regression tests in tests/eval/.
  *)
 let parse_json file =
   let json = JSON.load_json file in

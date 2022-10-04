@@ -87,7 +87,7 @@ let find_target_of_yaml_file file =
                  (* those are autofix test files that should be skipped *)
                  && (not (ext2 =~ ".*fixed"))
                  (* ugly: jsonnet exclusion below because of some .jsonnet and
-                  * .yaml ambiguities in tests/OTHER/rules
+                  * .yaml ambiguities in tests/rules
                   *)
                  && ext2 <> "jsonnet"
                then Some path2
@@ -132,7 +132,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              in
              let target = find_target_of_yaml_file file in
              logger#info "processing target %s" target;
-             (* ugly: this is just for tests/OTHER/rules/inception2.yaml, to use JSON
+             (* ugly: this is just for tests/rules/inception2.yaml, to use JSON
               * to parse the pattern but YAML to parse the target *)
              let xlang =
                match (xlang, Lang.langs_of_filename target) with
@@ -218,39 +218,42 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                    (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn)));
              let eres =
                try
-                 Common.map
-                   (fun t ->
-                     let file = t.Input_to_core_t.path in
-                     let xlang = Xlang.of_string t.Input_to_core_t.language in
-                     let lazy_ast_and_errors =
-                       lazy
-                         (match xlang with
-                         | L (lang, _) ->
-                             let { Parse_target.ast; skipped_tokens; _ } =
-                               Parse_target.parse_and_resolve_name lang file
-                             in
-                             (ast, skipped_tokens)
-                         | LRegex
-                         | LGeneric ->
-                             assert false)
-                     in
-                     let xtarget =
-                       {
-                         Xtarget.file;
-                         xlang;
-                         lazy_content = lazy (Common.read_file file);
-                         lazy_ast_and_errors;
-                       }
-                     in
+                 extract_targets
+                 |> Common.map (fun t ->
+                        let file = t.Input_to_core_t.path in
+                        let xlang =
+                          Xlang.of_string t.Input_to_core_t.language
+                        in
+                        let lazy_ast_and_errors =
+                          lazy
+                            (match xlang with
+                            | L (lang, _) ->
+                                let { Parse_target.ast; skipped_tokens; _ } =
+                                  Parse_target.parse_and_resolve_name lang file
+                                in
+                                (ast, skipped_tokens)
+                            | LRegex
+                            | LGeneric ->
+                                assert false)
+                        in
+                        let xtarget =
+                          {
+                            Xtarget.file;
+                            xlang;
+                            lazy_content = lazy (Common.read_file file);
+                            lazy_ast_and_errors;
+                          }
+                        in
 
-                     let res =
-                       Match_rules.check
-                         ~match_hook:(fun _ _ -> ())
-                         ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
-                     in
-                     Hashtbl.find_opt extract_result_map file
-                     |> Option.fold ~some:(fun f -> f res) ~none:res)
-                   extract_targets
+                        let matches =
+                          Match_rules.check
+                            ~match_hook:(fun _ _ -> ())
+                            ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
+                        in
+                        (* adjust the match location for extracted files *)
+                        match Hashtbl.find_opt extract_result_map file with
+                        | Some f -> f matches
+                        | None -> matches)
                with
                | exn ->
                    failwith
@@ -286,14 +289,13 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              res :: eres
              |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
                     res.matches |> List.iter JSON_report.match_to_error);
-             if not (Report.ErrorSet.is_empty res.errors) then
-               let errors =
-                 Report.ErrorSet.elements res.errors
-                 |> Common.map Semgrep_error_code.show_error
-                 |> String.concat "-----\n"
-               in
-               failwith (spf "parsing error(s) on %s:\n%s" file errors)
-             else ();
+             (if not (Report.ErrorSet.is_empty res.errors) then
+              let errors =
+                Report.ErrorSet.elements res.errors
+                |> Common.map Semgrep_error_code.show_error
+                |> String.concat "-----\n"
+              in
+              failwith (spf "parsing error(s) on %s:\n%s" file errors));
              let actual_errors = !E.g_errors in
              actual_errors
              |> List.iter (fun e ->

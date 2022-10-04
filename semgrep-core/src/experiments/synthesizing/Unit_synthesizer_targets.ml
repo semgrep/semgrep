@@ -4,7 +4,7 @@ module R = Rule
 module E = Semgrep_error_code
 module Out = Output_from_core_t
 
-let test_path = "../../../tests/OTHER/synthesizing/targets/"
+let test_path = "../../../tests/synthesizing/targets/"
 
 (* Format: file, list of target ranges, expected pattern line. *)
 let stmt_tests =
@@ -42,7 +42,7 @@ let todo_tests =
 
 (* Range.t does not derive eq *)
 let compare_range (r1 : Range.t) (r2 : Range.t) : bool =
-  r1.start == r2.start && r1.end_ == r2.end_
+  r1.start = r2.start && r1.end_ = r2.end_
 
 let parse_file lang file : AST_generic.program =
   Parse_target.parse_and_resolve_name_fail_if_partial lang file
@@ -63,6 +63,7 @@ let ranges_matched lang file pattern : Range.t list =
       severity = R.Error;
       languages = [ lang ];
       pattern_string = "test: no need for pattern string";
+      fix = None;
     }
   in
   let equiv = [] in

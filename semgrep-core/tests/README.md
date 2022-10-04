@@ -23,7 +23,7 @@ automatically without having to rebuild the test program.
 Matching tests
 --
 
-This folder contains pairs (pattern, target). A pattern must be a file with
+The `patterns/` folder contains pairs (pattern, target). A pattern must be a file with
 the `.sgrep` extension and a target must be a file in the target
 language with the language's usual extension, known to semgrep-core.
 For example, the folder for the Go language looks like this:
@@ -70,12 +70,12 @@ Parsing tests
 --
 
 Tests for just parsing are specified by placing source files into the
-language's `parsing/` subfolder as follows:
+language's `parsing/` as follows:
 
 ```
-go
+parsing
 ├── ...
-├── parsing
+├── go
 │   ├── if_header_type.go
 │   ├── string.go
 │   └── unicode_rune.go

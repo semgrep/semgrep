@@ -530,7 +530,6 @@ let add_special_constants env lang prog =
                logger#trace "adding special terraform constant for %s" (fst id);
                add_constant_env id (terraform_sid, Lit literal) env
            | _ -> ())
-  else ()
 
 (*****************************************************************************)
 (* Entry point *)
@@ -684,15 +683,8 @@ let propagate_dataflow lang ast =
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow
   | _ ->
-      let v =
-        V.mk_visitor
-          {
-            V.default_visitor with
-            V.kfunction_definition =
-              (fun (_k, _) def ->
-                let inputs, xs = AST_to_IL.function_definition lang def in
-                let flow = CFG_build.cfg_of_stmts xs in
-                propagate_dataflow_one_function lang inputs flow);
-          }
-      in
-      v (Pr ast)
+      ast
+      |> Visit_function_defs.visit (fun _ent fdef ->
+             let inputs, xs = AST_to_IL.function_definition lang fdef in
+             let flow = CFG_build.cfg_of_stmts xs in
+             propagate_dataflow_one_function lang inputs flow)

@@ -595,11 +595,19 @@ class JenkinsMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
+        repo_url = os.getenv("SEMGREP_REPO_URL")
+        if repo_url:
+            return repo_url
+
         url = get_url_from_sstp_url(os.getenv("GIT_URL", os.getenv("GIT_URL_1")))
         return url if url else super().repo_url
 
     @property
     def branch(self) -> Optional[str]:
+        branch = os.getenv("SEMGREP_BRANCH")
+        if branch:
+            return branch
+
         branch_or_tag = os.getenv("GIT_BRANCH", "")
         if "tags/" not in branch_or_tag:
             return branch_or_tag
@@ -607,10 +615,18 @@ class JenkinsMeta(GitMeta):
 
     @property
     def ci_job_url(self) -> Optional[str]:
+        job_url = os.getenv("SEMGREP_JOB_URL")
+        if job_url:
+            return job_url
+
         return os.getenv("BUILD_URL")
 
     @property
     def commit_sha(self) -> Optional[str]:
+        commit = os.getenv("SEMGREP_COMMIT")
+        if commit:
+            return commit
+
         return os.getenv("GIT_COMMIT")
 
 

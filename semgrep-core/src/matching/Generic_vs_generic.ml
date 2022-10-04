@@ -2144,7 +2144,7 @@ and m_stmt a b =
    * possible subset of stmt list and take forever.
    * Note that as a side effect it returns also less equivalent
    * matches (which again, should not happen), which used to introduce
-   * some regressions (see tests/OTHER/rules/regression_uniq...) but this
+   * some regressions (see tests/rules/regression_uniq...) but this
    * has been fixed now.
    *)
   | ( G.Block (_, [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], _),

@@ -25,6 +25,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
+let tests_path_patterns = "../../../tests/patterns"
 
 (*****************************************************************************)
 (* Helpers *)
@@ -146,7 +147,7 @@ let maturity_tests () =
   let check_maturity lang dir ext maturity =
     pack_tests
       (spf "Maturity %s for %s" (show_maturity_level maturity) (Lang.show lang))
-      (let dir = Filename.concat tests_path dir in
+      (let dir = Filename.concat tests_path_patterns dir in
        let features = assoc_maturity_level |> List.assoc maturity in
        let exns =
          try List.assoc lang language_exceptions with
@@ -218,15 +219,40 @@ let maturity_tests () =
 (* Language-specific tests *)
 (*****************************************************************************)
 
-let sgrep_file_of_target file =
+let related_file_of_target ~ext ~file =
   let d, b, _e = Common2.dbe_of_filename file in
-  let candidate1 = Common2.filename_of_dbe (d, b, "sgrep") in
-  if Sys.file_exists candidate1 then candidate1
+  let candidate1 = Common2.filename_of_dbe (d, b, ext) in
+  if Sys.file_exists candidate1 then Some candidate1
   else
-    let d = Filename.concat tests_path "POLYGLOT" in
-    let candidate2 = Common2.filename_of_dbe (d, b, "sgrep") in
-    if Sys.file_exists candidate2 then candidate2
-    else failwith (spf "could not find sgrep file for %s" file)
+    let d = Filename.concat tests_path_patterns "POLYGLOT" in
+    let candidate2 = Common2.filename_of_dbe (d, b, ext) in
+    if Sys.file_exists candidate2 then Some candidate2 else None
+
+(* Allows the  semgrep-core test runner that we use to test matches to also test
+ * autofix. The format is pretty simple: add a `.fix` file with the fix pattern
+ * and a `.fixed` file with the expected contents of the target after fixes are
+ * applied.
+ *
+ * There are also end-to-end tests which test autofix on the CLI side.
+ * Unfortunately, modifying them involves updating a large snapshot file, and
+ * maintaining any large quantity of them would be onerous. Additionally, it's
+ * not easy to adapt tests from our large existing test suite in semgrep-core to
+ * also exercise autofix.
+ *
+ * Semgrep's `--test` flag can also test autofix
+ * (https://github.com/returntocorp/semgrep/pull/5190), but it has the same
+ * problems as the existing autofix e2e tests for these purposes. *)
+let compare_fixes lang ~file matches =
+  let expected_fixed_text =
+    let expected_fixed_file =
+      match related_file_of_target ~ext:"fixed" ~file with
+      | Some file -> file
+      | None -> failwith (spf "could not find fixed file for %s" file)
+    in
+    Common.read_file expected_fixed_file
+  in
+  let fixed_text = Autofix.apply_fixes lang matches ~file in
+  Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
 
 (*
    For each input file with the language's extension, locate a pattern file
@@ -239,7 +265,11 @@ let regression_tests_for_lang ~with_caching files lang =
   |> Common.map (fun file ->
          ( Filename.basename file,
            fun () ->
-             let sgrep_file = sgrep_file_of_target file in
+             let sgrep_file =
+               match related_file_of_target ~ext:"sgrep" ~file with
+               | Some file -> file
+               | None -> failwith (spf "could not find sgrep file for %s" file)
+             in
              let ast =
                try
                  Parse_target.parse_and_resolve_name_fail_if_partial lang file
@@ -259,6 +289,11 @@ let regression_tests_for_lang ~with_caching files lang =
                      (spf "fail to parse pattern %s with lang = %s (exn = %s)"
                         sgrep_file (Lang.to_string lang) (Common.exn_to_s exn))
              in
+             let fix_pattern =
+               let* fix_file = related_file_of_target ~ext:"fix" ~file in
+               Some (Common.read_file fix_file)
+             in
+
              E.g_errors := [];
 
              let rule =
@@ -270,6 +305,7 @@ let regression_tests_for_lang ~with_caching files lang =
                  severity = R.Error;
                  languages = [ lang ];
                  pattern_string = "test: no need for pattern string";
+                 fix = fix_pattern;
                }
              in
              (* old: semgrep-core used to support user-defined
@@ -284,19 +320,23 @@ let regression_tests_for_lang ~with_caching files lang =
              let equiv = [] in
              Common.save_excursion Flag_semgrep.with_opt_cache with_caching
                (fun () ->
-                 Match_patterns.check
-                   ~hook:(fun { Pattern_match.tokens = (lazy xs); _ } ->
-                     (* there are a few fake tokens in the generic ASTs now (e.g.,
-                      * for DotAccess generated outside the grammar) *)
-                     let toks = xs |> List.filter Parse_info.is_origintok in
-                     let minii, _maxii = Parse_info.min_max_ii_by_pos toks in
-                     let minii_loc =
-                       Parse_info.unsafe_token_location_of_info minii
-                     in
-                     E.error "test pattern" minii_loc "" Out.SemgrepMatchFound)
-                   (Config_semgrep.default_config, equiv)
-                   [ rule ] (file, lang, ast)
-                 |> ignore;
+                 let matches =
+                   Match_patterns.check
+                     ~hook:(fun { Pattern_match.tokens = (lazy xs); _ } ->
+                       (* there are a few fake tokens in the generic ASTs now (e.g.,
+                        * for DotAccess generated outside the grammar) *)
+                       let toks = xs |> List.filter Parse_info.is_origintok in
+                       let minii, _maxii = Parse_info.min_max_ii_by_pos toks in
+                       let minii_loc =
+                         Parse_info.unsafe_token_location_of_info minii
+                       in
+                       E.error "test pattern" minii_loc "" Out.SemgrepMatchFound)
+                     (Config_semgrep.default_config, equiv)
+                     [ rule ] (file, lang, ast)
+                 in
+                 (match fix_pattern with
+                 | Some _ -> compare_fixes lang ~file matches
+                 | None -> ());
                  let actual = !E.g_errors in
                  let expected = E.expected_error_lines_of_files [ file ] in
                  E.compare_actual_to_expected_for_alcotest actual expected) ))
@@ -306,7 +346,7 @@ let lang_regression_tests ~with_caching =
   let pack_regression_tests_for_lang lang dir ext =
     pack_tests
       (spf "semgrep %s" (Lang.show lang))
-      (let dir = Filename.concat tests_path dir in
+      (let dir = Filename.concat tests_path_patterns dir in
        let files = Common2.glob (spf "%s/*%s" dir ext) in
        regression_tests_for_lang ~with_caching files lang)
   in
@@ -323,7 +363,7 @@ let lang_regression_tests ~with_caching =
       pack_regression_tests_for_lang Lang.Js "js" ".js";
       pack_regression_tests_for_lang Lang.Ts "ts" ".ts";
       pack_tests "semgrep Typescript on Javascript (no JSX)"
-        (let dir = Filename.concat tests_path "js" in
+        (let dir = Filename.concat tests_path_patterns "js" in
          let files = Common2.glob (spf "%s/*.js" dir) in
          let files =
            Common.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
@@ -335,7 +375,7 @@ let lang_regression_tests ~with_caching =
       pack_regression_tests_for_lang Lang.C "c" ".c";
       pack_regression_tests_for_lang Lang.Cpp "cpp" ".cpp";
       pack_tests "semgrep C++ on C tests"
-        (let dir = Filename.concat tests_path "c" in
+        (let dir = Filename.concat tests_path_patterns "c" in
          let files = Common2.glob (spf "%s/*.c" dir) in
          let lang = Lang.Cpp in
          regression_tests_for_lang files lang);
@@ -367,7 +407,7 @@ let eval_regression_tests () =
   [
     ( "eval regression testing",
       fun () ->
-        let dir = Filename.concat tests_path "OTHER/eval" in
+        let dir = Filename.concat tests_path "eval" in
         let files = Common2.glob (spf "%s/*.json" dir) in
         files
         |> List.iter (fun file ->
@@ -421,7 +461,7 @@ let test_irrelevant_rule_file target_file =
    future debuggers. *)
 let filter_irrelevant_rules_tests () =
   pack_tests "filter irrelevant rules testing"
-    (let dir = Filename.concat tests_path "OTHER/irrelevant_rules" in
+    (let dir = Filename.concat tests_path "irrelevant_rules" in
      let target_files =
        Common2.glob (spf "%s/*" dir)
        |> File_type.files_of_dirs_or_files (function
@@ -586,7 +626,7 @@ let lang_tainting_tests () =
 (*****************************************************************************)
 
 let full_rule_regression_tests () =
-  let path = Filename.concat tests_path "OTHER/rules" in
+  let path = Filename.concat tests_path "rules" in
   pack_tests "full rule"
     (let tests, _print_summary =
        Test_engine.make_tests ~unit_testing:true [ path ]

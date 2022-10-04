@@ -65,9 +65,9 @@ type formula =
   | Not of tok * formula
   (* pattern: and pattern-inside: are actually slightly different so
    * we need to keep the information around.
-   * (see tests/OTHER/rules/inside.yaml)
+   * (see tests/rules/inside.yaml)
    * The same is true for pattern-not and pattern-not-inside
-   * (see tests/OTHER/rules/negation_exact.yaml)
+   * (see tests/rules/negation_exact.yaml)
    * todo: try to remove this at some point, but difficult. See
    * https://github.com/returntocorp/semgrep/issues/1218
    *)

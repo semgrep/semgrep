@@ -1,0 +1,50 @@
+rules:
+- id: ruby-pg-sqli
+  mode: taint
+  pattern-sources:
+    - pattern-either:
+        - pattern: |
+            params
+        - pattern: |
+            cookies
+  pattern-propagators:
+    - pattern: $D << $S
+      from: $S
+      to: $D
+  pattern-sinks:
+    - patterns:
+        - pattern-either:
+            - pattern-inside: |
+                $CON = PG.connect(...)
+                ...
+            - pattern-inside: |
+                $CON = PG::Connection.open(...)
+                ...
+            - pattern-inside: |
+                $CON = PG::Connection.new(...)
+                ...
+        - pattern-either:
+            - pattern: |
+                $CON.$METHOD($X,...)
+            - pattern: |
+                $CON.$METHOD $X, ...
+        - focus-metavariable: $X
+        - metavariable-regex:
+            metavariable: $METHOD
+            regex: ^(exec|exec_params)$
+  languages:
+    - ruby
+  message: "Detected string concatenation with a non-literal variable in a pg Ruby
+    SQL statement. This could lead to SQL injection if the variable is
+    user-controlled and not properly sanitized. In order to prevent SQL injection,
+    used parameterized queries or prepared statements instead. You can use
+    parameterized queries like so: `conn.exec_params('SELECT $1 AS a, $2 AS b, $3
+    AS c', [1, 2, nil])` And you can use prepared statements with
+    `exec_prepared`."
+  metadata:
+    references:
+      - https://www.rubydoc.info/gems/pg/PG/Connection
+    category: security
+    technology:
+      - rails
+  severity: WARNING

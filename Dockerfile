@@ -102,10 +102,18 @@ COPY cli ./
 
 # Let's now simply use 'pip' to install semgrep.
 # Note the difference between .run-deps and .build-deps below.
-# TODO? what does --virtual= mean? why all in one command below?
+# We use a single command to install packages, install semgrep, and remove
+# packages to keep a small Docker image (classic Docker trick).
+# Here is why we need the apk packages below:
+#  - build-base: ??
+#  - make, g++: to compile the jsonnet C++ library which is installed
+#    by 'pip install jsonnet'.
+#    TODO: at some point we should not need the 'pip install jsonnet' because
+#    jsonnet would be mentioned in the setup.py for semgrep as a dependency.
 # TODO? why the mkdir -p /tmp/.cache?
 # hadolint ignore=DL3013
-RUN apk add --no-cache --virtual=.build-deps build-base &&\
+RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
+     pip install jsonnet &&\
      SEMGREP_SKIP_BIN=true pip install /semgrep &&\
      # running this pre-compiles some python files for faster startup times
      semgrep --version &&\

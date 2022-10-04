@@ -179,7 +179,7 @@ type cnf_step0 = step0 cnf [@@deriving show]
 
 (* reference? https://www.cs.jhu.edu/~jason/tutorials/convert-to-CNF.html
  * TODO the current code triggers some Stack_overflow on
- * tests/OTHER/rules/tainted-filename.yaml. I've replaced some List.map
+ * tests/rules/tainted-filename.yaml. I've replaced some List.map
  * by Common.map, but we still get some Stack_overflow because of the many
  * calls to @.
  *)
@@ -589,7 +589,7 @@ let regexp_prefilter_of_rule (r : R.rule) =
             regexp_prefilter_of_formula f
         | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
       with
-      (* TODO: see tests/OTHER/rules/tainted-filename.yaml *)
+      (* TODO: see tests/rules/tainted-filename.yaml *)
       | CNF_exploded ->
           logger#error "CNF size exploded on rule id %s" rule_id;
           None

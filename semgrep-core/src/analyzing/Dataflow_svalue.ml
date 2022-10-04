@@ -171,7 +171,7 @@ let union c1 c2 =
    *       y = x.foo
    *
    * Example: If we are not careful, when analyzing loops, we could introduce
-   * circular dependencies! (See tests/OTHER/rules/sym_prop_no_merge1.go)
+   * circular dependencies! (See tests/rules/sym_prop_no_merge1.go)
    *
    *     for cond {
    *       x = f(x)
@@ -373,7 +373,13 @@ and eval_concat env args =
 (* Symbolic evaluation *)
 (*****************************************************************************)
 
-(* Defines the subset of Generic expressions that we can propagate. *)
+(* Defines the subset of Generic expressions that we can propagate.
+ *
+ * In principle we could just propagate any expression, we restricted it mainly
+ * to play it safe. Eventually we could consider lifting up these restrictions
+ * and see what happens. The main problem with the current approach is that
+ * every now and then somebody requests X to be supported by symbolic propagation.
+ *)
 let rec is_symbolic_expr expr =
   match expr.G.e with
   | G.L _ -> true
@@ -383,7 +389,10 @@ let rec is_symbolic_expr expr =
   | G.ArrayAccess (e1, (_, e2, _)) -> is_symbolic_expr e1 && is_symbolic_expr e2
   | G.Call (e, (_, args, _)) ->
       is_symbolic_expr e && List.for_all is_symbolic_arg args
-  | _ -> false
+  | G.New (_, _, args) ->
+      let args = G.unbracket args in
+      List.for_all is_symbolic_arg args
+  | _else -> false
 
 and is_symbolic_arg arg =
   match arg with
@@ -517,10 +526,19 @@ let transfer :
               let ccall = sym_prop instr.iorig in
               update_env_with inp' var ccall
         | CallSpecial
-            (Some { base = Var var; rev_offset = [] }, (Concat, _), args) ->
-            (* var = concat(args) *)
+            (Some { base = Var var; rev_offset = [] }, (special, _), args) ->
+            let args = Common.map IL_helpers.exp_of_arg args in
             let cexp =
-              args |> Common.map IL_helpers.exp_of_arg |> eval_concat inp'
+              (* We try to evaluate the special function, if we know how. *)
+              if special = Concat then
+                (* var = concat(args) *)
+                eval_concat inp' args
+              else G.NotCst
+            in
+            let cexp =
+              (* If we don't know how to evaluate this function, or if the
+               * evaluation fails, then we do sym-prop. *)
+              if cexp = G.NotCst then sym_prop instr.iorig else cexp
             in
             update_env_with inp' var cexp
         | Call
@@ -593,7 +611,7 @@ let update_svalue (flow : F.cfg) mapping =
           (fun ii ->
             (* Note the use of physical equality, we are looking for the *same*
              * id_svalue ref, that tells us it's the same variable occurrence. *)
-            var.id_info.id_svalue != ii.id_svalue)
+            var.id_info.id_svalue != (* nosemgrep *) ii.id_svalue)
           (G.E e)
     | G.NotCst
     | G.Cst _

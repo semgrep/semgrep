@@ -52,6 +52,7 @@ type visitor_in = {
   kinfo : (tok -> unit) * visitor_out -> tok -> unit;
   kid_info : (id_info -> unit) * visitor_out -> id_info -> unit;
   ksvalue : (svalue -> unit) * visitor_out -> svalue -> unit;
+  kargument : (argument -> unit) * visitor_out -> argument -> unit;
 }
 
 and visitor_out = any -> unit
@@ -94,6 +95,7 @@ let default_visitor =
         let arg = v_ref_do_not_visit (v_option (fun _ -> ())) v_id_type in
         ());
     ksvalue = (fun (k, _) x -> k x);
+    kargument = (fun (k, _) x -> k x);
   }
 
 let v_id _ = ()
@@ -530,25 +532,28 @@ let (mk_visitor :
   and v_arithmetic_operator _x = ()
   and v_arguments v = v_bracket (v_list v_argument) v
   and v_required _x = ()
-  and v_argument = function
-    | Arg v1 ->
-        let v1 = v_expr v1 in
-        ()
-    | ArgType v1 ->
-        let v1 = v_type_ v1 in
-        ()
-    | ArgKwd (v1, v2) ->
-        let tok = snd v1 in
-        let t = PI.fake_info tok ":" in
-        v_partial ~recurse:false (PartialSingleField (v1, t, v2));
-        let v1 = v_ident v1 and v2 = v_expr v2 in
-        ()
-    | ArgKwdOptional (v1, v2) ->
-        let v1 = v_ident v1 and v2 = v_expr v2 in
-        ()
-    | OtherArg (v1, v2) ->
-        let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
-        ()
+  and v_argument x =
+    let k = function
+      | Arg v1 ->
+          let v1 = v_expr v1 in
+          ()
+      | ArgType v1 ->
+          let v1 = v_type_ v1 in
+          ()
+      | ArgKwd (v1, v2) ->
+          let tok = snd v1 in
+          let t = PI.fake_info tok ":" in
+          v_partial ~recurse:false (PartialSingleField (v1, t, v2));
+          let v1 = v_ident v1 and v2 = v_expr v2 in
+          ()
+      | ArgKwdOptional (v1, v2) ->
+          let v1 = v_ident v1 and v2 = v_expr v2 in
+          ()
+      | OtherArg (v1, v2) ->
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
+          ()
+    in
+    vin.kargument (k, all_functions) x
   and v_type_ x =
     let k { t; t_attrs } =
       v_list v_attribute t_attrs;
@@ -680,7 +685,7 @@ let (mk_visitor :
      * explicit in Generic so we cannot match expression patterns against
      * attributes. This equivalence enables exactly that, and we can e.g.
      * match `@f(a)` with `f($X)`. *)
-    if attr_expr then v_expr (e (Call (e (N name), args))) else ()
+    if attr_expr then v_expr (e (Call (e (N name), args)))
   and v_other_attribute_operator _ = ()
   and v_stmts xs =
     let k xs =

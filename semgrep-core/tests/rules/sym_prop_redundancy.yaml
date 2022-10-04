@@ -1,0 +1,10 @@
+rules:
+- id: symbol_prop_redundancy 
+  options:
+    symbolic_propagation: true
+  pattern: |
+    g(5)
+  message: a match was found or something idk im not an engineer
+  languages:
+    - python
+  severity: WARNING

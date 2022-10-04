@@ -104,7 +104,7 @@ let test_rules ?(unit_testing = false) xs =
                           (* .yaml.j2 files are Jinja2 templates to generate Semgrep config files *)
                           && ext2 <> "yaml.j2"
                           (* ugly: jsonnet exclusion below because of some .jsonnet and .yaml
-                           * ambiguities in tests/OTHER/rules *)
+                           * ambiguities in tests/rules *)
                           && ext2 <> "jsonnet"
                         then Some path2
                         else None)

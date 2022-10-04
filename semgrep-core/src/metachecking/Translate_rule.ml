@@ -34,10 +34,10 @@ let rec expr_to_string expr =
   let { AST_generic.e_range; _ } = expr in
   match e_range with
   | Some (start, end_) ->
-      let source_file = open_in_bin start.file in
-      let extract_size = end_.charpos - start.charpos in
-      seek_in source_file start.charpos;
-      really_input_string source_file extract_size
+      Common.with_open_infile start.file (fun chan ->
+          let extract_size = end_.charpos - start.charpos in
+          seek_in chan start.charpos;
+          really_input_string chan extract_size)
   | None -> failwith "invalid source/sink requires"
 
 and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =

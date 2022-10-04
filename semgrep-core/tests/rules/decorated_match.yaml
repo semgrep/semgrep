@@ -1,0 +1,14 @@
+rules:
+- id: decorated_match  
+  patterns:
+    - pattern-inside: |
+        $VAR = 5
+        ...
+    - pattern: |
+        @$VAR
+        def $F(...):
+            ...
+  message: Semgrep found a match for a decorator
+  languages:
+    - python
+  severity: WARNING

@@ -1,0 +1,12 @@
+rules:
+- id: use-of-weak-rsa-key
+  patterns:
+    - pattern: |
+        rsa.GenerateKey(..., $KEYLEN)
+    - metavariable-comparison:
+        metavariable: $KEYLEN
+        comparison: $KEYLEN < 2048
+  message: RSA < 2048, $KEYLEN = value($KEYLEN)
+  languages:
+    - go
+  severity: WARNING

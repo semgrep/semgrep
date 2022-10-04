@@ -6,7 +6,7 @@ module PPG = Pretty_print_AST
 (*****************************************************************************)
 (* Semgrep Unit tests *)
 (*****************************************************************************)
-let test_path = "../../../tests/OTHER/synthesizing/"
+let test_path = "../../../tests/synthesizing/"
 
 (* Format: file, range of code to infer, expected patterns *)
 let python_tests =
@@ -170,7 +170,7 @@ let java_tests =
  * which they should match exactly.
  * They will then be matched against the code at the given range to make
  * sure semgrep actually correctly matches the pattern to the code.
- * Place test files in semgrep-core/tests/SYNTHESIZING
+ * Place test files in semgrep-core/tests/synthesizing
  *)
 
 let tests =
