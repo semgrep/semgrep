@@ -49,7 +49,7 @@ Its rules look like the code you already write; no abstract syntax trees, regex 
 The Semgrep ecosystem includes:
 
 - Semgrep - The open-source command line tool at the heart of everything (this project).
-- [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain) - high-signal dependency scanner that detects reachable open source vulnerabilities in third-party libraries and functions across the SDLC.
+- [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain) - high-signal dependency scanner that detects reachable vulnerabilities in third-party libraries and functions across the SDLC.
 - [Semgrep App](https://semgrep.dev/manage) - Deploy, manage, and monitor Semgrep and Semgrep Supply Chain at scale with free and paid tiers. Integrates with CI providers such as GitHub, GitLab, CircleCI, and more.
 
 and:
