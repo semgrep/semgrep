@@ -128,7 +128,13 @@ def parse_package_lock(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
     lockfile_text = "\n".join(
-        line + f'"line_number": {i},' if line.strip().startswith('"version"') else line
+        (
+            line + f'"line_number": {i},'
+            if line.strip().endswith(",")
+            else f'"line_number": {i},' + line
+        )
+        if line.strip().startswith('"version"')
+        else line
         for i, line in enumerate(lockfile_text.split("\n"))
     )
     as_json = json.loads(lockfile_text)
