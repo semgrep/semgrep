@@ -400,6 +400,7 @@ let modifier (env : env) (x : CST.modifier) =
   | `Prot tok -> KeywordAttr (Protected, token env tok) (* "protected" *)
   | `Public tok -> KeywordAttr (Public, token env tok) (* "public" *)
   | `Read tok -> KeywordAttr (Const, token env tok) (* "readonly" *)
+  | `Requ tok -> unhandled_keywordattr (str env tok) (* "required" *)
   | `Ref tok -> unhandled_keywordattr (str env tok)
   | `Sealed tok ->
       (* TODO we map Sealed to Final here, is that OK? *)
@@ -593,7 +594,12 @@ let literal (env : env) (x : CST.literal) : literal =
             (* escape_sequence *))
           v2
       in
-      let v3 = token env v3 (* "\"" *) in
+      let v3 =
+        match v3 with
+        | `DQUOT tok -> (* "\"" *) token env tok
+        | `DQUOTU8 tok -> (* "\"U8" *) token env tok
+        | `DQUOTu8 tok -> (* "\"u8" *) token env tok
+      in
       let str = v2 |> Common.map fst |> String.concat "" in
       let toks = v2 |> Common.map snd in
       let toks = PI.combine_infos v1 (toks @ [ v3 ]) in
@@ -808,19 +814,6 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       Call (IdSpecial (Op Nullish, v2) |> G.e, fake_bracket [ Arg v1; Arg v3 ])
       |> G.e
-
-and binary_pattern (env : env) (x : CST.binary_pattern) =
-  match x with
-  | `Pat_and_pat (v1, v2, v3) ->
-      let _v1 = pattern env v1 in
-      let v2 = token env v2 (* "and" *) in
-      let _v3 = pattern env v3 in
-      todo_pat env v2
-  | `Pat_or_pat (v1, v2, v3) ->
-      let _v1 = pattern env v1 in
-      let v2 = token env v2 (* "or" *) in
-      let _v3 = pattern env v3 in
-      todo_pat env v2
 
 and block (env : env) ((v1, v2, v3) : CST.block) : stmt =
   let v1 = token env v1 (* "{" *) in
@@ -1379,11 +1372,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v3 = pattern env v3 in
       LetPattern (v3, v1) |> G.e
   | `Lambda_exp (v1, _vTODO, v2, v3, v4) ->
-      let _v1TODO =
-        match v1 with
-        | Some tok -> [ KeywordAttr (Async, token env tok) ] (* "async" *)
-        | None -> []
-      in
+      let _v1TODO = List.map (attribute_list env) v1 in
       let v2 =
         match v2 with
         | `Param_list x -> parameter_list env x
@@ -1576,6 +1565,11 @@ and anon_choice_param_ce11a32 (env : env) (x : CST.anon_choice_param_ce11a32) =
             pinfo = empty_id_info ();
           } )
 
+and map_anon_choice_pat_29be9ad (env : env) (x : CST.anon_choice_pat_29be9ad) =
+  match x with
+  | `Pat x -> pattern env x
+  | `Slice_pat tok -> (* ".." *) todo_pat env (token env tok)
+
 and anon_opt_exp_rep_interp_alig_clause_cd88eaa (env : env)
     (opt : CST.anon_opt_exp_rep_interp_alig_clause_cd88eaa) : expr list =
   match opt with
@@ -1747,20 +1741,27 @@ and statement (env : env) (x : CST.statement) =
       in
       let for_header = ForClassic (v3, v5, next) in
       For (v1, for_header, v9) |> G.s
-  | `Goto_stmt (v1, v2, v3) -> (
+  | `Goto_stmt (v1, v2, v3, v4) -> (
       let v1 = token env v1 (* "goto" *) in
-      let v3 = token env v3 (* ";" *) in
-      match v2 with
-      | `Id tok ->
-          let label = identifier env tok (* identifier *) in
-          Goto (v1, label, v3) |> G.s
-      | `Case_exp (v1, v2) ->
-          let v1 = token env v1 (* "case" *) in
-          let _v2 = expression env v2 in
+      let v4 = token env v4 (* ";" *) in
+      match (v2, v3) with
+      (* Only a few of these are allowable. See
+         https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/grammar
+      *)
+      | None, Some exp -> (
+          let exp = expression env exp in
+          match exp.e with
+          | N (Id (id, _)) -> Goto (v1, id, v4) |> G.s
+          | _ ->
+              (* This shouldn't be permitted by the grammar above. *)
+              todo_stmt env v1)
+      | Some (`Case tok), Some _exp ->
+          let v1 = token env tok (* "case" *) in
           todo_stmt env v1
-      | `Defa tok ->
-          let tok = token env tok (* "default" *) in
-          todo_stmt env tok)
+      | Some (`Defa tok), None ->
+          let _tok = token env tok (* "default" *) in
+          todo_stmt env v1
+      | _ -> todo_stmt env v1)
   | `If_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "if" *) in
       let _v2 = token env v2 (* "(" *) in
@@ -2120,7 +2121,34 @@ and pattern (env : env) (x : CST.pattern) : G.pattern =
       let _v3 = token env v3 (* ")" *) in
       todo_pat env v1
   | `Rela_pat x -> relational_pattern env x
-  | `Bin_pat x -> binary_pattern env x
+  | `And_pat (v1, v2, v3) ->
+      let _v1 = pattern env v1 in
+      let v2 = (* "and" *) token env v2 in
+      let _v3 = pattern env v3 in
+      todo_pat env v2
+  | `Or_pat (v1, v2, v3) ->
+      let _v1 = pattern env v1 in
+      let v2 = (* "or" *) token env v2 in
+      let _v3 = pattern env v3 in
+      todo_pat env v2
+  | `List_pat (v1, v2, v3) ->
+      let v1 = (* "[" *) token env v1 in
+      let v2 =
+        match v2 with
+        | Some (v1, v2, _v3) ->
+            let v1 = map_anon_choice_pat_29be9ad env v1 in
+            let v2 =
+              List.map
+                (fun (v1, v2) ->
+                  let _v1 = (* "," *) token env v1 in
+                  map_anon_choice_pat_29be9ad env v2)
+                v2
+            in
+            v1 :: v2
+        | None -> []
+      in
+      let v3 = (* "]" *) token env v3 in
+      PatList (v1, v2, v3)
   | `Type_pat x ->
       let _xTODO = type_pattern env x in
       todo_pat env (fake "TODO_type_pattern")
@@ -2734,11 +2762,11 @@ and delegate_declaration env (v1, v2, v3, v4, v5, v6, v7, v8, v9) =
   let ent = { name = EN (Id (v5, idinfo)); attrs = v1 @ v2; tparams } in
   DefStmt (ent, TypeDef { tbody = NewType func }) |> G.s
 
-and record_declaration env (_, _, v3, _, _, _, _, _, _, _) =
+and record_declaration env (_, _, v3, _, _, _, _, _, _, _, _) =
   let v3 = token env v3 (* "record" *) in
   todo_stmt env v3
 
-and record_struct_declaration env (_, _, v3, _, _, _, _, _, _, _) =
+and record_struct_declaration env (_, _, v3, _, _, _, _, _, _, _, _) =
   let v3 = token env v3 (* "record" *) in
   todo_stmt env v3
 
