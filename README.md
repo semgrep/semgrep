@@ -19,7 +19,7 @@
       <img src="https://img.shields.io/badge/docs-semgrep.dev-purple?style=flat-square" alt="Documentation" />
   </a>
   <a href="https://r2c.dev/slack">
-    <img src="https://img.shields.io/badge/slack-1.2k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
+    <img src="https://img.shields.io/badge/slack-1.9k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
   </a>
   <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
@@ -30,7 +30,7 @@
   <a href="https://hub.docker.com/r/returntocorp/semgrep">
     <img src="https://img.shields.io/docker/pulls/returntocorp/semgrep.svg?style=flat-square" alt="Docker Pulls" />
   </a>
-  <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
+  <a href="https://twitter.com/intent/follow?screen_name=semgrep">
     <img src="https://img.shields.io/twitter/follow/semgrep?label=Follow%20semgrep&style=social&color=blue" alt="Follow @semgrep on Twitter" />
   </a>
 </p>
