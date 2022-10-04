@@ -18,7 +18,7 @@
       <img src="https://img.shields.io/badge/docs-semgrep.dev-purple?style=flat-square" alt="Documentation" />
   </a>
   <a href="https://r2c.dev/slack">
-    <img src="https://img.shields.io/badge/slack-1.2k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
+    <img src="https://img.shields.io/badge/slack-1.9k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
   </a>
   <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
@@ -29,7 +29,7 @@
   <a href="https://hub.docker.com/r/returntocorp/semgrep">
     <img src="https://img.shields.io/docker/pulls/returntocorp/semgrep.svg?style=flat-square" alt="Docker Pulls" />
   </a>
-  <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
+  <a href="https://twitter.com/intent/follow?screen_name=semgrep">
     <img src="https://img.shields.io/twitter/follow/semgrep?label=Follow%20semgrep&style=social&color=blue" alt="Follow @semgrep on Twitter" />
   </a>
 </p>
@@ -51,6 +51,8 @@ The Semgrep ecosystem includes:
 - [Semgrep Playground](https://semgrep.dev/editor) - An online interactive tool for writing and sharing rules.
 - [Semgrep Registry](https://semgrep.dev/explore) - 2,000+ community-driven rules covering security, correctness, and performance bugs.
 - [Semgrep App](https://semgrep.dev/manage) - Deploy, manage, and monitor Semgrep at scale with free and paid tiers. Integrates with CI providers such as GitHub, GitLab, CircleCI, and more.
+- [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain?utm_source=github) - Use Semgrep to scan dependencies and first-party code, only reporting vulnerabilities that are actually reachable
+
 
 Join 100,000 other developers and security engineers already using Semgrep at companies like Chef, Dropbox, Figma, HashiCorp, Snowflake, and Trail of Bits. Also check out [tools powered by Semgrep](https://semgrep.dev/docs/extensions/#semgrep-as-an-engine)!
 
@@ -94,6 +96,9 @@ $ semgrep -e '$X == $X' --lang=py path/to/src
 # to make selecting relevant rules fast next time;
 # source code will not be uploaded.
 $ semgrep --config auto
+
+# Some rules are only available after login to the Semgrep.dev server:
+$ semgrep login
 ```
 
 Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
