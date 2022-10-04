@@ -1372,7 +1372,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v3 = pattern env v3 in
       LetPattern (v3, v1) |> G.e
   | `Lambda_exp (v1, _vTODO, v2, v3, v4) ->
-      let _v1TODO = List.map (attribute_list env) v1 in
+      let _v1TODO = Common.map (attribute_list env) v1 in
       let v2 =
         match v2 with
         | `Param_list x -> parameter_list env x
@@ -2138,7 +2138,7 @@ and pattern (env : env) (x : CST.pattern) : G.pattern =
         | Some (v1, v2, _v3) ->
             let v1 = map_anon_choice_pat_29be9ad env v1 in
             let v2 =
-              List.map
+              Common.map
                 (fun (v1, v2) ->
                   let _v1 = (* "," *) token env v1 in
                   map_anon_choice_pat_29be9ad env v2)
