@@ -53,6 +53,7 @@ type visitor_in = {
   kid_info : (id_info -> unit) * visitor_out -> id_info -> unit;
   ksvalue : (svalue -> unit) * visitor_out -> svalue -> unit;
   kargument : (argument -> unit) * visitor_out -> argument -> unit;
+  klit : (literal -> unit) * visitor_out -> literal -> unit;
 }
 
 and visitor_out = any -> unit
@@ -96,6 +97,7 @@ let default_visitor =
         ());
     ksvalue = (fun (k, _) x -> k x);
     kargument = (fun (k, _) x -> k x);
+    klit = (fun (k, _) x -> k x);
   }
 
 let v_id _ = ()
@@ -424,45 +426,48 @@ let (mk_visitor :
     | OtherEntity (v1, v2) ->
         let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
         ()
-  and v_literal = function
-    | Unit v1 ->
-        let v1 = v_tok v1 in
-        ()
-    | Bool v1 ->
-        let v1 = v_wrap v_bool v1 in
-        ()
-    | Int v1 ->
-        let v1 = v_wrap v_id v1 in
-        ()
-    | Float v1 ->
-        let v1 = v_wrap v_id v1 in
-        ()
-    | Imag v1 ->
-        let v1 = v_wrap v_string v1 in
-        ()
-    | Ratio v1 ->
-        let v1 = v_wrap v_string v1 in
-        ()
-    | Atom (v0, v1) ->
-        let v0 = v_tok v0 in
-        let v1 = v_wrap v_string v1 in
-        ()
-    | Char v1 ->
-        let v1 = v_wrap v_string v1 in
-        ()
-    | String v1 ->
-        let v1 = v_wrap v_string v1 in
-        ()
-    | Regexp (v1, v2) ->
-        let v1 = v_bracket (v_wrap v_string) v1 in
-        let v2 = v_option (v_wrap v_string) v2 in
-        ()
-    | Null v1 ->
-        let v1 = v_tok v1 in
-        ()
-    | Undefined v1 ->
-        let v1 = v_tok v1 in
-        ()
+  and v_literal x =
+    let k = function
+      | Unit v1 ->
+          let v1 = v_tok v1 in
+          ()
+      | Bool v1 ->
+          let v1 = v_wrap v_bool v1 in
+          ()
+      | Int v1 ->
+          let v1 = v_wrap v_id v1 in
+          ()
+      | Float v1 ->
+          let v1 = v_wrap v_id v1 in
+          ()
+      | Imag v1 ->
+          let v1 = v_wrap v_string v1 in
+          ()
+      | Ratio v1 ->
+          let v1 = v_wrap v_string v1 in
+          ()
+      | Atom (v0, v1) ->
+          let v0 = v_tok v0 in
+          let v1 = v_wrap v_string v1 in
+          ()
+      | Char v1 ->
+          let v1 = v_wrap v_string v1 in
+          ()
+      | String v1 ->
+          let v1 = v_wrap v_string v1 in
+          ()
+      | Regexp (v1, v2) ->
+          let v1 = v_bracket (v_wrap v_string) v1 in
+          let v2 = v_option (v_wrap v_string) v2 in
+          ()
+      | Null v1 ->
+          let v1 = v_tok v1 in
+          ()
+      | Undefined v1 ->
+          let v1 = v_tok v1 in
+          ()
+    in
+    vin.klit (k, all_functions) x
   and v_const_type = function
     | Cbool -> ()
     | Cint -> ()
