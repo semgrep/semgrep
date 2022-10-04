@@ -12,7 +12,7 @@ let tests parse_program =
       (* Just checking that it terminates without crashing. *)
       ( "regression files",
         fun () ->
-          let dir = Config_pfff.tests_path "python/dataflow" in
+          let dir = Config_pfff.tests_path "dataflow/python" in
           let files = Common2.glob (spf "%s/*.py" dir) in
           files
           |> List.iter (fun file ->

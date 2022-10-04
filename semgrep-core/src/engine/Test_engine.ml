@@ -87,7 +87,7 @@ let find_target_of_yaml_file file =
                  (* those are autofix test files that should be skipped *)
                  && (not (ext2 =~ ".*fixed"))
                  (* ugly: jsonnet exclusion below because of some .jsonnet and
-                  * .yaml ambiguities in tests/OTHER/rules
+                  * .yaml ambiguities in tests/rules
                   *)
                  && ext2 <> "jsonnet"
                then Some path2
@@ -132,7 +132,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              in
              let target = find_target_of_yaml_file file in
              logger#info "processing target %s" target;
-             (* ugly: this is just for tests/OTHER/rules/inception2.yaml, to use JSON
+             (* ugly: this is just for tests/rules/inception2.yaml, to use JSON
               * to parse the pattern but YAML to parse the target *)
              let xlang =
                match (xlang, Lang.langs_of_filename target) with

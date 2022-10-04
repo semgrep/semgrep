@@ -677,11 +677,11 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
         Common.map (evaluate_formula env opt_context) pos |> Common2.unzip
       in
       (* subtle: we need to process and intersect the pattern-inside after
-       * (see tests/OTHER/rules/inside.yaml).
+       * (see tests/rules/inside.yaml).
        * TODO: this is ugly; AND should be commutative, so we should just
        * merge ranges, not just filter one or the other.
        * update: however we have some tests that rely on pattern-inside:
-       * being special, see tests/OTHER/rules/and_inside.yaml.
+       * being special, see tests/rules/and_inside.yaml.
        *)
       let posrs, posrs_inside =
         posrs

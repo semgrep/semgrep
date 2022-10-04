@@ -72,7 +72,7 @@ let inside_compatible x y =
   (* IF x is pattern-inside THEN y must be too:
    * if we do x=pattern-inside:[1-2] /\ y=pattern:[1-3]
    * we don't want this x to survive.
-   * See tests/OTHER/rules/and_inside.yaml
+   * See tests/rules/and_inside.yaml
    *)
   (not x_inside) || y_inside
 

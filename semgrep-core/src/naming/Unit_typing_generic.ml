@@ -8,7 +8,7 @@ module G = AST_generic
 
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
-let tests_path_typing = Filename.concat tests_path "OTHER/typing"
+let tests_path_typing = Filename.concat tests_path "typing"
 
 let tests parse_program parse_pattern =
   Testutil.pack_tests "typing_tests"
@@ -180,9 +180,10 @@ let tests parse_program parse_pattern =
           with
           | Parse_info.Parsing_error _ ->
               Alcotest.failf "it should correctly parse %s" file );
+      (* TODO?? why this is here? should be in Unit_parsing. ml *)
       ( "java_pattern_files",
         fun () ->
-          let dir = Filename.concat tests_path "java/semgrep" in
+          let dir = Filename.concat tests_path "parsing_patterns/java" in
           let files = Common2.glob (spf "%s/*.sgrep" dir) in
           files
           |> List.iter (fun file ->
@@ -194,7 +195,7 @@ let tests parse_program parse_pattern =
                      Alcotest.failf "it should correctly parse %s" file) );
       ( "go_pattern_files",
         fun () ->
-          let dir = Filename.concat tests_path "go/semgrep" in
+          let dir = Filename.concat tests_path "parsing_patterns/go" in
           let files = Common2.glob (spf "%s/*.sgrep" dir) in
           files
           |> List.iter (fun file ->

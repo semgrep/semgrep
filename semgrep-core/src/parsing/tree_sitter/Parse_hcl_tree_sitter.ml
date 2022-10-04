@@ -90,7 +90,7 @@ let map_numeric_lit (env : env) (x : CST.numeric_lit) : literal =
  * Note that we need to respect newlines and spaces so that HEREDOCs are
  * correctly parsed, this is important e.g. if you later want to
  * analyze the string with metavariable-regex or metavariable-pattern
- * (see tests/OTHER/rules/terraform_nested_yaml).
+ * (see tests/rules/terraform_nested_yaml).
  *
  * TODO: Could we handle this properly already in the Tree-sitter parser? *)
 let map_template_literal (env : env) (xs : CST.template_literal) :

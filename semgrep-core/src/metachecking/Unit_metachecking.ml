@@ -29,7 +29,7 @@ let tests_path = "../../../tests"
  *)
 let metachecker_checks_tests () =
   pack_tests "metachecker checks testing"
-    (let dir = Filename.concat tests_path "OTHER/errors" in
+    (let dir = Filename.concat tests_path "errors" in
      let files = Common2.glob (spf "%s/*.yaml" dir) in
      files
      |> Common.map (fun file ->
@@ -51,7 +51,7 @@ let metachecker_regression_tests () =
   [
     ( "metachecker regresion testing",
       fun () ->
-        let path = Filename.concat tests_path "OTHER/metachecks" in
+        let path = Filename.concat tests_path "metachecks" in
         Common2.save_excursion_and_enable Flag_semgrep.filter_irrelevant_rules
           (fun () -> Test_metachecking.test_rules ~unit_testing:true [ path ])
     );
