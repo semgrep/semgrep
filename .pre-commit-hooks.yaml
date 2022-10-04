@@ -1,6 +1,10 @@
+# See https://pre-commit.com/#new-hooks for more information on this file.
+# It allows to use semgrep itself inside pre-commit
+
 - id: semgrep-docker-develop
   name: semgrep
   description: This hook runs semgrep:develop
+  # See https://pre-commit.com/#docker_image for more information
   language: docker_image
   entry: returntocorp/semgrep:develop
 
