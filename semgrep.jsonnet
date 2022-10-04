@@ -23,14 +23,26 @@ local semgrep_rules = [
 local todo_skipped_for_now = [
   #TODO? what is the fix for that?
   "ocaml.lang.portability.crlf-support.broken-input-line",
-  #TODO: do a better rule, pfff-specific, with advice to use Exception.ml
-  "ocaml.lang.best-practice.exception.bad-reraise",
 ];
 
+local override_messages = {
+  // pfff/semgrep specific adjustments
+  "ocaml.lang.best-practice.exception.bad-reraise": |||
+    You should not re-raise exceptions using 'raise' because it loses track of where the
+    exception was raised originally. See pfff/commons/Exception.mli for more information.
+    Use `Exception.catch exn` and later `Exception.raise exn` or
+    `Exception.catch_and_reraise exn` if there is no code between the moment you
+    catch the exn and re-raise it.
+  |||,
+};
+
 local all = yml.rules + semgrep_rules + pfff.rules + ocaml.rules;
+
   { rules:
-      [
-	r for r in all
+      [  if std.objectHas(override_messages, r.id)
+	 then r + {message: override_messages[r.id]}
+         else r
+	for r in all
 	if !std.member(todo_skipped_for_now, r.id)
       ]
   }

@@ -2999,5 +2999,6 @@ let parse file =
         (* TODO: to delete once todo() has been removed *)
       with
       | Failure "not implemented" as exn ->
+          let e = Exception.catch exn in
           H.debug_sexp_cst_after_error (CST.sexp_of_program cst);
-          raise exn)
+          Exception.reraise e)
