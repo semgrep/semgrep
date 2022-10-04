@@ -15,3 +15,8 @@ val render_fix :
    * printing or if no metavariables appear in the fix pattern. *)
   target_contents:string Lazy.t ->
   string option
+
+(* Apply the fix for the list of matches to the given file, returning the
+ * resulting file contents. Currently used only for tests, but with some changes
+ * could be used in production as well. *)
+val apply_fixes : Lang.t -> Pattern_match.t list -> file:string -> string
