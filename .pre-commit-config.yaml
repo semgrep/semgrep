@@ -8,7 +8,7 @@
 exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations"
 
 # See https://pre-commit.com/#pre-commit-configyaml---repos
-# for more information on the format of this file
+# for more information on the format of the content below
 repos:
   # ----------------------------------------------------------
   # Standard pre-commit hooks
@@ -127,7 +127,19 @@ repos:
         exclude: "^perf/bench/dummy/.+$|^cli/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json$"
 
   # ----------------------------------------------------------
-  # Docker-based hooks
+  # Extra hooks using additional_dependencies
+  # ----------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: gitignore-to-dockerignore
+        name: Convert .gitignore to .dockerignore
+        language: node
+        entry: gitignore-to-dockerignore
+        files: ^.(git|docker)ignore$
+        additional_dependencies: ["gitignore-to-dockerignore@2.0.0"]
+
+  # ----------------------------------------------------------
+  # Simple docker-based hooks
   # ----------------------------------------------------------
   - repo: local
     hooks:
@@ -159,23 +171,11 @@ repos:
         entry: ./scripts/lint-ocaml
         language: script
         files: "\\.mli?$"
-      - id: gitignore-to-dockerignore
-        name: Convert .gitignore to .dockerignore
-        language: node
-        entry: gitignore-to-dockerignore
-        files: ^.(git|docker)ignore$
-        additional_dependencies: ["gitignore-to-dockerignore@2.0.0"]
 
   # ----------------------------------------------------------
   # Dogfood! running semgrep in pre-commit!
   # ----------------------------------------------------------
   - repo: https://github.com/returntocorp/semgrep
-    # Note that the 'rev:' below is the revision to use to clone the URL
-    # above and to fetch its .pre-commit-hooks.yaml file. It does not always
-    # mean which version of semgrep to use for the hook itself.
-    # For example in .pre-commit-hooks.yaml if you use an entry with
-    # the 'language: docker_image', the 'entry:' field will then specify
-    # which version to use.
     rev: v0.100.0
     hooks:
       - id: semgrep
@@ -192,8 +192,13 @@ repos:
   # Run Semgrep docker images. Only used in CI since it's slower for local developmemt.
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
   - repo: https://github.com/returntocorp/semgrep
-    # Again, this revision does not mean we're running semgrep 0.100.0!
-    # We're running returntocorp/semgrep:develop if you look at .pre-commit-hooks.yaml
+    # Note that the 'rev:' below is the revision to use to clone the URL
+    # above and to fetch its .pre-commit-hooks.yaml file. It does not always
+    # mean which version of semgrep to use for the hook itself.
+    # For example in .pre-commit-hooks.yaml if you use an entry with
+    # the 'language: docker_image', the 'entry:' field will then specify
+    # which version to use. In the case below, we're actually running
+    # returntocorp/semgrep:develop if you look at .pre-commit-hooks.yaml
     rev: v0.100.0
     hooks:
       - id: semgrep-docker-develop

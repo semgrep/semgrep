@@ -1,6 +1,20 @@
 # See https://pre-commit.com/#new-hooks for more information on this file.
-# It allows to use semgrep itself inside pre-commit
+# It allows to call semgrep from pre-commit
 
+# This hook does not use 'docker_image' like the one below, and so is significantly
+# faster (especially on macOS).
+- id: semgrep
+  name: semgrep
+  entry: semgrep
+  # If you use 'language: python', then pre-commit expects a toplevel 'setup.py'.
+  # This ./setup.py was defined just for pre-commit. Essentially, setup.py
+  # runs 'pip install semgrep==0.xxx.yyy'. It means that this hook does not even
+  # rely on the code in this repository; it just relies on pip and the availability
+  # of semgrep in pypy.
+  language: python
+  args: ["--disable-version-check", "--quiet", "--skip-unknown-extensions"]
+
+# docker-based hooks, to use the bleeding edge Semgrep!
 - id: semgrep-docker-develop
   name: semgrep
   description: This hook runs semgrep:develop
@@ -8,14 +22,9 @@
   language: docker_image
   entry: returntocorp/semgrep:develop
 
+# using latest instead
 - id: semgrep-docker
   name: semgrep
-  description: This hook runs semgrep
+  description: This hook runs semgrep (a.k.a. semgrep:latest)
   language: docker_image
   entry: returntocorp/semgrep:latest
-
-- id: semgrep
-  name: semgrep
-  entry: semgrep
-  language: python
-  args: ["--disable-version-check", "--quiet", "--skip-unknown-extensions"]
