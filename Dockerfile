@@ -86,6 +86,12 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
     PYTHONIOENCODING=utf8 \
     PYTHONUNBUFFERED=1
 
+
+# Update to the latest packages for the base image
+RUN apk update &&\
+    apk upgrade
+
+
 # Here is why we need those apk packages below:
 # - bash: for entrypoint.sh (see below) and probably many other things
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in

@@ -1,0 +1,1 @@
+fix: Ensure the docker image uses the latest base packages
