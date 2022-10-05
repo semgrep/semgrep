@@ -109,6 +109,18 @@ let has_remaining_metavars metavar_tbl ast =
                   idstr;
                 saw_metavar := true);
               k id);
+          klit =
+            (fun (k, _) lit ->
+              (match lit with
+              | String (str, _) ->
+                  if Hashtbl.mem metavar_tbl str then (
+                    logger#info
+                      "Failed to render autofix: did not successfully replace \
+                       metavariable %s in the fix pattern"
+                      str;
+                    saw_metavar := true)
+              | _ -> ());
+              k lit);
         })
   in
   visitor ast;

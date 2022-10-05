@@ -30,6 +30,7 @@ type visitor_in = {
   kid_info : (id_info -> unit) * visitor_out -> id_info -> unit;
   ksvalue : (svalue -> unit) * visitor_out -> svalue -> unit;
   kargument : (argument -> unit) * visitor_out -> argument -> unit;
+  klit : (literal -> unit) * visitor_out -> literal -> unit;
 }
 
 (* note that internally the visitor uses OCaml.v_ref_do_not_visit *)
