@@ -54,6 +54,7 @@ let tests () = List.flatten [
   Unit_regexp_engine.tests;
   Unit_immutable_buffer.tests;
   Unit_ugly_print_AST.tests;
+  Unit_autofix_printer.tests;
 
   Unit_synthesizer.tests;
   Unit_synthesizer_targets.tests;

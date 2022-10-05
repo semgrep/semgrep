@@ -26,6 +26,7 @@
 
     semgrep_core
     semgrep_core_ast_tests
+    semgrep_fixing_tests
     semgrep_metachecking
     semgrep_parsing
     semgrep_matching
