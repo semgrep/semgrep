@@ -298,9 +298,7 @@ let compare_fixes lang ~file ~fix matches =
         List.fold_left
           (fun file_text ((start, end_), fix) ->
             let before = String.sub file_text 0 start in
-            let after =
-              String.sub file_text end_ (String.length file_text - end_)
-            in
+            let after = Str.string_after file_text end_ in
             before ^ fix ^ after)
           file_text fixes
       in
