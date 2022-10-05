@@ -423,7 +423,7 @@ and argument = function
       let v1 = ident v1 and v2 = expr v2 in
       G.OtherArg (("ArgQuestion", snd v1), [ G.I v1; G.E v2 ])
 
-and match_case (v1, (v3, _t, v2)) =
+and match_case (v1, (v3, _t, v2)) : G.pattern * G.expr =
   let v1 = pattern v1 and v2 = expr v2 and v3 = option expr v3 in
   match v3 with
   | None -> (v1, v2)
@@ -723,6 +723,10 @@ and any = function
   | P x ->
       let x = pattern x in
       G.P x
+  | MC mc ->
+      let pat, e = match_case mc in
+      let case = G.case_of_pat_and_expr (pat, e) in
+      G.Partial (G.PartialSwitchCase case)
   | Id x ->
       let x = ident x in
       G.I x
