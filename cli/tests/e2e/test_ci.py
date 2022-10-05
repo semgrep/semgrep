@@ -331,7 +331,7 @@ def mock_autofix(request, mocker):
             "GIT_BRANCH": BRANCH_NAME,
             "BUILD_URL": "https://jenkins.build.url",
         },
-        {  # Jenkins overwrite autodetected variables
+        {  # Jenkins, overwrite autodetected variables
             "JENKINS_URL": "some_url",
             "SEMGREP_REPO_NAME": "a/repo/name",
             "SEMGREP_REPO_URL": "https://random.url.org/some/path",
@@ -360,6 +360,20 @@ def mock_autofix(request, mocker):
         },
         {  # Azure Pipelines
             "BUILD_BUILDID": "some_id",
+            "BUILD_REPOSITORY_URI": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
+            "SYSTEM_PULLREQUEST_SOURCEBRANCH": BRANCH_NAME,
+            "SYSTEM_TEAMFOUNDATIONSERVERURI": "https://azure.pipeline.url/",
+            "SYSTEM_TEAMPROJECTID": "project_id",
+            "SYSTEM_JOBID": "job_id",
+            "SYSTEM_TASKINSTANCEID": "task_id",
+        },
+        {  # Azure Pipelines, overwrite autodetected variables
+            "BUILD_BUILDID": "some_id",
+            "SEMGREP_REPO_NAME": "a/repo/name",
+            "SEMGREP_REPO_URL": "https://random.url.org/some/path",
+            "SEMGREP_BRANCH": "branch/some-other-branch-name",
+            "SEMGREP_JOB_URL": "https://another.random.url.org/some/path",
+            "SEMGREP_COMMIT": "<some_random_commit>",
             "BUILD_REPOSITORY_URI": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
             "SYSTEM_PULLREQUEST_SOURCEBRANCH": BRANCH_NAME,
             "SYSTEM_TEAMFOUNDATIONSERVERURI": "https://azure.pipeline.url/",
@@ -420,6 +434,7 @@ def mock_autofix(request, mocker):
         "jenkins-missing-vars",
         "bitbucket",
         "azure-pipelines",
+        "azure-pipelines-overwrite-autodetected-variables",
         "buildkite",
         "travis",
         "self-hosted",
