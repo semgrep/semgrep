@@ -12,6 +12,7 @@ type conf = {
   lang : string option;
   metrics : Metrics.State.t;
   pattern : string option;
+  workspace : string option;
 }
 
 (*

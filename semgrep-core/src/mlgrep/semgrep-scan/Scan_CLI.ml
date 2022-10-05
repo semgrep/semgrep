@@ -23,6 +23,7 @@ type conf = {
   lang : string option;
   metrics : Metrics.State.t;
   pattern : string option;
+  workspace : string option; (* not in the original Python code *)
 }
 
 (*************************************************************************)
@@ -122,15 +123,26 @@ Must be used with -e/--pattern.
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_workspace =
+  let info =
+    Arg.info [ "workspace" ]
+      ~doc:
+        {|A user-provided folder where temporary files will be written.
+This is meant for debugging. If no workspace is provided, a temporary
+folder will be created, used, and deleted upon exit.
+|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
 (*** Subcommand 'scan' ***)
 
 let cmdline_term run =
-  let combine autofix baseline_commit config lang metrics pattern =
-    run { autofix; baseline_commit; config; lang; metrics; pattern }
+  let combine autofix baseline_commit config lang metrics pattern workspace =
+    run { autofix; baseline_commit; config; lang; metrics; pattern; workspace }
   in
   Term.(
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_lang
-    $ o_metrics $ o_pattern)
+    $ o_metrics $ o_pattern $ o_workspace)
 
 let doc = "run semgrep rules on files"
 

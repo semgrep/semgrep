@@ -47,25 +47,36 @@ type result = {
   explanations : C.matching_explanation list option;
 }
 
+let call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory ~debug
+    ~rules ~targets =
+  let runner_config : Runner_config.t =
+    {
+      Runner_config.default with
+      rule_source = Some (Rules rules);
+      ncores = num_jobs;
+      target_source = Some (Targets targets);
+      timeout;
+      timeout_threshold;
+      max_memory_mb = max_memory;
+      debug;
+      version = Version.version;
+    }
+  in
+  Run_semgrep.semgrep_with_raw_results_and_exn_handler runner_config
+
 (*
    Take in rules and targets and return object with findings.
+
+   ?core_opts_str: extra arguments passed to semgrep-core that need splitting
+   on whitespace. We will no longer be able to support this since
+   the semgrep-core CLI itself is going away.
 *)
-let invoke_semgrep ~(jobs : int) ~(timeout : int) ~(max_memory : int)
-    ~(timeout_threshold : int) ~(optimizations : int)
-    ?(core_opts_str :
-       string option (* string to be split according to shell parsing rules *))
-    ~(target_manager : Target_manager.t) ~(rules : Rule.t list)
-    ~(dump_command_for_core : bool) ~(deep : bool) () : result =
-  ignore jobs;
-  ignore timeout;
-  ignore max_memory;
-  ignore timeout_threshold;
-  ignore optimizations;
-  ignore core_opts_str;
-  ignore target_manager;
-  ignore rules;
-  ignore dump_command_for_core;
-  ignore deep;
+let invoke_semgrep ~num_jobs ~timeout ~timeout_threshold ~max_memory
+    ~optimizations ~targets ~rules : result =
+  let res =
+    call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory ~debug
+      ~rules ~targets
+  in
   {
     findings_by_rule = Map_.empty;
     errors = [];

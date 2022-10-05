@@ -39,13 +39,13 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let env_debug = "SEMGREP_CORE_DEBUG"
 let env_profile = "SEMGREP_CORE_PROFILE"
 let env_extra = "SEMGREP_CORE_EXTRA"
-let log_config_file = ref "log_config.json"
+let log_config_file = ref Runner_config.default.log_config_file
 let log_to_file = ref None
 
 (* see also verbose/... flags in Flag_semgrep.ml *)
 (* to test things *)
-let test = ref false
-let debug = ref false
+let test = ref Runner_config.default.test
+let debug = ref Runner_config.default.debug
 
 (* related:
  * - Flag_semgrep.debug_matching
@@ -54,17 +54,17 @@ let debug = ref false
  *)
 
 (* try to continue processing files, even if one has a parse error with -e/f *)
-let error_recovery = ref false
-let profile = ref false
+let error_recovery = ref Runner_config.default.error_recovery
+let profile = ref Runner_config.default.profile
 
 (* report matching times per file *)
-let report_time = ref false
+let report_time = ref Runner_config.default.report_time
 
 (* used for -json -profile *)
-let profile_start = ref 0.
+let profile_start = ref Runner_config.default.profile_start
 
 (* step-by-step matching debugger *)
-let matching_explanations = ref false
+let matching_explanations = ref Runner_config.default.matching_explanations
 
 (* ------------------------------------------------------------------------- *)
 (* main flags *)
@@ -77,42 +77,43 @@ let pattern_string = ref ""
 let pattern_file = ref ""
 
 (* -rules *)
-let rules_file = ref ""
+let rule_source = ref None
 let equivalences_file = ref ""
 
 (* TODO: infer from basename argv(0) ? *)
 let lang = ref None
-let output_format = ref Text
-let match_format = ref Matching_report.Normal
+let output_format = ref Runner_config.default.output_format
+let match_format = ref Runner_config.default.match_format
 let mvars = ref ([] : Metavariable.mvar list)
-let lsp = ref false
+let lsp = ref Runner_config.default.lsp
 
 (* ------------------------------------------------------------------------- *)
 (* limits *)
 (* ------------------------------------------------------------------------- *)
 
-let timeout = ref 0. (* in seconds; 0 or less means no timeout *)
-let timeout_threshold = ref 0
-let max_memory_mb = ref 0 (* in MiB *)
+(* timeout in seconds; 0 or less means no timeout *)
+let timeout = ref Runner_config.default.timeout
+let timeout_threshold = ref Runner_config.default.timeout_threshold
+let max_memory_mb = ref Runner_config.default.max_memory_mb (* in MiB *)
 
 (* arbitrary limit *)
-let max_match_per_file = ref 10_000
+let max_match_per_file = ref Runner_config.default.max_match_per_file
 
 (* -j *)
-let ncores = ref 1
+let ncores = ref Runner_config.default.ncores
 
 (* ------------------------------------------------------------------------- *)
 (* optional optimizations *)
 (* ------------------------------------------------------------------------- *)
 (* see Flag_semgrep.ml *)
-let use_parsing_cache = ref ""
+let use_parsing_cache = ref Runner_config.default.parsing_cache_dir
 
 (* ------------------------------------------------------------------------- *)
 (* flags used by the semgrep-python wrapper *)
 (* ------------------------------------------------------------------------- *)
 
 (* take the list of files in a file (given by semgrep-python) *)
-let target_file = ref ""
+let target_source = ref None
 
 (* ------------------------------------------------------------------------- *)
 (* pad's action flag *)
@@ -343,7 +344,7 @@ let mk_config () =
     matching_explanations = !matching_explanations;
     pattern_string = !pattern_string;
     pattern_file = !pattern_file;
-    rules_file = !rules_file;
+    rule_source = !rule_source;
     equivalences_file = !equivalences_file;
     lang = !lang;
     output_format = !output_format;
@@ -356,7 +357,7 @@ let mk_config () =
     max_match_per_file = !max_match_per_file;
     ncores = !ncores;
     parsing_cache_dir = !use_parsing_cache;
-    target_file = !target_file;
+    target_source = !target_source;
     action = !action;
     version = Version.version;
     roots = [] (* This will be set later in main () *);
@@ -503,7 +504,7 @@ let options () =
       Arg.Set_string pattern_file,
       " <file> use the file content as the pattern" );
     ( "-rules",
-      Arg.Set_string rules_file,
+      Arg.String (fun s -> rule_source := Some (Rule_file s)),
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-lang",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
@@ -513,7 +514,7 @@ let options () =
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> shortcut for -lang" );
     ( "-targets",
-      Arg.Set_string target_file,
+      Arg.String (fun s -> target_source := Some (Target_file s)),
       " <file> obtain list of targets to run patterns on" );
     ( "-equivalences",
       Arg.Set_string equivalences_file,
