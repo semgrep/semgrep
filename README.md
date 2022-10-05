@@ -95,9 +95,8 @@ $ semgrep -e '$X == $X' --lang=py path/to/src
 
 # Fetch rules automatically by setting the `--config auto` flag.
 # This will fetch rules relevant to your project from Semgrep Registry.
-# The name of your project will be sent to Semgrep Registry as an identifier
-# to make selecting relevant rules fast next time;
-# source code will not be uploaded.
+# The name of your project will be sent to Semgrep Registry as an identifier.
+# Your source code is not uploaded.
 $ semgrep --config auto
 ```
 
