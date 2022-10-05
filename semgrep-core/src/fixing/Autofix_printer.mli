@@ -20,4 +20,4 @@ val print_ast :
   fix_pattern:string ->
   (* The AST to print *)
   AST_generic.any ->
-  string option
+  (string, string) result
