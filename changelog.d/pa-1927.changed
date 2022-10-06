@@ -1,4 +1,0 @@
-Disabled Bloom filter optimization by default, due to undesired interactions with
-constant and symbolic propagation, while it appears to not provide a net major
-performance benefit (nowadays). If you do notice a significant drop in performance
-after this change, please let us know.
