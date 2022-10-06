@@ -1,3 +1,0 @@
-Some crypto code like hashing algorithms can lead to a very large amount of
-symbolically propageted values, which previously caused Semgrep's Bloom filter
-to hang.

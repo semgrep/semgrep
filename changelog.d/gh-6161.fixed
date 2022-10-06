@@ -1,3 +1,0 @@
-Fixed symbolic propagation of the `new` operator, that had been broken since
-version 0.98.0. You can again e.g. use the pattern `new A().foo()` to match
-`a.foo()`, with `a = new A()`.

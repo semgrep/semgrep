@@ -1,2 +1,0 @@
-taint-mode: Fixed a bug that made Semgrep miss taint findings when the sink was
-located inside an `if` condition or a `throw` (aka `raise`) expression/statement.
