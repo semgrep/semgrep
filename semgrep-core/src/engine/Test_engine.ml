@@ -143,7 +143,10 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              in
 
              (* expected *)
-             (* not tororuleid! not ok:! *)
+             (* not tororuleid! not ok:! not todook:
+              * see https://semgrep.dev/docs/writing-rules/testing-rules/
+              * for the meaning of those labels.
+              *)
              let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
              let expected_error_lines =
                E.expected_error_lines_of_files ~regexp [ target ]
