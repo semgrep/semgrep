@@ -65,6 +65,11 @@ class type printer_t =
     method print_argument : G.argument -> (Immutable_buffer.t, string) result
     method print_arguments : G.arguments -> (Immutable_buffer.t, string) result
 
+    method print_call :
+      G.expr -> G.arguments -> (Immutable_buffer.t, string) result
+
+    method print_name : G.name -> (Immutable_buffer.t, string) result
+
     (* TODO Add more nodes as needed. *)
   end
 
@@ -108,9 +113,17 @@ class base_printer : printer_t =
       | _ -> print_fail ()
 
     method print_expr { e; _ } = self#print_expr_kind e
-    method print_expr_kind _ = print_fail ()
+
+    method print_expr_kind =
+      function
+      | G.Call (e, args) -> self#print_call e args
+      | G.N name -> self#print_name name
+      | _ -> print_fail ()
+
     method print_argument _ = print_fail ()
     method print_arguments _ = print_fail ()
+    method print_call _ _ = print_fail ()
+    method print_name _ = print_fail ()
 
     (* TODO Add more nodes as needed. *)
   end
@@ -124,12 +137,13 @@ class python_printer : printer_t =
       (* TODO Consider using original tokens for parens when available? *)
       Ok (combine [ b "("; combine ~sep:", " args; b ")" ])
 
-    method! print_expr_kind =
+    method! print_call e args =
+      let/ e = self#print_expr e in
+      let/ args = self#print_arguments args in
+      Ok (combine [ e; args ])
+
+    method! print_name =
       function
-      | G.Call (e, args) ->
-          let/ e = self#print_expr e in
-          let/ args = self#print_arguments args in
-          Ok (combine [ e; args ])
-      | G.N (G.Id ((str, _), _)) -> Ok (b str)
+      | G.Id ((str, _), _) -> Ok (b str)
       | _ -> print_fail ()
   end
