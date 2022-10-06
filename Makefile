@@ -258,7 +258,19 @@ release:
 ###############################################################################
 .PHONY: check
 
-#coupling: see also .circleci/config.yml and it 'semgrep' jobs
 # add --verbose for debugging
+SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
+
+#coupling: see also .circleci/config.yml and it 'semgrep' jobs
 check:
-	semgrep --config semgrep.jsonnet --error --exclude tests
+	semgrep $(SEMGREP_ARGS)
+
+# If you get semgrep-core parsing errors while running this command, maybe you
+# have an old cached version of the returntocorp/semgrep:develop docker image.
+# You can invalidate the cache with 'docker rmi returntocorp/semgrep:develop`
+check_with_docker:
+	docker run --rm -v "${PWD}:/src" returntocorp/semgrep:develop semgrep $(SEMGREP_ARGS)
+
+#TODO: this will be less needed once we run semgrep with semgrep.jsonnet in pre-commit
+check_for_emacs:
+	docker run --rm -v "${PWD}:/src" returntocorp/semgrep:develop semgrep $(SEMGREP_ARGS) --emacs

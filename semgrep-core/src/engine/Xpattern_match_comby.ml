@@ -53,7 +53,7 @@ let comby_matcher (m_all, source) file pat =
                       let t = info_of_token_location loc in
                       let mval = mval_of_string str t in
                       (mvar, mval)
-                  | _ -> raise Impossible)
+                  | __else__ -> raise Impossible)
          in
          let line, column, charpos =
            line_col_charpos_of_comby_range file range

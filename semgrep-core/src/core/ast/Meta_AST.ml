@@ -19,7 +19,7 @@ let vof_bracket of_a (t1, x, t2) =
   let v = of_a x in
   match v1 with
   | OCaml.VUnit -> v
-  | _ -> OCaml.VTuple [ v1; v; v2 ]
+  | __else__ -> OCaml.VTuple [ v1; v; v2 ]
 
 let vof_ident v = vof_wrap OCaml.vof_string v
 let vof_todo_kind v = vof_wrap OCaml.vof_string v

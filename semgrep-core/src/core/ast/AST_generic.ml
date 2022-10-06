@@ -2007,7 +2007,7 @@ let interpolated (lquote, xs, rquote) =
   match xs with
   | [ Common.Left3 (str, tstr) ] ->
       L (String (str, Parse_info.combine_infos lquote [ tstr; rquote ])) |> e
-  | _ ->
+  | __else__ ->
       let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
       Call
         ( special,

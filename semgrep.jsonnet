@@ -32,12 +32,13 @@ local semgrep_rules = [
     languages: ["ocaml"],
     severity: "WARNING",
     message: |||
-        Using a catch all pattern is dangerous in the long term. If someone adds a new
+        Using a catch all pattern is dangerous in the long term for patterns over algebraic
+        data types (for matching over ints and strings it's fine). If someone adds a new
         constructor, the compiler will not help us and telling us to maybe update this code.
         Try to replace with the list of the remaining cases not handled instead (you can
         rely on ocamlc to give you the disjunctive pattern covering all the cases and copy
-        paste it in the code). You can also add a nosemgrep comment if you think
-        you know what you're doing.
+        paste it in the code). If you think adding a new constructor should have no
+        impact on this code, then replace the pattern with '| __else__ ->' instead.
     |||,
     paths: {
       #TODO: we should make a tool or a flag to help construct those exclude lists
@@ -47,23 +48,6 @@ local semgrep_rules = [
         #TODO: those files contain less than 100 findings in total, so
         # they should not be too hard to fix
         # 1 finding per file
-        "semgrep-core/src/analyzing/CFG_build.ml",
-        "semgrep-core/src/cli-bridge/Semgrep_bridge_core.ml",
-        "semgrep-core/src/core/Metavariable.ml",
-        "semgrep-core/src/core/Xlang.ml",
-        "semgrep-core/src/core/Xpattern.ml",
-        "semgrep-core/src/core/ast/AST_generic.ml",
-        "semgrep-core/src/core/ast/Meta_AST.ml",
-        "semgrep-core/src/engine/Match_extract_mode.ml",
-        "semgrep-core/src/engine/Metavariable_pattern.ml",
-        "semgrep-core/src/core/il/Display_IL.ml",
-        "semgrep-core/src/engine/Xpattern_match_comby.ml",
-        "semgrep-core/src/matching/Match_patterns.ml",
-        "semgrep-core/src/parsing/Parse_pattern.ml",
-        "semgrep-core/src/reporting/Statistics_report.ml",
-        "semgrep-core/src/runner/Parse_with_caching.ml",
-        "semgrep-core/src/targeting/Skip_target.ml",
-        "semgrep-core/src/tainting/Taint_lval_env.ml",
         # 2 findings per file
         "semgrep-core/src/core/Semgrep_error_code.ml",
         "semgrep-core/src/core/ast/Type_generic.ml",

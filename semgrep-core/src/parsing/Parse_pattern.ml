@@ -223,4 +223,4 @@ let dump_tree_sitter_pattern_cst lang file =
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
-  | _ -> ()
+  | __else__ -> ()
