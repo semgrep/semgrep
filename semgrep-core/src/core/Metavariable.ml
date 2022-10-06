@@ -179,7 +179,7 @@ let is_metavar_name s =
     (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
     ->
       false
-  | _ -> s =~ metavar_regexp_string
+  | __else__ -> s =~ metavar_regexp_string
 
 (* $...XXX multivariadic metavariables. Note that I initially chose
  * $X... but this leads to parsing conflicts in Javascript.

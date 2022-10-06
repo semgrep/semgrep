@@ -99,7 +99,7 @@ let parse_run (rule, xs) =
                (* best guess *)
                last_time := !last_time +. !timeout;
                Some (f, !last_time)
-           | _ -> None)
+           | __else__ -> None)
     |> map_with_previous
          (fun (_, prevtime) (f, time) -> (f, time -. prevtime))
          ("<nofile>", 0.)

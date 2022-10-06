@@ -44,7 +44,7 @@ let matches_deep test x = find_all test x <> []
 let matches_sequence test_left test_right (x : AST.t) =
   match x with
   | Seq (_, a, b) -> test_left a && test_right b
-  | _ -> false
+  | __else__ -> false
 
 (* A choice that always allows two or more branches to match nonempty input.
    Examples include:
@@ -120,7 +120,7 @@ let matches_nonpossessive_repeat ~min_repeat test (x : AST.t) =
         | Some max_reps -> max_reps >= min_repeat
       in
       satisfies_min_repeats && test x
-  | _ -> false
+  | __else__ -> false
 
 let matches_not_everywhere (x : AST.t) =
   let match_constraints =

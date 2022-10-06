@@ -35,7 +35,7 @@ let semgrep_cli_lib_main (argv : string array)
     | 2 -> raise (Sys_error "read_file callback failed with unknown error.")
     (* The 'contents' contains the error message. *)
     | 3 -> raise (Sys_error (Bytes.to_string contents))
-    | _ ->
+    | __else__ ->
         raise
           (Sys_error
              ("read_file callback failed with code " ^ string_of_int code ^ "."))

@@ -69,7 +69,7 @@ let add lval taints ({ tainted; propagated; cleaned } as lval_env) =
         else
           taints
           |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
-    | _ -> taints
+    | __else__ -> taints
   in
   if Taints.is_empty taints then lval_env
   else

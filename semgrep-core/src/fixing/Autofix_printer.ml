@@ -63,7 +63,7 @@ let get_printer lang external_printer :
     (Ugly_print_AST.printer_t, string) result =
   match lang with
   | Lang.Python -> Ok (new PythonPrinter.printer external_printer)
-  | _ -> Error (spf "No printer available for %s" (Lang.to_string lang))
+  | __else__ -> Error (spf "No printer available for %s" (Lang.to_string lang))
 
 let original_source_of_ast source any =
   let* start, end_ = Visitor_AST.range_of_any_opt any in
@@ -98,7 +98,17 @@ let add_metavars (tbl : ast_node_table) metavars =
       | MV.Args args ->
           List.iter (fun arg -> ASTTable.replace tbl (Ar arg) Target) args
       (* TODO iterate through other metavariable values that are lists *)
-      | _ -> ())
+      | Id ((_, _), _)
+      | N _
+      | E _
+      | S _
+      | T _
+      | P _
+      | Ss _
+      | Params _
+      | Xmls _
+      | Text (_, _) ->
+          ())
     metavars
 
 (* Add each AST node from the fix pattern AST to the lookup table so that it can

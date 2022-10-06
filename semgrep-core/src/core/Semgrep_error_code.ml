@@ -61,7 +61,17 @@ let mk_error ?(rule_id = None) loc msg err =
     | Out.FatalError
     | Out.TooManyMatches ->
         Printf.sprintf "%s\n\n%s" please_file_issue_text msg
-    | _ -> msg
+    | LexicalError
+    | ParseError
+    | SpecifiedParseError
+    | RuleParseError
+    | InvalidYaml
+    | SemgrepMatchFound
+    | Timeout
+    | OutOfMemory
+    | PatternParseError _
+    | PartialParsing _ ->
+        msg
   in
   { rule_id; loc; typ = err; msg; details = None }
 
@@ -92,7 +102,7 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
         match tok with
         | { token = PI.OriginTok { str; _ }; _ } ->
             spf "`%s` was unexpected" str
-        | _ -> "unknown reason"
+        | __else__ -> "unknown reason"
       in
       Some (mk_error_tok tok msg Out.ParseError)
   | Parse_info.Other_error (s, tok) ->

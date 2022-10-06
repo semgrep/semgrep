@@ -60,7 +60,7 @@ let builtin_type_of_ident _langTODO str =
   (* TS *)
   | "number" -> Some TNumber
   | "boolean" -> Some TBool
-  | _ -> None
+  | __else__ -> None
 
 let builtin_type_of_type lang t =
   match t.G.t with
@@ -69,4 +69,4 @@ let builtin_type_of_type lang t =
       builtin_type_of_ident lang str
   (* for Java/Go/... literals *)
   | G.TyN (Id ((str, _t), _idinfo)) -> builtin_type_of_ident lang str
-  | _ -> None
+  | __else__ -> None

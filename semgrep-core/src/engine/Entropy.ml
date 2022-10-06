@@ -111,7 +111,7 @@ let get_substring_entropy s =
       let e2 = s.[1] |> Char.code |> Array.get char_entropies in
       (e1 +. e2) /. 2.
   | 1 -> s.[0] |> Char.code |> Array.get char_entropies
-  | _ -> assert false
+  | __else__ -> assert false
 
 let iter_substrings s f =
   for i = 0 to String.length s - 3 do
@@ -165,10 +165,9 @@ let score_entropy x = if x > entropy_threshold then 1 else 0
 let score_density x = if x > density_threshold then 1 else 0
 
 let score s =
-  match s with
-  | "" -> 0
-  | _ ->
-      let ent, density = entropy_data s in
-      score_entropy ent + score_density density
+  if s = "" then 0
+  else
+    let ent, density = entropy_data s in
+    score_entropy ent + score_density density
 
 let has_high_score s = score s = 2

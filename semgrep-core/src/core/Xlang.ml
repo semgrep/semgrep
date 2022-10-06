@@ -49,7 +49,7 @@ let of_string ?id:(id_opt = None) s =
   | "regex" ->
       LRegex
   | "generic" -> LGeneric
-  | _ -> (
+  | __else__ -> (
       match Lang.lang_of_string_opt s with
       | None -> (
           match id_opt with

@@ -109,7 +109,7 @@ let count_lines_and_trailing =
     (fun (n, c) b ->
       match b with
       | '\n' -> (n + 1, 0)
-      | _ -> (n, c + 1))
+      | __else__ -> (n, c + 1))
     (0, 0)
 
 let offsets_of_mval extract_mvalue =

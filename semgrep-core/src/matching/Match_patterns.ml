@@ -268,7 +268,30 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            | Fld pattern -> Common.push (pattern, rule, cache) fld_rules
            | Flds pattern -> Common.push (pattern, rule, cache) flds_rules
            | Partial pattern -> Common.push (pattern, rule, cache) partial_rules
-           | _ ->
+           | Args _
+           | Params _
+           | Xmls _
+           | I _
+           | Str _
+           | Def _
+           | Dir _
+           | Tk _
+           | TodoK _
+           | Ar _
+           | Pa _
+           | Tp _
+           | Ta _
+           | Modn _
+           | Ce _
+           | Cs _
+           | ForOrIfComp _
+           | ModDk _
+           | En _
+           | Dk _
+           | Di _
+           | Lbli _
+           | Anys _
+           | Pr _ ->
                failwith
                  "only expr/stmt(s)/type/pattern/annotation/field(s)/partial \
                   patterns are supported");
