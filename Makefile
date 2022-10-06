@@ -252,3 +252,13 @@ gitclean:
 .PHONY: release
 release:
 	./scripts/release/bump
+
+###############################################################################
+# Dogfood!
+###############################################################################
+.PHONY: check
+
+#coupling: see also .circleci/config.yml and it 'semgrep' jobs
+# add --verbose for debugging
+check:
+	semgrep --config semgrep.jsonnet --error --exclude tests
