@@ -47,21 +47,7 @@ local semgrep_rules = [
       exclude: [
         #TODO: those files contain less than 100 findings in total, so
         # they should not be too hard to fix
-        # 1 finding per file
-        # 2 findings per file
-        "semgrep-core/src/core/Semgrep_error_code.ml",
-        "semgrep-core/src/core/ast/Type_generic.ml",
-        "semgrep-core/src/core/il/IL_helpers.ml",
-        "semgrep-core/src/engine/Entropy.ml",
-        "semgrep-core/src/engine/Match_tainting_mode.ml",
-        "semgrep-core/src/engine/ReDoS.ml",
-        "semgrep-core/src/fixing/Autofix_printer.ml",
-        "semgrep-core/src/matching/Apply_equivalences.ml",
-        "semgrep-core/src/optimizing/Analyze_rule.ml",
-        "semgrep-core/src/optimizing/Bloom_annotation.ml",
-        "semgrep-core/src/optimizing/Caching.ml",
-        "semgrep-core/src/reporting/JSON_report.ml",
-        # more findings per file
+        # a few findings per file
         "semgrep-core/src/analyzing/Dataflow_svalue.ml",
         "semgrep-core/src/core/ast/AST_generic_helpers.ml",
         "semgrep-core/src/engine/Match_search_mode.ml",

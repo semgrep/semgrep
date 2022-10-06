@@ -538,9 +538,15 @@ let check_fundef lang taint_config opt_ent fdef =
                       _;
                     } ->
                     add_to_env env id ii
-                | _ -> env)
+                | G.F _ -> env)
               env fields
-        | _ -> env)
+        | G.Param { pname = None; _ }
+        | G.ParamPattern _
+        | G.ParamRest (_, _)
+        | G.ParamHashSplat (_, _)
+        | G.ParamEllipsis _
+        | G.OtherParam (_, _) ->
+            env)
       Lval_env.empty fdef.G.fparams
   in
   let _, xs = AST_to_IL.function_definition lang fdef in

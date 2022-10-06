@@ -279,4 +279,4 @@ check_with_docker:
 # in my PATH.
 #TODO: this will be less needed once we run semgrep with semgrep.jsonnet in pre-commit
 check_for_emacs:
-	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS) --emacs
+	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS) --emacs --quiet

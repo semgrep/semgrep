@@ -64,7 +64,7 @@ and lvals_in_lval lval =
     List.concat_map
       (function
         | Index e -> lvals_of_exp e
-        | _ -> [])
+        | Dot _ -> [])
       lval.rev_offset
   in
   base_lvals @ offset_lvals
@@ -105,7 +105,7 @@ let lval_is_dotted_prefix lval1 lval2 =
   match (lval1, lval2) with
   | { base = Var x; rev_offset = ro1 }, { base = Var y; rev_offset = ro2 } ->
       eq_name x y && offset_prefix (List.rev ro1) (List.rev ro2)
-  | _ -> false
+  | __else__ -> false
 
 let lval_of_instr_opt x =
   match x.i with

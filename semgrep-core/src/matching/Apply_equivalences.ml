@@ -65,7 +65,7 @@ let subst_e (env : Env.t) e =
                 | None ->
                     failwith
                       (spf "could not find metavariable %s in environment" str))
-            | _ -> k x);
+            | __else__ -> k x);
       }
   in
   visitor.M.vexpr e
@@ -85,7 +85,8 @@ let apply equivs lang any =
              Common.push (l, r) stmt_rules;
              Common.push (r, l) stmt_rules
          | S l, Eq.Imply, S r -> Common.push (l, r) stmt_rules
-         | _ -> failwith "only expr and stmt equivalence patterns are supported");
+         | __else__ ->
+             failwith "only expr and stmt equivalence patterns are supported");
   (* the order matters, keep the original order reverting Common.push *)
   let expr_rules = List.rev !expr_rules in
   let _stmt_rulesTODO = List.rev !stmt_rules in

@@ -138,7 +138,7 @@ let diff_backrefs bound_metavars ~new_backref_counts ~old_backref_counts =
         in
         match added_backref_count with
         | 0 -> Set_.add k acc
-        | _ -> acc)
+        | __else__ -> acc)
       bound_metavars Set_.empty
   in
   Set_.diff bound_metavars not_backrefs_in_rest_of_pattern
@@ -146,7 +146,7 @@ let diff_backrefs bound_metavars ~new_backref_counts ~old_backref_counts =
 let is_ellipsis_stmt (x : stmt) =
   match x.s with
   | ExprStmt ({ e = Ellipsis _; _ }, _) -> true
-  | _ -> false
+  | __else__ -> false
 
 (*
    Decorate a pattern and target ASTs to make the suitable for memoization

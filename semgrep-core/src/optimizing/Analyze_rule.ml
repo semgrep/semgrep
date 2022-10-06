@@ -330,7 +330,7 @@ let and_step1bis_filter_general (And xs) =
              xs
              |> List.exists (function
                   | StringsAndMvars ([], _) -> true
-                  | _ -> false)
+                  | __else__ -> false)
            then Left (Or xs)
            else Right (Or xs))
   in
@@ -353,7 +353,7 @@ let and_step1bis_filter_general (And xs) =
                                          | Regexp _ -> false
                                          | MvarRegexp (mvar2, _, _) ->
                                              mvar2 = mvar)))
-                  | _ -> false)
+                  | __else__ -> false)
            in
            if null xs' then None else Some (Or xs'))
   in

@@ -41,7 +41,40 @@ let range_of_any_opt startp_of_match_range any =
   | Args []
   | Xmls [] ->
       Some empty_range
-  | _ ->
+  (* TODO? Flds [] ? Pr []? *)
+  | Ss _
+  | Params _
+  | Args _
+  | Xmls _
+  | E _
+  | S _
+  | T _
+  | P _
+  | At _
+  | Fld _
+  | Flds _
+  | Partial _
+  | I _
+  | Str _
+  | Def _
+  | Dir _
+  | Pr _
+  | Tk _
+  | TodoK _
+  | Ar _
+  | Pa _
+  | Tp _
+  | Ta _
+  | Modn _
+  | Ce _
+  | Cs _
+  | ForOrIfComp _
+  | ModDk _
+  | En _
+  | Dk _
+  | Di _
+  | Lbli _
+  | Anys _ ->
       let* min_loc, max_loc = V.range_of_any_opt any in
       let startp, endp = OutH.position_range min_loc max_loc in
       Some (startp, endp)
@@ -86,7 +119,7 @@ let get_propagated_value default_start mvalue =
       | Some (Cst _) -> None
       | Some NotCst -> None
       | None -> None)
-  | _ -> None
+  | __else__ -> None
 
 let metavars startp_of_match_range (s, mval) =
   let any = MV.mvalue_to_any mval in
