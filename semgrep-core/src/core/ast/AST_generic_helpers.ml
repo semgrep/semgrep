@@ -151,6 +151,8 @@ let name_of_id id = Id (id, empty_id_info ())
 let name_of_dot_access e =
   let rec fetch_ids = function
     | G.N (G.Id (x, _)) -> Some [ x ]
+    (* Let's not allow the name of a DotAccess involving optional chaining. *)
+    | G.DotAccess (_, (QuestDot, _), _) -> None
     | G.DotAccess (e1, _, G.FN (G.Id (x, _))) ->
         let* xs = fetch_ids e1.e in
         Some (xs @ [ x ])

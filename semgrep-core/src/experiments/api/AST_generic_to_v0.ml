@@ -255,7 +255,9 @@ and map_expr x : B.expr =
       let v1 = map_pattern v1 and v2 = map_expr v2 in
       `LetPattern (v1, v2)
   | DotAccess (v1, t, v2) ->
-      let v1 = map_expr v1 and t = map_tok t and v2 = map_field_name v2 in
+      let v1 = map_expr v1
+      and t = map_wrap map_dot_operator t
+      and v2 = map_field_name v2 in
       `DotAccess (v1, t, v2)
   | ArrayAccess (v1, v2) ->
       let v1 = map_expr v1 and v2 = map_bracket map_expr v2 in
@@ -383,6 +385,10 @@ and map_container_operator = function
   | Set -> `Set
   | Dict -> `Dict
   | Tuple -> `List
+
+and map_dot_operator = function
+  | Dot -> `Dot
+  | QuestDot -> `QuestDot
 
 (* TODO `Tuple *)
 

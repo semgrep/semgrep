@@ -1664,7 +1664,7 @@ and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression)
         | Some _tas -> raise Impossible
         | None -> G.FDynamic literal)
   in
-  G.DotAccess (expr, dot, ident_or_dyn) |> G.e
+  G.DotAccess (expr, (Dot, dot), ident_or_dyn) |> G.e
 
 and map_field_initializer_list (env : env)
     ((v1, v2, v3, v4) : CST.field_initializer_list) : G.expr list G.bracket =

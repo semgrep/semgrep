@@ -66,7 +66,8 @@ let optional env opt f =
 let tyname_or_expr_of_expr e _targsTODO =
   let rec ids_of_expr = function
     | Id id -> [ id ]
-    | ObjAccess (e, _, PN id) -> id :: ids_of_expr e
+    (* THINK: Probably shouldn't have a question mark here. *)
+    | ObjAccess (e, _, false, PN id) -> id :: ids_of_expr e
     | _ -> raise Not_found
   in
   try
@@ -1097,11 +1098,10 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
     =
   let expr = expr_or_prim_expr env v1 in
   (* TODO: distinguish optional chaining "?." from a simple access "." *)
-  let dot_tok =
+  let dot_tok, is_quest =
     match v2 with
-    | `DOT tok (* "." *)
-    | `QMARKDOT (* "?." *) tok ->
-        token env tok
+    | `DOT tok (* "." *) -> (token env tok, false)
+    | `QMARKDOT (* "?." *) tok -> (token env tok, true)
   in
   let id_tok =
     match v3 with
@@ -1113,7 +1113,7 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
         x
   in
   let id = identifier env id_tok (* identifier *) in
-  ObjAccess (expr, dot_tok, PN id)
+  ObjAccess (expr, dot_tok, is_quest, PN id)
 
 and object_property (env : env) (x : CST.anon_choice_pair_20c9acd) : property =
   match x with
@@ -1901,7 +1901,8 @@ and map_type_query_member_expression (env : env)
   let e = map_anon_choice_type_id_e96bf13 env v1 in
   let tdot = map_anon_choice_DOT_d88d0af env v2 in
   let fld = map_anon_choice_priv_prop_id_89abb74 env v3 in
-  ObjAccess (e, tdot, PN fld)
+  (* Regard this as a regular "Dot". *)
+  ObjAccess (e, tdot, false, PN fld)
 
 and map_type_query_subscript_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.type_query_subscript_expression) : expr =

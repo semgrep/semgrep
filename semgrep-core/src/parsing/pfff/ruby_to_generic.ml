@@ -126,7 +126,7 @@ let rec expr e =
             | Left id -> G.FN (G.Id (id, G.empty_id_info ()))
             | Right e -> G.FDynamic e
           in
-          G.DotAccess (e, t, fld))
+          G.DotAccess (e, (Dot, t), fld))
   | Splat (t, eopt) ->
       let xs = option expr eopt |> Option.to_list |> Common.map G.arg in
       let special = G.IdSpecial (G.Spread, t) |> G.e in

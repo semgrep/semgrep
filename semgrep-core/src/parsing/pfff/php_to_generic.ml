@@ -274,19 +274,19 @@ and expr e : G.expr =
       G.OtherExpr (("ArrayAppend", t1), [ G.E v1 ])
   | Obj_get (v1, t, Id [ v2 ]) ->
       let v1 = expr v1 and v2 = ident v2 in
-      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
+      G.DotAccess (v1, (Dot, t), G.FN (G.Id (v2, G.empty_id_info ())))
   | Obj_get (v1, _tdot, Ellipsis tdots) ->
       let v1 = expr v1 in
       G.DotAccessEllipsis (v1, tdots)
   | Obj_get (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.DotAccess (v1, t, G.FDynamic v2)
+      G.DotAccess (v1, (Dot, t), G.FDynamic v2)
   | Class_get (v1, t, Id [ v2 ]) ->
       let v1 = expr v1 and v2 = ident v2 in
-      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
+      G.DotAccess (v1, (Dot, t), G.FN (G.Id (v2, G.empty_id_info ())))
   | Class_get (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.DotAccess (v1, t, G.FDynamic v2)
+      G.DotAccess (v1, (Dot, t), G.FDynamic v2)
   | New (v0, v1, v2) ->
       let v1 = expr v1 and v2 = list argument v2 in
       let t = H.expr_to_type v1 in

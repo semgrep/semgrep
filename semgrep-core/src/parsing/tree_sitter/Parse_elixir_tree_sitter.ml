@@ -554,7 +554,7 @@ and map_anonymous_call (env : env) ((v1, v2) : CST.anonymous_call) : call =
   let e, tdot = map_anonymous_dot env v1 in
   let args = map_call_arguments_with_parentheses env v2 in
   let anon_fld = FDynamic (OtherExpr (("AnonDotField", tdot), []) |> G.e) in
-  let e = DotAccess (e, tdot, anon_fld) |> G.e in
+  let e = DotAccess (e, (Dot, tdot), anon_fld) |> G.e in
   mk_call_parens e args None
 
 and map_anonymous_dot (env : env) ((v1, v2) : CST.anonymous_dot) =
@@ -910,11 +910,11 @@ and map_dot (env : env) ((v1, v2, v3) : CST.dot) : expr =
     match v3 with
     | `Alias tok ->
         let al = map_alias env tok in
-        DotAccess (e, tdot, FN (H2.name_of_id al)) |> G.e
+        DotAccess (e, (Dot, tdot), FN (H2.name_of_id al)) |> G.e
     | `Tuple x ->
         let l, xs, r = map_tuple env x in
         let tuple = Container (Tuple, (l, xs, r)) |> G.e in
-        DotAccess (e, tdot, FDynamic tuple) |> G.e
+        DotAccess (e, (Dot, tdot), FDynamic tuple) |> G.e
   in
   v3
 
@@ -1261,7 +1261,7 @@ and map_remote_dot (env : env) ((v1, v2, v3) : CST.remote_dot) : expr =
         let x = map_quoted_i_single env x in
         FDynamic x
   in
-  DotAccess (e, tdot, fld) |> G.e
+  DotAccess (e, (Dot, tdot), fld) |> G.e
 
 and map_rescue_block (env : env) ((v1, v2, v3) : CST.rescue_block) =
   let v1 = (* "rescue" *) str env v1 in

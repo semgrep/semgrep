@@ -555,7 +555,7 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
                  G.Call
                    ( G.DotAccess
                        ( G.N (G.Id (("re", fk), fki)) |> G.e,
-                         fk,
+                         (Dot, fk),
                          FN (Id (("match", fk), fki)) )
                      |> G.e,
                      (fk, [ G.Arg re_exp; G.Arg str_exp ], fk) )

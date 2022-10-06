@@ -462,7 +462,7 @@ let map_prefix_unary_operator (env : env) (x : CST.prefix_unary_operator)
        * inferred.
        *)
       let receiver = G.OtherExpr (("Implicit", dot), []) |> G.e in
-      G.DotAccess (receiver, dot, field_name) |> G.e
+      G.DotAccess (receiver, (Dot, dot), field_name) |> G.e
   | `Custom_op x ->
       let op = map_custom_operator env x in
       G.Call (G.N (H2.name_of_id op) |> G.e, G.fake_bracket [ G.Arg e ]) |> G.e
@@ -2339,7 +2339,7 @@ and map_navigation_expression (env : env) ((v1, v2) : CST.navigation_expression)
     | `Exp x -> map_expression env x
   in
   let dot, suffix = map_navigation_suffix env v2 in
-  G.DotAccess (v1, dot, suffix) |> G.e
+  G.DotAccess (v1, (Dot, dot), suffix) |> G.e
 
 and map_tuple_pattern_item (env : env) (x : CST.tuple_pattern_item) =
   match x with

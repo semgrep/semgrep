@@ -285,9 +285,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | LetPattern (v1, v2) ->
             let v1 = map_pattern v1 and v2 = map_expr v2 in
             LetPattern (v1, v2)
-        | DotAccess (v1, t, v2) ->
-            let v1 = map_expr v1 and t = map_tok t and v2 = map_field_name v2 in
-            DotAccess (v1, t, v2)
+        | DotAccess (v1, dot, v2) ->
+            let v1 = map_expr v1
+            and dot = map_wrap map_dot_operator dot
+            and v2 = map_field_name v2 in
+            DotAccess (v1, dot, v2)
         | ArrayAccess (v1, v2) ->
             let v1 = map_expr v1 and v2 = map_bracket map_expr v2 in
             ArrayAccess (v1, v2)
@@ -436,6 +438,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         Sym v1
     | NotCst -> NotCst
   and map_container_operator x = x
+  and map_dot_operator x = x
   and map_special x =
     match x with
     | ForOf

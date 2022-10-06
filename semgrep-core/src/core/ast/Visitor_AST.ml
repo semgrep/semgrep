@@ -359,8 +359,10 @@ let (mk_visitor :
       | LetPattern (v1, v2) ->
           let v1 = v_pattern v1 and v2 = v_expr v2 in
           ()
-      | DotAccess (v1, t, v2) ->
-          let v1 = v_expr v1 and t = v_tok t and v2 = v_field_name v2 in
+      | DotAccess (v1, dot, v2) ->
+          let v1 = v_expr v1
+          and t = v_wrap v_dot_operator dot
+          and v2 = v_field_name v2 in
           ()
       | ArrayAccess (v1, v2) ->
           let v1 = v_expr v1 and v2 = v_bracket v_expr v2 in
@@ -489,6 +491,7 @@ let (mk_visitor :
     vin.ksvalue (k, all_functions) x
   and v_hidden _is_hidden = ()
   and v_container_operator _x = ()
+  and v_dot_operator _x = ()
   and v_comprehension (v1, v2) =
     let v1 = v_expr v1 in
     let v2 = v_list v_for_or_if_comp v2 in

@@ -304,13 +304,13 @@ and expr e =
       let v1 = expr v1 in
       let vtok = tok vtok in
       let v2 = name v2 in
-      G.DotAccess (v1, vtok, G.FN v2)
+      G.DotAccess (v1, (Dot, vtok), G.FN v2)
   | FieldAssign (v1, t1, v2, t2, v3) ->
       let v1 = expr v1 and v3 = expr v3 in
       let t1 = tok t1 in
       let t2 = tok t2 in
       let v2 = name v2 in
-      G.Assign (G.DotAccess (v1, t1, G.FN v2) |> G.e, t2, v3)
+      G.Assign (G.DotAccess (v1, (Dot, t1), G.FN v2) |> G.e, t2, v3)
   | Record (v1, v2) -> (
       let v1 = option expr v1
       and v2 =
@@ -339,7 +339,7 @@ and expr e =
   | ObjAccess (v1, t, v2) ->
       let v1 = expr v1 and v2 = ident v2 in
       let t = tok t in
-      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
+      G.DotAccess (v1, (Dot, t), G.FN (G.Id (v2, G.empty_id_info ())))
   | LetIn (tlet, v1, v2, v3) ->
       let _v1 = rec_opt v1 in
       let v2 = list let_binding v2 in
