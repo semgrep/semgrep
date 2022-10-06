@@ -501,6 +501,7 @@ let transfer :
     | NCond _
     | NGoto _
     | NReturn _
+    | NLambda _
     | NThrow _
     | NOther _
     | NTodo _ ->
