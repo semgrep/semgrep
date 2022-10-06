@@ -1,0 +1,15 @@
+rules:
+- id: test
+  mode: taint
+  pattern-sinks:
+    - pattern: Runtime.getRuntime().exec(...)
+  pattern-propagators:
+    - pattern: $X.forEach(($Y) -> ...)
+      from: $X
+      to: $Y
+  pattern-sources:
+    - pattern: request.getParameter(...)
+  message: Semgrep found a match
+  languages:
+    - java
+  severity: WARNING
