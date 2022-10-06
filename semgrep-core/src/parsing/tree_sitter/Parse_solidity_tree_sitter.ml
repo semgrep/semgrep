@@ -1267,7 +1267,7 @@ and map_member_expression (env : env) ((v1, v2, v3) : CST.member_expression) :
   let e = map_anon_choice_exp_97f816a env v1 in
   let tdot = (* "." *) token env v2 in
   let fld = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v3 in
-  DotAccess (e, tdot, FN (H2.name_of_id fld)) |> G.e
+  DotAccess (e, (Dot, tdot), FN (H2.name_of_id fld)) |> G.e
 
 and map_nameless_parameter (env : env) ((v1, v2) : CST.nameless_parameter) =
   let t = map_type_name env v1 in

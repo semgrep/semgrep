@@ -125,23 +125,23 @@ let has_case_ellipsis_and_filter_ellipsis xs =
 
 let rec obj_and_dot_accesses_of_expr e =
   match e.G.e with
-  | B.Call ({ e = B.DotAccess (e, tok, fld); _ }, args) ->
+  | B.Call ({ e = B.DotAccess (e, dot, fld); _ }, args) ->
       let o, xs = obj_and_dot_accesses_of_expr e in
-      (o, (fld, tok, Some args) :: xs)
-  | B.DotAccess (e, tok, fld) ->
+      (o, (fld, dot, Some args) :: xs)
+  | B.DotAccess (e, dot, fld) ->
       let o, xs = obj_and_dot_accesses_of_expr e in
-      (o, (fld, tok, None) :: xs)
+      (o, (fld, dot, None) :: xs)
   | _ -> (e, [])
 
 let rec expr_of_obj_and_dot_accesses (obj, xs) =
   match xs with
   | [] -> obj
-  | (fld, tok, Some args) :: xs ->
+  | (fld, dot, Some args) :: xs ->
       let e = expr_of_obj_and_dot_accesses (obj, xs) in
-      B.Call (B.DotAccess (e, tok, fld) |> G.e, args) |> G.e
-  | (fld, tok, None) :: xs ->
+      B.Call (B.DotAccess (e, dot, fld) |> G.e, args) |> G.e
+  | (fld, dot, None) :: xs ->
       let e = expr_of_obj_and_dot_accesses (obj, xs) in
-      B.DotAccess (e, tok, fld) |> G.e
+      B.DotAccess (e, dot, fld) |> G.e
 
 let rec all_suffix_of_list xs =
   xs
@@ -240,7 +240,8 @@ let make_dotted xs =
       List.fold_left
         (fun acc e ->
           let tok = Parse_info.fake_info (snd x) "." in
-          B.DotAccess (acc, tok, B.FN (B.Id (e, B.empty_id_info ()))) |> G.e)
+          B.DotAccess (acc, (Dot, tok), B.FN (B.Id (e, B.empty_id_info ())))
+          |> G.e)
         base xs
 
 (* similar to m_list_prefix but binding $X to the whole list *)
@@ -910,14 +911,15 @@ and m_expr ?(is_root = false) a b =
    * o. ... would be matched against just 'o', so we need this
    * extra case.
    *)
-  | ( G.DotAccess (({ e = G.DotAccessEllipsis (a1_1, _a1_2); _ } as a1), at, a2),
-      B.DotAccess (b1, bt, b2) ) ->
+  | ( G.DotAccess
+        (({ e = G.DotAccessEllipsis (a1_1, _a1_2); _ } as a1), adot, a2),
+      B.DotAccess (b1, bdot, b2) ) ->
       let* () = m_expr a1 b1 >||> m_expr a1_1 b1 in
-      let* () = m_tok at bt in
+      let* () = m_wrap m_dot_operator adot bdot in
       m_field_name a2 b2
-  | G.DotAccess (a1, at, a2), B.DotAccess (b1, bt, b2) ->
+  | G.DotAccess (a1, adot, a2), B.DotAccess (b1, bdot, b2) ->
       m_expr a1 b1 >>= fun () ->
-      m_tok at bt >>= fun () -> m_field_name a2 b2
+      m_wrap m_dot_operator adot bdot >>= fun () -> m_field_name a2 b2
   (* <a1> ... vs o.m1().m2().m3().
    * Remember than o.m1().m2().m3() is parsed as (((o.m1()).m2()).m3())
    *)
@@ -1252,6 +1254,14 @@ and m_container_operator a b =
   | G.Set, _
   | G.Dict, _
   | G.Tuple, _ ->
+      fail ()
+
+and m_dot_operator a b =
+  match (a, b) with
+  | G.Dot, B.Dot -> return ()
+  | G.QuestDot, B.QuestDot -> return ()
+  | G.Dot, _
+  | G.QuestDot, _ ->
       fail ()
 
 and m_container_ordered_elements a b =

@@ -141,7 +141,7 @@ let call_lambda base_expr funcname tok funcs =
   let args = funcs |> Common.map (fun func -> Arg func) in
   let idinfo = empty_id_info () in
   let method_ =
-    DotAccess (base_expr, tok, FN (Id ((funcname, tok), idinfo))) |> G.e
+    DotAccess (base_expr, (Dot, tok), FN (Id ((funcname, tok), idinfo))) |> G.e
   in
   Call (method_, fake_bracket args) |> G.e
 
@@ -1159,7 +1159,7 @@ and member_access_expression env (v1, v2, v3) =
   in
   let v3 = simple_name env v3 in
   let n = H2.name_of_ids_with_opt_typeargs [ v3 ] in
-  G.DotAccess (v1, v2, G.FN n) |> G.e
+  G.DotAccess (v1, (Dot, v2), G.FN n) |> G.e
 
 and invocation_expression env (v1, v2) =
   let v1 = expression env v1 in
@@ -1311,7 +1311,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
             let x1 = token env x1 (* "." *) in
             let x2 = simple_name env x2 in
             let n = H2.name_of_ids_with_opt_typeargs [ x2 ] in
-            DotAccess (v1, x1, FN n) |> G.e
+            DotAccess (v1, (Dot, x1), FN n) |> G.e
       in
       Conditional (is_null, fake_null, access) |> G.e
   | `Cond_exp (v1, v2, v3, v4, v5) ->

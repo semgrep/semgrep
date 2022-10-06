@@ -419,20 +419,20 @@ and map_expr env x : G.expr =
       and either, tdot = map_wrap env (map_dotOp env) v2
       and v3 = map_name env v3 in
       match either with
-      | Dot -> G.DotAccess (v1, tdot, G.FN v3) |> G.e
+      | Dot -> G.DotAccess (v1, (Dot, tdot), G.FN v3) |> G.e
       | Arrow ->
           let v1 = G.DeRef (tdot, v1) |> G.e in
-          G.DotAccess (v1, tdot, G.FN v3) |> G.e)
+          G.DotAccess (v1, (Dot, tdot), G.FN v3) |> G.e)
   | DotStarAccess (v1, v2, v3) -> (
       let v1 = map_expr env v1
       and either, tdot = map_wrap env (map_dotOp env) v2
       and v3 = map_expr env v3 in
       let e = G.DeRef (tdot, v3) |> G.e in
       match either with
-      | Dot -> G.DotAccess (v1, tdot, G.FDynamic e) |> G.e
+      | Dot -> G.DotAccess (v1, (Dot, tdot), G.FDynamic e) |> G.e
       | Arrow ->
           let v1 = G.DeRef (tdot, v1) |> G.e in
-          G.DotAccess (v1, tdot, G.FDynamic e) |> G.e)
+          G.DotAccess (v1, (Dot, tdot), G.FDynamic e) |> G.e)
   | SizeOf (v1, v2) ->
       let v1 = map_tok env v1
       and v2 =

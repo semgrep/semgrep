@@ -351,7 +351,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
         | `Id x -> map_identifier env x
         | `Str x -> map_string_ env x
       in
-      DotAccess (e, t, FN (H2.name_of_id id)) |> G.e
+      DotAccess (e, (Dot, t), FN (H2.name_of_id id)) |> G.e
   | `Slot (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "@" *) token env v2 in

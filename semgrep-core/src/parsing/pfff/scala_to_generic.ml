@@ -97,7 +97,8 @@ let v_simple_ref = function
       and v4 = v_ident v4 in
       let fld = G.FN (G.Id (v4, G.empty_id_info ())) in
       Right
-        (G.DotAccess (G.IdSpecial (G.Super, v2) |> G.e, fake ".", fld) |> G.e)
+        (G.DotAccess (G.IdSpecial (G.Super, v2) |> G.e, (Dot, fake "."), fld)
+        |> G.e)
 
 (* TODO: should not use *)
 let id_of_simple_ref = function
@@ -385,7 +386,7 @@ and v_expr e : G.expr =
       ids
       |> List.fold_left
            (fun acc fld ->
-             G.DotAccess (acc, fake ".", G.FN (H.name_of_id fld)) |> G.e)
+             G.DotAccess (acc, (Dot, fake "."), G.FN (H.name_of_id fld)) |> G.e)
            start
   | ExprUnderscore v1 ->
       let v1 = v_tok v1 in
@@ -399,7 +400,7 @@ and v_expr e : G.expr =
   | DotAccess (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ident v3 in
       let name = H.name_of_id v3 in
-      G.DotAccess (v1, v2, G.FN name) |> G.e
+      G.DotAccess (v1, (Dot, v2), G.FN name) |> G.e
   | Apply (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_list v_arguments v2 in
       v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs) |> G.e) v1
@@ -407,7 +408,7 @@ and v_expr e : G.expr =
       (* In scala [x f y] means [x.f(y)]  *)
       let v1 = v_expr v1 and v2 = v_ident v2 and v3 = v_expr v3 in
       G.Call
-        ( G.DotAccess (v1, fake ".", G.FN (H.name_of_id v2)) |> G.e,
+        ( G.DotAccess (v1, (Dot, fake "."), G.FN (H.name_of_id v2)) |> G.e,
           fb [ G.Arg v3 ] )
       |> G.e
   | Prefix (v1, v2) ->

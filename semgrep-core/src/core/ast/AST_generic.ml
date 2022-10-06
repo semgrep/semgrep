@@ -505,7 +505,7 @@ and expr_kind =
    * qualifier though.
    * TODO? have a dot_operator to differentiate ., .?, and :: in Kotlin?
    *)
-  | DotAccess of expr * tok (* ., ::, ->, #, $ *) * field_name
+  | DotAccess of expr * dot_operator wrap * field_name
   (* in Js ArrayAccess is also abused to perform DotAccess (..., FDynamic) *)
   | ArrayAccess of expr * expr bracket
   (* could also use ArrayAccess with a Tuple rhs, or use a special *)
@@ -638,6 +638,8 @@ and svalue =
    * AST representation itself, but you must be careful when e.g. iterating over ASTs
    * using ksvalue (see Visitor_AST); or e.g. when constructing the Meta_AST. *)
   | NotCst
+
+and dot_operator = Dot | QuestDot (* ., ::, ->, #, $ *)
 
 and container_operator =
   | Array (* todo? designator? use ArrayAccess for designator? *)

@@ -252,8 +252,10 @@ and vof_expr e =
   | LetPattern (v1, v2) ->
       let v1 = vof_pattern v1 and v2 = vof_expr v2 in
       OCaml.VSum ("LetPattern", [ v1; v2 ])
-  | DotAccess (v1, t, v2) ->
-      let v1 = vof_expr v1 and t = vof_tok t and v2 = vof_field_name v2 in
+  | DotAccess (v1, dot, v2) ->
+      let v1 = vof_expr v1
+      and t = vof_wrap vof_dot_operator dot
+      and v2 = vof_field_name v2 in
       OCaml.VSum ("DotAccess", [ v1; t; v2 ])
   | ArrayAccess (v1, v2) ->
       let v1 = vof_expr v1 and v2 = vof_bracket vof_expr v2 in
@@ -394,6 +396,10 @@ and vof_container_operator = function
   | Set -> OCaml.VSum ("Set", [])
   | Dict -> OCaml.VSum ("Dict", [])
   | Tuple -> OCaml.VSum ("Tuple", [])
+
+and vof_dot_operator = function
+  | Dot -> OCaml.VSum ("Dot", [])
+  | QuestDot -> OCaml.VSum ("QDot", [])
 
 and vof_comprehension (v1, v2) =
   let v1 = vof_expr v1 in

@@ -270,13 +270,15 @@ and expr (x : expr) =
   | Class (v1, _v2TODO) ->
       let def, _more_attrsTODOEMPTY = class_ v1 in
       G.AnonClass def
-  | ObjAccess (v1, t, v2) -> (
+  | ObjAccess (v1, t, b, v2) -> (
       let v1 = expr v1 in
       let v2 = property_name v2 in
+      let b = bool b in
       let t = info t in
+      let dot = if b then (G.QuestDot, t) else (Dot, t) in
       match v2 with
-      | Left n -> G.DotAccess (v1, t, G.FN (G.Id (n, G.empty_id_info ())))
-      | Right e -> G.DotAccess (v1, t, G.FDynamic e))
+      | Left n -> G.DotAccess (v1, dot, G.FN (G.Id (n, G.empty_id_info ())))
+      | Right e -> G.DotAccess (v1, dot, G.FDynamic e))
   | Fun (v1, _v2TODO) ->
       let def, _more_attrs = fun_ v1 in
       (* todo? assert more_attrs = []? *)

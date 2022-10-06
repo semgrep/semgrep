@@ -233,7 +233,8 @@ let rec lval env eorig =
   match eorig.G.e with
   | G.N n -> name env n
   | G.IdSpecial (G.This, tok) -> lval_of_base (VarSpecial (This, tok))
-  | G.DotAccess (e1orig, tok, field) ->
+  | G.DotAccess (e1orig, (_dot, tok), field) ->
+      (* TODO: do something different with _dot, which may be optional? *)
       let offset' =
         match field with
         | G.FN (G.Id (id, idinfo)) -> Dot (var_of_id_info id idinfo)
@@ -502,7 +503,7 @@ and expr_aux env ?(void = false) e_gen =
           e =
             G.DotAccess
               ( obj,
-                tok,
+                (Dot, tok),
                 G.FN
                   (G.Id
                     (("concat", _), { G.id_resolved = { contents = None }; _ }))

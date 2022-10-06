@@ -1557,7 +1557,7 @@ and navigation_suffix (env : env) (x : CST.navigation_suffix) =
       in
       fun e ->
         match op with
-        | Left tdot -> DotAccess (e, tdot, fld) |> G.e
+        | Left tdot -> DotAccess (e, (Dot, tdot), fld) |> G.e
         | Right otherop ->
             let any_fld =
               match fld with
