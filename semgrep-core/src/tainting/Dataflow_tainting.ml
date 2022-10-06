@@ -729,6 +729,13 @@ let (transfer :
         let findings = findings_of_tainted_return taints tok in
         report_findings env findings;
         lval_env'
+    | NLambda params ->
+        params
+        |> List.fold_left
+             (fun lval_env var ->
+               let _, lval_env = check_tainted_var { env with lval_env } var in
+               lval_env)
+             in'
     | NGoto _
     | Enter
     | Exit
