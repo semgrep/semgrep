@@ -139,6 +139,7 @@ let rlvals_of_node = function
   | NReturn (_, e)
   | NThrow (_, e) ->
       lvals_of_exp e
+  | NLambda _
   | NOther _
   | NTodo _ ->
       []

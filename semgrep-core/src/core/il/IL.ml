@@ -352,6 +352,7 @@ and node_kind =
   | NGoto of tok * label
   | NReturn of tok * exp
   | NThrow of tok * exp
+  | NLambda of name list (* just the params, the body nodes follow this one *)
   | NOther of other_stmt
   | NTodo of stmt
 [@@deriving show { with_path = false }]

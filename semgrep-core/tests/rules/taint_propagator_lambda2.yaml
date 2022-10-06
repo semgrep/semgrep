@@ -1,0 +1,16 @@
+rules:
+- id: test
+  mode: taint
+  pattern-sources:
+    - pattern: tainted
+  pattern-propagators:
+    - pattern: |
+        $A.forEach(($X) => { ... })
+      from: $A
+      to: $X
+  pattern-sinks:
+    - pattern: sink(...)
+  message: Semgrep found a match
+  languages:
+    - javascript
+  severity: WARNING
