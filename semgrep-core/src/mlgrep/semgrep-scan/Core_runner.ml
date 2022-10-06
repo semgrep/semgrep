@@ -47,8 +47,8 @@ type result = {
   explanations : C.matching_explanation list option;
 }
 
-let call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory ~debug
-    ~rules ~targets =
+let call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory
+    ~use_optimizations ~debug ~rules ~targets =
   let runner_config : Runner_config.t =
     {
       Runner_config.default with
@@ -62,6 +62,10 @@ let call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory ~debug
       version = Version.version;
     }
   in
+  (* TODO: This is the -fast or -filter_irrelevant_rules flag of semgrep-core.
+     It's currently a global, mutable variable. Move it the config object
+     so we can use it easily. *)
+  ignore use_optimizations;
   Run_semgrep.semgrep_with_raw_results_and_exn_handler runner_config
 
 (*
@@ -72,10 +76,10 @@ let call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory ~debug
    the semgrep-core CLI itself is going away.
 *)
 let invoke_semgrep ~num_jobs ~timeout ~timeout_threshold ~max_memory
-    ~optimizations ~targets ~rules : result =
-  let res =
-    call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory ~debug
-      ~rules ~targets
+    ~use_optimizations ~debug ~rules ~targets : result =
+  let _res =
+    call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory
+      ~use_optimizations ~debug ~rules ~targets
   in
   {
     findings_by_rule = Map_.empty;

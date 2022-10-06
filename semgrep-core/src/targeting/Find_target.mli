@@ -1,8 +1,82 @@
 (*
    Find target files suitable to be analyzed by semgrep.
+
+   A file tree is a mix of files in different languages. Different rules
+   will target different files. We provide two main operations:
+
+   1. Select global targets: obtain all the files that Semgrep accepts to
+      scan regardless of rules or languages.
+   2. Filter suitable targets for a language or for a rule
+      (multiple languages).
 *)
 
+type baseline_handler = TODO
+type file_ignore = TODO
+type path = string
+
 (*
+   Take a set of scanning roots which are files or folders and
+   expand them into the set of files that could be targets for some
+   rules. Return a list of deduplicated file paths.
+
+   The order of the files isn't guaranteed to be anything special
+   at the moment but we could obey some ordering if it makes sense to do it
+   here.
+
+   Usage: let global_targets = select_global_targets scanning_roots
+*)
+val select_global_targets :
+  ?includes:string list ->
+  ?excludes:string list ->
+  ?max_target_bytes:int ->
+  ?respect_git_ignore:bool ->
+  ?baseline_handler:baseline_handler ->
+  ?file_ignore:file_ignore ->
+  path list ->
+  path list * Output_from_core_t.skipped_target list
+
+(*
+   A cache meant to avoid costly operations of determining whether a target
+   is suitable over and over again.
+
+   Some rules will use 'include' (required_path_patterns) and 'exclude'
+   (excluded_path_patterns) to select targets that don't have an extension
+   such as 'Dockerfile'. We expect most rules written for a language
+   to use the same combination of include/exclude. This allows caching
+   across the many rules that target the same language.
+*)
+type target_cache
+
+val create_cache : unit -> target_cache
+
+(*
+   For a rule, select all the applicable targets of these rules.
+   Preserve the original order.
+
+   Usage: let rule_targets = filter_targets_for_rule ~cache global_targets rule
+*)
+val filter_targets_for_rule :
+  target_cache -> Rule.t -> file_info list -> path list
+
+(*
+   Determine whether a rule is applicable to a file.
+*)
+val filter_target_for_rule : target_cache -> Rule.t -> file_info -> bool
+
+(*
+   Low-level version of 'filter_target_for_rule'.
+*)
+val filter_target_for_lang :
+  cache:target_cache ->
+  language:Xlang.t ->
+  required_path_patterns:string list ->
+  excluded_path_patterns:string list ->
+  file_info ->
+  bool
+
+(*
+   [legacy implementation used in semgrep-core]
+
    Scan a list of folders or files recursively and return a list of files
    in the requested language. This takes care of ignoring undesirable
    files, which are returned in the semgrep-core response format.
