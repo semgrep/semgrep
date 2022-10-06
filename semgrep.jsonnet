@@ -36,7 +36,8 @@ local semgrep_rules = [
 	constructor, the compiler will not help us and telling us to maybe update this code.
         Try to replace with the list of the remaining cases not handled instead (you can
 	rely on ocamlc to give you the disjunctive pattern covering all the cases and copy
-	paste it in the code). You can also add a nosemgrep comment if you know what you're doing.
+	paste it in the code). You can also add a nosemgrep comment if you think
+	you know what you're doing.
     |||,
     paths: {
       #TODO: we should make a tool or a flag to help construct those exclude lists
