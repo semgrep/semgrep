@@ -33,20 +33,20 @@ local semgrep_rules = [
     severity: "WARNING",
     message: |||
         Using a catch all pattern is dangerous in the long term. If someone adds a new
-	constructor, the compiler will not help us and telling us to maybe update this code.
+        constructor, the compiler will not help us and telling us to maybe update this code.
         Try to replace with the list of the remaining cases not handled instead (you can
-	rely on ocamlc to give you the disjunctive pattern covering all the cases and copy
-	paste it in the code). You can also add a nosemgrep comment if you think
-	you know what you're doing.
+        rely on ocamlc to give you the disjunctive pattern covering all the cases and copy
+        paste it in the code). You can also add a nosemgrep comment if you think
+        you know what you're doing.
     |||,
     paths: {
       #TODO: we should make a tool or a flag to help construct those exclude lists
       # or include something like 'bento archive' in semgrep
       # or automatically add the (* nosemgrep *) annotation everywhere.
       exclude: [
-	#TODO: those files contain less than 100 findings in total, so
-	# they should not be too hard to fix
-	# 1 finding per file
+        #TODO: those files contain less than 100 findings in total, so
+        # they should not be too hard to fix
+        # 1 finding per file
         "semgrep-core/src/analyzing/CFG_build.ml",
         "semgrep-core/src/cli-bridge/Semgrep_bridge_core.ml",
         "semgrep-core/src/core/Metavariable.ml",
@@ -64,7 +64,7 @@ local semgrep_rules = [
         "semgrep-core/src/runner/Parse_with_caching.ml",
         "semgrep-core/src/targeting/Skip_target.ml",
         "semgrep-core/src/tainting/Taint_lval_env.ml",
-	# 2 findings per file
+        # 2 findings per file
         "semgrep-core/src/core/Semgrep_error_code.ml",
         "semgrep-core/src/core/ast/Type_generic.ml",
         "semgrep-core/src/core/il/IL_helpers.ml",
@@ -77,7 +77,7 @@ local semgrep_rules = [
         "semgrep-core/src/optimizing/Bloom_annotation.ml",
         "semgrep-core/src/optimizing/Caching.ml",
         "semgrep-core/src/reporting/JSON_report.ml",
-	# more findings per file
+        # more findings per file
         "semgrep-core/src/analyzing/Dataflow_svalue.ml",
         "semgrep-core/src/core/ast/AST_generic_helpers.ml",
         "semgrep-core/src/engine/Match_search_mode.ml",
@@ -91,20 +91,20 @@ local semgrep_rules = [
         "semgrep-core/src/tainting/Dataflow_tainting.ml",
         "semgrep-core/src/targeting/Guess_lang.ml",
         "semgrep-core/src/utils/Regexp_engine.ml",
-	#TODO: we should fix those too. They account for 464 findings in total
-	"Generic_vs_generic.ml",
-	"Visitor_AST.ml",
-	"Naming_AST.ml",
-	"Pretty_print_AST.ml",
-	"Constant_propagation.ml",
-	"Eval_generic.ml",
-	"AST_to_IL.ml",
-	"Parse_rule.ml",
-	"parsing/tree_sitter/*",
-	"parsing/pfff/*",
-	"parsing/other/*",
-	"parsing/ast/*",
-	"metachecking/*",
+        #TODO: we should fix those too. They account for 464 findings in total
+        "Generic_vs_generic.ml",
+        "Visitor_AST.ml",
+        "Naming_AST.ml",
+        "Pretty_print_AST.ml",
+        "Constant_propagation.ml",
+        "Eval_generic.ml",
+        "AST_to_IL.ml",
+        "Parse_rule.ml",
+        "parsing/tree_sitter/*",
+        "parsing/pfff/*",
+        "parsing/other/*",
+        "parsing/ast/*",
+        "metachecking/*",
         ] + test_code_globs + less_important_code_globs,
     }
   }
@@ -130,9 +130,9 @@ local all = yml.rules + semgrep_rules + pfff.rules + ocaml.rules;
 
   { rules:
       [  if std.objectHas(override_messages, r.id)
-	 then r + {message: override_messages[r.id]}
+         then r + {message: override_messages[r.id]}
          else r
-	for r in all
-	if !std.member(todo_skipped_for_now, r.id)
+        for r in all
+        if !std.member(todo_skipped_for_now, r.id)
       ]
   }
