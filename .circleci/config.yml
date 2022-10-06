@@ -2,11 +2,12 @@
 # Prelude
 ##########################################################################################
 # The main goals of this pipeline are to:
-# - dogfood Semgrep by running `semgrep --config semgrep.yml` on each semgrep PRs.
-#   This also checks that Semgrep can run in alternate CI platforms like Circle CI
+# - dogfood Semgrep by running it on each semgrep PRs.
+# - check that Semgrep can run in alternate CI platforms like Circle CI
 #   (and not just in Github actions).
 # - have a cron that update our parsing statistics as well as some benchmarks,
 #   which are then accessible at https://dashboard.semgrep.dev/metrics
+#   and also at https://metabase.corp.r2c.dev/collection/59-semgrep
 
 version: 2.1
 
@@ -23,9 +24,10 @@ jobs:
     working_directory: /src
     steps:
       - checkout
-      # we now need the submodules because semgrep.jsonnet include semgrep-core/pfff/semgrep.yml
+      # we now need the submodules because semgrep.jsonnet includes semgrep-core/pfff/semgrep.yml
       - run: git submodule update --init --recursive --recommend-shallow semgrep-core/src/pfff
-      # Dogfooding to the edge by using jsonnet and the new syntax!
+      # Dogfooding on the bleeding edge by using jsonnet and the new syntax!
+      # coupling: see also 'make check'
       - run: semgrep --config semgrep.jsonnet --error --verbose --exclude tests
 
   # For the benchmarks below, we had two alternatives:
