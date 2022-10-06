@@ -1,0 +1,8 @@
+taint-mode: It is now possible to use `pattern-propagators` to propagate taint
+through higher-order iterators such as `forEach` in Java. For example:
+```yaml
+  pattern-propagators:
+    - pattern: $X.forEach(($Y) -> ...)
+      from: $X
+      to: $Y
+```
