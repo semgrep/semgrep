@@ -20,7 +20,7 @@
   description: This hook runs semgrep:develop
   # See https://pre-commit.com/#docker_image for more information
   language: docker_image
-  entry: returntocorp/semgrep:develop -e SEMGREP_LOG_FILE=/semgrep/out.log semgrep
+  entry: -e SEMGREP_LOG_FILE=/semgrep/out.log returntocorp/semgrep:develop semgrep
 
 # using latest instead
 - id: semgrep-docker
