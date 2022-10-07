@@ -252,3 +252,31 @@ gitclean:
 .PHONY: release
 release:
 	./scripts/release/bump
+
+###############################################################################
+# Dogfood!
+###############################################################################
+.PHONY: check
+
+#coupling: see also .circleci/config.yml and its 'semgrep' job
+SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
+# you can add --verbose for debugging
+
+DOCKER_IMAGE=returntocorp/semgrep:develop
+
+# You need to have semgrep in your PATH! do 'cd cli; pipenv shell' before
+# if needed.
+check:
+	semgrep $(SEMGREP_ARGS)
+
+# If you get semgrep-core parsing errors while running this command, maybe you
+# have an old cached version of the docker image.
+# You can invalidate the cache with 'docker rmi returntocorp/semgrep:develop`
+check_with_docker:
+	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS)
+
+# I use the docker here instead of directly semgrep, because semgrep is not always
+# in my PATH.
+#TODO: this will be less needed once we run semgrep with semgrep.jsonnet in pre-commit
+check_for_emacs:
+	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS) --emacs --quiet

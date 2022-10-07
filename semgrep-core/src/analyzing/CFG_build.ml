@@ -301,7 +301,7 @@ and cfg_stmt_list state previ xs =
       label_node state (l :: ls) dummyi;
       state.g |> add_arc_from_opt (lasti_opt, dummyi);
       Some dummyi
-  | _ -> lasti_opt
+  | [] -> lasti_opt
 
 (*****************************************************************************)
 (* Main entry point *)

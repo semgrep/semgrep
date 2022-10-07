@@ -103,7 +103,7 @@ let rec statement_strings stmt =
                  * Generic_vs_generic.m_module_name_prefix. *)
                 Common.split {|/\|\\|} str |> List.iter (fun s -> push s res);
                 k x
-            | _ -> k x);
+            | __else__ -> k x);
         V.kexpr =
           (fun (k, _) x ->
             match x.e with
@@ -112,7 +112,7 @@ let rec statement_strings stmt =
              *)
             | L (String (str, _tok)) -> push str res
             | IdSpecial (_, tok) -> push (Parse_info.str_of_info tok) res
-            | _ -> k x);
+            | __else__ -> k x);
         V.ksvalue =
           (fun (_k, _) x ->
             match x with

@@ -17,7 +17,7 @@ open Common
 open AST_generic
 module MV = Metavariable
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let ( let/ ) = Result.bind
 
 (******************************************************************************)
 (* Handles AST printing for the purposes of autofix.
@@ -59,13 +59,11 @@ module PythonPrinter = Hybrid_print.Make (struct
   class printer = Ugly_print_AST.python_printer
 end)
 
-let get_printer lang external_printer : Ugly_print_AST.printer_t option =
+let get_printer lang external_printer :
+    (Ugly_print_AST.printer_t, string) result =
   match lang with
-  | Lang.Python -> Some (new PythonPrinter.printer external_printer)
-  | _ ->
-      logger#info "Failed to render autofix: no printer available for %s"
-        (Lang.to_string lang);
-      None
+  | Lang.Python -> Ok (new PythonPrinter.printer external_printer)
+  | __else__ -> Error (spf "No printer available for %s" (Lang.to_string lang))
 
 let original_source_of_ast source any =
   let* start, end_ = Visitor_AST.range_of_any_opt any in
@@ -100,7 +98,17 @@ let add_metavars (tbl : ast_node_table) metavars =
       | MV.Args args ->
           List.iter (fun arg -> ASTTable.replace tbl (Ar arg) Target) args
       (* TODO iterate through other metavariable values that are lists *)
-      | _ -> ())
+      | Id ((_, _), _)
+      | N _
+      | E _
+      | S _
+      | T _
+      | P _
+      | Ss _
+      | Params _
+      | Xmls _
+      | Text (_, _) ->
+          ())
     metavars
 
 (* Add each AST node from the fix pattern AST to the lookup table so that it can
@@ -130,18 +138,25 @@ let add_fix_pattern_ast_nodes (tbl : ast_node_table) ast =
   visitor ast
 
 let make_external_printer ~metavars ~target_contents ~fix_pattern_ast
-    ~fix_pattern : AST_generic.any -> Immutable_buffer.t option =
+    ~fix_pattern : AST_generic.any -> (Immutable_buffer.t, string) result =
   let tbl : ast_node_table = ASTTable.create 8 in
   add_metavars tbl metavars;
   add_fix_pattern_ast_nodes tbl fix_pattern_ast;
   fun any ->
-    let* node = ASTTable.find_opt tbl any in
-    let* str =
-      match node with
-      | Target -> original_source_of_ast (Lazy.force target_contents) any
-      | FixPattern -> original_source_of_ast fix_pattern any
+    let/ node =
+      match ASTTable.find_opt tbl any with
+      | Some x -> Ok x
+      | None ->
+          Error "Node does not appear in the original target or fix pattern"
     in
-    Some (Immutable_buffer.of_string str)
+    let/ str =
+      (match node with
+      | Target -> original_source_of_ast (Lazy.force target_contents) any
+      | FixPattern -> original_source_of_ast fix_pattern any)
+      |> Option.to_result
+           ~none:"Failed to extract original text for AST node during printing"
+    in
+    Ok (Immutable_buffer.of_string str)
 
 (******************************************************************************)
 (* Entry Point *)
@@ -153,9 +168,7 @@ let print_ast ~lang ~metavars ~target_contents ~fix_pattern_ast ~fix_pattern
     make_external_printer ~metavars ~target_contents ~fix_pattern_ast
       ~fix_pattern
   in
-  let* printer = get_printer lang external_printer in
+  let/ printer = get_printer lang external_printer in
   match printer#print_any fixed_ast with
-  | Some print_result -> Some (Immutable_buffer.to_string print_result)
-  | None ->
-      logger#info "Failed to render autofix: could not print AST";
-      None
+  | Ok print_result -> Ok (Immutable_buffer.to_string print_result)
+  | Error err -> Error ("Could not print fixed AST:\n" ^ err)

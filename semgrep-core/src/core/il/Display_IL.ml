@@ -24,7 +24,10 @@ let string_of_exp e =
   | Literal _ -> "<LIT>"
   | Operator _ -> "<OP>"
   | FixmeExp _ -> "<FIXME-EXP>"
-  | _ -> "<EXP>"
+  | Composite (_, _)
+  | Record _
+  | Cast (_, _) ->
+      "<EXP>"
 
 let short_string_of_node_kind nkind =
   match nkind with

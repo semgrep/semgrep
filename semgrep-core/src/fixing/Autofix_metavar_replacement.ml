@@ -14,9 +14,8 @@
  *)
 
 open AST_generic
+open Common
 module MV = Metavariable
-
-let logger = Logging.get_logger [ __MODULE__ ]
 
 (******************************************************************************)
 (* Module responsible for traversing a fix pattern AST and replacing
@@ -92,8 +91,8 @@ let replace metavar_tbl pattern_ast =
  * case of a malformed fix pattern where the user wrote a metavariable in the
  * fix that doesn't exist in the rule's pattern.
  * *)
-let has_remaining_metavars metavar_tbl ast =
-  let saw_metavar = ref false in
+let find_remaining_metavars metavar_tbl ast =
+  let seen_metavars = ref [] in
   let visitor =
     Visitor_AST.(
       mk_visitor
@@ -102,17 +101,21 @@ let has_remaining_metavars metavar_tbl ast =
           kident =
             (fun (k, _) id ->
               let idstr, _ = id in
-              if Hashtbl.mem metavar_tbl idstr then (
-                logger#info
-                  "Failed to render autofix: did not successfully replace \
-                   metavariable %s in the fix pattern"
-                  idstr;
-                saw_metavar := true);
+              if Hashtbl.mem metavar_tbl idstr then
+                Common.push idstr seen_metavars;
               k id);
+          klit =
+            (fun (k, _) lit ->
+              (match lit with
+              | String (str, _) ->
+                  if Hashtbl.mem metavar_tbl str then
+                    Common.push str seen_metavars
+              | _ -> ());
+              k lit);
         })
   in
   visitor ast;
-  !saw_metavar
+  !seen_metavars
 
 (******************************************************************************)
 (* Entry Point *)
@@ -132,4 +135,10 @@ let has_remaining_metavars metavar_tbl ast =
 let replace_metavars metavars pattern_ast =
   let metavar_tbl = Common.hash_of_list metavars in
   let res = replace metavar_tbl pattern_ast in
-  if has_remaining_metavars metavar_tbl res then None else Some res
+  match find_remaining_metavars metavar_tbl res with
+  | [] -> Ok res
+  | remaining ->
+      Error
+        (spf
+           "Did not successfully replace metavariable(s) in the fix pattern: %s"
+           (String.concat ", " remaining))

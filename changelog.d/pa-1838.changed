@@ -1,3 +1,0 @@
-taint-mode: Removed experimental poor-man's support for wrapper functions around
-taint sources. This was an early experiment to make Semgrep inter-procedural, but
-it was later abandoned in favor of DeepSemgrep.

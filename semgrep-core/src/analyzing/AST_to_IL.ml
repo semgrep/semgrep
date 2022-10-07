@@ -620,7 +620,16 @@ and expr_aux env ?(void = false) e_gen =
       (* TODO: we should have a use def.f_tok *)
       let tok = G.fake "lambda" in
       let lval = fresh_lval env tok in
-      let fdef = function_definition env fdef in
+      let fdef =
+        (* This is a recursive call to `function_definition` and we need to pass
+         * it a fresh `stmts` ref list. If we reuse the same `stmts` ref list, then
+         * whatever `stmts` we have accumulated so far, will "magically" appear
+         * in the body of this lambda in the final IL representation. This can
+         * happen e.g. when translating `foo(bar(), (x) => { ... })`, because
+         * the instruction added to `stmts` by the translation of `bar()` is
+         * still present when traslating `(x) => { ... }`. *)
+        function_definition { env with stmts = ref [] } fdef
+      in
       add_instr env (mk_i (AssignAnon (lval, Lambda fdef)) eorig);
       mk_e (Fetch lval) eorig
   | G.AnonClass def ->

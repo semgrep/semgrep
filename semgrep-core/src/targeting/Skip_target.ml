@@ -57,7 +57,7 @@ let whitespace_stat_of_string s =
     | '\n' ->
         incr whitespace;
         incr lines
-    | _ -> incr other
+    | __else__ -> incr other
   done;
   let total = !whitespace + !other in
   let sample_size = String.length s in

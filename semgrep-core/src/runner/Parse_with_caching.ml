@@ -62,7 +62,7 @@ let get_value_and_run_checks ?(filecheck = None) version_cur file_cache =
       failwith
         (spf "Not the same file! Md5sum collision! Clean the cache file %s"
            file_cache)
-  | _ -> ());
+  | __else__ -> ());
   res
 
 (* The function below is mostly a copy-paste of Common.cache_computation.

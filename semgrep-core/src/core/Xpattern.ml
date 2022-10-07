@@ -66,4 +66,4 @@ let mk_xpat pat pstr =
 let is_regexp xpat =
   match xpat.pat with
   | Regexp _ -> true
-  | _ -> false
+  | __else__ -> false

@@ -84,6 +84,10 @@ def install_deep_semgrep() -> None:
             with tqdm.wrapattr(r.raw, "read", total=file_size) as r_raw:
                 shutil.copyfileobj(r_raw, f)
 
+    # THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
+    #        The binary should not have setuid or setgid rights, so letting others
+    #        execute it should not be a problem.
+    # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions
     os.chmod(
         deep_semgrep_path,
         os.stat(deep_semgrep_path).st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH,

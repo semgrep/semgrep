@@ -8,6 +8,43 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.116.0](https://github.com/returntocorp/semgrep/releases/tag/v0.116.0) - 2022-10-06
+
+### Added
+
+- Added support for named arguments in taint tracking. This is only relevant for DeepSemgrep users. (pa-1886)
+
+### Changed
+
+- Change default behavior of Jenkins CI configurations. If a user manually sets their environment variables (i.e. SEMGREP_BRANCH, SEMGREP_JOB_URL, SEMGREP_COMMIT), use it before falling back on autodetection. (app-2432)
+- Change default behavior of Azure Pipelines configurations. If a user manually sets their environment variables (i.e. SEMGREP_REPO_NAME, SEMGREP_REPO_URL, SEMGREP_BRANCH, SEMGREP_JOB_URL, SEMGREP_COMMIT), use it before falling back on autodetection. (app-2433)
+- taint-mode: Removed experimental poor-man's support for wrapper functions around
+  taint sources. This was an early experiment to make Semgrep inter-procedural, but
+  it was later abandoned in favor of DeepSemgrep. (pa-1838)
+- Disabled Bloom filter optimization by default, due to undesired interactions with
+  constant and symbolic propagation, while it appears to not provide a net major
+  performance benefit (nowadays). If you do notice a significant drop in performance
+  after this change, please let us know. (pa-1927)
+- Semgrep-core will no longer accept a rule file containing only one rule object,
+  rules must be given in an array unde the `rules:` key. This change does not
+  affect Semgrep CLI which never accepted that relaxed format. (pa-1931)
+- Changed command line flag for supply chain scans from `--sca` to `--supply-chain`.
+  Correspondinly changed `--config sca` to `--config supply-chain` (sca-ssc)
+
+### Fixed
+
+- Change default behavior of Jenkins CI configurations. If the SEMGREP_REPO_URL is set, use it. Otherwise, default to autodetection. (app-2406)
+- fix: Ensure the docker image uses the latest base packages (docker)
+- Fixed symbolic propagation of the `new` operator, that had been broken since
+  version 0.98.0. You can again e.g. use the pattern `new A().foo()` to match
+  `a.foo()`, with `a = new A()`. (gh-6161)
+- Some crypto code like hashing algorithms can lead to a very large amount of
+  symbolically propageted values, which previously caused Semgrep's Bloom filter
+  to hang. (pa-1920)
+- taint-mode: It is now possible for `this` or `this.x` to be a source of taint. (pa-1929)
+- taint-mode: Fixed a bug that made Semgrep miss taint findings when the sink was
+  located inside an `if` condition or a `throw` (aka `raise`) expression/statement. (pa-1933)
+
 ## [0.115.0](https://github.com/returntocorp/semgrep/releases/tag/v0.115.0) - 2022-09-27
 
 ### Added

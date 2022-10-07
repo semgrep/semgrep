@@ -331,6 +331,7 @@ as well tracking results as new, fixed, or duplicate. The classes of findings da
 - Check ID and metadata (as defined in the rule definition; e.g., OWASP category, message, severity)
 - Code location, including file path, that triggered findings
 - A one-way hash of a unique code identifier that includes the triggering code content
+- Dependency name and version (only sent when using Semgrep Supply Chain or the `--sca` flag)
 - Source code is NOT collected
 
 ## Registry fetches
