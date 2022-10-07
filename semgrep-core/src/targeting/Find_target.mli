@@ -28,8 +28,8 @@ type path = string
 val select_global_targets :
   ?includes:string list ->
   ?excludes:string list ->
-  ?max_target_bytes:int ->
-  ?respect_git_ignore:bool ->
+  max_target_bytes:int ->
+  respect_git_ignore:bool ->
   ?baseline_handler:baseline_handler ->
   ?file_ignore:file_ignore ->
   path list ->
@@ -55,23 +55,22 @@ val create_cache : unit -> target_cache
 
    Usage: let rule_targets = filter_targets_for_rule ~cache global_targets rule
 *)
-val filter_targets_for_rule :
-  target_cache -> Rule.t -> file_info list -> path list
+val filter_targets_for_rule : target_cache -> Rule.t -> path list -> path list
 
 (*
    Determine whether a rule is applicable to a file.
 *)
-val filter_target_for_rule : target_cache -> Rule.t -> file_info -> bool
+val filter_target_for_rule : target_cache -> Rule.t -> path -> bool
 
 (*
    Low-level version of 'filter_target_for_rule'.
 *)
 val filter_target_for_lang :
   cache:target_cache ->
-  language:Xlang.t ->
+  lang:Xlang.t ->
   required_path_patterns:string list ->
   excluded_path_patterns:string list ->
-  file_info ->
+  path ->
   bool
 
 (*

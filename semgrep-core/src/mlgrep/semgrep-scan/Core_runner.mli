@@ -17,15 +17,11 @@ type result = {
 }
 
 val invoke_semgrep :
-  jobs:int ->
+  num_jobs:int ->
   timeout:int ->
-  max_memory:int ->
   timeout_threshold:int ->
-  optimizations:int ->
-  ?core_opts_str:string ->
-  target_manager:Target_manager.t ->
+  max_memory:int ->
+  use_optimizations:bool ->
   rules:Rule.t list ->
-  dump_command_for_core:bool ->
-  deep:bool ->
-  unit ->
+  target_roots:path list ->
   result

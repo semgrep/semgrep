@@ -19,21 +19,56 @@ open Cmdliner
 type conf = {
   autofix : bool;
   baseline_commit : string option;
-  config : string option;
+  config : string;
+  debug : bool;
+  exclude : string list;
+  include_ : string list;
   lang : string option;
+  max_memory_mb : int;
+  max_target_bytes : int;
   metrics : Metrics.State.t;
+  num_jobs : int;
+  optimizations : bool;
   pattern : string option;
-  workspace : string option; (* not in the original Python code *)
+  quiet : bool;
+  respect_git_ignore : bool;
+  target_roots : string list;
+  timeout : float;
+  timeout_threshold : int;
+  verbose : bool;
 }
+
+let get_cpu_count () =
+  (* Parmap subtracts 1 from the number of detected cores.
+     This comes with no guarantees. *)
+  max 1 (Parmap.get_default_ncores () + 1)
+
+let default =
+  {
+    autofix = false;
+    baseline_commit = None;
+    config = "auto";
+    debug = false;
+    exclude = [];
+    include_ = [];
+    lang = None;
+    max_memory_mb = 0;
+    max_target_bytes = 1_000_000;
+    metrics = Metrics.State.Auto;
+    num_jobs = get_cpu_count ();
+    optimizations = false;
+    pattern = None;
+    quiet = false;
+    respect_git_ignore = true;
+    target_roots = [ "." ];
+    timeout = 30.;
+    timeout_threshold = 3;
+    verbose = false;
+  }
 
 (*************************************************************************)
 (* Various utilities *)
 (*************************************************************************)
-
-let _get_cpu_count () =
-  (* Parmap subtracts 1 from the number of detected cores.
-     This comes with no guarantees. *)
-  max 1 (Parmap.get_default_ncores () + 1)
 
 let _validate_lang option lang_str =
   match lang_str with
@@ -45,8 +80,8 @@ let _validate_lang option lang_str =
 (*************************************************************************)
 
 let o_autofix =
-  CLI_common.negatable_flag ~options:[ "a"; "autofix" ]
-    ~neg_options:[ "no-autofix" ]
+  CLI_common.negatable_flag [ "a"; "autofix" ] ~neg_options:[ "no-autofix" ]
+    ~default:default.autofix
     ~doc:
       {|Apply autofix patches. WARNING: data loss can occur with this flag.
 Make sure your files are stored in a version control system. Note that
@@ -86,7 +121,66 @@ See https://semgrep.dev/docs/writing-rules/rule-syntax for information on
 configuration file format.
 |}
   in
-  Arg.value (Arg.opt Arg.(some string) None info)
+  Arg.value (Arg.opt Arg.string default.config info)
+
+let o_debug =
+  let info =
+    Arg.info [ "debug" ]
+      ~doc:{|All of --verbose, but with additional debugging information.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_exclude =
+  let info =
+    Arg.info [ "exclude" ]
+      ~doc:
+        {|Filter files or directories by path. The argument is a
+glob-style pattern such as 'foo.*' that must match the path. This is
+an extra filter in addition to other applicable filters. For example,
+specifying the language with '-l javascript' migh preselect files
+'src/foo.jsx' and 'lib/bar.js'.  Specifying one of '--include=src',
+'-- include=*.jsx', or '--include=src/foo.*' will restrict the
+selection to the single file 'src/foo.jsx'. A choice of multiple '--
+include' patterns can be specified. For example, '--include=foo.*
+--include=bar.*' will select both 'src/foo.jsx' and
+'lib/bar.js'. Glob-style patterns follow the syntax supported by
+python, which is documented at
+https://docs.python.org/3/library/glob.html
+|}
+  in
+  Arg.value (Arg.opt_all Arg.string [] info)
+
+let o_include =
+  let info =
+    Arg.info [ "include" ]
+      ~doc:
+        {|Filter files or directories by path. The argument is a
+glob-style pattern such as 'foo.*' that must match the path. This is
+an extra filter in addition to other applicable filters. For example,
+specifying the language with '-l javascript' migh preselect files
+'src/foo.jsx' and 'lib/bar.js'.  Specifying one of '--include=src',
+'-- include=*.jsx', or '--include=src/foo.*' will restrict the
+selection to the single file 'src/foo.jsx'. A choice of multiple '--
+include' patterns can be specified. For example, '--include=foo.*
+--include=bar.*' will select both 'src/foo.jsx' and
+'lib/bar.js'. Glob-style patterns follow the syntax supported by
+python, which is documented at
+https://docs.python.org/3/library/glob.html
+|}
+  in
+  Arg.value (Arg.opt_all Arg.string [] info)
+
+let o_max_target_bytes =
+  let info =
+    Arg.info [ "max-target-bytes" ]
+      ~doc:
+        {|Maximum size for a file to be scanned by Semgrep, e.g
+'1.5MB'. Any input program larger than this will be ignored. A zero or
+negative value disables this filter. Defaults to 1000000 bytes.
+|}
+  in
+  (* TODO: support '1.5MB' and such *)
+  Arg.value (Arg.opt Arg.int default.max_target_bytes info)
 
 let o_lang =
   let info =
@@ -97,6 +191,16 @@ Must be used with -e/--pattern.
 |}
   in
   Arg.value (Arg.opt Arg.(some string) None info)
+
+let o_max_memory_mb =
+  let info =
+    Arg.info [ "max-memory-mb" ]
+      ~doc:
+        {|Maximum system memory to use running a rule on a single file
+in MB. If set to 0 will not have memory limit. Defaults to 0.
+|}
+  in
+  Arg.value (Arg.opt Arg.int default.max_memory_mb info)
 
 let o_metrics =
   let info =
@@ -111,7 +215,37 @@ SEMGREP_SEND_METRICS environment variable value will be used. If no
 environment variable, defaults to 'auto'.
 |}
   in
-  Arg.value (Arg.opt Metrics.State.converter Metrics.State.Auto info)
+  Arg.value (Arg.opt Metrics.State.converter default.metrics info)
+
+let o_num_jobs =
+  let info =
+    Arg.info [ "j"; "jobs" ]
+      ~doc:
+        {|Number of subprocesses to use to run checks in
+parallel. Defaults to the number of cores detected on the system.
+|}
+  in
+  Arg.value (Arg.opt Arg.int default.num_jobs info)
+
+let o_optimizations =
+  let parse = function
+    | "all" -> Ok true
+    | "none" -> Ok false
+    | other -> Error (sprintf "unsupported value %S" other)
+  in
+  let print fmt = function
+    | true -> Format.pp_print_string fmt "all"
+    | false -> Format.pp_print_string fmt "none"
+  in
+  let converter = Arg.conv' (parse, print) in
+  let info =
+    Arg.info [ "optimizations" ]
+      ~doc:
+        {|Turn on/off optimizations. Default = 'all'.
+Use 'none' to turn all optimizations off.
+|}
+  in
+  Arg.value (Arg.opt converter default.optimizations info)
 
 let o_pattern =
   let info =
@@ -123,26 +257,96 @@ Must be used with -e/--pattern.
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
-let o_workspace =
+let o_quiet =
+  let info = Arg.info [ "q"; "quiet" ] ~doc:{|Only output findings.|} in
+  Arg.value (Arg.flag info)
+
+let o_respect_git_ignore =
+  CLI_common.negatable_flag [ "use-git-ignore" ]
+    ~neg_options:[ "no-git-ignore" ] ~default:default.respect_git_ignore
+    ~doc:
+      {|Skip files ignored by git. Scanning starts from the root
+folder specified on the Semgrep command line. Normally, if the
+scanning root is within a git repository, only the tracked files and
+the new files would be scanned. Git submodules and git- ignored files
+would normally be skipped. --no-git-ignore will disable git-aware
+filtering. Setting this flag does nothing if the scanning root is not
+in a git repository.
+|}
+
+let o_target_roots =
   let info =
-    Arg.info [ "workspace" ]
-      ~doc:
-        {|A user-provided folder where temporary files will be written.
-This is meant for debugging. If no workspace is provided, a temporary
-folder will be created, used, and deleted upon exit.
+    Arg.info [] ~docv:"TARGETS"
+      ~doc:{|Files or folders to be scanned by semgrep.
 |}
   in
-  Arg.value (Arg.opt Arg.(some string) None info)
+  Arg.value (Arg.pos_all Arg.string default.target_roots info)
+
+let o_timeout =
+  let info =
+    Arg.info [ "timeout" ]
+      ~doc:
+        {|Maximum time to spend running a rule on a single file in
+seconds. If set to 0 will not have time limit. Defaults to 30 s.
+|}
+  in
+  Arg.value (Arg.opt Arg.float default.timeout info)
+
+let o_timeout_threshold =
+  let info =
+    Arg.info [ "timeout-threshold" ]
+      ~doc:
+        {|Maximum number of rules that can time out on a file before
+the file is skipped. If set to 0 will not have limit. Defaults to 3.
+|}
+  in
+  Arg.value (Arg.opt Arg.int default.timeout_threshold info)
+
+let o_verbose =
+  let info =
+    Arg.info [ "v"; "verbose" ]
+      ~doc:
+        {|Show more details about what rules are running, which files
+failed to parse, etc.
+|}
+  in
+  Arg.value (Arg.flag info)
 
 (*** Subcommand 'scan' ***)
 
 let cmdline_term run =
-  let combine autofix baseline_commit config lang metrics pattern workspace =
-    run { autofix; baseline_commit; config; lang; metrics; pattern; workspace }
+  let combine autofix baseline_commit config debug exclude include_ lang
+      max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
+      quiet respect_git_ignore target_roots timeout timeout_threshold verbose =
+    run
+      {
+        autofix;
+        baseline_commit;
+        config;
+        debug;
+        exclude;
+        include_;
+        lang;
+        max_memory_mb;
+        max_target_bytes;
+        metrics;
+        num_jobs;
+        optimizations;
+        pattern;
+        quiet;
+        respect_git_ignore;
+        target_roots;
+        timeout;
+        timeout_threshold;
+        verbose;
+      }
   in
   Term.(
-    const combine $ o_autofix $ o_baseline_commit $ o_config $ o_lang
-    $ o_metrics $ o_pattern $ o_workspace)
+    const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
+    $ o_exclude $ o_include $ o_lang $ o_max_memory_mb $ o_max_target_bytes
+    $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern $ o_quiet
+    $ o_respect_git_ignore $ o_target_roots $ o_timeout $ o_timeout_threshold
+    $ o_verbose)
 
 let doc = "run semgrep rules on files"
 

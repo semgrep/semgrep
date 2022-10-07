@@ -15,6 +15,11 @@ type target_source =
   | Target_file of filename
   | Targets of Input_to_core_t.targets
 
+(* All rules and targets applicable to a specific language.
+   This is passed directly by the new mlgrep implementation, not
+   from the semgrep-core command line. *)
+type lang_job = { lang : Xlang.t; targets : filename list; rules : Rule.t list }
+
 type t = {
   (* Debugging/profiling/logging flags *)
   log_config_file : filename;
@@ -30,6 +35,7 @@ type t = {
   pattern_string : string;
   pattern_file : filename;
   rule_source : rule_source option;
+  lang_job : lang_job option;
   equivalences_file : string;
   lang : Xlang.t option;
   roots : Common.path list;
@@ -81,6 +87,7 @@ let default =
     pattern_string = "";
     pattern_file = "";
     rule_source = None;
+    lang_job = None;
     equivalences_file = "";
     lang = None;
     roots = [];

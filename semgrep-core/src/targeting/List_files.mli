@@ -35,4 +35,4 @@ val list_with_stat : path -> (path * Unix.stats) list
    Iterate over files recursively. Exclude folders/directories.
 *)
 val fold_left : ('acc -> path -> Unix.stats -> 'acc) -> 'acc -> path -> 'acc
-val iter : (path -> Unix.stats -> path) -> path -> unit
+val iter : (path -> Unix.stats -> unit) -> path -> unit
