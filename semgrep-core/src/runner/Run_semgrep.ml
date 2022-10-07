@@ -788,7 +788,10 @@ let semgrep_with_prepared_rules_and_targets config (x : lang_job) =
       rule_source = Some (Rules x.rules);
     }
   in
-  semgrep_with_raw_results_and_exn_handler config
+  let opt_exn, results, _ok_targets =
+    semgrep_with_raw_results_and_exn_handler config
+  in
+  (opt_exn, results)
 
 let semgrep_with_rules_and_formatted_output config =
   let exn, res, files = semgrep_with_raw_results_and_exn_handler config in

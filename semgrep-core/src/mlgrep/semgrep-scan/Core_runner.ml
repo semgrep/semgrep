@@ -63,8 +63,45 @@ let merge_results result_list : Report.final_result =
     explanations = merge_lists (fun x -> x.explanations) results;
   }
 
+(* The same rule may appear under multiple target languages because
+   some patterns can be interpreted in multiple languages. *)
+let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
+  (* target language -> rules *)
+  let tbl = Hashtbl.create 100 in
+  List.iter
+    (fun (rule : Rule.t) ->
+      let pattern_lang = rule.languages in
+      let target_langs = Xlang.flatten pattern_lang in
+      List.iter
+        (fun lang ->
+          let rules =
+            match Hashtbl.find_opt tbl lang with
+            | None -> []
+            | Some rules -> rules
+          in
+          Hashtbl.replace tbl lang (rule :: rules))
+        target_langs)
+    rules;
+  Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
+
+let split_jobs_by_language all_rules all_targets : Runner_config.lang_job list =
+  let grouped_rules = group_rules_by_target_language all_rules in
+  let cache = Find_target.create_cache () in
+  Common.map
+    (fun (lang, rules) ->
+      let targets =
+        List.filter
+          (fun target ->
+            List.exists
+              (fun rule -> Find_target.filter_target_for_rule cache rule target)
+              rules)
+          all_targets
+      in
+      ({ lang; targets; rules } : Runner_config.lang_job))
+    grouped_rules
+
 let call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory_mb
-    ~use_optimizations ~debug ~rules ~targets =
+    ~use_optimizations ~debug ~all_rules ~all_targets =
   let runner_config : Runner_config.t =
     {
       Runner_config.default with
@@ -76,10 +113,7 @@ let call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory_mb
       version = Version.version;
     }
   in
-  let lang_jobs =
-    (* TODO: split and filter input by language *)
-    []
-  in
+  let lang_jobs = split_jobs_by_language all_rules all_targets in
   (* TODO: This is the -fast or -filter_irrelevant_rules flag of semgrep-core.
      It's currently a global, mutable variable. Move it the config object
      so we can use it easily. *)
@@ -114,7 +148,7 @@ let invoke_semgrep (conf : Scan_CLI.conf) : result =
     call_semgrep_core ~num_jobs:conf.num_jobs ~timeout:conf.timeout
       ~timeout_threshold:conf.timeout_threshold
       ~max_memory_mb:conf.max_memory_mb ~use_optimizations:conf.optimizations
-      ~debug:conf.debug ~rules ~targets
+      ~debug:conf.debug ~all_rules:rules ~all_targets:targets
   in
   (* TODO: figure out the best type for this result. Ideally, this is
      the type corresponding to the JSON output. *)

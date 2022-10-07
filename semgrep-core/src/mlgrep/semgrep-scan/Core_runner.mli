@@ -16,12 +16,4 @@ type result = {
   explanations : Semgrep_output_v0_t.matching_explanation list option;
 }
 
-val invoke_semgrep :
-  num_jobs:int ->
-  timeout:int ->
-  timeout_threshold:int ->
-  max_memory:int ->
-  use_optimizations:bool ->
-  rules:Rule.t list ->
-  target_roots:path list ->
-  result
+val invoke_semgrep : Scan_CLI.conf -> result

@@ -27,37 +27,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Helpers *)
 (*****************************************************************************)
 
-let config =
-  {
-    Runner_config.log_config_file = "";
-    log_to_file = None;
-    test = false;
-    debug = false;
-    profile = false;
-    report_time = false;
-    error_recovery = false;
-    profile_start = 0.0;
-    matching_explanations = false;
-    pattern_string = "";
-    pattern_file = "";
-    rule_source = None;
-    equivalences_file = "";
-    lang = None;
-    output_format = Text;
-    match_format = Matching_report.Normal;
-    mvars = [];
-    lsp = false;
-    timeout = 0.0;
-    timeout_threshold = 0;
-    max_memory_mb = 0;
-    max_match_per_file = 10000;
-    ncores = 1;
-    parsing_cache_dir = "";
-    target_source = None;
-    action = "";
-    version = "test";
-    roots = [];
-  }
+let config : Runner_config.t = { Runner_config.default with version = "test" }
 
 (*****************************************************************************)
 (* Entry point *)
