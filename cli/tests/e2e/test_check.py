@@ -235,14 +235,6 @@ def test_url_rule(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.slow
-def test_registry_rule(run_semgrep_in_tmp, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp("r2c").stdout,
-        "results.json",
-    )
-
-
-@pytest.mark.slow
 def test_auto_config(run_semgrep_in_tmp, mocker):
     # --config auto will change over time, so lets just make sure this doesn't error out
     # TODO: Mock config response for more detailed testing
