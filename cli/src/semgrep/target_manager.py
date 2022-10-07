@@ -680,8 +680,10 @@ class TargetManager:
         files = self.filter_excludes(PATHS_ALWAYS_SKIPPED, candidates=files.kept)
         self.ignore_log.always_skipped.update(files.removed)
 
-        files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
-        self.ignore_log.size_limit.update(files.removed)
+        # Lockfiles are easy to parse, and regularly surpass 1MB for big repos
+        if not isinstance(lang, Ecosystem):
+            files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
+            self.ignore_log.size_limit.update(files.removed)
 
         if self.file_ignore:
             files = self.file_ignore.filter_paths(candidates=files.kept)
