@@ -20,8 +20,8 @@
   description: This hook runs semgrep:develop
   # See https://pre-commit.com/#docker_image for more information
   language: docker_image
-  # Need to set SEMGREP_LOG_FILE and SEMGREP_VERSION_CACHE_PATH since pre-commit 
-  # runs docker images with -u set to non-root uid which doesnt have permissions 
+  # Need to set SEMGREP_LOG_FILE and SEMGREP_VERSION_CACHE_PATH since pre-commit
+  # runs docker images with -u set to non-root uid which doesnt have permissions
   # to default path /.semgrep
   entry: -e SEMGREP_LOG_FILE=/tmp/out.log SEMGREP_VERSION_CACHE_PATH=/tmp/cache returntocorp/semgrep:develop semgrep
 
@@ -30,7 +30,7 @@
   name: semgrep
   description: This hook runs semgrep (a.k.a. semgrep:latest)
   language: docker_image
-  # Need to set SEMGREP_LOG_FILE and SEMGREP_VERSION_CACHE_PATH since pre-commit 
-  # runs docker images with -u set to non-root uid which doesnt have permissions 
+  # Need to set SEMGREP_LOG_FILE and SEMGREP_VERSION_CACHE_PATH since pre-commit
+  # runs docker images with -u set to non-root uid which doesnt have permissions
   # to default path /.semgrep
   entry: -e SEMGREP_LOG_FILE=/tmp/out.log SEMGREP_VERSION_CACHE_PATH=/tmp/cache returntocorp/semgrep:latest semgrep
