@@ -27,4 +27,4 @@
   name: semgrep
   description: This hook runs semgrep (a.k.a. semgrep:latest)
   language: docker_image
-  entry: returntocorp/semgrep:latest
+  entry: -e SEMGREP_LOG_FILE=/semgrep/out.log returntocorp/semgrep:latest
