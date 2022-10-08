@@ -93,7 +93,14 @@ let split_jobs_by_language all_rules all_targets : Runner_config.lang_job list =
         List.filter
           (fun target ->
             List.exists
-              (fun rule -> Find_target.filter_target_for_rule cache rule target)
+              (fun (rule : Rule.t) ->
+                let required_path_patterns, excluded_path_patterns =
+                  match rule.paths with
+                  | Some { include_; exclude } -> (include_, exclude)
+                  | None -> ([], [])
+                in
+                Find_target.filter_target_for_lang ~cache ~lang
+                  ~required_path_patterns ~excluded_path_patterns target)
               rules)
           all_targets
       in
