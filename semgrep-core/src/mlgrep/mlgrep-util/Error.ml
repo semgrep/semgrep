@@ -4,34 +4,6 @@
 
 module C = Output_from_core_t
 
-type exit_code = Exit_code of int
-
-(*
-   Exit codes of the semgrep command.
-   Commented out definitions show the codes that are no longer in use.
-*)
-let ok_exit_code = Exit_code 0
-let findings_exit_code = Exit_code 1
-let fatal_exit_code = Exit_code 2
-
-(* let invalid_code_exit_code = 3 *)
-let invalid_pattern_exit_code = Exit_code 4
-let unparseable_yaml_exit_code = Exit_code 5
-
-(* let need_arbitrary_code_exec_exit_code = 6 *)
-let missing_config_exit_code = Exit_code 7
-let invalid_language_exit_code = Exit_code 8
-
-(* let match_timeout_exit_code = 9 *)
-(* let match_max_memory_exit_code = 10 *)
-(* let lexical_error_exit_code = 11 *)
-(* let too_many_matches_exit_code = 12 *)
-let invalid_api_key_exit_code = Exit_code 13
-let scan_fail_exit_code = Exit_code 14
-
-(* Temporary until either mlgrep dies or replaces semgrep. *)
-let not_implemented_in_mlgrep = Exit_code 99
-
 type level =
   | Warn (* = 3; Always an error *)
   | Error (* = 4; Only an error if "strict" is set *)
@@ -82,7 +54,7 @@ type error_kind =
    All Semgrep exceptions are caught and their error messages
    are displayed to the user. They all include at least this information.
 *)
-type t = { code : exit_code; level : level; kind : error_kind }
+type t = { code : Exit_code.t; level : level; kind : error_kind }
 
 (* massive TODO *)
 let string_of_error (_x : t) = "uh oh, something's wrong"
@@ -105,14 +77,14 @@ let semgrep_core_error ~code ~level x =
 
 let invalid_rule_schema_error details =
   {
-    code = invalid_pattern_exit_code;
+    code = Exit_code.invalid_pattern;
     level = Error;
     kind = Invalid_rule_schema_error details;
   }
 
 let unknown_language_error details =
   {
-    code = invalid_language_exit_code;
+    code = Exit_code.invalid_language;
     level = Error;
     kind = Unknown_language_error details;
   }

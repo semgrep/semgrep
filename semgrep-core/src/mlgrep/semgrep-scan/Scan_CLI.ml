@@ -350,6 +350,7 @@ let cmdline_term run =
 
 let doc = "run semgrep rules on files"
 
+(* TODO: document the exit codes as defined in Error.mli *)
 let man =
   [
     `S Manpage.s_description;
@@ -372,6 +373,7 @@ let man =
   ]
   @ CLI_common.help_page_bottom
 
-let parse_and_run (argv : string array) (run : conf -> int) =
+let parse_and_run (argv : string array) (run : conf -> Exit_code.t) =
+  let run conf = CLI_common.safe_run run conf |> Exit_code.to_int in
   let info = Cmd.info "semgrep scan" ~doc ~man in
-  CLI_common.safe_run run |> cmdline_term |> Cmd.v info |> Cmd.eval' ~argv
+  run |> cmdline_term |> Cmd.v info |> Cmd.eval' ~argv |> Exit_code.of_int

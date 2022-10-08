@@ -6,4 +6,4 @@
    with this exit status. If testing, the exit status can be checked
    against expectations.
 *)
-val main : string array -> int
+val main : string array -> Exit_code.t

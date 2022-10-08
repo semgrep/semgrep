@@ -38,15 +38,15 @@ let help_page_bottom =
   ]
 
 (* Wrapper that catches exceptions and turns them into an exit code. *)
-let safe_run run conf =
+let safe_run run conf : Exit_code.t =
   try
     Printexc.record_backtrace true;
     run conf
   with
   | Failure msg ->
       Printf.eprintf "Error: %s\n%!" msg;
-      1
+      Exit_code.fatal
   | e ->
       let trace = Printexc.get_backtrace () in
       Printf.eprintf "Error: exception %s\n%s%!" (Printexc.to_string e) trace;
-      1
+      Exit_code.fatal

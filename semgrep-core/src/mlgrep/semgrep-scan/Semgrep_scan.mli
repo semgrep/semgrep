@@ -3,4 +3,4 @@
 
    Usage: main [| "semgrep-scan"; ... |]
 *)
-val main : string array -> int
+val main : string array -> Exit_code.t

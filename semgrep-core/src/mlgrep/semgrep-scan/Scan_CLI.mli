@@ -36,4 +36,4 @@ val default : conf
    This function returns an exit code to be passed to the 'exit' function.
    Exceptions are caught and turned into an appropriate exit code.
 *)
-val parse_and_run : string array -> (conf -> int) -> int
+val parse_and_run : string array -> (conf -> Exit_code.t) -> Exit_code.t
