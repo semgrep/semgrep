@@ -10,8 +10,8 @@ from pathlib import Path
 from shutil import copytree
 
 import pytest
-from click.testing import CliRunner
 from tests.conftest import TESTS_PATH
+from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
 
@@ -45,7 +45,7 @@ def test_parse_metrics(tmp_path, snapshot, mocker, monkeypatch):
     )
 
     monkeypatch.chdir(tmp_path / "parse_metrics")
-    CliRunner().invoke(cli, ["scan", "--config=rules.yaml", "--metrics=on"])
+    SemgrepRunner().invoke(cli, ["scan", "--config=rules.yaml", "--metrics=on"])
 
     payload = json.loads(mock_post.call_args.kwargs["data"])
 

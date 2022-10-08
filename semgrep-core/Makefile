@@ -70,6 +70,9 @@ dev:
 	rm -f ../cli/src/semgrep/bin/semgrep-core
 	ln -s ../../../../semgrep-core/bin/semgrep-core \
 	  ../cli/src/semgrep/bin/semgrep-core
+	rm -f ../cli/src/semgrep/bin/semgrep-o
+	ln -s ../../../../semgrep-core/bin/semgrep-o \
+	  ../cli/src/semgrep/bin/semgrep-o
 	rm -f ../cli/src/semgrep/bin/semgrep_bridge_core.so
 	ln -s ../../../../semgrep-core/bin/semgrep_bridge_core.so \
 	  ../cli/src/semgrep/bin/semgrep_bridge_core.so

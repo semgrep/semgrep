@@ -195,7 +195,7 @@ let semgrep_check config metachecks rules =
     {
       config with
       Runner_config.lang = Some (Xlang.of_lang Yaml);
-      rules_file = metachecks;
+      rule_source = Some (Rule_file metachecks);
       output_format = Json true;
       (* the targets are actually the rules! metachecking! *)
       roots = rules;

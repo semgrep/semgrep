@@ -1,15 +1,17 @@
 from pathlib import Path
 
 import pytest
-from click.testing import CliRunner
 from tests.conftest import TESTS_PATH
+from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
 
 
 @pytest.mark.kinda_slow
 def test_publish(tmp_path, mocker):
-    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
+    runner = SemgrepRunner(
+        env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")}
+    )
 
     tests_path = Path(TESTS_PATH / "e2e" / "targets" / "semgrep-publish" / "valid")
     valid_target = str(tests_path.resolve())
