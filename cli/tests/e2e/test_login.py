@@ -1,12 +1,14 @@
 import pytest
-from click.testing import CliRunner
+from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
 
 
 @pytest.mark.slow
 def test_login(tmp_path, mocker):
-    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
+    runner = SemgrepRunner(
+        env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")}
+    )
 
     expected_logout_str = "Logged out (log back in with `semgrep login`)\n"
     fake_key = "key123"
