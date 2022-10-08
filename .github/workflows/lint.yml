@@ -21,8 +21,9 @@ jobs:
       # We grab those submodules below because they are the one needed by 'mypy', which
       # runs as part of pre-commit to check our Python code.
       # alt: we could also use 'submodules: recursive' instead, but that would be slower
+      # update: we also grab pfff because of semgrep.jsonnet now including pfff/semgrep.yml
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces semgrep-core/src/pfff
       # pre-commit is a Python script, hence this action.
       - uses: actions/setup-python@v4
         with:
