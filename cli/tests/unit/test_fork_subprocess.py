@@ -22,6 +22,7 @@ g_quiet = False
 
 def set_quiet(b: bool) -> None:
     """Set 'g_quiet'."""
+    # nosemgrep
     global g_quiet
     g_quiet = b
 
