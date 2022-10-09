@@ -263,12 +263,12 @@ release:
 #   and where we use semgrep.jsonnet in both targets
 #
 # - in pre-commit in .pre-commit-config.yaml which tests the semgrep
-#   docker image used in a pre-commit 'language: docker_image' context,
+#   Docker image used in a pre-commit 'language: docker_image' context,
 #   as well as semgrep official pre-commit hooks in .pre-commit-hooks.yaml
 #   in a 'language: python' context (which itself uses setup.py to install semgrep),
-#   with semgrep.jsonnet but also with p/python and p/bandit
+#   with semgrep.jsonnet but also with p/python and p/bandit rulesets.
 #
-# - in circle CI in .circle/config.yml which uses the docker image
+# - in circle CI in .circle/config.yml which uses the Docker image
 #   and where we use semgrep.jsonnet
 #
 # - in Github Actions (GHA) in .github/workflows/semgrep.yml where
