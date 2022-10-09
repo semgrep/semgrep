@@ -16,11 +16,8 @@ jobs:
     name: semgrep with r2c registry
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Semgrep
-        id: semgrep
-        uses: returntocorp/semgrep-action@v1
+      - uses: actions/checkout@v3
+      - uses: returntocorp/semgrep-action@v1
         with:
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
           publishDeployment: "1"

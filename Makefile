@@ -2,7 +2,7 @@
 # Prelude
 ###############################################################################
 # This Makefile is targeted at developers.
-# For a one-shot production build, look into Dockerfile.
+# For a one-shot production build, look into ./Dockerfile.
 #
 # Many targets in this Makefile assume some commands have been run before to
 # install the correct build environment supporting the different languages
@@ -256,7 +256,28 @@ release:
 ###############################################################################
 # Dogfood!
 ###############################################################################
-.PHONY: check
+# There are a few places where we currently dogfood Semgrep:
+#
+# - in this Makefile with 'make check' below, which tests semgrep in PATH
+#   and with 'make check_with_docker' which tests semgrep Docker image,
+#   and where we use semgrep.jsonnet in both targets
+#
+# - in pre-commit in .pre-commit-config.yaml which tests the semgrep
+#   docker image used in a pre-commit 'language: docker_image' context,
+#   as well as semgrep official pre-commit hooks in .pre-commit-hooks.yaml
+#   in a 'language: python' context (which itself uses setup.py to install semgrep),
+#   with semgrep.jsonnet but also with p/python and p/bandit
+#
+# - in circle CI in .circle/config.yml which uses the docker image
+#   and where we use semgrep.jsonnet
+#
+# - in Github Actions (GHA) in .github/workflows/semgrep.yml where
+#   we use semgrep-actions and the App to get the rules
+#
+# Note that many of those places use semgrep.jsonnet and so would report
+# the same findings, but they are useful anyway to test all the different
+# places where you can plug semgrep (Makefile, pre-commit, circleCI, GHA, GHA+App).
+
 
 #coupling: see also .circleci/config.yml and its 'semgrep' job
 SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
@@ -266,6 +287,7 @@ DOCKER_IMAGE=returntocorp/semgrep:develop
 
 # You need to have semgrep in your PATH! do 'cd cli; pipenv shell' before
 # if needed.
+.PHONY: check
 check:
 	semgrep $(SEMGREP_ARGS)
 

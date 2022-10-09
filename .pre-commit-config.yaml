@@ -186,7 +186,15 @@ repos:
         # via setup.py and only (unofficially) available in docker.
         entry: -e SEMGREP_LOG_FILE=/tmp/out.log -e SEMGREP_VERSION_CACHE_PATH=/tmp/cache returntocorp/semgrep:develop semgrep
         #coupling: 'make check' and the SEMGREP_ARGS variable
-        args: ["--config", "semgrep.jsonnet", "--error", "--exclude", "tests"]
+        args:
+          [
+            "--config",
+            "semgrep.jsonnet",
+            "--error",
+            "--exclude",
+            "tests",
+            "--quiet",
+          ]
 
   - repo: https://github.com/returntocorp/semgrep
     rev: v0.100.0
