@@ -194,6 +194,7 @@ repos:
             "--exclude",
             "tests",
             "--quiet",
+            "--skip-unknown-extensions",
           ]
 
   - repo: https://github.com/returntocorp/semgrep
