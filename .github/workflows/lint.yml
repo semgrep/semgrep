@@ -14,26 +14,22 @@ on:
 jobs:
   # Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
   # our pre-commit configuration.
+  # Dogfood: note that we run Semgrep inside pre-commit, so this is also dogfooding
+  # and testing how semgrep interact with pre-commit.
   pre-commit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       # We grab those submodules below because they are the one needed by 'mypy', which
       # runs as part of pre-commit to check our Python code.
-      # alt: we could also use 'submodules: recursive' instead, but that would be slower
       # update: we also grab pfff because of semgrep.jsonnet now including pfff/semgrep.yml
+      # alt: we could also use 'submodules: recursive' instead, but that would be a bit slower
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces semgrep-core/src/pfff
-      # pre-commit is a Python script, hence this action.
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-          # This caches the pip installed dependencies that pre-commit uses.
-          # Otherwise it will need to reinstall everytime.
-          # TODO? who will need to reinstall everytime? github action? How much does this
-          # cache directive speedup this workflow?
-          cache: pip
-          cache-dependency-path: .github/workflows/lint.yml
+      # note that in a CI context pre-commit runs the hooks with the '--all' flag, so
+      # semgrep for example is passed all the files in the repository, not just
+      # the one modifed in the PR (as it is the case when it's ran from git hooks locally).
+      # This is why sometimes pre-commit passes locally but fails in CI, for the same PR.
       - uses: pre-commit/action@v3.0.0
 
   # This is mostly a copy-paste of the pre-commit job above. The only difference
@@ -49,11 +45,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-          cache: pip
-          cache-dependency-path: .github/workflows/lint.yml
       - uses: pre-commit/action@v3.0.0
         with:
           extra_args: --hook-stage manual
