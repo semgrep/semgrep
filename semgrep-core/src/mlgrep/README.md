@@ -1,5 +1,7 @@
 # OCaml CLI wrapper
 
+_See also the to-do list: [TODO.md](TODO.md)._
+
 This is the temporary home of the OCaml CLI that aims at supplanting
 the Python CLI wrapper. This is part of the OCaml code base in the
 semgrep repo. It is a distinct executable from `semgrep-core` but lives
