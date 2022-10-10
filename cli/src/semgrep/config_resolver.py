@@ -521,7 +521,7 @@ def indent(msg: str) -> str:
     return "\n".join(["\t" + line for line in msg.splitlines()])
 
 
-def import_callback(_base: str, path: str) -> Tuple[str, str]:
+def import_callback(base: str, path: str) -> Tuple[str, str]:
     """
     Instructions to jsonnet for how to resolve
     import expressions (`local $NAME = $PATH`).
@@ -533,21 +533,38 @@ def import_callback(_base: str, path: str) -> Tuple[str, str]:
     can otherwise only build against json files)
     and config specifiers like `p/python`.
     """
-    logger.debug(f"import_callback for {path}")
+    final_path = os.path.join(base, path)
+    logger.debug(f"import_callback for {path}, base = {base}, final = {final_path}")
 
     # On the fly conversion from yaml to json.
-    # Can now do 'local x = import "foo.yml";'
+    # We can now do 'local x = import "foo.yml";'
     # TODO: Make this check less jank
-    if path and (path.split(".")[-1] == "yml" or path.split(".")[-1] == "yaml"):
+    if final_path and (
+        final_path.split(".")[-1] == "yml" or final_path.split(".")[-1] == "yaml"
+    ):
+        logger.debug(f"loading yaml file {final_path}, converting to JSON on the fly")
         yaml = ruamel.yaml.YAML(typ="safe")
-        with open(path) as fpi:
+        with open(final_path) as fpi:
             data = yaml.load(fpi)
         contents = json.dumps(data)
-        filename = path
+        filename = final_path
         return filename, contents
 
+    # This could be handled by ConfigLoader below (and its _load_config_from_local_path() helper)
+    # but this would not handle the 'base' argument yet, so better to be explicit about
+    # jsonnet handling here.
+    if final_path and (
+        final_path.split(".")[-1] == "jsonnet"
+        or final_path.split(".")[-1] == "libsonnet"
+    ):
+        logger.debug(f"loading jsonnet file {final_path}")
+        contents = Path(final_path).read_text()
+        return final_path, contents
+
+    logger.debug(f"defaulting to the config resolver for {path}")
     # Registry-aware import!
     # Can now do 'local x = import "p/python";'!!
+    # TODO? should we pass also base?
     config_infos = ConfigLoader(path, None).load_config()
     if len(config_infos) == 0:
         raise SemgrepError(f"No valid configs imported")
