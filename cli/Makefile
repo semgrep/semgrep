@@ -18,10 +18,30 @@ test:
 	$(MAKE) kinda-quick-tests
 	$(PYTEST) -n auto -m 'not quick and not kinda_slow' tests
 
+# Run the end-to-end tests only. These are tests that invoke the semgrep
+# command line, excluding unit tests. They don't include the quality assurance
+# (QA) tests because they take longer and aren't as narrowly targeted.
+#
+# We exclude the few tests that don't invoke the semgrep command directly.
+.PHONY: e2e
+e2e:
+	$(PYTEST) -n auto -v \
+	  -m 'not no_semgrep_cli and not todo' tests/e2e
+
 # Run the extra tests on public repos and semgrep-rules
 .PHONY: qa
 qa:
-	$(PYTEST) -n auto tests/qa
+	$(PYTEST) -n auto -v tests/qa
+
+# Run the end-to-end tests using mlgrep instead of the Python CLI.
+.PHONY: mlgrep-e2e
+mlgrep-e2e:
+	PYTEST_USE_MLGREP=xxx $(MAKE) e2e
+
+# Run the quality assurance tests using mlgrep instead of the Python CLI.
+.PHONY: mlgrep-qa
+mlgrep-qa:
+	PYTEST_USE_MLGREP=xxx $(MAKE) qa
 
 .PHONY: check
 check:
