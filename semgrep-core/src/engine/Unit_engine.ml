@@ -254,6 +254,36 @@ let compare_fixes lang ~file matches =
   let fixed_text = Autofix.apply_fixes lang matches ~file in
   Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
 
+let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
+  let pattern =
+    try Parse_pattern.parse_pattern lang ~print_errors:true pattern with
+    | exn ->
+        failwith
+          (spf "fail to parse pattern `%s` with lang = %s (exn = %s)" pattern
+             (Lang.to_string lang) (Common.exn_to_s exn))
+  in
+  let rule =
+    {
+      MR.id = "unit testing";
+      pattern;
+      inside = false;
+      message = "";
+      severity = R.Error;
+      languages = [ lang ];
+      pattern_string = "test: no need for pattern string";
+      fix = fix_pattern;
+    }
+  in
+  let ast =
+    try Parse_target.parse_and_resolve_name_fail_if_partial lang file with
+    | exn ->
+        failwith (spf "fail to parse %s (exn = %s)" file (Common.exn_to_s exn))
+  in
+  let equiv = [] in
+  Match_patterns.check ~hook
+    (Config_semgrep.default_config, equiv)
+    [ rule ] (file, lang, ast)
+
 (*
    For each input file with the language's extension, locate a pattern file
    with the '.sgrep' extension.
@@ -270,25 +300,7 @@ let regression_tests_for_lang ~with_caching files lang =
                | Some file -> file
                | None -> failwith (spf "could not find sgrep file for %s" file)
              in
-             let ast =
-               try
-                 Parse_target.parse_and_resolve_name_fail_if_partial lang file
-               with
-               | exn ->
-                   failwith
-                     (spf "fail to parse %s (exn = %s)" file
-                        (Common.exn_to_s exn))
-             in
-             let pattern =
-               try
-                 Parse_pattern.parse_pattern lang ~print_errors:true
-                   (Common.read_file sgrep_file)
-               with
-               | exn ->
-                   failwith
-                     (spf "fail to parse pattern %s with lang = %s (exn = %s)"
-                        sgrep_file (Lang.to_string lang) (Common.exn_to_s exn))
-             in
+             let pattern = Common.read_file sgrep_file in
              let fix_pattern =
                let* fix_file = related_file_of_target ~ext:"fix" ~file in
                Some (Common.read_file fix_file)
@@ -296,18 +308,6 @@ let regression_tests_for_lang ~with_caching files lang =
 
              E.g_errors := [];
 
-             let rule =
-               {
-                 MR.id = "unit testing";
-                 pattern;
-                 inside = false;
-                 message = "";
-                 severity = R.Error;
-                 languages = [ lang ];
-                 pattern_string = "test: no need for pattern string";
-                 fix = fix_pattern;
-               }
-             in
              (* old: semgrep-core used to support user-defined
               * equivalences, but the feature has been now deprecated.
               *
@@ -317,11 +317,10 @@ let regression_tests_for_lang ~with_caching files lang =
               *     (Filename.concat data_path "basic_equivalences.yml")
               * else []
               *)
-             let equiv = [] in
              Common.save_excursion Flag_semgrep.with_opt_cache with_caching
                (fun () ->
                  let matches =
-                   Match_patterns.check
+                   match_pattern ~lang
                      ~hook:(fun { Pattern_match.tokens = (lazy xs); _ } ->
                        (* there are a few fake tokens in the generic ASTs now (e.g.,
                         * for DotAccess generated outside the grammar) *)
@@ -331,8 +330,7 @@ let regression_tests_for_lang ~with_caching files lang =
                          Parse_info.unsafe_token_location_of_info minii
                        in
                        E.error "test pattern" minii_loc "" Out.SemgrepMatchFound)
-                     (Config_semgrep.default_config, equiv)
-                     [ rule ] (file, lang, ast)
+                     ~file ~pattern ~fix_pattern
                  in
                  (match fix_pattern with
                  | Some _ -> compare_fixes lang ~file matches

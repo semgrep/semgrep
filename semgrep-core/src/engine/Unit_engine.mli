@@ -4,3 +4,12 @@
    'dune utop' from any location.
 *)
 val tests : unit -> Testutil.test list
+
+(* Can be used from other test code to concisely run Semgrep *)
+val match_pattern :
+  lang:Lang.t ->
+  hook:(Pattern_match.t -> unit) ->
+  file:string ->
+  pattern:string ->
+  fix_pattern:string option ->
+  Pattern_match.t list
