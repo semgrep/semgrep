@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+#
+# Fetch repositories containing Semgrep rules and test cases, run Semgrep over
+# those with `fix` properties, and gather stats on how many fixes are
+# successfully rendered by semgrep-core.
+
+set -eu -o pipefail
+progname=$(basename "$0")
+
+usage() {
+  cat <<EOF
+Usage: $progname [--upload]
+
+Expects:
+- semgrep-core command must be available
+
+Produces stats.json.
+
+Example: $progname
+EOF
+}
+
+echo using `which semgrep-core`
+
+projects_file=projects.txt
+
+fetch_project_files() {
+  # Note that project names are not unique
+  project=$(basename "${url%.git}")
+  org=$(basename $(dirname "${url%.git}"))
+  name="$org-$project"
+  project_list+=" $name"
+
+  mkdir -p tmp
+  (
+    cd tmp
+    if [[ ! -d "$name" ]]; then
+      echo "Cloning '$name' from '$url'."
+      # Since we do not care about revision history or
+      # Git Large File Storage files, we can shallow clone
+      # and ignore LFS pointers to expedite cloning.
+      GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 "$url" "$name"
+    else
+      echo "Using local git repo for '$name'."
+      origin_url=$(git -C "$name" remote get-url origin)
+      if [[ "$url" != "$origin_url" ]]; then
+        cat >&2 <<EOF
+Wrong remote URL found in cloned repository '$name':
+  found $origin_url
+  expected $url
+Check that you don't have two project URLs with the same repo name.
+EOF
+        exit 1
+      fi
+    fi
+  )
+}
+
+path_to_lang() {
+  path=$1
+  ext="${path##*.}"
+  lang=""
+  case $ext in
+    py)
+      lang=python
+  esac
+}
+
+record_results() {
+  lang=$1
+  all=$2
+  successes=$3
+  if [[ ! ( -v totals_by_language[$lang] ) ]] ; then
+    totals_by_language[$lang]=0
+  fi
+  if [[ ! ( -v successes_by_language[$lang] ) ]] ; then
+    successes_by_language[$lang]=0
+  fi
+  totals_by_language[$lang]=$(( totals_by_language[$lang] + $all ))
+  successes_by_language[$lang]=$(( successes_by_language[$lang] + $successes ))
+}
+
+try_rule() {
+  rule=$1
+  base="${rule%.*}"
+  targets="$base.[^\.]*"
+  for target in $targets; do
+    path_to_lang "$target"
+    if [ -n "$lang" ] ; then
+      tmp=$(mktemp)
+      semgrep-core -l "$lang" -rules "$rule" $target -json_nodots | jq .matches[].extra.rendered_fix > $tmp 2> /dev/null || true
+      all=$(cat $tmp | wc -l)
+      success=$(grep -c -v "^null$" $tmp || true)
+      record_results "$lang" "$all" "$success"
+      rm "$tmp"
+    fi
+  done
+}
+
+run_project() {
+  pushd $project
+  potential_rules=$(find . -name '*.y*ml' -exec grep -l '^\( \|\t\)*fix:' {} \;)
+  for rule in $potential_rules; do
+    try_rule $rule
+  done
+  popd
+}
+
+print_results() {
+  echo "{"
+  for lang in ${!totals_by_language[@]}; do
+    echo "\"$lang\": {"
+    echo "\"matches\": ${totals_by_language[$lang]},"
+    echo "\"autofixes\": ${successes_by_language[$lang]}"
+    echo "}"
+    # TODO add comma here if there are additional entries
+  done
+  echo "}"
+}
+
+main() {
+  url_list=$(grep -v '^ *\(#\| *$\)' "$projects_file")
+
+  project_list=""
+  for url in $url_list; do
+    fetch_project_files
+  done
+
+  declare -A totals_by_language
+  declare -A successes_by_language
+
+  pushd tmp
+  for project in $project_list; do
+    run_project
+  done
+  popd
+
+  print_results > stats.json
+}
+
+main
