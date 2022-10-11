@@ -32,6 +32,7 @@ type t = {
   match_format : Matching_report.match_format;
   mvars : Metavariable.mvar list;
   lsp : bool;
+  lsif : bool;
   (* Limits *)
   (* maximum time to spend running a rule on a single file *)
   timeout : float;
