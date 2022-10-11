@@ -42,6 +42,7 @@ let any_gen_of_string str =
    that call 'Common2.glob'.
 *)
 let tests () = List.flatten [
+  Unit_list_files.tests;
   Unit_parsing.tests ();
   Unit_reporting.tests ();
 

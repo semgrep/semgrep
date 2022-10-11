@@ -12,16 +12,16 @@ from typing import Iterator
 import dateutil.tz
 import freezegun.api
 import pytest
-from click.testing import CliRunner
 from pytest import mark
 from pytest import MonkeyPatch
 from tests.conftest import TESTS_PATH
+from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
 from semgrep.profiling import ProfilingData
 
-
 # Test data to avoid making web calls in test code
+
 USELESS_EQEQ = """rules:
 - id: python.lang.correctness.useless-eqeq.useless-eqeq
   patterns:
@@ -262,7 +262,9 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch):
     (tmp_path / "rule.yaml").symlink_to(TESTS_PATH / "e2e" / "rules" / "eqeq.yaml")
     monkeypatch.chdir(tmp_path)
 
-    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
+    runner = SemgrepRunner(
+        env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")}
+    )
     runner.invoke(cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"])
 
     payload = json.loads(mock_post.call_args.kwargs["data"])
