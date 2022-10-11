@@ -16,12 +16,35 @@ from typing import Union
 
 from click.testing import CliRunner
 
+
+def parse_env_bool(var_name: str, var_val: str) -> bool:
+    if var_val == "true":
+        return True
+    elif var_val == "false":
+        return False
+    else:
+        raise Exception(
+            f"Environment variable {var_name}={var_val} "
+            f"may not be assigned values other than 'true or 'false'."
+        )
+
+
+def get_env_bool(var_name: str) -> Optional[bool]:
+    """Get the value of an environment holding either 'true' or 'false'."""
+    s = os.environ.get(var_name)
+    if s is None:
+        return None
+    else:
+        return parse_env_bool(var_name, s)
+
+
 # Environment variables that trigger the use of osemgrep
 MLGREP_PATH = "osemgrep"
 env_osemgrep = os.environ.get("PYTEST_MLGREP")
 if env_osemgrep:
     MLGREP_PATH = env_osemgrep
-USE_MLGREP = True if os.environ.get("PYTEST_USE_MLGREP") else False
+
+USE_MLGREP = get_env_bool("PYTEST_USE_MLGREP")
 
 # The semgrep command suitable to run semgrep as a separate process.
 # It's something like ["semgrep"] or ["python3"; -m; "semgrep"] or
