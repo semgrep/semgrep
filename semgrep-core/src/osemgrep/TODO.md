@@ -10,6 +10,8 @@ by Martin:
 
 - `osemgrep scan` is the only subcommand that was (partially)
   implemented.
+- The output of `semgrep scan` needs to be formatted to JSON and the
+  text output needs to be turned off.
 - Target management needs some testing. In particular, unit tests that
   check that a file tree is identifies targets correctly per
   language.
