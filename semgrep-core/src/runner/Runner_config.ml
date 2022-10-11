@@ -9,8 +9,22 @@ open Common
  * found by extract rules.
  *)
 type output_format = Text | Json of bool (* dots *) [@@deriving show]
+
+(*
+   'Rule_file' is for the semgrep-core CLI.
+   The 'Rules' case is for an invocation that bypasses the semgrep-core
+   command (osemgrep) or when for some reason the rules had to be preparsed.
+*)
 type rule_source = Rule_file of filename | Rules of Rule.t list
 
+(*
+   'Target_file' is for the semgrep-core CLI which gets a list of
+   paths as an explicit list rather than by discovering files by scanning
+   folders recursively.
+   'Targets' is used by osemgrep, which also takes care of identifying
+   targets but doesn't have to put them in a file since we stay in the
+   same process and we bypass the semgrep-core CLI.
+*)
 type target_source =
   | Target_file of filename
   | Targets of Input_to_core_t.targets
