@@ -30,5 +30,5 @@ let invalid_language = 8
 let invalid_api_key = 13
 let scan_fail = 14
 
-(* Temporary until either mlgrep dies or replaces semgrep. *)
-let not_implemented_in_mlgrep = 99
+(* Temporary until either osemgrep dies or replaces semgrep. *)
+let not_implemented_in_osemgrep = 99

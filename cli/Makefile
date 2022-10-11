@@ -33,14 +33,14 @@ e2e:
 qa:
 	$(PYTEST) -n auto -v tests/qa
 
-# Run the end-to-end tests using mlgrep instead of the Python CLI.
-.PHONY: mlgrep-e2e
-mlgrep-e2e:
+# Run the end-to-end tests using osemgrep instead of the Python CLI.
+.PHONY: osemgrep-e2e
+osemgrep-e2e:
 	PYTEST_USE_MLGREP=xxx $(MAKE) e2e
 
-# Run the quality assurance tests using mlgrep instead of the Python CLI.
-.PHONY: mlgrep-qa
-mlgrep-qa:
+# Run the quality assurance tests using osemgrep instead of the Python CLI.
+.PHONY: osemgrep-qa
+osemgrep-qa:
 	PYTEST_USE_MLGREP=xxx $(MAKE) qa
 
 .PHONY: check

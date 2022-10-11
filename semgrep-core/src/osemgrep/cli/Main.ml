@@ -1,4 +1,4 @@
-(* Entry point for mlgrep standalone program. *)
+(* Entry point for osemgrep standalone program. *)
 
 let () =
   let exit_code = Semgrep_CLI_lib.main Sys.argv in

@@ -8,7 +8,7 @@ import pytest
 from semgrep.semgrep_main import invoke_semgrep
 
 
-# When calling mlgrep, stderr isn't available via this 'capsys' object,
+# When calling osemgrep, stderr isn't available via this 'capsys' object,
 # causing the test to pass when it shouldn't.
 # TODO: use SemgrepRunner instead, which is drop-in replacement for CliRunner.
 @pytest.mark.slow

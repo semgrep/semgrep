@@ -1,6 +1,6 @@
 #
 # Run either semgrep in the same process using Click or inovke the
-# mlgrep command, which reimplements the semgrep CLI in OCaml.
+# osemgrep command, which reimplements the semgrep CLI in OCaml.
 #
 # This is replacement for CliRunner provided by Click.
 #
@@ -16,16 +16,16 @@ from typing import Union
 
 from click.testing import CliRunner
 
-# Environment variables that trigger the use of mlgrep
-MLGREP_PATH = "mlgrep"
-env_mlgrep = os.environ.get("PYTEST_MLGREP")
-if env_mlgrep:
-    MLGREP_PATH = env_mlgrep
+# Environment variables that trigger the use of osemgrep
+MLGREP_PATH = "osemgrep"
+env_osemgrep = os.environ.get("PYTEST_MLGREP")
+if env_osemgrep:
+    MLGREP_PATH = env_osemgrep
 USE_MLGREP = True if os.environ.get("PYTEST_USE_MLGREP") else False
 
 # The semgrep command suitable to run semgrep as a separate process.
 # It's something like ["semgrep"] or ["python3"; -m; "semgrep"] or
-# ["/path/to/mlgrep"].
+# ["/path/to/osemgrep"].
 SEMGREP_BASE_COMMAND: List[str] = (
     [MLGREP_PATH] if USE_MLGREP else [sys.executable, "-m", "semgrep"]
 )
@@ -62,9 +62,9 @@ class Result:
         return self._exit_code
 
 
-# Run mlgrep in an external process
+# Run osemgrep in an external process
 # (there's no other choice since it's an OCaml binary)
-def invoke_mlgrep(
+def invoke_osemgrep(
     args: Optional[Union[str, Sequence[str]]], env: Optional[Dict[str, str]] = None
 ) -> Result:
     arg_list: List[str] = []
@@ -87,22 +87,22 @@ def invoke_mlgrep(
 
 
 class SemgrepRunner:
-    """Run either semgrep with CliRunner or with mlgrep.
+    """Run either semgrep with CliRunner or with osemgrep.
 
     It's meant as a drop-in replacement for CliRunner(cli, args).
     If a property is missing on the runner object, please add it here.
     """
 
     def __init__(self, env=None, mix_stderr=True):
-        self._use_mlgrep = USE_MLGREP
+        self._use_osemgrep = USE_MLGREP
         self._output = ""
         self._env = env
         self._mix_stderr = mix_stderr
-        if not self._use_mlgrep:
+        if not self._use_osemgrep:
             self._runner = CliRunner(env=env, mix_stderr=mix_stderr)
 
     def invoke(self, python_cli, args, input: Optional[str] = None, env=None) -> Result:
-        if not self._use_mlgrep:
+        if not self._use_osemgrep:
             result = self._runner.invoke(python_cli, args, input=input, env=env)
             stderr = result.stderr if not self._mix_stderr else ""
             return Result(result.exit_code, result.stdout, stderr)
@@ -110,4 +110,4 @@ class SemgrepRunner:
             # TODO: do we need to support 'input' i.e. passing a string
             # to the program's stdin?
             extra_env = dict(self._env, **env)
-            return invoke_mlgrep(args, env=extra_env)
+            return invoke_osemgrep(args, env=extra_env)

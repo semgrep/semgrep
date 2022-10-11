@@ -1,4 +1,4 @@
-; Build a semgrep executable named mlgrep. It will hopefully become
+; Build a semgrep executable named osemgrep. It will hopefully become
 ; a viable replacement for the Python implementation and be renamed 'semgrep'.
 
 (executables
@@ -20,5 +20,5 @@
 (install
  (package semgrep)
  (section bin)
- (files (Main.exe as mlgrep))
+ (files (Main.exe as osemgrep))
 )

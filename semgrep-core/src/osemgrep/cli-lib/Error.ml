@@ -25,8 +25,8 @@ let invalid_language_exit_code = 8
 let invalid_api_key_exit_code = 13
 let scan_fail_exit_code = 14
 
-(* Temporary until either mlgrep dies or replaces semgrep. *)
-let not_implemented_in_mlgrep = 99
+(* Temporary until either osemgrep dies or replaces semgrep. *)
+let not_implemented_in_osemgrep = 99
 
 type level =
   | Warn (* = 3; Always an error *)

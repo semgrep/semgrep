@@ -16,7 +16,7 @@ type target_source =
   | Targets of Input_to_core_t.targets
 
 (* All rules and targets applicable to a specific language.
-   This is passed directly by the new mlgrep implementation, not
+   This is passed directly by the new osemgrep implementation, not
    from the semgrep-core command line. *)
 type lang_job = { lang : Xlang.t; targets : filename list; rules : Rule.t list }
 

@@ -1,14 +1,14 @@
-# mlgrep to-do list and notes
+# osemgrep to-do list and notes
 
 The goal of this file is to track progress and share ideas about the
 migration of the Python CLI wrapper to OCaml, known temporarily as
-mlgrep.
+osemgrep.
 
 ## October 10, 2022
 
 by Martin:
 
-- `mlgrep scan` is the only subcommand that was (partially)
+- `osemgrep scan` is the only subcommand that was (partially)
   implemented.
 - Target management needs some testing. In particular, unit tests that
   check that a file tree is identifies targets correctly per
@@ -31,7 +31,7 @@ by Martin:
     under the hood.
   - I haven't used other HTTP libraries for OCaml in recent years. I'm
     not sure if there's a solid alternative that's worth using.
-- A lot of the current code under `mlgrep/` is transitory and will
+- A lot of the current code under `osemgrep/` is transitory and will
   disappear or get renamed as we progress in the migration.
 - I found that small functionality can be translated directly from
   Python. However, for bigger features such as the whole target manager,
@@ -44,9 +44,9 @@ by Martin:
   based on Python-compatible glob patterns. Maybe this could be done
   with the Glob module of the ocaml-re library, or maybe we need to
   write our own parser to be fully backward-compatible.
-- End-to-end/QA tests are run from `/cli/semgrep` using `make mlgrep-e2e` or `mlgrep-qa`. The latter takes longer. I suggest
+- End-to-end/QA tests are run from `/cli/semgrep` using `make osemgrep-e2e` or `osemgrep-qa`. The latter takes longer. I suggest
   focusing on the former initially. See inside the makefile for more info.
-- The `mlgrep-util/` source folder is a mixed bag. I wasn't sure which
+- The `osemgrep-util/` source folder is a mixed bag. I wasn't sure which
   code was needed just for `semgrep scan` and what would be used by
   the other subcommands.
 - `semgrep-scan` contains the code relevant to the `semgrep scan`
@@ -73,5 +73,5 @@ by Martin:
 
 Other long-term or vague ideas:
 
-- consider making `mlgrep` the new `semgrep` command and have it fall back
+- consider making `osemgrep` the new `semgrep` command and have it fall back
   to calling `semgrep-py` (the old `semgrep`).
