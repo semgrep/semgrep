@@ -1,0 +1,25 @@
+(*
+   Exit codes of the semgrep executable (not just 'semgrep scan')
+*)
+
+(* This ensures that exit codes are declared and documented here. *)
+type t = private int
+
+(* 'to_int x' is the same as '(x :> int)'. *)
+val to_int : t -> int
+val of_int : int -> t
+
+(*
+   Standard exit codes.
+   All calls to exit must use one of these.
+*)
+val ok : t
+val findings : t
+val fatal : t
+val invalid_pattern : t
+val unparseable_yaml : t
+val missing_config : t
+val invalid_language : t
+val invalid_api_key : t
+val scan_fail : t
+val not_implemented_in_osemgrep : t
