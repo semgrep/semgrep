@@ -1,8 +1,11 @@
 open IL
 
+(* coupling: Dataflow_xyz.str_of_name *)
+let string_of_name name = Common.spf "%s:%d" (fst name.ident) name.sid
+
 let string_of_base base =
   match base with
-  | Var x -> str_of_name x ^ ":" ^ string_of_int x.sid
+  | Var x -> string_of_name x
   | VarSpecial _ -> "<VarSpecial>"
   | Mem _ -> "<Mem>"
 
@@ -40,6 +43,9 @@ let short_string_of_node_kind nkind =
   | NGoto (_, l) -> "goto " ^ str_of_label l
   | NReturn _ -> "return ...;"
   | NThrow _ -> "throw ...;"
+  | NLambda params ->
+      let params_strs = Common.map string_of_name params in
+      "LAMBDA " ^ String.concat ", " params_strs
   | NOther (Noop str) -> Common.spf "<noop: %s>" str
   | NOther _ -> "<other>"
   | NInstr x -> (
