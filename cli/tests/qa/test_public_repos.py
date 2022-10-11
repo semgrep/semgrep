@@ -6,17 +6,18 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import appdirs
 import pytest
 
 from ..conftest import TESTS_PATH
+from ..semgrep_runner import SEMGREP_BASE_COMMAND
 from .public_repos import REPOS
 
 # Some improbable string that was implanted in test targets [how?] [why?].
 #
+
 SENTINEL_VALUE = 87518275812375164
 
 LANGUAGE_SENTINELS = {
@@ -52,10 +53,7 @@ def chdir(dirname=None):
 
 
 def assert_sentinel_results(repo_path, sentinel_path, language):
-    cmd = [
-        sys.executable,
-        "-m",
-        "semgrep",
+    cmd = SEMGREP_BASE_COMMAND + [
         "--disable-version-check",
         "--pattern",
         SENTINEL_PATTERN,
@@ -162,10 +160,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo):
 
         assert_sentinel_results(repo_path, sentinel_path, language)
 
-    cmd = [
-        sys.executable,
-        "-m",
-        "semgrep",
+    cmd = SEMGREP_BASE_COMMAND + [
         "--disable-version-check",
         "--config=rules/regex-sentinel.yaml",
         "--strict",

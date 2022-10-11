@@ -50,6 +50,7 @@ def init_lsp(
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.no_semgrep_cli
 def test_lsp_init(lsp, tmp_path, snapshot):
     init_lsp(lsp, rule_path="rules/eqeq-python.yaml")
     assert lsp._ready
@@ -57,6 +58,7 @@ def test_lsp_init(lsp, tmp_path, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.no_semgrep_cli
 def test_lsp_diagnostics(lsp, tmp_path, snapshot):
     init_lsp(lsp, rule_path="rules/eqeq-python.yaml")
     lsp.m_text_document__did_open(
@@ -69,6 +71,7 @@ def test_lsp_diagnostics(lsp, tmp_path, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.no_semgrep_cli
 def test_lsp_code_action(lsp, tmp_path, snapshot):
     init_lsp(lsp, rule_path="rules/autofix/autofix.yaml")
     # Open document
@@ -92,6 +95,7 @@ def test_lsp_code_action(lsp, tmp_path, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.no_semgrep_cli
 def test_lsp_inlay_hint(lsp, tmp_path, snapshot):
     init_lsp(lsp, rule_path="rules/eqeq-python.yaml")
     lsp.m_text_document__did_open(
@@ -115,6 +119,7 @@ def test_lsp_inlay_hint(lsp, tmp_path, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.no_semgrep_cli
 def test_lsp_workspace_folders(lsp, tmp_path):
     init_lsp(lsp, watch_workspace=True)
     dirs = []
@@ -138,6 +143,7 @@ def test_lsp_workspace_folders(lsp, tmp_path):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.no_semgrep_cli
 def test_lsp_workspace_auto_config(lsp, tmp_path):
     with open(tmp_path / "semgrep.yaml", "w") as s:
         with open(tmp_path / "rules/eqeq-python.yaml") as f:
@@ -147,6 +153,7 @@ def test_lsp_workspace_auto_config(lsp, tmp_path):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.no_semgrep_cli
 def test_lsp_metrics_measurement(lsp, tmp_path, mocker):
     init_lsp(lsp, rule_path="rules/eqeq-python.yaml")
     tmp_file = tmp_path / "foo.py"
