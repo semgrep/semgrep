@@ -47,7 +47,7 @@ type result = {
   explanations : C.matching_explanation list option;
 }
 
-let merge_lists get_list xs = Common.map get_list xs |> List.flatten
+let merge_lists get_list xs = List.concat_map get_list xs
 
 let merge_results result_list : Report.final_result =
   let open Report in

@@ -64,7 +64,7 @@ exception Semgrep_error of t
 let register_exception_printer () =
   Printexc.register_printer (function
     | Semgrep_error err -> Some (string_of_error err)
-    | _ -> None)
+    | _else_ -> None)
 
 (*
    Modify the behavior of 'Printexc.to_string' to print Semgrep exceptions

@@ -93,8 +93,8 @@ let select_global_targets ?(includes = []) ?(excludes = []) ~max_target_bytes
     ~respect_git_ignore ?(baseline_handler : baseline_handler option)
     ?(file_ignore : file_ignore option) paths =
   let paths =
-    Common.map (List_files.list_regular_files ~keep_root:true) paths
-    |> List.flatten |> deduplicate_list
+    List.concat_map (List_files.list_regular_files ~keep_root:true) paths
+    |> deduplicate_list
   in
   let paths, skipped_paths =
     global_filter ~opt_lang:None ~sort_by_decr_size:true paths

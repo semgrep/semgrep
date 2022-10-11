@@ -68,4 +68,4 @@ let list_regular_files ?(keep_root = false) root_path =
          else
            match stat.st_kind with
            | Unix.S_REG -> Some path
-           | _ -> None)
+           | _else_ -> None)

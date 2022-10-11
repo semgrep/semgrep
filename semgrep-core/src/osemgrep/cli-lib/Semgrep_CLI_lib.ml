@@ -72,7 +72,7 @@ let dispatch_subcommand argv =
       | "publish" -> missing_subcommand ()
       | "scan" -> Semgrep_scan.main subcmd_argv
       | "shouldafound" -> missing_subcommand ()
-      | _ -> (* should have defaulted to 'scan' above *) assert false)
+      | _else_ -> (* should have defaulted to 'scan' above *) assert false)
 
 let main argv =
   Printexc.record_backtrace true;
