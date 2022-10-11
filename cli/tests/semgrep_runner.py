@@ -1,5 +1,5 @@
 #
-# Run either semgrep in the same process using Click or inovke the
+# Run either semgrep in the same process using Click or invoke the
 # osemgrep command, which reimplements the semgrep CLI in OCaml.
 #
 # This is replacement for CliRunner provided by Click.
@@ -59,6 +59,13 @@ SEMGREP_BASE_COMMAND_STR: str = " ".join(SEMGREP_BASE_COMMAND)
 class Result:
     """Minimal properties of click.testing.Result used in our project.
 
+    This is for compatibility with the test suite that uses a thing called
+    Click to run a Python program without launching a new Python interpreter.
+    Click is used by the tests to invoke 'semgrep' without incurring
+    the 1-second startup delay each time the Python program starts. There's
+    no such problem with the OCaml implementation but we must reproduce
+    a result object that's sufficiently similar to what the Click invocation
+    returns.
     https://click.palletsprojects.com/en/8.0.x/api/#click.testing.Result
     """
 
