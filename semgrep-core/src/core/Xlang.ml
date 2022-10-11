@@ -28,6 +28,11 @@ let lang_of_opt_xlang (x : t option) : Lang.t =
   | None -> failwith (Lang.unsupported_language_message "unset")
   | Some xlang -> to_lang xlang
 
+let flatten x =
+  match x with
+  | L (lang, langs) -> Common.map (fun x -> L (x, [])) (lang :: langs)
+  | (LRegex | LGeneric) as x -> [ x ]
+
 let assoc : (string * t) list =
   Common.map (fun (k, v) -> (k, of_lang v)) Lang.assoc
   @ [ ("regex", LRegex); ("generic", LGeneric) ]

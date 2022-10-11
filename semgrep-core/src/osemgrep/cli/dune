@@ -1,0 +1,24 @@
+; Build a semgrep executable named osemgrep. It will hopefully become
+; a viable replacement for the Python implementation and be renamed 'semgrep'.
+
+(executables
+ (names Main)
+ (libraries
+   Semgrep_CLI_lib
+ )
+ (preprocess (pps ppx_profiling))
+ ; for ocamldebug
+ (modes native byte)
+ (flags (:include flags.sexp))
+)
+
+; use cli/flags.sh to generate the OS specific build flags
+(rule
+ (targets flags.sexp)
+ (action (run %{workspace_root}/src/cli/flags.sh)))
+
+(install
+ (package semgrep)
+ (section bin)
+ (files (Main.exe as osemgrep))
+)
