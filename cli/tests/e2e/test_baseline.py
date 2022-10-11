@@ -1,5 +1,4 @@
 import subprocess
-import sys
 import tempfile
 from collections import defaultdict
 from itertools import permutations
@@ -7,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
+from tests.semgrep_runner import SEMGREP_BASE_COMMAND
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -95,10 +95,7 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
     Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
     env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
 
-    cmd = [
-        sys.executable,
-        "-m",
-        "semgrep",
+    cmd = SEMGREP_BASE_COMMAND + [
         "--disable-version-check",
         "--metrics",
         "off",
@@ -624,10 +621,12 @@ def test_renamed_file(git_tmp_path, snapshot, new_name):
     }, "the old path should be gone now"
 
 
+@pytest.mark.todo
 def test_multiple_on_same_line(git_tmp_path, snapshot):
     pass
 
 
+@pytest.mark.todo
 def test_run_in_subdirectory(git_tmp_path, snapshot):
     pass
 
@@ -650,6 +649,7 @@ def test_unstaged_changes(git_tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
 
+@pytest.mark.todo
 def test_baseline_has_head_untracked(git_tmp_path, snapshot):
     pass
 

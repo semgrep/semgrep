@@ -24,6 +24,12 @@ val to_lang : t -> Lang.t
 (* raises an exception with error message *)
 val lang_of_opt_xlang : t option -> Lang.t
 
+(*
+   Convert an object that represent a pattern's multiple languages into
+   the list of target languages of the form 'L (lang, [])'.
+*)
+val flatten : t -> t list
+
 (* map from valid extended language names to unique xlang ID *)
 val assoc : (string * t) list
 

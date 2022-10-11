@@ -498,14 +498,14 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
 let targets_of_config (config : Runner_config.t)
     (all_rule_ids_when_no_target_file : Rule.rule_id list) :
     In.targets * Out.skipped_target list =
-  match (config.target_file, config.roots, config.lang) with
+  match (config.target_source, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
    * via -target), but it's convenient to also run semgrep-core without
    * semgrep-python and to recursively get a list of targets.
    * We just have a poor's man file targeting/filtering here, just enough
    * to run semgrep-core independently of semgrep-python to test things.
    *)
-  | "", roots, Some xlang ->
+  | None, roots, Some xlang ->
       (* less: could also apply Common.fullpath? *)
       let roots = roots |> Common.map replace_named_pipe_by_regular_file in
       let lang_opt =
@@ -529,11 +529,15 @@ let targets_of_config (config : Runner_config.t)
                })
       in
       ({ target_mappings; rule_ids }, skipped)
-  | "", _, None -> failwith "you need to specify a language with -lang"
+  | None, _, None -> failwith "you need to specify a language with -lang"
   (* main code path for semgrep python, with targets specified by -target *)
-  | target_file, roots, lang_opt ->
-      let str = Common.read_file target_file in
-      let targets = In.targets_of_string str in
+  | Some target_source, roots, lang_opt ->
+      let targets =
+        match target_source with
+        | Targets x -> x
+        | Target_file target_file ->
+            Common.read_file target_file |> In.targets_of_string
+      in
       let skipped = [] in
       (* in deep mode we actually have a single root dir passed *)
       if roots <> [] then
@@ -541,7 +545,7 @@ let targets_of_config (config : Runner_config.t)
       (* TODO: ugly, this is because the code path for -e/-f requires
        * a language, even with a -target, see test_target_file.py
        *)
-      if lang_opt <> None && config.rules_file <> "" then
+      if lang_opt <> None && config.rule_source <> None then
         failwith "if you use -targets and -rules, you should not specify a lang";
       (targets, skipped)
 
@@ -719,17 +723,29 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     targets |> Common.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
-  let rules_file = config.rules_file in
-  (* useful when using process substitution, e.g.
-   * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
-   *)
-  let rules_file = replace_named_pipe_by_regular_file rules_file in
+  let rule_source =
+    match config.rule_source with
+    | Some (Rule_file file) ->
+        (* useful when using process substitution, e.g.
+         * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
+         *)
+        Some (Rule_file (replace_named_pipe_by_regular_file file))
+    | other -> other
+  in
   try
-    logger#linfo
-      (lazy (spf "Parsing %s:\n%s" rules_file (read_file rules_file)));
     let timed_rules =
-      Common.with_time (fun () ->
-          Parse_rule.parse_and_filter_invalid_rules rules_file)
+      match rule_source with
+      | Some (Rule_file file) ->
+          logger#linfo (lazy (spf "Parsing %s:\n%s" file (read_file file)));
+          let timed_rules =
+            Common.with_time (fun () ->
+                Parse_rule.parse_and_filter_invalid_rules file)
+          in
+          timed_rules
+      | Some (Rules rules) -> ((rules, []), 0.)
+      | None ->
+          (* TODO: ensure that this doesn't happen *)
+          failwith "missing rules"
     in
     let res, files = semgrep_with_rules config timed_rules in
     (None, res, files)
@@ -741,6 +757,41 @@ let semgrep_with_raw_results_and_exn_handler config =
         { RP.empty_final_result with errors = [ E.exn_to_error "" e ] }
       in
       (Some e, res, [])
+
+(* This is ugly, with potentially some filtering operations being done twice.
+   It should get simplified when we get rid of the Python wrapper.
+   For now, we avoid code duplication.
+*)
+let semgrep_with_prepared_rules_and_targets config (x : lang_job) =
+  let lang_str = Xlang.to_string x.lang in
+  let rule_ids (* what are these for? *) =
+    Common.map
+      (fun (x : Rule.t) ->
+        let id, _tok = x.id in
+        id)
+      x.rules
+  in
+  let rule_nums = List.mapi (fun i _ -> i) rule_ids in
+  let target_mappings =
+    Common.map
+      (fun path : Input_to_core_t.target ->
+        { path; language = lang_str; rule_nums })
+      x.targets
+  in
+  let wrapped_targets : Input_to_core_t.targets =
+    { target_mappings; rule_ids }
+  in
+  let config =
+    {
+      config with
+      target_source = Some (Targets wrapped_targets);
+      rule_source = Some (Rules x.rules);
+    }
+  in
+  let opt_exn, results, _ok_targets =
+    semgrep_with_raw_results_and_exn_handler config
+  in
+  (opt_exn, results)
 
 let semgrep_with_rules_and_formatted_output config =
   let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
@@ -834,7 +885,7 @@ let pattern_of_config lang config =
    - Print the final results (json or text) using dedicated functions.
 *)
 let semgrep_with_one_pattern config =
-  assert (config.rules_file = "");
+  assert (config.rule_source = None);
 
   (* TODO: support generic and regex patterns as well? See code in Deep. *)
   let lang = Xlang.lang_of_opt_xlang config.lang in
@@ -894,5 +945,6 @@ let semgrep_with_one_pattern config =
 (* Semgrep dispatch *)
 (*****************************************************************************)
 let semgrep_dispatch config =
-  if config.rules_file <> "" then semgrep_with_rules_and_formatted_output config
+  if config.rule_source <> None then
+    semgrep_with_rules_and_formatted_output config
   else semgrep_with_one_pattern config
