@@ -19,7 +19,7 @@ let known_subcommands =
    This is to ensure that the tests that expect error status 2 fail. *)
 let missing_subcommand () =
   eprintf "This semgrep subcommand is not implemented\n%!";
-  exit Error.not_implemented_in_osemgrep
+  Exit_code.not_implemented_in_osemgrep
 
 let main_help_msg =
   {|Usage: semgrep [OPTIONS] COMMAND [ARGS]...
@@ -48,7 +48,7 @@ let dispatch_subcommand argv =
   | [] -> assert false
   | [ _; ("-h" | "--help") ] ->
       print_string main_help_msg;
-      exit Error.ok_exit_code
+      Exit_code.ok
   | argv0 :: args -> (
       let subcmd, subcmd_args =
         match args with
