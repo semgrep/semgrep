@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import Generator
+from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -151,38 +152,49 @@ def parse_package_lock(
         manifest_deps = manifest["dependencies"] if "dependencies" in manifest else {}
     else:
         manifest_deps = None
-    for dep, dep_blob in deps.items():
-        version = dep_blob.get("version")
-        if not version:
-            logger.info(f"no version for dependency: {dep}")
-            continue
-        try:
-            Version(version)
-        # Version was a github commit
-        except InvalidVersion:
-            logger.info(f"no version for dependency: {dep}")
-            continue
-        line_number = dep_blob.get("line_number")
-        if manifest_deps:
-            transitivity = (
-                Transitivity(Direct())
-                if dep in manifest_deps
-                else Transitivity(Transitive())
-            )
-        else:
-            transitivity = Transitivity(Unknown())
 
-        resolved_url = dep_blob.get("resolved")
-        integrity = dep_blob.get("integrity")
-        yield FoundDependency(
-            package=dep,
-            version=version,
-            ecosystem=Ecosystem(Npm()),
-            allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
-            resolved_url=resolved_url,
-            transitivity=transitivity,
-            line_number=int(line_number) + 1 if line_number else None,
-        )
+    def parse_deps(deps: Dict[str, Any], nested: bool) -> Iterator[FoundDependency]:
+        for dep, dep_blob in deps.items():
+            version = dep_blob.get("version")
+            if not version:
+                logger.info(f"no version for dependency: {dep}")
+                continue
+            try:
+                Version(version)
+            # Version was a github commit
+            except InvalidVersion:
+                logger.info(f"no version for dependency: {dep}")
+                continue
+            line_number = dep_blob.get("line_number")
+            if nested:
+                # Nested dependencies are always transitive
+                transitivity = Transitivity(Transitive())
+            elif manifest_deps:
+                transitivity = (
+                    Transitivity(Direct())
+                    if dep in manifest_deps
+                    else Transitivity(Transitive())
+                )
+            else:
+                transitivity = Transitivity(Unknown())
+
+            resolved_url = dep_blob.get("resolved")
+            integrity = dep_blob.get("integrity")
+            yield FoundDependency(
+                package=dep,
+                version=version,
+                ecosystem=Ecosystem(Npm()),
+                allowed_hashes=extract_npm_lockfile_hash(integrity)
+                if integrity
+                else {},
+                resolved_url=resolved_url,
+                transitivity=transitivity,
+                line_number=int(line_number) + 1 if line_number else None,
+            )
+            if nested_deps := dep_blob.get("dependencies"):
+                yield from parse_deps(nested_deps, True)
+
+    yield from parse_deps(deps, False)
 
 
 def parse_pipfile(
