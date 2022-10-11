@@ -725,7 +725,7 @@ def test_github_ci_bad_base_sha(
                 re.compile(r"(.*Main\.Run_semgrep.*)"),
                 re.compile(r"(.*Main\.Common.*)"),
                 re.compile(r"(.*Main\.Parse_target.*)"),
-                re.compile(r"(.*Main\.Cli_lib.*)"),
+                re.compile(r"(.*Main\.Core_CLI.*)"),
                 re.compile(r"semgrep ran in (.*) on 1 files"),
                 re.compile(r"\"total_time\":(.*)"),
                 re.compile(r"\"commit_date\":(.*)"),
