@@ -96,26 +96,23 @@ let test_python_autofix_printer () =
   in
   List.iter check
     [
-      (* TODO foobar should be lifted from the pattern *)
       {
         target = "foo";
         pattern = "foo";
         fix_pattern = "foobar";
-        expected = "foobar";
+        expected = "pppppp";
       };
-      (* TODO baz should be lifted from the pattern *)
       {
         target = "foo + bar";
         pattern = "bar";
         fix_pattern = "baz";
-        expected = "ttttttbaz";
+        expected = "ttttttppp";
       };
-      (* TODO bar should be lifted from the pattern *)
       {
         target = "foo(1, 42, 423)";
         pattern = "foo(1, $...REST)";
         fix_pattern = "bar(baz, $...REST)";
-        expected = "bar(ppp, tt, ttt)";
+        expected = "ppp(ppp, tt, ttt)";
       };
     ]
 
