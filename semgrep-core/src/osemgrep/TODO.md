@@ -12,9 +12,7 @@ by Martin:
   implemented.
 - The output of `semgrep scan` needs to be formatted to JSON and the
   text output needs to be turned off.
-- Target management needs some testing. In particular, unit tests that
-  check that a file tree is identifies targets correctly per
-  language.
+- Target management needs completion and testing.
 - The config manager, whose job is to interpret the `--config`
   argument specifying how to obtain Semgrep rules, is unimplemented.
   Right now, it assumes the argument is a plain rule file. We need to
