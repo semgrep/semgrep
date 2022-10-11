@@ -1,0 +1,23 @@
+(executables
+ (names Main)
+ (libraries
+    core_cli
+ )
+ (preprocess (pps ppx_profiling))
+ ; for ocamldebug
+ (modes native byte)
+ (flags (:include flags.sexp))
+)
+
+
+; use cli/flags.sh to generate the OS specific build flags
+(rule
+ (targets flags.sexp)
+ (action (run %{workspace_root}/src/main/flags.sh)))
+
+
+(install
+ (package semgrep)
+ (section bin)
+ (files (Main.exe as semgrep-core))
+)
