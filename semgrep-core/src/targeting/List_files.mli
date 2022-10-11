@@ -1,7 +1,8 @@
 (*
    List files recursively in a safe, efficient, and portable manner.
 
-   Replaces the functions in pfff/commons that use external unix commands.
+   Replaces the functions in pfff/commons that use external unix commands
+   such as 'find'.
 *)
 
 type path = string

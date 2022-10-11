@@ -35,10 +35,16 @@ and iter_dir_entry func dir name =
   iter func path
 
 and iter func path =
-  let stat = Unix.stat path in
-  match stat.st_kind with
-  | Unix.S_DIR -> iter_dir func path
-  | _ (* regular, symlink, etc. *) -> func path stat
+  let stat =
+    try Some (Unix.lstat path) with
+    | Unix.Unix_error (_error_kind, _func, _info) ->
+        (* Ignore all errors. Should we ignore less? *)
+        None
+  in
+  match stat with
+  | Some { Unix.st_kind = S_DIR; _ } -> iter_dir func path
+  | Some stat (* regular file, symlink, etc. *) -> func path stat
+  | None -> ()
 
 and iter_dir func dir =
   let names = read_dir_entries dir in
@@ -57,6 +63,7 @@ let list path = list_with_stat path |> Common.map fst
 let list_regular_files ?(keep_root = false) root_path =
   list_with_stat root_path
   |> List.filter_map (fun (path, (stat : Unix.stats)) ->
+         Printf.printf "root: %s path: %s\n%!" root_path path;
          if keep_root && path = root_path then Some path
          else
            match stat.st_kind with
