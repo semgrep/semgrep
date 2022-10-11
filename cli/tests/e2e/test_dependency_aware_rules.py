@@ -40,6 +40,10 @@ from ..conftest import TESTS_PATH
             "rules/dependency_aware/monorepo.yaml",
             "dependency_aware/monorepo/",
         ),
+        (
+            "rules/dependency_aware/nested_package_lock.yaml",
+            "dependency_aware/nested_package_lock/",
+        ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
