@@ -61,21 +61,35 @@ let replace metavar_tbl pattern_ast =
               k args);
           kexpr =
             (fun (k, _) orig ->
-              (* The mapper changes the ID of expressions. This stymies the
-               * print-avoidance implemented later in the autofix process,
-               * because the resulting AST nodes cannot be recognized as the
-               * same as the original ones.
-               *
-               * To work around this, we use the original expression, except for
-               * the mapped kind.
-               *
-               * There is a note in the mapper expressing uncertainty about
-               * whether the ID should be reused or not. We should consider
-               * changing that behavior in the mapper, in which case this
-               * workaround would no longer be necessary.
-               * *)
-              let expr = k orig in
-              { orig with e = expr.e });
+              let replacement =
+                match orig.e with
+                | N (Id ((id_str, _), _)) -> (
+                    match Hashtbl.find_opt metavar_tbl id_str with
+                    | Some (MV.E e) -> Some e
+                    | _ -> None)
+                | _ -> None
+              in
+              match replacement with
+              | None ->
+                  (* The mapper changes the ID of expressions. This stymies the
+                   * print-avoidance implemented later in the autofix process,
+                   * because the resulting AST nodes cannot be recognized as the
+                   * same as the original ones.
+                   *
+                   * To work around this, we use the original expression, except
+                   * for the mapped kind.
+                   *
+                   * There is a note in the mapper expressing uncertainty about
+                   * whether the ID should be reused or not. We should consider
+                   * changing that behavior in the mapper, in which case this
+                   * workaround would no longer be necessary. *)
+                  { orig with e = (k orig).e }
+              | Some e ->
+                  (* We found a matching metavariable binding. There is no point
+                   * searching through the metavariable value that came from the
+                   * target file for more metavariables, so we won't call `k`
+                   * here. *)
+                  e);
         })
   in
   mapper.Map_AST.vany pattern_ast

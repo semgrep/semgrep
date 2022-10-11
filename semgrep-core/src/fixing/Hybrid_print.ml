@@ -63,11 +63,12 @@ end = struct
     object
       inherit Fallback.printer as fallback
 
-      method! print_any any =
-        with_fallback (primary any) (lazy (fallback#print_any any))
-
       method! print_argument arg =
         with_fallback (primary (G.Ar arg)) (lazy (fallback#print_argument arg))
+
+      method! private print_expr_without_parens e =
+        with_fallback (primary (G.E e))
+          (lazy (fallback#print_expr_without_parens e))
 
       (* TODO Fill in more cases as needed. *)
     end
