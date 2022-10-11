@@ -36,12 +36,12 @@ qa:
 # Run the end-to-end tests using osemgrep instead of the Python CLI.
 .PHONY: osemgrep-e2e
 osemgrep-e2e:
-	PYTEST_USE_MLGREP=true $(MAKE) e2e
+	PYTEST_USE_OSEMGREP=true $(MAKE) e2e
 
 # Run the quality assurance tests using osemgrep instead of the Python CLI.
 .PHONY: osemgrep-qa
 osemgrep-qa:
-	PYTEST_USE_MLGREP=true $(MAKE) qa
+	PYTEST_USE_OSEMGREP=true $(MAKE) qa
 
 .PHONY: check
 check:

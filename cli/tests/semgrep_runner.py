@@ -39,18 +39,18 @@ def get_env_bool(var_name: str) -> Optional[bool]:
 
 
 # Environment variables that trigger the use of osemgrep
-MLGREP_PATH = "osemgrep"
-env_osemgrep = os.environ.get("PYTEST_MLGREP")
+OSEMGREP_PATH = "osemgrep"
+env_osemgrep = os.environ.get("PYTEST_OSEMGREP")
 if env_osemgrep:
-    MLGREP_PATH = env_osemgrep
+    OSEMGREP_PATH = env_osemgrep
 
-USE_MLGREP = get_env_bool("PYTEST_USE_MLGREP")
+USE_OSEMGREP = get_env_bool("PYTEST_USE_OSEMGREP")
 
 # The semgrep command suitable to run semgrep as a separate process.
 # It's something like ["semgrep"] or ["python3"; -m; "semgrep"] or
 # ["/path/to/osemgrep"].
 SEMGREP_BASE_COMMAND: List[str] = (
-    [MLGREP_PATH] if USE_MLGREP else [sys.executable, "-m", "semgrep"]
+    [OSEMGREP_PATH] if USE_OSEMGREP else [sys.executable, "-m", "semgrep"]
 )
 
 SEMGREP_BASE_COMMAND_STR: str = " ".join(SEMGREP_BASE_COMMAND)
@@ -99,7 +99,7 @@ def invoke_osemgrep(
         arg_list = args.split(" ")
     elif isinstance(args, List):
         arg_list = args
-    argv: List[str] = [MLGREP_PATH] + arg_list
+    argv: List[str] = [OSEMGREP_PATH] + arg_list
     env_dict = {}
     if env:
         env_dict = env
@@ -117,7 +117,7 @@ class SemgrepRunner:
     """
 
     def __init__(self, env=None, mix_stderr=True):
-        self._use_osemgrep = USE_MLGREP
+        self._use_osemgrep = USE_OSEMGREP
         self._output = ""
         self._env = env
         self._mix_stderr = mix_stderr
