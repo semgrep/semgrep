@@ -1,24 +1,15 @@
-; Build a semgrep executable named osemgrep. It will hopefully become
-; a viable replacement for the Python implementation and be renamed 'semgrep'.
+; Implementation of the 'semgrep' command-line in OCaml.
+; This builds a library. The executable's entry point is defined in ../main
+;
+(library
+  (name cli)
+  (wrapped false)
+  (libraries
+    ; External libraries
+    cmdliner
+    commons
 
-(executables
- (names Main)
- (libraries
-   Semgrep_CLI_lib
- )
- (preprocess (pps ppx_profiling))
- ; for ocamldebug
- (modes native byte)
- (flags (:include flags.sexp))
-)
-
-; use cli/flags.sh to generate the OS specific build flags
-(rule
- (targets flags.sexp)
- (action (run %{workspace_root}/src/cli/flags.sh)))
-
-(install
- (package semgrep)
- (section bin)
- (files (Main.exe as osemgrep))
+    ; Internal libraries
+    Semgrep_scan
+  )
 )

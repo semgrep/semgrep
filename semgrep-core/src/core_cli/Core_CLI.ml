@@ -777,7 +777,7 @@ let register_exception_printers () =
   Rule.register_exception_printer ()
 
 (* Entry point from either the executable or the shared library. *)
-let cli_lib_main (argv : string array) : unit =
+let main (argv : string array) : unit =
   Common.main_boilerplate (fun () ->
       register_exception_printers ();
       Common.finalize

@@ -48,7 +48,7 @@ let semgrep_cli_lib_main (argv : string array)
   ignore bridge_read_file;
 
   (* Call the main analysis. *)
-  Cli_lib.cli_lib_main argv
+  Core_CLI.main argv
 
 (* Register the entry point so it can be called from C. *)
 let () = Callback.register "semgrep_cli_lib_main" semgrep_cli_lib_main
