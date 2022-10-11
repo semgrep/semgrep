@@ -10,6 +10,8 @@ markers = [
     "quick: test takes less than 100 ms",
     "kinda_slow: test takes up to 2s",
     "slow: test takes more than 2s",
+    "todo: the test is not implemented or needs work",
+    "no_semgrep_cli: this test doesn't invoke the semgrep CLI or osemgrep",
 ]
 
 [tool.tox]
