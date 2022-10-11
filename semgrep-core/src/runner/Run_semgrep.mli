@@ -124,6 +124,14 @@ val semgrep_with_raw_results_and_exn_handler :
     parallel, with some memory limits, and aggregate the results.
 *)
 
+(* Same as semgrep_with_raw_results_and_exn_handler but takes rules
+   and targets already filtered for a specific language.
+   All other options are read from the runner_config object. *)
+val semgrep_with_prepared_rules_and_targets :
+  Runner_config.t ->
+  Runner_config.lang_job ->
+  Exception.t option * Report.final_result
+
 (* utilities functions used in tests or semgrep-core variants *)
 
 val replace_named_pipe_by_regular_file : Common.filename -> Common.filename
