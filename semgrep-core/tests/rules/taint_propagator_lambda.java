@@ -1,3 +1,7 @@
+// https://github.com/returntocorp/semgrep/issues/5971
+// only func4 truly tests taint propagators but we include the remaining examples
+// for extra coverage of taint-mode
+
 class Test {
 
     public void func1() {

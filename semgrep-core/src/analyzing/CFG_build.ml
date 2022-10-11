@@ -58,7 +58,14 @@ type state = {
   try_catches_opt : F.nodei option;
   (* Lambdas are always assigned to a variable in IL, this table records the
    * name-to-lambda mapping. Whenever a lambda is fetched, we look it up here
-   * and we generate the lambda's CFG right at the use site. *)
+   * and we generate the lambda's CFG right at the use site.
+   *
+   * Why at the use site? So that the fixpoint function will visit them in the
+   * right order. Then we can propagate taint from e.g. an object receiving
+   * a method call, to a lambda being passed to that method. Previously, we
+   * always inserted the lambdas CFGs preceding their use, so taint propagation
+   * could not happen.
+   *)
   lambdas : (name, IL.function_definition) Hashtbl.t;
   (* If a lambda is never used, we just insert its CFG at declaration site. *)
   unused_lambdas : (name, nodei * nodei) Hashtbl.t;
@@ -168,7 +175,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
             | None -> newi)
         | AssignAnon ({ base = Var name; rev_offset = [] }, Lambda fdef) ->
             (* Just in case the lambda CFG needs be inserted here later on (if the
-             * lambda is never dereferened) then we have to insert a JOIN node here,
+             * lambda is never dereferenced) then we have to insert a JOIN node here,
              * see cfg_lambda. *)
             let lasti = state.g#add_node { F.n = F.Join } in
             state.g |> add_arc (newi, lasti);
