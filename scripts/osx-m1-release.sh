@@ -28,12 +28,12 @@ eval "$(opam env)"
 # Needed so we don't make config w/ sudo
 export HOMEBREW_SYSTEM=1
 
-make setup
-
 # Remove pcre dynamically linked to force MacOS to use static
 # This needs to be done before make setup since it is used there
-ls -l /usr/local/opt/pcre/lib || true
-rm -f /usr/local/opt/pcre/lib/libpcre.1.dylib
+ls -l "$(brew --prefix)"/opt/pcre/lib || true
+rm -f "$(brew --prefix)"/opt/pcre/lib/libpcre.1.dylib
+
+make setup
 
 # Remove dynamically linked libraries to force MacOS to use static ones
 # This needs to be done after make setup but before make build-*
