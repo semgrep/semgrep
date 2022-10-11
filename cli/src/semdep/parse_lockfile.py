@@ -154,6 +154,9 @@ def parse_package_lock(
         manifest_deps = None
 
     def parse_deps(deps: Dict[str, Any], nested: bool) -> Iterator[FoundDependency]:
+        # Dependency dicts in a package-lock.json can be nested:
+        # {"foo" : {stuff, "dependencies": {"bar": stuff, "dependencies": {"baz": stuff}}}}
+        # So we need to handle them recursively
         for dep, dep_blob in deps.items():
             version = dep_blob.get("version")
             if not version:
