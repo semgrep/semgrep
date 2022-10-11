@@ -49,7 +49,7 @@
 (*****************************************************************************)
 (* This is the entry point for semgrep-core stand-alone program.
  *
- * Most of the code in this file has been moved to cli-lib/Cli_lib.ml,
+ * Most of the code in this file has been moved to core_cli/Core_CLI.ml,
  * which contains the main command line parsing logic. The code
  * was moved to Cli_lib, a library, so it can be used both for
  * the stand-alone semgrep-core binary as well as the semgrep_bridge.so
