@@ -194,7 +194,8 @@ def parse_package_lock(
                 transitivity=transitivity,
                 line_number=int(line_number) + 1 if line_number else None,
             )
-            if nested_deps := dep_blob.get("dependencies"):
+            nested_deps = dep_blob.get("dependencies")
+            if nested_deps:
                 yield from parse_deps(nested_deps, True)
 
     yield from parse_deps(deps, False)
