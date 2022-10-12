@@ -29,11 +29,4 @@ type conf = {
 
 (* Command-line defaults. *)
 val default : conf
-
-(*
-   Usage: parse_and_run [| "semgrep-scan"; <args> |] run
-
-   This function returns an exit code to be passed to the 'exit' function.
-   Exceptions are caught and turned into an appropriate exit code.
-*)
-val parse_and_run : string array -> (conf -> Exit_code.t) -> Exit_code.t
+val parse_argv : string array -> (conf, Exit_code.t) result
