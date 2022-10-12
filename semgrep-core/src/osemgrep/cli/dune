@@ -2,7 +2,7 @@
 ; This builds a library. The executable's entry point is defined in ../main
 ;
 (library
-  (name cli)
+  (name osemgrep_cli)
   (wrapped false)
   (libraries
     ; External libraries
@@ -10,6 +10,6 @@
     commons
 
     ; Internal libraries
-    Semgrep_scan
+    osemgrep_cli_scan
   )
 )
