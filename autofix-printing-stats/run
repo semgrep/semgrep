@@ -1,0 +1,230 @@
+#!/usr/bin/env ocaml
+
+(* Gathers statistics on how successful semgrep-core is in printing autofixes.
+ *
+ * When `--upload` is passed as an argument, also uploads the calculated data to
+ * dashboard.semgrep.dev.
+ *)
+
+#load "unix.cma"
+
+#load "str.cma"
+
+let spf = Printf.sprintf
+
+(* Sets the current working directory to the location of this executable. May
+ * need to change this if we start compiling rather than executing directly with
+ * `ocaml` *)
+let set_cwd () = Unix.chdir (Filename.dirname Sys.argv.(0))
+
+(* Change to the given directory, execute `f`, then change back *)
+let with_chdir dir f =
+  let olddir = Unix.getcwd () in
+  Unix.chdir dir;
+  Fun.protect f ~finally:(fun () -> Unix.chdir olddir)
+
+let assert_good_exit cmd =
+  Unix.(
+    function
+    | WEXITED 0 -> ()
+    | WEXITED code
+    | WSIGNALED code
+    | WSTOPPED code ->
+        failwith (spf "Command `%s` failed with exit code %d" cmd code))
+
+(* Runs the command, printing its output to stdout, and verifies that it exits
+ * cleanly *)
+let system cmd args =
+  let cmd = Filename.quote_command cmd args in
+  let status = Unix.system cmd in
+  assert_good_exit cmd status
+
+(* Runs the command and returns its stdout as a string. Optionally trims the
+ * output of leading and trailing whitespace *)
+let run ?(trim = false) cmd args =
+  let cmd = Filename.quote_command cmd args in
+  let channel = Unix.open_process_in cmd in
+  let text = In_channel.input_all channel in
+  let status = Unix.close_process_in channel in
+  assert_good_exit cmd status;
+  if trim then String.trim text else text
+
+(* From a git URL, extract the organization and project name to create a
+ * canonical name for the project *)
+let project_name_of_url url =
+  let without_dot_git = Str.global_replace (Str.regexp ".git$") "" url in
+  let split = String.split_on_char '/' without_dot_git in
+  let rec extract_name = function
+    | [ org; project ] -> org ^ "-" ^ project
+    | hd :: tl -> extract_name tl
+    | [] -> failwith (spf "Could not extract project name from %s" url)
+  in
+  extract_name split
+
+let projects_file = "projects.txt"
+
+(* Clone all projects in projects.txt and stores them in the `tmp` directory *)
+let clone_project_files url =
+  let project_name = project_name_of_url url in
+  system "mkdir" [ "-p"; "tmp" ];
+  with_chdir "tmp" (fun () ->
+      if Sys.file_exists project_name then (
+        print_endline (spf "Using local git repo for '%s'." project_name);
+        let origin_url =
+          run ~trim:true "git"
+            [ "-C"; project_name; "remote"; "get-url"; "origin" ]
+        in
+        if url <> origin_url then
+          failwith
+            (spf
+               "Wrong remote URL found in cloned repository '%s':\n\
+                found '%s'\n\
+                expected '%s'\n\
+                Check that you don't have two project URLs with the same repo \
+                name."
+               project_name origin_url url))
+      else (
+        print_endline (spf "Cloning '%s' from '%s'." project_name url);
+        (* Since we do not care about revision history or Git Large File Storage
+         * files, we can shallow clone and ignore LFS pointers to expedite
+         * cloning. *)
+        (* Use bash -c so that we can easily set the env variable *)
+        system "bash"
+          [
+            "-c";
+            spf "GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 '%s' '%s'" url
+              project_name;
+          ]));
+  project_name
+
+let record_results results lang success_count total_count =
+  let old_success, old_total =
+    match Hashtbl.find_opt results lang with
+    | Some x -> x
+    | None -> (0, 0)
+  in
+  let new_success = success_count + old_success in
+  let new_total = total_count + old_total in
+  Hashtbl.replace results lang (new_success, new_total)
+
+(* Map extensions to language names, for all languages we want autofix stats
+ * for. The language names must be those that semgrep-core recognizes.
+ *
+ * TODO reuse existing logic in semgrep-core? *)
+let lang_of_path path =
+  match Filename.extension path with
+  | ".py" -> Some "python"
+  | __else__ -> None
+
+let run_on_target results rule target =
+  match lang_of_path target with
+  | None -> ()
+  | Some lang ->
+      let fixes =
+        (* Use bash -c so we can pipe to jq.
+         *
+         * Use jq to inspect the json output of semgrep-core and reduce it to a
+         * list consisting only of the `rendered_fix` field of each match, if
+         * any. *)
+        run ~trim:true "bash"
+          [
+            "-c";
+            spf
+              "semgrep-core -l '%s' -rules '%s' '%s' -json_nodots | jq \
+               .matches[].extra.rendered_fix || true"
+              lang rule target;
+          ]
+      in
+      let fix_list = String.split_on_char '\n' fixes in
+      let success_list = List.filter (fun x -> x <> "null") fix_list in
+      record_results results lang (List.length success_list)
+        (List.length fix_list)
+
+(* All we know currently is that we have some YAML file that contains the string
+ * `fix:`. Let's see if it exists alongside any potential target files whose
+ * names differ only in the extension. If we find any, try running the rule over
+ * the target file to see if semgrep-core can render a fix. *)
+let test_potential_rule results rule_path =
+  let ruledir = Filename.dirname rule_path in
+  with_chdir ruledir (fun () ->
+      let rule_base = Filename.basename rule_path in
+      let without_ext = Filename.remove_extension rule_base in
+      let target_candidates = Sys.readdir "." |> Array.to_list in
+      (* Matches `without_ext` followed by a single alphabetic file extension *)
+      let target_regex = Str.regexp (spf "^%s\\.[a-zA-Z]+$" without_ext) in
+      let targets =
+        List.filter
+          (fun file -> Str.string_match target_regex file 0)
+          target_candidates
+      in
+      List.iter (run_on_target results rule_base) targets)
+
+(* Run all Semgrep autofix rules in this project against their test targets, and
+ * measure how often semgrep-core is able to successfully render a fix. *)
+let test_project results project_name =
+  with_chdir project_name (fun () ->
+      (* Find all YAML files that contain lines starting with whitespace
+       * followed by `fix:` *)
+      let potential_rules =
+        run ~trim:true "find"
+          [
+            ".";
+            "-name";
+            "*.y*ml";
+            "-exec";
+            "grep";
+            "-l";
+            "^\\( \\|\\t\\)*fix:";
+            "{}";
+            ";";
+          ]
+        |> String.split_on_char '\n'
+      in
+      List.iter (test_potential_rule results) potential_rules)
+
+let results_host = "https://dashboard.semgrep.dev"
+
+let upload_results should_upload results =
+  results
+  |> Hashtbl.iter (fun lang (success, total) ->
+         let percent = 100. *. (float_of_int success /. float_of_int total) in
+         print_endline
+           (spf "%s: %.1f%% (%d/%d)" lang percent success total);
+         if should_upload then
+           (* Send a POST request with the success percentage as the payload *)
+           (system "curl"
+             [
+               "-d";
+               spf "%.1f" percent;
+               "-X";
+               "POST";
+               spf "%s/api/metric/semgrep.core.%s.autofix.pct" results_host lang;
+             ];
+           print_newline ()))
+
+let main () =
+  print_endline (spf "OCaml version: %s" Sys.ocaml_version);
+  let should_upload =
+    if Array.length Sys.argv >= 2 then
+      Sys.argv.(1) = "--upload"
+    else
+      false
+  in
+  (if should_upload then
+    print_endline "Uploading statistics"
+    else print_endline "Not uploading statistics. Pass --upload to upload."
+  );
+  set_cwd ();
+  let sc_path = run ~trim:true "which" [ "semgrep-core" ] in
+  print_endline (spf "Using %s" sc_path);
+  let url_list =
+    run ~trim:true "grep" [ "-v"; "'^ *\\(#\\| *$\\)'"; projects_file ]
+    |> String.split_on_char '\n'
+  in
+  let project_names = List.map clone_project_files url_list in
+  let results = Hashtbl.create (List.length project_names) in
+  with_chdir "tmp" (fun () -> List.iter (test_project results) project_names);
+  upload_results should_upload results
+;;
+
+main ()
