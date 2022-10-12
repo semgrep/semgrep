@@ -70,6 +70,14 @@ class type printer_t =
     method print_call :
       G.expr -> G.arguments -> (Immutable_buffer.t, string) result
 
+    (* Takes `expr` rather than `operator` to facilitate hybrid_print. The
+     * hybrid_print primary printer takes an `AST_generic.any`, and there is no
+     * `any` variant for `operator`.
+     *
+     * We could refactor to support this but unless we run into other similar
+     * issues, it doesn't seem worth the additional boilerplate. This doesn't
+     * make implementing a printer any more difficult, since `print_expr` should
+     * handle `IdSpecial (Op ...)` anyway. *)
     method print_opcall :
       G.expr -> G.arguments -> (Immutable_buffer.t, string) result
 
@@ -171,6 +179,9 @@ class base_printer : printer_t =
 
     (* TODO Add more nodes as needed. *)
 
+    (* Currently is overly defensive, and inserts parentheses whenever they
+     * *might* be needed. At some point, we should print them only when they are
+     * actually needed. *)
     method private needs_parens =
       function
       | G.E { e = G.Call ({ e = G.IdSpecial (G.Op _, _); _ }, _); _ } -> true

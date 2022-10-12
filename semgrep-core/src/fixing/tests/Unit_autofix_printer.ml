@@ -114,6 +114,12 @@ let test_python_autofix_printer () =
         fix_pattern = "bar(baz, $...REST)";
         expected = "ppp(ppp, tt, ttt)";
       };
+      {
+        target = "3 * 2 + 5 * 2";
+        pattern = "$X * 2 + $Y * 2";
+        fix_pattern = "($X + $Y) * 2";
+        expected = "((t p t) p p)";
+      };
     ]
 
 let tests =
