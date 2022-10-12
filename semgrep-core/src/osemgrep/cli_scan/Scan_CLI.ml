@@ -38,6 +38,7 @@ type conf = {
   metrics : Metrics.State.t;
   num_jobs : int;
   optimizations : bool;
+  output_format : Constants.output_format;
   pattern : string option;
   quiet : bool;
   respect_git_ignore : bool;
@@ -66,6 +67,7 @@ let default : conf =
     metrics = Metrics.State.Auto;
     num_jobs = get_cpu_count ();
     optimizations = false;
+    output_format = Constants.Text;
     pattern = None;
     quiet = false;
     respect_git_ignore = true;
@@ -290,6 +292,23 @@ let o_debug =
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Output formats" (mutually exclusive) *)
 (* ------------------------------------------------------------------ *)
+let o_json =
+  let info =
+    Arg.info [ "json" ] ~doc:{|Output results in Semgrep's JSON format.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_emacs =
+  let info =
+    Arg.info [ "emacs" ] ~doc:{|Output results in Emacs single-line format.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_vim =
+  let info =
+    Arg.info [ "vim" ] ~doc:{|Output results in vim single-line format.|}
+  in
+  Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Configuration options" *)
@@ -360,9 +379,20 @@ let o_target_roots =
 (*****************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine autofix baseline_commit config debug exclude include_ lang
-      max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
-      quiet respect_git_ignore target_roots timeout timeout_threshold verbose =
+  let combine autofix baseline_commit config debug emacs exclude include_ json
+      lang max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
+      quiet respect_git_ignore target_roots timeout timeout_threshold verbose
+      vim =
+    let output_format =
+      match (json, emacs, vim) with
+      | false, false, false -> default.output_format
+      | true, false, false -> Constants.Json
+      | false, true, false -> Constants.Emacs
+      | false, false, true -> Constants.Vim
+      | _else_ ->
+          (* TOPORT: list the possibilities *)
+          failwith "Mutually recursive options"
+    in
     {
       autofix;
       baseline_commit;
@@ -376,6 +406,7 @@ let cmdline_term : conf Term.t =
       metrics;
       num_jobs;
       optimizations;
+      output_format;
       pattern;
       quiet;
       respect_git_ignore;
@@ -387,11 +418,11 @@ let cmdline_term : conf Term.t =
   in
   (* Term defines 'const' but also the '$' operator *)
   Term.(
-    const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
-    $ o_exclude $ o_include $ o_lang $ o_max_memory_mb $ o_max_target_bytes
-    $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern $ o_quiet
-    $ o_respect_git_ignore $ o_target_roots $ o_timeout $ o_timeout_threshold
-    $ o_verbose)
+    const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug $ o_emacs
+    $ o_exclude $ o_include $ o_json $ o_lang $ o_max_memory_mb
+    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern
+    $ o_quiet $ o_respect_git_ignore $ o_target_roots $ o_timeout
+    $ o_timeout_threshold $ o_verbose $ o_vim)
 
 let doc = "run semgrep rules on files"
 
