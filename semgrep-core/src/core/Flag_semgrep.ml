@@ -20,10 +20,6 @@ let pfff_only = ref false
 (* look if identifiers in pattern intersect with file using simple regexps *)
 let filter_irrelevant_patterns = ref false
 
-(* similar to filter_irrelevant_patterns, but use the whole rule to extract
- * the regexp *)
-let filter_irrelevant_rules = ref false
-
 (* check for identifiers before attempting to match a stmt or stmt list
  *
  * We disabled the Bloom filter optimization by default in 0.116.0 due to its

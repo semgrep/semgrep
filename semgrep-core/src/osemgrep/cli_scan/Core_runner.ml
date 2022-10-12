@@ -132,7 +132,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    max_memory_mb;
    debug;
    output_format;
-   optimizations = _TODO;
+   optimizations;
    (* TOPORT: not handled yet *)
    autofix = _;
    baseline_commit = _;
@@ -161,7 +161,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
          *)
         | _else_ -> Runner_config.Json false
       in
-
+      let filter_irrelevant_rules = optimizations in
       {
         Runner_config.default with
         ncores = num_jobs;
@@ -170,6 +170,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
         timeout_threshold;
         max_memory_mb;
         debug;
+        filter_irrelevant_rules;
         version = Version.version;
       }
 

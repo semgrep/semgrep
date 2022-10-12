@@ -52,9 +52,7 @@ let metachecker_regression_tests () =
     ( "metachecker regresion testing",
       fun () ->
         let path = Filename.concat tests_path "metachecks" in
-        Common2.save_excursion_and_enable Flag_semgrep.filter_irrelevant_rules
-          (fun () -> Test_metachecking.test_rules ~unit_testing:true [ path ])
-    );
+        Test_metachecking.test_rules ~unit_testing:true [ path ] );
   ]
 
 (*****************************************************************************)

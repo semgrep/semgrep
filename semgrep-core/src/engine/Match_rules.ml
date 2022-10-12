@@ -72,7 +72,8 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
 (* Entry point *)
 (*****************************************************************************)
 
-let check ~match_hook ~timeout ~timeout_threshold xconf rules xtarget =
+let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
+    rules xtarget =
   let { Xtarget.file; lazy_content; lazy_ast_and_errors; _ } = xtarget in
   logger#trace "checking %s with %d rules" file (List.length rules);
   if !Common.profile = Common.ProfAll then (
@@ -85,7 +86,7 @@ let check ~match_hook ~timeout ~timeout_threshold xconf rules xtarget =
     rules
     |> Common.partition_either (fun r ->
            let relevant_rule =
-             if !Flag_semgrep.filter_irrelevant_rules then (
+             if xconf.filter_irrelevant_rules then (
                match Analyze_rule.regexp_prefilter_of_rule r with
                | None -> true
                | Some (prefilter_formula, func) ->

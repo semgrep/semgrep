@@ -525,13 +525,7 @@ let tainting_test lang rules_file file =
   let search_rules, taint_rules, extract_rules = Rule.partition_rules rules in
   assert (search_rules = []);
   assert (extract_rules = []);
-  let xconf =
-    {
-      Match_env.config = Config_semgrep.default_config;
-      equivs = [];
-      matching_explanations = false;
-    }
-  in
+  let xconf = Match_env.default_xconfig in
 
   let matches =
     taint_rules
@@ -629,15 +623,7 @@ let full_rule_regression_tests () =
     (let tests, _print_summary =
        Test_engine.make_tests ~unit_testing:true [ path ]
      in
-     tests
-     |> Common.map (fun (name, ftest) ->
-            let test () =
-              Common2.save_excursion_and_enable
-                Flag_semgrep.filter_irrelevant_rules (fun () ->
-                  logger#info "running with -filter_irrelevant_rules";
-                  ftest ())
-            in
-            (name, test)))
+     tests)
 
 (* quite similar to full_rule_regression_tests but prefer to pack_tests
  * with "full semgrep rule Java", so one can just run the Java tests
@@ -723,11 +709,7 @@ let full_rule_semgrep_rules_regression_tests () =
                         if not is_throwing then
                           Alcotest.fail
                             "this used to raise an error (good news?)"
-                    | _ ->
-                        Common2.save_excursion_and_enable
-                          Flag_semgrep.filter_irrelevant_rules (fun () ->
-                            logger#info "running with -filter_irrelevant_rules";
-                            ftest ())
+                    | _ -> ftest ()
                   in
                   (name, test))))
 

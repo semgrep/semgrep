@@ -66,6 +66,7 @@ type t = {
   max_match_per_file : int;
   ncores : int;
   parsing_cache_dir : Common.dirname; (* "" means no cache *)
+  filter_irrelevant_rules : bool;
   (* Flag used by the semgrep-python wrapper *)
   target_source : target_source option;
   (* Common.ml action for the -dump_xxx *)
@@ -118,6 +119,8 @@ let default =
     max_match_per_file = 10_000;
     ncores = 1;
     parsing_cache_dir = "";
+    filter_irrelevant_rules = true;
+    (* -fast by default *)
     (* "" means no cache *)
     (* Flag used by the semgrep-python wrapper *)
     target_source = None;
