@@ -265,14 +265,6 @@ _scan_options: List[Callable] = [
         help="Uses ASCII output if no format specified.",
     ),
     optgroup.option(
-        "--emacs",
-        is_flag=True,
-        help="Output results in Emacs single-line format.",
-    ),
-    optgroup.option(
-        "--json", is_flag=True, help="Output results in Semgrep's JSON format."
-    ),
-    optgroup.option(
         "--gitlab-sast",
         is_flag=True,
         help="Output results in GitLab SAST format.",
@@ -286,11 +278,6 @@ _scan_options: List[Callable] = [
         "--junit-xml", is_flag=True, help="Output results in JUnit XML format."
     ),
     optgroup.option("--sarif", is_flag=True, help="Output results in SARIF format."),
-    optgroup.option(
-        "--vim",
-        is_flag=True,
-        help="Output results in vim single-line format.",
-    ),
 ]
 
 
@@ -377,7 +364,6 @@ def scan_options(func: Callable) -> Callable:
 )
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
-@click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
 @click.option(
     "--deep",
     "-x",
@@ -389,12 +375,9 @@ def scan_options(func: Callable) -> Callable:
 @handle_command_errors
 def scan(
     *,
-    config: Optional[Tuple[str, ...]],
     deep: bool,
     dryrun: bool,
     dump_ast: bool,
-    dump_command_for_core: bool,
-    emacs: bool,
     enable_nosem: bool,
     enable_version_check: bool,
     error_on_findings: bool,
@@ -402,7 +385,6 @@ def scan(
     force_color: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
-    json: bool,
     junit_xml: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
@@ -422,7 +404,6 @@ def scan(
     time_flag: bool,
     validate: bool,
     version: bool,
-    vim: bool,
 ) -> ScanReturn:
 
     if version:
@@ -469,10 +450,7 @@ def scan(
         semgrep.config_resolver.adjust_for_docker()
         targets = (os.curdir,)
 
-    output_format = OutputFormat.TEXT
-    if json:
-        output_format = OutputFormat.JSON
-    elif gitlab_sast:
+    if gitlab_sast:
         output_format = OutputFormat.GITLAB_SAST
     elif gitlab_secrets:
         output_format = OutputFormat.GITLAB_SECRETS
@@ -480,10 +458,6 @@ def scan(
         output_format = OutputFormat.JUNIT_XML
     elif sarif:
         output_format = OutputFormat.SARIF
-    elif emacs:
-        output_format = OutputFormat.EMACS
-    elif vim:
-        output_format = OutputFormat.VIM
 
     output_settings = OutputSettings(
         output_format=output_format,
@@ -542,7 +516,6 @@ def scan(
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
                             optimizations=optimizations,
-                            core_opts_str=core_opts,
                         ).validate_configs(config)
                     except SemgrepError as e:
                         metacheck_errors = [e]
@@ -574,8 +547,6 @@ def scan(
                     shown_severities,
                     _,
                 ) = semgrep.semgrep_main.main(
-                    core_opts_str=core_opts,
-                    dump_command_for_core=dump_command_for_core,
                     deep=deep,
                     output_handler=output_handler,
                     target=targets,

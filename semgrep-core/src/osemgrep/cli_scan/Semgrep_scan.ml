@@ -1,10 +1,14 @@
 (*
    Parse a semgrep-scan command, execute it and exit.
+
+   Translated from scan.py
+   TODO and semgrep_main.py?
 *)
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run (conf : Scan_CLI.conf) : Exit_code.t =
+  (* !!!TODO!!! use the result!! see semgrep_main.py *)
   let _res = Core_runner.invoke_semgrep conf in
   Exit_code.ok
 
