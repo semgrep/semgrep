@@ -42,7 +42,7 @@ type result = {
   findings_by_rule : (Rule.t, Rule_match.t list) Map_.t;
   errors : Error.t list;
   all_targets : path Set_.t;
-  (*profiling_data: profiling_data; TODO: do we need to translate this? *)
+  (*profiling_data: profiling_data; TOPORT: do we need to translate this? *)
   parsing_data : Parsing_data.t;
   explanations : C.matching_explanation list option;
 }
@@ -107,24 +107,64 @@ let split_jobs_by_language all_rules all_targets : Runner_config.lang_job list =
       ({ lang; targets; rules } : Runner_config.lang_job))
     grouped_rules
 
-let call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory_mb
-    ~use_optimizations ~debug ~all_rules ~all_targets =
-  let runner_config : Runner_config.t =
-    {
-      Runner_config.default with
-      ncores = num_jobs;
-      timeout;
-      timeout_threshold;
-      max_memory_mb;
-      debug;
-      version = Version.version;
-    }
-  in
-  let lang_jobs = split_jobs_by_language all_rules all_targets in
+let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
   (* TODO: This is the -fast or -filter_irrelevant_rules flag of semgrep-core.
-     It's currently a global, mutable variable. Move it the config object
-     so we can use it easily. *)
-  ignore use_optimizations;
+      It's currently a global, mutable variable. Move it the config object
+      so we can use it easily.
+     conf.use_optimizations;
+  *)
+  match conf with
+  | {
+   num_jobs;
+   timeout;
+   timeout_threshold;
+   max_memory_mb;
+   debug;
+   output_format;
+   (* TOPORT: not handled yet *)
+   autofix = _;
+   baseline_commit = _;
+   config = _;
+   exclude = _;
+   include_ = _;
+   lang = _;
+   max_target_bytes = _;
+   metrics = _;
+   optimizations = _;
+   pattern = _;
+   quiet = _;
+   respect_git_ignore = _;
+   target_roots = _;
+   verbose = _;
+  } ->
+      let output_format =
+        match output_format with
+        | Json -> Runner_config.Json false (* no dots *)
+        (* TOPORT: I think also in Text mode we should default
+         * to Json because we do not want the same text displayed in
+         * osemgrep than in semgrep-core
+         *)
+        | Text -> Runner_config.Text
+        (* defaulting to Json, which really mean just no incremental
+         * display of match in the match_hook in semgrep-core
+         *)
+        | _else_ -> Runner_config.Json false
+      in
+
+      {
+        Runner_config.default with
+        ncores = num_jobs;
+        output_format;
+        timeout;
+        timeout_threshold;
+        max_memory_mb;
+        debug;
+        version = Version.version;
+      }
+
+let call_semgrep_core conf all_rules all_targets =
+  let runner_config : Runner_config.t = runner_config_of_conf conf in
+  let lang_jobs = split_jobs_by_language all_rules all_targets in
   let results_by_language =
     Common.map
       (Run_semgrep.semgrep_with_prepared_rules_and_targets runner_config)
@@ -141,23 +181,19 @@ let call_semgrep_core ~num_jobs ~timeout ~timeout_threshold ~max_memory_mb
 *)
 let invoke_semgrep (conf : Scan_CLI.conf) : result =
   let rules, errors =
-    (* TODO: resolve rule file URLs; for now we assume it's a file. *)
+    (* TOPORT: resolve rule file URLs; for now we assume it's a file. *)
     Parse_rule.parse_and_filter_invalid_rules conf.config
   in
-  (* TODO: don't ignore errors *)
+  (* TOPORT: don't ignore errors *)
   ignore errors;
   let targets, skipped_targets =
     Find_target.select_global_targets ~includes:conf.include_
       ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
       ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
   in
-  let _res =
-    call_semgrep_core ~num_jobs:conf.num_jobs ~timeout:conf.timeout
-      ~timeout_threshold:conf.timeout_threshold
-      ~max_memory_mb:conf.max_memory_mb ~use_optimizations:conf.optimizations
-      ~debug:conf.debug ~all_rules:rules ~all_targets:targets
-  in
-  (* TODO: figure out the best type for this result. Ideally, this is
+  (* !!!TODO!!! use the result!! *)
+  let _res = call_semgrep_core conf rules targets in
+  (* TOPORT: figure out the best type for this result. Ideally, this is
      the type corresponding to the JSON output. *)
   ignore skipped_targets;
   {

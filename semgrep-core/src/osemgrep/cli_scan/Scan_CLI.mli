@@ -18,6 +18,7 @@ type conf = {
   metrics : Metrics.State.t;
   num_jobs : int;
   optimizations : bool;
+  output_format : Constants.output_format;
   pattern : string option;
   quiet : bool;
   respect_git_ignore : bool;
