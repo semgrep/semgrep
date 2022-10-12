@@ -131,7 +131,11 @@ let add_fix_pattern_ast_nodes (tbl : ast_node_table) ast =
           kargument =
             (fun (k, _) arg ->
               ASTTable.replace tbl (Ar arg) FixPattern;
-              k arg)
+              k arg);
+          kexpr =
+            (fun (k, _) e ->
+              ASTTable.replace tbl (E e) FixPattern;
+              k e)
             (* TODO visit every node that is part of AST_generic.any *);
         })
   in

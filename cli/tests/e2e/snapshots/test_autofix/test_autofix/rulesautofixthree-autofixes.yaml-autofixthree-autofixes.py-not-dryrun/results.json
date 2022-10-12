@@ -16,7 +16,7 @@
       },
       "extra": {
         "fingerprint": "4fa533e4a7e99e1467fc3776e477eccd81ab91b5bc65a5c4d761feb642eee12a3e088d7453303e44f2efb4e4559b4076fdb1ac29bda37dfae4db757120a8f12f_0",
-        "fix": "requests.post(headers=auth_headers,\n        url=self.url,\n        endpoints=\"endpoint\", _injected=True)",
+        "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "is_ignored": false,
         "lines": "    return requests.post(\n        headers=auth_headers,\n        url=self.url,\n        endpoints=\"endpoint\",\n    )",
         "message": "This rule decreases the file in length and will be applied three times in this test.\n",
@@ -67,7 +67,7 @@
       },
       "extra": {
         "fingerprint": "4fa533e4a7e99e1467fc3776e477eccd81ab91b5bc65a5c4d761feb642eee12a3e088d7453303e44f2efb4e4559b4076fdb1ac29bda37dfae4db757120a8f12f_1",
-        "fix": "requests.post(headers=auth_headers,\n        url=self.url,\n        endpoints=\"endpoint\", _injected=True)",
+        "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "is_ignored": false,
         "lines": "    return requests.post(\n        headers=auth_headers,\n        url=self.url,\n        endpoints=\"endpoint\",\n    )",
         "message": "This rule decreases the file in length and will be applied three times in this test.\n",
@@ -118,7 +118,7 @@
       },
       "extra": {
         "fingerprint": "4fa533e4a7e99e1467fc3776e477eccd81ab91b5bc65a5c4d761feb642eee12a3e088d7453303e44f2efb4e4559b4076fdb1ac29bda37dfae4db757120a8f12f_2",
-        "fix": "requests.post(headers=auth_headers,\n        url=self.url,\n        endpoints=\"endpoint\", _injected=True)",
+        "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "is_ignored": false,
         "lines": "    return requests.post(\n        headers=auth_headers,\n        url=self.url,\n        endpoints=\"endpoint\"\n    )",
         "message": "This rule decreases the file in length and will be applied three times in this test.\n",

@@ -1,0 +1,4 @@
+# MATCH:
+(bar() + 2)
+# MATCH:
+(bar() + 2) * 4

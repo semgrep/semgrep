@@ -60,12 +60,50 @@ let combine = B.combine
 class type printer_t =
   object
     method print_any : G.any -> (Immutable_buffer.t, string) result
+
+    (* Prints an expression, inserting parentheses around it if needed. *)
     method print_expr : G.expr -> (Immutable_buffer.t, string) result
     method print_expr_kind : G.expr_kind -> (Immutable_buffer.t, string) result
     method print_argument : G.argument -> (Immutable_buffer.t, string) result
     method print_arguments : G.arguments -> (Immutable_buffer.t, string) result
 
+    method print_call :
+      G.expr -> G.arguments -> (Immutable_buffer.t, string) result
+
+    (* Takes `expr` rather than `operator` to facilitate hybrid_print. The
+     * hybrid_print primary printer takes an `AST_generic.any`, and there is no
+     * `any` variant for `operator`.
+     *
+     * We could refactor to support this but unless we run into other similar
+     * issues, it doesn't seem worth the additional boilerplate. This doesn't
+     * make implementing a printer any more difficult, since `print_expr` should
+     * handle `IdSpecial (Op ...)` anyway. *)
+    method print_opcall :
+      G.expr -> G.arguments -> (Immutable_buffer.t, string) result
+
+    method print_ordinary_call :
+      G.expr -> G.arguments -> (Immutable_buffer.t, string) result
+
     (* TODO Add more nodes as needed. *)
+
+    (* Clients should not (and cannot) call the methods below, but subclasses of
+     * base_printer should consider overriding them to control printing
+     * behavior. *)
+
+    (* Determines whether the node in question needs to be surrounded by
+     * parentheses. For example, `2 + 3 * 5` has a different meaning than
+     * `(2 + 3) * 5`.
+     *
+     * TODO Include some context as a paremeter, which will be needed when we
+     * want to insert parentheses only where absolutely necessary. *)
+    method private needs_parens : G.any -> bool
+
+    (* Subclasses should normally override print_expr_without_parens rather than
+     * print_expr, unless they want to modify the parentheses-insertion behavior in
+     * a way that is not possible by overriding needs_parens. Clients should not
+     * call this directly. *)
+    method private print_expr_without_parens :
+      G.expr -> (Immutable_buffer.t, string) result
   end
 
 let ( let/ ) = Result.bind
@@ -107,12 +145,52 @@ class base_printer : printer_t =
       (* TODO Handle other kinds *)
       | _ -> print_fail ()
 
-    method print_expr { e; _ } = self#print_expr_kind e
+    method print_expr e =
+      let/ res = self#print_expr_without_parens e in
+      (* An alternative would be to simply have the language-specific printers
+       * add parentheses when they implement `print_opcall` and any other
+       * expressions that need parentheses. Doing it here instead has the
+       * advantage that subclasses need only concern themselves with correctly
+       * printing a given node in isolation, and don't need to worry about
+       * whether it needs to be wrapped in parentheses.
+       *
+       * Otherwise, this logic would need to be duplicated in all of the
+       * language printers as well as the hybrid printer used for autofix. There
+       * will surely be some language-specific differences in parenthesis
+       * insertion, but there is enough commonality between languages that much
+       * of the logic should be reusable. *)
+      Ok (self#add_parens_if_needed (G.E e) res)
+
+    method private print_expr_without_parens { e; _ } = self#print_expr_kind e
     method print_expr_kind _ = print_fail ()
     method print_argument _ = print_fail ()
     method print_arguments _ = print_fail ()
 
+    method print_call e args =
+      match e.G.e with
+      (* Binary operator expressions are desugared to calls, but are different
+       * enough that they merit a separate method here. *)
+      | G.IdSpecial (G.Op _, _) -> self#print_opcall e args
+      (* TODO also handle other kinds of IdSpecial *)
+      | _ -> self#print_ordinary_call e args
+
+    method print_opcall _ _ = print_fail ()
+    method print_ordinary_call _ _ = print_fail ()
+
     (* TODO Add more nodes as needed. *)
+
+    (* Currently is overly defensive, and inserts parentheses whenever they
+     * *might* be needed. At some point, we should print them only when they are
+     * actually needed. *)
+    method private needs_parens =
+      function
+      | G.E { e = G.Call ({ e = G.IdSpecial (G.Op _, _); _ }, _); _ } -> true
+      | _ -> false
+
+    method private add_parens_if_needed any res =
+      (* TODO Is it possible for the result to already be wrapped in parens? If
+       * so, we should check for them here to avoid double-wrapping. *)
+      if self#needs_parens any then combine [ b "("; res; b ")" ] else res
   end
 
 class python_printer : printer_t =
@@ -124,12 +202,28 @@ class python_printer : printer_t =
       (* TODO Consider using original tokens for parens when available? *)
       Ok (combine [ b "("; combine ~sep:", " args; b ")" ])
 
+    method! print_argument =
+      function
+      | G.Arg e -> self#print_expr e
+      | _ -> print_fail ()
+
     method! print_expr_kind =
       function
-      | G.Call (e, args) ->
-          let/ e = self#print_expr e in
-          let/ args = self#print_arguments args in
-          Ok (combine [ e; args ])
+      | G.Call (e, args) -> self#print_call e args
       | G.N (G.Id ((str, _), _)) -> Ok (b str)
+      | _ -> print_fail ()
+
+    method! print_ordinary_call e args =
+      let/ e = self#print_expr e in
+      let/ args = self#print_arguments args in
+      Ok (combine [ e; args ])
+
+    method! print_opcall e args =
+      match args with
+      | _, [ l; r ], _ ->
+          let/ l = self#print_argument l in
+          let/ e = self#print_expr e in
+          let/ r = self#print_argument r in
+          Ok (combine ~sep:" " [ l; e; r ])
       | _ -> print_fail ()
   end
