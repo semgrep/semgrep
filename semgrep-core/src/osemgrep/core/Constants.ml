@@ -119,6 +119,8 @@ let break_line = String.make break_line_width break_line_char
 let max_chars_flag_name = "--max-chars-per-line"
 let default_max_chars_per_line = 160
 let ellipsis_string = " ... "
+
+(* LATER: move to Scan_CLI.default directly *)
 let default_max_target_size = 1_000_000 (* 1 MB *)
 
 (* python: original code:

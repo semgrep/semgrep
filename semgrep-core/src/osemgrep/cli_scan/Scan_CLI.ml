@@ -47,12 +47,12 @@ type conf = {
   verbose : bool;
 }
 
-let get_cpu_count () =
+let get_cpu_count () : int =
   (* Parmap subtracts 1 from the number of detected cores.
      This comes with no guarantees. *)
   max 1 (Parmap.get_default_ncores () + 1)
 
-let default =
+let default : conf =
   {
     autofix = false;
     baseline_commit = None;
@@ -92,7 +92,7 @@ let _validate_lang option lang_str =
 (* No group *)
 (* ------------------------------------------------------------------ *)
 
-let o_autofix =
+let o_autofix : bool Term.t =
   H.negatable_flag [ "a"; "autofix" ] ~neg_options:[ "no-autofix" ]
     ~default:default.autofix
     ~doc:
@@ -101,7 +101,7 @@ Make sure your files are stored in a version control system. Note that
 this mode is experimental and not guaranteed to function properly.
 |}
 
-let o_baseline_commit =
+let o_baseline_commit : string option Term.t =
   let info =
     Arg.info [ "baseline_commit" ]
       ~doc:
@@ -288,7 +288,7 @@ let o_debug =
   Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
-(* TOPORT "Output formats" *)
+(* TOPORT "Output formats" (mutually exclusive) *)
 (* ------------------------------------------------------------------ *)
 
 (* ------------------------------------------------------------------ *)
@@ -359,33 +359,33 @@ let o_target_roots =
 (*** Subcommand 'scan' ***)
 (*****************************************************************************)
 
-let cmdline_term run =
+let cmdline_term : conf Term.t =
   let combine autofix baseline_commit config debug exclude include_ lang
       max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
       quiet respect_git_ignore target_roots timeout timeout_threshold verbose =
-    run
-      {
-        autofix;
-        baseline_commit;
-        config;
-        debug;
-        exclude;
-        include_;
-        lang;
-        max_memory_mb;
-        max_target_bytes;
-        metrics;
-        num_jobs;
-        optimizations;
-        pattern;
-        quiet;
-        respect_git_ignore;
-        target_roots;
-        timeout;
-        timeout_threshold;
-        verbose;
-      }
+    {
+      autofix;
+      baseline_commit;
+      config;
+      debug;
+      exclude;
+      include_;
+      lang;
+      max_memory_mb;
+      max_target_bytes;
+      metrics;
+      num_jobs;
+      optimizations;
+      pattern;
+      quiet;
+      respect_git_ignore;
+      target_roots;
+      timeout;
+      timeout_threshold;
+      verbose;
+    }
   in
+  (* Term defines 'const' but also the '$' operator *)
   Term.(
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
     $ o_exclude $ o_include $ o_lang $ o_max_memory_mb $ o_max_target_bytes
@@ -396,7 +396,7 @@ let cmdline_term run =
 let doc = "run semgrep rules on files"
 
 (* TODO: document the exit codes as defined in Error.mli *)
-let man =
+let man : Manpage.block list =
   [
     `S Manpage.s_description;
     `P
@@ -422,7 +422,14 @@ let man =
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_and_run (argv : string array) (run : conf -> Exit_code.t) =
-  let run conf = CLI_common.safe_run run conf |> Exit_code.to_int in
-  let info = Cmd.info "semgrep scan" ~doc ~man in
-  run |> cmdline_term |> Cmd.v info |> Cmd.eval' ~argv |> Exit_code.of_int
+let parse_argv (argv : string array) : (conf, Exit_code.t) result =
+  let info : Cmd.info = Cmd.info "semgrep scan" ~doc ~man in
+  let cmd : conf Cmd.t = Cmd.v info cmdline_term in
+  match Cmd.eval_value ~argv cmd with
+  | Error _n -> Error Exit_code.fatal
+  | Ok ok -> (
+      match ok with
+      | `Ok config -> Ok config
+      | `Version
+      | `Help ->
+          Error Exit_code.ok)
