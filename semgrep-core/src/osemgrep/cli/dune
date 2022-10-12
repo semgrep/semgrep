@@ -11,5 +11,7 @@
 
     ; Internal libraries
     osemgrep_cli_scan
+    ; reusing code from Core_cli
+    semgrep_core_cli
   )
 )
