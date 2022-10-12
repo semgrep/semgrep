@@ -10,7 +10,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v0 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Gem
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Gomod
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Gradle
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Pypi
@@ -21,8 +20,7 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Gem()): ["Gemfile.lock"],
     Ecosystem(Gomod()): ["go.sum"],
     Ecosystem(Cargo()): ["Cargo.lock"],
-    Ecosystem(Maven()): ["pom.xml"],
-    Ecosystem(Gradle()): ["gradle.lockfile"],
+    Ecosystem(Maven()): ["pom.xml", "gradle.lockfile"],
 }
 
 LOCKFILE_TO_MANIFEST = {
