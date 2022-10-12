@@ -47,6 +47,7 @@ let config =
     match_format = Matching_report.Normal;
     mvars = [];
     lsp = false;
+    lsif = false;
     timeout = 0.0;
     timeout_threshold = 0;
     max_memory_mb = 0;
