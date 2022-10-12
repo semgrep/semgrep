@@ -1,1 +1,0 @@
-Fixed bug where nested dependencies in package-lock.json files were not detected
