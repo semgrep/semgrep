@@ -1,24 +1,33 @@
+open Printf
+
+(* Provide 'Term', 'Arg', and 'Manpage' modules. *)
+open Cmdliner
+module H = Cmdliner_helpers
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 (*
    'semgrep scan' subcommand
 
    Translated from scan.py
 *)
 
-open Printf
+(* TOPORT: all those shell_complete() click functions *)
 
-(* Provide 'Term', 'Arg', and 'Manpage' modules. *)
-open Cmdliner
-
+(*****************************************************************************)
+(* Types and constants *)
+(*****************************************************************************)
 (*
    The result of parsing a 'semgrep scan' command.
 
    Field order: alphabetic.
-   This facilitates insertion, deduplication, and removal
-   of options.
+   This facilitates insertion, deduplication, and removal of options.
 *)
 type conf = {
   autofix : bool;
   baseline_commit : string option;
+  (* TOPORT: can have multiple calls to --config, so string list here *)
   config : string;
   debug : bool;
   exclude : string list;
@@ -53,7 +62,7 @@ let default =
     include_ = [];
     lang = None;
     max_memory_mb = 0;
-    max_target_bytes = 1_000_000;
+    max_target_bytes = Constants.default_max_target_size;
     metrics = Metrics.State.Auto;
     num_jobs = get_cpu_count ();
     optimizations = false;
@@ -61,7 +70,7 @@ let default =
     quiet = false;
     respect_git_ignore = true;
     target_roots = [ "." ];
-    timeout = 30.;
+    timeout = float_of_int Constants.default_timeout;
     timeout_threshold = 3;
     verbose = false;
   }
@@ -79,8 +88,12 @@ let _validate_lang option lang_str =
 (* Command-line parsing: turn argv into conf *)
 (*************************************************************************)
 
+(* ------------------------------------------------------------------ *)
+(* No group *)
+(* ------------------------------------------------------------------ *)
+
 let o_autofix =
-  CLI_common.negatable_flag [ "a"; "autofix" ] ~neg_options:[ "no-autofix" ]
+  H.negatable_flag [ "a"; "autofix" ] ~neg_options:[ "no-autofix" ]
     ~default:default.autofix
     ~doc:
       {|Apply autofix patches. WARNING: data loss can occur with this flag.
@@ -97,55 +110,38 @@ if not currently in a git directory, there are unstaged changes, or
 given baseline hash doesn't exist.
 |}
       ~env:(Cmd.Env.info "SEMGREP_BASELINE_COMMIT")
-    (* TODO: support also SEMGREP_BASELINE_REF; unfortunately cmdliner
+    (* TOPORT: support also SEMGREP_BASELINE_REF; unfortunately cmdliner
              supports only one environment variable per option *)
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
-let o_config =
+let o_metrics =
   let info =
-    Arg.info [ "c"; "f"; "config" ]
-      ~env:(Cmd.Env.info "SEMGREP_RULES")
+    Arg.info [ "metrics" ]
+      ~env:(Cmd.Env.info "SEMGREP_SEND_METRICS")
       ~doc:
-        {|YAML configuration file, directory of YAML files ending in
-.yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
-
-Use --config auto to automatically obtain rules tailored to this project;
-your project URL will be used to log in to the Semgrep registry.
-
-To run multiple rule files simultaneously, use --config before every YAML,
-URL, or Semgrep registry entry name.
-For example `semgrep --config p/python --config myrules/myrule.yaml`
-
-See https://semgrep.dev/docs/writing-rules/rule-syntax for information on
-configuration file format.
+        {|Configures how usage metrics are sent to the Semgrep server. If
+'auto', metrics are sent whenever the --config value pulls from the
+Semgrep server. If 'on', metrics are always sent. If 'off', metrics
+are disabled altogether and not sent. If absent, the
+SEMGREP_SEND_METRICS environment variable value will be used. If no
+environment variable, defaults to 'auto'.
 |}
   in
-  Arg.value (Arg.opt Arg.string default.config info)
+  Arg.value (Arg.opt Metrics.State.converter default.metrics info)
 
-let o_debug =
-  let info =
-    Arg.info [ "debug" ]
-      ~doc:{|All of --verbose, but with additional debugging information.|}
-  in
-  Arg.value (Arg.flag info)
+(* ------------------------------------------------------------------ *)
+(* TOPORT "Path options" *)
+(* ------------------------------------------------------------------ *)
 
 let o_exclude =
   let info =
     Arg.info [ "exclude" ]
       ~doc:
-        {|Filter files or directories by path. The argument is a
-glob-style pattern such as 'foo.*' that must match the path. This is
-an extra filter in addition to other applicable filters. For example,
-specifying the language with '-l javascript' migh preselect files
-'src/foo.jsx' and 'lib/bar.js'.  Specifying one of '--include=src',
-'-- include=*.jsx', or '--include=src/foo.*' will restrict the
-selection to the single file 'src/foo.jsx'. A choice of multiple '--
-include' patterns can be specified. For example, '--include=foo.*
---include=bar.*' will select both 'src/foo.jsx' and
-'lib/bar.js'. Glob-style patterns follow the syntax supported by
-python, which is documented at
-https://docs.python.org/3/library/glob.html
+        {|Skip any file or directory that matches this pattern;
+--exclude='*.py' will ignore the following: foo.py, src/foo.py, foo.py/bar.sh.
+--exclude='tests' will ignore tests/foo.py as well as a/b/tests/c/foo.py.
+Can add multiple times. If present, any --include directives are ignored.
 |}
   in
   Arg.value (Arg.opt_all Arg.string [] info)
@@ -172,50 +168,34 @@ https://docs.python.org/3/library/glob.html
 
 let o_max_target_bytes =
   let info =
-    Arg.info [ "max-target-bytes" ]
+    Arg.info
+      [ "max-target-bytes" ]
+      (* TOPORT: should use default.max_target_bytes in message *)
       ~doc:
         {|Maximum size for a file to be scanned by Semgrep, e.g
 '1.5MB'. Any input program larger than this will be ignored. A zero or
 negative value disables this filter. Defaults to 1000000 bytes.
 |}
   in
-  (* TODO: support '1.5MB' and such *)
+  (* TOPORT: support '1.5MB' and such, see bytesize.py *)
   Arg.value (Arg.opt Arg.int default.max_target_bytes info)
 
-let o_lang =
-  let info =
-    Arg.info [ "lang" ]
-      ~doc:
-        {|Parse pattern and all files in specified language.
-Must be used with -e/--pattern.
+let o_respect_git_ignore =
+  H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
+    ~default:default.respect_git_ignore
+    ~doc:
+      {|Skip files ignored by git. Scanning starts from the root
+folder specified on the Semgrep command line. Normally, if the
+scanning root is within a git repository, only the tracked files and
+the new files would be scanned. Git submodules and git- ignored files
+would normally be skipped. --no-git-ignore will disable git-aware
+filtering. Setting this flag does nothing if the scanning root is not
+in a git repository.
 |}
-  in
-  Arg.value (Arg.opt Arg.(some string) None info)
 
-let o_max_memory_mb =
-  let info =
-    Arg.info [ "max-memory-mb" ]
-      ~doc:
-        {|Maximum system memory to use running a rule on a single file
-in MB. If set to 0 will not have memory limit. Defaults to 0.
-|}
-  in
-  Arg.value (Arg.opt Arg.int default.max_memory_mb info)
-
-let o_metrics =
-  let info =
-    Arg.info [ "metrics" ]
-      ~env:(Cmd.Env.info "SEMGREP_SEND_METRICS")
-      ~doc:
-        {|Configures how usage metrics are sent to the Semgrep server. If
-'auto', metrics are sent whenever the --config value pulls from the
-Semgrep server. If 'on', metrics are always sent. If 'off', metrics
-are disabled altogether and not sent. If absent, the
-SEMGREP_SEND_METRICS environment variable value will be used. If no
-environment variable, defaults to 'auto'.
-|}
-  in
-  Arg.value (Arg.opt Metrics.State.converter default.metrics info)
+(* ------------------------------------------------------------------ *)
+(* TOPORT: "Performance and memory options" *)
+(* ------------------------------------------------------------------ *)
 
 let o_num_jobs =
   let info =
@@ -226,6 +206,16 @@ parallel. Defaults to the number of cores detected on the system.
 |}
   in
   Arg.value (Arg.opt Arg.int default.num_jobs info)
+
+let o_max_memory_mb =
+  let info =
+    Arg.info [ "max-memory-mb" ]
+      ~doc:
+        {|Maximum system memory to use running a rule on a single file
+in MB. If set to 0 will not have memory limit. Defaults to 0.
+|}
+  in
+  Arg.value (Arg.opt Arg.int default.max_memory_mb info)
 
 let o_optimizations =
   let parse = function
@@ -247,49 +237,16 @@ Use 'none' to turn all optimizations off.
   in
   Arg.value (Arg.opt converter default.optimizations info)
 
-let o_pattern =
-  let info =
-    Arg.info [ "e"; "pattern" ]
-      ~doc:
-        {|Parse pattern and all files in specified language.
-Must be used with -e/--pattern.
-|}
-  in
-  Arg.value (Arg.opt Arg.(some string) None info)
-
-let o_quiet =
-  let info = Arg.info [ "q"; "quiet" ] ~doc:{|Only output findings.|} in
-  Arg.value (Arg.flag info)
-
-let o_respect_git_ignore =
-  CLI_common.negatable_flag [ "use-git-ignore" ]
-    ~neg_options:[ "no-git-ignore" ] ~default:default.respect_git_ignore
-    ~doc:
-      {|Skip files ignored by git. Scanning starts from the root
-folder specified on the Semgrep command line. Normally, if the
-scanning root is within a git repository, only the tracked files and
-the new files would be scanned. Git submodules and git- ignored files
-would normally be skipped. --no-git-ignore will disable git-aware
-filtering. Setting this flag does nothing if the scanning root is not
-in a git repository.
-|}
-
-let o_target_roots =
-  let info =
-    Arg.info [] ~docv:"TARGETS"
-      ~doc:{|Files or folders to be scanned by semgrep.
-|}
-  in
-  Arg.value (Arg.pos_all Arg.string default.target_roots info)
-
 let o_timeout =
   let info =
-    Arg.info [ "timeout" ]
+    Arg.info
+      [ "timeout" ] (* TOPORT: use default value in doc. switch to int? *)
       ~doc:
         {|Maximum time to spend running a rule on a single file in
 seconds. If set to 0 will not have time limit. Defaults to 30 s.
 |}
   in
+  (*TOPORT: envvar="SEMGREP_TIMEOUT" *)
   Arg.value (Arg.opt Arg.float default.timeout info)
 
 let o_timeout_threshold =
@@ -302,6 +259,17 @@ the file is skipped. If set to 0 will not have limit. Defaults to 3.
   in
   Arg.value (Arg.opt Arg.int default.timeout_threshold info)
 
+(* ------------------------------------------------------------------ *)
+(* TOPORT "Display options" *)
+(* ------------------------------------------------------------------ *)
+
+(* ------------------------------------------------------------------ *)
+(* TOPORT "Verbosity options" *)
+(* ------------------------------------------------------------------ *)
+let o_quiet =
+  let info = Arg.info [ "q"; "quiet" ] ~doc:{|Only output findings.|} in
+  Arg.value (Arg.flag info)
+
 let o_verbose =
   let info =
     Arg.info [ "v"; "verbose" ]
@@ -312,7 +280,84 @@ failed to parse, etc.
   in
   Arg.value (Arg.flag info)
 
+let o_debug =
+  let info =
+    Arg.info [ "debug" ]
+      ~doc:{|All of --verbose, but with additional debugging information.|}
+  in
+  Arg.value (Arg.flag info)
+
+(* ------------------------------------------------------------------ *)
+(* TOPORT "Output formats" *)
+(* ------------------------------------------------------------------ *)
+
+(* ------------------------------------------------------------------ *)
+(* TOPORT "Configuration options" *)
+(* ------------------------------------------------------------------ *)
+(* TOPORT: multiple = true *)
+let o_config =
+  let info =
+    Arg.info [ "c"; "f"; "config" ]
+      ~env:(Cmd.Env.info "SEMGREP_RULES")
+      ~doc:
+        {|YAML configuration file, directory of YAML files ending in
+.yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
+
+Use --config auto to automatically obtain rules tailored to this project;
+your project URL will be used to log in to the Semgrep registry.
+
+To run multiple rule files simultaneously, use --config before every YAML,
+URL, or Semgrep registry entry name.
+For example `semgrep --config p/python --config myrules/myrule.yaml`
+
+See https://semgrep.dev/docs/writing-rules/rule-syntax for information on
+configuration file format.
+|}
+  in
+  Arg.value (Arg.opt Arg.string default.config info)
+
+let o_pattern =
+  let info =
+    Arg.info [ "e"; "pattern" ]
+      ~doc:
+        {|Code search pattern. See https://semgrep.dev/docs/writing-rules/pattern-syntax for information on pattern features.
+|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
+let o_lang =
+  let info =
+    Arg.info [ "l"; "lang" ]
+      ~doc:
+        {|Parse pattern and all files in specified language.
+Must be used with -e/--pattern.
+|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
+(* ------------------------------------------------------------------ *)
+(* TOPORT "Alternate modes" *)
+(* ------------------------------------------------------------------ *)
+
+(* ------------------------------------------------------------------ *)
+(* TOPORT "Test and debug options" *)
+(* ------------------------------------------------------------------ *)
+
+(* ------------------------------------------------------------------ *)
+(* positional arguments *)
+(* ------------------------------------------------------------------ *)
+
+let o_target_roots =
+  let info =
+    Arg.info [] ~docv:"TARGETS"
+      ~doc:{|Files or folders to be scanned by semgrep.
+|}
+  in
+  Arg.value (Arg.pos_all Arg.string default.target_roots info)
+
+(*****************************************************************************)
 (*** Subcommand 'scan' ***)
+(*****************************************************************************)
 
 let cmdline_term run =
   let combine autofix baseline_commit config debug exclude include_ lang
@@ -372,6 +417,10 @@ let man =
        --metrics option below.";
   ]
   @ CLI_common.help_page_bottom
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 
 let parse_and_run (argv : string array) (run : conf -> Exit_code.t) =
   let run conf = CLI_common.safe_run run conf |> Exit_code.to_int in
