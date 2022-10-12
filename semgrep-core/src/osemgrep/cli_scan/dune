@@ -1,12 +1,12 @@
 ; OCaml implementation of the 'semgrep scan' subcommand.
 ;
 (library
-  (name Semgrep_scan)
+  (name osemgrep_cli_scan)
   (wrapped false)
   (libraries
     cmdliner
     commons  ; from pfff
-    core_cli  ; semgrep-core's CLI
-    osemgrep_util
+    semgrep_core_cli  ; semgrep-core's CLI
+    osemgrep_core
   )
 )

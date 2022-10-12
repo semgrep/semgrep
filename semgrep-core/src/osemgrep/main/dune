@@ -4,7 +4,7 @@
 (executables
  (names Main)
  (libraries
-   cli
+   osemgrep_cli
  )
  (preprocess (pps ppx_profiling))
  ; for ocamldebug

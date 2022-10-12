@@ -57,7 +57,7 @@
 (executables
   (names semgrep_bridge_core)
   (libraries
-     core_cli
+     semgrep_core_cli
   )
   (foreign_stubs
     (language c)
