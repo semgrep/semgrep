@@ -33,13 +33,13 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "gradle",
+              "ecosystem": "maven",
               "package": "swagger-ui-dist",
               "semver_range": "<= 3.35.2"
             },
             "found_dependency": {
               "allowed_hashes": {},
-              "ecosystem": "gradle",
+              "ecosystem": "maven",
               "package": "swagger-ui-dist",
               "transitivity": "unknown",
               "version": "3.35.2"
