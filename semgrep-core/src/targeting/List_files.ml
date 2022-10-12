@@ -1,8 +1,21 @@
+let logger = Logging.get_logger [ __MODULE__ ]
+
+(*************************************************************************)
+(* Prelude *)
+(*************************************************************************)
 (*
    List files recursively in a safe, efficient, and portable manner.
 *)
 
+(*************************************************************************)
+(* Types *)
+(*************************************************************************)
+
 type path = string
+
+(*************************************************************************)
+(* Helpers *)
+(*************************************************************************)
 
 let with_dir_handle path func =
   let dir = Unix.opendir path in
@@ -34,6 +47,10 @@ and iter_dir_entry func dir name =
   let path = Filename.concat dir name in
   iter func path
 
+(*************************************************************************)
+(* Entry points *)
+(*************************************************************************)
+
 and iter func path =
   let stat =
     try Some (Unix.lstat path) with
@@ -63,7 +80,7 @@ let list path = list_with_stat path |> Common.map fst
 let list_regular_files ?(keep_root = false) root_path =
   list_with_stat root_path
   |> List.filter_map (fun (path, (stat : Unix.stats)) ->
-         Printf.printf "root: %s path: %s\n%!" root_path path;
+         logger#info "root: %s path: %s" root_path path;
          if keep_root && path = root_path then Some path
          else
            match stat.st_kind with

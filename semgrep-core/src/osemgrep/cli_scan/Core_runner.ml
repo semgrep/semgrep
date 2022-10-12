@@ -1,3 +1,8 @@
+module C = Semgrep_output_v0_t
+
+(*************************************************************************)
+(* Prelude *)
+(*************************************************************************)
 (*
    Translated from core_runner.py
 *)
@@ -33,7 +38,9 @@ class CoreRunner:
     """
 *)
 
-module C = Semgrep_output_v0_t
+(*************************************************************************)
+(* Types *)
+(*************************************************************************)
 
 type path = string
 
@@ -46,6 +53,10 @@ type result = {
   parsing_data : Parsing_data.t;
   explanations : C.matching_explanation list option;
 }
+
+(*************************************************************************)
+(* Helpers *)
+(*************************************************************************)
 
 let merge_lists get_list xs = List.concat_map get_list xs
 
@@ -121,6 +132,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    max_memory_mb;
    debug;
    output_format;
+   optimizations = _TODO;
    (* TOPORT: not handled yet *)
    autofix = _;
    baseline_commit = _;
@@ -130,7 +142,6 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    lang = _;
    max_target_bytes = _;
    metrics = _;
-   optimizations = _;
    pattern = _;
    quiet = _;
    respect_git_ignore = _;
@@ -163,14 +174,32 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
       }
 
 let call_semgrep_core conf all_rules all_targets =
-  let runner_config : Runner_config.t = runner_config_of_conf conf in
+  let config : Runner_config.t = runner_config_of_conf conf in
+
+  (* TOADAPT
+     (* this used to be in Core_CLI.ml but we get a config object
+      * later in osemgrep
+      *)
+     let config =
+       if config.profile then (
+         logger#info "Profile mode On";
+         logger#info "disabling -j when in profiling mode";
+         { config with ncores = 1 })
+       else config
+     in
+  *)
   let lang_jobs = split_jobs_by_language all_rules all_targets in
   let results_by_language =
     Common.map
-      (Run_semgrep.semgrep_with_prepared_rules_and_targets runner_config)
+      (* !!!!Finally! this is where we branch to semgrep-core!!! *)
+      (Run_semgrep.semgrep_with_prepared_rules_and_targets config)
       lang_jobs
   in
   merge_results results_by_language
+
+(*************************************************************************)
+(* Entry point *)
+(*************************************************************************)
 
 (*
    Take in rules and targets and return object with findings.

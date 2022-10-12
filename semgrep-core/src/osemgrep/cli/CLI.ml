@@ -1,3 +1,6 @@
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 (*
    Library defining the semgrep command-line interface.
 
@@ -7,6 +10,10 @@
    complicated and we never show a help page for the whole command anyway
    since we fall back to the 'scan' subcommand if none is given.
 *)
+
+(*****************************************************************************)
+(* TOPORT *)
+(*****************************************************************************)
 
 (* TOPORT:
    def maybe_set_git_safe_directories() -> None:
@@ -33,6 +40,10 @@
                f"Semgrep failed to set the safe.directory Git config option. Git commands might fail: {e}"
            )
 *)
+
+(*****************************************************************************)
+(* Subcommands dispatch *)
+(*****************************************************************************)
 
 (* This is used to determine if we should fall back to assuming 'scan'. *)
 let known_subcommands =
@@ -106,9 +117,53 @@ let dispatch_subcommand argv =
       (* TOPORT: cli.add_command(install_deep_semgrep) *)
       | _else_ -> (* should have defaulted to 'scan' above *) assert false)
 
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
 let main argv =
   Printexc.record_backtrace true;
 
+  (* LATER: to move in this file at some point *)
+  Core_CLI.register_exception_printers ();
+
+  (* Some copy-pasted code from Core_CLI.ml *)
+  (* SIGXFSZ (file size limit exceeded)
+   * ----------------------------------
+   * By default this signal will kill the process, which is not good. If we
+   * would raise an exception from within the handler, the exception could
+   * appear anywhere, which is not good either if you want to recover from it
+   * gracefully. So, we ignore it, and that causes the syscalls to fail and
+   * we get a `Sys_error` or some other exception. Apparently this is standard
+   * behavior under both Linux and MacOS:
+   *
+   * > The SIGXFSZ signal is sent to the process. If the process is holding or
+   * > ignoring SIGXFSZ, continued attempts to increase the size of a file
+   * > beyond the limit will fail with errno set to EFBIG.
+   *)
+  Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
+
+  (* TODO? the logging setup is now done in Semgrep_scan.ml, because that's
+   * when we have a config object, but ideally we would like
+   * to analyze argv and do it sooner for all subcommands here.
+   *)
+
+  (* TOADAPT
+     profile_start := Unix.gettimeofday ();
+
+     if config.lsp then LSP_client.init ();
+
+     (* must be done after Arg.parse, because Common.profile is set by it *)
+     Common.profile_code "Main total" (fun () ->
+             (* TODO: We used to tune the garbage collector but from profiling
+                we found that the effect was small. Meanwhile, the memory
+                consumption causes some machines to freeze. We may want to
+                tune these parameters in the future/do more testing, but
+                for now just turn it off *)
+             (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
+             let config = { config with roots } in
+             Run_semgrep.semgrep_dispatch config)
+  *)
   (* TOPORT:
       state = get_state()
       state.terminal.init_for_cli()
@@ -122,3 +177,11 @@ let main argv =
       maybe_set_git_safe_directories()
   *)
   dispatch_subcommand argv
+
+(* TOADAPT:
+   let main (argv : string array) : unit =
+     Common.main_boilerplate (fun () ->
+         Common.finalize
+           (fun () -> main argv)
+           (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))
+*)

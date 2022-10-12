@@ -17,3 +17,6 @@ type result = {
 }
 
 val invoke_semgrep : Scan_CLI.conf -> result
+
+(* Helper used in Semgrep_scan.ml *)
+val runner_config_of_conf : Scan_CLI.conf -> Runner_config.t

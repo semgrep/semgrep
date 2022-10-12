@@ -1,3 +1,9 @@
+module In = Input_to_core_t
+module Resp = Output_from_core_t
+
+(*************************************************************************)
+(* Prelude *)
+(*************************************************************************)
 (*
    Find and filter targets.
 
@@ -14,8 +20,9 @@
    place.
 *)
 
-module In = Input_to_core_t
-module Resp = Output_from_core_t
+(*************************************************************************)
+(* Types *)
+(*************************************************************************)
 
 type baseline_handler = TODO
 type file_ignore = TODO
@@ -37,6 +44,10 @@ type target_cache_key = {
 
 type target_cache = (target_cache_key, bool) Hashtbl.t
 
+(*************************************************************************)
+(* Helpers *)
+(*************************************************************************)
+
 let deduplicate_list l =
   let tbl = Hashtbl.create 1000 in
   List.filter
@@ -46,6 +57,10 @@ let deduplicate_list l =
         Hashtbl.add tbl x ();
         true))
     l
+
+(*************************************************************************)
+(* Entry points *)
+(*************************************************************************)
 
 let sort_targets_by_decreasing_size targets =
   targets
