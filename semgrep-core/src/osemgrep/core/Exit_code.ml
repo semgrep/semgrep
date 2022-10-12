@@ -1,9 +1,12 @@
 (*
    Exit codes for the semgrep executable.
+   Translated from error.py
+
 *)
 
 type t = int
 
+(* this is useful because of the private declaration of t in the .mli *)
 let to_int x = x
 let of_int x = x
 

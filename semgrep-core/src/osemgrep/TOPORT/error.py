@@ -25,24 +25,6 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-OK_EXIT_CODE = 0
-FINDINGS_EXIT_CODE = 1
-FATAL_EXIT_CODE = 2
-# the commented one below are not used anymore
-# INVALID_CODE_EXIT_CODE = 3
-INVALID_PATTERN_EXIT_CODE = 4
-UNPARSEABLE_YAML_EXIT_CODE = 5
-# NEED_ARBITRARY_CODE_EXEC_EXIT_CODE = 6
-MISSING_CONFIG_EXIT_CODE = 7
-INVALID_LANGUAGE_EXIT_CODE = 8
-# MATCH_TIMEOUT_EXIT_CODE = 9
-# MATCH_MAX_MEMORY_EXIT_CODE = 10
-# LEXICAL_ERROR_EXIT_CODE = 11
-# TOO_MANY_MATCHES_EXIT_CODE = 12
-INVALID_API_KEY_EXIT_CODE = 13
-SCAN_FAIL_EXIT_CODE = 14
-
-
 class Level(Enum):
     ERROR = 4  # Always an error
     WARN = 3  # Only an error if "strict" is set
