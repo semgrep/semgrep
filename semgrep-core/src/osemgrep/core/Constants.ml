@@ -16,6 +16,8 @@ let default_semgrep_config_name = "semgrep"
 let default_config_file = sprintf ".%s.yml" default_semgrep_config_name
 let default_config_folder = sprintf ".%s" default_semgrep_config_name
 let default_semgrep_app_config_url = "api/agent/deployments/scans/config"
+
+(* LATER: move to Scan_CLI.default directly *)
 let default_timeout = 30 (* seconds *)
 let settings_filename = "settings.yml"
 let yml_extensions = [ ".yml"; ".yaml" ]

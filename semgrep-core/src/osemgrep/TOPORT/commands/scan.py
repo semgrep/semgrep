@@ -1,18 +1,5 @@
-import multiprocessing
-import os
-import tempfile
-from itertools import chain
-from pathlib import Path
-from typing import Any
-from typing import Callable
-from typing import cast
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Set
-from typing import Tuple
+# PARTIALLY PORTED TO OCAML. DELETE PARTS AS YOU PORT THEM.
 
-import click
 from click.shell_completion import CompletionItem
 from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
@@ -28,7 +15,6 @@ from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
-from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
@@ -55,19 +41,6 @@ logger = getLogger(__name__)
 
 
 ScanReturn = Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]
-
-
-def __get_cpu_count() -> int:
-    try:
-        return multiprocessing.cpu_count()
-    except NotImplementedError:
-        return 1  # CPU count is not implemented on Windows
-
-
-def __validate_lang(option: str, lang: Optional[str]) -> str:
-    if lang is None:
-        abort(f"{option} and -l/--lang must both be specified")
-    return cast(str, lang)
 
 
 def __get_severity_options(
@@ -169,39 +142,6 @@ METRICS_STATE_TYPE = MetricsStateType()
 CONTEXT_SETTINGS = {"max_content_width": 90}
 
 _scan_options: List[Callable] = [
-    click.help_option("--help", "-h", help=("Show this message and exit.")),
-    click.option(
-        "-a",
-        "--autofix/--no-autofix",
-        is_flag=True,
-        help="""
-            Apply autofix patches. WARNING: data loss can occur with this
-            flag. Make sure your files are stored in a version control system.
-            Note that this mode is experimental and not guaranteed to function properly.
-        """,
-    ),
-    click.option(
-        "--baseline-commit",
-        help="""
-            Only show results that are not found in this commit hash. Aborts run if not currently
-            in a git directory, there are unstaged changes, or given baseline hash doesn't exist
-        """,
-        envvar=["SEMGREP_BASELINE_COMMIT", "SEMGREP_BASELINE_REF"],
-    ),
-    click.option(
-        "--metrics",
-        "metrics",
-        type=METRICS_STATE_TYPE,
-        help="""
-            Configures how usage metrics are sent to the Semgrep server.
-            If 'auto', metrics are sent whenever the --config value pulls from the Semgrep server.
-            If 'on', metrics are always sent.
-            If 'off', metrics are disabled altogether and not sent.
-            If absent, the SEMGREP_SEND_METRICS environment variable value will be used.
-            If no environment variable, defaults to 'auto'.
-        """,
-        envvar="SEMGREP_SEND_METRICS",
-    ),
     click.option(
         "--disable-metrics",
         "metrics_legacy",
@@ -226,18 +166,6 @@ _scan_options: List[Callable] = [
         """,
     ),
     optgroup.option(
-        "--exclude",
-        multiple=True,
-        default=[],
-        help="""
-            Skip any file or directory that matches this pattern; --exclude='*.py' will ignore
-            the following: foo.py, src/foo.py, foo.py/bar.sh. --exclude='tests' will ignore tests/foo.py
-            as well as a/b/tests/c/foo.py. Can add multiple times. If present, any --include directives
-            are ignored.
-        """,
-        shell_complete=__get_file_options,
-    ),
-    optgroup.option(
         "--exclude-rule",
         multiple=True,
         default=[],
@@ -245,50 +173,6 @@ _scan_options: List[Callable] = [
             Skip any rule with the given id. Can add multiple times.
         """,
         shell_complete=__get_file_options,
-    ),
-    optgroup.option(
-        "--include",
-        multiple=True,
-        default=[],
-        help="""
-            Filter files or directories by path. The argument is a
-            glob-style pattern such as 'foo.*' that must match the path.
-            This is an extra filter in addition to other applicable filters.
-            For example, specifying the language with '-l javascript' migh
-            preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of
-            '--include=src', '--include=*.jsx', or '--include=src/foo.*'
-            will restrict the selection to the single file 'src/foo.jsx'.
-            A choice of multiple '--include' patterns can be specified.
-            For example, '--include=foo.* --include=bar.*' will select
-            both 'src/foo.jsx' and 'lib/bar.js'.
-            Glob-style patterns follow the syntax supported by python,
-            which is documented at https://docs.python.org/3/library/glob.html
-        """,
-        shell_complete=__get_file_options,
-    ),
-    optgroup.option(
-        "--max-target-bytes",
-        type=bytesize.ByteSizeType(),
-        default=DEFAULT_MAX_TARGET_SIZE,
-        help=f"""
-            Maximum size for a file to be scanned by Semgrep, e.g '1.5MB'. Any input
-            program larger than this will be ignored. A zero or negative value disables
-            this filter. Defaults to {DEFAULT_MAX_TARGET_SIZE} bytes.
-        """,
-        shell_complete=__get_size_options,
-    ),
-    optgroup.option(
-        "--use-git-ignore/--no-git-ignore",
-        is_flag=True,
-        default=True,
-        help="""
-            Skip files ignored by git. Scanning starts from the root folder specified on
-            the Semgrep command line. Normally, if the scanning root is within a git
-            repository, only the tracked files and the new files would be scanned. Git
-            submodules and git-ignored files would normally be skipped. --no-git-ignore
-            will disable git-aware filtering. Setting this flag does nothing if the
-            scanning root is not in a git repository.
-        """,
     ),
     optgroup.option(
         "--scan-unknown-extensions/--skip-unknown-extensions",
@@ -309,57 +193,6 @@ _scan_options: List[Callable] = [
             Checks Semgrep servers to see if the latest version is run; disabling this
             may reduce exit time after returning results.
         """,
-    ),
-    optgroup.option(
-        "-j",
-        "--jobs",
-        type=int,
-        default=__get_cpu_count(),
-        help="""
-            Number of subprocesses to use to run checks in parallel. Defaults to the
-            number of cores on the system.
-        """,
-    ),
-    optgroup.option(
-        "--max-memory",
-        type=int,
-        default=0,
-        help="""
-            Maximum system memory to use running a rule on a single file in MB. If set to
-            0 will not have memory limit. Defaults to 0.
-        """,
-    ),
-    optgroup.option(
-        "--optimizations",
-        default="all",
-        type=click.Choice(["all", "none"]),
-        help="Turn on/off optimizations. Default = 'all'. Use 'none' to turn all optimizations off.",
-        shell_complete=__get_optimization_options,
-    ),
-    optgroup.option(
-        "--timeout",
-        type=int,
-        default=DEFAULT_TIMEOUT,
-        help=f"""
-            Maximum time to spend running a rule on a single file in seconds. If set to 0
-            will not have time limit. Defaults to {DEFAULT_TIMEOUT} s.
-        """,
-        envvar="SEMGREP_TIMEOUT",
-    ),
-    optgroup.option(
-        "--timeout-threshold",
-        type=int,
-        default=3,
-        help="""
-            Maximum number of rules that can timeout on a file before the file is
-            skipped. If set to 0 will not have limit. Defaults to 3.
-        """,
-    ),
-    optgroup.option(
-        "--core-opts",
-        hidden=True,
-        type=str,
-        help="Flags to pass semgrep-core when executing",
     ),
     optgroup.group("Display options"),
     optgroup.option(
@@ -425,25 +258,7 @@ _scan_options: List[Callable] = [
         """,
     ),
     optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
-    optgroup.option(
-        "-q",
-        "--quiet",
-        is_flag=True,
-        help=("Only output findings."),
-    ),
-    optgroup.option(
-        "-v",
-        "--verbose",
-        is_flag=True,
-        help=(
-            "Show more details about what rules are running, which files failed to parse, etc."
-        ),
-    ),
-    optgroup.option(
-        "--debug",
-        is_flag=True,
-        help="All of --verbose, but with additional debugging information.",
-    ),
+
     optgroup.group(
         "Output formats",
         cls=MutuallyExclusiveOptionGroup,
@@ -495,37 +310,6 @@ def scan_options(func: Callable) -> Callable:
     """,
 )
 @optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup)
-@optgroup.option(
-    "--config",
-    "-c",
-    "-f",
-    multiple=True,
-    help="""
-        YAML configuration file, directory of YAML files ending in
-        .yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
-        \n\n
-        Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in
-         to the Semgrep registry.
-        \n\n
-        To run multiple rule files simultaneously, use --config before every YAML, URL, or Semgrep registry entry name.
-         For example `semgrep --config p/python --config myrules/myrule.yaml`
-        \n\n
-        See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.
-    """,
-    shell_complete=__get_config_options,
-    envvar="SEMGREP_RULES",
-)
-@optgroup.option(
-    "--pattern",
-    "-e",
-    help="Code search pattern. See https://semgrep.dev/docs/writing-rules/pattern-syntax for information on pattern features.",
-)
-@click.option(
-    "--lang",
-    "-l",
-    help="Parse pattern and all files in specified language. Must be used with -e/--pattern.",
-    shell_complete=__get_language_options,
-)
 @click.option(
     "--dryrun/--no-dryrun",
     is_flag=True,
@@ -605,11 +389,7 @@ def scan_options(func: Callable) -> Callable:
 @handle_command_errors
 def scan(
     *,
-    autofix: bool,
-    baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
-    core_opts: Optional[str],
-    debug: bool,
     deep: bool,
     dryrun: bool,
     dump_ast: bool,
@@ -618,27 +398,18 @@ def scan(
     enable_nosem: bool,
     enable_version_check: bool,
     error_on_findings: bool,
-    exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
     force_color: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
-    include: Optional[Tuple[str, ...]],
-    jobs: int,
     json: bool,
     junit_xml: bool,
-    lang: Optional[str],
     max_chars_per_line: int,
     max_lines_per_finding: int,
-    max_memory: int,
-    max_target_bytes: int,
-    metrics: Optional[MetricsState],
     metrics_legacy: Optional[MetricsState],
     optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
-    pattern: Optional[str],
-    quiet: bool,
     replacement: Optional[str],
     rewrite_rule_ids: bool,
     sarif: bool,
@@ -646,36 +417,13 @@ def scan(
     severity: Optional[Tuple[str, ...]],
     show_supported_languages: bool,
     strict: bool,
-    targets: Sequence[str],
     test: bool,
     test_ignore_todo: bool,
     time_flag: bool,
-    timeout: int,
-    timeout_threshold: int,
-    use_git_ignore: bool,
     validate: bool,
-    verbose: bool,
     version: bool,
     vim: bool,
 ) -> ScanReturn:
-    """
-    Run semgrep rules on files
-
-    Searches TARGET paths for matches to rules or patterns. Defaults to searching entire current working directory.
-
-    To get started quickly, run
-
-        semgrep --config auto .
-
-    This will automatically fetch rules for your project from the Semgrep Registry. NOTE: Using `--config auto` will
-    log in to the Semgrep Registry with your project URL.
-
-    For more information about Semgrep, go to https://semgrep.dev.
-
-    NOTE: By default, Semgrep will report pseudonymous usage metrics to its server if you pull your configuration from
-    the Semgrep registy. To learn more about how and why these metrics are collected, please see
-    https://semgrep.dev/docs/metrics. To modify this behavior, see the --metrics option below.
-    """
 
     if version:
         print(__VERSION__)

@@ -7,6 +7,7 @@
     cmdliner
     commons  ; from pfff
     semgrep_core_cli  ; semgrep-core's CLI
+    osemgrep_utils
     osemgrep_core
   )
 )
