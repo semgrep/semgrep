@@ -385,6 +385,7 @@ let cmdline_term : conf Term.t =
       verbose;
     }
   in
+  (* Term defines 'const' but also the '$' operator *)
   Term.(
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
     $ o_exclude $ o_include $ o_lang $ o_max_memory_mb $ o_max_target_bytes
