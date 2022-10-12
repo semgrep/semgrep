@@ -101,7 +101,7 @@ Make sure your files are stored in a version control system. Note that
 this mode is experimental and not guaranteed to function properly.
 |}
 
-let o_baseline_commit =
+let o_baseline_commit : string option Term.t =
   let info =
     Arg.info [ "baseline_commit" ]
       ~doc:
@@ -395,7 +395,7 @@ let cmdline_term : conf Term.t =
 let doc = "run semgrep rules on files"
 
 (* TODO: document the exit codes as defined in Error.mli *)
-let man =
+let man : Manpage.block list =
   [
     `S Manpage.s_description;
     `P
@@ -422,8 +422,9 @@ let man =
 (*****************************************************************************)
 
 let parse_argv (argv : string array) : (conf, Exit_code.t) result =
-  let info = Cmd.info "semgrep scan" ~doc ~man in
-  match Cmd.eval_value ~argv (Cmd.v info cmdline_term) with
+  let info : Cmd.info = Cmd.info "semgrep scan" ~doc ~man in
+  let cmd : conf Cmd.t = Cmd.v info cmdline_term in
+  match Cmd.eval_value ~argv cmd with
   | Error _n -> Error Exit_code.fatal
   | Ok ok -> (
       match ok with
