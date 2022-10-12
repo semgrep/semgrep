@@ -169,8 +169,7 @@ module Make (F : Flow) = struct
    fun ~eq_env ~init ~trans ~flow ~forward ->
     let succs = if forward then forward_succs else backward_succs in
     let work =
-      (* This prevents dead code from getting analyzed. *)
-      flow.reachable
+      flow.graph#nodes#fold (fun s (ni, _) -> NodeiSet.add ni s) NodeiSet.empty
     in
     fixpoint_worker eq_env init trans flow succs work
 
