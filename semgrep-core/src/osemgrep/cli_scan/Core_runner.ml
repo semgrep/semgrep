@@ -119,11 +119,6 @@ let split_jobs_by_language all_rules all_targets : Runner_config.lang_job list =
     grouped_rules
 
 let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
-  (* TODO: This is the -fast or -filter_irrelevant_rules flag of semgrep-core.
-      It's currently a global, mutable variable. Move it the config object
-      so we can use it easily.
-     conf.use_optimizations;
-  *)
   match conf with
   | {
    num_jobs;
@@ -132,20 +127,20 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    max_memory_mb;
    debug;
    output_format;
-   optimizations = _TODO;
+   optimizations;
    (* TOPORT: not handled yet *)
    autofix = _;
    baseline_commit = _;
-   config = _;
    exclude = _;
    include_ = _;
+   config = _;
    lang = _;
+   pattern = _;
+   target_roots = _;
    max_target_bytes = _;
    metrics = _;
-   pattern = _;
-   quiet = _;
    respect_git_ignore = _;
-   target_roots = _;
+   quiet = _;
    verbose = _;
   } ->
       let output_format =
@@ -153,7 +148,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
         | Json -> Runner_config.Json false (* no dots *)
         (* TOPORT: I think also in Text mode we should default
          * to Json because we do not want the same text displayed in
-         * osemgrep than in semgrep-core
+         * osemgrep than in semgrep-core.
          *)
         | Text -> Runner_config.Text
         (* defaulting to Json, which really mean just no incremental
@@ -161,7 +156,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
          *)
         | _else_ -> Runner_config.Json false
       in
-
+      let filter_irrelevant_rules = optimizations in
       {
         Runner_config.default with
         ncores = num_jobs;
@@ -170,6 +165,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
         timeout_threshold;
         max_memory_mb;
         debug;
+        filter_irrelevant_rules;
         version = Version.version;
       }
 

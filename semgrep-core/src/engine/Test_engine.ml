@@ -175,7 +175,6 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              in
              E.g_errors := [];
              Flag_semgrep.with_opt_cache := false;
-             let config = Config_semgrep.default_config in
              Report.mode := MTime;
              let rules, extract_rules =
                Common.partition_either
@@ -198,9 +197,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                  extracted_ranges
                  ([], Hashtbl.create 5)
              in
-             let xconf =
-               { Match_env.config; equivs = []; matching_explanations = false }
-             in
+             let xconf = Match_env.default_xconfig in
              let res =
                try
                  (* TODO: Maybe we should be using Run_semgrep running the same functions

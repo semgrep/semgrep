@@ -671,6 +671,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                Match_env.config = Config_semgrep.default_config;
                equivs = parse_equivalences config.equivalences_file;
                matching_explanations = config.matching_explanations;
+               filter_irrelevant_rules = config.filter_irrelevant_rules;
              }
            in
            let matches =

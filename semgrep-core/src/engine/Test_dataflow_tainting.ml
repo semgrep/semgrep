@@ -72,13 +72,7 @@ let test_dfg_tainting rules_file file =
   pr2 "Tainting";
   pr2 "========";
   let handle_findings _ _ _ = () in
-  let xconf =
-    {
-      Match_env.config = Config_semgrep.default_config;
-      equivs = [];
-      matching_explanations = false;
-    }
-  in
+  let xconf = Match_env.default_xconfig in
   let config, debug_taint, _exps =
     Match_tainting_mode.taint_config_of_rule xconf file (ast, []) rule
       handle_findings

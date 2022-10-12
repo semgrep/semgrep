@@ -108,6 +108,10 @@ let ncores = ref Runner_config.default.ncores
 (* see Flag_semgrep.ml *)
 let use_parsing_cache = ref Runner_config.default.parsing_cache_dir
 
+(* similar to filter_irrelevant_patterns, but use the whole rule to extract
+ * the regexp *)
+let filter_irrelevant_rules = ref Runner_config.default.filter_irrelevant_rules
+
 (* ------------------------------------------------------------------------- *)
 (* flags used by the semgrep-python wrapper *)
 (* ------------------------------------------------------------------------- *)
@@ -346,6 +350,7 @@ let mk_config () =
     pattern_file = !pattern_file;
     rule_source = !rule_source;
     lang_job = None;
+    filter_irrelevant_rules = !filter_irrelevant_rules;
     (* not part of CLI *)
     equivalences_file = !equivalences_file;
     lang = !lang;
@@ -586,13 +591,13 @@ let options () =
       Arg.Clear Flag.filter_irrelevant_patterns,
       " do not filter patterns" );
     ( "-filter_irrelevant_rules",
-      Arg.Set Flag.filter_irrelevant_rules,
+      Arg.Set filter_irrelevant_rules,
       " filter rules not containing any strings in target file" );
     ( "-no_filter_irrelevant_rules",
-      Arg.Clear Flag.filter_irrelevant_rules,
+      Arg.Clear filter_irrelevant_rules,
       " do not filter rules" );
     ( "-fast",
-      Arg.Set Flag.filter_irrelevant_rules,
+      Arg.Set filter_irrelevant_rules,
       " filter rules not containing any strings in target file" );
     ( "-bloom_filter",
       Arg.Set Flag.use_bloom_filter,
