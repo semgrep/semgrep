@@ -41,10 +41,10 @@ type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 type xconfig = {
   config : Config_semgrep.t;
   equivs : Equivalence.equivalences;
-  (* Field(s) coming from Runner_config.t used by the engine.
+  (* Fields coming from Runner_config.t used by the engine.
    * We could just include the whole Runner_config.t, but it's
-   * cleaner to explicitely state what the engine depends on.
-   * There's lots of fields in Runner_config.t
+   * cleaner to explicitely state what the engine depends on
+   * (there's lots of fields in Runner_config.t).
    *)
   matching_explanations : bool;
   filter_irrelevant_rules : bool;
@@ -97,6 +97,9 @@ let default_xconfig =
     config = Config_semgrep.default_config;
     equivs = [];
     matching_explanations = false;
-    (* TODO: set to true by default? *)
+    (* TODO: set to true by default?
+     * Anyway it's set to true in Runner_config.default so it will default to
+     * true when running as part of the regular code path (not testing code)
+     *)
     filter_irrelevant_rules = false;
   }
