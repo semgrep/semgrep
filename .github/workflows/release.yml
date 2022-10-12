@@ -205,6 +205,8 @@ jobs:
         with:
           submodules: true
       - name: Run OSX release script
+        env:
+          HOMEBREW_NO_INSTALL_CLEANUP: "true"
         run: ./scripts/osx-m1-release.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
