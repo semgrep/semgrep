@@ -32,7 +32,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v0 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Gem
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Maven
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Gradle
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Transitive
@@ -434,7 +433,7 @@ def parse_gradle(
         return FoundDependency(
             package=name,
             version=version,
-            ecosystem=Ecosystem(Gradle()),
+            ecosystem=Ecosystem(Maven()),
             resolved_url=None,
             allowed_hashes={},
             transitivity=Transitivity(Unknown()),
