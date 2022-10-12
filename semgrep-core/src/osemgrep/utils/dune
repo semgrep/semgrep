@@ -2,7 +2,7 @@
 ; Ideally this would be moved to pfff/commons/
 
 (library
- (public_name semgrep_utils)
+ (name osemgrep_utils)
  (wrapped false)
  (libraries
    re
@@ -19,15 +19,6 @@
      ppx_deriving.show
      ppx_deriving.eq
      ppx_hash
-   )
- )
- (foreign_stubs
-   (language c)
-   (include_dirs
-     %{ocaml_where}
-   )
-   (names
-     fnptr_impl
    )
  )
 )

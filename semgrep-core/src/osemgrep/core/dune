@@ -1,14 +1,12 @@
 ; Various definitions used throughout osemgrep, the OCaml reimplementation
 ; of the original Python semgrep.
 ;
-; Eventually, this will be merged with the /utils library from semgrep-core
-; or something similar.
+; Eventually, this will be merged with the /core library from semgrep-core
 
 (library
-  (name osemgrep_util)
+  (name osemgrep_core)
   (wrapped false)
   (libraries
-    cmdliner
     commons        ; pfff
     semgrep_utils  ; semgrep-core
     semgrep_core
