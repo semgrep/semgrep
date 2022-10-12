@@ -50,7 +50,18 @@ let output_format_is_json = function
   | Vim ->
       false
 
+(* coupling: ensure consistency with 'serverity' in 'rule_schema.yaml' *)
 type rule_severity = Info | Warning | Error | Inventory | Experiment
+(* TOPORT
+    @classmethod
+    def _missing_(cls: Type[Enum], value: object) -> Enum:
+        if not isinstance(value, str):
+            raise TypeError(f"invalid rule severity type: {type(value)}")
+        for member in cls:
+            if member.value.lower() == value:
+                return member
+        raise ValueError(f"invalid rule severity value: {value}")
+*)
 
 let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
 
@@ -108,21 +119,21 @@ let default_max_chars_per_line = 160
 let ellipsis_string = " ... "
 let default_max_target_size = 1_000_000 (* 1 MB *)
 
-(*
-class Colors(Enum):
-    # these colors come from user's terminal theme
-    foreground = 0
-    white = 7
-    black = 256
-    cyan = "cyan"  # for filenames
-    green = "green"  # for autofix
-    yellow = "yellow"  # TODO: benchmark timing output?
-    red = "red"  # for errors
-    bright_blue = "bright_blue"  # TODO: line numbers?
+(* python: original code:
+   class Colors(Enum):
+       # these colors come from user's terminal theme
+       foreground = 0
+       white = 7
+       black = 256
+       cyan = "cyan"  # for filenames
+       green = "green"  # for autofix
+       yellow = "yellow"  # TODO: benchmark timing output?
+       red = "red"  # for errors
+       bright_blue = "bright_blue"  # TODO: line numbers?
 
-    # these colors ignore user's terminal theme
-    forced_black = 16  # #000
-    forced_white = 231  # #FFF
+       # these colors ignore user's terminal theme
+       forced_black = 16  # #000
+       forced_white = 231  # #FFF
 *)
 type color =
   | Foreground
