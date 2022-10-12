@@ -205,6 +205,10 @@ jobs:
         with:
           submodules: true
       - name: Run OSX release script
+        env:
+          # M1 builds failing due to a permissions issue. this cleanup is an optimization,
+          # and we can revisit re-enabling cleanup when we have more time/resources to debug.
+          HOMEBREW_NO_INSTALL_CLEANUP: "true"
         run: ./scripts/osx-m1-release.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
