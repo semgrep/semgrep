@@ -19,9 +19,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* environment to pass to the cli_output generator *)
 type env = {
   hrules : Rule.hrules;
-  (* string to prefix all rule_id with,
-   * e.g., semgrep-core.tests.osemgrep... if the osemgrep argument
-   * was --config semgrep-core/tests/osemgrep.yml
+  (* string to prefix all rule_id with
+   * (e.g., "semgrep-core.tests." if the --config argument
+    * was semgrep-core/tests/osemgrep.yml)
    *)
   config_prefix : string;
 }
