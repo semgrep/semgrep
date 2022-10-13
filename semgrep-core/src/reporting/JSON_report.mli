@@ -6,7 +6,7 @@ val match_to_match :
   (Output_from_core_t.core_match, Semgrep_error_code.error) Common.either
 
 val match_results_of_matches_and_errors :
-  Common.filename list ->
+  int (* number of files processed, for the stats.okfiles *) ->
   Report.final_result ->
   Output_from_core_t.core_match_results
 

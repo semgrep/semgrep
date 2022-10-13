@@ -11,6 +11,7 @@ type path = string
 type result = {
   core : Semgrep_output_v0_t.core_match_results;
   hrules : Rule.hrules;
+  scanned : path Set_.t;
 }
 
 val invoke_semgrep_core : Scan_CLI.conf -> result

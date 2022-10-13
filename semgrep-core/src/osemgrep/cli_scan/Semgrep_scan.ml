@@ -12,9 +12,30 @@ let logger = Logging.get_logger [ __MODULE__ ]
    Translated from scan.py
    TODO and semgrep_main.py?
 *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+(* environment to pass to the cli_output generator *)
+type env = {
+  hrules : Rule.hrules;
+  (* string to prefix all rule_id with
+   * (e.g., "semgrep-core.tests." if the --config argument
+    * was semgrep-core/tests/osemgrep.yml)
+   *)
+  config_prefix : string;
+}
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
+  (* TODO: what if it's a registry rule? *)
+  let path = conf.config in
+  (*  need to prefix with the dotted path of the config file *)
+  let dir = Filename.dirname path in
+  dir ^ "."
 
 (*****************************************************************************)
 (* Core output to Cli output *)
@@ -35,8 +56,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let cli_error_of_core_error (_x : Out.core_error) : Out.cli_error =
   failwith "TODO: cli_error_of_core_error"
 
-let cli_match_of_core_match (hrules : Rule.hrules) (x : Out.core_match) :
-    Out.cli_match =
+let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
   match x with
   | {
    rule_id;
@@ -46,7 +66,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (x : Out.core_match) :
                           dataflow_trace = _; rendered_fix = _ };
   } ->
       let rule =
-        try Hashtbl.find hrules rule_id with
+        try Hashtbl.find env.hrules rule_id with
         | Not_found -> raise Impossible
       in
       let path = location.path in
@@ -58,11 +78,8 @@ let cli_match_of_core_match (hrules : Rule.hrules) (x : Out.core_match) :
         | Some s -> s
         | None -> ""
       in
-      (* TODO: need to prefix with the dotted path of the config file,
-       * e.g., semgrep-core.tests.osemgrep... if the argument
-       * was --config semgrep-core/tests/osemgrep.yml
-       *)
-      let check_id = rule_id in
+      (*  need to prefix with the dotted path of the config file *)
+      let check_id = env.config_prefix ^ rule_id in
       let metavars = Some metavars in
       (* LATER: this should be a variant in semgrep_output_v0.atd
        * and merged with Constants.rule_severity
@@ -80,6 +97,13 @@ let cli_match_of_core_match (hrules : Rule.hrules) (x : Out.core_match) :
         | None -> `Assoc []
         | Some json -> JSON.to_yojson json
       in
+      (* TODO: should use a faster implementation, using a cache
+       * to avoid rereading the same file again and again
+       *)
+      let lines =
+        Matching_report.lines_of_file (start.line, end_.line) path
+        |> String.concat "\n"
+      in
       {
         check_id;
         path;
@@ -88,8 +112,8 @@ let cli_match_of_core_match (hrules : Rule.hrules) (x : Out.core_match) :
         extra =
           {
             metavars;
+            lines;
             (* TODO *)
-            lines = "TODO";
             message;
             (* fields derived from the rule *)
             severity;
@@ -107,7 +131,8 @@ let cli_match_of_core_match (hrules : Rule.hrules) (x : Out.core_match) :
           };
       }
 
-let cli_output_of_core_results (res : Core_runner.result) : Out.cli_output =
+let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
+    : Out.cli_output =
   match res.core with
   | {
    matches;
@@ -120,19 +145,24 @@ let cli_output_of_core_results (res : Core_runner.result) : Out.cli_output =
    stats = _;
    time = _;
   } ->
+      let env =
+        { hrules = res.hrules; config_prefix = config_prefix_of_conf conf }
+      in
       (* TODO: not sure how it's sorted *)
       let matches =
         matches
         |> List.sort (fun (a : Out.core_match) (b : Out.core_match) ->
                compare a.rule_id b.rule_id)
       in
+      (* TODO: not sure how it's sorted *)
+      let scanned = res.scanned |> Set_.elements in
       {
         version = Some Version.version;
-        results = matches |> Common.map (cli_match_of_core_match res.hrules);
+        results = matches |> Common.map (cli_match_of_core_match env);
         (* TODO *)
         paths =
           {
-            scanned = [];
+            scanned;
             _comment = Some "<add --verbose for a list of skipped paths>";
             skipped = None;
           };
@@ -169,7 +199,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
 
   (* !!!TODO!!! use the result!! see semgrep_main.py *)
   let (res : Core_runner.result) = Core_runner.invoke_semgrep_core conf in
-  let (cli_output : Out.cli_output) = cli_output_of_core_results res in
+  let (cli_output : Out.cli_output) = cli_output_of_core_results conf res in
 
   (* TODO: if conf.output_format = Json *)
   let s = Out.string_of_cli_output cli_output in
