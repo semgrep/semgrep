@@ -126,11 +126,15 @@ val semgrep_with_raw_results_and_exn_handler :
 
 (* Same as semgrep_with_raw_results_and_exn_handler but takes rules
    and targets already filtered for a specific language.
-   All other options are read from the runner_config object. *)
+   All other options are read from the runner_config object.
+   TODO: we should not need this function because
+   semgrep_with_raw_results_and_exn_handler can take a list of targets
+   in different language (via config.targets set via --targets)
+*)
 val semgrep_with_prepared_rules_and_targets :
   Runner_config.t ->
   Runner_config.lang_job ->
-  Exception.t option * Report.final_result
+  Exception.t option * Report.final_result * Common.filename list
 
 (* utilities functions used in tests or semgrep-core variants *)
 

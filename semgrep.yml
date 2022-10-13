@@ -36,6 +36,7 @@ rules:
         - core_cli/*.ml
         - cli/*.ml
         - scripts/*
+        - cli_*/*.ml
         - Test.ml
         - Matching_report.ml
         - Matching_explanation.ml

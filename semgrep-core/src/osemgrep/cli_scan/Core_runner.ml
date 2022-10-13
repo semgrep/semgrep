@@ -1,4 +1,5 @@
-module C = Semgrep_output_v0_t
+module Out = Semgrep_output_v0_t
+module RP = Report
 
 (*************************************************************************)
 (* Prelude *)
@@ -44,34 +45,39 @@ class CoreRunner:
 
 type path = string
 
-type result = {
-  (* TODO: key by rule ID rather than whole rule? *)
-  findings_by_rule : (Rule.t, Rule_match.t list) Map_.t;
-  errors : Error.t list;
-  all_targets : path Set_.t;
-  (*profiling_data: profiling_data; TOPORT: do we need to translate this? *)
-  parsing_data : Parsing_data.t;
-  explanations : C.matching_explanation list option;
-}
+(* LATER: ideally we just want Out.cli_output *)
+type result = Out.core_match_results
+(* TODO: original intermediate data structures in python, but
+      we might want to get rid of them entirely and
+      go directly to Out.cli_output
+    {
+     findings_by_rule : (Rule.t, Rule_match.t list) Map_.t;
+     errors : Error.t list;
+     all_targets : path Set_.t;
+     (*profiling_data: profiling_data; TOPORT: do we need to translate this? *)
+     parsing_data : Parsing_data.t;
+     explanations : Out.matching_explanation list option;
+   }
+*)
 
 (*************************************************************************)
 (* Helpers *)
 (*************************************************************************)
 
-let merge_lists get_list xs = List.concat_map get_list xs
-
-let merge_results result_list : Report.final_result =
-  let open Report in
-  (* TODO: do something with the exceptions if they're not already in the
-     'errors' field. *)
-  let _exceptions = List.filter_map (fun (x, _) -> x) result_list in
-  let results = Common.map snd result_list in
+(* TODO: should return also exn opt and filename list,
+ * like the return type of semgrep_with_raw_results_and_exn_handler.
+ * TODO: we should not even need this function because
+ * Run_semgrep.semgrep_with_raw_results_and_exn_handler can already
+ * handle a list of targets in different language and so no need to
+ * merge results in the first place.
+ *)
+let merge_results (results : Report.final_result list) : Report.final_result =
   {
-    matches = merge_lists (fun x -> x.matches) results;
-    errors = merge_lists (fun x -> x.errors) results;
-    skipped_rules = merge_lists (fun x -> x.skipped_rules) results;
+    RP.matches = List.concat_map (fun x -> x.RP.matches) results;
+    errors = List.concat_map (fun x -> x.RP.errors) results;
+    skipped_rules = List.concat_map (fun x -> x.RP.skipped_rules) results;
     extra = No_info;
-    explanations = merge_lists (fun x -> x.explanations) results;
+    explanations = List.concat_map (fun x -> x.RP.explanations) results;
   }
 
 (* The same rule may appear under multiple target languages because
@@ -169,7 +175,8 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
         version = Version.version;
       }
 
-let call_semgrep_core conf all_rules all_targets =
+let call_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
+    (all_targets : path list) : Out.core_match_results =
   let config : Runner_config.t = runner_config_of_conf conf in
 
   (* TOADAPT
@@ -184,14 +191,38 @@ let call_semgrep_core conf all_rules all_targets =
        else config
      in
   *)
+  (* TODO: we should not need to use Common.map below, because
+   * Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
+   * a list of targets with different languages! We just
+   * need to pass the right target object (and not a lang_job)
+   *)
   let lang_jobs = split_jobs_by_language all_rules all_targets in
   let results_by_language =
-    Common.map
-      (* !!!!Finally! this is where we branch to semgrep-core!!! *)
-      (Run_semgrep.semgrep_with_prepared_rules_and_targets config)
-      lang_jobs
+    lang_jobs
+    |> Common.map (fun lang_job ->
+           let _exn_optTODO, report, _filesTODO =
+             (* !!!!Finally! this is where we branch to semgrep-core!!! *)
+             Run_semgrep.semgrep_with_prepared_rules_and_targets config lang_job
+           in
+           report)
   in
-  merge_results results_by_language
+  let res = merge_results results_by_language in
+  (* TODO: should get this from Run_semgrep *)
+  let _exnTODO = None in
+  let files = [] in
+  (* similar to Run_semgrep.semgrep_with_rules_and_formatted_output *)
+  (* LATER: we want to avoid this intermediate data structure and
+   * return directly Out.cli_output
+   *)
+  let (match_results : Out.core_match_results) =
+    JSON_report.match_results_of_matches_and_errors files res
+  in
+  (* TOADAPT:
+      match exn with
+      | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
+      | None -> ())
+  *)
+  match_results
 
 (*************************************************************************)
 (* Entry point *)
@@ -199,12 +230,8 @@ let call_semgrep_core conf all_rules all_targets =
 
 (*
    Take in rules and targets and return object with findings.
-
-   ?core_opts_str: extra arguments passed to semgrep-core that need splitting
-   on whitespace. We will no longer be able to support this since
-   the semgrep-core CLI itself is going away.
 *)
-let invoke_semgrep (conf : Scan_CLI.conf) : result =
+let invoke_semgrep_core (conf : Scan_CLI.conf) : result =
   let rules, errors =
     (* TOPORT: resolve rule file URLs; for now we assume it's a file. *)
     Parse_rule.parse_and_filter_invalid_rules conf.config
@@ -217,14 +244,8 @@ let invoke_semgrep (conf : Scan_CLI.conf) : result =
       ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
   in
   (* !!!TODO!!! use the result!! *)
-  let _res = call_semgrep_core conf rules targets in
+  let res = call_semgrep_core conf rules targets in
   (* TOPORT: figure out the best type for this result. Ideally, this is
      the type corresponding to the JSON output. *)
   ignore skipped_targets;
-  {
-    findings_by_rule = Map_.empty;
-    errors = [];
-    all_targets = Set_.empty;
-    parsing_data = Parsing_data.TODO;
-    explanations = None;
-  }
+  res
