@@ -22,6 +22,7 @@ type conf = {
   pattern : string option;
   quiet : bool;
   respect_git_ignore : bool;
+  strict : bool;
   target_roots : string list;
   timeout : float;
   timeout_threshold : int;

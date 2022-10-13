@@ -146,6 +146,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    max_target_bytes = _;
    metrics = _;
    respect_git_ignore = _;
+   strict = _;
    quiet = _;
    verbose = _;
   } ->

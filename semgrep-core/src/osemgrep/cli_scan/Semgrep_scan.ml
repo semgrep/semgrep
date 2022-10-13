@@ -39,37 +39,44 @@ let cli_match_of_core_match (x : Out.core_match) : Out.cli_match =
    (* TODO *)
    location;
    extra =
-     {
-       message = _;
-       metavars = _;
-       (* LATER *)
-       dataflow_trace = _;
-       rendered_fix = _;
-     };
+     { message; metavars; (* LATER *)
+                          dataflow_trace = _; rendered_fix = _ };
   } ->
       let path = location.path in
       let start = location.start in
       let end_ = location.end_ in
+      let message =
+        match message with
+        (* TODO: message where the metavars have been interpolated *)
+        | Some s -> s
+        | None -> ""
+      in
+      (* TODO: need to prefix with the dotted path of the config file,
+       * e.g., semgrep-core.tests.osemgrep... if the argument
+       * was --config semgrep-core/tests/osemgrep.yml
+       *)
+      let check_id = rule_id in
+      let metavars = Some metavars in
       {
-        check_id = rule_id;
+        check_id;
         path;
         start;
         end_;
         extra =
           {
+            metavars;
             (* TODO *)
-            metavars = None;
-            fingerprint = "TODO";
             lines = "TODO";
+            message;
             (* TODO: fields derived from the rule *)
-            message = "";
-            metadata = `Null;
+            metadata = `Assoc [];
             severity = "TODO";
             fix = None;
             fix_regex = None;
             (* TODO: extra fields *)
-            is_ignored = None;
+            is_ignored = Some false;
             (* LATER *)
+            fingerprint = "TODO";
             sca_info = None;
             fixed_lines = None;
             dataflow_trace = None;

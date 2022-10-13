@@ -42,6 +42,7 @@ type conf = {
   pattern : string option;
   quiet : bool;
   respect_git_ignore : bool;
+  strict : bool;
   target_roots : string list;
   timeout : float;
   timeout_threshold : int;
@@ -71,6 +72,7 @@ let default : conf =
     pattern = None;
     quiet = false;
     respect_git_ignore = true;
+    strict = false;
     target_roots = [ "." ];
     timeout = float_of_int Constants.default_timeout;
     timeout_threshold = 3;
@@ -361,6 +363,14 @@ Must be used with -e/--pattern.
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Test and debug options" *)
 (* ------------------------------------------------------------------ *)
+let o_strict : bool Term.t =
+  H.negatable_flag [ "strict" ] ~neg_options:[ "no-strict" ]
+    ~default:default.strict
+    ~doc:
+      {|Return a nonzero exit code when WARN level errors are encountered.
+Fails early if invalid configuration files are present.
+Defaults to --no-strict.
+|}
 
 (* ------------------------------------------------------------------ *)
 (* positional arguments *)
@@ -381,8 +391,8 @@ let o_target_roots =
 let cmdline_term : conf Term.t =
   let combine autofix baseline_commit config debug emacs exclude include_ json
       lang max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
-      quiet respect_git_ignore target_roots timeout timeout_threshold verbose
-      vim =
+      quiet respect_git_ignore strict target_roots timeout timeout_threshold
+      verbose vim =
     let output_format =
       match (json, emacs, vim) with
       | false, false, false -> default.output_format
@@ -410,6 +420,7 @@ let cmdline_term : conf Term.t =
       pattern;
       quiet;
       respect_git_ignore;
+      strict;
       target_roots;
       timeout;
       timeout_threshold;
@@ -421,7 +432,7 @@ let cmdline_term : conf Term.t =
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug $ o_emacs
     $ o_exclude $ o_include $ o_json $ o_lang $ o_max_memory_mb
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern
-    $ o_quiet $ o_respect_git_ignore $ o_target_roots $ o_timeout
+    $ o_quiet $ o_respect_git_ignore $ o_strict $ o_target_roots $ o_timeout
     $ o_timeout_threshold $ o_verbose $ o_vim)
 
 let doc = "run semgrep rules on files"
