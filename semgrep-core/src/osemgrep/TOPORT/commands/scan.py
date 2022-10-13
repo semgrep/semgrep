@@ -356,11 +356,6 @@ def scan_options(func: Callable) -> Callable:
     is_flag=True,
     help="Exit 1 if there are findings. Useful for CI and scripts.",
 )
-@click.option(
-    "--strict/--no-strict",
-    is_flag=True,
-    default=False,
-    help="Return a nonzero exit code when WARN level errors are encountered. Fails early if invalid configuration files are present. Defaults to --no-strict.",
 )
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
@@ -398,7 +393,6 @@ def scan(
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     show_supported_languages: bool,
-    strict: bool,
     test: bool,
     test_ignore_todo: bool,
     time_flag: bool,
