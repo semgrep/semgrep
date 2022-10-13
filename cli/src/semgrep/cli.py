@@ -52,7 +52,7 @@ def abort_if_linux_arm64() -> None:
     Exit with FATAL_EXIT_CODE if the user is running on Linux ARM64.
     Print helpful error message.
     """
-    if platform.machine() == "arm64" and platform.system() == "Linux":
+    if platform.machine() in {"arm64", "aarch64"} and platform.system() == "Linux":
         logger.error("Semgrep does not support Linux ARM64")
         sys.exit(FATAL_EXIT_CODE)
 
