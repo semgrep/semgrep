@@ -1,1 +1,0 @@
-Scala: Fixed a bug where generators would not parse if newlines were present, in certain cases

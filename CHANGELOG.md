@@ -8,6 +8,27 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.117.0](https://github.com/returntocorp/semgrep/releases/tag/v0.117.0) - 2022-10-12
+
+### Added
+
+- taint-mode: It is now possible to use `pattern-propagators` to propagate taint
+  through higher-order iterators such as `forEach` in Java. For example:
+  ````yaml
+    pattern-propagators:
+      - pattern: $X.forEach(($Y) -> ...)
+        from: $X
+        to: $Y
+  ``` (gh-5971)
+  ````
+
+### Fixed
+
+- Scala: Fixed a bug where generators would not parse if newlines were present, in certain cases (pa-1902)
+- Fixed bug where nested dependencies in package-lock.json files were not detected (sc-247)
+- Removed Gradle as a separate supply chain ecosystem. Maven rules now work on Gradle projects (sc-256)
+- Lockfiles are no longer subject to size filtering during file targetting, so very large lockfiles can now generate unreachable findings (sc-293)
+
 ## [0.116.0](https://github.com/returntocorp/semgrep/releases/tag/v0.116.0) - 2022-10-06
 
 ### Added
