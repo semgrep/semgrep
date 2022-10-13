@@ -12,6 +12,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
    Translated from scan.py
    TODO and semgrep_main.py?
 *)
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 (*****************************************************************************)
 (* Core output to Cli output *)
@@ -32,16 +35,20 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let cli_error_of_core_error (_x : Out.core_error) : Out.cli_error =
   failwith "TODO: cli_error_of_core_error"
 
-let cli_match_of_core_match (x : Out.core_match) : Out.cli_match =
+let cli_match_of_core_match (hrules : Rule.hrules) (x : Out.core_match) :
+    Out.cli_match =
   match x with
   | {
    rule_id;
-   (* TODO *)
    location;
    extra =
      { message; metavars; (* LATER *)
                           dataflow_trace = _; rendered_fix = _ };
   } ->
+      let rule =
+        try Hashtbl.find hrules rule_id with
+        | Not_found -> raise Impossible
+      in
       let path = location.path in
       let start = location.start in
       let end_ = location.end_ in
@@ -57,6 +64,22 @@ let cli_match_of_core_match (x : Out.core_match) : Out.cli_match =
        *)
       let check_id = rule_id in
       let metavars = Some metavars in
+      (* LATER: this should be a variant in semgrep_output_v0.atd
+       * and merged with Constants.rule_severity
+       *)
+      let severity =
+        match rule.severity with
+        | Error -> "ERROR"
+        | Warning -> "WARNING"
+        | Info -> "INFO"
+        | Experiment -> "EXPERIMENT"
+        | Inventory -> "INVENTORY"
+      in
+      let metadata =
+        match rule.metadata with
+        | None -> `Assoc []
+        | Some json -> JSON.to_yojson json
+      in
       {
         check_id;
         path;
@@ -68,9 +91,10 @@ let cli_match_of_core_match (x : Out.core_match) : Out.cli_match =
             (* TODO *)
             lines = "TODO";
             message;
-            (* TODO: fields derived from the rule *)
-            metadata = `Assoc [];
-            severity = "TODO";
+            (* fields derived from the rule *)
+            severity;
+            metadata;
+            (* TODO: other fields derived from the rule *)
             fix = None;
             fix_regex = None;
             (* TODO: extra fields *)
@@ -83,9 +107,8 @@ let cli_match_of_core_match (x : Out.core_match) : Out.cli_match =
           };
       }
 
-let cli_output_of_core_match_results (res : Out.core_match_results) :
-    Out.cli_output =
-  match res with
+let cli_output_of_core_results (res : Core_runner.result) : Out.cli_output =
+  match res.core with
   | {
    matches;
    (* TODO *)
@@ -97,9 +120,15 @@ let cli_output_of_core_match_results (res : Out.core_match_results) :
    stats = _;
    time = _;
   } ->
+      (* TODO: not sure how it's sorted *)
+      let matches =
+        matches
+        |> List.sort (fun (a : Out.core_match) (b : Out.core_match) ->
+               compare a.rule_id b.rule_id)
+      in
       {
         version = Some Version.version;
-        results = matches |> Common.map cli_match_of_core_match;
+        results = matches |> Common.map (cli_match_of_core_match res.hrules);
         (* TODO *)
         paths =
           {
@@ -139,8 +168,8 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   logger#info "Version: %s" config.version;
 
   (* !!!TODO!!! use the result!! see semgrep_main.py *)
-  let (res : Out.core_match_results) = Core_runner.invoke_semgrep_core conf in
-  let (cli_output : Out.cli_output) = cli_output_of_core_match_results res in
+  let (res : Core_runner.result) = Core_runner.invoke_semgrep_core conf in
+  let (cli_output : Out.cli_output) = cli_output_of_core_results res in
 
   (* TODO: if conf.output_format = Json *)
   let s = Out.string_of_cli_output cli_output in

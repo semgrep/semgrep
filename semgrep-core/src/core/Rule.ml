@@ -266,10 +266,14 @@ type rule = mode rule_info [@@deriving show]
 (* aliases *)
 type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
+type hrules = (rule_id, t) Hashtbl.t
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let hrules_of_rules (rules : t list) : hrules =
+  rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
 
 let partition_rules (rules : rules) :
     search_rule list * taint_rule list * extract_rule list =

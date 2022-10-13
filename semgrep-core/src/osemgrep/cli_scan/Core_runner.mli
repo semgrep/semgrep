@@ -7,7 +7,11 @@
 *)
 
 type path = string
-type result = Semgrep_output_v0_t.core_match_results
+
+type result = {
+  core : Semgrep_output_v0_t.core_match_results;
+  hrules : Rule.hrules;
+}
 
 val invoke_semgrep_core : Scan_CLI.conf -> result
 

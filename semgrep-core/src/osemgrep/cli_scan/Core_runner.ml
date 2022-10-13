@@ -45,20 +45,23 @@ class CoreRunner:
 
 type path = string
 
-(* LATER: ideally we just want Out.cli_output *)
-type result = Out.core_match_results
-(* TODO: original intermediate data structures in python, but
-      we might want to get rid of them entirely and
-      go directly to Out.cli_output
-    {
+(* LATER: ideally we just want directly Out.cli_output? *)
+type result = {
+  (* ocaml: not in original python implem, but just enough to get
+   * Semgrep_scan.cli_output_of_core_results to work
+   *)
+  core : Out.core_match_results;
+  hrules : Rule.hrules;
+      (* TODO: original intermediate data structures in python *)
+      (*
      findings_by_rule : (Rule.t, Rule_match.t list) Map_.t;
      errors : Error.t list;
      all_targets : path Set_.t;
      (*profiling_data: profiling_data; TOPORT: do we need to translate this? *)
      parsing_data : Parsing_data.t;
      explanations : Out.matching_explanation list option;
-   }
-*)
+  *)
+}
 
 (*************************************************************************)
 (* Helpers *)
@@ -249,4 +252,4 @@ let invoke_semgrep_core (conf : Scan_CLI.conf) : result =
   (* TOPORT: figure out the best type for this result. Ideally, this is
      the type corresponding to the JSON output. *)
   ignore skipped_targets;
-  res
+  { core = res; hrules = Rule.hrules_of_rules rules }
