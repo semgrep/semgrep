@@ -27,6 +27,20 @@ module Out = Output_from_core_t (* atdgen definitions *)
 module OutH = Output_from_core_util
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* TODO: should use Common? *)
+
+let rec last hd = function
+  | [] -> hd
+  | hd :: tl -> last hd tl
+
+let first_and_last = function
+  | [] -> None
+  | hd :: tl -> Some (hd, last hd tl)
+
+(*****************************************************************************)
 (* JSON *)
 (*****************************************************************************)
 
@@ -147,14 +161,6 @@ let parse_info_to_location pi =
          OutH.location_of_token_location token_location)
 
 let tokens_to_locations toks = List.filter_map parse_info_to_location toks
-
-let rec last hd = function
-  | [] -> hd
-  | hd :: tl -> last hd tl
-
-let first_and_last = function
-  | [] -> None
-  | hd :: tl -> Some (hd, last hd tl)
 
 let tokens_to_single_loc toks =
   (* toks should be nonempty and should contain only origintoks, but since we
@@ -287,18 +293,19 @@ let json_time_of_profiling_data profiling_data =
     rules_parse_time = Some profiling_data.RP.rules_parse_time;
   }
 
-let match_results_of_matches_and_errors files res =
+let match_results_of_matches_and_errors nfiles res =
   let matches, new_errs =
     Common.partition_either match_to_match res.RP.matches
   in
   let errs = !E.g_errors @ new_errs @ res.RP.errors in
   let files_with_errors =
-    List.fold_left
-      (fun acc err -> StrSet.add err.E.loc.file acc)
-      StrSet.empty errs
+    errs
+    |> List.fold_left
+         (fun acc err -> StrSet.add err.E.loc.file acc)
+         StrSet.empty
   in
   let count_errors = StrSet.cardinal files_with_errors in
-  let count_ok = List.length files - count_errors in
+  let count_ok = nfiles - count_errors in
   let skipped_targets, profiling =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->

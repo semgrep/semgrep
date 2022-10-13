@@ -265,7 +265,9 @@ let check_files mk_config fparser input =
   | Text -> List.iter (fun err -> pr2 (E.string_of_error err)) errors
   | Json _ ->
       let res = { RP.empty_final_result with errors } in
-      let json = JSON_report.match_results_of_matches_and_errors [] res in
+      let nfiles = 0 in
+      (* for the stats, but we don't care? *)
+      let json = JSON_report.match_results_of_matches_and_errors nfiles res in
       pr (SJ.string_of_core_match_results json)
 
 let stat_files fparser xs =
