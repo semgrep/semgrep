@@ -13,7 +13,7 @@ module H = Cmdliner_helpers
    Translated from scan.py
 *)
 
-(* TOPORT: all those shell_complete() click functions *)
+(* TOPORT: all those shell_complete() click functions? *)
 
 (*****************************************************************************)
 (* Types and constants *)

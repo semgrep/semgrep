@@ -7,3 +7,6 @@
    Exceptions are caught and turned into an appropriate exit code.
 *)
 val main : string array -> Exit_code.t
+
+(* internal *)
+val run : Scan_CLI.conf -> Exit_code.t
