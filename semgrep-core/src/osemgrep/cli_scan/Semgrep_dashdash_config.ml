@@ -56,7 +56,8 @@ let config_kind_of_config_str config_str =
   | _else_ -> failwith (spf "not a valid --config string: %s" config_str)
 
 let url_of_registry_kind rkind =
-  let prefix = "https://semgrep.dev" in
+  (* TODO: go through curl interface for now (c/) *)
+  let prefix = "https://semgrep.dev/c" in
   match rkind with
   | Registry s -> spf "%s/r/%s" prefix s
   | Pack s -> spf "%s/r/%s" prefix s
@@ -81,7 +82,9 @@ let rules_from_dashdash_config config_str =
       logger#debug "trying to download from %s" url;
       let resp_promise = Quests.get url in
       let resp = Lwt_main.run resp_promise in
-      pr (Quests.Response.show resp);
-      failwith "TODO"
+      let content = resp.content in
+      (* to debug: pr (Quests.Response.show resp); *)
+      Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+          load_rules_from_file file)
   | _else_ ->
       failwith (spf "TODO: config not handled yet: %s" (show_config_kind kind))
