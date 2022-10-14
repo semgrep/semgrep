@@ -9,6 +9,8 @@
    We don't use Cmdliner to dispatch subcommands because it's a too
    complicated and we never show a help page for the whole command anyway
    since we fall back to the 'scan' subcommand if none is given.
+
+   Translated from cli.py
 *)
 
 (*****************************************************************************)
@@ -112,7 +114,7 @@ let dispatch_subcommand argv =
       | "logout" -> missing_subcommand ()
       | "lsp" -> missing_subcommand ()
       | "publish" -> missing_subcommand ()
-      | "scan" -> Semgrep_scan.main subcmd_argv
+      | "scan" -> Scan_subcommand.main subcmd_argv
       | "shouldafound" -> missing_subcommand ()
       (* TOPORT: cli.add_command(install_deep_semgrep) *)
       | _else_ -> (* should have defaulted to 'scan' above *) assert false)

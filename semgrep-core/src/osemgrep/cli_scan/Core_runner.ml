@@ -253,18 +253,14 @@ let call_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
    Take in rules and targets and return object with findings.
 *)
 let invoke_semgrep_core (conf : Scan_CLI.conf) : result =
-  let rules, errors =
-    (* TOPORT: resolve rule file URLs; for now we assume it's a file. *)
-    Parse_rule.parse_and_filter_invalid_rules conf.config
+  (* TODO: should be moved in caller? *)
+  let rules, _errorsTODO =
+    Semgrep_dashdash_config.rules_from_dashdash_config conf.config
   in
-  (* TOPORT: don't ignore errors *)
-  ignore errors;
-  let targets, skipped_targets =
+  let targets, _skipped_targetsTODO =
     Find_target.select_global_targets ~includes:conf.include_
       ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
       ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
   in
-  (* TODO *)
-  ignore skipped_targets;
   let res, scanned = call_semgrep_core conf rules targets in
   { core = res; hrules = Rule.hrules_of_rules rules; scanned }

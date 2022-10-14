@@ -356,7 +356,7 @@ def scan_options(func: Callable) -> Callable:
     is_flag=True,
     help="Exit 1 if there are findings. Useful for CI and scripts.",
 )
-)
+
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option(
