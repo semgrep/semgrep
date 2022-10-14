@@ -48,9 +48,17 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   (* --------------------------------------------------------- *)
   (* Let's go *)
   (* --------------------------------------------------------- *)
+  (* TODO: in theory we should have an intermediate module that
+   * handle the -e/--lang, or --config, but for now we care
+   * only about --config.
+   * TODO: in theory we can also pass multiple --config and
+   * have a default config.
+   *)
   let rules, _errorsTODO =
     Semgrep_dashdash_config.rules_from_dashdash_config conf.config
   in
+  (* TODO: there are more ways to specify targets? see target_manager.py
+   *)
   let targets, _skipped_targetsTODO =
     Find_target.select_global_targets ~includes:conf.include_
       ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
