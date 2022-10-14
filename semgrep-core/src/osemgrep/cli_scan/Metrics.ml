@@ -4,7 +4,7 @@
 
 open Printf
 
-let metrics_endpoint = "https://metrics.semgrep.dev"
+let _metrics_endpoint = "https://metrics.semgrep.dev"
 
 module State = struct
   (*
@@ -35,6 +35,6 @@ module State = struct
   let converter = Cmdliner.Arg.conv' ~docv:"STATE" (parser, printer)
 end
 
-type sha256hash = Sha256hash of string
+type _sha256hash = Sha256hash of string
 
 (* TODO: everything else from here *)

@@ -5,15 +5,7 @@ import os
 import subprocess
 import sys
 from io import TextIOWrapper
-from pathlib import Path
 from textwrap import dedent
-from typing import Any
-from typing import Callable
-from typing import FrozenSet
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import TypeVar
 from urllib.parse import urlparse
 
 import click
@@ -22,9 +14,6 @@ from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
-
-
-T = TypeVar("T")
 
 
 MAX_TEXT_WIDTH = 120

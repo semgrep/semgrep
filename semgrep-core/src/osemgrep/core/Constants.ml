@@ -4,31 +4,31 @@
 
 open Printf
 
-let rules_key = "rules"
-let id_key = "id"
-let cli_rule_id = "-"
+let _rules_key = "rules"
+let _id_key = "id"
+let _cli_rule_id = "-"
 
-let please_file_issue_text =
+let _please_file_issue_text =
   "An error occurred while invoking the Semgrep engine. Please help us fix \
    this by creating an issue at https://github.com/returntocorp/semgrep"
 
 let default_semgrep_config_name = "semgrep"
-let default_config_file = sprintf ".%s.yml" default_semgrep_config_name
-let default_config_folder = sprintf ".%s" default_semgrep_config_name
-let default_semgrep_app_config_url = "api/agent/deployments/scans/config"
+let _default_config_file = sprintf ".%s.yml" default_semgrep_config_name
+let _default_config_folder = sprintf ".%s" default_semgrep_config_name
+let _default_semgrep_app_config_url = "api/agent/deployments/scans/config"
 
 (* LATER: move to Scan_CLI.default directly *)
 let default_timeout = 30 (* seconds *)
-let settings_filename = "settings.yml"
+let _settings_filename = "settings.yml"
 let yml_extensions = [ ".yml"; ".yaml" ]
-let yml_suffixes = Common.map (fun ext -> [ ext ]) yml_extensions
-let yml_test_suffixes = Common.map (fun ext -> [ ".test"; ext ]) yml_extensions
-let fixtest_suffix = ".fixed"
+let _yml_suffixes = Common.map (fun ext -> [ ext ]) yml_extensions
+let _yml_test_suffixes = Common.map (fun ext -> [ ".test"; ext ]) yml_extensions
+let _fixtest_suffix = ".fixed"
 
-let returntocorp_lever_url =
+let _returntocorp_lever_url =
   "https://api.lever.co/v0/postings/returntocorp?mode=json"
 
-let unsupported_ext_ignore_langs = [ ("generic", "regex") ]
+let _unsupported_ext_ignore_langs = [ ("generic", "regex") ]
 
 type output_format =
   | Text
@@ -40,7 +40,7 @@ type output_format =
   | Emacs
   | Vim
 
-let output_format_is_json = function
+let _output_format_is_json = function
   | Json
   | Sarif ->
       true
@@ -84,13 +84,13 @@ let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
    * nosem and nosemgrep should be interchangeable
 *)
 let nosem_inline_re_str = {| nosem(?:grep)?|} ^ rule_id_re_str
-let nosem_inline_re = SPcre.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
+let _nosem_inline_re = SPcre.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
 
 (*
    As a hack adapted from semgrep-agent,
    we assume comment markers are one of these special characters
 *)
-let nosem_inline_comment_re =
+let _nosem_inline_comment_re =
   SPcre.regexp (sprintf {|[:#/]+%s$|} nosem_inline_re_str) ~flags:[ `CASELESS ]
 
 (*
@@ -105,20 +105,20 @@ let nosem_inline_comment_re =
      # nosemgrep
      print('nosemgrep');
 *)
-let nosem_previous_line_re =
+let _nosem_previous_line_re =
   SPcre.regexp
     ({|^[^a-zA-Z0-9]* nosem(?:grep)?|} ^ rule_id_re_str)
     ~flags:[ `CASELESS ]
 
-let comma_separated_list_re = SPcre.regexp {|[,\s]|}
-let max_lines_flag_name = "--max-lines-per-finding"
-let default_max_lines_per_finding = 10
+let _comma_separated_list_re = SPcre.regexp {|[,\s]|}
+let _max_lines_flag_name = "--max-lines-per-finding"
+let _default_max_lines_per_finding = 10
 let break_line_width = 80
 let break_line_char = '-'
-let break_line = String.make break_line_width break_line_char
-let max_chars_flag_name = "--max-chars-per-line"
-let default_max_chars_per_line = 160
-let ellipsis_string = " ... "
+let _break_line = String.make break_line_width break_line_char
+let _max_chars_flag_name = "--max-chars-per-line"
+let _default_max_chars_per_line = 160
+let _ellipsis_string = " ... "
 
 (* LATER: move to Scan_CLI.default directly *)
 let default_max_target_size = 1_000_000 (* 1 MB *)
@@ -139,7 +139,7 @@ let default_max_target_size = 1_000_000 (* 1 MB *)
        forced_black = 16  # #000
        forced_white = 231  # #FFF
 *)
-type color =
+type _color =
   | Foreground
   | White
   | Black
@@ -154,7 +154,7 @@ type color =
 type color_code = Int of int | String of string
 
 (* What's the encoding? *)
-let encode_color = function
+let _encode_color = function
   | Foreground -> Int 0
   | White -> Int 7 (* really? *)
   | Black -> Int 256 (* really? *)

@@ -21,7 +21,7 @@
 
    TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
 *)
-type t = {
+type _t = {
   todo : unit;
       (* TODO
           target_strings: Sequence[str]

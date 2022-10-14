@@ -77,7 +77,7 @@ type match_based_key = {
     This is also often referred to as a finding.
     TODO: Rename this class to Finding?
 *)
-type t = {
+type _t = {
   match_ : C.core_match;
   (* fields from the rule *)
   message : string;
