@@ -2,4 +2,4 @@
    Translated from parsing_data.py
 *)
 
-type t = TODO
+type _t = unit (* TODO *)
