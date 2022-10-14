@@ -193,9 +193,15 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
         version = Version.version;
       }
 
-let call_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
-    (all_targets : path list) : Out.core_match_results * Common.filename Set_.t
-    =
+(*************************************************************************)
+(* Entry point *)
+(*************************************************************************)
+
+(*
+   Take in rules and targets and return object with findings.
+*)
+let invoke_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
+    (all_targets : path list) : result =
   let config : Runner_config.t = runner_config_of_conf conf in
 
   (* TOADAPT
@@ -232,8 +238,9 @@ let call_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
   (* TODO: should get this from Run_semgrep *)
   let _exnTODO = None in
   (* similar to Run_semgrep.semgrep_with_rules_and_formatted_output *)
-  (* LATER: we want to avoid this intermediate data structure and
-   * return directly Out.cli_output
+  (* LATER: we want to avoid this intermediate data structure but
+   * for now that's what semgrep-python used to get so simpler to
+   * return it.
    *)
   let match_results =
     JSON_report.match_results_of_matches_and_errors (Set_.cardinal scanned) res
@@ -243,24 +250,4 @@ let call_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
       | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
       | None -> ())
   *)
-  (match_results, scanned)
-
-(*************************************************************************)
-(* Entry point *)
-(*************************************************************************)
-
-(*
-   Take in rules and targets and return object with findings.
-*)
-let invoke_semgrep_core (conf : Scan_CLI.conf) : result =
-  (* TODO: should be moved in caller? *)
-  let rules, _errorsTODO =
-    Semgrep_dashdash_config.rules_from_dashdash_config conf.config
-  in
-  let targets, _skipped_targetsTODO =
-    Find_target.select_global_targets ~includes:conf.include_
-      ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
-      ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
-  in
-  let res, scanned = call_semgrep_core conf rules targets in
-  { core = res; hrules = Rule.hrules_of_rules rules; scanned }
+  { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }

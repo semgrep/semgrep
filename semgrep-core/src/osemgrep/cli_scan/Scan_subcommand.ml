@@ -45,7 +45,20 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   logger#info "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " ");
   logger#info "Version: %s" config.version;
 
-  let (res : Core_runner.result) = Core_runner.invoke_semgrep_core conf in
+  (* --------------------------------------------------------- *)
+  (* Let's go *)
+  (* --------------------------------------------------------- *)
+  let rules, _errorsTODO =
+    Semgrep_dashdash_config.rules_from_dashdash_config conf.config
+  in
+  let targets, _skipped_targetsTODO =
+    Find_target.select_global_targets ~includes:conf.include_
+      ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
+      ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
+  in
+  let (res : Core_runner.result) =
+    Core_runner.invoke_semgrep_core conf rules targets
+  in
 
   Output.output_result conf res;
   Exit_code.ok
