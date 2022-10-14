@@ -22,6 +22,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   ``` (gh-5971)
   ````
 
+### Changed
+
+- Change default behavior of Travis CI configurations. If a user manually sets their environment variables (i.e. SEMGREP_REPO_NAME, SEMGREP_REPO_URL, SEMGREP_BRANCH, SEMGREP_JOB_URL, SEMGREP_COMMIT, SEMGREP_PR_ID), use it before falling back on autodetection.
+
 ### Fixed
 
 - Scala: Fixed a bug where generators would not parse if newlines were present, in certain cases (pa-1902)
