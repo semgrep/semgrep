@@ -1,21 +1,3 @@
-import json
-import os
-import time
-from collections import OrderedDict
-from enum import auto
-from enum import Enum
-from pathlib import Path
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import NamedTuple
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from urllib.parse import urlencode
-from urllib.parse import urlparse
-
 import requests
 import ruamel.yaml
 from ruamel.yaml import YAMLError
@@ -51,8 +33,6 @@ from semgrep.util import terminal_wrap
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
-logger = getLogger(__name__)
-
 AUTO_CONFIG_KEY = "auto"
 AUTO_CONFIG_LOCATION = "c/auto"
 
@@ -70,16 +50,10 @@ DEFAULT_CONFIG = {
     ],
 }
 
-
 class ConfigFile(NamedTuple):
     config_id: Optional[str]  # None for remote files
     contents: str
     config_path: str
-
-
-class ConfigType(Enum):
-    REGISTRY = auto()
-    LOCAL = auto()
 
 
 class ConfigLoader:
@@ -652,19 +626,6 @@ def load_default_config() -> Dict[str, YamlTree]:
         config_infos = read_config_folder(default_folder, relative=True)
     return parse_config_files(config_infos)
 
-
-def is_registry_id(config_str: str) -> bool:
-    """
-    Starts with r/, p/, s/ for registry, pack, and snippet respectively
-    """
-    return config_str[:2] in {"r/", "p/", "s/"}
-
-
-def is_saved_snippet(config_str: str) -> bool:
-    """
-    config_str is saved snippet which has format username:snippetname
-    """
-    return len(config_str.split(":")) == 2
 
 
 def registry_id_to_url(registry_id: str) -> str:

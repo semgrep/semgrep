@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "semgrep"
-version: "0.73.0"
+version: "0.117.0"
 synopsis: "Like grep but for code: fast and syntax-aware semantic code pattern for many languages"
 description: """
 Semgrep is like grep but for searching patterns at the AST level.
@@ -19,8 +19,8 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 # A big dependency is pfff, but it's now a submodule so it's not listed here
 #TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
 
-# For semgrep CI to be fast, we try to pre-install these packages as part of
-# of the base docker image. When you add a new package or change a version
+#coupling: for semgrep CI to be fast, we try to pre-install these packages as
+# part of of the base docker image. When you add a new package or change a version
 # here, please also update the list of packages there:
 #
 #   https://github.com/returntocorp/ocaml-layer/blob/master/common-config.sh
@@ -40,6 +40,7 @@ depends: [
   "pcre"
   "parmap"
   "ppxlib"
+  "cohttp-lwt-unix" # this brings lots of dependencies. This is for osemgrep.
   "lsp" {= "1.7.0"}
   "comby-kernel" {= "1.4.1"}
 ]

@@ -5,10 +5,21 @@
   (wrapped false)
   (libraries
     cmdliner
+    lwt
+    cohttp cohttp-lwt-unix
+
     commons  ; from pfff
     semgrep_core_cli  ; semgrep-core's CLI
     semgrep_reporting
     osemgrep_utils
     osemgrep_core
   )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_hash
+   )
+ )
 )

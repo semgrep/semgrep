@@ -8,6 +8,9 @@ module Out = Semgrep_output_v0_j
    'semgrep scan' output.
 
    Partially translated from output.py
+
+   For now only the JSON output is supported.
+   TODO? move most of the content of this file to Output_JSON.ml?
 *)
 
 (*****************************************************************************)
@@ -94,7 +97,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
         | None -> `Assoc []
         | Some json -> JSON.to_yojson json
       in
-      (* TODO: should use a faster implementation, using a cache
+      (* TODO: we should use a faster implementation, using a cache
        * to avoid rereading the same file again and again
        *)
       let lines =
@@ -133,7 +136,6 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
   match res.core with
   | {
    matches;
-   (* TODO *)
    errors;
    (* LATER *)
    skipped_targets = _;
@@ -156,11 +158,11 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
       {
         version = Some Version.version;
         results = matches |> Common.map (cli_match_of_core_match env);
-        (* TODO *)
         paths =
           {
             scanned;
             _comment = Some "<add --verbose for a list of skipped paths>";
+            (* TOPORT *)
             skipped = None;
           };
         errors = errors |> Common.map cli_error_of_core_error;
