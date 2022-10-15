@@ -6,7 +6,7 @@
   (libraries
     cmdliner
     lwt
-    quests
+    cohttp cohttp-lwt-unix
 
     commons  ; from pfff
     semgrep_core_cli  ; semgrep-core's CLI

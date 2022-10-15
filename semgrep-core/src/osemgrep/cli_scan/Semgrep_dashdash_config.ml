@@ -72,6 +72,9 @@ let load_rules_from_file file =
 (* Entry point *)
 (*****************************************************************************)
 
+open Lwt.Syntax
+open Cohttp_lwt_unix
+
 let rules_from_dashdash_config config_str =
   (* TOPORT: resolve rule file URLs; for now we assume it's a file. *)
   let kind = config_kind_of_config_str config_str in
@@ -80,10 +83,12 @@ let rules_from_dashdash_config config_str =
   | R rkind ->
       let url = url_of_registry_kind rkind in
       logger#debug "trying to download from %s" url;
-      let resp_promise = Quests.get url in
-      let resp = Lwt_main.run resp_promise in
-      let content = resp.content in
-      (* to debug: pr (Quests.Response.show resp); *)
+      let promise =
+        let* _resp, body = Client.get (Uri.of_string url) in
+        Cohttp_lwt.Body.to_string body
+      in
+      let content = Lwt_main.run promise in
+
       Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
           load_rules_from_file file)
   | _else_ ->
