@@ -96,7 +96,7 @@ let simple_shell_programming_demo () =
 (*****************************************************************************)
 
 let run ps =
-  if ps.verbose then pr2 (spf "debug: params = %s" (show_params ps));
+  if ps.verbose then pr2 (spf "debug: params = %s" (show_cli_params ps));
   pr (spf "Hello %s from %s" ps.command ps.username);
   simple_shell_programming_demo ();
   ()
@@ -106,7 +106,7 @@ let run ps =
 (*****************************************************************************)
 let main () =
   let info = Cmd.info Sys.argv.(0) in
-  let term = Term.(const run $ params_cmdliner_term ()) in
+  let term = Term.(const run $ cli_params_cmdliner_term ()) in
   let cmd = Cmd.v info term in
   exit (Cmd.eval cmd)
 
