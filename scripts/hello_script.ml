@@ -3,12 +3,16 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Demo of a script written in OCaml relying on:
- *  - topfind
- *  - deriving
- *  - ppx_cmdliner
- *  - feather
- *  - some pfff libraries!
+(* Toy hello-world style script written in OCaml showing it's actually
+ * possible to write scripts in OCaml!
+ *
+ * It also shows how to leverage a few useful libraries and ppx extensions
+ * for scripting:
+ *  - topfind (to easily load packages)
+ *  - ppx_deriving (who doesn't like deriving show?)
+ *  - ppx_cmdliner (cmdliner for mere mortals)
+ *  - feather (shell DSL)
+ *  - some pfff libraries! (I need my Common)
  *
  * usage:
  *   $ ./hello_script.ml --verbose world
@@ -30,21 +34,22 @@
 (* Prelude *)
 (*****************************************************************************)
 
-(* this directive allows then to use #require to load opam/findlib packages *)
+(* This directive allows then to use #require to load opam/findlib packages. *)
 #use "topfind"
 
-(* you need first to 'opam install ppx_deriving and ppx_deriving_cmdliner' *)
+(* You need first to 'opam install ppx_deriving'. *)
 #require "ppx_deriving.show"
 
+(* You need first to 'opam install ppx_deriving_cmdliner'. *)
 #require "ppx_deriving_cmdliner"
 
-(* need first 'opam install feather' *)
 #load "unix.cma"
 
 #load "threads/threads.cma"
 
-(* for some unknown reasons, requiring feather does not the unix and threads
- * dependencies, so had to do it manually above.
+(* You need first to 'opam install feather'.
+ * For some unknown reasons, requiring feather does not load the unix and
+ * threads dependencies, so I had to do it manually above.
  *)
 #require "feather"
 
@@ -64,7 +69,7 @@ open Feather.Infix (* for >, <, ||., etc. *)
 (*****************************************************************************)
 
 (* see https://github.com/hammerlab/ppx_deriving_cmdliner *)
-type params = {
+type cli_params = {
   username : string; [@default "pad"]
   verbose : bool; [@default false]
   command : string; [@pos 0] [@docv "CMD"]
@@ -81,7 +86,7 @@ let simple_shell_programming_demo () =
     F.process "ps" [ "-aux" ]
     |. F.map_lines ~f:String.uppercase_ascii
     |. F.process "grep" [ "OCAML" ]
-    (* alt: builtin: |. F.grep "OCAML" *)
+    (* alt: |. F.grep "OCAML" *)
     |> F.collect F.stdout
   in
   pr out
