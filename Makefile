@@ -146,7 +146,8 @@ install-deps: install-deps-for-semgrep-core
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - python3: used also during building semgrep-core for processing lang.json
 # - python3-dev: for the semgrep Python bridge to build Python C extensions
-ALPINE_APK_DEPS=pcre-dev python3 python3-dev
+# - gmp-dev: for osemgrep and its use of cohttp
+ALPINE_APK_DEPS=pcre-dev python3 python3-dev gmp-dev
 
 #TODO why this one?
 PIPENV='pipenv==2022.6.7'
