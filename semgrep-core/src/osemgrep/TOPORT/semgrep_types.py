@@ -1,29 +1,14 @@
-import json
-from pathlib import Path
-from typing import Collection
-from typing import Mapping
-from typing import NewType
-from typing import Optional
-
-from attrs import frozen
-
 from semgrep.error import UnknownLanguageError
 from semgrep.rule_lang import Span
 from semgrep.types import JsonObject
 
-Mode = NewType("Mode", str)
 FileExtension = NewType("FileExtension", str)
 Shebang = str
-
-JOIN_MODE = Mode("join")
-SEARCH_MODE = DEFAULT_MODE = Mode("search")
-
 
 class Language(str):
     @property
     def definition(self) -> "LanguageDefinition":
         return LANGUAGE.definition_by_id[self]
-
 
 @frozen
 class LanguageDefinition:
@@ -92,8 +77,5 @@ class _LanguageData:
     def show_suppported_languages_message(self) -> str:
         return f"supported languages are: {', '.join(self.all_language_keys)}"
 
-
 LANGUAGE = _LanguageData()
-
-
 ALLOWED_GLOB_TYPES = ("include", "exclude")

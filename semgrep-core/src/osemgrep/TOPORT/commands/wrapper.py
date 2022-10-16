@@ -1,14 +1,4 @@
-import sys
 from functools import wraps
-from typing import Any
-from typing import Callable
-from typing import NoReturn
-
-from semgrep.error import FATAL_EXIT_CODE
-from semgrep.error import SemgrepError
-from semgrep.state import get_state
-from semgrep.verbose_logging import getLogger
-
 
 def handle_command_errors(func: Callable) -> Callable:
     """

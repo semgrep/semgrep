@@ -1,13 +1,5 @@
 # PARTIALLY PORTED TO OCAML. DELETE PARTS AS YOU PORT THEM.
 
-from click.shell_completion import CompletionItem
-from click_option_group import MutuallyExclusiveOptionGroup
-from click_option_group import optgroup
-
-import semgrep.config_resolver
-import semgrep.semgrep_main
-import semgrep.test
-from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep.app.registry import list_current_public_rulesets
 from semgrep.app.version import get_no_findings_msg
@@ -18,30 +10,16 @@ from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
-from semgrep.constants import OutputFormat
-from semgrep.constants import RuleSeverity
-from semgrep.core_runner import CoreRunner
 from semgrep.dump_ast import dump_parsed_ast
-from semgrep.error import SemgrepError
-from semgrep.metrics import MetricsState
 from semgrep.notifications import possibly_notify_user
-from semgrep.output import OutputHandler
-from semgrep.output import OutputSettings
 from semgrep.project import get_project_url
-from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.state import get_state
 from semgrep.target_manager import write_pipes_to_disk
 from semgrep.util import abort
 from semgrep.util import with_color
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
 
 ScanReturn = Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]
-
 
 def __get_severity_options(
     context: click.Context, _param: str, incomplete: str
@@ -49,7 +27,6 @@ def __get_severity_options(
     return [
         CompletionItem(e.value) for e in RuleSeverity if e.value.startswith(incomplete)
     ]
-
 
 def __get_language_options(
     context: click.Context, _param: str, incomplete: str
@@ -59,7 +36,6 @@ def __get_language_options(
         for e in LANGUAGE.all_language_keys
         if e.startswith(incomplete)
     ]
-
 
 def __get_size_options(
     context: click.Context, _param: str, incomplete: str
@@ -541,31 +517,13 @@ def scan(
                     shown_severities,
                     _,
                 ) = semgrep.semgrep_main.main(
-                    deep=deep,
-                    output_handler=output_handler,
-                    target=targets,
-                    pattern=pattern,
-                    lang=lang,
                     configs=(config or []),
                     no_rewrite_rule_ids=(not rewrite_rule_ids),
-                    jobs=jobs,
-                    include=include,
-                    exclude=exclude,
                     exclude_rule=exclude_rule,
-                    max_target_bytes=max_target_bytes,
-                    replacement=replacement,
-                    strict=strict,
-                    autofix=autofix,
-                    dryrun=dryrun,
                     disable_nosem=(not enable_nosem),
                     no_git_ignore=(not use_git_ignore),
-                    timeout=timeout,
-                    max_memory=max_memory,
-                    timeout_threshold=timeout_threshold,
                     skip_unknown_extensions=(not scan_unknown_extensions),
-                    severity=severity,
-                    optimizations=optimizations,
-                    baseline_commit=baseline_commit,
+                    ...
                 )
             except SemgrepError as e:
                 output_handler.handle_semgrep_errors([e])

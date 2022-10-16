@@ -99,6 +99,8 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
       in
       (* TODO: we should use a faster implementation, using a cache
        * to avoid rereading the same file again and again
+       * python: # 'lines' already contains '\n' at the end of each line
+       *    lines="".join(rule_match.lines).rstrip(),
        *)
       let lines =
         Matching_report.lines_of_file (start.line, end_.line) path
@@ -124,6 +126,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
             (* TODO: extra fields *)
             is_ignored = Some false;
             (* LATER *)
+            (* TODO: rule_match.match_based_id *)
             fingerprint = "TODO";
             sca_info = None;
             fixed_lines = None;
@@ -178,6 +181,7 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
 let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
   let (cli_output : Out.cli_output) = cli_output_of_core_results conf res in
   (* TODO: if conf.output_format = Json *)
+  (* TOPORT: Sort keys for predictable output. This helps with snapshot tests, etc. *)
   let s = Out.string_of_cli_output cli_output in
   pr s;
   ()

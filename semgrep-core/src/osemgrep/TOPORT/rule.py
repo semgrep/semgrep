@@ -1,42 +1,15 @@
-import hashlib
-import json
-from typing import Any
-from typing import AnyStr
-from typing import cast
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Set
-from typing import Union
+#TODO: PARTIALLY PORTED TO OCAML
 
-import semgrep.output_from_core as core
-from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import RuleValidation
 from semgrep.rule_lang import Span
-from semgrep.rule_lang import YamlMap
-from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
-from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import SEARCH_MODE
-
 
 class Rule:
-    def __init__(
-        self, raw: Dict[str, Any], yaml: Optional[YamlTree[YamlMap]] = None
-    ) -> None:
-        self._raw: Dict[str, Any] = raw
-        self._yaml: Optional[YamlTree[YamlMap]] = yaml
-        self._id = str(self._raw["id"])
-
-        path_dict = self._raw.get("paths", {})
-        self._includes = cast(Sequence[str], path_dict.get("include", []))
-        self._excludes = cast(Sequence[str], path_dict.get("exclude", []))
-
+    def __init__() -> None:
         lang_span = (
             yaml.value["languages"].span if yaml and "languages" in yaml.value else None
         )
@@ -54,11 +27,6 @@ class Rule:
 
         self._languages = sorted(rule_languages)
 
-        # check taint/search mode
-        if self._raw.get("mode") == JOIN_MODE:
-            self._mode = JOIN_MODE
-        else:
-            self._mode = SEARCH_MODE
 
         # TODO: Move this hack to lang.json
         if any(language == LANGUAGE.resolve("regex") for language in self._languages):
@@ -98,39 +66,6 @@ class Rule:
                 help=f"use only patterns, pattern-either, pattern-regex, or pattern-not-regex with regex-only rules",
             )
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, type(self)):
-            return False
-
-        return self._raw == other._raw
-
-    def __hash__(self) -> int:
-        return hash(self.id)
-
-    @property
-    def includes(self) -> Sequence[str]:
-        return self._includes
-
-    @property
-    def excludes(self) -> Sequence[str]:
-        return self._excludes
-
-    @property
-    def id(self) -> str:  # TODO: return a core.RuleId
-        return self._id
-
-    @property
-    def id2(self) -> core.RuleId:  # TODO: merge with id
-        return core.RuleId(self._id)
-
-    @property
-    def message(self) -> str:
-        return str(self._raw["message"])
-
-    @property
-    def metadata(self) -> Dict[str, Any]:
-        return self._raw.get("metadata", {})
-
     @property
     def is_blocking(self) -> bool:
         """
@@ -143,10 +78,6 @@ class Rule:
         # TODO: add additional severity for extract rules, or how should this
         # be handled?
         return RuleSeverity(self._raw.get("severity", RuleSeverity.INFO))
-
-    @property
-    def mode(self) -> str:
-        return self._mode
 
     @property
     def project_depends_on(self) -> List[Dict[str, str]]:
@@ -174,39 +105,10 @@ class Rule:
         return set()
 
     @property
-    def languages(self) -> List[Language]:
-        return self._languages
-
-    @property
     def languages_span(self) -> Span:
         if self._yaml:
             return self._yaml.value["languages"].span
         return EmptySpan
-
-    @property
-    def raw(self) -> Dict[str, Any]:
-        return self._raw
-
-    @property
-    def fix(self) -> Optional[str]:
-        return self._raw.get("fix")
-
-    # TODO: use v1.FixRegex and do the validation currently done
-    # in core_output.convert_to_rule_match() here
-    @property
-    def fix_regex(self) -> Optional[Dict[str, Any]]:
-        return self._raw.get("fix-regex")
-
-    @classmethod
-    def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":
-        return cls(rule_json, None)
-
-    @classmethod
-    def from_yamltree(cls, rule_yaml: YamlTree[YamlMap]) -> "Rule":
-        return cls(rule_yaml.unroll_dict(), rule_yaml)
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} id={self.id}>"
 
     def rename_id(self, new_id: str) -> None:
         self._id = new_id
@@ -281,7 +183,6 @@ class Rule:
         except ValueError:
             res = ""
         return res
-
 
 def rule_without_metadata(rule: Rule) -> Rule:
     """Key used to deduplicate rules."""

@@ -1,59 +1,23 @@
-import asyncio
-import collections
-import contextlib
-import json
-import resource
-import shlex
-import subprocess
-import sys
-import tempfile
-from datetime import datetime
-from pathlib import Path
-from typing import Any
-from typing import Callable
-from typing import cast
-from typing import Coroutine
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Set
-from typing import Tuple
-from typing import TYPE_CHECKING
-
 from attr import asdict
 from attr import field
 from attr import frozen
-from ruamel.yaml import YAML
-from tqdm import tqdm
 
-import semgrep.fork_subprocess as fork_subprocess
-import semgrep.output_from_core as core
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.core_output import core_matches_to_rule_matches
 from semgrep.core_output import parse_core_output
-from semgrep.error import SemgrepCoreError
-from semgrep.error import SemgrepError
 from semgrep.error import with_color
 from semgrep.parsing_data import ParsingData
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
-from semgrep.rule import Rule
 from semgrep.rule_match import OrderedRuleMatchList
-from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
-from semgrep.target_manager import TargetManager
 from semgrep.util import sub_check_output
 from semgrep.util import unit_str
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
 
 # Size in bytes of the input buffer for reading analysis outputs.
 INPUT_BUFFER_LIMIT: int = 1024 * 1024 * 1024

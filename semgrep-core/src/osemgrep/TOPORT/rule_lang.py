@@ -1,41 +1,15 @@
-import hashlib
-import json
-import re
-from io import StringIO
-from pathlib import Path
-from typing import Any
-from typing import cast
-from typing import Dict
-from typing import Generic
-from typing import ItemsView
-from typing import KeysView
-from typing import List
-from typing import NewType
-from typing import Optional
-from typing import Set
-from typing import Tuple
-from typing import TypeVar
-from typing import Union
-
-import jsonschema.exceptions
-from attrs import evolve
-from attrs import frozen
 from jsonschema.validators import Draft7Validator
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
-from ruamel.yaml import YAML
 
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
 # Do not construct SourceFileHash directly, use `SpanBuilder().add_source`
 SourceFileHash = NewType("SourceFileHash", str)
 
-
 class EmptyYamlException(Exception):
     pass
-
 
 class RuleSchema:
     _schema: Dict[str, Any] = {}

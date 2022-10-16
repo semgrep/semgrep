@@ -1,31 +1,9 @@
-import json
-import time
-from io import StringIO
-from os import environ
-from pathlib import Path
-from typing import Any
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Set
-from typing import Tuple
-from typing import Union
-
 from boltons.iterutils import partition
 
-import semgrep.output_from_core as out
-from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
-from semgrep.constants import OutputFormat
-from semgrep.constants import RuleSeverity
-from semgrep.core_runner import CoreRunner
 from semgrep.error import FilesNotFoundError
-from semgrep.error import MISSING_CONFIG_EXIT_CODE
-from semgrep.error import SemgrepError
 from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.git import BaselineHandler
 from semgrep.ignores import FileIgnore
@@ -36,22 +14,10 @@ from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.parsing_data import ParsingData
-from semgrep.profile_manager import ProfileManager
-from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
-from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatchMap
-from semgrep.rule_match import RuleMatchSet
-from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
-from semgrep.target_manager import TargetManager
 from semgrep.util import unit_str
-from semgrep.verbose_logging import getLogger
-
-
-logger = getLogger(__name__)
-
 
 def get_file_ignore() -> FileIgnore:
     TEMPLATES_DIR = Path(__file__).parent / "templates"
