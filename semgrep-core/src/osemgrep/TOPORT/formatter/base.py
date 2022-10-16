@@ -1,18 +1,3 @@
-import abc
-from typing import Any
-from typing import Collection
-from typing import FrozenSet
-from typing import Iterable
-from typing import Mapping
-from typing import Sequence
-
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
-from semgrep.constants import RuleSeverity
-from semgrep.error import SemgrepError
-from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatch
-
-
 class BaseFormatter(abc.ABC):
     def output(
         self,
@@ -32,17 +17,6 @@ class BaseFormatter(abc.ABC):
             cli_output_extra,
             extra,
         )
-
-    @abc.abstractmethod
-    def format(
-        self,
-        rules: Iterable[Rule],
-        rule_matches: Iterable[RuleMatch],
-        semgrep_structured_errors: Sequence[SemgrepError],
-        cli_output_extra: out.CliOutputExtra,
-        extra: Mapping[str, Any],
-    ) -> str:
-        raise NotImplementedError
 
     def keep_ignores(self) -> bool:
         """

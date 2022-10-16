@@ -1,29 +1,11 @@
-import os
-from pathlib import Path
-from typing import Iterable
-from typing import Optional
-from typing import overload
-from typing import Union
-
 from attr import Factory
 from attr import field
 from attr import frozen
 
 from semgrep.constants import SETTINGS_FILENAME
 
-
 def url(value: str) -> str:
     return value.rstrip("/")
-
-
-@overload
-def EnvFactory(envvars: Union[str, Iterable[str]], default: str) -> str:
-    ...
-
-
-@overload
-def EnvFactory(envvars: Union[str, Iterable[str]]) -> Optional[str]:
-    ...
 
 
 def EnvFactory(
@@ -39,7 +21,6 @@ def EnvFactory(
         return default
 
     return Factory(env_getter)
-
 
 @frozen
 class Env:

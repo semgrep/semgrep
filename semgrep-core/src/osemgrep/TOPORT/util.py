@@ -1,23 +1,12 @@
-import functools
-import itertools
-import operator
-import os
-import subprocess
-import sys
 from io import TextIOWrapper
 from textwrap import dedent
-from urllib.parse import urlparse
-
-import click
 
 from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
 
-
 MAX_TEXT_WIDTH = 120
-
 
 def is_url(url: str) -> bool:
     try:

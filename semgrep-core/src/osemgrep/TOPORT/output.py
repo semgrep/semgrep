@@ -1,58 +1,14 @@
-import dataclasses
-import pathlib
-import sys
 from collections import defaultdict
 from functools import reduce
-from pathlib import Path
-from typing import Any
-from typing import cast
-from typing import Collection
-from typing import Dict
-from typing import FrozenSet
-from typing import List
-from typing import Mapping
-from typing import NamedTuple
-from typing import Optional
-from typing import Sequence
-from typing import Set
-from typing import Type
-
-import requests
 from boltons.iterutils import partition
 
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
-from semgrep.constants import Colors
-from semgrep.constants import OutputFormat
-from semgrep.constants import RuleSeverity
-from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
-from semgrep.error import SemgrepCoreError
-from semgrep.error import SemgrepError
-from semgrep.formatter.base import BaseFormatter
-from semgrep.formatter.emacs import EmacsFormatter
-from semgrep.formatter.gitlab_sast import GitlabSastFormatter
-from semgrep.formatter.gitlab_secrets import GitlabSecretsFormatter
-from semgrep.formatter.json import JsonFormatter
-from semgrep.formatter.junit_xml import JunitXmlFormatter
-from semgrep.formatter.sarif import SarifFormatter
-from semgrep.formatter.text import TextFormatter
-from semgrep.formatter.vim import VimFormatter
-from semgrep.profile_manager import ProfileManager
-from semgrep.profiling import ProfilingData
-from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatch
-from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
-from semgrep.target_manager import TargetManager
 from semgrep.util import is_url
 from semgrep.util import terminal_wrap
 from semgrep.util import unit_str
 from semgrep.util import with_color
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
 
 FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.EMACS: EmacsFormatter,

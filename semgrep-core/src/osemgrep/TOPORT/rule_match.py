@@ -1,37 +1,8 @@
-import binascii
-import hashlib
-import itertools
-import textwrap
-from collections import Counter
-from datetime import datetime
-from functools import total_ordering
-from pathlib import Path
-from typing import Any
-from typing import Counter as CounterType
-from typing import Dict
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import TYPE_CHECKING
 from uuid import UUID
 
-from attrs import evolve
-from attrs import field
-from attrs import frozen
-
-import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
-import semgrep.util as util
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
-from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
-from semgrep.rule import Rule
 from semgrep.util import get_lines
-
-if TYPE_CHECKING:
-    from semgrep.rule import Rule
 
 
 def rstrip(value: Optional[str]) -> Optional[str]:

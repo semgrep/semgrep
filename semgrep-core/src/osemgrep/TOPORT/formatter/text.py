@@ -1,32 +1,10 @@
-import textwrap
 from itertools import groupby
-from pathlib import Path
 from shutil import get_terminal_size
-from typing import Any
-from typing import cast
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Sequence
 
-import click
-import colorama
-
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import CLI_RULE_ID
-from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
-from semgrep.error import SemgrepCoreError
-from semgrep.error import SemgrepError
-from semgrep.formatter.base import BaseFormatter
-from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatch
-from semgrep.semgrep_types import LANGUAGE
-from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
 from semgrep.util import get_lines
 from semgrep.util import truncate

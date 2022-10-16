@@ -5,28 +5,11 @@ json output into a typed object
 The precise type of the response from semgrep-core is specified in
 https://github.com/returntocorp/semgrep/blob/develop/interfaces/Output_from_core.atd
 """
-import dataclasses
-from dataclasses import replace
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Set
-from typing import Tuple
 
-import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
-import semgrep.util as util
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
-from semgrep.error import SemgrepError
-from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatch
-from semgrep.rule_match import RuleMatchSet
 from semgrep.types import JsonObject
 from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
 
 def _core_location_to_error_span(location: core.Location) -> out.ErrorSpan:
     return out.ErrorSpan(

@@ -1,20 +1,3 @@
-import sys
-from typing import Any
-from typing import Dict
-from typing import Optional
-
-import requests
-from attr import define
-from attr import Factory
-from attr import field
-
-from semgrep.error import FINDINGS_EXIT_CODE
-from semgrep.error import OK_EXIT_CODE
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
-
 @define
 class ErrorHandler:
     """

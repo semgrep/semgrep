@@ -1,8 +1,3 @@
-import requests
-import ruamel.yaml
-from ruamel.yaml import YAMLError
-
-from semgrep import __VERSION__
 from semgrep.app import auth
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
@@ -13,25 +8,19 @@ from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
-from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
-from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
-from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
-from semgrep.rule_lang import YamlMap
-from semgrep.rule_lang import YamlTree
 from semgrep.state import get_state
 from semgrep.util import is_config_suffix
 from semgrep.util import is_rules
 from semgrep.util import is_url
 from semgrep.util import terminal_wrap
 from semgrep.util import with_color
-from semgrep.verbose_logging import getLogger
 
 AUTO_CONFIG_KEY = "auto"
 AUTO_CONFIG_LOCATION = "c/auto"

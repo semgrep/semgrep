@@ -1,34 +1,10 @@
-import dataclasses
-import inspect
-import sys
-from dataclasses import dataclass
-from enum import Enum
-from pathlib import Path
-from typing import Any
-from typing import cast
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-
-import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
-
-import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
-from semgrep.constants import Colors
-from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
 from semgrep.util import with_color
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
 
 class Level(Enum):
     ERROR = 4  # Always an error
     WARN = 3  # Only an error if "strict" is set
-
 
 class SemgrepError(Exception):
     """

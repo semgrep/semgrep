@@ -1,26 +1,5 @@
-import os
-import stat
-import subprocess
-import sys
-from collections import defaultdict
 from functools import lru_cache
 from functools import partial
-from pathlib import Path
-from typing import Any
-from typing import Callable
-from typing import cast
-from typing import Collection
-from typing import Dict
-from typing import FrozenSet
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Sequence
-from typing import Set
-from typing import Tuple
-from typing import Union
 
 from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
 from semdep.find_lockfiles import LOCKFILE_TO_MANIFEST
@@ -29,19 +8,6 @@ from semgrep.git import BaselineHandler
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v0 import FoundDependency
 
-# usually this would be a try...except ImportError
-# but mypy understands only this
-# see https://github.com/python/mypy/issues/1393
-if sys.version_info[:2] >= (3, 8):
-    # Literal is available in stdlib since Python 3.8
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
-from attrs import define
-from attrs import field
-import click
-from attrs import Factory, frozen
 from wcmatch import glob as wcglob
 from boltons.iterutils import partition
 
@@ -56,9 +22,6 @@ from semgrep.semgrep_types import Shebang
 from semgrep.types import FilteredFiles
 from semgrep.util import path_has_permissions, sub_check_output
 from semgrep.util import with_color
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
 
 MAX_CHARS_TO_READ_FOR_SHEBANG = 255
 PATHS_ALWAYS_SKIPPED = (".git",)

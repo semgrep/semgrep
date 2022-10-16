@@ -1,15 +1,3 @@
-from typing import Any
-from typing import Iterable
-from typing import Mapping
-from typing import Sequence
-
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
-from semgrep.constants import RuleSeverity
-from semgrep.error import SemgrepError
-from semgrep.formatter.base import BaseFormatter
-from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatch
-
 
 class VimFormatter(BaseFormatter):
     @staticmethod
