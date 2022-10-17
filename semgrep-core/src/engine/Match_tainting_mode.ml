@@ -489,7 +489,7 @@ let pm_of_finding finding =
   | T.ArgToReturn _ ->
       None
 
-let check_fundef lang taint_config opt_ent fdef =
+let check_fundef lang options taint_config opt_ent fdef =
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
@@ -551,7 +551,7 @@ let check_fundef lang taint_config opt_ent fdef =
   in
   let _, xs = AST_to_IL.function_definition lang fdef in
   let flow = CFG_build.cfg_of_stmts xs in
-  Dataflow_tainting.fixpoint ~in_env ?name taint_config flow |> ignore
+  Dataflow_tainting.fixpoint ~in_env ?name options taint_config flow |> ignore
 
 let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) =
@@ -579,7 +579,7 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
   in
 
   (* Check each function definition. *)
-  Visit_function_defs.visit (check_fundef lang taint_config) ast;
+  Visit_function_defs.visit (check_fundef lang xconf.config taint_config) ast;
 
   (* Check the top-level statements.
    * In scripting languages it is not unusual to write code outside
@@ -589,7 +589,7 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
         let flow = CFG_build.cfg_of_stmts xs in
-        Dataflow_tainting.fixpoint taint_config flow |> ignore)
+        Dataflow_tainting.fixpoint xconf.config taint_config flow |> ignore)
   in
   let matches =
     !matches

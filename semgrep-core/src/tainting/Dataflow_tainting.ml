@@ -82,7 +82,13 @@ type mapping = Lval_env.t D.mapping
 
 (* HACK: Tracks tainted functions intrafile. *)
 type fun_env = (var, Taints.t) Hashtbl.t
-type env = { config : config; fun_name : var option; lval_env : Lval_env.t }
+
+type env = {
+  options : Config_semgrep.t;
+  config : config;
+  fun_name : var option;
+  lval_env : Lval_env.t;
+}
 
 (*****************************************************************************)
 (* Hooks *)
@@ -468,7 +474,10 @@ let rec check_tainted_expr env exp : Taints.t * Lval_env.t =
     | Mem e -> check env e
   in
   let check_offset env = function
-    | Index e -> check env e
+    | Index e ->
+        let taints, lval_env = check env e in
+        if env.options.taint_assume_safe_indexes then (Taints.empty, lval_env)
+        else (taints, lval_env)
     | Dot fld -> check_tainted_tok env (snd fld.ident)
   in
   let check_subexpr exp =
@@ -607,9 +616,11 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
           match check_function_signature env e args_taints with
           | Some call_taints -> call_taints
           | None ->
-              (* Default is to assume that the function will propagate
-               * the taint of its arguments. *)
-              List.fold_left Taints.union e_taints all_taints
+              if env.options.taint_assume_safe_functions then e_taints
+              else
+                (* Default is to assume that the function will propagate
+                   * the taint of its arguments. *)
+                List.fold_left Taints.union e_taints all_taints
         in
         (call_taints, lval_env)
     | CallSpecial (_, _, args) ->
@@ -674,19 +685,20 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
 
 let (transfer :
+      Config_semgrep.t ->
       config ->
       Lval_env.t ->
       string option ->
       flow:F.cfg ->
       Lval_env.t D.transfn) =
- fun config enter_env opt_name ~flow
+ fun options config enter_env opt_name ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
   let in' : Lval_env.t = input_env ~enter_env ~flow mapping ni in
   let node = flow.graph#nodes#assoc ni in
   let out' : Lval_env.t =
-    let env = { config; fun_name = opt_name; lval_env = in' } in
+    let env = { options; config; fun_name = opt_name; lval_env = in' } in
     match node.F.n with
     | NInstr x -> (
         let taints, lval_env' = check_tainted_instr env x in
@@ -753,8 +765,13 @@ let (transfer :
 (*****************************************************************************)
 
 let (fixpoint :
-      ?in_env:Lval_env.t -> ?name:Var_env.var -> config -> F.cfg -> mapping) =
- fun ?in_env ?name:opt_name config flow ->
+      ?in_env:Lval_env.t ->
+      ?name:Var_env.var ->
+      Config_semgrep.t ->
+      config ->
+      F.cfg ->
+      mapping) =
+ fun ?in_env ?name:opt_name options config flow ->
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
   let enter_env =
     match in_env with
@@ -764,6 +781,6 @@ let (fixpoint :
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint ~eq_env:Lval_env.equal ~init:init_mapping
-    ~trans:(transfer config enter_env opt_name ~flow)
+    ~trans:(transfer options config enter_env opt_name ~flow)
       (* tainting is a forward analysis! *)
     ~forward:true ~flow

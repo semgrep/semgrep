@@ -815,7 +815,6 @@ and matches_of_formula xconf rule xtarget formula opt_context :
 (*****************************************************************************)
 
 let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
-  let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
   let rule_id = fst r.id in
   let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> Report.ErrorSet.map (error_with_rule_id rule_id) in

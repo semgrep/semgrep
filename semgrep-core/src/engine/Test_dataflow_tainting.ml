@@ -30,7 +30,9 @@ let test_tainting lang file config def =
 
   Common.pr2 "\nDataflow";
   Common.pr2 "--------";
-  let mapping = Dataflow_tainting.fixpoint config flow in
+  let mapping =
+    Dataflow_tainting.fixpoint Config_semgrep.default_config config flow
+  in
   let taint_to_str taint =
     let show_taint t =
       match t.Taint.orig with

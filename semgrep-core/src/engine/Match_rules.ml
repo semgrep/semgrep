@@ -85,6 +85,9 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
   let res_rules, skipped_rules =
     rules
     |> Common.partition_either (fun r ->
+           let xconf =
+             Match_env.adjust_xconfig_with_rule_options xconf r.R.options
+           in
            let relevant_rule =
              if xconf.filter_irrelevant_rules then (
                match Analyze_rule.regexp_prefilter_of_rule r with

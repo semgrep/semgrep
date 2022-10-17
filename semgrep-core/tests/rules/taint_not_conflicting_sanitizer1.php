@@ -5,18 +5,18 @@ function not_tainted($data) {
     return '2';
 }
 
-//OK:
+//OK:tainted
 sink(not_tainted(tainted('a')));
 
 $ok = not_tainted(tainted('a'));
-//OK:
+//OK:tainted
 sink($ok);
 
 // $F(...) sanitizes *everything*
-//OK:
+//OK:tainted
 sink(tainted('b'));
 
 $bad = tainted('b');
 // $F(...) sanitizes *everyting*
-//OK:
+//OK:tainted
 sink($bad);
