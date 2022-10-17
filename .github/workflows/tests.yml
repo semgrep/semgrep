@@ -80,7 +80,7 @@ jobs:
           load: true
           tags: candidate-image
           cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+          cache-to: type=gha,dest=/tmp/.buildx-cache-new,mode=max
       - uses: actions/checkout@v3
       - run: ./scripts/validate-docker-build.sh candidate-image
       - uses: docker/login-action@v2
@@ -110,7 +110,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+          cache-to: type=gha,dest=/tmp/.buildx-cache-new,mode=max
 
       - id: dev-meta
         name: Set tags and labels
@@ -139,7 +139,15 @@ jobs:
           tags: ${{ steps.dev-meta.outputs.tags }}
           labels: ${{ steps.dev-meta.outputs.labels }}
           cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+          cache-to: type=gha,dest=/tmp/.buildx-cache-new,mode=max
+
+      - name: Move cache
+        # Temp fix
+        # https://github.com/docker/build-push-action/issues/252
+        # https://github.com/moby/buildkit/issues/1896
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   test-core:
     # TODO: why not use the artifact of build-semgrep-core in this job instead?
