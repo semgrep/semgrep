@@ -1097,7 +1097,6 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) :
 and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
     =
   let expr = expr_or_prim_expr env v1 in
-  (* TODO: distinguish optional chaining "?." from a simple access "." *)
   let dot =
     match v2 with
     | `DOT tok (* "." *) -> (Dot, token env tok)
