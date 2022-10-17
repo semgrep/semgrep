@@ -271,7 +271,17 @@ and expr (x : expr) =
       let def, _more_attrsTODOEMPTY = class_ v1 in
       G.AnonClass def
   | ObjAccess (v1, t, v2) -> (
-      let v1 = expr v1 in
+      let e = expr v1 in
+      let t, is_quest =
+        match t with
+        | Dot, tok -> (info tok, false)
+        | QuestDot, tok -> (info tok, true)
+      in
+      let v1 =
+        if is_quest then
+          G.Call (G.IdSpecial (G.Op G.Elvis, t) |> G.e, fb [ G.Arg e ]) |> G.e
+        else e
+      in
       let v2 = property_name v2 in
       let t = info t in
       match v2 with
