@@ -10,6 +10,9 @@
       ],
       "results": [
         {
+          "fingerprints": {
+            "matchBasedId/v1": "4a1a7f92c1f9d4d48ea96c4353e75c3b1e0bcb51e3c5a84d9edbaa810f7a1814f5fbf4a4cd1f88de224f007c4c3fb666a9fa61d669d739c2d78215ec73d02e7c_0"
+          },
           "locations": [
             {
               "physicalLocation": {

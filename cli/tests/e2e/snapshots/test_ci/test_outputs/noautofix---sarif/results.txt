@@ -19,6 +19,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       ],
       "results": [
         {
+          "fingerprints": {
+            "matchBasedId/v1": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_0"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -44,6 +47,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "ruleId": "eqeq-bad"
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_1"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -69,6 +75,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "ruleId": "eqeq-bad"
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_2"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -99,6 +108,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           ]
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_3"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -124,6 +136,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "ruleId": "eqeq-bad"
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "83fb2cbc6be00fffc142621a1b10702bdd228f97c42ca16ba5f902ec393231e1424bed8472cec7c9213190cb1f576e5a495b3aba5cef09ac2791715d3bf9e983_0"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -154,6 +169,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           ]
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "5efd0945774f190445f7cf2b0b85568a845cc46dddc11e029205b882436dccf78e12a752408c13dfe97b572f8bc795099ca0bddb89b3040afcaf6a6d8c17b570_0"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -179,6 +197,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "ruleId": "eqeq-bad"
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "f33d61e2c4592fb3a295213cb9d829c7d314041cef354f9b4199bf18526d72df596c0ef4c8e56289511e1ea8e2183752f403fd922f382d090846c456744367d2_0"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -209,6 +230,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           ]
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -239,6 +263,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           ]
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -264,6 +291,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "ruleId": "eqeq-four"
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -289,6 +319,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "ruleId": "taint-test"
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -314,6 +347,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "ruleId": "eqeq-five"
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "d2d0825f113f2fee5f7cbd5fb160772b3f3ab5043120b912101f2f20d4a0cce42df32b8e89f889f945daa1b216f9755eb958b9cb73c4c4ddf2ef5ecd0b4d1ad3_0"
+          },
           "locations": [
             {
               "physicalLocation": {
@@ -344,6 +380,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           ]
         },
         {
+          "fingerprints": {
+            "matchBasedId/v1": "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0"
+          },
           "locations": [
             {
               "physicalLocation": {
