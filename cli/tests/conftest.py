@@ -74,7 +74,7 @@ def _clean_stdout(out):
     return json.dumps(json_output)
 
 
-def _clean_output_json(output_json: str, clean_fingerprint: bool = True) -> str:
+def _clean_output_json(output_json: str, clean_fingerprint: bool) -> str:
     """Make semgrep's output deterministic and nicer to read."""
     try:
         output = json.loads(output_json)
@@ -179,7 +179,6 @@ def mask_capture_group(match: re.Match) -> str:
 
 
 ALWAYS_MASK: Maskers = (
-    _clean_output_json,
     _clean_output_sarif,
     __VERSION__,
     re.compile(r"python (\d+[.]\d+[.]\d+)"),
@@ -194,6 +193,7 @@ class SemgrepResult:
     raw_stdout: str
     raw_stderr: str
     exit_code: int
+    clean_fingerprint: bool
 
     def strip_color(self, text: str) -> str:
         stream = StringIO()
@@ -212,6 +212,9 @@ class SemgrepResult:
                 text = pattern.sub(mask_capture_group, text)
             elif callable(pattern):
                 text = pattern(text)
+        # special code for JSON cleaning, used to be in ALWAYS_MASK
+        # but sometimes we want fingerprint masking and sometimes not
+        text = _clean_output_json(text, self.clean_fingerprint)
         return text
 
     @property
@@ -277,6 +280,7 @@ def _run_semgrep(
     assume_targets_dir: bool = True,  # See e2e/test_dependency_aware_rule.py for why this is here
     force_metrics_off: bool = True,
     stdin: Optional[str] = None,
+    clean_fingerprint: bool = True,
 ) -> SemgrepResult:
     """Run the semgrep CLI.
 
@@ -353,6 +357,7 @@ def _run_semgrep(
         click_result.stdout,
         click_result.stderr,
         click_result.exit_code,
+        clean_fingerprint,
     )
     result.print_debug_info()
 
