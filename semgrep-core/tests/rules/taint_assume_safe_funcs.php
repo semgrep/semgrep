@@ -6,7 +6,7 @@ function not_tainted($data) {
 }
 
 //Problem here is that `tainted('a')` is in itself considered a sink because
-//currently taint-mode considers anyting that falls within a sink-range to be
+//currently taint-mode considers anything that falls within a sink-range to be
 //a sink... and the sink range here is whatever it matches `sink(...)`!
 //todook:tainted
 sink(not_tainted(tainted('a')));
