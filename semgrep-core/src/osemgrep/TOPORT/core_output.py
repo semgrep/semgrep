@@ -1,15 +1,5 @@
-"""
-This file encapsulates classes necessary in parsing semgrep-core
-json output into a typed object
-
-The precise type of the response from semgrep-core is specified in
-https://github.com/returntocorp/semgrep/blob/develop/interfaces/Output_from_core.atd
-"""
-
 from semgrep.error import Level
-from semgrep.error import SemgrepCoreError
 from semgrep.types import JsonObject
-from semgrep.verbose_logging import getLogger
 
 def _core_location_to_error_span(location: core.Location) -> out.ErrorSpan:
     return out.ErrorSpan(

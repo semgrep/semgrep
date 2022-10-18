@@ -45,6 +45,7 @@ type path = string
 
 (* LATER: ideally we should just return what Run_semgrep returns,
    without the need for the intermediate Out.core_match_results.
+   LATER: get rid of Output_from_core_util.ml
 *)
 type result = {
   (* ocaml: not in original python implem, but just enough to get

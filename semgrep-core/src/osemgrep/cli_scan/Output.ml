@@ -26,6 +26,9 @@ type env = {
   config_prefix : string;
 }
 
+(* LATER: use Metavariable.bindings directly ! *)
+type metavars = (string * Out.metavar_value) list
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -35,7 +38,71 @@ let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
   let path = conf.config in
   (*  need to prefix with the dotted path of the config file *)
   let dir = Filename.dirname path in
-  dir ^ "."
+  Str.global_replace (Str.regexp "/") "." dir ^ "."
+
+(* Return the list of lines for a start/end range. Note that
+ * we take the whole line. Note also that each line does not contain
+ * a trailing "\n" so you may need to String.concat "\n" if you join them.
+ *
+ * TODO: at some point we should take a Parse_info range, not Out.position
+ *  (but in that case don't forget to use Parse_info.get_token_end_info end_)
+ * TODO: could be moved to another helper module.
+ *
+ * Should we use a faster implementation, using a cache
+ * to avoid rereading the same file again and again? probably fast
+ * enough like this thanks to OS buffer cache.
+ *
+ * python: # 'lines' already contains '\n' at the end of each line
+ *   lines="".join(rule_match.lines).rstrip(),
+ *)
+let lines_of_file (range : Out.position * Out.position) (file : filename) :
+    string list =
+  let start, end_ = range in
+  Matching_report.lines_of_file (start.line, end_.line) file
+  [@@profiling]
+
+(* TODO: same than above, ideally would take a Parse_info range *)
+let content_of_file (range : Out.position * Out.position) (file : filename) :
+    string =
+  let start, end_ = range in
+  let str = Common.read_file file in
+  String.sub str start.offset (end_.offset - start.offset)
+  [@@profiling]
+
+(* Substitute the metavariables mentioned in a message to their content.
+ *
+ * We could either:
+ *  (1) go through all the metavars and textually substitute them in the text
+ *  (2) go through the text and find each metavariable regexp occurence
+ *    and replace them with their content
+ * python: the original code did (1) so we're doing the same for now,
+ * however (2) seems more logical to me and wasting less CPUs since
+ * you only substitute metavars that are actually mentioned in the message.
+ *
+ * TOPORT: handle value($X) and using propagated values
+ *)
+let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
+    : string =
+  (* sort by metavariable length to avoid name collisions
+   * (eg. $X2 must be handled before $X)
+   *)
+  let mvars =
+    metavars
+    |> List.sort (fun (a, _) (b, _) ->
+           compare (String.length b) (String.length a))
+  in
+  mvars
+  |> List.fold_left
+       (fun text (mvar, mval) ->
+         (* necessary typing to help the type check disambiguate fields,
+          * because of the use of multiple fields with the same
+          * name in semgrep_output_v0.atd *)
+         let (v : Out.metavar_value) = mval in
+         let content = content_of_file (v.start, v.end_) file in
+         text |> Str.global_replace (Str.regexp_string mvar) content
+         (* TOPORT: |> Str.global_replace
+            (Str.regexp_string (spf "value(%s)" mvar)) propag_content *))
+       text
 
 (*****************************************************************************)
 (* Core output to Cli output *)
@@ -74,8 +141,8 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
       let end_ = location.end_ in
       let message =
         match message with
-        (* TODO: message where the metavars have been interpolated *)
-        | Some s -> s
+        (* message where the metavars have been interpolated *)
+        | Some s -> interpolate_metavars s metavars path
         | None -> ""
       in
       (*  need to prefix with the dotted path of the config file *)
@@ -97,15 +164,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
         | None -> `Assoc []
         | Some json -> JSON.to_yojson json
       in
-      (* TODO: we should use a faster implementation, using a cache
-       * to avoid rereading the same file again and again
-       * python: # 'lines' already contains '\n' at the end of each line
-       *    lines="".join(rule_match.lines).rstrip(),
-       *)
-      let lines =
-        Matching_report.lines_of_file (start.line, end_.line) path
-        |> String.concat "\n"
-      in
+      let lines = lines_of_file (start, end_) path |> String.concat "\n" in
       {
         check_id;
         path;
@@ -115,9 +174,8 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
           {
             metavars;
             lines;
-            (* TODO *)
-            message;
             (* fields derived from the rule *)
+            message;
             severity;
             metadata;
             (* TODO: other fields derived from the rule *)
@@ -127,7 +185,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
             is_ignored = Some false;
             (* LATER *)
             (* TODO: rule_match.match_based_id *)
-            fingerprint = "TODO";
+            fingerprint = "0x42";
             sca_info = None;
             fixed_lines = None;
             dataflow_trace = None;
@@ -150,13 +208,15 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
       let env =
         { hrules = res.hrules; config_prefix = config_prefix_of_conf conf }
       in
-      (* TODO: not sure how it's sorted *)
+      (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =
         matches
         |> List.sort (fun (a : Out.core_match) (b : Out.core_match) ->
                compare a.rule_id b.rule_id)
       in
-      (* TODO: not sure how it's sorted *)
+      (* TODO: not sure how it's sorted, but Set_.elements return
+       * elements in OCaml compare order (=~ lexicographic for strings)
+       *)
       let scanned = res.scanned |> Set_.elements in
       {
         version = Some Version.version;
@@ -168,6 +228,7 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
             (* TOPORT *)
             skipped = None;
           };
+        (* TODO: *)
         errors = errors |> Common.map cli_error_of_core_error;
         (* LATER *)
         time = None;
