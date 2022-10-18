@@ -154,7 +154,7 @@ let expansion (env : env) ((v1, v2) : CST.expansion) : string_fragment =
       | _ ->
           let loc = (dollar, wrap_tok name) in
           Expansion (loc, Expand_var name))
-  | `LCURL_imm_tok_pat_8713919_RCURL (v1, v2, v3) ->
+  | `Imm_tok_lcurl_imm_tok_pat_8713919_imm_tok_rcurl (v1, v2, v3) ->
       let _open = token env v1 (* "{" *) in
       let var_or_mv = str env v2 (* pattern [^\}]+ *) in
       let name, _tok = var_or_mv in
@@ -306,7 +306,7 @@ let unquoted_string (env : env) (xs : CST.unquoted_string) : str =
         match x with
         | `Imm_tok_pat_24a1611 tok ->
             String_content (str env tok (* pattern "[^\\s\\n\\\"\\\\\\$]+" *))
-        | `BSLASHSPACE tok -> String_content (str env tok (* "\\ " *))
+        | `Imm_tok_bsla tok -> String_content (str env tok (* "\\ " *))
         | `Imme_expa x -> expansion env x)
       xs
     |> simplify_fragments
@@ -480,7 +480,7 @@ let empty_token_after tok : tok =
 let env_pair (env : env) (x : CST.env_pair) : label_pair =
   match x with
   | `Semg_ellips tok -> Label_semgrep_ellipsis (token env tok (* "..." *))
-  | `Env_key_EQ_opt_choice_double_quoted_str (v1, v2, v3) ->
+  | `Env_key_imm_tok_eq_opt_choice_double_quoted_str (v1, v2, v3) ->
       let k =
         Var_ident (str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *))
       in
@@ -511,7 +511,7 @@ let spaced_env_pair (env : env) ((v1, v2, v3) : CST.spaced_env_pair) :
 let label_pair (env : env) (x : CST.label_pair) : label_pair =
   match x with
   | `Semg_ellips tok -> Label_semgrep_ellipsis (token env tok (* "..." *))
-  | `Choice_semg_meta_EQ_choice_double_quoted_str (v1, v2, v3) ->
+  | `Choice_semg_meta_imm_tok_eq_choice_double_quoted_str (v1, v2, v3) ->
       let key =
         match v1 with
         | `Semg_meta tok ->
