@@ -84,7 +84,7 @@ type mapping = Lval_env.t D.mapping
 type fun_env = (var, Taints.t) Hashtbl.t
 
 type env = {
-  options : Config_semgrep.t;
+  options : Config_semgrep.t; (* rule options *)
   config : config;
   fun_name : var option;
   lval_env : Lval_env.t;
@@ -476,8 +476,12 @@ let rec check_tainted_expr env exp : Taints.t * Lval_env.t =
   let check_offset env = function
     | Index e ->
         let taints, lval_env = check env e in
-        if env.options.taint_assume_safe_indexes then (Taints.empty, lval_env)
-        else (taints, lval_env)
+        let taints =
+          if not env.options.taint_assume_safe_indexes then taints
+          else (* Taint from the index should be ignored. *)
+            Taints.empty
+        in
+        (taints, lval_env)
     | Dot fld -> check_tainted_tok env (snd fld.ident)
   in
   let check_subexpr exp =
@@ -616,9 +620,12 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
           match check_function_signature env e args_taints with
           | Some call_taints -> call_taints
           | None ->
-              if env.options.taint_assume_safe_functions then e_taints
+              if env.options.taint_assume_safe_functions then
+                (* If we asume that function calls are "safe", then taints from
+                 * the arguments are not present in the function's output. *)
+                e_taints
               else
-                (* Default is to assume that the function will propagate
+                (* Otherwise assume that the function will propagate
                    * the taint of its arguments. *)
                 List.fold_left Taints.union e_taints all_taints
         in
