@@ -68,6 +68,19 @@ jobs:
       - store_artifacts:
           path: parsing-stats/results.txt
 
+  # Run parsing stats and publish them to the semgrep dashboard.
+  autofix-printing-stats:
+    docker:
+      - image: returntocorp/semgrep-dev:develop
+    steps:
+      - checkout
+      - run:
+          name: autofix printing stats
+          no_output_timeout: 60m
+          command: |
+            cd autofix-printing-stats
+            ./run --upload
+
 ##########################################################################################
 # The workflows
 ##########################################################################################
@@ -116,6 +129,23 @@ workflows:
               only:
                 - develop
                 - main
+
+  scheduled-autofix-printing-stats:
+    triggers:
+      - schedule:
+          # Run at 00:00 every day, UTC.
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - develop
+    jobs:
+      - autofix-printing-stats:
+          # Run only on these branches
+          filters:
+            branches:
+              only:
+                - develop
 
   # This is for testing or for forcing a stats job. Requires pushing
   # to a branch named 'parsing-stats'.
