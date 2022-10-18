@@ -20,6 +20,14 @@ val taint_config_of_rule :
   unit) ->
   Dataflow_tainting.config * debug_taint * Matching_explanation.t list
 
+val check_fundef :
+  Lang.t ->
+  Config_semgrep_t.t ->
+  Dataflow_tainting.config ->
+  AST_generic.entity option ->
+  AST_generic.function_definition ->
+  IL.cfg * Dataflow_tainting.mapping
+
 val check_rule :
   Rule.taint_rule ->
   (string -> Pattern_match.t -> unit) ->
