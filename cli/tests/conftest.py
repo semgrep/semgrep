@@ -74,7 +74,7 @@ def _clean_stdout(out):
     return json.dumps(json_output)
 
 
-def _clean_output_json(output_json: str, clean_fingerprint: bool = False) -> str:
+def _clean_output_json(output_json: str, clean_fingerprint: bool = True) -> str:
     """Make semgrep's output deterministic and nicer to read."""
     try:
         output = json.loads(output_json)

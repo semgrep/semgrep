@@ -24,7 +24,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "offset": 1037
       },
       "extra": {
-        "fingerprint": "c5c992be1578f7e3e653f7ef7c203471c8a7105c776e5b2f19d97d0aed6ac0155778a3ebdb98a17776539f734914e7a40d804d9ed2923e8ec3e36be4397e2b28_0",
+        "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "            logger.error(userName);",
         "message": "log4j logger.error tainted argument",

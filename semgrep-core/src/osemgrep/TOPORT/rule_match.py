@@ -9,16 +9,7 @@ def rstrip(value: Optional[str]) -> Optional[str]:
     return value.rstrip() if value else None
 
 
-@total_ordering
-@frozen(eq=False)
 class RuleMatch:
-    """
-    A section of code that matches a single rule (which is potentially many patterns).
-
-    This is also often referred to as a finding.
-    TODO: Rename this class to Finding?
-    """
-
     match: core.CoreMatch
 
     # fields from the rule
@@ -71,23 +62,6 @@ class RuleMatch:
     match_based_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
     match_based_id: str = field(init=False, repr=False)
-
-    # TODO: return a out.RuleId
-    @property
-    def rule_id(self) -> str:
-        return self.match.rule_id.value
-
-    @property
-    def path(self) -> Path:
-        return Path(self.match.location.path)
-
-    @property
-    def start(self) -> core.Position:
-        return self.match.location.start
-
-    @property
-    def end(self) -> core.Position:
-        return self.match.location.end
 
     @lines.default
     def get_lines(self) -> List[str]:
