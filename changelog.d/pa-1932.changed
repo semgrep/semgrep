@@ -1,0 +1,4 @@
+The --scan-unknown-extensions option will be now set by default to false
+(which means --skip-unknown-extensions is now the default).
+This is an important change but this will avoid many errors when using
+semgrep in a pre-commit context or in CI.
