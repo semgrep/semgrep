@@ -39,7 +39,7 @@ type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
  * they are not exposed to the user anymore.
  *)
 type xconfig = {
-  config : Config_semgrep.t;
+  config : Config_semgrep.t; (* corresponds to rule `options` key *)
   equivs : Equivalence.equivalences;
   (* Fields coming from Runner_config.t used by the engine.
    * We could just include the whole Runner_config.t, but it's
