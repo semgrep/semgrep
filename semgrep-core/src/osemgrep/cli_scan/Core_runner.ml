@@ -8,27 +8,25 @@ module RP = Report
    Translated from core_runner.py
 *)
 
-(*
-   Don't translate this:
+(* python: Don't translate this:
 
-class StreamingSemgrepCore:
-    """
-    Handles running semgrep-core in a streaming fashion
+   class StreamingSemgrepCore:
+       """
+       Handles running semgrep-core in a streaming fashion
 
-    This behavior is assumed to be that semgrep-core:
-    - prints a "." on a newline for every file it finishes scanning
-    - prints a number on a newline for any extra targets produced during a scan
-    - prints a single json blob of all results
+       This behavior is assumed to be that semgrep-core:
+       - prints a "." on a newline for every file it finishes scanning
+       - prints a number on a newline for any extra targets produced during a scan
+       - prints a single json blob of all results
 
-    Exposes the subprocess.CompletedProcess properties for
-    expediency in integrating
-    """
+       Exposes the subprocess.CompletedProcess properties for
+       expediency in integrating
+       """
 *)
 
 (*
-   Implement this but skip parsing the semgrep-core output, getting it directly
-   as OCaml objects.
-
+   python: implement this but skip parsing the semgrep-core output,
+   getting it directly as OCaml objects.
    Big class (500 lines of python):
 
 class CoreRunner:
@@ -45,7 +43,9 @@ class CoreRunner:
 
 type path = string
 
-(* LATER: ideally we just want directly Out.cli_output? *)
+(* LATER: ideally we should just return what Run_semgrep returns,
+   without the need for the intermediate Out.core_match_results.
+*)
 type result = {
   (* ocaml: not in original python implem, but just enough to get
    * Semgrep_scan.cli_output_of_core_results to work

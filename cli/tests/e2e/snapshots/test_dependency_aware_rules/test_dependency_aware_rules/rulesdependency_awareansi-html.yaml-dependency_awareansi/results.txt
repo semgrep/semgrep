@@ -24,7 +24,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "offset": 0
       },
       "extra": {
-        "fingerprint": "1e3ab7891a046a43dc1a381b774947a35eb3086f45c1208c4f1b1defea46958242839c31a52ebcaee21e1513d85c58470d5d41a01ebaae959ade24b5c324c4fd_0",
+        "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "",
         "message": "This affects all versions of package ansi-html. If an attacker provides a malicious string, it will get stuck processing the input for an extremely long time. There is no upgrade fix at this time (the package is no longer being maintained), but you can change to use the 'ansi-html-community@0.0.8' package instead.\n",

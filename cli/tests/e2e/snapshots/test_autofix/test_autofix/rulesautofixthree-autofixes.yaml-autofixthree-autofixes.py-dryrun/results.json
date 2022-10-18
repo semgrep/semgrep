@@ -15,7 +15,7 @@
         "offset": 147
       },
       "extra": {
-        "fingerprint": "4fa533e4a7e99e1467fc3776e477eccd81ab91b5bc65a5c4d761feb642eee12a3e088d7453303e44f2efb4e4559b4076fdb1ac29bda37dfae4db757120a8f12f_0",
+        "fingerprint": "0x42",
         "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "fixed_lines": [
           "    return requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)"
@@ -69,7 +69,7 @@
         "offset": 286
       },
       "extra": {
-        "fingerprint": "4fa533e4a7e99e1467fc3776e477eccd81ab91b5bc65a5c4d761feb642eee12a3e088d7453303e44f2efb4e4559b4076fdb1ac29bda37dfae4db757120a8f12f_1",
+        "fingerprint": "0x42",
         "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "fixed_lines": [
           "    return requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)"
@@ -123,7 +123,7 @@
         "offset": 425
       },
       "extra": {
-        "fingerprint": "4fa533e4a7e99e1467fc3776e477eccd81ab91b5bc65a5c4d761feb642eee12a3e088d7453303e44f2efb4e4559b4076fdb1ac29bda37dfae4db757120a8f12f_2",
+        "fingerprint": "0x42",
         "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "fixed_lines": [
           "    return requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)"

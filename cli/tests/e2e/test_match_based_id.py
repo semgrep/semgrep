@@ -13,6 +13,7 @@ def test_duplicate_matches_indexing(run_semgrep_in_tmp, snapshot):
         "rules/match_based_id/duplicates.yaml",
         target_name="match_based_id/duplicates",
         output_format=OutputFormat.JSON,
+        clean_fingerprint=False,
     )
     snapshot.assert_match(results, "results.json")
 
@@ -62,6 +63,7 @@ def test_id_change(
             rule,
             target_name=static_target,
             output_format=OutputFormat.JSON,
+            clean_fingerprint=False,
         )
         return json.loads(results)["results"][0]["extra"]["fingerprint"]
 
