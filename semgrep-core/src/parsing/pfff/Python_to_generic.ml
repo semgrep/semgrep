@@ -950,3 +950,7 @@ let any x =
 let type_for_lsif ty =
   let env : env = empty_env ~assign_to_vardef:false InPattern in
   type_ env ty
+
+let parameters_for_lsif params =
+  let env : env = empty_env ~assign_to_vardef:false InPattern in
+  parameters env params
