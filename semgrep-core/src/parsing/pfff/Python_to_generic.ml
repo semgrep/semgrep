@@ -946,3 +946,11 @@ let any x =
   | DictElem v1 ->
       let v1 = dictorset_elt env v1 in
       G.E v1
+
+let type_for_lsif ty =
+  let env : env = empty_env ~assign_to_vardef:false InPattern in
+  type_ env ty
+
+let parameters_for_lsif params =
+  let env : env = empty_env ~assign_to_vardef:false InPattern in
+  parameters env params
