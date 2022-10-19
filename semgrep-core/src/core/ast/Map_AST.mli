@@ -5,6 +5,7 @@ type visitor_in = {
   kstmt : (stmt -> stmt) * visitor_out -> stmt -> stmt;
   kinfo : (tok -> tok) * visitor_out -> tok -> tok;
   kidinfo : (id_info -> id_info) * visitor_out -> id_info -> id_info;
+  klit : (literal -> literal) * visitor_out -> literal -> literal;
   kargs :
     (argument list -> argument list) * visitor_out ->
     argument list ->

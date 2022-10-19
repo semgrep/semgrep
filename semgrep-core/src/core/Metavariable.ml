@@ -68,14 +68,20 @@ type mvalue =
   | Params of AST_generic.parameter list
   | Xmls of AST_generic.xml_body list
   (* Text below is used to match the content of a string or atom, without the
-   * enclosing quotes. For a string this can actually be empty.
+   * enclosing quotes. For a string this can actually be empty. Includes both
+   * the original string token with the enclosing quotes (for use in autofix
+   * where we want to print the original quotes when possible) and the modified
+   * token without the quotes for use in, e.g. metavariable-pattern.
    * TODO? use a separate 'Atom of string wrap' for atoms? This could be useful
    * to allow 'foo :$ATOM ... obj.$ATOM', but not
    * '"$STR" ... obj.$STR'? (even though this could also be useful for PHP
    * where strings are often used to represent entities (e.g., function
    * names).
    *)
-  | Text of string AST_generic.wrap
+  | Text of
+      string
+      * (* token without enclosing quotes *) AST_generic.tok
+      * (* original token *) AST_generic.tok
 [@@deriving show, eq, hash]
 
 (* we sometimes need to convert to an any to be able to use
@@ -97,7 +103,7 @@ let mvalue_to_any = function
   | Xmls x -> G.Xmls x
   | T x -> G.T x
   | P x -> G.P x
-  | Text (s, info) -> G.E (G.L (G.String (s, info)) |> G.e)
+  | Text (s, info, _) -> G.E (G.L (G.String (s, info)) |> G.e)
 
 (* This is used for metavariable-pattern: where we need to transform the content
  * of a metavariable into a program so we can use evaluate_formula on it *)

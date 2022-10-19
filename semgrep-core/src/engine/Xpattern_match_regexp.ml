@@ -49,7 +49,7 @@ let regexp_matcher big_str file regexp =
                         let line, column = line_col_of_charpos file charpos in
                         let loc = { PI.str; charpos; file; line; column } in
                         let t = PI.mk_info_of_loc loc in
-                        Some (spf "$%d" n, MV.Text (str, t))
+                        Some (spf "$%d" n, MV.Text (str, t, t))
                       with
                       | Not_found ->
                           logger#debug "not found %d substring of %s in %s" n
