@@ -1,0 +1,5 @@
+def foo():
+    # ERROR:
+    foo(2, 1)
+
+    return 1
