@@ -744,6 +744,14 @@ class AzurePipelinesMeta(GitMeta):
             "BUILD_SOURCEVERSION"
         )
 
+    @property
+    def pr_id(self) -> Optional[str]:
+        pr_id = os.getenv("SEMGREP_PR_ID")
+        if pr_id:
+            return pr_id
+
+        return os.getenv("SYSTEM_PULLREQUEST_PULLREQUESTNUMBER")
+
 
 @dataclass
 class BuildkiteMeta(GitMeta):

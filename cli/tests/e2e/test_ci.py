@@ -366,6 +366,7 @@ def mock_autofix(request, mocker):
             "SYSTEM_TEAMPROJECTID": "project_id",
             "SYSTEM_JOBID": "job_id",
             "SYSTEM_TASKINSTANCEID": "task_id",
+            "SYSTEM_PULLREQUEST_PULLREQUESTNUMBER": "1234",
         },
         {  # Azure Pipelines, overwrite autodetected variables
             "BUILD_BUILDID": "some_id",
@@ -374,6 +375,7 @@ def mock_autofix(request, mocker):
             "SEMGREP_BRANCH": "branch/some-other-branch-name",
             "SEMGREP_JOB_URL": "https://another.random.url.org/some/path",
             "SEMGREP_COMMIT": "<some_random_commit>",
+            "SEMGREP_PR_ID": "34566",
             "BUILD_REPOSITORY_URI": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
             "SYSTEM_PULLREQUEST_SOURCEBRANCH": BRANCH_NAME,
             "SYSTEM_TEAMFOUNDATIONSERVERURI": "https://azure.pipeline.url/",
