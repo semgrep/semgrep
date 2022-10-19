@@ -1,4 +1,0 @@
-The `--scan-unknown-extensions` option is now set to false by default.
-This means that from now on `--skip-unknown-extensions` is the default.
-This is an important change that prevents many errors when using
-Semgrep in a pre-commit context or in CI.
