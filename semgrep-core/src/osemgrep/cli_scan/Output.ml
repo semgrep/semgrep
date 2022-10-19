@@ -34,7 +34,9 @@ type metavars = (string * Out.metavar_value) list
 (*****************************************************************************)
 
 let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
-  (* TODO: what if it's a registry rule? *)
+  (* TODO: what if it's a registry rule?
+   * call Semgrep_dashdash_config.config_kind_of_config_str
+   *)
   let path = conf.config in
   (*  need to prefix with the dotted path of the config file *)
   let dir = Filename.dirname path in
@@ -61,7 +63,12 @@ let lines_of_file (range : Out.position * Out.position) (file : filename) :
   Matching_report.lines_of_file (start.line, end_.line) file
   [@@profiling]
 
-(* TODO: same than above, ideally would take a Parse_info range *)
+(* Returns the text between the positions; start inclusive, end exclusive.
+ * TODO: same than above, ideally would take a Parse_info range
+ * TOPORT: It is recommended to open the fd with `open(path, errors="replace")
+ * to ignore non-utf8 bytes.
+ * See https://stackoverflow.com/a/56441652.
+ *)
 let content_of_file (range : Out.position * Out.position) (file : filename) :
     string =
   let start, end_ = range in
@@ -69,7 +76,8 @@ let content_of_file (range : Out.position * Out.position) (file : filename) :
   String.sub str start.offset (end_.offset - start.offset)
   [@@profiling]
 
-(* Substitute the metavariables mentioned in a message to their content.
+(* Substitute the metavariables mentioned in a message to their
+ * matched content.
  *
  * We could either:
  *  (1) go through all the metavars and textually substitute them in the text
@@ -78,8 +86,6 @@ let content_of_file (range : Out.position * Out.position) (file : filename) :
  * python: the original code did (1) so we're doing the same for now,
  * however (2) seems more logical to me and wasting less CPUs since
  * you only substitute metavars that are actually mentioned in the message.
- *
- * TOPORT: handle value($X) and using propagated values
  *)
 let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
     : string =
@@ -98,10 +104,18 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
           * because of the use of multiple fields with the same
           * name in semgrep_output_v0.atd *)
          let (v : Out.metavar_value) = mval in
-         let content = content_of_file (v.start, v.end_) file in
-         text |> Str.global_replace (Str.regexp_string mvar) content
-         (* TOPORT: |> Str.global_replace
-            (Str.regexp_string (spf "value(%s)" mvar)) propag_content *))
+         let content = lazy (content_of_file (v.start, v.end_) file) in
+         text
+         (* first value($X), and then $X *)
+         |> Str.global_substitute
+              (Str.regexp_string (spf "value(%s)" mvar))
+              (fun _whole_str ->
+                match v.propagated_value with
+                | Some x ->
+                    x.svalue_abstract_content (* default to the matched value *)
+                | None -> Lazy.force content)
+         |> Str.global_substitute (Str.regexp_string mvar) (fun _whole_str ->
+                Lazy.force content))
        text
 
 (*****************************************************************************)
