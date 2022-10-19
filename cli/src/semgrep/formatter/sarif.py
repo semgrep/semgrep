@@ -38,6 +38,7 @@ class SarifFormatter(BaseFormatter):
                     }
                 }
             ],
+            "fingerprints": {"matchBasedId/v1": rule_match.match_based_id},
         }
         if rule_match.is_ignored:
             rule_match_sarif["suppressions"] = [{"kind": "inSource"}]
