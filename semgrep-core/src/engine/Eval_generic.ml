@@ -141,6 +141,12 @@ let value_of_lit ~code x =
 
 let rec eval env code =
   match code.G.e with
+  (* The propagated value is stored in the `id_svalue` of the DotAccess, for Terraform. *)
+  | G.DotAccess
+      ( { e = G.N (Id ((("local" | "var"), _), _)); _ },
+        _,
+        FN (Id (_, { id_svalue = { contents = Some (Lit lit); _ }; _ })) ) ->
+      value_of_lit ~code lit
   | G.L x -> value_of_lit ~code x
   | G.N (G.Id ((_, _), { id_svalue = { contents = Some (G.Lit lit) }; _ }))
   (* coupling: Constant_propagation.eval *)
