@@ -75,7 +75,7 @@
       "end": {
         "col": 21,
         "line": 7,
-        "offset": 93
+        "offset": 92
       },
       "extra": {
         "fingerprint": "0x42",
@@ -102,12 +102,12 @@
             "end": {
               "col": 16,
               "line": 7,
-              "offset": 88
+              "offset": 87
             },
             "start": {
               "col": 15,
               "line": 7,
-              "offset": 87
+              "offset": 86
             }
           }
         },
@@ -117,7 +117,7 @@
       "start": {
         "col": 15,
         "line": 7,
-        "offset": 87
+        "offset": 86
       }
     }
   ],

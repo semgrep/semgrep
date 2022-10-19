@@ -1,14 +1,6 @@
 from semgrep.error import Level
 from semgrep.types import JsonObject
 
-def _core_location_to_error_span(location: core.Location) -> out.ErrorSpan:
-    return out.ErrorSpan(
-        file=location.path,
-        start=out.PositionBis(line=location.start.line, col=location.start.col),
-        end=out.PositionBis(line=location.end.line, col=location.end.col),
-    )
-
-
 def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
 
     # Hackily convert the level string to Semgrep expectations
@@ -58,72 +50,11 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     return SemgrepCoreError(code, level, spans, err)
 
 
-def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
-    match_results = core.CoreMatchResults.from_json(raw_json)
-    if match_results.skipped_targets:
-        for skip in match_results.skipped_targets:
-            if skip.rule_id:
-                rule_info = f"rule {skip.rule_id}"
-            else:
-                rule_info = "all rules"
-            logger.verbose(
-                f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
-            )
-    return match_results
-
-
 def core_matches_to_rule_matches(
     rules: List[Rule], res: core.CoreMatchResults
 ) -> Dict[Rule, List[RuleMatch]]:
-    """
-    Convert core_match objects into RuleMatch objects that the rest of the codebase
-    interacts with.
 
-    For now assumes that all matches encapsulated by this object are from the same rulee
-    """
     rule_table = {rule.id: rule for rule in rules}
-
-    def interpolate(
-        text: str, metavariables: Dict[str, str], propagated_values: Dict[str, str]
-    ) -> str:
-        """Interpolates a string with the metavariables contained in it, returning a new string"""
-
-        # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
-        for metavariable in sorted(metavariables.keys(), key=len, reverse=True):
-            text = text.replace(
-                "value(" + metavariable + ")", propagated_values[metavariable]
-            )
-            text = text.replace(metavariable, metavariables[metavariable])
-
-        return text
-
-    def read_metavariables(
-        match: core.CoreMatch,
-    ) -> Tuple[Dict[str, str], Dict[str, str]]:
-        matched_values = {}
-        propagated_values = {}
-
-        # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
-        with open(match.location.path, errors="replace") as fd:
-            for metavariable, metavariable_data in match.extra.metavars.value.items():
-                # Offsets are start inclusive and end exclusive
-                start_offset = metavariable_data.start.offset
-                end_offset = metavariable_data.end.offset
-
-                matched_value = util.read_range(fd, start_offset, end_offset)
-
-                # Use propagated value
-                if metavariable_data.propagated_value:
-                    propagated_value = (
-                        metavariable_data.propagated_value.svalue_abstract_content
-                    )
-                else:
-                    propagated_value = matched_value
-
-                matched_values[metavariable] = matched_value
-                propagated_values[metavariable] = propagated_value
-
-        return matched_values, propagated_values
 
     def convert_to_rule_match(match: core.CoreMatch) -> RuleMatch:
         rule = rule_table[match.rule_id.value]
@@ -167,7 +98,6 @@ def core_matches_to_rule_matches(
             fix_regex=fix_regex,
         )
 
-    # TODO: Dict[core.RuleId, RuleMatchSet]
     findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
     seen_cli_unique_keys: Set[Tuple] = set()
     for match in res.matches:
