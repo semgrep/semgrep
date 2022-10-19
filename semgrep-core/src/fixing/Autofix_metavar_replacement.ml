@@ -44,7 +44,7 @@ let replace metavar_tbl pattern_ast =
         {
           default_visitor with
           (* TODO handle:
-           * [ ] ident
+           * [x] ident
            * [ ] name
            * [x] expr
            * [ ] stmt
@@ -116,6 +116,20 @@ let replace metavar_tbl pattern_ast =
                       String (str, originfo)
                   | _ -> k lit)
               | _ -> k lit);
+          kname =
+            (fun (k, _) name ->
+              match name with
+              | Id ((id_str, _), _) -> (
+                  match Hashtbl.find_opt metavar_tbl id_str with
+                  | Some (MV.Id (id, info)) ->
+                      let info =
+                        match info with
+                        | Some x -> x
+                        | None -> G.empty_id_info ()
+                      in
+                      Id (id, info)
+                  | _ -> k name)
+              | _ -> k name);
         })
   in
   mapper.Map_AST.vany pattern_ast
