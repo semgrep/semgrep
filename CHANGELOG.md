@@ -69,6 +69,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: It is now possible for `this` or `this.x` to be a source of taint. (pa-1929)
 - taint-mode: Fixed a bug that made Semgrep miss taint findings when the sink was
   located inside an `if` condition or a `throw` (aka `raise`) expression/statement. (pa-1933)
+- Start to use the AST to render autofixes in some specific cases. As this is extended, autofix will become more correct and more powerful. (ast-autofix)
+- Fixed a parser error in some package-lock.json files (sca-parse-error)
 
 ## [0.115.0](https://github.com/returntocorp/semgrep/releases/tag/v0.115.0) - 2022-09-27
 
