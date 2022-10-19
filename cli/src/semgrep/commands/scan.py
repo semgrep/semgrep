@@ -293,10 +293,11 @@ _scan_options: List[Callable] = [
     optgroup.option(
         "--scan-unknown-extensions/--skip-unknown-extensions",
         is_flag=True,
-        default=True,
+        default=False,
         help="""
             If true, explicit files will be scanned using the language specified in
-            --lang. If --skip-unknown-extensions, these files will not be scanned
+            --lang. If --skip-unknown-extensions, these files will not be scanned.
+            Defaults to false.
         """,
     ),
     optgroup.group("Performance and memory options"),
@@ -769,7 +770,15 @@ def scan(
     # 'managed_output'. Output depends on file contents so we cannot have
     # already deleted the temporary stdin file.
     with tempfile.TemporaryDirectory() as pipes_dir:
+        # mostly repeating the loop in write_pipes_to_disk to detect if we
+        # need --scan-unknown-extensions.
+        for t in targets:
+            if t == "-" or Path(t).is_fifo():
+                logger.debug("stdin or piped targets, adding --scan-unknown-extensions")
+                scan_unknown_extensions = True
+
         targets = write_pipes_to_disk(targets, Path(pipes_dir))
+
         output_handler = OutputHandler(output_settings)
         return_data: ScanReturn = None
 
