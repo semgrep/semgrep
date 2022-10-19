@@ -1,6 +1,4 @@
 open Common
-open AST_generic
-module H = AST_generic_helpers
 module G = AST_generic
 module V = Visitor_AST
 module RM = Range_with_metavars
@@ -25,12 +23,11 @@ let pr2_ranges file rwms =
          Common.pr2 (code_text ^ " @l." ^ line_str))
 
 let test_tainting lang file options config def =
-  let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
-  let flow = CFG_build.cfg_of_stmts xs in
-
   Common.pr2 "\nDataflow";
   Common.pr2 "--------";
-  let mapping = Dataflow_tainting.fixpoint options config flow in
+  let flow, mapping =
+    Match_tainting_mode.check_fundef lang options config None def
+  in
   let taint_to_str taint =
     let show_taint t =
       match t.Taint.orig with
