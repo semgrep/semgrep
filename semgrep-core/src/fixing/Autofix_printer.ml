@@ -83,12 +83,24 @@ let original_source_of_ast source any =
   let str = String.sub source starti len in
   Some str
 
+let mvalue_to_any = function
+  (* For autofix purposes, it's okay and in fact desirable to drop the info here.
+   * Otherwise MV.Id gets converted to an expression before going into the table
+   * that holds the original unchanged nodes. That works fine if it is used in an
+   * expression in the fixed pattern AST, but if it's a lone identifier part of
+   * something else, it gets missed.
+   *
+   * Concretely, in the pattern `foo.$F()`, `$F` is not its own expression.
+   * *)
+  | MV.Id (id, _) -> I id
+  | other -> MV.mvalue_to_any other
+
 (* Add each metavariable value to the lookup table so that it can be identified
  * during printing *)
 let add_metavars (tbl : ast_node_table) metavars =
   List.iter
     (fun (_, mval) ->
-      let any = MV.mvalue_to_any mval in
+      let any = mvalue_to_any mval in
       ASTTable.replace tbl any Target;
       (* For each metavariable binding that is a list of things, we need to
        * iterate through and add each item in the list to the table as well.
