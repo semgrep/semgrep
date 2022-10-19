@@ -274,11 +274,12 @@ and expr (x : expr) =
       let e = expr v1 in
       let t, v1 =
         match t with
-        | Dot, tok -> 
-            info tok, e
-        | QuestDot, tok -> 
+        | Dot, tok -> (info tok, e)
+        | QuestDot, tok ->
             let t = info tok in
-            t, G.Call (G.IdSpecial (G.Op G.Elvis, t) |> G.e, fb [ G.Arg e ]) |> G.e
+            ( t,
+              G.Call (G.IdSpecial (G.Op G.Elvis, t) |> G.e, fb [ G.Arg e ])
+              |> G.e )
       in
       let v2 = property_name v2 in
       match v2 with

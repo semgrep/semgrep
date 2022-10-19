@@ -505,7 +505,7 @@ and expr_kind =
    * qualifier though.
    * We choose for now not to have a `dot_operator` type with all the different
      kinds of dots, but instead to translate the `expr` wherever possible.
-     So something like `x?.y` is generally translated to an Elvis call on the `x`. 
+     So something like `x?.y` is generally translated to an Elvis call on the `x`.
      This will simplify things so that we don't need a brand new type.
    *)
   | DotAccess of expr * tok (* ., ::, ->, #, $ *) * field_name
