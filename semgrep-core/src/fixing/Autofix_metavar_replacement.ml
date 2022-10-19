@@ -16,6 +16,7 @@
 open AST_generic
 open Common
 module MV = Metavariable
+module G = AST_generic
 
 (******************************************************************************)
 (* Module responsible for traversing a fix pattern AST and replacing
@@ -42,7 +43,19 @@ let replace metavar_tbl pattern_ast =
       mk_visitor
         {
           default_visitor with
-          (* TODO handle more kinds of nodes *)
+          (* TODO handle:
+           * [ ] ident
+           * [ ] name
+           * [x] expr
+           * [ ] stmt
+           * [ ] type_
+           * [ ] pattern
+           * [ ] stmt list
+           * [x] argument list
+           * [ ] parameter list
+           * [ ] xml_body list
+           * [x] text
+           *)
           kargs =
             (fun (k, _) args ->
               (* A metavariable can appear as a single argument, but can be
@@ -90,6 +103,19 @@ let replace metavar_tbl pattern_ast =
                    * target file for more metavariables, so we won't call `k`
                    * here. *)
                   e);
+          klit =
+            (fun (k, _) lit ->
+              match lit with
+              | String (str, _) -> (
+                  (* TODO handle the case where the metavar appears within the
+                   * string but is not the entire contents of the string *)
+                  match Hashtbl.find_opt metavar_tbl str with
+                  | Some (MV.Text (str, _info, originfo)) ->
+                      (* Don't use `Metavariable.mvalue_to_any` here. It uses
+                       * the modified token info, which drops the quotes. *)
+                      String (str, originfo)
+                  | _ -> k lit)
+              | _ -> k lit);
         })
   in
   mapper.Map_AST.vany pattern_ast

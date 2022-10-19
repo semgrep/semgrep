@@ -126,6 +126,12 @@ let test_python_autofix_printer () =
         fix_pattern = "bar($...ARGS)";
         expected = "ppp(ttttttt)";
       };
+      {
+        target = "foo('xyz')";
+        pattern = "foo('$X')";
+        fix_pattern = "bar('$X')";
+        expected = "ppp(ttttt)";
+      };
     ]
 
 let tests =

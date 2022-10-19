@@ -118,7 +118,7 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                       in
                       nested_formula_has_matches { env with xtarget } formula
                         (Some r')))
-          | Some xlang, MV.Text (content, _tok)
+          | Some xlang, MV.Text (content, _tok, _)
           | Some xlang, MV.Xmls [ XmlText (content, _tok) ]
           | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
               let content = adjust_content_for_language xlang content in
