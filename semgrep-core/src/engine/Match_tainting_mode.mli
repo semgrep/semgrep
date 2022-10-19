@@ -22,11 +22,17 @@ val taint_config_of_rule :
 
 val check_fundef :
   Lang.t ->
-  Config_semgrep_t.t ->
+  Config_semgrep_t.t (** rule options *) ->
   Dataflow_tainting.config ->
-  AST_generic.entity option ->
+  AST_generic.entity option (** entity being analyzed *) ->
   AST_generic.function_definition ->
   IL.cfg * Dataflow_tainting.mapping
+(** Check a function definition using a [Dataflow_tainting.config] (which can
+  * be obtained with [taint_config_of_rule]). Findings are passed on-the-fly
+  * to the [handle_findings] callback in the dataflow config.
+  *
+  * This is a low-level function exposed for debugging purposes (-dfg_tainting).
+  *)
 
 val check_rule :
   Rule.taint_rule ->

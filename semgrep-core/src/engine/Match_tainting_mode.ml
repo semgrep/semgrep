@@ -496,7 +496,6 @@ let check_fundef lang options taint_config opt_ent fdef =
     Some (D.str_of_name name)
   in
   let add_to_env env id ii pdefault =
-    pr2 (spf "add_to_env %s pdefault?=%b" (fst id) (Option.is_some pdefault));
     let var = AST_to_IL.var_of_id_info id ii in
     let source_pms =
       taint_config.D.is_source (G.Tk (snd id))
