@@ -394,7 +394,7 @@ let rec just_parse_with_lang lang file =
   | Lang.Apex ->
       (* Proprietary. The actual parser needs to register itself for
          parsing to take place. *)
-      run_external_parser file Plugin.Apex.parse_target
+      run_external_parser file Parsing_plugin.Apex.parse_target
   [@@profiling]
 
 (*****************************************************************************)
