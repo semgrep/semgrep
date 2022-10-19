@@ -2,6 +2,7 @@
 let lang_has_no_dollar_ids =
   Lang.(
     function
+    | Apex
     | Python
     | Python2
     | Python3
