@@ -11,4 +11,12 @@
     semgrep_utils  ; semgrep-core
     semgrep_core
   )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_hash
+   )
+ )
 )

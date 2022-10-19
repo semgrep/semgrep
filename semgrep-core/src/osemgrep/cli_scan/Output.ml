@@ -33,6 +33,14 @@ type metavars = (string * Out.metavar_value) list
 (* Helpers *)
 (*****************************************************************************)
 
+let string_of_severity (severity : Rule.severity) : string =
+  match severity with
+  | Error -> "ERROR"
+  | Warning -> "WARNING"
+  | Info -> "INFO"
+  | Experiment -> "EXPERIMENT"
+  | Inventory -> "INVENTORY"
+
 let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
   (* TODO: what if it's a registry rule?
    * call Semgrep_dashdash_config.config_kind_of_config_str
@@ -165,14 +173,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
       (* LATER: this should be a variant in semgrep_output_v0.atd
        * and merged with Constants.rule_severity
        *)
-      let severity =
-        match rule.severity with
-        | Error -> "ERROR"
-        | Warning -> "WARNING"
-        | Info -> "INFO"
-        | Experiment -> "EXPERIMENT"
-        | Inventory -> "INVENTORY"
-      in
+      let severity = string_of_severity rule.severity in
       let metadata =
         match rule.metadata with
         | None -> `Assoc []
@@ -255,8 +256,77 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
 
 let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
   let (cli_output : Out.cli_output) = cli_output_of_core_results conf res in
-  (* TODO: if conf.output_format = Json *)
-  (* TOPORT: Sort keys for predictable output. This helps with snapshot tests, etc. *)
-  let s = Out.string_of_cli_output cli_output in
-  pr s;
-  ()
+  (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
+  match conf.output_format with
+  | Json ->
+      let s = Out.string_of_cli_output cli_output in
+      pr s
+  | Vim ->
+      (* alt: could start from res instead of cli_output *)
+      cli_output.results
+      |> List.iter (fun (m : Out.cli_match) ->
+             match m with
+             | { check_id; path; start; extra = { message; severity; _ }; _ } ->
+                 let parts =
+                   [
+                     path;
+                     spf "%d" start.line;
+                     spf "%d" start.col;
+                     (* TOPORT? restrict to just I|E|W ? *)
+                     spf "%c" severity.[0];
+                     check_id;
+                     message;
+                   ]
+                 in
+                 pr (String.concat ":" parts))
+  | Emacs ->
+      (* alt: could start from res instead of cli_output *)
+      (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
+      cli_output.results
+      |> List.iter (fun (m : Out.cli_match) ->
+             match m with
+             | {
+              check_id;
+              path;
+              start;
+              end_;
+              extra = { message; severity; _ };
+              _;
+             } ->
+                 let severity = String.lowercase_ascii severity in
+                 let severity_and_ruleid =
+                   if check_id = Constants.cli_rule_id then severity
+                   else
+                     let xs =
+                       check_id |> Str.split (Str.regexp_string ".") |> List.rev
+                     in
+                     match xs with
+                     | [] -> severity
+                     | x :: _ -> spf "%s(%s)" severity x
+                 in
+                 let line =
+                   (* ugly: redoing the work done in cli_match_of_core_match *)
+                   match lines_of_file (start, end_) path with
+                   | [] -> ""
+                   | x :: _ -> x (* TOPORT rstrip? *)
+                 in
+                 let parts =
+                   [
+                     path;
+                     spf "%d" start.line;
+                     spf "%d" start.col;
+                     (* TOPORT? restrict to just I|E|W ? *)
+                     severity_and_ruleid;
+                     line;
+                     message;
+                   ]
+                 in
+                 pr (String.concat ":" parts))
+  | Text
+  | Gitlab_sast
+  | Gitlab_secrets
+  | Junit_xml
+  | Sarif ->
+      pr
+        (spf "TODO: output format %s not supported yet"
+           (Constants.show_output_format conf.output_format))
