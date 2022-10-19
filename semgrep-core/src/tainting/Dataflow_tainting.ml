@@ -412,7 +412,7 @@ let check_tainted_tok env tok =
       (* Empty because we have no base, but we want to filter the taints we got from
          the `source_pms`.
          Otherwise, we might let taints from this token escape a label.
-       *)
+      *)
       let taints = Taints.empty |> union_taints_filtering_labels ~new_:taints in
       let sinks = sink_pms |> Common.map trace_of_match in
       let findings = findings_of_tainted_sinks env taints sinks in
