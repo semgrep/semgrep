@@ -107,6 +107,20 @@ let replace metavar_tbl pattern_ast =
  * *)
 let find_remaining_metavars metavar_tbl ast =
   let seen_metavars = ref [] in
+  let str_metavars_regexp =
+    lazy
+      ((* List of metavars that were bound in this match, quoted so that they
+        * can be used safely in a regex *)
+       let quoted_metavars =
+         Hashtbl.to_seq_keys metavar_tbl |> Seq.map Str.quote |> List.of_seq
+       in
+       (* One regex string that will match any of the metavars *)
+       let regex_body = String.concat "\\|" quoted_metavars in
+       (* Match any text before or after the metavars, since Str.string_match
+        * looks for the entire string to match, not just a substring like many
+        * other tools. *)
+       spf ".*\\(%s\\).*" regex_body)
+  in
   let visitor =
     Visitor_AST.(
       mk_visitor
@@ -122,8 +136,14 @@ let find_remaining_metavars metavar_tbl ast =
             (fun (k, _) lit ->
               (match lit with
               | String (str, _) ->
-                  if Hashtbl.mem metavar_tbl str then
-                    Common.push str seen_metavars
+                  (* Textual autofix allows metavars to appear anywhere within
+                   * string literals. This is useful when the pattern is
+                   * something like `foo("$X")` and you'd like the fix to modify
+                   * the string literal, e.g. `foo("bar $X")`. So, we have to
+                   * look for a lingering metavariable anywhere within a string,
+                   * and abort if we find one that hasn't been replaced. *)
+                  if str =~ Lazy.force str_metavars_regexp then
+                    Common.push (Common.matched1 str) seen_metavars
               | _ -> ());
               k lit);
         })
