@@ -67,6 +67,9 @@ class type printer_t =
     method print_argument : G.argument -> (Immutable_buffer.t, string) result
     method print_arguments : G.arguments -> (Immutable_buffer.t, string) result
 
+    method print_unbracketed_arguments :
+      G.argument list -> (Immutable_buffer.t, string) result
+
     method print_call :
       G.expr -> G.arguments -> (Immutable_buffer.t, string) result
 
@@ -165,6 +168,7 @@ class base_printer : printer_t =
     method print_expr_kind _ = print_fail ()
     method print_argument _ = print_fail ()
     method print_arguments _ = print_fail ()
+    method print_unbracketed_arguments _ = print_fail ()
 
     method print_call e args =
       match e.G.e with
@@ -198,9 +202,13 @@ class python_printer : printer_t =
     inherit base_printer
 
     method! print_arguments (_b1, args, _b2) =
-      let/ args = map_all self#print_argument args in
+      let/ args = self#print_unbracketed_arguments args in
       (* TODO Consider using original tokens for parens when available? *)
-      Ok (combine [ b "("; combine ~sep:", " args; b ")" ])
+      Ok (combine [ b "("; args; b ")" ])
+
+    method! print_unbracketed_arguments args =
+      let/ args = map_all self#print_argument args in
+      Ok (combine ~sep:", " args)
 
     method! print_argument =
       function
