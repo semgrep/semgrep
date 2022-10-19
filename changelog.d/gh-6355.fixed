@@ -1,0 +1,1 @@
+Taint: Fixed a bug where taint labels were not being correctly applied to findings resulting from dot accesses. For instance, a taint pattern with a `requires` involving `x.y` might ignore the `requires` if the `y` produces a match.
