@@ -1175,7 +1175,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           | `Member_exp x -> member_expression env x
           | `Paren_exp x -> parenthesized_expression env x
           | `Choice_unde x -> identifier_ env x
-          | `Choice_decl x -> reserved_identifier env x |> idexp
+          | `Choice_decl x -> reserved_identifier env x |> idexp_or_special
           | `This tok -> this env tok (* "this" *)
           | `Super tok -> super env tok (* "super" *)
           | `Num tok ->
