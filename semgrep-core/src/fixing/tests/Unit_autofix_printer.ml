@@ -120,6 +120,12 @@ let test_python_autofix_printer () =
         fix_pattern = "($X + $Y) * 2";
         expected = "((t p t) p p)";
       };
+      {
+        target = "foo(1, 2, 3)";
+        pattern = "foo($...ARGS)";
+        fix_pattern = "bar($...ARGS)";
+        expected = "ppp(ttttttt)";
+      };
     ]
 
 let tests =
