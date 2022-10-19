@@ -6,7 +6,7 @@
         "href": "https://sg.run/xyz1"
       },
       "data": {
-        "matchSource": "return a + b == a + b",
+        "matchSource": "$X != $X $X == $X def __init__(...):\n    ...\n self.$X == self.$X 1 == 1 assert(...) assertFalse(...) assertTrue(...) def __eq__(...):\n    ...\n",
         "metavars": {
           "$X": {
             "abstract_content": "a+b",
