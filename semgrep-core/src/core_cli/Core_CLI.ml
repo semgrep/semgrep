@@ -358,7 +358,6 @@ let mk_config () =
     match_format = !match_format;
     mvars = !mvars;
     lsp = !lsp;
-    lsif = false;
     timeout = !timeout;
     timeout_threshold = !timeout_threshold;
     max_memory_mb = !max_memory_mb;
