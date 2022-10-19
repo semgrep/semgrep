@@ -28,7 +28,7 @@
         "offset": 69
       },
       "extra": {
-        "fingerprint": "62b4a09c4569768898c43c09fa0a5b95b7e93257ef3a0911a5c379b6265b4d49fa4aecd5782461632e9aef4779af02d7cad4405b9a5318a0e5ffe9a5bd8daeae_0",
+        "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    return a + b == a + b",
         "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
@@ -67,7 +67,7 @@
         "offset": 67
       },
       "extra": {
-        "fingerprint": "33c7ad418bcb7f83d9dcec68b2a8aa78ace93efbc20a12297ea7e15594ce23f5bca80b0958952b14dad3e874370c9ca7f991d2e1414adc33d243f133b1ff2811_0",
+        "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "useless comparison",
@@ -117,7 +117,7 @@
         "offset": 69
       },
       "extra": {
-        "fingerprint": "9491da47da2d68d9ff38a553cdd0d07339592cfe5958f6af4cf469f3a9d86dfbde37567d5451ae6f83a41319c48aed0140364a2e5b1462b280c6d0540bb3a51b_0",
+        "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    return a + b == a + b",
         "message": "a + b == a + b is a useless equality check",
@@ -154,7 +154,7 @@
         "offset": 174
       },
       "extra": {
-        "fingerprint": "db9a0d9817e921bcdb001e9b19b33cb7453fe1bbec4ccd4e8a0bd03410c7a1e122fad9cd36a6f377666e53e318e3ad80282138a9dff87cff6943a197b0f0f6c0_0",
+        "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    x == x",
         "message": "x == x is a useless equality check",
@@ -191,7 +191,7 @@
         "offset": 266
       },
       "extra": {
-        "fingerprint": "db9a0d9817e921bcdb001e9b19b33cb7453fe1bbec4ccd4e8a0bd03410c7a1e122fad9cd36a6f377666e53e318e3ad80282138a9dff87cff6943a197b0f0f6c0_1",
+        "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "assertTrue(x == x)",
         "message": "x == x is a useless equality check",

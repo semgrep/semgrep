@@ -27,10 +27,12 @@ type visitor_in = {
   kstmt : (stmt -> stmt) * visitor_out -> stmt -> stmt;
   kinfo : (tok -> tok) * visitor_out -> tok -> tok;
   kidinfo : (id_info -> id_info) * visitor_out -> id_info -> id_info;
+  klit : (literal -> literal) * visitor_out -> literal -> literal;
   kargs :
     (argument list -> argument list) * visitor_out ->
     argument list ->
     argument list;
+  kname : (name -> name) * visitor_out -> name -> name;
 }
 
 and visitor_out = {
@@ -46,7 +48,9 @@ let default_visitor =
     kstmt = (fun (k, _) x -> k x);
     kinfo = (fun (k, _) x -> k x);
     kidinfo = (fun (k, _) x -> k x);
+    klit = (fun (k, _) x -> k x);
     kargs = (fun (k, _) x -> k x);
+    kname = (fun (k, _) x -> k x);
   }
 
 let map_id x = x
@@ -207,13 +211,16 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | XmlXml v1 ->
         let v1 = map_xml v1 in
         XmlXml v1
-  and map_name = function
-    | Id (v1, v2) ->
-        let v1 = map_ident v1 and v2 = map_id_info v2 in
-        Id (v1, v2)
-    | IdQualified v1 ->
-        let v1 = map_name_info v1 in
-        IdQualified v1
+  and map_name name =
+    let k = function
+      | Id (v1, v2) ->
+          let v1 = map_ident v1 and v2 = map_id_info v2 in
+          Id (v1, v2)
+      | IdQualified v1 ->
+          let v1 = map_name_info v1 in
+          IdQualified v1
+    in
+    vin.kname (k, all_functions) name
   and map_expr x =
     let k x =
       let ekind =
@@ -380,45 +387,48 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | OtherEntity (v1, v2) ->
         let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
         OtherEntity (v1, v2)
-  and map_literal = function
-    | Unit v1 ->
-        let v1 = map_tok v1 in
-        Unit v1
-    | Bool v1 ->
-        let v1 = map_wrap map_of_bool v1 in
-        Bool v1
-    | Int v1 ->
-        let v1 = map_wrap map_id v1 in
-        Int v1
-    | Float v1 ->
-        let v1 = map_wrap map_id v1 in
-        Float v1
-    | Imag v1 ->
-        let v1 = map_wrap map_of_string v1 in
-        Imag v1
-    | Ratio v1 ->
-        let v1 = map_wrap map_of_string v1 in
-        Ratio v1
-    | Atom (v0, v1) ->
-        let v0 = map_tok v0 in
-        let v1 = map_wrap map_of_string v1 in
-        Atom (v0, v1)
-    | Char v1 ->
-        let v1 = map_wrap map_of_string v1 in
-        Char v1
-    | String v1 ->
-        let v1 = map_wrap map_of_string v1 in
-        String v1
-    | Regexp (v1, v2) ->
-        let v1 = map_bracket (map_wrap map_of_string) v1 in
-        let v2 = map_of_option (map_wrap map_of_string) v2 in
-        Regexp (v1, v2)
-    | Null v1 ->
-        let v1 = map_tok v1 in
-        Null v1
-    | Undefined v1 ->
-        let v1 = map_tok v1 in
-        Undefined v1
+  and map_literal lit =
+    let k = function
+      | Unit v1 ->
+          let v1 = map_tok v1 in
+          Unit v1
+      | Bool v1 ->
+          let v1 = map_wrap map_of_bool v1 in
+          Bool v1
+      | Int v1 ->
+          let v1 = map_wrap map_id v1 in
+          Int v1
+      | Float v1 ->
+          let v1 = map_wrap map_id v1 in
+          Float v1
+      | Imag v1 ->
+          let v1 = map_wrap map_of_string v1 in
+          Imag v1
+      | Ratio v1 ->
+          let v1 = map_wrap map_of_string v1 in
+          Ratio v1
+      | Atom (v0, v1) ->
+          let v0 = map_tok v0 in
+          let v1 = map_wrap map_of_string v1 in
+          Atom (v0, v1)
+      | Char v1 ->
+          let v1 = map_wrap map_of_string v1 in
+          Char v1
+      | String v1 ->
+          let v1 = map_wrap map_of_string v1 in
+          String v1
+      | Regexp (v1, v2) ->
+          let v1 = map_bracket (map_wrap map_of_string) v1 in
+          let v2 = map_of_option (map_wrap map_of_string) v2 in
+          Regexp (v1, v2)
+      | Null v1 ->
+          let v1 = map_tok v1 in
+          Null v1
+      | Undefined v1 ->
+          let v1 = map_tok v1 in
+          Undefined v1
+    in
+    vin.klit (k, all_functions) lit
   and map_const_type = function
     | Cbool -> Cbool
     | Cint -> Cint

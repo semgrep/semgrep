@@ -90,7 +90,12 @@ val hook_function_taint_signature :
 (** Deep Semgrep *)
 
 val fixpoint :
-  ?in_env:Taint_lval_env.t -> ?name:var -> config -> IL.cfg -> mapping
+  ?in_env:Taint_lval_env.t ->
+  ?name:var ->
+  Config_semgrep.t ->
+  config ->
+  IL.cfg ->
+  mapping
 (** Main entry point, [fixpoint config cfg] returns a mapping (effectively a set)
   * containing all the tainted variables in [cfg]. Besides, if it infers any taint
   * 'findings', it will invoke [config.handle_findings] which can perform any

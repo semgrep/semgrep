@@ -66,11 +66,13 @@ def test_deduplication(run_semgrep_in_tmp, snapshot):
 def test_noextension_filtering(run_semgrep_in_tmp, snapshot):
     """
     Check that semgrep does not filter out files without extensions when
-    said file is explicitly passed
+    said file is explicitly passed AND when we use --scan-unknown-extensions.
     """
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/eqeq-python.yaml", target_name="basic/stupid_no_extension"
+            "rules/eqeq-python.yaml",
+            target_name="basic/stupid_no_extension",
+            options=["--scan-unknown-extensions"],
         ).stdout,
         "results.json",
     )
@@ -80,13 +82,13 @@ def test_noextension_filtering(run_semgrep_in_tmp, snapshot):
 def test_noextension_filtering_optimizations(run_semgrep_in_tmp, snapshot):
     """
     Check that semgrep does not filter out files without extensions when
-    said file is explicitly passed
+    said file is explicitly passed AND when we use --scan-unknown-extensions.
     """
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/eqeq-python.yaml",
             target_name="basic/stupid_no_extension",
-            options=["--optimizations", "all"],
+            options=["--scan-unknown-extensions", "--optimizations", "all"],
         ).stdout,
         "results.json",
     )

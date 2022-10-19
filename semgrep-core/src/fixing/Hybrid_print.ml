@@ -70,6 +70,10 @@ end = struct
         with_fallback (primary (G.E e))
           (lazy (fallback#print_expr_without_parens e))
 
+      method! print_unbracketed_arguments args =
+        with_fallback (primary (G.Args args))
+          (lazy (fallback#print_unbracketed_arguments args))
+
       (* TODO Fill in more cases as needed. *)
     end
 end

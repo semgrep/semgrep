@@ -15,7 +15,7 @@
         "offset": 43
       },
       "extra": {
-        "fingerprint": "7964a794f20be6982112df2f7bbf2a422a90f78bfa58f13486d0a82c1c503b0b2e432d21558e1b42d63ecfd1e3e10199de149c8a70b6ccfac56df1194efd0f60_0",
+        "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "USER root",
         "message": "'USER' is specified twice\n",
@@ -52,7 +52,7 @@
         "offset": 111
       },
       "extra": {
-        "fingerprint": "7964a794f20be6982112df2f7bbf2a422a90f78bfa58f13486d0a82c1c503b0b2e432d21558e1b42d63ecfd1e3e10199de149c8a70b6ccfac56df1194efd0f60_1",
+        "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "USER root",
         "message": "'USER' is specified twice\n",

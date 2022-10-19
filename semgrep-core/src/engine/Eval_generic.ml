@@ -310,7 +310,7 @@ and eval_str _env ~code v =
 
 let text_of_binding mvar mval =
   match mval with
-  | MV.Text (text, _) ->
+  | MV.Text (text, _, _) ->
       (* Note that `text` may be produced by constant folding, in which
        * case we will not have range info. *)
       Some text

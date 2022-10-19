@@ -16,6 +16,7 @@
 open AST_generic
 open Common
 module MV = Metavariable
+module G = AST_generic
 
 (******************************************************************************)
 (* Module responsible for traversing a fix pattern AST and replacing
@@ -42,7 +43,19 @@ let replace metavar_tbl pattern_ast =
       mk_visitor
         {
           default_visitor with
-          (* TODO handle more kinds of nodes *)
+          (* TODO handle:
+           * [x] ident
+           * [ ] name
+           * [x] expr
+           * [ ] stmt
+           * [ ] type_
+           * [ ] pattern
+           * [ ] stmt list
+           * [x] argument list
+           * [ ] parameter list
+           * [ ] xml_body list
+           * [x] text
+           *)
           kargs =
             (fun (k, _) args ->
               (* A metavariable can appear as a single argument, but can be
@@ -90,6 +103,33 @@ let replace metavar_tbl pattern_ast =
                    * target file for more metavariables, so we won't call `k`
                    * here. *)
                   e);
+          klit =
+            (fun (k, _) lit ->
+              match lit with
+              | String (str, _) -> (
+                  (* TODO handle the case where the metavar appears within the
+                   * string but is not the entire contents of the string *)
+                  match Hashtbl.find_opt metavar_tbl str with
+                  | Some (MV.Text (str, _info, originfo)) ->
+                      (* Don't use `Metavariable.mvalue_to_any` here. It uses
+                       * the modified token info, which drops the quotes. *)
+                      String (str, originfo)
+                  | _ -> k lit)
+              | _ -> k lit);
+          kname =
+            (fun (k, _) name ->
+              match name with
+              | Id ((id_str, _), _) -> (
+                  match Hashtbl.find_opt metavar_tbl id_str with
+                  | Some (MV.Id (id, info)) ->
+                      let info =
+                        match info with
+                        | Some x -> x
+                        | None -> G.empty_id_info ()
+                      in
+                      Id (id, info)
+                  | _ -> k name)
+              | _ -> k name);
         })
   in
   mapper.Map_AST.vany pattern_ast
@@ -107,6 +147,20 @@ let replace metavar_tbl pattern_ast =
  * *)
 let find_remaining_metavars metavar_tbl ast =
   let seen_metavars = ref [] in
+  let str_metavars_regexp =
+    lazy
+      ((* List of metavars that were bound in this match, quoted so that they
+        * can be used safely in a regex *)
+       let quoted_metavars =
+         Hashtbl.to_seq_keys metavar_tbl |> Seq.map Str.quote |> List.of_seq
+       in
+       (* One regex string that will match any of the metavars *)
+       let regex_body = String.concat "\\|" quoted_metavars in
+       (* Match any text before or after the metavars, since Str.string_match
+        * looks for the entire string to match, not just a substring like many
+        * other tools. *)
+       spf ".*\\(%s\\).*" regex_body)
+  in
   let visitor =
     Visitor_AST.(
       mk_visitor
@@ -122,8 +176,14 @@ let find_remaining_metavars metavar_tbl ast =
             (fun (k, _) lit ->
               (match lit with
               | String (str, _) ->
-                  if Hashtbl.mem metavar_tbl str then
-                    Common.push str seen_metavars
+                  (* Textual autofix allows metavars to appear anywhere within
+                   * string literals. This is useful when the pattern is
+                   * something like `foo("$X")` and you'd like the fix to modify
+                   * the string literal, e.g. `foo("bar $X")`. So, we have to
+                   * look for a lingering metavariable anywhere within a string,
+                   * and abort if we find one that hasn't been replaced. *)
+                  if str =~ Lazy.force str_metavars_regexp then
+                    Common.push (Common.matched1 str) seen_metavars
               | _ -> ());
               k lit);
         })

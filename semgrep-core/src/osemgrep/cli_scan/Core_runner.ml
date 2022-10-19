@@ -5,30 +5,28 @@ module RP = Report
 (* Prelude *)
 (*************************************************************************)
 (*
-   Translated from core_runner.py
+   Translated from core_runner.py and core_output.py
+*)
+
+(* python: Don't translate this:
+
+   class StreamingSemgrepCore:
+       """
+       Handles running semgrep-core in a streaming fashion
+
+       This behavior is assumed to be that semgrep-core:
+       - prints a "." on a newline for every file it finishes scanning
+       - prints a number on a newline for any extra targets produced during a scan
+       - prints a single json blob of all results
+
+       Exposes the subprocess.CompletedProcess properties for
+       expediency in integrating
+       """
 *)
 
 (*
-   Don't translate this:
-
-class StreamingSemgrepCore:
-    """
-    Handles running semgrep-core in a streaming fashion
-
-    This behavior is assumed to be that semgrep-core:
-    - prints a "." on a newline for every file it finishes scanning
-    - prints a number on a newline for any extra targets produced during a scan
-    - prints a single json blob of all results
-
-    Exposes the subprocess.CompletedProcess properties for
-    expediency in integrating
-    """
-*)
-
-(*
-   Implement this but skip parsing the semgrep-core output, getting it directly
-   as OCaml objects.
-
+   python: implement this but skip parsing the semgrep-core output,
+   getting it directly as OCaml objects.
    Big class (500 lines of python):
 
 class CoreRunner:
@@ -45,7 +43,10 @@ class CoreRunner:
 
 type path = string
 
-(* LATER: ideally we just want directly Out.cli_output? *)
+(* LATER: ideally we should just return what Run_semgrep returns,
+   without the need for the intermediate Out.core_match_results.
+   LATER: get rid of Output_from_core_util.ml
+*)
 type result = {
   (* ocaml: not in original python implem, but just enough to get
    * Semgrep_scan.cli_output_of_core_results to work
@@ -207,6 +208,8 @@ let invoke_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
   (* TOADAPT
      (* this used to be in Core_CLI.ml but we get a config object
       * later in osemgrep
+      * TODO: Just pass directly a Runner_config.t to invoke_semgrep_core
+      * so can build and adjust the config in the caller
       *)
      let config =
        if config.profile then (
@@ -220,9 +223,8 @@ let invoke_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
    * Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
    * a list of targets with different languages! We just
    * need to pass the right target object (and not a lang_job)
-   * Martin said the issue was that Run_semgrep.targets_of_config requires
-   * the xlang object to contain a single language.
-   *
+   * TODO: Martin said the issue was that Run_semgrep.targets_of_config
+   * requires the xlang object to contain a single language.
    *)
   let lang_jobs = split_jobs_by_language all_rules all_targets in
   let results_by_language =
@@ -245,6 +247,19 @@ let invoke_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
   let match_results =
     JSON_report.match_results_of_matches_and_errors (Set_.cardinal scanned) res
   in
+
+  (* TOPORT? or move in semgrep-core so get info ASAP
+     if match_results.skipped_targets:
+         for skip in match_results.skipped_targets:
+             if skip.rule_id:
+                 rule_info = f"rule {skip.rule_id}"
+             else:
+                 rule_info = "all rules"
+             logger.verbose(
+                 f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
+             )
+  *)
+
   (* TOADAPT:
       match exn with
       | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)

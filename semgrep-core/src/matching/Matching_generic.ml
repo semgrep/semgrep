@@ -236,8 +236,8 @@ let rec equal_ast_bound_code (config : Config_semgrep.t) (a : MV.mvalue)
      * TODO? split MV.Text in a separate MV.Atom?
      *)
     | ( MV.Id ((s1, _), Some { G.id_resolved = { contents = None }; _ }),
-        MV.Text (s2, _) )
-    | ( MV.Text (s1, _),
+        MV.Text (s2, _, _) )
+    | ( MV.Text (s1, _, _),
         MV.Id ((s2, _), Some { G.id_resolved = { contents = None }; _ }) ) ->
         s1 = s2
     (* A variable occurrence that is known to have a constant value is equal to
@@ -726,8 +726,9 @@ let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
   | "..." -> return ()
   (* metavar: "$MVAR" *)
   | astr when MV.is_metavar_name astr ->
-      let text = adjust_info_remove_enclosing_quotes b in
-      envf a (MV.Text text)
+      let _, orig_info = b in
+      let s, info = adjust_info_remove_enclosing_quotes b in
+      envf a (MV.Text (s, info, orig_info))
   (* TODO: deprecate *)
   | astr when Pattern.is_regexp_string astr ->
       let f = regexp_matcher_of_regexp_string astr in
@@ -739,7 +740,9 @@ let m_ellipsis_or_metavar_or_string a b =
   (* dots: '...' on string in atom/regexp/string *)
   | "..." -> return ()
   (* metavar: *)
-  | s when MV.is_metavar_name s -> envf a (MV.Text b)
+  | s when MV.is_metavar_name s ->
+      let str, info = b in
+      envf a (MV.Text (str, info, info))
   | _ -> m_wrap m_string a b
 
 let m_other_xxx a b =

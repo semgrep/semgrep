@@ -1,6 +1,4 @@
 open Common
-open AST_generic
-module H = AST_generic_helpers
 module G = AST_generic
 module V = Visitor_AST
 module RM = Range_with_metavars
@@ -24,13 +22,12 @@ let pr2_ranges file rwms =
          in
          Common.pr2 (code_text ^ " @l." ^ line_str))
 
-let test_tainting lang file config def =
-  let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
-  let flow = CFG_build.cfg_of_stmts xs in
-
+let test_tainting lang file options config def =
   Common.pr2 "\nDataflow";
   Common.pr2 "--------";
-  let mapping = Dataflow_tainting.fixpoint config flow in
+  let flow, mapping =
+    Match_tainting_mode.check_fundef lang options config None def
+  in
   let taint_to_str taint =
     let show_taint t =
       match t.Taint.orig with
@@ -73,6 +70,7 @@ let test_dfg_tainting rules_file file =
   pr2 "========";
   let handle_findings _ _ _ = () in
   let xconf = Match_env.default_xconfig in
+  let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   let config, debug_taint, _exps =
     Match_tainting_mode.taint_config_of_rule xconf file (ast, []) rule
       handle_findings
@@ -92,7 +90,7 @@ let test_dfg_tainting rules_file file =
         V.default_visitor with
         V.kfunction_definition =
           (fun (k, _v) def ->
-            test_tainting lang file config def;
+            test_tainting lang file xconf.config config def;
             (* go into nested functions *)
             k def);
       }

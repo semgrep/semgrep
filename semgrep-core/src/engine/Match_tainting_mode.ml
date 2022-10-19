@@ -489,20 +489,27 @@ let pm_of_finding finding =
   | T.ArgToReturn _ ->
       None
 
-let check_fundef lang taint_config opt_ent fdef =
+let check_fundef lang options taint_config opt_ent fdef =
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
     Some (D.str_of_name name)
   in
-  let add_to_env env id ii =
+  let add_to_env env id ii pdefault =
     let var = AST_to_IL.var_of_id_info id ii in
-    let taint =
+    let source_pms =
       taint_config.D.is_source (G.Tk (snd id))
+      @
+      match pdefault with
+      | Some e -> taint_config.D.is_source (G.E e)
+      | None -> []
+    in
+    let taints =
+      source_pms
       |> Common.map (fun (x : _ D.tmatch) -> (x.pm, x.spec))
       |> T.taints_of_pms
     in
-    Lval_env.add_var var taint env
+    Lval_env.add_var var taints env
   in
   let in_env =
     (* For each argument, check if it's a source and, if so, add it to the input
@@ -510,7 +517,8 @@ let check_fundef lang taint_config opt_ent fdef =
     List.fold_left
       (fun env par ->
         match par with
-        | G.Param { pname = Some id; pinfo; _ } -> add_to_env env id pinfo
+        | G.Param { pname = Some id; pinfo; pdefault; _ } ->
+            add_to_env env id pinfo pdefault
         (* JS: {arg} : type *)
         | G.ParamPattern
             (G.OtherPat
@@ -537,7 +545,7 @@ let check_fundef lang taint_config opt_ent fdef =
                           );
                       _;
                     } ->
-                    add_to_env env id ii
+                    add_to_env env id ii None
                 | G.F _ -> env)
               env fields
         | G.Param { pname = None; _ }
@@ -551,7 +559,10 @@ let check_fundef lang taint_config opt_ent fdef =
   in
   let _, xs = AST_to_IL.function_definition lang fdef in
   let flow = CFG_build.cfg_of_stmts xs in
-  Dataflow_tainting.fixpoint ~in_env ?name taint_config flow |> ignore
+  let mapping =
+    Dataflow_tainting.fixpoint ~in_env ?name options taint_config flow
+  in
+  (flow, mapping)
 
 let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) =
@@ -579,7 +590,10 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
   in
 
   (* Check each function definition. *)
-  Visit_function_defs.visit (check_fundef lang taint_config) ast;
+  Visit_function_defs.visit
+    (fun opt_ent fdef ->
+      check_fundef lang xconf.config taint_config opt_ent fdef |> ignore)
+    ast;
 
   (* Check the top-level statements.
    * In scripting languages it is not unusual to write code outside
@@ -589,7 +603,7 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
         let flow = CFG_build.cfg_of_stmts xs in
-        Dataflow_tainting.fixpoint taint_config flow |> ignore)
+        Dataflow_tainting.fixpoint xconf.config taint_config flow |> ignore)
   in
   let matches =
     !matches

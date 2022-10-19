@@ -5,16 +5,16 @@ function not_tainted($data) {
     return '2';
 }
 
-//OK:
+//OK:tainted
 sink(not_tainted(tainted('a')));
 
 $ok = not_tainted(tainted('a'));
-//OK:
+//OK:tainted
 sink($ok);
 
-//ERROR:
+//ruleid:tainted
 sink(tainted('b'));
 
 $bad = tainted('b');
-//ERROR:
+//ruleid:tainted
 sink($bad);

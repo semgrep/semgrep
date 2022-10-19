@@ -6,7 +6,7 @@ open Printf
 
 let _rules_key = "rules"
 let _id_key = "id"
-let _cli_rule_id = "-"
+let cli_rule_id = "-"
 
 let _please_file_issue_text =
   "An error occurred while invoking the Semgrep engine. Please help us fix \
@@ -39,6 +39,7 @@ type output_format =
   | Sarif
   | Emacs
   | Vim
+[@@deriving show]
 
 let _output_format_is_json = function
   | Json

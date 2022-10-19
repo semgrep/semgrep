@@ -116,7 +116,7 @@
       "is_blocking": false,
       "match_based_id": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0",
       "fixed_lines": [
-        "    x == 2"
+        "    (x == 2)"
       ]
     },
     {
@@ -272,7 +272,7 @@
       "is_blocking": false,
       "match_based_id": "d2d0825f113f2fee5f7cbd5fb160772b3f3ab5043120b912101f2f20d4a0cce42df32b8e89f889f945daa1b216f9755eb958b9cb73c4c4ddf2ef5ecd0b4d1ad3_0",
       "fixed_lines": [
-        "    y == 2  # nosemgrep"
+        "    (y == 2)  # nosemgrep"
       ]
     },
     {
