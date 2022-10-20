@@ -1,0 +1,1 @@
+Fix parsing of dot access ellipsis in PHP patterns (e.g. `$x-> ... ->bar()`).
