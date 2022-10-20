@@ -1,17 +1,4 @@
-import os
-import sys
-import time
-from collections import defaultdict
 from contextlib import contextmanager
-from pathlib import Path
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-
-import click
 
 import semgrep.semgrep_main
 from semgrep.app import auth
@@ -20,9 +7,6 @@ from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import OutputFormat
-from semgrep.error import FATAL_EXIT_CODE
-from semgrep.error import INVALID_API_KEY_EXIT_CODE
-from semgrep.error import SemgrepError
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
@@ -31,14 +15,8 @@ from semgrep.metrics import MetricsState
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.project import ProjectConfig
-from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatchMap
-from semgrep.state import get_state
 from semgrep.util import git_check_output
 from semgrep.util import unit_str
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
 
 # These patterns are excluded via --exclude regardless of other ignore configuration
 ALWAYS_EXCLUDE_PATTERNS = [".semgrep/", ".semgrep_logs/"]

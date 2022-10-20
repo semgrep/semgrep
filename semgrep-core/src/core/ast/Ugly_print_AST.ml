@@ -197,36 +197,43 @@ class base_printer : printer_t =
       if self#needs_parens any then combine [ b "("; res; b ")" ] else res
   end
 
-class python_printer : printer_t =
+(* Printing for constructs that are identical across many languages. Unlike
+ * base_printer, it's not expected that every printer inherit from this. But
+ * many printers should. This can be split up as needed so that printers can use
+ * pieces a la carte, but care should be taken to avoid making the inheritance
+ * graph overly complicated.
+ *
+ * This is virtual rather than a subclass of base_printer so that language
+ * printers can pull pieces from this and other classes as needed to concisely
+ * build up a complete printer. *)
+class virtual common_printer =
   object (self)
-    inherit base_printer
-
-    method! print_arguments (_b1, args, _b2) =
+    method print_arguments ((_b1, args, _b2) : G.arguments) =
       let/ args = self#print_unbracketed_arguments args in
       (* TODO Consider using original tokens for parens when available? *)
       Ok (combine [ b "("; args; b ")" ])
 
-    method! print_unbracketed_arguments args =
+    method print_unbracketed_arguments args =
       let/ args = map_all self#print_argument args in
       Ok (combine ~sep:", " args)
 
-    method! print_argument =
+    method print_argument =
       function
       | G.Arg e -> self#print_expr e
       | _ -> print_fail ()
 
-    method! print_expr_kind =
+    method print_expr_kind =
       function
       | G.Call (e, args) -> self#print_call e args
       | G.N (G.Id ((str, _), _)) -> Ok (b str)
       | _ -> print_fail ()
 
-    method! print_ordinary_call e args =
+    method print_ordinary_call e args =
       let/ e = self#print_expr e in
       let/ args = self#print_arguments args in
       Ok (combine [ e; args ])
 
-    method! print_opcall e args =
+    method print_opcall (e : G.expr) (args : G.arguments) =
       match args with
       | _, [ l; r ], _ ->
           let/ l = self#print_argument l in
@@ -234,4 +241,21 @@ class python_printer : printer_t =
           let/ r = self#print_argument r in
           Ok (combine ~sep:" " [ l; e; r ])
       | _ -> print_fail ()
+
+    method virtual print_expr : G.expr -> (Immutable_buffer.t, string) result
+
+    method virtual print_call
+        : G.expr -> G.arguments -> (Immutable_buffer.t, string) result
+  end
+
+class python_printer : printer_t =
+  object (_self)
+    inherit base_printer
+    inherit! common_printer
+  end
+
+class jsts_printer : printer_t =
+  object (_self)
+    inherit base_printer
+    inherit! common_printer
   end

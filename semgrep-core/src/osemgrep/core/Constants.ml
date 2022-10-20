@@ -30,6 +30,7 @@ let _returntocorp_lever_url =
 
 let _unsupported_ext_ignore_langs = [ ("generic", "regex") ]
 
+(* LATER: move out of Constants.ml, those are type defs, not constants ... *)
 type output_format =
   | Text
   | Json
@@ -53,7 +54,9 @@ let _output_format_is_json = function
   | Vim ->
       false
 
-(* coupling: ensure consistency with 'serverity' in 'rule_schema.yaml' *)
+(* coupling: ensure consistency with 'serverity' in 'rule_schema.yaml'
+ * LATER: redundant with Rule.severity in semgrep-core.
+ *)
 type rule_severity = Info | Warning | Error | Inventory | Experiment
 (* TOPORT
     @classmethod
@@ -140,6 +143,8 @@ let default_max_target_size = 1_000_000 (* 1 MB *)
        forced_black = 16  # #000
        forced_white = 231  # #FFF
 *)
+
+(* LATER: move to utils/Color.ml separate file; those are not really constants *)
 type _color =
   | Foreground
   | White

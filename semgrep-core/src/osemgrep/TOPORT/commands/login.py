@@ -1,20 +1,5 @@
-import sys
-import time
-import uuid
-from typing import NoReturn
-from typing import Optional
-from typing import Tuple
-
-import click
-
 from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.error import FATAL_EXIT_CODE
-from semgrep.state import get_state
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
 
 def make_login_url() -> Tuple[uuid.UUID, str]:
     env = get_state().env

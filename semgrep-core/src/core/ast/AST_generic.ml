@@ -503,7 +503,10 @@ and expr_kind =
   (* can be used for Record, Class, or Module access depending on expr.
    * In the last case it should be rewritten as a (N IdQualified) with a
    * qualifier though.
-   * TODO? have a dot_operator to differentiate ., .?, and :: in Kotlin?
+   * We choose for now not to have a `dot_operator` type with all the different
+     kinds of dots, but instead to translate the `expr` wherever possible.
+     So something like `x?.y` is generally translated to an Elvis call on the `x`.
+     This will simplify things so that we don't need a brand new type.
    *)
   | DotAccess of expr * tok (* ., ::, ->, #, $ *) * field_name
   (* in Js ArrayAccess is also abused to perform DotAccess (..., FDynamic) *)

@@ -1,0 +1,16 @@
+function foo() {
+    //ERROR:
+    bar(1, 4);
+
+    //ERROR:
+    bar(a_very_long_constant_name, 4);
+
+    //ERROR:
+    bar(unsafe(), 4);
+
+    //ERROR:
+    bar(bar(1,3), 4);
+
+    foo(2,1);
+}
+
