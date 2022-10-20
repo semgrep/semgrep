@@ -17,8 +17,8 @@ Non-Blocking Findings:
      eqeq-five
         useless comparison to 5
 
-         ▶▶┆ Autofix ▶ x == 2
-         15┆ x == 2
+         ▶▶┆ Autofix ▶ (x == 2)
+         15┆ (x == 2)
 
 Blocking Findings:
 
