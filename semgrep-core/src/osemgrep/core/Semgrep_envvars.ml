@@ -2,7 +2,7 @@
 (* Prelude *)
 (*****************************************************************************)
 (*
-   Semgrep environment variables (e.g., SEMGREP_IN_DOCKER) typed access.
+   Typed access to Semgrep environment variables (e.g., SEMGREP_IN_DOCKER).
 
    Translated from env.py.
 
@@ -66,7 +66,7 @@ let env : t =
     let parent_dir =
       match Sys.getenv_opt "XDG_CONFIG_HOME" with
       | Some x when Sys.is_directory x -> x
-      | _else_ -> Sys.getcwd ()
+      | _else_ -> Sys.getenv "HOME"
     in
     parent_dir / ".semgrep"
   in
