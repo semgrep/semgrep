@@ -338,7 +338,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                         "startLine": 15
                       },
                       "insertedContent": {
-                        "text": "    x == 2"
+                        "text": "    (x == 2)"
                       }
                     }
                   ]
@@ -393,7 +393,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                         "startLine": 16
                       },
                       "insertedContent": {
-                        "text": "    y == 2  # nosemgrep"
+                        "text": "    (y == 2)  # nosemgrep"
                       }
                     }
                   ]
