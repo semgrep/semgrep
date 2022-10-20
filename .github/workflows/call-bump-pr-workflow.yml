@@ -41,4 +41,5 @@ jobs:
           NEW_SEMGREP_VERSION: "${{ inputs.version }}"
           REPOSITORY: "${{ inputs.repository }}"
         run: |
+          # Initiate run of workflow (non-blocking)
           gh workflow run bump_version.yaml --repo "${REPOSITORY}" --raw-field version="${NEW_SEMGREP_VERSION}"
