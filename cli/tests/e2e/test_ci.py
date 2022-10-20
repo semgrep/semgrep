@@ -358,7 +358,7 @@ def mock_autofix(request, mocker):
             "BITBUCKET_PIPELINE_UUID": "a-uuid",
             "BITBUCKET_PR_ID": "35",
         },
-        {  # Bitbucket
+        {  # Bitbucket, overwrite autodetected variables
             "CI": "true",
             "BITBUCKET_BUILD_NUMBER": "hi",
             "SEMGREP_REPO_NAME": "a/repo/name",
