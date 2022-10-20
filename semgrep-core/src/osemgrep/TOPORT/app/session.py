@@ -1,17 +1,3 @@
-import os
-import subprocess
-from pathlib import Path
-from typing import Any
-from typing import Optional
-from typing import Set
-
-import requests
-import urllib3
-from attrs import define
-from attrs import field
-
-from semgrep import __VERSION__
-
 
 @define
 class UserAgent:
