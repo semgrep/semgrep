@@ -1,7 +1,3 @@
-from attr import Factory
-from attr import field
-from attr import frozen
-
 from semgrep.constants import SETTINGS_FILENAME
 
 def url(value: str) -> str:

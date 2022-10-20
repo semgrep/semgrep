@@ -11,26 +11,10 @@ If no settings have been configured on the system, DEFAULT_SETTINGS will be writ
 If the process does not have permission to the settings path, a PermissionError will be raised;
 callers should handle this gracefully.
 """
-import os
-import uuid
-from pathlib import Path
-from typing import Any
-from typing import cast
-from typing import Mapping
-
-from attr import define
-from attr import field
-from ruamel.yaml import YAML
-from typing_extensions import Literal
-from typing_extensions import TypedDict
-
 from semgrep.env import Env
-from semgrep.verbose_logging import getLogger
 
-logger = getLogger(__name__)
 yaml = YAML()
 yaml.default_flow_style = False
-
 
 class SettingsSchema(TypedDict, total=False):
     has_shown_metrics_notification: bool
