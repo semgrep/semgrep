@@ -1,0 +1,1 @@
+Use AST-based autofix when possible for JS autofixes. This is more likely to lead to correct output, especially for complicated fixes.

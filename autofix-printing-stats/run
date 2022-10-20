@@ -114,6 +114,8 @@ let record_results results lang success_count total_count =
 let lang_of_path path =
   match Filename.extension path with
   | ".py" -> Some "python"
+  | ".ts" | ".tsx" -> Some "typescript"
+  | ".js" | ".jsx" -> Some "javascript"
   | __else__ -> None
 
 let run_on_target results rule target =

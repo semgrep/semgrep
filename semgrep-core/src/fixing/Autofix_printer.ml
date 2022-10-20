@@ -59,10 +59,20 @@ module PythonPrinter = Hybrid_print.Make (struct
   class printer = Ugly_print_AST.python_printer
 end)
 
+module JsTsPrinter = Hybrid_print.Make (struct
+  class printer = Ugly_print_AST.jsts_printer
+end)
+
 let get_printer lang external_printer :
     (Ugly_print_AST.printer_t, string) result =
   match lang with
-  | Lang.Python -> Ok (new PythonPrinter.printer external_printer)
+  | Lang.Python
+  | Lang.Python2
+  | Lang.Python3 ->
+      Ok (new PythonPrinter.printer external_printer)
+  | Lang.Js
+  | Lang.Ts ->
+      Ok (new JsTsPrinter.printer external_printer)
   | __else__ -> Error (spf "No printer available for %s" (Lang.to_string lang))
 
 let original_source_of_ast source any =
