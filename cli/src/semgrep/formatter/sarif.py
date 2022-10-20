@@ -359,4 +359,4 @@ class SarifFormatter(BaseFormatter):
         }
 
         # Sort keys for predictable output. This helps with snapshot tests, etc.
-        return json.dumps(output_dict, sort_keys=True)
+        return json.dumps(output_dict, sort_keys=True, indent=2)
