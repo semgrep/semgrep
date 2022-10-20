@@ -84,7 +84,7 @@
                         "startLine": 6
                       },
                       "insertedContent": {
-                        "text": "  if inputs.get(x + 1) == True:"
+                        "text": "  if inputs.get((x + 1)) == True:"
                       }
                     }
                   ]
