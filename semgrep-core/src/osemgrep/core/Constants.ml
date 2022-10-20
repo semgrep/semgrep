@@ -19,7 +19,9 @@ let _default_semgrep_app_config_url = "api/agent/deployments/scans/config"
 
 (* LATER: move to Scan_CLI.default directly *)
 let default_timeout = 30 (* seconds *)
-let _settings_filename = "settings.yml"
+
+(* LATER: used in other places than Semgrep_envvars.ml? then move there? *)
+let settings_filename = "settings.yml"
 let yml_extensions = [ ".yml"; ".yaml" ]
 let _yml_suffixes = Common.map (fun ext -> [ ext ]) yml_extensions
 let _yml_test_suffixes = Common.map (fun ext -> [ ".test"; ext ]) yml_extensions
