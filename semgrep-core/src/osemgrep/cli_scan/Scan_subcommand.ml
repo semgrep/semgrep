@@ -55,7 +55,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
    * have a default config.
    *)
   let rules, _errorsTODO =
-    Semgrep_dashdash_config.rules_from_dashdash_config conf.config
+    Config_resolver.rules_from_dashdash_config conf.config
   in
   (* TODO: there are more ways to specify targets? see target_manager.py
    *)

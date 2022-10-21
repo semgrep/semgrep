@@ -14,6 +14,5 @@ and registry_kind =
   | SavedSnippet of string (* username *) * string (* snippetname *)
 [@@deriving show]
 
-(* The --config string argument can resolve to one of the config_kind above *)
-val rules_from_dashdash_config :
-  string -> Rule.rules * Rule.invalid_rule_error list
+val config_kind_of_config_str : string -> config_kind
+val url_of_registry_kind : registry_kind -> Uri.t
