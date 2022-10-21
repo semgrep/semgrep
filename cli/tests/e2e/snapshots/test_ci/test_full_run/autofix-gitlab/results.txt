@@ -57,6 +57,8 @@ Scan environment:
 Fetching configuration from semgrep.dev
 Authenticated as org_name
 Scanning 1 file with 4 python rules.
+Using AST-based autofix rendered in semgrep-core: `(x == 2)`
+Using AST-based autofix rendered in semgrep-core: `(y == 2)`
   Current version has 14 findings.
 
 Switching repository to baseline commit '<MASKED>'.

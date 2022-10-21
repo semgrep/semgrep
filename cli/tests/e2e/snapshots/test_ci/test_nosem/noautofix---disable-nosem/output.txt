@@ -82,6 +82,8 @@ Scan environment:
 Fetching configuration from semgrep.dev
 Semgrep rule registry URL is https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
+Using AST-based autofix rendered in semgrep-core: `(x == 2)`
+Using AST-based autofix rendered in semgrep-core: `(y == 2)`
 
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
