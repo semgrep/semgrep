@@ -135,7 +135,16 @@ let polyglot_test_cases =
   ]
 
 let test_python_autofix_printer () =
-  List.iter (check Lang.Python) polyglot_test_cases
+  List.iter (check Lang.Python)
+    (polyglot_test_cases
+    @ [
+        {
+          target = "foo.asdf(1, 2, 3)";
+          pattern = "foo.$F($...ARGS)";
+          fix_pattern = "bar.$F($...ARGS)";
+          expected = "ppp.tttt(ttttttt)";
+        };
+      ])
 
 let test_js_autofix_printer () = List.iter (check Lang.Js) polyglot_test_cases
 
