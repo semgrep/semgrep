@@ -97,3 +97,6 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-jsonnet"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-jsonnet
 	url = https://github.com/returntocorp/semgrep-jsonnet.git
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-apex"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-apex
+	url = https://github.com/returntocorp/semgrep-apex.git

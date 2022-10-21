@@ -1,31 +1,9 @@
 # Handle communication of findings / errors to semgrep.app
-import json
-import os
 from collections import Counter
-from pathlib import Path
-from typing import Any
-from typing import Dict
-from typing import FrozenSet
-from typing import List
-from typing import Optional
-from typing import Set
 from urllib.parse import urlencode
 
-import click
 import requests
 from boltons.iterutils import partition
-
-from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
-from semgrep.error import SemgrepError
-from semgrep.parsing_data import ParsingData
-from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatchMap
-from semgrep.state import get_state
-from semgrep.verbose_logging import getLogger
-
-
-logger = getLogger(__name__)
-
 
 class ScanHandler:
     def __init__(self, dry_run: bool) -> None:
