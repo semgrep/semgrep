@@ -4,7 +4,6 @@ from typing import Iterable
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
-from typing import Dict
 
 import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep import __VERSION__
@@ -18,76 +17,82 @@ from semgrep.rule_match import RuleMatch
 
 class SarifFormatter(BaseFormatter):
     @staticmethod
-    def _dataflow_source_to_thread_flow_sarif(rule_match: RuleMatch) -> Mapping[str, Any]:
+    def _dataflow_source_to_thread_flow_sarif(rule_match: RuleMatch) -> Any:
         dataflow_trace = rule_match.dataflow_trace
-        if dataflow_trace:
-            taint_source = dataflow_trace.taint_source
-            if taint_source:
-                location = taint_source.location
-                content = "".join(taint_source.content).strip()
-                source_message_text = f"Source: '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+        if not dataflow_trace:
+            return None
+        taint_source = dataflow_trace.taint_source
+        if not taint_source:
+            return None
+        location = taint_source.location
+        content = "".join(taint_source.content).strip()
+        source_message_text = f"Source: '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
 
-                taint_source_location_sarif = {
-                    "location": {
+        taint_source_location_sarif = {
+            "location": {
+                "message": {
+                    "text": source_message_text
+                },
+                "physicalLocation": {
+                    "artifactLocation": {"uri": str(rule_match.path)},
+                    "region": {
+                        "startLine": location.start.line,
+                        "startColumn": location.start.col,
+                        "endLine": location.end.line,
+                        "endColumn": location.end.col,
+                        "snippet": {
+                            "text": content
+                        },
                         "message": {
                             "text": source_message_text
-                        },
-                        "physicalLocation": {
-                            "artifactLocation": {"uri": str(rule_match.path)},
-                            "region": {
-                                "startLine": location.start.line,
-                                "startColumn": location.start.col,
-                                "endLine": location.end.line,
-                                "endColumn": location.end.col,
-                                "snippet": {
-                                    "text": content
-                                },
-                                "message": {
-                                    "text": source_message_text
-                                }
+                        }
+                    }
+                }
+            }
+        }
+        return taint_source_location_sarif
+
+    @staticmethod
+    def _dataflow_propagator_to_thread_flow_sarif(rule_match: RuleMatch) -> Any:
+        dataflow_trace = rule_match.dataflow_trace
+        if not dataflow_trace:
+            return None
+        intermediate_vars = dataflow_trace.intermediate_vars
+        if not intermediate_vars:
+            return None
+        intermediate_var_locations = []
+        for intermediate_var in intermediate_vars:
+            location = intermediate_var.location
+            content = "".join(intermediate_var.content).strip()
+            propagation_message_text = f"Propagator : '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+
+            intermediate_vars_location_sarif = {
+                "location": {
+                    "message": {
+                        "text": propagation_message_text
+                    },
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": str(rule_match.path)},
+                        "region": {
+                            "startLine": location.start.line,
+                            "startColumn": location.start.col,
+                            "endLine": location.end.line,
+                            "endColumn": location.end.col,
+                            "snippet": {
+                                "text": content
+                            },
+                            "message": {
+                                "text": propagation_message_text
                             }
                         }
                     }
                 }
-        return taint_source_location_sarif
+            }
+            intermediate_var_locations.append(intermediate_vars_location_sarif)
+        return intermediate_var_locations
 
     @staticmethod
-    def _dataflow_propagator_to_thread_flow_sarif(rule_match: RuleMatch) -> Mapping[str, Any]:
-        dataflow_trace = rule_match.dataflow_trace
-        if dataflow_trace:
-            intermediate_vars = dataflow_trace.intermediate_vars
-            if intermediate_vars:
-                for intermediate_var in intermediate_vars:
-                    location = intermediate_var.location
-                    content = "".join(intermediate_var.content).strip()
-                    propagation_message_text = f"Propagator : '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
-
-                    intermediate_vars_location_sarif = {
-                        "location": {
-                            "message": {
-                                "text": propagation_message_text
-                            },
-                            "physicalLocation": {
-                                "artifactLocation": {"uri": str(rule_match.path)},
-                                "region": {
-                                    "startLine": location.start.line,
-                                    "startColumn": location.start.col,
-                                    "endLine": location.end.line,
-                                    "endColumn": location.end.col,
-                                    "snippet": {
-                                        "text": content
-                                    },
-                                    "message": {
-                                        "text": propagation_message_text
-                                    }
-                                }
-                            }
-                        }
-                    }
-        return intermediate_vars_location_sarif
-
-    @staticmethod
-    def _dataflow_sink_to_thread_flow_sarif(rule_match: RuleMatch) -> Mapping[str, Any]:
+    def _dataflow_sink_to_thread_flow_sarif(rule_match: RuleMatch) -> Any:
         content = "".join(rule_match.get_lines()).strip()
         sink_message_text = f"Sink: '{content}' @ '{str(rule_match.path)}:{str(rule_match.start.line)}'"
 
@@ -116,16 +121,26 @@ class SarifFormatter(BaseFormatter):
         return sink_location_sarif
 
     @staticmethod
-    def _dataflow_trace_to_thread_flow_sarif(rule_match: RuleMatch) -> Sequence[Mapping]:
+    def _dataflow_trace_to_thread_flow_sarif(rule_match: RuleMatch) -> Any:
 
         thread_flows = []
         locations = []
+        
+        dataflow_trace = rule_match.dataflow_trace
+        if not dataflow_trace:
+            return None
+        taint_source = dataflow_trace.taint_source
+        intermediate_vars = dataflow_trace.intermediate_vars
 
-        locations.append(
-            SarifFormatter._dataflow_source_to_thread_flow_sarif(rule_match))
+        if taint_source:
+            locations.append(
+                SarifFormatter._dataflow_source_to_thread_flow_sarif(rule_match))
 
-        locations.append(
-            SarifFormatter._dataflow_propagator_to_thread_flow_sarif(rule_match))
+        if intermediate_vars:
+            intermediate_var_locations = SarifFormatter._dataflow_propagator_to_thread_flow_sarif(rule_match)
+            if intermediate_var_locations:
+                for intermediate_var_location in intermediate_var_locations:
+                    locations.append(intermediate_var_location)
 
         locations.append(
             SarifFormatter._dataflow_sink_to_thread_flow_sarif(rule_match))
@@ -134,19 +149,24 @@ class SarifFormatter(BaseFormatter):
         return thread_flows
 
     @staticmethod
-    def _dataflow_trace_to_codeflows_sarif(rule_match: RuleMatch) -> Mapping[str, Any]:
+    def _dataflow_trace_to_codeflows_sarif(rule_match: RuleMatch) -> Optional[Mapping[str, Any]]:
         dataflow_trace = rule_match.dataflow_trace
-        if dataflow_trace:
-            taint_source = dataflow_trace.taint_source
-            if taint_source:
-                location = taint_source.location
-                code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
-                code_flow_sarif = {
-                    "message": {
-                        "text": code_flow_message
-                    },
-                    "threadFlows": SarifFormatter._dataflow_trace_to_thread_flow_sarif(rule_match)
-                }
+        if not dataflow_trace:
+            return None
+        taint_source = dataflow_trace.taint_source
+        if not taint_source:
+            return None
+        location = taint_source.location
+        code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
+        code_flow_sarif = {
+            "message": {
+                "text": code_flow_message
+            },
+        }
+        thread_flows = SarifFormatter._dataflow_trace_to_thread_flow_sarif(rule_match)
+        if thread_flows:
+            code_flow_sarif['threadFlows'] = thread_flows
+
         return code_flow_sarif
 
     @staticmethod
@@ -175,8 +195,9 @@ class SarifFormatter(BaseFormatter):
         }
 
         if dataflow_traces and rule_match.dataflow_trace:
-            rule_match_sarif["codeFlows"] = [SarifFormatter._dataflow_trace_to_codeflows_sarif(
-                rule_match)]
+            code_flows = SarifFormatter._dataflow_trace_to_codeflows_sarif(rule_match)
+            if code_flows:
+                rule_match_sarif["codeFlows"] = [code_flows]
 
         if rule_match.is_ignored:
             rule_match_sarif["suppressions"] = [{"kind": "inSource"}]
