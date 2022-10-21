@@ -13,7 +13,6 @@ type rule_severity = Info | Warning | Error | Inventory | Experiment
 
 val default_max_target_size : int
 val default_timeout : int
-val settings_filename : string
 
 (* "-", the rule id for interactive rule? via -e ? *)
 val cli_rule_id : string
