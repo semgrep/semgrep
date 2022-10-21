@@ -38,6 +38,8 @@
     semgrep_running
     semgrep_metachecking
     semgrep_system
+    semgrep_parsing_tests ; Test_parsing.parsing_stats
+    pfff-lang_GENERIC-analyze-tests ; Test_analyze_generic.actions
 
     ; experiments
     semgrep_synthesizing

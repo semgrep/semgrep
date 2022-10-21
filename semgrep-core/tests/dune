@@ -24,6 +24,8 @@
     pfff-lang_skip
     pfff-lang_FUZZY
 
+    pfff-lang_GENERIC-analyze-tests ; Unit_dataflow
+
     semgrep_core
     semgrep_core_ast_tests
     semgrep_fixing_tests
