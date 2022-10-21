@@ -40,7 +40,7 @@ test: all
 	# in some contexts.
 	# The following command ensures that we can call 'test.exe --help'
 	# without having to chdir into the test data folder.
-	./_build/default/tests/test.exe --help 2>&1 >/dev/null
+	./_build/default/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	$(MAKE) -C src/spacegrep test
 	dune runtest -f --no-buffer
 
