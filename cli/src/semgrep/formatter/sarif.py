@@ -17,7 +17,7 @@ from semgrep.rule_match import RuleMatch
 
 class SarifFormatter(BaseFormatter):
     @staticmethod
-    def _dataflow_source_to_thread_flow_sarif(rule_match: RuleMatch) -> Any:
+    def _taint_source_to_thread_flow_location_sarif(rule_match: RuleMatch) -> Any:
         dataflow_trace = rule_match.dataflow_trace
         if not dataflow_trace:
             return None
@@ -53,7 +53,7 @@ class SarifFormatter(BaseFormatter):
         return taint_source_location_sarif
 
     @staticmethod
-    def _dataflow_propagator_to_thread_flow_sarif(rule_match: RuleMatch) -> Any:
+    def _intermediate_vars_to_thread_flow_location_sarif(rule_match: RuleMatch) -> Any:
         dataflow_trace = rule_match.dataflow_trace
         if not dataflow_trace:
             return None
@@ -92,7 +92,7 @@ class SarifFormatter(BaseFormatter):
         return intermediate_var_locations
 
     @staticmethod
-    def _dataflow_sink_to_thread_flow_sarif(rule_match: RuleMatch) -> Any:
+    def _sink_to_thread_flow_location_sarif(rule_match: RuleMatch) -> Any:
         content = "".join(rule_match.get_lines()).strip()
         sink_message_text = f"Sink: '{content}' @ '{str(rule_match.path)}:{str(rule_match.start.line)}'"
 
@@ -121,7 +121,7 @@ class SarifFormatter(BaseFormatter):
         return sink_location_sarif
 
     @staticmethod
-    def _dataflow_trace_to_thread_flow_sarif(rule_match: RuleMatch) -> Any:
+    def _dataflow_trace_to_thread_flows_sarif(rule_match: RuleMatch) -> Any:
 
         thread_flows = []
         locations = []
@@ -134,22 +134,22 @@ class SarifFormatter(BaseFormatter):
 
         if taint_source:
             locations.append(
-                SarifFormatter._dataflow_source_to_thread_flow_sarif(rule_match))
+                SarifFormatter._taint_source_to_thread_flow_location_sarif(rule_match))
 
         if intermediate_vars:
-            intermediate_var_locations = SarifFormatter._dataflow_propagator_to_thread_flow_sarif(rule_match)
+            intermediate_var_locations = SarifFormatter._intermediate_vars_to_thread_flow_location_sarif(rule_match)
             if intermediate_var_locations:
                 for intermediate_var_location in intermediate_var_locations:
                     locations.append(intermediate_var_location)
 
         locations.append(
-            SarifFormatter._dataflow_sink_to_thread_flow_sarif(rule_match))
+            SarifFormatter._sink_to_thread_flow_location_sarif(rule_match))
 
         thread_flows.append({"locations": locations})
         return thread_flows
 
     @staticmethod
-    def _dataflow_trace_to_codeflows_sarif(rule_match: RuleMatch) -> Optional[Mapping[str, Any]]:
+    def _dataflow_trace_to_codeflow_sarif(rule_match: RuleMatch) -> Optional[Mapping[str, Any]]:
         dataflow_trace = rule_match.dataflow_trace
         if not dataflow_trace:
             return None
@@ -163,7 +163,7 @@ class SarifFormatter(BaseFormatter):
                 "text": code_flow_message
             },
         }
-        thread_flows = SarifFormatter._dataflow_trace_to_thread_flow_sarif(rule_match)
+        thread_flows = SarifFormatter._dataflow_trace_to_thread_flows_sarif(rule_match)
         if thread_flows:
             code_flow_sarif['threadFlows'] = thread_flows
 
@@ -195,7 +195,7 @@ class SarifFormatter(BaseFormatter):
         }
 
         if dataflow_traces and rule_match.dataflow_trace:
-            code_flows = SarifFormatter._dataflow_trace_to_codeflows_sarif(rule_match)
+            code_flows = SarifFormatter._dataflow_trace_to_codeflow_sarif(rule_match)
             if code_flows:
                 rule_match_sarif["codeFlows"] = [code_flows]
 
