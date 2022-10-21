@@ -125,7 +125,7 @@ class Rule:
 
     @property
     def message(self) -> str:
-        return str(self._raw["message"])
+        return str(self._raw.get("message"))
 
     @property
     def metadata(self) -> Dict[str, Any]:
