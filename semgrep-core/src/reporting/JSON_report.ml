@@ -207,7 +207,8 @@ let taint_trace_to_dataflow_trace { source; tokens; sink = _ } :
     intermediate_vars = Some (tokens_to_intermediate_vars tokens);
   }
 
-let unsafe_match_to_match render_fix (x : Pattern_match.t) : Out.core_match =
+let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
+    =
   let min_loc, max_loc = x.range_loc in
   let startp, endp = OutH.position_range min_loc max_loc in
   let dataflow_trace =
@@ -217,7 +218,7 @@ let unsafe_match_to_match render_fix (x : Pattern_match.t) : Out.core_match =
       x.taint_trace
   in
   let rendered_fix =
-    let* render_fix = render_fix in
+    let* render_fix = render_fix_opt in
     let* fix_pattern = x.rule_id.fix in
     let* lang = List.nth_opt x.rule_id.languages 0 in
     let target_contents = lazy (Common.read_file x.file) in
