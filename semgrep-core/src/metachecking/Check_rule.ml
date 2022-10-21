@@ -267,7 +267,9 @@ let check_files mk_config fparser input =
       let res = { RP.empty_final_result with errors } in
       (* for the stats.okfiles, but we don't care? *)
       let nfiles = 0 in
-      let json = JSON_report.match_results_of_matches_and_errors nfiles res in
+      let json =
+        JSON_report.match_results_of_matches_and_errors None nfiles res
+      in
       pr (SJ.string_of_core_match_results json)
 
 let stat_files fparser xs =

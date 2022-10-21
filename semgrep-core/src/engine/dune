@@ -21,8 +21,10 @@
    ; we now call Parse_target from Match_search_rules (we actually also
    ; call Parse_pattern from Eval_generic)
    semgrep_parsing
-   ; TODO: why the engine depends on semgrep_reporting?
-   semgrep_reporting
+   ; TODO: should get rid of this dependency
+   semgrep_targeting ; for Input_to_core.atd
+   ; TODO: should get rid of this dependency
+   semgrep_reporting ;
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )
