@@ -50,7 +50,8 @@ let process_exn () =
         match tokens with
         | "Called" :: "from" :: funcname :: _in :: _file :: _filename :: "line"
           :: linenum :: _ ->
-            if String.ends_with ~suffix:"todo" funcname then process rest
+            if Stdcompat.String.ends_with ~suffix:"todo" funcname then
+              process rest
             else funcname ^ ":" ^ linenum
         | _ -> process rest)
   in
