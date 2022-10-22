@@ -1,0 +1,4 @@
+# MATCH:
+bar.f()
+# MATCH:
+bar.asdf(1, 2, 3)

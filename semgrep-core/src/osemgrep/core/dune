@@ -11,6 +11,7 @@
     commons        ; pfff
     semgrep_utils  ; semgrep-core
     semgrep_core
+    semgrep_reporting ; atd spec of semgrep_output
   )
  (inline_tests)
  (preprocess

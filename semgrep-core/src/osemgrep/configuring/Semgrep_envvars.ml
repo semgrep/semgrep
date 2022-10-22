@@ -13,6 +13,12 @@
 *)
 
 (*****************************************************************************)
+(* Constants *)
+(*****************************************************************************)
+
+let settings_filename = "settings.yml"
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 (* LATER: use Fpath.of_string or something at some point *)
@@ -96,7 +102,7 @@ let env : t =
       env_or path_of_string "SEMGREP_LOG_FILE" (user_data_folder / "semgrep.log");
     user_settings_file =
       env_or path_of_string "SEMGREP_SETTINGS_FILE"
-        (user_data_folder / Constants.settings_filename);
+        (user_data_folder / settings_filename);
     in_docker = in_env "SEMGREP_IN_DOCKER";
     in_gh_action = in_env "GITHUB_WORKSPACE";
     in_agent = in_env "SEMGREP_AGENT";

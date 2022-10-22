@@ -245,7 +245,8 @@ let invoke_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
    * return it.
    *)
   let match_results =
-    JSON_report.match_results_of_matches_and_errors (Set_.cardinal scanned) res
+    JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
+      (Set_.cardinal scanned) res
   in
 
   (* TOPORT? or move in semgrep-core so get info ASAP

@@ -70,6 +70,15 @@ class type printer_t =
     method print_unbracketed_arguments :
       G.argument list -> (Immutable_buffer.t, string) result
 
+    method print_dot_access :
+      G.expr -> G.tok -> G.field_name -> (Immutable_buffer.t, string) result
+
+    method print_field_name :
+      G.field_name -> (Immutable_buffer.t, string) result
+
+    method print_name : G.name -> (Immutable_buffer.t, string) result
+    method print_ident : G.ident -> (Immutable_buffer.t, string) result
+
     method print_call :
       G.expr -> G.arguments -> (Immutable_buffer.t, string) result
 
@@ -164,11 +173,20 @@ class base_printer : printer_t =
        * of the logic should be reusable. *)
       Ok (self#add_parens_if_needed (G.E e) res)
 
+    method print_dot_access _ _ _ = print_fail ()
+
+    method print_field_name =
+      function
+      | G.FN name -> self#print_name name
+      | G.FDynamic e -> self#print_expr e
+
     method private print_expr_without_parens { e; _ } = self#print_expr_kind e
     method print_expr_kind _ = print_fail ()
     method print_argument _ = print_fail ()
     method print_arguments _ = print_fail ()
     method print_unbracketed_arguments _ = print_fail ()
+    method print_name _ = print_fail ()
+    method print_ident _ = print_fail ()
 
     method print_call e args =
       match e.G.e with
@@ -225,8 +243,16 @@ class virtual common_printer =
     method print_expr_kind =
       function
       | G.Call (e, args) -> self#print_call e args
-      | G.N (G.Id ((str, _), _)) -> Ok (b str)
+      | G.N name -> self#print_name name
+      | G.DotAccess (e, tok, field) -> self#print_dot_access e tok field
       | _ -> print_fail ()
+
+    method print_name =
+      function
+      | G.Id (ident, _) -> self#print_ident ident
+      | G.IdQualified _ -> print_fail ()
+
+    method print_ident (str, _) = Ok (b str)
 
     method print_ordinary_call e args =
       let/ e = self#print_expr e in
@@ -246,12 +272,20 @@ class virtual common_printer =
 
     method virtual print_call
         : G.expr -> G.arguments -> (Immutable_buffer.t, string) result
+
+    method virtual print_dot_access
+        : G.expr -> G.tok -> G.field_name -> (Immutable_buffer.t, string) result
   end
 
 class python_printer : printer_t =
-  object (_self)
+  object (self)
     inherit base_printer
     inherit! common_printer
+
+    method! print_dot_access e _tok field =
+      let/ e = self#print_expr e in
+      let/ field = self#print_field_name field in
+      Ok (combine [ e; b "."; field ])
   end
 
 class jsts_printer : printer_t =
