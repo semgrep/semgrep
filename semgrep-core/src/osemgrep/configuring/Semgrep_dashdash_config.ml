@@ -1,11 +1,9 @@
 open Common
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Get the rules from a --config string (e.g., "p/ocaml", "myrules.yaml")
+(* Parsing of the --config string (e.g., "p/ocaml", "myrules.yaml")
 
    We could have called this file Semgrep_config.ml, or even just Config.ml,
    but it's too vague and could be confused with the other modules
@@ -14,10 +12,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
    a possible .semgrep).
 
    Partially translated from config_resolver.py
-
-   TODO:
-    - handle the registry-aware jsonnet format (LONG)
-    - lots of stuff ...
 *)
 
 (*****************************************************************************)
@@ -58,38 +52,11 @@ let config_kind_of_config_str config_str =
 let url_of_registry_kind rkind =
   (* TODO: go through curl interface for now (c/) *)
   let prefix = "https://semgrep.dev/c" in
-  match rkind with
-  | Registry s -> spf "%s/r/%s" prefix s
-  | Pack s -> spf "%s/r/%s" prefix s
-  | Snippet s -> spf "%s/s/%s" prefix s
-  | SavedSnippet (user, snippet) -> spf "%s/%s:%s" prefix user snippet
-
-let load_rules_from_file file =
-  logger#debug "loading local config from %s" file;
-  Parse_rule.parse_and_filter_invalid_rules file
-
-(*****************************************************************************)
-(* Entry point *)
-(*****************************************************************************)
-
-open Lwt.Syntax
-open Cohttp_lwt_unix
-
-let rules_from_dashdash_config config_str =
-  (* TOPORT: resolve rule file URLs; for now we assume it's a file. *)
-  let kind = config_kind_of_config_str config_str in
-  match kind with
-  | File file -> load_rules_from_file file
-  | R rkind ->
-      let url = url_of_registry_kind rkind in
-      logger#debug "trying to download from %s" url;
-      let promise =
-        let* _resp, body = Client.get (Uri.of_string url) in
-        Cohttp_lwt.Body.to_string body
-      in
-      let content = Lwt_main.run promise in
-
-      Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
-          load_rules_from_file file)
-  | _else_ ->
-      failwith (spf "TODO: config not handled yet: %s" (show_config_kind kind))
+  let url =
+    match rkind with
+    | Registry s -> spf "%s/r/%s" prefix s
+    | Pack s -> spf "%s/r/%s" prefix s
+    | Snippet s -> spf "%s/s/%s" prefix s
+    | SavedSnippet (user, snippet) -> spf "%s/%s:%s" prefix user snippet
+  in
+  Uri.of_string url

@@ -5,14 +5,15 @@
   (wrapped false)
   (libraries
     cmdliner
-    lwt
-    cohttp cohttp-lwt-unix
-
     commons  ; from pfff
-    semgrep_core_cli  ; semgrep-core's CLI
+
+    semgrep_core_cli
     semgrep_reporting
+
     osemgrep_utils
+    osemgrep_networking
     osemgrep_core
+    osemgrep_configuring
   )
  (preprocess
    (pps
