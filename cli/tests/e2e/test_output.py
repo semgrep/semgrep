@@ -216,6 +216,19 @@ IGNORE_LOG_REPORT_LAST_LINE = (
 
 
 @pytest.mark.kinda_slow
+def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/taint.yaml",
+            target_name="taint/taint.py",
+            output_format=OutputFormat.SARIF,
+            options=["--dataflow-traces"],
+        ).stdout,
+        "results.sarif",
+    )
+
+
+@pytest.mark.kinda_slow
 def test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot):
     (tmp_path / ".semgrepignore").symlink_to(
         Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
