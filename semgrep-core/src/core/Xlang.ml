@@ -23,6 +23,13 @@ let to_lang (x : t) : Lang.t =
   | LRegex -> failwith (Lang.unsupported_language_message "regex")
   | LGeneric -> failwith (Lang.unsupported_language_message "generic")
 
+let to_langs (x : t) : Lang.t list =
+  match x with
+  | L (lang, langs) -> lang :: langs
+  | LRegex
+  | LGeneric ->
+      []
+
 let lang_of_opt_xlang (x : t option) : Lang.t =
   match x with
   | None -> failwith (Lang.unsupported_language_message "unset")
