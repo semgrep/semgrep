@@ -1,3 +1,3 @@
-#foo(1, 2)
-null
+foo(1, 2)
+#null
 

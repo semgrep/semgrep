@@ -16,19 +16,20 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* A Concrete/Abstract Syntax Tree for Jsonnet.
+(* An Abstract Syntax Tree for Jsonnet (well kinda concrete actually).
  *
- * This CST is mostly derived from the tree-sitter-jsonnet grammar:
+ * This AST/CST is mostly derived from the tree-sitter-jsonnet grammar:
  * https://github.com/sourcegraph/tree-sitter-jsonnet
  * I tried to keep the original terms (e.g., LocalBind) instead of the
  * terms I use in AST_generic (e.g., Let).
+ * See also the excellent spec: https://jsonnet.org/ref/spec.html
  *
  * The main uses for this file are:
  *  - for Semgrep to allow people to use jsonnet patterns to match
  *    over jsonnet code
  *  - TODO: potentially for implementing a jsonnet interpreter in OCaml,
- *    so we can use it in osemgrep instead of having to bind to
- *    the jsonnet C library. This could allow in turn to provide
+ *    so we can use it in osemgrep instead of having to write an OCaml
+ *    binding to the jsonnet C library. This could allow in turn to provide
  *    better error messages when there is an error in a jsonnet
  *    semgrep rule. Indeed right now the error will be mostly
  *    reported on the resulting JSON.
@@ -59,20 +60,18 @@ type expr = { e : expr_kind }
 and expr_kind =
   (* values *)
   | L of literal
-  (* TODO: String of string_kind * string_content bracket *)
   | Object of field list bracket
   | Array of expr list bracket
+  (* TODO: Object/ArrayComprenhension *)
   (* entities *)
   | Id of string wrap
   | IdSpecial of special wrap
   (* =~ Let *)
-  | LocalBind of local_binding * tok (* ; *) * expr
+  | LocalBind of tok (* 'local' *) * local_binding list * tok (* ; *) * expr
   (* accesses *)
-  (* TODO: ArrayComprenhension *)
   | DotAccess of expr * tok (* '.' *) * ident
   | ArrayAccess of expr * expr bracket
   (* TODO: | SliceAccess of expr *  *)
-  (* TODO: SuperDot and SuperArrayAccess *)
   (* control flow *)
   | Call of expr * argument list bracket
   | UnaryOp of unary_op wrap * expr
@@ -93,14 +92,27 @@ and literal =
   | Bool of bool wrap
   (* for integers and floats; no difference in jsonnet *)
   | Number of string wrap
+  | Str of string_
 
-and special = Self of tok | Super of tok | Dollar of tok (* ??? *)
+and string_ = verbatim option * string_kind * string_content bracket
+and verbatim = tok (* @ *)
+and string_kind = SingleQuote | DoubleQuote | TripleBar (* a.k.a Text block *)
+
+(* TODO? parse the inside? %x and so on? *)
+and string_content = string wrap list
+
+(* Super can appear only in DotAccess/ArrayAccess/InSuper
+ * TODO? make special construct for those special Super case instead?
+ * At the same time in the spec when they unsugar constructs to a
+ * "core" language, then super is put at the expression level.
+ *)
+and special = Self | Super | Dollar (* ??? *)
 and argument = Arg of expr | NamedArg of ident * tok (* = *) * expr
 
-(* alt: could reuse AST_generic_.ml but because we might want to
- * make a jsonnet interpreter, better to be as precise as possible
+(* alt: we could reuse AST_generic_.ml, but because we might want to
+ * make a jsonnet interpreter, better to be as precise as possible.
  *)
-and unary_op = UPlus | UMinus | UBang | Utilde
+and unary_op = UPlus | UMinus | UBang | UTilde
 
 and binary_op =
   | Plus
@@ -136,12 +148,19 @@ and local_binding = unit
 (* ------------------------------------------------------------------------- *)
 (* Functions  *)
 (* ------------------------------------------------------------------------- *)
-and function_definition = unit
+and function_definition = {
+  ftok : tok;
+  fparams : parameter list bracket;
+  fbody : expr;
+}
+
+and parameter = unit
 
 (* ------------------------------------------------------------------------- *)
 (* Objects  *)
 (* ------------------------------------------------------------------------- *)
 and field = unit
+and fieldname = unit
 
 (*****************************************************************************)
 (* Directives *)
@@ -153,6 +172,11 @@ and import = unit [@@deriving show { with_path = false }]
 (*****************************************************************************)
 
 type program = expr [@@deriving show]
+
+(*****************************************************************************)
+(* Any (mostly for semgrep) *)
+(*****************************************************************************)
+type any = E of expr
 
 (*****************************************************************************)
 (* Helpers *)
