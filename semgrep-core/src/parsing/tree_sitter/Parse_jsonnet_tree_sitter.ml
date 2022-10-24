@@ -16,15 +16,14 @@ open Common
 module CST = Tree_sitter_jsonnet.CST
 module H = Parse_tree_sitter_helpers
 module PI = Parse_info
-open AST_generic
-module G = AST_generic
-module H2 = AST_generic_helpers
+open AST_jsonnet
+module J = AST_jsonnet
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* Jsonnet parser using tree-sitter-lang/semgrep-jsonnet and converting
- * directly to AST_generic.ml
+ * to AST_jsonnet.ml
  *)
 
 (*****************************************************************************)
@@ -32,28 +31,15 @@ module H2 = AST_generic_helpers
 (*****************************************************************************)
 type env = unit H.env
 
+let token = H.token
+let str = H.str
+
 (**
    Boilerplate to be used as a template when mapping the jsonnet CST
    to another type of tree.
 *)
 
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
-
-(* Disable warning against unused 'rec' *)
-[@@@warning "-39"]
-
-(* TODO: remove at some point *)
-[@@@warning "-32"]
-
-let token (env : env) (_tok : Tree_sitter_run.Token.t) =
-  failwith "not implemented"
-
-let todo (env : env) _ = failwith "not implemented"
-let map_number (env : env) (tok : CST.number) = (* number *) token env tok
-
-let map_id (env : env) (tok : CST.id) =
-  (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) token env tok
+let todo (_env : env) _ = failwith "not implemented"
 
 let map_binaryop (env : env) (x : CST.binaryop) =
   match x with
@@ -76,12 +62,6 @@ let map_binaryop (env : env) (x : CST.binaryop) =
   | `AMPAMP tok -> (* "&&" *) token env tok
   | `BARBAR tok -> (* "||" *) token env tok
 
-let map_string_start (env : env) (tok : CST.string_start) =
-  (* string_start *) token env tok
-
-let map_string_content (env : env) (tok : CST.string_content) =
-  (* string_content *) token env tok
-
 let map_unaryop (env : env) (x : CST.unaryop) =
   match x with
   | `DASH tok -> (* "-" *) token env tok
@@ -92,12 +72,6 @@ let map_unaryop (env : env) (x : CST.unaryop) =
 let map_imm_tok_prec_p1_pat_59587ce (env : env)
     (tok : CST.imm_tok_prec_p1_pat_59587ce) =
   (* pattern "[^\\\\'\\n]+" *) token env tok
-
-let map_string_end (env : env) (tok : CST.string_end) =
-  (* string_end *) token env tok
-
-let map_escape_sequence (env : env) (tok : CST.escape_sequence) =
-  (* escape_sequence *) token env tok
 
 let map_imm_tok_prec_p1_pat_c7f65b4 (env : env)
     (tok : CST.imm_tok_prec_p1_pat_c7f65b4) =
@@ -260,13 +234,25 @@ and map_document (env : env) (x : CST.document) : expr = map_expr env x
 
 and map_expr (env : env) (x : CST.expr) : expr =
   match x with
-  | `Null tok -> (* "null" *) token env tok
-  | `True tok -> (* "true" *) token env tok
-  | `False tok -> (* "false" *) token env tok
-  | `Self tok -> (* "self" *) token env tok
-  | `Dollar tok -> (* "$" *) token env tok
-  | `Num tok -> (* number *) token env tok
-  | `Super tok -> (* "super" *) token env tok
+  | `Null tok -> L (Null ((* "null" *) token env tok)) |> J.e
+  | `True tok ->
+      let t = (* "true" *) token env tok in
+      L (Bool (true, t)) |> J.e
+  | `False tok ->
+      let t = (* "false" *) token env tok in
+      L (Bool (false, t)) |> J.e
+  | `Self tok ->
+      let t = (* "self" *) token env tok in
+      todo env t
+  | `Dollar tok ->
+      let t = (* "$" *) token env tok in
+      todo env t
+  | `Num tok ->
+      let t = (* number *) token env tok in
+      todo env t
+  | `Super tok ->
+      let t = (* "super" *) token env tok in
+      todo env t
   | `Str x -> map_string_ env x
   | `LCURL_opt_choice_member_rep_COMMA_member_opt_COMMA_RCURL (v1, v2, v3) ->
       let v1 = (* "{" *) token env v1 in
@@ -378,7 +364,9 @@ and map_expr (env : env) (x : CST.expr) : expr =
       in
       let v4 = (* ")" *) token env v4 in
       todo env (v1, v2, v3, v4)
-  | `Id tok -> (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) token env tok
+  | `Id tok ->
+      let id = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) str env tok in
+      todo env id
   | `Local_bind (v1, v2, v3, v4, v5) ->
       let v1 = (* "local" *) token env v1 in
       let v2 = map_bind env v2 in
@@ -619,8 +607,8 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       try
-        let _e = map_document env cst in
-        raise Todo
+        let e = map_document env cst in
+        e
       with
       (* TODO: to delete once todo() has been removed *)
       | Failure "not implemented" as exn ->
