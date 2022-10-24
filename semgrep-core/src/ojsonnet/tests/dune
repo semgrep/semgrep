@@ -1,6 +1,6 @@
 ; This could be make independent of semgrep, so try to not use semgrep dependencies here
 (library
- (name ojsonnet_testing)
+ (public_name ojsonnet_testing)
  (wrapped false)
  (libraries
    commons
