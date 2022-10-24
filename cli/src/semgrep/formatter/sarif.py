@@ -94,6 +94,10 @@ class SarifFormatter(BaseFormatter):
             "properties": {"precision": "very-high", "tags": tags},
         }
 
+        security_severity = rule.metadata.get("security-severity")
+        if security_severity is not None:
+            rule_json["properties"]["security-severity"] = security_severity
+        
         rule_url = rule.metadata.get("source")
         if rule_url is not None:
             rule_json["helpUri"] = rule_url
@@ -131,6 +135,7 @@ class SarifFormatter(BaseFormatter):
         if "cwe" in rule.metadata:
             cwe = rule.metadata["cwe"]
             result.extend(cwe if isinstance(cwe, list) else [cwe])
+            result.append("security")
         if "owasp" in rule.metadata:
             owasp = rule.metadata["owasp"]
             result.extend(
