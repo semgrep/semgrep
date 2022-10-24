@@ -21,6 +21,9 @@ val of_lang : Lang.t -> t
 (* raises an exception with error message *)
 val to_lang : t -> Lang.t
 
+(* Does not raise, but returns empty list for all but the L variant *)
+val to_langs : t -> Lang.t list
+
 (* raises an exception with error message *)
 val lang_of_opt_xlang : t option -> Lang.t
 
