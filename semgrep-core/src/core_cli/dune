@@ -44,5 +44,6 @@
     ; experiments
     semgrep_synthesizing
     semgrep_api
+    ojsonnet_testing ; ojsonnet dumper
  )
 )

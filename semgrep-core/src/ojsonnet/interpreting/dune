@@ -1,0 +1,10 @@
+; This could be make independent of semgrep, so try to not use semgrep dependencies here
+(library
+ (name ojsonnet_interpreting)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-lang_GENERIC
+ )
+ (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
+)
