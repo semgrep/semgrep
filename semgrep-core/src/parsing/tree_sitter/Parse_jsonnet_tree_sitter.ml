@@ -80,25 +80,25 @@ let map_unaryop (env : env) (x : CST.unaryop) : unary_op wrap =
   | `TILDE tok -> (UTilde, (* "~" *) token env tok)
 
 let map_imm_tok_prec_p1_pat_59587ce (env : env)
-    (tok : CST.imm_tok_prec_p1_pat_59587ce) =
-  (* pattern "[^\\\\'\\n]+" *) token env tok
+    (tok : CST.imm_tok_prec_p1_pat_59587ce) : string wrap =
+  (* pattern "[^\\\\'\\n]+" *) str env tok
 
 let map_imm_tok_prec_p1_pat_c7f65b4 (env : env)
-    (tok : CST.imm_tok_prec_p1_pat_c7f65b4) =
-  (* pattern "[^\\\\\"\\n]+" *) token env tok
+    (tok : CST.imm_tok_prec_p1_pat_c7f65b4) : string wrap =
+  (* pattern "[^\\\\\"\\n]+" *) str env tok
 
-let map_h (env : env) (x : CST.h) =
+let map_h (env : env) (x : CST.h) : hidden wrap =
   match x with
-  | `COLON tok -> (* ":" *) token env tok
-  | `COLONCOLON tok -> (* "::" *) token env tok
-  | `COLONCOLONCOLON tok -> (* ":::" *) token env tok
+  | `COLON tok -> (Colon, (* ":" *) token env tok)
+  | `COLONCOLON tok -> (TwoColons, (* "::" *) token env tok)
+  | `COLONCOLONCOLON tok -> (ThreeColons, (* ":::" *) token env tok)
 
-let map_str_single (env : env) (xs : CST.str_single) =
+let map_str_single (env : env) (xs : CST.str_single) : string_content =
   Common.map
     (fun x ->
       match x with
       | `Imm_tok_prec_p1_pat_59587ce x -> map_imm_tok_prec_p1_pat_59587ce env x
-      | `Esc_seq tok -> (* escape_sequence *) token env tok)
+      | `Esc_seq tok -> (* escape_sequence *) str env tok)
     xs
 
 let map_str_double (env : env) (xs : CST.str_double) =
@@ -106,39 +106,39 @@ let map_str_double (env : env) (xs : CST.str_double) =
     (fun x ->
       match x with
       | `Imm_tok_prec_p1_pat_c7f65b4 x -> map_imm_tok_prec_p1_pat_c7f65b4 env x
-      | `Esc_seq tok -> (* escape_sequence *) token env tok)
+      | `Esc_seq tok -> (* escape_sequence *) str env tok)
     xs
 
-let map_string_ (env : env) (x : CST.string_) =
+let map_string_ (env : env) (x : CST.string_) : string_ =
   match x with
   | `Opt_AT_single_single (v1, v2, v3) ->
-      let _tat = tat_optional env v1 in
+      let tat = tat_optional env v1 in
       let v2 = (* "'" *) token env v2 in
       let v3 = (* "'" *) token env v3 in
-      later env (v1, v2, v3)
+      (tat, SingleQuote, (v2, [], v3))
   | `Opt_AT_single_str_single_single (v1, v2, v3, v4) ->
-      let _tat = tat_optional env v1 in
+      let tat = tat_optional env v1 in
       let v2 = (* "'" *) token env v2 in
       let v3 = map_str_single env v3 in
       let v4 = (* "'" *) token env v4 in
-      later env (v1, v2, v3, v4)
+      (tat, SingleQuote, (v2, v3, v4))
   | `Opt_AT_double_double (v1, v2, v3) ->
-      let _tat = tat_optional env v1 in
+      let tat = tat_optional env v1 in
       let v2 = (* "\"" *) token env v2 in
       let v3 = (* "\"" *) token env v3 in
-      later env (v1, v2, v3)
+      (tat, DoubleQuote, (v2, [], v3))
   | `Opt_AT_double_str_double_double (v1, v2, v3, v4) ->
-      let _tat = tat_optional env v1 in
+      let tat = tat_optional env v1 in
       let v2 = (* "\"" *) token env v2 in
       let v3 = map_str_double env v3 in
       let v4 = (* "\"" *) token env v4 in
-      later env (v1, v2, v3, v4)
+      (tat, DoubleQuote, (v2, v3, v4))
   | `Opt_AT_str_start_str_content_str_end (v1, v2, v3, v4) ->
-      let _tat = tat_optional env v1 in
+      let tat = tat_optional env v1 in
       let v2 = (* string_start *) token env v2 in
-      let v3 = (* string_content *) token env v3 in
+      let v3 = (* string_content *) str env v3 in
       let v4 = (* string_end *) token env v4 in
-      later env (v1, v2, v3, v4)
+      (tat, TripleBar, (v2, [ v3 ], v4))
 
 let rec map_args (env : env) (x : CST.args) : argument list =
   match x with
@@ -175,20 +175,20 @@ let rec map_args (env : env) (x : CST.args) : argument list =
       let _v3 = trailing_comma env v3 in
       v1 :: v2
 
-and map_assert_ (env : env) ((v1, v2, v3) : CST.assert_) : expr =
+and map_assert_ (env : env) ((v1, v2, v3) : CST.assert_) : assert_ =
   let tassert = (* "assert" *) token env v1 in
   let e = map_document env v2 in
-  let es =
+  let eopt =
     match v3 with
     | Some (v1, v2) ->
-        let _tcolon = (* ":" *) token env v1 in
+        let tcolon = (* ":" *) token env v1 in
         let v2 = map_document env v2 in
-        [ v2 ]
-    | None -> []
+        Some (tcolon, v2)
+    | None -> None
   in
-  TodoExpr (("Assert", tassert), e :: es) |> J.e
+  (tassert, e, eopt)
 
-and map_bind (env : env) (x : CST.bind) : local_binding =
+and map_bind (env : env) (x : CST.bind) : bind =
   match x with
   | `Id_EQ_expr x ->
       let id, teq, e = map_named_argument_bis env x in
@@ -242,16 +242,18 @@ and map_expr (env : env) (x : CST.expr) : expr =
   | `Super tok ->
       let t = (* "super" *) token env tok in
       IdSpecial (Super, t) |> J.e
-  | `Str x -> map_string_ env x
+  | `Str x ->
+      let s = map_string_ env x in
+      L (Str s) |> J.e
   | `LCURL_opt_choice_member_rep_COMMA_member_opt_COMMA_RCURL (v1, v2, v3) ->
       let lc = (* "{" *) token env v1 in
-      let xs =
+      let inside =
         match v2 with
         | Some x -> map_objinside env x
-        | None -> []
+        | None -> Object []
       in
       let rc = (* "}" *) token env v3 in
-      Object (lc, xs, rc) |> J.e
+      O (lc, inside, rc) |> J.e
   | `LBRACK_opt_expr_rep_COMMA_expr_opt_COMMA_RBRACK (v1, v2, v3) ->
       let lb = (* "[" *) token env v1 in
       let xs =
@@ -271,7 +273,7 @@ and map_expr (env : env) (x : CST.expr) : expr =
         | None -> []
       in
       let rb = (* "]" *) token env v3 in
-      Array (lb, xs, rb) |> J.e
+      A (lb, Array xs, rb) |> J.e
   | `LBRACK_expr_opt_COMMA_fors_opt_comp_RBRACK (v1, v2, v3, v4, v5, v6) ->
       let lb = (* "[" *) token env v1 in
       let e = map_document env v2 in
@@ -351,7 +353,7 @@ and map_expr (env : env) (x : CST.expr) : expr =
       in
       let tsemi = (* ";" *) token env v4 in
       let e = map_document env v5 in
-      LocalBind (tlocal, bind :: binds, tsemi, e) |> J.e
+      Local (tlocal, bind :: binds, tsemi, e) |> J.e
   | `If_expr_then_expr_opt_else_expr (v1, v2, v3, v4, v5) ->
       let tif = (* "if" *) token env v1 in
       let cond = map_document env v2 in
@@ -392,74 +394,82 @@ and map_expr (env : env) (x : CST.expr) : expr =
       in
       let rp = (* ")" *) token env v4 in
       let body = map_document env v5 in
-      let fdef = { ftok = tfunc; fparams = (lp, params, rp); fbody = body } in
+      let fdef =
+        { f_tok = tfunc; f_params = (lp, params, rp); f_body = body }
+      in
       Lambda fdef |> J.e
   | `Assert_SEMI_expr (v1, v2, v3) ->
-      let v1 = map_assert_ env v1 in
-      let v2 = (* ";" *) token env v2 in
-      let v3 = map_document env v3 in
-      todo env (v1, v2, v3)
+      let assert_ = map_assert_ env v1 in
+      let tsemi = (* ";" *) token env v2 in
+      let e3 = map_document env v3 in
+      Assert (assert_, tsemi, e3) |> J.e
   | `Import (v1, v2) ->
-      let v1 = (* "import" *) token env v1 in
-      let v2 = map_string_ env v2 in
-      todo env (v1, v2)
+      let timport = (* "import" *) token env v1 in
+      let s = map_string_ env v2 in
+      I (Import (timport, s)) |> J.e
   | `Impo (v1, v2) ->
-      let v1 = (* "importstr" *) token env v1 in
-      let v2 = map_string_ env v2 in
-      todo env (v1, v2)
+      let t = (* "importstr" *) token env v1 in
+      let s = map_string_ env v2 in
+      I (ImportStr (t, s)) |> J.e
   | `Expr_error (v1, v2) ->
-      let v1 = (* "error" *) token env v1 in
-      let v2 = map_document env v2 in
-      todo env (v1, v2)
+      let t = (* "error" *) token env v1 in
+      let e = map_document env v2 in
+      Error (t, e) |> J.e
   | `Expr_in_super (v1, v2, v3) ->
-      let v1 = map_document env v1 in
-      let v2 = (* "in" *) token env v2 in
-      let v3 = (* "super" *) token env v3 in
-      todo env (v1, v2, v3)
+      let e = map_document env v1 in
+      let tin = (* "in" *) token env v2 in
+      let _tsuper = (* "super" *) token env v3 in
+      TodoExpr (("InSuper", tin), [ e ]) |> J.e
   | `LPAR_expr_RPAR (v1, v2, v3) ->
       let lp = (* "(" *) token env v1 in
       let e = map_document env v2 in
       let rp = (* ")" *) token env v3 in
       ParenExpr (lp, e, rp) |> J.e
 
-and map_field (env : env) (x : CST.field) =
+and map_field (env : env) (x : CST.field) : field =
   match x with
   | `Fiel_opt_PLUS_choice_COLON_expr (v1, v2, v3, v4) ->
-      let v1 = map_fieldname env v1 in
-      let v2 =
+      let fld = map_fieldname env v1 in
+      let plusopt =
         match v2 with
-        | Some tok -> (* "+" *) token env tok
-        | None -> todo env ()
+        | Some tok -> Some (PlusField ((* "+" *) token env tok))
+        | None -> None
       in
-      let v3 = map_h env v3 in
-      let v4 = map_document env v4 in
-      todo env (v1, v2, v3, v4)
+      let h = map_h env v3 in
+      let e = map_document env v4 in
+      { fld_name = fld; fld_attr = plusopt; fld_hidden = h; fld_value = e }
   | `Fiel_LPAR_opt_params_RPAR_choice_COLON_expr (v1, v2, v3, v4, v5, v6) ->
-      let v1 = map_fieldname env v1 in
-      let v2 = (* "(" *) token env v2 in
-      let v3 =
+      let fld = map_fieldname env v1 in
+      let lp = (* "(" *) token env v2 in
+      let params =
         match v3 with
         | Some x -> map_params env x
-        | None -> todo env ()
+        | None -> []
       in
-      let v4 = (* ")" *) token env v4 in
-      let v5 = map_h env v5 in
-      let v6 = map_document env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
+      let rp = (* ")" *) token env v4 in
+      let h = map_h env v5 in
+      let e = map_document env v6 in
+      let fdef = { f_tok = lp; f_params = (lp, params, rp); f_body = e } in
+      {
+        fld_name = fld;
+        fld_attr = None;
+        fld_hidden = h;
+        fld_value = Lambda fdef |> J.e;
+      }
 
-and map_fieldname (env : env) (x : CST.fieldname) : fieldname =
+and map_fieldname (env : env) (x : CST.fieldname) : field_name =
   match x with
   | `Id tok ->
       let id = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) str env tok in
-      todo env id
+      FId id
   | `Str x ->
       let s = map_string_ env x in
-      todo env s
+      FStr s
   | `LBRACK_expr_RBRACK (v1, v2, v3) ->
       let lb = (* "[" *) token env v1 in
       let idx = map_document env v2 in
       let rb = (* "]" *) token env v3 in
-      todo env (lb, idx, rb)
+      FDynamic (lb, idx, rb)
 
 and map_forspec (env : env) ((v1, v2, v3, v4) : CST.forspec) =
   let v1 = (* "for" *) token env v1 in
@@ -473,7 +483,7 @@ and map_ifspec (env : env) ((v1, v2) : CST.ifspec) =
   let v2 = map_document env v2 in
   todo env (v1, v2)
 
-and map_member (env : env) (x : CST.member) : field =
+and map_member (env : env) (x : CST.member) : object_member =
   match x with
   | `Objl x ->
       let x = map_objlocal env x in
@@ -496,7 +506,7 @@ and map_named_argument_bis (env : env) ((v1, v2, v3) : CST.named_argument) =
   let v3 = map_document env v3 in
   (v1, v2, v3)
 
-and map_objinside (env : env) (x : CST.objinside) : field list =
+and map_objinside (env : env) (x : CST.objinside) : obj_inside =
   match x with
   | `Member_rep_COMMA_member_opt_COMMA (v1, v2, v3) ->
       let v1 = map_member env v1 in
@@ -509,7 +519,7 @@ and map_objinside (env : env) (x : CST.objinside) : field list =
           v2
       in
       let _v3 = trailing_comma env v3 in
-      v1 :: v2
+      Object (v1 :: v2)
   | `Rep_objl_COMMA_LBRACK_expr_RBRACK_COLON_expr_rep_COMMA_objl_opt_COMMA_fors_opt_comp
       (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
       let v1 =
