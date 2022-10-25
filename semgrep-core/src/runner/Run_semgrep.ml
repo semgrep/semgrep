@@ -889,7 +889,7 @@ let semgrep_with_one_pattern config =
   assert (config.rule_source = None);
 
   (* TODO: support generic and regex patterns as well? See code in Deep. *)
-  let lang = Xlang.lang_of_opt_xlang config.lang in
+  let lang = Xlang.lang_of_opt_xlang_exn config.lang in
   let pattern, pattern_string = pattern_of_config lang config in
 
   match config.output_format with
