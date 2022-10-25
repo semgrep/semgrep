@@ -159,6 +159,16 @@ let rec eval env code =
               };
           ],
           _ ) )
+  (* TERRAFORM:
+     The propagated value is stored in the `id_svalue` of the DotAccess, for Terraform.
+     We need to add this case here, or else we can't do metavariable analysis on an
+     identifier which contains a propagated value, because identifiers look like
+     DotAccesses in Terraform.
+  *)
+  | G.DotAccess
+      ( { e = G.N (Id ((("local" | "var"), _), _)); _ },
+        _,
+        FN (Id (_, { id_svalue = { contents = Some (Lit lit); _ }; _ })) )
     when env.constant_propagation ->
       value_of_lit ~code lit
   | G.N (G.Id ((s, _t), _idinfo))
@@ -219,17 +229,6 @@ let rec eval env code =
           logger#info "regexp %s on %s return %s" re s (show_value v);
           v
       | _ -> raise (NotHandled code))
-  (* TERRAFORM:
-     The propagated value is stored in the `id_svalue` of the DotAccess, for Terraform.
-     We need to add this case here, or else we can't do metavariable analysis on an
-     identifier which contains a propagated value, because identifiers look like
-     DotAccesses in Terraform.
-  *)
-  | G.DotAccess
-      ( { e = G.N (Id ((("local" | "var"), _), _)); _ },
-        _,
-        FN (Id (_, { id_svalue = { contents = Some (Lit lit); _ }; _ })) ) ->
-      value_of_lit ~code lit
   | _ -> raise (NotHandled code)
 
 and eval_op op values code =
