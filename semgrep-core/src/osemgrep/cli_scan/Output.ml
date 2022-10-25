@@ -167,6 +167,13 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
         | Some s -> interpolate_metavars s metavars path
         | None -> ""
       in
+      let fix =
+        (* TOPORT: debug logging which indicates the source of the fix *)
+        match (x.extra.rendered_fix, rule.fix) with
+        | Some fix, _ -> Some fix
+        | None, Some fix -> Some (interpolate_metavars fix metavars path)
+        | None, None -> None
+      in
       (*  need to prefix with the dotted path of the config file *)
       let check_id = env.config_prefix ^ rule_id in
       let metavars = Some metavars in
@@ -194,7 +201,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
             severity;
             metadata;
             (* TODO: other fields derived from the rule *)
-            fix = None;
+            fix;
             fix_regex = None;
             (* TODO: extra fields *)
             is_ignored = Some false;
