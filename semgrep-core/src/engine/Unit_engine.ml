@@ -251,7 +251,7 @@ let compare_fixes lang ~file matches =
     in
     Common.read_file expected_fixed_file
   in
-  let fixed_text = Autofix.apply_fixes lang matches ~file in
+  let fixed_text = Autofix.apply_fixes_to_file lang matches ~file in
   Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
 
 let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =

@@ -42,17 +42,57 @@ let validate_fix lang text =
         (spf "Rendered autofix does not parse. Aborting: `%s`:\n%s" text
            (Exception.to_string e))
 
-let rec fail_on_overlapping_fixes = function
-  | f1 :: f2 :: tl ->
-      let (_, end1), f1_text = f1 in
-      let (start2, _), f2_text = f2 in
-      if end1 > start2 then
-        failwith
-          (spf "found overlapping fixes:\n\n  %s\n\n  %s" f1_text f2_text);
-      fail_on_overlapping_fixes (f2 :: tl)
-  | [ _ ]
-  | [] ->
-      ()
+type textedit = {
+  path : string;
+  (* 0-based byte index, inclusive *)
+  start : int;
+  (* 0-based byte index, exclusive *)
+  end_ : int;
+  replacement_text : string;
+}
+
+let remove_overlapping_edits edits =
+  let rec f edits discarded_edits = function
+    | e1 :: e2 :: tl ->
+        if e1.end_ > e2.start then
+          let discarded_edits = e2 :: discarded_edits in
+          f edits discarded_edits (e1 :: tl)
+        else
+          let edits = e1 :: edits in
+          f edits discarded_edits (e2 :: tl)
+    | [ edit ] ->
+        let edits = edit :: edits in
+        (List.rev edits, List.rev discarded_edits)
+    | [] -> (List.rev edits, List.rev discarded_edits)
+  in
+  f [] [] edits
+
+type edit_application_result =
+  | Success of string
+  | Overlap of {
+      partial_result : string;
+      (* nonempty *)
+      discarded_edits : textedit list;
+    }
+
+let apply_edits_to_text text edits =
+  let edits = List.sort (fun e1 e2 -> e1.start - e2.start) edits in
+  let edits, discarded_edits = remove_overlapping_edits edits in
+  (* Switch to bottom to top order so that we don't need to track offsets as
+   * we apply multiple patches *)
+  let edits = List.rev edits in
+  let fixed_text =
+    (* Apply the fixes. These string operations are inefficient but should
+     * be fine. The Python CLI version of this code is even more inefficent. *)
+    List.fold_left
+      (fun file_text { start; end_; replacement_text; _ } ->
+        let before = Str.first_chars file_text start in
+        let after = Str.string_after file_text end_ in
+        before ^ replacement_text ^ after)
+      text edits
+  in
+  if discarded_edits = [] then Success fixed_text
+  else Overlap { partial_result = fixed_text; discarded_edits }
 
 (******************************************************************************)
 (* Entry Points *)
@@ -120,12 +160,12 @@ let render_fix lang metavars ~fix_pattern ~target_contents =
 (* Apply the fix for the list of matches to the given file, returning the
  * resulting file contents. Currently used only for tests, but with some changes
  * could be used in production as well. *)
-let apply_fixes lang matches ~file =
+let apply_fixes_to_file lang matches ~file =
   let file_text = Common.read_file file in
-  let fixes =
+  let edits =
     Common.map
       (fun pm ->
-        let fix_range =
+        let start, end_ =
           let start, end_ = pm.Pattern_match.range_loc in
           let _, _, end_charpos = Parse_info.get_token_end_info end_ in
           (start.Parse_info.charpos, end_charpos)
@@ -136,32 +176,15 @@ let apply_fixes lang matches ~file =
           render_fix lang pm.Pattern_match.env ~fix_pattern
             ~target_contents:(lazy file_text)
         with
-        | Some fix -> (fix_range, fix)
+        | Some replacement_text ->
+            { path = file; start; end_; replacement_text }
         (* TODO option rather than exception if used in production *)
         | None -> failwith (spf "could not render fix for %s" file))
       matches
   in
-  let fixes =
-    List.sort (fun ((start1, _), _) ((start2, _), _) -> start1 - start2) fixes
-  in
-  (* TODO we probably don't want to do this if we use this code in
-   * production *)
-  fail_on_overlapping_fixes fixes;
-  (* Switch to bottom to top order so that we don't need to track offsets as
-   * we apply multiple patches *)
-  let fixes = List.rev fixes in
-  let fixed_text =
-    (* Apply the fixes. These string operations are inefficient but should
-     * be fine for tests.
-     *
-     * TODO if we use this in production, consider more efficient string
-     * operations.
-     *)
-    List.fold_left
-      (fun file_text ((start, end_), fix) ->
-        let before = Str.first_chars file_text start in
-        let after = Str.string_after file_text end_ in
-        before ^ fix ^ after)
-      file_text fixes
-  in
-  fixed_text
+  match apply_edits_to_text file_text edits with
+  | Success x -> x
+  | Overlap { discarded_edits; _ } ->
+      failwith
+        (spf "Could not apply fix because it overlapped with another: %s"
+           (List.hd discarded_edits).replacement_text)

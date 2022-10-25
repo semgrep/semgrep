@@ -19,4 +19,5 @@ val render_fix :
 (* Apply the fix for the list of matches to the given file, returning the
  * resulting file contents. Currently used only for tests, but with some changes
  * could be used in production as well. *)
-val apply_fixes : Lang.t -> Pattern_match.t list -> file:string -> string
+val apply_fixes_to_file :
+  Lang.t -> Pattern_match.t list -> file:string -> string
