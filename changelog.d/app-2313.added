@@ -1,3 +1,0 @@
-returntocorp/semgrep-interfaces will now release a rule schema file in both yaml
-and json formats tagged according to what release version of semgrep they
-correspond with
