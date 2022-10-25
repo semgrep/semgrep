@@ -118,9 +118,9 @@ let dispatch_subcommand argv =
       in
       (* coupling: with known_subcommands above *)
       match subcmd with
-      | "ci" -> missing_subcommand ()
-      | "login" -> missing_subcommand ()
-      | "logout" -> missing_subcommand ()
+      | "ci" -> Ci_subcommand.main subcmd_argv
+      | "login" -> Login_subcommand.main subcmd_argv
+      | "logout" -> Logout_subcommand.main subcmd_argv
       | "lsp" -> missing_subcommand ()
       | "publish" -> missing_subcommand ()
       | "scan" -> Scan_subcommand.main subcmd_argv
