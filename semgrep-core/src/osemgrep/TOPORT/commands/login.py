@@ -14,11 +14,6 @@ def make_login_url() -> Tuple[uuid.UUID, str]:
 @handle_command_errors
 def login() -> NoReturn:
     """
-    Obtain and save credentials for semgrep.dev
-
-    Looks for an semgrep.dev API token in the environment variable SEMGREP_API_TOKEN_SETTINGS_KEY.
-    If not defined and running in a TTY, prompts interactively.
-    Once token is found, saves it to global settings file
     """
     state = get_state()
     saved_login_token = auth._read_token_from_settings_file()
@@ -100,7 +95,6 @@ def save_token(login_token: Optional[str], echo_token: bool) -> bool:
 @handle_command_errors
 def logout() -> None:
     """
-    Remove locally stored credentials to semgrep.dev
     """
     auth.delete_token()
     click.echo("Logged out (log back in with `semgrep login`)")
