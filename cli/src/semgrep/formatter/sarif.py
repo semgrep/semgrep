@@ -85,19 +85,30 @@ class SarifFormatter(BaseFormatter):
     def _rule_to_sarif(rule: Rule) -> Mapping[str, Any]:
         severity = SarifFormatter._rule_to_sarif_severity(rule)
         tags = SarifFormatter._rule_to_sarif_tags(rule)
-        rule_json = {
-            "id": rule.id,
-            "name": rule.id,
-            "shortDescription": {"text": rule.message},
-            "fullDescription": {"text": rule.message},
-            "defaultConfiguration": {"level": severity},
-            "properties": {"precision": "very-high", "tags": tags},
-        }
-
         security_severity = rule.metadata.get("security-severity")
         if security_severity is not None:
-            rule_json["properties"]["security-severity"] = security_severity
-        
+            rule_json = {
+                "id": rule.id,
+                "name": rule.id,
+                "shortDescription": {"text": rule.message},
+                "fullDescription": {"text": rule.message},
+                "defaultConfiguration": {"level": severity},
+                "properties": {
+                    "precision": "very-high",
+                    "tags": tags,
+                    "security-severity": security_severity,
+                },
+            }
+        else:
+            rule_json = {
+                "id": rule.id,
+                "name": rule.id,
+                "shortDescription": {"text": rule.message},
+                "fullDescription": {"text": rule.message},
+                "defaultConfiguration": {"level": severity},
+                "properties": {"precision": "very-high", "tags": tags},
+            }
+
         rule_url = rule.metadata.get("source")
         if rule_url is not None:
             rule_json["helpUri"] = rule_url
