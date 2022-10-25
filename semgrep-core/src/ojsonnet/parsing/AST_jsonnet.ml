@@ -20,17 +20,20 @@
  *
  * This AST/CST is mostly derived from the tree-sitter-jsonnet grammar:
  * https://github.com/sourcegraph/tree-sitter-jsonnet
- * I tried to keep the original terms (e.g., LocalBind) instead of the
- * terms I use in AST_generic (e.g., Let).
+ * I tried to keep the original terms (e.g., Local, hidden) instead of the
+ * terms we use in AST_generic (e.g., Let, annotation).
  * See also the excellent spec: https://jsonnet.org/ref/spec.html
+ * There is also an ANTLR grammar here:
+ * https://gist.github.com/ironchefpython/84380aa60871853dc86719dd598c35e4
+ * used in https://github.com/sourcegraph/lsif-jsonnet
  *
  * The main uses for this file are:
  *  - for Semgrep to allow people to use jsonnet patterns to match
- *    over jsonnet code
- *  - TODO: potentially for implementing a jsonnet interpreter in OCaml,
+ *    over Jsonnet code
+ *  - TODO: potentially for implementing a Jsonnet interpreter in OCaml,
  *    so we can use it in osemgrep instead of having to write an OCaml
- *    binding to the jsonnet C library. This could allow in turn to provide
- *    better error messages when there is an error in a jsonnet
+ *    binding to the Jsonnet C library. This could allow in turn to provide
+ *    better error messages when there is an error in a Jsonnet
  *    semgrep rule. Indeed right now the error will be mostly
  *    reported on the resulting JSON.
  *)
@@ -46,6 +49,7 @@ type 'a bracket = tok * 'a * tok [@@deriving show]
 (*****************************************************************************)
 (* Names *)
 (*****************************************************************************)
+(* very simple language, no qualified names here *)
 type ident = string wrap [@@deriving show]
 
 (*****************************************************************************)
@@ -57,17 +61,21 @@ type ident = string wrap [@@deriving show]
  *)
 type expr = { e : expr_kind }
 
+(* very simple language, just expressions! no statement, no class def *)
 and expr_kind =
   (* values *)
   | L of literal
-  | Object of field list bracket
-  | Array of expr list bracket
-  (* TODO: Object/ArrayComprenhension *)
+  | O of obj_inside bracket
+  | A of arr_inside bracket
   (* entities *)
   | Id of string wrap
   | IdSpecial of special wrap
-  (* =~ Let *)
-  | LocalBind of tok (* 'local' *) * local_binding list * tok (* ; *) * expr
+  (* =~ Let. Note that a series of 'local x = 1; local y = 2; x+y'
+   * will be interpreted as nested Local. There is no real
+   * sequence operator in Jsonnet. The ';' is used only for
+   * Local and for Assert.
+   *)
+  | Local of tok (* 'local' *) * bind list * tok (* ; *) * expr
   (* accesses *)
   | DotAccess of expr * tok (* '.' *) * ident
   | ArrayAccess of expr * expr bracket
@@ -76,14 +84,16 @@ and expr_kind =
   | Call of expr * argument list bracket
   | UnaryOp of unary_op wrap * expr
   | BinaryOp of expr * binary_op wrap * expr
-  | If of tok * expr * expr * (tok * expr) option
+  | If of tok (* 'if' *) * expr * expr * (tok (* 'else' *) * expr) option
   (* TODO: expr { objinside } ?? *)
-  | Lambda of function_definition
-  (* TODO | Assert of  *)
-  (* directives *)
-  | Import of import
-  (* TODO: ImportStr *)
   (* TODO: expr in super ?? *)
+  | Lambda of function_definition
+  (* directives *)
+  | I of import
+  (* builtins *)
+  | Assert of assert_ * tok (* ';' *) * expr
+  | Error of tok (* 'error' *) * expr
+  (* for the CST *)
   | ParenExpr of expr bracket
   | TodoExpr of string wrap * expr list
 
@@ -98,13 +108,18 @@ and string_ = verbatim option * string_kind * string_content bracket
 and verbatim = tok (* @ *)
 and string_kind = SingleQuote | DoubleQuote | TripleBar (* a.k.a Text block *)
 
-(* TODO? parse the inside? %x and so on? *)
+(* The string can contain escape sequences and also special chars (e.g., '%')
+ * which are interpreted in a special way by certain builtins (e.g., format).
+ * There is no string interpolation in Jsonnet, but the '%' can
+ * be used for a similar purpose.
+ *)
 and string_content = string wrap list
 
-(* Super can appear only in DotAccess/ArrayAccess/InSuper
- * TODO? make special construct for those special Super case instead?
- * At the same time in the spec when they unsugar constructs to a
- * "core" language, then super is put at the expression level.
+(* Super can appear only in DotAccess/ArrayAccess/InSuper.
+ * alt: we could make special constructs for those special Super cases.
+ * However, in the spec they unsugar those constructs to a
+ * "core" language where super is at the expression level, so this is
+ * probably simpler to have it here instead of in 3 special constructs.
  *)
 and special = Self | Super | Dollar (* ??? *)
 and argument = Arg of expr | NamedArg of ident * tok (* = *) * expr
@@ -135,6 +150,10 @@ and binary_op =
   | BitOr
   | BitXor
 
+and assert_ = tok (* 'assert' *) * expr * (tok (* ':' *) * expr) option
+and arr_inside = Array of expr list
+(* TODO: ArrayComprenhension *)
+
 (*****************************************************************************)
 (* Definitions *)
 (*****************************************************************************)
@@ -142,16 +161,15 @@ and binary_op =
 (* ------------------------------------------------------------------------- *)
 (* Local binding *)
 (* ------------------------------------------------------------------------- *)
-(* TODO *)
-and local_binding = unit
+and bind = unit
 
 (* ------------------------------------------------------------------------- *)
 (* Functions  *)
 (* ------------------------------------------------------------------------- *)
 and function_definition = {
-  ftok : tok;
-  fparams : parameter list bracket;
-  fbody : expr;
+  f_tok : tok;
+  f_params : parameter list bracket;
+  f_body : expr;
 }
 
 and parameter = unit
@@ -159,13 +177,35 @@ and parameter = unit
 (* ------------------------------------------------------------------------- *)
 (* Objects  *)
 (* ------------------------------------------------------------------------- *)
-and field = unit
-and fieldname = unit
+and obj_inside = Object of object_member list
+(* TODO: Object comprehension *)
+
+and object_member = unit
+
+and field = {
+  fld_name : field_name;
+  fld_attr : attribute option;
+  fld_hidden : hidden wrap;
+  (* can be a Lambda for methods *)
+  fld_value : expr;
+}
+
+and field_name = FId of ident | FStr of string_ | FDynamic of expr bracket
+
+(* =~ visibility *)
+and hidden = Colon | TwoColons | ThreeColons
+
+and attribute =
+  (* concatenate fields, not valid for methods *)
+  | PlusField of tok
 
 (*****************************************************************************)
 (* Directives *)
 (*****************************************************************************)
-and import = unit [@@deriving show { with_path = false }]
+and import =
+  | Import of tok (* 'import' *) * string_ (* filename *)
+  | ImportStr of tok (* 'importstr' *) * string_ (* content to evaluate? *)
+[@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Program *)
@@ -174,8 +214,11 @@ and import = unit [@@deriving show { with_path = false }]
 type program = expr [@@deriving show]
 
 (*****************************************************************************)
-(* Any (mostly for semgrep) *)
+(* Any (for semgrep) *)
 (*****************************************************************************)
+(* Right now there is just one case, but at some point we may want to
+ * allow field patterns.
+ *)
 type any = E of expr
 
 (*****************************************************************************)
