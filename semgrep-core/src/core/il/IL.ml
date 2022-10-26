@@ -250,9 +250,12 @@ and instr_kind =
   | Assign of lval * exp
   | AssignAnon of lval * anonymous_entity
   | Call of lval option * exp (* less: enforce lval? *) * exp argument list
+  | CallAssign of lval * call_assign wrap * exp argument list
   | CallSpecial of lval option * call_special wrap * exp argument list
   (* todo: PhiSSA! *)
   | FixmeInstr of fixme_kind * G.any
+
+and call_assign = Add | AddAll
 
 and call_special =
   | Eval

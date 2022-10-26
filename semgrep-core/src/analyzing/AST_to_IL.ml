@@ -225,6 +225,22 @@ let is_hcl lang =
   | Lang.Hcl -> true
   | _ -> false
 
+(* Helper to restrict built-in propagators to certain types. The goal is to
+   eventually have a default pattern-propagators for most propagators, which
+   users can configure, and only use built-in propagators if we perform a
+   special analysis for that class (e.g. key-sensitive analysis for HashMap) *)
+let is_collections_class t =
+  match t with
+  | G.TyN t
+  | TyApply ({ t = TyN t; _ }, _) -> (
+      match t with
+      | Id
+          ( (("List" | "ArrayList" | "Map" | "HashMap" | "Set" | "HashSet"), _),
+            _ ) ->
+          true
+      | _ -> false)
+  | __else__ -> false
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -540,6 +556,42 @@ and expr_aux env ?(void = false) e_gen =
       let special = (Eval, tok) in
       let args = arguments env args in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
+      mk_e (Fetch lval) (related_tok tok)
+  | G.Call
+      (* This narrowly adds some calls from objects of certain classes as default
+         propagators. For now, this is a quick fix to make rule-writing easier.
+         TODO In the future, we should only use this for classes where we perform
+         a special analysis. Other propagators should be in a configurable defaults
+         file *)
+      ( {
+          e =
+            G.DotAccess
+              ( ({
+                   e =
+                     G.N
+                       (G.Id
+                         ((id, _), { id_type = { contents = Some { t; _ } }; _ }));
+                   _;
+                 } as obj),
+                _tok,
+                G.FN
+                  (G.Id
+                    ( ((("add" | "addAll") as kind), tok),
+                      { G.id_resolved = { contents = None }; _ } )) );
+          _;
+        },
+        args )
+    when is_collections_class t ->
+      let lval =
+        (* TODO: for cases like adding to a HashMap, we will
+           want to make this key-sensitive. We can do that
+           by adding the key as an offset to the lval *)
+        try lval env obj with
+        | Fixme _ -> fresh_lval ~str:id env tok
+      in
+      let special = (IL_helpers.call_assign_of_string kind, tok) in
+      let args = arguments env args in
+      add_instr env (mk_i (CallAssign (lval, special, args)) eorig);
       mk_e (Fetch lval) (related_tok tok)
   | G.Call
       ({ e = G.IdSpecial (G.InterpolatedElement, _); _ }, (_, [ G.Arg e ], _))

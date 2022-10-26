@@ -59,6 +59,10 @@ let short_string_of_node_kind nkind =
             | Some lval -> string_of_lval lval ^ " = "
           in
           lval_str ^ string_of_exp exp ^ "(...)"
+      | CallAssign (lval, (call_assign, _tok), _args) ->
+          let lval_str = Common.spf " %s =" (string_of_lval lval) in
+          Common.spf "<assign>%s %s(...)" lval_str
+            (IL.show_call_assign call_assign)
       | CallSpecial (lval_opt, (call_special, _tok), _args) ->
           let lval_str =
             match lval_opt with

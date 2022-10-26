@@ -630,6 +630,10 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
                 List.fold_left Taints.union e_taints all_taints
         in
         (call_taints, lval_env)
+    | CallAssign (_lval, _, args) ->
+        args
+        |> Common.map IL_helpers.exp_of_arg
+        |> union_map_taints_and_vars env check_expr
     | CallSpecial (_, _, args) ->
         args
         |> Common.map IL_helpers.exp_of_arg
@@ -722,11 +726,12 @@ let (transfer :
         in
         match (Taints.is_empty taints, opt_lval) with
         (* Instruction returns safe data, remove taint from lval. *)
-        | true, Some lval when LV.lval_is_var_and_dots lval ->
+        | true, Some lval
+          when LV.lval_is_var_and_dots lval && IL_helpers.should_clean_lval x ->
             Lval_env.clean lval lval_env'
-        | true, Some { base = Var x; _ } ->
+        | true, Some { base = Var v; _ } when IL_helpers.should_clean_lval x ->
             (* This handles cases like `x[i] = safe`, cleaning `x`. *)
-            Lval_env.clean_var x lval_env'
+            Lval_env.clean_var v lval_env'
         (* Instruction returns tainted data, add taint to lval *)
         | false, Some lval when LV.lval_is_var_and_dots lval ->
             Lval_env.add lval taints lval_env'

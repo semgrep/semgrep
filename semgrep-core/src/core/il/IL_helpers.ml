@@ -33,6 +33,7 @@ let rexps_of_instr x =
   | Assign (_, exp) -> [ exp ]
   | AssignAnon _ -> []
   | Call (_, e1, args) -> e1 :: Common.map exp_of_arg args
+  | CallAssign (_, _, args) -> Common.map exp_of_arg args
   | CallSpecial (_, _, args) -> Common.map exp_of_arg args
   | FixmeInstr _ -> []
 
@@ -112,6 +113,7 @@ let lval_of_instr_opt x =
   | Assign (lval, _)
   | AssignAnon (lval, _)
   | Call (Some lval, _, _)
+  | CallAssign (lval, _, _)
   | CallSpecial (Some lval, _, _) ->
       Some lval
   | Call _
@@ -143,6 +145,30 @@ let rlvals_of_node = function
   | NOther _
   | NTodo _ ->
       []
+
+(* Helpers for specific nodes *)
+
+let call_assign_of_string = function
+  | "add" -> Add
+  | "addAll" -> AddAll
+  | _else_ -> failwith "Unexpected call_assign"
+
+let should_clean_lval x =
+  match x.i with
+  | Assign _
+  | AssignAnon _
+  | Call _
+  | CallSpecial _
+  | FixmeInstr _ ->
+      true
+  | CallAssign (_, ((Add | AddAll), _), _) ->
+      (* If we add something tainted to a list,
+         then we add something safe, the list
+         is still tainted.
+         TODO for objects where we make this index
+         sensitive, this might not be true in some
+         cases *)
+      false
 
 module LvalOrdered = struct
   type t = lval

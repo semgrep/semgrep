@@ -21,6 +21,15 @@ val lvar_of_instr_opt : IL.instr -> IL.name option
 val rlvals_of_node : IL.node_kind -> IL.lval list
 (** The lvalues that occur in the RHS of a node. *)
 
+(** Helpers for specific nodes **)
+
+val call_assign_of_string : string -> IL.call_assign
+(** Convert between a string and a call_assign kind *)
+
+val should_clean_lval : IL.instr -> bool
+(** If the given instr should result in the lval being cleaned
+    when the instruction is not tainted **)
+
 (** Useful to instantiate data strutures like Map and Set. *)
 module LvalOrdered : sig
   type t = IL.lval
