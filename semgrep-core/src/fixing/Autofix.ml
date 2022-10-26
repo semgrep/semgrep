@@ -56,7 +56,16 @@ let validate_fix lang text =
  * - Printing of the resulting fix AST fails (probably because there is simply a
  *   node that is unhandled).
  * *)
-let render_fix lang metavars ~fix_pattern ~target_contents =
+let render_fix pm =
+  let* fix_pattern = pm.Pattern_match.rule_id.fix in
+  let* lang = List.nth_opt pm.Pattern_match.rule_id.languages 0 in
+  let metavars = pm.Pattern_match.env in
+  let start, end_ =
+    let start, end_ = pm.Pattern_match.range_loc in
+    let _, _, end_charpos = Parse_info.get_token_end_info end_ in
+    (start.Parse_info.charpos, end_charpos)
+  in
+  let target_contents = lazy (Common.read_file pm.Pattern_match.file) in
   let result =
     (* Fixes are not exactly patterns, but they can contain metavariables that
      * should be substituted with the nodes to which they are bound in the match.
@@ -96,7 +105,8 @@ let render_fix lang metavars ~fix_pattern ~target_contents =
     validate_fix lang text
   in
   match result with
-  | Ok x -> Some x
+  | Ok replacement_text ->
+      Some { Textedit.path = pm.file; start; end_; replacement_text }
   | Error err ->
       let msg = spf "Failed to render fix `%s`:\n%s" fix_pattern err in
       (* Print line-by-line so that each line is preceded by the logging header.
@@ -108,24 +118,13 @@ let render_fix lang metavars ~fix_pattern ~target_contents =
 (* Apply the fix for the list of matches to the given file, returning the
  * resulting file contents. Currently used only for tests, but with some changes
  * could be used in production as well. *)
-let apply_fixes_to_file lang matches ~file =
+let apply_fixes_to_file matches ~file =
   let file_text = Common.read_file file in
   let edits =
     Common.map
       (fun pm ->
-        let start, end_ =
-          let start, end_ = pm.Pattern_match.range_loc in
-          let _, _, end_charpos = Parse_info.get_token_end_info end_ in
-          (start.Parse_info.charpos, end_charpos)
-        in
-        (* TODO in production, don't assume that all matches have fixes *)
-        let fix_pattern = Option.get pm.Pattern_match.rule_id.fix in
-        match
-          render_fix lang pm.Pattern_match.env ~fix_pattern
-            ~target_contents:(lazy file_text)
-        with
-        | Some replacement_text ->
-            { Textedit.path = file; start; end_; replacement_text }
+        match render_fix pm with
+        | Some edit -> edit
         (* TODO option rather than exception if used in production *)
         | None -> failwith (spf "could not render fix for %s" file))
       matches

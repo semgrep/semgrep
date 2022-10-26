@@ -33,12 +33,7 @@ module OutH = Output_from_core_util
  * Autofix.render_fix in this library, so we need to pass it
  * as a function argument
  *)
-type render_fix =
-  Lang.t ->
-  Metavariable.bindings ->
-  fix_pattern:string ->
-  target_contents:string lazy_t ->
-  string option
+type render_fix = Pattern_match.t -> Textedit.t option
 
 (*****************************************************************************)
 (* Helpers *)
@@ -219,10 +214,8 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
   in
   let rendered_fix =
     let* render_fix = render_fix_opt in
-    let* fix_pattern = x.rule_id.fix in
-    let* lang = List.nth_opt x.rule_id.languages 0 in
-    let target_contents = lazy (Common.read_file x.file) in
-    render_fix lang x.env ~fix_pattern ~target_contents
+    let* edit = render_fix x in
+    Some edit.Textedit.replacement_text
   in
   {
     Out.rule_id = x.rule_id.id;
