@@ -398,7 +398,7 @@ _scan_options: List[Callable] = [
     optgroup.option(
         "--dataflow-traces",
         is_flag=True,
-        help="Explain how non-local values reach the location of a finding (only affects text output).",
+        help="Explain how non-local values reach the location of a finding (only affects text and SARIF output).",
     ),
     optgroup.option(
         "-o",
