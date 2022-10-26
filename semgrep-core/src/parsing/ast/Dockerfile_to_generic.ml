@@ -18,9 +18,14 @@ let call ((orig_name, name_tok) : string wrap) ((args_start, args_end) : Loc.t)
 
 (* Same as 'call' but assumes all the arguments are ordinary, non-optional
    arguments, specified as 'expr'. *)
-let call_exprs (name : string wrap) (loc : Loc.t) (args : G.expr list) : G.expr
-    =
-  let args = Common.map (fun e -> G.Arg e) args in
+let call_exprs (name : string wrap) (loc : Loc.t)
+    ?(opt_args : (G.ident * G.expr) list = []) (args : G.expr list) : G.expr =
+  let opt_args =
+    Common.map (fun (name, e) -> G.ArgKwdOptional (name, e)) opt_args
+  in
+  let pos_args = Common.map (fun e -> G.Arg e) args in
+  (* optional arguments must be placed last according to AST_generic.ml *)
+  let args = pos_args @ opt_args in
   call name loc args
 
 let make_hidden_function loc name : G.expr =
@@ -179,16 +184,34 @@ let user_args (user : str) (group : (tok * str) option) =
   in
   user :: group
 
+(* Convert RUN options to optional labeled arguments. *)
+let run_param (x : run_param) =
+  match x with
+  | Param (_loc, (_dashdash, name, _eq, value)) -> (name, string_expr value)
+  | Mount_param (loc, name, options) ->
+      (* Convert --mount=--mount=foo=bar,baz=42 to a call to a mount function
+         that takes optional labeled arguments. *)
+      let opt_args =
+        Common.map
+          (fun (_loc, name, value) -> (name, string_expr value))
+          options
+      in
+      let e = call_exprs name loc ~opt_args [] in
+      (name, e)
+
 (* RUN, CMD, ENTRYPOINT, HEALTHCHECK CMD *)
-let cmd_instr_expr (env : env) loc name (cmd : argv_or_shell) : G.expr =
-  call_exprs name loc (argv_or_shell env cmd)
+let cmd_instr_expr (env : env) loc name (params : run_param list)
+    (cmd : argv_or_shell) : G.expr =
+  call_exprs name loc
+    ~opt_args:(Common.map run_param params)
+    (argv_or_shell env cmd)
 
 let healthcheck_cmd_args env (params : param list) (cmd : cmd) : G.argument list
     =
   let opt_args = Common.map param_arg params in
   let cmd_arg =
-    let loc, name, cmd = cmd in
-    G.Arg (cmd_instr_expr env loc name cmd)
+    let loc, name, params, cmd = cmd in
+    G.Arg (cmd_instr_expr env loc name params cmd)
   in
   cmd_arg :: opt_args
 
@@ -260,8 +283,8 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | From (loc, name, opt_param, image_spec, opt_alias) ->
       let args = from opt_param image_spec opt_alias in
       call name loc args
-  | Run (loc, name, x) -> cmd_instr_expr env loc name x
-  | Cmd (loc, name, x) -> cmd_instr_expr env loc name x
+  | Run (loc, name, params, x) -> cmd_instr_expr env loc name params x
+  | Cmd (loc, name, params, x) -> cmd_instr_expr env loc name params x
   | Label (loc, name, kv_pairs) -> call name loc (label_pairs kv_pairs)
   | Expose (loc, name, port_protos) ->
       let args = List.concat_map expose_port_expr port_protos in
@@ -271,7 +294,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
       call name loc (add_or_copy param src dst)
   | Copy (loc, name, param, src, dst) ->
       call name loc (add_or_copy param src dst)
-  | Entrypoint (loc, name, x) -> cmd_instr_expr env loc name x
+  | Entrypoint (loc, name, x) -> cmd_instr_expr env loc name [] x
   | Volume (loc, name, x) -> call_exprs name loc (array_or_paths x)
   | User (loc, name, user, group) -> call name loc (user_args user group)
   | Workdir (loc, name, dir) -> call_exprs name loc [ str_expr dir ]
