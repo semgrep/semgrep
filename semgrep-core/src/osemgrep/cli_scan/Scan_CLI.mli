@@ -9,10 +9,10 @@ type conf = {
   autofix : bool;
   baseline_commit : string option;
   config : string;
-  debug : bool;
   exclude : string list;
   include_ : string list;
   lang : string option;
+  logging_level : Logs.level option;
   max_memory_mb : int;
   max_target_bytes : int;
   metrics : Metrics.State.t;
@@ -20,13 +20,11 @@ type conf = {
   optimizations : bool;
   output_format : Constants.output_format;
   pattern : string option;
-  quiet : bool;
   respect_git_ignore : bool;
   strict : bool;
   target_roots : string list;
   timeout : float;
   timeout_threshold : int;
-  verbose : bool;
 }
 
 (* Command-line defaults. *)

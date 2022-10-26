@@ -149,10 +149,10 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    timeout;
    timeout_threshold;
    max_memory_mb;
-   debug;
    output_format;
    optimizations;
    (* TOPORT: not handled yet *)
+   logging_level = _;
    autofix = _;
    baseline_commit = _;
    exclude = _;
@@ -165,8 +165,6 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    metrics = _;
    respect_git_ignore = _;
    strict = _;
-   quiet = _;
-   verbose = _;
   } ->
       let output_format =
         match output_format with
@@ -189,7 +187,6 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
         timeout;
         timeout_threshold;
         max_memory_mb;
-        debug;
         filter_irrelevant_rules;
         version = Version.version;
       }
