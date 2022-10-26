@@ -1,0 +1,1 @@
+RUN --mount=type=$TYPE,target=$TARGET echo

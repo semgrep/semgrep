@@ -107,7 +107,11 @@ type array_or_paths =
   | Array of loc * string_array
   | Paths of loc * path_or_ellipsis list
 
-type cmd = loc * string wrap * argv_or_shell
+type run_param =
+  | Param of param
+  | Mount_param of loc * string wrap * (loc * string wrap * string wrap) list
+
+type cmd = loc * string wrap * run_param list * argv_or_shell
 
 type healthcheck =
   | Healthcheck_semgrep_metavar of string wrap
@@ -226,7 +230,7 @@ let array_or_paths_loc = function
   | Paths (loc, _) ->
       loc
 
-let cmd_loc ((loc, _, _) : cmd) = loc
+let cmd_loc ((loc, _, _, _) : cmd) = loc
 
 let healthcheck_loc = function
   | Healthcheck_semgrep_metavar (_, tok) -> (tok, tok)
@@ -241,7 +245,7 @@ let expose_port_loc = function
 
 let instruction_loc = function
   | From (loc, _, _, _, _) -> loc
-  | Run (loc, _, _) -> loc
+  | Run (loc, _, _, _) -> loc
   | Cmd cmd -> cmd_loc cmd
   | Label (loc, _, _) -> loc
   | Expose (loc, _, _) -> loc
