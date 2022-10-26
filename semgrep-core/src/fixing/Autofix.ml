@@ -43,7 +43,7 @@ let validate_fix lang text =
            (Exception.to_string e))
 
 type textedit = {
-  path : string;
+  path : Common.filename;
   (* 0-based byte index, inclusive *)
   start : int;
   (* 0-based byte index, exclusive *)
@@ -93,6 +93,28 @@ let apply_edits_to_text text edits =
   in
   if discarded_edits = [] then Success fixed_text
   else Overlap { partial_result = fixed_text; discarded_edits }
+
+let partition_edits_by_file edits =
+  (* TODO Consider using Common.group_by if we update it to return edits in
+   * order and add a comment specifying that changes to it must maintain that
+   * behavior. *)
+  let edits_by_file = Hashtbl.create 8 in
+  List.iter
+    (fun edit ->
+      let prev =
+        match Hashtbl.find_opt edits_by_file edit.path with
+        | Some lst -> lst
+        | None -> []
+      in
+      Hashtbl.replace edits_by_file edit.path (edit :: prev))
+    edits;
+  (* Restore the original order of the edits as they appeared in the input list.
+   * This is important so that we consistently choose to apply the first edit in
+   * the original input when there are edits for an identical span. *)
+  Hashtbl.filter_map_inplace
+    (fun _file edits -> Some (List.rev edits))
+    edits_by_file;
+  edits_by_file
 
 (******************************************************************************)
 (* Entry Points *)
@@ -156,6 +178,26 @@ let render_fix lang metavars ~fix_pattern ~target_contents =
       String.split_on_char '\n' msg
       |> List.iter (fun line -> logger#info "%s" line);
       None
+
+let apply_edits ~dryrun edits =
+  let edits_by_file = partition_edits_by_file edits in
+  let all_discarded_edits = ref [] in
+  Hashtbl.iter
+    (fun file file_edits ->
+      let file_text = Common.read_file file in
+      let new_text =
+        match apply_edits_to_text file_text file_edits with
+        | Success x -> x
+        | Overlap { partial_result; discarded_edits } ->
+            Common.push discarded_edits all_discarded_edits;
+            partial_result
+      in
+      (* TOPORT: when dryrun, report fixed lines *)
+      if not dryrun then Common.write_file ~file new_text)
+    edits_by_file;
+  let modified_files = Hashtbl.to_seq_keys edits_by_file |> List.of_seq in
+  let discarded_edits = List.concat !all_discarded_edits in
+  (modified_files, discarded_edits)
 
 (* Apply the fix for the list of matches to the given file, returning the
  * resulting file contents. Currently used only for tests, but with some changes

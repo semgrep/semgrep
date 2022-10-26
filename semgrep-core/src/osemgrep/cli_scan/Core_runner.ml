@@ -154,6 +154,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    (* TOPORT: not handled yet *)
    logging_level = _;
    autofix = _;
+   dryrun = _;
    baseline_commit = _;
    exclude = _;
    include_ = _;

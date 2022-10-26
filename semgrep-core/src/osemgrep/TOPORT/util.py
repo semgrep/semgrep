@@ -156,15 +156,6 @@ def flatten(some_list: List[List[T]]) -> List[T]:
 PathFilterCallable = Callable[..., FrozenSet[Path]]
 
 
-def unit_str(count: int, unit: str, pad: bool = False) -> str:
-    if count != 1:
-        unit += "s"
-    elif pad:
-        unit += " "
-
-    return f"{count} {unit}"
-
-
 def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
     """
     Helper function to run a GIT command that prints out helpful debugging information

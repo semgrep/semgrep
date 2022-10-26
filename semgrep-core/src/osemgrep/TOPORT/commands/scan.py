@@ -272,16 +272,6 @@ def scan_options(func: Callable) -> Callable:
 @optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup)
 
 @click.option(
-    "--dryrun/--no-dryrun",
-    is_flag=True,
-    default=False,
-    help="""
-        If --dryrun, does not write autofixes to a file. This will print the changes
-        to the console. This lets you see the changes before you commit to them. Only
-        works with the --autofix flag. Otherwise does nothing.
-    """,
-)
-@click.option(
     "--severity",
     multiple=True,
     type=click.Choice(["INFO", "WARNING", "ERROR"]),

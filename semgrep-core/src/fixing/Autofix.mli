@@ -16,6 +16,22 @@ val render_fix :
   target_contents:string Lazy.t ->
   string option
 
+type textedit = {
+  path : string;
+  (* 0-based byte index, inclusive *)
+  start : int;
+  (* 0-based byte index, exclusive *)
+  end_ : int;
+  replacement_text : string;
+}
+
+(* Apply a list of edits, modifying the files in place. If dryrun, do everything
+ * but write to the files.
+ *
+ * Returns the list of modified files and the list of edits that were not
+ * applied because they overlapped with others. *)
+val apply_edits : dryrun:bool -> textedit list -> string list * textedit list
+
 (* Apply the fix for the list of matches to the given file, returning the
  * resulting file contents. Currently used only for tests, but with some changes
  * could be used in production as well. *)
