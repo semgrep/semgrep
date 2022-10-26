@@ -64,36 +64,6 @@ def _get_match_context(
     return start_line, start_col, end_line, end_col
 
 
-def _basic_fix(
-    rule_match: RuleMatch, file_offsets: FileOffsets, fix: str
-) -> Tuple[Fix, FileOffsets]:
-
-    p = rule_match.path
-    lines = _get_lines(p)
-
-    # get the start and end points
-    start_line, start_col, end_line, end_col = _get_match_context(
-        rule_match, file_offsets
-    )
-
-    # break into before, to modify, after
-    before_lines = lines[:start_line]
-    before_on_start_line = lines[start_line][:start_col]
-    after_on_end_line = lines[end_line][end_col:]  # next char after end of match
-    modified_lines = (before_on_start_line + fix + after_on_end_line).splitlines()
-    after_lines = lines[end_line + 1 :]  # next line after end of match
-    contents_after_fix = before_lines + modified_lines + after_lines
-
-    # update offsets
-    file_offsets.line_offset = (
-        len(contents_after_fix) - len(lines) + file_offsets.line_offset
-    )
-    if start_line == end_line:
-        file_offsets.col_offset = len(fix) - (end_col - start_col)
-
-    return Fix(SPLIT_CHAR.join(contents_after_fix), modified_lines), file_offsets
-
-
 def _regex_replace(
     rule_match: RuleMatch,
     file_offsets: FileOffsets,

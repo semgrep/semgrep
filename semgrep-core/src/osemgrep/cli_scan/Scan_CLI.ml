@@ -26,6 +26,7 @@ module H = Cmdliner_helpers
 *)
 type conf = {
   autofix : bool;
+  dryrun : bool;
   baseline_commit : string option;
   (* TOPORT: can have multiple calls to --config, so string list here *)
   config : string;
@@ -55,6 +56,7 @@ let get_cpu_count () : int =
 let default : conf =
   {
     autofix = false;
+    dryrun = false;
     baseline_commit = None;
     config = "auto";
     exclude = [];
@@ -99,6 +101,15 @@ let o_autofix : bool Term.t =
       {|Apply autofix patches. WARNING: data loss can occur with this flag.
 Make sure your files are stored in a version control system. Note that
 this mode is experimental and not guaranteed to function properly.
+|}
+
+let o_dryrun : bool Term.t =
+  H.negatable_flag [ "dryrun" ] ~neg_options:[ "no-dryrun" ]
+    ~default:default.dryrun
+    ~doc:
+      {| If --dryrun, does not write autofixes to a file. This will print the changes
+to the console. This lets you see the changes before you commit to them. Only
+works with the --autofix flag. Otherwise does nothing.
 |}
 
 let o_baseline_commit : string option Term.t =
@@ -390,10 +401,10 @@ let o_target_roots =
 (*****************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine autofix baseline_commit config debug emacs exclude include_ json
-      lang max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
-      quiet respect_git_ignore strict target_roots timeout timeout_threshold
-      verbose vim =
+  let combine autofix dryrun baseline_commit config debug emacs exclude include_
+      json lang max_memory_mb max_target_bytes metrics num_jobs optimizations
+      pattern quiet respect_git_ignore strict target_roots timeout
+      timeout_threshold verbose vim =
     let output_format =
       match (json, emacs, vim) with
       | false, false, false -> default.output_format
@@ -414,6 +425,7 @@ let cmdline_term : conf Term.t =
     in
     {
       autofix;
+      dryrun;
       baseline_commit;
       config;
       exclude;
@@ -436,11 +448,11 @@ let cmdline_term : conf Term.t =
   in
   (* Term defines 'const' but also the '$' operator *)
   Term.(
-    const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug $ o_emacs
-    $ o_exclude $ o_include $ o_json $ o_lang $ o_max_memory_mb
-    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern
-    $ o_quiet $ o_respect_git_ignore $ o_strict $ o_target_roots $ o_timeout
-    $ o_timeout_threshold $ o_verbose $ o_vim)
+    const combine $ o_autofix $ o_dryrun $ o_baseline_commit $ o_config
+    $ o_debug $ o_emacs $ o_exclude $ o_include $ o_json $ o_lang
+    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
+    $ o_optimizations $ o_pattern $ o_quiet $ o_respect_git_ignore $ o_strict
+    $ o_target_roots $ o_timeout $ o_timeout_threshold $ o_verbose $ o_vim)
 
 let doc = "run semgrep rules on files"
 

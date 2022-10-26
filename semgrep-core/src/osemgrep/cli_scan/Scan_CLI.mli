@@ -7,6 +7,7 @@
 *)
 type conf = {
   autofix : bool;
+  dryrun : bool;
   baseline_commit : string option;
   config : string;
   exclude : string list;

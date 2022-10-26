@@ -13,6 +13,20 @@ module Out = Semgrep_output_v0_j
    TODO? move most of the content of this file to Output_JSON.ml?
 *)
 
+let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
+  (* TODO fix_regex *)
+  let edits : Autofix.textedit list =
+    List.filter_map
+      (fun (result : Out.cli_match) ->
+        let path = result.Out.path in
+        let* fix = result.Out.extra.fix in
+        let start = result.Out.start.offset in
+        let end_ = result.Out.end_.offset in
+        Some Autofix.{ path; start; end_; replacement_text = fix })
+      cli_output.results
+  in
+  Autofix.apply_edits ~dryrun:conf.dryrun edits
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -21,6 +35,25 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
   let cli_output : Out.cli_output =
     Cli_json_output.cli_output_of_core_results conf res
   in
+  (if conf.autofix then
+   (* TODO report when we fail to apply a fix because it overlaps with another?
+    * Currently it looks like the Python CLI will just blindly apply
+    * overlapping fixes, probably breaking code.
+    *
+    * At some point we could re-run Semgrep on all files where some fixes
+    * haven't been applied because they overlap with other fixes, and repeat
+    * until all are applied (with some bounds to prevent divergence). This
+    * probably happens rarely enough that it would be very fast, and it would
+    * make the autofix experience better.
+    * *)
+   let modified_files, _failed_fixes = apply_fixes conf cli_output in
+   if not conf.dryrun then
+     if modified_files <> [] then
+       pr2
+         (spf "successfully modified %s."
+            (String_utils.unit_str (List.length modified_files) "file"))
+     else pr2 "no files modified.");
+
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match conf.output_format with
   | Json ->
