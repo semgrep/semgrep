@@ -5,9 +5,8 @@
  (name osemgrep_utils)
  (wrapped false)
  (libraries
-   re
-   alcotest
-   pcre
+   cmdliner
+   logs logs.fmt
 
    commons
    ;note: you should not depend on any semgrep libraries here
