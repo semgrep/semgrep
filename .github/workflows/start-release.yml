@@ -217,13 +217,20 @@ jobs:
         uses: actions/checkout@v3
         id: checkout
         with:
+          submodules: true
           ref: "${{ needs.release-setup.outputs.release-branch }}"
           token: "${{ steps.token.outputs.token }}"
-      - name: Create release version tag
+      - name: Create semgrep release version tag
         id: create-tag
         run: |
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
+          git tag -a -m "Release ${{ needs.release-setup.outputs.version }}" "v${{ needs.release-setup.outputs.version }}"
+          git push origin "v${{ needs.release-setup.outputs.version }}"
+      - name: Create semgrep-interfaces release version tag
+        id: create-tag
+        run: |
+          cd cli/src/semgrep/semgrep_interfaces
           git tag -a -m "Release ${{ needs.release-setup.outputs.version }}" "v${{ needs.release-setup.outputs.version }}"
           git push origin "v${{ needs.release-setup.outputs.version }}"
 
@@ -238,8 +245,8 @@ jobs:
         with:
           name: "release_body_${{ needs.release-setup.outputs.version }}"
           path: scripts/release
-      - name: Create Draft Release
-        id: create_release
+      - name: Create Draft Release Semgrep
+        id: create_release_semgrep
         uses: softprops/action-gh-release@v1
         with:
           tag_name: "v${{ needs.release-setup.outputs.version }}"
@@ -248,6 +255,17 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: false
           draft: true
+      - name: Create Draft Release Semgrep Interfaces
+        id: create_release_semgrep_interfaces
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "v${{ needs.release-setup.outputs.version }}"
+          name: Release v${{ needs.release-setup.outputs.version }}
+          body_path: scripts/release/release_body.txt
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: false
+          draft: true
+          repository: returntocorp/semgrep-interfaces
 
   wait-for-release-checks:
     name: Wait for Release Checks
