@@ -2,6 +2,8 @@ val exp_of_arg : IL.exp IL.argument -> IL.exp
 
 (** Lvalue/Rvalue helpers working on the IL *)
 
+val lval_of_var : IL.name -> IL.lval
+
 val lval_is_var_and_dots : IL.lval -> bool
 (** Test whether an lvalue is of the form x.a_1. ... .a_n *)
 

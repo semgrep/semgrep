@@ -23,27 +23,9 @@ val add : IL.lval -> Taint.taints -> env -> env
     tainted separately).
  *)
 
-val add_var : IL.name -> Taint.taints -> env -> env
-
 (* THINK: Perhaps keep propagators outside of this environment? *)
 val propagate_to : Dataflow_var_env.var -> Taint.taints -> env -> env
-
-val find : IL.lval -> env -> [ `None | `Clean | `Tainted of Taint.taints ]
-(** Find whether an lvalue is tainted or not.
-
-    [`None] means no taint.
-    [`Clean] means no taint for this particular lvalue x.a_1. ... .a_N, but
-    some of its prefixes x.a_1. ... .a_i (i < N) is tainted.
-
-    Given x.a_1. ... . a_N, it recursively checks all the prefixes of the
-    lvalue (from longest to shortest) until it finds one that is either
-    explicitly tainted (returns [`Tainted]) or explicitly clean (returns
-    [`Clean]). If none is found then it returns [`None].
-
-    If x.a.b is tainted with label B and x.a is tainted with label A,
-    the taint of x.a.b is still just B. *)
-
-val find_var : IL.name -> env -> Taint.taints option
+val find_lval : env -> IL.lval -> [> `Clean | `None | `Tainted of Taint.taints ]
 val propagate_from : Dataflow_var_env.var -> env -> Taint.taints option
 
 val clean : IL.lval -> env -> env
@@ -51,8 +33,6 @@ val clean : IL.lval -> env -> env
 
     Given x.a_1. ... .a_N, it will clean that lvalue as well as all its
     extensions x.a_1. ... .a_N. ... .a_M.  *)
-
-val clean_var : IL.name -> env -> env
 
 val union : env -> env -> env
 (** Compute the environment for the join of two branches.

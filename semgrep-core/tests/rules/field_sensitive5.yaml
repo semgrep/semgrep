@@ -1,0 +1,17 @@
+rules:
+  - id: regression_0113
+    message: Semgrep found a match
+    languages:
+      - php
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: source()
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $TAINTED
+          - pattern-either:
+              - pattern: $TAINTED->$ATTR
+              - pattern: $TAINTED->$METHOD(...)

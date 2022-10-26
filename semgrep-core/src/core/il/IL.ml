@@ -171,7 +171,9 @@ and base =
   (* THINK: Mem of exp -> Deref of name *)
   | Mem of exp
 
-and offset =
+and offset = { o : offset_kind; oorig : orig }
+
+and offset_kind =
   (* What about computed field names?
    * - handle them in Special?
    * - convert in Index with a string exp?
