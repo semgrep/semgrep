@@ -1,5 +1,5 @@
 (*
-   'semgrep scan' command-line parsing.
+   'semgrep scan' (and also 'semgrep ci') command-line parsing.
 *)
 
 (*
@@ -41,3 +41,6 @@ val default : conf
    went fine.
 *)
 val parse_argv : string array -> (conf, Exit_code.t) result
+
+(* used by Ci_CLI.ml *)
+val cmdline_term : conf Cmdliner.Term.t

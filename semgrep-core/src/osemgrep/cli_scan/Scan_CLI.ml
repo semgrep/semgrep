@@ -385,7 +385,7 @@ let o_target_roots =
   Arg.value (Arg.pos_all Arg.string default.target_roots info)
 
 (*****************************************************************************)
-(*** Subcommand 'scan' ***)
+(* Subcommand 'scan' *)
 (*****************************************************************************)
 
 let cmdline_term : conf Term.t =
