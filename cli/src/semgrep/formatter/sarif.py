@@ -158,7 +158,7 @@ class SarifFormatter(BaseFormatter):
         for tags in rule.metadata.get("tags", []):
             result.append(tags)
 
-        return result
+        return list(set(result))
 
     @staticmethod
     def _semgrep_error_to_sarif_notification(error: SemgrepError) -> Mapping[str, Any]:
