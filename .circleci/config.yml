@@ -19,7 +19,7 @@ jobs:
   # Dogfood!
   semgrep:
     docker:
-      - image: returntocorp/semgrep:develop
+      - image: returntocorp/semgrep:0.118.0
         user: root
     working_directory: /src
     steps:
