@@ -34,7 +34,6 @@ type env = unit H.env
 let token = H.token
 let str = H.str
 let todo (_env : env) _ = failwith "not implemented"
-let later (_env : env) _ = failwith "not implemented"
 
 let trailing_comma env v =
   match v with
@@ -192,7 +191,7 @@ and map_bind (env : env) (x : CST.bind) : bind =
   match x with
   | `Id_EQ_expr x ->
       let id, teq, e = map_named_argument_bis env x in
-      later env (id, teq, e)
+      B (id, teq, e)
   | `Id_LPAR_opt_params_RPAR_EQ_expr (v1, v2, v3, v4, v5, v6) ->
       let id = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) str env v1 in
       let lpar = (* "(" *) token env v2 in
@@ -204,14 +203,19 @@ and map_bind (env : env) (x : CST.bind) : bind =
       let rpar = (* ")" *) token env v4 in
       let teq = (* "=" *) token env v5 in
       let e = map_document env v6 in
-      later env (id, lpar, ps, rpar, teq, e)
+      let def = { f_tok = lpar; f_params = (lpar, ps, rpar); f_body = e } in
+      B (id, teq, Lambda def |> J.e)
 
 and map_compspec (env : env) (xs : CST.compspec) =
   Common.map
     (fun x ->
       match x with
-      | `Fors x -> map_forspec env x
-      | `Ifspec x -> map_ifspec env x)
+      | `Fors x ->
+          let forspec = map_forspec env x in
+          todo env forspec
+      | `Ifspec x ->
+          let ifspec = map_ifspec env x in
+          todo env ifspec)
     xs
 
 and map_document (env : env) (x : CST.document) : program = map_expr env x
@@ -472,16 +476,16 @@ and map_fieldname (env : env) (x : CST.fieldname) : field_name =
       FDynamic (lb, idx, rb)
 
 and map_forspec (env : env) ((v1, v2, v3, v4) : CST.forspec) =
-  let v1 = (* "for" *) token env v1 in
-  let v2 = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) token env v2 in
-  let v3 = (* "in" *) token env v3 in
-  let v4 = map_document env v4 in
-  todo env (v1, v2, v3, v4)
+  let tfor = (* "for" *) token env v1 in
+  let id = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) str env v2 in
+  let tin = (* "in" *) token env v3 in
+  let e = map_document env v4 in
+  (tfor, id, tin, e)
 
 and map_ifspec (env : env) ((v1, v2) : CST.ifspec) =
-  let v1 = (* "if" *) token env v1 in
-  let v2 = map_document env v2 in
-  todo env (v1, v2)
+  let tif = (* "if" *) token env v1 in
+  let e = map_document env v2 in
+  (tif, e)
 
 and map_member (env : env) (x : CST.member) : object_member =
   match x with
@@ -526,8 +530,8 @@ and map_objinside (env : env) (x : CST.objinside) : obj_inside =
         Common.map
           (fun (v1, v2) ->
             let v1 = map_objlocal env v1 in
-            let v2 = (* "," *) token env v2 in
-            todo env (v1, v2))
+            let _v2 = (* "," *) token env v2 in
+            v1)
           v1
       in
       let v2 = (* "[" *) token env v2 in
@@ -538,9 +542,9 @@ and map_objinside (env : env) (x : CST.objinside) : obj_inside =
       let v7 =
         Common.map
           (fun (v1, v2) ->
-            let v1 = (* "," *) token env v1 in
+            let _v1 = (* "," *) token env v1 in
             let v2 = map_objlocal env v2 in
-            todo env (v1, v2))
+            v2)
           v7
       in
       let v8 = trailing_comma env v8 in
@@ -553,21 +557,21 @@ and map_objinside (env : env) (x : CST.objinside) : obj_inside =
       todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10)
 
 and map_objlocal (env : env) ((v1, v2) : CST.objlocal) =
-  let v1 = (* "local" *) token env v1 in
-  let v2 = map_bind env v2 in
-  todo env (v1, v2)
+  let tlocal = (* "local" *) token env v1 in
+  let bind = map_bind env v2 in
+  (tlocal, bind)
 
 and map_param (env : env) ((v1, v2) : CST.param) : parameter =
-  let v1 = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) token env v1 in
-  let v2 =
+  let id = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) str env v1 in
+  let default_opt =
     match v2 with
     | Some (v1, v2) ->
         let v1 = (* "=" *) token env v1 in
         let v2 = map_document env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        Some (v1, v2)
+    | None -> None
   in
-  todo env (v1, v2)
+  P (id, default_opt)
 
 and map_params (env : env) ((v1, v2, v3) : CST.params) : parameter list =
   let v1 = map_param env v1 in
