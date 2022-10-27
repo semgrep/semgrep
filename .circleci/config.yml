@@ -18,6 +18,8 @@ version: 2.1
 jobs:
   # Dogfood!
   semgrep:
+    #TODO: used to be returntocorp/semgrep:develop for maximum dogfooding
+    # but something broke after https://app.circleci.com/pipelines/github/returntocorp/semgrep/14848   # which seems unrelated. Weird.
     docker:
       - image: returntocorp/semgrep:0.118.0
         user: root
