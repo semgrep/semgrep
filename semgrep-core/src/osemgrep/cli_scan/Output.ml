@@ -15,17 +15,17 @@ module Out = Semgrep_output_v0_j
 
 let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   (* TODO fix_regex *)
-  let edits : Autofix.textedit list =
+  let edits : Textedit.t list =
     List.filter_map
       (fun (result : Out.cli_match) ->
         let path = result.Out.path in
         let* fix = result.Out.extra.fix in
         let start = result.Out.start.offset in
         let end_ = result.Out.end_.offset in
-        Some Autofix.{ path; start; end_; replacement_text = fix })
+        Some Textedit.{ path; start; end_; replacement_text = fix })
       cli_output.results
   in
-  Autofix.apply_edits ~dryrun:conf.dryrun edits
+  Textedit.apply_edits ~dryrun:conf.dryrun edits
 
 (*****************************************************************************)
 (* Entry point *)
