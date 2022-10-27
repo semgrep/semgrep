@@ -161,7 +161,8 @@ and arr_inside = Array of expr list
 (* ------------------------------------------------------------------------- *)
 (* Local binding *)
 (* ------------------------------------------------------------------------- *)
-and bind = unit
+(* we already desugar 'foo(x,y) = z' as 'foo = function(x, y) z' *)
+and bind = B of ident * tok (* '=' *) * expr (* can be a Function *)
 
 (* ------------------------------------------------------------------------- *)
 (* Functions  *)
@@ -172,7 +173,8 @@ and function_definition = {
   f_body : expr;
 }
 
-and parameter = unit
+(* semgrep: LATER can have ParamEllipsis *)
+and parameter = P of ident * (tok (* '=' *) * expr) option
 
 (* ------------------------------------------------------------------------- *)
 (* Objects  *)
@@ -180,6 +182,7 @@ and parameter = unit
 and obj_inside = Object of object_member list
 (* TODO: Object comprehension *)
 
+(* TODO *)
 and object_member = unit
 
 and field = {
