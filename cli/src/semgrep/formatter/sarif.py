@@ -236,14 +236,29 @@ class SarifFormatter(BaseFormatter):
     def _rule_to_sarif(rule: Rule) -> Mapping[str, Any]:
         severity = SarifFormatter._rule_to_sarif_severity(rule)
         tags = SarifFormatter._rule_to_sarif_tags(rule)
-        rule_json = {
-            "id": rule.id,
-            "name": rule.id,
-            "shortDescription": {"text": rule.message},
-            "fullDescription": {"text": rule.message},
-            "defaultConfiguration": {"level": severity},
-            "properties": {"precision": "very-high", "tags": tags},
-        }
+        security_severity = rule.metadata.get("security-severity")
+        if security_severity is not None:
+            rule_json = {
+                "id": rule.id,
+                "name": rule.id,
+                "shortDescription": {"text": rule.message},
+                "fullDescription": {"text": rule.message},
+                "defaultConfiguration": {"level": severity},
+                "properties": {
+                    "precision": "very-high",
+                    "tags": tags,
+                    "security-severity": security_severity,
+                },
+            }
+        else:
+            rule_json = {
+                "id": rule.id,
+                "name": rule.id,
+                "shortDescription": {"text": rule.message},
+                "fullDescription": {"text": rule.message},
+                "defaultConfiguration": {"level": severity},
+                "properties": {"precision": "very-high", "tags": tags},
+            }
 
         rule_url = rule.metadata.get("source")
         if rule_url is not None:
@@ -282,6 +297,7 @@ class SarifFormatter(BaseFormatter):
         if "cwe" in rule.metadata:
             cwe = rule.metadata["cwe"]
             result.extend(cwe if isinstance(cwe, list) else [cwe])
+            result.append("security")
         if "owasp" in rule.metadata:
             owasp = rule.metadata["owasp"]
             result.extend(
@@ -293,7 +309,7 @@ class SarifFormatter(BaseFormatter):
         for tags in rule.metadata.get("tags", []):
             result.append(tags)
 
-        return result
+        return sorted(set(result))
 
     @staticmethod
     def _semgrep_error_to_sarif_notification(error: SemgrepError) -> Mapping[str, Any]:
