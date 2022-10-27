@@ -221,14 +221,14 @@ jobs:
           ref: "${{ needs.release-setup.outputs.release-branch }}"
           token: "${{ steps.token.outputs.token }}"
       - name: Create semgrep release version tag
-        id: create-tag
+        id: create-semgrep-tag
         run: |
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
           git tag -a -m "Release ${{ needs.release-setup.outputs.version }}" "v${{ needs.release-setup.outputs.version }}"
           git push origin "v${{ needs.release-setup.outputs.version }}"
       - name: Create semgrep-interfaces release version tag
-        id: create-tag
+        id: create-interfaces-tag
         run: |
           cd cli/src/semgrep/semgrep_interfaces
           git tag -a -m "Release ${{ needs.release-setup.outputs.version }}" "v${{ needs.release-setup.outputs.version }}"
