@@ -1,1 +1,0 @@
-taint-mode: Fixed a bug in the experimental taint-labels feature that caused labels to be incorrectly applied to dot accesses. For instance, if a pattern-source that requires label A and adds label B matches a dot-access expression like x.a, the field a will get the label B even if it does not carry label A as required.

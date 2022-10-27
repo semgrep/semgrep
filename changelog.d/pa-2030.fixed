@@ -1,1 +1,0 @@
-JS/TS: Fixed a parsing bug where special identifiers were parsed differently in patterns
