@@ -409,6 +409,12 @@ let check_tainted_tok env tok =
   | _ :: _ -> (Taints.empty, env.lval_env)
   | [] ->
       let taints = source_pms |> taints_of_matches in
+      (* Empty because we want to filter all the previous taints we got from the
+         `source_pms`, but we have nothing to really union it with.
+         Otherwise, we might let taints from this token escape a label. In particular,
+         this may happen in the `Dot` case.
+      *)
+      let taints = Taints.empty |> union_taints_filtering_labels ~new_:taints in
       let sinks = sink_pms |> Common.map trace_of_match in
       let findings = findings_of_tainted_sinks env taints sinks in
       report_findings env findings;
