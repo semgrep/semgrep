@@ -23,6 +23,13 @@ module Resp = Output_from_core_t
      than 500 bytes at the same time.
    - only some really short source files (2-3 lines) were found to have
      between 5% and 8% whitespace.
+
+  However, this threshold works less well for java files because it is not
+  unusual to have large import blocks at the top, resulting in a very low
+  whitespace fraction. This should not affect very many Java files, so for
+  now it is ok that we leave it. The consequence of reducing the frequency
+  is that Semgrep would likely take longer as it scans more costly minified
+  files. TODO we might want to do some benchmarking and change this default
 *)
 let min_whitespace_frequency = 0.07
 
@@ -72,6 +79,8 @@ let whitespace_stat_of_block ?block_size path =
   whitespace_stat_of_string s
 
 let is_minified path =
+  if not !Flag_semgrep.skip_minified_files then Ok path
+  else
   let stat = whitespace_stat_of_block ~block_size:4096 path in
   (*
      A small file could contain a long URL with no whitespace without being
