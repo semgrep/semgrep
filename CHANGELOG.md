@@ -8,6 +8,31 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.119.0](https://github.com/returntocorp/semgrep/releases/tag/v0.119.0) - 2022-10-28
+
+### Added
+
+- Fail gracefully and print error message when running in unsupported Linux aarch64/arm64 environment (arm-fail)
+- Added 'fingerprints' field to results in sarif output (gh-5729)
+- Add dataflow traces as 'codeFlows' object in SARIF output (gh-6367)
+
+### Changed
+
+- Change default behavior of bitbucket CI configurations. If a user manually sets their environment variables (i.e. SEMGREP_REPO_NAME, SEMGREP_REPO_URL, SEMGREP_BRANCH, SEMGREP_JOB_URL, SEMGREP_COMMIT), use it before falling back on autodetection. (app-2436)
+
+### Fixed
+
+- Fix an issue preventing AST-based autofix from running in the presence of `focus-metavariable`. (focus-metavariable-autofix)
+- Implement string literal metavariables in Python AST-based autofix (gh-3648)
+- Fix parsing of dot access ellipsis in PHP patterns (e.g. `$x-> ... ->bar()`). (gh-6183)
+- JS/TS: Allowed parsing of patterns using the optional chaining "?." syntax. (gh-6201)
+- Dockerfile language: Add support for RUN options such as
+  `RUN --mount=type=$TYPE,target=$TARGET ...`. (gh-6353)
+- taint-mode: Fixed a bug in the experimental taint-labels feature that caused labels to be incorrectly applied to dot accesses. For instance, if a pattern-source that requires label A and adds label B matches a dot-access expression like x.a, the field a will get the label B even if it does not carry label A as required. (gh-6355)
+- Use AST-based autofix when possible for JS autofixes. This is more likely to lead to correct output, especially for complicated fixes. (js-autofix)
+- JS/TS: Fixed a parsing bug where special identifiers were parsed differently in patterns (pa-2030)
+- Language server now appropriately applies regex fixes (vscode-regex)
+
 ## [0.118.0](https://github.com/returntocorp/semgrep/releases/tag/v0.118.0) - 2022-10-19
 
 ### Added

@@ -1,1 +1,0 @@
-Fix an issue preventing AST-based autofix from running in the presence of `focus-metavariable`.
