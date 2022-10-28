@@ -231,6 +231,8 @@ jobs:
         id: create-interfaces-tag
         run: |
           cd cli/src/semgrep/semgrep_interfaces
+          git config user.name ${{ github.actor }}
+          git config user.email ${{ github.actor }}@users.noreply.github.com
           git tag -a -m "Release ${{ needs.release-setup.outputs.version }}" "v${{ needs.release-setup.outputs.version }}"
           git push origin "v${{ needs.release-setup.outputs.version }}"
 
