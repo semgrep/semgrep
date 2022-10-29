@@ -13,6 +13,10 @@
  * LICENSE for more details.
  *)
 
+(* TODO: This needs some clean up, maybe we shouldn't expect clients of this module
+ * to ensure that lvals satisfy IL_helpers.lval_is_var_and_dots, but rather handle
+ * that internally. *)
+
 module T = Taint
 module Taints = T.Taint_set
 module LV = IL_helpers
@@ -85,38 +89,16 @@ let add lval taints ({ tainted; propagated; cleaned } as lval_env) =
       cleaned = LvalSet.remove lval cleaned;
     }
 
-(* Add `var -> taints` to `var_env`. *)
-let add_var var taints lval_env =
-  let aux = { IL.base = Var var; rev_offset = [] } in
-  add aux taints lval_env
-
 let propagate_to prop_var taints env =
   if Taints.is_empty taints then env
   else { env with propagated = VarMap.add prop_var taints env.propagated }
 
-let _find_lval { tainted; cleaned; _ } lval =
+let dumb_find { tainted; cleaned; _ } lval =
   if LvalSet.mem lval cleaned then `Clean
   else
     match LvalMap.find_opt lval tainted with
     | None -> `None
     | Some taints -> `Tainted taints
-
-let find_var var lval_env =
-  let aux = { IL.base = Var var; rev_offset = [] } in
-  match _find_lval lval_env aux with
-  | `Clean
-  | `None ->
-      None
-  | `Tainted taints -> Some taints
-
-let rec find lval lval_env =
-  match _find_lval lval_env lval with
-  | `Clean -> `Clean
-  | `Tainted taints -> `Tainted taints
-  | `None -> (
-      match lval.rev_offset with
-      | _ :: rev_offset' -> find { lval with rev_offset = rev_offset' } lval_env
-      | [] -> `None)
 
 let propagate_from prop_var env = VarMap.find_opt prop_var env.propagated
 
@@ -125,25 +107,20 @@ let clean lval { tainted; propagated; cleaned } =
     tainted |> LvalMap.exists (fun lv _ -> LV.lval_is_dotted_prefix lv lval)
   in
   let needs_clean_mark = prefix_is_tainted && lval.rev_offset <> [] in
-  (* If [a.b] is clean then [a.b.c] and [a.b.c.d] are too *)
   {
     tainted =
+      (* If `x.a` is clean then `x.a` and any extension of it (`x.a.b`, `x.a.b.c`,
+       * and so on) are clean too, and we remove them all from tainted. *)
       tainted
       |> LvalMap.filter (fun lv _ -> not (LV.lval_is_dotted_prefix lval lv));
     propagated;
     cleaned =
+      (* Similarly, if `x.a` will have a "clean" mark, then we can remove any
+       * such mark on any extension of `x.a`. It would be redundant to record
+       * `x.a.b` as clean when we already have that `x.a` is clean. *)
       (cleaned
       |> LvalSet.filter (fun lv -> not (LV.lval_is_dotted_prefix lval lv))
       |> if needs_clean_mark then LvalSet.add lval else fun x -> x);
-  }
-
-let clean_var var { tainted; propagated; cleaned } =
-  let aux = { IL.base = Var var; rev_offset = [] } in
-  {
-    tainted = LvalMap.remove aux tainted;
-    propagated;
-    (* TODO: Should we remove any var.x ... from cleaned?  *)
-    cleaned;
   }
 
 let equal le1 le2 =

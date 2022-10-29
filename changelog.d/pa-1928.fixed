@@ -1,0 +1,6 @@
+taint-mode: Fixed regression in 0.113.0, after field sensitivity support was added,
+that broke existing behavior when a prefix in a chain of dot-accesses such as
+`x.a.b` was specified as a source/sanitizer/sink. For example, if `x` had been
+previously tainted, then we encountered `sink(x.a.b)` where `x.a` matched a
+sanitizer, there was a finding reported because `x.a.b` was incorrectly considered
+tainted.

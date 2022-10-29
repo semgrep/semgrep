@@ -244,13 +244,15 @@ let rec lval env eorig =
             let attr = expr env e2orig in
             Index attr
       in
+      let offset' = { o = offset'; oorig = SameAs eorig } in
       let lv1 = nested_lval env tok e1orig in
       { lv1 with rev_offset = offset' :: lv1.rev_offset }
   | G.ArrayAccess (e1orig, (_, e2orig, _)) ->
       let tok = G.fake "[]" in
       let lv1 = nested_lval env tok e1orig in
       let e2 = expr env e2orig in
-      { lv1 with rev_offset = Index e2 :: lv1.rev_offset }
+      let offset' = { o = Index e2; oorig = SameAs eorig } in
+      { lv1 with rev_offset = offset' :: lv1.rev_offset }
   | G.DeRef (_, e1orig) ->
       let e1 = expr env e1orig in
       lval_of_base (Mem e1)
@@ -300,7 +302,9 @@ and pattern env pat =
         |> List.mapi (fun i pat_i ->
                let eorig = Related (G.P pat_i) in
                let index_i = Literal (G.Int (Some i, tok1)) in
-               let offset_i = Index { e = index_i; eorig } in
+               let offset_i =
+                 { o = Index { e = index_i; eorig }; oorig = NoOrig }
+               in
                let lval_i = { base = Var tmp; rev_offset = [ offset_i ] } in
                pattern_assign_statements env
                  (mk_e (Fetch lval_i) eorig)
@@ -359,7 +363,10 @@ and assign env lhs tok rhs_exp e_gen =
         |> List.mapi (fun i lhs_i ->
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i =
-                 Index { e = index_i; eorig = related_exp lhs_i }
+                 {
+                   o = Index { e = index_i; eorig = related_exp lhs_i };
+                   oorig = NoOrig;
+                 }
                in
                let lval_i = { base = Var tmp; rev_offset = [ offset_i ] } in
                assign env lhs_i tok1
@@ -402,9 +409,10 @@ and assign env lhs tok rhs_exp e_gen =
                  let fldi = var_of_id_info id1 ii1 in
                  let vari = var_of_id_info id2 ii2 in
                  let vari_lval = lval_of_base (Var vari) in
+                 let offset = { o = Dot fldi; oorig = NoOrig } in
                  let ei =
                    mk_e
-                     (Fetch { base = Var tmp; rev_offset = [ Dot fldi ] })
+                     (Fetch { base = Var tmp; rev_offset = [ offset ] })
                      (related_tok tok)
                  in
                  add_instr env (mk_i (Assign (vari_lval, ei)) (related_tok tok));
@@ -453,9 +461,8 @@ and expr_aux env ?(void = false) e_gen =
             let method_name =
               fresh_var env tok ~str:(Parse_info.str_of_info tok)
             in
-            let method_lval =
-              { base = Var obj_var; rev_offset = [ Dot method_name ] }
-            in
+            let offset = { o = Dot method_name; oorig = NoOrig } in
+            let method_lval = { base = Var obj_var; rev_offset = [ offset ] } in
             let method_ = { e = Fetch method_lval; eorig = related_tok tok } in
             add_call env tok eorig ~void (fun res -> Call (res, method_, args'))
       )
@@ -1475,7 +1482,8 @@ and python_with_stmt env manager opt_pat body =
       (* type(mgr).__method___ *)
       {
         base = Var type_mgr_var;
-        rev_offset = [ Dot (fresh_var env G.sc ~str:method_name) ];
+        rev_offset =
+          [ { o = Dot (fresh_var env G.sc ~str:method_name); oorig = NoOrig } ];
       }
     in
     let ss =

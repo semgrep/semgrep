@@ -10,7 +10,7 @@ let string_of_base base =
   | Mem _ -> "<Mem>"
 
 let string_of_offset offset =
-  match offset with
+  match offset.o with
   | Dot a -> str_of_name a
   | Index _ -> "[...]"
 
@@ -32,6 +32,16 @@ let string_of_exp e =
   | Cast (_, _) ->
       "<EXP>"
 
+let string_of_argument arg =
+  match arg with
+  | Unnamed { e = Fetch lval; _ } -> string_of_lval lval
+  | Unnamed _
+  | Named _ ->
+      "_"
+
+let string_of_arguments args =
+  Common.map string_of_argument args |> String.concat ","
+
 let short_string_of_node_kind nkind =
   match nkind with
   | Enter -> "<enter>"
@@ -52,21 +62,22 @@ let short_string_of_node_kind nkind =
       match x.i with
       | Assign (lval, exp) -> string_of_lval lval ^ " = " ^ string_of_exp exp
       | AssignAnon _ -> " ... = <lambda|class>"
-      | Call (lval_opt, exp, _) ->
+      | Call (lval_opt, exp, args) ->
           let lval_str =
             match lval_opt with
             | None -> ""
             | Some lval -> string_of_lval lval ^ " = "
           in
-          lval_str ^ string_of_exp exp ^ "(...)"
-      | CallSpecial (lval_opt, (call_special, _tok), _args) ->
+          lval_str ^ string_of_exp exp ^ "(" ^ string_of_arguments args ^ ")"
+      | CallSpecial (lval_opt, (call_special, _tok), args) ->
           let lval_str =
             match lval_opt with
             | None -> ""
             | Some lval -> Common.spf " %s =" (string_of_lval lval)
           in
-          Common.spf "<special>%s %s(...)" lval_str
+          Common.spf "<special>%s = %s(%s)" lval_str
             (IL.show_call_special call_special)
+            (string_of_arguments args)
       | FixmeInstr _ -> "<fix-me instr>")
   | NTodo _ -> "<to-do stmt>"
 

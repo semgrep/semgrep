@@ -110,13 +110,14 @@ let result_of_function_call_is_constant lang f args =
         e =
           ( Fetch
               {
-                rev_offset = Dot { ident; id_info = { id_resolved; _ }; _ } :: _;
+                rev_offset =
+                  { o = Dot { ident; id_info = { id_resolved; _ }; _ }; _ } :: _;
                 _;
               }
           | Fetch
               {
                 base = Var { ident; id_info = { id_resolved; _ }; _ };
-                rev_offset = [] | Index _ :: _;
+                rev_offset = [] | { o = Index _; _ } :: _;
               } );
         _;
       },
@@ -544,7 +545,12 @@ let transfer :
             update_env_with inp' var cexp
         | Call
             ( None,
-              { e = Fetch { base = Var var; rev_offset = Dot _ :: _; _ }; _ },
+              {
+                e =
+                  Fetch
+                    { base = Var var; rev_offset = { o = Dot _; _ } :: _; _ };
+                _;
+              },
               _ ) ->
             (* Method call `var.f(args)` that returns void, we conservatively
              * assume that it may be updating `var`; e.g. in Ruby strings are
