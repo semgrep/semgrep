@@ -13,6 +13,10 @@
  * LICENSE for more details.
  *)
 
+(* TODO: This needs some clean up, maybe we shouldn't expect clients of this module
+ * to ensure that lvals satisfy IL_helpers.lval_is_var_and_dots, but rather handle
+ * that internally. *)
+
 module T = Taint
 module Taints = T.Taint_set
 module LV = IL_helpers
@@ -89,7 +93,7 @@ let propagate_to prop_var taints env =
   if Taints.is_empty taints then env
   else { env with propagated = VarMap.add prop_var taints env.propagated }
 
-let find_lval { tainted; cleaned; _ } lval =
+let dumb_find { tainted; cleaned; _ } lval =
   if LvalSet.mem lval cleaned then `Clean
   else
     match LvalMap.find_opt lval tainted with
@@ -103,13 +107,17 @@ let clean lval { tainted; propagated; cleaned } =
     tainted |> LvalMap.exists (fun lv _ -> LV.lval_is_dotted_prefix lv lval)
   in
   let needs_clean_mark = prefix_is_tainted && lval.rev_offset <> [] in
-  (* If [a.b] is clean then [a.b.c] and [a.b.c.d] are too *)
   {
     tainted =
+      (* If `x.a` is clean then `x.a` and any extension of it (`x.a.b`, `x.a.b.c`,
+       * and so on) are clean too, and we remove them all from tainted. *)
       tainted
       |> LvalMap.filter (fun lv _ -> not (LV.lval_is_dotted_prefix lval lv));
     propagated;
     cleaned =
+      (* Similarly, if `x.a` will have a "clean" mark, then we can remove any
+       * such mark on any extension of `x.a`. It would be redundant to record
+       * `x.a.b` as clean when we already have that `x.a` is clean. *)
       (cleaned
       |> LvalSet.filter (fun lv -> not (LV.lval_is_dotted_prefix lval lv))
       |> if needs_clean_mark then LvalSet.add lval else fun x -> x);

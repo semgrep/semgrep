@@ -33,13 +33,19 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Tainting dataflow analysis.
  *
- * This is a very rudimentary tainting analysis.
- * It is a MAY analysis, it finds *potential* bugs (the tainted path could not
- * be feasible in practice).
- * Very coarse grained (taint whole array/object).
- * This is step1 for taint tracking support in semgrep.
- * This was originally in semgrep-core/src/analyze, but it now depends on Pattern_match,
- * so it was moved to semgrep-core/src/engine
+ * - This is a rudimentary taint analysis in some ways, but rather complex in
+ *   other ways... We don't do alias analysis, and inter-procedural support
+ *   (for DeepSemgrep) still doesn't cover some common cases. On the other hand,
+ *   almost _anything_ can be a source/sanitizer/sink, we have taint propagators,
+ *   etc.
+ * - It is a MAY analysis, it finds *potential* bugs (the tainted path could not
+ *   be feasible in practice).
+ * - Field sensitivity is limited to l-values of the form x.a.b.c, see module
+ *   Taint_lval_env and check_tainted_lval for more details. Very coarse grained
+ *   otherwise, e.g. `x[i] = tainted` will taint the whole array,
+ *
+ * old: This was originally in semgrep-core/src/analyze, but it now depends on
+ *      Pattern_match, so it was moved to semgrep-core/src/engine.
  *)
 
 module DataflowX = Dataflow_core.Make (struct
@@ -74,6 +80,11 @@ type config = {
   is_propagator : AST_generic.any -> a_propagator tmatch list;
   is_sink : G.any -> R.taint_sink tmatch list;
   is_sanitizer : G.any -> R.taint_sanitizer tmatch list;
+      (* NOTE [is_sanitizer]:
+       * A sanitizer is more "extreme" than you may expect. When a piece of code is
+       * "sanitized" Semgrep will just not check it. For example, something like
+       * `sanitize(sink(tainted))` will not yield any finding.
+       * *)
   unify_mvars : bool;
   handle_findings : var option -> T.finding list -> Lval_env.t -> unit;
 }
@@ -349,7 +360,7 @@ let find_args_taints args_taints fdef =
 (* Tainted *)
 (*****************************************************************************)
 
-let sanitize_lval lval_env sanitizer_pms lval =
+let sanitize_lval_by_side_effect lval_env sanitizer_pms lval =
   let lval_is_now_safe =
     (* If the l-value is an exact match (overlap > 0.99) for a sanitizer
      * annotation, then we infer that the l-value itself has been updated
@@ -359,20 +370,23 @@ let sanitize_lval lval_env sanitizer_pms lval =
   in
   if lval_is_now_safe then Lval_env.clean lval lval_env else lval_env
 
-(* Check if an expression is sanitized, if so, return a new variable environment. *)
+(* Check if an expression is sanitized, if so returns `Some' and otherise `None'.
+   If the expression is of the form `x.a.b.c` then we try to sanitize it by
+   side-effect, in which case this function will return a new lval_env. *)
 let exp_is_sanitized env exp =
   match orig_is_sanitized env.config exp.eorig with
+  (* See NOTE [is_sanitizer] *)
   | [] -> None
   | sanitizer_pms -> (
       match exp.e with
       | Fetch lval when LV.lval_is_var_and_dots lval ->
-          Some (sanitize_lval env.lval_env sanitizer_pms lval)
+          Some (sanitize_lval_by_side_effect env.lval_env sanitizer_pms lval)
       | __else__ -> Some env.lval_env)
 
-(* Checks if `x' is a propagator `from' and if so propagates `taints' through it.
-   Checks if `x` is a propagator `'to' and if so fetches any taints that had been
+(* Checks if `thing' is a propagator `from' and if so propagates `taints' through it.
+   Checks if `thing` is a propagator `'to' and if so fetches any taints that had been
    previously propagated. Returns *only* the newly propagated taint. *)
-let handle_taint_propagators env x taints =
+let handle_taint_propagators env thing taints =
   (* We propagate taints via an auxiliary variable (the propagator id). This is
    * simple but it has limitations, we can only propagate "forward" and, within
    * an instruction node, we can only propagate in the order in which we visit
@@ -382,7 +396,7 @@ let handle_taint_propagators env x taints =
   let lval_env = env.lval_env in
   let propagators =
     let any =
-      match x with
+      match thing with
       | `Lval lval -> any_of_lval lval
       | `Exp exp -> any_of_orig exp.eorig
       | `Ins ins -> any_of_orig ins.iorig
@@ -393,14 +407,14 @@ let handle_taint_propagators env x taints =
     List.partition (fun p -> p.spec.kind = `From) propagators
   in
   let lval_env =
-    (* `x` is the source (the "from") of propagation, we add its taints to
+    (* `thing` is the source (the "from") of propagation, we add its taints to
      * the environment. *)
     List.fold_left
       (fun lval_env prop -> Lval_env.propagate_to prop.spec.var taints lval_env)
       lval_env propagate_froms
   in
   let taints_propagated =
-    (* `x` is the destination (the "to") of propagation. we collect all the
+    (* `thing` is the destination (the "to") of propagation. we collect all the
      * incoming taints by looking for the propagator ids in the environment. *)
     List.fold_left
       (fun taints_in_acc prop ->
@@ -413,9 +427,11 @@ let handle_taint_propagators env x taints =
       Taints.empty propagate_tos
   in
   let lval_env =
-    match x with
-    (* If `x` is a variable, then taint is propagated by side-effect. This
-     * allows us to e.g. propagate taint from `x` to `y` in `f(x,y)`. *)
+    match thing with
+    (* If `thing` is an l-value of the form `x.a.b.c`, then taint can be propagated
+     * by side-effect. A pattern-propagator may use this to e.g. propagate taint
+     * from `x` to `y` in `f(x,y)`, so that subsequent uses of `y` are tainted
+     * if `x` was previously tainted. *)
     | `Lval lval when LV.lval_is_var_and_dots lval ->
         Lval_env.add lval taints_propagated lval_env
     | `Lval _
@@ -428,10 +444,10 @@ let handle_taint_propagators env x taints =
 let find_lval_taint_sources env ~labels lval =
   let source_pms = lval_is_source env.config lval in
   let mut_source_pms, reg_source_pms =
-    (* If the variable is an exact match (overlap > 0.99) for a source
-       * annotation, then we infer that the variable itself is now tainted
-       * (presumably by side-effect) and we will update the `var_env`
-       * accordingly. Otherwise the variable belongs to a piece of code that
+    (* If the lvalue is an exact match (overlap > 0.99) for a source
+       * annotation, then we infer that the lvalue itself is now tainted
+       * (presumably by side-effect) and we will update the `lval_env`
+       * accordingly. Otherwise the lvalue belongs to a piece of code that
        * is a source of taint, but it is not tainted on its own. *)
     List.partition is_exact source_pms
   in
@@ -461,6 +477,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
    *  comments below.
    *)
   match lval_is_sanitized env.config lval with
+  (* See NOTE [is_sanitizer] *)
   (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
   | _ :: _ as sanitizer_pms ->
       (* NOTE [lval/clean]:
@@ -474,7 +491,9 @@ and check_tainted_lval_aux env (lval : IL.lval) :
        *  *IF* sanitization is side-effectful then any taint info will be removed
        *  from lval_env by sanitize_lval, but that is not guaranteed.
        *)
-      let lval_env = sanitize_lval env.lval_env sanitizer_pms lval in
+      let lval_env =
+        sanitize_lval_by_side_effect env.lval_env sanitizer_pms lval
+      in
       (Taints.empty, `Clean, lval_env)
   | [] ->
       (* Recursive call, check sub-lvalues first.
@@ -502,7 +521,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
             (* See NOTE [lval/clean] *)
             `Clean
         | (`None | `Tainted _) as st -> (
-            match Lval_env.find_lval lval_env lval with
+            match Lval_env.dumb_find lval_env lval with
             | (`Clean | `Tainted _) as st' -> st'
             | `None -> st)
       in
@@ -718,6 +737,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
   in
   let sanitizer_pms = orig_is_sanitized env.config instr.iorig in
   match sanitizer_pms with
+  (* See NOTE [is_sanitizer] *)
   | _ :: _ ->
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
       (Taints.empty, env.lval_env)

@@ -1,14 +1,20 @@
-// Mark taint on all of `a`, remember that only `a.b` is clean
+// Mark taint on all of `x`, remember that only `x.a` is clean
 function f() {
-    a = source
-    a.b = safe
+    x = source
+    x.a = safe
     
     //ruleid: test
-    sink(a)
+    sink(x)
 
     //ruleid: test
-    sink(a.c)
+    sink(x.b)
+
+    //ruleid: test
+    sink(x.b.c)
 
     //ok: test
-    sink(a.b)
+    sink(x.a)
+
+    //ok: test
+    sink(x.a.b)
 }

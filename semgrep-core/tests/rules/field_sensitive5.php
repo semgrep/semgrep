@@ -4,9 +4,10 @@ $id = isset(source()) ? source() : '';
 
 $obj = new Obj($id);
 
-// ok:regression_0113
+// We have a sanitizer cleaning $obj right here
+// ok:regression_0.113.0
 sink($obj->attr);
 
 $other_obj = new Unsafe();
-// ruleid:regression_0113
+// ruleid:regression_0.113.0
 sink($other_obj->method(source()));

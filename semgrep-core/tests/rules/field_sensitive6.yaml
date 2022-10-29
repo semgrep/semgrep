@@ -1,15 +1,14 @@
 rules:
-  - id: regression_0.113.0
+  - id: test
     message: Semgrep found a match
     languages:
-      - php
+      - python
     severity: WARNING
     mode: taint
     pattern-sources:
       - pattern: source()
     pattern-sinks:
       - pattern: sink(...)
-    pattern-sanitizers:
       - patterns:
-          - pattern: $TAINTED->$ATTR
-          - focus-metavariable: $TAINTED
+        - pattern: exotic($X.$A)
+        - focus-metavariable: $X

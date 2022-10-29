@@ -1,17 +1,22 @@
-// If `a.b` is marked clean, then any l-value that starts with `a.b` should
+// If `x.a` is marked clean, then any l-value that starts with `x.a` should
 // become clean too!
 function f() {
-    a.b.c = source
-    a.b.d = source
+    x.a.b = source
+    x.a.c = source
+
     //ruleid: test
-    sink(a.b.c.x)
-    a.b = safe
+    sink(x.a.b)
+    //ruleid: test
+    sink(x.a.c)
+    //ruleid: test
+    sink(x.a.b.x)
+
+    // After this, all the above ones become clean!
+    x.a = safe
     //ok: test
-    sink(a.b)
+    sink(x.a.b)
     //ok: test
-    sink(a.b.c)
+    sink(x.a.c)
     //ok: test
-    sink(a.b.c.d)
-    //ok: test
-    sink(a.b.c.x)
+    sink(x.a.b.x)
 }
