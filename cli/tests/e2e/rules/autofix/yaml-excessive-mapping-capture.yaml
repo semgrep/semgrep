@@ -1,0 +1,14 @@
+rules:
+  - id: yaml-excessive-capture
+    metadata:
+      issue: https://github.com/returntocorp/semgrep/issues/5698
+    pattern: |
+      $X:
+        foo: true
+    fix: "y: false"
+    message: >
+      If semgrep is not smart enough, it will match beyond the specified pattern
+      and capture all text until `z`. So the fix will result in `y: falsez: "z"`
+    languages:
+      - yaml
+    severity: ERROR
