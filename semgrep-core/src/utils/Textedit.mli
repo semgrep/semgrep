@@ -24,3 +24,7 @@ val apply_edits : dryrun:bool -> t list -> string list * t list
 
 (* Applies the edits to the given text and returns the result. Pure function. *)
 val apply_edits_to_text : string -> t list -> edit_application_result
+
+(* Applies the edit to the given text and returns the resulting string. Pure
+ * function. *)
+val apply_edit_to_text : string -> t -> string

@@ -30,17 +30,42 @@ let parse_pattern lang pattern =
       let e = Exception.catch e in
       Error e
 
+let parse_target lang text =
+  (* ext shouldn't matter, but could use Lang.ext_of_lang if needed *)
+  Common2.with_tmp_file ~str:text ~ext:"check" (fun file ->
+      try Ok (Parse_target.just_parse_with_lang lang file) with
+      | Timeout _ as e -> Exception.catch_and_reraise e
+      | e ->
+          let e = Exception.catch e in
+          Error e)
+
 (* Check whether the proposed fix results in syntactically valid code *)
-let validate_fix lang text =
-  (* TODO Apply fix to original text and try parsing the whole program *)
-  (* Since the fix is likely a program fragment, and not a valid top level
-   * program, attempt to parse it as a pattern *)
-  match parse_pattern lang text with
-  | Ok _ -> Ok text
-  | Error e ->
-      Error
-        (spf "Rendered autofix does not parse. Aborting: `%s`:\n%s" text
-           (Exception.to_string e))
+let validate_fix lang target_contents edit =
+  let fail err =
+    Error
+      (spf "Rendered autofix does not parse. Aborting: `%s`:\n%s"
+         edit.Textedit.replacement_text err)
+  in
+  let full_fixed_contents = Textedit.apply_edit_to_text target_contents edit in
+  match parse_target lang full_fixed_contents with
+  | Ok { skipped_tokens = []; _ } -> Ok edit
+  | Ok { skipped_tokens = fix_skipped_tokens; _ } -> (
+      (* We had a partial parse failure, but this does happen. As long as we
+       * didn't make the parse issue worse, we are probably good to go. So,
+       * let's parse the original text and compare the number of skipped tokens
+       * before and after the fix. *)
+      match parse_target lang target_contents with
+      | Ok { skipped_tokens = orig_skipped_tokens; _ } ->
+          if List.length fix_skipped_tokens <= List.length orig_skipped_tokens
+          then Ok edit
+          else fail "More partial parse failures after autofix application"
+      | Error _ ->
+          (* This really shouldn't happen. How did we get to this point if the
+           * original file didn't parse? And why did it just parse without any
+           * fatal errors after the autofix was applied? If you're here, good
+           * luck. Probably it changed out from under us. *)
+          fail "Failed to parse original file")
+  | Error e -> fail (Exception.to_string e)
 
 (******************************************************************************)
 (* Entry Points *)
@@ -101,12 +126,15 @@ let render_fix pm =
         ~fix_pattern_ast ~fix_pattern fixed_pattern_ast
     in
 
+    let edit =
+      { Textedit.path = pm.file; start; end_; replacement_text = text }
+    in
+
     (* Perform sanity checks for the resulting fix. *)
-    validate_fix lang text
+    validate_fix lang (Lazy.force target_contents) edit
   in
   match result with
-  | Ok replacement_text ->
-      Some { Textedit.path = pm.file; start; end_; replacement_text }
+  | Ok x -> Some x
   | Error err ->
       let msg = spf "Failed to render fix `%s`:\n%s" fix_pattern err in
       (* Print line-by-line so that each line is preceded by the logging header.
