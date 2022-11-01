@@ -141,18 +141,11 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
-      - name: Convert rule schema from yaml to json
-        run: ./scripts/prepare-schema.py
-      - name: Upload artifacts rule schema
-        uses: actions/upload-artifact@v3
-        with:
-          name: rule-schema-json
-          path: rule-schema.json
       - name: Upload artifacts rule schema
         uses: actions/upload-artifact@v3
         with:
           name: rule-schema-yaml
-          path: rule-schema.yaml
+          path: rule_schema.yaml
 
   release-docker:
     name: Build and push Semgrep Docker image
