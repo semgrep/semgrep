@@ -9,6 +9,7 @@ from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 import tomli
@@ -51,7 +52,7 @@ def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
     return {algorithm: [base64.b16encode(decode_base_64).decode("ascii").lower()]}
 
 
-def parse_yarn(
+def parse_yarn1(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
     def version_sources(line: str) -> Tuple[str, List[Tuple[str, str]]]:
@@ -122,6 +123,86 @@ def parse_yarn(
             transitivity=transitivity,
             line_number=int(line_number) + 1,
         )
+
+
+def parse_yarn2(
+    lockfile_text: str, manifest_text: Optional[str]
+) -> Iterator[FoundDependency]:
+
+    lockfile_text = "\n".join(
+        line + f" {i}" if line.strip().startswith("version") else line
+        for i, line in enumerate(lockfile_text.split("\n"))
+    )
+
+    if manifest_text:
+        manifest = json.loads(manifest_text)
+        manifest_deps = manifest["dependencies"] if "dependencies" in manifest else {}
+    else:
+        manifest_deps = None
+
+    def version_sources(line: str) -> Tuple[str, List[Tuple[str, str]]]:
+        constraint_strs = line[:-1].strip('"').split(", ")
+        constraints = []
+        for c in constraint_strs:
+            if c[0] == "@":
+                name, constraint = c[1:].split("@")
+                name = "@" + name
+            else:
+                name, constraint = c.split("@")
+            constraint = constraint.split(":")[1]  # npm:^1.0.0 --> ^1.0.0
+            constraints.append((name, constraint))
+        return constraints[0][0], constraints
+
+    def parse_dep(dep: str) -> FoundDependency:
+        lines = dep.split("\n")
+        lines = [l.strip(" ") for l in lines if len(l) - len(l.lstrip(" ")) < 4]
+        package, constraints = version_sources(lines[0])
+        field_lines = [
+            l.split(":")
+            for l in lines[1:]
+            if not (l.startswith("dependencies") or l.startswith("resolution"))
+        ]
+        fields = {f: v.strip(" ") for f, v in field_lines}
+        if "version" not in fields:
+            raise SemgrepError("yarn.lock dependency {package} missing version?")
+        version, line_number = fields["version"].split(" ")
+
+        if manifest_deps is None:
+            transitivity = Transitivity(Unknown())
+        else:
+            if package in manifest_deps:
+                transitivity = Transitivity(
+                    Direct()
+                    if (package, manifest_deps[package]) in constraints
+                    else Transitive()
+                )
+            else:
+                transitivity = Transitivity(Transitive())
+
+        return FoundDependency(
+            package=package,
+            version=version,
+            ecosystem=Ecosystem(Npm()),
+            allowed_hashes={"sha512": [fields["checksum"]]}
+            if "checksum" in fields
+            else {},
+            resolved_url=None,
+            transitivity=transitivity,
+            line_number=int(line_number),
+        )
+
+    deps = lockfile_text.split("\n\n")[2:]
+    for dep in deps:
+        yield parse_dep(dep)
+
+
+def parse_yarn(
+    lockfile_text: str, manifest_text: Optional[str]
+) -> Iterator[FoundDependency]:
+    if lockfile_text.startswith("# This file is"):
+        yield from parse_yarn2(lockfile_text, manifest_text)
+    else:
+        yield from parse_yarn1(lockfile_text, manifest_text)
 
 
 def parse_package_lock(
@@ -491,6 +572,52 @@ def parse_poetry(
     yield from (parse_dep(dep) for dep in deps)
 
 
+def parse_requirements(
+    lockfile_text: str, manifest_text: Optional[str]
+) -> Iterator[FoundDependency]:
+    for op in ["<", "<=", ">", ">="]:
+        if op in lockfile_text:
+            raise SemgrepError("requirements.txt contains non-pinned versions")
+
+    def remove_comment(line: str) -> str:
+        return line[: line.index("#")] if "#" in line else line
+
+    deps = [
+        (i, remove_comment(l).split("=="))
+        for i, l in enumerate(lockfile_text.split("\n"))
+        if "==" in l
+    ]
+
+    def parse_manifest(text: str) -> Set[str]:
+        out = set()
+        lines = text.split("\n")
+        for line in [remove_comment(l) for l in lines]:
+            for op in ["==", "<", "<=", ">", ">="]:
+                if op in line:
+                    out.add(op.split(op)[0])
+                else:
+                    if line != "":
+                        out.add(line)
+        return out
+
+    manifest_deps = parse_manifest(manifest_text) if manifest_text is not None else None
+
+    for line_number, (package, version) in deps:
+        yield FoundDependency(
+            package=package,
+            version=version,
+            ecosystem=Ecosystem(Pypi()),
+            resolved_url=None,
+            allowed_hashes={},
+            transitivity=Transitivity(
+                (Direct() if package in manifest_deps else Transitive())
+                if manifest_deps is not None
+                else Unknown()
+            ),
+            line_number=line_number,
+        )
+
+
 LOCKFILE_PARSERS = {
     "pipfile.lock": parse_pipfile,  # Python
     "yarn.lock": parse_yarn,  # JavaScript
@@ -501,6 +628,7 @@ LOCKFILE_PARSERS = {
     "pom.xml": parse_pom,  # Java
     "gradle.lockfile": parse_gradle,  # Java
     "poetry.lock": parse_poetry,  # Python
+    "requirements.txt": parse_requirements,
 }
 
 

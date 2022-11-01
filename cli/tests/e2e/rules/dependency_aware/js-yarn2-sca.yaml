@@ -1,0 +1,10 @@
+rules:
+  - id: js-yarn2-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+        namespace: npm
+        package: "@babel/core"
+        version: "< 8.0.0"
+    message: oh no
+    languages: [js]
+    severity: WARNING
