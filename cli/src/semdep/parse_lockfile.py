@@ -580,7 +580,7 @@ def parse_requirements(
             raise SemgrepError("requirements.txt contains non-pinned versions")
 
     def remove_comment(line: str) -> str:
-        return line[: line.index("#")] if "#" in line else line
+        return (line[: line.index("#")] if "#" in line else line).strip(" ")
 
     deps = [
         (i, remove_comment(l).split("=="))
