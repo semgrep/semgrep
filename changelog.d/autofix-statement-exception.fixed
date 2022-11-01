@@ -1,0 +1,1 @@
+Fix an issue that could cause AST-based autofix to fail on autofixes containing statements.
