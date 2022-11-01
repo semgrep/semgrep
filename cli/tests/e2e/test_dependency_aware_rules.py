@@ -45,6 +45,10 @@ from ..conftest import TESTS_PATH
             "dependency_aware/nested_package_lock/",
         ),
         ("rules/dependency_aware/js-yarn2-sca.yaml", "dependency_aware/yarn2"),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements",
+        ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
