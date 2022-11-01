@@ -9,6 +9,7 @@ from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 import tomli
@@ -574,14 +575,33 @@ def parse_poetry(
 def parse_requirements(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Iterator[FoundDependency]:
+    for op in ["<", "<=", ">", ">="]:
+        if op in lockfile_text:
+            raise SemgrepError("requirements.txt contains non-pinned versions")
+
+    def remove_comment(line: str) -> str:
+        return line[: line.index("#")] if "#" in line else line
+
     deps = [
-        (i, l.split("==")) for i, l in enumerate(lockfile_text.split("\n")) if "==" in l
+        (i, remove_comment(l).split("=="))
+        for i, l in enumerate(lockfile_text.split("\n"))
+        if "==" in l
     ]
-    manifest_deps = (
-        {l.split("==")[0] for l in manifest_text.split("\n") if "==" in l}
-        if manifest_text is not None
-        else None
-    )
+
+    def parse_manifest(text: str) -> Set[str]:
+        out = set()
+        lines = text.split("\n")
+        for line in [remove_comment(l) for l in lines]:
+            for op in ["==", "<", "<=", ">", ">="]:
+                if op in line:
+                    out.add(op.split(op)[0])
+                else:
+                    if line != "":
+                        out.add(line)
+        return out
+
+    manifest_deps = parse_manifest(manifest_text) if manifest_text is not None else None
+
     for line_number, (package, version) in deps:
         yield FoundDependency(
             package=package,
