@@ -13,105 +13,85 @@ module Resp = Output_from_core_t
 (****************************************************************************)
 
 (*
-   The 7% threshold works well for javascript files based on looking at
-   .min.js files and other .js found in various github repos.
+   We used to require a minimum of 7% of whitespace per file but this
+   resulted in false positives. Consult the git history for the old
+   heuristic.
 
-   - very few minified files have more than 5% of whitespace. Those with more
-     than 5% contain embedded data strings e.g.
-     "1C10 LX0 1C10 LX0 1C10 Mn0 MN0 2jz0 ...".
-   - no legitimate source files have less than 8% of whitespace and are larger
-     than 500 bytes at the same time.
-   - only some really short source files (2-3 lines) were found to have
-     between 5% and 8% whitespace.
+   We now only look at the average line length, with a high threshold
+   which will ensure that no legitimate source files will be skipped
+   (no false positives).
+   Some minified files may not be detected as such (some false negatives).
 
-  However, this threshold works less well for java files because it is not
-  unusual to have large import blocks at the top, resulting in a very low
-  whitespace fraction. This should not affect very many Java files, so for
-  now it is ok that we leave it. The consequence of reducing the frequency
-  is that Semgrep would likely take longer as it scans more costly minified
-  files. TODO we might want to do some benchmarking and change this default
+   For motivation, see this Java source file which has a very repetitive
+   but was at least partially edited by hand. It starts with more than
+   8192 bytes of import statements with no indentation:
+
+     https://github.com/OpenClinica/OpenClinica/blob/e46944f8719fec87ef005d3a8151541844d7fed1/core/src/main/java/org/akaza/openclinica/dao/extract/OdmExtractDAO.java
+
+   This file contains 4.2 % of whitespace, which is low. Most source files
+   contain over 7 % of whitespace.
 *)
-let min_whitespace_frequency = 0.07
 
 (*
-   This is for the few minified files that embed a bunch of space-separated
-   items in large data strings.
-   0.001 is an average of 1000 bytes per line, which doesn't occur with
+   An average of 300 bytes per line is very long. This doesn't occur with
    normal programming languages. It can approach this with Markdown or maybe
    files that are mostly comments made of very long lines.
+
+   Our line count includes 2 imaginary bonus lines so as to tolerate longer
+   lines in shorter files. For example, 600 bytes without a newline count
+   as 1 + 2 bonus lines = 3 lines, giving an average of 200 bytes per line.
+   These settings tolerate up to 900 bytes without a newline.
+
+   TODO: A slightly less crude statistical approach (e.g. based on trigram
+   frequencies) would probably work better than this.
 *)
-let min_line_frequency = 0.001
+let max_avg_line_length = 300.
+let bonus_lines = 2
 
 type whitespace_stat = {
-  sample_size : int;
-  (* size of the block; possibly the whole file *)
-  ws_freq : float;
-  (* whitespace: CR, LF, space, tab *)
-  line_freq : float; (* frequency of lines = 1/(avg line length) *)
+  sample_size : int; (* size of the block; possibly the whole file *)
+  avg_line_length : float;
 }
 
 let whitespace_stat_of_string s =
-  (* number of lines = number of LF characters + 1 *)
-  let lines = ref 1 in
-  let whitespace = ref 0 in
+  (* number of lines = number of LF characters + 1 + imaginary bonus lines *)
+  let lines = ref (1 + bonus_lines) in
   let other = ref 0 in
   for i = 0 to String.length s - 1 do
     match s.[i] with
-    | ' '
-    | '\t'
-    | '\r' ->
-        incr whitespace
-    | '\n' ->
-        incr whitespace;
-        incr lines
+    | '\n' -> incr lines
     | __else__ -> incr other
   done;
-  let total = !whitespace + !other in
+  let total = !lines + !other in
   let sample_size = String.length s in
-  if total = 0 then { sample_size; ws_freq = 1.; line_freq = 1. }
-  else
-    let ws_freq = float !whitespace /. float total in
-    let line_freq = float !lines /. float total in
-    { sample_size; ws_freq; line_freq }
+  assert (!lines > 0);
+  let avg_line_length = float total /. float !lines in
+  { sample_size; avg_line_length }
 
 let whitespace_stat_of_block ?block_size path =
   let s = Guess_lang.get_first_block ?block_size path in
   whitespace_stat_of_string s
 
+(*
+   We used to use the average line length to determine whether
+   a file is definitely not human-readable.
+*)
 let is_minified path =
   if not !Flag_semgrep.skip_minified_files then Ok path
   else
-    let stat = whitespace_stat_of_block ~block_size:4096 path in
-    (*
-     A small file could contain a long URL with no whitespace without being
-     minified. That's why we require a minimum file size.
-  *)
-    if stat.sample_size > 1000 then
-      if stat.ws_freq < min_whitespace_frequency then
-        Error
-          {
-            Resp.path;
-            reason = Minified;
-            details =
-              spf "file contains too little whitespace: %.3f%% (min = %.1f%%)"
-                (100. *. stat.ws_freq)
-                (100. *. min_whitespace_frequency);
-            rule_id = None;
-          }
-      else if stat.line_freq < min_line_frequency then
-        Error
-          {
-            Resp.path;
-            reason = Minified;
-            details =
-              spf
-                "file contains too few lines for its size: %.4f%% (min = \
-                 %.2f%%)"
-                (100. *. stat.line_freq)
-                (100. *. min_line_frequency);
-            rule_id = None;
-          }
-      else Ok path
+    let stat = whitespace_stat_of_block ~block_size:8192 path in
+    if stat.avg_line_length > max_avg_line_length then
+      Error
+        {
+          Resp.path;
+          reason = Minified;
+          details =
+            spf
+              "the average line length calculated after adding two extra blank \
+               lines is greater than the threshold: %.1f bytes (max = %.1f)"
+              stat.avg_line_length max_avg_line_length;
+          rule_id = None;
+        }
     else Ok path
 
 let exclude_minified_files paths = Common.partition_result is_minified paths
