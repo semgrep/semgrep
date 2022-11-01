@@ -594,9 +594,12 @@ def parse_requirements(
         for line in [remove_comment(l) for l in lines]:
             for op in ["==", "<", "<=", ">", ">="]:
                 if op in line:
+                    # package<=version
                     out.add(op.split(op)[0])
                 else:
+                    # Either a comment or package with no version specifier at all
                     if line != "":
+                        # Comments will be empty strings after remove_comment
                         out.add(line)
         return out
 
