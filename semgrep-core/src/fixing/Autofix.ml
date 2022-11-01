@@ -92,46 +92,54 @@ let render_fix pm =
   in
   let target_contents = lazy (Common.read_file pm.Pattern_match.file) in
   let result =
-    (* Fixes are not exactly patterns, but they can contain metavariables that
-     * should be substituted with the nodes to which they are bound in the match.
-     * Because they can contain metavariables, we need to parse them as patterns.
-     * *)
-    let/ fix_pattern_ast =
-      parse_pattern lang fix_pattern
-      |> Result.map_error (fun e ->
-             spf "Failed to parse fix pattern:\n%s" (Exception.to_string e))
-    in
+    try
+      (* Fixes are not exactly patterns, but they can contain metavariables that
+       * should be substituted with the nodes to which they are bound in the match.
+       * Because they can contain metavariables, we need to parse them as patterns.
+       * *)
+      let/ fix_pattern_ast =
+        parse_pattern lang fix_pattern
+        |> Result.map_error (fun e ->
+               spf "Failed to parse fix pattern:\n%s" (Exception.to_string e))
+      in
 
-    (* Look through the fix pattern's AST and replace metavariables with the nodes to
-     * which they are bound in the match. This should generate a well-formed AST,
-     * which when printed to text, should replace the range in the original match.
-     *
-     * We need to do this instead of just replacing metavars with their original
-     * text during printing. It's important for correctness to construct a
-     * well-formed AST as an intermediate step. For example, an ellipsis
-     * metavariable ($...X) might be bound to zero arguments in a function call
-     * (foo(1, $...X) would match foo(1), for example). If we were to skip this
-     * step, we would end up printing the extraneous comma before `$...X`.
-     *
-     * As we improve autofix, we may also want to perform other operations over
-     * the fixed AST.
-     * *)
-    let/ fixed_pattern_ast =
-      Autofix_metavar_replacement.replace_metavars metavars fix_pattern_ast
-    in
+      (* Look through the fix pattern's AST and replace metavariables with the nodes to
+       * which they are bound in the match. This should generate a well-formed AST,
+       * which when printed to text, should replace the range in the original match.
+       *
+       * We need to do this instead of just replacing metavars with their original
+       * text during printing. It's important for correctness to construct a
+       * well-formed AST as an intermediate step. For example, an ellipsis
+       * metavariable ($...X) might be bound to zero arguments in a function call
+       * (foo(1, $...X) would match foo(1), for example). If we were to skip this
+       * step, we would end up printing the extraneous comma before `$...X`.
+       *
+       * As we improve autofix, we may also want to perform other operations over
+       * the fixed AST.
+       * *)
+      let/ fixed_pattern_ast =
+        Autofix_metavar_replacement.replace_metavars metavars fix_pattern_ast
+      in
 
-    (* Try to print the fixed pattern AST. *)
-    let/ text =
-      Autofix_printer.print_ast ~lang ~metavars ~target_contents
-        ~fix_pattern_ast ~fix_pattern fixed_pattern_ast
-    in
+      (* Try to print the fixed pattern AST. *)
+      let/ text =
+        Autofix_printer.print_ast ~lang ~metavars ~target_contents
+          ~fix_pattern_ast ~fix_pattern fixed_pattern_ast
+      in
 
-    let edit =
-      { Textedit.path = pm.file; start; end_; replacement_text = text }
-    in
+      let edit =
+        { Textedit.path = pm.file; start; end_; replacement_text = text }
+      in
 
-    (* Perform sanity checks for the resulting fix. *)
-    validate_fix lang (Lazy.force target_contents) edit
+      (* Perform sanity checks for the resulting fix. *)
+      validate_fix lang (Lazy.force target_contents) edit
+    with
+    | Timeout _ as e -> Exception.catch_and_reraise e
+    | e ->
+        let e = Exception.catch e in
+        Error
+          (spf "Unexpected error while rendering autofix:\n%s"
+             (Exception.to_string e))
   in
   match result with
   | Ok x -> Some x
