@@ -113,10 +113,6 @@ jobs:
           echo "::set-output name=token::$TOKEN"
       - uses: actions/download-artifact@v3
         with:
-          name: rule-schema-json
-          path: rule_schema.json
-      - uses: actions/download-artifact@v3
-        with:
           name: rule-schema-yaml
           path: rule_schema.yaml
       - name: Upload Schema Files
@@ -124,7 +120,6 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
         run: |
-          gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get_version.outputs.VERSION }} rule_schema.json
           gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get_version.outputs.VERSION }} rule_schema.yaml
       - name: Publish Release Semgrep Interfaces
         id: publish_release_semgrep_interfaces
