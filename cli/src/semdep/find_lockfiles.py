@@ -26,6 +26,7 @@ ECOSYSTEM_TO_LOCKFILES = {
 LOCKFILE_TO_MANIFEST = {
     "Pipfile.lock": "Pipfile",
     "poetry.lock": "pyproject.toml",
+    "requirements.txt": "requirements.in",
     "package-lock.json": "package.json",
     "yarn.lock": "package.json",
     "Gemfile.lock": None,
