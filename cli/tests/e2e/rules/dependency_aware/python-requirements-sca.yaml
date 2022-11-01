@@ -3,8 +3,8 @@ rules:
     pattern: bad()
     r2c-internal-project-depends-on:
       namespace: pypi
-      package: python-dateutil
-      version: <= 3.8.2
+      package: pandas
+      version: <= 1.4.2
     message: oh no
     languages: [python]
     severity: WARNING

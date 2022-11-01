@@ -15,7 +15,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v0 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Pypi
 
 ECOSYSTEM_TO_LOCKFILES = {
-    Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock"],
+    Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt"],
     Ecosystem(Npm()): ["package-lock.json", "yarn.lock"],
     Ecosystem(Gem()): ["Gemfile.lock"],
     Ecosystem(Gomod()): ["go.sum"],
