@@ -17,7 +17,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   },
   "results": [
     {
-      "check_id": "rules.dependency_aware.js-sca",
+      "check_id": "rules.dependency_aware.js-yarn2-sca",
       "end": {
         "col": 6,
         "line": 1,
