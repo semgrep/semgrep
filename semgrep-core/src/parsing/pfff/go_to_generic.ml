@@ -114,9 +114,9 @@ let top_func () =
         let name = name_of_qualified_ident v1 in
         G.TyN name
     | TGeneric (v1, v2) ->
-        let id = ident v1 in
+        let id = qualified_ident v1 in
         let targs = type_arguments v2 in
-        let name = H.name_of_id id in
+        let name = name_of_qualified_ident id in
         G.TyApply (G.TyN name |> G.t, targs)
     | TPtr (t, v1) ->
         let v1 = type_ v1 in
