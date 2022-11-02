@@ -1311,30 +1311,6 @@ and map_literal_value (env : env) ((v1, v2, v3) : CST.literal_value) :
   let v3 = (* "}" *) token env v3 in
   (v1, v2, v3)
 
-(* old:
-   and literal_value (env : env) ((v1, v2, v3) : CST.literal_value) :
-       init list bracket =
-     let v1 = token env v1 (* "{" *) in
-     let v2 =
-       match v2 with
-       | Some (v1, v2, v3) ->
-           let v1 = anon_choice_elem_c42cd9b env v1 in
-           let v2 =
-             Common.map
-               (fun (v1, v2) ->
-                 let _v1 = token env v1 (* "," *) in
-                 let v2 = anon_choice_elem_c42cd9b env v2 in
-                 v2)
-               v2
-           in
-           let _v3 = trailing_comma env v3 in
-           v1 :: v2
-       | None -> []
-     in
-     let v3 = token env v3 (* "}" *) in
-     (v1, v2, v3)
-*)
-
 let import_spec_list (env : env) ((v1, v2, v3) : CST.import_spec_list) =
   let _v1 = token env v1 (* "(" *) in
   let v2 =
