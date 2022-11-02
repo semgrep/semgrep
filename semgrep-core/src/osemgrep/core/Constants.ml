@@ -19,7 +19,6 @@ let _default_semgrep_app_config_url = "api/agent/deployments/scans/config"
 
 (* LATER: move to Scan_CLI.default directly *)
 let default_timeout = 30 (* seconds *)
-let _settings_filename = "settings.yml"
 let yml_extensions = [ ".yml"; ".yaml" ]
 let _yml_suffixes = Common.map (fun ext -> [ ext ]) yml_extensions
 let _yml_test_suffixes = Common.map (fun ext -> [ ".test"; ext ]) yml_extensions
@@ -30,6 +29,7 @@ let _returntocorp_lever_url =
 
 let _unsupported_ext_ignore_langs = [ ("generic", "regex") ]
 
+(* LATER: move out of Constants.ml, those are type defs, not constants ... *)
 type output_format =
   | Text
   | Json
@@ -53,7 +53,9 @@ let _output_format_is_json = function
   | Vim ->
       false
 
-(* coupling: ensure consistency with 'serverity' in 'rule_schema.yaml' *)
+(* coupling: ensure consistency with 'serverity' in 'rule_schema.yaml'
+ * LATER: redundant with Rule.severity in semgrep-core.
+ *)
 type rule_severity = Info | Warning | Error | Inventory | Experiment
 (* TOPORT
     @classmethod
@@ -140,6 +142,8 @@ let default_max_target_size = 1_000_000 (* 1 MB *)
        forced_black = 16  # #000
        forced_white = 231  # #FFF
 *)
+
+(* LATER: move to utils/Color.ml separate file; those are not really constants *)
 type _color =
   | Foreground
   | White

@@ -17,7 +17,152 @@ from semgrep.rule_match import RuleMatch
 
 class SarifFormatter(BaseFormatter):
     @staticmethod
-    def _rule_match_to_sarif(rule_match: RuleMatch) -> Mapping[str, Any]:
+    def _taint_source_to_thread_flow_location_sarif(rule_match: RuleMatch) -> Any:
+        dataflow_trace = rule_match.dataflow_trace
+        if not dataflow_trace:
+            return None
+        taint_source = dataflow_trace.taint_source
+        if not taint_source:
+            return None
+        location = taint_source.location
+        content = "".join(taint_source.content).strip()
+        source_message_text = (
+            f"Source: '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+        )
+
+        taint_source_location_sarif = {
+            "location": {
+                "message": {"text": source_message_text},
+                "physicalLocation": {
+                    "artifactLocation": {"uri": str(rule_match.path)},
+                    "region": {
+                        "startLine": location.start.line,
+                        "startColumn": location.start.col,
+                        "endLine": location.end.line,
+                        "endColumn": location.end.col,
+                        "snippet": {"text": content},
+                        "message": {"text": source_message_text},
+                    },
+                },
+            }
+        }
+        return taint_source_location_sarif
+
+    @staticmethod
+    def _intermediate_vars_to_thread_flow_location_sarif(rule_match: RuleMatch) -> Any:
+        dataflow_trace = rule_match.dataflow_trace
+        if not dataflow_trace:
+            return None
+        intermediate_vars = dataflow_trace.intermediate_vars
+        if not intermediate_vars:
+            return None
+        intermediate_var_locations = []
+        for intermediate_var in intermediate_vars:
+            location = intermediate_var.location
+            content = "".join(intermediate_var.content).strip()
+            propagation_message_text = f"Propagator : '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+
+            intermediate_vars_location_sarif = {
+                "location": {
+                    "message": {"text": propagation_message_text},
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": str(rule_match.path)},
+                        "region": {
+                            "startLine": location.start.line,
+                            "startColumn": location.start.col,
+                            "endLine": location.end.line,
+                            "endColumn": location.end.col,
+                            "snippet": {"text": content},
+                            "message": {"text": propagation_message_text},
+                        },
+                    },
+                }
+            }
+            intermediate_var_locations.append(intermediate_vars_location_sarif)
+        return intermediate_var_locations
+
+    @staticmethod
+    def _sink_to_thread_flow_location_sarif(rule_match: RuleMatch) -> Any:
+        content = "".join(rule_match.get_lines()).strip()
+        sink_message_text = (
+            f"Sink: '{content}' @ '{str(rule_match.path)}:{str(rule_match.start.line)}'"
+        )
+
+        sink_location_sarif = {
+            "location": {
+                "message": {"text": sink_message_text},
+                "physicalLocation": {
+                    "artifactLocation": {"uri": str(rule_match.path)},
+                    "region": {
+                        "startLine": rule_match.start.line,
+                        "startColumn": rule_match.start.col,
+                        "endLine": rule_match.end.line,
+                        "endColumn": rule_match.end.col,
+                        "snippet": {"text": "".join(rule_match.lines).rstrip()},
+                        "message": {"text": sink_message_text},
+                    },
+                },
+            }
+        }
+        return sink_location_sarif
+
+    @staticmethod
+    def _dataflow_trace_to_thread_flows_sarif(rule_match: RuleMatch) -> Any:
+
+        thread_flows = []
+        locations = []
+
+        dataflow_trace = rule_match.dataflow_trace
+        if not dataflow_trace:
+            return None
+        taint_source = dataflow_trace.taint_source
+        intermediate_vars = dataflow_trace.intermediate_vars
+
+        if taint_source:
+            locations.append(
+                SarifFormatter._taint_source_to_thread_flow_location_sarif(rule_match)
+            )
+
+        if intermediate_vars:
+            intermediate_var_locations = (
+                SarifFormatter._intermediate_vars_to_thread_flow_location_sarif(
+                    rule_match
+                )
+            )
+            if intermediate_var_locations:
+                for intermediate_var_location in intermediate_var_locations:
+                    locations.append(intermediate_var_location)
+
+        locations.append(SarifFormatter._sink_to_thread_flow_location_sarif(rule_match))
+
+        thread_flows.append({"locations": locations})
+        return thread_flows
+
+    @staticmethod
+    def _dataflow_trace_to_codeflow_sarif(
+        rule_match: RuleMatch,
+    ) -> Optional[Mapping[str, Any]]:
+        dataflow_trace = rule_match.dataflow_trace
+        if not dataflow_trace:
+            return None
+        taint_source = dataflow_trace.taint_source
+        if not taint_source:
+            return None
+        location = taint_source.location
+        code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
+        code_flow_sarif = {
+            "message": {"text": code_flow_message},
+        }
+        thread_flows = SarifFormatter._dataflow_trace_to_thread_flows_sarif(rule_match)
+        if thread_flows:
+            code_flow_sarif["threadFlows"] = thread_flows
+
+        return code_flow_sarif
+
+    @staticmethod
+    def _rule_match_to_sarif(
+        rule_match: RuleMatch, dataflow_traces: bool
+    ) -> Mapping[str, Any]:
         rule_match_sarif = {
             "ruleId": rule_match.rule_id,
             "message": {"text": rule_match.message},
@@ -38,7 +183,14 @@ class SarifFormatter(BaseFormatter):
                     }
                 }
             ],
+            "fingerprints": {"matchBasedId/v1": rule_match.match_based_id},
         }
+
+        if dataflow_traces and rule_match.dataflow_trace:
+            code_flows = SarifFormatter._dataflow_trace_to_codeflow_sarif(rule_match)
+            if code_flows:
+                rule_match_sarif["codeFlows"] = [code_flows]
+
         if rule_match.is_ignored:
             rule_match_sarif["suppressions"] = [{"kind": "inSource"}]
 
@@ -84,14 +236,29 @@ class SarifFormatter(BaseFormatter):
     def _rule_to_sarif(rule: Rule) -> Mapping[str, Any]:
         severity = SarifFormatter._rule_to_sarif_severity(rule)
         tags = SarifFormatter._rule_to_sarif_tags(rule)
-        rule_json = {
-            "id": rule.id,
-            "name": rule.id,
-            "shortDescription": {"text": rule.message},
-            "fullDescription": {"text": rule.message},
-            "defaultConfiguration": {"level": severity},
-            "properties": {"precision": "very-high", "tags": tags},
-        }
+        security_severity = rule.metadata.get("security-severity")
+        if security_severity is not None:
+            rule_json = {
+                "id": rule.id,
+                "name": rule.id,
+                "shortDescription": {"text": rule.message},
+                "fullDescription": {"text": rule.message},
+                "defaultConfiguration": {"level": severity},
+                "properties": {
+                    "precision": "very-high",
+                    "tags": tags,
+                    "security-severity": security_severity,
+                },
+            }
+        else:
+            rule_json = {
+                "id": rule.id,
+                "name": rule.id,
+                "shortDescription": {"text": rule.message},
+                "fullDescription": {"text": rule.message},
+                "defaultConfiguration": {"level": severity},
+                "properties": {"precision": "very-high", "tags": tags},
+            }
 
         rule_url = rule.metadata.get("source")
         if rule_url is not None:
@@ -130,6 +297,7 @@ class SarifFormatter(BaseFormatter):
         if "cwe" in rule.metadata:
             cwe = rule.metadata["cwe"]
             result.extend(cwe if isinstance(cwe, list) else [cwe])
+            result.append("security")
         if "owasp" in rule.metadata:
             owasp = rule.metadata["owasp"]
             result.extend(
@@ -141,7 +309,7 @@ class SarifFormatter(BaseFormatter):
         for tags in rule.metadata.get("tags", []):
             result.append(tags)
 
-        return result
+        return sorted(set(result))
 
     @staticmethod
     def _semgrep_error_to_sarif_notification(error: SemgrepError) -> Mapping[str, Any]:
@@ -203,7 +371,7 @@ class SarifFormatter(BaseFormatter):
                         }
                     },
                     "results": [
-                        self._rule_match_to_sarif(rule_match)
+                        self._rule_match_to_sarif(rule_match, extra["dataflow_traces"])
                         for rule_match in rule_matches
                     ],
                     "invocations": [
@@ -220,4 +388,4 @@ class SarifFormatter(BaseFormatter):
         }
 
         # Sort keys for predictable output. This helps with snapshot tests, etc.
-        return json.dumps(output_dict, sort_keys=True)
+        return json.dumps(output_dict, sort_keys=True, indent=2)

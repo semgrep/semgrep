@@ -70,6 +70,15 @@ class type printer_t =
     method print_unbracketed_arguments :
       G.argument list -> (Immutable_buffer.t, string) result
 
+    method print_dot_access :
+      G.expr -> G.tok -> G.field_name -> (Immutable_buffer.t, string) result
+
+    method print_field_name :
+      G.field_name -> (Immutable_buffer.t, string) result
+
+    method print_name : G.name -> (Immutable_buffer.t, string) result
+    method print_ident : G.ident -> (Immutable_buffer.t, string) result
+
     method print_call :
       G.expr -> G.arguments -> (Immutable_buffer.t, string) result
 
@@ -164,11 +173,20 @@ class base_printer : printer_t =
        * of the logic should be reusable. *)
       Ok (self#add_parens_if_needed (G.E e) res)
 
+    method print_dot_access _ _ _ = print_fail ()
+
+    method print_field_name =
+      function
+      | G.FN name -> self#print_name name
+      | G.FDynamic e -> self#print_expr e
+
     method private print_expr_without_parens { e; _ } = self#print_expr_kind e
     method print_expr_kind _ = print_fail ()
     method print_argument _ = print_fail ()
     method print_arguments _ = print_fail ()
     method print_unbracketed_arguments _ = print_fail ()
+    method print_name _ = print_fail ()
+    method print_ident _ = print_fail ()
 
     method print_call e args =
       match e.G.e with
@@ -197,36 +215,51 @@ class base_printer : printer_t =
       if self#needs_parens any then combine [ b "("; res; b ")" ] else res
   end
 
-class python_printer : printer_t =
+(* Printing for constructs that are identical across many languages. Unlike
+ * base_printer, it's not expected that every printer inherit from this. But
+ * many printers should. This can be split up as needed so that printers can use
+ * pieces a la carte, but care should be taken to avoid making the inheritance
+ * graph overly complicated.
+ *
+ * This is virtual rather than a subclass of base_printer so that language
+ * printers can pull pieces from this and other classes as needed to concisely
+ * build up a complete printer. *)
+class virtual common_printer =
   object (self)
-    inherit base_printer
-
-    method! print_arguments (_b1, args, _b2) =
+    method print_arguments ((_b1, args, _b2) : G.arguments) =
       let/ args = self#print_unbracketed_arguments args in
       (* TODO Consider using original tokens for parens when available? *)
       Ok (combine [ b "("; args; b ")" ])
 
-    method! print_unbracketed_arguments args =
+    method print_unbracketed_arguments args =
       let/ args = map_all self#print_argument args in
       Ok (combine ~sep:", " args)
 
-    method! print_argument =
+    method print_argument =
       function
       | G.Arg e -> self#print_expr e
       | _ -> print_fail ()
 
-    method! print_expr_kind =
+    method print_expr_kind =
       function
       | G.Call (e, args) -> self#print_call e args
-      | G.N (G.Id ((str, _), _)) -> Ok (b str)
+      | G.N name -> self#print_name name
+      | G.DotAccess (e, tok, field) -> self#print_dot_access e tok field
       | _ -> print_fail ()
 
-    method! print_ordinary_call e args =
+    method print_name =
+      function
+      | G.Id (ident, _) -> self#print_ident ident
+      | G.IdQualified _ -> print_fail ()
+
+    method print_ident (str, _) = Ok (b str)
+
+    method print_ordinary_call e args =
       let/ e = self#print_expr e in
       let/ args = self#print_arguments args in
       Ok (combine [ e; args ])
 
-    method! print_opcall e args =
+    method print_opcall (e : G.expr) (args : G.arguments) =
       match args with
       | _, [ l; r ], _ ->
           let/ l = self#print_argument l in
@@ -234,4 +267,29 @@ class python_printer : printer_t =
           let/ r = self#print_argument r in
           Ok (combine ~sep:" " [ l; e; r ])
       | _ -> print_fail ()
+
+    method virtual print_expr : G.expr -> (Immutable_buffer.t, string) result
+
+    method virtual print_call
+        : G.expr -> G.arguments -> (Immutable_buffer.t, string) result
+
+    method virtual print_dot_access
+        : G.expr -> G.tok -> G.field_name -> (Immutable_buffer.t, string) result
+  end
+
+class python_printer : printer_t =
+  object (self)
+    inherit base_printer
+    inherit! common_printer
+
+    method! print_dot_access e _tok field =
+      let/ e = self#print_expr e in
+      let/ field = self#print_field_name field in
+      Ok (combine [ e; b "."; field ])
+  end
+
+class jsts_printer : printer_t =
+  object (_self)
+    inherit base_printer
+    inherit! common_printer
   end

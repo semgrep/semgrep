@@ -27,7 +27,7 @@
       "changes": {
         "file:///tmp/masked/path": [
           {
-            "newText": "inputs.get(x + 1)",
+            "newText": "inputs.get((x + 1))",
             "range": {
               "end": {
                 "character": 18,

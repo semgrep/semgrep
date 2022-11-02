@@ -237,6 +237,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Dockerfile ->
         (* TODO: add support for exact file name to lang.json *)
         Or (is_named [ "Dockerfile"; "dockerfile" ], has_lang_extension lang)
+    | Apex
     | Bash
     | C
     | Cpp

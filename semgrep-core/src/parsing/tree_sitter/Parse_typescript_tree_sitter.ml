@@ -66,7 +66,8 @@ let optional env opt f =
 let tyname_or_expr_of_expr e _targsTODO =
   let rec ids_of_expr = function
     | Id id -> [ id ]
-    | ObjAccess (e, _, PN id) -> id :: ids_of_expr e
+    (* THINK: Probably shouldn't have a question mark here. *)
+    | ObjAccess (e, (Dot, _), PN id) -> id :: ids_of_expr e
     | _ -> raise Not_found
   in
   try
@@ -1096,12 +1097,10 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) :
 and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
     =
   let expr = expr_or_prim_expr env v1 in
-  (* TODO: distinguish optional chaining "?." from a simple access "." *)
-  let dot_tok =
+  let dot =
     match v2 with
-    | `DOT tok (* "." *)
-    | `QMARKDOT (* "?." *) tok ->
-        token env tok
+    | `DOT tok (* "." *) -> (Dot, token env tok)
+    | `QMARKDOT (* "?." *) tok -> (QuestDot, token env tok)
   in
   let id_tok =
     match v3 with
@@ -1113,7 +1112,7 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
         x
   in
   let id = identifier env id_tok (* identifier *) in
-  ObjAccess (expr, dot_tok, PN id)
+  ObjAccess (expr, dot, PN id)
 
 and object_property (env : env) (x : CST.anon_choice_pair_20c9acd) : property =
   match x with
@@ -1175,7 +1174,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           | `Member_exp x -> member_expression env x
           | `Paren_exp x -> parenthesized_expression env x
           | `Choice_unde x -> identifier_ env x
-          | `Choice_decl x -> reserved_identifier env x |> idexp
+          | `Choice_decl x -> reserved_identifier env x |> idexp_or_special
           | `This tok -> this env tok (* "this" *)
           | `Super tok -> super env tok (* "super" *)
           | `Num tok ->
@@ -1901,7 +1900,7 @@ and map_type_query_member_expression (env : env)
   let e = map_anon_choice_type_id_e96bf13 env v1 in
   let tdot = map_anon_choice_DOT_d88d0af env v2 in
   let fld = map_anon_choice_priv_prop_id_89abb74 env v3 in
-  ObjAccess (e, tdot, PN fld)
+  ObjAccess (e, (Dot, tdot), PN fld)
 
 and map_type_query_subscript_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.type_query_subscript_expression) : expr =

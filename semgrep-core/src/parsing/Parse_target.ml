@@ -210,6 +210,14 @@ let (run :
       { ast = fconvert ast; skipped_tokens; stat }
   | Error e -> Exception.reraise e
 
+(* Simplified version of 'run' that allows for plugins to hide the
+   intermediate AST type. *)
+let run_external_parser file
+    (parse :
+      Common.filename -> AST_generic.program Tree_sitter_run.Parsing_result.t) :
+    parsing_result =
+  run file [ TreeSitter parse ] (fun ast -> ast)
+
 let throw_tokens f file =
   let res = f file in
   (res.PI.ast, res.PI.stat)
@@ -383,6 +391,10 @@ let rec just_parse_with_lang lang file =
         [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
         (fun x -> x)
   | Lang.Hcl -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
+  | Lang.Apex ->
+      (* Proprietary. The actual parser needs to register itself for
+         parsing to take place. *)
+      run_external_parser file Parsing_plugin.Apex.parse_target
   [@@profiling]
 
 (*****************************************************************************)

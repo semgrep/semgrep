@@ -5,6 +5,9 @@ from typing import List
 from typing import Set
 from typing import Tuple
 
+from packaging.specifiers import InvalidSpecifier
+from packaging.specifiers import SpecifierSet
+
 import semgrep.output_from_core as core
 from semdep.find_lockfiles import find_single_lockfile
 from semdep.package_restrictions import dependencies_range_match_any
@@ -40,6 +43,11 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
         semver_range = entry.get("version")
         if semver_range is None:
             raise SemgrepError(f"project-depends-on is missing `version`")
+        try:
+            SpecifierSet(semver_range)
+        except InvalidSpecifier:
+            raise SemgrepError(f"invalid semver range {semver_range}")
+
         yield DependencyPattern(
             ecosystem=ecosystem, package=package, semver_range=semver_range
         )

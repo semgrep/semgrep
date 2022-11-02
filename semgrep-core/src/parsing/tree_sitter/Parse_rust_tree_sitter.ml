@@ -1573,7 +1573,7 @@ and map_field_declaration_type (env : env) (x : CST.field_declaration) : G.type_
       ty
   | `Ellips v1 ->
       let t = token env v1 in
-      TyEllipsis t |> G.t
+      G.TyEllipsis t |> G.t
 
 (* for enum definition (OrConstructor) *)
 and map_field_declaration_list_types (env : env)
@@ -1617,7 +1617,7 @@ and map_field_declaration_union (env : env) (x : CST.field_declaration) :
   | `Ellips v1 ->
       let t = token env v1 in
       (* TODO *)
-      let ty = TyEllipsis t |> G.t in
+      let ty = G.TyEllipsis t |> G.t in
       G.OrUnion (("...", t), ty)
 
 (* for union definition *)
@@ -2919,7 +2919,7 @@ and map_declaration_statement (env : env) x : G.stmt list =
   | `Choice_const_item x -> map_declaration_statement_bis env x
   | `Ellips v1 ->
       let t = token env v1 in
-      [ Ellipsis t |> G.e |> G.exprstmt ]
+      [ G.Ellipsis t |> G.e |> G.exprstmt ]
 
 (* was called map_item_kind by ruin *)
 and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :

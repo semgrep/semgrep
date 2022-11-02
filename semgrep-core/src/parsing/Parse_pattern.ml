@@ -91,6 +91,9 @@ let parse_pattern lang ?(print_errors = false) str =
   let any =
     match lang with
     (* directly to generic AST any using tree-sitter only *)
+    | Lang.Apex ->
+        let res = Parsing_plugin.Apex.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Csharp ->
         let res = Parse_csharp_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors

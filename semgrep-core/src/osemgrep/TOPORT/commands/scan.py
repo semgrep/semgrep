@@ -14,7 +14,6 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.notifications import possibly_notify_user
 from semgrep.project import get_project_url
 from semgrep.semgrep_types import LANGUAGE
-from semgrep.state import get_state
 from semgrep.target_manager import write_pipes_to_disk
 from semgrep.util import abort
 from semgrep.util import with_color
@@ -110,9 +109,7 @@ class MetricsStateType(click.ParamType):
                 return MetricsState.OFF
         self.fail("expected 'auto', 'on', or 'off'")
 
-
 METRICS_STATE_TYPE = MetricsStateType()
-
 
 # Slightly increase the help width from default 80 characters, to improve readability
 CONTEXT_SETTINGS = {"max_content_width": 90}
@@ -134,7 +131,7 @@ _scan_options: List[Callable] = [
         flag_value="on",
         hidden=True,
     ),
-    optgroup.group(
+ optgroup.group(
         "Path options",
         help="""
             By default, Semgrep scans all git-tracked files with extensions matching rules' languages.
@@ -159,7 +156,7 @@ _scan_options: List[Callable] = [
             --lang. If --skip-unknown-extensions, these files will not be scanned
         """,
     ),
-    optgroup.group("Performance and memory options"),
+ optgroup.group("Performance and memory options"),
     optgroup.option(
         "--enable-version-check/--disable-version-check",
         is_flag=True,
@@ -170,7 +167,7 @@ _scan_options: List[Callable] = [
             may reduce exit time after returning results.
         """,
     ),
-    optgroup.group("Display options"),
+ optgroup.group("Display options"),
     optgroup.option(
         "--enable-nosem/--disable-nosem",
         is_flag=True,
@@ -233,7 +230,7 @@ _scan_options: List[Callable] = [
             times for each pair (rule, target).
         """,
     ),
-    optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
+ optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
 
     optgroup.group(
         "Output formats",
@@ -263,7 +260,6 @@ def scan_options(func: Callable) -> Callable:
     return func
 
 
-@click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "--replacement",
@@ -272,17 +268,9 @@ def scan_options(func: Callable) -> Callable:
         Only valid with a command-line specified pattern.
     """,
 )
+
 @optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup)
-@click.option(
-    "--dryrun/--no-dryrun",
-    is_flag=True,
-    default=False,
-    help="""
-        If --dryrun, does not write autofixes to a file. This will print the changes
-        to the console. This lets you see the changes before you commit to them. Only
-        works with the --autofix flag. Otherwise does nothing.
-    """,
-)
+
 @click.option(
     "--severity",
     multiple=True,
@@ -299,7 +287,9 @@ def scan_options(func: Callable) -> Callable:
     is_flag=True,
     help=("Print a list of languages that are currently supported by Semgrep."),
 )
+
 @optgroup.group("Alternate modes", help="No search is performed in these modes")
+
 @optgroup.option(
     "--validate",
     is_flag=True,
@@ -309,7 +299,9 @@ def scan_options(func: Callable) -> Callable:
 @optgroup.option(
     "--version", is_flag=True, default=False, help="Show the version and exit."
 )
+
 @optgroup.group("Test and debug options")
+
 @optgroup.option("--test", is_flag=True, default=False, help="Run test suite.")
 @optgroup.option(
     "--test-ignore-todo/--no-test-ignore-todo",
@@ -342,8 +334,6 @@ def scan_options(func: Callable) -> Callable:
     hidden=True
     # help="contact support@r2c.dev for more information on this"
 )
-@scan_options
-@handle_command_errors
 def scan(
     *,
     deep: bool,
@@ -360,7 +350,6 @@ def scan(
     max_chars_per_line: int,
     max_lines_per_finding: int,
     metrics_legacy: Optional[MetricsState],
-    optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
     replacement: Optional[str],

@@ -1,4 +1,0 @@
-Taint mode will now track taint coming from the default values of function
-parameters. For example, given `def test(url = "http://example.com"):`,
-if `"http://example.com"` is a taint source (due to not using TLS), then
-`url` will be marked as tainted during the analysis of `test`.

@@ -10,6 +10,7 @@ type visitor_in = {
     (argument list -> argument list) * visitor_out ->
     argument list ->
     argument list;
+  kname : (name -> name) * visitor_out -> name -> name;
 }
 
 and visitor_out = {

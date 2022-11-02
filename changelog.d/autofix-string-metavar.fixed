@@ -1,1 +1,0 @@
-Fixed an autofix regression that caused Semgrep to fail to replace metavariables in string literals, e.g. `foo("xyz $X")`.

@@ -39,7 +39,7 @@ let ( let/ ) = Result.bind
 module ASTTable = Hashtbl.Make (struct
   type t = AST_generic.any
 
-  let equal = AST_generic.equal_any
+  let equal = AST_utils.with_structural_equal AST_generic.equal_any
   let hash = AST_generic.hash_any
 end)
 
@@ -59,10 +59,20 @@ module PythonPrinter = Hybrid_print.Make (struct
   class printer = Ugly_print_AST.python_printer
 end)
 
+module JsTsPrinter = Hybrid_print.Make (struct
+  class printer = Ugly_print_AST.jsts_printer
+end)
+
 let get_printer lang external_printer :
     (Ugly_print_AST.printer_t, string) result =
   match lang with
-  | Lang.Python -> Ok (new PythonPrinter.printer external_printer)
+  | Lang.Python
+  | Lang.Python2
+  | Lang.Python3 ->
+      Ok (new PythonPrinter.printer external_printer)
+  | Lang.Js
+  | Lang.Ts ->
+      Ok (new JsTsPrinter.printer external_printer)
   | __else__ -> Error (spf "No printer available for %s" (Lang.to_string lang))
 
 let original_source_of_ast source any =
@@ -73,12 +83,24 @@ let original_source_of_ast source any =
   let str = String.sub source starti len in
   Some str
 
+let mvalue_to_any = function
+  (* For autofix purposes, it's okay and in fact desirable to drop the info here.
+   * Otherwise MV.Id gets converted to an expression before going into the table
+   * that holds the original unchanged nodes. That works fine if it is used in an
+   * expression in the fixed pattern AST, but if it's a lone identifier part of
+   * something else, it gets missed.
+   *
+   * Concretely, in the pattern `foo.$F()`, `$F` is not its own expression.
+   * *)
+  | MV.Id (id, _) -> I id
+  | other -> MV.mvalue_to_any other
+
 (* Add each metavariable value to the lookup table so that it can be identified
  * during printing *)
 let add_metavars (tbl : ast_node_table) metavars =
   List.iter
     (fun (_, mval) ->
-      let any = MV.mvalue_to_any mval in
+      let any = mvalue_to_any mval in
       ASTTable.replace tbl any Target;
       (* For each metavariable binding that is a list of things, we need to
        * iterate through and add each item in the list to the table as well.

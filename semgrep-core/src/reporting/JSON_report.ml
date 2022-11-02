@@ -27,6 +27,15 @@ module Out = Output_from_core_t (* atdgen definitions *)
 module OutH = Output_from_core_util
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+(* This is to avoid circular dependencies. We can't call
+ * Autofix.render_fix in this library, so we need to pass it
+ * as a function argument
+ *)
+type render_fix = Pattern_match.t -> Textedit.t option
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -193,7 +202,8 @@ let taint_trace_to_dataflow_trace { source; tokens; sink = _ } :
     intermediate_vars = Some (tokens_to_intermediate_vars tokens);
   }
 
-let unsafe_match_to_match (x : Pattern_match.t) : Out.core_match =
+let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
+    =
   let min_loc, max_loc = x.range_loc in
   let startp, endp = OutH.position_range min_loc max_loc in
   let dataflow_trace =
@@ -203,10 +213,9 @@ let unsafe_match_to_match (x : Pattern_match.t) : Out.core_match =
       x.taint_trace
   in
   let rendered_fix =
-    let* fix_pattern = x.rule_id.fix in
-    let* lang = List.nth_opt x.rule_id.languages 0 in
-    let target_contents = lazy (Common.read_file x.file) in
-    Autofix.render_fix lang x.env ~fix_pattern ~target_contents
+    let* render_fix = render_fix_opt in
+    let* edit = render_fix x in
+    Some edit.Textedit.replacement_text
   in
   {
     Out.rule_id = x.rule_id.id;
@@ -220,10 +229,10 @@ let unsafe_match_to_match (x : Pattern_match.t) : Out.core_match =
       };
   }
 
-let match_to_match (x : Pattern_match.t) :
+let match_to_match render_fix (x : Pattern_match.t) :
     (Out.core_match, Semgrep_error_code.error) Common.either =
   try
-    Left (unsafe_match_to_match x)
+    Left (unsafe_match_to_match render_fix x)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
@@ -270,7 +279,7 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
   {
     Out.op;
     children = children |> Common.map explanation_to_explanation;
-    matches = matches |> Common.map unsafe_match_to_match;
+    matches = matches |> Common.map (unsafe_match_to_match None);
     loc = OutH.location_of_token_location tloc;
   }
 
@@ -293,9 +302,9 @@ let json_time_of_profiling_data profiling_data =
     rules_parse_time = Some profiling_data.RP.rules_parse_time;
   }
 
-let match_results_of_matches_and_errors nfiles res =
+let match_results_of_matches_and_errors render_fix nfiles res =
   let matches, new_errs =
-    Common.partition_either match_to_match res.RP.matches
+    Common.partition_either (match_to_match render_fix) res.RP.matches
   in
   let errs = !E.g_errors @ new_errs @ res.RP.errors in
   let files_with_errors =

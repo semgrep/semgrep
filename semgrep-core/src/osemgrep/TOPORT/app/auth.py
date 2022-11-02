@@ -1,12 +1,3 @@
-import logging
-import sys
-from typing import Optional
-
-from semgrep.state import get_state
-
-logger = logging.getLogger(__name__)
-
-
 def is_valid_token(token: str) -> bool:
     """
     Returns true if token is valid

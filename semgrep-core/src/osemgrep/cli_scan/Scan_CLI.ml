@@ -26,13 +26,14 @@ module H = Cmdliner_helpers
 *)
 type conf = {
   autofix : bool;
+  dryrun : bool;
   baseline_commit : string option;
   (* TOPORT: can have multiple calls to --config, so string list here *)
   config : string;
-  debug : bool;
   exclude : string list;
   include_ : string list;
   lang : string option;
+  logging_level : Logs.level option;
   max_memory_mb : int;
   max_target_bytes : int;
   metrics : Metrics.State.t;
@@ -40,13 +41,11 @@ type conf = {
   optimizations : bool;
   output_format : Constants.output_format;
   pattern : string option;
-  quiet : bool;
   respect_git_ignore : bool;
   strict : bool;
   target_roots : string list;
   timeout : float;
   timeout_threshold : int;
-  verbose : bool;
 }
 
 let get_cpu_count () : int =
@@ -57,9 +56,9 @@ let get_cpu_count () : int =
 let default : conf =
   {
     autofix = false;
+    dryrun = false;
     baseline_commit = None;
     config = "auto";
-    debug = false;
     exclude = [];
     include_ = [];
     lang = None;
@@ -70,13 +69,12 @@ let default : conf =
     optimizations = true;
     output_format = Constants.Text;
     pattern = None;
-    quiet = false;
+    logging_level = Some Logs.Warning;
     respect_git_ignore = true;
     strict = false;
     target_roots = [ "." ];
     timeout = float_of_int Constants.default_timeout;
     timeout_threshold = 3;
-    verbose = false;
   }
 
 (*************************************************************************)
@@ -103,6 +101,15 @@ let o_autofix : bool Term.t =
       {|Apply autofix patches. WARNING: data loss can occur with this flag.
 Make sure your files are stored in a version control system. Note that
 this mode is experimental and not guaranteed to function properly.
+|}
+
+let o_dryrun : bool Term.t =
+  H.negatable_flag [ "dryrun" ] ~neg_options:[ "no-dryrun" ]
+    ~default:default.dryrun
+    ~doc:
+      {| If --dryrun, does not write autofixes to a file. This will print the changes
+to the console. This lets you see the changes before you commit to them. Only
+works with the --autofix flag. Otherwise does nothing.
 |}
 
 let o_baseline_commit : string option Term.t =
@@ -267,9 +274,14 @@ the file is skipped. If set to 0 will not have limit. Defaults to 3.
 (* TOPORT "Display options" *)
 (* ------------------------------------------------------------------ *)
 
+(* TODO? use Fmt_cli.style_renderer ? *)
+
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Verbosity options" *)
 (* ------------------------------------------------------------------ *)
+(* alt: we could use Logs_cli.level(), but by defining our own flags
+ * we can give better ~doc:. We lose the --verbosity=Level though.
+ *)
 let o_quiet =
   let info = Arg.info [ "q"; "quiet" ] ~doc:{|Only output findings.|} in
   Arg.value (Arg.flag info)
@@ -385,14 +397,14 @@ let o_target_roots =
   Arg.value (Arg.pos_all Arg.string default.target_roots info)
 
 (*****************************************************************************)
-(*** Subcommand 'scan' ***)
+(* Subcommand 'scan' *)
 (*****************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine autofix baseline_commit config debug emacs exclude include_ json
-      lang max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
-      quiet respect_git_ignore strict target_roots timeout timeout_threshold
-      verbose vim =
+  let combine autofix dryrun baseline_commit config debug emacs exclude include_
+      json lang max_memory_mb max_target_bytes metrics num_jobs optimizations
+      pattern quiet respect_git_ignore strict target_roots timeout
+      timeout_threshold verbose vim =
     let output_format =
       match (json, emacs, vim) with
       | false, false, false -> default.output_format
@@ -401,16 +413,25 @@ let cmdline_term : conf Term.t =
       | false, false, true -> Constants.Vim
       | _else_ ->
           (* TOPORT: list the possibilities *)
-          failwith "Mutually recursive options"
+          failwith "Mutually exclusive options"
+    in
+    let logging_level =
+      match (verbose, debug, quiet) with
+      | false, false, false -> Some Logs.Warning
+      | true, false, false -> Some Logs.Info
+      | false, true, false -> Some Logs.Debug
+      | false, false, true -> None (* TOPORT: list the possibilities *)
+      | _else_ -> failwith "mutually exclusive options"
     in
     {
       autofix;
+      dryrun;
       baseline_commit;
       config;
-      debug;
       exclude;
       include_;
       lang;
+      logging_level;
       max_memory_mb;
       max_target_bytes;
       metrics;
@@ -418,22 +439,20 @@ let cmdline_term : conf Term.t =
       optimizations;
       output_format;
       pattern;
-      quiet;
       respect_git_ignore;
       strict;
       target_roots;
       timeout;
       timeout_threshold;
-      verbose;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
   Term.(
-    const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug $ o_emacs
-    $ o_exclude $ o_include $ o_json $ o_lang $ o_max_memory_mb
-    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern
-    $ o_quiet $ o_respect_git_ignore $ o_strict $ o_target_roots $ o_timeout
-    $ o_timeout_threshold $ o_verbose $ o_vim)
+    const combine $ o_autofix $ o_dryrun $ o_baseline_commit $ o_config
+    $ o_debug $ o_emacs $ o_exclude $ o_include $ o_json $ o_lang
+    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
+    $ o_optimizations $ o_pattern $ o_quiet $ o_respect_git_ignore $ o_strict
+    $ o_target_roots $ o_timeout $ o_timeout_threshold $ o_verbose $ o_vim)
 
 let doc = "run semgrep rules on files"
 

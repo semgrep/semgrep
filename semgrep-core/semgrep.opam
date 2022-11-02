@@ -29,6 +29,7 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 # You may also need to update the ocaml:alpine-xxx image used in ../Dockerfile.
 depends: [
   "dune" {>= "2.7.0" }
+  "base"
   "atdgen"
   "yojson"
   "yaml"
@@ -40,6 +41,8 @@ depends: [
   "pcre"
   "parmap"
   "ppxlib"
+  "cmdliner"
+  "logs"
   "cohttp-lwt-unix" # this brings lots of dependencies. This is for osemgrep.
   "lsp" {= "1.7.0"}
   "comby-kernel" {= "1.4.1"}

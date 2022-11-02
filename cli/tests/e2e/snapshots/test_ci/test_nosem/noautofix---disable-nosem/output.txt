@@ -24,10 +24,10 @@ First-Party Non-Blocking Findings:
      eqeq-five
         useless comparison to 5
 
-         ▶▶┆ Autofix ▶ x == 2
+         ▶▶┆ Autofix ▶ (x == 2)
          15┆ x == 5
           ⋮┆----------------------------------------
-         ▶▶┆ Autofix ▶ y == 2
+         ▶▶┆ Autofix ▶ (y == 2)
          16┆ y == 5  # nosemgrep
 
 First-Party Blocking Findings:

@@ -80,6 +80,7 @@ let print_bool env = function
       | Lang.Python2
       | Lang.Python3 ->
           "True"
+      | Lang.Apex
       | Lang.Elixir
       | Lang.Java
       | Lang.Go
@@ -117,6 +118,7 @@ let print_bool env = function
       | Lang.Python2
       | Lang.Python3 ->
           "False"
+      | Lang.Apex
       | Lang.Elixir
       | Lang.Java
       | Lang.Go
@@ -257,6 +259,7 @@ and if_stmt env level (tok, e, s, sopt) =
     | Lang.Python2
     | Lang.Python3 ->
         (no_paren_cond, "elif", colon_body)
+    | Lang.Apex
     | Lang.Java
     | Lang.Go
     | Lang.C
@@ -323,6 +326,7 @@ and while_stmt env level (tok, e, s) =
     | Lang.Python2
     | Lang.Python3 ->
         python_while
+    | Lang.Apex
     | Lang.Java
     | Lang.C
     | Lang.Cpp
@@ -361,6 +365,7 @@ and do_while stmt env level (s, e) =
     | Lang.Html
     | Lang.Hcl ->
         raise Todo
+    | Lang.Apex
     | Lang.Java
     | Lang.C
     | Lang.Cpp
@@ -401,6 +406,7 @@ and for_stmt env level (for_tok, hdr, s) =
     | Lang.Solidity
     | Lang.Hcl ->
         raise Todo
+    | Lang.Apex
     | Lang.Java
     | Lang.C
     | Lang.Cpp
@@ -480,6 +486,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Html
       | Lang.Hcl ->
           raise Todo
+      | Lang.Apex
       | Lang.Java
       | Lang.C
       | Lang.Cpp
@@ -548,6 +555,7 @@ and return env (tok, eopt) _sc =
   | Lang.Html
   | Lang.Hcl ->
       raise Todo
+  | Lang.Apex
   | Lang.Java
   | Lang.C
   | Lang.Cpp
@@ -593,6 +601,7 @@ and break env (tok, lbl) _sc =
   | Lang.Html
   | Lang.Hcl ->
       raise Todo
+  | Lang.Apex
   | Lang.Java
   | Lang.C
   | Lang.Cpp
@@ -638,6 +647,7 @@ and continue env (tok, lbl) _sc =
   | Lang.Html
   | Lang.Hcl ->
       raise Todo
+  | Lang.Apex
   | Lang.Java
   | Lang.C
   | Lang.Cpp
@@ -759,6 +769,7 @@ and literal env l =
       | Lang.Python2
       | Lang.Python3 ->
           "'" ^ s ^ "'"
+      | Lang.Apex
       | Lang.Java
       | Lang.Go
       | Lang.C

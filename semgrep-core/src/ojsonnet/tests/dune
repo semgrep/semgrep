@@ -1,0 +1,12 @@
+; This could be make independent of semgrep, so try to not use semgrep dependencies here
+(library
+ (public_name ojsonnet_testing)
+ (wrapped false)
+ (libraries
+   commons
+   tree-sitter-lang.jsonnet
+   ojsonnet_parsing ; AST def
+   semgrep_parsing_tree_sitter ; just need Parse_jsonnet_tree_sitter.ml
+ )
+ (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
+)

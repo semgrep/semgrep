@@ -149,11 +149,12 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    timeout;
    timeout_threshold;
    max_memory_mb;
-   debug;
    output_format;
    optimizations;
    (* TOPORT: not handled yet *)
+   logging_level = _;
    autofix = _;
+   dryrun = _;
    baseline_commit = _;
    exclude = _;
    include_ = _;
@@ -165,8 +166,6 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    metrics = _;
    respect_git_ignore = _;
    strict = _;
-   quiet = _;
-   verbose = _;
   } ->
       let output_format =
         match output_format with
@@ -189,7 +188,6 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
         timeout;
         timeout_threshold;
         max_memory_mb;
-        debug;
         filter_irrelevant_rules;
         version = Version.version;
       }
@@ -245,7 +243,8 @@ let invoke_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
    * return it.
    *)
   let match_results =
-    JSON_report.match_results_of_matches_and_errors (Set_.cardinal scanned) res
+    JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
+      (Set_.cardinal scanned) res
   in
 
   (* TOPORT? or move in semgrep-core so get info ASAP

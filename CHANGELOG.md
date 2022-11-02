@@ -8,6 +8,44 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.118.0](https://github.com/returntocorp/semgrep/releases/tag/v0.118.0) - 2022-10-19
+
+### Added
+
+- Taint mode will now track taint coming from the default values of function
+  parameters. For example, given `def test(url = "http://example.com"):`,
+  if `"http://example.com"` is a taint source (due to not using TLS), then
+  `url` will be marked as tainted during the analysis of `test`. (gh-6298)
+- taint-mode: Added two new rule `options` that help minimizing false positives.
+
+  First one is `taint_assume_safe_indexes`, which makes Semgrep assume that an
+  array-access expression is safe even if the index expression is tainted. Otherwise
+  Semgrep assumes that e.g. `a[i]` is tainted if `i` is tainted, even if `a` is not.
+  Enabling this option is recommended for high-signal rules, whereas disabling it
+  may be preferred for audit rules. Currently, it is disabled by default for pure
+  backwards compatibility reasons, but this may change in the near future after some
+  evaluation.
+
+  The other one is `taint_assume_safe_functions`, which makes Semgrep assume that
+  function calls do _NOT_ propagate taint from their arguments to their output.
+  Otherwise, Semgrep always assumes that functions may propagate taint. This is
+  intended to replace _not conflicting_ sanitizers (added in v0.69.0) in the future.
+  This option is still experimental and needs to be complemented by other changes
+  to be made in future releases. (pa-1541)
+
+### Changed
+
+- Ignore the .npm/ directory by default in Semgrep scans (gh-6315)
+- The `--scan-unknown-extensions` option is now set to false by default.
+  This means that from now on `--skip-unknown-extensions` is the default.
+  This is an important change that prevents many errors when using
+  Semgrep in a pre-commit context or in CI. (pa-1932)
+
+### Fixed
+
+- Add autodetection for pull request numbers for Azure Pipelines. If SEMGREP_PR_ID is set, override the autodetection. (app-2083)
+- Fixed an autofix regression that caused Semgrep to fail to replace metavariables in string literals, e.g. `foo("xyz $X")`. (autofix-string-metavar)
+
 ## [0.117.0](https://github.com/returntocorp/semgrep/releases/tag/v0.117.0) - 2022-10-12
 
 ### Added

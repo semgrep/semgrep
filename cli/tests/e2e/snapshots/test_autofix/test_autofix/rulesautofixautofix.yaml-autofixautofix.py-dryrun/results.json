@@ -70,9 +70,9 @@
       },
       "extra": {
         "fingerprint": "0x42",
-        "fix": "inputs.get(x + 1)",
+        "fix": "inputs.get((x + 1))",
         "fixed_lines": [
-          "  if inputs.get(x + 1) == True:"
+          "  if inputs.get((x + 1)) == True:"
         ],
         "is_ignored": false,
         "lines": "  if inputs[x + 1] == True:",

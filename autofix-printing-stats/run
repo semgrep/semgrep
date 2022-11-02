@@ -10,6 +10,11 @@
 
 #load "str.cma"
 
+type opts = {
+  upload: bool;
+  verbose: bool;
+}
+
 let spf = Printf.sprintf
 
 (* Sets the current working directory to the location of this executable. May
@@ -114,9 +119,11 @@ let record_results results lang success_count total_count =
 let lang_of_path path =
   match Filename.extension path with
   | ".py" -> Some "python"
+  | ".ts" | ".tsx" -> Some "typescript"
+  | ".js" | ".jsx" -> Some "javascript"
   | __else__ -> None
 
-let run_on_target results rule target =
+let run_on_target opts results rule target =
   match lang_of_path target with
   | None -> ()
   | Some lang ->
@@ -137,14 +144,17 @@ let run_on_target results rule target =
       in
       let fix_list = String.split_on_char '\n' fixes in
       let success_list = List.filter (fun x -> x <> "null") fix_list in
-      record_results results lang (List.length success_list)
-        (List.length fix_list)
+      let success_count = List.length success_list in
+      let total_count = List.length fix_list in
+      (if opts.verbose && total_count >  success_count then
+        print_endline (spf "Failed: `%s` on `%s`" rule target));
+      record_results results lang success_count total_count
 
 (* All we know currently is that we have some YAML file that contains the string
  * `fix:`. Let's see if it exists alongside any potential target files whose
  * names differ only in the extension. If we find any, try running the rule over
  * the target file to see if semgrep-core can render a fix. *)
-let test_potential_rule results rule_path =
+let test_potential_rule opts results rule_path =
   let ruledir = Filename.dirname rule_path in
   with_chdir ruledir (fun () ->
       let rule_base = Filename.basename rule_path in
@@ -157,11 +167,11 @@ let test_potential_rule results rule_path =
           (fun file -> Str.string_match target_regex file 0)
           target_candidates
       in
-      List.iter (run_on_target results rule_base) targets)
+      List.iter (run_on_target opts results rule_base) targets)
 
 (* Run all Semgrep autofix rules in this project against their test targets, and
  * measure how often semgrep-core is able to successfully render a fix. *)
-let test_project results project_name =
+let test_project opts results project_name =
   with_chdir project_name (fun () ->
       (* Find all YAML files that contain lines starting with whitespace
        * followed by `fix:` *)
@@ -180,17 +190,17 @@ let test_project results project_name =
           ]
         |> String.split_on_char '\n'
       in
-      List.iter (test_potential_rule results) potential_rules)
+      List.iter (test_potential_rule opts results) potential_rules)
 
 let results_host = "https://dashboard.semgrep.dev"
 
-let upload_results should_upload results =
+let upload_results opts results =
   results
   |> Hashtbl.iter (fun lang (success, total) ->
          let percent = 100. *. (float_of_int success /. float_of_int total) in
          print_endline
            (spf "%s: %.1f%% (%d/%d)" lang percent success total);
-         if should_upload then
+         if opts.upload then
            (* Send a POST request with the success percentage as the payload *)
            (system "curl"
              [
@@ -202,15 +212,18 @@ let upload_results should_upload results =
              ];
            print_newline ()))
 
+let make_opts () =
+  (* Get the args. Remove the first element since that is the binary name *)
+  let args = Sys.argv |> Array.to_list |> List.tl in
+  {
+    upload = List.mem "--upload" args;
+    verbose = List.mem "--verbose" args;
+  }
+
 let main () =
   print_endline (spf "OCaml version: %s" Sys.ocaml_version);
-  let should_upload =
-    if Array.length Sys.argv >= 2 then
-      Sys.argv.(1) = "--upload"
-    else
-      false
-  in
-  (if should_upload then
+  let opts = make_opts () in
+  (if opts.upload then
     print_endline "Uploading statistics"
     else print_endline "Not uploading statistics. Pass --upload to upload."
   );
@@ -223,8 +236,8 @@ let main () =
   in
   let project_names = List.map clone_project_files url_list in
   let results = Hashtbl.create (List.length project_names) in
-  with_chdir "tmp" (fun () -> List.iter (test_project results) project_names);
-  upload_results should_upload results
+  with_chdir "tmp" (fun () -> List.iter (test_project opts results) project_names);
+  upload_results opts results
 ;;
 
 main ()

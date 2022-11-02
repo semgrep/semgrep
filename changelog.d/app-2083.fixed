@@ -1,1 +1,0 @@
-Add autodetection for pull request numbers for Azure Pipelines. If SEMGREP_PR_ID is set, override the autodetection.

@@ -158,8 +158,10 @@ def core_matches_to_rule_matches(
         message = interpolate(rule.message, matched_values, propagated_values)
         if match.extra.rendered_fix:
             fix = match.extra.rendered_fix
+            logger.debug(f"Using AST-based autofix rendered in semgrep-core: `{fix}`")
         elif rule.fix:
             fix = interpolate(rule.fix, matched_values, propagated_values)
+            logger.debug(f"Using text-based autofix rendered in cli: `{fix}`")
         else:
             fix = None
         fix_regex = None

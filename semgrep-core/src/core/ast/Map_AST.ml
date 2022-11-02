@@ -32,6 +32,7 @@ type visitor_in = {
     (argument list -> argument list) * visitor_out ->
     argument list ->
     argument list;
+  kname : (name -> name) * visitor_out -> name -> name;
 }
 
 and visitor_out = {
@@ -49,6 +50,7 @@ let default_visitor =
     kidinfo = (fun (k, _) x -> k x);
     klit = (fun (k, _) x -> k x);
     kargs = (fun (k, _) x -> k x);
+    kname = (fun (k, _) x -> k x);
   }
 
 let map_id x = x
@@ -209,13 +211,16 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | XmlXml v1 ->
         let v1 = map_xml v1 in
         XmlXml v1
-  and map_name = function
-    | Id (v1, v2) ->
-        let v1 = map_ident v1 and v2 = map_id_info v2 in
-        Id (v1, v2)
-    | IdQualified v1 ->
-        let v1 = map_name_info v1 in
-        IdQualified v1
+  and map_name name =
+    let k = function
+      | Id (v1, v2) ->
+          let v1 = map_ident v1 and v2 = map_id_info v2 in
+          Id (v1, v2)
+      | IdQualified v1 ->
+          let v1 = map_name_info v1 in
+          IdQualified v1
+    in
+    vin.kname (k, all_functions) name
   and map_expr x =
     let k x =
       let ekind =

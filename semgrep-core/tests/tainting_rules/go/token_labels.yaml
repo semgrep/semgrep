@@ -1,0 +1,16 @@
+rules:
+  - id: go-token-labels
+    message: A taint label did not prevent the match coming from a tainted token! 
+    severity: ERROR
+    languages:
+      - go
+    mode: taint
+    pattern-sources:
+      - requires: FOO
+        label: BAR
+        pattern: |
+          $A + $B
+    pattern-sinks:
+      - pattern: |
+          sink(...)
+        requires: BAR

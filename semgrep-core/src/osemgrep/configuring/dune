@@ -1,0 +1,26 @@
+; Library to support the different ways to "configure" semgrep (e.g., Semgrep env variables,
+; .semgrep/settings.yml config file, .semgrepconfig).
+; Not everything related to configuring semgrep is here (e.g., the rule format,
+; the CLI flags), but in the long term we should try to put it here.
+; Eventually, this will be merged with the /configuring library from semgrep-core
+
+(library
+  (name osemgrep_configuring)
+  (wrapped false)
+  (libraries
+   uri
+   commons
+   ; we should not depend on core/ here
+  )
+ (inline_tests)
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_hash
+     ppx_inline_test
+     ppx_assert
+   )
+ )
+)

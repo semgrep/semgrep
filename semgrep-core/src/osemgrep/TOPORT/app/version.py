@@ -6,24 +6,8 @@ an outdated version.
 """
 # TODO: for predictable test output, add a flag to avoid making actual
 # network calls?
-import json
-import time
-from json import JSONDecodeError
-from pathlib import Path
-from typing import Mapping
-from typing import Optional
-
-import requests
 from packaging.version import InvalidVersion
 from packaging.version import Version
-
-from semgrep import __VERSION__
-from semgrep.state import get_state
-from semgrep.types import JsonObject
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
 
 def _fetch_latest_version() -> Optional[JsonObject]:
     state = get_state()

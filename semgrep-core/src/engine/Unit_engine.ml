@@ -242,7 +242,7 @@ let related_file_of_target ~ext ~file =
  * Semgrep's `--test` flag can also test autofix
  * (https://github.com/returntocorp/semgrep/pull/5190), but it has the same
  * problems as the existing autofix e2e tests for these purposes. *)
-let compare_fixes lang ~file matches =
+let compare_fixes ~file matches =
   let expected_fixed_text =
     let expected_fixed_file =
       match related_file_of_target ~ext:"fixed" ~file with
@@ -251,7 +251,7 @@ let compare_fixes lang ~file matches =
     in
     Common.read_file expected_fixed_file
   in
-  let fixed_text = Autofix.apply_fixes lang matches ~file in
+  let fixed_text = Autofix.apply_fixes_to_file matches ~file in
   Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
 
 let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
@@ -333,7 +333,7 @@ let regression_tests_for_lang ~with_caching files lang =
                      ~file ~pattern ~fix_pattern
                  in
                  (match fix_pattern with
-                 | Some _ -> compare_fixes lang ~file matches
+                 | Some _ -> compare_fixes ~file matches
                  | None -> ());
                  let actual = !E.g_errors in
                  let expected = E.expected_error_lines_of_files [ file ] in

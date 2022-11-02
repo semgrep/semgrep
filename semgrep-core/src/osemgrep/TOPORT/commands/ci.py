@@ -1,28 +1,7 @@
-import os
-import sys
-import time
-from collections import defaultdict
-from contextlib import contextmanager
-from pathlib import Path
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-
-import click
-
-import semgrep.semgrep_main
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.scan import CONTEXT_SETTINGS
-from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.constants import OutputFormat
-from semgrep.error import FATAL_EXIT_CODE
-from semgrep.error import INVALID_API_KEY_EXIT_CODE
-from semgrep.error import SemgrepError
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
@@ -31,21 +10,14 @@ from semgrep.metrics import MetricsState
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.project import ProjectConfig
-from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatchMap
-from semgrep.state import get_state
 from semgrep.util import git_check_output
 from semgrep.util import unit_str
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
 
 # These patterns are excluded via --exclude regardless of other ignore configuration
 ALWAYS_EXCLUDE_PATTERNS = [".semgrep/", ".semgrep_logs/"]
 
 # These patterns are excluded via --exclude unless the user provides their own .semgrepignore
 DEFAULT_EXCLUDE_PATTERNS = ["test/", "tests/", "*_test.go"]
-
 
 def yield_valid_patterns(patterns: Iterable[str]) -> Iterable[str]:
     """
@@ -105,34 +77,12 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
         yield
 
 
-@click.command(context_settings=CONTEXT_SETTINGS)
-@click.pass_context
-@scan_options
 @click.option(
     "--audit-on",
     envvar="SEMGREP_AUDIT_ON",
     multiple=True,
     type=str,
     hidden=True,
-)
-@click.option(
-    "--config",
-    "-c",
-    "-f",
-    multiple=True,
-    help="""
-        YAML configuration file, directory of YAML files ending in
-        .yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
-        \n\n
-        Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in
-         to the Semgrep registry.
-        \n\n
-        To run multiple rule files simultaneously, use --config before every YAML, URL, or Semgrep registry entry name.
-         For example `semgrep --config p/python --config myrules/myrule.yaml`
-        \n\n
-        See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.
-    """,
-    envvar="SEMGREP_RULES",
 )
 @click.option(
     "--dry-run",
@@ -163,56 +113,27 @@ def ci(
     ctx: click.Context,
     *,
     audit_on: Sequence[str],
-    autofix: bool,
-    baseline_commit: Optional[str],
-    core_opts: Optional[str],
-    config: Optional[Tuple[str, ...]],
-    debug: bool,
     dry_run: bool,
-    emacs: bool,
     enable_nosem: bool,
     enable_version_check: bool,
-    exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
     suppress_errors: bool,
     force_color: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
-    include: Optional[Tuple[str, ...]],
-    jobs: int,
-    json: bool,
     junit_xml: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
-    max_memory: int,
-    max_target_bytes: int,
-    metrics: Optional[MetricsState],
     metrics_legacy: Optional[MetricsState],
     optimizations: str,
     dataflow_traces: bool,
-    output: Optional[str],
     sarif: bool,
-    quiet: bool,
     rewrite_rule_ids: bool,
     supply_chain: bool,
     scan_unknown_extensions: bool,
     time_flag: bool,
-    timeout_threshold: int,
-    timeout: int,
-    use_git_ignore: bool,
-    verbose: bool,
-    vim: bool,
 ) -> None:
     """
-    The recommended way to run semgrep in CI
-
-    In pull_request/merge_request (PR/MR) contexts, `semgrep ci` will only report findings
-    that were introduced by the PR/MR.
-
-    When logged in, `semgrep ci` runs rules configured on Semgrep App and sends findings
-    to your findings dashboard.
-
-    Only displays findings that were marked as blocking.
     """
     state = get_state()
     state.terminal.configure(

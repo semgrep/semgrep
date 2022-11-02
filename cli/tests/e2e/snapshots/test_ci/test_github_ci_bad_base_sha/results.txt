@@ -14,7 +14,7 @@ Non-Blocking Findings:
      eqeq-five
         useless comparison to 5
 
-         ▶▶┆ Autofix ▶ bar == 2
+         ▶▶┆ Autofix ▶ (bar == 2)
           1┆ bar == 5
 
 === end of stdout - plain
@@ -147,9 +147,9 @@ Running semgrep-core with command:
 <MASKED>
 <MASKED>
 <MASKED>
-<MASKED>
 --- end semgrep-core stderr ---
 skipped 'bar.py' [rule RuleId(value='taint-test')]: SkipReason(value=IrrelevantRule()): No need to perform deeper matching because target does not contain some elements necessary for the rule to match 'taint-test'
+Using AST-based autofix rendered in semgrep-core: `(bar == 2)`
 semgrep ran in <MASKED> on 1 files
 findings summary: 1 error, 0 warning
   Current version has 1 finding.

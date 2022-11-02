@@ -14,7 +14,7 @@ Non-Blocking Findings:
      eqeq-five
         useless comparison to 5
 
-         ▶▶┆ Autofix ▶ bar == 2
+         ▶▶┆ Autofix ▶ (bar == 2)
           1┆ bar == 5
 
 === end of stdout - plain

@@ -7,7 +7,7 @@
    commons commons_core
    pfff-config
    pfff-h_program-lang
-   pfff-lang_GENERIC pfff-lang_GENERIC-analyze
+   pfff-lang_GENERIC pfff-lang_GENERIC-naming
    pfff-lang_ruby pfff-lang_ruby-analyze
    pfff-lang_java pfff-lang_java-analyze
    pfff-lang_go pfff-lang_go-analyze
@@ -20,7 +20,7 @@
    semgrep_optimizing
    semgrep_parsing_tree_sitter
    semgrep_parsing_other
-   semgrep_targeting ; for Test_parsing.ml
+   semgrep_reporting
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )

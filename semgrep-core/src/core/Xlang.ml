@@ -17,16 +17,23 @@ exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
 
 let of_lang (x : Lang.t) = L (x, [])
 
-let to_lang (x : t) : Lang.t =
+let to_lang_exn (x : t) : Lang.t =
   match x with
   | L (lang, _) -> lang
   | LRegex -> failwith (Lang.unsupported_language_message "regex")
   | LGeneric -> failwith (Lang.unsupported_language_message "generic")
 
-let lang_of_opt_xlang (x : t option) : Lang.t =
+let to_langs (x : t) : Lang.t list =
+  match x with
+  | L (lang, langs) -> lang :: langs
+  | LRegex
+  | LGeneric ->
+      []
+
+let lang_of_opt_xlang_exn (x : t option) : Lang.t =
   match x with
   | None -> failwith (Lang.unsupported_language_message "unset")
-  | Some xlang -> to_lang xlang
+  | Some xlang -> to_lang_exn xlang
 
 let flatten x =
   match x with

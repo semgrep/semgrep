@@ -74,6 +74,9 @@ end = struct
         with_fallback (primary (G.Args args))
           (lazy (fallback#print_unbracketed_arguments args))
 
+      method! print_ident ident =
+        with_fallback (primary (G.I ident)) (lazy (fallback#print_ident ident))
+
       (* TODO Fill in more cases as needed. *)
     end
 end

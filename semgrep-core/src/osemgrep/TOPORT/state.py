@@ -7,7 +7,6 @@ class SemgrepState:
     """
 
     app_session: AppSession = Factory(AppSession)
-    env: Env = Factory(Env)
     metrics: Metrics = Factory(Metrics)
     error_handler: ErrorHandler = Factory(ErrorHandler)
     settings: Settings = Factory(Settings)

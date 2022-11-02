@@ -18,29 +18,38 @@
 (*****************************************************************************)
 
 (* TOPORT:
-   def maybe_set_git_safe_directories() -> None:
+      def maybe_set_git_safe_directories() -> None:
+          """
+          Configure Git to be willing to run in any directory when we're in Docker.
+
+          In docker, every path is trusted:
+          - the user explicitly mounts their trusted code directory
+          - r2c provides every other path
+
+          More info:
+          - https://github.blog/2022-04-12-git-security-vulnerability-announced/
+          - https://github.com/actions/checkout/issues/766
+          """
+          env = get_state().env
+          if not env.in_docker:
+              return
+
+          try:
+              # "*" is used over Path.cwd() in case the user targets an absolute path instead of setting --workdir
+              git_check_output(["git", "config", "--global", "--add", "safe.directory", "*"])
+          except Exception as e:
+              logger.info(
+                  f"Semgrep failed to set the safe.directory Git config option. Git commands might fail: {e}"
+              )
+
+   def abort_if_linux_arm64() -> None:
        """
-       Configure Git to be willing to run in any directory when we're in Docker.
-
-       In docker, every path is trusted:
-       - the user explicitly mounts their trusted code directory
-       - r2c provides every other path
-
-       More info:
-       - https://github.blog/2022-04-12-git-security-vulnerability-announced/
-       - https://github.com/actions/checkout/issues/766
+       Exit with FATAL_EXIT_CODE if the user is running on Linux ARM64.
+       Print helpful error message.
        """
-       env = get_state().env
-       if not env.in_docker:
-           return
-
-       try:
-           # "*" is used over Path.cwd() in case the user targets an absolute path instead of setting --workdir
-           git_check_output(["git", "config", "--global", "--add", "safe.directory", "*"])
-       except Exception as e:
-           logger.info(
-               f"Semgrep failed to set the safe.directory Git config option. Git commands might fail: {e}"
-           )
+       if platform.machine() in {"arm64", "aarch64"} and platform.system() == "Linux":
+           logger.error("Semgrep does not support Linux ARM64")
+           sys.exit(FATAL_EXIT_CODE)
 *)
 
 (*****************************************************************************)
@@ -109,9 +118,9 @@ let dispatch_subcommand argv =
       in
       (* coupling: with known_subcommands above *)
       match subcmd with
-      | "ci" -> missing_subcommand ()
-      | "login" -> missing_subcommand ()
-      | "logout" -> missing_subcommand ()
+      | "ci" -> Ci_subcommand.main subcmd_argv
+      | "login" -> Login_subcommand.main subcmd_argv
+      | "logout" -> Logout_subcommand.main subcmd_argv
       | "lsp" -> missing_subcommand ()
       | "publish" -> missing_subcommand ()
       | "scan" -> Scan_subcommand.main subcmd_argv
@@ -169,6 +178,7 @@ let main argv =
   (* TOPORT:
       state = get_state()
       state.terminal.init_for_cli()
+      abort_if_linux_arm64()
       commands: Dict[str, click.Command] = ctx.command.commands  # type: ignore
       subcommand: str = (
           ctx.invoked_subcommand if ctx.invoked_subcommand in commands else "unset"

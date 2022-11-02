@@ -800,7 +800,8 @@ let semgrep_with_rules_and_formatted_output config =
   match config.output_format with
   | Json _ -> (
       let res =
-        JSON_report.match_results_of_matches_and_errors (List.length files) res
+        JSON_report.match_results_of_matches_and_errors
+          (Some Autofix.render_fix) (List.length files) res
       in
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)
@@ -888,7 +889,7 @@ let semgrep_with_one_pattern config =
   assert (config.rule_source = None);
 
   (* TODO: support generic and regex patterns as well? See code in Deep. *)
-  let lang = Xlang.lang_of_opt_xlang config.lang in
+  let lang = Xlang.lang_of_opt_xlang_exn config.lang in
   let pattern, pattern_string = pattern_of_config lang config in
 
   match config.output_format with
@@ -900,7 +901,8 @@ let semgrep_with_one_pattern config =
         semgrep_with_rules config (([ rule ], []), rules_parse_time)
       in
       let json =
-        JSON_report.match_results_of_matches_and_errors (List.length files) res
+        JSON_report.match_results_of_matches_and_errors
+          (Some Autofix.render_fix) (List.length files) res
       in
       let s = Out.string_of_core_match_results json in
       pr s

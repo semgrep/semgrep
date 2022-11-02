@@ -300,9 +300,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       },
       "extra": {
         "fingerprint": "0x42",
-        "fix": "x == 2",
+        "fix": "(x == 2)",
         "fixed_lines": [
-          "    x == 2"
+          "    (x == 2)"
         ],
         "is_ignored": false,
         "lines": "    x == 5",

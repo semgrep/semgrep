@@ -18,8 +18,10 @@ version: 2.1
 jobs:
   # Dogfood!
   semgrep:
+    #TODO: used to be returntocorp/semgrep:develop for maximum dogfooding
+    # but something broke after https://app.circleci.com/pipelines/github/returntocorp/semgrep/14848   # which seems unrelated. Weird.
     docker:
-      - image: returntocorp/semgrep:develop
+      - image: returntocorp/semgrep:0.118.0
         user: root
     working_directory: /src
     steps:
@@ -71,15 +73,29 @@ jobs:
   # Run parsing stats and publish them to the semgrep dashboard.
   autofix-printing-stats:
     docker:
-      - image: returntocorp/semgrep-dev:develop
+      # The returntocorp/semgrep-dev:develop image doesn't have OCaml, so
+      # instead we use an OCaml image and install the production version of
+      # Semgrep.
+      #
+      # TODO build a docker image with both OCaml and semgrep-core available.
+      # Perhaps we can adapt our current Dockerfiles to publish an appropriate
+      # image here?
+      - image: ocaml/opam:ubuntu
     steps:
       - checkout
       - run:
           name: autofix printing stats
           no_output_timeout: 60m
           command: |
-            cd autofix-printing-stats
-            ./run --upload
+            sudo apt-get update
+            sudo apt-get install -y python3-pip jq
+            pip3 install semgrep
+            # Put semgrep-core on the path. This is a little bit shady but
+            # apparently the `pip show` output is meant to be machine-parseable
+            # so this output should be stable:
+            # https://github.com/pypa/pip/issues/5261
+            PATH=$PATH:"$(pip3 show semgrep | grep '^Location' | sed -e 's/Location: //')/semgrep/bin"
+            opam exec -- ./autofix-printing-stats/run --upload
 
 ##########################################################################################
 # The workflows
@@ -156,3 +172,13 @@ workflows:
             branches:
               only:
                 - parsing-stats
+
+  # This is for testing or for forcing a stats job. Requires pushing
+  # to a branch named 'autofix-printing-stats'.
+  autofix-printing-stats-on-commit:
+    jobs:
+      - autofix-printing-stats:
+          filters:
+            branches:
+              only:
+                - autofix-printing-stats
