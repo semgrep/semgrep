@@ -1,0 +1,1 @@
+Handle unexpected exceptions when performing AST-based autofix.
