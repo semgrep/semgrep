@@ -53,7 +53,7 @@ let _output_format_is_json = function
   | Vim ->
       false
 
-(* coupling: ensure consistency with 'serverity' in 'rule_schema.yaml'
+(* coupling: ensure consistency with 'serverity' in 'rule_schema_v1.yaml'
  * LATER: redundant with Rule.severity in semgrep-core.
  *)
 type rule_severity = Info | Warning | Error | Inventory | Experiment

@@ -30,7 +30,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Parsing a Semgrep rule, including complex pattern formulas.
  *
- * See also the JSON schema in rule_schema.yaml.
+ * See also the JSON schema in rule_schema_v1.yaml.
  *
  * history: we used to parse a semgrep rule by simply using the basic API of
  * the OCaml 'yaml' library. This API allows converting a yaml file into

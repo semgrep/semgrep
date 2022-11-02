@@ -50,7 +50,7 @@ class RuleSchema:
         if not cls._schema:
             yaml = YAML()
             schema_path = (
-                Path(__file__).parent / "semgrep_interfaces" / "rule_schema.yaml"
+                Path(__file__).parent / "semgrep_interfaces" / "rule_schema_v1.yaml"
             )
             with schema_path.open() as fd:
                 cls._schema = yaml.load(fd)

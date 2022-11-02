@@ -114,13 +114,13 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: rule-schema-yaml
-          path: rule_schema.yaml
+          path: rule_schema_v1.yaml
       - name: Upload Schema Files
         id: upload-semgrep-schema-files
         env:
           GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
         run: |
-          gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get_version.outputs.VERSION }} rule_schema.yaml
+          gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get_version.outputs.VERSION }} rule_schema_v1.yaml
       - name: Publish Release Semgrep Interfaces
         id: publish_release_semgrep_interfaces
         env:
@@ -140,7 +140,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: rule-schema-yaml
-          path: rule_schema.yaml
+          path: rule_schema_v1.yaml
 
   release-docker:
     name: Build and push Semgrep Docker image
