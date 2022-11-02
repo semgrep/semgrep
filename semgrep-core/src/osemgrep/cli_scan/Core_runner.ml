@@ -1,4 +1,4 @@
-module Out = Semgrep_output_v0_t
+module Out = Semgrep_output_v1_t
 module RP = Report
 
 (*************************************************************************)

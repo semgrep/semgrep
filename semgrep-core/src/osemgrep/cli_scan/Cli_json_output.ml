@@ -1,5 +1,5 @@
 open Common
-module Out = Semgrep_output_v0_j
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Types *)
