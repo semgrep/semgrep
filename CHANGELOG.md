@@ -46,6 +46,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JS/TS: Fixed a parsing bug where special identifiers were parsed differently in patterns (pa-2030)
 - Language server now appropriately applies regex fixes (vscode-regex)
 
+## 0.119.0 - Skipped
+
+Version 0.119.0 of Semgrep was intentionally skipped. Version 0.120.0 immediately follows version 0.118.0.
+
 ## [0.118.0](https://github.com/returntocorp/semgrep/releases/tag/v0.118.0) - 2022-10-19
 
 ### Added
