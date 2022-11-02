@@ -66,7 +66,7 @@ class ParsingData:
             lang_parse_data.targets_with_errors += 1
 
         # The error types checked here should comprise the parse related errors
-        # listed in semgrep_output_v0.atd. If you add a new parse error there,
+        # listed in semgrep_output_v1.atd. If you add a new parse error there,
         # it should get reflected here.
         #
         # Total errors for the whole file

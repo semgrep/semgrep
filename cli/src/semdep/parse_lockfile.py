@@ -25,18 +25,18 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-from semgrep.semgrep_interfaces.semgrep_output_v0 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Npm
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Pypi
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Gomod
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Gem
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Cargo
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Maven
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Direct
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Unknown
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 
 def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:

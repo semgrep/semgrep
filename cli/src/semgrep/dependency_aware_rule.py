@@ -14,10 +14,10 @@ from semdep.package_restrictions import dependencies_range_match_any
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.semgrep_interfaces.semgrep_output_v0 import DependencyMatch
-from semgrep.semgrep_interfaces.semgrep_output_v0 import DependencyPattern
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v0 import ScaInfo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaInfo
 from semgrep.target_manager import TargetManager
 
 SCA_FINDING_SCHEMA = 20220913
