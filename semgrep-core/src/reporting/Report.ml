@@ -244,7 +244,7 @@ let collate_results init_extra unzip_extra base_case_extra final_extra results =
        done for consistency with other parsing errors, like ParseError or
        LexicalError, which are only reported once per file, not rule.
 
-       See also the note in semgrep_output_v0.atd.
+       See also the note in semgrep_output_v1.atd.
     *)
     errors = List.fold_left ErrorSet.union ErrorSet.empty errors;
     extra = final_extra skipped_targets profiling;

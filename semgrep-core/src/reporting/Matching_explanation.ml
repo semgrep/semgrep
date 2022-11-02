@@ -27,7 +27,7 @@ module Out2 = Output_from_core_util
 (* Types *)
 (*****************************************************************************)
 
-(* coupling: semgrep_output_v0.atd matching_explanation type *)
+(* coupling: semgrep_output_v1.atd matching_explanation type *)
 type t = {
   op : Out.matching_operation;
   children : t list;

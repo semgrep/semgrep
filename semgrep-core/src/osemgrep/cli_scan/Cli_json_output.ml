@@ -99,7 +99,7 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
        (fun text (mvar, mval) ->
          (* necessary typing to help the type check disambiguate fields,
           * because of the use of multiple fields with the same
-          * name in semgrep_output_v0.atd *)
+          * name in semgrep_output_v1.atd *)
          let (v : Out.metavar_value) = mval in
          let content = lazy (content_of_file (v.start, v.end_) file) in
          text
@@ -166,7 +166,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
       (*  need to prefix with the dotted path of the config file *)
       let check_id = env.config_prefix ^ rule_id in
       let metavars = Some metavars in
-      (* LATER: this should be a variant in semgrep_output_v0.atd
+      (* LATER: this should be a variant in semgrep_output_v1.atd
        * and merged with Constants.rule_severity
        *)
       let severity = string_of_severity rule.severity in
