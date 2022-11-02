@@ -2,7 +2,7 @@
    Translated from rule_lang.py
 *)
 
-type span = Semgrep_output_v0_t.error_span
+type span = Semgrep_output_v1_t.error_span
 
 (* TODO: use out.ErrorSpan directly *)
 (*

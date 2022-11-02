@@ -39,7 +39,7 @@ from semgrep.lsp.types import CodeActionContext
 from semgrep.lsp.types import Diagnostic
 from semgrep.lsp.types import Range
 from semgrep.lsp.types import TextDocumentItem
-from semgrep.semgrep_interfaces.semgrep_output_v0 import MetavarValue
+from semgrep.semgrep_interfaces.semgrep_output_v1 import MetavarValue
 from semgrep.state import get_state
 from semgrep.types import JsonObject
 

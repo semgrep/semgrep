@@ -6,7 +6,7 @@
 
 (*
    All the types that used to be returned by semgrep-core as JSON.
-   The source is /semgrep-core/src/core/semgrep_output_v0.atd
+   The source is /semgrep-core/src/core/semgrep_output_v1.atd
 *)
 module C = Output_from_core_t
 

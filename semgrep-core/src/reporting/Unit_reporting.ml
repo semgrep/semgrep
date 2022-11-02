@@ -73,7 +73,7 @@ let semgrep_cli_output () =
               fun () ->
                 pr2 (spf "processing %s" file);
                 let s = Common.read_file file in
-                let _res = Semgrep_output_v0_j.cli_output_of_string s in
+                let _res = Semgrep_output_v1_j.cli_output_of_string s in
                 () )))
 
 let semgrep_scans_output () =
@@ -91,7 +91,7 @@ let semgrep_scans_output () =
               fun () ->
                 pr2 (spf "processing %s" file);
                 let s = Common.read_file file in
-                let _res = Semgrep_output_v0_j.api_scans_findings_of_string s in
+                let _res = Semgrep_output_v1_j.api_scans_findings_of_string s in
                 () )))
 
 (*****************************************************************************)
