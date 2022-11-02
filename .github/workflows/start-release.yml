@@ -350,13 +350,11 @@ jobs:
   bump-semgrep-rpc:
     needs: [validate-release-trigger, release-setup]
     name: Bump Semgrep RPC Semgrep Version
-    uses: ./.github/workflows/open-bump-pr.yml
+    uses: ./.github/workflows/call-bump-pr-workflow.yml
     secrets: inherit
     with:
       version: ${{needs.release-setup.outputs.version}}
       repository: "returntocorp/semgrep-rpc"
-      base_branch: "main"
-      bump_script_path: "scripts/bump-version.sh"
 
   notify-success:
     needs:
