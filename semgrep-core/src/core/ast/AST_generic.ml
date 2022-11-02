@@ -460,6 +460,7 @@ and expr_kind =
      - semgrep metavariable ($X and $...X)
   *)
   | RegexpTemplate of expr bracket (* // *) * string wrap option (* modifiers *)
+  | SqlQuery of sql_query
   (* see also New(...) for other values *)
   | N of name
   | IdSpecial of
@@ -1777,6 +1778,74 @@ and directive_kind =
 
 (* xxx as name *)
 and alias = ident * id_info
+
+(*****************************************************************************)
+(* SQL queries, possibly embedded in another programming language *)
+(*****************************************************************************)
+and sql_value_expr =
+  (*
+  | FuncExpr of function_expr
+*)
+  | FieldId of qualified_ident
+
+and sql_selectable_expr = ValueExpr of sql_value_expr
+(* incomplete *)
+
+and sql_select_expr =
+  | SelExpr of sql_selectable_expr list
+  | SelCount of tok (* count( *) * tok (* ) *)
+
+and sql_storage = { stor_id : qualified_ident; stor_as : ident option }
+
+and sql_literal =
+  | SqlInt of int wrap
+  | SqlDecimal of string wrap
+  | SqlString of string wrap
+  | SqlDate of string wrap
+  | SqlDateTime of string wrap
+  | SqlBool of bool wrap
+(* incomplete *)
+
+and sql_value_comparison =
+  | SqlLiteral of sql_literal
+  | SqlEmbeddedExpr of tok (* : *) * expr
+
+(*
+   value_comparison_operator: ($) =>
+     choice("=", "!=", "<>", "<", "<=", ">", ">=", ci("LIKE")),
+   set_comparison_operator: ($) =>
+     choice(ci("IN"), seq(ci("NOT IN")), ci("INCLUDES"), ci("EXCLUDES")),
+*)
+and sql_comparison = CompVal of operator wrap * sql_value_comparison
+(*
+  | CompSet of sql_set_comparison_operator * sql_set_comparison
+*)
+
+and sql_cond_expr =
+  | And of sql_cond_expr list (* non-empty list *)
+  | Or of sql_cond_expr list (* non-empty list *)
+  | Not of tok (* not *) * sql_cond_expr
+  | CompExpr of sql_value_expr * sql_comparison
+
+and sql_select = {
+  select : sql_select_expr;
+  from : sql_storage;
+  (* TODO:
+     using: option;
+  *)
+  where : sql_cond_expr option;
+      (* TODO:
+         with_: option;
+         group_by: option;
+         order_by: option;
+         limit: option;
+         offset: option;
+         for_: option;
+         update: option;
+      *)
+}
+
+and sql_query = SqlSelect of sql_select | SqlOther of todo_kind * any list
 
 (*****************************************************************************)
 (* Toplevel *)
