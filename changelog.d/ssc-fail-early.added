@@ -1,1 +1,0 @@
-Fail immediately if semgrep tries to run a supply chain rule with an invalid version range specifier

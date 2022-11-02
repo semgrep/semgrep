@@ -8,6 +8,44 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.120.0](https://github.com/returntocorp/semgrep/releases/tag/v0.120.0) - 2022-11-02
+
+### Added
+
+- Fail gracefully and print error message when running in unsupported Linux aarch64/arm64 environment (arm-fail)
+- Added 'fingerprints' field to results in sarif output (gh-5729)
+- Add dataflow traces as 'codeFlows' object in SARIF output (gh-6367)
+- Fail immediately if semgrep tries to run a supply chain rule with an invalid version range specifier (ssc-fail-early)
+- Added Supply Chain support for requirements.txt lockfiles (with requirement.in manifest files) and Yarn 2/3 lockfiles (ssc-yarn-req)
+
+### Changed
+
+- Change default behavior of CircleCI configurations. If a user manually sets their environment variables (i.e. SEMGREP_REPO_NAME, SEMGREP_REPO_URL, SEMGREP_BRANCH, SEMGREP_JOB_URL, SEMGREP_COMMIT), use it before falling back on autodetection. (app-2434)
+- Change default behavior of Buildkite CI configurations. If a user manually sets their environment variables (i.e. SEMGREP_REPO_NAME, SEMGREP_REPO_URL, SEMGREP_BRANCH, SEMGREP_JOB_URL, SEMGREP_COMMIT), use it before falling back on autodetection. (app-2435)
+- Change default behavior of bitbucket CI configurations. If a user manually sets their environment variables (i.e. SEMGREP_REPO_NAME, SEMGREP_REPO_URL, SEMGREP_BRANCH, SEMGREP_JOB_URL, SEMGREP_COMMIT), use it before falling back on autodetection. (app-2436)
+
+### Fixed
+
+- Handle unexpected exceptions when performing AST-based autofix. (autofix-exception)
+- Fix an issue that could cause AST-based autofix to fail on autofixes containing statements. (autofix-statement-exception)
+- Fix an issue preventing AST-based autofix from running in the presence of `focus-metavariable`. (focus-metavariable-autofix)
+- Implement string literal metavariables in Python AST-based autofix (gh-3648)
+- Go: parse correctly generic types from other packages (gh-5799)
+- Fix parsing of dot access ellipsis in PHP patterns (e.g. `$x-> ... ->bar()`). (gh-6183)
+- JS/TS: Allowed parsing of patterns using the optional chaining "?." syntax. (gh-6201)
+- Dockerfile language: Add support for RUN options such as
+  `RUN --mount=type=$TYPE,target=$TARGET ...`. (gh-6353)
+- taint-mode: Fixed a bug in the experimental taint-labels feature that caused labels to be incorrectly applied to dot accesses. For instance, if a pattern-source that requires label A and adds label B matches a dot-access expression like x.a, the field a will get the label B even if it does not carry label A as required. (gh-6355)
+- Use AST-based autofix when possible for JS autofixes. This is more likely to lead to correct output, especially for complicated fixes. (js-autofix)
+- taint-mode: Fixed regression in 0.113.0, after field sensitivity support was added,
+  that broke existing behavior when a prefix in a chain of dot-accesses such as
+  `x.a.b` was specified as a source/sanitizer/sink. For example, if `x` had been
+  previously tainted, then we encountered `sink(x.a.b)` where `x.a` matched a
+  sanitizer, there was a finding reported because `x.a.b` was incorrectly considered
+  tainted. (pa-1928)
+- JS/TS: Fixed a parsing bug where special identifiers were parsed differently in patterns (pa-2030)
+- Language server now appropriately applies regex fixes (vscode-regex)
+
 ## [0.118.0](https://github.com/returntocorp/semgrep/releases/tag/v0.118.0) - 2022-10-19
 
 ### Added
