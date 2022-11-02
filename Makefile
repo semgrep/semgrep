@@ -1,9 +1,7 @@
 ###############################################################################
 # Prelude
 ###############################################################################
-# This Makefile is targeted at developers.
-# For a one-shot production build, look into ./Dockerfile.
-#
+
 # Many targets in this Makefile assume some commands have been run before to
 # install the correct build environment supporting the different languages
 # used for Semgrep development:
@@ -253,6 +251,9 @@ gitclean:
 .PHONY: release
 release:
 	./scripts/release/bump
+
+update_semgrep_rules:
+	cd semgrep-core/tests/semgrep-rules; git checkout origin/develop
 
 ###############################################################################
 # Dogfood!
