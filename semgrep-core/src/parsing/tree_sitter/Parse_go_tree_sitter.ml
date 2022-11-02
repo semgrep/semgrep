@@ -349,29 +349,34 @@ and interface_body (env : env) (x : CST.interface_body) : interface_field =
             v2)
           v2
       in
-      let _xs = v1 :: v2 in
-      raise Todo
+      let xs = v1 :: v2 in
+      Constraints xs
 
-and struct_term (env : env) ((v1, v2) : CST.struct_term) =
-  let _v1TODO =
+and struct_term (env : env) ((v1, v2) : CST.struct_term) : constraint_ =
+  let tilde_opt, fty =
     match v1 with
     | Some x -> (
         match x with
-        | `TILDE tok -> (* "~" *) token env tok
-        | `STAR tok -> (* "*" *) token env tok)
-    | None -> raise Todo
+        | `TILDE tok ->
+            let t = (* "~" *) token env tok in
+            (Some t, fun ty -> ty)
+        | `STAR tok ->
+            let t = (* "*" *) token env tok in
+            (None, fun ty -> TPtr (t, ty)))
+    | None -> (None, fun ty -> ty)
   in
-  let _v2 = struct_type env v2 in
-  raise Todo
+  let ty = struct_type env v2 in
+  (tilde_opt, fty ty)
 
-and constraint_term (env : env) ((v1, v2) : CST.constraint_term) =
+and constraint_term (env : env) ((v1, v2) : CST.constraint_term) : constraint_ =
   let tilde_opt =
     match v1 with
     | Some tok -> Some ((* "~" *) token env tok)
     | None -> None
   in
   let id = (* identifier *) identifier env v2 in
-  (tilde_opt, id)
+  let ty = TName [ id ] in
+  (tilde_opt, ty)
 
 and interface_type_name (env : env) (x : CST.interface_type_name) :
     qualified_ident =

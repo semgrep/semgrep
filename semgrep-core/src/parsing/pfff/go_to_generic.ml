@@ -220,8 +220,9 @@ let top_func () =
     | Constraints xs -> (
         match xs with
         | [] -> raise Impossible
-        | (_tilde_opt, id) :: _xs ->
-            let st = G.OtherStmt (G.OS_Todo, [ G.I id ]) |> G.s in
+        | (_tilde_optTODO, ty) :: _xsTODO ->
+            let ty = type_ ty in
+            let st = G.OtherStmt (G.OS_Todo, [ G.T ty ]) |> G.s in
             G.F st)
   and expr_or_type v = either expr type_ v
   and expr e =
