@@ -1530,8 +1530,13 @@ and lhs (env : env) (x : CST.lhs) : AST.expr =
         | None -> []
       in
       let v4 = token2 env v4 in
-      let e = DotAccess (v1, v2, MethodOperator (Op_AREF, v4)) in
-      Call (e, fb v3, None)
+      let e =
+        (* THINK: Why do we need a DotAccess here rather than just `v1' ?
+         *   And why a Call rather than an ArrayAccess ?
+         *)
+        DotAccess (v1, v2, MethodOperator (Op_AREF, v2))
+      in
+      Call (e, (v2, v3, v4), None)
   | `Call x -> call env x
   | `Call_ x -> call_ env x
 
