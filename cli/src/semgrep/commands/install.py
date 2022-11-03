@@ -4,6 +4,7 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
+from zipfile import ZipFile
 
 import click
 from tqdm import tqdm
@@ -47,6 +48,9 @@ def install_deep_semgrep() -> None:
         logger.info(
             f"Overwriting DeepSemgrep binary already installed in {deep_semgrep_path}"
         )
+    scip_path = Path(core_path).parent / "scip_files.zip"
+    if scip_path.exists():
+        logger.info(f"Overwriting SCIP files already installed in {scip_path}")
 
     if state.app_session.token is None:
         logger.info("run `semgrep login` before using `semgrep install`")
@@ -63,6 +67,9 @@ def install_deep_semgrep() -> None:
         )
 
     url = f"{state.env.semgrep_url}/api/agent/deployments/deepbinary/{platform}"
+    # The SCIP URL is used to get the binaries which are necessary for SCIP-enhanced
+    # analysis in DeepSemgrep.
+    scip_url = f"{state.env.semgrep_url}/api/agent/deployments/scipfiles/{platform}"
 
     with state.app_session.get(url, timeout=60, stream=True) as r:
         if r.status_code == 401:
@@ -83,6 +90,16 @@ def install_deep_semgrep() -> None:
         with open(deep_semgrep_path, "wb") as f:
             with tqdm.wrapattr(r.raw, "read", total=file_size) as r_raw:
                 shutil.copyfileobj(r_raw, f)
+
+    with state.app_session.get(scip_url, timeout=60, stream=True) as r:
+        file_size = int(r.headers.get("Content-Length", 0))
+
+        with open(scip_path, "wb") as f:
+            with tqdm.wrapattr(r.raw, "read", total=file_size) as r_raw:
+                shutil.copyfileobj(r_raw, f)
+
+        with ZipFile(scip_path, "r") as zfile:
+            zfile.extractall(path=scip_path.parent)
 
     # THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
     #        The binary should not have setuid or setgid rights, so letting others
