@@ -24,6 +24,7 @@ type conf = {
   respect_git_ignore : bool;
   strict : bool;
   target_roots : string list;
+  time_flag : bool;
   timeout : float;
   timeout_threshold : int;
 }

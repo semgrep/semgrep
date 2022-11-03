@@ -44,6 +44,7 @@ type conf = {
   respect_git_ignore : bool;
   strict : bool;
   target_roots : string list;
+  time_flag : bool;
   timeout : float;
   timeout_threshold : int;
 }
@@ -73,6 +74,7 @@ let default : conf =
     respect_git_ignore = true;
     strict = false;
     target_roots = [ "." ];
+    time_flag = false;
     timeout = float_of_int Constants.default_timeout;
     timeout_threshold = 3;
   }
@@ -276,6 +278,14 @@ the file is skipped. If set to 0 will not have limit. Defaults to 3.
 
 (* TODO? use Fmt_cli.style_renderer ? *)
 
+let o_time : bool Term.t =
+  H.negatable_flag [ "time" ] ~neg_options:[ "no-time" ]
+    ~default:default.time_flag
+    ~doc:
+      {|Include a timing summary with the results. If output format is json,
+ provides times for each pair (rule, target).
+|}
+
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Verbosity options" *)
 (* ------------------------------------------------------------------ *)
@@ -403,7 +413,7 @@ let o_target_roots =
 let cmdline_term : conf Term.t =
   let combine autofix dryrun baseline_commit config debug emacs exclude include_
       json lang max_memory_mb max_target_bytes metrics num_jobs optimizations
-      pattern quiet respect_git_ignore strict target_roots timeout
+      pattern quiet respect_git_ignore strict target_roots time_flag timeout
       timeout_threshold verbose vim =
     let output_format =
       match (json, emacs, vim) with
@@ -442,6 +452,7 @@ let cmdline_term : conf Term.t =
       respect_git_ignore;
       strict;
       target_roots;
+      time_flag;
       timeout;
       timeout_threshold;
     }
@@ -452,7 +463,8 @@ let cmdline_term : conf Term.t =
     $ o_debug $ o_emacs $ o_exclude $ o_include $ o_json $ o_lang
     $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
     $ o_optimizations $ o_pattern $ o_quiet $ o_respect_git_ignore $ o_strict
-    $ o_target_roots $ o_timeout $ o_timeout_threshold $ o_verbose $ o_vim)
+    $ o_target_roots $ o_time $ o_timeout $ o_timeout_threshold $ o_verbose
+    $ o_vim)
 
 let doc = "run semgrep rules on files"
 
