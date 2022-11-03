@@ -42,7 +42,7 @@ class OutputFormat(Enum):
         return self in [OutputFormat.JSON, OutputFormat.SARIF]
 
 
-# Ensure consistency with 'severity' in 'rule_schema.yaml'
+# Ensure consistency with 'severity' in 'rule_schema_v1.yaml'
 class RuleSeverity(Enum):
     INFO = "INFO"
     WARNING = "WARNING"

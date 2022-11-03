@@ -16,30 +16,33 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* An Abstract Syntax Tree for Jsonnet (well kinda concrete actually).
+(* An Abstract Syntax Tree (AST) for Jsonnet (well kinda concrete actually).
  *
  * This AST/CST is mostly derived from the tree-sitter-jsonnet grammar:
  * https://github.com/sourcegraph/tree-sitter-jsonnet
  * I tried to keep the original terms (e.g., Local, hidden) instead of the
  * terms we use in AST_generic (e.g., Let, annotation).
- * See also the excellent spec: https://jsonnet.org/ref/spec.html
+ *
+ * See also the excellent spec: https://jsonnet.org/ref/spec.html,
+ * and especially https://jsonnet.org/ref/spec.html#abstract_syntax
+ *
  * There is also an ANTLR grammar here:
  * https://gist.github.com/ironchefpython/84380aa60871853dc86719dd598c35e4
  * used in https://github.com/sourcegraph/lsif-jsonnet
  *
  * The main uses for this file are:
- *  - for Semgrep to allow people to use jsonnet patterns to match
+ *  - for Semgrep to allow people to use Jsonnet patterns to match
  *    over Jsonnet code
  *  - TODO: potentially for implementing a Jsonnet interpreter in OCaml,
  *    so we can use it in osemgrep instead of having to write an OCaml
  *    binding to the Jsonnet C library. This could allow in turn to provide
  *    better error messages when there is an error in a Jsonnet
  *    semgrep rule. Indeed right now the error will be mostly
- *    reported on the resulting JSON.
+ *    reported on the resulting (also called "manifested") JSON.
  *)
 
 (*****************************************************************************)
-(* Token (leaf) *)
+(* Tokens (leaves) *)
 (*****************************************************************************)
 
 type tok = Parse_info.t [@@deriving show]
@@ -56,12 +59,21 @@ type ident = string wrap [@@deriving show]
 (* Expressions *)
 (*****************************************************************************)
 
-(* Using a record from the start. This is not needed yet, but if
- * we implement a jsonnet interpreter, this might become useful.
+(* Should we use a record for expressions like we do in AST_generic?
+ * If we implement a Jsonnet interpreter, such a record could become useful
+ * for example to store the types of each expressions?
+ * Actually the Jsonnet spec defines an intermediate "Core" representation
+ * where things are simplified and unsugared
+ * (see https://jsonnet.org/ref/spec.html#core), so we probably do not
+ * need to use a record here, but we could in an hypothetical Core_jsonnet.ml
+ * file at some point.
+ * old: when using a record:
+ *   type expr = { e : expr_kind }
  *)
-type expr = { e : expr_kind }
+type expr = expr_kind
 
-(* very simple language, just expressions! no statement, no class def *)
+(* very simple language, just expressions! no statement, no class defs (but
+ * some object defs) *)
 and expr_kind =
   (* values *)
   | L of literal
@@ -97,6 +109,9 @@ and expr_kind =
   | ParenExpr of expr bracket
   | TodoExpr of string wrap * expr list
 
+(* ------------------------------------------------------------------------- *)
+(* literals *)
+(* ------------------------------------------------------------------------- *)
 and literal =
   | Null of tok
   | Bool of bool wrap
@@ -114,6 +129,10 @@ and string_kind = SingleQuote | DoubleQuote | TripleBar (* a.k.a Text block *)
  * be used for a similar purpose.
  *)
 and string_content = string wrap list
+
+(* ------------------------------------------------------------------------- *)
+(* Calls *)
+(* ------------------------------------------------------------------------- *)
 
 (* Super can appear only in DotAccess/ArrayAccess/InSuper.
  * alt: we could make special constructs for those special Super cases.
@@ -151,8 +170,15 @@ and binary_op =
   | BitXor
 
 and assert_ = tok (* 'assert' *) * expr * (tok (* ':' *) * expr) option
-and arr_inside = Array of expr list
-(* TODO: ArrayComprenhension *)
+
+(* ------------------------------------------------------------------------- *)
+(* Collections and comprehensions *)
+(* ------------------------------------------------------------------------- *)
+and arr_inside = Array of expr list | ArrayComp of expr comprehension
+and 'a comprehension = 'a * for_comp * for_or_if_comp list
+and for_or_if_comp = CompFor of for_comp | CompIf of if_comp
+and for_comp = tok (* 'for' *) * ident * tok (* 'in' *) * expr
+and if_comp = tok (* 'if' *) * expr
 
 (*****************************************************************************)
 (* Definitions *)
@@ -179,11 +205,8 @@ and parameter = P of ident * (tok (* '=' *) * expr) option
 (* ------------------------------------------------------------------------- *)
 (* Objects  *)
 (* ------------------------------------------------------------------------- *)
-and obj_inside = Object of object_member list
-(* TODO: Object comprehension *)
-
-(* TODO *)
-and object_member = unit
+and obj_inside = Object of obj_member list | ObjectComp of obj_comprehension
+and obj_member = OLocal of obj_local | OField of field | OAssert of assert_
 
 and field = {
   fld_name : field_name;
@@ -202,12 +225,26 @@ and attribute =
   (* concatenate fields, not valid for methods *)
   | PlusField of tok
 
+and obj_local = tok (* 'local' *) * bind
+
+and obj_comprehension = {
+  oc_locals1 : obj_local list;
+  oc_comp :
+    (expr bracket (* like FDynamic *) * tok (* : *) * expr) comprehension;
+  (* after the comprehension elt but before the forspec *)
+  oc_locals2 : obj_local list;
+}
+
 (*****************************************************************************)
 (* Directives *)
 (*****************************************************************************)
 and import =
   | Import of tok (* 'import' *) * string_ (* filename *)
-  | ImportStr of tok (* 'importstr' *) * string_ (* content to evaluate? *)
+  (* As opposed to Import, in ImportStr the content of the file
+   * is not evaluated but just returned as a raw string (to be stored
+   * in a local).
+   *)
+  | ImportStr of tok (* 'importstr' *) * string_ (* filename *)
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
@@ -228,4 +265,4 @@ type any = E of expr
 (* Helpers *)
 (*****************************************************************************)
 
-let e ekind = { e = ekind }
+let e ekind = (* old: when we use a record  { e = ekind } *) ekind

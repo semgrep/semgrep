@@ -123,27 +123,13 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
         run: |
-          gh release --repo returntocorp/semgrep-interfaces upload ${{ needs.create_release.outputs.VERSION }} cli/src/semgrep/semgrep_interfaces/rule_schema.yaml
+          gh release --repo returntocorp/semgrep-interfaces upload ${{ needs.create_release.outputs.VERSION }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml
       - name: Publish Release Semgrep Interfaces
         id: publish_release_semgrep_interfaces
         env:
           GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
         run: |
           gh release --repo returntocorp/semgrep-interfaces edit ${{ needs.create_release.outputs.VERSION }} --draft=false
-
-  release-schema:
-    name: Create and tag latest Semgrep rule schema
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-      - name: Upload artifacts rule schema
-        uses: actions/upload-artifact@v3
-        with:
-          name: rule-schema-yaml
-          path: rule_schema.yaml
 
   release-docker:
     name: Build and push Semgrep Docker image
