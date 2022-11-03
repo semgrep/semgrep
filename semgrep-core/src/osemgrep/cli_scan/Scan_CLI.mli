@@ -7,9 +7,10 @@
 *)
 type conf = {
   autofix : bool;
-  dryrun : bool;
   baseline_commit : string option;
   config : string;
+  dryrun : bool;
+  exclude_rule_ids : string list;
   exclude : string list;
   include_ : string list;
   lang : string option;
@@ -22,6 +23,8 @@ type conf = {
   output_format : Constants.output_format;
   pattern : string option;
   respect_git_ignore : bool;
+  rewrite_rule_ids : bool;
+  scan_unknown_extensions : bool;
   strict : bool;
   target_roots : string list;
   time_flag : bool;
@@ -42,5 +45,5 @@ val default : conf
 *)
 val parse_argv : string array -> (conf, Exit_code.t) result
 
-(* used by Ci_CLI.ml *)
+(* exported because used by Ci_CLI.ml too *)
 val cmdline_term : conf Cmdliner.Term.t
