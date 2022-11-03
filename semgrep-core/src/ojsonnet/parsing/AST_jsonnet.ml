@@ -23,7 +23,9 @@
  * I tried to keep the original terms (e.g., Local, hidden) instead of the
  * terms we use in AST_generic (e.g., Let, annotation).
  *
- * See also the excellent spec: https://jsonnet.org/ref/spec.html
+ * See also the excellent spec: https://jsonnet.org/ref/spec.html,
+ * and especially https://jsonnet.org/ref/spec.html#abstract_syntax
+ *
  * There is also an ANTLR grammar here:
  * https://gist.github.com/ironchefpython/84380aa60871853dc86719dd598c35e4
  * used in https://github.com/sourcegraph/lsif-jsonnet
