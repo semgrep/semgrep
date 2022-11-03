@@ -16,26 +16,27 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* An Abstract Syntax Tree for Jsonnet (well kinda concrete actually).
+(* An Abstract Syntax Tree (AST) for Jsonnet (well kinda concrete actually).
  *
  * This AST/CST is mostly derived from the tree-sitter-jsonnet grammar:
  * https://github.com/sourcegraph/tree-sitter-jsonnet
  * I tried to keep the original terms (e.g., Local, hidden) instead of the
  * terms we use in AST_generic (e.g., Let, annotation).
+ *
  * See also the excellent spec: https://jsonnet.org/ref/spec.html
  * There is also an ANTLR grammar here:
  * https://gist.github.com/ironchefpython/84380aa60871853dc86719dd598c35e4
  * used in https://github.com/sourcegraph/lsif-jsonnet
  *
  * The main uses for this file are:
- *  - for Semgrep to allow people to use jsonnet patterns to match
+ *  - for Semgrep to allow people to use Jsonnet patterns to match
  *    over Jsonnet code
  *  - TODO: potentially for implementing a Jsonnet interpreter in OCaml,
  *    so we can use it in osemgrep instead of having to write an OCaml
  *    binding to the Jsonnet C library. This could allow in turn to provide
  *    better error messages when there is an error in a Jsonnet
  *    semgrep rule. Indeed right now the error will be mostly
- *    reported on the resulting JSON.
+ *    reported on the resulting (also called "manifested") JSON.
  *)
 
 (*****************************************************************************)
@@ -56,12 +57,21 @@ type ident = string wrap [@@deriving show]
 (* Expressions *)
 (*****************************************************************************)
 
-(* Using a record from the start. This is not needed yet, but if
- * we implement a jsonnet interpreter, this might become useful.
+(* Should we use a record for expressions like we do in AST_generic? If
+ * we implement a Jsonnet interpreter, could such a record become useful for
+ * example to store the types of each expressions?
+ * Actually the Jsonnet spec defines an intermediate "Core"
+ * representation where things are simplified and unsugared
+ * (see https://jsonnet.org/ref/spec.html#core), so
+ * we probably do not need to use a record here, but we could in
+ * an hypothetical Core_jsonnet.ml file.
+ * old: when using a record:
+ *   type expr = { e : expr_kind }
  *)
-type expr = { e : expr_kind }
+type expr = expr_kind
 
-(* very simple language, just expressions! no statement, no class def *)
+(* very simple language, just expressions! no statement, no class defs (but
+ * some object defs) *)
 and expr_kind =
   (* values *)
   | L of literal
@@ -207,7 +217,11 @@ and attribute =
 (*****************************************************************************)
 and import =
   | Import of tok (* 'import' *) * string_ (* filename *)
-  | ImportStr of tok (* 'importstr' *) * string_ (* content to evaluate? *)
+  (* As opposed to Import, in ImportStr the content of the file
+   * is not evaluated but just returned as a raw string (to be stored
+   * in a local).
+   *)
+  | ImportStr of tok (* 'importstr' *) * string_ (* filename *)
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
@@ -228,4 +242,4 @@ type any = E of expr
 (* Helpers *)
 (*****************************************************************************)
 
-let e ekind = { e = ekind }
+let e ekind = (* old: when we use a record  { e = ekind } *) ekind
