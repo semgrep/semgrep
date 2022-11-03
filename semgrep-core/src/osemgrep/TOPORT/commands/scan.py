@@ -220,17 +220,9 @@ _scan_options: List[Callable] = [
             test/rules.yaml will be renamed 'test.foo').
         """,
     ),
-    optgroup.option(
-        "--time/--no-time",
-        "time_flag",
-        is_flag=True,
-        default=False,
-        help="""
-            Include a timing summary with the results. If output format is json, provides
-            times for each pair (rule, target).
-        """,
-    ),
- optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
+
+
+  optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
 
     optgroup.group(
         "Output formats",
@@ -360,7 +352,6 @@ def scan(
     show_supported_languages: bool,
     test: bool,
     test_ignore_todo: bool,
-    time_flag: bool,
     validate: bool,
     version: bool,
 ) -> ScanReturn:
@@ -399,8 +390,6 @@ def scan(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
-    output_time = time_flag
-
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
 
@@ -425,7 +414,7 @@ def scan(
         strict=strict,
         verbose_errors=verbose,
         timeout_threshold=timeout_threshold,
-        output_time=output_time,
+        output_time=time_flag,
         output_per_finding_max_lines_limit=max_lines_per_finding,
         output_per_line_max_chars_limit=max_chars_per_line,
         dataflow_traces=dataflow_traces,

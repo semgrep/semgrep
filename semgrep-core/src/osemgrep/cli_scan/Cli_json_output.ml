@@ -131,8 +131,19 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
  *  - formatter/json.py
  *)
 
-let cli_error_of_core_error (_x : Out.core_error) : Out.cli_error =
-  failwith "TODO: cli_error_of_core_error"
+let cli_error_of_core_error (_xTODO : Out.core_error) : Out.cli_error =
+  {
+    code = 1;
+    level = "TODO1";
+    type_ = "TODO2";
+    rule_id = None;
+    message = None;
+    path = None;
+    long_msg = None;
+    short_msg = None;
+    spans = None;
+    help = None;
+  }
 
 let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
   match x with
