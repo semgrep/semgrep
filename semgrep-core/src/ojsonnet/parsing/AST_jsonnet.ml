@@ -40,7 +40,7 @@
  *)
 
 (*****************************************************************************)
-(* Token (leaf) *)
+(* Tokens (leaves) *)
 (*****************************************************************************)
 
 type tok = Parse_info.t [@@deriving show]
@@ -57,14 +57,14 @@ type ident = string wrap [@@deriving show]
 (* Expressions *)
 (*****************************************************************************)
 
-(* Should we use a record for expressions like we do in AST_generic? If
- * we implement a Jsonnet interpreter, could such a record become useful for
- * example to store the types of each expressions?
- * Actually the Jsonnet spec defines an intermediate "Core"
- * representation where things are simplified and unsugared
- * (see https://jsonnet.org/ref/spec.html#core), so
- * we probably do not need to use a record here, but we could in
- * an hypothetical Core_jsonnet.ml file.
+(* Should we use a record for expressions like we do in AST_generic?
+ * If we implement a Jsonnet interpreter, such a record could become useful
+ * for example to store the types of each expressions?
+ * Actually the Jsonnet spec defines an intermediate "Core" representation
+ * where things are simplified and unsugared
+ * (see https://jsonnet.org/ref/spec.html#core), so we probably do not
+ * need to use a record here, but we could in an hypothetical Core_jsonnet.ml
+ * file at some point.
  * old: when using a record:
  *   type expr = { e : expr_kind }
  *)
@@ -107,6 +107,9 @@ and expr_kind =
   | ParenExpr of expr bracket
   | TodoExpr of string wrap * expr list
 
+(* ------------------------------------------------------------------------- *)
+(* literals *)
+(* ------------------------------------------------------------------------- *)
 and literal =
   | Null of tok
   | Bool of bool wrap
@@ -124,6 +127,10 @@ and string_kind = SingleQuote | DoubleQuote | TripleBar (* a.k.a Text block *)
  * be used for a similar purpose.
  *)
 and string_content = string wrap list
+
+(* ------------------------------------------------------------------------- *)
+(* Calls *)
+(* ------------------------------------------------------------------------- *)
 
 (* Super can appear only in DotAccess/ArrayAccess/InSuper.
  * alt: we could make special constructs for those special Super cases.
@@ -161,8 +168,15 @@ and binary_op =
   | BitXor
 
 and assert_ = tok (* 'assert' *) * expr * (tok (* ':' *) * expr) option
-and arr_inside = Array of expr list
-(* TODO: ArrayComprenhension *)
+
+(* ------------------------------------------------------------------------- *)
+(* Collections and comprehensions *)
+(* ------------------------------------------------------------------------- *)
+and arr_inside = Array of expr list | ArrayComp of expr comprehension
+and 'a comprehension = 'a * for_comp * for_or_if_comp list
+and for_or_if_comp = CompFor of for_comp | CompIf of if_comp
+and for_comp = tok (* 'for' *) * ident * tok (* 'in' *) * expr
+and if_comp = tok (* 'if' *) * expr
 
 (*****************************************************************************)
 (* Definitions *)
@@ -189,11 +203,8 @@ and parameter = P of ident * (tok (* '=' *) * expr) option
 (* ------------------------------------------------------------------------- *)
 (* Objects  *)
 (* ------------------------------------------------------------------------- *)
-and obj_inside = Object of object_member list
-(* TODO: Object comprehension *)
-
-(* TODO *)
-and object_member = unit
+and obj_inside = Object of obj_member list | ObjectComp of obj_comprehension
+and obj_member = OLocal of obj_local | OField of field | OAssert of assert_
 
 and field = {
   fld_name : field_name;
@@ -211,6 +222,16 @@ and hidden = Colon | TwoColons | ThreeColons
 and attribute =
   (* concatenate fields, not valid for methods *)
   | PlusField of tok
+
+and obj_local = tok (* 'local' *) * bind
+
+and obj_comprehension = {
+  oc_locals1 : obj_local list;
+  oc_comp :
+    (expr bracket (* like FDynamic *) * tok (* : *) * expr) comprehension;
+  (* after the comprehension elt but before the forspec *)
+  oc_locals2 : obj_local list;
+}
 
 (*****************************************************************************)
 (* Directives *)

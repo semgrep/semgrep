@@ -33,7 +33,6 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let todo (_env : env) _ = failwith "not implemented"
 
 let trailing_comma env v =
   match v with
@@ -134,10 +133,19 @@ let map_string_ (env : env) (x : CST.string_) : string_ =
       (tat, DoubleQuote, (v2, v3, v4))
   | `Opt_AT_str_start_str_content_str_end (v1, v2, v3, v4) ->
       let tat = tat_optional env v1 in
-      let v2 = (* string_start *) token env v2 in
-      let v3 = (* string_content *) str env v3 in
-      let v4 = (* string_end *) token env v4 in
-      (tat, TripleBar, (v2, [ v3 ], v4))
+      let s1, t1 = (* string_start *) str env v2 in
+      let content = (* string_content *) str env v3 in
+      let s2, t2 = (* string_end *) str env v4 in
+      let kind =
+        match (s1, s2) with
+        (* not sure why the Opt_AT_double_double does not cover this case *)
+        | "\"", "\"" -> DoubleQuote
+        | "|||", "|||" -> TripleBar
+        | x, y when x = y ->
+            failwith (spf "unrecognized string delimiter: %s" x)
+        | x, y -> failwith (spf "unmatched string delimiter: '%s' and '%s'" x y)
+      in
+      (tat, kind, (t1, [ content ], t2))
 
 let rec map_args (env : env) (x : CST.args) : argument list =
   match x with
@@ -206,16 +214,16 @@ and map_bind (env : env) (x : CST.bind) : bind =
       let def = { f_tok = lpar; f_params = (lpar, ps, rpar); f_body = e } in
       B (id, teq, Lambda def |> J.e)
 
-and map_compspec (env : env) (xs : CST.compspec) =
+and map_compspec (env : env) (xs : CST.compspec) : for_or_if_comp list =
   Common.map
     (fun x ->
       match x with
       | `Fors x ->
           let forspec = map_forspec env x in
-          todo env forspec
+          CompFor forspec
       | `Ifspec x ->
           let ifspec = map_ifspec env x in
-          todo env ifspec)
+          CompIf ifspec)
     xs
 
 and map_document (env : env) (x : CST.document) : program = map_expr env x
@@ -282,14 +290,14 @@ and map_expr (env : env) (x : CST.expr) : expr =
       let lb = (* "[" *) token env v1 in
       let e = map_document env v2 in
       let _v3 = trailing_comma env v3 in
-      let _v4TODO = map_forspec env v4 in
-      let _v5TODO =
+      let forspec = map_forspec env v4 in
+      let comps =
         match v5 with
         | Some x -> map_compspec env x
         | None -> []
       in
-      let _rb = (* "]" *) token env v6 in
-      TodoExpr (("ArrayComprehension", lb), [ e ]) |> J.e
+      let rb = (* "]" *) token env v6 in
+      A (lb, ArrayComp (e, forspec, comps), rb) |> J.e
   | `Expr_DOT_id (v1, v2, v3) ->
       let e = map_document env v1 in
       let tdot = (* "." *) token env v2 in
@@ -475,29 +483,29 @@ and map_fieldname (env : env) (x : CST.fieldname) : field_name =
       let rb = (* "]" *) token env v3 in
       FDynamic (lb, idx, rb)
 
-and map_forspec (env : env) ((v1, v2, v3, v4) : CST.forspec) =
+and map_forspec (env : env) ((v1, v2, v3, v4) : CST.forspec) : for_comp =
   let tfor = (* "for" *) token env v1 in
   let id = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) str env v2 in
   let tin = (* "in" *) token env v3 in
   let e = map_document env v4 in
   (tfor, id, tin, e)
 
-and map_ifspec (env : env) ((v1, v2) : CST.ifspec) =
+and map_ifspec (env : env) ((v1, v2) : CST.ifspec) : if_comp =
   let tif = (* "if" *) token env v1 in
   let e = map_document env v2 in
   (tif, e)
 
-and map_member (env : env) (x : CST.member) : object_member =
+and map_member (env : env) (x : CST.member) : obj_member =
   match x with
   | `Objl x ->
       let x = map_objlocal env x in
-      todo env x
+      OLocal x
   | `Assert x ->
       let x = map_assert_ env x in
-      todo env x
+      OAssert x
   | `Field x ->
       let x = map_field env x in
-      todo env x
+      OField x
 
 and map_named_argument (env : env) ((v1, v2, v3) : CST.named_argument) :
     argument =
@@ -526,7 +534,7 @@ and map_objinside (env : env) (x : CST.objinside) : obj_inside =
       Object (v1 :: v2)
   | `Rep_objl_COMMA_LBRACK_expr_RBRACK_COLON_expr_rep_COMMA_objl_opt_COMMA_fors_opt_comp
       (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
-      let v1 =
+      let oc_locals1 =
         Common.map
           (fun (v1, v2) ->
             let v1 = map_objlocal env v1 in
@@ -534,12 +542,12 @@ and map_objinside (env : env) (x : CST.objinside) : obj_inside =
             v1)
           v1
       in
-      let v2 = (* "[" *) token env v2 in
-      let v3 = map_document env v3 in
-      let v4 = (* "]" *) token env v4 in
-      let v5 = (* ":" *) token env v5 in
-      let v6 = map_document env v6 in
-      let v7 =
+      let lb = (* "[" *) token env v2 in
+      let fldname = map_document env v3 in
+      let rb = (* "]" *) token env v4 in
+      let tcolon = (* ":" *) token env v5 in
+      let fldval = map_document env v6 in
+      let oc_locals2 =
         Common.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token env v1 in
@@ -547,14 +555,19 @@ and map_objinside (env : env) (x : CST.objinside) : obj_inside =
             v2)
           v7
       in
-      let v8 = trailing_comma env v8 in
-      let v9 = map_forspec env v9 in
-      let v10 =
+      let _ = trailing_comma env v8 in
+      let forspec = map_forspec env v9 in
+      let comps =
         match v10 with
         | Some x -> map_compspec env x
-        | None -> todo env ()
+        | None -> []
       in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10)
+      ObjectComp
+        {
+          oc_locals1;
+          oc_comp = (((lb, fldname, rb), tcolon, fldval), forspec, comps);
+          oc_locals2;
+        }
 
 and map_objlocal (env : env) ((v1, v2) : CST.objlocal) =
   let tlocal = (* "local" *) token env v1 in
@@ -595,15 +608,8 @@ let parse file =
     (fun () -> Tree_sitter_jsonnet.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      try
-        let e = map_document env cst in
-        e
-      with
-      (* TODO: to delete once todo() has been removed *)
-      | Failure "not implemented" as exn ->
-          let e = Exception.catch exn in
-          H.debug_sexp_cst_after_error (CST.sexp_of_document cst);
-          Exception.reraise e)
+      let e = map_document env cst in
+      e)
 
 let parse_pattern str =
   H.wrap_parser
