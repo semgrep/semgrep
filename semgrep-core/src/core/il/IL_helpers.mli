@@ -4,13 +4,13 @@ val exp_of_arg : IL.exp IL.argument -> IL.exp
 
 val lval_of_var : IL.name -> IL.lval
 
-val lval_is_var_and_dots : IL.lval -> bool
-(** Test whether an lvalue is of the form x.a_1. ... .a_n *)
+val is_dots_offset : IL.offset list -> bool
+(** Test whether an offset is of the form .a_1. ... .a_N.  *)
 
 val lval_is_dotted_prefix : IL.lval -> IL.lval -> bool
 (** [lval_is_dotted_prefix lval1 lval2] tests whether [lval1] is of the
-    form x.a_1. ... .a_n, and whether [lval2] is an extension of [lval1],
-    that is, x.a_1. ... .a_n.o_1 ... . o_M. *)
+    form x.a_1. ... .a_N, and whether [lval2] is an extension of [lval1],
+    that is, x.a_1. ... .a_N.o_1 ... . o_M. *)
 
 val lval_of_instr_opt : IL.instr -> IL.lval option
 (** If the given instruction stores its result in [lval] then it is
