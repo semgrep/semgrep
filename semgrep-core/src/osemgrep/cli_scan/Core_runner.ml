@@ -156,6 +156,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    autofix = _;
    dryrun = _;
    baseline_commit = _;
+   exclude_rule_ids = _;
    exclude = _;
    include_ = _;
    config = _;
@@ -165,7 +166,10 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    max_target_bytes = _;
    metrics = _;
    respect_git_ignore = _;
+   rewrite_rule_ids = _;
+   scan_unknown_extensions = _;
    strict = _;
+   time_flag = _;
   } ->
       let output_format =
         match output_format with
