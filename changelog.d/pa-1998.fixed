@@ -1,0 +1,1 @@
+Kotlin: Fixed bug where constructor invocation with a trailing comma would not parse
