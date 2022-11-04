@@ -16,6 +16,7 @@ import requests
 from boltons.iterutils import partition
 
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
+from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
@@ -268,7 +269,8 @@ class ScanHandler:
         ]
         new_ignored, new_matches = partition(
             all_matches,
-            lambda match: bool(match.is_ignored),
+            lambda match: bool(match.is_ignored)
+            or match.severity == RuleSeverity.EXPERIMENT,
         )
         findings = [
             match.to_app_finding_format(commit_date).to_json() for match in new_matches
@@ -287,6 +289,9 @@ class ScanHandler:
             "cai_ids": cai_ids,
             "ignores": ignores,
         }
+
+        if any(match.severity == RuleSeverity.EXPERIMENT for match in new_ignored):
+            logger.info("Some experimental rules were run during execution.")
 
         ignored_ext_freqs = Counter(
             [os.path.splitext(path)[1] for path in ignored_targets]
