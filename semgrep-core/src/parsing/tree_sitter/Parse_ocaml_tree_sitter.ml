@@ -73,8 +73,6 @@ let map_boolean (env : env) (x : CST.boolean) : literal =
   | `True tok -> Bool (true, (* "true" *) token env tok)
   | `False tok -> Bool (false, (* "false" *) token env tok)
 
-
-
 let map_or_operator (env : env) (x : CST.or_operator) : string wrap =
   match x with
   | `Or tok -> (* "or" *) str env tok
@@ -109,7 +107,6 @@ let map_anon_choice_TILDE_72781e5 (env : env)
       let x = token env tok in
       (false, x)
 
-
 let map_sign_operator (env : env) (x : CST.sign_operator) : string wrap =
   match x with
   | `PLUS tok -> str env tok (* "+" *)
@@ -136,7 +133,6 @@ let map_assign_operator (env : env) (x : CST.assign_operator) =
   | `COLONEQ tok ->
       (* ":=" *)
       str env tok
-
 
 let map_anon_choice_PLUS_da42005 (env : env) (x : CST.anon_choice_PLUS_da42005)
     =
@@ -3101,14 +3097,14 @@ and map_type_binding (env : env) ((v1, v2, v3) : CST.type_binding) :
                 | `DOTDOT tok ->
                     let _x = token env tok in
                     (* ".." ??? TODO *)
-                    Some (AbstractType)
+                    Some AbstractType
               in
               v3
           | None -> None
         in
         let _v4 = Common.map (map_type_constraint env) v4 in
         let tbody =
-          match ty_alias_opt, ty_kind_opt with
+          match (ty_alias_opt, ty_kind_opt) with
           | Some (_teq, ty), None -> CoreType ty
           | None, Some kind -> kind
           | None, None -> AbstractType
@@ -3156,7 +3152,7 @@ and map_type_equation (env : env) ((v1, v2, v3) : CST.type_equation) =
   let teq = map_anon_choice_EQ_4ccabd6 env v1 in
   let _v2 = private_opt env v2 in
   let ty = map_type_ext env v3 in
-  teq, ty
+  (teq, ty)
 
 and map_type_ext (env : env) (x : CST.type_ext) =
   match x with
