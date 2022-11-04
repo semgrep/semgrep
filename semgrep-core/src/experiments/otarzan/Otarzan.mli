@@ -4,8 +4,8 @@
  *  let todo _env _x =
  *    failwith "TODO"
  *
- *  let rec map_expr env e =
- *    match e with
+ *  let rec map_expr env v =
+ *    match v with
  *    | Int v1 ->
  *      let v1 = map_int env v1 in
  *      todo env v1

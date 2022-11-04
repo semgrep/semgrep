@@ -110,14 +110,64 @@ let visit_mutually_recursive_type_defs (f : type_declaration list -> string)
 (* TODO: call ocamlformat on the generated code *)
 let print_stdout_after_ocamlformat s = pr s
 
+let str_of_ident (s, _) = s
+
+(* TODO: report line position at some point where the error occurs *)
+let error s =
+  failwith s
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 (* port of https://github.com/aryx/ocamltarzan/blob/master/pa/pa_map_todo.ml *)
 let generate_boilerplate_map_todo file =
-  let body =
-    file |> visit_mutually_recursive_type_defs (fun _mutuals -> "TODO")
+  let call_for_type (typ : type_) : string =
+    match typ with
+    | TyName name ->
+       (match name with
+       | [], id ->
+          spf "map_%s" (str_of_ident id)
+       | _qu, _id ->
+          "TODO qualifier"
+       )
+    | _else_ -> "TODO"
   in
-  let final_str = body in
+  let body =
+    file |> visit_mutually_recursive_type_defs (fun mutuals ->
+     let buf = Buffer.create 1000 in
+     let pr s = Buffer.add_string buf (s ^ "\n") in
+     mutuals |> List.iter (function
+      | TyDecl { tname; tparams = _TODO; tbody } ->
+          let name = str_of_ident tname in
+          pr (spf "let rec map_%s env v =" name);
+          (match tbody with
+          | AbstractType -> error "AbstractType not handled"
+          | AlgebraicType ctors ->
+               pr (spf "  match v with");
+               ctors |> List.iter (fun (id, xs) ->
+                  let xs = Common.index_list_1 xs in
+                  (* v1, v2, v3, ... *)
+                  let args =
+                      xs |> Common.map snd |> Common.map (fun i -> spf "v%d" i)
+                      |> String.concat ", "
+                  in
+                  pr (spf "  | %s (%s) ->" (str_of_ident id) args);
+                  xs |> List.iter (fun (typ, idx) ->
+                    let call_str = call_for_type typ in
+                    pr (spf "    let v%d = %s v%d in" idx call_str idx);
+                  );
+                  pr (spf "    todo env (%s)" args)
+               )
+          | RecordType _ -> error "TODO: RecordType"
+          | CoreType _ -> error "TODO: CoreType not handled"
+          | TdTodo _ -> error "TdTodo not handled"
+          )
+      | TyDeclTodo _ -> error "TyDeclTodo not handled"
+      );
+     Buffer.contents buf
+    )
+  in
+  let prelude = "let todo _env _v = failwith \"TODO\"\n\n" in
+  let final_str = prelude ^ body in
   print_stdout_after_ocamlformat final_str
