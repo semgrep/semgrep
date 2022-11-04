@@ -2238,7 +2238,7 @@ and when_subject (env : env) ((v1, v2, v3, v4) : CST.when_subject) : condition =
   G.Cond v3
 
 let import_list (env : env) ((v1, v2) : CST.import_list) =
-  let v1 = List.map (import_header env) v1 in
+  let v1 = Common.map (import_header env) v1 in
   let _v2 = (* import_list_delimiter *) token env v2 in
   v1
 
