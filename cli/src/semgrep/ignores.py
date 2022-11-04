@@ -145,6 +145,7 @@ class Parser:
     # Parser steps are each represented as Generators. This allows us to chain
     # steps, whether the step is a transformation, a filter, an expansion, or any combination thereof.
 
+    file_path: Path
     base_path: Path
 
     @staticmethod
@@ -176,7 +177,7 @@ class Parser:
             if include_path.is_file():
                 with include_path.open() as include_lines:
                     sub_base = include_path.parent.resolve()
-                    sub_parser = Parser(sub_base)
+                    sub_parser = Parser(file_path=include_path, base_path=sub_base)
                     metrics.add_feature("semgrepignore", "include")
                     return sub_parser.parse(include_lines)
             else:
@@ -184,9 +185,11 @@ class Parser:
                     f"Skipping `:include {include_path}` directive, file not found"
                 )
                 return []
+        elif line == ":":
+            return []
         elif CONTROL_REGEX.match(line):
             raise SemgrepError(
-                f"Unknown ignore directive in Semgrep ignore file at {self.base_path}: '{line}'"
+                f"While parsing .semgrepignore: unknown ignore directive in {self.file_path}: '{line}'"
             )
         else:
             return (line for _ in range(1))

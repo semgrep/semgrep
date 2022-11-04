@@ -82,7 +82,7 @@ def get_file_ignore() -> FileIgnore:
     with semgrepignore_path.open() as f:
         file_ignore = FileIgnore.from_unprocessed_patterns(
             base_path=workdir,
-            patterns=Parser(workdir).parse(f),
+            patterns=Parser(file_path=semgrepignore_path, base_path=workdir).parse(f),
         )
 
     return file_ignore
