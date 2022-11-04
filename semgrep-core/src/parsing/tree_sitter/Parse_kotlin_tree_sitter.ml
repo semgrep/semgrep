@@ -274,7 +274,7 @@ let shebang_line (env : env) ((v1, v2) : CST.shebang_line) =
 let is_operator (env : env) (x : CST.is_operator) =
   match x with
   | `Is tok -> (Is, token env tok) (* "is" *)
-  | `Not_is tok -> (NotIs, token env tok)
+  | `BANGis tok -> (NotIs, token env tok)
 
 (* "!is" *)
 
@@ -313,14 +313,14 @@ let lexical_identifier (env : env) (x : CST.lexical_identifier) : ident =
 
 (* pattern `[^\r\n`]+` *)
 
-let escape_seq (env : env) (x : CST.escape_seq) =
+let escape_seq (env : env) (x : CST.character_escape_seq) =
   match x with
   | `Uni_char_lit x -> uni_character_literal env x
   | `Esca_id tok -> str env tok
 
 (* pattern "\\\\[tbrn'\dq\\\\$]" *)
 
-let line_str_escaped_char (env : env) (x : CST.line_str_escaped_char) =
+let line_str_escaped_char (env : env) (x : CST.character_escape_seq) =
   match x with
   | `Esca_id tok -> str env tok (* pattern "\\\\[tbrn'\dq\\\\$]" *)
   | `Uni_char_lit x -> uni_character_literal env x
@@ -331,7 +331,9 @@ let type_projection_modifiers (env : env) (xs : CST.type_projection_modifiers) =
 let simple_identifier (env : env) (x : CST.simple_identifier) : ident =
   match x with
   | `Choice_lexi_id (`Lexi_id x) -> lexical_identifier env x
-  | `Choice_lexi_id (`Expect x | `Inner x | `Data x | `Actual x) -> str env x
+  | `Choice_lexi_id
+      (`Expect x | `Inner x | `Data x | `Actual x | `Get x | `Set x) ->
+      str env x
   | `Pat_831065d x -> str env x
 
 (* pattern \$[a-zA-Z_][a-zA-Z_0-9]* *)
@@ -339,7 +341,7 @@ let simple_identifier (env : env) (x : CST.simple_identifier) : ident =
 let line_string_content (env : env) (x : CST.line_string_content) =
   match x with
   | `Line_str_text tok -> str env tok (* pattern "[^\\\\\double_quote$]+" *)
-  | `Line_str_esca_char x -> line_str_escaped_char env x
+  | `Char_esc_seq x -> line_str_escaped_char env x
 
 let return_at (env : env) ((v1, v2) : CST.return_at) =
   let v1 = token env v1 (* "return@" *) in
@@ -373,7 +375,7 @@ let literal_constant (env : env) (x : CST.literal_constant) =
       let v1 = token env v1 (* "'" *) in
       let v2 =
         match v2 with
-        | `Esc_seq x -> escape_seq env x
+        | `Char_esc_seq x -> escape_seq env x
         | `Pat_b294348 tok -> str env tok
         (* pattern "[^\\n\\r'\\\\]" *)
       in
@@ -397,10 +399,7 @@ let literal_constant (env : env) (x : CST.literal_constant) =
       let _str = PI.str_of_info v1 ^ fst v2 in
       Int (iopt, PI.combine_infos v1 [ snd v2 ])
 
-let semi (env : env) (x : CST.semi) =
-  match x with
-  | `Auto_semi tok -> (* automatic_semicolon *) token env tok
-  | `SEMI tok -> (* ";" *) token env tok
+let semi (env : env) x = token env x
 
 let package_header (env : env) ((v1, v2, v3) : CST.package_header) : directive =
   let v1 = token env v1 (* "package" *) in
@@ -834,7 +833,7 @@ and class_parameter (env : env) (x : CST.class_parameter) : G.parameter =
       let tk = token env v1 in
       ParamEllipsis tk
 
-and class_parameters (env : env) ((v1, v2, v3) : CST.class_parameters) :
+and class_parameters (env : env) ((v1, v2, _v3, v4) : CST.class_parameters) :
     parameters =
   let _v1 = token env v1 (* "(" *) in
   let v2 =
@@ -852,7 +851,8 @@ and class_parameters (env : env) ((v1, v2, v3) : CST.class_parameters) :
         v1 :: v2
     | None -> []
   in
-  let _v3 = token env v3 (* ")" *) in
+  let _v3 = () (* , *) in
+  let _v4 = token env v4 (* ")" *) in
   v2
 
 and constructor_delegation_call (env : env)
@@ -1180,7 +1180,7 @@ and function_body (env : env) (x : CST.function_body) : G.function_body =
 and function_literal (env : env) (x : CST.function_literal) =
   match x with
   | `Lambda_lit x -> lambda_literal env x
-  | `Anon_func (v1, v2, v3, v4, v5) ->
+  | `Anon_func (v1, v2, v3, _v4, v5) ->
       let v1 = token env v1 (* "fun" *) in
       let _v2TODO =
         match v2 with
@@ -1198,8 +1198,8 @@ and function_literal (env : env) (x : CST.function_literal) =
             v1 :: v2
         | None -> []
       in
-      let _v3 = token env v3 (* "(" *) in
-      let _v4 = token env v4 (* ")" *) in
+      let v3 = function_value_parameters env v3 (* "(" *) in
+      let v4TODO = None in
       let v5 =
         match v5 with
         | Some x -> function_body env x
@@ -1207,7 +1207,7 @@ and function_literal (env : env) (x : CST.function_literal) =
       in
       let kind = (Function, v1) in
       let func_def =
-        { fkind = kind; fparams = []; frettype = None; fbody = v5 }
+        { fkind = kind; fparams = v3; frettype = v4TODO; fbody = v5 }
       in
       Lambda func_def |> G.e
 
@@ -1271,7 +1271,7 @@ and function_value_parameter (env : env) (x : CST.function_value_parameter) =
       ParamEllipsis t
 
 and function_value_parameters (env : env)
-    ((v1, v2, v3) : CST.function_value_parameters) : G.parameter list =
+    ((v1, v2, _v3, v4) : CST.function_value_parameters) : G.parameter list =
   let _v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with
@@ -1288,7 +1288,7 @@ and function_value_parameters (env : env)
         v1 :: v2
     | None -> []
   in
-  let _v3 = token env v3 (* ")" *) in
+  let _v4 = token env v4 (* ")" *) in
   v2
 
 and getter (env : env) ((v0, v1, v2) : CST.getter) =
@@ -2145,7 +2145,7 @@ and value_arguments (env : env) ((v1, v2, v3) : CST.value_arguments) : arguments
   let v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with
-    | Some (v1, v2) ->
+    | Some (v1, v2, _v3) ->
         let v1 = value_argument env v1 in
         let v2 =
           Common.map
@@ -2237,6 +2237,11 @@ and when_subject (env : env) ((v1, v2, v3, v4) : CST.when_subject) : condition =
   (* TODO: use CondWithDecl *)
   G.Cond v3
 
+let import_list (env : env) ((v1, v2) : CST.import_list) =
+  let v1 = List.map (import_header env) v1 in
+  let _v2 = (* import_list_delimiter *) token env v2 in
+  v1
+
 let file_annotation (env : env) ((v1, v2, v3, v4, v5) : CST.file_annotation) =
   let _at = token env v1 (* "@" *) in
   let _file = token env v2 (* "file" *) in
@@ -2257,7 +2262,7 @@ let file_annotation (env : env) ((v1, v2, v3, v4, v5) : CST.file_annotation) =
 
 let source_file (env : env) (x : CST.source_file) : any =
   match x with
-  | `Opt_sheb_line_rep_file_anno_opt_pack_header_rep_import_header_rep_stmt_semi
+  | `Opt_sheb_line_rep_file_anno_opt_pack_header_rep_import_list_rep_stmt_semi
       (v1, v2, v3, v4, v5) ->
       let _v1 =
         match v1 with
@@ -2270,7 +2275,7 @@ let source_file (env : env) (x : CST.source_file) : any =
         | Some x -> [ package_header env x ]
         | None -> []
       in
-      let v4 = Common.map (import_header env) v4 in
+      let v4 = List.concat_map (import_list env) v4 in
       let v5 =
         Common.map
           (fun (v1, v2) ->
