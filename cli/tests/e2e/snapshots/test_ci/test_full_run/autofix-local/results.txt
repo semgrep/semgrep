@@ -3,58 +3,10 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
-
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
-
-
-Unreachable Supply Chain Findings:
-
-  poetry.lock 
-     supply-chain1
-        found a dependency
-
-
-First-Party Non-Blocking Findings:
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (x == 2)
-         15┆ (x == 2)
-
-First-Party Blocking Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
-
-First-Party Blocking Rules Fired:
-   eqeq-bad   
-   eqeq-four   
-   taint-test
 
 === end of stdout - plain
 
@@ -66,14 +18,28 @@ Scan environment:
 
 Fetching configuration from semgrep.dev
 Authenticated as org_name
-Scanning 1 file with 4 python rules.
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
-  Has findings for blocking rules so exiting with code 1
+[Errno 2] No such file or directory: '/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 347, in ci
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 333, in main
+    configs_obj, config_errors = get_config(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 758, in get_config
+    config, errors = Config.from_rules_yaml(config_strs[0])
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 317, in from_rules_yaml
+    parse_config_string(resolved_config_key, config, filename=None)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 615, in parse_config_string
+    data = parse_yaml_preserve_spans(contents, filename)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_lang.py", line 429, in parse_yaml_preserve_spans
+    validate_yaml(data)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_lang.py", line 539, in validate_yaml
+    jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_lang.py", line 55, in get
+    with schema_path.open() as fd:
+  File "/opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/pathlib.py", line 1119, in open
+    return self._accessor.open(self, mode, buffering, encoding, errors,
+FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml'
 
 === end of stderr - plain

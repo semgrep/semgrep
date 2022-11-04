@@ -3,294 +3,11 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
-{
-  "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
-  "version": "14.1.2",
-  "vulnerabilities": [
-    {
-      "category": "secret_detection",
-      "commit": {
-        "date": "1970-01-01T00:00:00Z",
-        "sha": "0000000"
-      },
-      "confidence": "High",
-      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
-      "id": "8c695a6a-4ab5-ffff-33d0-103309a310c1",
-      "identifiers": [
-        {
-          "name": "Semgrep - eqeq-bad",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-bad",
-          "value": "eqeq-bad"
-        }
-      ],
-      "location": {
-        "end_line": 4,
-        "file": "foo.py",
-        "start_line": 4
-      },
-      "message": "useless comparison",
-      "raw_source_code_extract": [
-        "    a == a\n"
-      ],
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "High"
-    },
-    {
-      "category": "secret_detection",
-      "commit": {
-        "date": "1970-01-01T00:00:00Z",
-        "sha": "0000000"
-      },
-      "confidence": "High",
-      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
-      "id": "8abb389b-2f01-d0e5-2d66-3251e1d24ba7",
-      "identifiers": [
-        {
-          "name": "Semgrep - eqeq-bad",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-bad",
-          "value": "eqeq-bad"
-        }
-      ],
-      "location": {
-        "end_line": 5,
-        "file": "foo.py",
-        "start_line": 5
-      },
-      "message": "useless comparison",
-      "raw_source_code_extract": [
-        "    a == a\n"
-      ],
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "High"
-    },
-    {
-      "category": "secret_detection",
-      "commit": {
-        "date": "1970-01-01T00:00:00Z",
-        "sha": "0000000"
-      },
-      "confidence": "High",
-      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
-      "id": "f6c666e6-921a-4402-8a20-15d0de15cc14",
-      "identifiers": [
-        {
-          "name": "Semgrep - eqeq-bad",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-bad",
-          "value": "eqeq-bad"
-        }
-      ],
-      "location": {
-        "end_line": 7,
-        "file": "foo.py",
-        "start_line": 7
-      },
-      "message": "useless comparison",
-      "raw_source_code_extract": [
-        "    a == a\n"
-      ],
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "High"
-    },
-    {
-      "category": "secret_detection",
-      "commit": {
-        "date": "1970-01-01T00:00:00Z",
-        "sha": "0000000"
-      },
-      "confidence": "High",
-      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
-      "id": "d4404942-1636-e370-e790-6a6bed5fce54",
-      "identifiers": [
-        {
-          "name": "Semgrep - eqeq-bad",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-bad",
-          "value": "eqeq-bad"
-        }
-      ],
-      "location": {
-        "end_line": 11,
-        "file": "foo.py",
-        "start_line": 11
-      },
-      "message": "useless comparison",
-      "raw_source_code_extract": [
-        "    y == y\n"
-      ],
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "High"
-    },
-    {
-      "category": "secret_detection",
-      "commit": {
-        "date": "1970-01-01T00:00:00Z",
-        "sha": "0000000"
-      },
-      "confidence": "High",
-      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-four",
-      "id": "87cd1247-dfc8-4bbd-502c-872035c71a63",
-      "identifiers": [
-        {
-          "name": "Semgrep - eqeq-four",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-four",
-          "value": "eqeq-four"
-        }
-      ],
-      "location": {
-        "end_line": 19,
-        "file": "foo.py",
-        "start_line": 19
-      },
-      "message": "useless comparison to 4",
-      "raw_source_code_extract": [
-        "    baz == 4\n"
-      ],
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "High"
-    },
-    {
-      "category": "secret_detection",
-      "commit": {
-        "date": "1970-01-01T00:00:00Z",
-        "sha": "0000000"
-      },
-      "confidence": "High",
-      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:taint-test",
-      "id": "05a6d679-3a62-42a4-9ff8-3113ef4a83b3",
-      "identifiers": [
-        {
-          "name": "Semgrep - taint-test",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/taint-test",
-          "value": "taint-test"
-        }
-      ],
-      "location": {
-        "end_line": 27,
-        "file": "foo.py",
-        "start_line": 27
-      },
-      "message": "unsafe use of danger",
-      "raw_source_code_extract": [
-        "    sink(d2)\n"
-      ],
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "Medium"
-    },
-    {
-      "category": "secret_detection",
-      "commit": {
-        "date": "1970-01-01T00:00:00Z",
-        "sha": "0000000"
-      },
-      "confidence": "High",
-      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-five",
-      "id": "8646a2df-c020-9136-0696-9dcfe84e53c0",
-      "identifiers": [
-        {
-          "name": "Semgrep - eqeq-five",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-five",
-          "value": "eqeq-five"
-        }
-      ],
-      "location": {
-        "end_line": 15,
-        "file": "foo.py",
-        "start_line": 15
-      },
-      "message": "useless comparison to 5",
-      "raw_source_code_extract": [
-        "    x == 5\n"
-      ],
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "High"
-    },
-    {
-      "category": "secret_detection",
-      "commit": {
-        "date": "1970-01-01T00:00:00Z",
-        "sha": "0000000"
-      },
-      "confidence": "High",
-      "cve": "poetry.lock:f53a023eedfa3fbf2925ec7dc76eecdc954ea94b7e47065393dbad519613dc89:supply-chain1",
-      "id": "ff8806e5-d262-f88a-eebb-c15b80d84f12",
-      "identifiers": [
-        {
-          "name": "Semgrep - supply-chain1",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/supply-chain1",
-          "value": "supply-chain1"
-        }
-      ],
-      "location": {
-        "end_line": 0,
-        "file": "poetry.lock",
-        "start_line": 0
-      },
-      "message": "found a dependency",
-      "raw_source_code_extract": [],
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "High"
-    }
-  ]
-}
+
 === end of stdout - plain
 
 === stderr - plain
@@ -301,14 +18,28 @@ Scan environment:
 
 Fetching configuration from semgrep.dev
 Authenticated as org_name
-Scanning 1 file with 4 python rules.
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
-  Has findings for blocking rules so exiting with code 1
+[Errno 2] No such file or directory: '/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 347, in ci
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 333, in main
+    configs_obj, config_errors = get_config(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 758, in get_config
+    config, errors = Config.from_rules_yaml(config_strs[0])
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 317, in from_rules_yaml
+    parse_config_string(resolved_config_key, config, filename=None)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 615, in parse_config_string
+    data = parse_yaml_preserve_spans(contents, filename)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_lang.py", line 429, in parse_yaml_preserve_spans
+    validate_yaml(data)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_lang.py", line 539, in validate_yaml
+    jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_lang.py", line 55, in get
+    with schema_path.open() as fd:
+  File "/opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/pathlib.py", line 1119, in open
+    return self._accessor.open(self, mode, buffering, encoding, errors,
+FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml'
 
 === end of stderr - plain

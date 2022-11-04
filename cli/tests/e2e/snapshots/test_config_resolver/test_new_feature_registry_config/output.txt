@@ -5,19 +5,30 @@ Using configs only from local files (like --config=xyz.yml) does not enable metr
 More information: https://semgrep.dev/docs/metrics
 
 Semgrep rule registry URL is https://semgrep.dev/registry.
-
-Rules downloaded from https://semgrep.dev/p/ci failed to parse.
-This is likely because rules have been added that use functionality introduced in later versions of semgrep.
-Please upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.
-
-semgrep error: Invalid rule schema
-  --> https://semgrep.dev/...:2
-2 | - id: eqeq-bad
-3 |   pattern-new-feature: $X == $X
-4 |   message: "useless comparison"
-5 |   languages: [python]
-6 |   severity: ERROR
-
-Additional properties are not allowed ('pattern-new-feature' was unexpected)
-
-[ERROR] invalid configuration file found (1 configs were invalid)
+[Errno 2] No such file or directory: '/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 837, in scan
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 333, in main
+    configs_obj, config_errors = get_config(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 764, in get_config
+    config, errors = Config.from_config_list(config_strs, project_url)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 348, in from_config_list
+    resolved_config = ConfigPath(config, project_url).resolve_config()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 280, in resolve_config
+    config = parse_config_files(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 259, in parse_config_files
+    config.update(parse_config_string(config_id, contents, filename))
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 615, in parse_config_string
+    data = parse_yaml_preserve_spans(contents, filename)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_lang.py", line 429, in parse_yaml_preserve_spans
+    validate_yaml(data)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_lang.py", line 539, in validate_yaml
+    jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_lang.py", line 55, in get
+    with schema_path.open() as fd:
+  File "/opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/pathlib.py", line 1119, in open
+    return self._accessor.open(self, mode, buffering, encoding, errors,
+FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml'
