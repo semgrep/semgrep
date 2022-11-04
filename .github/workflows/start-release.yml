@@ -15,6 +15,7 @@ on:
         required: true
         default: "feature"
         type: "choice"
+        # These options are passed directly into christian-draeger/increment-semantic-version in the `next-vesion` step to decide which of X.Y.Z to increment
         options:
           - "major"
           - "feature"
