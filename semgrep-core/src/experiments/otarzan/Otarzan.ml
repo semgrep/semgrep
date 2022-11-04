@@ -15,6 +15,8 @@
 open Common
 open Ast_ml
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -122,21 +124,25 @@ let error s =
 
 (* port of https://github.com/aryx/ocamltarzan/blob/master/pa/pa_map_todo.ml *)
 let generate_boilerplate_map_todo file =
-  let call_for_type (typ : type_) : string =
+  let func_for_type (typ : type_) : string =
     match typ with
     | TyName name ->
        (match name with
        | [], id ->
           spf "map_%s" (str_of_ident id)
-       | _qu, _id ->
-          "TODO qualifier"
+       | qu, id ->
+          let prefix = qu |> Common.map str_of_ident |> String.concat "." in
+          spf "%s.map_%s" prefix (str_of_ident id)
        )
     | _else_ -> "TODO"
   in
   let body =
     file |> visit_mutually_recursive_type_defs (fun mutuals ->
      let buf = Buffer.create 1000 in
-     let pr s = Buffer.add_string buf (s ^ "\n") in
+     let pr s =
+          logger#trace "gen: %s" s;
+          Buffer.add_string buf (s ^ "\n")
+     in
      mutuals |> List.iter (function
       | TyDecl { tname; tparams = _TODO; tbody } ->
           let name = str_of_ident tname in
@@ -154,13 +160,14 @@ let generate_boilerplate_map_todo file =
                   in
                   pr (spf "  | %s (%s) ->" (str_of_ident id) args);
                   xs |> List.iter (fun (typ, idx) ->
-                    let call_str = call_for_type typ in
-                    pr (spf "    let v%d = %s v%d in" idx call_str idx);
+                    let call_str = func_for_type typ in
+                    pr (spf "    let v%d = %s env v%d in" idx call_str idx);
                   );
                   pr (spf "    todo env (%s)" args)
                )
           | RecordType _ -> error "TODO: RecordType"
-          | CoreType _ -> error "TODO: CoreType not handled"
+          | CoreType typ ->
+              pr (spf "  %s env v" (func_for_type typ))
           | TdTodo _ -> error "TdTodo not handled"
           )
       | TyDeclTodo _ -> error "TyDeclTodo not handled"

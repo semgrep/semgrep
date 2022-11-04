@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (c) 2021 R2C
+ * Copyright (c) 2021-2022 R2C
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -70,51 +70,45 @@ let map_unit_ (env : env) (x : CST.unit_) : literal =
 
 let map_boolean (env : env) (x : CST.boolean) : literal =
   match x with
-  | `True tok -> Bool (true, token env tok) (* "true" *)
-  | `False tok -> Bool (false, token env tok)
+  | `True tok -> Bool (true, (* "true" *) token env tok)
+  | `False tok -> Bool (false, (* "false" *) token env tok)
 
-(* "false" *)
+
 
 let map_or_operator (env : env) (x : CST.or_operator) : string wrap =
   match x with
-  | `Or tok -> str env tok (* "or" *)
-  | `BARBAR tok -> str env tok
-
-(* "||" *)
+  | `Or tok -> (* "or" *) str env tok
+  | `BARBAR tok -> (* "||" *) str env tok
 
 let map_and_operator_ (env : env) (x : CST.and_operator_) : string wrap =
   match x with
-  | `AMP tok -> str env tok (* "&" *)
-  | `AMPAMP tok -> str env tok
-
-(* "&&" *)
+  | `AMP tok -> (* "&" *) str env tok
+  | `AMPAMP tok -> (* "&&" *) str env tok
 
 let map_anon_choice_EQ_4ccabd6 (env : env) (x : CST.anon_choice_EQ_4ccabd6) =
   match x with
-  | `EQ tok -> token env tok (* "=" *)
-  | `COLONEQ tok -> token env tok
-
-(* ":=" *)
+  | `EQ tok -> (* "=" *) token env tok
+  (* TODO *)
+  | `COLONEQ tok -> (* ":=" *) token env tok
 
 let map_anon_choice_priv_c7cc539 (env : env) (x : CST.anon_choice_priv_c7cc539)
     =
   match x with
-  | `Priv tok -> token env tok (* "private" *)
-  | `Virt tok -> token env tok
-
-(* pattern "\\\\[\\\\\"'ntbr ]" *)
+  | `Priv tok -> (* "private" *) token env tok
+  | `Virt tok -> (* pattern "\\\\[\\\\\"'ntbr ]" *) token env tok
 
 let map_anon_choice_TILDE_72781e5 (env : env)
     (x : CST.anon_choice_TILDE_72781e5) =
   match x with
   | `TILDE tok ->
-      let x = token env tok (* "~" *) in
+      (* "~" *)
+      let x = token env tok in
       (true, x)
   | `QMARK tok ->
+      (* "?" *)
       let x = token env tok in
       (false, x)
 
-(* "?" *)
 
 let map_sign_operator (env : env) (x : CST.sign_operator) : string wrap =
   match x with
@@ -139,9 +133,10 @@ let map_anon_choice_muta_d43fe41 (env : env) (x : CST.anon_choice_muta_d43fe41)
 
 let map_assign_operator (env : env) (x : CST.assign_operator) =
   match x with
-  | `COLONEQ tok -> str env tok
+  | `COLONEQ tok ->
+      (* ":=" *)
+      str env tok
 
-(* ":=" *)
 
 let map_anon_choice_PLUS_da42005 (env : env) (x : CST.anon_choice_PLUS_da42005)
     =
@@ -3081,13 +3076,16 @@ and map_type_binding (env : env) ((v1, v2, v3) : CST.type_binding) :
     match v2 with
     | `Id_opt_type_equa_opt_EQ_opt_priv_choice_vari_decl_rep_type_cons
         (v1, v2, v3, v4) ->
-        let v1 = str env v1 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-        let _v2 =
+        let id = str env v1 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+        (* in OCaml you can now have type x = X.t = ...,
+         * but just 'type x = foo' is parsed as a map_type_equation
+         *)
+        let ty_alias_opt =
           match v2 with
           | Some x -> Some (map_type_equation env x)
           | None -> None
         in
-        let v3 =
+        let ty_kind_opt =
           match v3 with
           | Some (v1, v2, v3) ->
               let _v1 = token env v1 (* "=" *) in
@@ -3096,21 +3094,27 @@ and map_type_binding (env : env) ((v1, v2, v3) : CST.type_binding) :
                 match v3 with
                 | `Vari_decl x ->
                     let xs = map_variant_declaration env x in
-                    AlgebraicType xs
+                    Some (AlgebraicType xs)
                 | `Record_decl x ->
                     let xs = map_record_declaration env x in
-                    RecordType xs
+                    Some (RecordType xs)
                 | `DOTDOT tok ->
                     let _x = token env tok in
-                    (* ".." *)
-                    AbstractType
-                (* TODO *)
+                    (* ".." ??? TODO *)
+                    Some (AbstractType)
               in
               v3
-          | None -> AbstractType
+          | None -> None
         in
         let _v4 = Common.map (map_type_constraint env) v4 in
-        TyDecl { tname = v1; tparams; tbody = v3 }
+        let tbody =
+          match ty_alias_opt, ty_kind_opt with
+          | Some (_teq, ty), None -> CoreType ty
+          | None, Some kind -> kind
+          | None, None -> AbstractType
+          | Some _equationTODO, Some kind -> kind
+        in
+        TyDecl { tname = id; tparams; tbody }
     | `Type_cons_path_PLUSEQ_opt_priv_vari_decl (v1, v2, v3, v4) ->
         let _v1 = map_type_constructor_path env v1 in
         let v2 = token env v2 (* "+=" *) in
@@ -3149,10 +3153,10 @@ and map_type_definition (env : env) ((v1, v2, v3, v4, v5) : CST.type_definition)
   Type (v1, v4 :: v5) |> mki
 
 and map_type_equation (env : env) ((v1, v2, v3) : CST.type_equation) =
-  let _v1 = map_anon_choice_EQ_4ccabd6 env v1 in
+  let teq = map_anon_choice_EQ_4ccabd6 env v1 in
   let _v2 = private_opt env v2 in
-  let _v3 = map_type_ext env v3 in
-  ()
+  let ty = map_type_ext env v3 in
+  teq, ty
 
 and map_type_ext (env : env) (x : CST.type_ext) =
   match x with
