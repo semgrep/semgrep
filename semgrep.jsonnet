@@ -100,7 +100,7 @@ local all = yml.rules + semgrep_rules + pfff.rules + ocaml.rules;
 
   { rules:
       [  if std.objectHas(override_messages, r.id)
-         then r + {message: override_messages[r.id]}
+         then (r + {message: override_messages[r.id]})
          else r
         for r in all
         if !std.member(todo_skipped_for_now, r.id)

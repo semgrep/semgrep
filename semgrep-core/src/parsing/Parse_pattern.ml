@@ -14,6 +14,8 @@
  *)
 open Common
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -51,8 +53,11 @@ type 'ast parser =
 let run_parser ~print_errors p str =
   let parse () =
     match p with
-    | Pfff f -> f str
+    | Pfff f ->
+        logger#trace "trying to parse with Pfff parser the pattern";
+        f str
     | TreeSitter f ->
+        logger#trace "trying to parse with Tree-sitter parser the pattern";
         let res = f str in
         extract_pattern_from_tree_sitter_result res print_errors
   in

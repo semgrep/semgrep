@@ -4,6 +4,33 @@
 name: open-bump-pr
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The version to bump to"
+        required: true
+        type: string
+      repository:
+        description: "The repo to perform the bump in"
+        required: true
+        default: "returntocorp/semgrep-app"
+        type: "choice"
+        options:
+          - "returntocorp/semgrep-app"
+          - "returntocorp/semgrep-rpc"
+          - "returntocorp/semgrep-action"
+      base_branch:
+        description: "The branch from which to create a new PR and to merge back onto"
+        required: true
+        type: string
+      new_branch_name:
+        description: "If specified, customize the bump branch name"
+        required: false
+        type: string
+      bump_script_path:
+        description: "The path to the bump script in the repo to run."
+        required: true
+        type: string
   workflow_call:
     inputs:
       version:
@@ -31,7 +58,7 @@ on:
 
 jobs:
   bump-version:
-    name: Static Analysis Scan
+    name: Bump Version
     runs-on: ubuntu-22.04
     outputs:
       pr-url: ${{ steps.open-pr.outputs.pr-url }}
