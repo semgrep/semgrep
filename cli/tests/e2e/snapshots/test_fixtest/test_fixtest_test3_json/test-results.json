@@ -1,21 +1,17 @@
 {
   "config_missing_fixtests": [],
   "config_missing_tests": [],
-  "config_with_errors": [],
+  "config_with_errors": [
+    {
+      "error": "[Errno 2] No such file or directory: '/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml'",
+      "filename": "rules/fixtest/test3.yaml",
+      "output": {}
+    }
+  ],
   "fixtest_results": {
     "targets/fixtest/test3.py": {
       "passed": false
     }
   },
-  "results": {
-    "rules/fixtest/test3.yaml": {
-      "checks": {
-        "test3": {
-          "errors": [],
-          "matches": "<masked in tests>",
-          "passed": true
-        }
-      }
-    }
-  }
+  "results": {}
 }
