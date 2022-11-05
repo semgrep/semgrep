@@ -14,4 +14,4 @@ val lines_of_file :
 val contents_of_file :
   Semgrep_output_v1_j.position * Semgrep_output_v1_j.position ->
   Common.filename ->
-  string list
+  string

@@ -85,7 +85,7 @@ let lines_of_file (range : Out.position * Out.position) (file : filename) :
  * to ignore non-utf8 bytes.
  * See https://stackoverflow.com/a/56441652.
  *)
-let content_of_file (range : Out.position * Out.position) (file : filename) :
+let contents_of_file (range : Out.position * Out.position) (file : filename) :
     string =
   let start, end_ = range in
   let str = Common.read_file file in
@@ -120,7 +120,7 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
           * because of the use of multiple fields with the same
           * name in semgrep_output_v1.atd *)
          let (v : Out.metavar_value) = mval in
-         let content = lazy (content_of_file (v.start, v.end_) file) in
+         let content = lazy (contents_of_file (v.start, v.end_) file) in
          text
          (* first value($X), and then $X *)
          |> Str.global_substitute
