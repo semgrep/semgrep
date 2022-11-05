@@ -2,6 +2,25 @@ open Common
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Convert results coming from the core-runner (semgrep-core JSON output)
+ * to the official Semgrep CLI JSON output.
+ *
+ * I'm skipping lots of Python code and lots of intermediate modules for now
+ * and just go directly to the final Cli_output.
+ * In the Python codebase it goes through intermediate data-structures
+ * (e.g., RuleMatchMap, ProfilingData) and many modules:
+ *  - scan.py
+ *  - semgrep_main.py
+ *  - core_runner.py
+ *  - core_output.py
+ *  - output.py
+ *  - formatter/base.py
+ *  - formatter/json.py
+ *)
+
+(*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
@@ -116,20 +135,9 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
        text
 
 (*****************************************************************************)
-(* Core output to Cli output *)
+(* Core error to cli error *)
 (*****************************************************************************)
-(* I'm skipping lots of Python code and lots of intermediate modules for now
- * and just go directly to the final Cli_output.
- * In the Python codebase it goes through intermediate data-structures
- * (e.g., RuleMatchMap, ProfilingData) and many modules:
- *  - scan.py
- *  - semgrep_main.py
- *  - core_runner.py
- *  - core_output.py
- *  - output.py
- *  - formatter/base.py
- *  - formatter/json.py
- *)
+(* LATER: we should get rid of those intermediate Out.core_xxx *)
 
 let cli_error_of_core_error (_xTODO : Out.core_error) : Out.cli_error =
   {
@@ -144,6 +152,11 @@ let cli_error_of_core_error (_xTODO : Out.core_error) : Out.cli_error =
     spans = None;
     help = None;
   }
+
+(*****************************************************************************)
+(* Core match to cli match *)
+(*****************************************************************************)
+(* LATER: we should get rid of those intermediate Out.core_xxx *)
 
 let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
   match x with
@@ -200,8 +213,8 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
             message;
             severity;
             metadata;
-            (* TODO: other fields derived from the rule *)
             fix;
+            (* TODO: other fields derived from the rule *)
             fix_regex = None;
             (* TODO: extra fields *)
             is_ignored = Some false;
@@ -213,6 +226,10 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
             dataflow_trace = None;
           };
       }
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 
 let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
     : Out.cli_output =
@@ -250,7 +267,6 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
             (* TOPORT *)
             skipped = None;
           };
-        (* TODO: *)
         errors = errors |> Common.map cli_error_of_core_error;
         (* LATER *)
         time = None;
