@@ -8,10 +8,11 @@ module Out = Semgrep_output_v1_j
    'semgrep scan' output.
 
    Partially translated from output.py
-
-   For now only the JSON output is supported.
-   TODO? move most of the content of this file to Output_JSON.ml?
 *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   (* TODO fix_regex *)
@@ -32,6 +33,11 @@ let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
 (*****************************************************************************)
 
 let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
+  (* In theory, we should build the JSON CLI output only for the
+   * Json conf.output_format, but cli_output contains lots of data-structures
+   * that are useful for the other formats (e.g., Vim, Emacs), so we build
+   * it here.
+   *)
   let cli_output : Out.cli_output =
     Cli_json_output.cli_output_of_core_results conf res
   in
@@ -60,7 +66,10 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
       let s = Out.string_of_cli_output cli_output in
       pr s
   | Vim ->
-      (* alt: could start from res instead of cli_output *)
+      (* alt: could start from res instead of cli_output? but we also
+       * want the message interpolation, which is stored in the cli_output
+       * so simpler to start from cli_output.
+       *)
       cli_output.results
       |> List.iter (fun (m : Out.cli_match) ->
              match m with
@@ -78,7 +87,7 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
                  in
                  pr (String.concat ":" parts))
   | Emacs ->
-      (* alt: could start from res instead of cli_output *)
+      (* alt: could also start from res instead of cli_output *)
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
       |> List.iter (fun (m : Out.cli_match) ->
@@ -103,7 +112,10 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
                      | x :: _ -> spf "%s(%s)" severity x
                  in
                  let line =
-                   (* ugly: redoing the work done in cli_match_of_core_match *)
+                   (* ugly: redoing the work done in cli_match_of_core_match.
+                    * we can't use m.extra.lines because this field actually
+                    * contains a string, not a string list.
+                    *)
                    match Cli_json_output.lines_of_file (start, end_) path with
                    | [] -> ""
                    | x :: _ -> x (* TOPORT rstrip? *)

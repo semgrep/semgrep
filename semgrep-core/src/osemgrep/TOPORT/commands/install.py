@@ -1,23 +1,7 @@
-import os
-import shutil
-import stat
-import subprocess
-import sys
-from pathlib import Path
-
-import click
-from tqdm import tqdm
+#TODO: new code to import from brandon related to scip and deep-semgrep
 
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.error import FATAL_EXIT_CODE
-from semgrep.error import INVALID_API_KEY_EXIT_CODE
-from semgrep.semgrep_core import SemgrepCore
-from semgrep.state import get_state
 from semgrep.util import sub_check_output
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
 
 @click.command(hidden=True)
 @handle_command_errors
