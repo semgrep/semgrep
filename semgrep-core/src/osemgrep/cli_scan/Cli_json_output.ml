@@ -4,17 +4,18 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Convert results coming from the core-runner (semgrep-core JSON output)
- * to the official Semgrep CLI JSON output.
+(* Convert results coming from Core_runner (semgrep-core JSON output)
+ * to the formally specified Semgrep CLI JSON output.
  *
  * I'm skipping lots of Python code and lots of intermediate modules for now
- * and just go directly to the final Cli_output.
+ * and just go directly from the Core_runner results to the final Cli_output.
  * In the Python codebase it goes through intermediate data-structures
- * (e.g., RuleMatchMap, ProfilingData) and many modules:
+ * (e.g., RuleMatchMap, SemgrepCoreError, ProfilingData) and many modules:
  *  - scan.py
  *  - semgrep_main.py
  *  - core_runner.py
  *  - core_output.py
+ *  - error.py
  *  - output.py
  *  - formatter/base.py
  *  - formatter/json.py
@@ -24,7 +25,7 @@ module Out = Semgrep_output_v1_j
 (* Types *)
 (*****************************************************************************)
 
-(* environment to pass to the cli_output generator *)
+(* environment to pass to the JSON cli_output generator *)
 type env = {
   hrules : Rule.hrules;
   (* string to prefix all rule_id with
@@ -38,25 +39,8 @@ type env = {
 type metavars = (string * Out.metavar_value) list
 
 (*****************************************************************************)
-(* Helpers *)
+(* File content accessors *)
 (*****************************************************************************)
-
-let string_of_severity (severity : Rule.severity) : string =
-  match severity with
-  | Error -> "ERROR"
-  | Warning -> "WARNING"
-  | Info -> "INFO"
-  | Experiment -> "EXPERIMENT"
-  | Inventory -> "INVENTORY"
-
-let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
-  (* TODO: what if it's a registry rule?
-   * call Semgrep_dashdash_config.config_kind_of_config_str
-   *)
-  let path = conf.config in
-  (*  need to prefix with the dotted path of the config file *)
-  let dir = Filename.dirname path in
-  Str.global_replace (Str.regexp "/") "." dir ^ "."
 
 (* Return the list of lines for a start/end range. Note that
  * we take the whole line. Note also that each line does not contain
@@ -91,6 +75,155 @@ let contents_of_file (range : Out.position * Out.position) (file : filename) :
   let str = Common.read_file file in
   String.sub str start.offset (end_.offset - start.offset)
   [@@profiling]
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let core_location_to_error_span (loc : Out.location) : Out.error_span =
+  {
+    file = loc.path;
+    start = { line = loc.start.line; col = loc.start.col };
+    end_ = { line = loc.end_.line; col = loc.end_.col };
+    source_hash = None;
+    config_start = None;
+    config_end = None;
+    config_path = None;
+    context_start = None;
+    context_end = None;
+  }
+
+let string_of_severity (severity : Rule.severity) : string =
+  match severity with
+  | Error -> "ERROR"
+  | Warning -> "WARNING"
+  | Info -> "INFO"
+  | Experiment -> "EXPERIMENT"
+  | Inventory -> "INVENTORY"
+
+let level_of_severity (severity : Out.core_severity) : Error.level =
+  match severity with
+  | Error -> Error.Error
+  | Warning -> Error.Warn
+
+let error_type_string (error_type : Out.core_error_kind) : string =
+  match error_type with
+  (* # convert to the same string of core.ParseError for now *)
+  | PartialParsing _ -> "Syntax error"
+  | PatternParseError _ -> "Pattern parse error"
+  (* # All the other cases don't have arguments in Semgrep_output_v1.atd
+   * # and have some <json name="..."> annotations to generate the right string
+   * python: str(type_.to_json())
+   * but safer to just enumerate and write the boilerplate in OCaml
+   *)
+  | LexicalError -> "Lexical error"
+  | ParseError -> "Syntax error"
+  | SpecifiedParseError -> "Other syntax error"
+  | AstBuilderError -> "AST builder error"
+  | RuleParseError -> "Rule parse error"
+  | InvalidYaml -> "Invalid YAML"
+  | MatchingError -> "Internal matching error"
+  | SemgrepMatchFound -> "Semgrep match found"
+  | TooManyMatches -> "Too many matches"
+  | FatalError -> "Fatal error"
+  | Timeout -> "Timeout"
+  | OutOfMemory -> "Out of memory"
+
+(* Generate error message exposed to user *)
+let error_message ~rule_id ~(location : Out.location)
+    ~(error_type : Out.core_error_kind) ~core_message : string =
+  let path = location.path in
+  let error_context =
+    match (rule_id, error_type) with
+    (* # For rule errors, path is a temp file so will just be confusing *)
+    | Some id, (RuleParseError | PatternParseError _) -> spf "in rule %s" id
+    | Some id, _else_ -> spf "when running %s on %s" id path
+    | _else_ -> spf "at line %s:%d" path location.start.line
+  in
+  spf "%s %s:\n %s" (error_type_string error_type) error_context core_message
+
+(* #spans are used only for PatternParseError *)
+let error_spans ~(error_type : Out.core_error_kind) =
+  match error_type with
+  | PatternParseError _ -> failwith "TODO: Span of PatternParseError"
+  | PartialParsing locs -> Some (locs |> Common.map core_location_to_error_span)
+  | _else_ -> None
+
+let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
+  (* TODO: what if it's a registry rule?
+   * call Semgrep_dashdash_config.config_kind_of_config_str
+   *)
+  let path = conf.config in
+  (*  need to prefix with the dotted path of the config file *)
+  let dir = Filename.dirname path in
+  Str.global_replace (Str.regexp "/") "." dir ^ "."
+
+(*****************************************************************************)
+(* Core error to cli error *)
+(*****************************************************************************)
+(* LATER: we should get rid of those intermediate Out.core_xxx *)
+
+(* TODO: should return an Error.Semgrep_core_error instead? like we
+ * do in python? and then generate an Out.cli_error out of it?
+ *)
+let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
+  match x with
+  | {
+   error_type;
+   severity;
+   location;
+   message = core_message;
+   rule_id;
+   (* LATER *) details = _;
+  } ->
+      let level = level_of_severity severity in
+      (* # TODO benchmarking code relies on error code value right now
+       * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
+       *)
+      let exit_code, rule_id =
+        match error_type with
+        (* # Rule id not important for parse errors *)
+        | ParseError
+        | LexicalError
+        | PartialParsing _ ->
+            (Exit_code.invalid_code, None)
+        | _else_ -> (Exit_code.fatal, rule_id)
+      in
+      let path =
+        (* # For rule errors path is a temp file so will just be confusing *)
+        match error_type with
+        | RuleParseError
+        | PatternParseError _ ->
+            None
+        | _else_ -> Some location.path
+      in
+      let message =
+        Some (error_message ~rule_id ~error_type ~location ~core_message)
+      in
+      let spans = error_spans ~error_type in
+      {
+        (* LATER? seems to be either 2 (fatal) or 3 (invalid_code), so maybe
+         * better to change the ATD spec and use a variant for cli_error.code
+         *)
+        code = Exit_code.to_int exit_code;
+        (* LATER: should use a variant too *)
+        level = Error.string_of_level level;
+        (* LATER: type_ should be a proper variant instead of a string *)
+        type_ = error_type_string error_type;
+        rule_id;
+        path;
+        message;
+        spans;
+        (* LATER *)
+        long_msg = None;
+        short_msg = None;
+        help = None;
+      }
+
+(*****************************************************************************)
+(* Core match to cli match *)
+(*****************************************************************************)
+(* LATER: we should get rid of those intermediate Out.core_xxx *)
 
 (* Substitute the metavariables mentioned in a message to their
  * matched content.
@@ -134,38 +267,13 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
                 Lazy.force content))
        text
 
-(*****************************************************************************)
-(* Core error to cli error *)
-(*****************************************************************************)
-(* LATER: we should get rid of those intermediate Out.core_xxx *)
-
-let cli_error_of_core_error (_xTODO : Out.core_error) : Out.cli_error =
-  {
-    code = 1;
-    level = "TODO1";
-    type_ = "TODO2";
-    rule_id = None;
-    message = None;
-    path = None;
-    long_msg = None;
-    short_msg = None;
-    spans = None;
-    help = None;
-  }
-
-(*****************************************************************************)
-(* Core match to cli match *)
-(*****************************************************************************)
-(* LATER: we should get rid of those intermediate Out.core_xxx *)
-
 let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
   match x with
   | {
    rule_id;
    location;
-   extra =
-     { message; metavars; (* LATER *)
-                          dataflow_trace = _; rendered_fix = _ };
+   extra = { message; metavars; rendered_fix; (* LATER *)
+                                              dataflow_trace = _ };
   } ->
       let rule =
         try Hashtbl.find env.hrules rule_id with
@@ -182,7 +290,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
       in
       let fix =
         (* TOPORT: debug logging which indicates the source of the fix *)
-        match (x.extra.rendered_fix, rule.fix) with
+        match (rendered_fix, rule.fix) with
         | Some fix, _ -> Some fix
         | None, Some fix -> Some (interpolate_metavars fix metavars path)
         | None, None -> None
@@ -209,7 +317,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
           {
             metavars;
             lines;
-            (* fields derived from the rule *)
+            (* fields derived from the rule (and the match) *)
             message;
             severity;
             metadata;
@@ -259,6 +367,7 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
       let scanned = res.scanned |> Set_.elements in
       {
         version = Some Version.version;
+        (* TODO: handle the rule_match.cli_unique_key to dedup matches *)
         results = matches |> Common.map (cli_match_of_core_match env);
         paths =
           {

@@ -1,9 +1,6 @@
-from collections import defaultdict
 from functools import reduce
 from boltons.iterutils import partition
-
 from semgrep.error import Level
-from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
 from semgrep.util import is_url
 from semgrep.util import terminal_wrap
