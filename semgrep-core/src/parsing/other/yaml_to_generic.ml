@@ -314,15 +314,14 @@ let parse (env : env) : G.expr list =
         (seq :: rest, end_pos)
   and read_mappings acc : G.expr list * E.pos =
     (* Capture the mutable `last_event` field prior to parsing, as the *)
-    (* `Mapping_end` event needs to make use of it, and this is simpler than *)
-    (* extracting the last element of the accumulator *)
+    (* `Mapping_end` event needs to make use of it. *)
     let last_ev = env.last_event in
     match do_parse env with
     | E.Mapping_end, pos ->
-      (* The `Mapping_end` event position is inaccurate: it specifies the *)
-      (* position immediately prior to the next token. This causes comments *)
-      (* and the leading whitespace of the next yaml element to be chomped on *)
-      (* autofix. *)
+        (* The `Mapping_end` event position is inaccurate: it specifies the *)
+        (* position immediately prior to the next token. This causes comments *)
+        (* and the leading whitespace of the next yaml element to be chomped on *)
+        (* autofix. *)
         let pos' = Option.fold ~none:pos ~some:(fun (_, pos) -> pos) last_ev in
         (acc, pos')
     | v, pos ->
