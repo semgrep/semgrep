@@ -313,8 +313,12 @@ let parse (env : env) : G.expr list =
         let rest, end_pos = read_sequence acc in
         (seq :: rest, end_pos)
   and read_mappings acc : G.expr list * E.pos =
+    let last_pos = Option.map (fun (_, pos) -> pos) env.last_event in
     match do_parse env with
-    | E.Mapping_end, pos -> (acc, pos)
+    (* E.Mapping_end case here needs to use the pos of the previous token *)
+    | E.Mapping_end, pos ->
+        let pos' = Option.value last_pos ~default:pos in
+        (acc, pos')
     | v, pos ->
         let map = read_mapping (v, pos) in
         let rest, end_pos = read_mappings acc in
