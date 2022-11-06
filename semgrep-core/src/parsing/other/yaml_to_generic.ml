@@ -313,11 +313,17 @@ let parse (env : env) : G.expr list =
         let rest, end_pos = read_sequence acc in
         (seq :: rest, end_pos)
   and read_mappings acc : G.expr list * E.pos =
-    let last_pos = Option.map (fun (_, pos) -> pos) env.last_event in
+    (* Capture the mutable `last_event` field prior to parsing, as the *)
+    (* `Mapping_end` event needs to make use of it, and this is simpler than *)
+    (* extracting the last element of the accumulator *)
+    let last_ev = env.last_event in
     match do_parse env with
-    (* E.Mapping_end case here needs to use the pos of the previous token *)
     | E.Mapping_end, pos ->
-        let pos' = Option.value last_pos ~default:pos in
+      (* The `Mapping_end` event position is inaccurate: it specifies the *)
+      (* position immediately prior to the next token. This causes comments *)
+      (* and the leading whitespace of the next yaml element to be chomped on *)
+      (* autofix. *)
+        let pos' = Option.fold ~none:pos ~some:(fun (_, pos) -> pos) last_ev in
         (acc, pos')
     | v, pos ->
         let map = read_mapping (v, pos) in
