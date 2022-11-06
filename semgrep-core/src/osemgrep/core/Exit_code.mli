@@ -1,5 +1,8 @@
 (*
-   Exit codes of the semgrep executable (not just 'semgrep scan')
+   Exit codes of the semgrep executable (not just 'semgrep scan').
+
+   Some of those exit codes are also (ab)used to represent some error code
+   for errors reported in the semgrep CLI JSON output.
 *)
 
 (* This ensures that exit codes are declared and documented here. *)
@@ -16,6 +19,7 @@ val of_int : int -> t
 val ok : t
 val findings : t
 val fatal : t
+val invalid_code : t
 val invalid_pattern : t
 val unparseable_yaml : t
 val missing_config : t

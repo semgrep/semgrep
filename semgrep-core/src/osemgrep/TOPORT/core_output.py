@@ -2,16 +2,6 @@ from semgrep.error import Level
 from semgrep.types import JsonObject
 
 def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
-
-    # Hackily convert the level string to Semgrep expectations
-    level_str = err.severity.kind
-    if level_str.upper() == "WARNING":
-        level_str = "WARN"
-    if level_str.upper() == "ERROR_":
-        level_str = "ERROR"
-    level = Level[level_str.upper()]
-
-    spans: Optional[List[out.ErrorSpan]] = None
     if isinstance(err.error_type.value, core.PatternParseError):
         yaml_path = err.error_type.value.value[::-1]
         error_span = _core_location_to_error_span(err.location)
@@ -28,25 +18,7 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
                 config_path=yaml_path,
             )
         ]
-    elif isinstance(err.error_type.value, core.PartialParsing):
-        # The spans for PartialParsing errors are contained in the "error_type" object
-        spans = [
-            _core_location_to_error_span(location)
-            for location in err.error_type.value.value
-        ]
-
-    # TODO benchmarking code relies on error code value right now
-    # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-    if (
-        isinstance(err.error_type.value, core.ParseError)
-        or isinstance(err.error_type.value, core.LexicalError)
-        or isinstance(err.error_type.value, core.PartialParsing)
-    ):
-        code = 3
-        err = replace(err, rule_id=None)  # Rule id not important for parse errors
-    else:
-        code = 2
-
+    ...
     return SemgrepCoreError(code, level, spans, err)
 
 
@@ -54,20 +26,7 @@ def core_matches_to_rule_matches(
     rules: List[Rule], res: core.CoreMatchResults
 ) -> Dict[Rule, List[RuleMatch]]:
 
-    rule_table = {rule.id: rule for rule in rules}
-
     def convert_to_rule_match(match: core.CoreMatch) -> RuleMatch:
-        rule = rule_table[match.rule_id.value]
-        matched_values, propagated_values = read_metavariables(match)
-        message = interpolate(rule.message, matched_values, propagated_values)
-        if match.extra.rendered_fix:
-            fix = match.extra.rendered_fix
-        elif rule.fix:
-            fix = interpolate(rule.fix, matched_values, propagated_values)
-        else:
-            fix = None
-        fix_regex = None
-
         # this validation for fix_regex code was in autofix.py before
         # TODO: this validation should be done in rule.py when parsing the rule
         if rule.fix_regex:
@@ -88,15 +47,7 @@ def core_matches_to_rule_matches(
 
             fix_regex = out.FixRegex(regex=regex, replacement=replacement, count=count)
 
-        return RuleMatch(
-            match=match,
-            extra=match.extra.to_json(),
-            message=message,
-            metadata=rule.metadata,
-            severity=rule.severity,
-            fix=fix,
-            fix_regex=fix_regex,
-        )
+        return RuleMatch(...)
 
     findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
     seen_cli_unique_keys: Set[Tuple] = set()

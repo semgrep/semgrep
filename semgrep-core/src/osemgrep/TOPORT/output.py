@@ -1,9 +1,6 @@
-from collections import defaultdict
 from functools import reduce
 from boltons.iterutils import partition
-
 from semgrep.error import Level
-from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
 from semgrep.util import is_url
 from semgrep.util import terminal_wrap
@@ -206,13 +203,8 @@ class OutputHandler:
                 logger.error(error.format_for_terminal())
 
     def _final_raise(self, ex: Optional[Exception]) -> None:
-        if ex is None:
-            return
         if isinstance(ex, SemgrepError):
-            if ex.level == Level.ERROR:
-                raise ex
-            elif self.settings.strict:
-                raise ex
+            ...
         else:
             raise ex
 
@@ -365,12 +357,7 @@ class OutputHandler:
     def _build_output(
         self,
     ) -> str:
-        # CliOutputExtra members
-        cli_paths = out.CliPaths(
-            scanned=[str(path) for path in sorted(self.all_targets)],
-            _comment=None,
-            skipped=None,
-        )
+        cli_paths = out.CliPaths(...)
         cli_timing: Optional[out.CliTiming] = None
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
         # Extra, extra! This just in! 🗞️
@@ -401,6 +388,7 @@ class OutputHandler:
             cli_paths = dataclasses.replace(
                 cli_paths, _comment="<add --verbose for a list of skipped paths>"
             )
+
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
                 self.settings.output_destination is None and sys.stdout.isatty(),

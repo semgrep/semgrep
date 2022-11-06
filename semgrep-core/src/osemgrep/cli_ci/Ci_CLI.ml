@@ -13,6 +13,7 @@ open Cmdliner
 (* Types and constants *)
 (*****************************************************************************)
 
+(* 'semgrep ci' shares most of its flags with 'semgrep scan' *)
 type conf = Scan_CLI.conf
 
 (*************************************************************************)

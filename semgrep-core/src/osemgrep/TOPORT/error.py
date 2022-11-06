@@ -2,39 +2,16 @@ from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
 from semgrep.util import with_color
 
-class Level(Enum):
-    ERROR = 4  # Always an error
-    WARN = 3  # Only an error if "strict" is set
-
 class SemgrepError(Exception):
     """
-    Parent class of all exceptions we anticipate in Semgrep commands
-
     All Semgrep Exceptions are caught and their error messages
     are displayed to the user.
-
-    For pretty-printing, exceptions should override `__str__`.
     """
 
     def __init__(
         self, *args: object, code: int = FATAL_EXIT_CODE, level: Level = Level.ERROR
     ) -> None:
-        self.code = code
-        self.level = level
-
-        super().__init__(*args)
-
-    def to_CliError(self) -> out.CliError:
-        err = out.CliError(
-            code=self.code, type_=self.__class__.__name__, level=self.level.name.lower()
-        )
-        return self.adjust_CliError(err)
-
-    def adjust_CliError(self, base: out.CliError) -> out.CliError:
-        """
-        Default implementation. Subclasses should override to provide custom information.
-        """
-        return dataclasses.replace(base, message=str(self))
+        xxx
 
     def to_dict(self) -> Dict[str, Any]:
         return cast(Dict[str, Any], self.to_CliError().to_json())
@@ -50,50 +27,11 @@ class SemgrepError(Exception):
 
         return f"{level_tag} {self}"
 
-    # TODO: @classmethod?
     def semgrep_error_type(self) -> str:
         return type(self).__name__
 
 
-@dataclass(frozen=True)
 class SemgrepCoreError(SemgrepError):
-    code: int
-    level: Level
-    # TODO: spans are used only for PatternParseError
-    spans: Optional[List[out.ErrorSpan]]
-    core: core.CoreError
-
-    # TODO: we should return a proper variant instead of converting to a str
-    def _error_type_string(self) -> str:
-        type_ = self.core.error_type
-        # convert to the same string of core.ParseError for now
-        if isinstance(type_.value, core.PartialParsing):
-            return "Syntax error"
-        if isinstance(type_.value, core.PatternParseError):
-            return "Pattern parse error"
-        # All the other cases don't have arguments in Semgrep_output_v0.atd
-        # and have some <json name="..."> annotations to generate the right string
-        else:
-            return str(type_.to_json())
-
-    def adjust_CliError(self, base: out.CliError) -> out.CliError:
-        base = dataclasses.replace(
-            base, type_=self._error_type_string(), message=str(self)
-        )
-        if self.core.rule_id:
-            base = dataclasses.replace(base, rule_id=self.core.rule_id)
-
-        # For rule errors path is a temp file so for now will just be confusing to add
-        if not isinstance(
-            self.core.error_type.value, core.RuleParseError
-        ) and not isinstance(self.core.error_type.value, core.PatternParseError):
-            base = dataclasses.replace(base, path=str(self.core.location.path))
-
-        if self.spans:
-            base = dataclasses.replace(base, spans=self.spans)
-
-        return base
-
     def is_timeout(self) -> bool:
         """
         Return if this error is a match timeout
@@ -102,26 +40,6 @@ class SemgrepCoreError(SemgrepError):
 
     def semgrep_error_type(self) -> str:
         return f"{type(self).__name__}: {self._error_type_string()}"
-
-    @property
-    def _error_message(self) -> str:
-        """
-        Generate error message exposed to user
-        """
-        if self.core.rule_id:
-            # For rule errors path is a temp file so for now will just be confusing to add
-            if isinstance(
-                self.core.error_type.value, core.RuleParseError
-            ) or isinstance(self.core.error_type.value, core.PatternParseError):
-                error_context = f"in rule {self.core.rule_id.value}"
-            else:
-                error_context = f"when running {self.core.rule_id.value} on {self.core.location.path}"
-        else:
-            error_context = (
-                f"at line {self.core.location.path}:{self.core.location.start.line}"
-            )
-
-        return f"{self._error_type_string()} {error_context}:\n {self.core.message}"
 
     @property
     def _stack_trace(self) -> str:
@@ -163,7 +81,6 @@ class SemgrepInternalError(Exception):
     """
 
 
-@attr.s(auto_attribs=True, frozen=True)
 class FilesNotFoundError(SemgrepError):
     level = Level.ERROR
     code = FATAL_EXIT_CODE
@@ -182,7 +99,6 @@ def span_list_to_tuple(spans: List[Span]) -> Tuple[Span, ...]:
     return tuple(spans)
 
 
-@attr.s(auto_attribs=True, eq=True, frozen=True)
 class ErrorWithSpan(SemgrepError):
     """
     In general, you should not be constructing ErrorWithSpan directly, and instead be constructing a subclass
@@ -340,17 +256,14 @@ class ErrorWithSpan(SemgrepError):
         return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color(Colors.red, self.long_msg or '')}\n"
 
 
-@attr.s(frozen=True, eq=True)
 class InvalidRuleSchemaError(ErrorWithSpan):
     code = INVALID_PATTERN_EXIT_CODE
     level = Level.ERROR
 
 
-@attr.s(frozen=True, eq=True)
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
     level = Level.ERROR
-
 
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247
 ERROR_MAP = {

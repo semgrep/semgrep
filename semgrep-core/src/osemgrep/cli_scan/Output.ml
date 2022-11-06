@@ -29,39 +29,13 @@ let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   Textedit.apply_edits ~dryrun:conf.dryrun edits
 
 (*****************************************************************************)
-(* Entry point *)
+(* Format dispatcher *)
 (*****************************************************************************)
 
-let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
-  (* In theory, we should build the JSON CLI output only for the
-   * Json conf.output_format, but cli_output contains lots of data-structures
-   * that are useful for the other formats (e.g., Vim, Emacs), so we build
-   * it here.
-   *)
-  let cli_output : Out.cli_output =
-    Cli_json_output.cli_output_of_core_results conf res
-  in
-  (if conf.autofix then
-   (* TODO report when we fail to apply a fix because it overlaps with another?
-    * Currently it looks like the Python CLI will just blindly apply
-    * overlapping fixes, probably breaking code.
-    *
-    * At some point we could re-run Semgrep on all files where some fixes
-    * haven't been applied because they overlap with other fixes, and repeat
-    * until all are applied (with some bounds to prevent divergence). This
-    * probably happens rarely enough that it would be very fast, and it would
-    * make the autofix experience better.
-    * *)
-   let modified_files, _failed_fixes = apply_fixes conf cli_output in
-   if not conf.dryrun then
-     if modified_files <> [] then
-       pr2
-         (spf "successfully modified %s."
-            (String_utils.unit_str (List.length modified_files) "file"))
-     else pr2 "no files modified.");
-
+let dispatch_output_format (output_format : Constants.output_format)
+    (cli_output : Out.cli_output) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
-  match conf.output_format with
+  match output_format with
   | Json ->
       let s = Out.string_of_cli_output cli_output in
       pr s
@@ -139,4 +113,39 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
   | Sarif ->
       pr
         (spf "TODO: output format %s not supported yet"
-           (Constants.show_output_format conf.output_format))
+           (Constants.show_output_format output_format))
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
+  (* In theory, we should build the JSON CLI output only for the
+   * Json conf.output_format, but cli_output contains lots of data-structures
+   * that are useful for the other formats (e.g., Vim, Emacs), so we build
+   * it here.
+   *)
+  let cli_output : Out.cli_output =
+    Cli_json_output.cli_output_of_core_results conf res
+  in
+  (if conf.autofix then
+   (* TODO report when we fail to apply a fix because it overlaps with another?
+    * Currently it looks like the Python CLI will just blindly apply
+    * overlapping fixes, probably breaking code.
+    *
+    * At some point we could re-run Semgrep on all files where some fixes
+    * haven't been applied because they overlap with other fixes, and repeat
+    * until all are applied (with some bounds to prevent divergence). This
+    * probably happens rarely enough that it would be very fast, and it would
+    * make the autofix experience better.
+    * *)
+   let modified_files, _failed_fixes = apply_fixes conf cli_output in
+   if not conf.dryrun then
+     if modified_files <> [] then
+       pr2
+         (spf "successfully modified %s."
+            (String_utils.unit_str (List.length modified_files) "file"))
+     else pr2 "no files modified.");
+
+  dispatch_output_format conf.output_format cli_output;
+  ()

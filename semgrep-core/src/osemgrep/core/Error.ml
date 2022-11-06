@@ -4,9 +4,17 @@
 
 module C = Output_from_core_t
 
+(* LATER: do we need this intermediate data-structure? Can't we
+ * reuse simply Rule.severity? Or even Output_from_core_t.core_severity.
+ *)
 type level =
   | Warn (* = 3; Always an error *)
   | Error (* = 4; Only an error if "strict" is set *)
+
+(* for CLI JSON output *)
+let string_of_level = function
+  | Warn -> "warn"
+  | Error -> "error"
 
 (*
    originally: class ErrorWithSpan(SemgrepError)
