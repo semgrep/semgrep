@@ -362,12 +362,7 @@ class OutputHandler:
     def _build_output(
         self,
     ) -> str:
-        # CliOutputExtra members
-        cli_paths = out.CliPaths(
-            scanned=[str(path) for path in sorted(self.all_targets)],
-            _comment=None,
-            skipped=None,
-        )
+        cli_paths = out.CliPaths(...)
         cli_timing: Optional[out.CliTiming] = None
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
         # Extra, extra! This just in! 🗞️
@@ -398,6 +393,7 @@ class OutputHandler:
             cli_paths = dataclasses.replace(
                 cli_paths, _comment="<add --verbose for a list of skipped paths>"
             )
+
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
                 self.settings.output_destination is None and sys.stdout.isatty(),

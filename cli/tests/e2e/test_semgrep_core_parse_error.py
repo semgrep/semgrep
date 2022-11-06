@@ -18,7 +18,7 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, sett
         options=["--verbose", "--no-time"],
         output_format=OutputFormat.JSON,
         force_color=True,
-        assert_exit_code=0,
+        assert_exit_code=3,
     )
     snapshot.assert_match(stdout, "out.json")
     snapshot.assert_match(stderr, "error.txt")

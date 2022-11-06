@@ -9,8 +9,9 @@ module Out = Semgrep_output_v1_j
  *
  * I'm skipping lots of Python code and lots of intermediate modules for now
  * and just go directly from the Core_runner results to the final Cli_output.
- * In the Python codebase it goes through intermediate data-structures
- * (e.g., RuleMatchMap, SemgrepCoreError, ProfilingData) and many modules:
+ * In the Python codebase it goes through many intermediate data-structures
+ * (e.g., RuleMatchMap, SemgrepCoreError, FileTargetingLog, ProfilingData)
+ * and many modules:
  *  - scan.py
  *  - semgrep_main.py
  *  - core_runner.py
@@ -163,7 +164,8 @@ let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
 (*****************************************************************************)
 (* LATER: we should get rid of those intermediate Out.core_xxx *)
 
-(* TODO: should return an Error.Semgrep_core_error instead? like we
+(* Skipping the intermediate python SemgrepCoreError for now.
+ * TODO: should we return an Error.Semgrep_core_error instead? like we
  * do in python? and then generate an Out.cli_error out of it?
  *)
 let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
@@ -336,6 +338,42 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
       }
 
 (*****************************************************************************)
+(* Skipped target *)
+(*****************************************************************************)
+
+let cli_skipped_target_of_skipped_target (_x : Out.skipped_target) :
+    Out.cli_skipped_target =
+  failwith "TODO:cli_skipped_target_of_skipped_target"
+
+(* skipping the python intermediate FileTargetingLog for now *)
+let cli_skipped_targets_opt ~(errors : Out.core_error list)
+    ~(skipped_targets : Out.skipped_target list option) :
+    Out.cli_skipped_target list option =
+  (* TODO: skipped targets are coming from the FileIgnoreLog which is
+   * populated from many places in the code.
+   *)
+
+  (* TODO: see _make_failed_to_analyze() in output.py,
+   * core_failure_lines_by_file in target_manager.py
+   *)
+  let skipped_because_of_core_errors : Out.cli_skipped_target list =
+    errors
+    |> Common.map (fun (err : Out.core_error) ->
+           {
+             Out.path = err.location.path;
+             reason = "analysis_failed_parser_or_internal_error";
+           })
+  in
+  let core_skipped =
+    match skipped_targets with
+    | None -> []
+    | Some xs -> xs |> Common.map cli_skipped_target_of_skipped_target
+  in
+  (* TODO: need to sort *)
+  let final = skipped_because_of_core_errors @ core_skipped in
+  if null final then None else Some final
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
@@ -345,8 +383,8 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
   | {
    matches;
    errors;
+   skipped_targets;
    (* LATER *)
-   skipped_targets = _;
    skipped_rules = _;
    explanations = _;
    stats = _;
@@ -363,20 +401,29 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
       in
       (* TODO: not sure how it's sorted, but Set_.elements return
        * elements in OCaml compare order (=~ lexicographic for strings)
+       * python: scanned=[str(path) for path in sorted(self.all_targets)]
        *)
       let scanned = res.scanned |> Set_.elements in
+      let (paths : Out.cli_paths) =
+        match conf.logging_level with
+        | Some Logs.Info ->
+            let skipped = cli_skipped_targets_opt ~errors ~skipped_targets in
+            { scanned; _comment = None; skipped }
+        | _else_ ->
+            {
+              scanned;
+              _comment = Some "<add --verbose for a list of skipped paths>";
+              skipped = None;
+            }
+      in
       {
         version = Some Version.version;
-        (* TODO: handle the rule_match.cli_unique_key to dedup matches *)
+        (* Skipping the python intermediate RuleMatchMap for now.
+         * TODO: handle the rule_match.cli_unique_key to dedup matches
+         *)
         results = matches |> Common.map (cli_match_of_core_match env);
-        paths =
-          {
-            scanned;
-            _comment = Some "<add --verbose for a list of skipped paths>";
-            (* TOPORT *)
-            skipped = None;
-          };
         errors = errors |> Common.map cli_error_of_core_error;
+        paths;
         (* LATER *)
         time = None;
         explanations = None;
