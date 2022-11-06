@@ -6,7 +6,7 @@
 
    This module determines the subcommand invoked on the command line
    and has another module handle it as if it were an independent command.
-   We don't use Cmdliner to dispatch subcommands because it's a too
+   We don't use Cmdliner to dispatch subcommands because it's too
    complicated and we never show a help page for the whole command anyway
    since we fall back to the 'scan' subcommand if none is given.
 
@@ -116,7 +116,9 @@ let dispatch_subcommand argv =
         let subcmd_argv0 = argv0 ^ "-" ^ subcmd in
         subcmd_argv0 :: subcmd_args |> Array.of_list
       in
-      (* coupling: with known_subcommands above *)
+      (* coupling: with known_subcommands if you add an entry below.
+       * coupling: with the main_help_msg if you add an entry below.
+       *)
       match subcmd with
       | "ci" -> Ci_subcommand.main subcmd_argv
       | "login" -> Login_subcommand.main subcmd_argv
@@ -157,6 +159,8 @@ let main argv =
   (* TODO? the logging setup is now done in Semgrep_scan.ml, because that's
    * when we have a config object, but ideally we would like
    * to analyze argv and do it sooner for all subcommands here.
+   * update: now that we use the Logs library, maybe we could do it
+   * here as we don't need a config object anymore.
    *)
 
   (* TOADAPT
@@ -179,7 +183,7 @@ let main argv =
       state = get_state()
       state.terminal.init_for_cli()
       abort_if_linux_arm64()
-      commands: Dict[str, click.Command] = ctx.command.commands  # type: ignore
+      commands: Dict[str, click.Command] = ctx.command.commands
       subcommand: str = (
           ctx.invoked_subcommand if ctx.invoked_subcommand in commands else "unset"
       )
