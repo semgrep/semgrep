@@ -203,13 +203,8 @@ class OutputHandler:
                 logger.error(error.format_for_terminal())
 
     def _final_raise(self, ex: Optional[Exception]) -> None:
-        if ex is None:
-            return
         if isinstance(ex, SemgrepError):
-            if ex.level == Level.ERROR:
-                raise ex
-            elif self.settings.strict:
-                raise ex
+            ...
         else:
             raise ex
 

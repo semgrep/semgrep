@@ -164,6 +164,17 @@ let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
 (*****************************************************************************)
 (* LATER: we should get rid of those intermediate Out.core_xxx *)
 
+(* # TODO benchmarking code relies on error code value right now
+   * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
+*)
+let exit_code_of_error_type (error_type : Out.core_error_kind) : Exit_code.t =
+  match error_type with
+  | ParseError
+  | LexicalError
+  | PartialParsing _ ->
+      Exit_code.invalid_code
+  | _else_ -> Exit_code.fatal
+
 (* Skipping the intermediate python SemgrepCoreError for now.
  * TODO: should we return an Error.Semgrep_core_error instead? like we
  * do in python? and then generate an Out.cli_error out of it?
@@ -179,17 +190,15 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
    (* LATER *) details = _;
   } ->
       let level = level_of_severity severity in
-      (* # TODO benchmarking code relies on error code value right now
-       * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-       *)
-      let exit_code, rule_id =
+      let exit_code = exit_code_of_error_type error_type in
+      let rule_id =
         match error_type with
         (* # Rule id not important for parse errors *)
         | ParseError
         | LexicalError
         | PartialParsing _ ->
-            (Exit_code.invalid_code, None)
-        | _else_ -> (Exit_code.fatal, rule_id)
+            None
+        | _else_ -> rule_id
       in
       let path =
         (* # For rule errors path is a temp file so will just be confusing *)

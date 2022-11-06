@@ -15,3 +15,6 @@ val contents_of_file :
   Semgrep_output_v1_j.position * Semgrep_output_v1_j.position ->
   Common.filename ->
   string
+
+(* internals used in Scan_subcommant.ml *)
+val exit_code_of_error_type : Semgrep_output_v1_j.core_error_kind -> Exit_code.t
