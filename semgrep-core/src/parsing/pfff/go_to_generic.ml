@@ -114,9 +114,9 @@ let top_func () =
         let name = name_of_qualified_ident v1 in
         G.TyN name
     | TGeneric (v1, v2) ->
-        let id = ident v1 in
+        let id = qualified_ident v1 in
         let targs = type_arguments v2 in
-        let name = H.name_of_id id in
+        let name = name_of_qualified_ident id in
         G.TyApply (G.TyN name |> G.t, targs)
     | TPtr (t, v1) ->
         let v1 = type_ v1 in
@@ -220,8 +220,9 @@ let top_func () =
     | Constraints xs -> (
         match xs with
         | [] -> raise Impossible
-        | (_tilde_opt, id) :: _xs ->
-            let st = G.OtherStmt (G.OS_Todo, [ G.I id ]) |> G.s in
+        | (_tilde_optTODO, ty) :: _xsTODO ->
+            let ty = type_ ty in
+            let st = G.OtherStmt (G.OS_Todo, [ G.T ty ]) |> G.s in
             G.F st)
   and expr_or_type v = either expr type_ v
   and expr e =

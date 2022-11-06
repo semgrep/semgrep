@@ -1,0 +1,16 @@
+rules:
+- id: terraform-metavariable
+  patterns:
+  - pattern: |
+      resource $FOO $BAR {
+        ...
+        qux = $VAL
+        ...
+      }
+  - metavariable-comparison:
+      metavariable: $VAL
+      comparison: |
+        $VAL > 4
+  message: Working!
+  severity: WARNING
+  languages: [hcl]

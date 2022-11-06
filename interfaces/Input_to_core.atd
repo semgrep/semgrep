@@ -3,7 +3,7 @@
    python wrapper, 'semgrep'.
 
    There are other very important form of inputs which are not specified here:
-    - The rule syntax and schema (see rule_schema.yaml; only the
+    - The rule syntax and schema (see rule_schema_v1.yaml; only the
       semgrep matching engine options are specified in Config_semgrep.atd)
     - The syntax for all the target files (see the grammar for the different
       tree-sitter and pfff parsers)

@@ -5,16 +5,19 @@ from typing import List
 from typing import Set
 from typing import Tuple
 
+from packaging.specifiers import InvalidSpecifier
+from packaging.specifiers import SpecifierSet
+
 import semgrep.output_from_core as core
 from semdep.find_lockfiles import find_single_lockfile
 from semdep.package_restrictions import dependencies_range_match_any
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.semgrep_interfaces.semgrep_output_v0 import DependencyMatch
-from semgrep.semgrep_interfaces.semgrep_output_v0 import DependencyPattern
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v0 import ScaInfo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaInfo
 from semgrep.target_manager import TargetManager
 
 SCA_FINDING_SCHEMA = 20220913
@@ -40,6 +43,11 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
         semver_range = entry.get("version")
         if semver_range is None:
             raise SemgrepError(f"project-depends-on is missing `version`")
+        try:
+            SpecifierSet(semver_range)
+        except InvalidSpecifier:
+            raise SemgrepError(f"invalid semver range {semver_range}")
+
         yield DependencyPattern(
             ecosystem=ecosystem, package=package, semver_range=semver_range
         )

@@ -115,5 +115,7 @@ let _show_taint_label taint =
       ts.label
 
 let show_taints taints =
-  taints |> Taint_set.elements |> Common.map show_taint |> String.concat ", "
+  taints |> Taint_set.elements
+  |> Common.map _show_taint_label
+  |> String.concat ", "
   |> fun str -> "{ " ^ str ^ " }"

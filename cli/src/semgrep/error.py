@@ -15,7 +15,7 @@ from typing import Tuple
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
 import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import Colors
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
@@ -113,7 +113,7 @@ class SemgrepCoreError(SemgrepError):
             return "Syntax error"
         if isinstance(type_.value, core.PatternParseError):
             return "Pattern parse error"
-        # All the other cases don't have arguments in Semgrep_output_v0.atd
+        # All the other cases don't have arguments in Semgrep_output_v1.atd
         # and have some <json name="..."> annotations to generate the right string
         else:
             return str(type_.to_json())

@@ -4,7 +4,7 @@
   (name osemgrep_cli_scan)
   (wrapped false)
   (libraries
-    cmdliner
+    cmdliner logs
     commons  ; from pfff
 
     semgrep_core_cli

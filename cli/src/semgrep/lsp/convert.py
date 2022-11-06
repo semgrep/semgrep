@@ -10,7 +10,7 @@ from semgrep.lsp.types import DiagnosticSeverity
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
-from semgrep.semgrep_interfaces.semgrep_output_v0 import MetavarValue
+from semgrep.semgrep_interfaces.semgrep_output_v1 import MetavarValue
 from semgrep.target_manager import TargetManager
 from semgrep.types import JsonObject
 from semgrep.util import flatten

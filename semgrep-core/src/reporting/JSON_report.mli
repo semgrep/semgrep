@@ -1,9 +1,4 @@
-type render_fix =
-  Lang.t ->
-  Metavariable.bindings ->
-  fix_pattern:string ->
-  target_contents:string lazy_t ->
-  string option
+type render_fix = Pattern_match.t -> Textedit.t option
 
 (* Can return an Error because when have a NoTokenLocation exn when
  * trying to get the range of a match or metavar.

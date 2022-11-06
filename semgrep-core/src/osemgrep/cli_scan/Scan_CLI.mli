@@ -1,5 +1,5 @@
 (*
-   'semgrep scan' command-line parsing.
+   'semgrep scan' (and also 'semgrep ci') command-line parsing.
 *)
 
 (*
@@ -9,10 +9,12 @@ type conf = {
   autofix : bool;
   baseline_commit : string option;
   config : string;
-  debug : bool;
+  dryrun : bool;
+  exclude_rule_ids : string list;
   exclude : string list;
   include_ : string list;
   lang : string option;
+  logging_level : Logs.level option;
   max_memory_mb : int;
   max_target_bytes : int;
   metrics : Metrics.State.t;
@@ -20,13 +22,14 @@ type conf = {
   optimizations : bool;
   output_format : Constants.output_format;
   pattern : string option;
-  quiet : bool;
   respect_git_ignore : bool;
+  rewrite_rule_ids : bool;
+  scan_unknown_extensions : bool;
   strict : bool;
   target_roots : string list;
+  time_flag : bool;
   timeout : float;
   timeout_threshold : int;
-  verbose : bool;
 }
 
 (* Command-line defaults. *)
@@ -41,3 +44,6 @@ val default : conf
    went fine.
 *)
 val parse_argv : string array -> (conf, Exit_code.t) result
+
+(* exported because used by Ci_CLI.ml too *)
+val cmdline_term : conf Cmdliner.Term.t

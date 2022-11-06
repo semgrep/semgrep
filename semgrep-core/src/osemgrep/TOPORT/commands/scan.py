@@ -14,7 +14,6 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.notifications import possibly_notify_user
 from semgrep.project import get_project_url
 from semgrep.semgrep_types import LANGUAGE
-from semgrep.state import get_state
 from semgrep.target_manager import write_pipes_to_disk
 from semgrep.util import abort
 from semgrep.util import with_color
@@ -110,56 +109,15 @@ class MetricsStateType(click.ParamType):
                 return MetricsState.OFF
         self.fail("expected 'auto', 'on', or 'off'")
 
-
 METRICS_STATE_TYPE = MetricsStateType()
-
 
 # Slightly increase the help width from default 80 characters, to improve readability
 CONTEXT_SETTINGS = {"max_content_width": 90}
 
 _scan_options: List[Callable] = [
-    click.option(
-        "--disable-metrics",
-        "metrics_legacy",
-        is_flag=True,
-        type=METRICS_STATE_TYPE,
-        flag_value="off",
-        hidden=True,
-    ),
-    click.option(
-        "--enable-metrics",
-        "metrics_legacy",
-        is_flag=True,
-        type=METRICS_STATE_TYPE,
-        flag_value="on",
-        hidden=True,
-    ),
-    optgroup.group(
-        "Path options",
-        help="""
-            By default, Semgrep scans all git-tracked files with extensions matching rules' languages.
-            These options alter which files Semgrep scans.
-        """,
-    ),
-    optgroup.option(
-        "--exclude-rule",
-        multiple=True,
-        default=[],
-        help="""
-            Skip any rule with the given id. Can add multiple times.
-        """,
-        shell_complete=__get_file_options,
-    ),
-    optgroup.option(
-        "--scan-unknown-extensions/--skip-unknown-extensions",
-        is_flag=True,
-        default=True,
-        help="""
-            If true, explicit files will be scanned using the language specified in
-            --lang. If --skip-unknown-extensions, these files will not be scanned
-        """,
-    ),
-    optgroup.group("Performance and memory options"),
+
+
+ optgroup.group("Performance and memory options"),
     optgroup.option(
         "--enable-version-check/--disable-version-check",
         is_flag=True,
@@ -170,7 +128,7 @@ _scan_options: List[Callable] = [
             may reduce exit time after returning results.
         """,
     ),
-    optgroup.group("Display options"),
+ optgroup.group("Display options"),
     optgroup.option(
         "--enable-nosem/--disable-nosem",
         is_flag=True,
@@ -214,26 +172,9 @@ _scan_options: List[Callable] = [
         help="Save search results to a file or post to URL. Default is to print to stdout.",
         shell_complete=__get_file_options,
     ),
-    optgroup.option(
-        "--rewrite-rule-ids/--no-rewrite-rule-ids",
-        is_flag=True,
-        default=True,
-        help="""
-            Rewrite rule ids when they appear in nested sub-directories (Rule 'foo' in
-            test/rules.yaml will be renamed 'test.foo').
-        """,
-    ),
-    optgroup.option(
-        "--time/--no-time",
-        "time_flag",
-        is_flag=True,
-        default=False,
-        help="""
-            Include a timing summary with the results. If output format is json, provides
-            times for each pair (rule, target).
-        """,
-    ),
-    optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
+
+
+  optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
 
     optgroup.group(
         "Output formats",
@@ -263,7 +204,6 @@ def scan_options(func: Callable) -> Callable:
     return func
 
 
-@click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "--replacement",
@@ -272,17 +212,9 @@ def scan_options(func: Callable) -> Callable:
         Only valid with a command-line specified pattern.
     """,
 )
+
 @optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup)
-@click.option(
-    "--dryrun/--no-dryrun",
-    is_flag=True,
-    default=False,
-    help="""
-        If --dryrun, does not write autofixes to a file. This will print the changes
-        to the console. This lets you see the changes before you commit to them. Only
-        works with the --autofix flag. Otherwise does nothing.
-    """,
-)
+
 @click.option(
     "--severity",
     multiple=True,
@@ -299,7 +231,9 @@ def scan_options(func: Callable) -> Callable:
     is_flag=True,
     help=("Print a list of languages that are currently supported by Semgrep."),
 )
+
 @optgroup.group("Alternate modes", help="No search is performed in these modes")
+
 @optgroup.option(
     "--validate",
     is_flag=True,
@@ -309,7 +243,9 @@ def scan_options(func: Callable) -> Callable:
 @optgroup.option(
     "--version", is_flag=True, default=False, help="Show the version and exit."
 )
+
 @optgroup.group("Test and debug options")
+
 @optgroup.option("--test", is_flag=True, default=False, help="Run test suite.")
 @optgroup.option(
     "--test-ignore-todo/--no-test-ignore-todo",
@@ -342,36 +278,27 @@ def scan_options(func: Callable) -> Callable:
     hidden=True
     # help="contact support@r2c.dev for more information on this"
 )
-@scan_options
-@handle_command_errors
 def scan(
     *,
     deep: bool,
-    dryrun: bool,
     dump_ast: bool,
     enable_nosem: bool,
     enable_version_check: bool,
     error_on_findings: bool,
-    exclude_rule: Optional[Tuple[str, ...]],
     force_color: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     junit_xml: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
-    metrics_legacy: Optional[MetricsState],
-    optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
     replacement: Optional[str],
-    rewrite_rule_ids: bool,
     sarif: bool,
-    scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     show_supported_languages: bool,
     test: bool,
     test_ignore_todo: bool,
-    time_flag: bool,
     validate: bool,
     version: bool,
 ) -> ScanReturn:
@@ -410,8 +337,6 @@ def scan(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
-    output_time = time_flag
-
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
 
@@ -436,7 +361,7 @@ def scan(
         strict=strict,
         verbose_errors=verbose,
         timeout_threshold=timeout_threshold,
-        output_time=output_time,
+        output_time=time_flag,
         output_per_finding_max_lines_limit=max_lines_per_finding,
         output_per_line_max_chars_limit=max_chars_per_line,
         dataflow_traces=dataflow_traces,
@@ -518,7 +443,6 @@ def scan(
                     _,
                 ) = semgrep.semgrep_main.main(
                     configs=(config or []),
-                    no_rewrite_rule_ids=(not rewrite_rule_ids),
                     exclude_rule=exclude_rule,
                     disable_nosem=(not enable_nosem),
                     no_git_ignore=(not use_git_ignore),

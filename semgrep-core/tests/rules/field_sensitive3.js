@@ -1,12 +1,22 @@
+// Quite similar to field_sensitive1 ...
 function f() {
-    a.b.c = source
+    x.a.b.c = source
 
     //ruleid: test
-    sink(a.b.c)
+    sink(x.a.b.c)
+    //ruleid: test
+    sink(x.a.b.c.d)
 
-    // These are ok because we have not enabled propagation of taint up through fields, to avoid FPs
+    // These are OK because we have not enabled propagation of taint up through
+    // fields, to avoid FPs
     //ok: test
-    sink(a.b)
+    sink(x.a.b.d)
     //ok: test
-    sink(a)
+    sink(x.a.b)
+    //ok: test
+    sink(x.a.c)
+    //ok: test
+    sink(x.a)
+    //ok: test
+    sink(x)
 }

@@ -171,7 +171,22 @@ and base =
   (* THINK: Mem of exp -> Deref of name *)
   | Mem of exp
 
-and offset =
+and offset = {
+  o : offset_kind;
+  oorig : orig;
+      (** `oorig' should be a DotAccess expression and gives us the corresponding
+      * Generic expression for a sub-lvalue. Now that we represent `x.a.b.c` as
+      * { base = "x"; rev_offsets = ["c"; "b"; "a"]}, it makes it very easy to
+      * check whether a sub-lvalue is a source/santizer/sink by just checking
+      * the range of the `oorig'.
+      *
+      * alt: We could compute the range of the sub-lvalue from the ranges of all
+      *      the offsets in the sub-lvalue, but this is probably less efficent
+      *      unless we cache the range here. So it seems better to have `oorig'.
+      *)
+}
+
+and offset_kind =
   (* What about computed field names?
    * - handle them in Special?
    * - convert in Index with a string exp?

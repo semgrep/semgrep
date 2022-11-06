@@ -20,7 +20,7 @@ from typing import Type
 import requests
 from boltons.iterutils import partition
 
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity

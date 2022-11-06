@@ -1,7 +1,3 @@
-module Out = Semgrep_output_v0_j
-
-let logger = Logging.get_logger [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -33,17 +29,32 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   (* --------------------------------------------------------- *)
   (* Setting up debugging/profiling *)
   (* --------------------------------------------------------- *)
+  (* For osemgrep we use the Logs library instead of the Logger
+   * library in pfff. We had a few issues with Logger (which is a small
+   * wrapper around the easy_logging library), and we don't really want
+   * the logging in semgrep-core to interfere with the proper
+   * logging/output we want in osemgrep, so this is a good opportunity
+   * to evaluate a new logging library.
+   *)
+  Logs_helpers.setup_logging conf.logging_level;
+  Logs.debug (fun m -> m "Logging setup for semgrep scan");
+  Logs.debug (fun m ->
+      m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "));
+
+  let config = Core_runner.runner_config_of_conf conf in
+  Logs.debug (fun m -> m "Version: %s" config.version);
+
+  (* Easy_logging setup. We should avoid to use Logger in osemgrep/
+   * and use Logs instead, but it is still useful to get the semgrep-core
+   * logging information at runtime, hence this call.
+   *)
+  Setup_logging.setup config;
 
   (* TOADAPT
      if config.debug then Report.mode := MDebug
      else if config.report_time then Report.mode := MTime
      else Report.mode := MNo_info;
   *)
-  let config = Core_runner.runner_config_of_conf conf in
-  Setup_logging.setup config;
-
-  logger#info "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " ");
-  logger#info "Version: %s" config.version;
 
   (* --------------------------------------------------------- *)
   (* Let's go *)
@@ -67,7 +78,6 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   let (res : Core_runner.result) =
     Core_runner.invoke_semgrep_core conf rules targets
   in
-
   Output.output_result conf res;
   Exit_code.ok
 
