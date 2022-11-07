@@ -67,7 +67,7 @@ let union le1 le2 =
 
 (* Reduces an l-value into the form x.a_1. ... . a_N, the resulting l-value may
  * not represent the exact same object as the original l-value, but an
- * overapproxiamation. For example, the normalized l-value of `x[i]` will be `x`,
+ * overapproximation. For example, the normalized l-value of `x[i]` will be `x`,
  * so the taints of any element of an array are tracked via the array itself. *)
 let rec normalize_lval lval =
   let { IL.base; rev_offset } = lval in
@@ -80,7 +80,7 @@ let rec normalize_lval lval =
       | Mem _ ->
           None)
   | _ :: rev_offset' -> (
-      (* Must find the largest prefix of the form x.a_1. ... . a_N. *)
+      (* Must find the longest prefix of the form x.a_1. ... . a_N. *)
       let is_dots = LV.is_dots_offset rev_offset in
       match base with
       | Var _ when is_dots -> Some lval
@@ -91,7 +91,7 @@ let rec normalize_lval lval =
               Some { IL.base = Var var; rev_offset = List.rev offset' }
           | []
           | { o = IL.Index _; _ } :: _ ->
-              logger#error "Impossible happened";
+              logger#error "normalize_lval: Impossible happened";
               None)
       | Var _
       | VarSpecial _ ->

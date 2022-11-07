@@ -10,7 +10,7 @@
  * We rely on Naming_AST to resolve the variables correctly.
  *
  * L-values of the form x.a_1. ... . a_N [i] o_1...o_M are normalized as
- * x.a_1. ... . a_N. That is, we obtain the largest prefix of dot-offsets
+ * x.a_1. ... . a_N. That is, we obtain the longest prefix of dot-offsets
  * possible. See docs of `add` and `clean` below for more details.
  *
  * We track taints per variable, but not per object in memory. There is
