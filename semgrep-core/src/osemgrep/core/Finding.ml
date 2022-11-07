@@ -81,7 +81,7 @@ type _t = {
   match_ : C.core_match;
   (* fields from the rule *)
   message : string;
-  severity : Constants.rule_severity;
+  severity : Severity.rule_severity;
   metadata : string * json list (* ??? Dict[str, Any] *);
   (*
      Do not use this extra field! This prevents from having typed JSON output

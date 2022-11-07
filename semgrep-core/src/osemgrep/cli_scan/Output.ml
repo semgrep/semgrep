@@ -8,6 +8,10 @@ module Out = Semgrep_output_v1_j
    'semgrep scan' output.
 
    Partially translated from output.py
+
+   LATER? It would be nice to move this file in osemgrep/reporting/, but
+   it currently depends on Scan_CLI.conf and Core_runner so simpler to keep
+   here for now.
 *)
 
 (*****************************************************************************)
@@ -32,7 +36,7 @@ let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
 (* Format dispatcher *)
 (*****************************************************************************)
 
-let dispatch_output_format (output_format : Constants.output_format)
+let dispatch_output_format (output_format : Output_format.t)
     (cli_output : Out.cli_output) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
@@ -113,7 +117,7 @@ let dispatch_output_format (output_format : Constants.output_format)
   | Sarif ->
       pr
         (spf "TODO: output format %s not supported yet"
-           (Constants.show_output_format output_format))
+           (Output_format.show output_format))
 
 (*****************************************************************************)
 (* Entry point *)

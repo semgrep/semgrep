@@ -1,0 +1,18 @@
+(library
+ (name osemgrep_reporting)
+ (wrapped false)
+ (libraries
+   commons
+
+   semgrep_utils ; spcre
+
+ )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_hash
+   )
+ )
+)
