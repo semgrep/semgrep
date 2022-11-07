@@ -9,13 +9,6 @@
 (* Error object that holds all kinds of errors. *)
 type t
 
-type level =
-  | Warn (* always an error *)
-  | Error (* only an error if "strict" is set *)
-
-(* for the CLI JSON output *)
-val string_of_level : level -> string
-
 exception Semgrep_error of t
 
 (*
@@ -27,6 +20,8 @@ type details = {
   spans : Rule_lang.span list;
   help : string option;
 }
+
+type level = Severity.basic_severity
 
 (*
    Create error exceptions describing the errors encountered.

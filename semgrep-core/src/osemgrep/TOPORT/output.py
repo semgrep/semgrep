@@ -7,22 +7,6 @@ from semgrep.util import terminal_wrap
 from semgrep.util import unit_str
 from semgrep.util import with_color
 
-FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
-    OutputFormat.EMACS: EmacsFormatter,
-    OutputFormat.GITLAB_SAST: GitlabSastFormatter,
-    OutputFormat.GITLAB_SECRETS: GitlabSecretsFormatter,
-    OutputFormat.JSON: JsonFormatter,
-    OutputFormat.JUNIT_XML: JunitXmlFormatter,
-    OutputFormat.SARIF: SarifFormatter,
-    OutputFormat.TEXT: TextFormatter,
-    OutputFormat.VIM: VimFormatter,
-}
-
-DEFAULT_SHOWN_SEVERITIES: Collection[RuleSeverity] = frozenset(
-    {RuleSeverity.INFO, RuleSeverity.WARNING, RuleSeverity.ERROR}
-)
-
-
 def get_path_str(target: Path) -> str:
     path_str = ""
     try:
@@ -130,7 +114,6 @@ class OutputHandler:
         self.profiling_data: ProfilingData = (
             ProfilingData()
         )  # (rule, target) -> duration
-        self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
 
         self.final_error: Optional[Exception] = None
@@ -237,7 +220,6 @@ class OutputHandler:
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         explanations: Optional[List[out.MatchingExplanation]] = None,
-        severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
     ) -> None:
         state = get_state()
@@ -263,8 +245,6 @@ class OutputHandler:
             self.profiling_data = profiling_data
         if explanations:
             self.explanations = explanations
-        if severities:
-            self.severities = severities
 
         final_error = None
         any_findings_not_ignored = any(not rm.is_ignored for rm in self.rule_matches)
@@ -410,5 +390,4 @@ class OutputHandler:
                 paths=cli_paths, time=cli_timing, explanations=explanations
             ),
             extra,
-            self.severities,
         )

@@ -97,6 +97,7 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
     context_end = None;
   }
 
+(* LATER: move to Severity.ml, and use Severity.rule_severity instead? *)
 let string_of_severity (severity : Rule.severity) : string =
   match severity with
   | Error -> "ERROR"
@@ -105,10 +106,11 @@ let string_of_severity (severity : Rule.severity) : string =
   | Experiment -> "EXPERIMENT"
   | Inventory -> "INVENTORY"
 
+(* LATER: move also to Severity.ml and reuse types there *)
 let level_of_severity (severity : Out.core_severity) : Error.level =
   match severity with
-  | Error -> Error.Error
-  | Warning -> Error.Warn
+  | Error -> `Error
+  | Warning -> `Warning
 
 let error_type_string (error_type : Out.core_error_kind) : string =
   match error_type with
@@ -221,7 +223,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
          *)
         code = Exit_code.to_int exit_code;
         (* LATER: should use a variant too *)
-        level = Error.string_of_level level;
+        level = Severity.string_of_basic_severity level;
         (* LATER: type_ should be a proper variant instead of a string *)
         type_ = error_type_string error_type;
         rule_id;

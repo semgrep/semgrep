@@ -7,8 +7,11 @@
   (name osemgrep_core)
   (wrapped false)
   (libraries
+    cmdliner
     uri
+
     commons        ; pfff
+
     semgrep_utils  ; semgrep-core
     semgrep_core
     semgrep_reporting ; atd spec of semgrep_output

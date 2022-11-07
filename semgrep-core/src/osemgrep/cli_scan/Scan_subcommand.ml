@@ -4,8 +4,7 @@
 (*
    Parse a semgrep-scan command, execute it and exit.
 
-   Translated from scan.py
-   TODO and semgrep_main.py?
+   Translated from scan.py and semgrep_main.py
 *)
 
 (*****************************************************************************)
@@ -104,6 +103,21 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       let (rules : Rule.rules), (_errorsTODO : Rule.invalid_rule_error list) =
         Config_resolver.rules_from_dashdash_config conf.config
       in
+      let filtered_rules =
+        match conf.severity with
+        | [] -> rules
+        | xs ->
+            rules
+            |> List.filter (fun r ->
+                   match
+                     Severity.rule_severity_of_rule_severity_opt r.Rule.severity
+                   with
+                   | None -> false
+                   | Some x -> List.mem x xs)
+      in
+
+      (* TOPORT: filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule) *)
+
       (* TODO: there are more ways to specify targets? see target_manager.py *)
       let (targets : Common.filename list), _skipped_targetsTODO =
         Find_target.select_global_targets ~includes:conf.include_
@@ -111,7 +125,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
       in
       let (res : Core_runner.result) =
-        Core_runner.invoke_semgrep_core conf rules targets
+        Core_runner.invoke_semgrep_core conf filtered_rules targets
       in
       (* outputting the result! in JSON or Text or whatever depending on conf *)
       Output.output_result conf res;

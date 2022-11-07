@@ -1,11 +1,44 @@
-(* was in constants.py, but not really constants, more like types! *)
+open Common
 
-(* coupling: ensure consistency with 'serverity' in 'rule_schema_v1.yaml'
- * LATER: redundant with Rule.severity in semgrep-core.
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Rules, findings, and errors severity.
+ *
+ * TODO: there are (too) many places where we define severity:
+ *  - rule_schema_v1.yaml
+ *  - Rule.severity in semgrep-core
+ *  - core_severity in semgrep_output_v1.atd
+ *  - level in Error.ml
+ * We should remove some of those.
+ *
+ * python: was in constants.py, but not really constants, more like types!
  *)
-type rule_severity = Info | Warning | Error | Inventory | Experiment
-(* TOPORT
-    @classmethod
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* valid for rules and for findings, but also for semgrep errors *)
+type basic_severity = [ `Error | `Warning ] [@@deriving show]
+
+(* found in rules, and in semgrep --severity *)
+type rule_severity = [ basic_severity | `Info ] [@@deriving show]
+
+(* do we still need this? *)
+type extended_severity = [ rule_severity | `Inventory | `Experiment ]
+(*[@@deriving show]*)
+
+(*****************************************************************************)
+(* Converters *)
+(*****************************************************************************)
+
+(* for CLI JSON output *)
+let string_of_basic_severity = function
+  | `Warning -> "warn"
+  | `Error -> "error"
+
+(* TOPORT?
     def _missing_(cls: Type[Enum], value: object) -> Enum:
         if not isinstance(value, str):
             raise TypeError(f"invalid rule severity type: {type(value)}")
@@ -14,3 +47,24 @@ type rule_severity = Info | Warning | Error | Inventory | Experiment
                 return member
         raise ValueError(f"invalid rule severity value: {value}")
 *)
+let parser = function
+  | "INFO" -> Ok `Info
+  | "WARNING" -> Ok `Warning
+  | "ERROR" -> Ok `Error
+  | s -> Error (spf "unsupported value for severity: %s" s)
+
+let printer fmt x = Format.pp_print_string fmt (show_rule_severity x)
+
+(* for CLI --severity input *)
+let converter = Cmdliner.Arg.conv' ~docv:"SEVERITY" (parser, printer)
+
+(* for CLI --severity filtering *)
+let rule_severity_of_rule_severity_opt (x : Rule.severity) :
+    rule_severity option =
+  match x with
+  | Rule.Error -> Some `Error
+  | Rule.Warning -> Some `Warning
+  | Rule.Info -> Some `Info
+  | Rule.Inventory
+  | Rule.Experiment ->
+      None
