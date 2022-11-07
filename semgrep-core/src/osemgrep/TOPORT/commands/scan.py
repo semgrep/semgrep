@@ -216,11 +216,6 @@ def scan_options(func: Callable) -> Callable:
     """,
     shell_complete=__get_severity_options,
 )
-@click.option(
-    "--show-supported-languages",
-    is_flag=True,
-    help=("Print a list of languages that are currently supported by Semgrep."),
-)
 
 @optgroup.group("Alternate modes", help="No search is performed in these modes")
 
@@ -270,7 +265,6 @@ def scan(
     deep: bool,
     dump_ast: bool,
     enable_nosem: bool,
-    enable_version_check: bool,
     error_on_findings: bool,
     force_color: bool,
     gitlab_sast: bool,
@@ -283,15 +277,10 @@ def scan(
     replacement: Optional[str],
     sarif: bool,
     severity: Optional[Tuple[str, ...]],
-    show_supported_languages: bool,
     test: bool,
     test_ignore_todo: bool,
     validate: bool,
 ) -> ScanReturn:
-
-    if show_supported_languages:
-        click.echo(LANGUAGE.show_suppported_languages_message())
-        return None
 
     state = get_state()
     state.metrics.configure(metrics, metrics_legacy)

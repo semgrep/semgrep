@@ -1,13 +1,7 @@
 type t =
 {% for item in langs %}  | {{ item.id }}
 {% endfor %}
-
-(* from deriving eq *)
-val pp : Format.formatter -> t -> unit
-
-val show : t -> string
-
-val equal : t -> t -> bool
+[@@deriving show, eq]
 
 (* accept any variants *)
 val is_js : t -> bool
@@ -30,9 +24,6 @@ val assoc : (string * t) list
 
 (* list of languages *)
 val keys : string list
-
-(* list of languages comma separated *)
-val supported_langs : string
 
 (* See also Find_target.files_of_dirs_or_files *)
 val langs_of_filename : Common.filename -> t list

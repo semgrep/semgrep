@@ -79,40 +79,44 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   setup_logging conf;
   setup_profiling conf;
 
-  if conf.version then (
-    Logs.app (fun m -> m "%s" Version.version);
-    (* TOPORT:
-       if enable_version_check:
-             from semgrep.app.version import version_check
-             version_check()
-    *)
-    Exit_code.ok)
-  else
-    (* --------------------------------------------------------- *)
-    (* Let's go *)
-    (* --------------------------------------------------------- *)
-    (* TODO: in theory we should have an intermediate module that
-     * handle the -e/--lang, or --config, but for now we care
-     * only about --config.
-     * TODO: in theory we can also pass multiple --config and
-     * have a default config.
-     *)
-    let (rules : Rule.rules), (_errorsTODO : Rule.invalid_rule_error list) =
-      Config_resolver.rules_from_dashdash_config conf.config
-    in
-    (* TODO: there are more ways to specify targets? see target_manager.py *)
-    let (targets : Common.filename list), _skipped_targetsTODO =
-      Find_target.select_global_targets ~includes:conf.include_
-        ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
-        ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
-    in
-    let (res : Core_runner.result) =
-      Core_runner.invoke_semgrep_core conf rules targets
-    in
-    (* outputting the result! in JSON or Text or whatever depending on conf *)
-    Output.output_result conf res;
-    (* final result for the shell *)
-    exit_code_of_errors conf res.core.errors
+  match () with
+  | _ when conf.version ->
+      Logs.app (fun m -> m "%s" Version.version);
+      (* TOPORT:
+         if enable_version_check:
+               from semgrep.app.version import version_check
+               version_check()
+      *)
+      Exit_code.ok
+  | _ when conf.show_supported_languages ->
+      Logs.app (fun m -> m "supported languages are: %s" Xlang.supported_xlangs);
+      Exit_code.ok
+  | _else_ ->
+      (* --------------------------------------------------------- *)
+      (* Let's go *)
+      (* --------------------------------------------------------- *)
+      (* TODO: in theory we should have an intermediate module that
+       * handle the -e/--lang, or --config, but for now we care
+       * only about --config.
+       * TODO: in theory we can also pass multiple --config and
+       * have a default config.
+       *)
+      let (rules : Rule.rules), (_errorsTODO : Rule.invalid_rule_error list) =
+        Config_resolver.rules_from_dashdash_config conf.config
+      in
+      (* TODO: there are more ways to specify targets? see target_manager.py *)
+      let (targets : Common.filename list), _skipped_targetsTODO =
+        Find_target.select_global_targets ~includes:conf.include_
+          ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
+          ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
+      in
+      let (res : Core_runner.result) =
+        Core_runner.invoke_semgrep_core conf rules targets
+      in
+      (* outputting the result! in JSON or Text or whatever depending on conf *)
+      Output.output_result conf res;
+      (* final result for the shell *)
+      exit_code_of_errors conf res.core.errors
 
 (*****************************************************************************)
 (* Entry point *)

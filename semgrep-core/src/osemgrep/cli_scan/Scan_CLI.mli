@@ -25,6 +25,7 @@ type conf = {
   respect_git_ignore : bool;
   rewrite_rule_ids : bool;
   scan_unknown_extensions : bool;
+  show_supported_languages : bool;
   strict : bool;
   target_roots : string list;
   time_flag : bool;
