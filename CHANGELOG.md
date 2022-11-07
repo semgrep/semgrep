@@ -8,6 +8,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.121.0](https://github.com/returntocorp/semgrep/releases/tag/v0.121.0) - 2022-11-07
+
+### Changed
+
+- taint-mode: Semgrep can now track taint through l-values of the form `this.x`.
+  It will also be more precise when tracking taint on l-values involving an
+  array access, previously if `x.a[i]` was tainted, then `x` itself was tainted;
+  now only `x.a` will be considered tainted. (pa-2086)
+
+### Fixed
+
+- JS: correctly parse exported function pattern (gh-6218)
+- Terraform: Can now analyze constant-propagated values of variables with `metavariable-comparison` and friends (pa-2088)
+
 ## [0.120.0](https://github.com/returntocorp/semgrep/releases/tag/v0.120.0) - 2022-11-02
 
 ### Added
