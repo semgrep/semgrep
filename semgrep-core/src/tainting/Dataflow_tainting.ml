@@ -1,6 +1,6 @@
-(* Yoann Padioleau
+(* Yoann Padioleau, Iago Abal
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -368,7 +368,7 @@ let sanitize_lval_by_side_effect lval_env sanitizer_pms lval =
      * the environment (i.e., `lval_env') accordingly. *)
     List.exists is_exact sanitizer_pms
   in
-  if lval_is_now_safe then Lval_env.clean lval lval_env else lval_env
+  if lval_is_now_safe then Lval_env.clean lval_env lval else lval_env
 
 (* Check if an expression is sanitized, if so returns `Some' and otherise `None'.
    If the expression is of the form `x.a.b.c` then we try to sanitize it by
@@ -379,7 +379,7 @@ let exp_is_sanitized env exp =
   | [] -> None
   | sanitizer_pms -> (
       match exp.e with
-      | Fetch lval when LV.lval_is_var_and_dots lval ->
+      | Fetch lval ->
           Some (sanitize_lval_by_side_effect env.lval_env sanitizer_pms lval)
       | __else__ -> Some env.lval_env)
 
@@ -432,9 +432,7 @@ let handle_taint_propagators env thing taints =
      * by side-effect. A pattern-propagator may use this to e.g. propagate taint
      * from `x` to `y` in `f(x,y)`, so that subsequent uses of `y` are tainted
      * if `x` was previously tainted. *)
-    | `Lval lval when LV.lval_is_var_and_dots lval ->
-        Lval_env.add lval taints_propagated lval_env
-    | `Lval _
+    | `Lval lval -> Lval_env.add lval_env lval taints_propagated
     | `Exp _
     | `Ins _ ->
         lval_env
@@ -456,7 +454,7 @@ let find_lval_taint_sources env ~labels lval =
   and taints_sources_mut =
     mut_source_pms |> taints_of_matches |> filter_taints_by_labels labels
   in
-  let lval_env = Lval_env.add lval taints_sources_mut env.lval_env in
+  let lval_env = Lval_env.add env.lval_env lval taints_sources_mut in
   (Taints.union taints_sources_reg taints_sources_mut, lval_env)
 
 let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
@@ -820,23 +818,19 @@ let (transfer :
           | None -> lval_env'
         in
         let lval_env' =
-          match (Taints.is_empty taints, opt_lval) with
-          | true, Some lval when LV.lval_is_var_and_dots lval ->
-              (* Instruction returns safe data, remove taint from lval. *)
-              Lval_env.clean lval lval_env'
-          | true, Some { base = Var x; _ } ->
-              (* This also handles cases like `x[i] = safe`, cleaning `x`. *)
-              Lval_env.clean (LV.lval_of_var x) lval_env'
-          | false, Some lval when LV.lval_is_var_and_dots lval ->
-              (* Instruction returns tainted data, add taint to lval *)
-              Lval_env.add lval taints lval_env'
-          | false, Some { base = Var x; _ } ->
-              (* This handles cases like `x[i] = tainted`, tainting `x`. *)
-              Lval_env.add (LV.lval_of_var x) taints lval_env'
-          | _, Some _
-          | _, None ->
-              (* Either we cannot obtain a simple dotted lvalue to track, or the
-               * instruction returns 'void'. *)
+          let has_taints = not (Taints.is_empty taints) in
+          match opt_lval with
+          | Some lval ->
+              if has_taints then
+                (* Instruction returns tainted data, add taints to lval.
+                 * See [Taint_lval_env] for details. *)
+                Lval_env.add lval_env' lval taints
+              else
+                (* Instruction returns safe data, remove taints from lval.
+                 * See [Taint_lval_env] for details. *)
+                Lval_env.clean lval_env' lval
+          | None ->
+              (* Instruction returns 'void' or its return value is ignored. *)
               lval_env'
         in
         lval_env'

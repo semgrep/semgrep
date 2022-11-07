@@ -83,17 +83,12 @@ let rlvals_of_instr x =
 
 let lval_of_var var = { IL.base = Var var; rev_offset = [] }
 
-let lval_is_var_and_dots { base; rev_offset } =
-  match base with
-  | Var _ ->
-      rev_offset
-      |> List.for_all (fun offset ->
-             match offset.o with
-             | Dot _ -> true
-             | Index _ -> false)
-  | VarSpecial _
-  | Mem _ ->
-      false
+let is_dots_offset offset =
+  offset
+  |> List.for_all (fun o ->
+         match o.o with
+         | Dot _ -> true
+         | Index _ -> false)
 
 let lval_is_dotted_prefix lval1 lval2 =
   let eq_name x y = compare_name x y = 0 in

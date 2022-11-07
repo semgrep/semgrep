@@ -3,6 +3,7 @@ function f() {
     x.a = source // only x.a or its extension are tainted after this
     x.b = safe
     x.c = source // only x.c or its extension are tainted after this
+    x.d[i] = source // only x.d is tainted
 
     // x.a is tainted
     //ruleid: test
@@ -15,6 +16,13 @@ function f() {
     sink(x.c)
     //ruleid: test
     sink(x.c.d)
+
+    //ruleid: test
+    sink(x.d[i])
+    //ruleid: test
+    sink(x.d[j])
+    //ruleid: test
+    sink(x.d)
 
     // x itself and other fields of x are not tainted
     //ok: test
