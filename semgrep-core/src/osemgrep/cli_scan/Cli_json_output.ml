@@ -20,6 +20,9 @@ module Out = Semgrep_output_v1_j
  *  - output.py
  *  - formatter/base.py
  *  - formatter/json.py
+ *
+ *  LATER? like for Output.ml it would be nice to move this file to
+ *  osemgrep/reporting/.
  *)
 
 (*****************************************************************************)

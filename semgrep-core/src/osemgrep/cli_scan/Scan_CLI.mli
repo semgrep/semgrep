@@ -20,7 +20,7 @@ type conf = {
   metrics : Metrics.State.t;
   num_jobs : int;
   optimizations : bool;
-  output_format : Constants.output_format;
+  output_format : Output_format.t;
   pattern : string option;
   respect_git_ignore : bool;
   rewrite_rule_ids : bool;

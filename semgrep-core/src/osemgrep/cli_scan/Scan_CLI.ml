@@ -33,6 +33,7 @@ type conf = {
   exclude_rule_ids : string list;
   exclude : string list;
   include_ : string list;
+  (* LATER: use Xlang.t option; *)
   lang : string option;
   logging_level : Logs.level option;
   max_memory_mb : int;
@@ -40,7 +41,7 @@ type conf = {
   metrics : Metrics.State.t;
   num_jobs : int;
   optimizations : bool;
-  output_format : Constants.output_format;
+  output_format : Output_format.t;
   pattern : string option;
   respect_git_ignore : bool;
   rewrite_rule_ids : bool;
@@ -75,7 +76,7 @@ let default : conf =
     metrics = Metrics.State.Auto;
     num_jobs = get_cpu_count ();
     optimizations = true;
-    output_format = Constants.Text;
+    output_format = Output_format.Text;
     pattern = None;
     logging_level = Some Logs.Warning;
     respect_git_ignore = true;
@@ -487,9 +488,9 @@ let cmdline_term : conf Term.t =
     let output_format =
       match (json, emacs, vim) with
       | false, false, false -> default.output_format
-      | true, false, false -> Constants.Json
-      | false, true, false -> Constants.Emacs
-      | false, false, true -> Constants.Vim
+      | true, false, false -> Output_format.Json
+      | false, true, false -> Output_format.Emacs
+      | false, false, true -> Output_format.Vim
       | _else_ ->
           (* TOPORT: list the possibilities *)
           failwith "Mutually exclusive options"
