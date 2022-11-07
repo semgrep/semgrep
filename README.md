@@ -99,7 +99,7 @@ $ semgrep -e '$X == $X' --lang=py path/to/src
 $ semgrep --config auto
 ```
 
-To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrpe.dev/contact-us).
+To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
 Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
 
 ### Rule examples
