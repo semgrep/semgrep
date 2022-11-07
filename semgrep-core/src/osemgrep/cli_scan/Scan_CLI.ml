@@ -50,6 +50,8 @@ type conf = {
   time_flag : bool;
   timeout : float;
   timeout_threshold : int;
+  version : bool;
+  version_check : bool;
 }
 
 let get_cpu_count () : int =
@@ -83,6 +85,8 @@ let default : conf =
     time_flag = false;
     timeout = float_of_int Constants.default_timeout;
     timeout_threshold = 3;
+    version = false;
+    version_check = true;
   }
 
 (*************************************************************************)
@@ -302,6 +306,16 @@ the file is skipped. If set to 0 will not have limit. Defaults to 3.
   in
   Arg.value (Arg.opt Arg.int default.timeout_threshold info)
 
+let o_version_check : bool Term.t =
+  H.negatable_flag [ "enable-version-check" ]
+    ~neg_options:[ "disable-version-check" ]
+    ~default:default.version_check
+    ~env:(Cmd.Env.info "SEMGREP_ENABLE_VERSION_CHECK")
+    ~doc:
+      {|Checks Semgrep servers to see if the latest version is run; disabling
+ this may reduce exit time after returning results.
+|}
+
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Display options" *)
 (* ------------------------------------------------------------------ *)
@@ -419,6 +433,11 @@ Must be used with -e/--pattern.
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Alternate modes" *)
 (* ------------------------------------------------------------------ *)
+(* TOPORT: "No search is performed in these modes" *)
+
+let o_version : bool Term.t =
+  let info = Arg.info [ "version" ] ~doc:{|Show the version and exit.|} in
+  Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Test and debug options" *)
@@ -453,7 +472,7 @@ let cmdline_term : conf Term.t =
       exclude include_ json lang max_memory_mb max_target_bytes metrics num_jobs
       optimizations pattern quiet respect_git_ignore rewrite_rule_ids
       scan_unknown_extensions strict target_roots time_flag timeout
-      timeout_threshold verbose vim =
+      timeout_threshold verbose version version_check vim =
     let output_format =
       match (json, emacs, vim) with
       | false, false, false -> default.output_format
@@ -497,6 +516,8 @@ let cmdline_term : conf Term.t =
       time_flag;
       timeout;
       timeout_threshold;
+      version;
+      version_check;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
@@ -506,7 +527,8 @@ let cmdline_term : conf Term.t =
     $ o_lang $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
     $ o_optimizations $ o_pattern $ o_quiet $ o_respect_git_ignore
     $ o_rewrite_rule_ids $ o_scan_unknown_extensions $ o_strict $ o_target_roots
-    $ o_time $ o_timeout $ o_timeout_threshold $ o_verbose $ o_vim)
+    $ o_time $ o_timeout $ o_timeout_threshold $ o_verbose $ o_version
+    $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

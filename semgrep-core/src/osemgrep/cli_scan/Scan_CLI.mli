@@ -30,6 +30,8 @@ type conf = {
   time_flag : bool;
   timeout : float;
   timeout_threshold : int;
+  version : bool;
+  version_check : bool;
 }
 
 (* Command-line defaults. *)

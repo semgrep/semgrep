@@ -170,6 +170,8 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    scan_unknown_extensions = _;
    strict = _;
    time_flag = _;
+   version = _;
+   version_check = _;
   } ->
       let output_format =
         match output_format with

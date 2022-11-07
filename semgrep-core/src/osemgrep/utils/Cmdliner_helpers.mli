@@ -4,6 +4,7 @@
 *)
 val negatable_flag :
   ?default:bool ->
+  ?env:Cmdliner.Cmd.Env.info ->
   neg_options:string list ->
   doc:string ->
   string list ->

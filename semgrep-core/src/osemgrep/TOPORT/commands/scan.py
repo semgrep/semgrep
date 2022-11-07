@@ -117,17 +117,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
 _scan_options: List[Callable] = [
 
 
- optgroup.group("Performance and memory options"),
-    optgroup.option(
-        "--enable-version-check/--disable-version-check",
-        is_flag=True,
-        default=True,
-        envvar="SEMGREP_ENABLE_VERSION_CHECK",
-        help="""
-            Checks Semgrep servers to see if the latest version is run; disabling this
-            may reduce exit time after returning results.
-        """,
-    ),
+
  optgroup.group("Display options"),
     optgroup.option(
         "--enable-nosem/--disable-nosem",
@@ -240,9 +230,6 @@ def scan_options(func: Callable) -> Callable:
     default=False,
     help="Validate configuration file(s). This will check YAML files for errors and run 'p/semgrep-rule-lints' on the YAML files. No search is performed.",
 )
-@optgroup.option(
-    "--version", is_flag=True, default=False, help="Show the version and exit."
-)
 
 @optgroup.group("Test and debug options")
 
@@ -300,16 +287,7 @@ def scan(
     test: bool,
     test_ignore_todo: bool,
     validate: bool,
-    version: bool,
 ) -> ScanReturn:
-
-    if version:
-        print(__VERSION__)
-        if enable_version_check:
-            from semgrep.app.version import version_check
-
-            version_check()
-        return None
 
     if show_supported_languages:
         click.echo(LANGUAGE.show_suppported_languages_message())
