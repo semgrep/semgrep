@@ -42,7 +42,7 @@ let flatten x =
 
 let assoc : (string * t) list =
   Common.map (fun (k, v) -> (k, of_lang v)) Lang.assoc
-  @ [ ("regex", LRegex); ("generic", LGeneric) ]
+  @ [ ("regex", LRegex); ("none", LRegex); ("generic", LGeneric) ]
 
 let map = Common.hash_of_list assoc
 let keys = Common2.hkeys map
