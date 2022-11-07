@@ -5,17 +5,9 @@ from semgrep.types import JsonObject
 FileExtension = NewType("FileExtension", str)
 Shebang = str
 
-class Language(str):
-    @property
-    def definition(self) -> "LanguageDefinition":
-        return LANGUAGE.definition_by_id[self]
-
-@frozen
+# TODO: use ATD if really Lang.ml.j2 is not enough and we
+# need to access more info from lang.json
 class LanguageDefinition:
-    """
-    Mirrors schema of lang.json (see lang/README.md) for each language
-    """
-
     id: Language
     name: str
     keys: Collection[str]
@@ -74,8 +66,4 @@ class _LanguageData:
                 spans=spans,
             )
 
-    def show_suppported_languages_message(self) -> str:
-        return f"supported languages are: {', '.join(self.all_language_keys)}"
-
-LANGUAGE = _LanguageData()
 ALLOWED_GLOB_TYPES = ("include", "exclude")

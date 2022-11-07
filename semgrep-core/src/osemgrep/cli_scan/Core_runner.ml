@@ -151,8 +151,13 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    max_memory_mb;
    output_format;
    optimizations;
-   (* TOPORT: not handled yet *)
+   (* no need to handle, are used before *)
+   show_supported_languages = _;
+   version = _;
+   version_check = _;
    logging_level = _;
+   strict = _;
+   (* TOPORT: not handled yet *)
    autofix = _;
    dryrun = _;
    baseline_commit = _;
@@ -168,10 +173,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    respect_git_ignore = _;
    rewrite_rule_ids = _;
    scan_unknown_extensions = _;
-   strict = _;
    time_flag = _;
-   version = _;
-   version_check = _;
   } ->
       let output_format =
         match output_format with
