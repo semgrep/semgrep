@@ -120,15 +120,6 @@ Make sure your files are stored in a version control system. Note that
 this mode is experimental and not guaranteed to function properly.
 |}
 
-let o_dryrun : bool Term.t =
-  H.negatable_flag [ "dryrun" ] ~neg_options:[ "no-dryrun" ]
-    ~default:default.dryrun
-    ~doc:
-      {| If --dryrun, does not write autofixes to a file. This will print the changes
-to the console. This lets you see the changes before you commit to them. Only
-works with the --autofix flag. Otherwise does nothing.
-|}
-
 let o_baseline_commit : string option Term.t =
   let info =
     Arg.info [ "baseline_commit" ]
@@ -435,14 +426,14 @@ Must be used with -e/--pattern.
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
-let o_show_supported_languages : bool Term.t =
-  let info =
-    Arg.info
-      [ "show-supported-languages" ]
-      ~doc:
-        {|Print a list of languages that are currently supported by Semgrep.|}
-  in
-  Arg.value (Arg.flag info)
+let o_dryrun : bool Term.t =
+  H.negatable_flag [ "dryrun" ] ~neg_options:[ "no-dryrun" ]
+    ~default:default.dryrun
+    ~doc:
+      {| If --dryrun, does not write autofixes to a file. This will print the changes
+to the console. This lets you see the changes before you commit to them. Only
+works with the --autofix flag. Otherwise does nothing.
+|}
 
 let o_severity : Severity.rule_severity list Term.t =
   let info =
@@ -454,6 +445,15 @@ Each should be one of INFO, WARNING, or ERROR.
 |}
   in
   Arg.value (Arg.opt_all Severity.converter [] info)
+
+let o_show_supported_languages : bool Term.t =
+  let info =
+    Arg.info
+      [ "show-supported-languages" ]
+      ~doc:
+        {|Print a list of languages that are currently supported by Semgrep.|}
+  in
+  Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Alternate modes" *)
