@@ -48,6 +48,11 @@ let remove_overlapping_edits edits =
   in
   f [] [] edits
 
+let apply_edit_to_text text { start; end_; replacement_text; _ } =
+  let before = Str.first_chars text start in
+  let after = Str.string_after text end_ in
+  before ^ replacement_text ^ after
+
 let apply_edits_to_text text edits =
   let edits = List.sort (fun e1 e2 -> e1.start - e2.start) edits in
   let edits, discarded_edits = remove_overlapping_edits edits in
@@ -58,10 +63,7 @@ let apply_edits_to_text text edits =
     (* Apply the fixes. These string operations are inefficient but should
      * be fine. The Python CLI version of this code is even more inefficent. *)
     List.fold_left
-      (fun file_text { start; end_; replacement_text; _ } ->
-        let before = Str.first_chars file_text start in
-        let after = Str.string_after file_text end_ in
-        before ^ replacement_text ^ after)
+      (fun file_text edit -> apply_edit_to_text file_text edit)
       text edits
   in
   if discarded_edits = [] then Success fixed_text

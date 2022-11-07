@@ -10,12 +10,7 @@ from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
 from semgrep.nosemgrep import process_ignores
-from semgrep.output import DEFAULT_SHOWN_SEVERITIES
-from semgrep.output import OutputHandler
-from semgrep.output import OutputSettings
-from semgrep.parsing_data import ParsingData
 from semgrep.project import get_project_url
-from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
 from semgrep.util import unit_str
 
@@ -80,7 +75,6 @@ def invoke_semgrep(
         profiling_data,
         _,
         explanations,
-        shown_severities,
         _,
     ) = main(
         output_handler=output_handler,
@@ -97,7 +91,6 @@ def invoke_semgrep(
     ]
     output_handler.profiler = profiler
     output_handler.profiling_data = profiling_data
-    output_handler.severities = shown_severities
     output_handler.explanations = explanations
 
     return json.loads(output_handler._build_output())  # type: ignore
@@ -241,8 +234,6 @@ def remove_matches_in_baseline(
 
 def main(
     *,
-    core_opts_str: Optional[str] = None,
-    dump_command_for_core: bool = False,
     deep: bool = False,
     output_handler: OutputHandler,
     target: Sequence[str],
@@ -265,7 +256,6 @@ def main(
     max_target_bytes: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
-    severity: Optional[Sequence[str]] = None,
     optimizations: str = "none",
     baseline_commit: Optional[str] = None,
 ) -> Tuple[
@@ -301,14 +291,6 @@ def main(
     )
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
-
-    if not severity:
-        shown_severities = DEFAULT_SHOWN_SEVERITIES
-        filtered_rules = all_rules
-    else:
-        shown_severities = {RuleSeverity(s) for s in severity}
-        filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
-    filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
 
     output_handler.handle_semgrep_errors(config_errors)
 
@@ -373,7 +355,6 @@ def main(
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
-        core_opts_str=core_opts_str,
     )
 
     logger.verbose("Rules:")
@@ -392,7 +373,6 @@ def main(
         target_manager,
         core_runner,
         output_handler,
-        dump_command_for_core,
         deep,
     )
     profiler.save("core_time", core_start_time)
@@ -457,7 +437,6 @@ def main(
                         baseline_target_manager,
                         core_runner,
                         output_handler,
-                        dump_command_for_core,
                         deep,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
@@ -507,6 +486,5 @@ def main(
         profiling_data,
         parsing_data,
         explanations,
-        shown_severities,
         target_manager.lockfile_scan_info,
     )

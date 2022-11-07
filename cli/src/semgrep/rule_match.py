@@ -22,7 +22,7 @@ from attrs import field
 from attrs import frozen
 
 import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity

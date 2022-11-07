@@ -17,8 +17,7 @@ let of_int x = x
 let ok = 0
 let findings = 1
 let fatal = 2
-
-(* let invalid_code = 3 *)
+let invalid_code = 3
 let invalid_pattern = 4
 let unparseable_yaml = 5
 

@@ -62,7 +62,8 @@ and lvals_in_lval lval =
   in
   let offset_lvals =
     List.concat_map
-      (function
+      (fun offset ->
+        match offset.o with
         | Index e -> lvals_of_exp e
         | Dot _ -> [])
       lval.rev_offset
@@ -80,16 +81,14 @@ let rlvals_of_instr x =
 (* Public *)
 (*****************************************************************************)
 
-let lval_is_var_and_dots { base; rev_offset } =
-  match base with
-  | Var _ ->
-      rev_offset
-      |> List.for_all (function
-           | Dot _ -> true
-           | Index _ -> false)
-  | VarSpecial _
-  | Mem _ ->
-      false
+let lval_of_var var = { IL.base = Var var; rev_offset = [] }
+
+let is_dots_offset offset =
+  offset
+  |> List.for_all (fun o ->
+         match o.o with
+         | Dot _ -> true
+         | Index _ -> false)
 
 let lval_is_dotted_prefix lval1 lval2 =
   let eq_name x y = compare_name x y = 0 in
@@ -97,10 +96,11 @@ let lval_is_dotted_prefix lval1 lval2 =
     match (os1, os2) with
     | [], _ -> true
     | _ :: _, [] -> false
-    | Index _ :: _, _
-    | _, Index _ :: _ ->
+    | { o = Index _; _ } :: _, _
+    | _, { o = Index _; _ } :: _ ->
         false
-    | Dot a :: os1, Dot b :: os2 -> eq_name a b && offset_prefix os1 os2
+    | { o = Dot a; _ } :: os1, { o = Dot b; _ } :: os2 ->
+        eq_name a b && offset_prefix os1 os2
   in
   match (lval1, lval2) with
   | { base = Var x; rev_offset = ro1 }, { base = Var y; rev_offset = ro2 } ->
@@ -158,7 +158,7 @@ module LvalOrdered = struct
         else
           List.compare
             (fun offset1 offset2 ->
-              match (offset1, offset2) with
+              match (offset1.o, offset2.o) with
               | Dot a, Dot b -> compare_name a b
               | Index _, _
               | _, Index _ ->

@@ -1,0 +1,14 @@
+rules:
+- id: test
+  message: Found a `params[...]` value passed to a string literal.
+  languages: [ruby]
+  severity: WARNING
+  mode: taint
+  pattern-sources:
+    - pattern: |
+        params[:sort_by]
+  pattern-sinks:
+    - patterns:
+      - focus-metavariable: $X
+      - pattern-inside: | 
+          "...#{$X}..."

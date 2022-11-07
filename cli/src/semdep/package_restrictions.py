@@ -6,8 +6,8 @@ import packaging.version
 from packaging.specifiers import SpecifierSet
 
 from semgrep.error import SemgrepError
-from semgrep.semgrep_interfaces.semgrep_output_v0 import DependencyPattern
-from semgrep.semgrep_interfaces.semgrep_output_v0 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 
 
 def semver_matches(expression: str, actual_version: str) -> bool:

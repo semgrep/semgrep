@@ -258,7 +258,7 @@ let dump_il file =
   in
   Visit_function_defs.visit report_func_def_with_name ast
 
-let dump_v0_json file =
+let dump_v1_json file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   match Lang.langs_of_filename file with
   | lang :: _ ->
@@ -266,8 +266,8 @@ let dump_v0_json file =
           let { Parse_target.ast; skipped_tokens; _ } =
             Parse_target.parse_and_resolve_name lang file
           in
-          let v1 = AST_generic_to_v0.program ast in
-          let s = Ast_generic_v0_j.string_of_program v1 in
+          let v1 = AST_generic_to_v1.program ast in
+          let s = Ast_generic_v1_j.string_of_program v1 in
           pr s;
           if skipped_tokens <> [] then
             pr2 (spf "WARNING: fail to fully parse %s" file))
@@ -277,8 +277,8 @@ let generate_ast_json file =
   match Lang.langs_of_filename file with
   | lang :: _ ->
       let ast = Parse_target.parse_and_resolve_name_warn_if_partial lang file in
-      let v1 = AST_generic_to_v0.program ast in
-      let s = Ast_generic_v0_j.string_of_program v1 in
+      let v1 = AST_generic_to_v1.program ast in
+      let s = Ast_generic_v1_j.string_of_program v1 in
       let file = file ^ ".ast.json" in
       Common.write_file ~file s;
       pr2 (spf "saved JSON output in %s" file)
@@ -384,7 +384,7 @@ let all_actions () =
     (* possibly useful to the user *)
     ( "-show_ast_json",
       " <file> dump on stdout the generic AST of file in JSON",
-      Common.mk_action_1_arg dump_v0_json );
+      Common.mk_action_1_arg dump_v1_json );
     ( "-generate_ast_json",
       " <file> save in file.ast.json the generic AST of file in JSON",
       Common.mk_action_1_arg generate_ast_json );
@@ -509,6 +509,7 @@ let all_actions () =
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
   @ Test_dataflow_tainting.actions ()
+  @ Test_otarzan.actions ()
   @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program
 
 let options () =

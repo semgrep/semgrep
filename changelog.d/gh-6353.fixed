@@ -1,2 +1,0 @@
-Dockerfile language: Add support for RUN options such as
-`RUN --mount=type=$TYPE,target=$TARGET ...`.

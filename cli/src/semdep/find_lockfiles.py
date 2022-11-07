@@ -5,17 +5,17 @@ from typing import Optional
 from typing import Tuple
 
 from semdep.parse_lockfile import parse_lockfile_str
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Cargo
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v0 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Gem
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Gomod
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Maven
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Npm
-from semgrep.semgrep_interfaces.semgrep_output_v0 import Pypi
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 
 ECOSYSTEM_TO_LOCKFILES = {
-    Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock"],
+    Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt"],
     Ecosystem(Npm()): ["package-lock.json", "yarn.lock"],
     Ecosystem(Gem()): ["Gemfile.lock"],
     Ecosystem(Gomod()): ["go.sum"],
@@ -26,6 +26,7 @@ ECOSYSTEM_TO_LOCKFILES = {
 LOCKFILE_TO_MANIFEST = {
     "Pipfile.lock": "Pipfile",
     "poetry.lock": "pyproject.toml",
+    "requirements.txt": "requirements.in",
     "package-lock.json": "package.json",
     "yarn.lock": "package.json",
     "Gemfile.lock": None,

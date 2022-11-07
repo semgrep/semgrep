@@ -543,6 +543,10 @@ class CircleCIMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
+        repo_name = os.getenv("SEMGREP_REPO_NAME")
+        if repo_name:
+            return repo_name
+
         project_name = os.getenv("CIRCLE_PROJECT_USERNAME", "")
         repo_name = os.getenv("CIRCLE_PROJECT_REPONAME", "")
         if repo_name == "" and project_name == "":
@@ -553,24 +557,44 @@ class CircleCIMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
+        repo_url = os.getenv("SEMGREP_REPO_URL")
+        if repo_url:
+            return repo_url
+
         # may be in SSH url format
         url = get_url_from_sstp_url(os.getenv("CIRCLE_REPOSITORY_URL"))
         return url if url else super().repo_url
 
     @property
     def branch(self) -> Optional[str]:
+        branch = os.getenv("SEMGREP_BRANCH")
+        if branch:
+            return branch
+
         return os.getenv("CIRCLE_BRANCH")
 
     @property
     def ci_job_url(self) -> Optional[str]:
+        job_url = os.getenv("SEMGREP_JOB_URL")
+        if job_url:
+            return job_url
+
         return os.getenv("CIRCLE_BUILD_URL")
 
     @property
     def commit_sha(self) -> Optional[str]:
+        commit = os.getenv("SEMGREP_COMMIT")
+        if commit:
+            return commit
+
         return os.getenv("CIRCLE_SHA1")
 
     @property
     def pr_id(self) -> Optional[str]:
+        pr_id = os.getenv("SEMGREP_PR_ID")
+        if pr_id:
+            return pr_id
+
         # have to use the pull request url to get the id
         return os.getenv("CIRCLE_PULL_REQUEST", "").split("/")[-1]
 
@@ -784,30 +808,54 @@ class BuildkiteMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
+        repo_name = os.getenv("SEMGREP_REPO_NAME")
+        if repo_name:
+            return repo_name
+
         name = get_repo_name_from_repo_url(os.getenv("BUILDKITE_REPO"))
         return name if name else super().repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
+        repo_url = os.getenv("SEMGREP_REPO_URL")
+        if repo_url:
+            return repo_url
+
         url = get_url_from_sstp_url(os.getenv("BUILDKITE_REPO"))
         return url if url else super().repo_url
 
     @property
     def branch(self) -> Optional[str]:
+        branch = os.getenv("SEMGREP_BRANCH")
+        if branch:
+            return branch
+
         return os.getenv("BUILDKITE_BRANCH")
 
     @property
     def ci_job_url(self) -> Optional[str]:
+        job_url = os.getenv("SEMGREP_JOB_URL")
+        if job_url:
+            return job_url
+
         return "{}#{}".format(
             os.getenv("BUILDKITE_BUILD_URL"), os.getenv("BUILDKITE_JOB_ID")
         )
 
     @property
     def commit_sha(self) -> Optional[str]:
+        commit = os.getenv("SEMGREP_COMMIT")
+        if commit:
+            return commit
+
         return os.getenv("BUILDKITE_COMMIT")
 
     @property
     def pr_id(self) -> Optional[str]:
+        pr_id = os.getenv("SEMGREP_PR_ID")
+        if pr_id:
+            return pr_id
+
         # might be "false" if there is no PR id
         pr_id = os.getenv("BUILDKITE_PULL_REQUEST")
         return None if pr_id == "false" else pr_id

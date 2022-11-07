@@ -1,6 +1,6 @@
-(* Yoann Padioleau
+(* Yoann Padioleau, Iago Abal
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -33,13 +33,19 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Tainting dataflow analysis.
  *
- * This is a very rudimentary tainting analysis.
- * It is a MAY analysis, it finds *potential* bugs (the tainted path could not
- * be feasible in practice).
- * Very coarse grained (taint whole array/object).
- * This is step1 for taint tracking support in semgrep.
- * This was originally in semgrep-core/src/analyze, but it now depends on Pattern_match,
- * so it was moved to semgrep-core/src/engine
+ * - This is a rudimentary taint analysis in some ways, but rather complex in
+ *   other ways... We don't do alias analysis, and inter-procedural support
+ *   (for DeepSemgrep) still doesn't cover some common cases. On the other hand,
+ *   almost _anything_ can be a source/sanitizer/sink, we have taint propagators,
+ *   etc.
+ * - It is a MAY analysis, it finds *potential* bugs (the tainted path could not
+ *   be feasible in practice).
+ * - Field sensitivity is limited to l-values of the form x.a.b.c, see module
+ *   Taint_lval_env and check_tainted_lval for more details. Very coarse grained
+ *   otherwise, e.g. `x[i] = tainted` will taint the whole array,
+ *
+ * old: This was originally in semgrep-core/src/analyze, but it now depends on
+ *      Pattern_match, so it was moved to semgrep-core/src/engine.
  *)
 
 module DataflowX = Dataflow_core.Make (struct
@@ -74,6 +80,11 @@ type config = {
   is_propagator : AST_generic.any -> a_propagator tmatch list;
   is_sink : G.any -> R.taint_sink tmatch list;
   is_sanitizer : G.any -> R.taint_sanitizer tmatch list;
+      (* NOTE [is_sanitizer]:
+       * A sanitizer is more "extreme" than you may expect. When a piece of code is
+       * "sanitized" Semgrep will just not check it. For example, something like
+       * `sanitize(sink(tainted))` will not yield any finding.
+       * *)
   unify_mvars : bool;
   handle_findings : var option -> T.finding list -> Lval_env.t -> unit;
 }
@@ -83,6 +94,7 @@ type mapping = Lval_env.t D.mapping
 (* HACK: Tracks tainted functions intrafile. *)
 type fun_env = (var, Taints.t) Hashtbl.t
 
+(* THINK: Separate read-only enviroment into a new a "cfg" type? *)
 type env = {
   options : Config_semgrep.t; (* rule options *)
   config : config;
@@ -100,6 +112,14 @@ let hook_function_taint_signature = ref None
 (* Helpers *)
 (*****************************************************************************)
 
+let status_to_taints = function
+  | `None
+  | `Clean ->
+      Taints.empty
+  | `Tainted taints -> taints
+
+let is_exact x = x.overlap > 0.99
+
 let union_map_taints_and_vars env f xs =
   xs
   |> List.fold_left
@@ -112,6 +132,19 @@ let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
 let orig_is_source config orig = config.is_source (any_of_orig orig)
 let orig_is_sanitized config orig = config.is_sanitizer (any_of_orig orig)
 let orig_is_sink config orig = config.is_sink (any_of_orig orig)
+
+let any_of_lval lval =
+  match lval with
+  | { rev_offset = { oorig; _ } :: _; _ } -> any_of_orig oorig
+  | { base = Var var; rev_offset = [] } ->
+      let _, tok = var.ident in
+      G.Tk tok
+  | { base = VarSpecial (_, tok); rev_offset = [] } -> G.Tk tok
+  | { base = Mem e; rev_offset = [] } -> any_of_orig e.eorig
+
+let lval_is_source config lval = config.is_source (any_of_lval lval)
+let lval_is_sanitized config lval = config.is_sanitizer (any_of_lval lval)
+let lval_is_sink config lval = config.is_sink (any_of_lval lval)
 let trace_of_match x = T.trace_of_pm (x.pm, x.spec)
 
 let taints_of_matches xs =
@@ -160,7 +193,7 @@ let merge_source_sink_mvars env source_mvars sink_mvars =
     (* The union of both sets, but taking the sink mvars in case of collision. *)
     sink_biased_union_mvars source_mvars sink_mvars
 
-let labels_in_taint taints : LabelSet.t =
+let labels_of_taints taints : LabelSet.t =
   taints |> Taints.to_seq
   |> Seq.filter_map (fun (t : T.taint) ->
          match t.orig with
@@ -183,7 +216,7 @@ let rec eval_label_requires ~labels e =
       match (op, eval_label_args ~labels args) with
       | G.And, xs -> List.fold_left ( && ) true xs
       | G.Or, xs -> List.fold_left ( || ) false xs
-      | _ ->
+      | __else__ ->
           logger#error "Unexpected Boolean operator";
           false)
   | G.ParenExpr (_, e, _) -> eval_label_requires ~labels e
@@ -202,7 +235,7 @@ and eval_label_args ~labels args =
 
 (* Produces a finding for every taint source that is unifiable with the sink. *)
 let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
-  let labels = labels_in_taint taints in
+  let labels = labels_of_taints taints in
   let sink_pm, ts = T.pm_of_trace sink in
   let req = eval_label_requires ~labels ts.sink_requires in
   (* TODO: With taint labels it's less clear what is "the source",
@@ -240,8 +273,7 @@ let findings_of_tainted_return taints return_tok : T.finding list =
          | T.Arg i -> T.ArgToReturn (i, tokens, return_tok)
          | T.Src src -> T.SrcToReturn (src, tokens, return_tok))
 
-let union_taints_filtering_labels ~new_ curr =
-  let labels = labels_in_taint curr in
+let filter_taints_by_labels labels taints =
   Taints.fold
     (fun new_taint taints ->
       match new_taint.orig with
@@ -250,7 +282,12 @@ let union_taints_filtering_labels ~new_ curr =
           let _, ts = T.pm_of_trace src in
           let req = eval_label_requires ~labels ts.source_requires in
           if req then Taints.add new_taint taints else taints)
-    new_ curr
+    taints Taints.empty
+
+let union_taints_filtering_labels ~new_ curr =
+  let labels = labels_of_taints curr in
+  let new_filtered = filter_taints_by_labels labels new_ in
+  Taints.union new_filtered curr
 
 let find_args_taints args_taints fdef =
   let pos_args_taints, named_args_taints =
@@ -285,7 +322,7 @@ let find_args_taints args_taints fdef =
                 acc
                 (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
             | None -> param :: acc (* Same as above. *))
-        | _ -> param :: acc)
+        | __else__ -> param :: acc)
       fdef.G.fparams []
   in
   let _ =
@@ -312,7 +349,7 @@ let find_args_taints args_taints fdef =
       with
       | Some taints, _ -> Some taints
       | _, Some taints -> Some taints
-      | _ -> None
+      | __else__ -> None
     in
     if Option.is_none taint_opt then
       logger#error
@@ -323,27 +360,33 @@ let find_args_taints args_taints fdef =
 (* Tainted *)
 (*****************************************************************************)
 
-let sanitize_var lval_env sanitizer_pms var =
-  let var_is_now_safe =
-    (* If the variable is an exact match (overlap > 0.99) for a sanitizer
-       * annotation, then we infer that the variable itself has been updated
-       * (presumably by side-effect) and is no longer tainted. We will update
-       * the environment (i.e., `var_env') accordingly. *)
-    List.exists (fun x -> x.overlap > 0.99) sanitizer_pms
+let sanitize_lval_by_side_effect lval_env sanitizer_pms lval =
+  let lval_is_now_safe =
+    (* If the l-value is an exact match (overlap > 0.99) for a sanitizer
+     * annotation, then we infer that the l-value itself has been updated
+     * (presumably by side-effect) and is no longer tainted. We will update
+     * the environment (i.e., `lval_env') accordingly. *)
+    List.exists is_exact sanitizer_pms
   in
-  if var_is_now_safe then Lval_env.clean_var var lval_env else lval_env
+  if lval_is_now_safe then Lval_env.clean lval_env lval else lval_env
 
-(* Check if an expression is sanitized, if so, return a new variable environment. *)
+(* Check if an expression is sanitized, if so returns `Some' and otherise `None'.
+   If the expression is of the form `x.a.b.c` then we try to sanitize it by
+   side-effect, in which case this function will return a new lval_env. *)
 let exp_is_sanitized env exp =
   match orig_is_sanitized env.config exp.eorig with
+  (* See NOTE [is_sanitizer] *)
   | [] -> None
   | sanitizer_pms -> (
       match exp.e with
-      | Fetch { base = Var var; rev_offset = [] } ->
-          Some (sanitize_var env.lval_env sanitizer_pms var)
-      | _ -> Some env.lval_env)
+      | Fetch lval ->
+          Some (sanitize_lval_by_side_effect env.lval_env sanitizer_pms lval)
+      | __else__ -> Some env.lval_env)
 
-let handle_taint_propagators env x taints =
+(* Checks if `thing' is a propagator `from' and if so propagates `taints' through it.
+   Checks if `thing` is a propagator `'to' and if so fetches any taints that had been
+   previously propagated. Returns *only* the newly propagated taint. *)
+let handle_taint_propagators env thing taints =
   (* We propagate taints via an auxiliary variable (the propagator id). This is
    * simple but it has limitations, we can only propagate "forward" and, within
    * an instruction node, we can only propagate in the order in which we visit
@@ -352,26 +395,26 @@ let handle_taint_propagators env x taints =
    * `y` or `z`, or from `z` to `y`. *)
   let lval_env = env.lval_env in
   let propagators =
-    match x with
-    | `Var var ->
-        let _, tok = var.ident in
-        if Parse_info.is_origintok tok then env.config.is_propagator (G.Tk tok)
-        else []
-    | `Exp exp -> env.config.is_propagator (any_of_orig exp.eorig)
-    | `Ins ins -> env.config.is_propagator (any_of_orig ins.iorig)
+    let any =
+      match thing with
+      | `Lval lval -> any_of_lval lval
+      | `Exp exp -> any_of_orig exp.eorig
+      | `Ins ins -> any_of_orig ins.iorig
+    in
+    env.config.is_propagator any
   in
   let propagate_froms, propagate_tos =
     List.partition (fun p -> p.spec.kind = `From) propagators
   in
-  let var_env =
-    (* `x` is the source (the "from") of propagation, we add its taints to
+  let lval_env =
+    (* `thing` is the source (the "from") of propagation, we add its taints to
      * the environment. *)
     List.fold_left
       (fun lval_env prop -> Lval_env.propagate_to prop.spec.var taints lval_env)
       lval_env propagate_froms
   in
-  let taints_incoming =
-    (* `x` is the destination (the "to") of propagation. we collect all the
+  let taints_propagated =
+    (* `thing` is the destination (the "to") of propagation. we collect all the
      * incoming taints by looking for the propagator ids in the environment. *)
     List.fold_left
       (fun taints_in_acc prop ->
@@ -383,134 +426,174 @@ let handle_taint_propagators env x taints =
         Taints.union taints_in_acc taints_strid)
       Taints.empty propagate_tos
   in
-  let taints = Taints.union taints taints_incoming in
-  let var_env =
-    match x with
-    | `Var var ->
-        (* If `x` is a variable, then taint is propagated by side-effect. This
-         * allows us to e.g. propagate taint from `x` to `y` in `f(x,y)`. *)
-        Lval_env.add_var var taints_incoming var_env
+  let lval_env =
+    match thing with
+    (* If `thing` is an l-value of the form `x.a.b.c`, then taint can be propagated
+     * by side-effect. A pattern-propagator may use this to e.g. propagate taint
+     * from `x` to `y` in `f(x,y)`, so that subsequent uses of `y` are tainted
+     * if `x` was previously tainted. *)
+    | `Lval lval -> Lval_env.add lval_env lval taints_propagated
     | `Exp _
     | `Ins _ ->
-        var_env
+        lval_env
   in
-  (taints, var_env)
+  (taints_propagated, lval_env)
 
-(* coupling: check_tainted_var *)
-let check_tainted_tok env tok =
-  let source_pms, sanitizer_pms, sink_pms =
-    if Parse_info.is_origintok tok then
-      ( env.config.is_source (G.Tk tok),
-        env.config.is_sanitizer (G.Tk tok),
-        env.config.is_sink (G.Tk tok) )
-    else ([], [], [])
+let find_lval_taint_sources env ~labels lval =
+  let source_pms = lval_is_source env.config lval in
+  let mut_source_pms, reg_source_pms =
+    (* If the lvalue is an exact match (overlap > 0.99) for a source
+       * annotation, then we infer that the lvalue itself is now tainted
+       * (presumably by side-effect) and we will update the `lval_env`
+       * accordingly. Otherwise the lvalue belongs to a piece of code that
+       * is a source of taint, but it is not tainted on its own. *)
+    List.partition is_exact source_pms
   in
-  match sanitizer_pms with
-  | _ :: _ -> (Taints.empty, env.lval_env)
-  | [] ->
-      let taints = source_pms |> taints_of_matches in
-      (* Empty because we want to filter all the previous taints we got from the
-         `source_pms`, but we have nothing to really union it with.
-         Otherwise, we might let taints from this token escape a label. In particular,
-         this may happen in the `Dot` case.
-      *)
-      let taints = Taints.empty |> union_taints_filtering_labels ~new_:taints in
-      let sinks = sink_pms |> Common.map trace_of_match in
-      let findings = findings_of_tainted_sinks env taints sinks in
-      report_findings env findings;
-      (taints, env.lval_env)
+  let taints_sources_reg =
+    reg_source_pms |> taints_of_matches |> filter_taints_by_labels labels
+  and taints_sources_mut =
+    mut_source_pms |> taints_of_matches |> filter_taints_by_labels labels
+  in
+  let lval_env = Lval_env.add env.lval_env lval taints_sources_mut in
+  (Taints.union taints_sources_reg taints_sources_mut, lval_env)
 
-(* Test whether a variable occurrence is tainted, and if it is also a sink,
- * report the finding too (by side effect).
- *
- * THINK: Could we generalize this for lvalues? So we won't need special
- *     Lval_env.add_var and Lval_env.find_var, but just work with lvalues
- *     everywhere?
- *)
-let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
-  let source_pms, sanitizer_pms, sink_pms =
-    let _, tok = var.ident in
-    if Parse_info.is_origintok tok then
-      ( env.config.is_source (G.Tk tok),
-        env.config.is_sanitizer (G.Tk tok),
-        env.config.is_sink (G.Tk tok) )
-    else ([], [], [])
-  in
-  match sanitizer_pms with
+let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
+  let new_taints, lval_in_env, lval_env = check_tainted_lval_aux env lval in
+  let taints_from_env = status_to_taints lval_in_env in
+  let taints = Taints.union new_taints taints_from_env in
+  let sinks = lval_is_sink env.config lval |> Common.map trace_of_match in
+  let findings = findings_of_tainted_sinks { env with lval_env } taints sinks in
+  report_findings { env with lval_env } findings;
+  (taints, lval_env)
+
+and check_tainted_lval_aux env (lval : IL.lval) :
+    Taints.t * [ `Clean | `None | `Tainted of Taints.t ] * Lval_env.t =
+  (* Recursively checks an l-value bottom-up.
+   *
+   *  This check needs to combine matches from pattern-{sources,sanitizers,sinks}
+   *  with the info we have stored in `env.lval_env`. This can be subtle, see
+   *  comments below.
+   *)
+  match lval_is_sanitized env.config lval with
+  (* See NOTE [is_sanitizer] *)
   (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
-  | _ :: _ ->
-      let lval_env' = sanitize_var env.lval_env sanitizer_pms var in
-      (Taints.empty, lval_env')
+  | _ :: _ as sanitizer_pms ->
+      (* NOTE [lval/clean]:
+       *  If lval is sanitized, then we will "bubble up" the `Clean status, so any
+       *  taint recorded in lval_env for any extension of lval will be discarded.
+       *
+       *  So, if we are checking `x.a.b.c` and `x.a` is clean (could be due to
+       *  sanitization) then any extension of `x.a` is considered clean as well,
+       *  and we do look for taint info in the environment.
+       *
+       *  *IF* sanitization is side-effectful then any taint info will be removed
+       *  from lval_env by sanitize_lval, but that is not guaranteed.
+       *)
+      let lval_env =
+        sanitize_lval_by_side_effect env.lval_env sanitizer_pms lval
+      in
+      (Taints.empty, `Clean, lval_env)
   | [] ->
-      let mut_source_pms, reg_source_pms =
-        (* If the variable is an exact match (overlap > 0.99) for a source
-         * annotation, then we infer that the variable itself is now tainted
-         * (presumably by side-effect) and we will update the `var_env`
-         * accordingly. Otherwise the variable belongs to a piece of code that
-         * is a source of taint, but it is not tainted on its own. *)
-        List.partition (fun src -> src.overlap > 0.99) source_pms
+      (* Recursive call, check sub-lvalues first.
+       *
+       * It needs to be done bottom-up because any sub-lvalue can be a source and a
+       * sink by itself, even if an extension of lval is not. For example, given
+       * `x.a.b`, this lvalue may be considered sanitized, but at the same time `x.a`
+       * could be tainted and considered a sink in some context. We cannot just check
+       * `x.a.b` and forget about the sub-lvalues.
+       *)
+      let sub_new_taints, sub_in_env, lval_env =
+        match lval with
+        | { base; rev_offset = [] } ->
+            (* Base case, no offset. *)
+            let taints, lval_env = check_tainted_lval_base env base in
+            (taints, `None, lval_env)
+        | { base = _; rev_offset = _ :: rev_offset' } ->
+            (* Recursive case, given `x.a.b` we must first check `x.a`. *)
+            check_tainted_lval_aux env { lval with rev_offset = rev_offset' }
       in
-      let taints_sources_reg = reg_source_pms |> taints_of_matches
-      and taints_sources_mut = mut_source_pms |> taints_of_matches
-      and taints_var_env =
-        Lval_env.find_var var env.lval_env |> Option.value ~default:Taints.empty
+      (* Check the status of lval in the environemnt. *)
+      let lval_in_env =
+        match sub_in_env with
+        | `Clean ->
+            (* See NOTE [lval/clean] *)
+            `Clean
+        | (`None | `Tainted _) as st -> (
+            match Lval_env.dumb_find lval_env lval with
+            | (`Clean | `Tainted _) as st' -> st'
+            | `None -> st)
       in
-      let lval_env' = Lval_env.add_var var taints_sources_mut env.lval_env in
-      let taints_sources = Taints.union taints_sources_reg taints_sources_mut in
-      let taints : Taints.t =
-        taints_var_env |> union_taints_filtering_labels ~new_:taints_sources
+      let taints_from_env = status_to_taints lval_in_env in
+      (* Find taint sources matching lval. *)
+      let current_taints = Taints.union sub_new_taints taints_from_env in
+      let labels = labels_of_taints current_taints in
+      let taints_from_sources, lval_env =
+        find_lval_taint_sources { env with lval_env } ~labels lval
       in
-      let taints, lval_env' =
-        handle_taint_propagators
-          { env with lval_env = lval_env' }
-          (`Var var) taints
+      (* Check sub-expressions in the offset. *)
+      let taints_from_offset, lval_env =
+        match lval.rev_offset with
+        | [] -> (Taints.empty, lval_env)
+        | offset :: _ -> check_tainted_lval_offset { env with lval_env } offset
       in
-      let sinks = sink_pms |> Common.map trace_of_match in
-      let findings = findings_of_tainted_sinks env taints sinks in
-      report_findings env findings;
-      (taints, lval_env')
+      (* Check taint propagators. *)
+      let taints_incoming (* TODO: find a better name *) =
+        sub_new_taints
+        |> Taints.union taints_from_sources
+        |> Taints.union taints_from_offset
+      in
+      let taints_propagated, lval_env =
+        handle_taint_propagators { env with lval_env } (`Lval lval)
+          (taints_incoming |> Taints.union taints_from_env)
+      in
+      let new_taints = taints_incoming |> Taints.union taints_propagated in
+      let sinks =
+        lval_is_sink env.config lval
+        (* For sub-lvals we require sinks to be exact matches. Why? Let's say
+           * we have `sink(x.a)` and `x' is tainted but `x.a` is clean...
+           * with the normal subset semantics for sinks we would consider `x'
+           * itself to be a sink, and we would report a finding!
+        *)
+        |> List.filter is_exact
+        |> Common.map trace_of_match
+      in
+      let all_taints = Taints.union taints_from_env new_taints in
+      let findings =
+        findings_of_tainted_sinks { env with lval_env } all_taints sinks
+      in
+      report_findings { env with lval_env } findings;
+      (new_taints, lval_in_env, lval_env)
+
+and check_tainted_lval_base env base =
+  match base with
+  | Var _
+  | VarSpecial _ ->
+      (Taints.empty, env.lval_env)
+  | Mem e ->
+      let taints, lval_env = check_tainted_expr env e in
+      (taints, lval_env)
+
+and check_tainted_lval_offset env offset =
+  match offset.o with
+  | Dot _n ->
+      (* THINK: Allow fields to be taint sources, sanitizers, or sinks ??? *)
+      (Taints.empty, env.lval_env)
+  | Index e ->
+      let taints, lval_env = check_tainted_expr env e in
+      let taints =
+        if not env.options.taint_assume_safe_indexes then taints
+        else (* Taint from the index should be ignored. *)
+          Taints.empty
+      in
+      (taints, lval_env)
 
 (* Test whether an expression is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
-let rec check_tainted_expr env exp : Taints.t * Lval_env.t =
+and check_tainted_expr env exp : Taints.t * Lval_env.t =
   let check env = check_tainted_expr env in
-  let check_base env = function
-    | Var var -> check_tainted_var env var
-    | VarSpecial (_, tok) -> check_tainted_tok env tok
-    | Mem e -> check env e
-  in
-  let check_offset env = function
-    | Index e ->
-        let taints, lval_env = check env e in
-        let taints =
-          if not env.options.taint_assume_safe_indexes then taints
-          else (* Taint from the index should be ignored. *)
-            Taints.empty
-        in
-        (taints, lval_env)
-    | Dot fld -> check_tainted_tok env (snd fld.ident)
-  in
   let check_subexpr exp =
     match exp.e with
-    | Fetch ({ base; rev_offset; _ } as lval) -> (
-        let lval_info =
-          match Lval_env.find lval env.lval_env with
-          | `Clean -> `Clean
-          | `None -> `Tainted Taints.empty
-          | `Tainted taints -> `Tainted taints
-        in
-        match lval_info with
-        | `Clean -> (Taints.empty, env.lval_env)
-        | `Tainted taints ->
-            (* If not explicitly marked clean, then we look for taint in the
-               base and offsets separately... THINK: Should we? *)
-            let base_taints, lval_env = check_base env base in
-            let offset_taints, lval_env =
-              union_map_taints_and_vars { env with lval_env } check_offset
-                rev_offset
-            in
-            ( Taints.union taints (Taints.union base_taints offset_taints),
-              lval_env ))
+    | Fetch lval -> check_tainted_lval env lval
     | FixmeExp (_, _, Some e) -> check env e
     | Literal _
     | FixmeExp (_, _, None) ->
@@ -530,9 +613,9 @@ let rec check_tainted_expr env exp : Taints.t * Lval_env.t =
     | Cast (_, e) -> check env e
   in
   match exp_is_sanitized env exp with
-  | Some var_env ->
+  | Some lval_env ->
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
-      (Taints.empty, var_env)
+      (Taints.empty, lval_env)
   | None ->
       let sinks =
         orig_is_sink env.config exp.eorig |> Common.map trace_of_match
@@ -544,12 +627,16 @@ let rec check_tainted_expr env exp : Taints.t * Lval_env.t =
       let taints =
         taints_exp |> union_taints_filtering_labels ~new_:taints_sources
       in
-      let taints, var_env =
+      let taints_propagated, var_env =
         handle_taint_propagators { env with lval_env } (`Exp exp) taints
       in
+      let taints = Taints.union taints taints_propagated in
       let findings = findings_of_tainted_sinks env taints sinks in
       report_findings env findings;
       (taints, var_env)
+
+let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
+  check_tainted_lval env (LV.lval_of_var var)
 
 let check_function_signature env fun_exp args_taints =
   match (!hook_function_taint_signature, fun_exp) with
@@ -570,9 +657,13 @@ let check_function_signature env fun_exp args_taints =
                    (* Case `$F()` *)
                    | { base = Var { ident; _ }; rev_offset = []; _ }
                    (* Case `$X. ... .$F()` *)
-                   | { base = _; rev_offset = Dot { ident; _ } :: _; _ } ->
+                   | {
+                       base = _;
+                       rev_offset = { o = Dot { ident; _ }; _ } :: _;
+                       _;
+                     } ->
                        Some ident
-                   | _ -> None
+                   | __else__ -> None
                  in
                  Some
                    (arg_taints
@@ -644,6 +735,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
   in
   let sanitizer_pms = orig_is_sanitized env.config instr.iorig in
   match sanitizer_pms with
+  (* See NOTE [is_sanitizer] *)
   | _ :: _ ->
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
       (Taints.empty, env.lval_env)
@@ -658,11 +750,12 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
       let taints =
         taints_instr |> union_taints_filtering_labels ~new_:taint_sources
       in
-      let taints, lval_env' =
+      let taints_propagated, lval_env' =
         handle_taint_propagators
           { env with lval_env = lval_env' }
           (`Ins instr) taints
       in
+      let taints = Taints.union taints taints_propagated in
       let findings = findings_of_tainted_sinks env taints sinks in
       report_findings env findings;
       (taints, lval_env')
@@ -713,37 +806,34 @@ let (transfer :
   let out' : Lval_env.t =
     let env = { options; config; fun_name = opt_name; lval_env = in' } in
     match node.F.n with
-    | NInstr x -> (
+    | NInstr x ->
         let taints, lval_env' = check_tainted_instr env x in
         let opt_lval = LV.lval_of_instr_opt x in
         let lval_env' =
           match opt_lval with
-          | Some { base = Var name; rev_offset = _ } ->
+          | Some lval ->
               (* We call `check_tainted_var` here because the assigned `var`
                * itself could be annotated as a source of taint. *)
-              check_tainted_var { env with lval_env = lval_env' } name |> snd
-          | Some _
+              check_tainted_lval { env with lval_env = lval_env' } lval |> snd
+          | None -> lval_env'
+        in
+        let lval_env' =
+          let has_taints = not (Taints.is_empty taints) in
+          match opt_lval with
+          | Some lval ->
+              if has_taints then
+                (* Instruction returns tainted data, add taints to lval.
+                 * See [Taint_lval_env] for details. *)
+                Lval_env.add lval_env' lval taints
+              else
+                (* Instruction returns safe data, remove taints from lval.
+                 * See [Taint_lval_env] for details. *)
+                Lval_env.clean lval_env' lval
           | None ->
+              (* Instruction returns 'void' or its return value is ignored. *)
               lval_env'
         in
-        match (Taints.is_empty taints, opt_lval) with
-        (* Instruction returns safe data, remove taint from lval. *)
-        | true, Some lval when LV.lval_is_var_and_dots lval ->
-            Lval_env.clean lval lval_env'
-        | true, Some { base = Var x; _ } ->
-            (* This handles cases like `x[i] = safe`, cleaning `x`. *)
-            Lval_env.clean_var x lval_env'
-        (* Instruction returns tainted data, add taint to lval *)
-        | false, Some lval when LV.lval_is_var_and_dots lval ->
-            Lval_env.add lval taints lval_env'
-        | false, Some { base = Var x; _ } ->
-            (* This handles cases like `x[i] = tainted`, tainting `x`. *)
-            Lval_env.add_var x taints lval_env'
-        | _, Some _
-        | _, None ->
-            (* Either we cannot obtain a simple dotted lvalue to track, or the
-             * instruction returns 'void'. *)
-            lval_env')
+        lval_env'
     | NCond (_tok, e)
     | NThrow (_tok, e) ->
         let _, lval_env' = check_tainted_expr env e in

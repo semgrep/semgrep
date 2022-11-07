@@ -115,58 +115,9 @@ METRICS_STATE_TYPE = MetricsStateType()
 CONTEXT_SETTINGS = {"max_content_width": 90}
 
 _scan_options: List[Callable] = [
-    click.option(
-        "--disable-metrics",
-        "metrics_legacy",
-        is_flag=True,
-        type=METRICS_STATE_TYPE,
-        flag_value="off",
-        hidden=True,
-    ),
-    click.option(
-        "--enable-metrics",
-        "metrics_legacy",
-        is_flag=True,
-        type=METRICS_STATE_TYPE,
-        flag_value="on",
-        hidden=True,
-    ),
- optgroup.group(
-        "Path options",
-        help="""
-            By default, Semgrep scans all git-tracked files with extensions matching rules' languages.
-            These options alter which files Semgrep scans.
-        """,
-    ),
-    optgroup.option(
-        "--exclude-rule",
-        multiple=True,
-        default=[],
-        help="""
-            Skip any rule with the given id. Can add multiple times.
-        """,
-        shell_complete=__get_file_options,
-    ),
-    optgroup.option(
-        "--scan-unknown-extensions/--skip-unknown-extensions",
-        is_flag=True,
-        default=True,
-        help="""
-            If true, explicit files will be scanned using the language specified in
-            --lang. If --skip-unknown-extensions, these files will not be scanned
-        """,
-    ),
- optgroup.group("Performance and memory options"),
-    optgroup.option(
-        "--enable-version-check/--disable-version-check",
-        is_flag=True,
-        default=True,
-        envvar="SEMGREP_ENABLE_VERSION_CHECK",
-        help="""
-            Checks Semgrep servers to see if the latest version is run; disabling this
-            may reduce exit time after returning results.
-        """,
-    ),
+
+
+
  optgroup.group("Display options"),
     optgroup.option(
         "--enable-nosem/--disable-nosem",
@@ -211,26 +162,9 @@ _scan_options: List[Callable] = [
         help="Save search results to a file or post to URL. Default is to print to stdout.",
         shell_complete=__get_file_options,
     ),
-    optgroup.option(
-        "--rewrite-rule-ids/--no-rewrite-rule-ids",
-        is_flag=True,
-        default=True,
-        help="""
-            Rewrite rule ids when they appear in nested sub-directories (Rule 'foo' in
-            test/rules.yaml will be renamed 'test.foo').
-        """,
-    ),
-    optgroup.option(
-        "--time/--no-time",
-        "time_flag",
-        is_flag=True,
-        default=False,
-        help="""
-            Include a timing summary with the results. If output format is json, provides
-            times for each pair (rule, target).
-        """,
-    ),
- optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
+
+
+  optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
 
     optgroup.group(
         "Output formats",
@@ -269,24 +203,6 @@ def scan_options(func: Callable) -> Callable:
     """,
 )
 
-@optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup)
-
-@click.option(
-    "--severity",
-    multiple=True,
-    type=click.Choice(["INFO", "WARNING", "ERROR"]),
-    help="""
-        Report findings only from rules matching the supplied severity level. By
-        default all applicable rules are run. Can add multiple times. Each should
-        be one of INFO, WARNING, or ERROR.
-    """,
-    shell_complete=__get_severity_options,
-)
-@click.option(
-    "--show-supported-languages",
-    is_flag=True,
-    help=("Print a list of languages that are currently supported by Semgrep."),
-)
 
 @optgroup.group("Alternate modes", help="No search is performed in these modes")
 
@@ -295,9 +211,6 @@ def scan_options(func: Callable) -> Callable:
     is_flag=True,
     default=False,
     help="Validate configuration file(s). This will check YAML files for errors and run 'p/semgrep-rule-lints' on the YAML files. No search is performed.",
-)
-@optgroup.option(
-    "--version", is_flag=True, default=False, help="Show the version and exit."
 )
 
 @optgroup.group("Test and debug options")
@@ -337,45 +250,23 @@ def scan_options(func: Callable) -> Callable:
 def scan(
     *,
     deep: bool,
-    dryrun: bool,
     dump_ast: bool,
     enable_nosem: bool,
-    enable_version_check: bool,
     error_on_findings: bool,
-    exclude_rule: Optional[Tuple[str, ...]],
     force_color: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     junit_xml: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
-    metrics_legacy: Optional[MetricsState],
     dataflow_traces: bool,
     output: Optional[str],
     replacement: Optional[str],
-    rewrite_rule_ids: bool,
     sarif: bool,
-    scan_unknown_extensions: bool,
-    severity: Optional[Tuple[str, ...]],
-    show_supported_languages: bool,
     test: bool,
     test_ignore_todo: bool,
-    time_flag: bool,
     validate: bool,
-    version: bool,
 ) -> ScanReturn:
-
-    if version:
-        print(__VERSION__)
-        if enable_version_check:
-            from semgrep.app.version import version_check
-
-            version_check()
-        return None
-
-    if show_supported_languages:
-        click.echo(LANGUAGE.show_suppported_languages_message())
-        return None
 
     state = get_state()
     state.metrics.configure(metrics, metrics_legacy)
@@ -398,8 +289,6 @@ def scan(
         abort(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
-
-    output_time = time_flag
 
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
@@ -425,7 +314,7 @@ def scan(
         strict=strict,
         verbose_errors=verbose,
         timeout_threshold=timeout_threshold,
-        output_time=output_time,
+        output_time=time_flag,
         output_per_finding_max_lines_limit=max_lines_per_finding,
         output_per_line_max_chars_limit=max_chars_per_line,
         dataflow_traces=dataflow_traces,
@@ -503,11 +392,9 @@ def scan(
                     profiling_data,
                     _,
                     explanations,
-                    shown_severities,
                     _,
                 ) = semgrep.semgrep_main.main(
                     configs=(config or []),
-                    no_rewrite_rule_ids=(not rewrite_rule_ids),
                     exclude_rule=exclude_rule,
                     disable_nosem=(not enable_nosem),
                     no_git_ignore=(not use_git_ignore),
@@ -527,7 +414,6 @@ def scan(
                 filtered_rules=filtered_rules,
                 profiling_data=profiling_data,
                 explanations=explanations,
-                severities=shown_severities,
                 print_summary=True,
             )
 

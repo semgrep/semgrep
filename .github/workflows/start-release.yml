@@ -15,7 +15,9 @@ on:
         required: true
         default: "feature"
         type: "choice"
+        # These options are passed directly into christian-draeger/increment-semantic-version in the `next-vesion` step to decide which of X.Y.Z to increment
         options:
+          - "major"
           - "feature"
           - "bug"
 
@@ -257,6 +259,23 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: false
           draft: true
+      - name: Get JWT for semgrep-ci GitHub App
+        id: jwt
+        uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+        env:
+          EXPIRATION: 600 # seconds
+          ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }} # semgrep-ci GitHub App id
+          PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+      - name: Get token for semgrep-ci GitHub App
+        id: token
+        run: |
+          TOKEN="$(curl -X POST \
+          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+          jq -r .token)"
+          echo "::add-mask::$TOKEN"
+          echo "::set-output name=token::$TOKEN"
       - name: Create Draft Release Semgrep Interfaces
         id: create_release_semgrep_interfaces
         uses: softprops/action-gh-release@v1
@@ -264,7 +283,7 @@ jobs:
           tag_name: "v${{ needs.release-setup.outputs.version }}"
           name: Release v${{ needs.release-setup.outputs.version }}
           body_path: scripts/release/release_body.txt
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: "${{ steps.token.outputs.token }}"
           prerelease: false
           draft: true
           repository: returntocorp/semgrep-interfaces
@@ -333,13 +352,11 @@ jobs:
   bump-semgrep-rpc:
     needs: [validate-release-trigger, release-setup]
     name: Bump Semgrep RPC Semgrep Version
-    uses: ./.github/workflows/open-bump-pr.yml
+    uses: ./.github/workflows/call-bump-pr-workflow.yml
     secrets: inherit
     with:
       version: ${{needs.release-setup.outputs.version}}
       repository: "returntocorp/semgrep-rpc"
-      base_branch: "main"
-      bump_script_path: "scripts/bump-version.sh"
 
   notify-success:
     needs:

@@ -1,4 +1,4 @@
-; This could be make independent of semgrep, so try to not use semgrep dependencies here
+; This could become independent of semgrep, so try to not use semgrep dependencies here
 (library
  (public_name ojsonnet_parsing)
  (wrapped false)

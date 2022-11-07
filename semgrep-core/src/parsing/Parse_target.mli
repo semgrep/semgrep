@@ -14,8 +14,6 @@ type parsing_result = {
  * (e.g. Parse_info.Pasing_error).
  *)
 val parse_and_resolve_name : Lang.t -> Common.filename -> parsing_result
-
-(* used only for testing purpose *)
 val just_parse_with_lang : Lang.t -> Common.filename -> parsing_result
 val parse_program : Common.filename -> AST_generic.program
 

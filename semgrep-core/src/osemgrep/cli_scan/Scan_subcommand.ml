@@ -4,31 +4,18 @@
 (*
    Parse a semgrep-scan command, execute it and exit.
 
-   Translated from scan.py
-   TODO and semgrep_main.py?
+   Translated from scan.py and semgrep_main.py
 *)
 
 (*****************************************************************************)
-(* Types *)
+(* Logging/Profiling/Debugging *)
 (*****************************************************************************)
 
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-(*****************************************************************************)
-(* Main logic *)
-(*****************************************************************************)
-
-(* All the business logic after command-line parsing. Return the desired
-   exit code. *)
-let run (conf : Scan_CLI.conf) : Exit_code.t =
+let setup_logging (conf : Scan_CLI.conf) =
   (* This used to be in Core_CLI.ml, and so should be in CLI.ml but
-   * we get a conf object later in osesmgrep.
+   * we get a conf object later in osemgrep.
    *)
-  (* --------------------------------------------------------- *)
-  (* Setting up debugging/profiling *)
-  (* --------------------------------------------------------- *)
+
   (* For osemgrep we use the Logs library instead of the Logger
    * library in pfff. We had a few issues with Logger (which is a small
    * wrapper around the easy_logging library), and we don't really want
@@ -49,37 +36,101 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
    * logging information at runtime, hence this call.
    *)
   Setup_logging.setup config;
+  ()
 
+(* TODO *)
+let setup_profiling _conf =
   (* TOADAPT
      if config.debug then Report.mode := MDebug
      else if config.report_time then Report.mode := MTime
      else Report.mode := MNo_info;
   *)
+  ()
 
-  (* --------------------------------------------------------- *)
-  (* Let's go *)
-  (* --------------------------------------------------------- *)
-  (* TODO: in theory we should have an intermediate module that
-   * handle the -e/--lang, or --config, but for now we care
-   * only about --config.
-   * TODO: in theory we can also pass multiple --config and
-   * have a default config.
-   *)
-  let rules, _errorsTODO =
-    Config_resolver.rules_from_dashdash_config conf.config
-  in
-  (* TODO: there are more ways to specify targets? see target_manager.py
-   *)
-  let targets, _skipped_targetsTODO =
-    Find_target.select_global_targets ~includes:conf.include_
-      ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
-      ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
-  in
-  let (res : Core_runner.result) =
-    Core_runner.invoke_semgrep_core conf rules targets
-  in
-  Output.output_result conf res;
-  Exit_code.ok
+(*****************************************************************************)
+(* Error management *)
+(*****************************************************************************)
+
+(* python: this used to be done in a _final_raise method from output.py
+ * but better separation of concern to do it here.
+ *)
+let exit_code_of_errors (conf : Scan_CLI.conf)
+    (errors : Semgrep_output_v1_t.core_error list) : Exit_code.t =
+  match List.rev errors with
+  | [] -> Exit_code.ok
+  | x :: _ -> (
+      (* alt: raise a Semgrep_error that would be catched by CLI_Common
+       * wrapper instead of returning an exit code directly? *)
+      match () with
+      | _ when x.severity = Semgrep_output_v1_t.Error ->
+          Cli_json_output.exit_code_of_error_type x.error_type
+      | _ when conf.strict ->
+          Cli_json_output.exit_code_of_error_type x.error_type
+      | _else_ -> Exit_code.ok)
+
+(*****************************************************************************)
+(* Main logic *)
+(*****************************************************************************)
+
+(* All the business logic after command-line parsing. Return the desired
+   exit code. *)
+let run (conf : Scan_CLI.conf) : Exit_code.t =
+  setup_logging conf;
+  setup_profiling conf;
+
+  match () with
+  | _ when conf.version ->
+      Logs.app (fun m -> m "%s" Version.version);
+      (* TOPORT:
+         if enable_version_check:
+               from semgrep.app.version import version_check
+               version_check()
+      *)
+      Exit_code.ok
+  | _ when conf.show_supported_languages ->
+      Logs.app (fun m -> m "supported languages are: %s" Xlang.supported_xlangs);
+      Exit_code.ok
+  | _else_ ->
+      (* --------------------------------------------------------- *)
+      (* Let's go *)
+      (* --------------------------------------------------------- *)
+      (* TODO: in theory we should have an intermediate module that
+       * handle the -e/--lang, or --config, but for now we care
+       * only about --config.
+       * TODO: in theory we can also pass multiple --config and
+       * have a default config.
+       *)
+      let (rules : Rule.rules), (_errorsTODO : Rule.invalid_rule_error list) =
+        Config_resolver.rules_from_dashdash_config conf.config
+      in
+      let filtered_rules =
+        match conf.severity with
+        | [] -> rules
+        | xs ->
+            rules
+            |> List.filter (fun r ->
+                   match
+                     Severity.rule_severity_of_rule_severity_opt r.Rule.severity
+                   with
+                   | None -> false
+                   | Some x -> List.mem x xs)
+      in
+
+      (* TOPORT: filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule) *)
+
+      (* TODO: there are more ways to specify targets? see target_manager.py *)
+      let (targets : Common.filename list), _skipped_targetsTODO =
+        Find_target.select_global_targets ~includes:conf.include_
+          ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
+          ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
+      in
+      let (res : Core_runner.result) =
+        Core_runner.invoke_semgrep_core conf filtered_rules targets
+      in
+      (* outputting the result! in JSON or Text or whatever depending on conf *)
+      Output.output_result conf res;
+      (* final result for the shell *)
+      exit_code_of_errors conf res.core.errors
 
 (*****************************************************************************)
 (* Entry point *)

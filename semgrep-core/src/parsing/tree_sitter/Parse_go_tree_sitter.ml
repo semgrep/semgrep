@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -324,7 +324,9 @@ and interface_body (env : env) (x : CST.interface_body) : interface_field =
         | None -> []
       in
       Method (id, { fparams; fresults })
-  | `Inte_type_name x -> interface_type_name env x
+  | `Inte_type_name x ->
+      let name = interface_type_name env x in
+      EmbeddedInterface name
   | `Cons_elem (v1, v2) ->
       let v1 = constraint_term env v1 in
       let v2 =
@@ -337,20 +339,50 @@ and interface_body (env : env) (x : CST.interface_body) : interface_field =
       in
       let xs = v1 :: v2 in
       Constraints xs
+  | `Struct_elem (v1, v2) ->
+      let v1 = struct_term env v1 in
+      let v2 =
+        Common.map
+          (fun (v1, v2) ->
+            let _v1 = (* "|" *) token env v1 in
+            let v2 = struct_term env v2 in
+            v2)
+          v2
+      in
+      let xs = v1 :: v2 in
+      Constraints xs
 
-and constraint_term (env : env) ((v1, v2) : CST.constraint_term) =
+and struct_term (env : env) ((v1, v2) : CST.struct_term) : constraint_ =
+  let tilde_opt, fty =
+    match v1 with
+    | Some x -> (
+        match x with
+        | `TILDE tok ->
+            let t = (* "~" *) token env tok in
+            (Some t, fun ty -> ty)
+        | `STAR tok ->
+            let t = (* "*" *) token env tok in
+            (None, fun ty -> TPtr (t, ty)))
+    | None -> (None, fun ty -> ty)
+  in
+  let ty = struct_type env v2 in
+  (tilde_opt, fty ty)
+
+and constraint_term (env : env) ((v1, v2) : CST.constraint_term) : constraint_ =
   let tilde_opt =
     match v1 with
     | Some tok -> Some ((* "~" *) token env tok)
     | None -> None
   in
   let id = (* identifier *) identifier env v2 in
-  (tilde_opt, id)
+  let ty = TName [ id ] in
+  (tilde_opt, ty)
 
-and interface_type_name (env : env) (x : CST.interface_type_name) =
+and interface_type_name (env : env) (x : CST.interface_type_name) :
+    qualified_ident =
   match x with
-  | `Id tok -> EmbeddedInterface [ (* identifier *) identifier env tok ]
-  | `Qual_type x -> EmbeddedInterface (qualified_type env x)
+  | `Id tok -> [ (* identifier *) identifier env tok ]
+  | `Qual_type x -> qualified_type env x
 
 and block (env : env) ((v1, v2, v3) : CST.block) =
   let v1 = token env v1 (* "{" *) in
@@ -537,9 +569,9 @@ and simple_type (env : env) (x : CST.simple_type) : type_ =
       TFunc { fparams = v2; fresults = v3 }
 
 and generic_type (env : env) ((v1, v2) : CST.generic_type) : type_ =
-  let id = (* identifier *) identifier env v1 in
+  let name = interface_type_name env v1 in
   let targs = type_arguments env v2 in
-  TGeneric (id, targs)
+  TGeneric (name, targs)
 
 and type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) =
   let lbra = (* "[" *) token env v1 in
@@ -685,7 +717,7 @@ and expression (env : env) (x : CST.expression) : expr =
         | `Qual_type x -> TName (qualified_type env x)
         | `Gene_type x -> generic_type env x
       in
-      let v2 = literal_value env v2 in
+      let v2 = map_literal_value env v2 in
       CompositeLit (v1, v2)
   | `Func_lit (v1, v2, v3, v4) ->
       let _v1 = token env v1 (* "func" *) in
@@ -1016,29 +1048,22 @@ and const_spec (env : env) ((v1, v2, v3) : CST.const_spec) =
       mk_consts ~rev xs v1 (Some v3)
   | None -> mk_consts ~rev xs None None
 
-and anon_choice_elem_c42cd9b (env : env) (x : CST.anon_choice_elem_c42cd9b) =
+and map_anon_choice_lit_elem_0952f3f (env : env)
+    (x : CST.anon_choice_lit_elem_0952f3f) : init =
   match x with
-  | `Elem x -> element env x
-  | `Keyed_elem (v1, v2) ->
-      let v2top = element env v2 in
-      let v1 =
-        match v1 with
-        | `Exp_COLON (v1, v2) ->
-            let v1 = expression env v1 in
-            let v2 = token env v2 (* ":" *) in
-            InitKeyValue (InitExpr v1, v2, v2top)
-        | `Lit_value_COLON (v1, v2) ->
-            let v1 = literal_value env v1 in
-            let v2 = token env v2 (* ":" *) in
-            InitKeyValue (InitBraces v1, v2, v2top)
-        (* not sure why but Foo:1 is parsed as Keyed_elem(Id_COLON "Foo", 1)
-         * instead of a Keyed_elem(Exp_COLON (Id "Foo"), 1) *)
-        | `Id_COLON (v1, v2) ->
-            let v1 = identifier env v1 (* identifier *) in
-            let v2 = token env v2 (* ":" *) in
-            InitKeyValue (InitExpr (mk_Id v1), v2, v2top)
-      in
-      v1
+  | `Lit_elem x -> literal_element env x
+  (* from the grammar:
+     // In T{k: v}, the key k may be:
+     // - any expression (when T is a map, slice or array),
+     // - a field identifier (when T is a struct), or
+     // - a literal_element (when T is an array).
+     // The first two cases cannot be distinguished without type information.
+  *)
+  | `Keyed_elem (v1, v2, v3) ->
+      let e1 = literal_element env v1 in
+      let tcolon = token env v2 in
+      let e2 = literal_element env v3 in
+      InitKeyValue (e1, tcolon, e2)
 
 and type_spec (env : env) ((v1, v2, v3) : CST.type_spec) =
   let v1 = identifier env v1 (* identifier *) in
@@ -1111,10 +1136,10 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
   let _v3 = token env v3 (* ")" *) in
   v2
 
-and element (env : env) (x : CST.element) : init =
+and literal_element (env : env) (x : CST.literal_element) : init =
   match x with
   | `Exp x -> InitExpr (expression env x)
-  | `Lit_value x -> InitBraces (literal_value env x)
+  | `Lit_value x -> InitBraces (map_literal_value env x)
 
 and var_spec (env : env) ((v1, v2, v3) : CST.var_spec) =
   let v1 = identifier env v1 (* identifier *) in
@@ -1258,26 +1283,32 @@ and communication_case (env : env) ((v1, v2, v3, v4) : CST.communication_case) =
   in
   (v2, stmt1 v3 v4)
 
-and literal_value (env : env) ((v1, v2, v3) : CST.literal_value) :
+and map_literal_value (env : env) ((v1, v2, v3) : CST.literal_value) :
     init list bracket =
-  let v1 = token env v1 (* "{" *) in
+  let v1 = (* "{" *) token env v1 in
   let v2 =
     match v2 with
-    | Some (v1, v2, v3) ->
-        let v1 = anon_choice_elem_c42cd9b env v1 in
-        let v2 =
-          Common.map
-            (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = anon_choice_elem_c42cd9b env v2 in
-              v2)
-            v2
+    | Some (v1, v2) ->
+        let v1 =
+          match v1 with
+          | Some (v1, v2) ->
+              let v1 = map_anon_choice_lit_elem_0952f3f env v1 in
+              let v2 =
+                Common.map
+                  (fun (v1, v2) ->
+                    let _v1 = (* "," *) token env v1 in
+                    let v2 = map_anon_choice_lit_elem_0952f3f env v2 in
+                    v2)
+                  v2
+              in
+              v1 :: v2
+          | None -> []
         in
-        let _v3 = trailing_comma env v3 in
-        v1 :: v2
+        let _v2 = trailing_comma env v2 in
+        v1
     | None -> []
   in
-  let v3 = token env v3 (* "}" *) in
+  let v3 = (* "}" *) token env v3 in
   (v1, v2, v3)
 
 let import_spec_list (env : env) ((v1, v2, v3) : CST.import_spec_list) =

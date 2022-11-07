@@ -14,6 +14,7 @@
     osemgrep_networking
     osemgrep_core
     osemgrep_configuring
+    osemgrep_reporting
   )
  (preprocess
    (pps

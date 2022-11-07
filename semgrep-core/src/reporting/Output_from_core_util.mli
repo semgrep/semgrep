@@ -1,5 +1,5 @@
 (*
-   Utilities for working with the types defined in Semgrep_output_v0.atd
+   Utilities for working with the types defined in Semgrep_output_v1.atd
 *)
 
 val position_of_token_location :

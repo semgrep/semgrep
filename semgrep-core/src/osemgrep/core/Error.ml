@@ -4,9 +4,11 @@
 
 module C = Output_from_core_t
 
-type level =
-  | Warn (* = 3; Always an error *)
-  | Error (* = 4; Only an error if "strict" is set *)
+(* TOPORT?
+ * Warn = 3; Only an error if "strict" is set
+ * Error = 4; Always an error
+ *)
+type level = Severity.basic_severity
 
 (*
    originally: class ErrorWithSpan(SemgrepError)
@@ -78,13 +80,13 @@ let semgrep_core_error ~code ~level x =
 let invalid_rule_schema_error details =
   {
     code = Exit_code.invalid_pattern;
-    level = Error;
+    level = `Error;
     kind = Invalid_rule_schema_error details;
   }
 
 let unknown_language_error details =
   {
     code = Exit_code.invalid_language;
-    level = Error;
+    level = `Error;
     kind = Unknown_language_error details;
   }

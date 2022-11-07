@@ -509,7 +509,7 @@ let check_fundef lang options taint_config opt_ent fdef =
       |> Common.map (fun (x : _ D.tmatch) -> (x.pm, x.spec))
       |> T.taints_of_pms
     in
-    Lval_env.add_var var taints env
+    Lval_env.add env (IL_helpers.lval_of_var var) taints
   in
   let in_env =
     (* For each argument, check if it's a source and, if so, add it to the input

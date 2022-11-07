@@ -26,7 +26,7 @@ from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
 from ruamel.yaml import YAML
 
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
 # Do not construct SourceFileHash directly, use `SpanBuilder().add_source`
@@ -50,7 +50,7 @@ class RuleSchema:
         if not cls._schema:
             yaml = YAML()
             schema_path = (
-                Path(__file__).parent / "semgrep_interfaces" / "rule_schema.yaml"
+                Path(__file__).parent / "semgrep_interfaces" / "rule_schema_v1.yaml"
             )
             with schema_path.open() as fd:
                 cls._schema = yaml.load(fd)

@@ -6,6 +6,6 @@ by the different semgrep components:
 We're using atdgen to specify the types of most of those interfaces.
 See https://github.com/ahrefs/atd for more information on atdgen.
 
-We're also using jsonschema for rule_schema.yaml (JSON schemas
+We're also using jsonschema for rule_schema_v1.yaml (JSON schemas
 can also be specified using a YAML syntax, and they can also
 be used to check the schema of YAML files).

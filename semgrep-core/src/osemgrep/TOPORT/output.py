@@ -1,30 +1,11 @@
-from collections import defaultdict
 from functools import reduce
 from boltons.iterutils import partition
-
 from semgrep.error import Level
-from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
 from semgrep.util import is_url
 from semgrep.util import terminal_wrap
 from semgrep.util import unit_str
 from semgrep.util import with_color
-
-FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
-    OutputFormat.EMACS: EmacsFormatter,
-    OutputFormat.GITLAB_SAST: GitlabSastFormatter,
-    OutputFormat.GITLAB_SECRETS: GitlabSecretsFormatter,
-    OutputFormat.JSON: JsonFormatter,
-    OutputFormat.JUNIT_XML: JunitXmlFormatter,
-    OutputFormat.SARIF: SarifFormatter,
-    OutputFormat.TEXT: TextFormatter,
-    OutputFormat.VIM: VimFormatter,
-}
-
-DEFAULT_SHOWN_SEVERITIES: Collection[RuleSeverity] = frozenset(
-    {RuleSeverity.INFO, RuleSeverity.WARNING, RuleSeverity.ERROR}
-)
-
 
 def get_path_str(target: Path) -> str:
     path_str = ""
@@ -133,7 +114,6 @@ class OutputHandler:
         self.profiling_data: ProfilingData = (
             ProfilingData()
         )  # (rule, target) -> duration
-        self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
 
         self.final_error: Optional[Exception] = None
@@ -206,13 +186,8 @@ class OutputHandler:
                 logger.error(error.format_for_terminal())
 
     def _final_raise(self, ex: Optional[Exception]) -> None:
-        if ex is None:
-            return
         if isinstance(ex, SemgrepError):
-            if ex.level == Level.ERROR:
-                raise ex
-            elif self.settings.strict:
-                raise ex
+            ...
         else:
             raise ex
 
@@ -245,7 +220,6 @@ class OutputHandler:
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         explanations: Optional[List[out.MatchingExplanation]] = None,
-        severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
     ) -> None:
         state = get_state()
@@ -271,8 +245,6 @@ class OutputHandler:
             self.profiling_data = profiling_data
         if explanations:
             self.explanations = explanations
-        if severities:
-            self.severities = severities
 
         final_error = None
         any_findings_not_ignored = any(not rm.is_ignored for rm in self.rule_matches)
@@ -365,12 +337,7 @@ class OutputHandler:
     def _build_output(
         self,
     ) -> str:
-        # CliOutputExtra members
-        cli_paths = out.CliPaths(
-            scanned=[str(path) for path in sorted(self.all_targets)],
-            _comment=None,
-            skipped=None,
-        )
+        cli_paths = out.CliPaths(...)
         cli_timing: Optional[out.CliTiming] = None
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
         # Extra, extra! This just in! 🗞️
@@ -401,6 +368,7 @@ class OutputHandler:
             cli_paths = dataclasses.replace(
                 cli_paths, _comment="<add --verbose for a list of skipped paths>"
             )
+
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
                 self.settings.output_destination is None and sys.stdout.isatty(),
@@ -422,5 +390,4 @@ class OutputHandler:
                 paths=cli_paths, time=cli_timing, explanations=explanations
             ),
             extra,
-            self.severities,
         )
