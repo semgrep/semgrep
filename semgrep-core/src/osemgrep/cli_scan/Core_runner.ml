@@ -157,6 +157,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    version_check = _;
    logging_level = _;
    strict = _;
+   severity = _;
    (* TOPORT: not handled yet *)
    autofix = _;
    dryrun = _;

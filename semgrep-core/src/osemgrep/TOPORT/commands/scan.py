@@ -203,19 +203,6 @@ def scan_options(func: Callable) -> Callable:
     """,
 )
 
-@optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup)
-
-@click.option(
-    "--severity",
-    multiple=True,
-    type=click.Choice(["INFO", "WARNING", "ERROR"]),
-    help="""
-        Report findings only from rules matching the supplied severity level. By
-        default all applicable rules are run. Can add multiple times. Each should
-        be one of INFO, WARNING, or ERROR.
-    """,
-    shell_complete=__get_severity_options,
-)
 
 @optgroup.group("Alternate modes", help="No search is performed in these modes")
 
@@ -276,7 +263,6 @@ def scan(
     output: Optional[str],
     replacement: Optional[str],
     sarif: bool,
-    severity: Optional[Tuple[str, ...]],
     test: bool,
     test_ignore_todo: bool,
     validate: bool,
@@ -406,7 +392,6 @@ def scan(
                     profiling_data,
                     _,
                     explanations,
-                    shown_severities,
                     _,
                 ) = semgrep.semgrep_main.main(
                     configs=(config or []),
@@ -429,7 +414,6 @@ def scan(
                 filtered_rules=filtered_rules,
                 profiling_data=profiling_data,
                 explanations=explanations,
-                severities=shown_severities,
                 print_summary=True,
             )
 

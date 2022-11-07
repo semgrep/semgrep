@@ -46,6 +46,7 @@ type conf = {
   respect_git_ignore : bool;
   rewrite_rule_ids : bool;
   scan_unknown_extensions : bool;
+  severity : Severity.rule_severity list;
   show_supported_languages : bool;
   strict : bool;
   target_roots : string list;
@@ -82,6 +83,7 @@ let default : conf =
     respect_git_ignore = true;
     rewrite_rule_ids = true;
     scan_unknown_extensions = false;
+    severity = [];
     show_supported_languages = false;
     strict = false;
     target_roots = [ "." ];
@@ -442,6 +444,17 @@ let o_show_supported_languages : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_severity : Severity.rule_severity list Term.t =
+  let info =
+    Arg.info [ "severity" ]
+      ~doc:
+        {|Report findings only from rules matching the supplied severity
+level. By default all applicable rules are run. Can add multiple times.
+Each should be one of INFO, WARNING, or ERROR.
+|}
+  in
+  Arg.value (Arg.opt_all Severity.converter [] info)
+
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Alternate modes" *)
 (* ------------------------------------------------------------------ *)
@@ -483,8 +496,9 @@ let cmdline_term : conf Term.t =
   let combine autofix baseline_commit config debug dryrun emacs exclude_rule_ids
       exclude include_ json lang max_memory_mb max_target_bytes metrics num_jobs
       optimizations pattern quiet respect_git_ignore rewrite_rule_ids
-      scan_unknown_extensions show_supported_languages strict target_roots
-      time_flag timeout timeout_threshold verbose version version_check vim =
+      scan_unknown_extensions severity show_supported_languages strict
+      target_roots time_flag timeout timeout_threshold verbose version
+      version_check vim =
     let output_format =
       match (json, emacs, vim) with
       | false, false, false -> default.output_format
@@ -523,6 +537,7 @@ let cmdline_term : conf Term.t =
       respect_git_ignore;
       rewrite_rule_ids;
       scan_unknown_extensions;
+      severity;
       show_supported_languages;
       strict;
       target_roots;
@@ -539,7 +554,7 @@ let cmdline_term : conf Term.t =
     $ o_dryrun $ o_emacs $ o_exclude_rule_ids $ o_exclude $ o_include $ o_json
     $ o_lang $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
     $ o_optimizations $ o_pattern $ o_quiet $ o_respect_git_ignore
-    $ o_rewrite_rule_ids $ o_scan_unknown_extensions
+    $ o_rewrite_rule_ids $ o_scan_unknown_extensions $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_time
     $ o_timeout $ o_timeout_threshold $ o_verbose $ o_version $ o_version_check
     $ o_vim)
