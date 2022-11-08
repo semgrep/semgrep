@@ -1,31 +1,5 @@
-from semgrep.error import Level
-from semgrep.types import JsonObject
 
-def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
-    if isinstance(err.error_type.value, core.PatternParseError):
-        yaml_path = err.error_type.value.value[::-1]
-        error_span = _core_location_to_error_span(err.location)
-        config_start = out.PositionBis(line=0, col=1)
-        config_end = out.PositionBis(
-            line=err.location.end.line - err.location.start.line,
-            col=err.location.end.col - err.location.start.col + 1,
-        )
-        spans = [
-            dataclasses.replace(
-                error_span,
-                config_start=config_start,
-                config_end=config_end,
-                config_path=yaml_path,
-            )
-        ]
-    ...
-    return SemgrepCoreError(code, level, spans, err)
-
-
-def core_matches_to_rule_matches(
-    rules: List[Rule], res: core.CoreMatchResults
-) -> Dict[Rule, List[RuleMatch]]:
-
+def xxx():
     def convert_to_rule_match(match: core.CoreMatch) -> RuleMatch:
         # this validation for fix_regex code was in autofix.py before
         # TODO: this validation should be done in rule.py when parsing the rule
