@@ -8,12 +8,12 @@ module H = Cmdliner_helpers
 (* Prelude *)
 (*****************************************************************************)
 (*
-   'semgrep scan' subcommand
+   'semgrep scan' command-line arguments processing.
 
-   Translated from scan.py
+   Translated partially from scan.py
+
+   TOPORT? all those shell_complete() click functions?
 *)
-
-(* TOPORT: all those shell_complete() click functions? *)
 
 (*****************************************************************************)
 (* Types and constants *)
@@ -30,8 +30,8 @@ type conf = {
   (* TOPORT: can have multiple calls to --config, so string list here *)
   config : string;
   dryrun : bool;
-  exclude_rule_ids : string list;
   exclude : string list;
+  exclude_rule_ids : string list;
   include_ : string list;
   (* LATER: use Xlang.t option; *)
   lang : string option;
@@ -57,25 +57,20 @@ type conf = {
   version_check : bool;
 }
 
-let get_cpu_count () : int =
-  (* Parmap subtracts 1 from the number of detected cores.
-     This comes with no guarantees. *)
-  max 1 (Parmap.get_default_ncores () + 1)
-
 let default : conf =
   {
     autofix = false;
     baseline_commit = None;
     config = "auto";
     dryrun = false;
-    exclude_rule_ids = [];
     exclude = [];
+    exclude_rule_ids = [];
     include_ = [];
     lang = None;
     max_memory_mb = 0;
-    max_target_bytes = Constants.default_max_target_size;
+    max_target_bytes = 1_000_000 (* 1 MB *);
     metrics = Metrics.State.Auto;
-    num_jobs = get_cpu_count ();
+    num_jobs = Parmap_helpers.get_cpu_count ();
     optimizations = true;
     output_format = Output_format.Text;
     pattern = None;
@@ -88,14 +83,14 @@ let default : conf =
     strict = false;
     target_roots = [ "." ];
     time_flag = false;
-    timeout = float_of_int Constants.default_timeout;
+    timeout = 30.0 (* seconds *);
     timeout_threshold = 3;
     version = false;
     version_check = true;
   }
 
 (*************************************************************************)
-(* Various utilities *)
+(* Helpers *)
 (*************************************************************************)
 
 let _validate_lang option lang_str =
@@ -104,7 +99,7 @@ let _validate_lang option lang_str =
   | Some lang -> lang
 
 (*************************************************************************)
-(* Command-line parsing: turn argv into conf *)
+(* Command-line flags *)
 (*************************************************************************)
 
 (* ------------------------------------------------------------------ *)
@@ -489,13 +484,13 @@ let o_target_roots : string list Term.t =
   Arg.value (Arg.pos_all Arg.string default.target_roots info)
 
 (*****************************************************************************)
-(* Subcommand 'scan' *)
+(* Turn argv into a conf *)
 (*****************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine autofix baseline_commit config debug dryrun emacs exclude_rule_ids
-      exclude include_ json lang max_memory_mb max_target_bytes metrics num_jobs
-      optimizations pattern quiet respect_git_ignore rewrite_rule_ids
+  let combine autofix baseline_commit config debug dryrun emacs exclude
+      exclude_rule_ids include_ json lang max_memory_mb max_target_bytes metrics
+      num_jobs optimizations pattern quiet respect_git_ignore rewrite_rule_ids
       scan_unknown_extensions severity show_supported_languages strict
       target_roots time_flag timeout timeout_threshold verbose version
       version_check vim =

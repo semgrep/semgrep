@@ -10,8 +10,8 @@ type conf = {
   baseline_commit : string option;
   config : string;
   dryrun : bool;
-  exclude_rule_ids : string list;
   exclude : string list;
+  exclude_rule_ids : string list;
   include_ : string list;
   lang : string option;
   logging_level : Logs.level option;

@@ -27,7 +27,7 @@ let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
         let* fix = result.Out.extra.fix in
         let start = result.Out.start.offset in
         let end_ = result.Out.end_.offset in
-        Some Textedit.{ path; start; end_; replacement_text = fix })
+        Some { Textedit.path; start; end_; replacement_text = fix })
       cli_output.results
   in
   Textedit.apply_edits ~dryrun:conf.dryrun edits

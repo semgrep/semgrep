@@ -15,9 +15,6 @@ let default_semgrep_config_name = "semgrep"
 let _default_config_file = spf ".%s.yml" default_semgrep_config_name
 let _default_config_folder = spf ".%s" default_semgrep_config_name
 let _default_semgrep_app_config_url = "api/agent/deployments/scans/config"
-
-(* LATER: move to Scan_CLI.default directly *)
-let default_timeout = 30 (* seconds *)
 let yml_extensions = [ ".yml"; ".yaml" ]
 let _yml_suffixes = Common.map (fun ext -> [ ext ]) yml_extensions
 let _yml_test_suffixes = Common.map (fun ext -> [ ".test"; ext ]) yml_extensions
@@ -36,6 +33,3 @@ let _break_line = String.make break_line_width break_line_char
 let _max_chars_flag_name = "--max-chars-per-line"
 let _default_max_chars_per_line = 160
 let _ellipsis_string = " ... "
-
-(* LATER: move to Scan_CLI.default directly *)
-let default_max_target_size = 1_000_000 (* 1 MB *)

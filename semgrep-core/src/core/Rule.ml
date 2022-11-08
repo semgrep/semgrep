@@ -75,7 +75,7 @@ type formula =
 
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
-and focus_mv_list = tok * MV.mvar list [@@deriving show]
+and focus_mv_list = tok * MV.mvar list
 
 (* The conjunction must contain at least
  * one positive "term" (unless it's inside a CondNestedFormula, in which
@@ -368,7 +368,7 @@ let opt_string_of_exn (exn : exn) =
   | ExceededMemoryLimit s ->
       (* TODO: what's the string s? *)
       Some (spf "exceeded memory limit: %s" s)
-  | _ -> None
+  | _else_ -> None
 
 (* to be called by the application's main() *)
 let register_exception_printer () = Printexc.register_printer opt_string_of_exn
