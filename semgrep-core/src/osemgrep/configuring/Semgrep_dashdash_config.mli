@@ -1,6 +1,8 @@
 type config_kind =
+  (* foo.yaml *)
   | File of Common.filename
-  | Dir of Common.dirname
+  (* myrules/ (but will not go recursively in subdirs of myrules) *)
+  | Dir of Common.filename
   | R of registry_kind
 
 and registry_kind =

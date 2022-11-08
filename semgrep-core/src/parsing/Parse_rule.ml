@@ -1365,7 +1365,7 @@ let parse_file ?error_recovery file =
   parse_generic_ast ?error_recovery file ast
 
 (*****************************************************************************)
-(* Entry point *)
+(* Main Entry point *)
 (*****************************************************************************)
 
 let parse file =
@@ -1374,3 +1374,25 @@ let parse file =
   xs
 
 let parse_and_filter_invalid_rules file = parse_file ~error_recovery:true file
+
+(*****************************************************************************)
+(* Valid rule filename checks *)
+(*****************************************************************************)
+(* Those functions could be in a separate file *)
+
+(* TODO? could define
+ * type yaml_kind = YamlRule | YamlTest | YamlFixed | YamlOther
+ *)
+let is_test_yaml_file filepath =
+  (* .test.yaml files are YAML target files rather than config files! *)
+  Filename.check_suffix filepath ".test.yaml"
+  || Filename.check_suffix filepath ".test.fixed.yaml"
+
+let is_valid_rule_filename filename =
+  match File_type.file_type_of_file filename with
+  | FT.Config FT.Yaml -> not (is_test_yaml_file filename)
+  (* old: we were allowing Jsonnet before, but better to skip
+   * them for now to avoid adding a jsonnet dependency in our docker/CI
+   * FT.Config (FT.Json FT.Jsonnet) when not unit_testing -> true
+   *)
+  | _else_ -> false

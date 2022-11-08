@@ -1,6 +1,5 @@
 from semgrep.app import auth
 from semgrep.constants import CLI_RULE_ID
-from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
@@ -38,12 +37,6 @@ DEFAULT_CONFIG = {
         },
     ],
 }
-
-class ConfigFile(NamedTuple):
-    config_id: Optional[str]  # None for remote files
-    contents: str
-    config_path: str
-
 
 class ConfigLoader:
     _origin = ConfigType.LOCAL
@@ -180,27 +173,6 @@ class ConfigLoader:
     def is_registry_url(self) -> bool:
         return self._origin == ConfigType.REGISTRY
 
-
-def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigFile:
-    """
-    Assumes file at loc exists
-    """
-    config_id = str(loc)
-    if base_path:
-        config_id = str(loc).replace(str(base_path), "")
-
-    return ConfigFile(config_id, loc.read_text(), str(loc))
-
-
-def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
-    configs = []
-    for l in loc.rglob("*"):
-        # Allow manually specified paths with ".", but don't auto-expand them
-        correct_suffix = is_config_suffix(l)
-        if not _is_hidden_config(l.relative_to(loc)) and correct_suffix:
-            if l.is_file():
-                configs.append(read_config_at_path(l, loc if relative else None))
-    return configs
 
 
 def parse_config_files(
@@ -588,18 +560,6 @@ def parse_config_string(
     return {config_id: data}
 
 
-def _is_hidden_config(loc: Path) -> bool:
-    """
-    Want to keep rules/.semgrep.yml but not path/.github/foo.yml
-    Also want to keep src/.semgrep/bad_pattern.yml but not ./.pre-commit-config.yaml
-    """
-    return any(
-        part != os.curdir
-        and part != os.pardir
-        and part.startswith(".")
-        and DEFAULT_SEMGREP_CONFIG_NAME not in part
-        for part in loc.parts
-    )
 
 
 def load_default_config() -> Dict[str, YamlTree]:

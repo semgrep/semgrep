@@ -1,33 +1,16 @@
-from io import TextIOWrapper
 from textwrap import dedent
 
-from semgrep.constants import Colors
-from semgrep.constants import FIXTEST_SUFFIX
-from semgrep.constants import YML_SUFFIXES
-from semgrep.constants import YML_TEST_SUFFIXES
-
 MAX_TEXT_WIDTH = 120
-
-def is_url(url: str) -> bool:
-    try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
-    except ValueError:
-        return False
-
 
 def is_rules(rules: str) -> bool:
     return rules[:6] == "rules:" or rules[:8] == '{"rules"'
 
-
 def path_has_permissions(path: Path, permissions: int) -> bool:
     return path.exists() and path.stat().st_mode & permissions == permissions
-
 
 def abort(message: str) -> None:
     click.secho(message, fg="red", err=True)
     sys.exit(2)
-
 
 def with_color(
     color: Colors,
@@ -96,37 +79,6 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[s
     return matches[0] + suffix if len(matches) > 0 else None
 
 
-# TODO: seems dead
-def listendswith(l: List[T], tail: List[T]) -> bool:
-    """
-    E.g.
-        - listendswith([1, 2, 3, 4], [3, 4]) -> True
-        - listendswith([1, 2, 3, 4], [1, 4]) -> False
-    """
-    if len(tail) > len(l):
-        return False
-
-    return all(l[len(l) - len(tail) + i] == tail[i] for i in range(len(tail)))
-
-
-def is_config_suffix(path: Path) -> bool:
-    return (
-        any(listendswith(path.suffixes, suffixes) for suffixes in YML_SUFFIXES)
-        and not is_config_test_suffix(path)
-        and not is_config_fixtest_suffix(path)
-    )
-
-
-def is_config_test_suffix(path: Path) -> bool:
-    return any(
-        listendswith(path.suffixes, suffixes) for suffixes in YML_TEST_SUFFIXES
-    ) and not is_config_fixtest_suffix(path)
-
-
-def is_config_fixtest_suffix(path: Path) -> bool:
-    return FIXTEST_SUFFIX in path.suffixes
-
-
 def final_suffix_matches(path: Path, path2: Path) -> bool:
     return (is_config_test_suffix(path) and is_config_test_suffix(path2)) or (
         path.suffixes[-1] == path2.suffixes[-1]
@@ -148,13 +100,7 @@ def truncate(file_name: str, col_lim: int) -> str:
         file_name = prefix + file_name[name_len - col_lim + len(prefix) :]
     return file_name
 
-
-def flatten(some_list: List[List[T]]) -> List[T]:
-    return functools.reduce(operator.iconcat, some_list, [])
-
-
 PathFilterCallable = Callable[..., FrozenSet[Path]]
-
 
 def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
     """
@@ -197,28 +143,3 @@ def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
                 """
             ).strip()
         )
-
-
-def get_lines(
-    path: Path,
-    start_line: int,
-    end_line: int,
-) -> List[str]:
-    """
-    Return lines in the given file.
-
-    Assumes file exists.
-    """
-    # Start and end line are one-indexed, but the subsequent slice call is
-    # inclusive for start and exclusive for end, so only subtract from start
-    start_line = start_line - 1
-
-    if start_line == -1 and end_line == 0:
-        # Completely empty file
-        return []
-
-    # buffering=1 turns on line-level reads
-    with path.open(buffering=1, errors="replace") as fd:
-        result = list(itertools.islice(fd, start_line, end_line))
-
-    return result

@@ -60,13 +60,6 @@ let single_xlang_from_rules file rules =
            (Xlang.show fst));
       fst
 
-(* returns true if the file should be excluded because it does not
- * contain a semgrep rule *)
-let exclude_yaml_file filepath =
-  (* .test.yaml files are YAML target files rather than config files! *)
-  Filename.check_suffix filepath ".test.yaml"
-  || Filename.check_suffix filepath ".test.fixed.yaml"
-
 let find_target_of_yaml_file file =
   try
     let d, b, ext = Common2.dbe_of_filename file in
@@ -101,15 +94,8 @@ let find_target_of_yaml_file file =
 
 let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
   let fullxs, _skipped_paths =
-    xs
-    |> File_type.files_of_dirs_or_files (function
-         | FT.Config FT.Yaml -> true
-         (* old: we were allowing Jsonnet before, but better to skip
-          * them for now to avoid adding a jsonnet dependency in our docker/CI
-          * FT.Config (FT.Json FT.Jsonnet) when not unit_testing -> true
-          *)
-         | _ -> false)
-    |> Common.exclude exclude_yaml_file
+    xs |> Common.files_of_dir_or_files_no_vcs_nofilter
+    |> List.filter Parse_rule.is_valid_rule_filename
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
 

@@ -1,7 +1,3 @@
-open Common
-
-let logger = Logging.get_logger [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -14,25 +10,54 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* python: was called ConfigFile, and called a 'config' in text output *)
+type rules_and_origin = {
+  path : Common.filename option; (* None for remote files *)
+  (* TODO? put a config_id: string option? or config prefix *)
+  rules : Rule.rules;
+  errors : Rule.invalid_rule_error list;
+}
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let load_rules_from_file file =
-  logger#debug "loading local config from %s" file;
-  Parse_rule.parse_and_filter_invalid_rules file
+let load_rules_from_file file : rules_and_origin =
+  Logs.debug (fun m -> m "loading local config from %s" file);
+  let rules, errors = Parse_rule.parse_and_filter_invalid_rules file in
+  { path = Some file; rules; errors }
 
-let rules_from_dashdash_config config_str =
-  (* TOPORT: resolve rule file URLs; for now we assume it's a file. *)
+let rules_from_dashdash_config (config_str : string) : rules_and_origin list =
   let kind = Semgrep_dashdash_config.config_kind_of_config_str config_str in
   match kind with
-  | File file -> load_rules_from_file file
+  | File file -> [ load_rules_from_file file ]
+  | Dir dir ->
+      List_files.list dir
+      (* TOPORT:
+         and not _is_hidden_config(l.relative_to(loc))
+         ...
+         def _is_hidden_config(loc: Path) -> bool:
+         """
+         Want to keep rules/.semgrep.yml but not path/.github/foo.yml
+         Also want to keep src/.semgrep/bad_pattern.yml but not ./.pre-commit-config.yaml
+         """
+         return any(
+           part != os.curdir
+           and part != os.pardir
+           and part.startswith(".")
+           and DEFAULT_SEMGREP_CONFIG_NAME not in part
+           for part in loc.parts
+         )
+      *)
+      |> List.filter Parse_rule.is_valid_rule_filename
+      |> Common.map load_rules_from_file
   | R rkind ->
       let url = Semgrep_dashdash_config.url_of_registry_kind rkind in
-      logger#debug "trying to download from %s" (Uri.to_string url);
+      Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
       let content = Network.get url in
       Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
-          load_rules_from_file file)
-  | _else_ ->
-      failwith
-        (spf "TODO: config not handled yet: %s"
-           (Semgrep_dashdash_config.show_config_kind kind))
+          let res = load_rules_from_file file in
+          [ { res with path = None } ])
