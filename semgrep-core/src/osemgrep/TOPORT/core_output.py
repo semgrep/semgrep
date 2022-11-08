@@ -48,18 +48,4 @@ def core_matches_to_rule_matches(
             fix_regex = out.FixRegex(regex=regex, replacement=replacement, count=count)
 
         return RuleMatch(...)
-
-    findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
-    seen_cli_unique_keys: Set[Tuple] = set()
-    for match in res.matches:
-        rule = rule_table[match.rule_id.value]
-        rule_match = convert_to_rule_match(match)
-        if rule_match.cli_unique_key in seen_cli_unique_keys:
-            continue
-        seen_cli_unique_keys.add(rule_match.cli_unique_key)
-        findings[rule].add(rule_match)
-
-    # Sort results so as to guarantee the same results across different
-    # runs. Results may arrive in a different order due to parallelism
-    # (-j option).
-    return {rule: sorted(matches) for rule, matches in findings.items()}
+    ...

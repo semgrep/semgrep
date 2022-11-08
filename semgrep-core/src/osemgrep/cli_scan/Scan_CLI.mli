@@ -8,7 +8,7 @@
 type conf = {
   autofix : bool;
   baseline_commit : string option;
-  config : string;
+  config : string list;
   dryrun : bool;
   exclude : string list;
   exclude_rule_ids : string list;

@@ -155,14 +155,19 @@ let error_spans ~(error_type : Out.core_error_kind) =
   | PartialParsing locs -> Some (locs |> Common.map core_location_to_error_span)
   | _else_ -> None
 
+(* TODO: probably want to use Config_resolver.rules_and_origin to
+ * get the prefix
+ *)
 let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
   (* TODO: what if it's a registry rule?
    * call Semgrep_dashdash_config.config_kind_of_config_str
    *)
-  let path = conf.config in
-  (*  need to prefix with the dotted path of the config file *)
-  let dir = Filename.dirname path in
-  Str.global_replace (Str.regexp "/") "." dir ^ "."
+  match conf.config with
+  | [] -> ""
+  | path :: _TODO ->
+      (*  need to prefix with the dotted path of the config file *)
+      let dir = Filename.dirname path in
+      Str.global_replace (Str.regexp "/") "." dir ^ "."
 
 (*****************************************************************************)
 (* Core error to cli error *)
@@ -351,6 +356,23 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
           };
       }
 
+(*
+ # Sort results so as to guarantee the same results across different
+ # runs. Results may arrive in a different order due to parallelism
+ # (-j option).
+ TOPORT: return {rule: sorted(matches) for rule, matches in findings.items()}
+*)
+let dedup_and_sort (xs : Out.cli_match list) : Out.cli_match list =
+  let seen = Hashtbl.create 101 in
+  xs
+  |> List.filter (fun x ->
+         if Hashtbl.mem seen x then false
+         else
+           (* TOPORT: use rule_match.cli_unique_key to dedup (not the whole x) *)
+           let key = x in
+           Hashtbl.replace seen key true;
+           true)
+
 (*****************************************************************************)
 (* Skipped target *)
 (*****************************************************************************)
@@ -435,7 +457,8 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
         (* Skipping the python intermediate RuleMatchMap for now.
          * TODO: handle the rule_match.cli_unique_key to dedup matches
          *)
-        results = matches |> Common.map (cli_match_of_core_match env);
+        results =
+          matches |> Common.map (cli_match_of_core_match env) |> dedup_and_sort;
         errors = errors |> Common.map cli_error_of_core_error;
         paths;
         (* LATER *)

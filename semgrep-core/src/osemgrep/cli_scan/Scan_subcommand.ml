@@ -101,7 +101,8 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
        * have a default config.
        *)
       let rules_and_origins =
-        Config_resolver.rules_from_dashdash_config conf.config
+        conf.config
+        |> List.concat_map Config_resolver.rules_from_dashdash_config
       in
       (* TODO: rewrite rule_id using x.Config_resolver.path origin? *)
       let (rules : Rule.rules) =
