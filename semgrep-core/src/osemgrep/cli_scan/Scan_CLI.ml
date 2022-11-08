@@ -27,8 +27,7 @@ module H = Cmdliner_helpers
 type conf = {
   autofix : bool;
   baseline_commit : string option;
-  (* TOPORT: can have multiple calls to --config, so string list here *)
-  config : string;
+  config : string list;
   dryrun : bool;
   exclude : string list;
   exclude_rule_ids : string list;
@@ -61,7 +60,7 @@ let default : conf =
   {
     autofix = false;
     baseline_commit = None;
-    config = "auto";
+    config = [ "auto" ];
     dryrun = false;
     exclude = [];
     exclude_rule_ids = [];
@@ -380,8 +379,7 @@ let o_vim : bool Term.t =
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Configuration options" *)
 (* ------------------------------------------------------------------ *)
-(* TOPORT: multiple = true *)
-let o_config : string Term.t =
+let o_config : string list Term.t =
   let info =
     Arg.info [ "c"; "f"; "config" ]
       ~env:(Cmd.Env.info "SEMGREP_RULES")
@@ -400,7 +398,7 @@ See https://semgrep.dev/docs/writing-rules/rule-syntax for information on
 configuration file format.
 |}
   in
-  Arg.value (Arg.opt Arg.string default.config info)
+  Arg.value (Arg.opt_all Arg.string default.config info)
 
 let o_pattern : string option Term.t =
   let info =

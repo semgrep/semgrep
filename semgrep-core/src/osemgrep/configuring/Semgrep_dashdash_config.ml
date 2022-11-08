@@ -19,9 +19,9 @@ open Common
 (*****************************************************************************)
 
 type config_kind =
-  (* foo.yaml *)
+  (* ex: 'foo.yaml' *)
   | File of Common.filename
-  (* myrules/ (but will not go recursively in subdirs of myrules) *)
+  (* ex: 'myrules/' (will go also recursively in subdirs of myrules) *)
   | Dir of Common.filename
   | R of registry_kind
 
@@ -32,7 +32,7 @@ and registry_kind =
   | Pack of string
   (* s/... *)
   | Snippet of string
-  (* pad:basic *)
+  (* ex: 'pad:basic' *)
   | SavedSnippet of string (* username *) * string (* snippetname *)
 [@@deriving show]
 
