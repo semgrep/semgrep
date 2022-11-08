@@ -833,7 +833,7 @@ and class_parameter (env : env) (x : CST.class_parameter) : G.parameter =
       let tk = token env v1 in
       ParamEllipsis tk
 
-and class_parameters (env : env) ((v1, v2, _v3, v4) : CST.class_parameters) :
+and class_parameters (env : env) ((v1, v2, v3, v4) : CST.class_parameters) :
     parameters =
   let _v1 = token env v1 (* "(" *) in
   let v2 =
@@ -851,7 +851,12 @@ and class_parameters (env : env) ((v1, v2, _v3, v4) : CST.class_parameters) :
         v1 :: v2
     | None -> []
   in
-  let _v3 = () (* , *) in
+  let _v3 =
+    match v3 with
+    | None -> None
+    | Some v3 -> Some (token env v3)
+    (* , *)
+  in
   let _v4 = token env v4 (* ")" *) in
   v2
 
@@ -1180,7 +1185,7 @@ and function_body (env : env) (x : CST.function_body) : G.function_body =
 and function_literal (env : env) (x : CST.function_literal) =
   match x with
   | `Lambda_lit x -> lambda_literal env x
-  | `Anon_func (v1, v2, v3, _v4, v5) ->
+  | `Anon_func (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "fun" *) in
       let _v2TODO =
         match v2 with
@@ -1199,7 +1204,11 @@ and function_literal (env : env) (x : CST.function_literal) =
         | None -> []
       in
       let v3 = function_value_parameters env v3 (* "(" *) in
-      let v4TODO = None in
+      let v4 =
+        match v4 with
+        | None -> None
+        | Some (_, ty) -> Some (type_ env ty)
+      in
       let v5 =
         match v5 with
         | Some x -> function_body env x
@@ -1207,7 +1216,7 @@ and function_literal (env : env) (x : CST.function_literal) =
       in
       let kind = (Function, v1) in
       let func_def =
-        { fkind = kind; fparams = v3; frettype = v4TODO; fbody = v5 }
+        { fkind = kind; fparams = v3; frettype = v4; fbody = v5 }
       in
       Lambda func_def |> G.e
 
