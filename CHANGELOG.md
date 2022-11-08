@@ -8,6 +8,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.121.1](https://github.com/returntocorp/semgrep/releases/tag/v0.121.1) - 2022-11-08
+
+No significant changes.
+
 ## [0.121.0](https://github.com/returntocorp/semgrep/releases/tag/v0.121.0) - 2022-11-07
 
 ### Changed
