@@ -84,6 +84,25 @@ let contents_of_file (range : Out.position * Out.position) (file : filename) :
 (* Helpers *)
 (*****************************************************************************)
 
+(* TODO: probably want to use Config_resolver.rules_and_origin to
+ * get the prefix
+ *)
+let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
+  (* TODO: what if it's a registry rule?
+   * call Semgrep_dashdash_config.config_kind_of_config_str
+   *)
+  match conf.config with
+  | [] -> ""
+  | path :: _TODO ->
+      (*  need to prefix with the dotted path of the config file *)
+      let dir = Filename.dirname path in
+      Str.global_replace (Str.regexp "/") "." dir ^ "."
+
+(*****************************************************************************)
+(* Core error to cli error *)
+(*****************************************************************************)
+(* LATER: we should get rid of those intermediate Out.core_xxx *)
+
 let core_location_to_error_span (loc : Out.location) : Out.error_span =
   {
     file = loc.path;
@@ -154,25 +173,6 @@ let error_spans ~(error_type : Out.core_error_kind) =
   | PatternParseError _ -> failwith "TODO: Span of PatternParseError"
   | PartialParsing locs -> Some (locs |> Common.map core_location_to_error_span)
   | _else_ -> None
-
-(* TODO: probably want to use Config_resolver.rules_and_origin to
- * get the prefix
- *)
-let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
-  (* TODO: what if it's a registry rule?
-   * call Semgrep_dashdash_config.config_kind_of_config_str
-   *)
-  match conf.config with
-  | [] -> ""
-  | path :: _TODO ->
-      (*  need to prefix with the dotted path of the config file *)
-      let dir = Filename.dirname path in
-      Str.global_replace (Str.regexp "/") "." dir ^ "."
-
-(*****************************************************************************)
-(* Core error to cli error *)
-(*****************************************************************************)
-(* LATER: we should get rid of those intermediate Out.core_xxx *)
 
 (* # TODO benchmarking code relies on error code value right now
    * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes

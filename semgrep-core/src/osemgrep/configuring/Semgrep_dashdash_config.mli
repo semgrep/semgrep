@@ -3,6 +3,8 @@ type config_kind =
   | File of Common.filename
   (* ex: 'myrules/' (will go also recursively in subdirs of myrules) *)
   | Dir of Common.filename
+  (* ex: 'https://raw.githubusercontent.com/r2c/semgrep-rules/template.yaml' *)
+  | URL of Uri.t
   | R of registry_kind
 
 and registry_kind =
