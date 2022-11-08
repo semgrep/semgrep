@@ -209,68 +209,84 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    Take in rules and targets and return object with findings.
 *)
 let invoke_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
-    (all_targets : path list) : result =
+    (rule_errors : Rule.invalid_rule_error list) (all_targets : path list) :
+    result =
   let config : Runner_config.t = runner_config_of_conf conf in
 
-  (* TOADAPT
-     (* this used to be in Core_CLI.ml but we get a config object
-      * later in osemgrep
-      * TODO: Just pass directly a Runner_config.t to invoke_semgrep_core
-      * so can build and adjust the config in the caller
+  match rule_errors with
+  (* with semgrep-python, semgrep-core is passed all the rules unparsed,
+   * and as soon as semgrep-core detects an error in a rule, it raises
+   * InvalidRule which is caught and translated to JSON before exiting.
+   * Here we emulate the same behavior, even though the rules
+   * were parsed in the caller already.
+   *)
+  | err :: _ ->
+      (* like in Run_semgrep.sanity_check_rules_and_invalid_rules *)
+      let exn = Rule.InvalidRule err in
+      (* like in Run_semgrep.semgrep_with_raw_results_and_exn_handler *)
+      let e = Exception.catch exn in
+      let err = Semgrep_error_code.exn_to_error "" e in
+      (* like in semgrep_with_rules_and_formatted_output *)
+      let error = JSON_report.error_to_error err in
+      let core =
+        {
+          Out.matches = [];
+          errors = [ error ];
+          skipped_targets = None;
+          skipped_rules = None;
+          explanations = None;
+          time = None;
+          stats = { okfiles = 0; errorfiles = 0 };
+        }
+      in
+      { core; hrules = Rule.hrules_of_rules all_rules; scanned = Set_.empty }
+  | [] ->
+      (* TODO: we should not need to use Common.map below, because
+       * Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
+       * a list of targets with different languages! We just
+       * need to pass the right target object (and not a lang_job)
+       * TODO: Martin said the issue was that Run_semgrep.targets_of_config
+       * requires the xlang object to contain a single language.
+       *)
+      let lang_jobs = split_jobs_by_language all_rules all_targets in
+      let results_by_language =
+        lang_jobs
+        |> Common.map (fun lang_job ->
+               let _exn_optTODO, report, files =
+                 (* !!!!Finally! this is where we branch to semgrep-core!!! *)
+                 Run_semgrep.semgrep_with_prepared_rules_and_targets config
+                   lang_job
+               in
+               (report, Set_.of_list files))
+      in
+      let res, scanned = merge_results results_by_language in
+      (* TODO: should get this from Run_semgrep *)
+      let _exnTODO = None in
+      (* similar to Run_semgrep.semgrep_with_rules_and_formatted_output *)
+      (* LATER: we want to avoid this intermediate data structure but
+       * for now that's what semgrep-python used to get so simpler to
+       * return it.
+       *)
+      let match_results =
+        JSON_report.match_results_of_matches_and_errors
+          (Some Autofix.render_fix) (Set_.cardinal scanned) res
+      in
+
+      (* TOPORT? or move in semgrep-core so get info ASAP
+         if match_results.skipped_targets:
+             for skip in match_results.skipped_targets:
+                 if skip.rule_id:
+                     rule_info = f"rule {skip.rule_id}"
+                 else:
+                     rule_info = "all rules"
+                 logger.verbose(
+                     f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
+                 )
       *)
-     let config =
-       if config.profile then (
-         logger#info "Profile mode On";
-         logger#info "disabling -j when in profiling mode";
-         { config with ncores = 1 })
-       else config
-     in
-  *)
-  (* TODO: we should not need to use Common.map below, because
-   * Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
-   * a list of targets with different languages! We just
-   * need to pass the right target object (and not a lang_job)
-   * TODO: Martin said the issue was that Run_semgrep.targets_of_config
-   * requires the xlang object to contain a single language.
-   *)
-  let lang_jobs = split_jobs_by_language all_rules all_targets in
-  let results_by_language =
-    lang_jobs
-    |> Common.map (fun lang_job ->
-           let _exn_optTODO, report, files =
-             (* !!!!Finally! this is where we branch to semgrep-core!!! *)
-             Run_semgrep.semgrep_with_prepared_rules_and_targets config lang_job
-           in
-           (report, Set_.of_list files))
-  in
-  let res, scanned = merge_results results_by_language in
-  (* TODO: should get this from Run_semgrep *)
-  let _exnTODO = None in
-  (* similar to Run_semgrep.semgrep_with_rules_and_formatted_output *)
-  (* LATER: we want to avoid this intermediate data structure but
-   * for now that's what semgrep-python used to get so simpler to
-   * return it.
-   *)
-  let match_results =
-    JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
-      (Set_.cardinal scanned) res
-  in
 
-  (* TOPORT? or move in semgrep-core so get info ASAP
-     if match_results.skipped_targets:
-         for skip in match_results.skipped_targets:
-             if skip.rule_id:
-                 rule_info = f"rule {skip.rule_id}"
-             else:
-                 rule_info = "all rules"
-             logger.verbose(
-                 f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
-             )
-  *)
-
-  (* TOADAPT:
-      match exn with
-      | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
-      | None -> ())
-  *)
-  { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }
+      (* TOADAPT:
+          match exn with
+          | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
+          | None -> ())
+      *)
+      { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }

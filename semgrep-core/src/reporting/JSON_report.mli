@@ -19,5 +19,8 @@ val match_results_of_matches_and_errors :
  *)
 val metavar_string_of_any : AST_generic.any -> string
 
+(* now used also in osemgrep *)
+val error_to_error : Semgrep_error_code.error -> Output_from_core_t.core_error
+
 (* internal *)
 val match_to_error : Pattern_match.t -> unit

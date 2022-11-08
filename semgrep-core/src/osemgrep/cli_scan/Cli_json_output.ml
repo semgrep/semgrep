@@ -168,9 +168,27 @@ let error_message ~rule_id ~(location : Out.location)
   spf "%s %s:\n %s" (error_type_string error_type) error_context core_message
 
 (* #spans are used only for PatternParseError *)
-let error_spans ~(error_type : Out.core_error_kind) =
+let error_spans ~(error_type : Out.core_error_kind) ~(location : Out.location) =
   match error_type with
-  | PatternParseError _ -> failwith "TODO: Span of PatternParseError"
+  | PatternParseError _yaml_pathTODO ->
+      (* TOPORT
+         yaml_path = err.error_type.value.value[::-1]
+         config_start = out.PositionBis(line=0, col=1)
+         config_end = out.PositionBis(
+             line=err.location.end.line - err.location.start.line,
+             col=err.location.end.col - err.location.start.col + 1,
+         )
+         spans = [
+             dataclasses.replace(
+                 ...
+                 config_start=config_start,
+                 config_end=config_end,
+                 config_path=yaml_path,
+             )
+         ]
+      *)
+      let span = core_location_to_error_span location in
+      Some [ span ]
   | PartialParsing locs -> Some (locs |> Common.map core_location_to_error_span)
   | _else_ -> None
 
@@ -221,7 +239,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
       let message =
         Some (error_message ~rule_id ~error_type ~location ~core_message)
       in
-      let spans = error_spans ~error_type in
+      let spans = error_spans ~error_type ~location in
       {
         (* LATER? seems to be either 2 (fatal) or 3 (invalid_code), so maybe
          * better to change the ATD spec and use a variant for cli_error.code

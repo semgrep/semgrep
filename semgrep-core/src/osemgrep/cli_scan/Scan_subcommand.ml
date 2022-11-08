@@ -27,25 +27,33 @@ let setup_logging (conf : Scan_CLI.conf) =
   Logs.debug (fun m -> m "Logging setup for semgrep scan");
   Logs.debug (fun m ->
       m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "));
-
-  let config = Core_runner.runner_config_of_conf conf in
-  Logs.debug (fun m -> m "Version: %s" config.version);
+  Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
 
   (* Easy_logging setup. We should avoid to use Logger in osemgrep/
    * and use Logs instead, but it is still useful to get the semgrep-core
    * logging information at runtime, hence this call.
    *)
+  let config = Core_runner.runner_config_of_conf conf in
   Setup_logging.setup config;
   ()
 
 (* TODO *)
-let setup_profiling _conf =
+let setup_profiling conf =
   (* TOADAPT
-     if config.debug then Report.mode := MDebug
-     else if config.report_time then Report.mode := MTime
-     else Report.mode := MNo_info;
+      if config.debug then Report.mode := MDebug
+      else if config.report_time then Report.mode := MTime
+      else Report.mode := MNo_info;
+     ...
+
+     let config =
+        if config.profile then (
+          logger#info "Profile mode On";
+          logger#info "disabling -j when in profiling mode";
+          { config with ncores = 1 })
+        else config
+      in
   *)
-  ()
+  conf
 
 (*****************************************************************************)
 (* Error management *)
@@ -76,9 +84,11 @@ let exit_code_of_errors (conf : Scan_CLI.conf)
    exit code. *)
 let run (conf : Scan_CLI.conf) : Exit_code.t =
   setup_logging conf;
-  setup_profiling conf;
+  (* could adjust conf.num_jobs (-j) *)
+  let conf = setup_profiling conf in
 
   match () with
+  (* "alternate modes" where no search is performaced *)
   | _ when conf.version ->
       Logs.app (fun m -> m "%s" Version.version);
       (* TOPORT:
@@ -97,8 +107,6 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* TODO: in theory we should have an intermediate module that
        * handle the -e/--lang, or --config, but for now we care
        * only about --config.
-       * TODO: in theory we can also pass multiple --config and
-       * have a default config.
        *)
       let rules_and_origins =
         conf.config
@@ -108,7 +116,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       let (rules : Rule.rules) =
         rules_and_origins |> List.concat_map (fun x -> x.Config_resolver.rules)
       in
-      let (_errorsTODO : Rule.invalid_rule_error list) =
+      let (errors : Rule.invalid_rule_error list) =
         rules_and_origins |> List.concat_map (fun x -> x.Config_resolver.errors)
       in
 
@@ -134,9 +142,9 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
       in
       let (res : Core_runner.result) =
-        Core_runner.invoke_semgrep_core conf filtered_rules targets
+        Core_runner.invoke_semgrep_core conf filtered_rules errors targets
       in
-      (* outputting the result! in JSON or Text or whatever depending on conf *)
+      (* outputting the result! in JSON/Text/... depending on conf *)
       Output.output_result conf res;
       (* final result for the shell *)
       exit_code_of_errors conf res.core.errors
@@ -147,7 +155,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
 
 let main (argv : string array) : Exit_code.t =
   let res = Scan_CLI.parse_argv argv in
-  (* LATER: this error handling could be factorized probably
+  (* LATER: this error handling could be factorized
    * between the different subcommands at some point
    *)
   match res with
