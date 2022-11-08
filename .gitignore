@@ -180,7 +180,8 @@ act/
 *.code-workspace
 .vscode
 
-# Ignore .history and be doomed to repeat it
+# .history is here twice because if you ignore history you are doomed to repeat it
+/.history/
 /.history/
 
 # Artifacts from CI
