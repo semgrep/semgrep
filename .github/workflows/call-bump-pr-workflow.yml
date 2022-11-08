@@ -4,6 +4,16 @@
 name: call-bump-pr-workflow
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: The version of semgrep to bump to
+      repository:
+        required: true
+        type: string
+        description: Which repo to call the `bump_version.yaml` workflow in
   workflow_call:
     inputs:
       version:
@@ -42,4 +52,4 @@ jobs:
           REPOSITORY: "${{ inputs.repository }}"
         run: |
           # Initiate run of workflow (non-blocking)
-          gh workflow run bump_version.yaml --repo "${REPOSITORY}" --raw-field version="${NEW_SEMGREP_VERSION}"
+          gh workflow run bump_version.yml --repo "${REPOSITORY}" --raw-field version="${NEW_SEMGREP_VERSION}"
