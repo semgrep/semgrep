@@ -14,7 +14,12 @@ type result = {
   scanned : path Set_.t;
 }
 
-val invoke_semgrep_core : Scan_CLI.conf -> Rule.rules -> path list -> result
+val invoke_semgrep_core :
+  Scan_CLI.conf ->
+  Rule.rules ->
+  Rule.invalid_rule_error list ->
+  path list ->
+  result
 
 (* Helper used in Semgrep_scan.ml *)
 val runner_config_of_conf : Scan_CLI.conf -> Runner_config.t

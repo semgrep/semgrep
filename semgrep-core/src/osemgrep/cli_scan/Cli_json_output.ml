@@ -170,7 +170,9 @@ let error_message ~rule_id ~(location : Out.location)
 (* #spans are used only for PatternParseError *)
 let error_spans ~(error_type : Out.core_error_kind) =
   match error_type with
-  | PatternParseError _ -> failwith "TODO: Span of PatternParseError"
+  | PatternParseError _ ->
+      pr2 "TODO: Span of PatternParseError";
+      None
   | PartialParsing locs -> Some (locs |> Common.map core_location_to_error_span)
   | _else_ -> None
 
