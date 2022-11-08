@@ -618,32 +618,47 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
     | _ -> error_at_key env key ("Expected a list for " ^ fst key)
   in
   let get_pattern str_e = parse_xpattern_expr env str_e in
-  let get_nested_formula i x =
-    let env = { env with path = string_of_int i :: env.path } in
-    match x.G.e with
-    | G.Container
-        ( Dict,
-          ( _,
-            [
-              {
-                e =
-                  Container (Tuple, (_, [ { e = L (String key); _ }; value ], _));
-                _;
-              };
-            ],
-            _ ) ) ->
+  (* We use this for lists (patterns and pattern-either) as well as things which
+     can be both base patterns and pairs.
+     The former does not allow base patterns to appear, so we add an `allow_string`
+     parameter.
+  *)
+  let get_formula ?(allow_string = false) env x =
+    match (parse_str_or_dict env x, x.G.e) with
+    | Left (value, t), _ when allow_string ->
+        R.P (parse_xpattern env.languages (value, t))
+    | Left _, _ -> error_at_expr env x "Expected dictionary, not a string!"
+    | ( _,
+        G.Container
+          ( Dict,
+            ( _,
+              [
+                {
+                  e =
+                    Container
+                      (Tuple, (_, [ { e = L (String key); _ }; value ], _));
+                  _;
+                };
+              ],
+              _ ) ) ) ->
         parse_pair_old env (key, value)
     | _ -> error_at_expr env x "Wrong parse_formula fields"
+  in
+  let get_nested_formula_in_list env i x =
+    let env = { env with path = string_of_int i :: env.path } in
+    get_formula env x
   in
   let s, t = key in
   match s with
   | "pattern" -> R.P (get_pattern value)
-  | "pattern-not" -> R.Not (t, R.P (get_pattern value))
-  | "pattern-inside" -> R.Inside (t, R.P (get_pattern value))
-  | "pattern-not-inside" -> R.Not (t, R.Inside (t, R.P (get_pattern value)))
-  | "pattern-either" -> R.Or (t, parse_listi env key get_nested_formula value)
+  | "pattern-not" -> R.Not (t, get_formula ~allow_string:true env value)
+  | "pattern-inside" -> R.Inside (t, get_formula ~allow_string:true env value)
+  | "pattern-not-inside" ->
+      R.Not (t, R.Inside (t, get_formula ~allow_string:true env value))
+  | "pattern-either" ->
+      R.Or (t, parse_listi env key (get_nested_formula_in_list env) value)
   | "patterns" ->
-      let parse_pattern _i expr =
+      let parse_pattern i expr =
         match parse_str_or_dict env expr with
         | Left (_s, _t) -> failwith "use patterns:"
         | Right dict -> (
@@ -668,7 +683,8 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
                 find "metavariable-pattern",
                 find "metavariable-comparison" )
             with
-            | None, None, None, None, None -> Left3 (get_nested_formula 0 expr)
+            | None, None, None, None, None ->
+                Left3 (get_nested_formula_in_list env i expr)
             | Some (((_, t) as key), value), None, None, None, None ->
                 Middle3 (t, parse_focus_mvs env key value)
             | None, Some (key, value), None, None, None

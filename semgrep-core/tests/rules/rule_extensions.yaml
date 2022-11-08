@@ -1,0 +1,12 @@
+rules:
+- id: rule-extensions 
+  patterns:
+  - pattern-not: 
+      pattern: "A"
+  - pattern-inside:
+      pattern: "B"
+  - pattern-not-inside:
+      pattern: "C"
+  message: This rule is just meant to illustrate that we can parse "extensions" to old-grammar rules. 
+  severity: WARNING
+  languages: [python]
