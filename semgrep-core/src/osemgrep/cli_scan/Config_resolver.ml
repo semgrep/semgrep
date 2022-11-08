@@ -30,6 +30,13 @@ let load_rules_from_file file : rules_and_origin =
   let rules, errors = Parse_rule.parse_and_filter_invalid_rules file in
   { path = Some file; rules; errors }
 
+let load_rules_from_url url : rules_and_origin =
+  Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
+  let content = Network.get url in
+  Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+      let res = load_rules_from_file file in
+      { res with path = None })
+
 let rules_from_dashdash_config (config_str : string) : rules_and_origin list =
   let kind = Semgrep_dashdash_config.config_kind_of_config_str config_str in
   match kind with
@@ -54,10 +61,7 @@ let rules_from_dashdash_config (config_str : string) : rules_and_origin list =
       *)
       |> List.filter Parse_rule.is_valid_rule_filename
       |> Common.map load_rules_from_file
+  | URL url -> [ load_rules_from_url url ]
   | R rkind ->
       let url = Semgrep_dashdash_config.url_of_registry_kind rkind in
-      Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
-      let content = Network.get url in
-      Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
-          let res = load_rules_from_file file in
-          [ { res with path = None } ])
+      [ load_rules_from_url url ]

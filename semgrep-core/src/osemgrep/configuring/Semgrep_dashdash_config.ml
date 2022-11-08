@@ -23,6 +23,8 @@ type config_kind =
   | File of Common.filename
   (* ex: 'myrules/' (will go also recursively in subdirs of myrules) *)
   | Dir of Common.filename
+  (* ex: 'https://raw.githubusercontent.com/r2c/semgrep-rules/template.yaml' *)
+  | URL of Uri.t
   | R of registry_kind
 
 and registry_kind =
@@ -44,6 +46,7 @@ let config_kind_of_config_str config_str =
   | s when s =~ "^r/\\(.*\\)" -> R (Registry (Common.matched1 s))
   | s when s =~ "^p/\\(.*\\)" -> R (Pack (Common.matched1 s))
   | s when s =~ "^s/\\(.*\\)" -> R (Snippet (Common.matched1 s))
+  | s when s =~ "^http[s]?://" -> URL (Uri.of_string s)
   | s when s =~ "^\\(.*\\):\\(.*\\)" ->
       let user, snippet = Common.matched2 s in
       R (SavedSnippet (user, snippet))
