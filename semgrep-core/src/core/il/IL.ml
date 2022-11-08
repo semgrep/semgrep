@@ -247,9 +247,9 @@ and composite_kind =
   | CDict (* could be merged with Record *)
   | Constructor of name (* OCaml *)
   | Regexp
-[@@deriving show { with_path = false }]
 
-and 'a argument = Unnamed of 'a | Named of ident * 'a [@@deriving show]
+and 'a argument = Unnamed of 'a | Named of ident * 'a
+[@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Instruction *)
