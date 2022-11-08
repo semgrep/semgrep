@@ -1,4 +1,0 @@
-taint-mode: Semgrep can now track taint through l-values of the form `this.x`.
-It will also be more precise when tracking taint on l-values involving an
-array access, previously if `x.a[i]` was tainted, then `x` itself was tainted;
-now only `x.a` will be considered tainted.

@@ -1,1 +1,0 @@
-Terraform: Can now analyze constant-propagated values of variables with `metavariable-comparison` and friends
