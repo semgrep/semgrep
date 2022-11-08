@@ -500,10 +500,16 @@ jobs:
           python-version: "3.9.x"
       - name: Brew update
         run: brew update
+      # pipgrip tries to install python@3.11, and that has linking issues unless --overwrite is passed.
+      # we may be able to remove the python setup above.
+      - name: Brew install python@3.11
+        run: brew install --overwrite python@3.11
+      - name: Install pipgrip
+        run: brew install --overwrite pipgrip
       - name: Open Brew PR on homebrew/homebrew-core
         env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_PR_TOKEN }}
         run: |
           brew bump-formula-pr --force --no-audit --no-browse \
             --message="Bump semgrep to version ${{ needs.create_release.outputs.VERSION }}" \
-            --fork-org=returntocorp --tag="v${{ needs.create_release.outputs.VERSION }}" semgrep
+            --fork-org=returntocorp --tag="${{ needs.create_release.outputs.VERSION }}" semgrep
