@@ -386,7 +386,10 @@ let rec is_symbolic_expr expr =
   | G.L _ -> true
   | G.N _ -> true
   | G.IdSpecial _ -> true
-  | G.DotAccess (e, _, FN _) -> is_symbolic_expr e
+  | G.ParenExpr (_, e, _)
+  | G.Cast (_, _, e)
+  | G.DotAccess (e, _, FN _) ->
+      is_symbolic_expr e
   | G.ArrayAccess (e1, (_, e2, _)) -> is_symbolic_expr e1 && is_symbolic_expr e2
   | G.Call (e, (_, args, _)) ->
       is_symbolic_expr e && List.for_all is_symbolic_arg args
