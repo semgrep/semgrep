@@ -15,10 +15,6 @@ let default_semgrep_config_name = "semgrep"
 let _default_config_file = spf ".%s.yml" default_semgrep_config_name
 let _default_config_folder = spf ".%s" default_semgrep_config_name
 let _default_semgrep_app_config_url = "api/agent/deployments/scans/config"
-let yml_extensions = [ ".yml"; ".yaml" ]
-let _yml_suffixes = Common.map (fun ext -> [ ext ]) yml_extensions
-let _yml_test_suffixes = Common.map (fun ext -> [ ".test"; ext ]) yml_extensions
-let _fixtest_suffix = ".fixed"
 
 let _returntocorp_lever_url =
   "https://api.lever.co/v0/postings/returntocorp?mode=json"

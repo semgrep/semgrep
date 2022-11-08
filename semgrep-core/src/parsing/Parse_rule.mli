@@ -17,3 +17,6 @@ val parse : Common.filename -> Rule.rules
 
 (* this can be used for parsing -e/-f extended patterns in Run_semgrep.ml *)
 val parse_xpattern : Xlang.t -> string Rule.wrap -> Xpattern.t
+
+(* ex: foo.yaml, foo.yml, but not foo.test.yaml *)
+val is_valid_rule_filename : Common.filename -> bool

@@ -100,9 +100,17 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
        * TODO: in theory we can also pass multiple --config and
        * have a default config.
        *)
-      let (rules : Rule.rules), (_errorsTODO : Rule.invalid_rule_error list) =
+      let rules_and_origins =
         Config_resolver.rules_from_dashdash_config conf.config
       in
+      (* TODO: rewrite rule_id using x.Config_resolver.path origin? *)
+      let (rules : Rule.rules) =
+        rules_and_origins |> List.concat_map (fun x -> x.Config_resolver.rules)
+      in
+      let (_errorsTODO : Rule.invalid_rule_error list) =
+        rules_and_origins |> List.concat_map (fun x -> x.Config_resolver.errors)
+      in
+
       let filtered_rules =
         match conf.severity with
         | [] -> rules

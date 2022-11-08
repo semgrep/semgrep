@@ -19,8 +19,10 @@ open Common
 (*****************************************************************************)
 
 type config_kind =
+  (* foo.yaml *)
   | File of Common.filename
-  | Dir of string
+  (* myrules/ (but will not go recursively in subdirs of myrules) *)
+  | Dir of Common.filename
   | R of registry_kind
 
 and registry_kind =
@@ -45,7 +47,7 @@ let config_kind_of_config_str config_str =
   | s when s =~ "^\\(.*\\):\\(.*\\)" ->
       let user, snippet = Common.matched2 s in
       R (SavedSnippet (user, snippet))
-  (* TODO  | file when Sys.is_dir file  -> Dir file *)
+  | dir when Sys.is_directory dir -> Dir dir
   | file when Sys.file_exists file -> File file
   | _else_ -> failwith (spf "not a valid --config string: %s" config_str)
 
