@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\\n    ...\\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'",
+      "long_msg": "[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\\n    ...\\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'object'\n[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\\n    ...\\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
