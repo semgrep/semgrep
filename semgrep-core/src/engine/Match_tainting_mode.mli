@@ -1,3 +1,4 @@
+
 type debug_taint = {
   sources : (Range_with_metavars.t * Rule.taint_source) list;
       (** Ranges matched by `pattern-sources:` *)
@@ -7,6 +8,8 @@ type debug_taint = {
       (** Ranges matched by `pattern-sinks:` *)
 }
 (** To facilitate debugging of taint rules. *)
+
+val hook_setup_hook_function_taint_signature : (Match_env.xconfig -> Rule.taint_rule -> Dataflow_tainting.config -> Xtarget.t -> unit) option ref
 
 (* It could be a private function, but it is also used by Deep Semgrep. *)
 val taint_config_of_rule :
