@@ -1,8 +1,9 @@
-; This could become independent of semgrep, so try to not use semgrep dependencies here
+; This could become independent of semgrep, so try to not use semgrep
+; dependencies here
 (library
  (public_name otarzan)
- (wrapped false)
  (libraries
+   cmdliner
    commons
    tree-sitter-lang.ocaml
    semgrep_parsing_tree_sitter ; just for Parse_ocaml_tree_sitter.ml

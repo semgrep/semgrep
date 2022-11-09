@@ -1,0 +1,8 @@
+(executable
+  (package otarzan)
+  (public_name otarzan)
+  (name Main)
+  (libraries
+    otarzan
+  )
+)

@@ -30,6 +30,13 @@ clean:
 	dune clean
 	rm -f bin
 
+# Build just this executable
+.PHONY: build-otarzan
+build-otarzan:
+	rm -f bin
+	dune build _build/install/default/bin/otarzan
+	test -e bin || ln -s _build/install/default/bin .
+
 # I put 'all' as a dependency because sometimes you modify a test file
 # and dune runtest -f does not see this new file, probably because
 # the cached file under _build/.../tests/ is still the old one.
