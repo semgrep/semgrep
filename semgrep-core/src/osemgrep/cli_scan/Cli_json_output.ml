@@ -167,27 +167,26 @@ let error_message ~rule_id ~(location : Out.location)
   in
   spf "%s %s:\n %s" (error_type_string error_type) error_context core_message
 
-(* #spans are used only for PatternParseError *)
 let error_spans ~(error_type : Out.core_error_kind) ~(location : Out.location) =
   match error_type with
   | PatternParseError _yaml_pathTODO ->
       (* TOPORT
          yaml_path = err.error_type.value.value[::-1]
-         config_start = out.PositionBis(line=0, col=1)
-         config_end = out.PositionBis(
-             line=err.location.end.line - err.location.start.line,
-             col=err.location.end.col - err.location.start.col + 1,
-         )
-         spans = [
-             dataclasses.replace(
-                 ...
-                 config_start=config_start,
-                 config_end=config_end,
-                 config_path=yaml_path,
-             )
-         ]
+         spans = [dataclasses.replace(..., config_path=yaml_path)]
       *)
-      let span = core_location_to_error_span location in
+      let span =
+        {
+          (core_location_to_error_span location) with
+          config_start = Some (Some { line = 0; col = 1 });
+          config_end =
+            Some
+              (Some
+                 {
+                   line = location.end_.line - location.start.line;
+                   col = location.end_.col - location.start.col + 1;
+                 });
+        }
+      in
       Some [ span ]
   | PartialParsing locs -> Some (locs |> Common.map core_location_to_error_span)
   | _else_ -> None

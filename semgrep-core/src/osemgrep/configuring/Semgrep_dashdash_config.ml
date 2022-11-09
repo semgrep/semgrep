@@ -18,6 +18,7 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
+(* TODO? Auto *)
 type config_kind =
   (* ex: 'foo.yaml' *)
   | File of Common.filename

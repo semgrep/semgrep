@@ -12,7 +12,7 @@
 (*****************************************************************************)
 
 let setup_logging (conf : Scan_CLI.conf) =
-  (* This used to be in Core_CLI.ml, and so should be in CLI.ml but
+  (* LATER? this used to be in Core_CLI.ml, and so should be in CLI.ml but
    * we get a conf object later in osemgrep.
    *)
 
@@ -39,6 +39,8 @@ let setup_logging (conf : Scan_CLI.conf) =
 
 (* TODO *)
 let setup_profiling conf =
+  (* LATER? this could be done in CLI.ml too *)
+
   (* TOADAPT
       if config.debug then Report.mode := MDebug
       else if config.report_time then Report.mode := MTime
@@ -62,8 +64,8 @@ let setup_profiling conf =
 (* python: this used to be done in a _final_raise method from output.py
  * but better separation of concern to do it here.
  *)
-let exit_code_of_errors (conf : Scan_CLI.conf)
-    (errors : Semgrep_output_v1_t.core_error list) : Exit_code.t =
+let exit_code_of_errors ~strict (errors : Semgrep_output_v1_t.core_error list) :
+    Exit_code.t =
   match List.rev errors with
   | [] -> Exit_code.ok
   | x :: _ -> (
@@ -72,8 +74,7 @@ let exit_code_of_errors (conf : Scan_CLI.conf)
       match () with
       | _ when x.severity = Semgrep_output_v1_t.Error ->
           Cli_json_output.exit_code_of_error_type x.error_type
-      | _ when conf.strict ->
-          Cli_json_output.exit_code_of_error_type x.error_type
+      | _ when strict -> Cli_json_output.exit_code_of_error_type x.error_type
       | _else_ -> Exit_code.ok)
 
 (*****************************************************************************)
@@ -88,8 +89,12 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   let conf = setup_profiling conf in
 
   match () with
-  (* "alternate modes" where no search is performaced *)
+  (* "alternate modes" where no search is performed *)
   | _ when conf.version ->
+      (* alt: we could use Common.pr, but because '--quiet' doc says
+       * "Only output findings.", a version is not a finding so
+       * we use Logs.app (which is filtered by --quiet).
+       *)
       Logs.app (fun m -> m "%s" Version.version);
       (* TOPORT:
          if enable_version_check:
@@ -147,7 +152,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* outputting the result! in JSON/Text/... depending on conf *)
       Output.output_result conf res;
       (* final result for the shell *)
-      exit_code_of_errors conf res.core.errors
+      exit_code_of_errors ~strict:conf.strict res.core.errors
 
 (*****************************************************************************)
 (* Entry point *)
