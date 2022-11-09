@@ -1,0 +1,10 @@
+rules:
+- id: cast-symbol-prop 
+  languages:
+  - go 
+  pattern: |
+    sink(f(...)) 
+  message: Successfully propagated a Cast/ParenExpr 
+  options:
+    symbolic_propagation: true
+  severity: ERROR
