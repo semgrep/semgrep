@@ -51,10 +51,6 @@ type signature = finding list
 type orig = Src of source | Arg of arg_pos [@@deriving show]
 type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
-let rec pm_of_trace = function
-  | PM (pm, x) -> (pm, x)
-  | Call (_, _, trace) -> pm_of_trace trace
-
 (* We use a set simply to avoid duplicate findings.
  * THINK: Should we just let them pass here and be filtered out later on? *)
 module Taint_set = Set.Make (struct
@@ -71,11 +67,16 @@ module Taint_set = Set.Make (struct
     | 0 -> compare pm1.PM.env pm2.PM.env
     | c -> c
 
-  let compare_dm dm1 dm2 =
-    match (pm_of_trace dm1, pm_of_trace dm2) with
-    |  (p, x), (q, y) ->
+  let rec compare_dm dm1 dm2 =
+    match (dm1, dm2) with
+    | PM (p, x), PM (q, y) ->
         let pq_cmp = compare_pm p q in
         if pq_cmp <> 0 then pq_cmp else Stdlib.compare x y
+    | PM _, Call _ -> -1
+    | Call _, PM _ -> 1
+    | Call (c1, _t1, d1), Call (c2, _t2, d2) ->
+        let c_cmp = Int.compare c1.e_id c2.e_id in
+        if c_cmp <> 0 then c_cmp else compare_dm d1 d2
 
   (* TODO: Rely on ppx_deriving.ord ? *)
   let compare_orig t1 t2 =
@@ -96,6 +97,10 @@ end)
 
 type taints = Taint_set.t
 
+let rec pm_of_trace = function
+  | PM (pm, x) -> (pm, x)
+  | Call (_, _, trace) -> pm_of_trace trace
+
 let trace_of_pm (pm, x) = PM (pm, x)
 let src_of_pm (pm, x) = Src (PM (pm, x))
 let taint_of_pm pm = { orig = src_of_pm pm; tokens = [] }
@@ -109,21 +114,8 @@ let _show_taint_label taint =
       let _, ts = pm_of_trace src in
       ts.label
 
-let _show_taint taint =
-  let rec depth acc = function
-  | PM _ -> acc
-  | Call(_,_,x) -> depth (acc+1) x
-  in
-  match taint.orig with
-  | Src src ->
-      let pm, ts = pm_of_trace src in
-      let tok1, tok2 = pm.range_loc in
-      let r = Range.range_of_token_locations tok1 tok2 in
-      Printf.sprintf "(%d,%d)#%s|%d|" r.start r.end_ ts.label (depth 0 src)
-  | Arg (s, i) -> Printf.sprintf "arg(%s)#%d" s i
-
 let show_taints taints =
   taints |> Taint_set.elements
-  |> Common.map _show_taint
+  |> Common.map _show_taint_label
   |> String.concat ", "
   |> fun str -> "{ " ^ str ^ " }"
