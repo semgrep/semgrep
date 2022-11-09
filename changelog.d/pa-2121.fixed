@@ -1,0 +1,2 @@
+CLI: Added a fix preventing findings from experimental rules being displayed.
+Experimental rules also now no longer run silently.
