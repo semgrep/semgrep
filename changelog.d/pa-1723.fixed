@@ -1,0 +1,1 @@
+Rule syntax: Allow `pattern-not`, `pattern-inside`, and `pattern-not-inside` to take in arbitrary patterns (such as `patterns`, `pattern-either`, and friends)
