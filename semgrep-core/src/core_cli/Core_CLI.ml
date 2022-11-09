@@ -509,7 +509,6 @@ let all_actions () =
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
   @ Test_dataflow_tainting.actions ()
-  @ Test_otarzan.actions ()
   @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program
 
 let options () =

@@ -1,4 +1,8 @@
-(* [generate_boilerplate_map_todo file] will print on stdout some
+(*
+   Entry point to the program and command-line interface
+*)
+
+(* [run file] will print on stdout some
  * boilerplate code of the form:
  *
  *  let todo _env _x =
@@ -20,7 +24,6 @@
  * The original boilerplate generator was:
  * https://github.com/aryx/ocamltarzan/blob/master/pa/pa_map_todo.ml
  *)
-val generate_boilerplate_map_todo : Common.filename -> unit
-
-(* helpers used also in Test_otarzan.ml *)
-val parse : Common.filename -> Ast_ml.program
+let run (conf : Conf.t) =
+  let defs = Parse.extract_typedefs_from_ml_file conf.input_file in
+  Print.generate_boilerplate conf defs
