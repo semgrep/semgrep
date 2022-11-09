@@ -220,7 +220,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
   let file =
     if
       x.file <> min_loc.file
-      || (x.file <> max_loc.file && min_loc.file != "FAKE TOKEN LOCATION")
+      || (x.file <> max_loc.file && min_loc.file <> "FAKE TOKEN LOCATION")
     then min_loc.file
     else x.file
   in
