@@ -217,9 +217,16 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     let* edit = render_fix x in
     Some edit.Textedit.replacement_text
   in
+  let file =
+    if
+      x.file <> min_loc.file
+      || (x.file <> max_loc.file && min_loc.file != "FAKE TOKEN LOCATION")
+    then min_loc.file
+    else x.file
+  in
   {
     Out.rule_id = x.rule_id.id;
-    location = { path = x.file; start = startp; end_ = endp };
+    location = { path = file; start = startp; end_ = endp };
     extra =
       {
         message = Some x.rule_id.message;
