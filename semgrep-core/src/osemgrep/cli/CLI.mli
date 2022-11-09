@@ -1,5 +1,5 @@
 (*
-   Parse the semgrep command line, run the requested task, and return
+   Parse the semgrep command line, run the requested subcommand, and return
    an exit status.
 
    If called as a standalone program, the 'exit' function should be called

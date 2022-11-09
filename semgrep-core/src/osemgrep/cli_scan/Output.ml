@@ -12,11 +12,18 @@ module Out = Semgrep_output_v1_j
    LATER? It would be nice to move this file in osemgrep/reporting/, but
    it currently depends on Scan_CLI.conf and Core_runner so simpler to keep
    here for now.
+
+   We're using Common.pr below, not Logs.app, because even with --quiet
+   we want semgrep to report the findings.
 *)
 
 (*****************************************************************************)
-(* Helpers *)
+(* Autofix *)
 (*****************************************************************************)
+(* TODO? It is a bit weird to have code modification done in a module called
+ * Output.ml, but we need the cli_output to perform the autofix,
+ * so easier to put the code here for now.
+ *)
 
 let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   (* TODO fix_regex *)
@@ -32,6 +39,25 @@ let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   in
   Textedit.apply_edits ~dryrun:conf.dryrun edits
 
+let apply_fixes_and_warn (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
+  (* TODO report when we fail to apply a fix because it overlaps with another?
+   *  Currently it looks like the Python CLI will just blindly apply
+   * overlapping fixes, probably breaking code.
+   *
+   * At some point we could re-run Semgrep on all files where some fixes
+   * haven't been applied because they overlap with other fixes, and repeat
+   * until all are applied (with some bounds to prevent divergence). This
+   * probably happens rarely enough that it would be very fast, and it would
+   * make the autofix experience better.
+   *)
+  let modified_files, _failed_fixes = apply_fixes conf cli_output in
+  if not conf.dryrun then
+    if modified_files <> [] then
+      pr2
+        (spf "successfully modified %s."
+           (String_utils.unit_str (List.length modified_files) "file"))
+    else pr2 "no files modified."
+
 (*****************************************************************************)
 (* Format dispatcher *)
 (*****************************************************************************)
@@ -44,10 +70,6 @@ let dispatch_output_format (output_format : Output_format.t)
       let s = Out.string_of_cli_output cli_output in
       pr s
   | Vim ->
-      (* alt: could start from res instead of cli_output? but we also
-       * want the message interpolation, which is stored in the cli_output
-       * so simpler to start from cli_output.
-       *)
       cli_output.results
       |> List.iter (fun (m : Out.cli_match) ->
              match m with
@@ -65,7 +87,6 @@ let dispatch_output_format (output_format : Output_format.t)
                  in
                  pr (String.concat ":" parts))
   | Emacs ->
-      (* alt: could also start from res instead of cli_output *)
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
       |> List.iter (fun (m : Out.cli_match) ->
@@ -132,24 +153,6 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
   let cli_output : Out.cli_output =
     Cli_json_output.cli_output_of_core_results conf res
   in
-  (if conf.autofix then
-   (* TODO report when we fail to apply a fix because it overlaps with another?
-    * Currently it looks like the Python CLI will just blindly apply
-    * overlapping fixes, probably breaking code.
-    *
-    * At some point we could re-run Semgrep on all files where some fixes
-    * haven't been applied because they overlap with other fixes, and repeat
-    * until all are applied (with some bounds to prevent divergence). This
-    * probably happens rarely enough that it would be very fast, and it would
-    * make the autofix experience better.
-    * *)
-   let modified_files, _failed_fixes = apply_fixes conf cli_output in
-   if not conf.dryrun then
-     if modified_files <> [] then
-       pr2
-         (spf "successfully modified %s."
-            (String_utils.unit_str (List.length modified_files) "file"))
-     else pr2 "no files modified.");
-
+  if conf.autofix then apply_fixes_and_warn conf cli_output;
   dispatch_output_format conf.output_format cli_output;
   ()

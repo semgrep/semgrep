@@ -423,7 +423,7 @@ let o_dryrun : bool Term.t =
   H.negatable_flag [ "dryrun" ] ~neg_options:[ "no-dryrun" ]
     ~default:default.dryrun
     ~doc:
-      {| If --dryrun, does not write autofixes to a file. This will print the changes
+      {|If --dryrun, does not write autofixes to a file. This will print the changes
 to the console. This lets you see the changes before you commit to them. Only
 works with the --autofix flag. Otherwise does nothing.
 |}
@@ -554,7 +554,7 @@ let cmdline_term : conf Term.t =
 
 let doc = "run semgrep rules on files"
 
-(* TODO: document the exit codes as defined in Error.mli *)
+(* TODO: document the exit codes as defined in Exit_code.mli *)
 let man : Manpage.block list =
   [
     `S Manpage.s_description;

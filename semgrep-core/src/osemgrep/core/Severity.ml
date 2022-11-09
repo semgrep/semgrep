@@ -1,5 +1,3 @@
-open Common
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -20,10 +18,10 @@ open Common
 (*****************************************************************************)
 
 (* valid for rules and for findings, but also for semgrep errors *)
-type basic_severity = [ `Error | `Warning ] [@@deriving show]
+type basic_severity = [ `Error | `Warning ]
 
 (* found in rules, and in semgrep --severity *)
-type rule_severity = [ basic_severity | `Info ] [@@deriving show]
+type rule_severity = [ basic_severity | `Info ]
 
 (* do we still need this? *)
 type extended_severity = [ rule_severity | `Inventory | `Experiment ]
@@ -47,16 +45,11 @@ let string_of_basic_severity = function
                 return member
         raise ValueError(f"invalid rule severity value: {value}")
 *)
-let parser = function
-  | "INFO" -> Ok `Info
-  | "WARNING" -> Ok `Warning
-  | "ERROR" -> Ok `Error
-  | s -> Error (spf "unsupported value for severity: %s" s)
-
-let printer fmt x = Format.pp_print_string fmt (show_rule_severity x)
 
 (* for CLI --severity input *)
-let converter = Cmdliner.Arg.conv' ~docv:"SEVERITY" (parser, printer)
+let converter =
+  Cmdliner.Arg.enum
+    [ ("INFO", `Info); ("WARNING", `Warning); ("ERROR", `Error) ]
 
 (* for CLI --severity filtering *)
 let rule_severity_of_rule_severity_opt (x : Rule.severity) :
