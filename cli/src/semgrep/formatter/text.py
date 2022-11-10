@@ -184,36 +184,54 @@ class TextFormatter(BaseFormatter):
             )
 
     @staticmethod
-    def _dataflow_trace_to_lines(
-        dataflow_trace: Optional[out.CliMatchDataflowTrace],
+    def _match_to_lines(
+        location: out.Location,
+        content: str,
         color_output: bool,
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
     ) -> Iterator[str]:
-        if dataflow_trace:
-            source = dataflow_trace.taint_source
-            intermediate_vars = dataflow_trace.intermediate_vars
-            if source:
-                yield (8 * " " + "Taint comes from:")
-                path = Path(source.location.path)
-                lines = get_lines(
-                    path, source.location.start.line, source.location.end.line
-                )
-                # TODO with DeepSemgrep is it possible for the source (and
-                # intermediate vars) to be in a different file? If so, make sure
-                # we print the filename when needed.
-                yield from TextFormatter._format_lines(
-                    path,
-                    source.location.start.line,
-                    source.location.start.col,
-                    source.location.end.line,
-                    source.location.end.col,
-                    lines,
-                    color_output,
-                    per_finding_max_lines_limit,
-                    per_line_max_chars_limit,
-                    False,
-                )
+        path = Path(location.path)
+        lines = get_lines(path, location.start.line, location.end.line)
+        yield from TextFormatter._format_lines(
+            path,
+            location.start.line,
+            location.start.col,
+            location.end.line,
+            location.end.col,
+            lines,
+            color_output,
+            per_finding_max_lines_limit,
+            per_line_max_chars_limit,
+            False,
+        )
+
+    @staticmethod
+    def _call_trace_to_lines(
+        call_trace: out.CliMatchCallTrace,
+        color_output: bool,
+        per_finding_max_lines_limit: Optional[int],
+        per_line_max_chars_limit: Optional[int],
+    ) -> Iterator[str]:
+        if isinstance(call_trace, out.CliLoc):
+            TextFormatter._match_to_lines(
+                call_trace.value[0],
+                color_output,
+                per_finding_max_lines_limit,
+                per_line_max_chars_limit,
+            )
+
+        elif isinstance(call_trace, out.CliCall):
+            data, intermediate_vars, call_trace = call_trace.value
+
+            yield (8 * " " + "call to:")
+            TextFormatter._match_to_lines(
+                data.value[0],
+                color_output,
+                per_finding_max_lines_limit,
+                per_line_max_chars_limit,
+            )
+
             if intermediate_vars and len(intermediate_vars) > 0:
                 # TODO change this message based on rule kind of we ever use
                 # dataflow traces for more than just taint
@@ -233,6 +251,64 @@ class TextFormatter(BaseFormatter):
                         per_line_max_chars_limit,
                         False,
                     )
+
+            yield (8 * " " + "then:")
+            TextFormatter._call_trace_to_lines(
+                call_trace,
+                color_output,
+                per_finding_max_lines_limit,
+                per_line_max_chars_limit,
+            )
+
+    @staticmethod
+    def _dataflow_trace_to_lines(
+        dataflow_trace: Optional[out.CliMatchDataflowTrace],
+        color_output: bool,
+        per_finding_max_lines_limit: Optional[int],
+        per_line_max_chars_limit: Optional[int],
+    ) -> Iterator[str]:
+        if dataflow_trace:
+            source = dataflow_trace.taint_source
+            intermediate_vars = dataflow_trace.intermediate_vars
+            sink = dataflow_trace.taint_sink
+
+            if source:
+                yield (8 * " " + "Taint comes from:")
+                yield from TextFormatter._call_trace_to_lines(
+                    source,
+                    color_output,
+                    per_finding_max_lines_limit,
+                    per_line_max_chars_limit,
+                )
+
+            if intermediate_vars and len(intermediate_vars) > 0:
+                # TODO change this message based on rule kind of we ever use
+                # dataflow traces for more than just taint
+                yield (8 * " " + "Taint flows through these intermediate variables:")
+                for var in intermediate_vars:
+                    loc = var.location
+                    lines = get_lines(Path(loc.path), loc.start.line, loc.end.line)
+                    yield from TextFormatter._format_lines(
+                        Path(loc.path),
+                        loc.start.line,
+                        loc.start.col,
+                        loc.end.line,
+                        loc.end.col,
+                        lines,
+                        color_output,
+                        per_finding_max_lines_limit,
+                        per_line_max_chars_limit,
+                        False,
+                    )
+
+            if sink:
+                yield (8 * " " + "This is how taint reaches the sink:")
+                yield from TextFormatter._call_trace_to_lines(
+                    sink,
+                    color_output,
+                    per_finding_max_lines_limit,
+                    per_line_max_chars_limit,
+                )
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
