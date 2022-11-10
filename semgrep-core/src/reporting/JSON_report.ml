@@ -217,9 +217,22 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     let* edit = render_fix x in
     Some edit.Textedit.replacement_text
   in
+  (* We need to do this, because in Terraform, we may end up with a `file` which
+     does not correspond to the actual location of the tokens. This `file` is
+     erroneous, and should be replaced by the location of the code of the match,
+     if possible. Not if it's fake, though.
+     In other languages, this should hopefully not happen.
+  *)
+  let file =
+    if
+      (x.file <> min_loc.file || x.file <> max_loc.file)
+      && min_loc.file <> "FAKE TOKEN LOCATION"
+    then min_loc.file
+    else x.file
+  in
   {
     Out.rule_id = x.rule_id.id;
-    location = { path = x.file; start = startp; end_ = endp };
+    location = { path = file; start = startp; end_ = endp };
     extra =
       {
         message = Some x.rule_id.message;
