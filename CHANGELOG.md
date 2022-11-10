@@ -8,6 +8,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.121.2](https://github.com/returntocorp/semgrep/releases/tag/v0.121.2) - 2022-11-10
+
+### Fixed
+
+- Fix yaml excessive mapping captures (gh-5698)
+- Rule syntax: Allow `pattern-not`, `pattern-inside`, and `pattern-not-inside` to take in arbitrary patterns (such as `patterns`, `pattern-either`, and friends) (pa-1723)
+- Kotlin: Fixed bug where constructor invocation with a trailing comma would not parse (pa-1988)
+- Constant propagation: Type casts and parenthesized expressions (in Go) can now be symbolically propagated. (pa-2054)
+- CLI: Added a fix preventing findings from experimental rules being displayed.
+  Experimental rules also now no longer run silently. (pa-2121)
+
 ## [0.121.1](https://github.com/returntocorp/semgrep/releases/tag/v0.121.1) - 2022-11-08
 
 No significant changes.
