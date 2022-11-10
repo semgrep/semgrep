@@ -65,3 +65,5 @@ val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
 val taint_of_pm : Pattern_match.t * Rule.taint_source -> taint
 val taints_of_pms : (Pattern_match.t * Rule.taint_source) list -> taints
 val show_taints : taints -> string
+
+val _show_finding : finding -> string

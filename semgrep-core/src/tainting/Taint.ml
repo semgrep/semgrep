@@ -28,6 +28,15 @@ type 'a call_trace =
   | Call of G.expr * tainted_tokens * 'a call_trace
 [@@deriving show]
 
+let rec _show_call_trace show_thing = function
+| PM (pm, x) ->
+    let toks = Lazy.force pm.PM.tokens |> List.filter Parse_info.is_origintok in
+    toks
+    |> Common.map Parse_info.str_of_info
+    |> String.concat " "
+    |> fun s -> Printf.sprintf "%s [%s]" s (show_thing x)
+| Call (_e, _, trace) -> Printf.sprintf "Call(... %s)" (_show_call_trace show_thing trace)
+
 type source = Rule.taint_source call_trace [@@deriving show]
 type sink = Rule.taint_sink call_trace [@@deriving show]
 type arg_pos = string * int [@@deriving show]
@@ -40,12 +49,21 @@ type source_to_sink = {
 }
 [@@deriving show]
 
+let _show_source_to_sink { source; sink; _ } =
+  Printf.sprintf "%s ----> %s" (_show_call_trace (fun ts -> ts.Rule.label) source) (_show_call_trace (fun _ -> "sink") sink)
+
 type finding =
   | SrcToSink of source_to_sink
   | SrcToReturn of source * tainted_tokens * G.tok
   | ArgToSink of arg_pos * tainted_tokens * sink
   | ArgToReturn of arg_pos * tainted_tokens * G.tok
 [@@deriving show]
+
+let _show_finding = function
+  | SrcToSink x -> _show_source_to_sink x
+  | SrcToReturn(src, _, _) -> Printf.sprintf "return (%s)" (_show_call_trace (fun ts -> ts.Rule.label) src)
+  | ArgToSink (a, _, _) -> Printf.sprintf "%s ----> sink" (show_arg_pos a)
+  | ArgToReturn (a, _, _) -> Printf.sprintf "return (%s)" (show_arg_pos a)
 
 type signature = finding list
 type orig = Src of source | Arg of arg_pos [@@deriving show]
