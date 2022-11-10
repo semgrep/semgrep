@@ -3,15 +3,6 @@ from semgrep.rule_lang import Span
 from semgrep.util import with_color
 
 class SemgrepError(Exception):
-    """
-    All Semgrep Exceptions are caught and their error messages
-    are displayed to the user.
-    """
-
-    def __init__(
-        self, *args: object, code: int = FATAL_EXIT_CODE, level: Level = Level.ERROR
-    ) -> None:
-        xxx
 
     def to_dict(self) -> Dict[str, Any]:
         return cast(Dict[str, Any], self.to_CliError().to_json())
@@ -254,16 +245,6 @@ class ErrorWithSpan(SemgrepError):
         else:
             snippet_str_with_newline = f"{snippet_str}\n"
         return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color(Colors.red, self.long_msg or '')}\n"
-
-
-class InvalidRuleSchemaError(ErrorWithSpan):
-    code = INVALID_PATTERN_EXIT_CODE
-    level = Level.ERROR
-
-
-class UnknownLanguageError(ErrorWithSpan):
-    code = INVALID_LANGUAGE_EXIT_CODE
-    level = Level.ERROR
 
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247
 ERROR_MAP = {

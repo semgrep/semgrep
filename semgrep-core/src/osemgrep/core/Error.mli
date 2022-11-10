@@ -7,9 +7,15 @@
 *)
 
 (* Error object that holds all kinds of errors. *)
-type t
+type t = { code : Exit_code.t; level : level; kind : error_kind }
+and level = Severity.basic_severity
+
+(* abstract for now *)
+and error_kind
 
 exception Semgrep_error of t
+
+val string_of_error : t -> string
 
 (*
    Fields needed to construct some kinds of error objects.
@@ -21,11 +27,11 @@ type details = {
   help : string option;
 }
 
-type level = Severity.basic_severity
-
 (*
    Create error exceptions describing the errors encountered.
 *)
+val basic : ?code:Exit_code.t -> ?level:level -> string -> t
+
 val semgrep_core_error :
   code:Exit_code.t -> level:level -> Output_from_core_t.core_error -> t
 

@@ -10,7 +10,8 @@
   (libraries
    uri
    commons
-   ; we should not depend on core/ here
+
+   osemgrep_core ; for Error.ml
   )
  (inline_tests)
  (preprocess
