@@ -21,9 +21,6 @@ from semgrep.util import is_url
 from semgrep.util import terminal_wrap
 from semgrep.util import with_color
 
-AUTO_CONFIG_KEY = "auto"
-AUTO_CONFIG_LOCATION = "c/auto"
-
 MISSING_RULE_ID = "no-rule-id"
 
 DEFAULT_CONFIG = {
@@ -39,8 +36,6 @@ DEFAULT_CONFIG = {
 }
 
 class ConfigLoader:
-    _origin = ConfigType.LOCAL
-    _config_path = ""
     _project_url = None
     _extra_headers: Dict[str, str] = {}
 
@@ -53,48 +48,34 @@ class ConfigLoader:
         """
         state = get_state()
         self._project_url = project_url
-        self._origin = ConfigType.REGISTRY
         if config_str == "r2c":
             state.metrics.add_feature("config", "r2c")
-            self._config_path = "https://semgrep.dev/c/p/r2c"
+            ...
         elif is_url(config_str):
             state.metrics.add_feature("config", "url")
-            self._config_path = config_str
-        elif is_policy_id(config_str):
+            ...
+        elif config_str == "policy":
             state.metrics.add_feature("config", "policy")
             self._config_path = url_for_policy(config_str)
-        elif is_supply_chain(config_str):
+        elif config_str == "supply-chain":
             state.metrics.add_feature("config", "sca")
             self._config_path = url_for_supply_chain()
         elif is_registry_id(config_str):
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
-            self._config_path = registry_id_to_url(config_str)
+            ...
         elif is_saved_snippet(config_str):
             state.metrics.add_feature("config", f"registry:snippet-id")
-            self._config_path = saved_snippet_to_url(config_str)
-        elif config_str == AUTO_CONFIG_KEY:
+            ...
+        elif config_str == "auto":
             state.metrics.add_feature("config", "auto")
-            self._config_path = f"{state.env.semgrep_url}/{AUTO_CONFIG_LOCATION}"
+            ...
         else:
             state.metrics.add_feature("config", "local")
-            self._origin = ConfigType.LOCAL
             self._config_path = str(Path(config_str).expanduser())
 
         if self.is_registry_url():
             state.metrics.is_using_registry = True
             state.metrics.add_registry_url(self._config_path)
-
-    def load_config(self) -> List[ConfigFile]:
-        """
-        Loads a config based on self's state.
-        A config path produces a list of ConfigFiles because
-        it may be a path to a folders of configs, each of
-        which produces a file
-        """
-        if self._origin == ConfigType.REGISTRY:
-            return [self._download_config()]
-        else:
-            return self._load_config_from_local_path()
 
     def _nice_semgrep_url(self, url: str) -> str:
         """
@@ -109,18 +90,12 @@ class ConfigLoader:
         return url
 
     def _download_config(self) -> ConfigFile:
-        """
-        Download a configuration from semgrep.dev
-        """
-        config_url = self._config_path
-        logger.debug(f"trying to download from {self._nice_semgrep_url(config_url)}")
         try:
             config = ConfigFile(
                 None,
                 self._make_config_request(),
                 config_url,
             )
-            logger.debug(f"finished downloading from {config_url}")
             return config
         except Exception as e:
             raise SemgrepError(
@@ -128,19 +103,8 @@ class ConfigLoader:
             )
 
     def _load_config_from_local_path(self) -> List[ConfigFile]:
-        """
-        Return config file(s) as dictionary object
-        """
-        loc = Path(self._config_path)
-
-        logger.debug(f"Loading local config from {loc}")
         if loc.exists():
-            if loc.is_file():
-                config = [read_config_at_path(loc)]
-            elif loc.is_dir():
-                config = read_config_folder(loc)
-            else:
-                raise SemgrepError(f"config location `{loc}` is not a file or folder!")
+           ...
         else:
             env = get_state().env
             addendum = ""
@@ -149,8 +113,7 @@ class ConfigLoader:
             raise SemgrepError(
                 f"WARNING: unable to find a config; path `{loc}` does not exist{addendum}"
             )
-        logger.debug(f"Done loading local config from {loc}")
-        return config
+
 
     def _make_config_request(self) -> str:
         app_session = get_state().app_session
@@ -575,16 +538,6 @@ def load_default_config() -> Dict[str, YamlTree]:
         config_infos = read_config_folder(default_folder, relative=True)
     return parse_config_files(config_infos)
 
-
-
-def registry_id_to_url(registry_id: str) -> str:
-    """
-    Convert from registry_id to semgrep.dev url
-    """
-    env = get_state().env
-    return f"{env.semgrep_url}/{registry_id}"
-
-
 def url_for_policy(config_str: str) -> str:
     """
     Return url to download a policy for a given repo_name
@@ -617,10 +570,6 @@ def url_for_policy(config_str: str) -> str:
     return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
 
 
-def is_policy_id(config_str: str) -> bool:
-    return config_str == "policy"
-
-
 def url_for_supply_chain() -> str:
     env = get_state().env
     repo_name = os.environ.get("SEMGREP_REPO_NAME")
@@ -635,21 +584,6 @@ def url_for_supply_chain() -> str:
     }
     params_str = urlencode(params)
     return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
-
-
-def is_supply_chain(config_str: str) -> bool:
-    return config_str == "supply-chain"
-
-
-def saved_snippet_to_url(snippet_id: str) -> str:
-    """
-    Convert from username:snippetname to semgrep.dev url
-    """
-    return registry_id_to_url(f"s/{snippet_id}")
-
-
-def is_pack_id(config_str: str) -> bool:
-    return config_str[:2] == "p/"
 
 
 def get_config(

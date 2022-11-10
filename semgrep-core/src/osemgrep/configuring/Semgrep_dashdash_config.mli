@@ -16,6 +16,14 @@ and registry_kind =
   | Snippet of string
   (* ex: 'pad:basic' *)
   | SavedSnippet of string (* username *) * string (* snippetname *)
+  (* shortcuts *)
+  (* "p/default" *)
+  | Auto
+  (* p/r2c *)
+  | R2c
+  (* Semgrep App shortcuts *)
+  | Policy
+  | SupplyChain
 [@@deriving show]
 
 val config_kind_of_config_str : string -> config_kind

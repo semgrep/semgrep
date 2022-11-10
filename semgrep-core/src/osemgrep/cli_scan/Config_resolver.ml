@@ -28,11 +28,15 @@ type rules_and_origin = {
 let load_rules_from_file file : rules_and_origin =
   Logs.debug (fun m -> m "loading local config from %s" file);
   let rules, errors = Parse_rule.parse_and_filter_invalid_rules file in
+  Logs.debug (fun m -> m "Done loading local config from %s" file);
   { path = Some file; rules; errors }
 
 let load_rules_from_url url : rules_and_origin =
+  (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
+  (* TOPORT: try and raise SemgrepError in case of error *)
   let content = Network.get url in
+  Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
       let res = load_rules_from_file file in
       { res with path = None })
