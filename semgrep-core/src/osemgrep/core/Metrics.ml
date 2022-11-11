@@ -2,8 +2,6 @@
    Translated from metrics.py
 *)
 
-open Printf
-
 let _metrics_endpoint = "https://metrics.semgrep.dev"
 
 module State = struct
@@ -16,23 +14,11 @@ module State = struct
   *)
   type t = On | Off | Auto
 
-  let to_string = function
-    | On -> "on"
-    | Off -> "off"
-    | Auto -> "auto"
-
   (* For Cmdliner *)
-  let parser = function
-    | "on" -> Ok On
-    | "off" -> Ok Off
-    | "auto" -> Ok Auto
-    | s -> Error (sprintf "unsupported value for metrics state: %s" s)
-
-  (* For Cmdliner *)
-  let printer fmt x = Format.pp_print_string fmt (to_string x)
-
-  (* For Cmdliner *)
-  let converter = Cmdliner.Arg.conv' ~docv:"STATE" (parser, printer)
+  (* TOPORT? use lowercase_ascii before? accept ON/OFF/AUTO?
+     TOPORT? Support setting via old environment variable values 0/1/true/false
+  *)
+  let converter = Cmdliner.Arg.enum [ ("on", On); ("off", Off); ("auto", Auto) ]
 end
 
 type _sha256hash = Sha256hash of string
