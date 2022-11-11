@@ -89,31 +89,6 @@ class ConfigLoader:
             return url.replace("/c/", "/")
         return url
 
-    def _download_config(self) -> ConfigFile:
-        try:
-            config = ConfigFile(
-                None,
-                self._make_config_request(),
-                config_url,
-            )
-            return config
-        except Exception as e:
-            raise SemgrepError(
-                terminal_wrap(f"Failed to download config from {config_url}: {str(e)}")
-            )
-
-    def _load_config_from_local_path(self) -> List[ConfigFile]:
-        if loc.exists():
-           ...
-        else:
-            env = get_state().env
-            addendum = ""
-            if env.in_docker:
-                addendum = " (since you are running in docker, you cannot specify arbitrary paths on the host; they must be mounted into the container)"
-            raise SemgrepError(
-                f"WARNING: unable to find a config; path `{loc}` does not exist{addendum}"
-            )
-
 
     def _make_config_request(self) -> str:
         app_session = get_state().app_session

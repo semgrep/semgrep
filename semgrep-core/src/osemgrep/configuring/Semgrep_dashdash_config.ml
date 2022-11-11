@@ -1,4 +1,5 @@
 open Common
+module E = Error
 
 (*****************************************************************************)
 (* Prelude *)
@@ -64,10 +65,21 @@ let config_kind_of_config_str config_str =
   | s when s =~ "^\\(.*\\):\\(.*\\)" ->
       let user, snippet = Common.matched2 s in
       R (SavedSnippet (user, snippet))
-  | dir when Sys.is_directory dir -> Dir dir
+  | dir when Sys.file_exists dir && Sys.is_directory dir -> Dir dir
   | file when Sys.file_exists file -> File file
   (* TOPORT? raise SemgrepError(f"config location `{loc}` is not a file or folder!") *)
-  | _else_ -> failwith (spf "not a valid --config string: %s" config_str)
+  | str ->
+      let addendum =
+        if Semgrep_envvars.env.in_docker then
+          " (since you are running in docker, you cannot specify arbitrary \
+           paths on the host; they must be mounted into the container)"
+        else ""
+      in
+      raise
+        (E.Semgrep_error
+           (E.basic
+              (spf "unable to find a config; path `%s` does not exist%s" str
+                 addendum)))
 
 let url_of_registry_kind rkind =
   (* we go through the CURL interface for now (c/) *)

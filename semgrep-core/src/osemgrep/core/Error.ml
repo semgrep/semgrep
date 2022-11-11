@@ -1,14 +1,40 @@
+module Out = Output_from_core_t
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 (*
+   Centralizing error management in osemgrep.
+
    Translated from error.py
+
+   LATER: we should merge with Semgrep_core_error.ml, as well
+   as the errors defined in semgrep_output_v1.atd
 *)
 
-module C = Output_from_core_t
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* python: class SemgrepError(Exception)
+   All Semgrep exceptions are caught and their error messages
+   are displayed to the user.
+   They all include at least this information.
+*)
+type t = { code : Exit_code.t; level : level; kind : error_kind }
 
 (* TOPORT?
  * Warn = 3; Only an error if "strict" is set
  * Error = 4; Always an error
  *)
-type level = Severity.basic_severity
+and level = Severity.basic_severity
+
+(* The body of the main Error exception. *)
+and error_kind =
+  | Basic of string
+  | Semgrep_core_error of Out.core_error
+  | Invalid_rule_schema_error of details
+  | Unknown_language_error of details
 
 (*
    originally: class ErrorWithSpan(SemgrepError)
@@ -38,30 +64,24 @@ type level = Severity.basic_severity
    :help help: An optional hint about how to fix the problem
    :cause cause: The underlying exception
 *)
-type details = {
+and details = {
   short_msg : string;
   long_msg : string option;
   spans : Rule_lang.span list;
   help : string option;
 }
 
-(* The body of the main Error exception. *)
-type error_kind =
-  | Semgrep_core_error of C.core_error
-  | Invalid_rule_schema_error of details
-  | Unknown_language_error of details
+exception Semgrep_error of t
 
-(* originally: class SemgrepError(Exception)
-
-   All Semgrep exceptions are caught and their error messages
-   are displayed to the user. They all include at least this information.
-*)
-type t = { code : Exit_code.t; level : level; kind : error_kind }
+(*****************************************************************************)
+(* string of *)
+(*****************************************************************************)
 
 (* massive TODO *)
-let string_of_error (_x : t) = "uh oh, something's wrong"
-
-exception Semgrep_error of t
+let string_of_error (x : t) =
+  match x.kind with
+  | Basic s -> s
+  | _else_ -> "uh oh, something's wrong"
 
 let register_exception_printer () =
   Printexc.register_printer (function
@@ -73,6 +93,13 @@ let register_exception_printer () =
    nicely.
 *)
 let () = register_exception_printer ()
+
+(*****************************************************************************)
+(* Builders *)
+(*****************************************************************************)
+
+let basic ?(code = Exit_code.fatal) ?(level = `Error) str =
+  { code; level; kind = Basic str }
 
 let semgrep_core_error ~code ~level x =
   { code; level; kind = Semgrep_core_error x }
