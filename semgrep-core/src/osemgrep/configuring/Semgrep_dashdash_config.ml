@@ -91,9 +91,16 @@ let url_of_registry_kind rkind =
     | Pack s -> spf "%s/p/%s" prefix s
     | Snippet s -> spf "%s/s/%s" prefix s
     | SavedSnippet (user, snippet) -> spf "%s/%s:%s" prefix user snippet
+    (* LATER: the code below is temporarily comment because handling those
+     * shortcuts leads to a 50s slowdown in make osemgrep-e2e; too many tests
+     * are relying on those configs which take a long time to download.
+     * Those tests should be optimized and use local configs instead.
+     *
     | Auto -> spf "%s/p/default" prefix
     | R2c -> spf "%s/p/r2c" prefix
     | Policy -> spf "TODO: handle --config policy"
     | SupplyChain -> spf "TODO: handle --config supply-chain"
+     *)
+    | _else_ -> failwith (spf "TORESTORE: %s" (show_registry_kind rkind))
   in
   Uri.of_string url
