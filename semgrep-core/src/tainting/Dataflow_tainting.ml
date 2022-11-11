@@ -151,9 +151,6 @@ let taints_of_matches xs =
   xs |> Common.map (fun x -> (x.pm, x.spec)) |> T.taints_of_pms
 
 let report_findings env findings =
-  findings |> List.iter (fun f ->
-    logger#flash "reported finding %s" (Taint._show_finding f)
-  );
   if findings <> [] then
     env.config.handle_findings env.fun_name findings env.lval_env
 

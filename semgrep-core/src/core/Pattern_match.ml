@@ -128,11 +128,29 @@ let range pm =
   let start_loc, end_loc = pm.range_loc in
   Range.range_of_token_locations start_loc end_loc
 
+let length_of_call_trace ct =
+let rec loop acc = function
+| Toks _ -> acc
+| Call {call_trace; _} -> loop (acc+1) call_trace
+in
+loop 0 ct
+
+let has_shorter_trace pm1 pm2 =
+  match pm1.taint_trace, pm2.taint_trace with
+  | None, None -> true
+  | None, Some _ -> true
+  | Some _, None -> false
+  | Some (lazy tt1), Some (lazy tt2) ->
+    (length_of_call_trace tt1.source + length_of_call_trace tt1.sink) <=  (length_of_call_trace tt2.source + length_of_call_trace tt2.sink)
+
 (* Is [pm1] a submatch of [pm2] ? *)
 let submatch pm1 pm2 =
   pm1.rule_id = pm2.rule_id && pm1.file = pm2.file
   (* THINK: && "pm1.bindings = pm2.bindings" ? *)
   && Range.( $<=$ ) (range pm1) (range pm2)
+  && has_shorter_trace pm2 pm1
+
+(* let logger = Logging.get_logger [ __MODULE__ ] *)
 
 (* Remove matches that are srictly inside another match. *)
 let no_submatches pms =
@@ -146,7 +164,12 @@ let no_submatches pms =
          match Hashtbl.find_opt tbl k with
          | None -> Hashtbl.add tbl k [ pm ]
          | Some ys -> (
-             match List.find_opt (fun y -> submatch pm y) ys with
+             match List.find_opt (fun y -> 
+             let r = submatch pm y in
+             (* let r_str = Printf.sprintf "%d-%d <= %d-%d -> %b" (range pm).start (range pm).end_ (range y).start (range y).end_ r in
+             logger#flash "============\n============\n! no_submatches (submatch %s) \n pm = %s\n--------------------\n    y = %s" r_str (show pm) (show y); *)
+             r
+             ) ys with
              | Some _ -> ()
              | None ->
                  let ys' = List.filter (fun y -> not (submatch y pm)) ys in
