@@ -16,6 +16,8 @@
 module G = AST_generic
 module PM = Pattern_match
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 type tainted_tokens = G.tok list [@@deriving show]
 (* TODO: Given that the analysis is path-insensitive, the trace should capture
  * all potential paths. So a set of tokens seems more appropriate than a list.
@@ -27,6 +29,13 @@ type 'a call_trace =
   | PM of PM.t * 'a
   | Call of G.expr * tainted_tokens * 'a call_trace
 [@@deriving show]
+
+let lenght_of_call_trace ct = 
+  let rec loop acc = function
+  | PM _ -> acc
+  | Call (_, _, ct') -> loop (acc+1) ct'
+  in
+  loop 0 ct
 
 let rec _show_call_trace show_thing = function
 | PM (pm, x) ->
@@ -73,31 +82,26 @@ let rec pm_of_trace = function
   | PM (pm, x) -> (pm, x)
   | Call (_, _, trace) -> pm_of_trace trace
 
-(* We use a set simply to avoid duplicate findings.
- * THINK: Should we just let them pass here and be filtered out later on? *)
-module Taint_set = Set.Make (struct
-  type t = taint
-
+let compare_orig orig1 orig2 =
   let compare_pm pm1 pm2 =
     (* If the pattern matches are obviously different (have different ranges),
-     * we are done. If their ranges are the same, we compare their metavariable
-     * environments. This is not robust to reordering metavariable environments,
-     * e.g.: [("$A",e1);("$B",e2)] is not equal to [("$B",e2);("$A",e1)]. This
-     * is a potential source of duplicate findings, but that is OK.
-     *)
-    match compare pm1.PM.range_loc pm2.PM.range_loc with
-    | 0 -> compare pm1.PM.env pm2.PM.env
-    | c -> c
+      * we are done. If their ranges are the same, we compare their metavariable
+      * environments. This is not robust to reordering metavariable environments,
+      * e.g.: [("$A",e1);("$B",e2)] is not equal to [("$B",e2);("$A",e1)]. This
+      * is a potential source of duplicate findings, but that is OK.
+      *)
+    Stdlib.compare (pm1.PM.rule_id, pm1.range_loc, pm1.env) (pm2.PM.rule_id, pm2.range_loc, pm2.env)
+  in
 
   let compare_dm dm1 dm2 =
     match (pm_of_trace dm1, pm_of_trace dm2) with
     |  (p, x), (q, y) ->
         let pq_cmp = compare_pm p q in
-        if pq_cmp <> 0 then pq_cmp else Stdlib.compare x y
+        if pq_cmp <> 0 then pq_cmp else String.compare x.Rule.label y.Rule.label
+  in
 
   (* TODO: Rely on ppx_deriving.ord ? *)
-  let compare_orig t1 t2 =
-    match (t1, t2) with
+    match (orig1, orig2) with
     | Arg (s, i), Arg (s', j) -> (
         match String.compare s s' with
         | 0 -> Int.compare i j
@@ -106,11 +110,83 @@ module Taint_set = Set.Make (struct
     | Arg _, Src _ -> -1
     | Src _, Arg _ -> 1
 
-  (* TODO: Right now we disregard the trace so we only keep one potential path.
-   *       This may have to become a map (orig -> trace) rather than a set, so
-   *       that we can merge the traces when merging taint at join points. *)
-  let compare t1 t2 = compare_orig t1.orig t2.orig
-end)
+let compare_taint taint1 taint2 =
+(* TODO: Right now we disregard the trace so we only keep one potential path.
+  *       This may have to become a map (orig -> trace) rather than a set, so
+  *       that we can merge the traces when merging taint at join points. *)
+  compare_orig taint1.orig taint2.orig
+
+module Taint_set = struct
+
+  module Taint_map =
+    Map.Make (struct
+      type t = orig
+
+      let compare k1 k2 =
+        match k1, k2 with
+        | Arg _, Src _ -> -1
+        | Src _, Arg _ -> +1
+        | Arg a1, Arg a2 -> Stdlib.compare a1 a2
+        | Src s1, Src s2 ->
+          let pm1, ts1 = pm_of_trace s1
+          and pm2, ts2 = pm_of_trace s2 in
+          Stdlib.compare (pm1.rule_id, pm1.range_loc, pm1.env, ts1.label) (pm2.rule_id, pm2.range_loc, pm2.env, ts2.label)
+
+    end)
+
+  let pick_taint taint1 taint2 =
+    match taint1.orig, taint1.orig with
+  | Arg _, Arg _ -> taint2
+  | Src src1, Src src2 ->
+    if lenght_of_call_trace src1 < lenght_of_call_trace src2 then
+      taint1
+    else
+      taint2
+  | Src _, Arg _
+  | Arg _, Src _ ->
+    logger#error "Taint_set.pick_taint: Ooops, the impossible happened!";
+    taint2
+
+  type t = taint Taint_map.t
+
+  let empty = Taint_map.empty
+
+  let is_empty set = Taint_map.is_empty set
+
+  let equal set1 set2 =
+    let eq t1 t2 = compare_taint t1 t2 = 0 in
+    Taint_map.equal eq set1 set2
+
+  let add taint set =
+    set |> Taint_map.update taint.orig (function
+            | None -> Some taint
+            | Some taint' -> Some (pick_taint taint taint')              
+    )
+  
+  let union set1 set2 =
+    Taint_map.union (fun _k taint1 taint2 -> Some (pick_taint taint1 taint2)
+
+      ) set1 set2
+
+  let singleton taint = add taint empty
+
+  let map f set =
+    Taint_map.map f set
+  
+  let iter f set =
+    Taint_map.iter (fun _k -> f) set
+
+  let fold f set acc =
+    Taint_map.fold (fun _k -> f) set acc
+
+  let of_list taints =
+    List.fold_left (fun set taint -> add taint set) Taint_map.empty taints
+  
+  let to_seq set = set |> Taint_map.to_seq |> Seq.map snd
+
+  let elements set = set |> to_seq |> List.of_seq
+
+end
 
 type taints = Taint_set.t
 
