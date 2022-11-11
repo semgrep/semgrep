@@ -46,9 +46,9 @@ let load_rules_from_url url : rules_and_origin =
     | exn ->
         raise
           (E.Semgrep_error
-             (E.basic
-                (spf "Failed to download config from %s: %s" (Uri.to_string url)
-                   (Common.exn_to_s exn))))
+             ( spf "Failed to download config from %s: %s" (Uri.to_string url)
+                 (Common.exn_to_s exn),
+               None ))
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->

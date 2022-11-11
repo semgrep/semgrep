@@ -77,14 +77,16 @@ let config_kind_of_config_str config_str =
       in
       raise
         (E.Semgrep_error
-           (E.basic
-              (spf "unable to find a config; path `%s` does not exist%s" str
-                 addendum)))
+           ( spf "unable to find a config; path `%s` does not exist%s" str
+               addendum,
+             None ))
 
+(* alt: instead of this Uri.to_string and Uri.of_string, we could
+ * use Uri.with_path to adjust the path (a la Filename.concat)
+ *)
 let url_of_registry_kind rkind =
   (* we go through the CURL interface for now (c/) *)
-  (* python: was using env.semgrep_url *)
-  let prefix = "https://semgrep.dev/c" in
+  let prefix = Uri.to_string Semgrep_envvars.env.semgrep_url ^ "/c" in
   let url =
     match rkind with
     | Registry s -> spf "%s/r/%s" prefix s

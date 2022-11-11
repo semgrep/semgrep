@@ -126,7 +126,7 @@ let string_of_severity (severity : Rule.severity) : string =
   | Inventory -> "INVENTORY"
 
 (* LATER: move also to Severity.ml and reuse types there *)
-let level_of_severity (severity : Out.core_severity) : Error.level =
+let level_of_severity (severity : Out.core_severity) : Severity.basic_severity =
   match severity with
   | Error -> `Error
   | Warning -> `Warning
