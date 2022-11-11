@@ -116,7 +116,6 @@ def ci(
     dry_run: bool,
     enable_nosem: bool,
     enable_version_check: bool,
-    exclude_rule: Optional[Tuple[str, ...]],
     suppress_errors: bool,
     force_color: bool,
     gitlab_sast: bool,
@@ -130,7 +129,6 @@ def ci(
     sarif: bool,
     rewrite_rule_ids: bool,
     supply_chain: bool,
-    scan_unknown_extensions: bool,
     time_flag: bool,
 ) -> None:
     """
@@ -276,7 +274,6 @@ def ci(
                 jobs=jobs,
                 include=include,
                 exclude=exclude,
-                exclude_rule=exclude_rule,
                 max_target_bytes=max_target_bytes,
                 autofix=scan_handler.autofix if scan_handler else False,
                 dryrun=True,

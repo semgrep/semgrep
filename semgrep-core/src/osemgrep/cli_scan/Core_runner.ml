@@ -158,11 +158,11 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    logging_level = _;
    strict = _;
    severity = _;
+   exclude_rule_ids = _;
    (* TOPORT: not handled yet *)
    autofix = _;
    dryrun = _;
    baseline_commit = _;
-   exclude_rule_ids = _;
    exclude = _;
    include_ = _;
    config = _;
