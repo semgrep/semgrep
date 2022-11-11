@@ -92,39 +92,7 @@ def span_list_to_tuple(spans: List[Span]) -> Tuple[Span, ...]:
 
 class ErrorWithSpan(SemgrepError):
     """
-    In general, you should not be constructing ErrorWithSpan directly, and instead be constructing a subclass
-    that sets the code.
-
-    Error which will print context from the Span. You should provide the most specific span possible,
-    eg. if the error is an invalid key, provide exactly the span for that key. You can then expand what's printed
-    with span.with_context(...). Conversely, if you don't want to display the entire span, you can use `span.truncate`
-
-    The __str__ method produces the pretty-printed error.
-    Here is what the generated error will look like:
-
-        <level>: <short_msg>
-          --> <span.filename>:<span.start.line>
-        1 | rules:
-        2 |   - id: eqeq-is-bad
-        3 |     pattern-inside: foo(...)
-          |     ^^^^^^^^^^^^^^
-        4 |     patterns:
-        5 |       - pattern-not: 1 == 1
-        = help: <help>
-        <long_msg>
-
-    :param short_msg: 1 or 2 word description of the problem (eg. missing key)
-    :param level: How bad is the problem? error,warn, etc.
-    :param spans: A list of spans to display for context.
-    :help help: An optional hint about how to fix the problem
-    :cause cause: The underlying exception
     """
-
-    short_msg: str = attr.ib()
-    long_msg: Optional[str] = attr.ib()
-    spans: List[Span] = attr.ib(converter=span_list_to_tuple)
-    help: Optional[str] = attr.ib(default=None)
-
     def __attrs_post_init__(self) -> None:
         if not hasattr(self, "code"):
             raise ValueError("Inheritors of SemgrepError must define an exit code")

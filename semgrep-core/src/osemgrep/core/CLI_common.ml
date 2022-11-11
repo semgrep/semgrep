@@ -19,10 +19,12 @@ let safe_run run conf : Exit_code.t =
     Printexc.record_backtrace true;
     run conf
   with
-  | Error.Semgrep_error e ->
+  | Error.Semgrep_error (s, opt_exit_code) -> (
       (* TODO? use Logs.error? *)
-      Printf.eprintf "Error: %s\n" (Error.string_of_error e);
-      e.Error.code
+      Printf.eprintf "Error: %s\n" s;
+      match opt_exit_code with
+      | None -> Exit_code.fatal
+      | Some code -> code)
   | Common.UnixExit i -> Exit_code.of_int i
   | Failure msg ->
       Printf.eprintf "Error: %s\n%!" msg;
