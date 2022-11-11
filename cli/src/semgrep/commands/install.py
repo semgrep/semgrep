@@ -56,9 +56,9 @@ def install_deep_semgrep() -> None:
     if sys.platform.startswith("darwin"):
         # arm64 is possible. Dunno if other arms are, so let's just check a prefix.
         if platform.machine().startswith("arm"):
-            platform_kind = "osx-m1"
+            platform_kind = "osx-arm64"
         else:
-            platform_kind = "osx"
+            platform_kind = "osx-x86_64"
     elif sys.platform.startswith("linux"):
         platform_kind = "manylinux"
     else:
