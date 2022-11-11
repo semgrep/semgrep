@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 import stat
 import subprocess
@@ -53,16 +54,20 @@ def install_deep_semgrep() -> None:
         sys.exit(INVALID_API_KEY_EXIT_CODE)
 
     if sys.platform.startswith("darwin"):
-        platform = "osx"
+        # arm64 is possible. Dunno if other arms are, so let's just check a prefix.
+        if platform.machine().startswith("arm"):
+            platform_kind = "osx-m1"
+        else:
+            platform_kind = "osx"
     elif sys.platform.startswith("linux"):
-        platform = "manylinux"
+        platform_kind = "manylinux"
     else:
-        platform = "manylinux"
+        platform_kind = "manylinux"
         logger.info(
             "Running on potentially unsupported platform. Installing linux compatible binary"
         )
 
-    url = f"{state.env.semgrep_url}/api/agent/deployments/deepbinary/{platform}"
+    url = f"{state.env.semgrep_url}/api/agent/deployments/deepbinary/{platform_kind}"
 
     with state.app_session.get(url, timeout=60, stream=True) as r:
         if r.status_code == 401:
