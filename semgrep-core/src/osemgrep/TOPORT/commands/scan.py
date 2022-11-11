@@ -395,7 +395,6 @@ def scan(
                     _,
                 ) = semgrep.semgrep_main.main(
                     configs=(config or []),
-                    exclude_rule=exclude_rule,
                     disable_nosem=(not enable_nosem),
                     no_git_ignore=(not use_git_ignore),
                     skip_unknown_extensions=(not scan_unknown_extensions),

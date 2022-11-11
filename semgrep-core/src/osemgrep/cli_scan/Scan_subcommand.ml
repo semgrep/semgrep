@@ -137,9 +137,11 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
                    | None -> false
                    | Some x -> List.mem x xs)
       in
-
-      (* TOPORT: filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule) *)
-
+      let filtered_rules =
+        filtered_rules
+        |> Common.exclude (fun r ->
+               List.mem (fst r.Rule.id) conf.exclude_rule_ids)
+      in
       (* TODO: there are more ways to specify targets? see target_manager.py *)
       let (targets : Common.filename list), _skipped_targetsTODO =
         Find_target.select_global_targets ~includes:conf.include_
