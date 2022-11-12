@@ -53,10 +53,10 @@ let apply_fixes_and_warn (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   let modified_files, _failed_fixes = apply_fixes conf cli_output in
   if not conf.dryrun then
     if modified_files <> [] then
-      pr2
-        (spf "successfully modified %s."
-           (String_utils.unit_str (List.length modified_files) "file"))
-    else pr2 "no files modified."
+      Logs.info (fun m ->
+          m "successfully modified %s."
+            (String_utils.unit_str (List.length modified_files) "file"))
+    else Logs.info (fun m -> m "no files modified.")
 
 (*****************************************************************************)
 (* Format dispatcher *)

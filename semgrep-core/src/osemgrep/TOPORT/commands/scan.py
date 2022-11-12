@@ -1,122 +1,18 @@
 # PARTIALLY PORTED TO OCAML. DELETE PARTS AS YOU PORT THEM.
 
 from semgrep import bytesize
-from semgrep.app.registry import list_current_public_rulesets
 from semgrep.app.version import get_no_findings_msg
-from semgrep.commands.wrapper import handle_command_errors
-from semgrep.constants import Colors
-from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
-from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
-from semgrep.constants import DEFAULT_TIMEOUT
-from semgrep.constants import MAX_CHARS_FLAG_NAME
-from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.dump_ast import dump_parsed_ast
 from semgrep.notifications import possibly_notify_user
 from semgrep.project import get_project_url
-from semgrep.semgrep_types import LANGUAGE
 from semgrep.target_manager import write_pipes_to_disk
 from semgrep.util import abort
 from semgrep.util import with_color
-
-ScanReturn = Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]
-
-def __get_severity_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    return [
-        CompletionItem(e.value) for e in RuleSeverity if e.value.startswith(incomplete)
-    ]
-
-def __get_language_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    return [
-        CompletionItem(e)
-        for e in LANGUAGE.all_language_keys
-        if e.startswith(incomplete)
-    ]
-
-def __get_size_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    if incomplete.isnumeric():
-        sizes = [f"{incomplete}{u}" for u in bytesize.UNITS.keys()]
-        return [CompletionItem(s) for s in sizes if s.startswith(incomplete)]
-    else:
-        return []
-
-
-def __get_file_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    return [CompletionItem(f, type="file") for f in os.listdir(".")]
-
-
-def __get_config_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    if incomplete[:2] == "p/":
-        # Get list of rulesets
-        rulesets = list_current_public_rulesets()
-        rulesets = list(
-            filter(lambda r: "hidden" not in r or not r["hidden"], rulesets)
-        )
-        rulesets_names = list(map(lambda r: f"p/{r['name']}", rulesets))
-
-        return [CompletionItem(r) for r in rulesets_names if r.startswith(incomplete)]
-    else:
-        files = filter(
-            lambda f: f.endswith(".yaml") or f.endswith(".yml"), os.listdir(".")
-        )
-        return [CompletionItem(f) for f in list(files) if f.startswith(incomplete)]
-
-
-def __get_optimization_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    return [CompletionItem("all"), CompletionItem("none")]
-
-
-class MetricsStateType(click.ParamType):
-    name = "metrics_state"
-
-    def get_metavar(self, _param: click.Parameter) -> str:
-        return "[auto|on|off]"
-
-    def shell_complete(
-        self, context: click.Context, _param: click.Parameter, incomplete: str
-    ) -> List[Any]:
-        return [
-            CompletionItem(e) for e in ["auto", "on", "off"] if e.startswith(incomplete)
-        ]
-
-    def convert(
-        self,
-        value: Any,
-        _param: Optional["click.Parameter"],
-        ctx: Optional["click.Context"],
-    ) -> Any:
-        if value is None:
-            return None
-        if isinstance(value, str):
-            lower = value.lower()
-            if lower == "auto":
-                return MetricsState.AUTO
-            # Support setting via old environment variable values 0/1/true/false
-            if lower == "on" or lower == "1" or lower == "true":
-                return MetricsState.ON
-            if lower == "off" or lower == "0" or lower == "false":
-                return MetricsState.OFF
-        self.fail("expected 'auto', 'on', or 'off'")
-
-METRICS_STATE_TYPE = MetricsStateType()
 
 # Slightly increase the help width from default 80 characters, to improve readability
 CONTEXT_SETTINGS = {"max_content_width": 90}
 
 _scan_options: List[Callable] = [
-
-
 
  optgroup.group("Display options"),
     optgroup.option(

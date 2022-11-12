@@ -1,26 +1,7 @@
-import re
-from pathlib import Path
-from typing import Dict
-from typing import List
-from typing import Set
-from typing import Tuple
-
-from semgrep.error import SemgrepError
-from semgrep.rule_match import RuleMatch
-from semgrep.rule_match import RuleMatchMap
-from semgrep.util import unit_str
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
-SPLIT_CHAR = "\n"
-
-
 class Fix:
     def __init__(self, fixed_contents: str, fixed_lines: List[str]):
         self.fixed_contents = fixed_contents
         self.fixed_lines = fixed_lines
-
 
 class FileOffsets:
     """
@@ -37,12 +18,6 @@ class FileOffsets:
         self.line_offset = line_offset
         self.col_offset = col_offset
         self.active_line = active_line
-
-
-def _get_lines(path: Path) -> List[str]:
-    contents = path.read_text()
-    lines = contents.split(SPLIT_CHAR)
-    return lines
 
 
 def _get_match_context(
@@ -96,10 +71,6 @@ def _regex_replace(
     return Fix(SPLIT_CHAR.join(modified_contents), modified_context), file_offsets
 
 
-def _write_contents(path: Path, contents: str) -> None:
-    path.write_text(contents)
-
-
 def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> None:
     """
     Modify files in place for all files with findings from rules with an
@@ -147,11 +118,3 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
                 rule_match.extra[
                     "fixed_lines"
                 ] = fixobj.fixed_lines  # Monkey patch in fixed lines
-
-    if not dryrun:
-        if len(modified_files):
-            logger.info(
-                f"successfully modified {unit_str(len(modified_files), 'file')}."
-            )
-        else:
-            logger.info(f"no files modified.")
