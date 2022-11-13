@@ -1,26 +1,7 @@
-import sys
-from enum import Enum
-from pathlib import Path
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-
-import click
-
 from semgrep.app import auth
-from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import get_config
-from semgrep.error import FATAL_EXIT_CODE
-from semgrep.project import get_project_url
-from semgrep.state import get_state
 from semgrep.test import get_config_filenames
 from semgrep.test import get_config_test_filenames
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
 
 class VisibilityState(str, Enum):
     ORG_PRIVATE: str = "org_private"
@@ -84,7 +65,7 @@ def _get_test_code_for_config(
     "registry_id",
     help="If --visibility is set to public, this is the path the rule will have in the registry (example: python.flask.my-new-rule",
 )
-@handle_command_errors
+
 def publish(
     target: str, visibility: VisibilityState, registry_id: Optional[str]
 ) -> None:

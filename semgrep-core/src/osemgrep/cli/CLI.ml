@@ -137,8 +137,22 @@ let dispatch_subcommand argv =
 (* Error management *)
 (*****************************************************************************)
 
-(* Wrapper that catches exceptions and turns them into an exit code. *)
+(* Wrapper that catches exceptions and turns them into an exit code.
+ * TOPORT?
+    Adds the following functionality to our subcommands:
+    - Enforces that exit code 1 is only for findings
+    - Handles metric sending before exit
+ *)
 let safe_run f : Exit_code.t =
+  (* TOPORT:
+     finally:
+      metrics = get_state().metrics
+      metrics.add_exit_code(exit_code)
+      metrics.send()
+
+      error_handler = get_state().error_handler
+      exit_code = error_handler.send(exit_code)
+  *)
   try f () with
   | Error.Semgrep_error (s, opt_exit_code) -> (
       Logs.err (fun m -> m "%s" s);

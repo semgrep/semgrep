@@ -1,6 +1,5 @@
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
-from semgrep.util import with_color
 
 class SemgrepError(Exception):
 

@@ -1,22 +1,4 @@
-import fnmatch
-import os
-import re
-from functools import lru_cache
-from pathlib import Path
-from typing import FrozenSet
-from typing import Iterable
-from typing import Iterator
-from typing import Set
-from typing import TextIO
-
-from attr import frozen
-from attrs import define
-from boltons.iterutils import partition
-
-from semgrep.error import SemgrepError
-from semgrep.state import get_state
 from semgrep.types import FilteredFiles
-from semgrep.verbose_logging import getLogger
 
 CONTROL_REGEX = re.compile(r"(?!<\\):")  # Matches unescaped colons
 MULTI_CHAR_REGEX = re.compile(
@@ -24,8 +6,6 @@ MULTI_CHAR_REGEX = re.compile(
 )  # Matches anything in unescaped brackets
 COMMENT_START_REGEX = re.compile(r"(?P<ignore_pattern>.*?)(?:\s+|^)#.*")
 IGNORE_FILE_NAME = ".semgrepignore"
-
-logger = getLogger(__name__)
 
 # For some reason path.is_relative_to produces a complaint that 'PosixPath' object has no attribute 'is_relative_to'
 # So we just copy its implementation
@@ -41,7 +21,6 @@ def path_is_relative_to(p1: Path, p2: Path) -> bool:
 ## We should ultimately remove this from semgrep-action, and keep it as part of the CLI
 
 # This class is a duplicate of the FileIgnore class in semgrep-action, but with all file walking functionality removed
-@frozen
 class FileIgnore:
     base_path: Path
     patterns: FrozenSet[str]
@@ -109,7 +88,6 @@ class FileIgnore:
 
 
 # This class is an exact duplicate of the Parser class in semgrep-action
-@define
 class Parser:
     r"""
     A parser for semgrepignore syntax.
@@ -203,7 +181,6 @@ class Parser:
 
 
 # This class is an exact duplicate of the Processor class in semgrep-action
-@define
 class Processor:
     """
     A post-processor for parsed semgrepignore files.

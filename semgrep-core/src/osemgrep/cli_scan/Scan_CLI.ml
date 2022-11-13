@@ -312,7 +312,9 @@ let o_version_check : bool Term.t =
 let o_force_color : bool Term.t =
   H.negatable_flag [ "force-color" ] ~neg_options:[ "no-force-color" ]
     ~default:default.force_color
-      (* TOPORT? need handle SEMGREP_COLOR_NO_COLOR or NO_COLOR *)
+      (* TOPORT? need handle SEMGREP_COLOR_NO_COLOR or NO_COLOR
+       * # https://no-color.org/
+       *)
     ~env:(Cmd.Env.info "SEMGREP_FORCE_COLOR")
     ~doc:
       {|Always include ANSI color in the output, even if not writing to
