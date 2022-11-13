@@ -21,6 +21,18 @@ let setup_logging (conf : Scan_CLI.conf) =
    *)
   Logs_helpers.setup_logging ~force_color:conf.force_color
     ~level:conf.logging_level;
+  (* TOPORT
+        # Setup file logging
+        # env.user_log_file dir must exist
+        env.user_log_file.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(env.user_log_file, "w")
+        file_formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(file_formatter)
+        logger.addHandler(file_handler)
+  *)
   Logs.debug (fun m -> m "Logging setup for semgrep scan");
   Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
   Logs.debug (fun m ->

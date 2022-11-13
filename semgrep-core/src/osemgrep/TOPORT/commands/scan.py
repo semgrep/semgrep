@@ -151,9 +151,6 @@ def scan(
 
     state = get_state()
     state.metrics.configure(metrics, metrics_legacy)
-    state.terminal.configure(
-        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
-    )
 
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
@@ -172,18 +169,7 @@ def scan(
     elif sarif:
         output_format = OutputFormat.SARIF
 
-    output_settings = OutputSettings(
-        output_format=output_format,
-        output_destination=output,
-        error_on_findings=error_on_findings,
-        strict=strict,
-        verbose_errors=verbose,
-        timeout_threshold=timeout_threshold,
-        output_time=time_flag,
-        output_per_finding_max_lines_limit=max_lines_per_finding,
-        output_per_line_max_chars_limit=max_chars_per_line,
-        dataflow_traces=dataflow_traces,
-    )
+    output_settings = OutputSettings(...)
 
     if test:
         # the test code (which isn't a "test" per se but is actually machinery to evaluate semgrep performance)
