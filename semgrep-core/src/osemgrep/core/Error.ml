@@ -85,6 +85,4 @@ exception Semgrep_error of string * Exit_code.t option
 (* Misc *)
 (*****************************************************************************)
 
-let abort msg =
-  (* TOPORT: click.seecho(message, fg="red", err=True) *)
-  raise (Semgrep_error (msg, None))
+let abort msg = raise (Semgrep_error (msg, None))

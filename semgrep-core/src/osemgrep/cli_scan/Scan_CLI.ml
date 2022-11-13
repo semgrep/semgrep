@@ -31,6 +31,7 @@ type conf = {
   dryrun : bool;
   exclude : string list;
   exclude_rule_ids : string list;
+  force_color : bool;
   include_ : string list;
   (* LATER: use Xlang.t option; *)
   lang : string option;
@@ -65,6 +66,7 @@ let default : conf =
     dryrun = false;
     exclude = [];
     exclude_rule_ids = [];
+    force_color = false;
     include_ = [];
     lang = None;
     max_memory_mb = 0;
@@ -304,7 +306,18 @@ let o_version_check : bool Term.t =
 (* TOPORT "Display options" *)
 (* ------------------------------------------------------------------ *)
 
-(* TODO? use Fmt_cli.style_renderer ? *)
+(* alt: could use Fmt_cli.style_renderer, which supports --color=xxx but
+ * better be backward compatible with how semgrep was doing it before
+ *)
+let o_force_color : bool Term.t =
+  H.negatable_flag [ "force-color" ] ~neg_options:[ "no-force-color" ]
+    ~default:default.force_color
+      (* TOPORT? need handle SEMGREP_COLOR_NO_COLOR or NO_COLOR *)
+    ~env:(Cmd.Env.info "SEMGREP_FORCE_COLOR")
+    ~doc:
+      {|Always include ANSI color in the output, even if not writing to
+a TTY; defaults to using the TTY status
+|}
 
 let o_rewrite_rule_ids : bool Term.t =
   H.negatable_flag [ "rewrite-rule-ids" ] ~neg_options:[ "no-rewrite-rule-ids" ]
@@ -487,12 +500,11 @@ let o_target_roots : string list Term.t =
 
 let cmdline_term : conf Term.t =
   let combine autofix baseline_commit config debug dryrun emacs exclude
-      exclude_rule_ids include_ json lang max_memory_mb max_target_bytes metrics
-      num_jobs optimizations pattern quiet respect_git_ignore rewrite_rule_ids
-      scan_unknown_extensions severity show_supported_languages strict
-      target_roots time_flag timeout timeout_threshold verbose version
-      version_check vim =
-    (* TODO? maybe we should call setup_logging ASAP? *)
+      exclude_rule_ids force_color include_ json lang max_memory_mb
+      max_target_bytes metrics num_jobs optimizations pattern quiet
+      respect_git_ignore rewrite_rule_ids scan_unknown_extensions severity
+      show_supported_languages strict target_roots time_flag timeout
+      timeout_threshold verbose version version_check vim =
     let logging_level =
       match (verbose, debug, quiet) with
       | false, false, false -> Some Logs.Warning
@@ -501,6 +513,10 @@ let cmdline_term : conf Term.t =
       | false, false, true -> None (* TOPORT: list the possibilities *)
       | _else_ -> failwith "mutually exclusive options"
     in
+    (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
+     * correctly *)
+    Logs_helpers.setup_logging ~force_color ~level:logging_level;
+
     let output_format =
       match (json, emacs, vim) with
       | false, false, false -> default.output_format
@@ -521,7 +537,6 @@ let cmdline_term : conf Term.t =
 
     (* warnings *)
     if include_ <> [] && exclude <> [] then
-      (* TOPORT: with_color yelow *)
       Logs.warn (fun m ->
           m
             "Paths that match both --include and --exclude will be skipped by \
@@ -534,6 +549,7 @@ let cmdline_term : conf Term.t =
       dryrun;
       exclude_rule_ids;
       exclude;
+      force_color;
       include_;
       lang;
       logging_level;
@@ -561,13 +577,13 @@ let cmdline_term : conf Term.t =
   (* Term defines 'const' but also the '$' operator *)
   Term.(
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
-    $ o_dryrun $ o_emacs $ o_exclude $ o_exclude_rule_ids $ o_include $ o_json
-    $ o_lang $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
-    $ o_optimizations $ o_pattern $ o_quiet $ o_respect_git_ignore
-    $ o_rewrite_rule_ids $ o_scan_unknown_extensions $ o_severity
-    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_time
-    $ o_timeout $ o_timeout_threshold $ o_verbose $ o_version $ o_version_check
-    $ o_vim)
+    $ o_dryrun $ o_emacs $ o_exclude $ o_exclude_rule_ids $ o_force_color
+    $ o_include $ o_json $ o_lang $ o_max_memory_mb $ o_max_target_bytes
+    $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern $ o_quiet
+    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_scan_unknown_extensions
+    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
+    $ o_time $ o_timeout $ o_timeout_threshold $ o_verbose $ o_version
+    $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 
