@@ -10,7 +10,9 @@
    complicated and we never show a help page for the whole command anyway
    since we fall back to the 'scan' subcommand if none is given.
 
-   Translated from cli.py
+   Exceptions are caught and turned into an appropriate exit code.
+
+   Translated from cli.py and commands/wrapper.py
 *)
 
 (*****************************************************************************)
@@ -132,10 +134,32 @@ let dispatch_subcommand argv =
       | _else_ -> (* should have defaulted to 'scan' above *) assert false)
 
 (*****************************************************************************)
+(* Error management *)
+(*****************************************************************************)
+
+(* Wrapper that catches exceptions and turns them into an exit code. *)
+let safe_run f : Exit_code.t =
+  try f () with
+  | Error.Semgrep_error (s, opt_exit_code) -> (
+      (* TODO? use Logs.error? *)
+      Printf.eprintf "Error: %s\n" s;
+      match opt_exit_code with
+      | None -> Exit_code.fatal
+      | Some code -> code)
+  | Common.UnixExit i -> Exit_code.of_int i
+  | Failure msg ->
+      Printf.eprintf "Error: %s\n%!" msg;
+      Exit_code.fatal
+  | e ->
+      let trace = Printexc.get_backtrace () in
+      Printf.eprintf "Error: exception %s\n%s%!" (Printexc.to_string e) trace;
+      Exit_code.fatal
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let main argv =
+let main argv : Exit_code.t =
   Printexc.record_backtrace true;
 
   (* LATER: move this function from Core_CLI to here at some point *)
@@ -193,7 +217,7 @@ let main argv =
       state.metrics.add_feature("subcommand", subcommand)
       maybe_set_git_safe_directories()
   *)
-  dispatch_subcommand argv
+  safe_run (fun () -> dispatch_subcommand argv)
 
 (* TOADAPT:
    let main (argv : string array) : unit =

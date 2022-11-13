@@ -67,5 +67,5 @@ let run (_conf : logout_cli_conf) : Exit_code.t =
 let main (argv : string array) : Exit_code.t =
   let res = parse_argv argv in
   match res with
-  | Ok conf -> CLI_common.safe_run run conf
+  | Ok conf -> run conf
   | Error exit_code -> exit_code

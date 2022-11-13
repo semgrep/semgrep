@@ -36,5 +36,5 @@ let run (_conf : Ci_CLI.conf) : Exit_code.t =
 let main (argv : string array) : Exit_code.t =
   let res = Ci_CLI.parse_argv argv in
   match res with
-  | Ok conf -> CLI_common.safe_run run conf
+  | Ok conf -> run conf
   | Error exit_code -> exit_code
