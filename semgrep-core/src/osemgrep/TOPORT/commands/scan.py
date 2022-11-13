@@ -6,11 +6,6 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.notifications import possibly_notify_user
 from semgrep.project import get_project_url
 from semgrep.target_manager import write_pipes_to_disk
-from semgrep.util import abort
-from semgrep.util import with_color
-
-# Slightly increase the help width from default 80 characters, to improve readability
-CONTEXT_SETTINGS = {"max_content_width": 90}
 
 _scan_options: List[Callable] = [
 
@@ -85,12 +80,9 @@ _scan_options: List[Callable] = [
 
 
 def scan_options(func: Callable) -> Callable:
-    for option in reversed(_scan_options):
-        func = option(func)
-    return func
+    return ...
 
 
-@click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "--replacement",
     help="""
@@ -109,7 +101,9 @@ def scan_options(func: Callable) -> Callable:
     help="Validate configuration file(s). This will check YAML files for errors and run 'p/semgrep-rule-lints' on the YAML files. No search is performed.",
 )
 
+
 @optgroup.group("Test and debug options")
+
 
 @optgroup.option("--test", is_flag=True, default=False, help="Run test suite.")
 @optgroup.option(
@@ -170,22 +164,6 @@ def scan(
         verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
     )
 
-    if include and exclude:
-        logger.warning(
-            with_color(
-                Colors.yellow,
-                "Paths that match both --include and --exclude will be skipped by Semgrep.",
-            )
-        )
-
-    if pattern is not None and lang is None:
-        abort("-e/--pattern and -l/--lang must both be specified")
-
-    if (config and "auto" in config) and metrics == MetricsState.OFF:
-        abort(
-            "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
-        )
-
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
 
@@ -237,7 +215,6 @@ def scan(
     with tempfile.TemporaryDirectory() as pipes_dir:
         targets = write_pipes_to_disk(targets, Path(pipes_dir))
         output_handler = OutputHandler(output_settings)
-        return_data: ScanReturn = None
 
         if dump_ast:
             dump_parsed_ast(json, __validate_lang("--dump-ast", lang), pattern, targets)
@@ -314,13 +291,6 @@ def scan(
 
             run_has_findings = any(filtered_matches_by_rule.values())
 
-            return_data = (
-                filtered_matches_by_rule,
-                semgrep_errors,
-                filtered_rules,
-                all_targets,
-            )
-
     if enable_version_check:
         from semgrep.app.version import version_check
 
@@ -332,4 +302,4 @@ def scan(
         if msg:
             logger.info(msg)
 
-    return return_data
+    return ...

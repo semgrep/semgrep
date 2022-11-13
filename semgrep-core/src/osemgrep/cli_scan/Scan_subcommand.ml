@@ -12,10 +12,6 @@
 (*****************************************************************************)
 
 let setup_logging (conf : Scan_CLI.conf) =
-  (* LATER? this used to be in Core_CLI.ml, and so should be in CLI.ml but
-   * we get a conf object later in osemgrep.
-   *)
-
   (* For osemgrep we use the Logs library instead of the Logger
    * library in pfff. We had a few issues with Logger (which is a small
    * wrapper around the easy_logging library), and we don't really want
@@ -25,9 +21,10 @@ let setup_logging (conf : Scan_CLI.conf) =
    *)
   Logs_helpers.setup_logging conf.logging_level;
   Logs.debug (fun m -> m "Logging setup for semgrep scan");
+  Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
   Logs.debug (fun m ->
       m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "));
-  Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
+  Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
 
   (* Easy_logging setup. We should avoid to use Logger in osemgrep/
    * and use Logs instead, but it is still useful to get the semgrep-core

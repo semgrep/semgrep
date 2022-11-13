@@ -35,6 +35,7 @@ type conf = {
   version : bool;
   version_check : bool;
 }
+[@@deriving show]
 
 (* Command-line defaults. *)
 val default : conf

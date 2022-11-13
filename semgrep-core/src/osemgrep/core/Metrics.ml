@@ -12,7 +12,7 @@ module State = struct
      OFF - Metrics never sent
      AUTO - Metrics only sent if config is pulled from the server
   *)
-  type t = On | Off | Auto
+  type t = On | Off | Auto [@@deriving show]
 
   (* For Cmdliner *)
   (* TOPORT? use lowercase_ascii before? accept ON/OFF/AUTO?

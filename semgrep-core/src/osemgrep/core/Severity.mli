@@ -1,6 +1,8 @@
-type basic_severity = [ `Error | `Warning ]
-type rule_severity = [ basic_severity | `Info ]
+type basic_severity = [ `Error | `Warning ] [@@deriving show]
+type rule_severity = [ basic_severity | `Info ] [@@deriving show]
+
 type extended_severity = [ rule_severity | `Inventory | `Experiment ]
+[@@deriving show]
 
 (* for CLI Json output of semgrep errors *)
 val string_of_basic_severity : basic_severity -> string

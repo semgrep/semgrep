@@ -18,14 +18,14 @@
 (*****************************************************************************)
 
 (* valid for rules and for findings, but also for semgrep errors *)
-type basic_severity = [ `Error | `Warning ]
+type basic_severity = [ `Error | `Warning ] [@@deriving show]
 
 (* found in rules, and in semgrep --severity *)
-type rule_severity = [ basic_severity | `Info ]
+type rule_severity = [ basic_severity | `Info ] [@@deriving show]
 
 (* do we still need this? *)
 type extended_severity = [ rule_severity | `Inventory | `Experiment ]
-(*[@@deriving show]*)
+[@@deriving show]
 
 (*****************************************************************************)
 (* Converters *)

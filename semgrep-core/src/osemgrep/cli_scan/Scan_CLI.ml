@@ -1,6 +1,6 @@
 open Common
 
-(* Provide 'Term', 'Arg', and 'Manpage' modules. *)
+(* Provide 'Arg', 'Cmd', 'Manpage', and 'Term' modules. *)
 open Cmdliner
 module H = Cmdliner_helpers
 
@@ -55,6 +55,7 @@ type conf = {
   version : bool;
   version_check : bool;
 }
+[@@deriving show]
 
 let default : conf =
   {
@@ -439,15 +440,6 @@ let o_exclude_rule_ids : string list Term.t =
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 
-let o_show_supported_languages : bool Term.t =
-  let info =
-    Arg.info
-      [ "show-supported-languages" ]
-      ~doc:
-        {|Print a list of languages that are currently supported by Semgrep.|}
-  in
-  Arg.value (Arg.flag info)
-
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Alternate modes" *)
 (* ------------------------------------------------------------------ *)
@@ -455,6 +447,15 @@ let o_show_supported_languages : bool Term.t =
 
 let o_version : bool Term.t =
   let info = Arg.info [ "version" ] ~doc:{|Show the version and exit.|} in
+  Arg.value (Arg.flag info)
+
+let o_show_supported_languages : bool Term.t =
+  let info =
+    Arg.info
+      [ "show-supported-languages" ]
+      ~doc:
+        {|Print a list of languages that are currently supported by Semgrep.|}
+  in
   Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
@@ -470,14 +471,13 @@ Defaults to --no-strict.
 |}
 
 (* ------------------------------------------------------------------ *)
-(* positional arguments *)
+(* Positional arguments *)
 (* ------------------------------------------------------------------ *)
 
 let o_target_roots : string list Term.t =
   let info =
     Arg.info [] ~docv:"TARGETS"
-      ~doc:{|Files or folders to be scanned by semgrep.
-|}
+      ~doc:{|Files or folders to be scanned by semgrep.|}
   in
   Arg.value (Arg.pos_all Arg.string default.target_roots info)
 
@@ -492,6 +492,15 @@ let cmdline_term : conf Term.t =
       scan_unknown_extensions severity show_supported_languages strict
       target_roots time_flag timeout timeout_threshold verbose version
       version_check vim =
+    (* TODO? maybe we should call setup_logging ASAP? *)
+    let logging_level =
+      match (verbose, debug, quiet) with
+      | false, false, false -> Some Logs.Warning
+      | true, false, false -> Some Logs.Info
+      | false, true, false -> Some Logs.Debug
+      | false, false, true -> None (* TOPORT: list the possibilities *)
+      | _else_ -> failwith "mutually exclusive options"
+    in
     let output_format =
       match (json, emacs, vim) with
       | false, false, false -> default.output_format
@@ -502,19 +511,21 @@ let cmdline_term : conf Term.t =
           (* TOPORT: list the possibilities *)
           failwith "Mutually exclusive options"
     in
-    let logging_level =
-      match (verbose, debug, quiet) with
-      | false, false, false -> Some Logs.Warning
-      | true, false, false -> Some Logs.Info
-      | false, true, false -> Some Logs.Debug
-      | false, false, true -> None (* TOPORT: list the possibilities *)
-      | _else_ -> failwith "mutually exclusive options"
-    in
     (* sanity checks *)
     if List.mem "auto" config && metrics = Metrics.State.Off then
       Error.abort
         "Cannot create auto config when metrics are off. Please allow metrics \
          or run with a specific config.";
+    if pattern <> None && lang = None then
+      Error.abort "-e/--pattern and -l/--lang must both be specified";
+
+    (* warnings *)
+    if include_ <> [] && exclude <> [] then
+      (* TOPORT: with_color yelow *)
+      Logs.warn (fun m ->
+          m
+            "Paths that match both --include and --exclude will be skipped by \
+             Semgrep.");
 
     {
       autofix;
@@ -550,7 +561,7 @@ let cmdline_term : conf Term.t =
   (* Term defines 'const' but also the '$' operator *)
   Term.(
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
-    $ o_dryrun $ o_emacs $ o_exclude_rule_ids $ o_exclude $ o_include $ o_json
+    $ o_dryrun $ o_emacs $ o_exclude $ o_exclude_rule_ids $ o_include $ o_json
     $ o_lang $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
     $ o_optimizations $ o_pattern $ o_quiet $ o_respect_git_ignore
     $ o_rewrite_rule_ids $ o_scan_unknown_extensions $ o_severity
