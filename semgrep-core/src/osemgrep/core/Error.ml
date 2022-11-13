@@ -9,9 +9,8 @@
    LATER: we should merge with Semgrep_core_error.ml, as well
    as the errors defined in semgrep_output_v1.atd (especially core_error).
 
-   coupling: See CLI_common.safe_run function which should
-   catch all the exns in this module and return an appropriate
-   exit code.
+   coupling: See the CLI.safe_run function which should catch all the exns
+   defined in this module and return an appropriate exit code.
 *)
 
 (*****************************************************************************)
@@ -19,7 +18,7 @@
 (*****************************************************************************)
 
 (* If no exit code is given, will default to Exit_code.fatal.
-   See CLI_common.safe_run()
+   See CLI.safe_run()
 *)
 exception Semgrep_error of string * Exit_code.t option
 
@@ -81,3 +80,11 @@ exception Semgrep_error of string * Exit_code.t option
    *)
    let () = register_exception_printer ()
 *)
+
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
+
+let abort msg =
+  (* TOPORT: click.seecho(message, fg="red", err=True) *)
+  raise (Semgrep_error (msg, None))

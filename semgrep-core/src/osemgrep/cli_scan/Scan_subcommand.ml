@@ -85,7 +85,7 @@ let exit_code_of_errors ~strict (errors : Semgrep_output_v1_t.core_error list) :
    exit code. *)
 let run (conf : Scan_CLI.conf) : Exit_code.t =
   setup_logging conf;
-  (* could adjust conf.num_jobs (-j) *)
+  (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
 
   match () with
@@ -166,5 +166,5 @@ let main (argv : string array) : Exit_code.t =
    * between the different subcommands at some point
    *)
   match res with
-  | Ok conf -> CLI_common.safe_run run conf
+  | Ok conf -> run conf
   | Error exit_code -> exit_code

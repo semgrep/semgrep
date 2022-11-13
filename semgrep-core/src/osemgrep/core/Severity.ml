@@ -7,7 +7,7 @@
  *  - rule_schema_v1.yaml
  *  - Rule.severity in semgrep-core
  *  - core_severity in semgrep_output_v1.atd
- *  - level in Error.ml
+ *  - DONE level in Error.ml
  * We should remove some of those.
  *
  * python: was in constants.py, but not really constants, more like types!

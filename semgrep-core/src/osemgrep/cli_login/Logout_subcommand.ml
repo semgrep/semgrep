@@ -37,14 +37,7 @@ let man : Manpage.block list =
 let parse_argv (argv : string array) : (conf, Exit_code.t) result =
   let info : Cmd.info = Cmd.info "semgrep logout" ~doc ~man in
   let cmd : conf Cmd.t = Cmd.v info cmdline_term in
-  match Cmd.eval_value ~argv cmd with
-  | Error _n -> Error Exit_code.fatal
-  | Ok ok -> (
-      match ok with
-      | `Ok config -> Ok config
-      | `Version
-      | `Help ->
-          Error Exit_code.ok)
+  CLI_common.eval_value ~argv cmd
 
 (*****************************************************************************)
 (* Main logic *)
@@ -67,5 +60,5 @@ let run (_conf : logout_cli_conf) : Exit_code.t =
 let main (argv : string array) : Exit_code.t =
   let res = parse_argv argv in
   match res with
-  | Ok conf -> CLI_common.safe_run run conf
+  | Ok conf -> run conf
   | Error exit_code -> exit_code

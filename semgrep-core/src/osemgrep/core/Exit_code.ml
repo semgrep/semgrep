@@ -1,7 +1,7 @@
 (*
    Exit codes for the semgrep executable.
-   Translated from error.py
 
+   Partially translated from error.py
 *)
 
 type t = int

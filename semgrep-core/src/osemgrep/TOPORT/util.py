@@ -8,10 +8,6 @@ def is_rules(rules: str) -> bool:
 def path_has_permissions(path: Path, permissions: int) -> bool:
     return path.exists() and path.stat().st_mode & permissions == permissions
 
-def abort(message: str) -> None:
-    click.secho(message, fg="red", err=True)
-    sys.exit(2)
-
 def with_color(
     color: Colors,
     text: str,
