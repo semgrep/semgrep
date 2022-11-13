@@ -43,11 +43,4 @@ let parse_argv (argv : string array) : (conf, Exit_code.t) result =
   (* mostly a copy of Scan_CLI.parse_argv with different doc and man *)
   let info : Cmd.info = Cmd.info "semgrep ci" ~doc ~man in
   let cmd : conf Cmd.t = Cmd.v info Scan_CLI.cmdline_term in
-  match Cmd.eval_value ~argv cmd with
-  | Error _n -> Error Exit_code.fatal
-  | Ok ok -> (
-      match ok with
-      | `Ok config -> Ok config
-      | `Version
-      | `Help ->
-          Error Exit_code.ok)
+  CLI_common.eval_value ~argv cmd

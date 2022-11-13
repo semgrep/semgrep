@@ -154,13 +154,6 @@ environment variable, defaults to 'auto'.
  *  rules' languages. These options alter which files Semgrep scans."
  *)
 
-let o_exclude_rule_ids : string list Term.t =
-  let info =
-    Arg.info [ "exclude-rule" ]
-      ~doc:{|Skip any rule with the given id. Can add multiple times.|}
-  in
-  Arg.value (Arg.opt_all Arg.string [] info)
-
 let o_exclude : string list Term.t =
   let info =
     Arg.info [ "exclude" ]
@@ -439,6 +432,13 @@ Each should be one of INFO, WARNING, or ERROR.
   in
   Arg.value (Arg.opt_all Severity.converter [] info)
 
+let o_exclude_rule_ids : string list Term.t =
+  let info =
+    Arg.info [ "exclude-rule" ]
+      ~doc:{|Skip any rule with the given id. Can add multiple times.|}
+  in
+  Arg.value (Arg.opt_all Arg.string [] info)
+
 let o_show_supported_languages : bool Term.t =
   let info =
     Arg.info
@@ -590,11 +590,4 @@ let man : Manpage.block list =
 let parse_argv (argv : string array) : (conf, Exit_code.t) result =
   let info : Cmd.info = Cmd.info "semgrep scan" ~doc ~man in
   let cmd : conf Cmd.t = Cmd.v info cmdline_term in
-  match Cmd.eval_value ~catch:false ~argv cmd with
-  | Error _n -> Error Exit_code.fatal
-  | Ok ok -> (
-      match ok with
-      | `Ok config -> Ok config
-      | `Version
-      | `Help ->
-          Error Exit_code.ok)
+  CLI_common.eval_value ~argv cmd
