@@ -30,4 +30,4 @@ val enable_logging : unit -> unit
 (* Setup the Logs library. This call is necessary before any logging
    calls, otherwise your log will not go anywhere (not even on stderr).
 *)
-val setup_logging : Logs.level option -> unit
+val setup_logging : force_color:bool -> level:Logs.level option -> unit

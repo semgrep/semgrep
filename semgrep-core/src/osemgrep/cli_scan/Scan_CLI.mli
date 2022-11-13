@@ -12,6 +12,7 @@ type conf = {
   dryrun : bool;
   exclude : string list;
   exclude_rule_ids : string list;
+  force_color : bool;
   include_ : string list;
   lang : string option;
   logging_level : Logs.level option;

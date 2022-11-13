@@ -156,6 +156,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    version = _;
    version_check = _;
    logging_level = _;
+   force_color = _;
    strict = _;
    severity = _;
    exclude_rule_ids = _;

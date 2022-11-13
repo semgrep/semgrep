@@ -1,10 +1,20 @@
+(* Enable basic logging (level = Logs.Warning) so that you can use Logging
+ * calls even before a precise call to setup_logging.
+ *)
 let enable_logging () =
   Logs.set_level ~all:true (Some Logs.Warning);
   Logs.set_reporter (Logs_fmt.reporter ());
   ()
 
-let setup_logging level =
-  (* TODO: Fmt_tty.setup_std_outputs ?style_renderer (); *)
+(* TOPORT: with Logs a warning is displayed as:
+ *    osemgrep: [WARNING] Paths that match both --include ...
+ *  with the WARNING in yellow. In python it's displayed as:
+ *    Paths that match both --include ...
+ *  without any header but with the whole line in yellow.
+ *)
+let setup_logging ~force_color ~level =
+  let style_renderer = if force_color then Some `Ansi_tty else None in
+  Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
   Logs.set_reporter (Logs_fmt.reporter ());
   (* from https://github.com/mirage/ocaml-cohttp#debugging *)

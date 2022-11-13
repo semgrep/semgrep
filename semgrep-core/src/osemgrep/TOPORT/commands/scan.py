@@ -20,14 +20,6 @@ _scan_options: List[Callable] = [
         """,
     ),
     optgroup.option(
-        "--force-color/--no-force-color",
-        is_flag=True,
-        help="""
-            Always include ANSI color in the output, even if not writing to a TTY;
-            defaults to using the TTY status
-        """,
-    ),
-    optgroup.option(
         MAX_CHARS_FLAG_NAME,
         type=int,
         default=DEFAULT_MAX_CHARS_PER_LINE,
@@ -143,7 +135,6 @@ def scan(
     dump_ast: bool,
     enable_nosem: bool,
     error_on_findings: bool,
-    force_color: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     junit_xml: bool,

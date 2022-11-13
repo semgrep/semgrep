@@ -19,7 +19,8 @@ let setup_logging (conf : Scan_CLI.conf) =
    * logging/output we want in osemgrep, so this is a good opportunity
    * to evaluate a new logging library.
    *)
-  Logs_helpers.setup_logging conf.logging_level;
+  Logs_helpers.setup_logging ~force_color:conf.force_color
+    ~level:conf.logging_level;
   Logs.debug (fun m -> m "Logging setup for semgrep scan");
   Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
   Logs.debug (fun m ->
