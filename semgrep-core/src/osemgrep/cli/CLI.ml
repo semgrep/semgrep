@@ -2,7 +2,7 @@
 (* Prelude *)
 (*****************************************************************************)
 (*
-   Library defining the semgrep command-line interface.
+   Semgrep command-line entry point.
 
    This module determines the subcommand invoked on the command line
    and has another module handle it as if it were an independent command.
@@ -66,6 +66,7 @@ let known_subcommands =
    Uncaught OCaml exception result in exit code 2.
    This is to ensure that the tests that expect error status 2 fail. *)
 let missing_subcommand () =
+  (* TODO? use Logs.error? *)
   Printf.eprintf "This semgrep subcommand is not implemented\n%!";
   Exit_code.not_implemented_in_osemgrep
 
@@ -159,6 +160,7 @@ let safe_run f : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
+(* called from ../main/Main.ml *)
 let main argv : Exit_code.t =
   Printexc.record_backtrace true;
 
@@ -181,12 +183,14 @@ let main argv : Exit_code.t =
    *)
   Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
 
-  (* TODO? the logging setup is now done in Semgrep_scan.ml, because that's
-   * when we have a config object, but ideally we would like
-   * to analyze argv and do it sooner for all subcommands here.
-   * update: now that we use the Logs library, maybe we could do it
-   * here as we don't need a config object anymore.
+  (* The precise Logs_helpers.setup_logging() is done in Scan_subcommand.ml,
+   * because that's when we have a conf object which contains
+   * the --quiet/--verbose/--debug options. In the mean time we still
+   * enable some default basic logging so you can call logging functions
+   * even before we fully parse the command-line arguments.
+   * alt: we could analyze [argv] and do it sooner for all subcommands here.
    *)
+  Logs_helpers.enable_logging ();
 
   (* TOADAPT
      profile_start := Unix.gettimeofday ();
