@@ -88,6 +88,25 @@ let exit_code_of_errors ~strict (errors : Semgrep_output_v1_t.core_error list) :
       | _else_ -> Exit_code.ok)
 
 (*****************************************************************************)
+(* Filtering rules *)
+(*****************************************************************************)
+let filter_rules (conf : Scan_CLI.conf) (rules : Rule.rules) : Rule.rules =
+  let res =
+    match conf.severity with
+    | [] -> rules
+    | xs ->
+        rules
+        |> List.filter (fun r ->
+               match
+                 Severity.rule_severity_of_rule_severity_opt r.Rule.severity
+               with
+               | None -> false
+               | Some x -> List.mem x xs)
+  in
+  res
+  |> Common.exclude (fun r -> List.mem (fst r.Rule.id) conf.exclude_rule_ids)
+
+(*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
 
@@ -119,39 +138,15 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
-      (* TODO: in theory we should have an intermediate module that
-       * handle the -e/--lang, or --config, but for now we care
-       * only about --config.
-       *)
-      let rules_and_origins =
-        conf.config
-        |> List.concat_map Config_resolver.rules_from_dashdash_config
-      in
-      (* TODO: rewrite rule_id using x.Config_resolver.path origin? *)
+      let rules_and_origins = Config_resolver.rules_from_conf conf in
       let (rules : Rule.rules) =
         rules_and_origins |> List.concat_map (fun x -> x.Config_resolver.rules)
       in
       let (errors : Rule.invalid_rule_error list) =
         rules_and_origins |> List.concat_map (fun x -> x.Config_resolver.errors)
       in
+      let filtered_rules = filter_rules conf rules in
 
-      let filtered_rules =
-        match conf.severity with
-        | [] -> rules
-        | xs ->
-            rules
-            |> List.filter (fun r ->
-                   match
-                     Severity.rule_severity_of_rule_severity_opt r.Rule.severity
-                   with
-                   | None -> false
-                   | Some x -> List.mem x xs)
-      in
-      let filtered_rules =
-        filtered_rules
-        |> Common.exclude (fun r ->
-               List.mem (fst r.Rule.id) conf.exclude_rule_ids)
-      in
       (* TODO: there are more ways to specify targets? see target_manager.py *)
       let (targets : Common.filename list), _skipped_targetsTODO =
         Find_target.select_global_targets ~includes:conf.include_

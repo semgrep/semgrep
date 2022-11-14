@@ -25,7 +25,7 @@ type rules_and_origin = {
 }
 
 (*****************************************************************************)
-(* Entry point *)
+(* Helpers *)
 (*****************************************************************************)
 
 let load_rules_from_file file : rules_and_origin =
@@ -33,22 +33,23 @@ let load_rules_from_file file : rules_and_origin =
   if Sys.file_exists file then (
     let rules, errors = Parse_rule.parse_and_filter_invalid_rules file in
     Logs.debug (fun m -> m "Done loading local config from %s" file);
-    { path = Some file; rules; errors })
-  else failwith "TODO"
+    { path = Some file; rules; errors }
+    (* this should never happen because Semgrep_dashdash_config only build
+     * File case if the file actually exists.
+     *))
+  else Error.abort (spf "file %s does not exist anymore" file)
 
 let load_rules_from_url url : rules_and_origin =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
-  (* TOPORT: try and raise SemgrepError in case of error *)
   let content =
     try Network.get url with
     | Timeout _ as exn -> Exception.catch_and_reraise exn
     | exn ->
-        raise
-          (E.Semgrep_error
-             ( spf "Failed to download config from %s: %s" (Uri.to_string url)
-                 (Common.exn_to_s exn),
-               None ))
+        (* was raise Semgrep_error, but equivalent to abort now *)
+        Error.abort
+          (spf "Failed to download config from %s: %s" (Uri.to_string url)
+             (Common.exn_to_s exn))
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
@@ -83,3 +84,14 @@ let rules_from_dashdash_config (config_str : string) : rules_and_origin list =
   | R rkind ->
       let url = Semgrep_dashdash_config.url_of_registry_kind rkind in
       [ load_rules_from_url url ]
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+(* TODO: rewrite rule_id of the rules using x.path origin? *)
+let rules_from_conf (conf : Scan_CLI.conf) : rules_and_origin list =
+  let rules_and_origins =
+    conf.config |> List.concat_map rules_from_dashdash_config
+  in
+  rules_and_origins
