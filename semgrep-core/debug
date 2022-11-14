@@ -13,4 +13,4 @@
 
 set -eu
 
-./scripts/run-ocamldebug.sh ./_build/default/src/main/Main.bc
+./scripts/run-ocamldebug.sh ./_build/default/src/osemgrep/main/Main.bc

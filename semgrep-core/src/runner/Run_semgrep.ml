@@ -841,26 +841,6 @@ let minirule_of_pattern lang pattern_string pattern =
     fix = None;
   }
 
-let rule_of_pattern lang pattern_string pattern =
-  let fk = PI.unsafe_fake_info "" in
-  let xlang = Xlang.L (lang, []) in
-  let xpat =
-    Xpattern.mk_xpat (Xpattern.Sem (pattern, lang)) (pattern_string, fk)
-  in
-  {
-    R.id = ("-e/-f", fk);
-    mode = `Search (R.P xpat);
-    message = "";
-    severity = R.Error;
-    languages = xlang;
-    options = None;
-    equivalences = None;
-    fix = None;
-    fix_regexp = None;
-    paths = None;
-    metadata = None;
-  }
-
 (* less: could be nice to generalize to rule_of_config, but we sometimes
  * need to generate a rule, sometimes a minirule
  *)
@@ -888,14 +868,24 @@ let pattern_of_config lang config =
 let semgrep_with_one_pattern config =
   assert (config.rule_source = None);
 
-  (* TODO: support generic and regex patterns as well? See code in Deep. *)
+  (* TODO: support generic and regex patterns as well. See code in Deep.
+   * Just use Parse_rule.parse_xpattern xlang (str, fk)
+   *)
   let lang = Xlang.lang_of_opt_xlang_exn config.lang in
   let pattern, pattern_string = pattern_of_config lang config in
 
   match config.output_format with
   | Json _ ->
       let rule, rules_parse_time =
-        Common.with_time (fun () -> rule_of_pattern lang pattern_string pattern)
+        Common.with_time (fun () ->
+            let fk = Parse_info.unsafe_fake_info "" in
+            let xlang = Xlang.L (lang, []) in
+            let xpat =
+              Xpattern.mk_xpat
+                (Xpattern.Sem (pattern, lang))
+                (pattern_string, fk)
+            in
+            Rule.rule_of_xpattern xlang xpat)
       in
       let res, files =
         semgrep_with_rules config (([ rule ], []), rules_parse_time)

@@ -151,11 +151,11 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    max_memory_mb;
    output_format;
    optimizations;
+   logging_level;
    (* no need to handle, are used before *)
    show_supported_languages = _;
    version = _;
    version_check = _;
-   logging_level = _;
    force_color = _;
    strict = _;
    severity = _;
@@ -166,9 +166,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    baseline_commit = _;
    exclude = _;
    include_ = _;
-   config = _;
-   lang = _;
-   pattern = _;
+   rules_source = _;
    target_roots = _;
    max_target_bytes = _;
    metrics = _;
@@ -191,6 +189,11 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
         | _else_ -> Runner_config.Json false
       in
       let filter_irrelevant_rules = optimizations in
+      let debug =
+        match logging_level with
+        | Some Logs.Debug -> true
+        | _else_ -> false
+      in
       {
         Runner_config.default with
         ncores = num_jobs;
@@ -199,6 +202,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
         timeout_threshold;
         max_memory_mb;
         filter_irrelevant_rules;
+        debug;
         version = Version.version;
       }
 
