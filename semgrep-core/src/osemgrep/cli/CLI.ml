@@ -143,7 +143,7 @@ let dispatch_subcommand argv =
     - Enforces that exit code 1 is only for findings
     - Handles metric sending before exit
  *)
-let safe_run f : Exit_code.t =
+let safe_run ~debug f : Exit_code.t =
   (* TOPORT:
      finally:
       metrics = get_state().metrics
@@ -153,21 +153,23 @@ let safe_run f : Exit_code.t =
       error_handler = get_state().error_handler
       exit_code = error_handler.send(exit_code)
   *)
-  try f () with
-  | Error.Semgrep_error (s, opt_exit_code) -> (
-      Logs.err (fun m -> m "%s" s);
-      match opt_exit_code with
-      | None -> Exit_code.fatal
-      | Some code -> code)
-  | Common.UnixExit i -> Exit_code.of_int i
-  | Failure msg ->
-      Logs.err (fun m -> m "Error: %s%!" msg);
-      Exit_code.fatal
-  | e ->
-      let trace = Printexc.get_backtrace () in
-      Logs.err (fun m ->
-          m "Error: exception %s\n%s%!" (Printexc.to_string e) trace);
-      Exit_code.fatal
+  if debug then f ()
+  else
+    try f () with
+    | Error.Semgrep_error (s, opt_exit_code) -> (
+        Logs.err (fun m -> m "%s" s);
+        match opt_exit_code with
+        | None -> Exit_code.fatal
+        | Some code -> code)
+    | Common.UnixExit i -> Exit_code.of_int i
+    | Failure msg ->
+        Logs.err (fun m -> m "Error: %s%!" msg);
+        Exit_code.fatal
+    | e ->
+        let trace = Printexc.get_backtrace () in
+        Logs.err (fun m ->
+            m "Error: exception %s\n%s%!" (Printexc.to_string e) trace);
+        Exit_code.fatal
 
 (*****************************************************************************)
 (* Entry point *)
@@ -234,7 +236,8 @@ let main argv : Exit_code.t =
       state.metrics.add_feature("subcommand", subcommand)
       maybe_set_git_safe_directories()
   *)
-  safe_run (fun () -> dispatch_subcommand argv)
+  let debug = Array.mem "--debug" argv in
+  safe_run ~debug (fun () -> dispatch_subcommand argv)
 
 (* TOADAPT:
    let main (argv : string array) : unit =

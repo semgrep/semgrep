@@ -91,12 +91,12 @@ let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
   (* TODO: what if it's a registry rule?
    * call Semgrep_dashdash_config.config_kind_of_config_str
    *)
-  match conf.config with
-  | [] -> ""
-  | path :: _TODO ->
+  match conf.rules_source with
+  | Configs (path :: _TODO) ->
       (*  need to prefix with the dotted path of the config file *)
       let dir = Filename.dirname path in
       Str.global_replace (Str.regexp "/") "." dir ^ "."
+  | _else_ -> ""
 
 (*****************************************************************************)
 (* Core error to cli error *)

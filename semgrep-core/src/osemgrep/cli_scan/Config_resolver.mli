@@ -1,8 +1,11 @@
 type rules_and_origin = {
-  path : Common.filename option; (* None for rules from the registry *)
+  origin : origin;
   rules : Rule.rules;
   errors : Rule.invalid_rule_error list;
 }
+
+and origin = Common.filename option (* None for remote files *)
+[@@deriving show]
 
 (* [rules_from_conf] returns rules from --config or -e
  * TODO: does it rewrite the rule_id?

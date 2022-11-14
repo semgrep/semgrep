@@ -27,24 +27,24 @@ module H = Cmdliner_helpers
 type conf = {
   autofix : bool;
   baseline_commit : string option;
-  config : string list;
   dryrun : bool;
   exclude : string list;
   exclude_rule_ids : string list;
   force_color : bool;
   include_ : string list;
-  (* LATER: use Xlang.t option; *)
-  lang : string option;
+  (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   max_memory_mb : int;
   max_target_bytes : int;
   metrics : Metrics.State.t;
   num_jobs : int;
   optimizations : bool;
+  (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
-  pattern : string option;
   respect_git_ignore : bool;
   rewrite_rule_ids : bool;
+  (* mix of --pattern/--lang, --config *)
+  rules_source : rules_source;
   scan_unknown_extensions : bool;
   severity : Severity.rule_severity list;
   show_supported_languages : bool;
@@ -56,26 +56,30 @@ type conf = {
   version : bool;
   version_check : bool;
 }
+
+and rules_source =
+  (* -e and -l *)
+  | Pattern of string * Xlang.t
+  (* --config *)
+  | Configs of string list
 [@@deriving show]
 
 let default : conf =
   {
     autofix = false;
     baseline_commit = None;
-    config = [ "auto" ];
+    rules_source = Configs [ "auto" ];
     dryrun = false;
     exclude = [];
     exclude_rule_ids = [];
     force_color = false;
     include_ = [];
-    lang = None;
     max_memory_mb = 0;
     max_target_bytes = 1_000_000 (* 1 MB *);
     metrics = Metrics.State.Auto;
     num_jobs = Parmap_helpers.get_cpu_count ();
     optimizations = true;
     output_format = Output_format.Text;
-    pattern = None;
     logging_level = Some Logs.Warning;
     respect_git_ignore = true;
     rewrite_rule_ids = true;
@@ -407,7 +411,7 @@ See https://semgrep.dev/docs/writing-rules/rule-syntax for information on
 configuration file format.
 |}
   in
-  Arg.value (Arg.opt_all Arg.string default.config info)
+  Arg.value (Arg.opt_all Arg.string [] info)
 
 let o_pattern : string option Term.t =
   let info =
@@ -512,8 +516,10 @@ let cmdline_term : conf Term.t =
       | false, false, false -> Some Logs.Warning
       | true, false, false -> Some Logs.Info
       | false, true, false -> Some Logs.Debug
-      | false, false, true -> None (* TOPORT: list the possibilities *)
-      | _else_ -> failwith "mutually exclusive options"
+      | false, false, true -> None
+      | _else_ ->
+          (* TOPORT: list the possibilities *)
+          Error.abort "mutually exclusive options --quiet/--verbose/--debug"
     in
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
@@ -527,15 +533,30 @@ let cmdline_term : conf Term.t =
       | false, false, true -> Output_format.Vim
       | _else_ ->
           (* TOPORT: list the possibilities *)
-          failwith "Mutually exclusive options"
+          Error.abort "Mutually exclusive options --json/--emacs/--vim"
+    in
+    let rules_source =
+      match (config, pattern, lang) with
+      (* TODO? report an error if no config given? *)
+      | [], None, None -> default.rules_source
+      | [], Some pat, Some str ->
+          (* may raise Failure *)
+          let xlang = Xlang.of_string str in
+          Pattern (pat, xlang)
+      | _, Some _, None ->
+          Error.abort "-e/--pattern and -l/--lang must both be specified"
+      | _, None, Some _ ->
+          (* stricter: error not detected in original semgrep *)
+          Error.abort "-e/--pattern and -l/--lang must both be specified"
+      | xs, None, None -> Configs xs
+      | _ :: _, Some _, _ ->
+          Error.abort "Mutually exclusive options --config/--pattern"
     in
     (* sanity checks *)
     if List.mem "auto" config && metrics = Metrics.State.Off then
       Error.abort
         "Cannot create auto config when metrics are off. Please allow metrics \
          or run with a specific config.";
-    if pattern <> None && lang = None then
-      Error.abort "-e/--pattern and -l/--lang must both be specified";
 
     (* warnings *)
     if include_ <> [] && exclude <> [] then
@@ -547,13 +568,12 @@ let cmdline_term : conf Term.t =
     {
       autofix;
       baseline_commit;
-      config;
+      rules_source;
       dryrun;
       exclude_rule_ids;
       exclude;
       force_color;
       include_;
-      lang;
       logging_level;
       max_memory_mb;
       max_target_bytes;
@@ -561,7 +581,6 @@ let cmdline_term : conf Term.t =
       num_jobs;
       optimizations;
       output_format;
-      pattern;
       respect_git_ignore;
       rewrite_rule_ids;
       scan_unknown_extensions;

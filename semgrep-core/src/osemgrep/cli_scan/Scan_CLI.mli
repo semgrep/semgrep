@@ -8,13 +8,11 @@
 type conf = {
   autofix : bool;
   baseline_commit : string option;
-  config : string list;
   dryrun : bool;
   exclude : string list;
   exclude_rule_ids : string list;
   force_color : bool;
   include_ : string list;
-  lang : string option;
   logging_level : Logs.level option;
   max_memory_mb : int;
   max_target_bytes : int;
@@ -22,9 +20,9 @@ type conf = {
   num_jobs : int;
   optimizations : bool;
   output_format : Output_format.t;
-  pattern : string option;
   respect_git_ignore : bool;
   rewrite_rule_ids : bool;
+  rules_source : rules_source;
   scan_unknown_extensions : bool;
   severity : Severity.rule_severity list;
   show_supported_languages : bool;
@@ -36,6 +34,12 @@ type conf = {
   version : bool;
   version_check : bool;
 }
+
+and rules_source =
+  (* -e *)
+  | Pattern of string * Xlang.t
+  (* --config *)
+  | Configs of string list
 [@@deriving show]
 
 (* Command-line defaults. *)

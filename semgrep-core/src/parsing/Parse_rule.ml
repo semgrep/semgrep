@@ -475,7 +475,10 @@ let parse_xpattern xlang (str, tok) =
   | Xlang.L (lang, _) ->
       let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
       XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
-  | Xlang.LRegex -> failwith "TODO"
+  | Xlang.LRegex ->
+      (* could use parse_regexp above but then would need to pass an id *)
+      let reg = Regexp_engine.pcre_compile str in
+      XP.mk_xpat (XP.Regexp reg) (str, tok)
   | Xlang.LGeneric -> (
       let src = Spacegrep.Src_file.of_string str in
       match Spacegrep.Parse_pattern.of_src src with

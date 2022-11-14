@@ -432,3 +432,20 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
              Left e
          (* negatives *)
          | Not (tok, f) -> Right (tok, f))
+
+(* for -e *)
+let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
+  let fk = Parse_info.unsafe_fake_info "" in
+  {
+    id = ("-e/-f", fk);
+    mode = `Search (P xpat);
+    message = "";
+    severity = Error;
+    languages = xlang;
+    options = None;
+    equivalences = None;
+    fix = None;
+    fix_regexp = None;
+    paths = None;
+    metadata = None;
+  }

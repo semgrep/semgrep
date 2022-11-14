@@ -139,6 +139,10 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* Let's go *)
       (* --------------------------------------------------------- *)
       let rules_and_origins = Config_resolver.rules_from_conf conf in
+      Logs.debug (fun m ->
+          rules_and_origins
+          |> List.iter (fun x ->
+                 m "rules = %s" (Config_resolver.show_rules_and_origin x)));
       let (rules : Rule.rules) =
         rules_and_origins |> List.concat_map (fun x -> x.Config_resolver.rules)
       in
@@ -153,6 +157,8 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
           ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
       in
+      Logs.debug (fun m ->
+          targets |> List.iter (fun file -> m "target = %s" file));
       let (res : Core_runner.result) =
         Core_runner.invoke_semgrep_core conf filtered_rules errors targets
       in

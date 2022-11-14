@@ -18,11 +18,15 @@ module E = Error
 
 (* python: was called ConfigFile, and called a 'config' in text output *)
 type rules_and_origin = {
-  path : Common.filename option; (* None for remote files *)
+  origin : origin;
   (* TODO? put a config_id: string option? or config prefix *)
   rules : Rule.rules;
   errors : Rule.invalid_rule_error list;
 }
+
+(* TODO? more complex origin? Remote of Uri.t | Local of filename | Inline? *)
+and origin = Common.filename option (* None for remote files *)
+[@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -33,7 +37,7 @@ let load_rules_from_file file : rules_and_origin =
   if Sys.file_exists file then (
     let rules, errors = Parse_rule.parse_and_filter_invalid_rules file in
     Logs.debug (fun m -> m "Done loading local config from %s" file);
-    { path = Some file; rules; errors }
+    { origin = Some file; rules; errors }
     (* this should never happen because Semgrep_dashdash_config only build
      * File case if the file actually exists.
      *))
@@ -54,7 +58,7 @@ let load_rules_from_url url : rules_and_origin =
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
       let res = load_rules_from_file file in
-      { res with path = None })
+      { res with origin = None })
 
 let rules_from_dashdash_config (config_str : string) : rules_and_origin list =
   let kind = Semgrep_dashdash_config.config_kind_of_config_str config_str in
@@ -91,7 +95,16 @@ let rules_from_dashdash_config (config_str : string) : rules_and_origin list =
 
 (* TODO: rewrite rule_id of the rules using x.path origin? *)
 let rules_from_conf (conf : Scan_CLI.conf) : rules_and_origin list =
-  let rules_and_origins =
-    conf.config |> List.concat_map rules_from_dashdash_config
-  in
-  rules_and_origins
+  match conf.rules_source with
+  | Configs xs -> xs |> List.concat_map rules_from_dashdash_config
+  | Pattern (pat, xlang) ->
+      let fk = Parse_info.unsafe_fake_info "" in
+      (* better: '-e foo -l regex' not handled in original semgrep,
+       * got a weird 'invalid pattern clause' error.
+       * better: '-e foo -l generic' not handled in semgrep-core
+       * TODO? some try and abort because we can get parse errors?
+       *)
+      let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
+      let rule = Rule.rule_of_xpattern xlang xpat in
+      (* TODO? transform the pattern parse error in invalid_rule_error? *)
+      [ { origin = None; rules = [ rule ]; errors = [] } ]
