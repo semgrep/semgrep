@@ -243,13 +243,7 @@ def scan(
                     _,
                     explanations,
                     _,
-                ) = semgrep.semgrep_main.main(
-                    configs=(config or []),
-                    disable_nosem=(not enable_nosem),
-                    no_git_ignore=(not use_git_ignore),
-                    skip_unknown_extensions=(not scan_unknown_extensions),
-                    ...
-                )
+                ) = semgrep.semgrep_main.main(...)
             except SemgrepError as e:
                 output_handler.handle_semgrep_errors([e])
                 output_handler.output({}, all_targets=set(), filtered_rules=[])
