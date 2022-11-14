@@ -106,5 +106,6 @@ let rules_from_conf (conf : Scan_CLI.conf) : rules_and_origin list =
        *)
       let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
       let rule = Rule.rule_of_xpattern xlang xpat in
+      let rule = { rule with id = ("-", fk) } in
       (* TODO? transform the pattern parse error in invalid_rule_error? *)
       [ { origin = None; rules = [ rule ]; errors = [] } ]

@@ -167,3 +167,9 @@ visual:
 	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null .
 visual2:
 	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null src
+
+# can't call directly in the shell ./debug because of
+# src/ocaml-tree-sitter-core/tree-sitter-config.mk :( so have to go through 'make'
+.PHONY: debug
+debug:
+	./debug

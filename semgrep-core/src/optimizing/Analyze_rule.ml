@@ -579,9 +579,15 @@ let regexp_prefilter_of_taint_rule (_rule_id, rule_tok) taint_spec =
 let hmemo = Hashtbl.create 101
 
 let regexp_prefilter_of_rule (r : R.rule) =
-  let rule_id, t = r.R.id in
-  let k = PI.file_of_info t ^ "." ^ rule_id in
-  Common.memoized hmemo k (fun () ->
+  let rule_id, _t = r.R.id in
+  (* rule_id is supposed to be unique so it should work as a key for hmemo.
+   * bugfix:
+   *    old: let key = PI.file_of_info t ^ "." ^ rule_id
+   * but some rules do not have a file (e.g., fake rules coming from -e/-f)
+   * which was triggering a FakeInfoStr exn
+   *)
+  let key = rule_id in
+  Common.memoized hmemo key (fun () ->
       try
         match r.mode with
         | `Search f
