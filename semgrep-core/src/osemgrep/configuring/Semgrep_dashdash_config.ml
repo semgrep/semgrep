@@ -65,6 +65,7 @@ let config_kind_of_config_str config_str =
   | s when s =~ "^\\(.*\\):\\(.*\\)" ->
       let user, snippet = Common.matched2 s in
       R (SavedSnippet (user, snippet))
+  (* TOPORT? handle inline rules "rules:..." see python: utils.is_rules() *)
   | dir when Sys.file_exists dir && Sys.is_directory dir -> Dir dir
   | file when Sys.file_exists file -> File file
   (* TOPORT? raise SemgrepError(f"config location `{loc}` is not a file or folder!") *)

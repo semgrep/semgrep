@@ -2,9 +2,6 @@ from textwrap import dedent
 
 MAX_TEXT_WIDTH = 120
 
-def is_rules(rules: str) -> bool:
-    return rules[:6] == "rules:" or rules[:8] == '{"rules"'
-
 def path_has_permissions(path: Path, permissions: int) -> bool:
     return path.exists() and path.stat().st_mode & permissions == permissions
 

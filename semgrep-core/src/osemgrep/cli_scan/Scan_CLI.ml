@@ -43,7 +43,7 @@ type conf = {
   output_format : Output_format.t;
   respect_git_ignore : bool;
   rewrite_rule_ids : bool;
-  (* mix of --pattern/--lang, --config *)
+  (* mix of --pattern/--lang/--replacement, --config *)
   rules_source : rules_source;
   scan_unknown_extensions : bool;
   severity : Severity.rule_severity list;
@@ -58,8 +58,8 @@ type conf = {
 }
 
 and rules_source =
-  (* -e and -l *)
-  | Pattern of string * Xlang.t
+  (* -e/-l/--replacement *)
+  | Pattern of string * Xlang.t * string option (* replacement *)
   (* --config *)
   | Configs of string list
 [@@deriving show]
@@ -120,6 +120,16 @@ let o_autofix : bool Term.t =
 Make sure your files are stored in a version control system. Note that
 this mode is experimental and not guaranteed to function properly.
 |}
+
+let o_replacement : string option Term.t =
+  let info =
+    Arg.info [ "replacement" ]
+      ~doc:
+        {|An autofix expression that will be applied to any matches found
+with --pattern. Only valid with a command-line specified pattern.
+|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
 
 let o_baseline_commit : string option Term.t =
   let info =
@@ -507,7 +517,7 @@ let o_target_roots : string list Term.t =
 let cmdline_term : conf Term.t =
   let combine autofix baseline_commit config debug dryrun emacs exclude
       exclude_rule_ids force_color include_ json lang max_memory_mb
-      max_target_bytes metrics num_jobs optimizations pattern quiet
+      max_target_bytes metrics num_jobs optimizations pattern quiet replacement
       respect_git_ignore rewrite_rule_ids scan_unknown_extensions severity
       show_supported_languages strict target_roots time_flag timeout
       timeout_threshold verbose version version_check vim =
@@ -536,20 +546,34 @@ let cmdline_term : conf Term.t =
           Error.abort "Mutually exclusive options --json/--emacs/--vim"
     in
     let rules_source =
-      match (config, pattern, lang) with
-      (* TODO? report an error if no config given? *)
-      | [], None, None -> default.rules_source
-      | [], Some pat, Some str ->
+      match (config, (pattern, lang, replacement)) with
+      (* TOPORT: handle get_project_url() if empty Configs? *)
+      | [], (None, None, None) ->
+          (* alt: default.rules_source *)
+          (* TOPORT: raise with Exit_code.missing_config *)
+          Error.abort
+            "No config given. Run with `--config auto` or see \
+             https://semgrep.dev/docs/running-rules/ for instructions on \
+             running with a specific config"
+          (* TOPORT? use instead
+             "No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c" *)
+      | [], (Some pat, Some str, fix) ->
           (* may raise Failure *)
           let xlang = Xlang.of_string str in
-          Pattern (pat, xlang)
-      | _, Some _, None ->
+          Pattern (pat, xlang, fix)
+      | _, (Some _, None, _) ->
+          (* alt: "language must be specified when a pattern is passed" *)
           Error.abort "-e/--pattern and -l/--lang must both be specified"
-      | _, None, Some _ ->
+      | _, (None, Some _, _) ->
           (* stricter: error not detected in original semgrep *)
           Error.abort "-e/--pattern and -l/--lang must both be specified"
-      | xs, None, None -> Configs xs
-      | _ :: _, Some _, _ ->
+      | _, (None, _, Some _) ->
+          Error.abort
+            "command-line replacement flag can only be used with command-line \
+             pattern; when using a config file add the fix: key instead"
+      (* TOPORT? handle [x], _ and rule passed inline, python: util.is_rules*)
+      | xs, (None, None, None) -> Configs xs
+      | _ :: _, (Some _, _, _) ->
           Error.abort "Mutually exclusive options --config/--pattern"
     in
     (* sanity checks *)
@@ -601,10 +625,10 @@ let cmdline_term : conf Term.t =
     $ o_dryrun $ o_emacs $ o_exclude $ o_exclude_rule_ids $ o_force_color
     $ o_include $ o_json $ o_lang $ o_max_memory_mb $ o_max_target_bytes
     $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern $ o_quiet
-    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_scan_unknown_extensions
-    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
-    $ o_time $ o_timeout $ o_timeout_threshold $ o_verbose $ o_version
-    $ o_version_check $ o_vim)
+    $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
+    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
+    $ o_strict $ o_target_roots $ o_time $ o_timeout $ o_timeout_threshold
+    $ o_verbose $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

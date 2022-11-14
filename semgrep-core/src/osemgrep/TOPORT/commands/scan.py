@@ -71,19 +71,6 @@ _scan_options: List[Callable] = [
 ]
 
 
-def scan_options(func: Callable) -> Callable:
-    return ...
-
-
-@click.option(
-    "--replacement",
-    help="""
-        An autofix expression that will be applied to any matches found with --pattern.
-        Only valid with a command-line specified pattern.
-    """,
-)
-
-
 @optgroup.group("Alternate modes", help="No search is performed in these modes")
 
 @optgroup.option(
@@ -142,7 +129,6 @@ def scan(
     max_lines_per_finding: int,
     dataflow_traces: bool,
     output: Optional[str],
-    replacement: Optional[str],
     sarif: bool,
     test: bool,
     test_ignore_todo: bool,
