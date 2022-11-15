@@ -26,10 +26,11 @@ module H = Cmdliner_helpers
 *)
 type conf = {
   autofix : bool;
+  (* TODO? better parsing of the string? a Git.version type? *)
   baseline_commit : string option;
   dryrun : bool;
   exclude : string list;
-  exclude_rule_ids : string list;
+  exclude_rule_ids : Rule.rule_id list;
   force_color : bool;
   include_ : string list;
   (* mix of --debug, --quiet, --verbose *)
@@ -41,6 +42,7 @@ type conf = {
   optimizations : bool;
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  profile : bool;
   respect_git_ignore : bool;
   rewrite_rule_ids : bool;
   (* mix of --pattern/--lang/--replacement, --config *)
@@ -58,9 +60,11 @@ type conf = {
 }
 
 and rules_source =
-  (* -e/-l/--replacement *)
+  (* -e/-l/--replacement. In theory we could even parse the string to get
+   * a XPattern.t *)
   | Pattern of string * Xlang.t * string option (* replacement *)
-  (* --config *)
+  (* --config. In theory we could even parse the string to get
+   * some Semgrep_dashdash_config.config_kind list *)
   | Configs of string list
 [@@deriving show]
 
@@ -68,21 +72,22 @@ let default : conf =
   {
     autofix = false;
     baseline_commit = None;
-    rules_source = Configs [ "auto" ];
     dryrun = false;
     exclude = [];
     exclude_rule_ids = [];
     force_color = false;
     include_ = [];
+    logging_level = Some Logs.Warning;
     max_memory_mb = 0;
     max_target_bytes = 1_000_000 (* 1 MB *);
     metrics = Metrics.State.Auto;
     num_jobs = Parmap_helpers.get_cpu_count ();
     optimizations = true;
     output_format = Output_format.Text;
-    logging_level = Some Logs.Warning;
+    profile = false;
     respect_git_ignore = true;
     rewrite_rule_ids = true;
+    rules_source = Configs [ "auto" ];
     scan_unknown_extensions = false;
     severity = [];
     show_supported_languages = false;
@@ -99,11 +104,6 @@ let default : conf =
 (* Helpers *)
 (*************************************************************************)
 
-let _validate_lang option lang_str =
-  match lang_str with
-  | None -> failwith (spf "%s and -l/--lang must both be specified" option)
-  | Some lang -> lang
-
 (*************************************************************************)
 (* Command-line flags *)
 (*************************************************************************)
@@ -111,25 +111,6 @@ let _validate_lang option lang_str =
 (* ------------------------------------------------------------------ *)
 (* No group *)
 (* ------------------------------------------------------------------ *)
-
-let o_autofix : bool Term.t =
-  H.negatable_flag [ "a"; "autofix" ] ~neg_options:[ "no-autofix" ]
-    ~default:default.autofix
-    ~doc:
-      {|Apply autofix patches. WARNING: data loss can occur with this flag.
-Make sure your files are stored in a version control system. Note that
-this mode is experimental and not guaranteed to function properly.
-|}
-
-let o_replacement : string option Term.t =
-  let info =
-    Arg.info [ "replacement" ]
-      ~doc:
-        {|An autofix expression that will be applied to any matches found
-with --pattern. Only valid with a command-line specified pattern.
-|}
-  in
-  Arg.value (Arg.opt Arg.(some string) None info)
 
 let o_baseline_commit : string option Term.t =
   let info =
@@ -442,6 +423,25 @@ Must be used with -e/--pattern.
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_replacement : string option Term.t =
+  let info =
+    Arg.info [ "replacement" ]
+      ~doc:
+        {|An autofix expression that will be applied to any matches found
+with --pattern. Only valid with a command-line specified pattern.
+|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
+let o_autofix : bool Term.t =
+  H.negatable_flag [ "a"; "autofix" ] ~neg_options:[ "no-autofix" ]
+    ~default:default.autofix
+    ~doc:
+      {|Apply autofix patches. WARNING: data loss can occur with this flag.
+Make sure your files are stored in a version control system. Note that
+this mode is experimental and not guaranteed to function properly.
+|}
+
 let o_dryrun : bool Term.t =
   H.negatable_flag [ "dryrun" ] ~neg_options:[ "no-dryrun" ]
     ~default:default.dryrun
@@ -510,6 +510,14 @@ let o_target_roots : string list Term.t =
   in
   Arg.value (Arg.pos_all Arg.string default.target_roots info)
 
+(* ------------------------------------------------------------------ *)
+(* !!NEW arguments!! *)
+(* ------------------------------------------------------------------ *)
+
+let o_profile : bool Term.t =
+  let info = Arg.info [ "profile" ] ~doc:{|<undocumented>|} in
+  Arg.value (Arg.flag info)
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -517,9 +525,9 @@ let o_target_roots : string list Term.t =
 let cmdline_term : conf Term.t =
   let combine autofix baseline_commit config debug dryrun emacs exclude
       exclude_rule_ids force_color include_ json lang max_memory_mb
-      max_target_bytes metrics num_jobs optimizations pattern quiet replacement
-      respect_git_ignore rewrite_rule_ids scan_unknown_extensions severity
-      show_supported_languages strict target_roots time_flag timeout
+      max_target_bytes metrics num_jobs optimizations pattern profile quiet
+      replacement respect_git_ignore rewrite_rule_ids scan_unknown_extensions
+      severity show_supported_languages strict target_roots time_flag timeout
       timeout_threshold verbose version version_check vim =
     let logging_level =
       match (verbose, debug, quiet) with
@@ -605,6 +613,7 @@ let cmdline_term : conf Term.t =
       num_jobs;
       optimizations;
       output_format;
+      profile;
       respect_git_ignore;
       rewrite_rule_ids;
       scan_unknown_extensions;
@@ -624,7 +633,7 @@ let cmdline_term : conf Term.t =
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
     $ o_dryrun $ o_emacs $ o_exclude $ o_exclude_rule_ids $ o_force_color
     $ o_include $ o_json $ o_lang $ o_max_memory_mb $ o_max_target_bytes
-    $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern $ o_quiet
+    $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern $ o_profile $ o_quiet
     $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
     $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
     $ o_strict $ o_target_roots $ o_time $ o_timeout $ o_timeout_threshold
@@ -655,11 +664,12 @@ let man : Manpage.block list =
   ]
   @ CLI_common.help_page_bottom
 
+let cmdline_info : Cmd.info = Cmd.info "semgrep scan" ~doc ~man
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_argv (argv : string array) : (conf, Exit_code.t) result =
-  let info : Cmd.info = Cmd.info "semgrep scan" ~doc ~man in
-  let cmd : conf Cmd.t = Cmd.v info cmdline_term in
+let parse_argv (argv : string array) : conf =
+  let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in
   CLI_common.eval_value ~argv cmd

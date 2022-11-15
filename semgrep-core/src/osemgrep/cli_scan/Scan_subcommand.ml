@@ -37,7 +37,6 @@ let setup_logging (conf : Scan_CLI.conf) =
   Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
   Logs.debug (fun m ->
       m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "));
-  Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
 
   (* Easy_logging setup. We should avoid to use Logger in osemgrep/
    * and use Logs instead, but it is still useful to get the semgrep-core
@@ -47,25 +46,17 @@ let setup_logging (conf : Scan_CLI.conf) =
   Setup_logging.setup config;
   ()
 
-(* TODO *)
-let setup_profiling conf =
-  (* LATER? this could be done in CLI.ml too *)
-
+let setup_profiling (conf : Scan_CLI.conf) =
   (* TOADAPT
       if config.debug then Report.mode := MDebug
       else if config.report_time then Report.mode := MTime
       else Report.mode := MNo_info;
-     ...
-
-     let config =
-        if config.profile then (
-          logger#info "Profile mode On";
-          logger#info "disabling -j when in profiling mode";
-          { config with ncores = 1 })
-        else config
-      in
   *)
-  conf
+  if conf.profile then (
+    Logs.debug (fun m -> m "Profile mode On");
+    Logs.debug (fun m -> m "disabling -j when in profiling mode");
+    { conf with num_jobs = 1 })
+  else conf
 
 (*****************************************************************************)
 (* Error management *)
@@ -116,6 +107,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   setup_logging conf;
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
+  Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
 
   match () with
   (* "alternate modes" where no search is performed *)
@@ -172,10 +164,5 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 
 let main (argv : string array) : Exit_code.t =
-  let res = Scan_CLI.parse_argv argv in
-  (* LATER: this error handling could be factorized
-   * between the different subcommands at some point
-   *)
-  match res with
-  | Ok conf -> run conf
-  | Error exit_code -> exit_code
+  let conf = Scan_CLI.parse_argv argv in
+  run conf

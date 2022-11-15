@@ -109,3 +109,4 @@ let rules_from_conf (conf : Scan_CLI.conf) : rules_and_origin list =
       let rule = { rule with id = (Constants.cli_rule_id, fk); fix } in
       (* TODO? transform the pattern parse error in invalid_rule_error? *)
       [ { origin = None; rules = [ rule ]; errors = [] } ]
+  [@@profiling]

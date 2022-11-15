@@ -20,7 +20,7 @@ type conf = logout_cli_conf
 (* Helpers *)
 (*****************************************************************************)
 
-(* this could be moved in a Login_CLI.ml file at some point *)
+(* this could be moved in a Login_CLI.ml file at some point if needed *)
 let cmdline_term : conf Term.t =
   let combine = () in
   Term.(const combine)
@@ -34,9 +34,10 @@ let man : Manpage.block list =
   ]
   @ CLI_common.help_page_bottom
 
-let parse_argv (argv : string array) : (conf, Exit_code.t) result =
-  let info : Cmd.info = Cmd.info "semgrep logout" ~doc ~man in
-  let cmd : conf Cmd.t = Cmd.v info cmdline_term in
+let cmdline_info : Cmd.info = Cmd.info "semgrep logout" ~doc ~man
+
+let parse_argv (argv : string array) : conf =
+  let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in
   CLI_common.eval_value ~argv cmd
 
 (*****************************************************************************)
@@ -58,7 +59,5 @@ let run (_conf : logout_cli_conf) : Exit_code.t =
 (*****************************************************************************)
 
 let main (argv : string array) : Exit_code.t =
-  let res = parse_argv argv in
-  match res with
-  | Ok conf -> run conf
-  | Error exit_code -> exit_code
+  let conf = parse_argv argv in
+  run conf

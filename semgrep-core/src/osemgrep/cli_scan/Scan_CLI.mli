@@ -20,6 +20,7 @@ type conf = {
   num_jobs : int;
   optimizations : bool;
   output_format : Output_format.t;
+  profile : bool;
   respect_git_ignore : bool;
   rewrite_rule_ids : bool;
   rules_source : rules_source;
@@ -48,12 +49,12 @@ val default : conf
 (*
    Usage: parse_argv [| "semgrep-scan"; <args> |]
 
-   This function returns an exit code to be passed to the 'exit' function
-   if there was an error parsing argv (Exit_code.fatal) or when
-   using semgrep scan --help (Exit_code.ok), and the conf otherwise if everything
-   went fine.
+   Turn argv into a conf structure.
+
+   This function may raise an exn in case of an error parsing argv
+   but this should be caught by CLI.safe_run.
 *)
-val parse_argv : string array -> (conf, Exit_code.t) result
+val parse_argv : string array -> conf
 
 (* exported because used by Ci_CLI.ml too *)
 val cmdline_term : conf Cmdliner.Term.t

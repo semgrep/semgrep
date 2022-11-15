@@ -160,7 +160,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    strict = _;
    severity = _;
    exclude_rule_ids = _;
-   (* TOPORT: not handled yet *)
+   profile = _;
    autofix = _;
    dryrun = _;
    baseline_commit = _;
@@ -168,11 +168,12 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    include_ = _;
    rules_source = _;
    target_roots = _;
-   max_target_bytes = _;
    metrics = _;
-   respect_git_ignore = _;
    rewrite_rule_ids = _;
    scan_unknown_extensions = _;
+   (* TOPORT: not handled yet *)
+   max_target_bytes = _;
+   respect_git_ignore = _;
    time_flag = _;
   } ->
       let output_format =

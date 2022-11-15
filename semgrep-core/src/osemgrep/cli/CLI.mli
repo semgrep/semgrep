@@ -6,6 +6,7 @@
    with this exit status. If testing, the exit status can be checked
    against expectations.
 
-   Exceptions are caught and turned into an appropriate exit code.
+   Exceptions are caught and turned into an appropriate exit code
+   (unless you used --debug).
 *)
 val main : string array -> Exit_code.t
