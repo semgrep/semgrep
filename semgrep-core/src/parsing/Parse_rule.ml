@@ -475,15 +475,13 @@ let parse_options env (key : key) value =
 (*****************************************************************************)
 
 (* less: could move in a separate Parse_xpattern.ml *)
-let parse_xpattern xlang (str, tok) =
-  match xlang with
+let parse_xpattern env (str, tok) =
+  match env.languages with
   | Xlang.L (lang, _) ->
       let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
       XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
   | Xlang.LRegex ->
-      (* could use parse_regexp above but then would need to pass an id *)
-      let reg = Regexp_engine.pcre_compile str in
-      XP.mk_xpat (XP.Regexp reg) (str, tok)
+      XP.mk_xpat (XP.Regexp (parse_regexp env (str, tok))) (str, tok)
   | Xlang.LGeneric -> (
       let src = Spacegrep.Src_file.of_string str in
       match Spacegrep.Parse_pattern.of_src src with
@@ -527,7 +525,7 @@ let parse_xpattern_expr env e =
        (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
        (* TODO put in *)
      in *)
-  try parse_xpattern env.languages (s, t) with
+  try parse_xpattern env (s, t) with
   | (Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
@@ -634,7 +632,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   let get_formula ?(allow_string = false) env x =
     match (parse_str_or_dict env x, x.G.e) with
     | Left (value, t), _ when allow_string ->
-        R.P (parse_xpattern env.languages (value, t))
+        R.P (parse_xpattern env (value, t))
     | Left _, _ -> error_at_expr env x "Expected dictionary, not a string!"
     | ( _,
         G.Container
@@ -877,7 +875,7 @@ and parse_formula env (value : G.expr) : R.formula =
            (* TODO put in *)
          in *)
       R.P
-        (try parse_xpattern env.languages (s, t) with
+        (try parse_xpattern env (s, t) with
         | (Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
         (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
         | exn ->
@@ -1382,6 +1380,17 @@ let parse file =
   xs
 
 let parse_and_filter_invalid_rules file = parse_file ~error_recovery:true file
+
+let parse_xpattern xlang (str, tok) =
+  let env =
+    {
+      id = "-e/-f";
+      languages = xlang;
+      in_metavariable_pattern = false;
+      path = [];
+    }
+  in
+  parse_xpattern env (str, tok)
 
 (*****************************************************************************)
 (* Valid rule filename checks *)
