@@ -1,6 +1,5 @@
 # PARTIALLY PORTED TO OCAML. DELETE PARTS AS YOU PORT THEM.
 
-from semgrep import bytesize
 from semgrep.app.version import get_no_findings_msg
 from semgrep.dump_ast import dump_parsed_ast
 from semgrep.notifications import possibly_notify_user
@@ -10,6 +9,7 @@ from semgrep.target_manager import write_pipes_to_disk
 _scan_options: List[Callable] = [
 
  optgroup.group("Display options"),
+
     optgroup.option(
         "--enable-nosem/--disable-nosem",
         is_flag=True,
@@ -47,8 +47,6 @@ _scan_options: List[Callable] = [
     ),
 
 
-  optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
-
     optgroup.group(
         "Output formats",
         cls=MutuallyExclusiveOptionGroup,
@@ -71,26 +69,6 @@ _scan_options: List[Callable] = [
 ]
 
 
-@optgroup.group("Alternate modes", help="No search is performed in these modes")
-
-@optgroup.option(
-    "--validate",
-    is_flag=True,
-    default=False,
-    help="Validate configuration file(s). This will check YAML files for errors and run 'p/semgrep-rule-lints' on the YAML files. No search is performed.",
-)
-
-
-@optgroup.group("Test and debug options")
-
-
-@optgroup.option("--test", is_flag=True, default=False, help="Run test suite.")
-@optgroup.option(
-    "--test-ignore-todo/--no-test-ignore-todo",
-    is_flag=True,
-    default=False,
-    help="If --test-ignore-todo, ignores rules marked as '#todoruleid:' in test files.",
-)
 @optgroup.option(
     "--dump-ast/--no-dump-ast",
     is_flag=True,
@@ -99,12 +77,6 @@ _scan_options: List[Callable] = [
         If --dump-ast, shows AST of the input file or passed expression and then exit
         (can use --json).
     """,
-)
-@click.option(
-    "--error/--no-error",
-    "error_on_findings",
-    is_flag=True,
-    help="Exit 1 if there are findings. Useful for CI and scripts.",
 )
 
 # These flags are deprecated or experimental - users should not
@@ -121,7 +93,6 @@ def scan(
     deep: bool,
     dump_ast: bool,
     enable_nosem: bool,
-    error_on_findings: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     junit_xml: bool,
@@ -130,9 +101,6 @@ def scan(
     dataflow_traces: bool,
     output: Optional[str],
     sarif: bool,
-    test: bool,
-    test_ignore_todo: bool,
-    validate: bool,
 ) -> ScanReturn:
 
     state = get_state()
@@ -249,8 +217,6 @@ def scan(
             run_has_findings = any(filtered_matches_by_rule.values())
 
     if enable_version_check:
-        from semgrep.app.version import version_check
-
         version_check()
 
     if not run_has_findings and enable_version_check:

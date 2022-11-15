@@ -112,6 +112,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
 
+  (* TOPORT: configure metrics *)
   match () with
   (* "alternate modes" where no search is performed *)
   | _ when conf.version ->
@@ -129,6 +130,11 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.show_supported_languages ->
       Logs.app (fun m -> m "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok
+  (* LATER: this should be real separate subcommands instead of abusing
+   * semgrep scan flags
+   *)
+  | _ when conf.test -> Test_subcommand.run conf
+  | _ when conf.validate -> Validate_subcommand.run conf
   | _else_ ->
       (* --------------------------------------------------------- *)
       (* Let's go *)

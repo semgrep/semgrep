@@ -9,6 +9,7 @@ type conf = {
   autofix : bool;
   baseline_commit : string option;
   dryrun : bool;
+  error : bool;
   exclude : string list;
   exclude_rule_ids : string list;
   force_color : bool;
@@ -29,9 +30,12 @@ type conf = {
   show_supported_languages : bool;
   strict : bool;
   target_roots : string list;
+  test : bool;
+  test_ignore_todo : bool;
   time_flag : bool;
   timeout : float;
   timeout_threshold : int;
+  validate : bool;
   version : bool;
   version_check : bool;
 }
