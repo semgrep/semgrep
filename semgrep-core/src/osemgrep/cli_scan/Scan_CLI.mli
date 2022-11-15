@@ -36,8 +36,8 @@ type conf = {
 }
 
 and rules_source =
-  (* -e *)
-  | Pattern of string * Xlang.t
+  (* -e/-l/--replacement *)
+  | Pattern of string * Xlang.t * string option (* replacement *)
   (* --config *)
   | Configs of string list
 [@@deriving show]

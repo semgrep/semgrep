@@ -433,12 +433,15 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
          (* negatives *)
          | Not (tok, f) -> Right (tok, f))
 
-(* for -e *)
+(* create a fake rule when we only have a pattern and language.
+ * This is used when someone calls `semgrep -e print -l python`
+ *)
 let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   let fk = Parse_info.unsafe_fake_info "" in
   {
-    id = ("-e/-f", fk);
+    id = ("-e", fk);
     mode = `Search (P xpat);
+    (* alt: could put xpat.pstr for the message *)
     message = "";
     severity = Error;
     languages = xlang;

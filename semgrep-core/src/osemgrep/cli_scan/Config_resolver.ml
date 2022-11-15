@@ -97,7 +97,7 @@ let rules_from_dashdash_config (config_str : string) : rules_and_origin list =
 let rules_from_conf (conf : Scan_CLI.conf) : rules_and_origin list =
   match conf.rules_source with
   | Configs xs -> xs |> List.concat_map rules_from_dashdash_config
-  | Pattern (pat, xlang) ->
+  | Pattern (pat, xlang, fix) ->
       let fk = Parse_info.unsafe_fake_info "" in
       (* better: '-e foo -l regex' not handled in original semgrep,
        * got a weird 'invalid pattern clause' error.
@@ -106,6 +106,6 @@ let rules_from_conf (conf : Scan_CLI.conf) : rules_and_origin list =
        *)
       let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
       let rule = Rule.rule_of_xpattern xlang xpat in
-      let rule = { rule with id = ("-", fk) } in
+      let rule = { rule with id = (Constants.cli_rule_id, fk); fix } in
       (* TODO? transform the pattern parse error in invalid_rule_error? *)
       [ { origin = None; rules = [ rule ]; errors = [] } ]

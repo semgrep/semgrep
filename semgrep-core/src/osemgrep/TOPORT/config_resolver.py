@@ -16,7 +16,6 @@ from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.state import get_state
 from semgrep.util import is_config_suffix
-from semgrep.util import is_rules
 from semgrep.util import is_url
 from semgrep.util import terminal_wrap
 from semgrep.util import with_color
@@ -170,14 +169,6 @@ class Config:
         and exposes ability to get all rules in parsed config files
         """
         self.valid = valid_configs
-
-    @classmethod
-    def from_pattern_lang(
-        cls, pattern: str, lang: str, replacement: Optional[str] = None
-    ) -> Tuple["Config", Sequence[SemgrepError]]:
-        config_dict = manual_config(pattern, lang, replacement)
-        valid, errors = cls._validate(config_dict)
-        return cls(valid), errors
 
     @classmethod
     def from_rules_yaml(cls, config: str) -> Tuple["Config", Sequence[SemgrepError]]:
@@ -344,29 +335,10 @@ def validate_single_rule(
     return Rule.from_yamltree(rule_yaml)
 
 
-def manual_config(
-    pattern: str, lang: str, replacement: Optional[str]
-) -> Dict[str, YamlTree]:
-    """Create a fake rule when we only have a pattern and language
-
-    This is used when someone calls `semgrep scan -e print -l py`
-    """
-    pattern_span = Span.from_string(pattern, filename="CLI Input")
-    pattern_tree = YamlTree[str](value=pattern, span=pattern_span)
+def manual_config(xxx) -> Dict[str, YamlTree]:
     error_span = Span.from_string(
         f"Semgrep bug generating manual config {PLEASE_FILE_ISSUE_TEXT}", filename=None
     )
-    rules_key = {
-        ID_KEY: CLI_RULE_ID,
-        "pattern": pattern_tree,
-        "message": pattern,
-        "languages": [lang],
-        "severity": RuleSeverity.ERROR.value,
-    }
-
-    if replacement:
-        rules_key["fix"] = replacement
-
     return {
         "manual": YamlTree.wrap(
             {RULES_KEY: [rules_key]},
@@ -559,32 +531,3 @@ def url_for_supply_chain() -> str:
     }
     params_str = urlencode(params)
     return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
-
-
-def get_config(
-    pattern: Optional[str],
-    lang: Optional[str],
-    config_strs: Sequence[str],
-    *,
-    project_url: Optional[str],
-    replacement: Optional[str] = None,
-) -> Tuple[Config, Sequence[SemgrepError]]:
-    if pattern:
-        if not lang:
-            raise SemgrepError("language must be specified when a pattern is passed")
-        config, errors = Config.from_pattern_lang(pattern, lang, replacement)
-    elif len(config_strs) == 1 and is_rules(config_strs[0]):
-        config, errors = Config.from_rules_yaml(config_strs[0])
-    elif replacement:
-        raise SemgrepError(
-            "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
-        )
-    else:
-        config, errors = Config.from_config_list(config_strs, project_url)
-
-    if not config:
-        raise SemgrepError(
-            f"No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
-        )
-
-    return config, errors
