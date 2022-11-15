@@ -1,16 +1,21 @@
 #! /usr/bin/env bash
 #
-# Run the semgrep-core program with ocamldebug.
+# Run the osemgrep program with ocamldebug.
 #
 # Example of use:
 #  $ ./debug
 #  ...
-#  (ocd) set arguments -debugger -e 'foo($X, $Y)' -l java tests/java/concrete_syntax.java
+#  (ocd) set arguments -j 1 --debug -e 'foo($X, $Y)' -l java tests/java/concrete_syntax.java
 #  (ocd) run
 #  ...
-# The -debugger arguments to semgrep-core is to change the behavior of
-# Common.finalize to let the exn bubble up, for a better debugging experience
+# The --debug arguments to is to change the behavior of semgrep and
+# let the exn bubble up, for a better debugging experience.
+# The -j 1 is to not use multiple processes, which is better for ocamldebug.
+#
 
 set -eu
+
+# so can use dune build in run-ocamldebug.sh
+source src/ocaml-tree-sitter-core/tree-sitter-config.sh
 
 ./scripts/run-ocamldebug.sh ./_build/default/src/osemgrep/main/Main.bc
