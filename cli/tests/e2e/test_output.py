@@ -133,6 +133,9 @@ def test_debug_experimental_rule(run_semgrep_in_tmp, snapshot):
         output_format=OutputFormat.TEXT,
         options=["--debug"],
     )
+
+    # We need to do this so that we can operate independently of sensitive data which
+    # would otherwise be inconsistent between test runs, such as time elapsed.
     snapshot.assert_match(
         result.as_snapshot(
             mask=[
