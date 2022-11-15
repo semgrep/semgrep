@@ -71,6 +71,7 @@ let matching_exact_word s =
                just at the beginning and end of input.
 *)
 let pcre_compile pat = (pat, SPcre.regexp ~flags:[ `MULTILINE ] pat)
+  [@@profiling]
 
 let anchored_match ?on_error =
   (* ~iflags are precompiled flags for better performance compared to ~flags *)

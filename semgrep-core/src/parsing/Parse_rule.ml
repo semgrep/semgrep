@@ -402,7 +402,12 @@ let parse_python_expression env key s =
 let parse_metavar_cond env key s = parse_python_expression env key s
 
 let parse_regexp env (s, t) =
-  try Regexp_engine.pcre_compile s with
+  (* We try to compile the regexp just to make sure it's valid, but we store
+   * the raw string, see notes attached to 'Xpattern.xpattern_kind'. *)
+  try
+    ignore (Regexp_engine.pcre_compile s);
+    s
+  with
   | Pcre.Error exn ->
       raise
         (R.InvalidRule (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t))
@@ -470,15 +475,13 @@ let parse_options env (key : key) value =
 (*****************************************************************************)
 
 (* less: could move in a separate Parse_xpattern.ml *)
-let parse_xpattern xlang (str, tok) =
-  match xlang with
+let parse_xpattern env (str, tok) =
+  match env.languages with
   | Xlang.L (lang, _) ->
       let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
       XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
   | Xlang.LRegex ->
-      (* could use parse_regexp above but then would need to pass an id *)
-      let reg = Regexp_engine.pcre_compile str in
-      XP.mk_xpat (XP.Regexp reg) (str, tok)
+      XP.mk_xpat (XP.Regexp (parse_regexp env (str, tok))) (str, tok)
   | Xlang.LGeneric -> (
       let src = Spacegrep.Src_file.of_string str in
       match Spacegrep.Parse_pattern.of_src src with
@@ -522,7 +525,7 @@ let parse_xpattern_expr env e =
        (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
        (* TODO put in *)
      in *)
-  try parse_xpattern env.languages (s, t) with
+  try parse_xpattern env (s, t) with
   | (Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
@@ -541,7 +544,7 @@ let parse_xpattern_expr env e =
  *)
 (* extra conditions, usually on metavariable content *)
 type extra =
-  | MetavarRegexp of MV.mvar * Xpattern.regexp * bool
+  | MetavarRegexp of MV.mvar * Xpattern.regexp_string * bool
   | MetavarPattern of MV.mvar * Xlang.t option * Rule.formula
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * Rule.metavar_analysis_kind
@@ -629,7 +632,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   let get_formula ?(allow_string = false) env x =
     match (parse_str_or_dict env x, x.G.e) with
     | Left (value, t), _ when allow_string ->
-        R.P (parse_xpattern env.languages (value, t))
+        R.P (parse_xpattern env (value, t))
     | Left _, _ -> error_at_expr env x "Expected dictionary, not a string!"
     | ( _,
         G.Container
@@ -872,7 +875,7 @@ and parse_formula env (value : G.expr) : R.formula =
            (* TODO put in *)
          in *)
       R.P
-        (try parse_xpattern env.languages (s, t) with
+        (try parse_xpattern env (s, t) with
         | (Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
         (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
         | exn ->
@@ -1377,6 +1380,17 @@ let parse file =
   xs
 
 let parse_and_filter_invalid_rules file = parse_file ~error_recovery:true file
+
+let parse_xpattern xlang (str, tok) =
+  let env =
+    {
+      id = "-e/-f";
+      languages = xlang;
+      in_metavariable_pattern = false;
+      path = [];
+    }
+  in
+  parse_xpattern env (str, tok)
 
 (*****************************************************************************)
 (* Valid rule filename checks *)
