@@ -21,7 +21,8 @@
 (* Types *)
 (*****************************************************************************)
 
-type regexp = Regexp_engine.t [@@deriving show, eq]
+type compiled_regexp = Regexp_engine.t [@@deriving show, eq]
+type regexp_string = string [@@deriving show, eq]
 
 (* used in the engine for rule->mini_rule and match_result gymnastic *)
 type pattern_id = int [@@deriving show, eq]
@@ -29,7 +30,21 @@ type pattern_id = int [@@deriving show, eq]
 type xpattern_kind =
   | Sem of Pattern.t * Lang.t (* language used for parsing the pattern *)
   | Spacegrep of Spacegrep.Pattern_AST.t
-  | Regexp of regexp
+  | Regexp of regexp_string
+      (** NOTE: We used to keep the compiled regexp of type `Regexp_engine.t', but
+      * that is not a pure OCaml data structure and it cannot be serialized.
+      *
+      * This had previously caused weird Semgrep crashes like
+      *
+      *     Invalid_argument "output_value: abstract value (Custom)"
+      *
+      * after PR #5725 (taint labels), see PA-1724.
+      *
+      * When we use -j 2 (or higher) and -json, then Parmap is used, and the result
+      * of `Match_rules.check' (of type `Report.match_result') will contain some
+      * unevaluated thunks. Then Parmap will try to marshal this value and it will
+      * crash if there is any "Custom" block involved.
+      *)
   | Comby of string
 [@@deriving show, eq]
 

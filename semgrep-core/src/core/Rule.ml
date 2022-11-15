@@ -102,7 +102,8 @@ and metavar_cond =
    * update: this is also useful to keep separate from CondEval for
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
-  | CondRegexp of MV.mvar * Xpattern.regexp * bool (* constant-propagation *)
+  | CondRegexp of
+      MV.mvar * Xpattern.regexp_string * bool (* constant-propagation *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
@@ -231,7 +232,7 @@ type 'mode rule_info = {
   (* deprecated? todo: parse them *)
   equivalences : string list option;
   fix : string option;
-  fix_regexp : (Xpattern.regexp * int option * string) option;
+  fix_regexp : (Xpattern.regexp_string * int option * string) option;
   paths : paths option;
   (* ex: [("owasp", "A1: Injection")] but can be anything *)
   metadata : JSON.t option;

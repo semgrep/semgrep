@@ -402,7 +402,12 @@ let parse_python_expression env key s =
 let parse_metavar_cond env key s = parse_python_expression env key s
 
 let parse_regexp env (s, t) =
-  try Regexp_engine.pcre_compile s with
+  (* We try to compile the regexp just to make sure it's valid, but we store
+   * the raw string, see notes attached to 'Xpattern.xpattern_kind'. *)
+  try
+    ignore (Regexp_engine.pcre_compile s);
+    s
+  with
   | Pcre.Error exn ->
       raise
         (R.InvalidRule (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t))
@@ -541,7 +546,7 @@ let parse_xpattern_expr env e =
  *)
 (* extra conditions, usually on metavariable content *)
 type extra =
-  | MetavarRegexp of MV.mvar * Xpattern.regexp * bool
+  | MetavarRegexp of MV.mvar * Xpattern.regexp_string * bool
   | MetavarPattern of MV.mvar * Xlang.t option * Rule.formula
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * Rule.metavar_analysis_kind

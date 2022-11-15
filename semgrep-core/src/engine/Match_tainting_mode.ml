@@ -467,18 +467,7 @@ let pm_of_finding finding =
        * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
        *)
       let taint_trace =
-        Some
-          ((* FIXME: We replaced `lazy` with `Lazy.from_val` because, after
-              PR #5725 (taint labels), somewhow this prevents Semgrep-core from crashing
-              in some weird cases, see PA-1724. We don't understand why, yet. But it
-              requires -j 2 (so that Parmap is used) and -json (so that the lazy value
-              reaches Parmap unevaluated), and when Parmap tries to marshal this value
-              it crashes with:
-
-                  Invalid_argument "output_value: abstract value (Custom)"
-           *)
-           Lazy.from_val
-             (taint_trace_of_src_to_sink source tokens sink))
+        Some (lazy (taint_trace_of_src_to_sink source tokens sink))
       in
       let sink_pm, _ = T.pm_of_trace sink in
       Some { sink_pm with env = merged_env; taint_trace }
