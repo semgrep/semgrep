@@ -7,6 +7,9 @@ type rules_and_origin = {
 and origin = Common.filename option (* None for remote files *)
 [@@deriving show]
 
+val partition_rules_and_errors :
+  rules_and_origin list -> Rule.rules * Rule.invalid_rule_error list
+
 (* [rules_from_conf] returns rules from --config or -e
  * TODO: does it rewrite the rule_id?
  *)

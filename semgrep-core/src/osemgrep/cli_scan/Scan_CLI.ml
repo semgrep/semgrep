@@ -71,6 +71,7 @@ and rules_source =
   (* --config. In theory we could even parse the string to get
    * some Semgrep_dashdash_config.config_kind list *)
   | Configs of string list
+    (* TODO? | ProjectUrl of Uri.t? or just use Configs for it? *)
 [@@deriving show]
 
 let default : conf =
@@ -596,8 +597,13 @@ let cmdline_term : conf Term.t =
     in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
+      | [], (None, _, _) when validate ->
+          (* TOPORT? was a Logs.err but seems better as an abort *)
+          Error.abort
+            "Nothing to validate, use the --config or --pattern flag to \
+             specify a rule"
       (* TOPORT: handle get_project_url() if empty Configs? *)
-      | [], (None, None, None) ->
+      | [], (None, _, _) ->
           (* alt: default.rules_source *)
           (* TOPORT: raise with Exit_code.missing_config *)
           Error.abort

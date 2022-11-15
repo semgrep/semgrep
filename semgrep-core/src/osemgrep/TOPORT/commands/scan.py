@@ -149,40 +149,6 @@ def scan(
 
         if dump_ast:
             dump_parsed_ast(json, __validate_lang("--dump-ast", lang), pattern, targets)
-        elif validate:
-            if not (pattern or lang or config):
-                logger.error(
-                    f"Nothing to validate, use the --config or --pattern flag to specify a rule"
-                )
-            else:
-                resolved_configs, config_errors = semgrep.config_resolver.get_config(
-                    pattern, lang, config or [], project_url=get_project_url()
-                )
-
-                # Run metachecks specifically on the config files
-                if config:
-                    try:
-                        metacheck_errors = CoreRunner(
-                            jobs=jobs,
-                            timeout=timeout,
-                            max_memory=max_memory,
-                            timeout_threshold=timeout_threshold,
-                            optimizations=optimizations,
-                        ).validate_configs(config)
-                    except SemgrepError as e:
-                        metacheck_errors = [e]
-
-                config_errors = list(chain(config_errors, metacheck_errors))
-
-                valid_str = "invalid" if config_errors else "valid"
-                rule_count = len(resolved_configs.get_rules(True))
-                logger.info(
-                    f"Configuration is {valid_str} - found {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
-                )
-                if config_errors:
-                    output_handler.handle_semgrep_errors(config_errors)
-                    output_handler.output({}, all_targets=set(), filtered_rules=[])
-                    raise SemgrepError("Please fix the above errors and try again.")
         else:
             try:
                 (

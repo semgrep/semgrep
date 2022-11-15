@@ -144,11 +144,8 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           rules_and_origins
           |> List.iter (fun x ->
                  m "rules = %s" (Config_resolver.show_rules_and_origin x)));
-      let (rules : Rule.rules) =
-        rules_and_origins |> List.concat_map (fun x -> x.Config_resolver.rules)
-      in
-      let (errors : Rule.invalid_rule_error list) =
-        rules_and_origins |> List.concat_map (fun x -> x.Config_resolver.errors)
+      let rules, errors =
+        Config_resolver.partition_rules_and_errors rules_and_origins
       in
       let filtered_rules = filter_rules conf rules in
 
