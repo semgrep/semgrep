@@ -11,6 +11,7 @@
 (* Logging/Profiling/Debugging *)
 (*****************************************************************************)
 
+(* ugly: also partially done in CLI.ml *)
 let setup_logging (conf : Scan_CLI.conf) =
   (* For osemgrep we use the Logs library instead of the Logger
    * library in pfff. We had a few issues with Logger (which is a small
@@ -46,6 +47,7 @@ let setup_logging (conf : Scan_CLI.conf) =
   Setup_logging.setup config;
   ()
 
+(* ugly: also partially done in CLI.ml *)
 let setup_profiling (conf : Scan_CLI.conf) =
   (* TOADAPT
       if config.debug then Report.mode := MDebug
@@ -53,6 +55,7 @@ let setup_profiling (conf : Scan_CLI.conf) =
       else Report.mode := MNo_info;
   *)
   if conf.profile then (
+    (* no need to set Common.profile, this was done in CLI.ml *)
     Logs.debug (fun m -> m "Profile mode On");
     Logs.debug (fun m -> m "disabling -j when in profiling mode");
     { conf with num_jobs = 1 })

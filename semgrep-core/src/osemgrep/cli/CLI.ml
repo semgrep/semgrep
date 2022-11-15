@@ -136,6 +136,7 @@ let dispatch_subcommand argv =
       | "shouldafound" -> missing_subcommand ()
       (* TOPORT: cli.add_command(install_deep_semgrep) *)
       | _else_ -> (* should have defaulted to 'scan' above *) assert false)
+  [@@profiling]
 
 (*****************************************************************************)
 (* Error management *)
@@ -218,6 +219,16 @@ let main argv : Exit_code.t =
    *)
   Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
 
+  (* TODO? We used to tune the garbage collector but from profiling
+     we found that the effect was small. Meanwhile, the memory
+     consumption causes some machines to freeze. We may want to
+     tune these parameters in the future/do more testing, but
+     for now just turn it off.
+     (* if !Flag.gc_tuning && config.max_memory_mb = 0
+        then Core_CLI.set_gc ();
+     *)
+  *)
+
   (* The precise Logs_helpers.setup_logging() is done in Scan_subcommand.ml,
    * because that's when we have a conf object which contains
    * the --quiet/--verbose/--debug options. In the mean time we still
@@ -242,22 +253,7 @@ let main argv : Exit_code.t =
       state.metrics.add_feature("subcommand", subcommand)
       maybe_set_git_safe_directories()
   *)
-
   (*TOADAPT? adapt more of Common.boilerplate? *)
-  let exit_code =
-    safe_run ~debug (fun () ->
-        (* must be done after setting Common.profile *)
-        Common.profile_code "Main total" (fun () ->
-            (* TODO? We used to tune the garbage collector but from profiling
-               we found that the effect was small. Meanwhile, the memory
-               consumption causes some machines to freeze. We may want to
-               tune these parameters in the future/do more testing, but
-               for now just turn it off.
-               (* if !Flag.gc_tuning && config.max_memory_mb = 0
-                  then Core_CLI.set_gc ();
-               *)
-            *)
-            dispatch_subcommand argv))
-  in
+  let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
   before_exit ~profile ();
   exit_code
