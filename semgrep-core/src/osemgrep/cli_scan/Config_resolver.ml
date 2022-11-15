@@ -32,6 +32,18 @@ and origin = Common.filename option (* None for remote files *)
 (* Helpers *)
 (*****************************************************************************)
 
+let partition_rules_and_errors (xs : rules_and_origin list) :
+    Rule.rules * Rule.invalid_rule_error list =
+  let (rules : Rule.rules) = xs |> List.concat_map (fun x -> x.rules) in
+  let (errors : Rule.invalid_rule_error list) =
+    xs |> List.concat_map (fun x -> x.errors)
+  in
+  (rules, errors)
+
+(*****************************************************************************)
+(* Loading rules *)
+(*****************************************************************************)
+
 let load_rules_from_file file : rules_and_origin =
   Logs.debug (fun m -> m "loading local config from %s" file);
   if Sys.file_exists file then (
