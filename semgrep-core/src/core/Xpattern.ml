@@ -23,6 +23,7 @@
 
 type compiled_regexp = Regexp_engine.t [@@deriving show, eq]
 type regexp_string = string [@@deriving show, eq]
+(* see the NOTE "Regexp" below for the need to have this type *)
 
 (* used in the engine for rule->mini_rule and match_result gymnastic *)
 type pattern_id = int [@@deriving show, eq]
@@ -31,7 +32,8 @@ type xpattern_kind =
   | Sem of Pattern.t * Lang.t (* language used for parsing the pattern *)
   | Spacegrep of Spacegrep.Pattern_AST.t
   | Regexp of regexp_string
-      (** NOTE: We used to keep the compiled regexp of type `Regexp_engine.t', but
+      (** NOTE "Regexp":
+      * We used to keep the compiled regexp of type `Regexp_engine.t', but
       * that is not a pure OCaml data structure and it cannot be serialized.
       *
       * This had previously caused weird Semgrep crashes like
