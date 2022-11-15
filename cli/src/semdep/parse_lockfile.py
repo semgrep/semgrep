@@ -55,6 +55,48 @@ def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
 def parse_yarn1(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
+    def get_version(lines: List[str]) -> Tuple[str, str]:
+        """
+        Given list representation of a single package's yarn lock info object
+        (with injected line number next to version), return the version and line number
+
+        Returns the version without the surrounding quotation marks
+
+        Assumes only a single element in line starts with "version" after removing whitespace
+        """
+        for line in lines:
+            if line.strip().startswith("version"):
+                _, version, line_number = line.split()
+                version = version.strip('" ')
+                return version, line_number
+        raise SemgrepError(f"yarn.lock dependency missing version for {lines[0]}")
+
+    def get_resolved(lines: List[str]) -> Optional[str]:
+        """
+        Given list representation of a single package's yarn lock info object
+        (with injected line number next to version), return the resolved url if it exists
+
+        Return None if no resolved url exists. Removes trailing octothorpe and whitespace
+        """
+        for line in lines:
+            if line.strip().startswith("resolved"):
+                _, resolved = line.split()
+                resolved = resolved.strip('" ')
+                resolved = remove_trailing_octothorpe(resolved)
+                return resolved
+        return None
+
+    def get_integrity(lines: List[str]) -> Optional[str]:
+        """
+        Given list representation of a single package's yarn lock info object
+        return integrity hash if exits
+        """
+        for line in lines:
+            if line.strip().startswith("integrity"):
+                _, integrity = line.split()
+                return integrity
+        return None
+
     def version_sources(line: str) -> Tuple[str, List[Tuple[str, str]]]:
         # Takes a (multi-)key from the yarn.lock file and turns it into a list
         # A line might look like this
@@ -91,17 +133,9 @@ def parse_yarn1(
     for dep_text in dep_texts:
         lines = dep_text.split("\n")
         package_name, constraints = version_sources(lines[0])
-        _, version, line_number = lines[1].split()
-        version = version.strip('" ')
-        if len(lines) >= 3 and lines[2].strip().startswith("resolved"):
-            resolved = remove_trailing_octothorpe(lines[2].split()[1].strip('" '))
-        else:
-            resolved = None
-        integrity = (
-            lines[3].split()[1]
-            if len(lines) > 3 and lines[3].strip().startswith("integrity")
-            else None
-        )
+        version, line_number = get_version(lines)
+        resolved = get_resolved(lines)
+        integrity = get_integrity(lines)
         if manifest_deps is None:
             transitivity = Transitivity(Unknown())
         else:
