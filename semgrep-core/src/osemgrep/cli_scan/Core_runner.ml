@@ -171,6 +171,10 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    metrics = _;
    rewrite_rule_ids = _;
    scan_unknown_extensions = _;
+   error = _;
+   validate = _;
+   test = _;
+   test_ignore_todo = _;
    (* TOPORT: not handled yet *)
    max_target_bytes = _;
    respect_git_ignore = _;

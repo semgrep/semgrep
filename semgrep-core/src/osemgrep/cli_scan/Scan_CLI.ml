@@ -29,6 +29,7 @@ type conf = {
   (* TODO? better parsing of the string? a Git.version type? *)
   baseline_commit : string option;
   dryrun : bool;
+  error : bool;
   exclude : string list;
   exclude_rule_ids : Rule.rule_id list;
   force_color : bool;
@@ -52,9 +53,12 @@ type conf = {
   show_supported_languages : bool;
   strict : bool;
   target_roots : string list;
+  test : bool;
+  test_ignore_todo : bool;
   time_flag : bool;
   timeout : float;
   timeout_threshold : int;
+  validate : bool;
   version : bool;
   version_check : bool;
 }
@@ -73,6 +77,7 @@ let default : conf =
     autofix = false;
     baseline_commit = None;
     dryrun = false;
+    error = false;
     exclude = [];
     exclude_rule_ids = [];
     force_color = false;
@@ -93,9 +98,12 @@ let default : conf =
     show_supported_languages = false;
     strict = false;
     target_roots = [ "." ];
+    test = false;
+    test_ignore_todo = false;
     time_flag = false;
     timeout = 30.0 (* seconds *);
     timeout_threshold = 3;
+    validate = false;
     version = false;
     version_check = true;
   }
@@ -487,9 +495,38 @@ let o_show_supported_languages : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_validate : bool Term.t =
+  let info =
+    Arg.info [ "validate" ]
+      ~doc:
+        {|Validate configuration file(s).
+This will check YAML files for errors and run 'p/semgrep-rule-lints' on
+the YAML files. No search is performed.
+|}
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Test and debug options" *)
 (* ------------------------------------------------------------------ *)
+
+let o_test : bool Term.t =
+  let info = Arg.info [ "test" ] ~doc:{|Run test suite.|} in
+  Arg.value (Arg.flag info)
+
+let o_test_ignore_todo : bool Term.t =
+  H.negatable_flag [ "test-ignore-todo" ] ~neg_options:[ "no-test-ignore-todo" ]
+    ~default:default.test_ignore_todo
+    ~doc:
+      {|If --test-ignore-todo, ignores rules marked as '#todoruleid:' in
+test files.
+|}
+
+let o_error : bool Term.t =
+  H.negatable_flag [ "error" ] ~neg_options:[ "no-error" ]
+    ~default:default.error
+    ~doc:{|Exit 1 if there are findings. Useful for CI and scripts.|}
+
 let o_strict : bool Term.t =
   H.negatable_flag [ "strict" ] ~neg_options:[ "no-strict" ]
     ~default:default.strict
@@ -523,12 +560,13 @@ let o_profile : bool Term.t =
 (*****************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine autofix baseline_commit config debug dryrun emacs exclude
+  let combine autofix baseline_commit config debug dryrun emacs error exclude
       exclude_rule_ids force_color include_ json lang max_memory_mb
       max_target_bytes metrics num_jobs optimizations pattern profile quiet
       replacement respect_git_ignore rewrite_rule_ids scan_unknown_extensions
-      severity show_supported_languages strict target_roots time_flag timeout
-      timeout_threshold verbose version version_check vim =
+      severity show_supported_languages strict target_roots test
+      test_ignore_todo time_flag timeout timeout_threshold validate verbose
+      version version_check vim =
     let logging_level =
       match (verbose, debug, quiet) with
       | false, false, false -> Some Logs.Warning
@@ -602,6 +640,7 @@ let cmdline_term : conf Term.t =
       baseline_commit;
       rules_source;
       dryrun;
+      error;
       exclude_rule_ids;
       exclude;
       force_color;
@@ -621,9 +660,12 @@ let cmdline_term : conf Term.t =
       show_supported_languages;
       strict;
       target_roots;
+      test;
+      test_ignore_todo;
       time_flag;
       timeout;
       timeout_threshold;
+      validate;
       version;
       version_check;
     }
@@ -631,12 +673,13 @@ let cmdline_term : conf Term.t =
   (* Term defines 'const' but also the '$' operator *)
   Term.(
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
-    $ o_dryrun $ o_emacs $ o_exclude $ o_exclude_rule_ids $ o_force_color
-    $ o_include $ o_json $ o_lang $ o_max_memory_mb $ o_max_target_bytes
-    $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern $ o_profile $ o_quiet
-    $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
-    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
-    $ o_strict $ o_target_roots $ o_time $ o_timeout $ o_timeout_threshold
+    $ o_dryrun $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
+    $ o_force_color $ o_include $ o_json $ o_lang $ o_max_memory_mb
+    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern
+    $ o_profile $ o_quiet $ o_replacement $ o_respect_git_ignore
+    $ o_rewrite_rule_ids $ o_scan_unknown_extensions $ o_severity
+    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
+    $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold $ o_validate
     $ o_verbose $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"

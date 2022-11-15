@@ -129,6 +129,11 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.show_supported_languages ->
       Logs.app (fun m -> m "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok
+  (* LATER: this should be real separate subcommands instead of abusing
+   * semgrep scan flags
+   *)
+  | _ when conf.test -> Test_subcommand.run conf
+  | _ when conf.validate -> Validate_subcommand.run conf
   | _else_ ->
       (* --------------------------------------------------------- *)
       (* Let's go *)
