@@ -3,6 +3,7 @@ No .semgrepignore found. Using default .semgrepignore rules. See the docs for th
 Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
+Experimental Rules:
 Scanning 1 file with 2 python rules.
 
 ========================================

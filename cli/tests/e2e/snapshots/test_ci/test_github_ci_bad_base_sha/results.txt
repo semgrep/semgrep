@@ -66,6 +66,7 @@ Rules:
 - supply-chain1
 - supply-chain2
 - taint-test
+Experimental Rules:
 Passing whole rules directly to semgrep_core
 Scanning 1 file with 4 python rules.
 Running semgrep-core with command:
