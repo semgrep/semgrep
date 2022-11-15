@@ -112,6 +112,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
 
+  (* TOPORT: configure metrics *)
   match () with
   (* "alternate modes" where no search is performed *)
   | _ when conf.version ->

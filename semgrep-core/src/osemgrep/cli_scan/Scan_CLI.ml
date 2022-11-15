@@ -29,6 +29,7 @@ type conf = {
   (* TODO? better parsing of the string? a Git.version type? *)
   baseline_commit : string option;
   dryrun : bool;
+  (* error_on_findings *)
   error : bool;
   exclude : string list;
   exclude_rule_ids : Rule.rule_id list;
@@ -120,6 +121,7 @@ let default : conf =
 (* No group *)
 (* ------------------------------------------------------------------ *)
 
+(* TODO? could be put in the Display options? with nosem? *)
 let o_baseline_commit : string option Term.t =
   let info =
     Arg.info [ "baseline_commit" ]
@@ -341,7 +343,7 @@ let o_time : bool Term.t =
 |}
 
 (* ------------------------------------------------------------------ *)
-(* TOPORT "Verbosity options" *)
+(* TOPORT "Verbosity options" (mutually exclusive) *)
 (* ------------------------------------------------------------------ *)
 (* alt: we could use Logs_cli.level(), but by defining our own flags
  * we can give better ~doc:. We lose the --verbosity=Level though.
@@ -551,6 +553,7 @@ let o_target_roots : string list Term.t =
 (* !!NEW arguments!! *)
 (* ------------------------------------------------------------------ *)
 
+(* alt: could be put in Display options, next to o_time *)
 let o_profile : bool Term.t =
   let info = Arg.info [ "profile" ] ~doc:{|<undocumented>|} in
   Arg.value (Arg.flag info)
@@ -604,7 +607,7 @@ let cmdline_term : conf Term.t =
           (* TOPORT? use instead
              "No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c" *)
       | [], (Some pat, Some str, fix) ->
-          (* may raise Failure *)
+          (* may raise a Failure (will be caught in CLI.safe_run) *)
           let xlang = Xlang.of_string str in
           Pattern (pat, xlang, fix)
       | _, (Some _, None, _) ->

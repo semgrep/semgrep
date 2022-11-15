@@ -1,6 +1,5 @@
 # PARTIALLY PORTED TO OCAML. DELETE PARTS AS YOU PORT THEM.
 
-from semgrep import bytesize
 from semgrep.app.version import get_no_findings_msg
 from semgrep.dump_ast import dump_parsed_ast
 from semgrep.notifications import possibly_notify_user
@@ -10,6 +9,7 @@ from semgrep.target_manager import write_pipes_to_disk
 _scan_options: List[Callable] = [
 
  optgroup.group("Display options"),
+
     optgroup.option(
         "--enable-nosem/--disable-nosem",
         is_flag=True,
@@ -46,8 +46,6 @@ _scan_options: List[Callable] = [
         shell_complete=__get_file_options,
     ),
 
-
-  optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
 
     optgroup.group(
         "Output formats",
@@ -95,7 +93,6 @@ def scan(
     deep: bool,
     dump_ast: bool,
     enable_nosem: bool,
-    error_on_findings: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     junit_xml: bool,
@@ -104,9 +101,6 @@ def scan(
     dataflow_traces: bool,
     output: Optional[str],
     sarif: bool,
-    test: bool,
-    test_ignore_todo: bool,
-    validate: bool,
 ) -> ScanReturn:
 
     state = get_state()
@@ -223,8 +217,6 @@ def scan(
             run_has_findings = any(filtered_matches_by_rule.values())
 
     if enable_version_check:
-        from semgrep.app.version import version_check
-
         version_check()
 
     if not run_has_findings and enable_version_check:
