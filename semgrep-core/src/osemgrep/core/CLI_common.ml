@@ -15,17 +15,20 @@ let help_page_bottom =
 
 (* Small wrapper around Cmdliner.Cmd.eval_value.
  * Note that I didn't put this helper function in Cmdliner_helpers.ml because
- * it's using Exit_code.ml which is semgrep-specific.
+ * it's using Exit_code.ml and Error.ml which are semgrep-specific.
  *)
 let eval_value ~argv cmd =
   (* the ~catch:false is to let non-cmdliner exn (e.g., Error.Semgrep_error)
    * to bubble up; those exns will then be caught in CLI.safe_run.
    *)
   match Cmd.eval_value ~catch:false ~argv cmd with
-  | Error (`Term | `Parse | `Exn) -> Error Exit_code.fatal
+  (* alt: could define a new Exit_code for those kinds of errors *)
+  | Error (`Term | `Parse) -> Error.exit Exit_code.fatal
+  (* this should never happen, because of the ~catch:false above *)
+  | Error `Exn -> assert false
   | Ok ok -> (
       match ok with
-      | `Ok config -> Ok config
+      | `Ok config -> config
       | `Version
       | `Help ->
-          Error Exit_code.ok)
+          Error.exit Exit_code.ok)

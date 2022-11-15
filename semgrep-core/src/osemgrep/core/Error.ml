@@ -21,6 +21,7 @@
    See CLI.safe_run()
 *)
 exception Semgrep_error of string * Exit_code.t option
+exception Exit of Exit_code.t
 
 (* TOPORT?
    exception Semgrep_core_error of Output_from_core_t.core_error
@@ -86,3 +87,4 @@ exception Semgrep_error of string * Exit_code.t option
 (*****************************************************************************)
 
 let abort msg = raise (Semgrep_error (msg, None))
+let exit code = raise (Exit code)
