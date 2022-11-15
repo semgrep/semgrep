@@ -59,6 +59,17 @@ let entity_to_param { G.name; attrs; tparams = _unused } t =
     pdefault = None;
   }
 
+(* In Java, multiple assignments in a line get translated
+   into a list of DefStmts in a Block, which interferes
+   with scoping. This function helps check for that *)
+   let is_list_of_variable_definitions stmts =
+    let is_stmt s =
+      match s with
+      | LocalVar _ -> true
+      | __else__ -> false
+    in
+    List.for_all is_stmt stmts
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -427,6 +438,8 @@ and resources (t1, v, t2) =
 and stmt st =
   match st with
   | EmptyStmt t -> G.Block (t, [], t) |> G.s
+  | Block (_t1, v1, _t2) when is_list_of_variable_definitions v1 ->
+      G.OtherStmt (OS_Todo, Common.map (fun x -> G.S (stmt x)) v1) |> G.s
   | Block v1 ->
       let v1 = bracket stmts v1 in
       G.Block v1 |> G.s

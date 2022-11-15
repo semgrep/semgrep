@@ -1160,7 +1160,7 @@ and other_stmt_operator =
   | OS_Retry
   (* OCaml *)
   | OS_ExprStmt2
-  (* Other: Leave/Emit in Solidity *)
+  (* Other: Leave/Emit in Solidity, multiple def in Java *)
   | OS_Todo
 
 (*****************************************************************************)
