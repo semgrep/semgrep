@@ -19,7 +19,11 @@ from ..conftest import TESTS_PATH
         ),
         (
             "rules/dependency_aware/no-pattern.yaml",
-            "dependency_aware",
+            "dependency_aware/yarn",
+        ),
+        (
+            "rules/dependency_aware/yarn-sass.yaml",
+            "dependency_aware/yarn",
         ),
         ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go"),
         ("rules/dependency_aware/ruby-sca.yaml", "dependency_aware/ruby"),
