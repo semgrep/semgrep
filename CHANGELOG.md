@@ -8,6 +8,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [0.122.0](https://github.com/returntocorp/semgrep/releases/tag/v0.122.0) - 2022-11-16
+
+### Fixed
+
+- DeepSemgrep: Added installation path for DeepSemgrep on M1 machines (pa-2153)
+- Correctly handle optional name field in yaml1 lockfiles (parse_yaml)
+
 ## [0.121.2](https://github.com/returntocorp/semgrep/releases/tag/v0.121.2) - 2022-11-10
 
 ### Fixed
