@@ -497,11 +497,11 @@ and tok_and_stmt (t, v) =
   let v = stmt v in
   (t, v)
 
-and stmts v = 
+and stmts v =
   let expand_local_var_definition s =
     match s with
     | LocalVarList xs -> xs
-    | s -> [s]
+    | s -> [ s ]
   in
   let v = v |> Common.map expand_local_var_definition |> List.flatten in
   list stmt v
