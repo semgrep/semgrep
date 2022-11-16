@@ -1337,6 +1337,18 @@ let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
   in
   Common.partition_either (fun x -> x) xs
 
+(* We can't call just Yaml_to_generic.program below because when we parse
+ * YAML Semgrep rules, we preprocess unicode characters differently.
+ * We also need to translate Parse_info.Other_error exn in
+ * (Rule.Err (Rule.InvalidYaml)) exn.
+ * Note that we can't generate a Rule.Err in Yaml_to_generic directly
+ * because we don't want parsing/other/ to depend on core/.
+ *)
+let parse_yaml_rule_file file =
+  let str = Common.read_file file in
+  try Yaml_to_generic.parse_yaml_file file str with
+  | Parse_info.Other_error (s, t) -> raise (R.Err (R.InvalidYaml (s, t)))
+
 let parse_file ?error_recovery file =
   let ast =
     match FT.file_type_of_file file with
@@ -1373,11 +1385,11 @@ let parse_file ?error_recovery file =
             if n <> 0 then failwith (spf "error executing %s" cmd);
             Json_to_generic.program ~unescape_strings:true
               (Parse_json.parse_program tmpfile))
-    | FT.Config FT.Yaml -> Yaml_to_generic.parse_rule file
-    | _ ->
+    | FT.Config FT.Yaml -> parse_yaml_rule_file file
+    | _else_ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
         logger#info "trying to parse %s as YAML" file;
-        Yaml_to_generic.parse_rule file
+        parse_yaml_rule_file file
   in
   parse_generic_ast ?error_recovery file ast
 

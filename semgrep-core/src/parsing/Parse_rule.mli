@@ -9,13 +9,15 @@
 val parse_and_filter_invalid_rules :
   Common.filename -> Rule.rules * Rule.invalid_rule_error list
 
-(* This should be used in testing code. Otherwise you should
+(* This should be used mostly in testing code. Otherwise you should
  * use parse_and_filter_invalid_rules.
  * This function may raise (Rule.Err ....)
  *)
 val parse : Common.filename -> Rule.rules
 
-(* this can be used for parsing -e/-f extended patterns in Run_semgrep.ml *)
+(* this can be used for parsing -e/-f extended patterns in Run_semgrep.ml
+ * and now also in osemgrep Config_resolver.ml.
+ *)
 val parse_xpattern : Xlang.t -> string Rule.wrap -> Xpattern.t
 
 (* ex: foo.yaml, foo.yml, but not foo.test.yaml *)
