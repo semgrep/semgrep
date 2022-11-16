@@ -550,14 +550,6 @@ let parse_yaml_file file str =
   let xs = parse env in
   Common.map G.exprstmt xs
 
-(* This needs to be separate since we call parse_rule to parse yaml rules
-   for other languages, but when we parse yaml-language rules/targets we
-   preprocess unicode characters differently *)
-
-let parse_rule file =
-  let str = Common.read_file file in
-  parse_yaml_file file str
-
 (* The entry points for yaml-language parsing *)
 
 let any str =
