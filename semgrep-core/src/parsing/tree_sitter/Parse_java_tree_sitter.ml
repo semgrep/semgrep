@@ -875,8 +875,9 @@ and statement_aux env x : Ast_java.stmt list =
           let v3 = block env v3 in
           [ Sync (v2, v3) ]
       | `Local_var_decl x ->
+          (* Emma TODO this will get translated into a Block. You don't want that *)
           let xs = local_variable_declaration env x in
-          xs |> Common.map (fun x -> LocalVar x)
+          [ LocalVarList (xs |> Common.map (fun x -> LocalVar x)) ]
       | `Throw_stmt (v1, v2, v3) ->
           let v1 = token env v1 (* "throw" *) in
           let v2 = expression env v2 in

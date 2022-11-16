@@ -484,6 +484,7 @@ and stmt st =
   | LocalVar v1 ->
       let ent, v = var_with_init v1 in
       G.DefStmt (ent, G.VarDef v) |> G.s
+  | LocalVarList _ -> failwith "Impossible; should have been removed in stmts"
   | DeclStmt v1 -> decl v1
   | DirectiveStmt v1 -> directive v1
   | Assert (t, v1, v2) ->
@@ -496,7 +497,14 @@ and tok_and_stmt (t, v) =
   let v = stmt v in
   (t, v)
 
-and stmts v = list stmt v
+and stmts v = 
+  let expand_local_var_definition s =
+    match s with
+    | LocalVarList xs -> xs
+    | s -> [s]
+  in
+  let v = v |> Common.map expand_local_var_definition |> List.flatten in
+  list stmt v
 
 and case = function
   | Case (t, v1) ->
