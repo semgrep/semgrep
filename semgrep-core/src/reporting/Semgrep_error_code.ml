@@ -135,9 +135,6 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
           Some (mk_error_tok ~rule_id pos msg Out.InvalidYaml)
       | R.DuplicateYamlKey (s, pos) ->
           Some (mk_error_tok ~rule_id pos s Out.InvalidYaml)
-      | R.ExceededMemoryLimit msg ->
-          let loc = Parse_info.first_loc_of_file file in
-          Some (mk_error ~rule_id loc msg Out.OutOfMemory)
       (* TODO?? *)
       | R.UnparsableYamlException _ -> None)
   | Common.Timeout timeout_info ->
@@ -147,6 +144,10 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
       let loc = Parse_info.first_loc_of_file file in
       let msg = Common.string_of_timeout_info timeout_info in
       Some (mk_error ~rule_id loc msg Out.Timeout)
+  (* raised in Memory_limit.ml *)
+  | Common.ExceededMemoryLimit msg ->
+      let loc = Parse_info.first_loc_of_file file in
+      Some (mk_error ~rule_id loc msg Out.OutOfMemory)
   | Out_of_memory ->
       let loc = Parse_info.first_loc_of_file file in
       Some (mk_error ~rule_id loc "Heap space exceeded" Out.OutOfMemory)

@@ -5,6 +5,8 @@
 open Common
 
 let logger = Logging.get_logger [ __MODULE__ ]
+
+(* Why those values? *)
 let default_stack_warning_kb = 100
 let default_heap_warning_mb = 400
 
@@ -59,7 +61,7 @@ let run_with_memory_limit ?get_context
       logger#info
         "%sexceeded heap+stack memory limit: %d bytes (stack=%d, heap=%d)"
         (context ()) mem_bytes stack_bytes heap_bytes;
-      raise (ExceededMemoryLimit "Exceeded memory limit"))
+      raise (Common.ExceededMemoryLimit "Exceeded memory limit"))
     else if !heap_warning > 0 && heap_bytes > !heap_warning then (
       logger#warning
         "%slarge heap size: %d MiB (memory limit is %d MiB). If a crash \

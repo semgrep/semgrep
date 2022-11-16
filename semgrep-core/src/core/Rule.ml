@@ -320,7 +320,6 @@ type error =
   | InvalidYaml of string * Parse_info.t
   | DuplicateYamlKey of string * Parse_info.t
   | UnparsableYamlException of string
-  | ExceededMemoryLimit of string
 
 (* can't use Error because it's used for severity *)
 exception Err of error
@@ -364,9 +363,6 @@ let string_of_error (error : error) : string =
   | UnparsableYamlException s ->
       (* TODO: what's the string s? *)
       spf "unparsable YAML: %s" s
-  | ExceededMemoryLimit s ->
-      (* TODO: what's the string s? *)
-      spf "exceeded memory limit: %s" s
 
 (*
    Exception printers for Printexc.to_string.
