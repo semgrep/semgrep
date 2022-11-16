@@ -655,6 +655,51 @@ def parse_requirements(
         )
 
 
+example_pom_tree = r"""dev.r2c:semgrep-maven-plugin:maven-plugin:1.0-SNAPSHOT
++- org.apache.maven:maven-plugin-api:jar:3.8.6:provided
+|  +- org.apache.maven:maven-model:jar:3.8.6:provided
+|  +- org.apache.maven:maven-artifact:jar:3.8.6:provided
+|  |  \- org.apache.commons:commons-lang3:jar:3.8.1:provided
+|  +- org.eclipse.sisu:org.eclipse.sisu.plexus:jar:0.3.5:provided
+|  |  +- javax.annotation:javax.annotation-api:jar:1.2:provided
+|  |  +- org.eclipse.sisu:org.eclipse.sisu.inject:jar:0.3.5:provided
+|  |  \- org.codehaus.plexus:plexus-component-annotations:jar:1.5.5:provided
+|  +- org.codehaus.plexus:plexus-utils:jar:3.3.1:provided
+|  \- org.codehaus.plexus:plexus-classworlds:jar:2.6.0:provided
++- org.apache.maven.plugin-tools:maven-plugin-annotations:jar:3.6.4:provided
+\- com.zaxxer:nuprocess:jar:2.0.3:compile
+   \- net.java.dev.jna:jna:jar:5.11.0:compile"""
+
+
+def parse_pom_tree(tree_file: str) -> Iterator[FoundDependency]:
+    def package_index(line: str) -> int:
+        i = 0
+        while line[i] in ["+", "-", " ", "\\"]:
+            i += 1
+        return i
+
+    def depth(package_index: int) -> int:
+        return package_index // 3 + 1
+
+    lines = tree_file.split("\n")
+    lines[0]
+    deps = lines[1:]
+    for i, dep in enumerate(deps):
+        j = package_index(dep)
+        dep = dep[j:]
+        transitivity = Transitivity(Direct() if depth(j) else Transitive())
+        [_, package, _, version, _] = dep.strip().split(":")
+        yield FoundDependency(
+            package=package,
+            version=version,
+            ecosystem=Ecosystem(Maven()),
+            resolved_url=None,
+            allowed_hashes={},
+            transitivity=transitivity,
+            line_number=i + 1,
+        )
+
+
 LOCKFILE_PARSERS = {
     "pipfile.lock": parse_pipfile,  # Python
     "yarn.lock": parse_yarn,  # JavaScript
