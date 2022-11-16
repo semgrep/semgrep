@@ -19,7 +19,9 @@ module E = Error
 (* python: was called ConfigFile, and called a 'config' in text output *)
 type rules_and_origin = {
   origin : origin;
-  (* TODO? put a config_id: string option? or config prefix *)
+  (* TODO? put a config_id: string option? or config prefix? or
+   * compute it later based on the origin?
+   *)
   rules : Rule.rules;
   errors : Rule.invalid_rule_error list;
 }
@@ -44,16 +46,24 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
 (* Loading rules *)
 (*****************************************************************************)
 
+(* Note that we don't sanity check Parse_rule.is_valid_rule_filename,
+ * so if you explicitely pass a file that does not have the right
+ * extension, we will still process it
+ * (could be useful for .jsonnet, which is not recognized yet as a
+ *  Parse_rule.is_valid_rule_filename, but we still need ojsonnet to
+ *  be done).
+ *)
 let load_rules_from_file file : rules_and_origin =
   Logs.debug (fun m -> m "loading local config from %s" file);
   if Sys.file_exists file then (
     let rules, errors = Parse_rule.parse_and_filter_invalid_rules file in
     Logs.debug (fun m -> m "Done loading local config from %s" file);
-    { origin = Some file; rules; errors }
-    (* this should never happen because Semgrep_dashdash_config only build
-     * File case if the file actually exists.
-     *))
-  else Error.abort (spf "file %s does not exist anymore" file)
+    { origin = Some file; rules; errors })
+  else
+    (* This should never happen because Semgrep_dashdash_config only builds
+     * a File case if the file actually exists.
+     *)
+    Error.abort (spf "file %s does not exist anymore" file)
 
 let load_rules_from_url url : rules_and_origin =
   (* TOPORT? _nice_semgrep_url() *)
