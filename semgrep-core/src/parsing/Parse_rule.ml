@@ -30,7 +30,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Parsing a Semgrep rule, including complex pattern formulas.
  *
- * See also the JSON schema in rule_schema_v1.yaml.
+ * See also the JSON schema for a rule in rule_schema_v1.yaml.
  *
  * history: we used to parse a semgrep rule by simply using the basic API of
  * the OCaml 'yaml' library. This API allows converting a yaml file into
@@ -41,7 +41,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * of tokens with location information. We actually used first that low-level
  * API to return the generic AST of a yaml file, to add support for
  * YAML in semgrep (allowing semgrep rules on any YAML files).
- * See the Yaml_to_generic.parse_rule function. We then abuse this function
+ * See the Yaml_to_generic.parse_rule function. We then (ab)used this function
  * to also parse a semgrep rule (which is a yaml file) in this file.
  *)
 
@@ -1397,16 +1397,19 @@ let parse_xpattern xlang (str, tok) =
 (*****************************************************************************)
 (* Those functions could be in a separate file *)
 
-(* TODO? could define
+(* alt: could define
  * type yaml_kind = YamlRule | YamlTest | YamlFixed | YamlOther
  *)
 let is_test_yaml_file filepath =
   (* .test.yaml files are YAML target files rather than config files! *)
   Filename.check_suffix filepath ".test.yaml"
+  || Filename.check_suffix filepath ".test.yml"
   || Filename.check_suffix filepath ".test.fixed.yaml"
+  || Filename.check_suffix filepath ".test.fixed.yml"
 
 let is_valid_rule_filename filename =
   match File_type.file_type_of_file filename with
+  (* ".yml" or ".yaml" *)
   | FT.Config FT.Yaml -> not (is_test_yaml_file filename)
   (* old: we were allowing Jsonnet before, but better to skip
    * them for now to avoid adding a jsonnet dependency in our docker/CI
