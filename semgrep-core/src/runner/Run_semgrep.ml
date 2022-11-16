@@ -321,9 +321,9 @@ let exn_to_error file (e : Exception.t) =
 let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
   match (rules, invalid_rules) with
   | [], [] -> ()
-  | [], err :: _ -> raise (Rule.InvalidRule err)
+  | [], err :: _ -> raise (R.Err (R.InvalidRule err))
   | _, err :: _ (* TODO fail fast only when in strict mode? *) ->
-      raise (Rule.InvalidRule err)
+      raise (R.Err (R.InvalidRule err))
   | _, [] -> ()
 
 (*****************************************************************************)
@@ -344,11 +344,12 @@ let parse_pattern lang_pattern str =
   | exn ->
       logger#error "parse_pattern: exn = %s" (Common.exn_to_s exn);
       raise
-        (Rule.InvalidRule
-           ( Rule.InvalidPattern
-               (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-             "no-id",
-             Parse_info.unsafe_fake_info "no loc" ))
+        (R.Err
+           (R.InvalidRule
+              ( R.InvalidPattern
+                  (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
+                "no-id",
+                Parse_info.unsafe_fake_info "no loc" )))
   [@@profiling]
 
 (*****************************************************************************)
