@@ -1,17 +1,17 @@
 (* Parse a rule file.
  *
- * The parser accepts invalid rules, skip them, and return them in
+ * The parser accepts invalid rules, skips them, and returns them in
  * the list of errors.
- * This will not raise Rule.InvalidRule exceptions.
+ * This will not raise Rule.Err (Rule.InvalidRule ...) exceptions.
  *
- * This function may also raise the other exns in Rule (e.g., InvalidYaml).
+ * However, this function may raise the other (Rule.Err ...) exns (e.g., Rule.InvalidYaml).
  *)
 val parse_and_filter_invalid_rules :
   Common.filename -> Rule.rules * Rule.invalid_rule_error list
 
 (* This should be used in testing code. Otherwise you should
  * use parse_and_filter_invalid_rules.
- * This function may raise the exns in Rule (e.g., InvalidRule).
+ * This function may raise (Rule.Err ....)
  *)
 val parse : Common.filename -> Rule.rules
 

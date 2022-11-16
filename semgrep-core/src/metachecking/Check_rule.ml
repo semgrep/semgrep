@@ -241,7 +241,7 @@ let run_checks config fparser metachecks xs =
                with
                (* TODO this error is special cased because YAML files that *)
                (* aren't semgrep rules are getting scanned *)
-               | Rule.InvalidYaml _ -> []
+               | R.Err (R.InvalidYaml _) -> []
                | exn ->
                    let e = Exception.catch exn in
                    [ E.exn_to_error file e ])

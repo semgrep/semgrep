@@ -232,7 +232,7 @@ let invoke_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
    *)
   | err :: _ ->
       (* like in Run_semgrep.sanity_check_rules_and_invalid_rules *)
-      let exn = Rule.InvalidRule err in
+      let exn = Rule.Err (Rule.InvalidRule err) in
       (* like in Run_semgrep.semgrep_with_raw_results_and_exn_handler *)
       let e = Exception.catch exn in
       let err = Semgrep_error_code.exn_to_error "" e in
