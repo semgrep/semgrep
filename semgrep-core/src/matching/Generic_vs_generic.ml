@@ -2211,6 +2211,7 @@ and m_stmt a b =
       m_condition a1 b1 >>= fun () -> m_stmt a2 b2
   | G.DefStmt a1, B.DefStmt b1 -> m_definition a1 b1
   | G.DirectiveStmt a1, B.DirectiveStmt b1 -> m_directive a1 b1
+  | G.DirectiveStmt a1, B.DefStmt b1 -> m_directive_vs_def a1 b1
   | G.DoWhile (a0, a1, a2), B.DoWhile (b0, b1, b2) ->
       m_tok a0 b0 >>= fun () ->
       m_stmt a1 b1 >>= fun () -> m_expr a2 b2
@@ -3023,6 +3024,52 @@ and m_directive a b =
   | G.Pragma _
   | G.OtherDirective _ ->
       fail ()
+
+and m_directive_vs_def a b =
+  match (a.d, b) with
+  | ( G.ImportFrom (_, G.FileName filea, ida, aliasa),
+      ( { B.name = B.EN (B.Id ((id_str, _), _)); _ },
+        B.VarDef
+          {
+            vinit =
+              Some
+                {
+                  e =
+                    B.Assign
+                      ( { e = B.Record (_, fields, _); _ },
+                        _,
+                        {
+                          e =
+                            B.Call
+                              ( { e = B.OtherExpr (("Require", _), _); _ },
+                                (_, [ B.Arg { e = B.L (B.String str); _ } ], _)
+                              );
+                          _;
+                        } );
+                  _;
+                };
+            vtype = _;
+          } ) )
+    when id_str = B.special_multivardef_pattern -> (
+      match fields with
+      | [
+       B.F
+         {
+           s =
+             DefStmt
+               ( { name = EN (Id (idb, _)); attrs = []; tparams = [] },
+                 FieldDefColon { vinit = Some { e = N (Id (aliasb, _)); _ }; _ }
+               );
+           _;
+         };
+      ] -> (
+          let* () = m_wrap m_string filea str in
+          let* () = m_ident ida idb in
+          match aliasa with
+          | None -> return ()
+          | Some (aliasa, _) -> m_ident aliasa aliasb)
+      | _ -> fail ())
+  | _ -> fail ()
 
 (* less-is-ok: a few of these below with the use of m_module_name_prefix and
  * m_option_none_can_match_some.

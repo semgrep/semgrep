@@ -467,6 +467,90 @@ let resolve lang prog =
       V.kdef =
         (fun (k, _v) x ->
           match x with
+          | ( { name = EN (Id (id, id_info)); _ },
+              VarDef
+                {
+                  vinit =
+                    Some
+                      {
+                        e =
+                          Call
+                            ( { e = OtherExpr (("Require", _), _); _ },
+                              (_, [ Arg { e = L (String str); _ } ], _) );
+                        _;
+                      };
+                  vtype = _;
+                } ) ->
+              let sid = H.gensym () in
+              let resolved =
+                untyped_ent (ImportedModule (DottedName [ str ]), sid)
+              in
+              set_resolved env id_info resolved;
+              add_ident_current_scope id resolved env.names
+          | ( { name = EN (Id ((id_str, _), _)); _ },
+              VarDef
+                {
+                  vinit =
+                    Some
+                      {
+                        e =
+                          Assign
+                            ( { e = Record (_, fields, _); _ },
+                              _,
+                              {
+                                e =
+                                  Call
+                                    ( { e = OtherExpr (("Require", _), _); _ },
+                                      (_, [ Arg { e = L (String str); _ } ], _)
+                                    );
+                                _;
+                              } );
+                        _;
+                      };
+                  vtype = _;
+                } )
+            when id_str = special_multivardef_pattern ->
+              List.iter
+                (function
+                  | F
+                      {
+                        s =
+                          DefStmt
+                            ( {
+                                name = EN (Id (imported_id, _imported_id_info));
+                                attrs = [];
+                                tparams = [];
+                              },
+                              FieldDefColon
+                                {
+                                  vinit =
+                                    Some
+                                      {
+                                        e = N (Id (local_id, local_id_info));
+                                        _;
+                                      };
+                                  _;
+                                } );
+                        _;
+                      } ->
+                      let sid = H.gensym () in
+                      let resolved =
+                        untyped_ent (ImportedEntity [ str; imported_id ], sid)
+                      in
+                      set_resolved env local_id_info resolved;
+                      add_ident_current_scope local_id resolved env.names
+                      (* TODO handle nested destructuring? *)
+                      (* TODO handle JS ImportFrom special case *)
+                  | _ -> ())
+                fields
+              (*
+              let sid = H.gensym () in
+              let resolved =
+                untyped_ent (ImportedModule (DottedName [ str ]), sid)
+              in
+              set_resolved env id_info resolved;
+              add_ident_current_scope id resolved env.names
+              *)
           | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
           (* note that some languages such as Python do not have VarDef
            * construct
