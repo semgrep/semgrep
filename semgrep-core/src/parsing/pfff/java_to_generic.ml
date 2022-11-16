@@ -499,6 +499,10 @@ and tok_and_stmt (t, v) =
 
 and stmts v =
   let expand_local_var_definition s =
+    (* This helps us translate `int a = 1, int b = 2;` such that
+       `a` and `b` remain within scope. Without flattening the
+       variable definitions first, they will get wrapped in a
+       Block and treated as a new scope *)
     match s with
     | LocalVarList xs -> xs
     | s -> [ s ]
