@@ -9,40 +9,11 @@ Validate that the output is annotated in the source file with by looking for a c
  On the preceeding line.
 
  """
-import collections
-import difflib
-import functools
-import json
-import multiprocessing
-import os
-import shutil
-import sys
-import tempfile
-import uuid
-from itertools import product
-from pathlib import Path
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Sequence
-from typing import Set
-from typing import Tuple
-
-from boltons.iterutils import partition
-from ruamel.yaml import YAML
-
 from semgrep.constants import BREAK_LINE
-from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import final_suffix_matches
 from semgrep.util import is_config_fixtest_suffix
 from semgrep.util import is_config_suffix
 from semgrep.util import is_config_test_suffix
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
 
 COMMENT_SYNTAXES = (("#", "\n"), ("//", "\n"), ("<!--", "-->"), ("(*", "*)"))
 SPACE_OR_NO_SPACE = ("", " ")
@@ -52,7 +23,6 @@ TODOOK = "todook"
 OK = "ok"
 
 EXIT_FAILURE = 2
-
 
 def _remove_ending_comments(rule: str) -> str:
     for _, end in COMMENT_SYNTAXES:

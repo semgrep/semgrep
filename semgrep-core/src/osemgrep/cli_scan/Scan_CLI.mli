@@ -11,7 +11,7 @@ type conf = {
   dryrun : bool;
   error : bool;
   exclude : string list;
-  exclude_rule_ids : string list;
+  exclude_rule_ids : Rule.rule_id list;
   force_color : bool;
   include_ : string list;
   logging_level : Logs.level option;
