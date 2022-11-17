@@ -1,25 +1,10 @@
 {
   "errors": [
     {
-      "code": 4,
+      "code": 5,
       "level": "error",
-      "long_msg": "One of these properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'r2c-internal-project-depends-on'",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 1,
-            "line": 7
-          },
-          "file": "rules/syntax/bad8.yaml",
-          "source_hash": "f821234ba9175efc8d66b3226996144ba05bdc0aea35a50321cbb9c6f349f6a0",
-          "start": {
-            "col": 5,
-            "line": 2
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
+      "message": "Invalid YAML file rules/syntax/bad8.yaml:\n\twhile constructing a mapping\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 2, column 1\n\tfound duplicate key \"$comment\" with value \"!!If you add new syntax to this file, you probably need to add some EXPERIMENTAL comment before!!\" (original value: \"!!If you modify this file, you need to update the submodule in returntocorp/semgrep and returntocorp/semgrep-app!!\")\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 5, column 1\n\t\n\tTo suppress this check see:\n\t    http://yaml.readthedocs.io/en/latest/api.html#duplicate-keys",
+      "type": "SemgrepError"
     },
     {
       "code": 7,

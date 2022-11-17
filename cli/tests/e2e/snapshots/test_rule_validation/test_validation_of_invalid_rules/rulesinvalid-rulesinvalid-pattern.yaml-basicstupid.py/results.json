@@ -1,37 +1,16 @@
 {
   "errors": [
     {
-      "code": 2,
+      "code": 5,
       "level": "error",
-      "message": "Pattern parse error in rule rules.invalid-rules.print:\n Invalid pattern for Python:\n--- pattern ---\nprint..);\n--- end pattern ---\nPattern error: Parsing.Parse_error\n",
-      "rule_id": "rules.invalid-rules.print",
-      "spans": [
-        {
-          "config_end": {
-            "col": 12,
-            "line": 0
-          },
-          "config_path": [
-            "rules",
-            "1",
-            "pattern"
-          ],
-          "config_start": {
-            "col": 1,
-            "line": 0
-          },
-          "end": {
-            "col": 29,
-            "line": 18
-          },
-          "file": "tmp/masked/path",
-          "start": {
-            "col": 18,
-            "line": 18
-          }
-        }
-      ],
-      "type": "Pattern parse error"
+      "message": "Invalid YAML file rules/invalid-rules/invalid-pattern.yaml:\n\twhile constructing a mapping\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 2, column 1\n\tfound duplicate key \"$comment\" with value \"!!If you add new syntax to this file, you probably need to add some EXPERIMENTAL comment before!!\" (original value: \"!!If you modify this file, you need to update the submodule in returntocorp/semgrep and returntocorp/semgrep-app!!\")\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 5, column 1\n\t\n\tTo suppress this check see:\n\t    http://yaml.readthedocs.io/en/latest/api.html#duplicate-keys",
+      "type": "SemgrepError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "Ran with --strict and got 1 error while loading configs",
+      "type": "SemgrepError"
     }
   ],
   "paths": {

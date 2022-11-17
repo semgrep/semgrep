@@ -1,25 +1,10 @@
 {
   "errors": [
     {
-      "code": 4,
+      "code": 5,
       "level": "error",
-      "long_msg": "'4' is not of type 'object'",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 12,
-            "line": 5
-          },
-          "file": "rules/syntax/bad5.yaml",
-          "source_hash": "5c4f00f11940b0b9526ec7832ba2b1b539877e705bc7d73a4421db5a7006eba9",
-          "start": {
-            "col": 9,
-            "line": 5
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
+      "message": "Invalid YAML file rules/syntax/bad5.yaml:\n\twhile constructing a mapping\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 2, column 1\n\tfound duplicate key \"$comment\" with value \"!!If you add new syntax to this file, you probably need to add some EXPERIMENTAL comment before!!\" (original value: \"!!If you modify this file, you need to update the submodule in returntocorp/semgrep and returntocorp/semgrep-app!!\")\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 5, column 1\n\t\n\tTo suppress this check see:\n\t    http://yaml.readthedocs.io/en/latest/api.html#duplicate-keys",
+      "type": "SemgrepError"
     },
     {
       "code": 7,

@@ -1,25 +1,10 @@
 {
   "errors": [
     {
-      "code": 4,
+      "code": 5,
       "level": "error",
-      "long_msg": "rules/syntax/missing-toplevel.yaml_0 is missing `rules` as top-level key",
-      "short_msg": "missing keys",
-      "spans": [
-        {
-          "end": {
-            "col": 0,
-            "line": 7
-          },
-          "file": "rules/syntax/missing-toplevel.yaml",
-          "source_hash": "f1b1a7f0ef1f89134e4320d364d2e44df788d24337d22506a99c55191350d4fe",
-          "start": {
-            "col": 1,
-            "line": 2
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
+      "message": "Invalid YAML file rules/syntax/missing-toplevel.yaml:\n\twhile constructing a mapping\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 2, column 1\n\tfound duplicate key \"$comment\" with value \"!!If you add new syntax to this file, you probably need to add some EXPERIMENTAL comment before!!\" (original value: \"!!If you modify this file, you need to update the submodule in returntocorp/semgrep and returntocorp/semgrep-app!!\")\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 5, column 1\n\t\n\tTo suppress this check see:\n\t    http://yaml.readthedocs.io/en/latest/api.html#duplicate-keys",
+      "type": "SemgrepError"
     },
     {
       "code": 7,

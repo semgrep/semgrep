@@ -1,33 +1,16 @@
 {
   "errors": [
     {
-      "code": 8,
+      "code": 5,
       "level": "error",
-      "long_msg": "unsupported language: intercal. supported languages are: apex, bash, c, c#, c++, cpp, csharp, dart, docker, dockerfile, elixir, ex, generic, go, golang, hack, hcl, html, java, javascript, js, json, jsonnet, julia, kotlin, kt, lua, none, ocaml, php, py, python, python2, python3, r, regex, ruby, rust, scala, sh, sol, solidity, swift, terraform, tf, ts, typescript, vue, yaml",
-      "short_msg": "invalid language: intercal",
-      "spans": [
-        {
-          "context_end": {
-            "col": 0,
-            "line": 8
-          },
-          "context_start": {
-            "col": 0,
-            "line": 6
-          },
-          "end": {
-            "col": 26,
-            "line": 7
-          },
-          "file": "rules/syntax/badlanguage.yaml",
-          "source_hash": "a586ed585e5f1676161a6663c037292f13a97ff02aeb7fa9c62517732cc00766",
-          "start": {
-            "col": 16,
-            "line": 7
-          }
-        }
-      ],
-      "type": "UnknownLanguageError"
+      "message": "Invalid YAML file rules/syntax/badlanguage.yaml:\n\twhile constructing a mapping\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 2, column 1\n\tfound duplicate key \"$comment\" with value \"!!If you add new syntax to this file, you probably need to add some EXPERIMENTAL comment before!!\" (original value: \"!!If you modify this file, you need to update the submodule in returntocorp/semgrep and returntocorp/semgrep-app!!\")\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 5, column 1\n\t\n\tTo suppress this check see:\n\t    http://yaml.readthedocs.io/en/latest/api.html#duplicate-keys",
+      "type": "SemgrepError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "Ran with --strict and got 1 error while loading configs",
+      "type": "SemgrepError"
     }
   ],
   "paths": {

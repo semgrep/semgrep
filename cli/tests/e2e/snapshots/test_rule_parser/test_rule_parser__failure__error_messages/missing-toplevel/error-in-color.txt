@@ -1,12 +1,9 @@
-[31m[22m[24msemgrep error[0m: missing keys
-  --> rules/syntax/missing-toplevel.yaml:2
-[94m[22m[24m2 | [0mrule:
-[94m[22m[24m3 | [0m  - id: flask-secure-set-cookie
-[94m[22m[24m4 | [0m    languages: [python]
-[94m[22m[24m5 | [0m    patterns:
-[94m[22m[24m6 | [0m      - pattern-not: |
-[94m[22m[24m7 | [0m          flask.response.set_cookie(..., httponly=True, secure=True,...)
-
-[31m[22m[24mrules/syntax/missing-toplevel.yaml_0 is missing `rules` as top-level key[0m
-
+[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Invalid YAML file rules/syntax/missing-toplevel.yaml:
+	while constructing a mapping
+	  in "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml", line 2, column 1
+	found duplicate key "$comment" with value "!!If you add new syntax to this file, you probably need to add some EXPERIMENTAL comment before!!" (original value: "!!If you modify this file, you need to update the submodule in returntocorp/semgrep and returntocorp/semgrep-app!!")
+	  in "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml", line 5, column 1
+	
+	To suppress this check see:
+	    http://yaml.readthedocs.io/en/latest/api.html#duplicate-keys
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Ran with --strict and got 1 error while loading configs

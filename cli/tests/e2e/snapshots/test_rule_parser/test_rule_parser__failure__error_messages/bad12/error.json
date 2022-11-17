@@ -1,25 +1,10 @@
 {
   "errors": [
     {
-      "code": 4,
+      "code": 5,
       "level": "error",
-      "long_msg": "Additional properties are not allowed ('pattern-not' was unexpected)",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 5,
-            "line": 6
-          },
-          "file": "rules/syntax/bad12.yaml",
-          "source_hash": "69c490071ff3af369ac30c61b12bad8f0ee8092440ea9d5b4fcdf3ee924c78ae",
-          "start": {
-            "col": 9,
-            "line": 5
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
+      "message": "Invalid YAML file rules/syntax/bad12.yaml:\n\twhile constructing a mapping\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 2, column 1\n\tfound duplicate key \"$comment\" with value \"!!If you add new syntax to this file, you probably need to add some EXPERIMENTAL comment before!!\" (original value: \"!!If you modify this file, you need to update the submodule in returntocorp/semgrep and returntocorp/semgrep-app!!\")\n\t  in \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\", line 5, column 1\n\t\n\tTo suppress this check see:\n\t    http://yaml.readthedocs.io/en/latest/api.html#duplicate-keys",
+      "type": "SemgrepError"
     },
     {
       "code": 7,

@@ -3,58 +3,10 @@ JENKINS_URL="some_url" GIT_URL="https://github.com/org/repo.git/" GIT_BRANCH="so
 === end of command
 
 === exit code
-1
+7
 === end of exit code
 
 === stdout - plain
-
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
-
-
-Unreachable Supply Chain Findings:
-
-  poetry.lock 
-     supply-chain1
-        found a dependency
-
-
-First-Party Non-Blocking Findings:
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (x == 2)
-         15┆ (x == 2)
-
-First-Party Blocking Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
-
-First-Party Blocking Rules Fired:
-   eqeq-bad   
-   eqeq-four   
-   taint-test
 
 === end of stdout - plain
 
@@ -66,14 +18,14 @@ Scan environment:
 
 Fetching configuration from semgrep.dev
 Authenticated as org_name
-Scanning 1 file with 4 python rules.
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
-  Has findings for blocking rules so exiting with code 1
+[ERROR] Invalid YAML file semgrep-app-rules:
+	while constructing a mapping
+	  in "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml", line 2, column 1
+	found duplicate key "$comment" with value "!!If you add new syntax to this file, you probably need to add some EXPERIMENTAL comment before!!" (original value: "!!If you modify this file, you need to update the submodule in returntocorp/semgrep and returntocorp/semgrep-app!!")
+	  in "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml", line 5, column 1
+	
+	To suppress this check see:
+	    http://yaml.readthedocs.io/en/latest/api.html#duplicate-keys
+[ERROR] invalid configuration file found (1 configs were invalid)
 
 === end of stderr - plain

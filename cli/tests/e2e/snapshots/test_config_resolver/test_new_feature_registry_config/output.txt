@@ -5,19 +5,12 @@ Using configs only from local files (like --config=xyz.yml) does not enable metr
 More information: https://semgrep.dev/docs/metrics
 
 Semgrep rule registry URL is https://semgrep.dev/registry.
-
-Rules downloaded from https://semgrep.dev/p/ci failed to parse.
-This is likely because rules have been added that use functionality introduced in later versions of semgrep.
-Please upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.
-
-semgrep error: Invalid rule schema
-  --> https://semgrep.dev/...:2
-2 | - id: eqeq-bad
-3 |   pattern-new-feature: $X == $X
-4 |   message: "useless comparison"
-5 |   languages: [python]
-6 |   severity: ERROR
-
-Additional properties are not allowed ('pattern-new-feature' was unexpected)
-
+[ERROR] Invalid YAML file remote-url:
+	while constructing a mapping
+	  in "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml", line 2, column 1
+	found duplicate key "$comment" with value "!!If you add new syntax to this file, you probably need to add some EXPERIMENTAL comment before!!" (original value: "!!If you modify this file, you need to update the submodule in returntocorp/semgrep and returntocorp/semgrep-app!!")
+	  in "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml", line 5, column 1
+	
+	To suppress this check see:
+	    http://yaml.readthedocs.io/en/latest/api.html#duplicate-keys
 [ERROR] invalid configuration file found (1 configs were invalid)
