@@ -6,6 +6,9 @@ module RP = Report
 (*************************************************************************)
 (*
    Translated from core_runner.py and core_output.py
+
+   LATER: we should remove this file and call directly Run_semgrep
+   and not go through the intermediate semgrep-core JSON output.
 *)
 
 (* python: Don't translate this:

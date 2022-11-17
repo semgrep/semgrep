@@ -1,3 +1,4 @@
+;LATER: to merge with semgrep_reporting at some point
 (library
  (name osemgrep_reporting)
  (wrapped false)
