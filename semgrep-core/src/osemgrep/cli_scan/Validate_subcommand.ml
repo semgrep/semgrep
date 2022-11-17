@@ -27,6 +27,10 @@ module Out = Semgrep_output_v1_t
  * (Brendon is in favor of it).
  *
  * LATER: merge with Check_rule.ml (we can remove lots of code in it).
+ *
+ * Ideally we should move this file in a separate ../metachecking/ folder,
+ * but this file depends on cli_scan/ and cli_scan/ depends on this file
+ * because it's called from Scan_subcommand.ml, so it must remain here.
  *)
 
 (*****************************************************************************)
