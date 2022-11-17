@@ -62,7 +62,7 @@ class JsonFormatter(BaseFormatter):
         # Note that extra is not used here! Every part of the JSON output should
         # be specified in Semgrep_output_xxx.atd and be part of CliOutputExtra
         output = out.CliOutput(
-            version=out.Semver(__VERSION__),
+            version=out.Version(__VERSION__),
             results=[
                 self._rule_match_to_CliMatch(rule_match) for rule_match in rule_matches
             ],
