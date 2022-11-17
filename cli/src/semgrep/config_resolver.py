@@ -521,7 +521,7 @@ def indent(msg: str) -> str:
     return "\n".join(["\t" + line for line in msg.splitlines()])
 
 
-def import_callback(base: str, path: str) -> Tuple[str, str]:
+def import_callback(base: str, path: str) -> Tuple[str, bytes]:
     """
     Instructions to jsonnet for how to resolve
     import expressions (`local $NAME = $PATH`).
@@ -548,7 +548,7 @@ def import_callback(base: str, path: str) -> Tuple[str, str]:
             data = yaml.load(fpi)
         contents = json.dumps(data)
         filename = final_path
-        return filename, contents
+        return filename, contents.encode()
 
     # This could be handled by ConfigLoader below (and its _load_config_from_local_path() helper)
     # but this would not handle the 'base' argument yet, so better to be explicit about
@@ -559,7 +559,7 @@ def import_callback(base: str, path: str) -> Tuple[str, str]:
     ):
         logger.debug(f"loading jsonnet file {final_path}")
         contents = Path(final_path).read_text()
-        return final_path, contents
+        return final_path, contents.encode()
 
     logger.debug(f"defaulting to the config resolver for {path}")
     # Registry-aware import!
@@ -572,7 +572,7 @@ def import_callback(base: str, path: str) -> Tuple[str, str]:
         raise SemgrepError(f"Currently configs cannot be imported from a directory")
     else:
         (_config_id, contents, config_path) = config_infos[0]
-        return config_path, contents
+        return config_path, contents.encode()
 
 
 def parse_config_string(
