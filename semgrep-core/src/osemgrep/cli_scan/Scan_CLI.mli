@@ -11,21 +11,14 @@ type conf = {
   rules_source : rules_source;
   (* can be a list of files or directories *)
   target_roots : string list;
-  (* Configuration refinements *)
-  exclude_rule_ids : Rule.rule_id list;
-  severity : Severity.rule_severity list;
+  (* Rules/targets refinements *)
+  rule_filtering_conf : Rule_filtering.conf;
+  targeting_conf : Target_manager.conf;
+  (* Other configuration options *)
   autofix : bool;
   dryrun : bool;
   error_on_findings : bool;
   strict : bool;
-  (* Path options *)
-  exclude : string list;
-  include_ : string list;
-  max_target_bytes : int;
-  respect_git_ignore : bool;
-  (* TODO? better parsing of the string? a Git.version type? *)
-  baseline_commit : string option;
-  scan_unknown_extensions : bool;
   (* Performance options *)
   num_jobs : int;
   optimizations : bool;
