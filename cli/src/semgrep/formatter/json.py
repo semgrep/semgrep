@@ -60,7 +60,7 @@ class JsonFormatter(BaseFormatter):
         extra: Mapping[str, Any],
     ) -> str:
         # Note that extra is not used here! Every part of the JSON output should
-        # be specified in Semgrep_output_xxx.atd and be part of CliOutputExtra
+        # be specified in semgrep_output_v1.atd and be part of CliOutputExtra
         output = out.CliOutput(
             version=out.Version(__VERSION__),
             results=[
