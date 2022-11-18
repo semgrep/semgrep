@@ -991,7 +991,7 @@ and stmt_kind =
   | Try of tok * stmt * catch list * finally option
   | WithUsingResource of
       tok (* 'with' in Python, 'using' in C# *)
-      * stmt (* resource acquisition *)
+      * stmt list (* resource acquisition *)
       * stmt (* newscope: block *)
   (* old: was 'expr * expr option' for Python/Java, but better to generalize.
    * alt: could move in expr and have Assert be an IdSpecial
