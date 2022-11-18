@@ -137,21 +137,21 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* Let's go *)
       (* --------------------------------------------------------- *)
       let rules_and_origins =
-        Config_resolver.rules_from_rules_source conf.rules_source
+        Rule_fetching.rules_from_rules_source conf.rules_source
       in
       Logs.debug (fun m ->
           rules_and_origins
           |> List.iter (fun x ->
-                 m "rules = %s" (Config_resolver.show_rules_and_origin x)));
+                 m "rules = %s" (Rule_fetching.show_rules_and_origin x)));
       let rules, errors =
-        Config_resolver.partition_rules_and_errors rules_and_origins
+        Rule_fetching.partition_rules_and_errors rules_and_origins
       in
       let filtered_rules =
         Rule_filtering.filter_rules conf.rule_filtering_conf rules
       in
 
       let (targets : Common.filename list), _skipped_targetsTODO =
-        Target_manager.get_targets conf.targeting_conf conf.target_roots
+        Find_target.get_targets conf.targeting_conf conf.target_roots
       in
       Logs.debug (fun m ->
           targets |> List.iter (fun file -> m "target = %s" file));
@@ -159,6 +159,15 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
         Core_runner.invoke_semgrep_core conf.core_runner_conf filtered_rules
           errors targets
       in
+      (* TOPORT? was in formater/base.py
+         def keep_ignores(self) -> bool:
+           """
+           Return True if ignored findings should be passed to this formatter;
+           False otherwise.
+           Ignored findings can still be distinguished using their _is_ignore property.
+           """
+           return False
+      *)
       (* outputting the result! in JSON/Text/... depending on conf *)
       Output.output_result conf res;
       (* final result for the shell *)

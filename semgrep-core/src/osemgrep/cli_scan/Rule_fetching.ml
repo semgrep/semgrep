@@ -16,6 +16,18 @@ module E = Error
 (* Types *)
 (*****************************************************************************)
 
+(* input *)
+type rules_source =
+  (* -e/-l/--replacement. In theory we could even parse the string to get
+   * a XPattern.t *)
+  | Pattern of string * Xlang.t * string option (* replacement *)
+  (* --config. In theory we could even parse the string to get
+   * some Semgrep_dashdash_config.config_kind list *)
+  | Configs of string list
+(* TODO? | ProjectUrl of Uri.t? or just use Configs for it? *)
+[@@deriving show]
+
+(* output *)
 (* python: was called ConfigFile, and called a 'config' in text output *)
 type rules_and_origin = {
   origin : origin;
@@ -116,8 +128,7 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
 (*****************************************************************************)
 
 (* TODO: rewrite rule_id of the rules using x.path origin? *)
-let rules_from_rules_source (source : Scan_CLI.rules_source) :
-    rules_and_origin list =
+let rules_from_rules_source (source : rules_source) : rules_and_origin list =
   match source with
   | Configs xs ->
       xs
