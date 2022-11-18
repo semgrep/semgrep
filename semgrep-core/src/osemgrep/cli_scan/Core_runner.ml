@@ -156,32 +156,26 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    optimizations;
    logging_level;
    (* no need to handle, are used before *)
+   targeting_conf = _;
+   rule_filtering_conf = _;
    show_supported_languages = _;
    version = _;
    version_check = _;
    dump_ast = _;
    force_color = _;
    strict = _;
-   severity = _;
-   exclude_rule_ids = _;
    profile = _;
    autofix = _;
    dryrun = _;
-   baseline_commit = _;
-   exclude = _;
-   include_ = _;
    rules_source = _;
    target_roots = _;
    metrics = _;
    rewrite_rule_ids = _;
-   scan_unknown_extensions = _;
    error_on_findings = _;
    validate = _;
    test = _;
    test_ignore_todo = _;
    (* TOPORT: not handled yet *)
-   max_target_bytes = _;
-   respect_git_ignore = _;
    time_flag = _;
   } ->
       let output_format =

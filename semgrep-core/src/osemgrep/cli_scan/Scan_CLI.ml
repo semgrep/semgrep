@@ -27,21 +27,14 @@ type conf = {
   rules_source : rules_source;
   (* can be a list of files or directories *)
   target_roots : string list;
-  (* Configuration refinements *)
-  exclude_rule_ids : Rule.rule_id list;
-  severity : Severity.rule_severity list;
+  (* Rules/targets refinements *)
+  rule_filtering_conf : Rule_filtering.conf;
+  targeting_conf : Target_manager.conf;
+  (* Other configuration options *)
   autofix : bool;
   dryrun : bool;
   error_on_findings : bool;
   strict : bool;
-  (* Path options *)
-  exclude : string list;
-  include_ : string list;
-  max_target_bytes : int;
-  respect_git_ignore : bool;
-  (* TODO? better parsing of the string? a Git.version type? *)
-  baseline_commit : string option;
-  scan_unknown_extensions : bool;
   (* Performance options *)
   num_jobs : int;
   optimizations : bool;
@@ -86,39 +79,43 @@ and dump_ast =
 
 let default : conf =
   {
+    rules_source = Configs [ "auto" ];
+    target_roots = [ "." ];
+    (* alt: could move in a Target_manager.default *)
+    targeting_conf =
+      {
+        Target_manager.exclude = [];
+        include_ = [];
+        baseline_commit = None;
+        max_target_bytes = 1_000_000 (* 1 MB *);
+        respect_git_ignore = true;
+        scan_unknown_extensions = false;
+      };
+    rule_filtering_conf =
+      { Rule_filtering.exclude_rule_ids = []; severity = [] };
     autofix = false;
-    baseline_commit = None;
     dryrun = false;
-    dump_ast = None;
     error_on_findings = false;
-    exclude = [];
-    exclude_rule_ids = [];
-    force_color = false;
-    include_ = [];
-    logging_level = Some Logs.Warning;
-    max_memory_mb = 0;
-    max_target_bytes = 1_000_000 (* 1 MB *);
-    metrics = Metrics.State.Auto;
     num_jobs = Parmap_helpers.get_cpu_count ();
+    timeout = 30.0 (* seconds *);
+    timeout_threshold = 3;
+    max_memory_mb = 0;
+    strict = false;
+    force_color = false;
+    logging_level = Some Logs.Warning;
     optimizations = true;
     output_format = Output_format.Text;
     profile = false;
-    respect_git_ignore = true;
     rewrite_rule_ids = true;
-    rules_source = Configs [ "auto" ];
-    scan_unknown_extensions = false;
-    severity = [];
+    time_flag = false;
+    metrics = Metrics.State.Auto;
+    version_check = true;
+    version = false;
     show_supported_languages = false;
-    strict = false;
-    target_roots = [ "." ];
+    dump_ast = None;
+    validate = false;
     test = false;
     test_ignore_todo = false;
-    time_flag = false;
-    timeout = 30.0 (* seconds *);
-    timeout_threshold = 3;
-    validate = false;
-    version = false;
-    version_check = true;
   }
 
 (*************************************************************************)
@@ -214,11 +211,11 @@ negative value disables this filter. Defaults to 1000000 bytes.
 |}
   in
   (* TOPORT: support '1.5MB' and such, see bytesize.py *)
-  Arg.value (Arg.opt Arg.int default.max_target_bytes info)
+  Arg.value (Arg.opt Arg.int default.targeting_conf.max_target_bytes info)
 
 let o_respect_git_ignore : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
-    ~default:default.respect_git_ignore
+    ~default:default.targeting_conf.respect_git_ignore
     ~doc:
       {|Skip files ignored by git. Scanning starts from the root
 folder specified on the Semgrep command line. Normally, if the
@@ -233,7 +230,7 @@ let o_scan_unknown_extensions : bool Term.t =
   H.negatable_flag
     [ "scan-unknown-extensions" ]
     ~neg_options:[ "skip-unknown-extensions" ]
-    ~default:default.scan_unknown_extensions
+    ~default:default.targeting_conf.scan_unknown_extensions
     ~doc:
       {|If true, explicit files will be scanned using the language specified
 in --lang. If --skip-unknown-extensions, these files will not be scanned.
@@ -688,31 +685,33 @@ let cmdline_term : conf Term.t =
              Semgrep.");
 
     {
-      autofix;
-      baseline_commit;
       rules_source;
+      target_roots;
+      rule_filtering_conf = { Rule_filtering.exclude_rule_ids; severity };
+      targeting_conf =
+        {
+          Target_manager.exclude;
+          include_;
+          baseline_commit;
+          max_target_bytes;
+          scan_unknown_extensions;
+          respect_git_ignore;
+        };
+      autofix;
       dump_ast;
       dryrun;
       error_on_findings = error;
-      exclude_rule_ids;
-      exclude;
       force_color;
-      include_;
       logging_level;
       max_memory_mb;
-      max_target_bytes;
       metrics;
       num_jobs;
       optimizations;
       output_format;
       profile;
-      respect_git_ignore;
       rewrite_rule_ids;
-      scan_unknown_extensions;
-      severity;
       show_supported_languages;
       strict;
-      target_roots;
       test;
       test_ignore_todo;
       time_flag;

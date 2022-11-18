@@ -1,7 +1,6 @@
-(*
-   Translated from target_manager.py
-*)
-
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 (*
    Handles all file include/exclude logic for semgrep
 
@@ -20,29 +19,33 @@
    targets with unknown extensions
 
    TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
+
+   Translated from target_manager.py
+
+   LATER: we probably want to merge this file with Find_target.ml
+   in semgrep-core.
 *)
-type path = string
 
-type _t = {
-  todo : unit;
-      (* TODO
-          target_strings: Sequence[str]
-          includes: Sequence[str] = Factory(list)
-          excludes: Sequence[str] = Factory(list)
-          max_target_bytes: int = -1
-          respect_git_ignore: bool = False
-          baseline_handler: Optional[BaselineHandler] = None
-          allow_unknown_extensions: bool = False
-          file_ignore: Optional[FileIgnore] = None
-          lockfile_scan_info: Dict[str, int] = {}
-          ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
-          targets: Sequence[Target] = field(init=False)
-
-          _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
-      *)
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+type conf = {
+  exclude : string list;
+  include_ : string list;
+  max_target_bytes : int;
+  respect_git_ignore : bool;
+  (* TODO? use, and better parsing of the string? a Git.version type? *)
+  baseline_commit : string option;
+  (* TODO: use *)
+  scan_unknown_extensions : bool;
 }
+[@@deriving show]
 
-let get_targets ~includes ~excludes ~max_target_bytes ~respect_git_ignore
-    target_roots =
-  Find_target.select_global_targets ~includes ~excludes ~max_target_bytes
-    ~respect_git_ignore target_roots
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let get_targets conf target_roots =
+  Find_target.select_global_targets ~includes:conf.include_
+    ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
+    ~respect_git_ignore:conf.respect_git_ignore target_roots

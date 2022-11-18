@@ -82,25 +82,6 @@ let exit_code_of_errors ~strict (errors : Semgrep_output_v1_t.core_error list) :
       | _else_ -> Exit_code.ok)
 
 (*****************************************************************************)
-(* Filtering rules *)
-(*****************************************************************************)
-let filter_rules (conf : Scan_CLI.conf) (rules : Rule.rules) : Rule.rules =
-  let res =
-    match conf.severity with
-    | [] -> rules
-    | xs ->
-        rules
-        |> List.filter (fun r ->
-               match
-                 Severity.rule_severity_of_rule_severity_opt r.Rule.severity
-               with
-               | None -> false
-               | Some x -> List.mem x xs)
-  in
-  res
-  |> Common.exclude (fun r -> List.mem (fst r.Rule.id) conf.exclude_rule_ids)
-
-(*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
 
@@ -165,16 +146,12 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       let rules, errors =
         Config_resolver.partition_rules_and_errors rules_and_origins
       in
-      let filtered_rules = filter_rules conf rules in
+      let filtered_rules =
+        Rule_filtering.filter_rules conf.rule_filtering_conf rules
+      in
 
-      (* TODO: there are more ways to specify targets? see target_manager.py.
-       * TODO: make a separate target_config record, slice of conf instead
-       * of all those labels (or split Scan_CLI.conf in separate records).
-       *)
       let (targets : Common.filename list), _skipped_targetsTODO =
-        Target_manager.get_targets ~includes:conf.include_
-          ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
-          ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
+        Target_manager.get_targets conf.targeting_conf conf.target_roots
       in
       Logs.debug (fun m ->
           targets |> List.iter (fun file -> m "target = %s" file));
