@@ -794,7 +794,7 @@ let (mk_visitor :
           ()
       | WithUsingResource (t, v1, v2) ->
           let t = v_tok t in
-          let v1 = v_stmt v1 and v2 = v_stmt v2 in
+          let v1 = v_list v_stmt v1 and v2 = v_stmt v2 in
           ()
       | Assert (t, args, sc) ->
           let t = v_tok t in

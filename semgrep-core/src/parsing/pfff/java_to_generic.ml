@@ -417,12 +417,7 @@ and resource t (v : resource) : G.stmt =
       G.DefStmt (ent, G.VarDef v) |> G.s
   | Right e -> G.ExprStmt (expr e, t) |> G.s
 
-and resources (t1, v, t2) =
-  G.Block
-    ( t1,
-      (* TODO save the semicolon instead of using t2*) list (resource t2) v,
-      t2 )
-  |> G.s
+and resources (_t1, v, t2) = list (resource t2) v
 
 and stmt st =
   match stmt_aux st with
