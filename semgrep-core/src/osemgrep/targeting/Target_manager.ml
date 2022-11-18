@@ -21,6 +21,8 @@
 
    TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
 *)
+type path = string
+
 type _t = {
   todo : unit;
       (* TODO
@@ -39,3 +41,8 @@ type _t = {
           _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
       *)
 }
+
+let get_targets ~includes ~excludes ~max_target_bytes ~respect_git_ignore
+    target_roots =
+  Find_target.select_global_targets ~includes ~excludes ~max_target_bytes
+    ~respect_git_ignore target_roots

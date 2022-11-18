@@ -4,5 +4,6 @@
   (name osemgrep_targeting)
   (wrapped false)
   (libraries
+    semgrep_targeting
   )
 )

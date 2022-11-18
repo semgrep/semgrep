@@ -1,6 +1,3 @@
-from functools import lru_cache
-from functools import partial
-
 from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
 from semdep.find_lockfiles import LOCKFILE_TO_MANIFEST
 from semdep.parse_lockfile import parse_lockfile_str
@@ -8,11 +5,7 @@ from semgrep.git import BaselineHandler
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v0 import FoundDependency
 
-from wcmatch import glob as wcglob
-from boltons.iterutils import partition
-
 from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
-from semgrep.error import FilesNotFoundError
 from semgrep.formatter.text import width
 from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import FileExtension
@@ -32,7 +25,6 @@ ALL_EXTENSIONS: Collection[FileExtension] = {
     for ext in definition.exts
     if ext != FileExtension("")
 }
-
 
 def write_pipes_to_disk(targets: Sequence[str], temp_dir: Path) -> Sequence[str]:
     """
@@ -428,38 +420,22 @@ class Target:
 @define(eq=False)
 class TargetManager:
     """
-    Handles all file include/exclude logic for semgrep
-
-    Assumes file system does not change during it's existence to cache
-    files for a given language etc. If file system changes (i.e. git checkout),
-    create a new TargetManager object
-
-    If respect_git_ignore is true then will only consider files that are
-    tracked or (untracked but not ignored) by git
-
-    If git_baseline_commit is true then will only consider files that have
-    changed since that commit
-
-    If allow_unknown_extensions is set then targets with extensions that are
-    not understood by semgrep will always be returned by get_files. Else will discard
-    targets with unknown extensions
-
-    TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
     """
 
     target_strings: Sequence[str]
+    targets: Sequence[Target] = field(init=False)
+    _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
+
     includes: Sequence[str] = Factory(list)
     excludes: Sequence[str] = Factory(list)
     max_target_bytes: int = -1
     respect_git_ignore: bool = False
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
+
     file_ignore: Optional[FileIgnore] = None
     lockfile_scan_info: Dict[str, int] = {}
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
-    targets: Sequence[Target] = field(init=False)
-
-    _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
 
     def __attrs_post_init__(self) -> None:
         self.targets = [

@@ -139,7 +139,17 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
    * semgrep scan flags
    *)
   | _ when conf.test -> Test_subcommand.run conf
-  | _ when conf.validate -> Validate_subcommand.run conf
+  | _ when conf.validate ->
+      let conf =
+        match conf with
+        | { rules_source = Configs []; _ } ->
+            (* TOPORT? was a Logs.err but seems better as an abort *)
+            Error.abort
+              "Nothing to validate, use the --config or --pattern flag to \
+               specify a rule"
+        | _else_ -> conf
+      in
+      Validate_subcommand.run conf
   | _ when conf.dump_ast <> None -> Dump_subcommand.run conf
   | _else_ ->
       (* --------------------------------------------------------- *)
@@ -162,7 +172,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
        * of all those labels (or split Scan_CLI.conf in separate records).
        *)
       let (targets : Common.filename list), _skipped_targetsTODO =
-        Find_target.select_global_targets ~includes:conf.include_
+        Target_manager.get_targets ~includes:conf.include_
           ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
           ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
       in

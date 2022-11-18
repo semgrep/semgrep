@@ -13,8 +13,7 @@ open Cmdliner
 (* Types *)
 (*****************************************************************************)
 (* no CLI parameters for now *)
-type login_cli_conf = unit
-type conf = login_cli_conf
+type conf = unit
 
 (*****************************************************************************)
 (* Helpers *)
@@ -51,7 +50,7 @@ let parse_argv (argv : string array) : conf =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (_conf : login_cli_conf) : Exit_code.t =
+let run (_conf : conf) : Exit_code.t =
   (* TODO:
      Setup_logging.setup config;
      logger#info "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " ");
