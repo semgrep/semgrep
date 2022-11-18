@@ -6,39 +6,51 @@
    The result of parsing a 'semgrep scan' command.
 *)
 type conf = {
-  autofix : bool;
-  baseline_commit : string option;
-  dryrun : bool;
-  dump_ast : dump_ast option;
-  error : bool;
-  exclude : string list;
+  (* Main configuration options *)
+  (* mix of --pattern/--lang/--replacement, --config *)
+  rules_source : rules_source;
+  (* can be a list of files or directories *)
+  target_roots : string list;
+  (* Configuration refinements *)
   exclude_rule_ids : Rule.rule_id list;
-  force_color : bool;
+  severity : Severity.rule_severity list;
+  autofix : bool;
+  dryrun : bool;
+  error_on_findings : bool;
+  strict : bool;
+  (* Path options *)
+  exclude : string list;
   include_ : string list;
-  logging_level : Logs.level option;
-  max_memory_mb : int;
   max_target_bytes : int;
-  metrics : Metrics.State.t;
+  respect_git_ignore : bool;
+  (* TODO? better parsing of the string? a Git.version type? *)
+  baseline_commit : string option;
+  scan_unknown_extensions : bool;
+  (* Performance options *)
   num_jobs : int;
   optimizations : bool;
-  output_format : Output_format.t;
-  profile : bool;
-  respect_git_ignore : bool;
-  rewrite_rule_ids : bool;
-  rules_source : rules_source;
-  scan_unknown_extensions : bool;
-  severity : Severity.rule_severity list;
-  show_supported_languages : bool;
-  strict : bool;
-  target_roots : string list;
-  test : bool;
-  test_ignore_todo : bool;
-  time_flag : bool;
+  max_memory_mb : int;
   timeout : float;
   timeout_threshold : int;
+  (* Display options *)
+  (* mix of --json, --emacs, --vim, etc. *)
+  output_format : Output_format.t;
+  (* mix of --debug, --quiet, --verbose *)
+  logging_level : Logs.level option;
+  rewrite_rule_ids : bool;
+  force_color : bool;
+  time_flag : bool;
+  profile : bool;
+  (* Networking options *)
+  metrics : Metrics.State.t;
+  version_check : bool;
+  (* Ugly: should be in separate subcommands *)
+  dump_ast : dump_ast option;
+  show_supported_languages : bool;
+  test : bool;
+  test_ignore_todo : bool;
   validate : bool;
   version : bool;
-  version_check : bool;
 }
 
 and rules_source =
