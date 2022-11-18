@@ -114,7 +114,12 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
 
   (* TOPORT: configure metrics *)
   match () with
-  (* "alternate modes" where no search is performed *)
+  (* "alternate modes" where no search is performed.
+   * coupling: if you add a new alternate mode, you probably need to modify
+   * Scan_CLI.cmdline_term.combine.rules_source match cases and allow
+   * more cases returning an empty 'Configs []'.
+   * TODO? stricter: we should allow just one of those options
+   *)
   | _ when conf.version ->
       (* alt: we could use Common.pr, but because '--quiet' doc says
        * "Only output findings.", a version is not a finding so
@@ -135,11 +140,14 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
    *)
   | _ when conf.test -> Test_subcommand.run conf
   | _ when conf.validate -> Validate_subcommand.run conf
+  | _ when conf.dump_ast <> None -> Dump_subcommand.run conf
   | _else_ ->
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
-      let rules_and_origins = Config_resolver.rules_from_conf conf in
+      let rules_and_origins =
+        Config_resolver.rules_from_rules_source conf.rules_source
+      in
       Logs.debug (fun m ->
           rules_and_origins
           |> List.iter (fun x ->
@@ -149,7 +157,10 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       in
       let filtered_rules = filter_rules conf rules in
 
-      (* TODO: there are more ways to specify targets? see target_manager.py *)
+      (* TODO: there are more ways to specify targets? see target_manager.py.
+       * TODO: make a separate target_config record, slice of conf instead
+       * of all those labels (or split Scan_CLI.conf in separate records).
+       *)
       let (targets : Common.filename list), _skipped_targetsTODO =
         Find_target.select_global_targets ~includes:conf.include_
           ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes

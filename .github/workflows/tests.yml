@@ -205,6 +205,7 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
+        #TODO: we used to have also 3.7 but it started to fail during pipenv install
         python: ["3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v3

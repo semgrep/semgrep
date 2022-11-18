@@ -159,6 +159,7 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
    show_supported_languages = _;
    version = _;
    version_check = _;
+   dump_ast = _;
    force_color = _;
    strict = _;
    severity = _;

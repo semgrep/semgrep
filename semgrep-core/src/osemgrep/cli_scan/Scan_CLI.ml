@@ -29,6 +29,8 @@ type conf = {
   (* TODO? better parsing of the string? a Git.version type? *)
   baseline_commit : string option;
   dryrun : bool;
+  (* ugly: should be in a separate subcommand *)
+  dump_ast : dump_ast option;
   (* error_on_findings *)
   error : bool;
   exclude : string list;
@@ -51,15 +53,20 @@ type conf = {
   rules_source : rules_source;
   scan_unknown_extensions : bool;
   severity : Severity.rule_severity list;
+  (* ugly: should be in a separate subcommand *)
   show_supported_languages : bool;
   strict : bool;
   target_roots : string list;
+  (* ugly: should be in a separate subcommand *)
   test : bool;
+  (* ugly: should be in a separate subcommand *)
   test_ignore_todo : bool;
   time_flag : bool;
   timeout : float;
   timeout_threshold : int;
+  (* ugly: should be in a separate subcommand *)
   validate : bool;
+  (* ugly: should be in a separate subcommand *)
   version : bool;
   version_check : bool;
 }
@@ -71,7 +78,12 @@ and rules_source =
   (* --config. In theory we could even parse the string to get
    * some Semgrep_dashdash_config.config_kind list *)
   | Configs of string list
-    (* TODO? | ProjectUrl of Uri.t? or just use Configs for it? *)
+(* TODO? | ProjectUrl of Uri.t? or just use Configs for it? *)
+
+(* ugly: should be a separate subcommand in a separate file *)
+and dump_ast =
+  | DumpPattern of string * Xlang.t
+  | DumpTarget of Common.filename * Xlang.t
 [@@deriving show]
 
 let default : conf =
@@ -79,6 +91,7 @@ let default : conf =
     autofix = false;
     baseline_commit = None;
     dryrun = false;
+    dump_ast = None;
     error = false;
     exclude = [];
     exclude_rule_ids = [];
@@ -489,6 +502,9 @@ let o_version : bool Term.t =
   let info = Arg.info [ "version" ] ~doc:{|Show the version and exit.|} in
   Arg.value (Arg.flag info)
 
+(* ugly: this should be a separate subcommand, not a flag of semgrep scan,
+ * like 'semgrep info supported-languages'
+ *)
 let o_show_supported_languages : bool Term.t =
   let info =
     Arg.info
@@ -498,6 +514,7 @@ let o_show_supported_languages : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+(* ugly: this should be a separate subcommand, not a flag of semgrep scan *)
 let o_validate : bool Term.t =
   let info =
     Arg.info [ "validate" ]
@@ -509,10 +526,24 @@ the YAML files. No search is performed.
   in
   Arg.value (Arg.flag info)
 
+(* ugly: this should be a separate subcommand, not a flag of semgrep scan *)
+let o_dump_ast : bool Term.t =
+  let info =
+    Arg.info [ "dump-ast" ]
+      ~doc:
+        {|If --dump-ast, shows AST of the input file or passed expression
+and then exit (can use --json).
+|}
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Test and debug options" *)
 (* ------------------------------------------------------------------ *)
 
+(* alt: could be in the "alternate modes" section
+ * ugly: this should be a separate subcommand, not a flag of semgrep scan
+ *)
 let o_test : bool Term.t =
   let info = Arg.info [ "test" ] ~doc:{|Run test suite.|} in
   Arg.value (Arg.flag info)
@@ -564,8 +595,8 @@ let o_profile : bool Term.t =
 (*****************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine autofix baseline_commit config debug dryrun emacs error exclude
-      exclude_rule_ids force_color include_ json lang max_memory_mb
+  let combine autofix baseline_commit config debug dryrun dump_ast emacs error
+      exclude exclude_rule_ids force_color include_ json lang max_memory_mb
       max_target_bytes metrics num_jobs optimizations pattern profile quiet
       replacement respect_git_ignore rewrite_rule_ids scan_unknown_extensions
       severity show_supported_languages strict target_roots test
@@ -597,6 +628,14 @@ let cmdline_term : conf Term.t =
     in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
+      (* ugly: when using --dump-ast, we can pass a pattern or a target,
+       * but in the case of a target that means there is no config
+       * but we still don't want to abort, hence this empty Configs.
+       * Same for --version, --show-supported-langages.
+       *)
+      | [], (None, _, _) when dump_ast || version || show_supported_languages ->
+          Configs []
+      (* ugly: validate should be a separate subcommand *)
       | [], (None, _, _) when validate ->
           (* TOPORT? was a Logs.err but seems better as an abort *)
           Error.abort
@@ -631,6 +670,12 @@ let cmdline_term : conf Term.t =
       | _ :: _, (Some _, _, _) ->
           Error.abort "Mutually exclusive options --config/--pattern"
     in
+    (* ugly: dump_ast should be a separate subcommand *)
+    let dump_ast =
+      match (pattern, lang, target_roots) with
+      (* TODO *)
+      | _else_ -> None
+    in
     (* sanity checks *)
     if List.mem "auto" config && metrics = Metrics.State.Off then
       Error.abort
@@ -648,6 +693,7 @@ let cmdline_term : conf Term.t =
       autofix;
       baseline_commit;
       rules_source;
+      dump_ast;
       dryrun;
       error;
       exclude_rule_ids;
@@ -682,7 +728,7 @@ let cmdline_term : conf Term.t =
   (* Term defines 'const' but also the '$' operator *)
   Term.(
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
-    $ o_dryrun $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
+    $ o_dryrun $ o_dump_ast $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
     $ o_force_color $ o_include $ o_json $ o_lang $ o_max_memory_mb
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern
     $ o_profile $ o_quiet $ o_replacement $ o_respect_git_ignore
