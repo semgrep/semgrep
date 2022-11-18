@@ -8,12 +8,12 @@
 type conf = {
   (* Main configuration options *)
   (* mix of --pattern/--lang/--replacement, --config *)
-  rules_source : rules_source;
+  rules_source : Rule_fetching.rules_source;
   (* can be a list of files or directories *)
   target_roots : string list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
-  targeting_conf : Target_manager.conf;
+  targeting_conf : Find_target.conf;
   (* Other configuration options *)
   autofix : bool;
   dryrun : bool;
@@ -41,12 +41,6 @@ type conf = {
   validate : bool;
   version : bool;
 }
-
-and rules_source =
-  (* -e/-l/--replacement *)
-  | Pattern of string * Xlang.t * string option (* replacement *)
-  (* --config *)
-  | Configs of string list
 
 and dump_ast =
   | DumpPattern of string * Xlang.t

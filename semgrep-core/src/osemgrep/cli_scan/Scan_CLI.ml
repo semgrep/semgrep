@@ -24,12 +24,12 @@ module H = Cmdliner_helpers
 type conf = {
   (* Main configuration options *)
   (* mix of --pattern/--lang/--replacement, --config *)
-  rules_source : rules_source;
+  rules_source : Rule_fetching.rules_source;
   (* can be a list of files or directories *)
   target_roots : string list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
-  targeting_conf : Target_manager.conf;
+  targeting_conf : Find_target.conf;
   (* Other configuration options *)
   autofix : bool;
   dryrun : bool;
@@ -58,15 +58,6 @@ type conf = {
   version : bool;
 }
 
-and rules_source =
-  (* -e/-l/--replacement. In theory we could even parse the string to get
-   * a XPattern.t *)
-  | Pattern of string * Xlang.t * string option (* replacement *)
-  (* --config. In theory we could even parse the string to get
-   * some Semgrep_dashdash_config.config_kind list *)
-  | Configs of string list
-(* TODO? | ProjectUrl of Uri.t? or just use Configs for it? *)
-
 (* ugly: should be a separate subcommand in a separate file *)
 and dump_ast =
   | DumpPattern of string * Xlang.t
@@ -81,7 +72,7 @@ let default : conf =
     (* alt: could move in a Target_manager.default *)
     targeting_conf =
       {
-        Target_manager.exclude = [];
+        Find_target.exclude = [];
         include_ = [];
         baseline_commit = None;
         max_target_bytes = 1_000_000 (* 1 MB *);
@@ -638,7 +629,7 @@ let cmdline_term : conf Term.t =
        *)
       | [], (None, _, _)
         when dump_ast || validate || version || show_supported_languages ->
-          Configs []
+          Rule_fetching.Configs []
       (* TOPORT: handle get_project_url() if empty Configs? *)
       | [], (None, _, _) ->
           (* alt: default.rules_source *)
@@ -652,7 +643,7 @@ let cmdline_term : conf Term.t =
       | [], (Some pat, Some str, fix) ->
           (* may raise a Failure (will be caught in CLI.safe_run) *)
           let xlang = Xlang.of_string str in
-          Pattern (pat, xlang, fix)
+          Rule_fetching.Pattern (pat, xlang, fix)
       | _, (Some _, None, _) ->
           (* alt: "language must be specified when a pattern is passed" *)
           Error.abort "-e/--pattern and -l/--lang must both be specified"
@@ -664,7 +655,7 @@ let cmdline_term : conf Term.t =
             "command-line replacement flag can only be used with command-line \
              pattern; when using a config file add the fix: key instead"
       (* TOPORT? handle [x], _ and rule passed inline, python: util.is_rules*)
-      | xs, (None, None, None) -> Configs xs
+      | xs, (None, None, None) -> Rule_fetching.Configs xs
       | _ :: _, (Some _, _, _) ->
           Error.abort "Mutually exclusive options --config/--pattern"
     in
@@ -693,7 +684,7 @@ let cmdline_term : conf Term.t =
       rule_filtering_conf = { Rule_filtering.exclude_rule_ids; severity };
       targeting_conf =
         {
-          Target_manager.exclude;
+          Find_target.exclude;
           include_;
           baseline_commit;
           max_target_bytes;

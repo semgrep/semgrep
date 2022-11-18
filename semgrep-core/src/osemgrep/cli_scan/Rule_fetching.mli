@@ -1,3 +1,15 @@
+(* input *)
+type rules_source =
+  (* -e/-l/--replacement. In theory we could even parse the string to get
+   * a XPattern.t *)
+  | Pattern of string * Xlang.t * string option (* replacement *)
+  (* --config. In theory we could even parse the string to get
+   * some Semgrep_dashdash_config.config_kind list *)
+  | Configs of string list
+(* TODO? | ProjectUrl of Uri.t? or just use Configs for it? *)
+[@@deriving show]
+
+(* output *)
 type rules_and_origin = {
   origin : origin;
   rules : Rule.rules;
@@ -13,7 +25,7 @@ val partition_rules_and_errors :
 (* [rules_from_rules_source] returns rules from --config or -e
  * TODO: does it rewrite the rule_id?
  *)
-val rules_from_rules_source : Scan_CLI.rules_source -> rules_and_origin list
+val rules_from_rules_source : rules_source -> rules_and_origin list
 
 (* internals *)
 

@@ -8,7 +8,23 @@
       scan regardless of rules or languages.
    2. Filter suitable targets for a language or for a rule
       (multiple languages).
-*)
+ *)
+
+type conf = {
+  exclude : string list;
+  include_ : string list;
+  max_target_bytes : int;
+  respect_git_ignore : bool;
+  baseline_commit : string option;
+  scan_unknown_extensions : bool;
+}
+[@@deriving show]
+
+(* entry point *)
+val get_targets :
+  conf ->
+  string list (* target roots *) ->
+  Common.filename list * Output_from_core_t.skipped_target list
 
 type baseline_handler = TODO
 type file_ignore = TODO

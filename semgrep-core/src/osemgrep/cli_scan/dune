@@ -15,7 +15,6 @@
     osemgrep_core
     osemgrep_configuring
     osemgrep_reporting
-    osemgrep_targeting
   )
  (preprocess
    (pps

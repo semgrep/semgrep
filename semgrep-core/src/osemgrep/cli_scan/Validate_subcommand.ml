@@ -57,16 +57,16 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
    * in Config_resolver.errors.
    *)
   let rules_and_origin =
-    Config_resolver.rules_from_rules_source conf.rules_source
+    Rule_fetching.rules_from_rules_source conf.rules_source
   in
   let rules, errors =
-    Config_resolver.partition_rules_and_errors rules_and_origin
+    Rule_fetching.partition_rules_and_errors rules_and_origin
   in
   (* Checking (3) *)
   let metacheck_errors =
     match conf.rules_source with
-    | Scan_CLI.Pattern _ -> []
-    | Scan_CLI.Configs _xs ->
+    | Rule_fetching.Pattern _ -> []
+    | Rule_fetching.Configs _xs ->
         (* In a validate context, rules are actually targets of metarules.
          * alt: could also process Configs to compute the targets.
          *)
@@ -74,14 +74,14 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           rules_and_origin
           |> Common.map_filter (fun x ->
                  (* TODO: stricter: warn if no origin (meaning URL or registry) *)
-                 x.Config_resolver.origin)
+                 x.Rule_fetching.origin)
         in
         let metarules_and_origin =
-          Config_resolver.rules_from_dashdash_config
+          Rule_fetching.rules_from_dashdash_config
             (Semgrep_dashdash_config.config_kind_of_config_str metarules_pack)
         in
         let metarules, metaerrors =
-          Config_resolver.partition_rules_and_errors metarules_and_origin
+          Rule_fetching.partition_rules_and_errors metarules_and_origin
         in
         if metaerrors <> [] then
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
