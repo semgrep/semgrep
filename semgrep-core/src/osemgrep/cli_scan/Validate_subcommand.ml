@@ -86,9 +86,10 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
         if metaerrors <> [] then
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
 
-        (* ugly: just to not get the Text incremental matches *)
-        let conf = { conf with output_format = Json } in
-        let res = Core_runner.invoke_semgrep_core conf metarules [] targets in
+        let res =
+          Core_runner.invoke_semgrep_core conf.core_runner_conf metarules []
+            targets
+        in
 
         (* TODO? sanity check errors below too? *)
         let { Out.results; errors = _; _ } =

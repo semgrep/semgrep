@@ -43,7 +43,7 @@ let setup_logging (conf : Scan_CLI.conf) =
    * and use Logs instead, but it is still useful to get the semgrep-core
    * logging information at runtime, hence this call.
    *)
-  let config = Core_runner.runner_config_of_conf conf in
+  let config = Core_runner.runner_config_of_conf conf.core_runner_conf in
   Setup_logging.setup config;
   ()
 
@@ -58,7 +58,7 @@ let setup_profiling (conf : Scan_CLI.conf) =
     (* no need to set Common.profile, this was done in CLI.ml *)
     Logs.debug (fun m -> m "Profile mode On");
     Logs.debug (fun m -> m "disabling -j when in profiling mode");
-    { conf with num_jobs = 1 })
+    { conf with core_runner_conf = { conf.core_runner_conf with num_jobs = 1 } })
   else conf
 
 (*****************************************************************************)
@@ -156,7 +156,8 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       Logs.debug (fun m ->
           targets |> List.iter (fun file -> m "target = %s" file));
       let (res : Core_runner.result) =
-        Core_runner.invoke_semgrep_core conf filtered_rules errors targets
+        Core_runner.invoke_semgrep_core conf.core_runner_conf filtered_rules
+          errors targets
       in
       (* outputting the result! in JSON/Text/... depending on conf *)
       Output.output_result conf res;

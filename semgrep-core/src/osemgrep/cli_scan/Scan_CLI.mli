@@ -20,20 +20,16 @@ type conf = {
   error_on_findings : bool;
   strict : bool;
   (* Performance options *)
-  num_jobs : int;
-  optimizations : bool;
-  max_memory_mb : int;
-  timeout : float;
-  timeout_threshold : int;
+  core_runner_conf : Core_runner.conf;
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
-  rewrite_rule_ids : bool;
   force_color : bool;
   time_flag : bool;
   profile : bool;
+  rewrite_rule_ids : bool;
   (* Networking options *)
   metrics : Metrics.State.t;
   version_check : bool;

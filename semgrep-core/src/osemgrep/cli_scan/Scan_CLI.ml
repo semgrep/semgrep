@@ -36,20 +36,16 @@ type conf = {
   error_on_findings : bool;
   strict : bool;
   (* Performance options *)
-  num_jobs : int;
-  optimizations : bool;
-  max_memory_mb : int;
-  timeout : float;
-  timeout_threshold : int;
+  core_runner_conf : Core_runner.conf;
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
-  rewrite_rule_ids : bool;
   force_color : bool;
   time_flag : bool;
   profile : bool;
+  rewrite_rule_ids : bool;
   (* Networking options *)
   metrics : Metrics.State.t;
   version_check : bool;
@@ -79,7 +75,8 @@ and dump_ast =
 
 let default : conf =
   {
-    rules_source = Configs [ "auto" ];
+    (* alt: Configs [ "auto" ]? *)
+    rules_source = Configs [];
     target_roots = [ "." ];
     (* alt: could move in a Target_manager.default *)
     targeting_conf =
@@ -91,25 +88,31 @@ let default : conf =
         respect_git_ignore = true;
         scan_unknown_extensions = false;
       };
+    (* alt: could move in a Rule_filtering.default *)
     rule_filtering_conf =
       { Rule_filtering.exclude_rule_ids = []; severity = [] };
+    (* alt: could move in a Core_runner.default *)
+    core_runner_conf =
+      {
+        Core_runner.num_jobs = Parmap_helpers.get_cpu_count ();
+        timeout = 30.0 (* seconds *);
+        timeout_threshold = 3;
+        max_memory_mb = 0;
+        optimizations = true;
+      };
     autofix = false;
     dryrun = false;
     error_on_findings = false;
-    num_jobs = Parmap_helpers.get_cpu_count ();
-    timeout = 30.0 (* seconds *);
-    timeout_threshold = 3;
-    max_memory_mb = 0;
     strict = false;
-    force_color = false;
-    logging_level = Some Logs.Warning;
-    optimizations = true;
     output_format = Output_format.Text;
+    logging_level = Some Logs.Warning;
+    force_color = false;
     profile = false;
     rewrite_rule_ids = true;
     time_flag = false;
     metrics = Metrics.State.Auto;
     version_check = true;
+    (* ugly: should be separate subcommands *)
     version = false;
     show_supported_languages = false;
     dump_ast = None;
@@ -263,7 +266,7 @@ let o_num_jobs : int Term.t =
 parallel. Defaults to the number of cores detected on the system.
 |}
   in
-  Arg.value (Arg.opt Arg.int default.num_jobs info)
+  Arg.value (Arg.opt Arg.int default.core_runner_conf.num_jobs info)
 
 let o_max_memory_mb : int Term.t =
   let info =
@@ -273,7 +276,7 @@ let o_max_memory_mb : int Term.t =
 in MB. If set to 0 will not have memory limit. Defaults to 0.
 |}
   in
-  Arg.value (Arg.opt Arg.int default.max_memory_mb info)
+  Arg.value (Arg.opt Arg.int default.core_runner_conf.max_memory_mb info)
 
 let o_optimizations : bool Term.t =
   let parse = function
@@ -293,7 +296,7 @@ let o_optimizations : bool Term.t =
 Use 'none' to turn all optimizations off.
 |}
   in
-  Arg.value (Arg.opt converter default.optimizations info)
+  Arg.value (Arg.opt converter default.core_runner_conf.optimizations info)
 
 let o_timeout : float Term.t =
   let info =
@@ -305,7 +308,7 @@ seconds. If set to 0 will not have time limit. Defaults to 30 s.
 |}
   in
   (*TOPORT: envvar="SEMGREP_TIMEOUT" *)
-  Arg.value (Arg.opt Arg.float default.timeout info)
+  Arg.value (Arg.opt Arg.float default.core_runner_conf.timeout info)
 
 let o_timeout_threshold : int Term.t =
   let info =
@@ -315,7 +318,7 @@ let o_timeout_threshold : int Term.t =
 the file is skipped. If set to 0 will not have limit. Defaults to 3.
 |}
   in
-  Arg.value (Arg.opt Arg.int default.timeout_threshold info)
+  Arg.value (Arg.opt Arg.int default.core_runner_conf.timeout_threshold info)
 
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Display options" *)
@@ -697,29 +700,33 @@ let cmdline_term : conf Term.t =
           scan_unknown_extensions;
           respect_git_ignore;
         };
+      core_runner_conf =
+        {
+          Core_runner.num_jobs;
+          optimizations;
+          timeout;
+          timeout_threshold;
+          max_memory_mb;
+        };
       autofix;
-      dump_ast;
       dryrun;
       error_on_findings = error;
       force_color;
       logging_level;
-      max_memory_mb;
       metrics;
-      num_jobs;
-      optimizations;
+      version_check;
       output_format;
       profile;
       rewrite_rule_ids;
-      show_supported_languages;
       strict;
+      time_flag;
+      (* ugly: *)
+      version;
+      show_supported_languages;
+      dump_ast;
+      validate;
       test;
       test_ignore_todo;
-      time_flag;
-      timeout;
-      timeout_threshold;
-      validate;
-      version;
-      version_check;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
