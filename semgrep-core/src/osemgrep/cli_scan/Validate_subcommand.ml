@@ -93,7 +93,9 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
 
         (* TODO? sanity check errors below too? *)
         let { Out.results; errors = _; _ } =
-          Cli_json_output.cli_output_of_core_results conf res
+          Cli_json_output.cli_output_of_core_results
+            ~logging_level:conf.logging_level ~rules_source:conf.rules_source
+            res
         in
         (* TOPORT?
                 ... run -check_rules in semgrep-core ...
