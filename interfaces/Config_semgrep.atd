@@ -26,6 +26,7 @@ type t = {
   ~taint_unify_mvars <ocaml default="false"> : bool;
   ~taint_assume_safe_functions <ocaml default="false"> : bool;
   ~taint_assume_safe_indexes <ocaml default="false"> : bool;
+  ~taint_builtin_propagators <ocaml default="true"> : bool;
 
   (* 'ac' stands for associative-commutative matching *)
   ~ac_matching <ocaml default="true"> : bool;
