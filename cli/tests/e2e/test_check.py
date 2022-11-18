@@ -116,6 +116,16 @@ def test_basic_rule__absolute(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
+def test_basic_jsonnet(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/eqeq.jsonnet",
+        ).stdout,
+        "results.json",
+    )
+
+
 @pytest.mark.slow
 def test_terminal_output(run_semgrep_in_tmp, snapshot):
     # Have shared settings file to test second run doesnt show metric output
