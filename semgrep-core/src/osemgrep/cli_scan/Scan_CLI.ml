@@ -496,6 +496,9 @@ let o_version : bool Term.t =
   let info = Arg.info [ "version" ] ~doc:{|Show the version and exit.|} in
   Arg.value (Arg.flag info)
 
+(* ugly: this should be a separate subcommand, not a flag of semgrep scan,
+ * like 'semgrep info supported-languages'
+ *)
 let o_show_supported_languages : bool Term.t =
   let info =
     Arg.info
@@ -505,6 +508,7 @@ let o_show_supported_languages : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+(* ugly: this should be a separate subcommand, not a flag of semgrep scan *)
 let o_validate : bool Term.t =
   let info =
     Arg.info [ "validate" ]
@@ -516,6 +520,7 @@ the YAML files. No search is performed.
   in
   Arg.value (Arg.flag info)
 
+(* ugly: this should be a separate subcommand, not a flag of semgrep scan *)
 let o_dump_ast : bool Term.t =
   let info =
     Arg.info [ "dump-ast" ]
@@ -530,7 +535,9 @@ and then exit (can use --json).
 (* TOPORT "Test and debug options" *)
 (* ------------------------------------------------------------------ *)
 
-(* alt: could be in the "alternate modes" section *)
+(* alt: could be in the "alternate modes" section
+ * ugly: this should be a separate subcommand, not a flag of semgrep scan
+ *)
 let o_test : bool Term.t =
   let info = Arg.info [ "test" ] ~doc:{|Run test suite.|} in
   Arg.value (Arg.flag info)
