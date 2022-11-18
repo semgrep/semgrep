@@ -205,7 +205,7 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        python: ["3.7", "3.8", "3.9", "3.10"]
+        python: ["3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -329,7 +329,7 @@ jobs:
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.7"
+          python-version: "3.8"
           cache: pipenv
       - run: pip install pipenv==2022.6.7
       - name: Download artifacts
@@ -361,7 +361,7 @@ jobs:
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.7"
+          python-version: "3.8"
           cache: pipenv
       - run: pip install pipenv==2022.6.7
       - name: Run timing benchmark
