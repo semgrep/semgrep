@@ -82,8 +82,8 @@ let load_rules_from_url url : rules_and_origin =
       let res = load_rules_from_file file in
       { res with origin = None })
 
-let rules_from_dashdash_config (config_str : string) : rules_and_origin list =
-  let kind = Semgrep_dashdash_config.config_kind_of_config_str config_str in
+let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
+    rules_and_origin list =
   match kind with
   | File file -> [ load_rules_from_file file ]
   | Dir dir ->
@@ -116,9 +116,14 @@ let rules_from_dashdash_config (config_str : string) : rules_and_origin list =
 (*****************************************************************************)
 
 (* TODO: rewrite rule_id of the rules using x.path origin? *)
-let rules_from_conf (conf : Scan_CLI.conf) : rules_and_origin list =
-  match conf.rules_source with
-  | Configs xs -> xs |> List.concat_map rules_from_dashdash_config
+let rules_from_rules_source (source : Scan_CLI.rules_source) :
+    rules_and_origin list =
+  match source with
+  | Configs xs ->
+      xs
+      |> List.concat_map (fun str ->
+             let kind = Semgrep_dashdash_config.config_kind_of_config_str str in
+             rules_from_dashdash_config kind)
   | Pattern (pat, xlang, fix) ->
       let fk = Parse_info.unsafe_fake_info "" in
       (* better: '-e foo -l regex' not handled in original semgrep,

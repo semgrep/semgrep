@@ -56,7 +56,9 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
    * TODO: report not only Rule.invalid_rule_errors but all Rule.error for (1)
    * in Config_resolver.errors.
    *)
-  let rules_and_origin = Config_resolver.rules_from_conf conf in
+  let rules_and_origin =
+    Config_resolver.rules_from_rules_source conf.rules_source
+  in
   let rules, errors =
     Config_resolver.partition_rules_and_errors rules_and_origin
   in
@@ -75,7 +77,8 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
                  x.Config_resolver.origin)
         in
         let metarules_and_origin =
-          Config_resolver.rules_from_dashdash_config metarules_pack
+          Config_resolver.rules_from_dashdash_config
+            (Semgrep_dashdash_config.config_kind_of_config_str metarules_pack)
         in
         let metarules, metaerrors =
           Config_resolver.partition_rules_and_errors metarules_and_origin

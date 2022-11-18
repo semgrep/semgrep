@@ -9,6 +9,7 @@ type conf = {
   autofix : bool;
   baseline_commit : string option;
   dryrun : bool;
+  dump_ast : dump_ast option;
   error : bool;
   exclude : string list;
   exclude_rule_ids : Rule.rule_id list;
@@ -45,6 +46,10 @@ and rules_source =
   | Pattern of string * Xlang.t * string option (* replacement *)
   (* --config *)
   | Configs of string list
+
+and dump_ast =
+  | DumpPattern of string * Xlang.t
+  | DumpTarget of Common.filename * Xlang.t
 [@@deriving show]
 
 (* Command-line defaults. *)
