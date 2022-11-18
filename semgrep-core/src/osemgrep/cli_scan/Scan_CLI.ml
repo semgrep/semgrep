@@ -29,6 +29,7 @@ type conf = {
   (* TODO? better parsing of the string? a Git.version type? *)
   baseline_commit : string option;
   dryrun : bool;
+  (* ugly: should be in a separate subcommand *)
   dump_ast : dump_ast option;
   (* error_on_findings *)
   error : bool;
@@ -52,15 +53,20 @@ type conf = {
   rules_source : rules_source;
   scan_unknown_extensions : bool;
   severity : Severity.rule_severity list;
+  (* ugly: should be in a separate subcommand *)
   show_supported_languages : bool;
   strict : bool;
   target_roots : string list;
+  (* ugly: should be in a separate subcommand *)
   test : bool;
+  (* ugly: should be in a separate subcommand *)
   test_ignore_todo : bool;
   time_flag : bool;
   timeout : float;
   timeout_threshold : int;
+  (* ugly: should be in a separate subcommand *)
   validate : bool;
+  (* ugly: should be in a separate subcommand *)
   version : bool;
   version_check : bool;
 }
