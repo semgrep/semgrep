@@ -128,7 +128,12 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
             Error.abort
               "Nothing to validate, use the --config or --pattern flag to \
                specify a rule"
-        | _else_ -> conf
+        | { rules_source; logging_level; core_runner_conf; _ } ->
+            {
+              Validate_subcommand.rules_source;
+              logging_level;
+              core_runner_conf;
+            }
       in
       Validate_subcommand.run conf
   | _ when conf.dump_ast <> None -> Dump_subcommand.run conf
