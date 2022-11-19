@@ -34,17 +34,13 @@ type conf = {
   metrics : Metrics.State.t;
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
-  dump_ast : dump_ast option;
+  dump_ast : Dump_subcommand.conf option;
   show_supported_languages : bool;
   test : bool;
   test_ignore_todo : bool;
   validate : bool;
   version : bool;
 }
-
-and dump_ast =
-  | DumpPattern of string * Xlang.t
-  | DumpTarget of Common.filename * Xlang.t
 [@@deriving show]
 
 (* Command-line defaults. *)

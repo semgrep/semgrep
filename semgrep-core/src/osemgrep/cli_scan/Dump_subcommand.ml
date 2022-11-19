@@ -7,12 +7,20 @@
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* a slice of Scan_CLI.conf *)
+type conf = { language : Lang.t; json : bool; target : target_kind }
+
+and target_kind = Pattern of string | File of Common.filename
+[@@deriving show]
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-(* LATER: at some point we may want a Dump_CLI.conf instead of
- * abusing Scan_CLI.conf *)
-let run (_conf : Scan_CLI.conf) : Exit_code.t = failwith "TODO"
+let run (_conf : conf) : Exit_code.t = failwith "TODO"
 (* TOPORT:
    dump_parsed_ast(json, __validate_lang("--dump-ast", lang), pattern, targets)
 *)
