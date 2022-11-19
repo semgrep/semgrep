@@ -722,7 +722,7 @@ let cmdline_term : conf Term.t =
             Error.abort
               "Nothing to validate, use the --config or --pattern flag to \
                specify a rule"
-        | Configs _ :: _
+        | Configs (_ :: _)
         | Pattern _ ->
             Some
               {
