@@ -1,29 +1,26 @@
 (*
    Set up logging globally and for each module based on what
    we found on the command line or config files.
-*)
 
-open Runner_config
+   TODO? could move setup in pfff/.../Logging.ml
+*)
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-let setup config =
+let setup ~debug ~log_config_file ~log_to_file =
   (*
      Logging: set global level to Info and then make exceptions for debugging
      specific modules.
   *)
   let log_config_file =
-    if Sys.file_exists config.log_config_file then Some config.log_config_file
-    else None
+    if Sys.file_exists log_config_file then Some log_config_file else None
   in
-  let want_logging =
-    config.debug || log_config_file <> None || config.log_to_file <> None
-  in
+  let want_logging = debug || log_config_file <> None || log_to_file <> None in
 
   (* Set log destination: none, stderr, or file *)
   (if want_logging then
    let handler =
-     match config.log_to_file with
+     match log_to_file with
      | None -> Easy_logging.(Handlers.make (CliErr Debug))
      | Some file -> Easy_logging.(Handlers.make (File (file, Debug)))
    in

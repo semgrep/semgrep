@@ -658,35 +658,37 @@ let cmdline_term : conf Term.t =
      * alt: we could move this code in a Dump_subcommand.validate_cli_args()
      *)
     let dump_ast =
-      let target_roots =
-        if target_roots = default.target_roots then [] else target_roots
-      in
-      match (pattern, lang, target_roots) with
-      | Some str, Some lang, [] ->
-          Some
-            {
-              Dump_subcommand.language = lang;
-              target = Dump_subcommand.Pattern str;
-              json;
-            }
-      | None, Some lang, [ file ] ->
-          Some
-            {
-              Dump_subcommand.language = lang;
-              target = Dump_subcommand.File file;
-              json;
-            }
-      | _, None, _ ->
-          Error.abort "--dump-ast and -l/--lang must both be specified"
-      (* stricter: alt: could dump all targets *)
-      | None, Some _, _ :: _ :: _ ->
-          Error.abort "--dump-ast requires exactly one target file"
-      (* stricter: better error message *)
-      | None, Some _, [] ->
-          Error.abort "--dump-ast needs either a target or a -e pattern"
-      (* stricter: *)
-      | Some _, _, _ :: _ ->
-          Error.abort "Can't specify both -e and a target for --dump-ast"
+      if dump_ast then
+        let target_roots =
+          if target_roots = default.target_roots then [] else target_roots
+        in
+        match (pattern, lang, target_roots) with
+        | Some str, Some lang, [] ->
+            Some
+              {
+                Dump_subcommand.language = lang;
+                target = Dump_subcommand.Pattern str;
+                json;
+              }
+        | None, Some lang, [ file ] ->
+            Some
+              {
+                Dump_subcommand.language = lang;
+                target = Dump_subcommand.File file;
+                json;
+              }
+        | _, None, _ ->
+            Error.abort "--dump-ast and -l/--lang must both be specified"
+        (* stricter: alt: could dump all targets *)
+        | None, Some _, _ :: _ :: _ ->
+            Error.abort "--dump-ast requires exactly one target file"
+        (* stricter: better error message *)
+        | None, Some _, [] ->
+            Error.abort "--dump-ast needs either a target or a -e pattern"
+        (* stricter: *)
+        | Some _, _, _ :: _ ->
+            Error.abort "Can't specify both -e and a target for --dump-ast"
+      else None
     in
 
     (* sanity checks *)
