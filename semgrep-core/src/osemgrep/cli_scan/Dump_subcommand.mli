@@ -3,6 +3,9 @@
  * a subcommand.
  *)
 
-(* LATER: at some point we may want a Dump_CLI.conf instead of
- * abusing Scan_CLI.conf *)
-val run : Scan_CLI.conf -> Exit_code.t
+type conf = { language : Lang.t; json : bool; target : target_kind }
+
+and target_kind = Pattern of string | File of Common.filename
+[@@deriving show]
+
+val run : conf -> Exit_code.t

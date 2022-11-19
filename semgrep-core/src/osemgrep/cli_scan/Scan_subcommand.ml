@@ -55,7 +55,7 @@ let setup_profiling (conf : Scan_CLI.conf) =
       else Report.mode := MNo_info;
   *)
   if conf.profile then (
-    (* no need to set Common.profile, this was done in CLI.ml *)
+    (* ugly: no need to set Common.profile, this was done in CLI.ml *)
     Logs.debug (fun m -> m "Profile mode On");
     Logs.debug (fun m -> m "disabling -j when in profiling mode");
     { conf with core_runner_conf = { conf.core_runner_conf with num_jobs = 1 } })
@@ -72,6 +72,7 @@ let exit_code_of_errors ~strict (errors : Semgrep_output_v1_t.core_error list) :
     Exit_code.t =
   match List.rev errors with
   | [] -> Exit_code.ok
+  (* TODO? why do we look at the last error? What about the other errors? *)
   | x :: _ -> (
       (* alt: raise a Semgrep_error that would be catched by CLI_Common
        * wrapper instead of returning an exit code directly? *)
@@ -99,7 +100,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
    * coupling: if you add a new alternate mode, you probably need to modify
    * Scan_CLI.cmdline_term.combine.rules_source match cases and allow
    * more cases returning an empty 'Configs []'.
-   * TODO? stricter: we should allow just one of those options
+   * TODO? stricter: we should allow just one of those alternate modes.
    *)
   | _ when conf.version ->
       (* alt: we could use Common.pr, but because '--quiet' doc says
@@ -107,11 +108,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
        * we use Logs.app (which is filtered by --quiet).
        *)
       Logs.app (fun m -> m "%s" Version.version);
-      (* TOPORT:
-         if enable_version_check:
-               from semgrep.app.version import version_check
-               version_check()
-      *)
+      (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok
   | _ when conf.show_supported_languages ->
       Logs.app (fun m -> m "supported languages are: %s" Xlang.supported_xlangs);
@@ -136,7 +133,13 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
             }
       in
       Validate_subcommand.run conf
-  | _ when conf.dump_ast <> None -> Dump_subcommand.run conf
+  | _ when conf.dump_ast <> None ->
+      let conf =
+        match conf.dump_ast with
+        | None -> assert false
+        | Some conf -> conf
+      in
+      Dump_subcommand.run conf
   | _else_ ->
       (* --------------------------------------------------------- *)
       (* Let's go *)

@@ -60,8 +60,6 @@ let metarules_pack = "p/semgrep-rule-lints"
 (* Entry point *)
 (*****************************************************************************)
 
-(* LATER: at some point we may want a Validate_CLI.conf instead of
- * abusing Scan_CLI.conf *)
 let run (conf : conf) : Exit_code.t =
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
    * Before running metachecks on those rules, we make sure we can parse them.
