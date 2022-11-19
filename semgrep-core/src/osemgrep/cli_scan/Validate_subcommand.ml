@@ -34,8 +34,20 @@ module Out = Semgrep_output_v1_t
  *)
 
 (*****************************************************************************)
-(* Constants *)
+(* Types and constants *)
 (*****************************************************************************)
+
+(* a slice of Scan_CLI.conf *)
+type conf = {
+  (* Right now we use --config to get the list of rules for validate, but
+   * target_roots could be more appropriate.
+   * Do we allow to --validate --config p/python ?
+   *)
+  rules_source : Rule_fetching.rules_source;
+  core_runner_conf : Core_runner.conf;
+  logging_level : Logs.level option;
+}
+
 (* The "meta" rules are stored in the semgrep-rules public repository here:
  * https://github.com/returntocorp/semgrep-rules/tree/develop/yaml/semgrep
  *
@@ -50,7 +62,7 @@ let metarules_pack = "p/semgrep-rule-lints"
 
 (* LATER: at some point we may want a Validate_CLI.conf instead of
  * abusing Scan_CLI.conf *)
-let run (conf : Scan_CLI.conf) : Exit_code.t =
+let run (conf : conf) : Exit_code.t =
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
    * Before running metachecks on those rules, we make sure we can parse them.
    * TODO: report not only Rule.invalid_rule_errors but all Rule.error for (1)
