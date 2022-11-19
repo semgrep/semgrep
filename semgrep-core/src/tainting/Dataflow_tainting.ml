@@ -109,6 +109,18 @@ type env = {
 let hook_function_taint_signature = ref None
 
 (*****************************************************************************)
+(* Options *)
+(*****************************************************************************)
+
+let propagate_through_functions env =
+  (not env.options.taint_assume_safe_functions)
+  && not env.options.taint_only_propagate_through_assignments
+
+let propagate_through_indexes env =
+  (not env.options.taint_assume_safe_indexes)
+  && not env.options.taint_only_propagate_through_assignments
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -121,12 +133,19 @@ let status_to_taints = function
 let is_exact x = x.overlap > 0.99
 
 let union_map_taints_and_vars env f xs =
-  xs
-  |> List.fold_left
-       (fun (taints1, lval_env) x ->
-         let taints2, lval_env = f { env with lval_env } x in
-         (Taints.union taints1 taints2, lval_env))
-       (Taints.empty, env.lval_env)
+  let taints, lval_env =
+    xs
+    |> List.fold_left
+         (fun (taints1, lval_env) x ->
+           let taints2, lval_env = f { env with lval_env } x in
+           (Taints.union taints1 taints2, lval_env))
+         (Taints.empty, env.lval_env)
+  in
+  let taints =
+    if env.options.taint_only_propagate_through_assignments then Taints.empty
+    else taints
+  in
+  (taints, lval_env)
 
 let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
 let orig_is_source config orig = config.is_source (any_of_orig orig)
@@ -538,9 +557,12 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       in
       (* Check taint propagators. *)
       let taints_incoming (* TODO: find a better name *) =
-        sub_new_taints
-        |> Taints.union taints_from_sources
-        |> Taints.union taints_from_offset
+        if env.options.taint_only_propagate_through_assignments then
+          taints_from_sources
+        else
+          sub_new_taints
+          |> Taints.union taints_from_sources
+          |> Taints.union taints_from_offset
       in
       let taints_propagated, lval_env =
         handle_taint_propagators { env with lval_env } (`Lval lval)
@@ -581,8 +603,8 @@ and check_tainted_lval_offset env offset =
   | Index e ->
       let taints, lval_env = check_tainted_expr env e in
       let taints =
-        if not env.options.taint_assume_safe_indexes then taints
-        else (* Taint from the index should be ignored. *)
+        if propagate_through_indexes env then taints
+        else (* Taints from the index should be ignored. *)
           Taints.empty
       in
       (taints, lval_env)
@@ -717,14 +739,14 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
           match check_function_signature env e args_taints with
           | Some call_taints -> call_taints
           | None ->
-              if env.options.taint_assume_safe_functions then
+              if propagate_through_functions env then
+                (* Assume that the function will propagate
+                   * the taint of its arguments. *)
+                List.fold_left Taints.union e_taints all_taints
+              else
                 (* If we asume that function calls are "safe", then taints from
                  * the arguments are not present in the function's output. *)
                 e_taints
-              else
-                (* Otherwise assume that the function will propagate
-                   * the taint of its arguments. *)
-                List.fold_left Taints.union e_taints all_taints
         in
         (call_taints, lval_env)
     | CallSpecial (_, _, args) ->
