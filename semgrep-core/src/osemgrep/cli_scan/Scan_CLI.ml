@@ -50,12 +50,12 @@ type conf = {
   metrics : Metrics.State.t;
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
-  dump_ast : Dump_subcommand.conf option;
+  version : bool;
   show_supported_languages : bool;
+  dump_ast : Dump_subcommand.conf option;
+  validate : Validate_subcommand.conf option;
   test : bool;
   test_ignore_todo : bool;
-  validate : bool;
-  version : bool;
 }
 [@@deriving show]
 
@@ -102,7 +102,7 @@ let default : conf =
     version = false;
     show_supported_languages = false;
     dump_ast = None;
-    validate = false;
+    validate = None;
     test = false;
     test_ignore_todo = false;
   }
@@ -654,6 +654,27 @@ let cmdline_term : conf Term.t =
       | _ :: _, (Some _, _, _) ->
           Error.abort "Mutually exclusive options --config/--pattern"
     in
+    let core_runner_conf =
+      {
+        Core_runner.num_jobs;
+        optimizations;
+        timeout;
+        timeout_threshold;
+        max_memory_mb;
+      }
+    in
+    let targeting_conf =
+      {
+        Find_target.exclude;
+        include_;
+        baseline_commit;
+        max_target_bytes;
+        scan_unknown_extensions;
+        respect_git_ignore;
+      }
+    in
+    let rule_filtering_conf = { Rule_filtering.exclude_rule_ids; severity } in
+
     (* ugly: dump_ast should be a separate subcommand.
      * alt: we could move this code in a Dump_subcommand.validate_cli_args()
      *)
@@ -690,6 +711,27 @@ let cmdline_term : conf Term.t =
             Error.abort "Can't specify both -e and a target for --dump-ast"
       else None
     in
+    (* ugly: validate should be a separate subcommand.
+     * alt: we could move this code in a Validate_subcommand.cli_args()
+     *)
+    let validate =
+      if validate then
+        match rules_source with
+        | Configs [] ->
+            (* TOPORT? was a Logs.err but seems better as an abort *)
+            Error.abort
+              "Nothing to validate, use the --config or --pattern flag to \
+               specify a rule"
+        | Configs _ :: _
+        | Pattern _ ->
+            Some
+              {
+                Validate_subcommand.rules_source;
+                logging_level;
+                core_runner_conf;
+              }
+      else None
+    in
 
     (* sanity checks *)
     if List.mem "auto" config && metrics = Metrics.State.Off then
@@ -707,24 +749,9 @@ let cmdline_term : conf Term.t =
     {
       rules_source;
       target_roots;
-      rule_filtering_conf = { Rule_filtering.exclude_rule_ids; severity };
-      targeting_conf =
-        {
-          Find_target.exclude;
-          include_;
-          baseline_commit;
-          max_target_bytes;
-          scan_unknown_extensions;
-          respect_git_ignore;
-        };
-      core_runner_conf =
-        {
-          Core_runner.num_jobs;
-          optimizations;
-          timeout;
-          timeout_threshold;
-          max_memory_mb;
-        };
+      rule_filtering_conf;
+      targeting_conf;
+      core_runner_conf;
       autofix;
       dryrun;
       error_on_findings = error;

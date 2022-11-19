@@ -122,29 +122,10 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
    * semgrep scan flags
    *)
   | _ when conf.test -> Test_subcommand.run conf
-  | _ when conf.validate ->
-      let conf =
-        match conf with
-        | { rules_source = Configs []; _ } ->
-            (* TOPORT? was a Logs.err but seems better as an abort *)
-            Error.abort
-              "Nothing to validate, use the --config or --pattern flag to \
-               specify a rule"
-        | { rules_source; logging_level; core_runner_conf; _ } ->
-            {
-              Validate_subcommand.rules_source;
-              logging_level;
-              core_runner_conf;
-            }
-      in
-      Validate_subcommand.run conf
+  | _ when conf.validate <> None ->
+      Validate_subcommand.run (Common2.some conf.validate)
   | _ when conf.dump_ast <> None ->
-      let conf =
-        match conf.dump_ast with
-        | None -> assert false
-        | Some conf -> conf
-      in
-      Dump_subcommand.run conf
+      Dump_subcommand.run (Common2.some conf.dump_ast)
   | _else_ ->
       (* --------------------------------------------------------- *)
       (* Let's go *)
