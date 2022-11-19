@@ -170,6 +170,7 @@ let safe_run ~debug f : Exit_code.t =
     (* should never happen, you should prefer Error.Exit to Common.UnixExit
      * but just in case *)
     | Common.UnixExit i -> Exit_code.of_int i
+    (* TOPORT: PLEASE_FILE_ISSUE_TEXT for unexpected exn *)
     | Failure msg ->
         Logs.err (fun m -> m "Error: %s%!" msg);
         Exit_code.fatal

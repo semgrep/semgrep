@@ -1,9 +1,14 @@
+open Common
+module J = JSON
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* There is currently no 'semgrep dump' subcommand. Dumps are run via
  * 'semgrep scan --dump-ast ...' but internally it's quite similar to
  * a subcommand.
+ *
+ * LATER: get rid of Core_CLI.dump_pattern and Core_CLI.dump_ast functions
  *)
 
 (*****************************************************************************)
@@ -11,16 +16,82 @@
 (*****************************************************************************)
 
 (* a slice of Scan_CLI.conf *)
-type conf = { language : Lang.t; json : bool; target : target_kind }
+type conf = {
+  (* alt: we could enforce a Lang.t (or XLang.t) *)
+  language : string;
+  target : target_kind;
+  json : bool;
+}
 
+(* alt: we could accept multiple Files via multiple target_roots *)
 and target_kind = Pattern of string | File of Common.filename
 [@@deriving show]
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* copy paste of Core_CLI.json_of_v *)
+let json_of_v (v : OCaml.v) =
+  let rec aux v =
+    match v with
+    | OCaml.VUnit -> J.String "()"
+    | OCaml.VBool v1 -> if v1 then J.String "true" else J.String "false"
+    | OCaml.VFloat v1 -> J.Float v1 (* ppf "%f" v1 *)
+    | OCaml.VChar v1 -> J.String (spf "'%c'" v1)
+    | OCaml.VString v1 -> J.String v1
+    | OCaml.VInt i -> J.Int i
+    | OCaml.VTuple xs -> J.Array (Common.map aux xs)
+    | OCaml.VDict xs -> J.Object (Common.map (fun (k, v) -> (k, aux v)) xs)
+    | OCaml.VSum (s, xs) -> (
+        match xs with
+        | [] -> J.String (spf "%s" s)
+        | [ one_element ] -> J.Object [ (s, aux one_element) ]
+        | _ :: _ :: _ -> J.Object [ (s, J.Array (Common.map aux xs)) ])
+    | OCaml.VVar (s, i64) -> J.String (spf "%s_%d" s (Int64.to_int i64))
+    | OCaml.VArrow _ -> failwith "Arrow TODO"
+    | OCaml.VNone -> J.Null
+    | OCaml.VSome v -> J.Object [ ("some", aux v) ]
+    | OCaml.VRef v -> J.Object [ ("ref@", aux v) ]
+    | OCaml.VList xs -> J.Array (Common.map aux xs)
+    | OCaml.VTODO _ -> J.String "VTODO"
+  in
+  aux v
+
+(* mostly a copy paste of Core_CLI.dump_v_to_format *)
+let dump_v_to_format ~json (v : OCaml.v) =
+  if json then J.string_of_json (json_of_v v) else OCaml.string_of_v v
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let run (_conf : conf) : Exit_code.t = failwith "TODO"
-(* TOPORT:
-   dump_parsed_ast(json, __validate_lang("--dump-ast", lang), pattern, targets)
-*)
+let run (conf : conf) : Exit_code.t =
+  let (lang : Lang.t) =
+    (* alt: we could support dumping eXtended patterns? *)
+    match Lang.lang_of_string_opt conf.language with
+    | None -> failwith (Lang.unsupported_language_message conf.language)
+    | Some l -> l
+  in
+  (* TODO? error management? improve error message for parse errors?
+   * or let CLI.safe_run do the right thing?
+   *)
+  match conf.target with
+  | Pattern str ->
+      (* mostly a copy paste of Core_CLI.dump_pattern *)
+      let any = Parse_pattern.parse_pattern lang ~print_errors:true str in
+      let v = Meta_AST.vof_any any in
+      let s = dump_v_to_format ~json:conf.json v in
+      Logs.app (fun m -> m "%s" s);
+      Exit_code.ok
+  | File file ->
+      (* mostly a copy paste of Core_CLI.dump_ast *)
+      let { Parse_target.ast; skipped_tokens = _; _ } =
+        Parse_target.just_parse_with_lang lang file
+      in
+      let v = Meta_AST.vof_any (AST_generic.Pr ast) in
+      (* 80 columns is too little *)
+      Format.set_margin 120;
+      let s = dump_v_to_format ~json:conf.json v in
+      Logs.app (fun m -> m "%s" s);
+      Exit_code.ok

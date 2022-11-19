@@ -3,7 +3,7 @@
  * a subcommand.
  *)
 
-type conf = { language : Lang.t; json : bool; target : target_kind }
+type conf = { language : string; target : target_kind; json : bool }
 
 and target_kind = Pattern of string | File of Common.filename
 [@@deriving show]

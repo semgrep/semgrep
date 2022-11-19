@@ -157,10 +157,7 @@ let split_jobs_by_language all_rules all_targets : Runner_config.lang_job list =
 let runner_config_of_conf (conf : conf) : Runner_config.t =
   match conf with
   | { num_jobs; timeout; timeout_threshold; max_memory_mb; optimizations }
-  (* TODO?
-     logging_level;
-     TODO:
-     time_flag = _;
+  (* TODO: time_flag = _;
   *) ->
       (* We should default to Json because we do not want the same text
        * displayed in osemgrep than in semgrep-core.
@@ -171,14 +168,6 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
        *)
       let output_format = Runner_config.Json false (* no dots *) in
       let filter_irrelevant_rules = optimizations in
-      let debug =
-        true
-        (* TODO?
-           match logging_level with
-           | Some Logs.Debug -> true
-           | _else_ -> false
-        *)
-      in
       {
         Runner_config.default with
         ncores = num_jobs;
@@ -187,7 +176,6 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
         timeout_threshold;
         max_memory_mb;
         filter_irrelevant_rules;
-        debug;
         version = Version.version;
       }
 
