@@ -732,7 +732,8 @@ let main (sys_argv : string array) : unit =
   else if config.report_time then Report.mode := MTime
   else Report.mode := MNo_info;
 
-  Setup_logging.setup config;
+  Logging_helpers.setup ~debug:config.debug
+    ~log_config_file:config.log_config_file ~log_to_file:config.log_to_file;
 
   logger#info "Executed as: %s" (argv |> String.concat " ");
   logger#info "Version: %s" version;
