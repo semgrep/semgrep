@@ -44,6 +44,12 @@ let setup_logging (conf : Scan_CLI.conf) =
    * logging information at runtime, hence this call.
    *)
   let config = Core_runner.runner_config_of_conf conf.core_runner_conf in
+  let debug =
+    match conf.logging_level with
+    | Some Logs.Debug -> true
+    | _else_ -> false
+  in
+  let config = { config with debug } in
   Setup_logging.setup config;
   ()
 
