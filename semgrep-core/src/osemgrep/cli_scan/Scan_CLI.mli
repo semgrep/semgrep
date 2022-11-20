@@ -38,8 +38,7 @@ type conf = {
   show_supported_languages : bool;
   dump_ast : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
-  test : bool;
-  test_ignore_todo : bool;
+  test : Test_subcommand.conf option;
 }
 [@@deriving show]
 

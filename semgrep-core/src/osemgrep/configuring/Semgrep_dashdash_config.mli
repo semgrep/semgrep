@@ -1,3 +1,7 @@
+(* ex: "p/python" *)
+type config_str = string
+
+(* config_str in a parsed form *)
 type config_kind =
   (* ex: 'foo.yaml' *)
   | File of Common.filename
@@ -26,5 +30,5 @@ and registry_kind =
   | SupplyChain
 [@@deriving show]
 
-val config_kind_of_config_str : string -> config_kind
+val config_kind_of_config_str : config_str -> config_kind
 val url_of_registry_kind : registry_kind -> Uri.t
