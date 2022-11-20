@@ -121,7 +121,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   (* LATER: this should be real separate subcommands instead of abusing
    * semgrep scan flags
    *)
-  | _ when conf.test -> Test_subcommand.run conf
+  | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run (Common2.some conf.validate)
   | _ when conf.dump_ast <> None ->

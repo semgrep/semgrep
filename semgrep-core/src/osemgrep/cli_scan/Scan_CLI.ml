@@ -54,8 +54,7 @@ type conf = {
   show_supported_languages : bool;
   dump_ast : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
-  test : bool;
-  test_ignore_todo : bool;
+  test : Test_subcommand.conf option;
 }
 [@@deriving show]
 
@@ -103,8 +102,7 @@ let default : conf =
     show_supported_languages = false;
     dump_ast = None;
     validate = None;
-    test = false;
-    test_ignore_todo = false;
+    test = None;
   }
 
 (*************************************************************************)
@@ -535,7 +533,7 @@ let o_test : bool Term.t =
 
 let o_test_ignore_todo : bool Term.t =
   H.negatable_flag [ "test-ignore-todo" ] ~neg_options:[ "no-test-ignore-todo" ]
-    ~default:default.test_ignore_todo
+    ~default:false
     ~doc:
       {|If --test-ignore-todo, ignores rules marked as '#todoruleid:' in
 test files.
@@ -732,6 +730,15 @@ let cmdline_term : conf Term.t =
               }
       else None
     in
+    (* ugly: validate should be a separate subcommand.
+     * alt: we could move this code in a Validate_subcommand.cli_args()
+     *)
+    let test =
+      if test then (
+        ignore test_ignore_todo;
+        failwith "TODO")
+      else None
+    in
 
     (* sanity checks *)
     if List.mem "auto" config && metrics = Metrics.State.Off then
@@ -770,7 +777,6 @@ let cmdline_term : conf Term.t =
       dump_ast;
       validate;
       test;
-      test_ignore_todo;
     }
   in
   (* Term defines 'const' but also the '$' operator *)

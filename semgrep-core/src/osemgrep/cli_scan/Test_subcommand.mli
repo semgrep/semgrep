@@ -3,6 +3,21 @@
  * a subcommand.
  *)
 
-(* LATER: at some point we may want a Test_CLI.conf instead of
- * abusing Scan_CLI.conf *)
-val run : Scan_CLI.conf -> Exit_code.t
+type conf = {
+  target : target_kind;
+  ignore_todo : bool;
+  json : bool;
+  optimizations : bool;
+  strict : bool;
+}
+
+and target_kind =
+  | Dir of
+      Common.filename
+      * Semgrep_dashdash_config.config_str option (* optional --config *)
+  | File of
+      Common.filename
+      * Semgrep_dashdash_config.config_str (* mandatory --config *)
+[@@deriving show]
+
+val run : conf -> Exit_code.t
