@@ -112,21 +112,6 @@ def scan(
 
     output_settings = OutputSettings(...)
 
-    if test:
-        # the test code (which isn't a "test" per se but is actually machinery to evaluate semgrep performance)
-        # uses managed_output internally
-        semgrep.test.test_main(
-            target=targets,
-            config=config,
-            test_ignore_todo=test_ignore_todo,
-            strict=strict,
-            json=json,
-            optimizations=optimizations,
-            deep=deep,
-        )
-
-    run_has_findings = False
-
     # The 'optional_stdin_target' context manager must remain before
     # 'managed_output'. Output depends on file contents so we cannot have
     # already deleted the temporary stdin file.
