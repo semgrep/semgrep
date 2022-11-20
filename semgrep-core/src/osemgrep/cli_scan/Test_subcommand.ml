@@ -22,14 +22,20 @@ type conf = {
   strict : bool;
 }
 
-(* alt: we could accept multiple dirs, and multiple files *)
+(* alt: we could accept multiple dirs, and multiple files
+ * TODO? should we restrict the config_str to File or Dir?
+ *)
 and target_kind =
-  | Dir of Common.filename * string option (* optional --config *)
-  | File of Common.filename * string (* mandatory --config *)
+  | Dir of
+      Common.filename
+      * Semgrep_dashdash_config.config_str option (* optional --config *)
+  | File of
+      Common.filename
+      * Semgrep_dashdash_config.config_str (* mandatory --config *)
 [@@deriving show]
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let run (_conf : conf) : Exit_code.t = failwith "TODO"
+let run (_conf : conf) : Exit_code.t = failwith "TODO: Test_subcommand.run"

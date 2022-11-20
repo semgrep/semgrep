@@ -1,5 +1,5 @@
 (* ex: "p/python" *)
-type config_str = string
+type config_str = string [@@deriving show]
 
 (* config_str in a parsed form *)
 type config_kind =
