@@ -621,7 +621,8 @@ let cmdline_term : conf Term.t =
        * this ugly special case returning an empty Configs.
        *)
       | [], (None, _, _)
-        when dump_ast || validate || version || show_supported_languages ->
+        when dump_ast || validate || test || version || show_supported_languages
+        ->
           Rule_fetching.Configs []
       (* TOPORT: handle get_project_url() if empty Configs? *)
       | [], (None, _, _) ->
@@ -730,13 +731,41 @@ let cmdline_term : conf Term.t =
               }
       else None
     in
-    (* ugly: validate should be a separate subcommand.
-     * alt: we could move this code in a Validate_subcommand.cli_args()
+    (* ugly: test should be a separate subcommand.
+     * alt: we could move this code in a Test_subcommand.cli_args()
      *)
     let test =
-      if test then (
-        ignore test_ignore_todo;
-        failwith "TODO")
+      if test then
+        let target =
+          match (target_roots, config) with
+          | [ x ], [ config ] ->
+              if Sys.file_exists x && Sys.is_directory x then
+                Test_subcommand.Dir (x, Some config)
+              else Test_subcommand.File (x, config)
+          | [ x ], [] ->
+              if Sys.is_directory x then Test_subcommand.Dir (x, None)
+              else
+                (* was raise Exception but cleaner abort I think *)
+                Error.abort
+                  "--config is required when running a test on single file"
+          | _ :: _ :: _, _ ->
+              (* stricter: better error message '(directory or file)' *)
+              Error.abort
+                "only one target (directory or file) allowed for tests"
+          | _, _ :: _ :: _ ->
+              (* stricter: removed 'config directory' *)
+              Error.abort "only one config allowed for tests"
+          (* target_roots should always contain at least ["."] *)
+          | [], _ -> assert false
+        in
+        Some
+          {
+            Test_subcommand.target;
+            strict;
+            json;
+            optimizations;
+            ignore_todo = test_ignore_todo;
+          }
       else None
     in
 

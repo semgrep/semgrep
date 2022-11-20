@@ -641,37 +641,3 @@ def generate_test_results(
         )
 
     sys.exit(exit_code)
-
-
-def test_main(
-    *,
-    target: Sequence[str],
-    config: Optional[Sequence[str]],
-    test_ignore_todo: bool,
-    strict: bool,
-    json: bool,
-    optimizations: str,
-    deep: bool,
-) -> None:
-
-    if len(target) != 1:
-        raise Exception("only one target directory allowed for tests")
-    target_path = Path(target[0])
-
-    if config:
-        if len(config) != 1:
-            raise Exception("only one config directory allowed for tests")
-        config_path = Path(config[0])
-    else:
-        if target_path.is_file():
-            raise Exception("--config is required when running a test on single file")
-        config_path = target_path
-
-    generate_test_results(
-        target=target_path,
-        config=config_path,
-        strict=strict,
-        json_output=json,
-        deep=deep,
-        optimizations=optimizations,
-    )
