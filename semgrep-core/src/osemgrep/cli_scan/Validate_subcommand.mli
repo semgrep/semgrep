@@ -8,5 +8,6 @@ type conf = {
   core_runner_conf : Core_runner.conf;
   logging_level : Logs.level option;
 }
+[@@deriving show]
 
 val run : conf -> Exit_code.t

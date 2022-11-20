@@ -34,12 +34,12 @@ type conf = {
   metrics : Metrics.State.t;
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
-  dump_ast : Dump_subcommand.conf option;
+  version : bool;
   show_supported_languages : bool;
+  dump_ast : Dump_subcommand.conf option;
+  validate : Validate_subcommand.conf option;
   test : bool;
   test_ignore_todo : bool;
-  validate : bool;
-  version : bool;
 }
 [@@deriving show]
 

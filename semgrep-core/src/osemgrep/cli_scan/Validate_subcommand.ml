@@ -47,6 +47,7 @@ type conf = {
   core_runner_conf : Core_runner.conf;
   logging_level : Logs.level option;
 }
+[@@deriving show]
 
 (* The "meta" rules are stored in the semgrep-rules public repository here:
  * https://github.com/returntocorp/semgrep-rules/tree/develop/yaml/semgrep
