@@ -144,6 +144,7 @@ let dispatch_output_format (output_format : Output_format.t)
 (* Entry point *)
 (*****************************************************************************)
 
+(* TODO: take a more precise conf than Scan_CLI.conf at some point *)
 let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
@@ -151,7 +152,8 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
    * it here.
    *)
   let cli_output : Out.cli_output =
-    Cli_json_output.cli_output_of_core_results conf res
+    Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
+      ~rules_source:conf.rules_source res
   in
   if conf.autofix then apply_fixes_and_warn conf cli_output;
   dispatch_output_format conf.output_format cli_output;

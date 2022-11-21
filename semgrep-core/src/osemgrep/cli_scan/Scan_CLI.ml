@@ -1,6 +1,6 @@
 open Common
 
-(* Provide 'Arg', 'Cmd', 'Manpage', and 'Term' modules. *)
+(* Provides the 'Arg', 'Cmd', 'Manpage', and 'Term' modules. *)
 open Cmdliner
 module H = Cmdliner_helpers
 
@@ -20,94 +20,89 @@ module H = Cmdliner_helpers
 (*****************************************************************************)
 (*
    The result of parsing a 'semgrep scan' command.
-
-   Field order: alphabetic.
-   This facilitates insertion, deduplication, and removal of options.
 *)
 type conf = {
+  (* Main configuration options *)
+  (* mix of --pattern/--lang/--replacement, --config *)
+  rules_source : Rule_fetching.rules_source;
+  (* can be a list of files or directories *)
+  target_roots : string list;
+  (* Rules/targets refinements *)
+  rule_filtering_conf : Rule_filtering.conf;
+  targeting_conf : Find_target.conf;
+  (* Other configuration options *)
   autofix : bool;
-  (* TODO? better parsing of the string? a Git.version type? *)
-  baseline_commit : string option;
   dryrun : bool;
-  (* error_on_findings *)
-  error : bool;
-  exclude : string list;
-  exclude_rule_ids : Rule.rule_id list;
-  force_color : bool;
-  include_ : string list;
-  (* mix of --debug, --quiet, --verbose *)
-  logging_level : Logs.level option;
-  max_memory_mb : int;
-  max_target_bytes : int;
-  metrics : Metrics.State.t;
-  num_jobs : int;
-  optimizations : bool;
+  error_on_findings : bool;
+  strict : bool;
+  (* Performance options *)
+  core_runner_conf : Core_runner.conf;
+  (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
-  profile : bool;
-  respect_git_ignore : bool;
-  rewrite_rule_ids : bool;
-  (* mix of --pattern/--lang/--replacement, --config *)
-  rules_source : rules_source;
-  scan_unknown_extensions : bool;
-  severity : Severity.rule_severity list;
-  show_supported_languages : bool;
-  strict : bool;
-  target_roots : string list;
-  test : bool;
-  test_ignore_todo : bool;
+  (* mix of --debug, --quiet, --verbose *)
+  logging_level : Logs.level option;
+  force_color : bool;
   time_flag : bool;
-  timeout : float;
-  timeout_threshold : int;
-  validate : bool;
-  version : bool;
+  profile : bool;
+  rewrite_rule_ids : bool;
+  (* Networking options *)
+  metrics : Metrics.State.t;
   version_check : bool;
+  (* Ugly: should be in separate subcommands *)
+  version : bool;
+  show_supported_languages : bool;
+  dump_ast : Dump_subcommand.conf option;
+  validate : Validate_subcommand.conf option;
+  test : Test_subcommand.conf option;
 }
-
-and rules_source =
-  (* -e/-l/--replacement. In theory we could even parse the string to get
-   * a XPattern.t *)
-  | Pattern of string * Xlang.t * string option (* replacement *)
-  (* --config. In theory we could even parse the string to get
-   * some Semgrep_dashdash_config.config_kind list *)
-  | Configs of string list
-    (* TODO? | ProjectUrl of Uri.t? or just use Configs for it? *)
 [@@deriving show]
 
 let default : conf =
   {
-    autofix = false;
-    baseline_commit = None;
-    dryrun = false;
-    error = false;
-    exclude = [];
-    exclude_rule_ids = [];
-    force_color = false;
-    include_ = [];
-    logging_level = Some Logs.Warning;
-    max_memory_mb = 0;
-    max_target_bytes = 1_000_000 (* 1 MB *);
-    metrics = Metrics.State.Auto;
-    num_jobs = Parmap_helpers.get_cpu_count ();
-    optimizations = true;
-    output_format = Output_format.Text;
-    profile = false;
-    respect_git_ignore = true;
-    rewrite_rule_ids = true;
-    rules_source = Configs [ "auto" ];
-    scan_unknown_extensions = false;
-    severity = [];
-    show_supported_languages = false;
-    strict = false;
+    (* alt: Configs [ "auto" ]? *)
+    rules_source = Configs [];
     target_roots = [ "." ];
-    test = false;
-    test_ignore_todo = false;
+    (* alt: could move in a Target_manager.default *)
+    targeting_conf =
+      {
+        Find_target.exclude = [];
+        include_ = [];
+        baseline_commit = None;
+        max_target_bytes = 1_000_000 (* 1 MB *);
+        respect_git_ignore = true;
+        scan_unknown_extensions = false;
+      };
+    (* alt: could move in a Rule_filtering.default *)
+    rule_filtering_conf =
+      { Rule_filtering.exclude_rule_ids = []; severity = [] };
+    (* alt: could move in a Core_runner.default *)
+    core_runner_conf =
+      {
+        Core_runner.num_jobs = Parmap_helpers.get_cpu_count ();
+        timeout = 30.0 (* seconds *);
+        timeout_threshold = 3;
+        max_memory_mb = 0;
+        optimizations = true;
+      };
+    autofix = false;
+    dryrun = false;
+    error_on_findings = false;
+    strict = false;
+    output_format = Output_format.Text;
+    logging_level = Some Logs.Warning;
+    force_color = false;
+    profile = false;
+    rewrite_rule_ids = true;
     time_flag = false;
-    timeout = 30.0 (* seconds *);
-    timeout_threshold = 3;
-    validate = false;
-    version = false;
+    metrics = Metrics.State.Auto;
     version_check = true;
+    (* ugly: should be separate subcommands *)
+    version = false;
+    show_supported_languages = false;
+    dump_ast = None;
+    validate = None;
+    test = None;
   }
 
 (*************************************************************************)
@@ -119,23 +114,8 @@ let default : conf =
 (*************************************************************************)
 
 (* ------------------------------------------------------------------ *)
-(* No group *)
+(* Networking related options (New) *)
 (* ------------------------------------------------------------------ *)
-
-(* TODO? could be put in the Display options? with nosem? *)
-let o_baseline_commit : string option Term.t =
-  let info =
-    Arg.info [ "baseline_commit" ]
-      ~doc:
-        {|Only show results that are not found in this commit hash. Aborts run
-if not currently in a git directory, there are unstaged changes, or
-given baseline hash doesn't exist.
-|}
-      ~env:(Cmd.Env.info "SEMGREP_BASELINE_COMMIT")
-    (* TOPORT: support also SEMGREP_BASELINE_REF; unfortunately cmdliner
-             supports only one environment variable per option *)
-  in
-  Arg.value (Arg.opt Arg.(some string) None info)
 
 (* TOPORT? there's also a --disable-metrics and --enable-metrics
  * but they are marked as legacy flags, so maybe not worth porting
@@ -154,6 +134,17 @@ environment variable, defaults to 'auto'.
 |}
   in
   Arg.value (Arg.opt Metrics.State.converter default.metrics info)
+
+(* alt: was in "Performance and memory options" before *)
+let o_version_check : bool Term.t =
+  H.negatable_flag [ "enable-version-check" ]
+    ~neg_options:[ "disable-version-check" ]
+    ~default:default.version_check
+    ~env:(Cmd.Env.info "SEMGREP_ENABLE_VERSION_CHECK")
+    ~doc:
+      {|Checks Semgrep servers to see if the latest version is run; disabling
+ this may reduce exit time after returning results.
+|}
 
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Path options" *)
@@ -207,11 +198,11 @@ negative value disables this filter. Defaults to 1000000 bytes.
 |}
   in
   (* TOPORT: support '1.5MB' and such, see bytesize.py *)
-  Arg.value (Arg.opt Arg.int default.max_target_bytes info)
+  Arg.value (Arg.opt Arg.int default.targeting_conf.max_target_bytes info)
 
 let o_respect_git_ignore : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
-    ~default:default.respect_git_ignore
+    ~default:default.targeting_conf.respect_git_ignore
     ~doc:
       {|Skip files ignored by git. Scanning starts from the root
 folder specified on the Semgrep command line. Normally, if the
@@ -226,11 +217,26 @@ let o_scan_unknown_extensions : bool Term.t =
   H.negatable_flag
     [ "scan-unknown-extensions" ]
     ~neg_options:[ "skip-unknown-extensions" ]
-    ~default:default.scan_unknown_extensions
+    ~default:default.targeting_conf.scan_unknown_extensions
     ~doc:
       {|If true, explicit files will be scanned using the language specified
 in --lang. If --skip-unknown-extensions, these files will not be scanned.
 |}
+
+(* alt: could be put in the Display options with nosem *)
+let o_baseline_commit : string option Term.t =
+  let info =
+    Arg.info [ "baseline_commit" ]
+      ~doc:
+        {|Only show results that are not found in this commit hash. Aborts run
+if not currently in a git directory, there are unstaged changes, or
+given baseline hash doesn't exist.
+|}
+      ~env:(Cmd.Env.info "SEMGREP_BASELINE_COMMIT")
+    (* TOPORT: support also SEMGREP_BASELINE_REF; unfortunately cmdliner
+             supports only one environment variable per option *)
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
 
 (* ------------------------------------------------------------------ *)
 (* TOPORT: "Performance and memory options" *)
@@ -244,7 +250,7 @@ let o_num_jobs : int Term.t =
 parallel. Defaults to the number of cores detected on the system.
 |}
   in
-  Arg.value (Arg.opt Arg.int default.num_jobs info)
+  Arg.value (Arg.opt Arg.int default.core_runner_conf.num_jobs info)
 
 let o_max_memory_mb : int Term.t =
   let info =
@@ -254,7 +260,7 @@ let o_max_memory_mb : int Term.t =
 in MB. If set to 0 will not have memory limit. Defaults to 0.
 |}
   in
-  Arg.value (Arg.opt Arg.int default.max_memory_mb info)
+  Arg.value (Arg.opt Arg.int default.core_runner_conf.max_memory_mb info)
 
 let o_optimizations : bool Term.t =
   let parse = function
@@ -274,7 +280,7 @@ let o_optimizations : bool Term.t =
 Use 'none' to turn all optimizations off.
 |}
   in
-  Arg.value (Arg.opt converter default.optimizations info)
+  Arg.value (Arg.opt converter default.core_runner_conf.optimizations info)
 
 let o_timeout : float Term.t =
   let info =
@@ -286,7 +292,7 @@ seconds. If set to 0 will not have time limit. Defaults to 30 s.
 |}
   in
   (*TOPORT: envvar="SEMGREP_TIMEOUT" *)
-  Arg.value (Arg.opt Arg.float default.timeout info)
+  Arg.value (Arg.opt Arg.float default.core_runner_conf.timeout info)
 
 let o_timeout_threshold : int Term.t =
   let info =
@@ -296,17 +302,7 @@ let o_timeout_threshold : int Term.t =
 the file is skipped. If set to 0 will not have limit. Defaults to 3.
 |}
   in
-  Arg.value (Arg.opt Arg.int default.timeout_threshold info)
-
-let o_version_check : bool Term.t =
-  H.negatable_flag [ "enable-version-check" ]
-    ~neg_options:[ "disable-version-check" ]
-    ~default:default.version_check
-    ~env:(Cmd.Env.info "SEMGREP_ENABLE_VERSION_CHECK")
-    ~doc:
-      {|Checks Semgrep servers to see if the latest version is run; disabling
- this may reduce exit time after returning results.
-|}
+  Arg.value (Arg.opt Arg.int default.core_runner_conf.timeout_threshold info)
 
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Display options" *)
@@ -489,6 +485,9 @@ let o_version : bool Term.t =
   let info = Arg.info [ "version" ] ~doc:{|Show the version and exit.|} in
   Arg.value (Arg.flag info)
 
+(* ugly: this should be a separate subcommand, not a flag of semgrep scan,
+ * like 'semgrep info supported-languages'
+ *)
 let o_show_supported_languages : bool Term.t =
   let info =
     Arg.info
@@ -498,6 +497,7 @@ let o_show_supported_languages : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+(* ugly: this should be a separate subcommand, not a flag of semgrep scan *)
 let o_validate : bool Term.t =
   let info =
     Arg.info [ "validate" ]
@@ -509,25 +509,40 @@ the YAML files. No search is performed.
   in
   Arg.value (Arg.flag info)
 
+(* ugly: this should be a separate subcommand, not a flag of semgrep scan *)
+let o_dump_ast : bool Term.t =
+  let info =
+    Arg.info [ "dump-ast" ]
+      ~doc:
+        {|If --dump-ast, shows AST of the input file or passed expression
+and then exit (can use --json).
+|}
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Test and debug options" *)
 (* ------------------------------------------------------------------ *)
 
+(* alt: could be in the "alternate modes" section
+ * ugly: this should be a separate subcommand, not a flag of semgrep scan
+ *)
 let o_test : bool Term.t =
   let info = Arg.info [ "test" ] ~doc:{|Run test suite.|} in
   Arg.value (Arg.flag info)
 
 let o_test_ignore_todo : bool Term.t =
   H.negatable_flag [ "test-ignore-todo" ] ~neg_options:[ "no-test-ignore-todo" ]
-    ~default:default.test_ignore_todo
+    ~default:false
     ~doc:
       {|If --test-ignore-todo, ignores rules marked as '#todoruleid:' in
 test files.
 |}
 
+(* alt: in configuration option *)
 let o_error : bool Term.t =
   H.negatable_flag [ "error" ] ~neg_options:[ "no-error" ]
-    ~default:default.error
+    ~default:default.error_on_findings
     ~doc:{|Exit 1 if there are findings. Useful for CI and scripts.|}
 
 let o_strict : bool Term.t =
@@ -551,7 +566,7 @@ let o_target_roots : string list Term.t =
   Arg.value (Arg.pos_all Arg.string default.target_roots info)
 
 (* ------------------------------------------------------------------ *)
-(* !!NEW arguments!! *)
+(* !!NEW arguments!! not in pysemgrep *)
 (* ------------------------------------------------------------------ *)
 
 (* alt: could be put in Display options, next to o_time *)
@@ -564,8 +579,10 @@ let o_profile : bool Term.t =
 (*****************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine autofix baseline_commit config debug dryrun emacs error exclude
-      exclude_rule_ids force_color include_ json lang max_memory_mb
+  (* !The parameters must be in alphabetic orders to match the order
+   * of the corresponding '$ o_xx $' further below! *)
+  let combine autofix baseline_commit config debug dryrun dump_ast emacs error
+      exclude exclude_rule_ids force_color include_ json lang max_memory_mb
       max_target_bytes metrics num_jobs optimizations pattern profile quiet
       replacement respect_git_ignore rewrite_rule_ids scan_unknown_extensions
       severity show_supported_languages strict target_roots test
@@ -597,11 +614,16 @@ let cmdline_term : conf Term.t =
     in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
-      | [], (None, _, _) when validate ->
-          (* TOPORT? was a Logs.err but seems better as an abort *)
-          Error.abort
-            "Nothing to validate, use the --config or --pattern flag to \
-             specify a rule"
+      (* ugly: when using --dump-ast, we can pass a pattern or a target,
+       * but in the case of a target that means there is no config
+       * but we still don't want to abort, hence this empty Configs.
+       * Same for --version, --show-supported-langages, hence
+       * this ugly special case returning an empty Configs.
+       *)
+      | [], (None, _, _)
+        when dump_ast || validate || test || version || show_supported_languages
+        ->
+          Rule_fetching.Configs []
       (* TOPORT: handle get_project_url() if empty Configs? *)
       | [], (None, _, _) ->
           (* alt: default.rules_source *)
@@ -615,7 +637,7 @@ let cmdline_term : conf Term.t =
       | [], (Some pat, Some str, fix) ->
           (* may raise a Failure (will be caught in CLI.safe_run) *)
           let xlang = Xlang.of_string str in
-          Pattern (pat, xlang, fix)
+          Rule_fetching.Pattern (pat, xlang, fix)
       | _, (Some _, None, _) ->
           (* alt: "language must be specified when a pattern is passed" *)
           Error.abort "-e/--pattern and -l/--lang must both be specified"
@@ -627,10 +649,126 @@ let cmdline_term : conf Term.t =
             "command-line replacement flag can only be used with command-line \
              pattern; when using a config file add the fix: key instead"
       (* TOPORT? handle [x], _ and rule passed inline, python: util.is_rules*)
-      | xs, (None, None, None) -> Configs xs
+      | xs, (None, None, None) -> Rule_fetching.Configs xs
       | _ :: _, (Some _, _, _) ->
           Error.abort "Mutually exclusive options --config/--pattern"
     in
+    let core_runner_conf =
+      {
+        Core_runner.num_jobs;
+        optimizations;
+        timeout;
+        timeout_threshold;
+        max_memory_mb;
+      }
+    in
+    let targeting_conf =
+      {
+        Find_target.exclude;
+        include_;
+        baseline_commit;
+        max_target_bytes;
+        scan_unknown_extensions;
+        respect_git_ignore;
+      }
+    in
+    let rule_filtering_conf = { Rule_filtering.exclude_rule_ids; severity } in
+
+    (* ugly: dump_ast should be a separate subcommand.
+     * alt: we could move this code in a Dump_subcommand.validate_cli_args()
+     *)
+    let dump_ast =
+      if dump_ast then
+        let target_roots =
+          if target_roots = default.target_roots then [] else target_roots
+        in
+        match (pattern, lang, target_roots) with
+        | Some str, Some lang, [] ->
+            Some
+              {
+                Dump_subcommand.language = lang;
+                target = Dump_subcommand.Pattern str;
+                json;
+              }
+        | None, Some lang, [ file ] ->
+            Some
+              {
+                Dump_subcommand.language = lang;
+                target = Dump_subcommand.File file;
+                json;
+              }
+        | _, None, _ ->
+            Error.abort "--dump-ast and -l/--lang must both be specified"
+        (* stricter: alt: could dump all targets *)
+        | None, Some _, _ :: _ :: _ ->
+            Error.abort "--dump-ast requires exactly one target file"
+        (* stricter: better error message *)
+        | None, Some _, [] ->
+            Error.abort "--dump-ast needs either a target or a -e pattern"
+        (* stricter: *)
+        | Some _, _, _ :: _ ->
+            Error.abort "Can't specify both -e and a target for --dump-ast"
+      else None
+    in
+    (* ugly: validate should be a separate subcommand.
+     * alt: we could move this code in a Validate_subcommand.cli_args()
+     *)
+    let validate =
+      if validate then
+        match rules_source with
+        | Configs [] ->
+            (* TOPORT? was a Logs.err but seems better as an abort *)
+            Error.abort
+              "Nothing to validate, use the --config or --pattern flag to \
+               specify a rule"
+        | Configs (_ :: _)
+        | Pattern _ ->
+            Some
+              {
+                Validate_subcommand.rules_source;
+                logging_level;
+                core_runner_conf;
+              }
+      else None
+    in
+    (* ugly: test should be a separate subcommand.
+     * alt: we could move this code in a Test_subcommand.cli_args()
+     *)
+    let test =
+      if test then
+        let target =
+          match (target_roots, config) with
+          | [ x ], [ config ] ->
+              if Sys.file_exists x && Sys.is_directory x then
+                Test_subcommand.Dir (x, Some config)
+              else Test_subcommand.File (x, config)
+          | [ x ], [] ->
+              if Sys.is_directory x then Test_subcommand.Dir (x, None)
+              else
+                (* was raise Exception but cleaner abort I think *)
+                Error.abort
+                  "--config is required when running a test on single file"
+          | _ :: _ :: _, _ ->
+              (* stricter: better error message '(directory or file)' *)
+              Error.abort
+                "only one target (directory or file) allowed for tests"
+          | _, _ :: _ :: _ ->
+              (* stricter: removed 'config directory' *)
+              Error.abort "only one config allowed for tests"
+          (* target_roots should always contain at least ["."] *)
+          | [], _ -> assert false
+        in
+        Some
+          {
+            Test_subcommand.target;
+            strict;
+            json;
+            optimizations;
+            ignore_todo = test_ignore_todo;
+          }
+      else None
+    in
+
     (* sanity checks *)
     if List.mem "auto" config && metrics = Metrics.State.Off then
       Error.abort
@@ -645,44 +783,37 @@ let cmdline_term : conf Term.t =
              Semgrep.");
 
     {
-      autofix;
-      baseline_commit;
       rules_source;
+      target_roots;
+      rule_filtering_conf;
+      targeting_conf;
+      core_runner_conf;
+      autofix;
       dryrun;
-      error;
-      exclude_rule_ids;
-      exclude;
+      error_on_findings = error;
       force_color;
-      include_;
       logging_level;
-      max_memory_mb;
-      max_target_bytes;
       metrics;
-      num_jobs;
-      optimizations;
+      version_check;
       output_format;
       profile;
-      respect_git_ignore;
       rewrite_rule_ids;
-      scan_unknown_extensions;
-      severity;
-      show_supported_languages;
       strict;
-      target_roots;
-      test;
-      test_ignore_todo;
       time_flag;
-      timeout;
-      timeout_threshold;
-      validate;
+      (* ugly: *)
       version;
-      version_check;
+      show_supported_languages;
+      dump_ast;
+      validate;
+      test;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
   Term.(
+    (* !the o_xxx must be in alphabetic orders to match the parameters of
+     * combine above! *)
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
-    $ o_dryrun $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
+    $ o_dryrun $ o_dump_ast $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
     $ o_force_color $ o_include $ o_json $ o_lang $ o_max_memory_mb
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern
     $ o_profile $ o_quiet $ o_replacement $ o_respect_git_ignore

@@ -7,9 +7,35 @@
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+type conf = {
+  target : target_kind;
+  ignore_todo : bool;
+  (* TODO? do we need those options? people use the JSON output?
+   * the playground? and the optimizations and strict?
+   *)
+  json : bool;
+  (* take the whole core_runner_conf? like for validate? *)
+  optimizations : bool;
+  strict : bool;
+}
+
+(* alt: we could accept multiple dirs, and multiple files
+ * TODO? should we restrict the config_str to File or Dir?
+ *)
+and target_kind =
+  | Dir of
+      Common.filename
+      * Semgrep_dashdash_config.config_str option (* optional --config *)
+  | File of
+      Common.filename
+      * Semgrep_dashdash_config.config_str (* mandatory --config *)
+[@@deriving show]
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-(* LATER: at some point we may want a Test_CLI.conf instead of
- * abusing Scan_CLI.conf *)
-let run (_conf : Scan_CLI.conf) : Exit_code.t = failwith "TODO"
+let run (_conf : conf) : Exit_code.t = failwith "TODO: Test_subcommand.run"

@@ -719,7 +719,7 @@ and map_stmt x : B.stmt =
         `Try (t, v1, v2, v3)
     | WithUsingResource (t, v1, v2) ->
         let t = map_tok t in
-        let v1 = map_stmt v1 in
+        let v1 = map_stmt (G.stmt1 v1) in
         let v2 = map_stmt v2 in
         `WithUsingResource (t, v1, v2)
     | Assert (t, args, sc) ->

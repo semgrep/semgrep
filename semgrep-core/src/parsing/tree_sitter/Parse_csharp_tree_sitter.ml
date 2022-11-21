@@ -1870,7 +1870,7 @@ and statement (env : env) (x : CST.statement) =
       in
       let _v5 = token env v5 (* ")" *) in
       let v6 = statement env v6 in
-      WithUsingResource (v2, v4, v6) |> G.s
+      WithUsingResource (v2, [ v4 ], v6) |> G.s
   | `While_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "while" *) in
       let _v2 = token env v2 (* "(" *) in

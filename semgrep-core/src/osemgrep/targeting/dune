@@ -1,8 +1,0 @@
-; Eventually, this will be merged with the /targeting library from semgrep-core
-
-(library
-  (name osemgrep_targeting)
-  (wrapped false)
-  (libraries
-  )
-)

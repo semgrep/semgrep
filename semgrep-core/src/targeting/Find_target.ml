@@ -14,15 +14,45 @@ module Resp = Output_from_core_t
    * number of rules). This is why we cache the results of this step.
    This allows reducing the number of rules to the number of different
    languages and patterns used by the rules.
+ *)
 
-   TODO: note that some of the functions below are also present in
-   semgrep-python so we might want to move all file-targeting in one
-   place.
+(*
+   Handles all file include/exclude logic for semgrep
+
+   Assumes file system does not change during it's existence to cache
+   files for a given language etc. If file system changes (i.e. git checkout),
+   create a new TargetManager object
+
+   If respect_git_ignore is true then will only consider files that are
+   tracked or (untracked but not ignored) by git
+
+   If git_baseline_commit is true then will only consider files that have
+   changed since that commit
+
+   If allow_unknown_extensions is set then targets with extensions that are
+   not understood by semgrep will always be returned by get_files. Else will discard
+   targets with unknown extensions
+
+   TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
+
+   Translated from target_manager.py
 *)
 
 (*************************************************************************)
 (* Types *)
 (*************************************************************************)
+
+type conf = {
+  exclude : string list;
+  include_ : string list;
+  max_target_bytes : int;
+  respect_git_ignore : bool;
+  (* TODO? use, and better parsing of the string? a Git.version type? *)
+  baseline_commit : string option;
+  (* TODO: use *)
+  scan_unknown_extensions : bool;
+}
+[@@deriving show]
 
 type baseline_handler = TODO
 type file_ignore = TODO
@@ -114,6 +144,7 @@ let select_global_targets ?(includes = []) ?(excludes = []) ~max_target_bytes
   let paths, skipped_paths =
     global_filter ~opt_lang:None ~sort_by_decr_size:true paths
   in
+  (* !!!TODO!!! *)
   ignore includes;
   ignore excludes;
   ignore max_target_bytes (* from the semgrep CLI, not semgrep-core *);
@@ -121,6 +152,16 @@ let select_global_targets ?(includes = []) ?(excludes = []) ~max_target_bytes
   ignore baseline_handler;
   ignore file_ignore;
   (paths, skipped_paths)
+
+(* TODO: can merge with select_global_targets *)
+let get_targets conf target_roots =
+  select_global_targets ~includes:conf.include_ ~excludes:conf.exclude
+    ~max_target_bytes:conf.max_target_bytes
+    ~respect_git_ignore:conf.respect_git_ignore target_roots
+
+(*************************************************************************)
+(* TODO *)
+(*************************************************************************)
 
 let create_cache () = Hashtbl.create 1000
 
@@ -176,6 +217,10 @@ let filter_target_for_rule cache (rule : Rule.t) (path : path) =
 
 let filter_targets_for_rule cache rule files =
   List.filter (filter_target_for_rule cache rule) files
+
+(*************************************************************************)
+(* Legacy *)
+(*************************************************************************)
 
 (* Legacy semgrep-core implementation, used when receiving targets from
    the Python wrapper. *)

@@ -6,45 +6,40 @@
    The result of parsing a 'semgrep scan' command.
 *)
 type conf = {
-  autofix : bool;
-  baseline_commit : string option;
-  dryrun : bool;
-  error : bool;
-  exclude : string list;
-  exclude_rule_ids : string list;
-  force_color : bool;
-  include_ : string list;
-  logging_level : Logs.level option;
-  max_memory_mb : int;
-  max_target_bytes : int;
-  metrics : Metrics.State.t;
-  num_jobs : int;
-  optimizations : bool;
-  output_format : Output_format.t;
-  profile : bool;
-  respect_git_ignore : bool;
-  rewrite_rule_ids : bool;
-  rules_source : rules_source;
-  scan_unknown_extensions : bool;
-  severity : Severity.rule_severity list;
-  show_supported_languages : bool;
-  strict : bool;
+  (* Main configuration options *)
+  (* mix of --pattern/--lang/--replacement, --config *)
+  rules_source : Rule_fetching.rules_source;
+  (* can be a list of files or directories *)
   target_roots : string list;
-  test : bool;
-  test_ignore_todo : bool;
+  (* Rules/targets refinements *)
+  rule_filtering_conf : Rule_filtering.conf;
+  targeting_conf : Find_target.conf;
+  (* Other configuration options *)
+  autofix : bool;
+  dryrun : bool;
+  error_on_findings : bool;
+  strict : bool;
+  (* Performance options *)
+  core_runner_conf : Core_runner.conf;
+  (* Display options *)
+  (* mix of --json, --emacs, --vim, etc. *)
+  output_format : Output_format.t;
+  (* mix of --debug, --quiet, --verbose *)
+  logging_level : Logs.level option;
+  force_color : bool;
   time_flag : bool;
-  timeout : float;
-  timeout_threshold : int;
-  validate : bool;
-  version : bool;
+  profile : bool;
+  rewrite_rule_ids : bool;
+  (* Networking options *)
+  metrics : Metrics.State.t;
   version_check : bool;
+  (* Ugly: should be in separate subcommands *)
+  version : bool;
+  show_supported_languages : bool;
+  dump_ast : Dump_subcommand.conf option;
+  validate : Validate_subcommand.conf option;
+  test : Test_subcommand.conf option;
 }
-
-and rules_source =
-  (* -e/-l/--replacement *)
-  | Pattern of string * Xlang.t * string option (* replacement *)
-  (* --config *)
-  | Configs of string list
 [@@deriving show]
 
 (* Command-line defaults. *)

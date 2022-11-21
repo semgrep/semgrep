@@ -8,7 +8,7 @@
 val main : string array -> Exit_code.t
 
 (* no parameters for now *)
-type logout_cli_conf = unit
+type conf = unit
 
 (* internal *)
-val run : logout_cli_conf -> Exit_code.t
+val run : conf -> Exit_code.t

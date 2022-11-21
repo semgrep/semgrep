@@ -2353,7 +2353,7 @@ and statement (env : env) (x : CST.statement) =
         | `Exp_stmt x ->
             G.WithUsingResource
               ( using_stmt,
-                expression_statement env x |> G.s,
+                [ expression_statement env x |> G.s ],
                 G.Block (G.fake_bracket []) |> G.s )
         | `LPAR_exp_rep_COMMA_exp_RPAR_choice_comp_stmt (v1, v2, v3, v4, v5) ->
             let v1 = (* "(" *) token env v1 in
@@ -2366,8 +2366,8 @@ and statement (env : env) (x : CST.statement) =
                   v2)
                 v3
             in
-            let v4 = (* ")" *) token env v4 in
-            let exprs = G.Block (v1, v2 :: v3, v4) |> G.s in
+            let _v4 = (* ")" *) token env v4 in
+            let exprs = v2 :: v3 in
             let v5 = inline_compound_statement env v5 in
             G.WithUsingResource (using_stmt, exprs, v5)
       in

@@ -40,22 +40,49 @@ let intersperse sep xs =
 
 let insert_blank_lines xs = intersperse (Line "") xs
 
+(* generate a string with a list of vars: " (v1, v2, v3, ...)"
+ * and a function that can be called later with and idx to get the varname
+ *)
+let vxxx_of_list xs =
+  let n_args = List.length xs in
+  let xs = Common.index_list_1 xs in
+  (* v1, v2, v3, ... *)
+  let var i = if n_args = 1 then "v" else sprintf "v%d" i in
+  let args =
+    match xs with
+    | [] -> ""
+    | [ _ ] -> " " ^ var 1
+    | _ ->
+        sprintf " (%s)"
+          (xs |> Common.map snd
+          |> Common.map (fun i -> sprintf "v%d" i)
+          |> String.concat ", ")
+  in
+  (args, n_args, xs, var)
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let func_for_type (conf : Conf.t) (typ : type_) : string =
+let func_for_name (conf : Conf.t) (name : name) : string =
+  match name with
+  | [], id -> sprintf "%s%s" conf.fun_prefix (str_of_ident id)
+  | qu, id ->
+      let prefix = qu |> Common.map str_of_ident |> String.concat "." in
+      sprintf "%s.%s%s" prefix conf.fun_prefix (str_of_ident id)
+
+let rec func_for_type (conf : Conf.t) (typ : type_) : string =
   match typ with
-  | TyName name -> (
-      match name with
-      | [], id -> sprintf "%s%s" conf.fun_prefix (str_of_ident id)
-      | qu, id ->
-          let prefix = qu |> Common.map str_of_ident |> String.concat "." in
-          sprintf "%s.%s%s" prefix conf.fun_prefix (str_of_ident id))
+  | TyName name -> func_for_name conf name
   | TyVar _ -> "TODOTyVar"
   | TyAny _ -> error "TyAny not handled"
   | TyFunction _ -> "TODOTyFunction"
-  | TyApp (_tys, _name) -> "TODOTyApp"
+  | TyApp ([ ty ], name) ->
+      let s1 = func_for_name conf name in
+      let s2 = func_for_type conf ty in
+      sprintf "(%s %s)" s1 s2
+  | TyApp (_tys, _name) -> "TodoTyAppManyArgs"
+  (* should be handled in CoreType case in gen_typedef below *)
   | TyTuple _tys -> "TodoTyTuple"
   | TyEllipsis _ -> error "TyEllipsis impossible"
   | TyTodo ((s, _), _ty) -> sprintf "TODOTyTodo_%s" s
@@ -71,20 +98,7 @@ let gen_typedef (conf : Conf.t) is_first typedef =
             let cases =
               ctors
               |> Common.map (fun (id, xs) ->
-                     let n_args = List.length xs in
-                     let xs = Common.index_list_1 xs in
-                     (* v1, v2, v3, ... *)
-                     let var i = if n_args = 1 then "v" else sprintf "v%d" i in
-                     let args =
-                       match xs with
-                       | [] -> ""
-                       | [ _ ] -> " " ^ var 1
-                       | _ ->
-                           sprintf " (%s)"
-                             (xs |> Common.map snd
-                             |> Common.map (fun i -> sprintf "v%d" i)
-                             |> String.concat ", ")
-                     in
+                     let args, n_args, xs, var = vxxx_of_list xs in
                      let arg_handlers, construct =
                        match conf.format with
                        | Map ->
@@ -126,7 +140,23 @@ let gen_typedef (conf : Conf.t) is_first typedef =
             in
             [ Line "match v with"; Inline cases ]
         | RecordType _ -> [ Line "TODO: RecordType" ]
-        | CoreType typ -> [ Line (sprintf "%s env v" (func_for_type conf typ)) ]
+        | CoreType typ -> (
+            match typ with
+            | TyTuple tys ->
+                let args, _n_args, xs, var = vxxx_of_list tys in
+                [
+                  Line (sprintf "(fun env %s ->" args);
+                  Block
+                    ((xs
+                     |> Common.map (fun (typ, idx) ->
+                            let call_str = func_for_type conf typ in
+                            Line
+                              (sprintf "let %s = %s env %s in" (var idx)
+                                 call_str (var idx))))
+                    @ [ Line (sprintf "todo env%s" args) ]);
+                  Line ") env v";
+                ]
+            | _ -> [ Line (sprintf "%s env v" (func_for_type conf typ)) ])
         | TdTodo _ -> error "TdTodo not handled"
       in
       [
