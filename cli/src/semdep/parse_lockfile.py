@@ -655,23 +655,7 @@ def parse_requirements(
         )
 
 
-example_pom_tree = r"""dev.r2c:semgrep-maven-plugin:maven-plugin:1.0-SNAPSHOT
-+- org.apache.maven:maven-plugin-api:jar:3.8.6:provided
-|  +- org.apache.maven:maven-model:jar:3.8.6:provided
-|  +- org.apache.maven:maven-artifact:jar:3.8.6:provided
-|  |  \- org.apache.commons:commons-lang3:jar:3.8.1:provided
-|  +- org.eclipse.sisu:org.eclipse.sisu.plexus:jar:0.3.5:provided
-|  |  +- javax.annotation:javax.annotation-api:jar:1.2:provided
-|  |  +- org.eclipse.sisu:org.eclipse.sisu.inject:jar:0.3.5:provided
-|  |  \- org.codehaus.plexus:plexus-component-annotations:jar:1.5.5:provided
-|  +- org.codehaus.plexus:plexus-utils:jar:3.3.1:provided
-|  \- org.codehaus.plexus:plexus-classworlds:jar:2.6.0:provided
-+- org.apache.maven.plugin-tools:maven-plugin-annotations:jar:3.6.4:provided
-\- com.zaxxer:nuprocess:jar:2.0.3:compile
-   \- net.java.dev.jna:jna:jar:5.11.0:compile"""
-
-
-def parse_pom_tree(tree_file: str) -> Iterator[FoundDependency]:
+def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]:
     def package_index(line: str) -> int:
         i = 0
         while line[i] in ["+", "-", " ", "\\"]:
@@ -681,7 +665,7 @@ def parse_pom_tree(tree_file: str) -> Iterator[FoundDependency]:
     def depth(package_index: int) -> int:
         return package_index // 3 + 1
 
-    lines = tree_file.split("\n")
+    lines = tree_str.split("\n")
     lines[0]
     deps = lines[1:]
     for i, dep in enumerate(deps):
@@ -707,7 +691,7 @@ LOCKFILE_PARSERS = {
     "gemfile.lock": parse_gemfile,  # Ruby
     "go.sum": parse_go_sum,  # Go
     "cargo.lock": parse_cargo,  # Rust
-    "pom.xml": parse_pom,  # Java
+    "dep_tree.txt": parse_pom_tree,  # Java
     "gradle.lockfile": parse_gradle,  # Java
     "poetry.lock": parse_poetry,  # Python
     "requirements.txt": parse_requirements,
