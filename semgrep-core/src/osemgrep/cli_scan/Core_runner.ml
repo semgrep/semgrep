@@ -6,6 +6,9 @@ module RP = Report
 (*************************************************************************)
 (*
    Translated from core_runner.py and core_output.py
+
+   LATER: we should remove this file and call directly Run_semgrep
+   and not go through the intermediate semgrep-core JSON output.
 *)
 
 (* python: Don't translate this:
@@ -41,8 +44,17 @@ class CoreRunner:
 (* Types *)
 (*************************************************************************)
 
-type path = string
+(* input *)
+type conf = {
+  num_jobs : int;
+  optimizations : bool;
+  max_memory_mb : int;
+  timeout : float;
+  timeout_threshold : int;
+}
+[@@deriving show]
 
+(* output *)
 (* LATER: ideally we should just return what Run_semgrep returns,
    without the need for the intermediate Out.core_match_results.
    LATER: get rid of Output_from_core_util.ml
@@ -53,7 +65,7 @@ type result = {
    *)
   core : Out.core_match_results;
   hrules : Rule.hrules;
-  scanned : path Set_.t;
+  scanned : Common.filename Set_.t;
       (* in python implem *)
       (* TODO: original intermediate data structures in python *)
       (*
@@ -142,53 +154,19 @@ let split_jobs_by_language all_rules all_targets : Runner_config.lang_job list =
       ({ lang; targets; rules } : Runner_config.lang_job))
     grouped_rules
 
-let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
+let runner_config_of_conf (conf : conf) : Runner_config.t =
   match conf with
-  | {
-   num_jobs;
-   timeout;
-   timeout_threshold;
-   max_memory_mb;
-   output_format;
-   optimizations;
-   (* no need to handle, are used before *)
-   show_supported_languages = _;
-   version = _;
-   version_check = _;
-   logging_level = _;
-   strict = _;
-   severity = _;
-   (* TOPORT: not handled yet *)
-   autofix = _;
-   dryrun = _;
-   baseline_commit = _;
-   exclude_rule_ids = _;
-   exclude = _;
-   include_ = _;
-   config = _;
-   lang = _;
-   pattern = _;
-   target_roots = _;
-   max_target_bytes = _;
-   metrics = _;
-   respect_git_ignore = _;
-   rewrite_rule_ids = _;
-   scan_unknown_extensions = _;
-   time_flag = _;
-  } ->
-      let output_format =
-        match output_format with
-        | Json -> Runner_config.Json false (* no dots *)
-        (* TOPORT: I think also in Text mode we should default
-         * to Json because we do not want the same text displayed in
-         * osemgrep than in semgrep-core.
-         *)
-        | Text -> Runner_config.Text
-        (* defaulting to Json, which really mean just no incremental
-         * display of match in the match_hook in semgrep-core
-         *)
-        | _else_ -> Runner_config.Json false
-      in
+  | { num_jobs; timeout; timeout_threshold; max_memory_mb; optimizations }
+  (* TODO: time_flag = _;
+  *) ->
+      (* We should default to Json because we do not want the same text
+       * displayed in osemgrep than in semgrep-core.
+       * We also don't want the current incremental matches output.
+       * LATER: probably provide a mechanism to display match as
+       * we process files, but probably need different text output
+       * of what semgrep-core match_hook currently provides.
+       *)
+      let output_format = Runner_config.Json false (* no dots *) in
       let filter_irrelevant_rules = optimizations in
       {
         Runner_config.default with
@@ -208,9 +186,9 @@ let runner_config_of_conf (conf : Scan_CLI.conf) : Runner_config.t =
 (*
    Take in rules and targets and return object with findings.
 *)
-let invoke_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
-    (rule_errors : Rule.invalid_rule_error list) (all_targets : path list) :
-    result =
+let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
+    (rule_errors : Rule.invalid_rule_error list)
+    (all_targets : Common.filename list) : result =
   let config : Runner_config.t = runner_config_of_conf conf in
 
   match rule_errors with
@@ -222,7 +200,7 @@ let invoke_semgrep_core (conf : Scan_CLI.conf) (all_rules : Rule.t list)
    *)
   | err :: _ ->
       (* like in Run_semgrep.sanity_check_rules_and_invalid_rules *)
-      let exn = Rule.InvalidRule err in
+      let exn = Rule.Err (Rule.InvalidRule err) in
       (* like in Run_semgrep.semgrep_with_raw_results_and_exn_handler *)
       let e = Exception.catch exn in
       let err = Semgrep_error_code.exn_to_error "" e in

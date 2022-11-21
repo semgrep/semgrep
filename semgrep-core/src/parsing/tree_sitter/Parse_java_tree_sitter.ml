@@ -876,7 +876,7 @@ and statement_aux env x : Ast_java.stmt list =
           [ Sync (v2, v3) ]
       | `Local_var_decl x ->
           let xs = local_variable_declaration env x in
-          xs |> Common.map (fun x -> LocalVar x)
+          [ LocalVarList xs ]
       | `Throw_stmt (v1, v2, v3) ->
           let v1 = token env v1 (* "throw" *) in
           let v2 = expression env v2 in

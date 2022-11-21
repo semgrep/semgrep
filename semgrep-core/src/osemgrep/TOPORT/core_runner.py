@@ -1,21 +1,7 @@
-from attr import asdict
-from attr import field
-from attr import frozen
-
-from semgrep.config_resolver import Config
-from semgrep.constants import Colors
-from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
-from semgrep.core_output import core_error_to_semgrep_error
-from semgrep.core_output import core_matches_to_rule_matches
-from semgrep.core_output import parse_core_output
-from semgrep.error import with_color
-from semgrep.parsing_data import ParsingData
-from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.rule_match import OrderedRuleMatchList
-from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import Language
-from semgrep.state import get_state
+
 from semgrep.util import sub_check_output
 from semgrep.util import unit_str
 
@@ -81,23 +67,6 @@ def setrlimits_preexec_fn() -> None:
 
     logger.info("Failed to change stack limits")
 
-
-# This is used only to dedup errors from validate_configs(). For dedupping errors
-# from _invoke_semgrep(), see output.py and the management of self.error_set
-def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
-    return list({uniq_error_id(e): e for e in errors}.values())
-
-
-def uniq_error_id(
-    error: SemgrepCoreError,
-) -> Tuple[int, Path, core.Position, core.Position, str]:
-    return (
-        error.code,
-        Path(error.core.location.path),
-        error.core.location.start,
-        error.core.location.end,
-        error.core.message,
-    )
 
 
 def open_and_ignore(fname: str) -> None:
@@ -872,8 +841,6 @@ class CoreRunner:
             core_output.explanations,
         )
 
-    # end _run_rules_direct_to_semgrep_core
-
     def invoke_semgrep(
         self,
         target_manager: TargetManager,
@@ -924,47 +891,3 @@ class CoreRunner:
             parsing_data,
             explanations,
         )
-
-    def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
-        metachecks = Config.from_config_list(["p/semgrep-rule-lints"], None)[
-            0
-        ].get_rules(True)
-
-        parsed_errors = []
-
-        with tempfile.NamedTemporaryFile("w", suffix=".yaml") as rule_file:
-
-            yaml = YAML()
-            yaml.dump(
-                {"rules": [metacheck._raw for metacheck in metachecks]}, rule_file
-            )
-            rule_file.flush()
-
-            cmd = (
-                [SemgrepCore.path()]
-                + [
-                    "-json",
-                    "-check_rules",
-                    rule_file.name,
-                ]
-                + list(configs)
-            )
-
-            runner = StreamingSemgrepCore(cmd, 1)  # only scanning combined rules
-            returncode = runner.execute()
-
-            # Process output
-            output_json = self._extract_core_output(
-                metachecks,
-                returncode,
-                " ".join(cmd),
-                runner.stdout,
-                runner.stderr,
-            )
-            core_output = parse_core_output(output_json)
-
-            parsed_errors += [
-                core_error_to_semgrep_error(e) for e in core_output.errors
-            ]
-
-        return dedup_errors(parsed_errors)

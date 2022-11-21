@@ -7,7 +7,8 @@
 # This file is created by ocaml-tree-sitter-core's configure script.
 #
 # Because of these required environment variables, we can't call dune directly
-# to build semgrep-core.
+# to build semgrep-core, unless you manually execute first
+#  `source src/ocaml-tree-sitter-core/tree-sitter-config.sh`
 #
 include src/ocaml-tree-sitter-core/tree-sitter-config.mk
 

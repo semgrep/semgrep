@@ -35,19 +35,13 @@ let man : Manpage.block list =
   ]
   @ CLI_common.help_page_bottom
 
+let cmdline_info : Cmd.info = Cmd.info "semgrep ci" ~doc ~man
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_argv (argv : string array) : (conf, Exit_code.t) result =
+let parse_argv (argv : string array) : conf =
   (* mostly a copy of Scan_CLI.parse_argv with different doc and man *)
-  let info : Cmd.info = Cmd.info "semgrep ci" ~doc ~man in
-  let cmd : conf Cmd.t = Cmd.v info Scan_CLI.cmdline_term in
-  match Cmd.eval_value ~argv cmd with
-  | Error _n -> Error Exit_code.fatal
-  | Ok ok -> (
-      match ok with
-      | `Ok config -> Ok config
-      | `Version
-      | `Help ->
-          Error Exit_code.ok)
+  let cmd : conf Cmd.t = Cmd.v cmdline_info Scan_CLI.cmdline_term in
+  CLI_common.eval_value ~argv cmd

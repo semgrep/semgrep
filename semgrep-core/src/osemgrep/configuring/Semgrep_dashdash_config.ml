@@ -1,4 +1,5 @@
 open Common
+module E = Error
 
 (*****************************************************************************)
 (* Prelude *)
@@ -17,7 +18,10 @@ open Common
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+(* ex: "p/python" *)
+type config_str = string [@@deriving show]
 
+(* config_str in a parsed form *)
 type config_kind =
   (* ex: 'foo.yaml' *)
   | File of Common.filename
@@ -64,24 +68,45 @@ let config_kind_of_config_str config_str =
   | s when s =~ "^\\(.*\\):\\(.*\\)" ->
       let user, snippet = Common.matched2 s in
       R (SavedSnippet (user, snippet))
-  | dir when Sys.is_directory dir -> Dir dir
+  (* TOPORT? handle inline rules "rules:..." see python: utils.is_rules() *)
+  | dir when Sys.file_exists dir && Sys.is_directory dir -> Dir dir
   | file when Sys.file_exists file -> File file
   (* TOPORT? raise SemgrepError(f"config location `{loc}` is not a file or folder!") *)
-  | _else_ -> failwith (spf "not a valid --config string: %s" config_str)
+  | str ->
+      let addendum =
+        if Semgrep_envvars.env.in_docker then
+          " (since you are running in docker, you cannot specify arbitrary \
+           paths on the host; they must be mounted into the container)"
+        else ""
+      in
+      raise
+        (E.Semgrep_error
+           ( spf "unable to find a config; path `%s` does not exist%s" str
+               addendum,
+             None ))
 
+(* alt: instead of this Uri.to_string and Uri.of_string, we could
+ * use Uri.with_path to adjust the path (a la Filename.concat)
+ *)
 let url_of_registry_kind rkind =
   (* we go through the CURL interface for now (c/) *)
-  (* python: was using env.semgrep_url *)
-  let prefix = "https://semgrep.dev/c" in
+  let prefix = Uri.to_string Semgrep_envvars.env.semgrep_url ^ "/c" in
   let url =
     match rkind with
     | Registry s -> spf "%s/r/%s" prefix s
     | Pack s -> spf "%s/p/%s" prefix s
     | Snippet s -> spf "%s/s/%s" prefix s
     | SavedSnippet (user, snippet) -> spf "%s/%s:%s" prefix user snippet
+    (* LATER: the code below is temporarily comment because handling those
+     * shortcuts leads to a 50s slowdown in make osemgrep-e2e; too many tests
+     * are relying on those configs which take a long time to download.
+     * Those tests should be optimized and use local configs instead.
+     *
     | Auto -> spf "%s/p/default" prefix
     | R2c -> spf "%s/p/r2c" prefix
     | Policy -> spf "TODO: handle --config policy"
     | SupplyChain -> spf "TODO: handle --config supply-chain"
+     *)
+    | _else_ -> failwith (spf "TORESTORE: %s" (show_registry_kind rkind))
   in
   Uri.of_string url

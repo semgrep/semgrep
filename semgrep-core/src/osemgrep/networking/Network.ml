@@ -8,3 +8,4 @@ let get url =
   in
   let content = Lwt_main.run promise in
   content
+  [@@profiling]

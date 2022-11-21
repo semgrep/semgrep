@@ -33,12 +33,14 @@
  * The main uses for this file are:
  *  - for Semgrep to allow people to use Jsonnet patterns to match
  *    over Jsonnet code
- *  - TODO: potentially for implementing a Jsonnet interpreter in OCaml,
+ *  - potentially for implementing a Jsonnet interpreter in OCaml,
  *    so we can use it in osemgrep instead of having to write an OCaml
  *    binding to the Jsonnet C library. This could allow in turn to provide
  *    better error messages when there is an error in a Jsonnet
  *    semgrep rule. Indeed right now the error will be mostly
  *    reported on the resulting (also called "manifested") JSON.
+ *    This could also enable certain holistic optimizations or
+ *    static checks at some point.
  *)
 
 (*****************************************************************************)

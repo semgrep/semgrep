@@ -1,10 +1,8 @@
 #TODO: new code to import from brandon related to scip and deep-semgrep
 
-from semgrep.commands.wrapper import handle_command_errors
 from semgrep.util import sub_check_output
 
 @click.command(hidden=True)
-@handle_command_errors
 def install_deep_semgrep() -> None:
     """
     Install the DeepSemgrep binary (Experimental)

@@ -108,38 +108,29 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     """,
     envvar="SEMGREP_SUPPRESS_ERRORS",
 )
-@handle_command_errors
+
 def ci(
     ctx: click.Context,
     *,
     audit_on: Sequence[str],
-    dry_run: bool,
     enable_nosem: bool,
-    enable_version_check: bool,
-    exclude_rule: Optional[Tuple[str, ...]],
     suppress_errors: bool,
-    force_color: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     junit_xml: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
     metrics_legacy: Optional[MetricsState],
-    optimizations: str,
     dataflow_traces: bool,
     sarif: bool,
     rewrite_rule_ids: bool,
     supply_chain: bool,
-    scan_unknown_extensions: bool,
     time_flag: bool,
 ) -> None:
     """
     """
     state = get_state()
-    state.terminal.configure(
-        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
-    )
-
+    ...
     state.metrics.configure(metrics, metrics_legacy)
     state.error_handler.configure(suppress_errors)
     scan_handler = None
@@ -169,9 +160,7 @@ def ci(
         raise RuntimeError("The token and/or config are misconfigured")
 
     output_format = OutputFormat.TEXT
-    if json:
-        output_format = OutputFormat.JSON
-    elif gitlab_sast:
+    if gitlab_sast:
         output_format = OutputFormat.GITLAB_SAST
     elif gitlab_secrets:
         output_format = OutputFormat.GITLAB_SECRETS
@@ -179,20 +168,8 @@ def ci(
         output_format = OutputFormat.JUNIT_XML
     elif sarif:
         output_format = OutputFormat.SARIF
-    elif emacs:
-        output_format = OutputFormat.EMACS
-    elif vim:
-        output_format = OutputFormat.VIM
 
-    output_settings = OutputSettings(
-        output_format=output_format,
-        output_destination=output,
-        verbose_errors=verbose,
-        timeout_threshold=timeout_threshold,
-        output_time=time_flag,
-        output_per_finding_max_lines_limit=max_lines_per_finding,
-        output_per_line_max_chars_limit=max_chars_per_line,
-    )
+    output_settings = OutputSettings(...)
     output_handler = OutputHandler(output_settings)
     metadata = generate_meta_from_environment(baseline_commit)
 
@@ -276,7 +253,6 @@ def ci(
                 jobs=jobs,
                 include=include,
                 exclude=exclude,
-                exclude_rule=exclude_rule,
                 max_target_bytes=max_target_bytes,
                 autofix=scan_handler.autofix if scan_handler else False,
                 dryrun=True,

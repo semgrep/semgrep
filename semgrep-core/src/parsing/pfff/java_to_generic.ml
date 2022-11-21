@@ -417,25 +417,39 @@ and resource t (v : resource) : G.stmt =
       G.DefStmt (ent, G.VarDef v) |> G.s
   | Right e -> G.ExprStmt (expr e, t) |> G.s
 
-and resources (t1, v, t2) =
-  G.Block
-    ( t1,
-      (* TODO save the semicolon instead of using t2*) list (resource t2) v,
-      t2 )
-  |> G.s
+and resources (_t1, v, t2) = list (resource t2) v
 
 and stmt st =
+  match stmt_aux st with
+  | [] -> G.s (Block (G.fake_bracket []))
+  | [ st ] -> st
+  | xs ->
+      (* This should never happen in a context where we want
+         a single statement. In Java, Blocks correspond with
+         a new scope, so in `stmt_aux` we should explicitly
+         create a Block when we want one. This means that if
+         we reach this case, we do not want a new scope, and
+         should not create a new Block. To avoid giving users
+         errors when we don't need to (e.g. they just want to
+         match) we'll create one anyway, but a good way to
+         debug scoping issues is to put a failwith here. If you
+         run into this, you probably instead want to flatten
+         the statements *)
+      let warning = "this-should-never-happen-and-could-be-a-scoping-problem" in
+      G.s (Block (G.fake warning, xs, G.fake warning))
+
+and stmt_aux st =
   match st with
-  | EmptyStmt t -> G.Block (t, [], t) |> G.s
+  | EmptyStmt t -> [ G.Block (t, [], t) |> G.s ]
   | Block v1 ->
       let v1 = bracket stmts v1 in
-      G.Block v1 |> G.s
+      [ G.Block v1 |> G.s ]
   | Expr (v1, t) ->
       let v1 = expr v1 in
-      G.ExprStmt (v1, t) |> G.s
+      [ G.ExprStmt (v1, t) |> G.s ]
   | If (t, v1, v2, v3) ->
       let v1 = expr v1 and v2 = stmt v2 and v3 = option stmt v3 in
-      G.If (t, G.Cond v1, v2, v3) |> G.s
+      [ G.If (t, G.Cond v1, v2, v3) |> G.s ]
   | Switch (v0, v1, v2) ->
       let v0 = info v0 in
       let v1 = expr v1
@@ -447,56 +461,59 @@ and stmt st =
           v2
         |> Common.map (fun x -> G.CasesAndBody x)
       in
-      G.Switch (v0, Some (G.Cond v1), v2) |> G.s
+      [ G.Switch (v0, Some (G.Cond v1), v2) |> G.s ]
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
-      G.While (t, G.Cond v1, v2) |> G.s
+      [ G.While (t, G.Cond v1, v2) |> G.s ]
   | Do (t, v1, v2) ->
       let v1 = stmt v1 and v2 = expr v2 in
-      G.DoWhile (t, v1, v2) |> G.s
+      [ G.DoWhile (t, v1, v2) |> G.s ]
   | For (t, v1, v2) ->
       let v1 = for_control t v1 and v2 = stmt v2 in
-      G.For (t, v1, v2) |> G.s
+      [ G.For (t, v1, v2) |> G.s ]
   | Break (t, v1) ->
       let v1 = H.opt_to_label_ident v1 in
-      G.Break (t, v1, G.sc) |> G.s
+      [ G.Break (t, v1, G.sc) |> G.s ]
   | Continue (t, v1) ->
       let v1 = H.opt_to_label_ident v1 in
-      G.Continue (t, v1, G.sc) |> G.s
+      [ G.Continue (t, v1, G.sc) |> G.s ]
   | Return (t, v1) ->
       let v1 = option expr v1 in
-      G.Return (t, v1, G.sc) |> G.s
+      [ G.Return (t, v1, G.sc) |> G.s ]
   | Label (v1, v2) ->
       let v1 = ident v1 and v2 = stmt v2 in
-      G.Label (v1, v2) |> G.s
+      [ G.Label (v1, v2) |> G.s ]
   | Sync (v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
-      G.OtherStmtWithStmt (G.OSWS_Sync, [ G.E v1 ], v2) |> G.s
+      [ G.OtherStmtWithStmt (G.OSWS_Sync, [ G.E v1 ], v2) |> G.s ]
   | Try (t, v0, v1, v2, v3) -> (
       let v1 = stmt v1 and v2 = catches v2 and v3 = option tok_and_stmt v3 in
       let try_stmt = G.Try (t, v1, v2, v3) |> G.s in
       match v0 with
-      | None -> try_stmt
-      | Some r -> G.WithUsingResource (t, resources r, try_stmt) |> G.s)
+      | None -> [ try_stmt ]
+      | Some r -> [ G.WithUsingResource (t, resources r, try_stmt) |> G.s ])
   | Throw (t, v1) ->
       let v1 = expr v1 in
-      G.Throw (t, v1, G.sc) |> G.s
-  | LocalVar v1 ->
-      let ent, v = var_with_init v1 in
-      G.DefStmt (ent, G.VarDef v) |> G.s
-  | DeclStmt v1 -> decl v1
-  | DirectiveStmt v1 -> directive v1
+      [ G.Throw (t, v1, G.sc) |> G.s ]
+  | LocalVarList vs ->
+      Common.map
+        (fun v1 ->
+          let ent, v = var_with_init v1 in
+          G.DefStmt (ent, G.VarDef v) |> G.s)
+        vs
+  | DeclStmt v1 -> [ decl v1 ]
+  | DirectiveStmt v1 -> [ directive v1 ]
   | Assert (t, v1, v2) ->
       let v1 = expr v1 and v2 = option expr v2 in
       let es = v1 :: Option.to_list v2 in
       let args = es |> Common.map G.arg in
-      G.Assert (t, fb args, G.sc) |> G.s
+      [ G.Assert (t, fb args, G.sc) |> G.s ]
 
 and tok_and_stmt (t, v) =
   let v = stmt v in
   (t, v)
 
-and stmts v = list stmt v
+and stmts v = list stmt_aux v |> List.flatten
 
 and case = function
   | Case (t, v1) ->

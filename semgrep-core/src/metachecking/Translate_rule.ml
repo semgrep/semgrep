@@ -43,12 +43,8 @@ let rec expr_to_string expr =
 and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
   match cond with
   | CondEval e -> `O [ ("comparison", `String (expr_to_string e)) ]
-  | CondRegexp (mv, re, _) ->
-      `O
-        [
-          ("metavariable", `String mv);
-          ("regex", `String (Regexp_engine.pcre_pattern re));
-        ]
+  | CondRegexp (mv, re_str, _) ->
+      `O [ ("metavariable", `String mv); ("regex", `String re_str) ]
   | CondAnalysis (mv, analysis) ->
       `O
         [

@@ -8,7 +8,7 @@
 
    There are other Semgrep environment variables which are not mentioned
    in this file because their value is accessed by Cmdliner
-   in Scan_CLI.conf (SEMGREP_BASELINE_COMMIT, SEMGREP_SEND_METRICS,
+   in Scan_CLI.ml (SEMGREP_BASELINE_COMMIT, SEMGREP_SEND_METRICS,
    SEMGREP_TIMEOUT, and SEMGREP_RULES).
 *)
 
@@ -25,8 +25,11 @@ let settings_filename = "settings.yml"
 let path_of_string s = s
 let ( / ) a b = Filename.concat a b
 
+(* this causes parse failure in codemap/efuns so commented for now *)
+(*
 let%test_unit "Semgrep_envvars.(/)" =
   [%test_eq: Base.string] ("a/b/" / "c/d" / "foo.c") "a/b/c/d/foo.c"
+*)
 
 let env_opt var = Sys.getenv_opt var
 

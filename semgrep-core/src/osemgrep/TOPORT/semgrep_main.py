@@ -4,7 +4,6 @@ from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.error import FilesNotFoundError
-from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.git import BaselineHandler
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
@@ -244,7 +243,6 @@ def main(
     jobs: int = 1,
     include: Optional[Sequence[str]] = None,
     exclude: Optional[Sequence[str]] = None,
-    exclude_rule: Optional[Sequence[str]] = None,
     strict: bool = False,
     autofix: bool = False,
     replacement: Optional[str] = None,
@@ -278,9 +276,6 @@ def main(
 
     if exclude is None:
         exclude = []
-
-    if exclude_rule is None:
-        exclude_rule = []
 
     project_url = get_project_url()
     profiler = ProfileManager()

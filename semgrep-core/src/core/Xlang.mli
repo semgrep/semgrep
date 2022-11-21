@@ -1,5 +1,5 @@
 (*
-   Extended languages: everything from Lang.t + spacegrep (generic) and regex.
+   eXtended languages: everything from Lang.t + spacegrep (generic) and regex.
 *)
 
 type t =

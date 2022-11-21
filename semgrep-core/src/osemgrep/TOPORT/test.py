@@ -9,40 +9,11 @@ Validate that the output is annotated in the source file with by looking for a c
  On the preceeding line.
 
  """
-import collections
-import difflib
-import functools
-import json
-import multiprocessing
-import os
-import shutil
-import sys
-import tempfile
-import uuid
-from itertools import product
-from pathlib import Path
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Sequence
-from typing import Set
-from typing import Tuple
-
-from boltons.iterutils import partition
-from ruamel.yaml import YAML
-
 from semgrep.constants import BREAK_LINE
-from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import final_suffix_matches
 from semgrep.util import is_config_fixtest_suffix
 from semgrep.util import is_config_suffix
 from semgrep.util import is_config_test_suffix
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
 
 COMMENT_SYNTAXES = (("#", "\n"), ("//", "\n"), ("<!--", "-->"), ("(*", "*)"))
 SPACE_OR_NO_SPACE = ("", " ")
@@ -52,7 +23,6 @@ TODOOK = "todook"
 OK = "ok"
 
 EXIT_FAILURE = 2
-
 
 def _remove_ending_comments(rule: str) -> str:
     for _, end in COMMENT_SYNTAXES:
@@ -671,37 +641,3 @@ def generate_test_results(
         )
 
     sys.exit(exit_code)
-
-
-def test_main(
-    *,
-    target: Sequence[str],
-    config: Optional[Sequence[str]],
-    test_ignore_todo: bool,
-    strict: bool,
-    json: bool,
-    optimizations: str,
-    deep: bool,
-) -> None:
-
-    if len(target) != 1:
-        raise Exception("only one target directory allowed for tests")
-    target_path = Path(target[0])
-
-    if config:
-        if len(config) != 1:
-            raise Exception("only one config directory allowed for tests")
-        config_path = Path(config[0])
-    else:
-        if target_path.is_file():
-            raise Exception("--config is required when running a test on single file")
-        config_path = target_path
-
-    generate_test_results(
-        target=target_path,
-        config=config_path,
-        strict=strict,
-        json_output=json,
-        deep=deep,
-        optimizations=optimizations,
-    )

@@ -1,17 +1,7 @@
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
-from semgrep.util import with_color
 
 class SemgrepError(Exception):
-    """
-    All Semgrep Exceptions are caught and their error messages
-    are displayed to the user.
-    """
-
-    def __init__(
-        self, *args: object, code: int = FATAL_EXIT_CODE, level: Level = Level.ERROR
-    ) -> None:
-        xxx
 
     def to_dict(self) -> Dict[str, Any]:
         return cast(Dict[str, Any], self.to_CliError().to_json())
@@ -101,39 +91,7 @@ def span_list_to_tuple(spans: List[Span]) -> Tuple[Span, ...]:
 
 class ErrorWithSpan(SemgrepError):
     """
-    In general, you should not be constructing ErrorWithSpan directly, and instead be constructing a subclass
-    that sets the code.
-
-    Error which will print context from the Span. You should provide the most specific span possible,
-    eg. if the error is an invalid key, provide exactly the span for that key. You can then expand what's printed
-    with span.with_context(...). Conversely, if you don't want to display the entire span, you can use `span.truncate`
-
-    The __str__ method produces the pretty-printed error.
-    Here is what the generated error will look like:
-
-        <level>: <short_msg>
-          --> <span.filename>:<span.start.line>
-        1 | rules:
-        2 |   - id: eqeq-is-bad
-        3 |     pattern-inside: foo(...)
-          |     ^^^^^^^^^^^^^^
-        4 |     patterns:
-        5 |       - pattern-not: 1 == 1
-        = help: <help>
-        <long_msg>
-
-    :param short_msg: 1 or 2 word description of the problem (eg. missing key)
-    :param level: How bad is the problem? error,warn, etc.
-    :param spans: A list of spans to display for context.
-    :help help: An optional hint about how to fix the problem
-    :cause cause: The underlying exception
     """
-
-    short_msg: str = attr.ib()
-    long_msg: Optional[str] = attr.ib()
-    spans: List[Span] = attr.ib(converter=span_list_to_tuple)
-    help: Optional[str] = attr.ib(default=None)
-
     def __attrs_post_init__(self) -> None:
         if not hasattr(self, "code"):
             raise ValueError("Inheritors of SemgrepError must define an exit code")
@@ -254,16 +212,6 @@ class ErrorWithSpan(SemgrepError):
         else:
             snippet_str_with_newline = f"{snippet_str}\n"
         return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color(Colors.red, self.long_msg or '')}\n"
-
-
-class InvalidRuleSchemaError(ErrorWithSpan):
-    code = INVALID_PATTERN_EXIT_CODE
-    level = Level.ERROR
-
-
-class UnknownLanguageError(ErrorWithSpan):
-    code = INVALID_LANGUAGE_EXIT_CODE
-    level = Level.ERROR
 
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247
 ERROR_MAP = {

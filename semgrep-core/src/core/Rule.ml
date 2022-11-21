@@ -102,7 +102,8 @@ and metavar_cond =
    * update: this is also useful to keep separate from CondEval for
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
-  | CondRegexp of MV.mvar * Xpattern.regexp * bool (* constant-propagation *)
+  | CondRegexp of
+      MV.mvar * Xpattern.regexp_string * bool (* constant-propagation *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
@@ -231,7 +232,7 @@ type 'mode rule_info = {
   (* deprecated? todo: parse them *)
   equivalences : string list option;
   fix : string option;
-  fix_regexp : (Xpattern.regexp * int option * string) option;
+  fix_regexp : (Xpattern.regexp_string * int option * string) option;
   paths : paths option;
   (* ex: [("owasp", "A1: Injection")] but can be anything *)
   metadata : JSON.t option;
@@ -293,10 +294,8 @@ let partition_rules (rules : rules) :
  *)
 let last_matched_rule : rule_id option ref = ref None
 
-(* Those are recoverable errors; We can just skip the rules containing
- * those errors.
- * less: use a record
- * alt: put in Output_from_core.atd?
+(* Those are recoverable errors; We can just skip the rules containing them.
+ * TODO? put in Output_from_core.atd?
  *)
 type invalid_rule_error = invalid_rule_error_kind * rule_id * Parse_info.t
 
@@ -314,6 +313,20 @@ and invalid_rule_error_kind =
   | MissingPositiveTermInAnd
   | InvalidOther of string
 [@@deriving show]
+
+(* General errors *)
+type error =
+  | InvalidRule of invalid_rule_error
+  | InvalidYaml of string * Parse_info.t
+  | DuplicateYamlKey of string * Parse_info.t
+  | UnparsableYamlException of string
+
+(* can't use Error because it's used for severity *)
+exception Err of error
+
+(*****************************************************************************)
+(* String-of *)
+(*****************************************************************************)
 
 let string_of_invalid_rule_error_kind = function
   | InvalidLanguage language -> spf "invalid language %s" language
@@ -333,44 +346,35 @@ let string_of_invalid_rule_error_kind = function
   | DeprecatedFeature s -> spf "deprecated feature: %s" s
   | InvalidOther s -> s
 
-(* General errors
-
-   TODO: define one exception for all this because pattern-matching
-   on exceptions has no exhaustiveness checking.
-*)
-exception InvalidRule of invalid_rule_error
-exception InvalidYaml of string * Parse_info.t
-exception DuplicateYamlKey of string * Parse_info.t
-exception UnparsableYamlException of string
-exception ExceededMemoryLimit of string
-
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
   spf "invalid rule %s, %s: %s" rule_id
     (Parse_info.string_of_info pos)
     (string_of_invalid_rule_error_kind kind)
+
+let string_of_error (error : error) : string =
+  match error with
+  | InvalidRule x -> string_of_invalid_rule_error x
+  | InvalidYaml (msg, pos) ->
+      spf "invalid YAML, %s: %s" (Parse_info.string_of_info pos) msg
+  | DuplicateYamlKey (key, pos) ->
+      spf "invalid YAML, %s: duplicate key %S"
+        (Parse_info.string_of_info pos)
+        key
+  | UnparsableYamlException s ->
+      (* TODO: what's the string s? *)
+      spf "unparsable YAML: %s" s
 
 (*
    Exception printers for Printexc.to_string.
 *)
 let opt_string_of_exn (exn : exn) =
   match exn with
-  | InvalidRule x -> Some (string_of_invalid_rule_error x)
-  | InvalidYaml (msg, pos) ->
-      Some (spf "invalid YAML, %s: %s" (Parse_info.string_of_info pos) msg)
-  | DuplicateYamlKey (key, pos) ->
-      Some
-        (spf "invalid YAML, %s: duplicate key %S"
-           (Parse_info.string_of_info pos)
-           key)
-  | UnparsableYamlException s ->
-      (* TODO: what's the string s? *)
-      Some (spf "unparsable YAML: %s" s)
-  | ExceededMemoryLimit s ->
-      (* TODO: what's the string s? *)
-      Some (spf "exceeded memory limit: %s" s)
+  | Err x -> Some (string_of_error x)
   | _else_ -> None
 
-(* to be called by the application's main() *)
+(* To be called by the application's main().
+ * TODO? why not evaluate it now like let () = Printexc.register_printer ...?
+ *)
 let register_exception_printer () = Printexc.register_printer opt_string_of_exn
 
 (*****************************************************************************)
@@ -432,3 +436,23 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
              Left e
          (* negatives *)
          | Not (tok, f) -> Right (tok, f))
+
+(* create a fake rule when we only have a pattern and language.
+ * This is used when someone calls `semgrep -e print -l python`
+ *)
+let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
+  let fk = Parse_info.unsafe_fake_info "" in
+  {
+    id = ("-e", fk);
+    mode = `Search (P xpat);
+    (* alt: could put xpat.pstr for the message *)
+    message = "";
+    severity = Error;
+    languages = xlang;
+    options = None;
+    equivalences = None;
+    fix = None;
+    fix_regexp = None;
+    paths = None;
+    metadata = None;
+  }

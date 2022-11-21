@@ -26,4 +26,6 @@ val missing_config : t
 val invalid_language : t
 val invalid_api_key : t
 val scan_fail : t
+
+(* to remove at some point *)
 val not_implemented_in_osemgrep : t

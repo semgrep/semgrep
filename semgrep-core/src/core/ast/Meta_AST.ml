@@ -751,7 +751,7 @@ and vof_stmt st =
       OCaml.VSum ("Try", [ t; v1; v2; v3 ])
   | WithUsingResource (t, v1, v2) ->
       let t = vof_tok t in
-      let v1 = vof_stmt v1 in
+      let v1 = OCaml.vof_list vof_stmt v1 in
       let v2 = vof_stmt v2 in
       OCaml.VSum ("WithUsingResource", [ t; v1; v2 ])
   | Assert (t, args, sc) ->

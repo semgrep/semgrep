@@ -87,16 +87,16 @@ let contents_of_file (range : Out.position * Out.position) (file : filename) :
 (* TODO: probably want to use Config_resolver.rules_and_origin to
  * get the prefix
  *)
-let config_prefix_of_conf (conf : Scan_CLI.conf) : string =
+let config_prefix_of_rules_source (src : Rule_fetching.rules_source) : string =
   (* TODO: what if it's a registry rule?
    * call Semgrep_dashdash_config.config_kind_of_config_str
    *)
-  match conf.config with
-  | [] -> ""
-  | path :: _TODO ->
+  match src with
+  | Rule_fetching.Configs (path :: _TODO) ->
       (*  need to prefix with the dotted path of the config file *)
       let dir = Filename.dirname path in
       Str.global_replace (Str.regexp "/") "." dir ^ "."
+  | _else_ -> ""
 
 (*****************************************************************************)
 (* Core error to cli error *)
@@ -126,7 +126,7 @@ let string_of_severity (severity : Rule.severity) : string =
   | Inventory -> "INVENTORY"
 
 (* LATER: move also to Severity.ml and reuse types there *)
-let level_of_severity (severity : Out.core_severity) : Error.level =
+let level_of_severity (severity : Out.core_severity) : Severity.basic_severity =
   match severity with
   | Error -> `Error
   | Warning -> `Warning
@@ -430,8 +430,8 @@ let cli_skipped_targets_opt ~(errors : Out.core_error list)
 (* Entry point *)
 (*****************************************************************************)
 
-let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
-    : Out.cli_output =
+let cli_output_of_core_results ~logging_level ~rules_source
+    (res : Core_runner.result) : Out.cli_output =
   match res.core with
   | {
    matches;
@@ -444,7 +444,10 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
    time = _;
   } ->
       let env =
-        { hrules = res.hrules; config_prefix = config_prefix_of_conf conf }
+        {
+          hrules = res.hrules;
+          config_prefix = config_prefix_of_rules_source rules_source;
+        }
       in
       (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =
@@ -458,7 +461,7 @@ let cli_output_of_core_results (conf : Scan_CLI.conf) (res : Core_runner.result)
        *)
       let scanned = res.scanned |> Set_.elements in
       let (paths : Out.cli_paths) =
-        match conf.logging_level with
+        match logging_level with
         | Some Logs.Info ->
             let skipped = cli_skipped_targets_opt ~errors ~skipped_targets in
             { scanned; _comment = None; skipped }

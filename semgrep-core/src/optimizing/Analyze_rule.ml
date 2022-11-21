@@ -237,8 +237,8 @@ let rec (cnf : Rule.formula -> cnf_step0) =
 (*****************************************************************************)
 type step1 =
   | StringsAndMvars of string list * MV.mvar list
-  | Regexp of Xpattern.regexp
-  | MvarRegexp of MV.mvar * Xpattern.regexp * bool
+  | Regexp of Xpattern.regexp_string
+  | MvarRegexp of MV.mvar * Xpattern.regexp_string * bool
 [@@deriving show]
 
 type cnf_step1 = step1 cnf [@@deriving show]
@@ -363,7 +363,7 @@ let and_step1bis_filter_general (And xs) =
 type step2 =
   | Idents of string list
   (* a And *)
-  | Regexp2_search of Xpattern.regexp
+  | Regexp2_search of Xpattern.compiled_regexp
 [@@deriving show]
 
 type cnf_step2 = step2 cnf [@@deriving show]
@@ -373,12 +373,15 @@ let or_step2 (Or xs) =
     Common.map (function
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
-      | Regexp re -> Regexp2_search re
-      | MvarRegexp (_mvar, re, _const_prop) ->
+      | Regexp re_str -> Regexp2_search (Regexp_engine.pcre_compile re_str)
+      | MvarRegexp (_mvar, re_str, _const_prop) ->
           (* The original regexp is meant to apply on a substring.
              We rewrite them to remove end-of-string anchors if possible. *)
           let re =
-            match Regexp_engine.remove_end_of_string_assertions re with
+            match
+              Regexp_engine.remove_end_of_string_assertions
+                (Regexp_engine.pcre_compile re_str)
+            with
             | None -> raise GeneralPattern
             | Some re -> re
           in
@@ -579,9 +582,15 @@ let regexp_prefilter_of_taint_rule (_rule_id, rule_tok) taint_spec =
 let hmemo = Hashtbl.create 101
 
 let regexp_prefilter_of_rule (r : R.rule) =
-  let rule_id, t = r.R.id in
-  let k = PI.file_of_info t ^ "." ^ rule_id in
-  Common.memoized hmemo k (fun () ->
+  let rule_id, _t = r.R.id in
+  (* rule_id is supposed to be unique so it should work as a key for hmemo.
+   * bugfix:
+   *    old: let key = PI.file_of_info t ^ "." ^ rule_id
+   * but some rules do not have a file (e.g., fake rules coming from -e/-f)
+   * which was triggering a FakeInfoStr exn
+   *)
+  let key = rule_id in
+  Common.memoized hmemo key (fun () ->
       try
         match r.mode with
         | `Search f

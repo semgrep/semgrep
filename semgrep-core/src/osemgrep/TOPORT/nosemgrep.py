@@ -13,25 +13,12 @@ See https://github.com/returntocorp/semgrep-action/blob/develop/src/semgrep_agen
 and check that it's compatible with any change we're making here.
 """
 from re import sub
-from typing import List
-from typing import Sequence
-from typing import Tuple
-
-from attrs import evolve
-from boltons.iterutils import partition
 
 from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import NOSEM_PREVIOUS_LINE_RE
 from semgrep.error import Level
-from semgrep.error import SemgrepError
-from semgrep.rule_match import RuleMatch
-from semgrep.rule_match import RuleMatchMap
 from semgrep.types import FilteredMatches
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
 
 def process_ignores(
     rule_matches_by_rule: RuleMatchMap,

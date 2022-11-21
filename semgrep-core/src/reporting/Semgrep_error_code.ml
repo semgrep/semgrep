@@ -14,6 +14,7 @@
 open Common
 module PI = Parse_info
 module Out = Output_from_core_j
+module R = Rule
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -107,31 +108,35 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
       Some (mk_error_tok tok msg Out.ParseError)
   | Parse_info.Other_error (s, tok) ->
       Some (mk_error_tok ~rule_id tok s Out.SpecifiedParseError)
-  | Rule.InvalidRule
-      (Rule.InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos)
-    ->
-      Some
-        {
-          rule_id = Some rule_id;
-          typ = Out.PatternParseError yaml_path;
-          loc = PI.unsafe_token_location_of_info pos;
-          msg =
-            spf
-              "Invalid pattern for %s:\n\
-               --- pattern ---\n\
-               %s\n\
-               --- end pattern ---\n\
-               Pattern error: %s\n"
-              (Xlang.to_string xlang) pattern message;
-          details = None;
-        }
-  | Rule.InvalidRule (kind, rule_id, pos) ->
-      let str = Rule.string_of_invalid_rule_error_kind kind in
-      Some (mk_error_tok ~rule_id:(Some rule_id) pos str Out.RuleParseError)
-  | Rule.InvalidYaml (msg, pos) ->
-      Some (mk_error_tok ~rule_id pos msg Out.InvalidYaml)
-  | Rule.DuplicateYamlKey (s, pos) ->
-      Some (mk_error_tok ~rule_id pos s Out.InvalidYaml)
+  | R.Err err -> (
+      match err with
+      | R.InvalidRule
+          (R.InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos)
+        ->
+          Some
+            {
+              rule_id = Some rule_id;
+              typ = Out.PatternParseError yaml_path;
+              loc = PI.unsafe_token_location_of_info pos;
+              msg =
+                spf
+                  "Invalid pattern for %s:\n\
+                   --- pattern ---\n\
+                   %s\n\
+                   --- end pattern ---\n\
+                   Pattern error: %s\n"
+                  (Xlang.to_string xlang) pattern message;
+              details = None;
+            }
+      | R.InvalidRule (kind, rule_id, pos) ->
+          let str = Rule.string_of_invalid_rule_error_kind kind in
+          Some (mk_error_tok ~rule_id:(Some rule_id) pos str Out.RuleParseError)
+      | R.InvalidYaml (msg, pos) ->
+          Some (mk_error_tok ~rule_id pos msg Out.InvalidYaml)
+      | R.DuplicateYamlKey (s, pos) ->
+          Some (mk_error_tok ~rule_id pos s Out.InvalidYaml)
+      (* TODO?? *)
+      | R.UnparsableYamlException _ -> None)
   | Common.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
       logger#error "WEIRD Timeout converted to exn, backtrace = %s" s;
@@ -139,12 +144,13 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
       let loc = Parse_info.first_loc_of_file file in
       let msg = Common.string_of_timeout_info timeout_info in
       Some (mk_error ~rule_id loc msg Out.Timeout)
+  (* raised in Memory_limit.ml *)
+  | Common.ExceededMemoryLimit msg ->
+      let loc = Parse_info.first_loc_of_file file in
+      Some (mk_error ~rule_id loc msg Out.OutOfMemory)
   | Out_of_memory ->
       let loc = Parse_info.first_loc_of_file file in
       Some (mk_error ~rule_id loc "Heap space exceeded" Out.OutOfMemory)
-  | ExceededMemoryLimit msg ->
-      let loc = Parse_info.first_loc_of_file file in
-      Some (mk_error ~rule_id loc msg Out.OutOfMemory)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
 

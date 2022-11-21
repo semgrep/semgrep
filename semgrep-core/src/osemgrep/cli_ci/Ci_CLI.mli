@@ -11,9 +11,9 @@ type conf = Scan_CLI.conf
 (*
    Usage: parse_argv [| "semgrep-ci"; <args> |]
 
-   This function returns an exit code to be passed to the 'exit' function
-   if there was an error parsing argv (Exit_code.fatal) or when
-   using semgrep ci --help (Exit_code.ok), and the conf otherwise if everything
-   went fine.
+   Turn argv into a conf structure.
+
+   This function may raise an exn in case of an error parsing argv
+   but this should be caught by CLI.safe_run.
 *)
-val parse_argv : string array -> (conf, Exit_code.t) result
+val parse_argv : string array -> conf
