@@ -27,12 +27,12 @@ class SarifFormatter(BaseFormatter):
         taint_source = dataflow_trace.taint_source
         if not taint_source:
             return None
-        if isinstance(taint_source, out.CliCall):
+        if isinstance(taint_source.value, out.CliCall):
             logger.error(
                 "Emitting SARIF output for unsupported dataflow trace (source is a call)"
             )
             return None
-        elif isinstance(taint_source, out.CliLoc):
+        elif isinstance(taint_source.value, out.CliLoc):
             location = taint_source.value.value[0]
             content = "".join(taint_source.value.value[1]).strip()
             source_message_text = f"Source: '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
@@ -158,13 +158,13 @@ class SarifFormatter(BaseFormatter):
             return None
 
         # TODO: handle rule_match.taint_sink
-        if isinstance(taint_source, out.CliCall):
+        if isinstance(taint_source.value, out.CliCall):
             logger.error(
                 "Emitting SARIF output for unsupported dataflow trace (source is a call)"
             )
             return None
-        elif isinstance(taint_source, out.CliLoc):
-            location = taint_source.value[0]
+        elif isinstance(taint_source.value, out.CliLoc):
+            location = taint_source.value.value[0]
             code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
             code_flow_sarif = {
                 "message": {"text": code_flow_message},
@@ -176,9 +176,6 @@ class SarifFormatter(BaseFormatter):
                 code_flow_sarif["threadFlows"] = thread_flows
 
             return code_flow_sarif
-
-        # unreachable
-        return None
 
     @staticmethod
     def _rule_match_to_sarif(
