@@ -3022,25 +3022,27 @@ and map_then_clause (env : env) ((v1, v2) : CST.then_clause) =
   let v2 = map_expression_ext env v2 in
   v2
 
-and map_tuple_type_ (env : env) (x : CST.tuple_type_) : type_ =
+and map_tuple_type_ (env : env) (x : CST.tuple_type_) : type_ list =
   match x with
-  | `Simple_type x -> map_simple_type env x
+  | `Simple_type x -> [ map_simple_type env x ]
   | `Tuple_type (v1, v2, v3) ->
       let v1 = map_tuple_type_ext env v1 in
       let _v2 = token env v2 (* "*" *) in
       let v3 = map_simple_type_ext env v3 in
-      TyTuple [ v1; v3 ]
+      v1 @ [ v3 ]
 
-and map_tuple_type_ext (env : env) (x : CST.tuple_type_ext) =
+and map_tuple_type_ext (env : env) (x : CST.tuple_type_ext) : type_ list =
   match x with
   | `Tuple_type_ x -> map_tuple_type_ env x
   | `Exte x ->
       let t = map_extension env x in
-      TyTodo (t, [])
+      [ TyTodo (t, []) ]
 
 and map_type_ (env : env) (x : CST.type_) : type_ =
   match x with
-  | `Tuple_type_ x -> map_tuple_type_ env x
+  | `Tuple_type_ x ->
+      let xs = map_tuple_type_ env x in
+      TyTuple xs
   | `Func_type (v1, v2, v3) ->
       let v1 =
         match v1 with
