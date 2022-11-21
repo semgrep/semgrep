@@ -86,6 +86,7 @@ class TextFormatter(BaseFormatter):
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
         show_separator: bool,
+        show_path: bool,
     ) -> Iterator[str]:
         trimmed = 0
         stripped = False
@@ -140,6 +141,9 @@ class TextFormatter(BaseFormatter):
                     # while stripping a string, the ANSI code for resetting color might also get stripped.
                     line = line + colorama.Style.RESET_ALL
 
+            if show_path:
+                yield f" " * 9 + f"{with_color(Colors.cyan, f'{path}', bold=False)}"
+
             yield f" " * (
                 11 - len(line_number)
             ) + f"{line_number}┆ {line}" if line_number else f"{line}"
@@ -181,6 +185,7 @@ class TextFormatter(BaseFormatter):
                 per_finding_max_lines_limit,
                 per_line_max_chars_limit,
                 show_separator,
+                False,
             )
 
     @staticmethod
@@ -204,6 +209,7 @@ class TextFormatter(BaseFormatter):
             per_finding_max_lines_limit,
             per_line_max_chars_limit,
             False,
+            True,
         )
 
     @staticmethod
@@ -213,20 +219,22 @@ class TextFormatter(BaseFormatter):
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
     ) -> Iterator[str]:
-        if isinstance(call_trace, out.CliLoc):
-            TextFormatter._match_to_lines(
-                call_trace.value[0],
+        trace = call_trace.value
+        if isinstance(trace, out.CliLoc):
+            yield from TextFormatter._match_to_lines(
+                trace.value[0],
+                trace.value[1],
                 color_output,
                 per_finding_max_lines_limit,
                 per_line_max_chars_limit,
             )
 
-        elif isinstance(call_trace, out.CliCall):
-            data, intermediate_vars, call_trace = call_trace.value
+        elif isinstance(trace, out.CliCall):
+            data, intermediate_vars, call_trace = trace.value
 
-            yield (8 * " " + "call to:")
-            TextFormatter._match_to_lines(
-                data.value[0],
+            yield from TextFormatter._match_to_lines(
+                data[0],
+                data[1],
                 color_output,
                 per_finding_max_lines_limit,
                 per_line_max_chars_limit,
@@ -250,10 +258,14 @@ class TextFormatter(BaseFormatter):
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
                         False,
+                        True,
                     )
 
-            yield (8 * " " + "then:")
-            TextFormatter._call_trace_to_lines(
+            if isinstance(call_trace.value, out.CliCall):
+                yield (8 * " " + "then call to:")
+            elif isinstance(call_trace.value, out.CliLoc):
+                yield (8 * " " + "then reaches:")
+            yield from TextFormatter._call_trace_to_lines(
                 call_trace,
                 color_output,
                 per_finding_max_lines_limit,
@@ -273,6 +285,7 @@ class TextFormatter(BaseFormatter):
             sink = dataflow_trace.taint_sink
 
             if source:
+                yield ""
                 yield (8 * " " + "Taint comes from:")
                 yield from TextFormatter._call_trace_to_lines(
                     source,
@@ -284,6 +297,7 @@ class TextFormatter(BaseFormatter):
             if intermediate_vars and len(intermediate_vars) > 0:
                 # TODO change this message based on rule kind of we ever use
                 # dataflow traces for more than just taint
+                yield ""
                 yield (8 * " " + "Taint flows through these intermediate variables:")
                 for var in intermediate_vars:
                     loc = var.location
@@ -299,9 +313,11 @@ class TextFormatter(BaseFormatter):
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
                         False,
+                        True,
                     )
 
             if sink:
+                yield ""
                 yield (8 * " " + "This is how taint reaches the sink:")
                 yield from TextFormatter._call_trace_to_lines(
                     sink,
@@ -550,12 +566,17 @@ class TextFormatter(BaseFormatter):
             )
 
             if dataflow_traces:
-                yield from TextFormatter._dataflow_trace_to_lines(
-                    rule_match.dataflow_trace,
-                    color_output,
-                    per_finding_max_lines_limit,
-                    per_line_max_chars_limit,
+                indented_dataflow_trace = (
+                    (2 * " ") + s
+                    for s in TextFormatter._dataflow_trace_to_lines(
+                        rule_match.dataflow_trace,
+                        color_output,
+                        per_finding_max_lines_limit,
+                        per_line_max_chars_limit,
+                    )
                 )
+
+                yield from indented_dataflow_trace
 
     def format(
         self,
