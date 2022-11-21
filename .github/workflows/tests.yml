@@ -366,7 +366,7 @@ jobs:
       - run: pip install pipenv==2022.6.7
       - name: Run timing benchmark
         run: |
-          pip3 install semgrep==0.94.0
+          pip3 install semgrep==0.122.0
           semgrep --version
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
