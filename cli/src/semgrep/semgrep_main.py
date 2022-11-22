@@ -418,9 +418,10 @@ def main(
     for ruleid in sorted(rule.id for rule in unexperimental_rules):
         logger.verbose(f"- {ruleid}")
 
-    logger.verbose("Experimental Rules:")
-    for ruleid in sorted(rule.id for rule in experimental_rules):
-        logger.verbose(f"- {ruleid}")
+    if len(experimental_rules) > 0:
+        logger.verbose("Experimental Rules:")
+        for ruleid in sorted(rule.id for rule in experimental_rules):
+            logger.verbose(f"- {ruleid}")
 
     (
         rule_matches_by_rule,
