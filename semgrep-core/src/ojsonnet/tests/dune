@@ -6,7 +6,7 @@
    commons
    tree-sitter-lang.jsonnet
    ojsonnet_parsing ; AST def
-   semgrep_parsing_tree_sitter ; just need Parse_jsonnet_tree_sitter.ml
+   ojsonnet_interpreting
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )
