@@ -58,7 +58,8 @@ type ident = string wrap [@@deriving show]
 type expr =
   | L of literal
   | O of obj_inside bracket
-  | A of arr_inside bracket
+  (* no complex arr_inside, no ArrayComp *)
+  | Array of expr list bracket
   (* entities *)
   | Id of string wrap
   | IdSpecial of special wrap
@@ -69,7 +70,7 @@ type expr =
   | Call of expr * argument list bracket
   | UnaryOp of unary_op wrap * expr
   | BinaryOp of expr * binary_op wrap * expr
-  (* always an else now *)
+  (* always with an else now (Null if there was no else) *)
   | If of tok * expr * expr * expr
   | Lambda of function_definition
   (* builtins *)
@@ -116,17 +117,6 @@ and binary_op =
   | BitOr
   | BitXor
 
-(* ------------------------------------------------------------------------- *)
-(* Collections and comprehensions *)
-(* ------------------------------------------------------------------------- *)
-(* no ArrayComp *)
-and arr_inside = Array of expr list
-and 'a comprehension = 'a * for_comp * for_or_if_comp list
-
-(* no CompIf *)
-and for_or_if_comp = CompFor of for_comp
-and for_comp = tok (* 'for' *) * ident * tok (* 'in' *) * expr
-
 (*****************************************************************************)
 (* Definitions *)
 (*****************************************************************************)
@@ -145,14 +135,20 @@ and function_definition = {
   f_body : expr;
 }
 
-and parameter = P of ident * (tok (* '=' *) * expr) option
+(* always with a default value now (Error if there was no default value) *)
+and parameter = P of ident * tok (* '=' *) * expr
 
 (* ------------------------------------------------------------------------- *)
 (* Objects  *)
 (* ------------------------------------------------------------------------- *)
-and obj_inside = Object of obj_member list | ObjectComp of obj_comprehension
+and obj_inside =
+  | Object of obj_assert list * obj_member list
+  (* used also for Array comprehension *)
+  | ObjectComp of obj_comprehension
 
-(* no OAssert anymore, no OLocal *)
+and obj_assert = tok (* assert *) * expr
+
+(* no OAssert anymore (moved up in Object), no OLocal *)
 and obj_member = OField of field
 
 and field = {
@@ -164,19 +160,15 @@ and field = {
 }
 
 (* no FId, FStr, and FDynamic -> FExpr *)
-and field_name = FExpr of expr
+and field_name = FExpr of expr bracket
 
 (* =~ visibility *)
 and hidden = Colon | TwoColons | ThreeColons
-and obj_local = tok (* 'local' *) * bind
 
-and obj_comprehension = {
-  oc_locals1 : obj_local list;
-  oc_comp :
-    (expr bracket (* like FDynamic *) * tok (* : *) * expr) comprehension;
-  (* after the comprehension elt but before the forspec *)
-  oc_locals2 : obj_local list;
-}
+(* no more locals1 and locals2, no CompIf *)
+and obj_comprehension = field_name * tok (* : *) * expr * for_comp
+
+and for_comp = tok (* 'for' *) * ident * tok (* 'in' *) * expr
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
