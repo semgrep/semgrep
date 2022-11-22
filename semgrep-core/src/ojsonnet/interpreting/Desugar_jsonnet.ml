@@ -35,7 +35,24 @@ type env = {
 (* Helpers *)
 (*****************************************************************************)
 
-let _fk = Parse_info.unsafe_fake_info ""
+let fk = Parse_info.unsafe_fake_info ""
+let true_ = L (Bool (true, fk))
+
+let mk_str_literal (str, tk) =
+  L (Str (None, DoubleQuote, (fk, [ (str, tk) ], fk)))
+
+let mk_core_str_literal (str, tk) =
+  C.L (C.Str (None, C.DoubleQuote, (fk, [ (str, tk) ], fk)))
+
+let mk_DotAccess_std id : expr =
+  let std_id = ("std", fk) in
+  DotAccess (Id std_id, fk, id)
+
+and expr_or_null v : expr =
+  match v with
+  | None -> L (Null fk)
+  | Some e -> e
+
 let todo _env _v = failwith "TODO"
 
 (*****************************************************************************)
@@ -89,66 +106,90 @@ and desugar_expr_aux env v =
   | Id v ->
       let v = (desugar_wrap desugar_string) env v in
       C.Id v
+  (* TODO? IdSpecial (Dollar, tdollar) ?? *)
   | IdSpecial v ->
       let v = (desugar_wrap desugar_special) env v in
-      todo env v
+      C.IdSpecial v
   | Local (v1, v2, v3, v4) ->
-      let v1 = desugar_tok env v1 in
-      let v2 = (desugar_list desugar_bind) env v2 in
-      let v3 = desugar_tok env v3 in
-      let v4 = desugar_expr env v4 in
-      C.Local (v1, v2, v3, v4)
+      let tlocal = desugar_tok env v1 in
+      let binds = (desugar_list desugar_bind) env v2 in
+      let tsemi = desugar_tok env v3 in
+      let e = desugar_expr env v4 in
+      C.Local (tlocal, binds, tsemi, e)
+  (* no need to handle specially super.id, handled by desugar_special *)
   | DotAccess (v1, v2, v3) ->
-      let v1 = desugar_expr env v1 in
-      let v2 = desugar_tok env v2 in
-      let v3 = desugar_ident env v3 in
-      todo env (v1, v2, v3)
+      let e = desugar_expr env v1 in
+      let tdot = desugar_tok env v2 in
+      let id = desugar_ident env v3 in
+      C.ArrayAccess (e, (tdot, mk_core_str_literal id, tdot))
   | ArrayAccess (v1, v2) ->
       let v1 = desugar_expr env v1 in
       let v2 = (desugar_bracket desugar_expr) env v2 in
-      todo env (v1, v2)
+      C.ArrayAccess (v1, v2)
+  | SliceAccess (e, (l, (e1opt, e2opt, e3opt), r)) ->
+      let e' = expr_or_null e1opt in
+      let e'' = expr_or_null e2opt in
+      let e''' = expr_or_null e3opt in
+      let std_slice = mk_DotAccess_std ("slice", l) in
+      desugar_expr env
+        (Call (std_slice, (l, [ Arg e; Arg e'; Arg e''; Arg e''' ], r)))
   | Call (v1, v2) ->
       let v1 = desugar_expr env v1 in
       let v2 = (desugar_bracket (desugar_list desugar_argument)) env v2 in
-      todo env (v1, v2)
+      C.Call (v1, v2)
   | UnaryOp (v1, v2) ->
       let v1 = (desugar_wrap desugar_unary_op) env v1 in
       let v2 = desugar_expr env v2 in
-      todo env (v1, v2)
+      C.UnaryOp (v1, v2)
+  | BinaryOp (v1, (NotEq, t), v3) ->
+      desugar_expr env (UnaryOp ((UBang, t), BinaryOp (v1, (Eq, t), v3)))
+  | BinaryOp (v1, (Eq, t), v3) ->
+      let std_equals = mk_DotAccess_std ("equals", t) in
+      desugar_expr env (Call (std_equals, (fk, [ Arg v1; Arg v3 ], fk)))
+  | BinaryOp (v1, (Mod, t), v3) ->
+      let std_equals = mk_DotAccess_std ("mod", t) in
+      desugar_expr env (Call (std_equals, (fk, [ Arg v1; Arg v3 ], fk)))
+  (* no need to handle specially e in super, handled by desugar_special *)
+  | BinaryOp (e, (In, t), e') ->
+      let std_objectHasEx = mk_DotAccess_std ("objectHasEx", t) in
+      desugar_expr env
+        (Call (std_objectHasEx, (fk, [ Arg e'; Arg e; Arg true_ ], fk)))
+  (* general case *)
   | BinaryOp (v1, v2, v3) ->
       let v1 = desugar_expr env v1 in
       let v2 = (desugar_wrap desugar_binary_op) env v2 in
       let v3 = desugar_expr env v3 in
-      todo env (v1, v2, v3)
-  | If (v1, v2, v3, v4) ->
-      let v1 = desugar_tok env v1 in
-      let v2 = desugar_expr env v2 in
-      let v3 = desugar_expr env v3 in
-      (* let v4 = (desugar_option TodoTyTuple) env v4 in *)
-      let v4 = todo env v4 in
-      todo env (v1, v2, v3, v4)
+      C.BinaryOp (v1, v2, v3)
+  | AdjustObj (v1, v2) -> desugar_expr env (BinaryOp (v1, (Plus, fk), O v2))
+  | If (tif, e, e', else_opt) ->
+      let tif = desugar_tok env tif in
+      let e = desugar_expr env e in
+      let e' = desugar_expr env e' in
+      let e'' =
+        match else_opt with
+        | Some (_telse, e'') -> desugar_expr env e''
+        | None -> C.L (C.Null fk)
+      in
+      C.If (tif, e, e', e'')
   | Lambda v ->
       let v = desugar_function_definition env v in
-      todo env v
+      C.Lambda v
   | I v ->
       let v = desugar_import env v in
       todo env v
-  | Assert (v1, v2, v3) ->
-      let v1 = desugar_assert_ env v1 in
-      let v2 = desugar_tok env v2 in
-      let v3 = desugar_expr env v3 in
-      todo env (v1, v2, v3)
+  | Assert ((tassert, e, None), tsemi, e') ->
+      let assert_failed_str = mk_str_literal ("Assertion failed", tassert) in
+      desugar_expr env
+        (Assert ((tassert, e, Some (fk, assert_failed_str)), tsemi, e'))
+  | Assert ((tassert, e, Some (tcolon, e')), _tsemi, e'') ->
+      desugar_expr env (If (tassert, e, e'', Some (tcolon, Error (fk, e'))))
   | Error (v1, v2) ->
       let v1 = desugar_tok env v1 in
       let v2 = desugar_expr env v2 in
-      todo env (v1, v2)
+      C.Error (v1, v2)
   | ParenExpr v ->
-      let v = (desugar_bracket desugar_expr) env v in
-      todo env v
-  | TodoExpr (v1, v2) ->
-      let v1 = (desugar_wrap desugar_string) env v1 in
-      let v2 = (desugar_list desugar_expr) env v2 in
-      todo env (v1, v2)
+      let _, e, _ = (desugar_bracket desugar_expr) env v in
+      e
 
 and desugar_literal env v =
   match v with
@@ -186,9 +227,9 @@ and desugar_string_content env v =
 
 and desugar_special env v =
   match v with
-  | Self -> todo env
-  | Super -> todo env
-  | Dollar -> todo env
+  | Self -> C.Self
+  | Super -> C.Super
+  | Dollar -> todo env ()
 
 and desugar_argument env v =
   match v with
@@ -208,26 +249,30 @@ and desugar_unary_op _env v =
   | UBang -> C.UBang
   | UTilde -> C.UTilde
 
-and desugar_binary_op env v =
+(* the assert false are here because the cases should be handled by the
+ * caller in BinaryOp
+ *)
+and desugar_binary_op _env v =
   match v with
-  | Plus -> todo env
-  | Minus -> todo env
-  | Mult -> todo env
-  | Div -> todo env
-  | Mod -> todo env
-  | LSL -> todo env
-  | LSR -> todo env
-  | Lt -> todo env
-  | LtE -> todo env
-  | Gt -> todo env
-  | GtE -> todo env
-  | Eq -> todo env
-  | NotEq -> todo env
-  | And -> todo env
-  | Or -> todo env
-  | BitAnd -> todo env
-  | BitOr -> todo env
-  | BitXor -> todo env
+  | Plus -> C.Plus
+  | Minus -> C.Minus
+  | Mult -> C.Mult
+  | Div -> C.Div
+  | Mod -> assert false
+  | LSL -> C.LSL
+  | LSR -> C.LSR
+  | Lt -> C.Lt
+  | LtE -> C.LtE
+  | Gt -> C.Gt
+  | GtE -> C.GtE
+  | Eq -> assert false
+  | NotEq -> assert false
+  | And -> C.And
+  | Or -> C.Or
+  | BitAnd -> C.BitAnd
+  | BitOr -> C.BitOr
+  | BitXor -> C.BitXor
+  | In -> assert false
 
 and desugar_assert_ env v =
   (fun env (v1, v2, v3) ->
@@ -242,7 +287,7 @@ and desugar_arr_inside env v =
   match v with
   | Array v ->
       let v = (desugar_list desugar_expr) env v in
-      todo env v
+      C.Array v
   | ArrayComp v ->
       let v = (desugar_comprehension desugar_expr) env v in
       todo env v
@@ -286,14 +331,18 @@ and desugar_if_comp env v =
 and desugar_bind env v =
   match v with
   | B (v1, v2, v3) ->
-      let v1 = desugar_ident env v1 in
-      let v2 = desugar_tok env v2 in
-      let v3 = desugar_expr env v3 in
-      C.B (v1, v2, v3)
+      let id = desugar_ident env v1 in
+      let teq = desugar_tok env v2 in
+      let e = desugar_expr env v3 in
+      C.B (id, teq, e)
 
-and desugar_function_definition env _v =
-  ignore desugar_parameter;
-  todo env "RECORD"
+and desugar_function_definition env { f_tok; f_params; f_body } =
+  let f_tok = desugar_tok env f_tok in
+  let f_params =
+    desugar_bracket (desugar_list desugar_parameter) env f_params
+  in
+  let f_body = desugar_expr env f_body in
+  { C.f_tok; f_params; f_body }
 
 and desugar_parameter env v =
   match v with
@@ -331,14 +380,14 @@ and desugar_field env _v =
 and desugar_field_name env v =
   match v with
   | FId v ->
-      let v = desugar_ident env v in
-      todo env v
+      let id = desugar_ident env v in
+      C.FExpr (C.Id id)
   | FStr v ->
       let v = desugar_string_ env v in
-      todo env v
+      C.FExpr (C.L (C.Str v))
   | FDynamic v ->
-      let v = (desugar_bracket desugar_expr) env v in
-      todo env v
+      let _l, v, _r = (desugar_bracket desugar_expr) env v in
+      C.FExpr v
 
 and desugar_hidden _env v =
   match v with

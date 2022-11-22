@@ -16,7 +16,7 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* The "core" language subset of jsonnet
+(* The "Core" language subset of Jsonnet.
  *
  * See https://jsonnet.org/ref/spec.html#core
  *
@@ -53,7 +53,7 @@ type ident = string wrap [@@deriving show]
  *
  * no Array slices, no complex Array or Object comprehension,
  * no DotAccess (use generalized ArrayAccess), no Assert, no ParenExpr,
- * no Import (expanded during desugaring), no TodoExpr.
+ * no Import (expanded during desugaring).
  *)
 type expr =
   | L of literal
@@ -63,7 +63,7 @@ type expr =
   | Id of string wrap
   | IdSpecial of special wrap
   | Local of tok (* 'local' *) * bind list * tok (* ; *) * expr
-  (* accesses *)
+  (* access (generalize DotAccess) *)
   | ArrayAccess of expr * expr bracket
   (* control flow *)
   | Call of expr * argument list bracket
@@ -98,27 +98,23 @@ and special = Self | Super
 and argument = Arg of expr | NamedArg of ident * tok (* = *) * expr
 and unary_op = UPlus | UMinus | UBang | UTilde
 
-(* no !=, ==, %, in *)
+(* no '!=', '==', '%', 'in' *)
 and binary_op =
   | Plus
   | Minus
   | Mult
   | Div
-  | Mod
   | LSL
   | LSR
   | Lt
   | LtE
   | Gt
   | GtE
-  | Eq
   | And
   | Or
   | BitAnd
   | BitOr
   | BitXor
-
-and assert_ = tok (* 'assert' *) * expr * (tok (* ':' *) * expr) option
 
 (* ------------------------------------------------------------------------- *)
 (* Collections and comprehensions *)
@@ -138,7 +134,6 @@ and for_comp = tok (* 'for' *) * ident * tok (* 'in' *) * expr
 (* ------------------------------------------------------------------------- *)
 (* Local binding *)
 (* ------------------------------------------------------------------------- *)
-(* we already desugar 'foo(x,y) = z' as 'foo = function(x, y) z' *)
 and bind = B of ident * tok (* '=' *) * expr (* can be a Function *)
 
 (* ------------------------------------------------------------------------- *)
@@ -169,7 +164,7 @@ and field = {
 }
 
 (* no FId, FStr, and FDynamic -> FExpr *)
-and field_name = FExpr of expr bracket
+and field_name = FExpr of expr
 
 (* =~ visibility *)
 and hidden = Colon | TwoColons | ThreeColons
@@ -189,11 +184,6 @@ and obj_comprehension = {
 (*****************************************************************************)
 
 type program = expr [@@deriving show]
-
-(*****************************************************************************)
-(* Any (for semgrep) *)
-(*****************************************************************************)
-type any = E of expr
 
 (*****************************************************************************)
 (* Helpers *)

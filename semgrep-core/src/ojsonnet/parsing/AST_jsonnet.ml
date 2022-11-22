@@ -86,14 +86,15 @@ type expr =
   (* accesses *)
   | DotAccess of expr * tok (* '.' *) * ident
   | ArrayAccess of expr * expr bracket
-  (* TODO: | SliceAccess of expr *  *)
+  (* the ':' tokens are omitted *)
+  | SliceAccess of expr * (expr option * expr option * expr option) bracket
   (* control flow *)
   | Call of expr * argument list bracket
   | UnaryOp of unary_op wrap * expr
   | BinaryOp of expr * binary_op wrap * expr
   | If of tok (* 'if' *) * expr * expr * (tok (* 'else' *) * expr) option
-  (* TODO: expr { objinside } ?? *)
-  (* TODO: expr in super ?? *)
+  (* e { obj } <=> e + { obj } *)
+  | AdjustObj of expr * obj_inside bracket
   | Lambda of function_definition
   (* directives *)
   | I of import
@@ -102,7 +103,6 @@ type expr =
   | Error of tok (* 'error' *) * expr
   (* for the CST *)
   | ParenExpr of expr bracket
-  | TodoExpr of string wrap * expr list
 
 (* ------------------------------------------------------------------------- *)
 (* literals *)
@@ -157,7 +157,7 @@ and binary_op =
   | GtE
   | Eq
   | NotEq
-  (* TODO? in *)
+  | In
   | And
   | Or
   | BitAnd
