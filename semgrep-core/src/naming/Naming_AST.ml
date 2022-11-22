@@ -403,8 +403,16 @@ let params_of_parameters env xs =
            Some (H.str_of_ident id, resolved)
        | _ -> None)
 
-let js_get_constructor_args env defs =
+let js_get_constructor_args env attrs defs =
+  let ( let* ) = Option.bind in
   match
+    let* () =
+      List.find_map
+        (function
+          | NamedAttr (_, Id (("Injectable", _), _), _) -> Some ()
+          | _ -> None)
+        attrs
+    in
     List.find_map
       (function
         | {
@@ -474,25 +482,25 @@ let resolve lang prog =
                    * a parameter name is the same than type name used in ptype
                    * (see tests/naming/python/shadow_name_type.py) *)
                   k x)));
-      V.kclass_definition =
-        (fun (k, _v) x ->
-          (* todo: we should first process all fields in the class before
-           * processing the methods, as some languages may allow forward ref.
-           *)
-          let class_params = params_of_parameters env x.cparams in
-          with_new_context InClass env (fun () ->
-              let special_class_params =
-                if lang = Lang.Js || lang = Lang.Ts then
-                  let _, fields, _ = x.cbody in
-                  js_get_constructor_args env (List.map (fun (F x) -> x) fields)
-                else []
-              in
-              (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
-              with_new_function_scope (special_class_params @ class_params)
-                env.names (fun () -> k x)));
       V.kdef =
         (fun (k, _v) x ->
           match x with
+          | { attrs; _ }, ClassDef c ->
+              (* todo: we should first process all fields in the class before
+                 * processing the methods, as some languages may allow forward ref.
+              *)
+              let class_params = params_of_parameters env c.cparams in
+              with_new_context InClass env (fun () ->
+                  let special_class_params =
+                    if lang = Lang.Js || lang = Lang.Ts then
+                      let _, fields, _ = c.cbody in
+                      js_get_constructor_args env attrs
+                        (List.map (fun (F x) -> x) fields)
+                    else []
+                  in
+                  (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
+                  with_new_function_scope (special_class_params @ class_params)
+                    env.names (fun () -> k x))
           | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
           (* note that some languages such as Python do not have VarDef
            * construct
