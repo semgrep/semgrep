@@ -60,23 +60,16 @@ type ident = string wrap [@@deriving show]
 (*****************************************************************************)
 (* Expressions *)
 (*****************************************************************************)
-
-(* Should we use a record for expressions like we do in AST_generic?
- * If we implement a Jsonnet interpreter, such a record could become useful
- * for example to store the types of each expressions?
- * Actually the Jsonnet spec defines an intermediate "Core" representation
+(* Very simple language, just expressions! No statement, no class defs (but
+ * some object defs).
+ * No need for a record for expressions like we do in AST_generic
+ * (e.g., to store the types of each expressions);
+ * the Jsonnet spec defines an intermediate "Core" representation
  * where things are simplified and unsugared
- * (see https://jsonnet.org/ref/spec.html#core), so we probably do not
- * need to use a record here, but we could in an hypothetical Core_jsonnet.ml
- * file at some point.
- * old: when using a record:
- *   type expr = { e : expr_kind }
+ * (see https://jsonnet.org/ref/spec.html#core), so we can define
+ * such a record there (see Core_jsonnet.expr).
  *)
-type expr = expr_kind
-
-(* very simple language, just expressions! no statement, no class defs (but
- * some object defs) *)
-and expr_kind =
+type expr =
   (* values *)
   | L of literal
   | O of obj_inside bracket
@@ -266,5 +259,3 @@ type any = E of expr
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-let e ekind = (* old: when we use a record  { e = ekind } *) ekind
