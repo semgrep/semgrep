@@ -1,1 +1,1 @@
-JS/TS: Allow information about the arguments to constructors of classes (such as types) to spread to instances of the the argument.
+JS/TS: Allow dependencies to @Injectable classes in Angular JS to be visible outside the scope of the constructor.
