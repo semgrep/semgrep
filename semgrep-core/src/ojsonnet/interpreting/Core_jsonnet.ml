@@ -45,17 +45,17 @@ type ident = string wrap [@@deriving show]
 (* Expr *)
 (*****************************************************************************)
 
-(* We use a record for expressions like we do in AST_generic.
+(* We could use a record for expressions like we do in AST_generic.
  * Such a record could become useful for example to store the types of
- * each expressions for Check_jsonnet.ml
- *)
-type expr = { e : expr_kind }
-
-(* no Array slices, no complex Array or Object comprehension,
+ * each expressions for Check_jsonnet.ml, but probably we can
+ * make such a typechecker in a compositional way without having to modify
+ * record fields.
+ *
+ * no Array slices, no complex Array or Object comprehension,
  * no DotAccess (use generalized ArrayAccess), no Assert, no ParenExpr,
  * no Import (expanded during desugaring), no TodoExpr.
  *)
-and expr_kind =
+type expr =
   | L of literal
   | O of obj_inside bracket
   | A of arr_inside bracket
@@ -198,5 +198,3 @@ type any = E of expr
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-let e ekind = { e = ekind }

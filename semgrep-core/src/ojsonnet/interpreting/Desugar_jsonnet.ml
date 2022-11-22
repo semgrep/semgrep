@@ -12,13 +12,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 open AST_jsonnet
 module C = Core_jsonnet
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* AST_jsonnet to Core_jsonnet
+(* AST_jsonnet to Core_jsonnet.
  *
  * See https://jsonnet.org/ref/spec.html#desugaring
  *)
@@ -26,12 +27,15 @@ module C = Core_jsonnet
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type env = { within_an_object : bool }
+type env = {
+  within_an_object : bool; (* TODO: pwd, current_file, import_callback, etc. *)
+}
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
+let _fk = Parse_info.unsafe_fake_info ""
 let todo _env _v = failwith "TODO"
 
 (*****************************************************************************)
@@ -55,21 +59,27 @@ let desugar_tok _env v = v
 let desugar_wrap ofa env (v1, v2) =
   let v1 = ofa env v1 in
   let v2 = desugar_tok env v2 in
-  todo env (v1, v2)
+  (v1, v2)
 
 let desugar_bracket ofa env (v1, v2, v3) =
   let v1 = desugar_tok env v1 in
   let v2 = ofa env v2 in
   let v3 = desugar_tok env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 let desugar_ident env v : C.ident = (desugar_wrap desugar_string) env v
 
 let rec desugar_expr env v : C.expr =
+  try desugar_expr_aux env v with
+  | Failure "TODO" ->
+      pr2 (spf "TODO: construct not handled:\n %s" (show_expr v));
+      failwith "TODO2"
+
+and desugar_expr_aux env v =
   match v with
   | L v ->
       let v = desugar_literal env v in
-      todo env v
+      C.L v
   | O v ->
       let v = (desugar_bracket desugar_obj_inside) env v in
       todo env v
@@ -78,7 +88,7 @@ let rec desugar_expr env v : C.expr =
       todo env v
   | Id v ->
       let v = (desugar_wrap desugar_string) env v in
-      todo env v
+      C.Id v
   | IdSpecial v ->
       let v = (desugar_wrap desugar_special) env v in
       todo env v
@@ -87,7 +97,7 @@ let rec desugar_expr env v : C.expr =
       let v2 = (desugar_list desugar_bind) env v2 in
       let v3 = desugar_tok env v3 in
       let v4 = desugar_expr env v4 in
-      todo env (v1, v2, v3, v4)
+      C.Local (v1, v2, v3, v4)
   | DotAccess (v1, v2, v3) ->
       let v1 = desugar_expr env v1 in
       let v2 = desugar_tok env v2 in
@@ -144,32 +154,32 @@ and desugar_literal env v =
   match v with
   | Null v ->
       let v = desugar_tok env v in
-      todo env v
+      C.Null v
   | Bool v ->
       let v = (desugar_wrap desugar_bool) env v in
-      todo env v
+      C.Bool v
   | Number v ->
       let v = (desugar_wrap desugar_string) env v in
-      todo env v
+      C.Number v
   | Str v ->
       let v = desugar_string_ env v in
-      todo env v
+      C.Str v
 
 and desugar_string_ env v =
   (fun env (v1, v2, v3) ->
     let v1 = (desugar_option desugar_verbatim) env v1 in
     let v2 = desugar_string_kind env v2 in
     let v3 = (desugar_bracket desugar_string_content) env v3 in
-    todo env (v1, v2, v3))
+    (v1, v2, v3))
     env v
 
 and desugar_verbatim env v = desugar_tok env v
 
-and desugar_string_kind env v =
+and desugar_string_kind _env v =
   match v with
-  | SingleQuote -> todo env
-  | DoubleQuote -> todo env
-  | TripleBar -> todo env
+  | SingleQuote -> C.SingleQuote
+  | DoubleQuote -> C.DoubleQuote
+  | TripleBar -> C.TripleBar
 
 and desugar_string_content env v =
   (desugar_list (desugar_wrap desugar_string)) env v
@@ -191,12 +201,12 @@ and desugar_argument env v =
       let v3 = desugar_expr env v3 in
       todo env (v1, v2, v3)
 
-and desugar_unary_op env v =
+and desugar_unary_op _env v =
   match v with
-  | UPlus -> todo env
-  | UMinus -> todo env
-  | UBang -> todo env
-  | UTilde -> todo env
+  | UPlus -> C.UPlus
+  | UMinus -> C.UMinus
+  | UBang -> C.UBang
+  | UTilde -> C.UTilde
 
 and desugar_binary_op env v =
   match v with
@@ -270,13 +280,16 @@ and desugar_if_comp env v =
     todo env (v1, v2))
     env v
 
+(* The desugaring of method was already done at parsing time,
+ * so no need to handle id with parameters here. See AST_jsonnet.bind comment.
+ *)
 and desugar_bind env v =
   match v with
   | B (v1, v2, v3) ->
       let v1 = desugar_ident env v1 in
       let v2 = desugar_tok env v2 in
       let v3 = desugar_expr env v3 in
-      todo env (v1, v2, v3)
+      C.B (v1, v2, v3)
 
 and desugar_function_definition env _v =
   ignore desugar_parameter;
@@ -327,11 +340,11 @@ and desugar_field_name env v =
       let v = (desugar_bracket desugar_expr) env v in
       todo env v
 
-and desugar_hidden env v =
+and desugar_hidden _env v =
   match v with
-  | Colon -> todo env
-  | TwoColons -> todo env
-  | ThreeColons -> todo env
+  | Colon -> C.Colon
+  | TwoColons -> C.TwoColons
+  | ThreeColons -> C.ThreeColons
 
 and desugar_attribute env v =
   match v with
@@ -363,7 +376,16 @@ and desugar_import env v =
 (* Entry point *)
 (*****************************************************************************)
 
-let desugar_program (x : program) : C.program =
+let desugar_program (e : program) : C.program =
   let env = { within_an_object = false } in
-  let core = desugar_expr env x in
+  (* TODO: skipped for now because std.jsonnet contains too many complicated
+   * things we don't handle, and it actually does not even parse right now.
+   *)
+  (*
+  let std = Std_jsonnet.get_std_jsonnet () in
+  let e =
+    (* 'local std = e_std; e' *)
+    Local (fk, [B (("std", fk), fk, std)], fk, e) in
+  *)
+  let core = desugar_expr env e in
   core
