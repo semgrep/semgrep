@@ -151,6 +151,13 @@ def main() -> None:
     else:
         mean_perc_str = f"{-mean_perc:.1f}% faster"
 
+    if mean_rel_dur > 1.07:
+        errors += 1
+        messages.append(
+            f"🚫 The whole benchmark suite is too slow: "
+            f"+{mean_perc:.1f}% (+{mean_rel_dur:.3f} s)"
+        )
+
     print(
         f"Average: {mean_rel_dur:.3f}x, "
         f"Min: {min_rel_dur:.3f}x, "
@@ -180,11 +187,14 @@ def main() -> None:
             pull_request_number,
         )
 
-    # Fail only after printing and sending all messages
-    assert not errors
+    # We no longer fail because the benchmarks are not reliable enough to be tied
+    # to single PRs
+
+    # Old: Fail only after printing and sending all messages
+    # assert not errors
 
     # Assert the rules in aggregate are not more than 7% slower than baseline
-    assert mean_rel_dur < 1.07
+    # assert mean_rel_dur < 1.07
 
 
 if __name__ == "__main__":
