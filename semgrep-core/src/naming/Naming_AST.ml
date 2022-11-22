@@ -403,7 +403,15 @@ let params_of_parameters env xs =
            Some (H.str_of_ident id, resolved)
        | _ -> None)
 
-let js_get_constructor_args env attrs defs =
+(* In Angular JS, we have some "Injectable" classes, which are marked with an
+   @Injectable decorator.
+   https://angular.io/guide/dependency-injection-in-action
+   These classes may reference parameters to the constructor of the class, outside
+   of the actual code of the constructor itself.
+   So we must add them to the scope, should we find the decorator and a constructor's
+   parameters.
+*)
+let js_add_angular_constructor_args env attrs defs =
   let ( let* ) = Option.bind in
   match
     let* () =
@@ -494,7 +502,7 @@ let resolve lang prog =
                   let special_class_params =
                     if lang = Lang.Js || lang = Lang.Ts then
                       let _, fields, _ = c.cbody in
-                      js_get_constructor_args env attrs
+                      js_add_angular_constructor_args env attrs
                         (List.map (fun (F x) -> x) fields)
                     else []
                   in
