@@ -18,6 +18,15 @@ module C = Core_jsonnet
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* AST_jsonnet to Core_jsonnet
+ *
+ * See https://jsonnet.org/ref/spec.html#desugaring
+ *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+type env = { within_an_object : bool }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -54,9 +63,9 @@ let desugar_bracket ofa env (v1, v2, v3) =
   let v3 = desugar_tok env v3 in
   todo env (v1, v2, v3)
 
-let desugar_ident env v = (desugar_wrap desugar_string) env v
+let desugar_ident env v : C.ident = (desugar_wrap desugar_string) env v
 
-let rec desugar_expr env v = desugar_expr_kind env v
+let rec desugar_expr env v : C.expr = desugar_expr_kind env v
 
 and desugar_expr_kind env v =
   match v with
@@ -352,19 +361,19 @@ and desugar_import env v =
       let v2 = desugar_string_ env v2 in
       todo env (v1, v2)
 
-let desugar_program env v = desugar_expr env v
-
-let desugar_any env v =
+(*
+let desugar_any env v :  =
   match v with
   | E v ->
       let v = desugar_expr env v in
       todo env v
+*)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-(* TODO: see https://jsonnet.org/ref/spec.html#desugaring *)
-let desugar (_e : expr) : C.expr =
-  ignore (desugar_program, desugar_any);
-  failwith "TODO"
+let desugar_program (x : program) : C.program =
+  let env = { within_an_object = false } in
+  let core = desugar_expr env x in
+  core
