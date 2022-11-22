@@ -356,6 +356,7 @@ let get_resolved_type lang (vinit, vtype) =
 (*****************************************************************************)
 (* Other Helpers *)
 (*****************************************************************************)
+
 let is_resolvable_name_ctx env lang =
   match top_context env with
   | AtToplevel
@@ -401,6 +402,24 @@ let params_of_parameters env xs =
            set_resolved env id_info resolved;
            Some (H.str_of_ident id, resolved)
        | _ -> None)
+
+let js_get_constructor_args env defs =
+  match
+    List.find_map
+      (function
+        | {
+            s =
+              DefStmt
+                ( { name = EN (Id (("constructor", _), _)); _ },
+                  FuncDef { fparams; _ } );
+            _;
+          } ->
+            Some (params_of_parameters env fparams)
+        | _ -> None)
+      defs
+  with
+  | None -> []
+  | Some l -> l
 
 let declare_var env lang id id_info ~explicit vinit vtype =
   let sid = H.gensym () in
@@ -462,8 +481,15 @@ let resolve lang prog =
            *)
           let class_params = params_of_parameters env x.cparams in
           with_new_context InClass env (fun () ->
+              let special_class_params =
+                if lang = Lang.Js || lang = Lang.Ts then
+                  let _, fields, _ = x.cbody in
+                  js_get_constructor_args env (List.map (fun (F x) -> x) fields)
+                else []
+              in
               (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
-              with_new_function_scope class_params env.names (fun () -> k x)));
+              with_new_function_scope (special_class_params @ class_params)
+                env.names (fun () -> k x)));
       V.kdef =
         (fun (k, _v) x ->
           match x with

@@ -1,0 +1,1 @@
+JS/TS: Allow information about the arguments to constructors of classes (such as types) to spread to instances of the the argument.
