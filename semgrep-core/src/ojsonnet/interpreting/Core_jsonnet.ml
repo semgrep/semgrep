@@ -45,6 +45,10 @@ type ident = string wrap [@@deriving show]
 (* Expr *)
 (*****************************************************************************)
 
+(* We use a record for expressions like we do in AST_generic.
+ * Such a record could become useful for example to store the types of
+ * each expressions for Check_jsonnet.ml
+ *)
 type expr = { e : expr_kind }
 
 (* no Array slices, no complex Array or Object comprehension,

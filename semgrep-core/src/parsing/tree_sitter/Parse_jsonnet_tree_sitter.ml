@@ -218,7 +218,7 @@ and map_bind (env : env) (x : CST.bind) : bind =
       let teq = (* "=" *) token env v5 in
       let e = map_document env v6 in
       let def = { f_tok = lpar; f_params = (lpar, ps, rpar); f_body = e } in
-      B (id, teq, Lambda def |> J.e)
+      B (id, teq, Lambda def)
 
 and map_compspec (env : env) (xs : CST.compspec) : for_or_if_comp list =
   Common.map
@@ -241,28 +241,28 @@ and map_expr_opt env v =
 
 and map_expr (env : env) (x : CST.expr) : expr =
   match x with
-  | `Null tok -> L (Null ((* "null" *) token env tok)) |> J.e
+  | `Null tok -> L (Null ((* "null" *) token env tok))
   | `True tok ->
       let t = (* "true" *) token env tok in
-      L (Bool (true, t)) |> J.e
+      L (Bool (true, t))
   | `False tok ->
       let t = (* "false" *) token env tok in
-      L (Bool (false, t)) |> J.e
+      L (Bool (false, t))
   | `Self tok ->
       let t = (* "self" *) token env tok in
-      IdSpecial (Self, t) |> J.e
+      IdSpecial (Self, t)
   | `Dollar tok ->
       let t = (* "$" *) token env tok in
-      IdSpecial (Dollar, t) |> J.e
+      IdSpecial (Dollar, t)
   | `Num tok ->
       let s = (* number *) str env tok in
-      L (Number s) |> J.e
+      L (Number s)
   | `Super tok ->
       let t = (* "super" *) token env tok in
-      IdSpecial (Super, t) |> J.e
+      IdSpecial (Super, t)
   | `Str x ->
       let s = map_string_ env x in
-      L (Str s) |> J.e
+      L (Str s)
   | `LCURL_opt_choice_member_rep_COMMA_member_opt_COMMA_RCURL (v1, v2, v3) ->
       let lc = (* "{" *) token env v1 in
       let inside =
@@ -271,7 +271,7 @@ and map_expr (env : env) (x : CST.expr) : expr =
         | None -> Object []
       in
       let rc = (* "}" *) token env v3 in
-      O (lc, inside, rc) |> J.e
+      O (lc, inside, rc)
   | `LBRACK_opt_expr_rep_COMMA_expr_opt_COMMA_RBRACK (v1, v2, v3) ->
       let lb = (* "[" *) token env v1 in
       let xs =
@@ -291,7 +291,7 @@ and map_expr (env : env) (x : CST.expr) : expr =
         | None -> []
       in
       let rb = (* "]" *) token env v3 in
-      A (lb, Array xs, rb) |> J.e
+      A (lb, Array xs, rb)
   | `LBRACK_expr_opt_COMMA_fors_opt_comp_RBRACK (v1, v2, v3, v4, v5, v6) ->
       let lb = (* "[" *) token env v1 in
       let e = map_document env v2 in
@@ -303,12 +303,12 @@ and map_expr (env : env) (x : CST.expr) : expr =
         | None -> []
       in
       let rb = (* "]" *) token env v6 in
-      A (lb, ArrayComp (e, forspec, comps), rb) |> J.e
+      A (lb, ArrayComp (e, forspec, comps), rb)
   | `Expr_DOT_id (v1, v2, v3) ->
       let e = map_document env v1 in
       let tdot = (* "." *) token env v2 in
       let fld = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) str env v3 in
-      DotAccess (e, tdot, fld) |> J.e
+      DotAccess (e, tdot, fld)
   | `Expr_LBRACK_opt_expr_opt_COLON_opt_expr_opt_COLON_opt_expr_RBRACK
       (v1, v2, v3, v4, v5) -> (
       let e = map_document env v1 in
@@ -332,19 +332,19 @@ and map_expr (env : env) (x : CST.expr) : expr =
       in
       let rb = (* "]" *) token env v5 in
       match (idx_opt, slice_opt) with
-      | Some idx, None -> ArrayAccess (e, (lb, idx, rb)) |> J.e
-      | _else_ -> TodoExpr (("SliceAccess", lb), []) |> J.e)
+      | Some idx, None -> ArrayAccess (e, (lb, idx, rb))
+      | _else_ -> TodoExpr (("SliceAccess", lb), []))
   | `Super_DOT_id (v1, v2, v3) ->
       let tsuper = (* "super" *) token env v1 in
       let tdot = (* "." *) token env v2 in
       let fld = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) str env v3 in
-      DotAccess (IdSpecial (Super, tsuper) |> J.e, tdot, fld) |> J.e
+      DotAccess (IdSpecial (Super, tsuper), tdot, fld)
   | `Super_LBRACK_expr_RBRACK (v1, v2, v3, v4) ->
       let tsuper = (* "super" *) token env v1 in
       let lb = (* "[" *) token env v2 in
       let idx = map_document env v3 in
       let rb = (* "]" *) token env v4 in
-      ArrayAccess (IdSpecial (Super, tsuper) |> J.e, (lb, idx, rb)) |> J.e
+      ArrayAccess (IdSpecial (Super, tsuper), (lb, idx, rb))
   | `Expr_LPAR_opt_args_RPAR (v1, v2, v3, v4) ->
       let e = map_document env v1 in
       let lp = (* "(" *) token env v2 in
@@ -354,10 +354,10 @@ and map_expr (env : env) (x : CST.expr) : expr =
         | None -> []
       in
       let rp = (* ")" *) token env v4 in
-      Call (e, (lp, args, rp)) |> J.e
+      Call (e, (lp, args, rp))
   | `Id tok ->
       let id = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) str env tok in
-      Id id |> J.e
+      Id id
   | `Local_bind (v1, v2, v3, v4, v5) ->
       let tlocal = (* "local" *) token env v1 in
       let bind = map_bind env v2 in
@@ -371,7 +371,7 @@ and map_expr (env : env) (x : CST.expr) : expr =
       in
       let tsemi = (* ";" *) token env v4 in
       let e = map_document env v5 in
-      Local (tlocal, bind :: binds, tsemi, e) |> J.e
+      Local (tlocal, bind :: binds, tsemi, e)
   | `If_expr_then_expr_opt_else_expr (v1, v2, v3, v4, v5) ->
       let tif = (* "if" *) token env v1 in
       let cond = map_document env v2 in
@@ -385,23 +385,23 @@ and map_expr (env : env) (x : CST.expr) : expr =
             Some (telse, e)
         | None -> None
       in
-      If (tif, cond, then_, else_opt) |> J.e
+      If (tif, cond, then_, else_opt)
   | `Expr_bina_expr (v1, v2, v3) ->
       let v1 = map_document env v1 in
       let v2 = map_binaryop env v2 in
       let v3 = map_document env v3 in
-      BinaryOp (v1, v2, v3) |> J.e
+      BinaryOp (v1, v2, v3)
   | `Unar_expr (v1, v2) ->
       let v1 = map_unaryop env v1 in
       let v2 = map_document env v2 in
-      UnaryOp (v1, v2) |> J.e
+      UnaryOp (v1, v2)
   | `Expr_LCURL_choice_member_rep_COMMA_member_opt_COMMA_RCURL (v1, v2, v3, v4)
     ->
       let e = map_document env v1 in
       let lc = (* "{" *) token env v2 in
       let _flds = map_objinside env v3 in
       let _rc = (* "}" *) token env v4 in
-      TodoExpr (("CurlyExprObj", lc), [ e ]) |> J.e
+      TodoExpr (("CurlyExprObj", lc), [ e ])
   | `Anon_func (v1, v2, v3, v4, v5) ->
       let tfunc = (* "function" *) token env v1 in
       let lp = (* "(" *) token env v2 in
@@ -415,34 +415,34 @@ and map_expr (env : env) (x : CST.expr) : expr =
       let fdef =
         { f_tok = tfunc; f_params = (lp, params, rp); f_body = body }
       in
-      Lambda fdef |> J.e
+      Lambda fdef
   | `Assert_SEMI_expr (v1, v2, v3) ->
       let assert_ = map_assert_ env v1 in
       let tsemi = (* ";" *) token env v2 in
       let e3 = map_document env v3 in
-      Assert (assert_, tsemi, e3) |> J.e
+      Assert (assert_, tsemi, e3)
   | `Import (v1, v2) ->
       let timport = (* "import" *) token env v1 in
       let s = map_string_ env v2 in
-      I (Import (timport, s)) |> J.e
+      I (Import (timport, s))
   | `Impo (v1, v2) ->
       let t = (* "importstr" *) token env v1 in
       let s = map_string_ env v2 in
-      I (ImportStr (t, s)) |> J.e
+      I (ImportStr (t, s))
   | `Expr_error (v1, v2) ->
       let t = (* "error" *) token env v1 in
       let e = map_document env v2 in
-      Error (t, e) |> J.e
+      Error (t, e)
   | `Expr_in_super (v1, v2, v3) ->
       let e = map_document env v1 in
       let tin = (* "in" *) token env v2 in
       let _tsuper = (* "super" *) token env v3 in
-      TodoExpr (("InSuper", tin), [ e ]) |> J.e
+      TodoExpr (("InSuper", tin), [ e ])
   | `LPAR_expr_RPAR (v1, v2, v3) ->
       let lp = (* "(" *) token env v1 in
       let e = map_document env v2 in
       let rp = (* ")" *) token env v3 in
-      ParenExpr (lp, e, rp) |> J.e
+      ParenExpr (lp, e, rp)
 
 and map_field (env : env) (x : CST.field) : field =
   match x with
@@ -472,7 +472,7 @@ and map_field (env : env) (x : CST.field) : field =
         fld_name = fld;
         fld_attr = None;
         fld_hidden = h;
-        fld_value = Lambda fdef |> J.e;
+        fld_value = Lambda fdef;
       }
 
 and map_fieldname (env : env) (x : CST.fieldname) : field_name =

@@ -65,9 +65,7 @@ let desugar_bracket ofa env (v1, v2, v3) =
 
 let desugar_ident env v : C.ident = (desugar_wrap desugar_string) env v
 
-let rec desugar_expr env v : C.expr = desugar_expr_kind env v
-
-and desugar_expr_kind env v =
+let rec desugar_expr env v : C.expr =
   match v with
   | L v ->
       let v = desugar_literal env v in
@@ -360,14 +358,6 @@ and desugar_import env v =
       let v1 = desugar_tok env v1 in
       let v2 = desugar_string_ env v2 in
       todo env (v1, v2)
-
-(*
-let desugar_any env v :  =
-  match v with
-  | E v ->
-      let v = desugar_expr env v in
-      todo env v
-*)
 
 (*****************************************************************************)
 (* Entry point *)
