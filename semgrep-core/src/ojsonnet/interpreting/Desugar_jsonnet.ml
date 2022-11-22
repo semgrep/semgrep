@@ -28,7 +28,11 @@ module C = Core_jsonnet
 (* Types *)
 (*****************************************************************************)
 type env = {
-  within_an_object : bool; (* TODO: pwd, current_file, import_callback, etc. *)
+  (* TODO: pwd, current_file, import_callback, cache_file, etc.
+   * The cache_file is used to ensure referencial transparency (see the spec
+   * when talking about import in the core jsonnet spec).
+   *)
+  within_an_object : bool;
 }
 
 (*****************************************************************************)
@@ -101,12 +105,12 @@ and desugar_expr_aux env v =
       let v = (desugar_bracket desugar_obj_inside) env v in
       todo env v
   | A v ->
-      let v = (desugar_bracket desugar_arr_inside) env v in
-      todo env v
+      let v = desugar_arr_inside env v in
+      v
   | Id v ->
       let v = (desugar_wrap desugar_string) env v in
       C.Id v
-  (* TODO? IdSpecial (Dollar, tdollar) ?? *)
+  | IdSpecial (Dollar, tdollar) -> C.Id ("$", tdollar)
   | IdSpecial v ->
       let v = (desugar_wrap desugar_special) env v in
       C.IdSpecial v
@@ -225,22 +229,22 @@ and desugar_string_kind _env v =
 and desugar_string_content env v =
   (desugar_list (desugar_wrap desugar_string)) env v
 
-and desugar_special env v =
+and desugar_special _env v =
   match v with
   | Self -> C.Self
   | Super -> C.Super
-  | Dollar -> todo env ()
+  | Dollar -> assert false
 
 and desugar_argument env v =
   match v with
   | Arg v ->
       let v = desugar_expr env v in
-      todo env v
+      C.Arg v
   | NamedArg (v1, v2, v3) ->
       let v1 = desugar_ident env v1 in
       let v2 = desugar_tok env v2 in
       let v3 = desugar_expr env v3 in
-      todo env (v1, v2, v3)
+      C.NamedArg (v1, v2, v3)
 
 and desugar_unary_op _env v =
   match v with
@@ -283,11 +287,13 @@ and desugar_assert_ env v =
     todo env (v1, v2, v3))
     env v
 
-and desugar_arr_inside env v =
+and desugar_arr_inside env (l, v, r) : C.expr =
+  let l = desugar_tok env l in
+  let r = desugar_tok env r in
   match v with
   | Array v ->
-      let v = (desugar_list desugar_expr) env v in
-      C.Array v
+      let xs = (desugar_list desugar_expr) env v in
+      C.Array (l, xs, r)
   | ArrayComp v ->
       let v = (desugar_comprehension desugar_expr) env v in
       todo env v
@@ -346,11 +352,18 @@ and desugar_function_definition env { f_tok; f_params; f_body } =
 
 and desugar_parameter env v =
   match v with
-  | P (v1, v2) ->
-      let v1 = desugar_ident env v1 in
-      (* let v2 = (desugar_option TodoTyTuple) env v2 in *)
-      let v2 = todo env v2 in
-      todo env (v1, v2)
+  | P (v1, v2) -> (
+      let id = desugar_ident env v1 in
+      match v2 with
+      | Some (v1, v2) ->
+          let teq = desugar_tok env v1 in
+          let e = desugar_expr env v2 in
+          C.P (id, teq, e)
+      | None ->
+          C.P
+            ( id,
+              fk,
+              C.Error (fk, mk_core_str_literal ("Parameter not bound", fk)) ))
 
 and desugar_obj_inside env v =
   match v with
@@ -381,13 +394,13 @@ and desugar_field_name env v =
   match v with
   | FId v ->
       let id = desugar_ident env v in
-      C.FExpr (C.Id id)
+      C.FExpr (fk, C.Id id, fk)
   | FStr v ->
       let v = desugar_string_ env v in
-      C.FExpr (C.L (C.Str v))
+      C.FExpr (fk, C.L (C.Str v), fk)
   | FDynamic v ->
-      let _l, v, _r = (desugar_bracket desugar_expr) env v in
-      C.FExpr v
+      let l, v, r = (desugar_bracket desugar_expr) env v in
+      C.FExpr (l, v, r)
 
 and desugar_hidden _env v =
   match v with
