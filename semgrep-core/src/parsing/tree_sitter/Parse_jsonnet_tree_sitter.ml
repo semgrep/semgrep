@@ -49,6 +49,7 @@ let tat_optional env v =
    to another type of tree.
 *)
 
+(* TODO? in? *)
 let map_binaryop (env : env) (x : CST.binaryop) : binary_op wrap =
   match x with
   | `STAR tok -> (Mult, (* "*" *) token env tok)
@@ -317,23 +318,25 @@ and map_expr (env : env) (x : CST.expr) : expr =
       let slice_opt =
         match v4 with
         | Some (v1, v2, v3) ->
-            let v1 = (* ":" *) token env v1 in
-            let v2 = map_expr_opt env v2 in
-            let v3 =
+            let _tcolon = (* ":" *) token env v1 in
+            let e2_opt = map_expr_opt env v2 in
+            let e3_opt =
               match v3 with
               | Some (v1, v2) ->
-                  let v1 = (* ":" *) token env v1 in
-                  let v2 = map_expr_opt env v2 in
-                  Some (v1, v2)
+                  let _tcolon = (* ":" *) token env v1 in
+                  let e3_opt = map_expr_opt env v2 in
+                  e3_opt
               | None -> None
             in
-            Some (v1, v2, v3)
+            Some (e2_opt, e3_opt)
         | None -> None
       in
       let rb = (* "]" *) token env v5 in
       match (idx_opt, slice_opt) with
       | Some idx, None -> ArrayAccess (e, (lb, idx, rb))
-      | _else_ -> TodoExpr (("SliceAccess", lb), []))
+      | None, None -> SliceAccess (e, (lb, (None, None, None), rb))
+      | e1_opt, Some (e2_opt, e3_opt) ->
+          SliceAccess (e, (lb, (e1_opt, e2_opt, e3_opt), rb)))
   | `Super_DOT_id (v1, v2, v3) ->
       let tsuper = (* "super" *) token env v1 in
       let tdot = (* "." *) token env v2 in
@@ -399,9 +402,9 @@ and map_expr (env : env) (x : CST.expr) : expr =
     ->
       let e = map_document env v1 in
       let lc = (* "{" *) token env v2 in
-      let _flds = map_objinside env v3 in
-      let _rc = (* "}" *) token env v4 in
-      TodoExpr (("CurlyExprObj", lc), [ e ])
+      let flds = map_objinside env v3 in
+      let rc = (* "}" *) token env v4 in
+      AdjustObj (e, (lc, flds, rc))
   | `Anon_func (v1, v2, v3, v4, v5) ->
       let tfunc = (* "function" *) token env v1 in
       let lp = (* "(" *) token env v2 in
@@ -436,8 +439,8 @@ and map_expr (env : env) (x : CST.expr) : expr =
   | `Expr_in_super (v1, v2, v3) ->
       let e = map_document env v1 in
       let tin = (* "in" *) token env v2 in
-      let _tsuper = (* "super" *) token env v3 in
-      TodoExpr (("InSuper", tin), [ e ])
+      let tsuper = (* "super" *) token env v3 in
+      BinaryOp (e, (In, tin), IdSpecial (Super, tsuper))
   | `LPAR_expr_RPAR (v1, v2, v3) ->
       let lp = (* "(" *) token env v1 in
       let e = map_document env v2 in
