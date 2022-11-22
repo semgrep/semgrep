@@ -138,12 +138,18 @@ let map_string_ (env : env) (x : CST.string_) : string_ =
       let s2, t2 = (* string_end *) str env v4 in
       let kind =
         match (s1, s2) with
+        (* not sure why the Opt_AT_single_str_single_single does not cover this case *)
+        | "'", "'" -> SingleQuote
         (* not sure why the Opt_AT_double_double does not cover this case *)
         | "\"", "\"" -> DoubleQuote
         | "|||", "|||" -> TripleBar
         | x, y when x = y ->
-            failwith (spf "unrecognized string delimiter: %s" x)
-        | x, y -> failwith (spf "unmatched string delimiter: '%s' and '%s'" x y)
+            raise
+              (PI.Other_error (spf "unrecognized string delimiter: %s" x, t1))
+        | x, y ->
+            raise
+              (PI.Other_error
+                 (spf "unmatched string delimiter: '%s' and '%s'" x y, t1))
       in
       (tat, kind, (t1, [ content ], t2))
 
