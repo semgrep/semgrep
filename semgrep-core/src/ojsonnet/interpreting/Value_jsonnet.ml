@@ -25,7 +25,7 @@ module C = Core_jsonnet
 
 type value_ =
   | Primitive of primitive
-  | Object of object_
+  | Object of object_ A.bracket
   | Function of C.function_definition
   | Array of C.expr array A.bracket
 

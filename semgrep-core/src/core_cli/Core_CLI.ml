@@ -433,6 +433,9 @@ let all_actions () =
     ( "-dump_jsonnet_value",
       " <file>",
       Common.mk_action_1_arg Test_ojsonnet.dump_jsonnet_value );
+    ( "-dump_jsonnet_json",
+      " <file>",
+      Common.mk_action_1_arg Test_ojsonnet.dump_jsonnet_json );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Common.mk_action_1_arg (fun file ->
