@@ -505,7 +505,7 @@ let resolve lang prog =
                     if lang = Lang.Js || lang = Lang.Ts then
                       let _, fields, _ = c.cbody in
                       js_add_angular_constructor_args env attrs
-                        (List.map (fun (F x) -> x) fields)
+                        (Common.map (fun (F x) -> x) fields)
                     else []
                   in
                   (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
