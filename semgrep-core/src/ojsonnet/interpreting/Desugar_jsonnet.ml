@@ -41,6 +41,8 @@ type env = {
 
 let fk = Parse_info.unsafe_fake_info ""
 let true_ = L (Bool (true, fk))
+let null_ = L (Null fk)
+let null_core = C.L (C.Null fk)
 
 let mk_str_literal (str, tk) =
   L (Str (None, DoubleQuote, (fk, [ (str, tk) ], fk)))
@@ -54,7 +56,7 @@ let mk_DotAccess_std id : expr =
 
 and expr_or_null v : expr =
   match v with
-  | None -> L (Null fk)
+  | None -> null_
   | Some e -> e
 
 let todo _env _v = failwith "TODO"
@@ -172,7 +174,7 @@ and desugar_expr_aux env v =
       let e'' =
         match else_opt with
         | Some (_telse, e'') -> desugar_expr env e''
-        | None -> C.L (C.Null fk)
+        | None -> null_core
       in
       C.If (tif, e, e', e'')
   | Lambda v ->
@@ -394,9 +396,17 @@ and desugar_obj_inside env (l, v, r) : C.expr =
       let v = desugar_obj_comprehension env v in
       todo env v
 
-and desugar_assert_ (env : env) (v : assert_ * bind list) =
-  let assert_, binds = v in
-  todo env (assert_, binds)
+and desugar_assert_ (env : env) (v : assert_ * bind list) : C.obj_assert =
+  let (tassert, e, opt), binds = v in
+  match opt with
+  | None ->
+      let assert_failed_str = mk_str_literal ("Assertion failed", tassert) in
+      desugar_assert_ env ((tassert, e, Some (fk, assert_failed_str)), binds)
+  | Some (_tcolon, e') ->
+      let if_expr = If (tassert, e, null_, Some (tassert, Error (fk, e'))) in
+      let final_expr = Local (fk, binds, fk, if_expr) in
+      ( tassert,
+        desugar_expr { (* env with *) within_an_object = true } final_expr )
 
 and desugar_field (env : env) (v : field * bind list) =
   let { fld_name; fld_attr; fld_hidden; fld_value }, _binds = v in
