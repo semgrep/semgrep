@@ -1,0 +1,1 @@
+JS/TS: Allow dependencies to @Injectable and @Component classes in Angular JS to be visible outside the scope of the constructor.

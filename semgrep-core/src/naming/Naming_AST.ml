@@ -356,6 +356,7 @@ let get_resolved_type lang (vinit, vtype) =
 (*****************************************************************************)
 (* Other Helpers *)
 (*****************************************************************************)
+
 let is_resolvable_name_ctx env lang =
   match top_context env with
   | AtToplevel
@@ -401,6 +402,37 @@ let params_of_parameters env xs =
            set_resolved env id_info resolved;
            Some (H.str_of_ident id, resolved)
        | _ -> None)
+
+(* In Angular JS, we have some "Injectable" classes, which are marked with an
+   @Injectable decorator.
+   https://angular.io/guide/dependency-injection-in-action
+   These classes may reference parameters to the constructor of the class, outside
+   of the actual code of the constructor itself.
+   So we must add them to the scope, should we find the decorator and a constructor's
+   parameters.
+   This also works for `@Component`.
+*)
+let js_get_angular_constructor_args env attrs defs =
+  let is_injectable =
+    List.exists
+      (function
+        | NamedAttr (_, Id ((("Injectable" | "Component"), _), _), _) -> true
+        | _ -> false)
+      attrs
+  in
+  defs
+  |> List.filter_map (function
+       | {
+           s =
+             DefStmt
+               ( { name = EN (Id (("constructor", _), _)); _ },
+                 FuncDef { fparams; _ } );
+           _;
+         }
+         when is_injectable ->
+           Some (params_of_parameters env fparams)
+       | _ -> None)
+  |> List.concat
 
 let declare_var env lang id id_info ~explicit vinit vtype =
   let sid = H.gensym () in
@@ -455,18 +487,25 @@ let resolve lang prog =
                    * a parameter name is the same than type name used in ptype
                    * (see tests/naming/python/shadow_name_type.py) *)
                   k x)));
-      V.kclass_definition =
-        (fun (k, _v) x ->
-          (* todo: we should first process all fields in the class before
-           * processing the methods, as some languages may allow forward ref.
-           *)
-          let class_params = params_of_parameters env x.cparams in
-          with_new_context InClass env (fun () ->
-              (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
-              with_new_function_scope class_params env.names (fun () -> k x)));
       V.kdef =
         (fun (k, _v) x ->
           match x with
+          | { attrs; _ }, ClassDef c ->
+              (* todo: we should first process all fields in the class before
+                 * processing the methods, as some languages may allow forward ref.
+              *)
+              let class_params = params_of_parameters env c.cparams in
+              with_new_context InClass env (fun () ->
+                  let special_class_params =
+                    if Lang.is_js lang then
+                      let _, fields, _ = c.cbody in
+                      js_get_angular_constructor_args env attrs
+                        (Common.map (fun (F x) -> x) fields)
+                    else []
+                  in
+                  (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
+                  with_new_function_scope (special_class_params @ class_params)
+                    env.names (fun () -> k x))
           | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
           (* note that some languages such as Python do not have VarDef
            * construct
