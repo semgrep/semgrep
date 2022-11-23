@@ -412,18 +412,16 @@ let params_of_parameters env xs =
    parameters.
    This also works for `@Component`.
 *)
-let js_add_angular_constructor_args env attrs defs =
-  let ( let* ) = Option.bind in
-  match
-    let* () =
-      List.find_map
-        (function
+let js_get_angular_constructor_args env attrs defs =
+  let is_injectable = List.exists 
+    (function
           | NamedAttr (_, Id ((("Injectable" | "Component"), _), _), _) ->
-              Some ()
-          | _ -> None)
+              true 
+          | _ -> false)
         attrs
-    in
-    List.find_map
+  in
+    defs
+  |> List.filter_map
       (function
         | {
             s =
@@ -431,13 +429,10 @@ let js_add_angular_constructor_args env attrs defs =
                 ( { name = EN (Id (("constructor", _), _)); _ },
                   FuncDef { fparams; _ } );
             _;
-          } ->
+          } when is_injectable ->
             Some (params_of_parameters env fparams)
         | _ -> None)
-      defs
-  with
-  | None -> []
-  | Some l -> l
+  |> List.concat
 
 let declare_var env lang id id_info ~explicit vinit vtype =
   let sid = H.gensym () in
@@ -502,9 +497,9 @@ let resolve lang prog =
               let class_params = params_of_parameters env c.cparams in
               with_new_context InClass env (fun () ->
                   let special_class_params =
-                    if lang = Lang.Js || lang = Lang.Ts then
+                    if Lang.is_js lang then
                       let _, fields, _ = c.cbody in
-                      js_add_angular_constructor_args env attrs
+                      js_get_angular_constructor_args env attrs
                         (Common.map (fun (F x) -> x) fields)
                     else []
                   in
