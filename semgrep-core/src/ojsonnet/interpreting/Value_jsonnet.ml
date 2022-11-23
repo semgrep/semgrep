@@ -29,12 +29,15 @@ type value_ =
   | Function of C.function_definition
   | Array of C.expr array A.bracket
 
-(* mostly like AST_jsonnet.literal but with evaluated Double instead of Number *)
+(* mostly like AST_jsonnet.literal but with evaluated Double instead of
+ * Number and a simplified string!
+ * TODO: float enough for Double? string good enough for unicode? codepoints?
+ *)
 and primitive =
   | Null of A.tok
   | Bool of bool A.wrap
   | Double of float A.wrap
-  | Str of A.string_
+  | Str of string A.wrap
 
 and object_ = C.obj_assert list * field list
 
