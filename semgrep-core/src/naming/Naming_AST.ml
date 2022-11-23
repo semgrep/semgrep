@@ -410,6 +410,7 @@ let params_of_parameters env xs =
    of the actual code of the constructor itself.
    So we must add them to the scope, should we find the decorator and a constructor's
    parameters.
+   This also works for `@Component`.
 *)
 let js_add_angular_constructor_args env attrs defs =
   let ( let* ) = Option.bind in
@@ -417,7 +418,8 @@ let js_add_angular_constructor_args env attrs defs =
     let* () =
       List.find_map
         (function
-          | NamedAttr (_, Id (("Injectable", _), _), _) -> Some ()
+          | NamedAttr (_, Id ((("Injectable" | "Component"), _), _), _) ->
+              Some ()
           | _ -> None)
         attrs
     in
