@@ -184,10 +184,6 @@ let tokens_to_single_loc toks =
   Some
     { Out.path = first_loc.path; start = first_loc.start; end_ = last_loc.end_ }
 
-let rec taint_call_trace_to_taint_source = function
-  | Toks toks -> tokens_to_single_loc toks
-  | Call { call_trace; _ } -> taint_call_trace_to_taint_source call_trace
-
 let token_to_intermediate_var token =
   let* location = tokens_to_single_loc [ token ] in
   Some { Out.location }
@@ -195,11 +191,22 @@ let token_to_intermediate_var token =
 let tokens_to_intermediate_vars tokens =
   List.filter_map token_to_intermediate_var tokens
 
-let taint_trace_to_dataflow_trace { source; tokens; sink = _ } :
+let rec taint_call_trace = function
+  | Toks toks ->
+      let* loc = tokens_to_single_loc toks in
+      Some (Out.CoreLoc loc)
+  | Call { call_trace; intermediate_vars; call_toks } ->
+      let* location = tokens_to_single_loc call_toks in
+      let intermediate_vars = tokens_to_intermediate_vars intermediate_vars in
+      let* call_trace = taint_call_trace call_trace in
+      Some (Out.CoreCall (location, intermediate_vars, call_trace))
+
+let taint_trace_to_dataflow_trace { source; tokens; sink } :
     Out.core_match_dataflow_trace =
   {
-    Out.taint_source = taint_call_trace_to_taint_source source;
+    Out.taint_source = taint_call_trace source;
     intermediate_vars = Some (tokens_to_intermediate_vars tokens);
+    taint_sink = taint_call_trace sink;
   }
 
 let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
