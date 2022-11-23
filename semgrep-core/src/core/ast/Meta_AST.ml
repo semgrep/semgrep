@@ -222,6 +222,9 @@ and vof_expr e =
       let v1 = vof_bracket vof_expr v1 in
       let v2 = OCaml.vof_option (vof_wrap OCaml.vof_string) v2 in
       OCaml.VSum ("RegexpTemplate", [ v1; v2 ])
+  | SqlQuery v1 ->
+      let v1 = vof_sql_query v1 in
+      OCaml.VSum ("SqlQuery", [ v1 ])
   | Lambda v1 ->
       let v1 = vof_function_definition v1 in
       OCaml.VSum ("Lambda", [ v1 ])
@@ -1348,6 +1351,69 @@ and vof_directive_kind = function
 and vof_alias (v1, v2) =
   let v1 = vof_ident v1 and v2 = OCaml.vof_option vof_ident_and_id_info v2 in
   (v1, v2)
+
+and vof_sql_value_expr = function
+  | FieldId x -> OCaml.VSum ("FieldId", [vof_dotted_ident x])
+
+and vof_sql_selectable_expr = function
+  | ValueExpr x -> OCaml.VSum ("ValueExpr", [vof_sql_value_expr x])
+
+and vof_sql_select_expr = function
+  | SelExpr xs -> OCaml.VSum ("SelExpr", [OCaml.vof_list vof_sql_selectable_expr xs])
+  | SelCount (t1, t2) ->
+      let t1 = vof_tok t1 in
+      let t2 = vof_tok t2 in
+      OCaml.VSum ("SelCount", [t1; t2])
+
+and vof_sql_storage { stor_id; stor_as } =
+  let stor_id = "stor_id", vof_dotted_ident stor_id in
+  let stor_as = "stor_as", OCaml.vof_option vof_ident stor_as in
+  OCaml.VDict [stor_id; stor_as]
+
+and vof_sql_literal = function
+  | SqlInt x -> OCaml.VSum ("SqlInt", [vof_wrap OCaml.vof_int x])
+  | SqlDecimal x -> OCaml.VSum ("SqlDecimal", [vof_wrap OCaml.vof_string x])
+  | SqlString x -> OCaml.VSum ("SqlString", [vof_wrap OCaml.vof_string x])
+  | SqlDate x -> OCaml.VSum ("SqlDate", [vof_wrap OCaml.vof_string x])
+  | SqlDateTime x -> OCaml.VSum ("SqlDateTime", [vof_wrap OCaml.vof_string x])
+  | SqlBool x -> OCaml.VSum ("SqlBool", [vof_wrap OCaml.vof_bool x])
+
+and vof_sql_value_comparison = function
+  | SqlLiteral x -> OCaml.VSum ("SqlLiteral", [vof_sql_literal x])
+  | SqlEmbeddedExpr (t, x) ->
+      let t = vof_tok t in
+      let x = vof_expr x in
+      OCaml.VSum ("SqlEmbeddedExpr", [t; x])
+
+and vof_sql_comparison = function
+  | CompVal (v1, v2) ->
+      let v1 = vof_wrap vof_arithmetic_operator v1 in
+      let v2 = vof_sql_value_comparison v2 in
+      OCaml.VSum ("CompVal", [v1; v2])
+
+and vof_sql_cond_expr = function
+  | SqlAnd xs -> OCaml.VSum ("SqlAnd", [OCaml.vof_list vof_sql_cond_expr xs])
+  | SqlOr xs -> OCaml.VSum ("SqlOr", [OCaml.vof_list vof_sql_cond_expr xs])
+  | SqlNot (t, x) ->
+      let t = vof_tok t in
+      let x = vof_sql_cond_expr x in
+      OCaml.VSum ("SqlNot", [t; x])
+  | SqlCompExpr (v1, v2) ->
+      let v1 = vof_sql_value_expr v1 in
+      let v2 = vof_sql_comparison v2 in
+      OCaml.VSum ("SqlCompExpr", [v1; v2])
+
+and vof_sql_select { select; from; where } =
+  let select = "select", vof_sql_select_expr select in
+  let from = "from", vof_sql_storage from in
+  let where = "where", OCaml.vof_option vof_sql_cond_expr where in
+  OCaml.VDict [ select; from; where ]
+
+and vof_sql_query = function
+  | SqlSelect x -> OCaml.VSum ("SqlSelect", [vof_sql_select x])
+  | SqlOther (v1, v2) ->
+      let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
+      OCaml.VSum ("SqlOther", [v1; v2])
 
 and vof_item x = vof_stmt x
 and vof_program v = OCaml.vof_list vof_item v

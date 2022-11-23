@@ -227,6 +227,7 @@ and map_expr x : B.expr =
             let static_regexp = map_wrap map_of_string x in
             `Regexp static_regexp
         | _dropped_template -> `Regexp ("", map_tok l))
+  | SqlQuery _x -> failwith "TODO"
   | Lambda v1 ->
       let v1 = map_function_definition v1 in
       `Lambda v1

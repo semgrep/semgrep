@@ -261,6 +261,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
             let v1 = map_bracket map_expr v1 in
             let v2 = map_of_option (map_wrap map_of_string) v2 in
             RegexpTemplate (v1, v2)
+        | SqlQuery v1 ->
+            let v1 = map_sql_query v1 in
+            SqlQuery v1
         | Lambda v1 ->
             let v1 = map_function_definition v1 in
             Lambda v1
@@ -1137,6 +1140,70 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_alias (v1, v2) =
     let v1 = map_ident v1 and v2 = map_of_option map_ident_and_id_info v2 in
     (v1, v2)
+
+  and map_sql_value_expr = function
+    | FieldId x -> FieldId (map_dotted_ident x)
+
+  and map_sql_selectable_expr = function
+    | ValueExpr x -> ValueExpr (map_sql_value_expr x)
+
+  and map_sql_select_expr = function
+    | SelExpr xs -> SelExpr (map_of_list map_sql_selectable_expr xs)
+    | SelCount (t1, t2) ->
+        let t1 = map_tok t1 in
+        let t2 = map_tok t2 in
+        SelCount (t1, t2)
+
+  and map_sql_storage { stor_id; stor_as } =
+    let stor_id = map_dotted_ident stor_id in
+    let stor_as = map_of_option map_ident stor_as in
+    { stor_id; stor_as }
+
+  and map_sql_literal = function
+    | SqlInt x -> SqlInt (map_wrap map_of_int x)
+    | SqlDecimal x -> SqlDecimal (map_wrap map_of_string x)
+    | SqlString x -> SqlString (map_wrap map_of_string x)
+    | SqlDate x -> SqlDate (map_wrap map_of_string x)
+    | SqlDateTime x -> SqlDateTime (map_wrap map_of_string x)
+    | SqlBool x -> SqlBool (map_wrap map_of_bool x)
+
+  and map_sql_value_comparison = function
+    | SqlLiteral x -> SqlLiteral (map_sql_literal x)
+    | SqlEmbeddedExpr (t, x) ->
+        let t = map_tok t in
+        let x = map_expr x in
+        SqlEmbeddedExpr (t, x)
+
+  and map_sql_comparison = function
+    | CompVal (v1, v2) ->
+        let v1 = map_wrap map_arithmetic_operator v1 in
+        let v2 = map_sql_value_comparison v2 in
+        CompVal (v1, v2)
+
+  and map_sql_cond_expr = function
+    | SqlAnd xs -> SqlAnd (map_of_list map_sql_cond_expr xs)
+    | SqlOr xs -> SqlOr (map_of_list map_sql_cond_expr xs)
+    | SqlNot (t, x) ->
+        let t = map_tok t in
+        let x = map_sql_cond_expr x in
+        SqlNot (t, x)
+    | SqlCompExpr (v1, v2) ->
+        let v1 = map_sql_value_expr v1 in
+        let v2 = map_sql_comparison v2 in
+        SqlCompExpr (v1, v2)
+
+  and map_sql_select { select; from; where } =
+    let select = map_sql_select_expr select in
+    let from = map_sql_storage from in
+    let where = map_of_option map_sql_cond_expr where in
+    { select; from; where }
+
+  and map_sql_query = function
+    | SqlSelect x -> SqlSelect (map_sql_select x)
+    | SqlOther (v1, v2) ->
+        let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
+        SqlOther (v1, v2)
+
   and map_item x = map_stmt x
   and map_program v = map_of_list map_item v
   and map_partial = function

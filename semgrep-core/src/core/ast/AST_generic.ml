@@ -1786,7 +1786,7 @@ and sql_value_expr =
   (*
   | FuncExpr of function_expr
 *)
-  | FieldId of qualified_ident
+  | FieldId of dotted_ident
 
 and sql_selectable_expr = ValueExpr of sql_value_expr
 (* incomplete *)
@@ -1795,7 +1795,7 @@ and sql_select_expr =
   | SelExpr of sql_selectable_expr list
   | SelCount of tok (* count( *) * tok (* ) *)
 
-and sql_storage = { stor_id : qualified_ident; stor_as : ident option }
+and sql_storage = { stor_id : dotted_ident; stor_as : ident option }
 
 and sql_literal =
   | SqlInt of int wrap
@@ -1822,10 +1822,10 @@ and sql_comparison = CompVal of operator wrap * sql_value_comparison
 *)
 
 and sql_cond_expr =
-  | And of sql_cond_expr list (* non-empty list *)
-  | Or of sql_cond_expr list (* non-empty list *)
-  | Not of tok (* not *) * sql_cond_expr
-  | CompExpr of sql_value_expr * sql_comparison
+  | SqlAnd of sql_cond_expr list (* non-empty list *)
+  | SqlOr of sql_cond_expr list (* non-empty list *)
+  | SqlNot of tok (* not *) * sql_cond_expr
+  | SqlCompExpr of sql_value_expr * sql_comparison
 
 and sql_select = {
   select : sql_select_expr;

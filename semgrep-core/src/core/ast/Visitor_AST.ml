@@ -102,6 +102,9 @@ let default_visitor =
 
 let v_id _ = ()
 
+let todo msg =
+  failwith ("TODO: " ^ msg) |> ignore
+
 let (mk_visitor :
       ?vardef_assign:bool ->
       ?flddef_assign:bool ->
@@ -251,6 +254,78 @@ let (mk_visitor :
          * We want a simple Expr (Xml ...) pattern to also be matched
          * against nested XmlXml elements *)
         v_expr (Xml v1 |> G.e)
+
+  and v_sql_value_expr v =
+    match v with
+    | FieldId (v1) ->
+        v_dotted_ident v1
+
+  and v_sql_selectable_expr v =
+    match v with
+    | ValueExpr v1 ->
+        v_sql_value_expr v1
+
+  and v_sql_select_expr v =
+    match v with
+    | SelExpr _x ->
+        todo "SelExpr"
+    | SelCount (v1, v2) ->
+        v_tok v1;
+        v_tok v2
+
+  and v_sql_storage v =
+    todo "RecordType"
+
+  and v_sql_literal v =
+    match v with
+    | SqlInt x -> v_int x
+    | SqlDecimal x -> v_string x
+    | SqlString x -> v_string x
+    | SqlDate x -> v_string x
+    | SqlDateTime x -> v_string x
+    | SqlBool x -> v_bool x
+
+  and v_sql_value_comparison v =
+    match v with
+    | SqlLiteral x ->
+        v_sql_literal x
+    | SqlEmbeddedExpr (v1, v2) ->
+        v_tok v1;
+        v_expr v2
+
+  and v_sql_comparison v =
+    match v with
+    | CompVal (v1, v2) ->
+        todo "TyApp" v1;
+        v_sql_value_comparison v2
+
+  and v_sql_cond_expr env v =
+  match v with
+  | SqlAnd (v1) ->
+    let v1 = TODOTyApp env v1 in
+    todo env (v1)
+  | SqlOr (v1) ->
+    let v1 = TODOTyApp env v1 in
+    todo env (v1)
+  | SqlNot (v1, v2) ->
+    let v1 = v_tok env v1 in
+    let v2 = v_sql_cond_expr env v2 in
+    todo env (v1, v2)
+  | SqlCompExpr (v1, v2) ->
+    let v1 = v_sql_value_expr env v1 in
+    let v2 = v_sql_comparison env v2 in
+    todo env (v1, v2)
+
+  and v_sql_select v =
+    todo "SqlSelect"
+
+  and v_sql_query v =
+    match v with
+    | SqlSelect v1 ->
+        v_sql_select v1
+    | SqlOther (v1, v2) ->
+        todo "SqlOther"
+
   and v_name x =
     let k x =
       match x with
@@ -327,6 +402,9 @@ let (mk_visitor :
       | RegexpTemplate (v1, v2) ->
           let v1 = v_bracket v_expr v1 in
           let v2 = v_option (v_wrap v_string) v2 in
+          ()
+      | SqlQuery v1 ->
+          let v1 = v_sql_query v1 in
           ()
       | Lambda v1 ->
           let v1 = v_function_definition v1 in
@@ -1306,6 +1384,64 @@ let (mk_visitor :
   and v_ident_and_id_info (v1, v2) =
     v_ident v1;
     v_id_info v2
+
+  and v_sql_value_expr = function
+    | FieldId x -> v_dotted_ident x
+
+  and v_sql_selectable_expr = function
+    | ValueExpr x -> v_sql_value_expr x
+
+  and v_sql_select_expr = function
+    | SelExpr xs -> v_list v_sql_selectable_expr xs
+    | SelCount (t1, t2) ->
+        v_tok t1;
+        v_tok t2
+
+  and v_sql_storage { stor_id; stor_as } =
+    v_dotted_ident stor_id;
+    Caml.v_option v_ident stor_as
+
+  and v_sql_literal = function
+    | SqlInt x -> v_wrap OCaml.v_int x
+    | SqlDecimal x -> v_wrap OCaml.v_string x
+    | SqlString x -> v_wrap OCaml.v_string x
+    | SqlDate x -> v_wrap OCaml.v_string x
+    | SqlDateTime x -> v_wrap OCaml.v_string x
+    | SqlBool x -> v_wrap OCaml.v_bool x
+
+  and v_sql_value_comparison = function
+    | SqlLiteral x -> v_sql_literal x
+    | SqlEmbeddedExpr (t, x) ->
+        v_tok t;
+        v_expr x
+
+  and v_sql_comparison = function
+    | CompVal (v1, v2) ->
+        v_wrap v_arithmetic_operator v1;
+        v_sql_value_comparison v2
+
+  and v_sql_cond_expr = function
+    | SqlAnd xs -> OCaml.v_list v_sql_cond_expr xs
+    | SqlOr xs -> OCaml.v_list v_sql_cond_expr xs
+    | SqlNot (t, x) ->
+        v_tok t;
+        v_sql_cond_expr x
+
+    | SqlCompExpr (v1, v2) ->
+        v_sql_value_expr v1;
+        v_sql_comparison v2
+
+  and v_sql_select { select; from; where } =
+    v_sql_select_expr select;
+    v_sql_storage from;
+    OCaml.v_option v_sql_cond_expr where
+
+  and v_sql_query = function
+    | SqlSelect x -> v_sql_select x
+    | SqlOther (v1, v2) ->
+        v_todo_kind v1;
+        OCaml.v_list v_any v2
+
   and v_program v = v_stmts v
   and v_any = function
     | Xmls v1 -> v_list v_xml_body v1
