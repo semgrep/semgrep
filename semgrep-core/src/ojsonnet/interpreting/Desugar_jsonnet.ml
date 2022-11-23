@@ -102,8 +102,8 @@ and desugar_expr_aux env v =
       let v = desugar_literal env v in
       C.L v
   | O v ->
-      let v = (desugar_bracket desugar_obj_inside) env v in
-      todo env v
+      let v = desugar_obj_inside env v in
+      v
   | A v ->
       let v = desugar_arr_inside env v in
       v
@@ -278,15 +278,6 @@ and desugar_binary_op _env v =
   | BitXor -> C.BitXor
   | In -> assert false
 
-and desugar_assert_ env v =
-  (fun env (v1, v2, v3) ->
-    let v1 = todo env v1 in
-    (* let v2 = (desugar_option TodoTyTuple) env v2 in *)
-    let v2 = todo env v2 in
-    let v3 = todo env v3 in
-    todo env (v1, v2, v3))
-    env v
-
 and desugar_arr_inside env (l, v, r) : C.expr =
   let l = desugar_tok env l in
   let r = desugar_tok env r in
@@ -365,28 +356,51 @@ and desugar_parameter env v =
               fk,
               C.Error (fk, mk_core_str_literal ("Parameter not bound", fk)) ))
 
-and desugar_obj_inside env v =
+and desugar_obj_inside env (l, v, r) : C.expr =
+  let l = desugar_tok env l in
+  let r = desugar_tok env r in
   match v with
   | Object v ->
-      let v = (desugar_list desugar_obj_member) env v in
-      todo env v
+      let binds, asserts, fields =
+        v
+        |> Common.partition_either3 (function
+             | OLocal (_tlocal, x) -> Left3 x
+             | OAssert x -> Middle3 x
+             | OField x -> Right3 x)
+      in
+      let binds =
+        if env.within_an_object then binds
+        else binds @ [ B (("$", fk), fk, IdSpecial (Self, fk)) ]
+      in
+      let asserts' =
+        asserts
+        |> Common.map (fun assert_ -> desugar_assert_ env (assert_, binds))
+      in
+      let fields' =
+        fields |> Common.map (fun field -> desugar_field env (field, binds))
+      in
+      let obj = C.Object (asserts', fields') in
+      if env.within_an_object then
+        C.Local
+          ( fk,
+            [
+              C.B (("$outerself", fk), fk, C.IdSpecial (C.Self, fk));
+              C.B (("$outersuper", fk), fk, C.IdSpecial (C.Super, fk));
+            ],
+            fk,
+            O (l, obj, r) )
+      else O (l, obj, r)
   | ObjectComp v ->
       let v = desugar_obj_comprehension env v in
       todo env v
 
-and desugar_obj_member env v =
-  match v with
-  | OLocal v ->
-      let v = desugar_obj_local env v in
-      todo env v
-  | OField v ->
-      let v = desugar_field env v in
-      todo env v
-  | OAssert v ->
-      let v = desugar_assert_ env v in
-      todo env v
+and desugar_assert_ (env : env) (v : assert_ * bind list) =
+  let assert_, binds = v in
+  todo env (assert_, binds)
 
-and desugar_field env _v =
+and desugar_field (env : env) (v : field * bind list) =
+  let { fld_name; fld_attr; fld_hidden; fld_value }, _binds = v in
+  ignore (fld_name, fld_attr, fld_hidden, fld_value);
   ignore (desugar_field_name, desugar_attribute, desugar_hidden);
   todo env "RECORD"
 
@@ -413,13 +427,6 @@ and desugar_attribute env v =
   | PlusField v ->
       let v = desugar_tok env v in
       todo env v
-
-and desugar_obj_local env v =
-  (fun env (v1, v2) ->
-    let v1 = desugar_tok env v1 in
-    let v2 = desugar_bind env v2 in
-    todo env (v1, v2))
-    env v
 
 and desugar_obj_comprehension env _v = todo env "RECORD"
 
