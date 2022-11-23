@@ -56,7 +56,7 @@ type ident = string wrap [@@deriving show]
  * no Import (expanded during desugaring).
  *)
 type expr =
-  | L of literal
+  | L of AST_jsonnet.literal
   | O of obj_inside bracket
   (* no complex arr_inside, no ArrayComp *)
   | Array of expr list bracket
@@ -77,27 +77,13 @@ type expr =
   | Error of tok (* 'error' *) * expr
 
 (* ------------------------------------------------------------------------- *)
-(* literals *)
-(* ------------------------------------------------------------------------- *)
-and literal =
-  | Null of tok
-  | Bool of bool wrap
-  | Number of string wrap
-  | Str of string_
-
-and string_ = verbatim option * string_kind * string_content bracket
-and verbatim = tok (* @ *)
-and string_kind = SingleQuote | DoubleQuote | TripleBar (* a.k.a Text block *)
-and string_content = string wrap list
-
-(* ------------------------------------------------------------------------- *)
 (* Calls *)
 (* ------------------------------------------------------------------------- *)
 
 (* no Dollar anymore *)
 and special = Self | Super
 and argument = Arg of expr | NamedArg of ident * tok (* = *) * expr
-and unary_op = UPlus | UMinus | UBang | UTilde
+and unary_op = AST_jsonnet.unary_op
 
 (* no '!=', '==', '%', 'in' *)
 and binary_op =
@@ -161,7 +147,7 @@ and field = {
 and field_name = FExpr of expr bracket
 
 (* =~ visibility *)
-and hidden = Colon | TwoColons | ThreeColons
+and hidden = AST_jsonnet.hidden
 
 (* no more locals1 and locals2, no CompIf *)
 and obj_comprehension = field_name * tok (* : *) * expr * for_comp

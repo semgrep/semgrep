@@ -40,15 +40,7 @@ type env = {
 (*****************************************************************************)
 
 let fk = Parse_info.unsafe_fake_info ""
-let true_ = L (Bool (true, fk))
-let null_ = L (Null fk)
-let null_core = C.L (C.Null fk)
-
-let mk_str_literal (str, tk) =
-  L (Str (None, DoubleQuote, (fk, [ (str, tk) ], fk)))
-
-let mk_core_str_literal (str, tk) =
-  C.L (C.Str (None, C.DoubleQuote, (fk, [ (str, tk) ], fk)))
+let mk_str_literal (str, tk) = Str (None, DoubleQuote, (fk, [ (str, tk) ], fk))
 
 let mk_DotAccess_std id : expr =
   let std_id = ("std", fk) in
@@ -56,7 +48,7 @@ let mk_DotAccess_std id : expr =
 
 and expr_or_null v : expr =
   match v with
-  | None -> null_
+  | None -> L (Null fk)
   | Some e -> e
 
 let todo _env _v = failwith "TODO"
@@ -67,9 +59,7 @@ let todo _env _v = failwith "TODO"
 
 (* todo? auto generate the right name in otarzan? *)
 let desugar_string _env x = x
-let desugar_bool _env x = x
 let desugar_list f env x = x |> Common.map (fun x -> f env x)
-let desugar_option f env x = x |> Option.map (fun x -> f env x)
 
 (*****************************************************************************)
 (* Boilerplate *)
@@ -100,9 +90,7 @@ let rec desugar_expr env v : C.expr =
 
 and desugar_expr_aux env v =
   match v with
-  | L v ->
-      let v = desugar_literal env v in
-      C.L v
+  | L v -> C.L v
   | O v ->
       let v = desugar_obj_inside env v in
       v
@@ -127,7 +115,7 @@ and desugar_expr_aux env v =
       let e = desugar_expr env v1 in
       let tdot = desugar_tok env v2 in
       let id = desugar_ident env v3 in
-      C.ArrayAccess (e, (tdot, mk_core_str_literal id, tdot))
+      C.ArrayAccess (e, (tdot, C.L (mk_str_literal id), tdot))
   | ArrayAccess (v1, v2) ->
       let v1 = desugar_expr env v1 in
       let v2 = (desugar_bracket desugar_expr) env v2 in
@@ -158,6 +146,7 @@ and desugar_expr_aux env v =
   (* no need to handle specially e in super, handled by desugar_special *)
   | BinaryOp (e, (In, t), e') ->
       let std_objectHasEx = mk_DotAccess_std ("objectHasEx", t) in
+      let true_ = L (Bool (true, fk)) in
       desugar_expr
         { (* env with *) within_an_object = true }
         (Call (std_objectHasEx, (fk, [ Arg e'; Arg e; Arg true_ ], fk)))
@@ -175,7 +164,7 @@ and desugar_expr_aux env v =
       let e'' =
         match else_opt with
         | Some (_telse, e'') -> desugar_expr env e''
-        | None -> null_core
+        | None -> C.L (Null fk)
       in
       C.If (tif, e, e', e'')
   | Lambda v ->
@@ -187,7 +176,7 @@ and desugar_expr_aux env v =
   | Assert ((tassert, e, None), tsemi, e') ->
       let assert_failed_str = mk_str_literal ("Assertion failed", tassert) in
       desugar_expr env
-        (Assert ((tassert, e, Some (fk, assert_failed_str)), tsemi, e'))
+        (Assert ((tassert, e, Some (fk, L assert_failed_str)), tsemi, e'))
   | Assert ((tassert, e, Some (tcolon, e')), _tsemi, e'') ->
       desugar_expr env (If (tassert, e, e'', Some (tcolon, Error (fk, e'))))
   | Error (v1, v2) ->
@@ -197,40 +186,6 @@ and desugar_expr_aux env v =
   | ParenExpr v ->
       let _, e, _ = (desugar_bracket desugar_expr) env v in
       e
-
-and desugar_literal env v =
-  match v with
-  | Null v ->
-      let v = desugar_tok env v in
-      C.Null v
-  | Bool v ->
-      let v = (desugar_wrap desugar_bool) env v in
-      C.Bool v
-  | Number v ->
-      let v = (desugar_wrap desugar_string) env v in
-      C.Number v
-  | Str v ->
-      let v = desugar_string_ env v in
-      C.Str v
-
-and desugar_string_ env v =
-  (fun env (v1, v2, v3) ->
-    let v1 = (desugar_option desugar_verbatim) env v1 in
-    let v2 = desugar_string_kind env v2 in
-    let v3 = (desugar_bracket desugar_string_content) env v3 in
-    (v1, v2, v3))
-    env v
-
-and desugar_verbatim env v = desugar_tok env v
-
-and desugar_string_kind _env v =
-  match v with
-  | SingleQuote -> C.SingleQuote
-  | DoubleQuote -> C.DoubleQuote
-  | TripleBar -> C.TripleBar
-
-and desugar_string_content env v =
-  (desugar_list (desugar_wrap desugar_string)) env v
 
 and desugar_special _env v =
   match v with
@@ -249,12 +204,7 @@ and desugar_argument env v =
       let v3 = desugar_expr env v3 in
       C.NamedArg (v1, v2, v3)
 
-and desugar_unary_op _env v =
-  match v with
-  | UPlus -> C.UPlus
-  | UMinus -> C.UMinus
-  | UBang -> C.UBang
-  | UTilde -> C.UTilde
+and desugar_unary_op _env v = v
 
 (* the assert false are here because the cases should be handled by the
  * caller in BinaryOp
@@ -357,7 +307,7 @@ and desugar_parameter env v =
           C.P
             ( id,
               fk,
-              C.Error (fk, mk_core_str_literal ("Parameter not bound", fk)) ))
+              C.Error (fk, C.L (mk_str_literal ("Parameter not bound", fk))) ))
 
 and desugar_obj_inside env (l, v, r) : C.expr =
   let l = desugar_tok env l in
@@ -402,9 +352,11 @@ and desugar_assert_ (env : env) (v : assert_ * bind list) : C.obj_assert =
   match opt with
   | None ->
       let assert_failed_str = mk_str_literal ("Assertion failed", tassert) in
-      desugar_assert_ env ((tassert, e, Some (fk, assert_failed_str)), binds)
+      desugar_assert_ env ((tassert, e, Some (fk, L assert_failed_str)), binds)
   | Some (_tcolon, e') ->
-      let if_expr = If (tassert, e, null_, Some (tassert, Error (fk, e'))) in
+      let if_expr =
+        If (tassert, e, L (Null fk), Some (tassert, Error (fk, e')))
+      in
       let final_expr = Local (fk, binds, fk, if_expr) in
       ( tassert,
         desugar_expr { (* env with *) within_an_object = true } final_expr )
@@ -426,32 +378,25 @@ and desugar_field_name env v =
   match v with
   | FId v ->
       let id = desugar_ident env v in
-      let str = mk_core_str_literal id in
-      C.FExpr (fk, str, fk)
-  | FStr v ->
-      let v = desugar_string_ env v in
-      C.FExpr (fk, C.L (C.Str v), fk)
+      let str = mk_str_literal id in
+      C.FExpr (fk, C.L str, fk)
+  | FStr v -> C.FExpr (fk, C.L (Str v), fk)
   | FDynamic v ->
       let l, v, r = (desugar_bracket desugar_expr) env v in
       C.FExpr (l, v, r)
 
-and desugar_hidden _env v =
-  match v with
-  | Colon -> C.Colon
-  | TwoColons -> C.TwoColons
-  | ThreeColons -> C.ThreeColons
-
+and desugar_hidden _env v = v
 and desugar_obj_comprehension env _v = todo env "RECORD"
 
 and desugar_import env v =
   match v with
   | Import (v1, v2) ->
       let v1 = desugar_tok env v1 in
-      let v2 = desugar_string_ env v2 in
+      let v2 = todo env v2 in
       todo env (v1, v2)
   | ImportStr (v1, v2) ->
       let v1 = desugar_tok env v1 in
-      let v2 = desugar_string_ env v2 in
+      let v2 = todo env v2 in
       todo env (v1, v2)
 
 (*****************************************************************************)
