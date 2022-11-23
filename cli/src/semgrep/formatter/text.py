@@ -35,6 +35,8 @@ from semgrep.util import with_color
 
 MAX_TEXT_WIDTH = 120
 
+BASE_INDENT = 8
+
 terminal_size = get_terminal_size((MAX_TEXT_WIDTH, 1))[0]
 if terminal_size <= 0:
     terminal_size = MAX_TEXT_WIDTH
@@ -141,8 +143,11 @@ class TextFormatter(BaseFormatter):
                     # while stripping a string, the ANSI code for resetting color might also get stripped.
                     line = line + colorama.Style.RESET_ALL
 
+            # plus one because we want this to be slightly separated from the intervening messages
             if show_path:
-                yield f" " * 9 + f"{with_color(Colors.cyan, f'{path}', bold=False)}"
+                yield f" " * (
+                    BASE_INDENT + 1
+                ) + f"{with_color(Colors.cyan, f'{path}', bold=False)}"
 
             yield f" " * (
                 11 - len(line_number)
@@ -241,9 +246,12 @@ class TextFormatter(BaseFormatter):
             )
 
             if intermediate_vars and len(intermediate_vars) > 0:
-                # TODO change this message based on rule kind of we ever use
+                # TODO change this message based on rule kind if we ever use
                 # dataflow traces for more than just taint
-                yield (8 * " " + "Taint flows through these intermediate variables:")
+                yield (
+                    BASE_INDENT * " "
+                    + "Taint flows through these intermediate variables:"
+                )
                 for var in intermediate_vars:
                     loc = var.location
                     lines = get_lines(Path(loc.path), loc.start.line, loc.end.line)
@@ -262,9 +270,9 @@ class TextFormatter(BaseFormatter):
                     )
 
             if isinstance(call_trace.value, out.CliCall):
-                yield (8 * " " + "then call to:")
+                yield (BASE_INDENT * " " + "then call to:")
             elif isinstance(call_trace.value, out.CliLoc):
-                yield (8 * " " + "then reaches:")
+                yield (BASE_INDENT * " " + "then reaches:")
             yield from TextFormatter._call_trace_to_lines(
                 call_trace,
                 color_output,
@@ -286,7 +294,7 @@ class TextFormatter(BaseFormatter):
 
             if source:
                 yield ""
-                yield (8 * " " + "Taint comes from:")
+                yield (BASE_INDENT * " " + "Taint comes from:")
                 yield from TextFormatter._call_trace_to_lines(
                     source,
                     color_output,
@@ -298,7 +306,10 @@ class TextFormatter(BaseFormatter):
                 # TODO change this message based on rule kind of we ever use
                 # dataflow traces for more than just taint
                 yield ""
-                yield (8 * " " + "Taint flows through these intermediate variables:")
+                yield (
+                    BASE_INDENT * " "
+                    + "Taint flows through these intermediate variables:"
+                )
                 for var in intermediate_vars:
                     loc = var.location
                     lines = get_lines(Path(loc.path), loc.start.line, loc.end.line)
@@ -318,7 +329,7 @@ class TextFormatter(BaseFormatter):
 
             if sink:
                 yield ""
-                yield (8 * " " + "This is how taint reaches the sink:")
+                yield (BASE_INDENT * " " + "This is how taint reaches the sink:")
                 yield from TextFormatter._call_trace_to_lines(
                     sink,
                     color_output,

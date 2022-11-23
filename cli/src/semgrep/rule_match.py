@@ -304,6 +304,8 @@ class RuleMatch:
 
     @property
     def dataflow_trace(self) -> Optional[core.CliMatchDataflowTrace]:
+        # We need this to quickly get augment a Location with the contents of the location
+        # Convenient to just have it as a separate function
         def translate_loc(location: core.Location) -> Tuple[core.Location, str]:
             with open(location.path, errors="replace") as fd:
                 content = util.read_range(
@@ -319,12 +321,10 @@ class RuleMatch:
                     core.CliLoc(translate_loc(call_trace.value.value))
                 )
             elif isinstance(call_trace.value, core.CoreCall):
-                intermediate_vars = []
-                for var in call_trace.value.value[1]:
-                    location, content = translate_loc(var.location)
-                    intermediate_vars.append(
-                        core.CliMatchIntermediateVar(location=location, content=content)
-                    )
+                intermediate_vars = [
+                    core.CliMatchIntermediateVar(*translate_loc(var.location))
+                    for var in call_trace.value.value[1]
+                ]
 
                 return core.CliMatchCallTrace(
                     core.CliCall(

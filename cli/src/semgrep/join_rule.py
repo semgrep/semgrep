@@ -388,7 +388,8 @@ def cli_call_trace_to_core_call_trace(
             )
         )
     else:
-        # unreachable
+        # unreachable, theoretically
+        logger.error("Reached unreachable code in cli call trace to core call trace")
         return None
 
 
