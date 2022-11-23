@@ -12,6 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+module A = AST_jsonnet
+module C = Core_jsonnet
 
 (*****************************************************************************)
 (* Prelude *)
@@ -24,20 +26,21 @@
 type value_ =
   | Primitive of primitive
   | Object of object_
-  | Function of Core_jsonnet.function_definition
-  | Array of Core_jsonnet.expr list
+  | Function of C.function_definition
+  | Array of C.expr array A.bracket
 
 (* mostly like AST_jsonnet.literal but with evaluated Double instead of Number *)
 and primitive =
-  | Null of AST_jsonnet.tok
-  | Bool of bool AST_jsonnet.wrap
-  | Double of float AST_jsonnet.wrap
-  | Str of AST_jsonnet.string_
+  | Null of A.tok
+  | Bool of bool A.wrap
+  | Double of float A.wrap
+  | Str of A.string_
 
-and object_ = Core_jsonnet.obj_assert list * field list
+and object_ = C.obj_assert list * field list
 
 and field = {
-  fld_name : AST_jsonnet.string_;
-  fld_hidden : AST_jsonnet.hidden AST_jsonnet.wrap;
-  fld_value : Core_jsonnet.expr;
+  fld_name : A.string_;
+  fld_hidden : A.hidden A.wrap;
+  fld_value : C.expr;
 }
+[@@deriving show]
