@@ -158,7 +158,8 @@ and desugar_expr_aux env v =
   (* no need to handle specially e in super, handled by desugar_special *)
   | BinaryOp (e, (In, t), e') ->
       let std_objectHasEx = mk_DotAccess_std ("objectHasEx", t) in
-      desugar_expr env
+      desugar_expr
+        { (* env with *) within_an_object = true }
         (Call (std_objectHasEx, (fk, [ Arg e'; Arg e; Arg true_ ], fk)))
   (* general case *)
   | BinaryOp (v1, v2, v3) ->
@@ -408,17 +409,25 @@ and desugar_assert_ (env : env) (v : assert_ * bind list) : C.obj_assert =
       ( tassert,
         desugar_expr { (* env with *) within_an_object = true } final_expr )
 
-and desugar_field (env : env) (v : field * bind list) =
-  let { fld_name; fld_attr; fld_hidden; fld_value }, _binds = v in
-  ignore (fld_name, fld_attr, fld_hidden, fld_value);
-  ignore (desugar_field_name, desugar_attribute, desugar_hidden);
-  todo env "RECORD"
+and desugar_field (env : env) (v : field * bind list) : C.field =
+  let { fld_name; fld_attr; fld_hidden; fld_value = e' }, binds = v in
+  let fld_name = desugar_field_name env fld_name in
+  let fld_hidden = (desugar_wrap desugar_hidden) env fld_hidden in
+  let fld_value =
+    desugar_expr
+      { (* env with *) within_an_object = true }
+      (Local (fk, binds, fk, e'))
+  in
+  match fld_attr with
+  | None -> { C.fld_name; fld_hidden; fld_value }
+  | Some (PlusField _) -> todo env "PlusField"
 
 and desugar_field_name env v =
   match v with
   | FId v ->
       let id = desugar_ident env v in
-      C.FExpr (fk, C.Id id, fk)
+      let str = mk_core_str_literal id in
+      C.FExpr (fk, str, fk)
   | FStr v ->
       let v = desugar_string_ env v in
       C.FExpr (fk, C.L (C.Str v), fk)
@@ -431,12 +440,6 @@ and desugar_hidden _env v =
   | Colon -> C.Colon
   | TwoColons -> C.TwoColons
   | ThreeColons -> C.ThreeColons
-
-and desugar_attribute env v =
-  match v with
-  | PlusField v ->
-      let v = desugar_tok env v in
-      todo env v
 
 and desugar_obj_comprehension env _v = todo env "RECORD"
 
