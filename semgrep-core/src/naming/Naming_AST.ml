@@ -413,25 +413,25 @@ let params_of_parameters env xs =
    This also works for `@Component`.
 *)
 let js_get_angular_constructor_args env attrs defs =
-  let is_injectable = List.exists
-    (function
-          | NamedAttr (_, Id ((("Injectable" | "Component"), _), _), _) ->
-              true
-          | _ -> false)
-        attrs
-  in
-    defs
-  |> List.filter_map
+  let is_injectable =
+    List.exists
       (function
-        | {
-            s =
-              DefStmt
-                ( { name = EN (Id (("constructor", _), _)); _ },
-                  FuncDef { fparams; _ } );
-            _;
-          } when is_injectable ->
-            Some (params_of_parameters env fparams)
-        | _ -> None)
+        | NamedAttr (_, Id ((("Injectable" | "Component"), _), _), _) -> true
+        | _ -> false)
+      attrs
+  in
+  defs
+  |> List.filter_map (function
+       | {
+           s =
+             DefStmt
+               ( { name = EN (Id (("constructor", _), _)); _ },
+                 FuncDef { fparams; _ } );
+           _;
+         }
+         when is_injectable ->
+           Some (params_of_parameters env fparams)
+       | _ -> None)
   |> List.concat
 
 let declare_var env lang id id_info ~explicit vinit vtype =
