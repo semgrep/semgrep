@@ -413,10 +413,10 @@ let params_of_parameters env xs =
    This also works for `@Component`.
 *)
 let js_get_angular_constructor_args env attrs defs =
-  let is_injectable = List.exists 
+  let is_injectable = List.exists
     (function
           | NamedAttr (_, Id ((("Injectable" | "Component"), _), _), _) ->
-              true 
+              true
           | _ -> false)
         attrs
   in
