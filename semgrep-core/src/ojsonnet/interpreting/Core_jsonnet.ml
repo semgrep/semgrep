@@ -142,14 +142,12 @@ and parameter = P of ident * tok (* '=' *) * expr
 (* Objects  *)
 (* ------------------------------------------------------------------------- *)
 and obj_inside =
-  | Object of obj_assert list * obj_member list
+  (* no OAssert anymore (moved up in Object), no OLocal *)
+  | Object of obj_assert list * field list
   (* used also for Array comprehension *)
   | ObjectComp of obj_comprehension
 
 and obj_assert = tok (* assert *) * expr
-
-(* no OAssert anymore (moved up in Object), no OLocal *)
-and obj_member = OField of field
 
 and field = {
   fld_name : field_name;
