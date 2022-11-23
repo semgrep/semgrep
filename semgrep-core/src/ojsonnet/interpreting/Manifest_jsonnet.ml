@@ -1,3 +1,3 @@
-(* TODO see https://jsonnet.org/ref/spec.html#manifestation *)
+(* See https://jsonnet.org/ref/spec.html#manifestation *)
 
-let manifest (_v : Value_jsonnet.value_) : JSON.t = failwith "TODO"
+let manifest (v : Value_jsonnet.value_) : JSON.t = Eval_jsonnet.manifest_value v
