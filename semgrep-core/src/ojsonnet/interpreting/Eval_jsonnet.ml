@@ -28,12 +28,19 @@ module V = Value_jsonnet
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type _env = unit
+type env = unit
 
 exception Error of string * Parse_info.t
 
 (* -1, 0, 1 *)
 type cmp = Inf | Eq | Sup
+
+let int_to_cmp = function
+  | -1 -> Inf
+  | 0 -> Eq
+  | 1 -> Sup
+  (* all the OCaml Xxx.compare should return only -1, 0, or 1 *)
+  | _else_ -> assert false
 
 (*****************************************************************************)
 (* Helpers *)
@@ -64,18 +71,25 @@ let eval_bracket ofa env (v1, v2, v3) =
 
 let eval_ident _env v = v
 
+let string_of_string (x : A.string_) : string A.wrap =
+  let _verbatimTODO, _kindTODO, (l, xs, r) = x in
+  let str = xs |> Common.map fst |> String.concat "" in
+  let infos = xs |> Common.map snd in
+  let tk = Parse_info.combine_infos l (infos @ [ r ]) in
+  (str, tk)
+
 (*****************************************************************************)
 (* eval_expr *)
 (*****************************************************************************)
 
-let rec eval_expr env v =
+let rec eval_expr (env : env) (v : expr) : V.value_ =
   match v with
   | L v ->
       let prim =
         match v with
         | A.Null tk -> V.Null tk
         | A.Bool (b, tk) -> V.Bool (b, tk)
-        | A.Str x -> V.Str x
+        | A.Str x -> V.Str (string_of_string x)
         | A.Number (s, tk) ->
             (* TODO: double check things *)
             let f = float_of_string s in
@@ -150,15 +164,32 @@ let rec eval_expr env v =
           | V.Primitive (V.Bool (b, _)) as v ->
               if b then v else eval_expr env er
           | v -> error tk (spf "Not a boolean for ||: %s" (sv v)))
+      | Lt
+      | LtE
+      | Gt
+      | GtE ->
+          let cmp = eval_std_cmp env tk el er in
+          let bool =
+            match (op, cmp) with
+            | Lt, Inf -> true
+            | Lt, (Eq | Sup) -> false
+            | LtE, (Inf | Eq) -> true
+            | LtE, Sup -> true
+            | Gt, (Inf | Eq) -> false
+            | Gt, Sup -> true
+            | GtE, Inf -> false
+            | GtE, (Eq | Sup) -> true
+            | ( ( Plus | Minus | Mult | Div | LSL | LSR | And | Or | BitAnd
+                | BitOr | BitXor ),
+                _ ) ->
+                assert false
+          in
+          Primitive (Bool (bool, tk))
       | Minus
       | Mult
       | Div
       | LSL
       | LSR
-      | Lt
-      | LtE
-      | Gt
-      | GtE
       | BitAnd
       | BitOr
       | BitXor ->
@@ -217,9 +248,35 @@ and eval_parameter env v =
  * so we dont need to produce a value_ that other code can use; we can
  * return a cmp.
  *)
-and _eval_std_cmp _env _el _er : cmp =
-  ignore (Inf, Eq, Sup);
-  failwith "TODO"
+and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
+  let rec eval_std_cmp_value_ (v_el : V.value_) (v_er : V.value_) : cmp =
+    match (v_el, v_er) with
+    | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq
+    | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
+    | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
+    | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
+        match eval_std_cmp env tk ax.(0) bx.(0) with
+        | (Inf | Sup) as r -> r
+        | Eq ->
+            let a_sub =
+              V.Array (al, Array.sub ax 1 (Array.length ax - 1), ar)
+            in
+            let b_sub =
+              V.Array (bl, Array.sub bx 1 (Array.length bx - 1), br)
+            in
+            eval_std_cmp_value_ a_sub b_sub)
+    | V.Primitive (V.Double (fl, _)), V.Primitive (V.Double (fr, _)) ->
+        Float.compare fl fr |> int_to_cmp
+    | V.Primitive (V.Str (strl, _)), V.Primitive (V.Str (strr, _)) ->
+        (* TODO? or use unicode? *)
+        String.compare strl strr |> int_to_cmp
+    (* note that it does not make sense to compare (<, <=, >=, >) 2 booleans
+     * or 2 nulls. They are not ordonnable
+     *)
+    | _else_ ->
+        error tk (spf "comparing uncomparable: %s vs %s" (sv v_el) (sv v_er))
+  in
+  eval_std_cmp_value_ (eval_expr env el) (eval_expr env er)
 
 (*****************************************************************************)
 (* eval_obj_inside *)
