@@ -118,11 +118,13 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
       in
       V.Primitive prim
   (* lazy evaluation of Array and Functions *)
-  | Array (l, xs, r) -> V.Array (l, Array.of_list xs, r)
+  | Array (l, xs, r) ->
+      let elts =
+        xs |> Array.of_list |> Array.map (fun e -> eval_expr_lazy_value env e)
+      in
+      V.Array (l, elts, r)
   | Lambda v -> V.Function v
-  | O v ->
-      let l, obj, r = (eval_bracket eval_obj_inside) env v in
-      V.Object (l, obj, r)
+  | O v -> eval_obj_inside env v
   | Id (s, tk) -> lookup env tk (LId s)
   | IdSpecial (Self, tk) -> lookup env tk LSelf
   | IdSpecial (Super, tk) -> lookup env tk LSuper
@@ -150,11 +152,19 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
                 error tkf (spf "negative value for array index: %s" (sv e'))
             | _ when i >= 0 && i < Array.length arr ->
                 let ei = arr.(i) in
-                eval_expr env ei
+                Lazy.force ei.v
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv e'))
           else error tkf (spf "Not an integer: %s" (sv e'))
-      (* TODO: V.Object case! *)
+      | V.Object (_l, (_assertsTODO, fields), _r), V.Primitive (V.Str (fld, tk))
+        -> (
+          match
+            fields
+            |> List.find_opt (fun (field : V.field) ->
+                   fst field.fld_name =$= fld)
+          with
+          | None -> error tk (spf "field %s not present in %s" fld (sv e))
+          | Some fld -> Lazy.force fld.fld_value.v)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv e')))
   | Call (e0, (l, args, _r)) -> (
       match eval_expr env e0 with
@@ -213,6 +223,10 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
   | Error (_tk, v2) ->
       let v2 = eval_expr env v2 in
       todo env v2
+
+and eval_expr_lazy_value env e =
+  let v = lazy (eval_expr env e) in
+  { v; e }
 
 and eval_binary_op env el (op, tk) er =
   match op with
@@ -324,7 +338,9 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
     | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
     | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
     | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
-        match eval_std_cmp env tk ax.(0) bx.(0) with
+        let a0 = Lazy.force ax.(0).v in
+        let b0 = Lazy.force bx.(0).v in
+        match eval_std_cmp_value_ a0 b0 with
         | (Inf | Sup) as r -> r
         | Eq ->
             let a_sub =
@@ -351,29 +367,30 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
 (* eval_obj_inside *)
 (*****************************************************************************)
 
-and eval_obj_inside env v : V.object_ =
-  match v with
+and eval_obj_inside env (l, x, r) : V.value_ =
+  match x with
   | Object (asserts, fields) ->
+      (* sanity check no duplicated fields *)
+      let hdupes = Hashtbl.create 16 in
+      (* TODO: add self and super to scope using _o *)
       let fields =
         fields
         |> Common.map_filter
              (fun { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value } ->
                match eval_expr env ei with
                | V.Primitive (V.Null _) -> None
-               | V.Primitive (V.Str str) ->
-                   Some { V.fld_name = str; fld_hidden; fld_value }
+               | V.Primitive (V.Str ((str, _) as fld_name)) ->
+                   if Hashtbl.mem hdupes str then
+                     error tk (spf "duplicate field name: \"%s\"" str)
+                   else Hashtbl.add hdupes str true;
+
+                   let fld_value = eval_expr_lazy_value env fld_value in
+                   Some { V.fld_name; fld_hidden; fld_value }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
-      (* sanity check no duplicated fields *)
-      let h = Hashtbl.create 16 in
-      fields
-      |> List.iter (fun { V.fld_name = str, tk; _ } ->
-             if Hashtbl.mem h str then
-               error tk (spf "duplicate field name: \"%s\"" str)
-             else Hashtbl.add h str true);
-      (asserts, fields)
-  | ObjectComp v ->
-      let v = eval_obj_comprehension env v in
+      V.Object (l, (asserts, fields), r)
+  | ObjectComp x ->
+      let v = eval_obj_comprehension env x in
       todo env v
 
 and eval_obj_comprehension env v =
@@ -393,11 +410,18 @@ and eval_for_comp env v =
 (* Manifestation *)
 (*****************************************************************************)
 (* We can't define manifestation in a separate module because
- * it's mutually recursive with the evaluator
+ * it's mutually recursive with the evaluator. Some builtins
+ * such as string concatenations rely on toString which relies
+ * on manifest.
+ * Moreover, because of the lazy evaluations of array and object elements,
+ * it is even more mutually recursive with the evaluator.
  *
  * See https://jsonnet.org/ref/spec.html#manifestation
+ *
+ * old: was passing an env but it can't work because all the Local
+ * are implicitely defined via closures in env.locals lazy values.
  *)
-and manifest_value_env (env : env) (v : Value_jsonnet.value_) : JSON.t =
+and manifest_value (v : Value_jsonnet.value_) : JSON.t =
   match v with
   | V.Primitive x -> (
       match x with
@@ -409,9 +433,9 @@ and manifest_value_env (env : env) (v : Value_jsonnet.value_) : JSON.t =
   | V.Array (_, arr, _) ->
       J.Array
         (arr |> Array.to_list
-        |> Common.map (fun e ->
-               let v = eval_expr env e in
-               manifest_value_env env v))
+        |> Common.map (fun lzv ->
+               let v = Lazy.force lzv.V.v in
+               manifest_value v))
   | V.Object (_l, (_assertsTODO, fields), _r) as _o ->
       (* TODO: evaluate asserts *)
       let xs =
@@ -421,9 +445,8 @@ and manifest_value_env (env : env) (v : Value_jsonnet.value_) : JSON.t =
                | A.Hidden -> None
                | A.Visible
                | A.ForcedVisible ->
-                   (* TODO: add self and super to scope using _o *)
-                   let v = eval_expr env fld_value in
-                   let j = manifest_value_env env v in
+                   let v = Lazy.force fld_value.v in
+                   let j = manifest_value v in
                    Some (fst fld_name, j))
       in
       J.Object xs
@@ -437,5 +460,3 @@ let empty_env = { locals = Map_.empty }
 let eval_program (e : Core_jsonnet.program) : Value_jsonnet.value_ =
   let v = eval_expr empty_env e in
   v
-
-let manifest_value v = manifest_value_env empty_env v

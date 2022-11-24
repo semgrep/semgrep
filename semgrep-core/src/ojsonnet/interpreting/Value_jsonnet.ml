@@ -22,8 +22,6 @@ module C = Core_jsonnet
  *
  * See https://jsonnet.org/ref/spec.html#jsonnet_values
  *
- * TODO? store the value in Array and Object once they have been computed
- * once? To not redo the work everytime?
  *)
 
 (*****************************************************************************)
@@ -34,8 +32,7 @@ type value_ =
   | Primitive of primitive
   | Object of object_ A.bracket
   | Function of C.function_definition
-  (* Note that the array element are not values! They are evaluated lazily *)
-  | Array of C.expr array A.bracket
+  | Array of lazy_value array A.bracket
 
 (* mostly like AST_jsonnet.literal but with evaluated Double instead of
  * Number and a simplified string!
@@ -50,12 +47,22 @@ and primitive =
 
 and object_ = C.obj_assert list * field list
 
+(* opti? make it a hashtbl of string -> field for faster lookup? *)
 and field = {
-  (* like Str *)
+  (* like Str, strictly evaluated! *)
   fld_name : string A.wrap;
   fld_hidden : A.hidden A.wrap;
-  (* Note that the field value are actually not values! They are evaluated
-   * lazily. Only the fld_name is "resolved" to a string. *)
-  fld_value : C.expr;
+  fld_value : lazy_value;
+}
+
+(* old: was just C.expr but this can't work because manifest
+ * can't be passed the correct environment to evaluate the array
+ * elts or fields
+ *)
+and lazy_value = {
+  (* lazy closures built from a call to Eval_jsonnet.eval_expr *)
+  v : value_ Lazy.t;
+  (* just for pretty printing as we can't pretty print closures *)
+  e : C.expr;
 }
 [@@deriving show]
