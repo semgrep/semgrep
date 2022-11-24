@@ -7,8 +7,6 @@ function f() {
     sink(x.a.b.c)
     //ruleid: test
     sink(x.a.b.c.d)
-    //ok: test
-    sink(x.d.e)
     //ruleid: test
     sink(x.d.e[k].f.g[l].h)
     //ruleid: test

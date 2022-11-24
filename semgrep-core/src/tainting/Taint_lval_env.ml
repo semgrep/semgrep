@@ -25,8 +25,6 @@ module VarMap = Var_env.VarMap
 module LvalMap = Map.Make (LV.LvalOrdered)
 module LvalSet = Set.Make (LV.LvalOrdered)
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 type t = {
   tainted : T.taints LvalMap.t;
       (** Lvalues that are tainted, it is only meant to track l-values of the form x.a_1. ... . a_N. *)
@@ -76,12 +74,12 @@ let normalize_lval lval =
     match base with
     | Var _ -> Some (base, rev_offset)
     | VarSpecial _ -> (
-        (* this.x.a_1. ... . a_N becomes x.a_1. ... . a_N *)
-        match List.rev lval.rev_offset with
+        match List.rev rev_offset with
+        (* this.x o_1 ... o_N becomes x o_1 ... o_N *)
         | { o = IL.Dot var; _ } :: offset' -> Some (Var var, List.rev offset')
-        | [] -> None
+        (* we do not handle any other case *)
+        | []
         | { o = IL.Index _; _ } :: _ ->
-            logger#error "normalize_lval: Impossible happened";
             None)
     | Mem _ -> None
   in
@@ -90,6 +88,9 @@ let normalize_lval lval =
     |> List.filter (fun o ->
            match o.IL.o with
            | IL.Dot _ -> true
+           (* TODO: If we check here for constant indexes we could make it index
+            * sensitive! But we also need to tweak the look up. Since you may taint
+            * `x.a` and then look for `x.a[1]` and it should tell you it's tainted. *)
            | IL.Index _ -> false)
   in
   Some { IL.base; rev_offset }
