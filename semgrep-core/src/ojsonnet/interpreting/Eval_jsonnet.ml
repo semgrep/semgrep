@@ -29,19 +29,21 @@ module J = JSON
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type env = unit
+type env = {
+  (* The spec uses a lambda-calculus inspired substitution model, but
+   * it is probably simpler and more efficient to use a classic
+   * environment where the locals are defined. Jsonnet uses lazy
+   * evaluation so we model this by using Lazy below.
+   *)
+  locals : (local_id, V.value_ Lazy.t) Map_.t;
+}
+
+and local_id = LSelf | LSuper | LId of string
 
 exception Error of string * Parse_info.t
 
 (* -1, 0, 1 *)
 type cmp = Inf | Eq | Sup
-
-let int_to_cmp = function
-  | -1 -> Inf
-  | 0 -> Eq
-  | 1 -> Sup
-  (* all the OCaml Xxx.compare should return only -1, 0, or 1 *)
-  | _else_ -> assert false
 
 (*****************************************************************************)
 (* Helpers *)
@@ -53,11 +55,6 @@ let error tk s =
 
 let sv e = V.show_value_ e
 let todo _env _v = failwith "TODO"
-let eval_list f env x = x |> Common.map (fun x -> f env x)
-
-let eval_wrap ofa env (v1, v2) =
-  let v1 = ofa env v1 in
-  (v1, v2)
 
 let eval_bracket ofa env (v1, v2, v3) =
   let v2 = ofa env v2 in
@@ -69,6 +66,28 @@ let string_of_string (x : A.string_) : string A.wrap =
   let infos = xs |> Common.map snd in
   let tk = Parse_info.combine_infos l (infos @ [ r ]) in
   (str, tk)
+
+let int_to_cmp = function
+  | -1 -> Inf
+  | 0 -> Eq
+  | 1 -> Sup
+  (* all the OCaml Xxx.compare should return only -1, 0, or 1 *)
+  | _else_ -> assert false
+
+let string_of_local_id = function
+  | LSelf -> "self"
+  | LSuper -> "super"
+  | LId s -> s
+
+let lookup env tk local_id =
+  let lzv =
+    try Map_.find local_id env.locals with
+    | Not_found ->
+        error tk
+          (spf "could not find '%s' in the environment"
+             (string_of_local_id local_id))
+  in
+  Lazy.force lzv
 
 (*****************************************************************************)
 (* Evaluator *)
@@ -104,14 +123,21 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
   | O v ->
       let l, obj, r = (eval_bracket eval_obj_inside) env v in
       V.Object (l, obj, r)
-  | Id id -> todo env id
-  | IdSpecial v ->
-      let v = (eval_wrap eval_special) env v in
-      todo env v
-  | Local (_tlocal, _bindsTODO, _tsemi, e) ->
-      (* TODO: just skipping binds for now *)
-      pr2 "TODO: Local";
-      eval_expr env e
+  | Id (s, tk) -> lookup env tk (LId s)
+  | IdSpecial (Self, tk) -> lookup env tk LSelf
+  | IdSpecial (Super, tk) -> lookup env tk LSuper
+  | Local (_tlocal, binds, _tsemi, e) ->
+      let locals =
+        binds
+        |> List.fold_left
+             (fun acc (B (id, _teq, e)) ->
+               (* closure! *)
+               (* TODO? should we use env.locals or acc ? *)
+               let lzv = lazy (eval_expr { locals = env.locals } e) in
+               Map_.add (LId (fst id)) lzv acc)
+             env.locals
+      in
+      eval_expr { (* env with *) locals } e
   | ArrayAccess (v1, v2) -> (
       let e = eval_expr env v1 in
       let l, e', _r = (eval_bracket eval_expr) env v2 in
@@ -128,11 +154,36 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv e'))
           else error tkf (spf "Not an integer: %s" (sv e'))
+      (* TODO: V.Object case! *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv e')))
-  | Call (v1, v2) ->
-      let v1 = eval_expr env v1 in
-      let v2 = (eval_bracket (eval_list eval_argument)) env v2 in
-      todo env (v1, v2)
+  | Call (e0, (l, args, _r)) -> (
+      match eval_expr env e0 with
+      | V.Function { f_tok = _; f_params = l, params, r; f_body = eb } ->
+          (* the named_args are supposed to be the last one *)
+          let basic_args, named_args =
+            args
+            |> Common.partition_either (function
+                 | Arg ei -> Left ei
+                 | NamedArg (id, _tk, ei) -> Right (fst id, ei))
+          in
+          (* opti? use a hashtbl? but for < 5 elts, probably worse? *)
+          let hnamed_args = Common.hash_of_list named_args in
+          let basic_args = Array.of_list basic_args in
+          let m = Array.length basic_args in
+          let binds =
+            params
+            |> List.mapi (fun i (P (id, teq, ei')) ->
+                   let ei'' =
+                     match i with
+                     | _ when i < m -> basic_args.(i) (* ei *)
+                     | _ when Hashtbl.mem hnamed_args (fst id) ->
+                         Hashtbl.find hnamed_args (fst id)
+                     | _else_ -> ei'
+                   in
+                   B (id, teq, ei''))
+          in
+          eval_expr env (Local (l, binds, r, eb))
+      | v -> error l (spf "not a function: %s" (sv v)))
   | UnaryOp ((op, tk), e) -> (
       match op with
       | UBang -> (
@@ -162,20 +213,6 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
   | Error (_tk, v2) ->
       let v2 = eval_expr env v2 in
       todo env v2
-
-and eval_special env v =
-  match v with
-  | Self -> todo env
-  | Super -> todo env
-
-and eval_argument env v =
-  match v with
-  | Arg v ->
-      let v = eval_expr env v in
-      todo env v
-  | NamedArg (_id, _teq, v3) ->
-      let v3 = eval_expr env v3 in
-      todo env v3
 
 and eval_binary_op env el (op, tk) er =
   match op with
@@ -272,14 +309,6 @@ and eval_binary_op env el (op, tk) er =
                (Parse_info.str_of_info tk)
                (sv v2)))
 
-(*
-and eval_parameter env v =
-  match v with
-  | P (_id, _teq, v3) ->
-      let v3 = eval_expr env v3 in
-      todo env (v3)
-*)
-
 (*****************************************************************************)
 (* std.cmp *)
 (*****************************************************************************)
@@ -347,18 +376,11 @@ and eval_obj_inside env v : V.object_ =
       let v = eval_obj_comprehension env v in
       todo env v
 
-and eval_field_name env v =
-  match v with
-  | FExpr v ->
-      let v = (eval_bracket eval_expr) env v in
-      todo env v
-
 and eval_obj_comprehension env v =
-  (fun env (v1, _tk, v3, v4) ->
-    let v1 = eval_field_name env v1 in
+  (fun env (_fldname, _tk, v3, v4) ->
     let v3 = eval_expr env v3 in
     let v4 = eval_for_comp env v4 in
-    todo env (v1, v3, v4))
+    todo env (v3, v4))
     env v
 
 and eval_for_comp env v =
@@ -410,11 +432,10 @@ and manifest_value_env (env : env) (v : Value_jsonnet.value_) : JSON.t =
 (* Entry points *)
 (*****************************************************************************)
 
+let empty_env = { locals = Map_.empty }
+
 let eval_program (e : Core_jsonnet.program) : Value_jsonnet.value_ =
-  let env = () in
-  let v = eval_expr env e in
+  let v = eval_expr empty_env e in
   v
 
-let manifest_value v =
-  let env = () in
-  manifest_value_env env v
+let manifest_value v = manifest_value_env empty_env v
