@@ -40,8 +40,13 @@ type finding =
 
 type signature = finding list
 (** A taint signature, it is simply a list of findings for a function.
+ *
  * Note that `ArgToSink` and `ArgToReturn` introduce a form of
  * "taint polymorphism", making the taint analysis context-sensitive.
+ *
+ * Also note that, within each function, if there are multiple paths through
+ * which a taint source may reach a sink, we do not keep all of them but only
+ * the shortest one.
  *
  * THINK: We could write this in a way that resembles a function type,
  *   but right now it would probably just add complexity. *)

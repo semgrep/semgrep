@@ -28,7 +28,7 @@ type tainted_tokens = G.tok list [@@deriving show]
  * TODO: May have to annotate each tainted token with a `call_trace` that explains
  * how it got tainted, so it may help triaging. For example, if we got
  * `x = f(tainted)`, it may be interesting to see how is `f` propagating the
- * taint on its input.
+ * taint from its input.
  *)
 
 type 'a call_trace =
@@ -36,7 +36,7 @@ type 'a call_trace =
   | Call of G.expr * tainted_tokens * 'a call_trace
 [@@deriving show]
 
-let lenght_of_call_trace ct =
+let length_of_call_trace ct =
   let rec loop acc = function
     | PM _ -> acc
     | Call (_, _, ct') -> loop (acc + 1) ct'
@@ -163,7 +163,15 @@ let pick_taint taint1 taint2 =
   match (taint1.orig, taint1.orig) with
   | Arg _, Arg _ -> taint2
   | Src src1, Src src2 ->
-      if lenght_of_call_trace src1 < lenght_of_call_trace src2 then taint1
+      let call_trace_cmp =
+        Int.compare (length_of_call_trace src1) (length_of_call_trace src2)
+      in
+      if call_trace_cmp < 0 then taint1
+      else if call_trace_cmp > 0 then taint2
+      else if
+        (* same length *)
+        List.length taint1.tokens < List.length taint2.tokens
+      then taint1
       else taint2
   | Src _, Arg _
   | Arg _, Src _ ->
@@ -213,6 +221,8 @@ module Taint_set = struct
      * THINK: We could do more clever things like checking whether a trace is an
      *   extension of another trace and such. This could also be dealt with in the
      *   taint-signatures themselves. But for now this solution is good.
+     *
+     * coupling: If this changes, make sure to update docs for the `Taint.signature` type.
      *)
     set
     |> Taint_map.update taint.orig (function
