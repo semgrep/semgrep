@@ -39,7 +39,8 @@ type value_ =
 
 (* mostly like AST_jsonnet.literal but with evaluated Double instead of
  * Number and a simplified string!
- * TODO: float enough for Double? string good enough for unicode? codepoints?
+ * Is float good enough? That's what we use in JSON.t so should be good.
+ * TODO? string good enough for unicode? codepoints?
  *)
 and primitive =
   | Null of A.tok

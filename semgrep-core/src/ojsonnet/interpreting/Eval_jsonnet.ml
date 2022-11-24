@@ -53,14 +53,7 @@ let error tk s =
 
 let sv e = V.show_value_ e
 let todo _env _v = failwith "TODO"
-let eval_string _env v = v
 let eval_list f env x = x |> Common.map (fun x -> f env x)
-
-(*****************************************************************************)
-(* Evaluator *)
-(*****************************************************************************)
-
-let eval_tok _env v = v
 
 let eval_wrap ofa env (v1, v2) =
   let v1 = ofa env v1 in
@@ -70,14 +63,16 @@ let eval_bracket ofa env (v1, v2, v3) =
   let v2 = ofa env v2 in
   (v1, v2, v3)
 
-let eval_ident _env v = v
-
 let string_of_string (x : A.string_) : string A.wrap =
   let _verbatimTODO, _kindTODO, (l, xs, r) = x in
   let str = xs |> Common.map fst |> String.concat "" in
   let infos = xs |> Common.map snd in
   let tk = Parse_info.combine_infos l (infos @ [ r ]) in
   (str, tk)
+
+(*****************************************************************************)
+(* Evaluator *)
+(*****************************************************************************)
 
 (*****************************************************************************)
 (* eval_expr *)
@@ -109,9 +104,7 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
   | O v ->
       let l, obj, r = (eval_bracket eval_obj_inside) env v in
       V.Object (l, obj, r)
-  | Id v ->
-      let v = (eval_wrap eval_string) env v in
-      todo env v
+  | Id id -> todo env id
   | IdSpecial v ->
       let v = (eval_wrap eval_special) env v in
       todo env v
@@ -150,62 +143,15 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
       | UMinus
       | UTilde ->
           todo env ())
-  | BinaryOp (el, (op, tk), er) -> (
-      match op with
-      | Plus -> (
-          match (eval_expr env el, eval_expr env er) with
-          | V.Array (l1, arr1, _r1), V.Array (_l2, arr2, r2) ->
-              V.Array (l1, Array.append arr1 arr2, r2)
-          | _else_ -> todo env ())
-      | And -> (
-          match eval_expr env el with
-          | V.Primitive (V.Bool (b, _)) as v ->
-              if b then eval_expr env er else v
-          | v -> error tk (spf "Not a boolean for &&: %s" (sv v)))
-      | Or -> (
-          match eval_expr env el with
-          | V.Primitive (V.Bool (b, _)) as v ->
-              if b then v else eval_expr env er
-          | v -> error tk (spf "Not a boolean for ||: %s" (sv v)))
-      | Lt
-      | LtE
-      | Gt
-      | GtE ->
-          let cmp = eval_std_cmp env tk el er in
-          let bool =
-            match (op, cmp) with
-            | Lt, Inf -> true
-            | Lt, (Eq | Sup) -> false
-            | LtE, (Inf | Eq) -> true
-            | LtE, Sup -> true
-            | Gt, (Inf | Eq) -> false
-            | Gt, Sup -> true
-            | GtE, Inf -> false
-            | GtE, (Eq | Sup) -> true
-            | ( ( Plus | Minus | Mult | Div | LSL | LSR | And | Or | BitAnd
-                | BitOr | BitXor ),
-                _ ) ->
-                assert false
-          in
-          Primitive (Bool (bool, tk))
-      | Minus
-      | Mult
-      | Div
-      | LSL
-      | LSR
-      | BitAnd
-      | BitOr
-      | BitXor ->
-          todo env ())
+  | BinaryOp (el, (op, tk), er) -> eval_binary_op env el (op, tk) er
   | If (tif, e1, e2, e3) -> (
       match eval_expr env e1 with
       | V.Primitive (V.Bool (b, _)) ->
           if b then eval_expr env e2 else eval_expr env e3
       | v -> error tif (spf "not a boolean for if: %s" (sv v)))
-  | Error (v1, v2) ->
-      let v1 = eval_tok env v1 in
+  | Error (_tk, v2) ->
       let v2 = eval_expr env v2 in
-      todo env (v1, v2)
+      todo env v2
 
 and eval_special env v =
   match v with
@@ -217,20 +163,62 @@ and eval_argument env v =
   | Arg v ->
       let v = eval_expr env v in
       todo env v
-  | NamedArg (v1, v2, v3) ->
-      let v1 = eval_ident env v1 in
-      let v2 = eval_tok env v2 in
+  | NamedArg (_id, _teq, v3) ->
       let v3 = eval_expr env v3 in
-      todo env (v1, v2, v3)
+      todo env v3
+
+and eval_binary_op env el (op, tk) er =
+  match op with
+  | Plus -> (
+      match (eval_expr env el, eval_expr env er) with
+      | V.Array (l1, arr1, _r1), V.Array (_l2, arr2, r2) ->
+          V.Array (l1, Array.append arr1 arr2, r2)
+      | _else_ -> todo env ())
+  | And -> (
+      match eval_expr env el with
+      | V.Primitive (V.Bool (b, _)) as v -> if b then eval_expr env er else v
+      | v -> error tk (spf "Not a boolean for &&: %s" (sv v)))
+  | Or -> (
+      match eval_expr env el with
+      | V.Primitive (V.Bool (b, _)) as v -> if b then v else eval_expr env er
+      | v -> error tk (spf "Not a boolean for ||: %s" (sv v)))
+  | Lt
+  | LtE
+  | Gt
+  | GtE ->
+      let cmp = eval_std_cmp env tk el er in
+      let bool =
+        match (op, cmp) with
+        | Lt, Inf -> true
+        | Lt, (Eq | Sup) -> false
+        | LtE, (Inf | Eq) -> true
+        | LtE, Sup -> true
+        | Gt, (Inf | Eq) -> false
+        | Gt, Sup -> true
+        | GtE, Inf -> false
+        | GtE, (Eq | Sup) -> true
+        | ( ( Plus | Minus | Mult | Div | LSL | LSR | And | Or | BitAnd | BitOr
+            | BitXor ),
+            _ ) ->
+            assert false
+      in
+      Primitive (Bool (bool, tk))
+  | Minus
+  | Mult
+  | Div
+  | LSL
+  | LSR
+  | BitAnd
+  | BitOr
+  | BitXor ->
+      todo env ()
 
 (*
 and eval_parameter env v =
   match v with
-  | P (v1, v2, v3) ->
-      let v1 = eval_ident env v1 in
-      let v2 = eval_tok env v2 in
+  | P (_id, _teq, v3) ->
       let v3 = eval_expr env v3 in
-      todo env (v1, v2, v3)
+      todo env (v3)
 *)
 
 (*****************************************************************************)
@@ -307,21 +295,17 @@ and eval_field_name env v =
       todo env v
 
 and eval_obj_comprehension env v =
-  (fun env (v1, v2, v3, v4) ->
+  (fun env (v1, _tk, v3, v4) ->
     let v1 = eval_field_name env v1 in
-    let v2 = eval_tok env v2 in
     let v3 = eval_expr env v3 in
     let v4 = eval_for_comp env v4 in
-    todo env (v1, v2, v3, v4))
+    todo env (v1, v3, v4))
     env v
 
 and eval_for_comp env v =
-  (fun env (v1, v2, v3, v4) ->
-    let v1 = eval_tok env v1 in
-    let v2 = eval_ident env v2 in
-    let v3 = eval_tok env v3 in
+  (fun env (_tk1, _id, _tk2, v4) ->
     let v4 = eval_expr env v4 in
-    todo env (v1, v2, v3, v4))
+    todo env v4)
     env v
 
 (*****************************************************************************)
