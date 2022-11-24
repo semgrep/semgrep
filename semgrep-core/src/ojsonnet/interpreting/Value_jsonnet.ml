@@ -21,12 +21,20 @@ module C = Core_jsonnet
 (* Jsonnet "values".
  *
  * See https://jsonnet.org/ref/spec.html#jsonnet_values
+ *
+ * TODO? store the value in Array and Object once they have been computed
+ * once? To not redo the work everytime?
  *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
 
 type value_ =
   | Primitive of primitive
   | Object of object_ A.bracket
   | Function of C.function_definition
+  (* Note that the array element are not values! They are evaluated lazily *)
   | Array of C.expr array A.bracket
 
 (* mostly like AST_jsonnet.literal but with evaluated Double instead of
@@ -42,8 +50,11 @@ and primitive =
 and object_ = C.obj_assert list * field list
 
 and field = {
-  fld_name : A.string_;
+  (* like Str *)
+  fld_name : string A.wrap;
   fld_hidden : A.hidden A.wrap;
+  (* Note that the field value are actually not values! They are evaluated
+   * lazily. Only the fld_name is "resolved" to a string. *)
   fld_value : C.expr;
 }
 [@@deriving show]

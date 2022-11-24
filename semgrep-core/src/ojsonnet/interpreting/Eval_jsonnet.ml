@@ -105,24 +105,20 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
       V.Primitive prim
   (* lazy evaluation of Array and Functions *)
   | Array (l, xs, r) -> V.Array (l, Array.of_list xs, r)
-  | Lambda v ->
-      let v = eval_function_definition env v in
-      V.Function v
+  | Lambda v -> V.Function v
   | O v ->
-      let v = (eval_bracket eval_obj_inside) env v in
-      todo env v
+      let l, obj, r = (eval_bracket eval_obj_inside) env v in
+      V.Object (l, obj, r)
   | Id v ->
       let v = (eval_wrap eval_string) env v in
       todo env v
   | IdSpecial v ->
       let v = (eval_wrap eval_special) env v in
       todo env v
-  | Local (v1, v2, v3, v4) ->
-      let v1 = eval_tok env v1 in
-      let v2 = (eval_list eval_bind) env v2 in
-      let v3 = eval_tok env v3 in
-      let v4 = eval_expr env v4 in
-      todo env (v1, v2, v3, v4)
+  | Local (_tlocal, _bindsTODO, _tsemi, e) ->
+      (* TODO: just skipping binds for now *)
+      pr2 "TODO: Local";
+      eval_expr env e
   | ArrayAccess (v1, v2) -> (
       let e = eval_expr env v1 in
       let l, e', _r = (eval_bracket eval_expr) env v2 in
@@ -227,16 +223,6 @@ and eval_argument env v =
       let v3 = eval_expr env v3 in
       todo env (v1, v2, v3)
 
-and eval_bind env v =
-  match v with
-  | B (v1, v2, v3) ->
-      let v1 = eval_ident env v1 in
-      let v2 = eval_tok env v2 in
-      let v3 = eval_expr env v3 in
-      todo env (v1, v2, v3)
-
-and eval_function_definition _env v = v
-
 (*
 and eval_parameter env v =
   match v with
@@ -289,24 +275,30 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
 (* eval_obj_inside *)
 (*****************************************************************************)
 
-and eval_obj_inside env v =
+and eval_obj_inside env v : V.object_ =
   match v with
-  | Object (v1, v2) ->
-      let v1 = (eval_list eval_obj_assert) env v1 in
-      let v2 = (eval_list eval_field) env v2 in
-      todo env (v1, v2)
+  | Object (asserts, fields) ->
+      let fields =
+        fields
+        |> Common.map_filter
+             (fun { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value } ->
+               match eval_expr env ei with
+               | V.Primitive (V.Null _) -> None
+               | V.Primitive (V.Str str) ->
+                   Some { V.fld_name = str; fld_hidden; fld_value }
+               | v -> error tk (spf "field name was not a string: %s" (sv v)))
+      in
+      (* sanity check no duplicated fields *)
+      let h = Hashtbl.create 16 in
+      fields
+      |> List.iter (fun { V.fld_name = str, tk; _ } ->
+             if Hashtbl.mem h str then
+               error tk (spf "duplicate field name: \"%s\"" str)
+             else Hashtbl.add h str true);
+      (asserts, fields)
   | ObjectComp v ->
       let v = eval_obj_comprehension env v in
       todo env v
-
-and eval_obj_assert env v =
-  (fun env (v1, v2) ->
-    let v1 = eval_tok env v1 in
-    let v2 = eval_expr env v2 in
-    todo env (v1, v2))
-    env v
-
-and eval_field env _v = todo env "TODO: field"
 
 and eval_field_name env v =
   match v with
@@ -355,7 +347,21 @@ and manifest_value_env (env : env) (v : Value_jsonnet.value_) : JSON.t =
         |> Common.map (fun e ->
                let v = eval_expr env e in
                manifest_value_env env v))
-  | V.Object (tk, _, _) -> error tk (spf "TODO: %s" (sv v))
+  | V.Object (_l, (_assertsTODO, fields), _r) as _o ->
+      (* TODO: evaluate asserts *)
+      let xs =
+        fields
+        |> Common.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
+               match fst fld_hidden with
+               | A.Hidden -> None
+               | A.Visible
+               | A.ForcedVisible ->
+                   (* TODO: add self and super to scope using _o *)
+                   let v = eval_expr env fld_value in
+                   let j = manifest_value_env env v in
+                   Some (fst fld_name, j))
+      in
+      J.Object xs
 
 (*****************************************************************************)
 (* Entry points *)

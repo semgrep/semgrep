@@ -88,9 +88,9 @@ let map_imm_tok_prec_p1_pat_c7f65b4 (env : env)
 
 let map_h (env : env) (x : CST.h) : hidden wrap =
   match x with
-  | `COLON tok -> (Colon, (* ":" *) token env tok)
-  | `COLONCOLON tok -> (TwoColons, (* "::" *) token env tok)
-  | `COLONCOLONCOLON tok -> (ThreeColons, (* ":::" *) token env tok)
+  | `COLON tok -> (Visible, (* ":" *) token env tok)
+  | `COLONCOLON tok -> (Hidden, (* "::" *) token env tok)
+  | `COLONCOLONCOLON tok -> (ForcedVisible, (* ":::" *) token env tok)
 
 let map_str_single (env : env) (xs : CST.str_single) : string_content =
   Common.map
