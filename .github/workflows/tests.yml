@@ -71,6 +71,32 @@ jobs:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
 
+  # The semgrep-proprietary repo is a private OCaml extension of semgrep.
+  # Here, we check whether the current version of semgrep
+  # breaks the semgrep-proprietary build. If that's the case,
+  # a non-blocking warning is posted as a comment on the PR page.
+  #
+  build-semgrep-proprietary:
+    runs-on: ubuntu-latest
+    container: returntocorp/ocaml:alpine-2022-09-24
+    env:
+      HOME: /root
+    steps:
+      - name: Check out semgrep
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Check out and build semgrep-proprietary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ./scripts/build-semgrep-proprietary; then
+            msg="✅ semgrep-proprietary was compiled successfully."
+          else
+            msg="⚠️  semgrep-proprietary failed to build."
+          fi
+          gh pr comment ${{ github.event.pull_request.number }} --body "$msg"
+
   build-docker:
     runs-on: ubuntu-latest
     steps:
