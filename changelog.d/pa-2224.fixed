@@ -1,0 +1,3 @@
+DeepSemgrep: Keep only the shortest trace originating from a taint source. This
+also prevents falling into infinite loops when inferring taint signatures for
+mutually recursive procedures.
