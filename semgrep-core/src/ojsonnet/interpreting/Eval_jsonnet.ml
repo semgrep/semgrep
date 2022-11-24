@@ -16,6 +16,7 @@ open Common
 open Core_jsonnet
 module A = AST_jsonnet
 module V = Value_jsonnet
+module J = JSON
 
 (*****************************************************************************)
 (* Prelude *)
@@ -82,7 +83,13 @@ let string_of_string (x : A.string_) : string A.wrap =
 (* eval_expr *)
 (*****************************************************************************)
 
-let rec eval_expr (env : env) (v : expr) : V.value_ =
+let rec eval_expr env e =
+  try eval_expr_aux env e with
+  | Failure "TODO" ->
+      pr2 (spf "TODO: construct not handled:\n %s" (show_expr e));
+      failwith "TODO:eval"
+
+and eval_expr_aux (env : env) (v : expr) : V.value_ =
   match v with
   | L v ->
       let prim =
@@ -333,13 +340,32 @@ and eval_for_comp env v =
  *
  * See https://jsonnet.org/ref/spec.html#manifestation
  *)
-and manifest_value (_v : Value_jsonnet.value_) : JSON.t = failwith "TODO"
+and manifest_value_env (env : env) (v : Value_jsonnet.value_) : JSON.t =
+  match v with
+  | V.Primitive x -> (
+      match x with
+      | V.Null _t -> J.Null
+      | V.Bool (b, _tk) -> J.Bool b
+      | V.Double (f, _tk) -> J.Float f
+      | V.Str (s, _tk) -> J.String s)
+  | V.Function { f_tok = tk; _ } -> error tk (spf "Function value: %s" (sv v))
+  | V.Array (_, arr, _) ->
+      J.Array
+        (arr |> Array.to_list
+        |> Common.map (fun e ->
+               let v = eval_expr env e in
+               manifest_value_env env v))
+  | V.Object (tk, _, _) -> error tk (spf "TODO: %s" (sv v))
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
 
 let eval_program (e : Core_jsonnet.program) : Value_jsonnet.value_ =
   let env = () in
   let v = eval_expr env e in
   v
+
+let manifest_value v =
+  let env = () in
+  manifest_value_env env v
