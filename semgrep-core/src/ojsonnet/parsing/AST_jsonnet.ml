@@ -214,7 +214,12 @@ and field = {
 and field_name = FId of ident | FStr of string_ | FDynamic of expr bracket
 
 (* =~ visibility *)
-and hidden = Colon | TwoColons | ThreeColons
+and hidden =
+  | Visible
+  (* : *)
+  | Hidden
+  (* :: *)
+  | ForcedVisible (* ::: *)
 
 and attribute =
   (* concatenate fields, not valid for methods *)
