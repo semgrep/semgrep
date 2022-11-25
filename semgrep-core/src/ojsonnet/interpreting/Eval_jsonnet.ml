@@ -164,6 +164,7 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
           with
           | None -> error tk (spf "field %s not present in %s" fld (sv e))
           | Some fld -> Lazy.force fld.fld_value.v)
+      (* TODO? support ArrayAccess for Strings? *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv e')))
   | Call (e0, (l, args, _r)) -> (
       match eval_expr env e0 with
@@ -219,9 +220,10 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
       | V.Primitive (V.Bool (b, _)) ->
           if b then eval_expr env e2 else eval_expr env e3
       | v -> error tif (spf "not a boolean for if: %s" (sv v)))
-  | Error (_tk, v2) ->
-      let v2 = eval_expr env v2 in
-      todo env v2
+  | Error (tk, e) -> (
+      match eval_expr env e with
+      | V.Primitive (V.Str (s, tk)) -> error tk (spf "ERROR: %s" s)
+      | v -> error tk (spf "ERROR: %s" (tostring v)))
 
 and eval_binary_op env el (op, tk) er =
   match op with
@@ -233,8 +235,11 @@ and eval_binary_op env el (op, tk) er =
           V.Primitive (V.Double (f1 +. f2, tk))
       | V.Primitive (V.Str (s1, tk1)), V.Primitive (V.Str (s2, _tk2)) ->
           V.Primitive (V.Str (s1 ^ s2, tk1))
-      (* TODO: when one of the value is a string *)
-      (* TODO: when objects *)
+      | V.Primitive (V.Str (s, tk)), v ->
+          V.Primitive (V.Str (s ^ tostring v, tk))
+      | v, V.Primitive (V.Str (s, tk)) ->
+          V.Primitive (V.Str (tostring v ^ s, tk))
+      (* TODO: when objects, inheritance, very complex! *)
       | _else_ -> todo env ())
   | And -> (
       match eval_expr env el with
@@ -470,6 +475,10 @@ and manifest_value (v : Value_jsonnet.value_) : JSON.t =
                    Some (fst fld_name, j))
       in
       J.Object xs
+
+and tostring (v : Value_jsonnet.value_) : string =
+  let j = manifest_value v in
+  JSON.string_of_json j
 
 (*****************************************************************************)
 (* Entry points *)
