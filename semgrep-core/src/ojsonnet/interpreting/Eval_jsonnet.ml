@@ -60,13 +60,6 @@ let eval_bracket ofa env (v1, v2, v3) =
   let v2 = ofa env v2 in
   (v1, v2, v3)
 
-let string_of_string (x : A.string_) : string A.wrap =
-  let _verbatimTODO, _kindTODO, (l, xs, r) = x in
-  let str = xs |> Common.map fst |> String.concat "" in
-  let infos = xs |> Common.map snd in
-  let tk = Parse_info.combine_infos l (infos @ [ r ]) in
-  (str, tk)
-
 let int_to_cmp = function
   | -1 -> Inf
   | 0 -> Eq
@@ -106,7 +99,7 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
         match v with
         | A.Null tk -> V.Null tk
         | A.Bool (b, tk) -> V.Bool (b, tk)
-        | A.Str x -> V.Str (string_of_string x)
+        | A.Str x -> V.Str (A.string_of_string_ x)
         | A.Number (s, tk) ->
             (* TODO: double check things *)
             let f = float_of_string s in

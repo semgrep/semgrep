@@ -1,0 +1,2 @@
+this is a long string
+and it's amazing
