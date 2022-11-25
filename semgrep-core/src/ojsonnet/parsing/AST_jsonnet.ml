@@ -266,3 +266,10 @@ type any = E of expr
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let string_of_string_ (x : string_) : string wrap =
+  let _verbatimTODO, _kindTODO, (l, xs, r) = x in
+  let str = xs |> Common.map fst |> String.concat "" in
+  let infos = xs |> Common.map snd in
+  let tk = Parse_info.combine_infos l (infos @ [ r ]) in
+  (str, tk)

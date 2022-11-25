@@ -28,16 +28,24 @@ module C = Core_jsonnet
 (* Types *)
 (*****************************************************************************)
 type env = {
-  (* TODO: pwd, current_file, import_callback, cache_file, etc.
+  (* like in Python jsonnet binding, "the base is the directly of the file" *)
+  base : Common.dirname;
+  (* TODO: import_callback, cache_file, etc.
    * The cache_file is used to ensure referencial transparency (see the spec
    * when talking about import in the core jsonnet spec).
    *)
   within_an_object : bool;
 }
 
+exception Error of string * Parse_info.t
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let error tk s =
+  (* TODO? if Parse_info.is_fake tk ... *)
+  raise (Error (s, tk))
 
 let fk = Parse_info.unsafe_fake_info ""
 let mk_str_literal (str, tk) = Str (None, DoubleQuote, (fk, [ (str, tk) ], fk))
@@ -148,7 +156,7 @@ and desugar_expr_aux env v =
       let std_objectHasEx = mk_DotAccess_std ("objectHasEx", t) in
       let true_ = L (Bool (true, fk)) in
       desugar_expr
-        { (* env with *) within_an_object = true }
+        { env with within_an_object = true }
         (Call (std_objectHasEx, (fk, [ Arg e'; Arg e; Arg true_ ], fk)))
   (* general case *)
   | BinaryOp (v1, v2, v3) ->
@@ -170,9 +178,7 @@ and desugar_expr_aux env v =
   | Lambda v ->
       let v = desugar_function_definition env v in
       C.Lambda v
-  | I v ->
-      let v = desugar_import env v in
-      todo env v
+  | I v -> desugar_import env v
   | Assert ((tassert, e, None), tsemi, e') ->
       let assert_failed_str = mk_str_literal ("Assertion failed", tassert) in
       desugar_expr env
@@ -358,8 +364,7 @@ and desugar_assert_ (env : env) (v : assert_ * bind list) : C.obj_assert =
         If (tassert, e, L (Null fk), Some (tassert, Error (fk, e')))
       in
       let final_expr = Local (fk, binds, fk, if_expr) in
-      ( tassert,
-        desugar_expr { (* env with *) within_an_object = true } final_expr )
+      (tassert, desugar_expr { env with within_an_object = true } final_expr)
 
 and desugar_field (env : env) (v : field * bind list) : C.field =
   let { fld_name; fld_attr; fld_hidden; fld_value = e' }, binds = v in
@@ -367,7 +372,7 @@ and desugar_field (env : env) (v : field * bind list) : C.field =
   let fld_hidden = (desugar_wrap desugar_hidden) env fld_hidden in
   let fld_value =
     desugar_expr
-      { (* env with *) within_an_object = true }
+      { env with within_an_object = true }
       (Local (fk, binds, fk, e'))
   in
   match fld_attr with
@@ -388,23 +393,33 @@ and desugar_field_name env v =
 and desugar_hidden _env v = v
 and desugar_obj_comprehension env _v = todo env "RECORD"
 
-and desugar_import env v =
+and desugar_import env v : C.expr =
   match v with
-  | Import (v1, v2) ->
-      let v1 = desugar_tok env v1 in
-      let v2 = todo env v2 in
-      todo env (v1, v2)
-  | ImportStr (v1, v2) ->
-      let v1 = desugar_tok env v1 in
-      let v2 = todo env v2 in
-      todo env (v1, v2)
+  | Import (tk, str_)
+  | ImportStr (tk, str_) -> (
+      (* TODO: keep history of import, use tk *)
+      let str, _tk = string_of_string_ str_ in
+      let final_path = Filename.concat env.base str in
+      if not (Sys.file_exists final_path) then
+        error tk (spf "file does not exist: %s" final_path);
+      match v with
+      | ImportStr _ ->
+          let s = Common.read_file final_path in
+          C.L (mk_str_literal (s, tk))
+      (* TODO: import callback so can intercept and do different things
+       * (e.g., handle yaml import, registry for osemgrep)
+       *)
+      | Import _ ->
+          let x = Parse_jsonnet.parse_program final_path in
+          let env = { env with base = Filename.dirname final_path } in
+          desugar_expr env x)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let desugar_program (e : program) : C.program =
-  let env = { within_an_object = false } in
+let desugar_program (file : Common.filename) (e : program) : C.program =
+  let env = { within_an_object = false; base = Filename.dirname file } in
   (* TODO: skipped for now because std.jsonnet contains too many complicated
    * things we don't handle, and it actually does not even parse right now.
    *)
