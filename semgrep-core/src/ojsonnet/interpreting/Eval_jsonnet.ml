@@ -27,7 +27,7 @@ module J = JSON
  *)
 
 (*****************************************************************************)
-(* Types *)
+(* Types and constants *)
 (*****************************************************************************)
 type env = {
   (* The spec uses a lambda-calculus inspired substitution model, but
@@ -90,10 +90,6 @@ let lookup env tk local_id =
   Lazy.force lzv
 
 (*****************************************************************************)
-(* Evaluator *)
-(*****************************************************************************)
-
-(*****************************************************************************)
 (* eval_expr *)
 (*****************************************************************************)
 
@@ -117,10 +113,13 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
             V.Double (f, tk)
       in
       V.Primitive prim
-  (* lazy evaluation of Array and Functions *)
+  (* lazy evaluation of Array elements and Functions *)
   | Array (l, xs, r) ->
       let elts =
-        xs |> Array.of_list |> Array.map (fun e -> eval_expr_lazy_value env e)
+        xs |> Array.of_list
+        |> Array.map (fun e ->
+               let v = lazy (eval_expr env e) in
+               { V.v; e })
       in
       V.Array (l, elts, r)
   | Lambda v -> V.Function v
@@ -223,10 +222,6 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
   | Error (_tk, v2) ->
       let v2 = eval_expr env v2 in
       todo env v2
-
-and eval_expr_lazy_value env e =
-  let v = lazy (eval_expr env e) in
-  { v; e }
 
 and eval_binary_op env el (op, tk) er =
   match op with
@@ -369,26 +364,51 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
 
 and eval_obj_inside env (l, x, r) : V.value_ =
   match x with
-  | Object (asserts, fields) ->
+  | Object (assertsTODO, fields) ->
       (* sanity check no duplicated fields *)
       let hdupes = Hashtbl.create 16 in
-      (* TODO: add self and super to scope using _o *)
-      let fields =
-        fields
-        |> Common.map_filter
-             (fun { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value } ->
-               match eval_expr env ei with
-               | V.Primitive (V.Null _) -> None
-               | V.Primitive (V.Str ((str, _) as fld_name)) ->
-                   if Hashtbl.mem hdupes str then
-                     error tk (spf "duplicate field name: \"%s\"" str)
-                   else Hashtbl.add hdupes str true;
+      (* We need a 'let rec' below because while defining the object o,
+       * we need to add in the environment a binding from LSelf to o
+       * when evaluating the field value.
+       * The use of lazy_o below is a bit ugly but is a trick to overcome
+       * let-rec limitations (you can't do 'let rec o = <a_value>').
+       * See https://stackoverflow.com/questions/19859953/limitations-of-let-rec-in-ocaml
+       *)
+      let rec lazy_o =
+        lazy
+          (V.Object
+             ( l,
+               ( assertsTODO,
+                 fields
+                 |> Common.map_filter
+                      (fun
+                        { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value }
+                      ->
+                        match eval_expr env ei with
+                        | V.Primitive (V.Null _) -> None
+                        | V.Primitive (V.Str ((str, _) as fld_name)) ->
+                            if Hashtbl.mem hdupes str then
+                              error tk (spf "duplicate field name: \"%s\"" str)
+                            else Hashtbl.add hdupes str true;
 
-                   let fld_value = eval_expr_lazy_value env fld_value in
-                   Some { V.fld_name; fld_hidden; fld_value }
-               | v -> error tk (spf "field name was not a string: %s" (sv v)))
+                            let fld_value =
+                              let v =
+                                lazy
+                                  (let locals =
+                                     env.locals |> Map_.add LSelf lazy_o
+                                     |> Map_.add LSuper (lazy V.empty_obj)
+                                   in
+                                   eval_expr { (* env with *) locals } fld_value)
+                              in
+                              { V.v; e = fld_value }
+                            in
+                            Some { V.fld_name; fld_hidden; fld_value }
+                        | v ->
+                            error tk
+                              (spf "field name was not a string: %s" (sv v))) ),
+               r ))
       in
-      V.Object (l, (asserts, fields), r)
+      Lazy.force lazy_o
   | ObjectComp x ->
       let v = eval_obj_comprehension env x in
       todo env v
@@ -455,8 +475,7 @@ and manifest_value (v : Value_jsonnet.value_) : JSON.t =
 (* Entry points *)
 (*****************************************************************************)
 
-let empty_env = { locals = Map_.empty }
-
 let eval_program (e : Core_jsonnet.program) : Value_jsonnet.value_ =
+  let empty_env = { locals = Map_.empty } in
   let v = eval_expr empty_env e in
   v
