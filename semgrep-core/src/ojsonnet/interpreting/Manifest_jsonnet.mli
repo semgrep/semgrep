@@ -1,3 +1,5 @@
+exception Error of string * Parse_info.t
+
 (* TODO: at some point we probably would prefer an AST_generic.program
  * which could track the origin of tokens through import, eval, and
  * manifestation and that we could pass to osemgrep to evaluate the rules.

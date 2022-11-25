@@ -25,6 +25,9 @@ module MV = Metavariable
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* TODO? make it a flag? *)
+let use_ojsonnet = true
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -1379,12 +1382,18 @@ let parse_file ?error_recovery file =
         Json_to_generic.program ~unescape_strings:true
           (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
-        Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
-            let cmd = spf "jsonnet -J vendor %s -o %s" file tmpfile in
-            let n = Sys.command cmd in
-            if n <> 0 then failwith (spf "error executing %s" cmd);
-            Json_to_generic.program ~unescape_strings:true
-              (Parse_json.parse_program tmpfile))
+        if use_ojsonnet then
+          let ast = Parse_jsonnet.parse_program file in
+          let core = Desugar_jsonnet.desugar_program file ast in
+          let value_ = Eval_jsonnet.eval_program core in
+          Manifest_jsonnet_to_AST_generic.manifest_value value_
+        else
+          Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
+              let cmd = spf "jsonnet -J vendor %s -o %s" file tmpfile in
+              let n = Sys.command cmd in
+              if n <> 0 then failwith (spf "error executing %s" cmd);
+              let ast = Parse_json.parse_program tmpfile in
+              Json_to_generic.program ~unescape_strings:true ast)
     | FT.Config FT.Yaml -> parse_yaml_rule_file file
     | _else_ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";

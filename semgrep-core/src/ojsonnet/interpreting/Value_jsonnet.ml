@@ -21,7 +21,6 @@ module C = Core_jsonnet
 (* Jsonnet "values".
  *
  * See https://jsonnet.org/ref/spec.html#jsonnet_values
- *
  *)
 
 (*****************************************************************************)
