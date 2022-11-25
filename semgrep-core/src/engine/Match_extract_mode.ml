@@ -189,7 +189,7 @@ let map_taint_trace map_loc { Pattern_match.source; tokens; sink } =
   let rec map_taint_call_trace trace =
     match trace with
     | Pattern_match.Toks tokens ->
-        Pattern_match.Toks (Common.map map_loc tokens)
+        Pattern_match.Toks (Stdcompat.Lazy.map_val (Common.map map_loc) tokens)
     | Pattern_match.Call { call_toks; intermediate_vars; call_trace } ->
         Pattern_match.Call
           {
@@ -213,10 +213,7 @@ let map_res map_loc tmpfile file
           m with
           file;
           range_loc = Common2.pair map_loc m.range_loc;
-          taint_trace =
-            Option.map
-              (Stdcompat.Lazy.map_val (map_taint_trace map_loc))
-              m.taint_trace;
+          taint_trace = Option.map (map_taint_trace map_loc) m.taint_trace;
         })
       mr.matches
   in

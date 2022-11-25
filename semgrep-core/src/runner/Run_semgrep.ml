@@ -94,7 +94,8 @@ let string_of_toks toks =
   String.concat ", " (Common.map (fun tok -> PI.str_of_info tok) toks)
 
 let rec print_taint_call_trace ~format ~spaces = function
-  | Pattern_match.Toks toks -> Matching_report.print_match ~format ~spaces toks
+  | Pattern_match.Toks (lazy toks) ->
+      Matching_report.print_match ~format ~spaces toks
   | Call { call_toks; intermediate_vars; call_trace } ->
       let spaces_string = String.init spaces (fun _ -> ' ') in
       pr (spaces_string ^ "call to");
@@ -108,7 +109,7 @@ let rec print_taint_call_trace ~format ~spaces = function
 
 let print_taint_trace ~format taint_trace =
   if format = Matching_report.Normal then (
-    let (lazy { Pattern_match.source; tokens; sink }) = taint_trace in
+    let { Pattern_match.source; tokens; sink } = taint_trace in
     pr "  * Taint comes from:";
     print_taint_call_trace ~format ~spaces:4 source;
     if tokens <> [] then

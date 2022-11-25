@@ -45,7 +45,7 @@ type pattern_match_tokens = Parse_info.t list [@@deriving show, eq]
 (* Simplified version of Taint.source_to_sink meant for finding reporting *)
 type taint_call_trace =
   (* A direct match *)
-  | Toks of pattern_match_tokens
+  | Toks of pattern_match_tokens Lazy.t
   (* An indirect match through a function call *)
   | Call of {
       call_toks : pattern_match_tokens;
@@ -79,7 +79,7 @@ type t = {
      in deduplication.
      We now rely on equality of taint traces, which in turn relies on equality of `Parse_info.t`.
   *)
-  taint_trace : taint_trace Lazy.t option;
+  taint_trace : taint_trace option;
 }
 
 (* This is currently a record, but really only the rule id should matter.
@@ -128,11 +128,33 @@ let range pm =
   let start_loc, end_loc = pm.range_loc in
   Range.range_of_token_locations start_loc end_loc
 
+let length_of_taint_trace tt =
+  let rec count ?(calls = 0) ?(vars = 0) = function
+    | Toks _ -> (calls, vars)
+    | Call { call_trace; intermediate_vars; _ } ->
+        let n = List.length intermediate_vars in
+        count ~calls:(calls + 1) ~vars:(vars + n) call_trace
+  in
+  let source_num_calls, source_num_vars = count tt.source in
+  let sink_num_calls, sink_num_vars = count tt.sink in
+  (source_num_calls + sink_num_calls, source_num_vars + sink_num_vars)
+
+let has_shorter_trace pm1 pm2 =
+  match (pm1.taint_trace, pm2.taint_trace) with
+  | None, None -> true
+  | None, Some _ -> true
+  | Some _, None -> false
+  | Some tt1, Some tt2 ->
+      (* First of all, we want the traces with the smallest number of function calls,
+       * and then we want those with the fewest intermediate variables. *)
+      Stdlib.compare (length_of_taint_trace tt1) (length_of_taint_trace tt2) < 0
+
 (* Is [pm1] a submatch of [pm2] ? *)
 let submatch pm1 pm2 =
   pm1.rule_id = pm2.rule_id && pm1.file = pm2.file
   (* THINK: && "pm1.bindings = pm2.bindings" ? *)
   && Range.( $<=$ ) (range pm1) (range pm2)
+  && has_shorter_trace pm2 pm1
 
 (* Remove matches that are srictly inside another match. *)
 let no_submatches pms =

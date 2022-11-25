@@ -192,7 +192,7 @@ let tokens_to_intermediate_vars tokens =
   List.filter_map token_to_intermediate_var tokens
 
 let rec taint_call_trace = function
-  | Toks toks ->
+  | Toks (lazy toks) ->
       let* loc = tokens_to_single_loc toks in
       Some (Out.CoreLoc loc)
   | Call { call_trace; intermediate_vars; call_toks } ->
@@ -213,12 +213,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     =
   let min_loc, max_loc = x.range_loc in
   let startp, endp = OutH.position_range min_loc max_loc in
-  let dataflow_trace =
-    Option.map
-      (function
-        | (lazy trace) -> taint_trace_to_dataflow_trace trace)
-      x.taint_trace
-  in
+  let dataflow_trace = Option.map taint_trace_to_dataflow_trace x.taint_trace in
   let rendered_fix =
     let* render_fix = render_fix_opt in
     let* edit = render_fix x in
