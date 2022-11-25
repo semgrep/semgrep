@@ -82,6 +82,10 @@ let lookup env tk local_id =
   in
   Lazy.force lzv
 
+let tostring (v : Value_jsonnet.value_) : string =
+  let j = Manifest_jsonnet.manifest_value v in
+  JSON.string_of_json j
+
 (*****************************************************************************)
 (* eval_expr *)
 (*****************************************************************************)
@@ -423,55 +427,6 @@ and eval_for_comp env v =
     let v4 = eval_expr env v4 in
     todo env v4)
     env v
-
-(*****************************************************************************)
-(* Manifestation *)
-(*****************************************************************************)
-(* We can't define manifestation in a separate module because
- * it's mutually recursive with the evaluator. Some builtins
- * such as string concatenations rely on toString which relies
- * on manifest.
- * Moreover, because of the lazy evaluations of array and object elements,
- * it is even more mutually recursive with the evaluator.
- *
- * See https://jsonnet.org/ref/spec.html#manifestation
- *
- * old: was passing an env but it can't work because all the Local
- * are implicitely defined via closures in env.locals lazy values.
- *)
-and manifest_value (v : Value_jsonnet.value_) : JSON.t =
-  match v with
-  | V.Primitive x -> (
-      match x with
-      | V.Null _t -> J.Null
-      | V.Bool (b, _tk) -> J.Bool b
-      | V.Double (f, _tk) -> J.Float f
-      | V.Str (s, _tk) -> J.String s)
-  | V.Function { f_tok = tk; _ } -> error tk (spf "Function value: %s" (sv v))
-  | V.Array (_, arr, _) ->
-      J.Array
-        (arr |> Array.to_list
-        |> Common.map (fun lzv ->
-               let v = Lazy.force lzv.V.v in
-               manifest_value v))
-  | V.Object (_l, (_assertsTODO, fields), _r) as _o ->
-      (* TODO: evaluate asserts *)
-      let xs =
-        fields
-        |> Common.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
-               match fst fld_hidden with
-               | A.Hidden -> None
-               | A.Visible
-               | A.ForcedVisible ->
-                   let v = Lazy.force fld_value.v in
-                   let j = manifest_value v in
-                   Some (fst fld_name, j))
-      in
-      J.Object xs
-
-and tostring (v : Value_jsonnet.value_) : string =
-  let j = manifest_value v in
-  JSON.string_of_json j
 
 (*****************************************************************************)
 (* Entry points *)
