@@ -52,7 +52,7 @@ type conf = {
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show_supported_languages : bool;
-  dump_ast : Dump_subcommand.conf option;
+  dump : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
 }
@@ -100,7 +100,7 @@ let default : conf =
     (* ugly: should be separate subcommands *)
     version = false;
     show_supported_languages = false;
-    dump_ast = None;
+    dump = None;
     validate = None;
     test = None;
   }
@@ -574,6 +574,10 @@ let o_profile : bool Term.t =
   let info = Arg.info [ "profile" ] ~doc:{|<undocumented>|} in
   Arg.value (Arg.flag info)
 
+let o_dump_config : string option Term.t =
+  let info = Arg.info [ "dump-config" ] ~doc:{|<undocumented>|} in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -581,13 +585,13 @@ let o_profile : bool Term.t =
 let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine autofix baseline_commit config debug dryrun dump_ast emacs error
-      exclude exclude_rule_ids force_color include_ json lang max_memory_mb
-      max_target_bytes metrics num_jobs optimizations pattern profile quiet
-      replacement respect_git_ignore rewrite_rule_ids scan_unknown_extensions
-      severity show_supported_languages strict target_roots test
-      test_ignore_todo time_flag timeout timeout_threshold validate verbose
-      version version_check vim =
+  let combine autofix baseline_commit config debug dryrun dump_ast dump_config
+      emacs error exclude exclude_rule_ids force_color include_ json lang
+      max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
+      profile quiet replacement respect_git_ignore rewrite_rule_ids
+      scan_unknown_extensions severity show_supported_languages strict
+      target_roots test test_ignore_todo time_flag timeout timeout_threshold
+      validate verbose version version_check vim =
     let logging_level =
       match (verbose, debug, quiet) with
       | false, false, false -> Some Logs.Warning
@@ -621,8 +625,8 @@ let cmdline_term : conf Term.t =
        * this ugly special case returning an empty Configs.
        *)
       | [], (None, _, _)
-        when dump_ast || validate || test || version || show_supported_languages
-        ->
+        when dump_ast || dump_config <> None || validate || test || version
+             || show_supported_languages ->
           Rule_fetching.Configs []
       (* TOPORT: handle get_project_url() if empty Configs? *)
       | [], (None, _, _) ->
@@ -674,41 +678,45 @@ let cmdline_term : conf Term.t =
     in
     let rule_filtering_conf = { Rule_filtering.exclude_rule_ids; severity } in
 
-    (* ugly: dump_ast should be a separate subcommand.
+    (* ugly: dump should be a separate subcommand.
      * alt: we could move this code in a Dump_subcommand.validate_cli_args()
      *)
-    let dump_ast =
-      if dump_ast then
-        let target_roots =
-          if target_roots = default.target_roots then [] else target_roots
-        in
-        match (pattern, lang, target_roots) with
-        | Some str, Some lang, [] ->
-            Some
-              {
-                Dump_subcommand.language = lang;
-                target = Dump_subcommand.Pattern str;
-                json;
-              }
-        | None, Some lang, [ file ] ->
-            Some
-              {
-                Dump_subcommand.language = lang;
-                target = Dump_subcommand.File file;
-                json;
-              }
-        | _, None, _ ->
-            Error.abort "--dump-ast and -l/--lang must both be specified"
-        (* stricter: alt: could dump all targets *)
-        | None, Some _, _ :: _ :: _ ->
-            Error.abort "--dump-ast requires exactly one target file"
-        (* stricter: better error message *)
-        | None, Some _, [] ->
-            Error.abort "--dump-ast needs either a target or a -e pattern"
-        (* stricter: *)
-        | Some _, _, _ :: _ ->
-            Error.abort "Can't specify both -e and a target for --dump-ast"
-      else None
+    let dump =
+      match () with
+      | _ when dump_ast -> (
+          let target_roots =
+            if target_roots = default.target_roots then [] else target_roots
+          in
+          match (pattern, lang, target_roots) with
+          | Some str, Some lang_str, [] ->
+              Some
+                {
+                  Dump_subcommand.target =
+                    Dump_subcommand.Pattern (str, Lang.of_string lang_str);
+                  json;
+                }
+          | None, Some lang_str, [ file ] ->
+              Some
+                {
+                  Dump_subcommand.target =
+                    Dump_subcommand.File (file, Lang.of_string lang_str);
+                  json;
+                }
+          | _, None, _ ->
+              Error.abort "--dump-ast and -l/--lang must both be specified"
+          (* stricter: alt: could dump all targets *)
+          | None, Some _, _ :: _ :: _ ->
+              Error.abort "--dump-ast requires exactly one target file"
+          (* stricter: better error message *)
+          | None, Some _, [] ->
+              Error.abort "--dump-ast needs either a target or a -e pattern"
+          (* stricter: *)
+          | Some _, _, _ :: _ ->
+              Error.abort "Can't specify both -e and a target for --dump-ast")
+      | _ when dump_config <> None ->
+          let config = Common2.some dump_config in
+          Some { Dump_subcommand.target = Dump_subcommand.Config config; json }
+      | _else_ -> None
     in
     (* ugly: validate should be a separate subcommand.
      * alt: we could move this code in a Validate_subcommand.cli_args()
@@ -803,7 +811,7 @@ let cmdline_term : conf Term.t =
       (* ugly: *)
       version;
       show_supported_languages;
-      dump_ast;
+      dump;
       validate;
       test;
     }
@@ -813,14 +821,14 @@ let cmdline_term : conf Term.t =
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
-    $ o_dryrun $ o_dump_ast $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
-    $ o_force_color $ o_include $ o_json $ o_lang $ o_max_memory_mb
-    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_optimizations $ o_pattern
-    $ o_profile $ o_quiet $ o_replacement $ o_respect_git_ignore
-    $ o_rewrite_rule_ids $ o_scan_unknown_extensions $ o_severity
-    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold $ o_validate
-    $ o_verbose $ o_version $ o_version_check $ o_vim)
+    $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
+    $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
+    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
+    $ o_optimizations $ o_pattern $ o_profile $ o_quiet $ o_replacement
+    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_scan_unknown_extensions
+    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
+    $ o_test $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold
+    $ o_validate $ o_verbose $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

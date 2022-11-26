@@ -1,5 +1,6 @@
 open Common
 module E = Error
+module FT = File_type
 
 (*****************************************************************************)
 (* Prelude *)
@@ -58,6 +59,21 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
 (* Loading rules *)
 (*****************************************************************************)
 
+(* similar to Parse_rule.parse_file but with special import callbacks
+ * for a registry-aware jsonnet.
+ *)
+let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
+  match FT.file_type_of_file file with
+  | FT.Config FT.Jsonnet ->
+      let ast = Parse_jsonnet.parse_program file in
+      (* TODO: import callback! *)
+      let core = Desugar_jsonnet.desugar_program file ast in
+      let value_ = Eval_jsonnet.eval_program core in
+      let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
+      (* TODO: put to true at some point *)
+      Parse_rule.parse_generic_ast ~error_recovery:false file gen
+  | _else_ -> Parse_rule.parse_and_filter_invalid_rules file
+
 (* Note that we don't sanity check Parse_rule.is_valid_rule_filename,
  * so if you explicitely pass a file that does not have the right
  * extension, we will still process it
@@ -68,7 +84,7 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
 let load_rules_from_file file : rules_and_origin =
   Logs.debug (fun m -> m "loading local config from %s" file);
   if Sys.file_exists file then (
-    let rules, errors = Parse_rule.parse_and_filter_invalid_rules file in
+    let rules, errors = parse_rule file in
     Logs.debug (fun m -> m "Done loading local config from %s" file);
     { origin = Some file; rules; errors })
   else

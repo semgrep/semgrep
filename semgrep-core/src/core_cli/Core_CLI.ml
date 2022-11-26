@@ -297,7 +297,7 @@ let dump_ext_of_lang () =
   let lang_to_exts =
     Lang.keys
     |> Common.map (fun lang_str ->
-           match Lang.lang_of_string_opt lang_str with
+           match Lang.of_string_opt lang_str with
            | Some lang ->
                lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)
            | None -> "")

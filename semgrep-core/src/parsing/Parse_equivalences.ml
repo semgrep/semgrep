@@ -45,7 +45,7 @@ let parse file =
                            langs
                            |> Common.map (function
                                 | `String s -> (
-                                    match Lang.lang_of_string_opt s with
+                                    match Lang.of_string_opt s with
                                     | None ->
                                         error (spf "unsupported language: %s" s)
                                     | Some l -> l)
