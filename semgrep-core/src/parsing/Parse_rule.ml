@@ -355,7 +355,7 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
 (*****************************************************************************)
 
 let parse_language ~id ((s, t) as _lang) : Lang.t =
-  match Lang.lang_of_string_opt s with
+  match Lang.of_string_opt s with
   | None -> raise (R.Err (R.InvalidRule (R.InvalidLanguage s, id, t)))
   | Some l -> l
 

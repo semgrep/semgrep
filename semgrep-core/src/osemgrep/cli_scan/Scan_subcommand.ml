@@ -124,8 +124,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run (Common2.some conf.validate)
-  | _ when conf.dump_ast <> None ->
-      Dump_subcommand.run (Common2.some conf.dump_ast)
+  | _ when conf.dump <> None -> Dump_subcommand.run (Common2.some conf.dump)
   | _else_ ->
       (* --------------------------------------------------------- *)
       (* Let's go *)

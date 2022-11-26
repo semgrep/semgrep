@@ -65,7 +65,7 @@ let assoc =
 
 let lang_map = Common.hash_of_list assoc
 
-let lang_of_string_opt x = Hashtbl.find_opt lang_map (String.lowercase_ascii x)
+let of_string_opt x = Hashtbl.find_opt lang_map (String.lowercase_ascii x)
 
 let keys = Common2.hkeys lang_map
 
@@ -133,3 +133,8 @@ let unsupported_language_message lang =
   else
     Common.spf "unsupported language: %s; supported language tags are: %s" lang
       supported_langs
+
+let of_string string =
+  match of_string_opt string with
+  | None -> failwith (unsupported_language_message string)
+  | Some l -> l

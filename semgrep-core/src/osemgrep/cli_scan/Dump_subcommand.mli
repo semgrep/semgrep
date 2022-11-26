@@ -3,9 +3,12 @@
  * a subcommand.
  *)
 
-type conf = { language : string; target : target_kind; json : bool }
+type conf = { target : target_kind; json : bool }
 
-and target_kind = Pattern of string | File of Common.filename
+and target_kind =
+  | Pattern of string * Lang.t
+  | File of Common.filename * Lang.t
+  | Config of Semgrep_dashdash_config.config_str
 [@@deriving show]
 
 val run : conf -> Exit_code.t
