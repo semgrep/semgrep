@@ -54,6 +54,7 @@ type ident = string wrap [@@deriving show]
  * no Array slices, no complex Array or Object comprehension,
  * no DotAccess (use generalized ArrayAccess), no Assert, no ParenExpr,
  * no Import (expanded during desugaring).
+ * TODO? add Import that resolves lazily during Eval?
  *)
 type expr =
   | L of AST_jsonnet.literal
