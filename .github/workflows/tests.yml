@@ -86,9 +86,36 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
+
+      # The following two steps ('jwt' and 'token') were copy-pasted
+      # from start-release.yml. Eventually, we hope to have a way to
+      # to avoid code duplication.
+      #
+      # We need this to obtain an authentication token that has the
+      # permissions to fetch not just the semgrep repo but also its
+      # friends which include semgrep-proprietary.
+      #
+      - name: Get JWT for semgrep-ci GitHub App
+        id: jwt
+        uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+        env:
+          EXPIRATION: 600 # seconds
+          ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }} # semgrep-ci GitHub App id
+          PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+      - name: Get token for semgrep-ci GitHub App
+        id: token
+        run: |
+          TOKEN="$(curl -X POST \
+          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+          jq -r .token)"
+          echo "::add-mask::$TOKEN"
+          echo "::set-output name=token::$TOKEN"
+
       - name: Check out and build semgrep-proprietary
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           if ./scripts/build-semgrep-proprietary; then
             msg="✅ semgrep-proprietary was compiled successfully."
