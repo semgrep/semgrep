@@ -160,6 +160,33 @@ let module_name_of_filename file =
   let module_name = String.capitalize_ascii b in
   module_name
 
+(* Should `$X(...)` match a call to an IdSpecial function? *)
+let should_match_call = function
+  (* e.g. `this()` in Java constructors *)
+  | G.This
+  (* e.g. `super()` in JS constructor. Should be Java too, but Java doesn't use
+   * IdSpecial for super calls *)
+  | G.Super
+  | G.Self
+  | G.Parent ->
+      true
+  (* TODO Eval should probably be allowed to match *)
+  | G.Eval
+  | G.Typeof
+  | G.Instanceof
+  | G.Sizeof
+  | G.NextArrayIndex
+  | G.Defined
+  | G.ConcatString _
+  | G.EncodedString _
+  | G.InterpolatedElement
+  | G.Spread
+  | G.HashSplat
+  | G.ForOf
+  | G.Op _
+  | G.IncrDecr _ ->
+      false
+
 (*****************************************************************************)
 (* Optimisations (caching, bloom filter) *)
 (*****************************************************************************)
@@ -775,8 +802,8 @@ and m_expr ?(is_root = false) a b =
    * $THIS to match IdSpecial (This) for example.
    *)
   | ( G.Call ({ e = G.N (G.Id ((str, _tok), _id_info)); _ }, _argsa),
-      B.Call ({ e = B.IdSpecial _; _ }, _argsb) )
-    when MV.is_metavar_name str ->
+      B.Call ({ e = B.IdSpecial (idspec, _); _ }, _argsb) )
+    when MV.is_metavar_name str && not (should_match_call idspec) ->
       fail ()
   (* metavar: *)
   (* Matching a generic Id metavariable to an IdSpecial will fail as it is
