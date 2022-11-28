@@ -4,11 +4,11 @@
  * above in the local expression.
  * The hook should return an AST_jsonnet expression if it can handle
  * the PATH or None, in which case it will default to a regular
- * jsonnet file import as in `local x = "foo.jsonnet".
+ * jsonnet file import as in `local x = import "foo.jsonnet".
  *
  * This callback is useful for example in osemgrep to let ojsonnet
- * import yaml files (e.g., local x = 'foo.yaml') or rules from the
- * registry (e.g., local x = 'p/python').
+ * import yaml files (e.g., local x = import 'foo.yaml') or rules from the
+ * registry (e.g., local x = import 'p/python').
  *)
 type import_callback = Common.dirname -> string -> AST_jsonnet.expr option
 
