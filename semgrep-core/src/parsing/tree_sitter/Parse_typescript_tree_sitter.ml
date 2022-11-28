@@ -459,9 +459,7 @@ let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
   in
   let _close = token env v4 (* "}" *) in
   fun (import_tok : tok) (from_path : a_filename) ->
-    imports
-    |> Common.map (fun (name, opt_as_name) ->
-           Import (import_tok, (name, opt_as_name), from_path))
+    [ Import (import_tok, imports, from_path) ]
 
 let import_clause (env : env) (x : CST.import_clause) =
   match x with
@@ -486,7 +484,9 @@ let import_clause (env : env) (x : CST.import_clause) =
         | None -> fun _t _path -> []
       in
       fun t path ->
-        let default = Import (t, ((default_entity, snd v1), Some v1), path) in
+        let default =
+          Import (t, [ ((default_entity, snd v1), Some v1) ], path)
+        in
         default :: v2 t path
 
 let rec decorator_member_expression (env : env)
@@ -2328,7 +2328,9 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                 v1
                 |> List.concat_map (fun (n1, n2opt) ->
                        let tmpname = ("!tmp_" ^ fst n1, snd n1) in
-                       let import = Import (tok2, (n1, Some tmpname), path) in
+                       let import =
+                         Import (tok2, [ (n1, Some tmpname) ], path)
+                       in
                        let e = idexp tmpname in
                        match n2opt with
                        | None ->

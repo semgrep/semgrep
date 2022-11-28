@@ -1104,10 +1104,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let d_attrs = map_of_list map_attribute d_attrs in
     { d; d_attrs }
   and map_directive_kind = function
-    | ImportFrom (t, v1, v2, v3) ->
+    | ImportFrom (t, v1, v2) ->
         let t = map_tok t in
-        let v1 = map_module_name v1 and v2, v3 = map_alias (v2, v3) in
-        ImportFrom (t, v1, v2, v3)
+        let v1 = map_module_name v1 in
+        let v2 = map_of_list map_alias v2 in
+        ImportFrom (t, v1, v2)
     | ImportAs (t, v1, v2) ->
         let t = map_tok t in
         let v1 = map_module_name v1

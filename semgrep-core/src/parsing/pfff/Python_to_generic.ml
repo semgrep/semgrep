@@ -815,7 +815,7 @@ and stmt_aux env x =
       let v1 = module_name env v1 and v2 = list (alias env) v2 in
       Common.map
         (fun (a, b) ->
-          G.DirectiveStmt (G.ImportFrom (t, v1, a, b) |> G.d) |> G.s)
+          G.DirectiveStmt (G.ImportFrom (t, v1, [ (a, b) ]) |> G.d) |> G.s)
         v2
   | Global (t, v1)
   | NonLocal (t, v1) ->

@@ -3030,16 +3030,17 @@ and m_directive a b =
 
   m_directive_basic a.d b.d >!> fun () ->
   match a.d with
-  (* normalize only if very simple import pattern (no alias) *)
-  | G.ImportFrom (_, _, _, None)
-  | G.ImportAs (_, _, None) -> (
-      (* equivalence: *)
-      let normal_a = Normalize_generic.normalize_import_opt true a.d in
-      let normal_b = Normalize_generic.normalize_import_opt false b.d in
-      match (normal_a, normal_b) with
-      | Some (a0, a1), Some (b0, b1) ->
-          m_tok a0 b0 >>= fun () -> m_module_name_prefix a1 b1
-      | _ -> fail ())
+  (* normalize only if very simple import pattern (no aliases) *)
+  | G.ImportFrom (_, _, imports)
+    when List.for_all
+           (function
+             (* None here means that there is no local alias for the imported
+              * name. *)
+             | _imported_name, None -> true
+             | _imported_name, Some _aliases -> false)
+           imports ->
+      m_normalized_imports a.d b.d
+  | G.ImportAs (_, _, None) -> m_normalized_imports a.d b.d
   (* more complex pattern should not be normalized *)
   | G.ImportFrom _
   | G.ImportAs _
@@ -3058,18 +3059,23 @@ and m_directive a b =
 and m_directive_basic a b =
   match (a, b) with
   (* metavar: import $LIB should bind $LIB to the full qualified name *)
-  | ( G.ImportFrom (a0, DottedName [], (str, tok), a3),
-      B.ImportFrom (b0, DottedName xs, x, b3) )
+  (* TODO Should we handle imports with multiple imported names here? Which
+   * import would the metavar bind to? *)
+  | ( G.ImportFrom (a0, DottedName [], [ ((str, tok), a3) ]),
+      B.ImportFrom (b0, DottedName xs, [ (x, b3) ]) )
     when MV.is_metavar_name str ->
       let name = H.name_of_ids (xs @ [ x ]) in
       let* () = m_tok a0 b0 in
       let* () = envf (str, tok) (MV.N name) in
       (m_option_none_can_match_some m_ident_and_id_info) a3 b3
-  | G.ImportFrom (a0, a1, a2, a3), B.ImportFrom (b0, b1, b2, b3) ->
+  | G.ImportFrom (a0, a1, a2), B.ImportFrom (b0, b1, b2) ->
       m_tok a0 b0 >>= fun () ->
       m_module_name_prefix a1 b1 >>= fun () ->
-      m_ident_and_empty_id_info a2 b2 >>= fun () ->
-      (m_option_none_can_match_some m_ident_and_id_info) a3 b3
+      let f (x1, x2) (y1, y2) =
+        m_ident_and_empty_id_info x1 y1 >>= fun () ->
+        (m_option_none_can_match_some m_ident_and_id_info) x2 y2
+      in
+      m_list_in_any_order ~less_is_ok:true f a2 b2
   | G.ImportAs (a0, a1, a2), B.ImportAs (b0, b1, b2) ->
       m_tok a0 b0 >>= fun () ->
       m_module_name_prefix a1 b1 >>= fun () ->
@@ -3093,6 +3099,16 @@ and m_directive_basic a b =
   | G.Package _, _
   | G.PackageEnd _, _ ->
       fail ()
+
+and m_normalized_imports a b =
+  (* equivalence: *)
+  let normal_as = Normalize_generic.normalize_import_opt true a in
+  let normal_bs = Normalize_generic.normalize_import_opt false b in
+  match (normal_as, normal_bs) with
+  | Some (a0, a1), Some (b0, b1) ->
+      m_tok a0 b0 >>= fun () ->
+      m_list_in_any_order ~less_is_ok:true m_module_name_prefix a1 b1
+  | _ -> fail ()
 
 (*****************************************************************************)
 (* Toplevel *)
