@@ -56,6 +56,30 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
   (rules, errors)
 
 (*****************************************************************************)
+(* Registry and yaml aware jsonnet *)
+(*****************************************************************************)
+let import_callback base str =
+  match str with
+  | s when s =~ ".*\\.y[a]?ml$" ->
+      (* On the fly conversion from yaml to jsonnet. We can do
+       * 'local x = import "foo.yml";'!
+       *)
+      let final_path = Filename.concat base str in
+      Logs.debug (fun m ->
+          m "loading yaml file %s, converting to jsonnet" final_path);
+      (* TODO? or use Yaml_to_generic.parse_yaml_file which seems
+       * to be used to parse semgrep rules?
+       *)
+      let gen = Yaml_to_generic.program final_path in
+      (* python: we were simply using a yaml parser and then
+       * dumping it back as JSON and then parsing the JSON (which is
+       * valid jsonnet). What we do here is a bit more complicated but
+       * the advantage is that we have proper error location!
+       *)
+      Some (AST_generic_to_jsonnet.program gen)
+  | _else_ -> None
+
+(*****************************************************************************)
 (* Loading rules *)
 (*****************************************************************************)
 
@@ -66,8 +90,7 @@ let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
   match FT.file_type_of_file file with
   | FT.Config FT.Jsonnet ->
       let ast = Parse_jsonnet.parse_program file in
-      (* TODO: import callback! *)
-      let core = Desugar_jsonnet.desugar_program file ast in
+      let core = Desugar_jsonnet.desugar_program ~import_callback file ast in
       let value_ = Eval_jsonnet.eval_program core in
       let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
       (* TODO: put to true at some point *)

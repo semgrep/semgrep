@@ -27,10 +27,28 @@ module C = Core_jsonnet
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+
+(* Hook to customize how ojsonnet should resolve import expressions
+ * (`local $NAME = $PATH`). The first parameter below is the base directory
+ * of the file currently processed and the second is the $PATH above in
+ * the local expression.
+ * The hook should return an AST_jsonnet expression if it can handle
+ * the PATH or None, in which case it will default to a regular
+ * jsonnet file import as in `local x = "foo.jsonnet".
+ *
+ * This callback is useful for example in osemgrep to let ojsonnet
+ * import yaml files (e.g., local x = 'foo.yaml') or rules from the
+ * registry (e.g., local x = 'p/python').
+ *)
+type import_callback = Common.dirname -> string -> AST_jsonnet.expr option
+
+let default_callback _ _ = None
+
 type env = {
   (* like in Python jsonnet binding, "the base is the directly of the file" *)
   base : Common.dirname;
-  (* TODO: import_callback, cache_file, etc.
+  import_callback : import_callback;
+  (* TODO: cache_file
    * The cache_file is used to ensure referencial transparency (see the spec
    * when talking about import in the core jsonnet spec).
    *)
@@ -395,31 +413,44 @@ and desugar_obj_comprehension env _v = todo env "RECORD"
 
 and desugar_import env v : C.expr =
   match v with
-  | Import (tk, str_)
-  | ImportStr (tk, str_) -> (
+  | Import (tk, str_) ->
       (* TODO: keep history of import, use tk *)
+      let str, _tk = string_of_string_ str_ in
+      let expr, env =
+        match env.import_callback env.base str with
+        | None ->
+            let final_path = Filename.concat env.base str in
+            if not (Sys.file_exists final_path) then
+              error tk (spf "file does not exist: %s" final_path);
+            let ast = Parse_jsonnet.parse_program final_path in
+            let env = { env with base = Filename.dirname final_path } in
+            (ast, env)
+        | Some ast ->
+            (* TODO? let the import callback adjust base? *)
+            (ast, env)
+      in
+      (* recurse *)
+      desugar_expr env expr
+  (* TODO? could also have import_callback on ImportStr!
+   * so could fetch network data from our policies
+   *)
+  | ImportStr (tk, str_) ->
       let str, _tk = string_of_string_ str_ in
       let final_path = Filename.concat env.base str in
       if not (Sys.file_exists final_path) then
         error tk (spf "file does not exist: %s" final_path);
-      match v with
-      | ImportStr _ ->
-          let s = Common.read_file final_path in
-          C.L (mk_str_literal (s, tk))
-      (* TODO: import callback so can intercept and do different things
-       * (e.g., handle yaml import, registry for osemgrep)
-       *)
-      | Import _ ->
-          let x = Parse_jsonnet.parse_program final_path in
-          let env = { env with base = Filename.dirname final_path } in
-          desugar_expr env x)
+      let s = Common.read_file final_path in
+      C.L (mk_str_literal (s, tk))
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let desugar_program (file : Common.filename) (e : program) : C.program =
-  let env = { within_an_object = false; base = Filename.dirname file } in
+let desugar_program ?(import_callback = default_callback)
+    (file : Common.filename) (e : program) : C.program =
+  let env =
+    { within_an_object = false; base = Filename.dirname file; import_callback }
+  in
   (* TODO: skipped for now because std.jsonnet contains too many complicated
    * things we don't handle, and it actually does not even parse right now.
    *)
