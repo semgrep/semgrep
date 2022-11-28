@@ -1,6 +1,7 @@
 open Common
 module E = Error
 module FT = File_type
+module C = Semgrep_dashdash_config
 
 (*****************************************************************************)
 (* Prelude *)
@@ -58,6 +59,20 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
 (*****************************************************************************)
 (* Registry and yaml aware jsonnet *)
 (*****************************************************************************)
+
+let parse_yaml_for_jsonnet (file : Common.filename) : AST_jsonnet.program =
+  Logs.debug (fun m -> m "loading yaml file %s, converting to jsonnet" file);
+  (* TODO? or use Yaml_to_generic.parse_yaml_file which seems
+   * to be used to parse semgrep rules?
+   *)
+  let gen = Yaml_to_generic.program file in
+  (* python: we were simply using a yaml parser and then
+   * dumping it back as JSON and then parsing the JSON (which is
+   * valid jsonnet). What we do here is a bit more complicated but
+   * the advantage is that we get proper error location then!
+   *)
+  AST_generic_to_jsonnet.program gen
+
 let import_callback base str =
   match str with
   | s when s =~ ".*\\.y[a]?ml$" ->
@@ -65,23 +80,51 @@ let import_callback base str =
        * 'local x = import "foo.yml";'!
        *)
       let final_path = Filename.concat base str in
-      Logs.debug (fun m ->
-          m "loading yaml file %s, converting to jsonnet" final_path);
-      (* TODO? or use Yaml_to_generic.parse_yaml_file which seems
-       * to be used to parse semgrep rules?
-       *)
-      let gen = Yaml_to_generic.program final_path in
-      (* python: we were simply using a yaml parser and then
-       * dumping it back as JSON and then parsing the JSON (which is
-       * valid jsonnet). What we do here is a bit more complicated but
-       * the advantage is that we have proper error location!
-       *)
-      Some (AST_generic_to_jsonnet.program gen)
-  | _else_ -> None
-
-(*****************************************************************************)
-(* Loading rules *)
-(*****************************************************************************)
+      Some (parse_yaml_for_jsonnet final_path)
+  | s ->
+      let url_opt =
+        try
+          let kind = Semgrep_dashdash_config.config_kind_of_config_str s in
+          match kind with
+          | C.R rkind ->
+              let url = Semgrep_dashdash_config.url_of_registry_kind rkind in
+              Some url
+          (* TODO: this assumes every URLs are for yaml, but maybe we could
+           * also import URLs to jsonnet files or gist! or look at the
+           * header mimetype when downloading the URL to decide how to
+           * convert it further?
+           *)
+          | C.URL url -> Some url
+          (* TODO? allow to import any config_str? even a directory?
+           * factorize with rules_from_dashdash_config?
+           *)
+          | C.Dir _
+          | C.File _ ->
+              None
+        with
+        | E.Semgrep_error _ -> None
+      in
+      url_opt
+      |> Option.map (fun url ->
+             (* TODO? factorize with load_rules_from_url? but here we
+              * must return some AST_jsonnet, not rules (yet).
+              *)
+             Logs.debug (fun m ->
+                 m "trying to download from %s" (Uri.to_string url));
+             let content =
+               try Network.get url with
+               | Timeout _ as exn -> Exception.catch_and_reraise exn
+               | exn ->
+                   (* was raise Semgrep_error, but equivalent to abort now *)
+                   Error.abort
+                     (spf "Failed to download config from %s: %s"
+                        (Uri.to_string url) (Common.exn_to_s exn))
+             in
+             Logs.debug (fun m ->
+                 m "finished downloading from %s" (Uri.to_string url));
+             Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+                 (* LATER: adjust locations so refer to registry URL *)
+                 parse_yaml_for_jsonnet file))
 
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
@@ -89,6 +132,11 @@ let import_callback base str =
 let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
   match FT.file_type_of_file file with
   | FT.Config FT.Jsonnet ->
+      Logs.err (fun m ->
+          m
+            "Support for Jsonnet rules is experimental and currently meant for \
+             internal use only. The syntax may change or be removed at any \
+             point.");
       let ast = Parse_jsonnet.parse_program file in
       let core = Desugar_jsonnet.desugar_program ~import_callback file ast in
       let value_ = Eval_jsonnet.eval_program core in
@@ -96,6 +144,10 @@ let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
       (* TODO: put to true at some point *)
       Parse_rule.parse_generic_ast ~error_recovery:false file gen
   | _else_ -> Parse_rule.parse_and_filter_invalid_rules file
+
+(*****************************************************************************)
+(* Loading rules *)
+(*****************************************************************************)
 
 (* Note that we don't sanity check Parse_rule.is_valid_rule_filename,
  * so if you explicitely pass a file that does not have the right
@@ -136,8 +188,8 @@ let load_rules_from_url url : rules_and_origin =
 let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
     rules_and_origin list =
   match kind with
-  | File file -> [ load_rules_from_file file ]
-  | Dir dir ->
+  | C.File file -> [ load_rules_from_file file ]
+  | C.Dir dir ->
       List_files.list dir
       (* TOPORT:
          and not _is_hidden_config(l.relative_to(loc))
@@ -157,8 +209,8 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
       *)
       |> List.filter Parse_rule.is_valid_rule_filename
       |> Common.map load_rules_from_file
-  | URL url -> [ load_rules_from_url url ]
-  | R rkind ->
+  | C.URL url -> [ load_rules_from_url url ]
+  | C.R rkind ->
       let url = Semgrep_dashdash_config.url_of_registry_kind rkind in
       [ load_rules_from_url url ]
 
