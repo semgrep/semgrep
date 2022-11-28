@@ -49,6 +49,11 @@ exception NotValidRange of string
 (* is r1 included or equal to r2 *)
 let ( $<=$ ) r1 r2 = r1.start >= r2.start && r1.end_ <= r2.end_
 
+(* is r1 strictly included in r2 *)
+let ( $<$ ) r1 r2 =
+  (r1.start >= r2.start && r1.end_ < r2.end_)
+  || (r1.start > r2.start && r1.end_ <= r2.end_)
+
 (* is r1 disjoint of r2 *)
 let rec ( $<>$ ) r1 r2 =
   if r1.start <= r2.start then r1.end_ < r2.start else r2 $<>$ r1

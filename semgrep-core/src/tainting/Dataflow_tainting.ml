@@ -664,6 +664,8 @@ let check_function_signature env fun_exp args_taints =
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
       let* fdef, fun_sig = hook env.config eorig in
+      Common.(
+        pr2 (spf "looking at fdef %s" ([%show: G.function_definition] fdef)));
       let taints_of_arg = find_args_taints args_taints fdef in
       Some
         (fun_sig
@@ -715,6 +717,7 @@ let check_function_signature env fun_exp args_taints =
  * makes more sense given that an instruction may have side-effects.
  * It Also makes simpler to handle sanitization by side-effect. *)
 let check_tainted_instr env instr : Taints.t * Lval_env.t =
+  Common.(pr2 (spf "looking at instr %s" ([%show: instr] instr)));
   let check_expr env = check_tainted_expr env in
   let check_instr = function
     | Assign (_, e) -> check_expr env e

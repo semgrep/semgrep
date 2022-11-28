@@ -1,0 +1,1 @@
+Taint: Fixed an issue where findings with the same sink would only report one finding
