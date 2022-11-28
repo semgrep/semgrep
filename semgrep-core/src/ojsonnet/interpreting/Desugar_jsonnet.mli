@@ -1,7 +1,7 @@
 (* Hook to customize how ojsonnet should resolve import expressions
- * (`local $NAME = $PATH`). The first parameter below is the base directory
- * of the file currently processed and the second is the $PATH above in
- * the local expression.
+ * (`local $NAME = import $PATH`). The first parameter below is the base
+ * directory of the file currently processed and the second is the $PATH
+ * above in the local expression.
  * The hook should return an AST_jsonnet expression if it can handle
  * the PATH or None, in which case it will default to a regular
  * jsonnet file import as in `local x = "foo.jsonnet".
