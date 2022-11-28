@@ -124,7 +124,9 @@ let v_dotted_name_of_stable_id (v1, v2) =
 let rec v_import_expr tk import_expr =
   match import_expr with
   | Left id ->
-      [ { G.d = G.ImportFrom (tk, DottedName [], id, None); d_attrs = [] } ]
+      [
+        { G.d = G.ImportFrom (tk, DottedName [], [ (id, None) ]); d_attrs = [] };
+      ]
   | Right (v1, v2) ->
       let module_name = G.DottedName (v_dotted_name_of_stable_id v1) in
       let v2 = v_import_spec v2 in
@@ -133,7 +135,7 @@ let rec v_import_expr tk import_expr =
 and v_import_spec = function
   | ImportId v1 ->
       let v1 = v_ident v1 in
-      fun tk path -> [ G.ImportFrom (tk, path, v1, None) |> G.d ]
+      fun tk path -> [ G.ImportFrom (tk, path, [ (v1, None) ]) |> G.d ]
   | ImportWildcard v1 ->
       let v1 = v_tok v1 in
       fun tk path -> [ G.ImportAll (tk, path, v1) |> G.d ]
@@ -147,7 +149,7 @@ and v_import_spec = function
                  | None -> None
                  | Some (_, id) -> Some (id, G.empty_id_info ())
                in
-               G.ImportFrom (tk, path, id, alias) |> G.d)
+               G.ImportFrom (tk, path, [ (id, alias) ]) |> G.d)
 
 let v_import (v1, v2) : G.directive list =
   let v1 = v_tok v1 in

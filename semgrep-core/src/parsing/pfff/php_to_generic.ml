@@ -178,7 +178,8 @@ let rec stmt_aux = function
           | name :: path ->
               [
                 G.DirectiveStmt
-                  (G.ImportFrom (t, G.DottedName (List.rev path), name, None)
+                  (G.ImportFrom
+                     (t, G.DottedName (List.rev path), [ (name, None) ])
                   |> G.d)
                 |> G.s;
               ]

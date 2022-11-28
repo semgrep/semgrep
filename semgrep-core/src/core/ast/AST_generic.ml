@@ -1749,8 +1749,7 @@ and directive_kind =
   | ImportFrom of
       tok (* 'import'/'from' for Python *)
       * module_name
-      * ident
-      * alias option (* as name alias *)
+      * (ident * alias option (* as name alias *)) list
   | ImportAs of tok * module_name * alias option (* as name *)
   (* Bad practice! hard to resolve name locally.
    * We use ImportAll for C/C++ #include and C++ 'using namespace'.

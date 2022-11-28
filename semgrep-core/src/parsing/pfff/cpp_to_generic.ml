@@ -1635,7 +1635,7 @@ and map_using_kind env x : G.tok -> (G.directive, G.definition) either =
         | [] -> error tk "Empty name in UsingName"
         | x :: xs ->
             let dots = List.rev xs in
-            Left (G.ImportFrom (tk, G.DottedName dots, x, None) |> G.d))
+            Left (G.ImportFrom (tk, G.DottedName dots, [ (x, None) ]) |> G.d))
   | UsingNamespace (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
       fun tk ->

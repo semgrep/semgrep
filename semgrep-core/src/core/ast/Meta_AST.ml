@@ -1318,10 +1318,11 @@ and vof_directive { d; d_attrs } =
   OCaml.VDict bnds
 
 and vof_directive_kind = function
-  | ImportFrom (t, v1, v2, v3) ->
+  | ImportFrom (t, v1, v2) ->
       let t = vof_tok t in
-      let v1 = vof_module_name v1 and v2, v3 = vof_alias (v2, v3) in
-      OCaml.VSum ("ImportFrom", [ t; v1; v2; v3 ])
+      let v1 = vof_module_name v1 in
+      let v2 = OCaml.vof_list vof_alias v2 in
+      OCaml.VSum ("ImportFrom", [ t; v1; v2 ])
   | ImportAs (t, v1, v2) ->
       let t = vof_tok t in
       let v1 = vof_module_name v1
@@ -1347,7 +1348,7 @@ and vof_directive_kind = function
 
 and vof_alias (v1, v2) =
   let v1 = vof_ident v1 and v2 = OCaml.vof_option vof_ident_and_id_info v2 in
-  (v1, v2)
+  OCaml.VTuple [ v1; v2 ]
 
 and vof_item x = vof_stmt x
 and vof_program v = OCaml.vof_list vof_item v
