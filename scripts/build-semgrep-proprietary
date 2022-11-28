@@ -5,11 +5,18 @@
 #
 set -eu
 
-semgrep_pro_url="https://github.com/returntocorp/semgrep-proprietary.git"
+# Try to not print the GitHub access token since it's a secret.
+access=""
+if [[ -n "$GITHUB_TOKEN" ]]; then
+  echo "Using GITHUB_TOKEN from environment."
+  access="$GITHUB_TOKEN:@"
+fi
+
+semgrep_pro_url="https://${access}github.com/returntocorp/semgrep-proprietary.git"
 semgrep_root=$(git rev-parse --show-toplevel)
 semgrep_commit=$(git rev-parse --short=7 HEAD)
 
-echo <<EOF
+cat <<EOF
 We're attempting to build semgrep-proprietary using the current version
 of semgrep. We're assuming we're in a folder within the semgrep repo.
 
@@ -17,7 +24,7 @@ Here's what we found about semgrep:
 
 semgrep repo root: $semgrep_root
 semgrep commit: $semgrep_commit
-semgrep-proprietary remote URL: $semgrep_pro_url
+semgrep-proprietary remote URL: <hidden>
 semgrep git status:
 $(cd "$semgrep_root" && git status)
 EOF
@@ -32,6 +39,8 @@ mkdir -p "$workdir"
   (
     cd semgrep-proprietary
     echo "semgrep-proprietary work folder: $(pwd)"
+    echo "Git remote:"
+    git remote -v
 
     # Fetch all submodules (although we don't need the semgrep submodule)
     git submodule update --init --recursive --depth 1
