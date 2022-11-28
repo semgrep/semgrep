@@ -87,7 +87,7 @@ jobs:
         with:
           submodules: recursive
 
-      # The following two steps ('jwt' and 'token') were copy-pasted
+      # The following steps ('jwt' and 'token') were copy-pasted
       # from start-release.yml. Eventually, we hope to have a way to
       # to avoid code duplication.
       #
@@ -95,6 +95,8 @@ jobs:
       # permissions to fetch not just the semgrep repo but also its
       # friends which include semgrep-proprietary.
       #
+      - name: install jq
+        run: apk add jq
       - name: Get JWT for semgrep-ci GitHub App
         id: jwt
         uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
