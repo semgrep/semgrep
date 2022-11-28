@@ -5,7 +5,7 @@
 #
 set -eu
 
-semgrep_pro_url="git@github.com:returntocorp/semgrep-proprietary.git"
+semgrep_pro_url="https://github.com/returntocorp/semgrep-proprietary.git"
 semgrep_root=$(git rev-parse --show-toplevel)
 semgrep_commit=$(git rev-parse --short=7 HEAD)
 
