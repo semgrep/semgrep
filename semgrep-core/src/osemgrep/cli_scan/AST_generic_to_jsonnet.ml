@@ -20,8 +20,8 @@ module G = AST_generic
 (* Prelude *)
 (*****************************************************************************)
 (* Convert a generic AST to an AST_jsonnet program. This is used
- * in Rule_fetching import_callback to convert a yaml program
- * in a jsonnet program so jsonnet policy can manipulate
+ * in Rule_fetching import_callback to convert a YAML program
+ * in a Jsonnet program so Jsonnet policy can manipulate
  * legacy YAML rules.
  *
  * This is the similar to the reverse of Manifest_jsonnet_to_AST_generic
@@ -54,6 +54,13 @@ let rec expr_to_expr (e : G.expr) : A.expr =
       | G.Float (Some f, tk) -> A.L (A.Number (string_of_float f, tk))
       | G.String (s, tk) -> A.L (A.Str (A.mk_string_ (s, tk)))
       | _else_ -> error ())
+  (* in some YAML constructs like
+   *   - metavariable-regex:
+   *       metavariable: $EXN
+   * the $EXN is actually passed as an Id, not a String
+   * TODO? double check is_metavariable str?
+   *)
+  | G.N (G.Id ((str, tk), _idinfo)) -> A.L (A.Str (A.mk_string_ (str, tk)))
   | G.Container (kind, (l, xs, r)) -> (
       match kind with
       | G.Array ->
