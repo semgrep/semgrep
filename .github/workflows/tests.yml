@@ -118,13 +118,7 @@ jobs:
       - name: Check out and build semgrep-proprietary
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
-        run: |
-          if ./scripts/build-semgrep-proprietary; then
-            msg="✅ semgrep-proprietary was compiled successfully."
-          else
-            msg="⚠️  semgrep-proprietary failed to build."
-          fi
-          gh pr comment ${{ github.event.pull_request.number }} --body "$msg"
+        run: ./scripts/build-semgrep-proprietary
 
   build-docker:
     runs-on: ubuntu-latest
