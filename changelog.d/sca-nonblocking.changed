@@ -1,0 +1,2 @@
+Reachable Supply Chain findings will no longer block pull requests when using `semgrep ci`.
+Note that unreachable findings have been non-blocking already.
