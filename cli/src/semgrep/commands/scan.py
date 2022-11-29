@@ -711,9 +711,7 @@ def scan(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
-    print("before jobs", jobs)
     jobs = jobs if jobs else 1 if deep else __get_cpu_count()
-    print("after jobs", jobs)
 
     output_time = time_flag
 
