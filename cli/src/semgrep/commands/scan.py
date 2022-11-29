@@ -315,10 +315,9 @@ _scan_options: List[Callable] = [
         "-j",
         "--jobs",
         type=int,
-        default=__get_cpu_count(),
         help="""
             Number of subprocesses to use to run checks in parallel. Defaults to the
-            number of cores on the system.
+            number of cores on the system (1 if using --deep).
         """,
     ),
     optgroup.option(
@@ -625,7 +624,7 @@ def scan(
     gitlab_sast: bool,
     gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
-    jobs: int,
+    jobs: Optional[int],
     json: bool,
     junit_xml: bool,
     lang: Optional[str],
@@ -711,6 +710,8 @@ def scan(
         abort(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
+
+    jobs = jobs if jobs else 1 if deep else __get_cpu_count()
 
     output_time = time_flag
 
