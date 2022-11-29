@@ -1,3 +1,0 @@
-Supply Chain findings from a yarn.lock lockfile were marked as 'transitive'
-when we couldn't find the matching package.json file.
-These findings will now be marked as having 'unknown' transitivity.

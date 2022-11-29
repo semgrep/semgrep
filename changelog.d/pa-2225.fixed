@@ -1,5 +1,0 @@
-taint-mode: Improved taint tracking for array-like accesses. Previously, if
-`x.a.b[i].c` got tainted, Semgrep would track `x.a.b` as tainted, and thus
-`x.a.b[i].d` would be incorrectly considered as tainted too. Now Semgrep will
-do the right thing and track `x.a.b[*].c` as tainted, and `x.a.b[i].d` will
-not be considered tainted.
