@@ -136,7 +136,7 @@ def parse_yarn1(
         version, line_number = get_version(lines)
         resolved = get_resolved(lines)
         integrity = get_integrity(lines)
-        if manifest_deps is None:
+        if not manifest_deps:
             transitivity = Transitivity(Unknown())
         else:
             if package_name in manifest_deps:
@@ -201,7 +201,7 @@ def parse_yarn2(
             raise SemgrepError("yarn.lock dependency {package} missing version?")
         version, line_number = fields["version"].split(" ")
 
-        if manifest_deps is None:
+        if not manifest_deps:
             transitivity = Transitivity(Unknown())
         else:
             if package in manifest_deps:
