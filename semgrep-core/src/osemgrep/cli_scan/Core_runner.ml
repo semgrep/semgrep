@@ -215,7 +215,6 @@ let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
           explanations = None;
           time = None;
           stats = { okfiles = 0; errorfiles = 0 };
-          max_ocaml_heap_words = (Gc.quick_stat ()).Gc.top_heap_words;
         }
       in
       { core; hrules = Rule.hrules_of_rules all_rules; scanned = Set_.empty }

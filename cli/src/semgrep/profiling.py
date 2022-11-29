@@ -30,6 +30,8 @@ class ProfilingData:
         self._file_match_times: Dict[Path, float] = defaultdict(float)
         self._file_num_times_scanned: Dict[Path, int] = defaultdict(int)
 
+        self._max_ocaml_heap_words: Optional[int] = None
+
     def get_run_times(self, rule: Rule, target: Path) -> Times:
         return self._match_time_matrix[Semgrep_run(rule=rule.id2, target=target)]
 
@@ -109,3 +111,6 @@ class ProfilingData:
 
     def set_rules_parse_time(self, parse_time: float) -> None:
         self._rules_parse_time = parse_time
+
+    def set_max_ocaml_heap_words(self, max_ocaml_heap_words: int) -> None:
+        self._max_ocaml_heap_words = max_ocaml_heap_words
