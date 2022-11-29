@@ -365,6 +365,7 @@ let match_results_of_matches_and_errors render_fix nfiles res =
       (match res.RP.explanations with
       | [] -> None
       | xs -> Some (xs |> Common.map explanation_to_explanation));
+    max_ocaml_heap_words = (Gc.quick_stat ()).Gc.top_heap_words;
   }
   |> Output_from_core_util.sort_match_results
   [@@profiling]

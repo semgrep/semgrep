@@ -437,6 +437,7 @@ let cli_output_of_core_results ~logging_level ~rules_source
    matches;
    errors;
    skipped_targets;
+   max_ocaml_heap_words;
    (* LATER *)
    skipped_rules = _;
    explanations = _;
@@ -484,4 +485,5 @@ let cli_output_of_core_results ~logging_level ~rules_source
         (* LATER *)
         time = None;
         explanations = None;
+        max_ocaml_heap_words;
       }
