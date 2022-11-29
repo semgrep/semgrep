@@ -1,3 +1,5 @@
+before jobs None
+after jobs 2
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -75,13 +77,13 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "possibly useless comparison but in eq function"
+                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
               },
               "help": {
                 "text": "some help text"
               },
-              "id": "rules.assert-eqeq-is-ok",
-              "name": "rules.assert-eqeq-is-ok",
+              "id": "rules.eqeq-is-bad",
+              "name": "rules.eqeq-is-bad",
               "properties": {
                 "precision": "very-high",
                 "tags": [
@@ -98,13 +100,13 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+                "text": "possibly useless comparison but in eq function"
               },
               "help": {
                 "text": "some help text"
               },
-              "id": "rules.eqeq-is-bad",
-              "name": "rules.eqeq-is-bad",
+              "id": "rules.assert-eqeq-is-ok",
+              "name": "rules.assert-eqeq-is-ok",
               "properties": {
                 "precision": "very-high",
                 "tags": [
@@ -164,7 +166,7 @@
               }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

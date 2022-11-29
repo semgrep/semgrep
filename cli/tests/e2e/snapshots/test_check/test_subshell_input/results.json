@@ -1,35 +1,3 @@
-{
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "/tmp/masked/path"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "-",
-      "end": {
-        "col": 2,
-        "line": 1,
-        "offset": 1
-      },
-      "extra": {
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "a",
-        "message": "a",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR"
-      },
-      "path": "/tmp/masked/path",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
-    }
-  ],
-  "version": "0.42"
-}
+before jobs None
+after jobs 2
+{"errors": [], "paths": {"_comment": "<add --verbose for a list of skipped paths>", "scanned": ["/tmp/tmpre2onh_o/dev_fd_63"]}, "results": [{"check_id": "-", "end": {"col": 2, "line": 1, "offset": 1}, "extra": {"fingerprint": "1f734493f39fa7e210f68428b542915eeb780e3197672799020e3dc09a628c4e6176766759fc1dc722080745a2f873cdd9cd97850e11517c4961d6261ff3888e_0", "is_ignored": false, "lines": "a", "message": "a", "metadata": {}, "metavars": {}, "severity": "ERROR"}, "path": "/tmp/tmpre2onh_o/dev_fd_63", "start": {"col": 1, "line": 1, "offset": 0}}], "version": "0.122.0"}

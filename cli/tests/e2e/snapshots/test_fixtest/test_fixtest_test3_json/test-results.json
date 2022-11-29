@@ -1,21 +1,34 @@
+before jobs None
+after jobs 2
 {
-  "config_missing_fixtests": [],
-  "config_missing_tests": [],
-  "config_with_errors": [],
-  "fixtest_results": {
-    "targets/fixtest/test3.py": {
-      "passed": false
-    }
-  },
-  "results": {
-    "rules/fixtest/test3.yaml": {
-      "checks": {
-        "test3": {
-          "errors": [],
-          "matches": "<masked in tests>",
-          "passed": true
+    "config_missing_tests": [],
+    "config_missing_fixtests": [],
+    "config_with_errors": [],
+    "results": {
+        "rules/fixtest/test3.yaml": {
+            "checks": {
+                "test3": {
+                    "passed": true,
+                    "matches": {
+                        "/home/runner/work/semgrep/semgrep/cli/tests/e2e/targets/fixtest/test3.py": {
+                            "expected_lines": [
+                                2,
+                                5
+                            ],
+                            "reported_lines": [
+                                2,
+                                5
+                            ]
+                        }
+                    },
+                    "errors": []
+                }
+            }
         }
-      }
+    },
+    "fixtest_results": {
+        "targets/fixtest/test3.py": {
+            "passed": false
+        }
     }
-  }
 }

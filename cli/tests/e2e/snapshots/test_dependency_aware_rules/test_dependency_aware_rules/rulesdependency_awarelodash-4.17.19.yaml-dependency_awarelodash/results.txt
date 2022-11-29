@@ -7,17 +7,10 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of exit code
 
 === stdout - plain
-{
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "targets/dependency_aware/lodash/useslodash.js"
-    ]
-  },
-  "results": [],
-  "version": "0.42"
-}
+before jobs None
+after jobs 2
+{"errors": [], "paths": {"_comment": "<add --verbose for a list of skipped paths>", "scanned": ["targets/dependency_aware/lodash/useslodash.js"]}, "results": [], "version": "<MASKED>"}
+
 === end of stdout - plain
 
 === stderr - plain

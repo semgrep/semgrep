@@ -1,3 +1,5 @@
+before jobs None
+after jobs 2
 
 Semgrep Supply Chain Summary: 1 Reachable finding, 1 Unreachable finding
 

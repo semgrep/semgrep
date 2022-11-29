@@ -1,11 +1,3 @@
-{
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "targets/image/semgrep.png"
-    ]
-  },
-  "results": [],
-  "version": "0.42"
-}
+before jobs None
+after jobs 2
+{"errors": [], "paths": {"_comment": "<add --verbose for a list of skipped paths>", "scanned": ["targets/image/semgrep.png"]}, "results": [], "version": "<MASKED>"}
