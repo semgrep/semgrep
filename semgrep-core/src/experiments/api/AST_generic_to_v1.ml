@@ -459,6 +459,7 @@ and map_special x =
   | Spread -> `Spread
   | HashSplat -> `HashSplat
   | NextArrayIndex -> `OtherSpecial "NextArrayIndex"
+  | Require -> `Require
   | Op v1 ->
       let v1 = map_arithmetic_operator v1 in
       `Op v1

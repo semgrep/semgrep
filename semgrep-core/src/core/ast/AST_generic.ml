@@ -748,6 +748,11 @@ and special =
   | Op of operator
   (* less: should be lift up and transformed in Assign at stmt level *)
   | IncrDecr of (incr_decr * prefix_postfix)
+  (* JS: `require('foo')`. Calls to require are different than imports as
+   * represented by e.g. `ImportFrom`. They are expressions rather than top
+   * level statements, and can therefore appear inline in any expression, so
+   * it's not generally possible to desugar to imports. *)
+  | Require
 
 (* mostly binary operators.
  * less: could be divided in really Arith vs Logical (bool) operators,
