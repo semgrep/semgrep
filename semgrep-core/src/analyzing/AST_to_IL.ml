@@ -786,6 +786,7 @@ and call_special _env (x, tok) =
     | G.Sizeof -> Sizeof
     | G.ConcatString _kindopt -> Concat
     | G.Spread -> Spread
+    | G.Require -> Require
     | G.EncodedString _
     | G.Defined
     | G.HashSplat

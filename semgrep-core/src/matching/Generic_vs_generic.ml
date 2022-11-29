@@ -168,7 +168,9 @@ let should_match_call = function
    * IdSpecial for super calls *)
   | G.Super
   | G.Self
-  | G.Parent ->
+  | G.Parent
+  (* JS `require("fs")` *)
+  | G.Require ->
       true
   (* TODO Eval should probably be allowed to match *)
   | G.Eval
@@ -1213,6 +1215,7 @@ and m_special a b =
   | G.IncrDecr (a1, a2), B.IncrDecr (b1, b2) ->
       m_eq a1 b1 >>= fun () -> m_eq a2 b2
   | G.NextArrayIndex, B.NextArrayIndex -> return ()
+  | G.Require, B.Require -> return ()
   | G.This, _
   | G.Super, _
   | G.Self, _
@@ -1230,6 +1233,7 @@ and m_special a b =
   | G.Defined, _
   | G.ForOf, _
   | G.NextArrayIndex, _
+  | G.Require, _
   | InterpolatedElement, _ ->
       fail ()
 

@@ -74,7 +74,7 @@ let special (x, tok) =
   | Undefined -> SR_Literal (G.Undefined tok)
   | This -> SR_Special (G.This, tok)
   | Super -> SR_Special (G.Super, tok)
-  | Require -> other_expr "Require"
+  | Require -> SR_Special (G.Require, tok)
   | Exports -> other_expr "Exports"
   | Module -> other_expr "Module"
   | Define -> other_expr "Define"

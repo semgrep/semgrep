@@ -288,6 +288,8 @@ and call_special =
   (* when transpiling certain features (e.g., patterns, foreach) *)
   | ForeachNext
   | ForeachHasNext
+  (* JS: require('foo') *)
+  | Require
 
 (* primitives called under the hood *)
 
