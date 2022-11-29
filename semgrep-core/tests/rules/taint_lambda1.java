@@ -207,9 +207,9 @@ public class ErrorBasedSQLInjectionVulnerability {
         try {
             ResponseEntity<String> response =
                     applicationJdbcTemplate.query(
-                            // ruleid: jdbc
                             (conn) ->
                                     conn.prepareStatement(
+                                            // ruleid: jdbc
                                             "select * from cars where id='" + id + "'"),
                             (ps) -> {},
                             (rs) -> {

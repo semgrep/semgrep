@@ -65,7 +65,13 @@ module SMap = Map.Make (String)
 
 type var = Var_env.var
 type overlap = float
-type 'spec tmatch = { spec : 'spec; pm : PM.t; overlap : overlap }
+
+type 'spec tmatch = {
+  spec : 'spec;
+  spec_pm : PM.t;
+  range : Range.t;
+  overlap : overlap;
+}
 
 type a_propagator = {
   kind : [ `From | `To ];
@@ -76,7 +82,7 @@ type a_propagator = {
 type config = {
   filepath : Common.filename;
   rule_id : string;
-  is_source : G.any -> Rule.taint_source tmatch list;
+  is_source : G.any -> R.taint_source tmatch list;
   is_propagator : AST_generic.any -> a_propagator tmatch list;
   is_sink : G.any -> R.taint_sink tmatch list;
   is_sanitizer : G.any -> R.taint_sanitizer tmatch list;
@@ -94,12 +100,66 @@ type mapping = Lval_env.t D.mapping
 (* HACK: Tracks tainted functions intrafile. *)
 type fun_env = (var, Taints.t) Hashtbl.t
 
+(* NOTE "Top sinks":
+ * (See note "Taint-tracking via ranges" in 'Match_tainting_mode.ml' for context.)
+ *
+ * Since we use sub-range checks to determine wheter a piece of code is a sink this
+ * can lead to unintuitive results. For example, `sink(if tainted then ok1 else ok2)`
+ * is reported as a tainted sink despite `if tainted then ok1 else ok2` is actually
+ * not tainted. The problem is that `tainted` is inside what `sink(...)` matches,
+ * and using a sub-range check we end up considering `tainted` itself as a sink.
+ *
+ * Unfortunately we cannot simply check for exact matches, because sometimes we
+ * cannot match sinks exactly. So, what we do is to check the top-level nodes in the
+ * CFG for sinks, and from all those matches we keep the "best" (larger) fits. We
+ * call these the "top sinks" (matches). Then we use those top sinks as a practical
+ * definition of "exact match", thus if we find  another match which is a strict
+ * sub-range of one of these top sinks, we simply disregard it. In our example above
+ * the top sink match will be `sink(if tainted then ok1 else ok2)`, so we will
+ * disregard `tainted` as a sink because we know there is a better match.
+ *)
+module Top_sinks = struct
+  module S = Set.Make (struct
+    type t = R.taint_sink tmatch
+
+    let compare m1 m2 =
+      let sink_id_cmp = String.compare m1.spec.R.sink_id m2.spec.R.sink_id in
+      if sink_id_cmp <> 0 then sink_id_cmp
+      else
+        let r1 = m1.range in
+        let r2 = m2.range in
+        if Range.(r1 $<=$ r2 || r2 $<=$ r1) then 0 else Stdlib.compare r1 r2
+  end)
+
+  type t = S.t
+
+  let empty = S.empty
+
+  let add m' sinks =
+    match S.find_opt m' sinks with
+    | None -> S.add m' sinks
+    | Some m ->
+        let r = m.range in
+        let r' = m'.range in
+        if r'.start > r.start || r'.end_ < r.end_ then
+          (* The new match is a worse fit so we keep the current one. *)
+          sinks
+        else (* We found a better (larger) match! *)
+          S.add m' (S.remove m sinks)
+
+  let is_best_match sinks m' =
+    match S.find_opt m' sinks with
+    | None -> true
+    | Some m -> m.range = m'.range
+end
+
 (* THINK: Separate read-only enviroment into a new a "cfg" type? *)
 type env = {
   options : Config_semgrep.t; (* rule options *)
   config : config;
   fun_name : var option;
   lval_env : Lval_env.t;
+  top_sinks : Top_sinks.t;
 }
 
 (*****************************************************************************)
@@ -164,14 +224,36 @@ let any_of_lval lval =
 let lval_is_source config lval = config.is_source (any_of_lval lval)
 let lval_is_sanitized config lval = config.is_sanitizer (any_of_lval lval)
 let lval_is_sink config lval = config.is_sink (any_of_lval lval)
-let trace_of_match x = T.trace_of_pm (x.pm, x.spec)
+let trace_of_match x = T.trace_of_pm (x.spec_pm, x.spec)
 
 let taints_of_matches xs =
-  xs |> Common.map (fun x -> (x.pm, x.spec)) |> T.taints_of_pms
+  xs |> Common.map (fun x -> (x.spec_pm, x.spec)) |> T.taints_of_pms
 
 let report_findings env findings =
   if findings <> [] then
     env.config.handle_findings env.fun_name findings env.lval_env
+
+let top_level_sinks_in_nodes config flow =
+  flow.CFG.reachable |> CFG.NodeiSet.to_seq
+  |> Seq.concat_map (fun ni ->
+         let node = flow.CFG.graph#nodes#assoc ni in
+         match node.n with
+         | NInstr instr -> orig_is_sink config instr.iorig |> List.to_seq
+         | NCond (_, exp)
+         | NReturn (_, exp)
+         | NThrow (_, exp) ->
+             orig_is_sink config exp.eorig |> List.to_seq
+         | Enter
+         | Exit
+         | TrueNode
+         | FalseNode
+         | Join
+         | NGoto _
+         | NLambda _
+         | NOther _
+         | NTodo _ ->
+             Seq.empty)
+  |> Seq.fold_left (fun s x -> Top_sinks.add x s) Top_sinks.empty
 
 let unify_mvars_sets mvars1 mvars2 =
   let xs =
@@ -480,7 +562,11 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   let new_taints, lval_in_env, lval_env = check_tainted_lval_aux env lval in
   let taints_from_env = status_to_taints lval_in_env in
   let taints = Taints.union new_taints taints_from_env in
-  let sinks = lval_is_sink env.config lval |> Common.map trace_of_match in
+  let sinks =
+    lval_is_sink env.config lval
+    |> List.filter (Top_sinks.is_best_match env.top_sinks)
+    |> Common.map trace_of_match
+  in
   let findings = findings_of_tainted_sinks { env with lval_env } taints sinks in
   report_findings { env with lval_env } findings;
   (taints, lval_env)
@@ -640,7 +726,9 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
       (Taints.empty, lval_env)
   | None ->
       let sinks =
-        orig_is_sink env.config exp.eorig |> Common.map trace_of_match
+        orig_is_sink env.config exp.eorig
+        |> List.filter (Top_sinks.is_best_match env.top_sinks)
+        |> Common.map trace_of_match
       in
       let taints_sources =
         orig_is_source env.config exp.eorig |> taints_of_matches
@@ -709,6 +797,15 @@ let check_function_signature env fun_exp args_taints =
   | Some _, _ ->
       None
 
+let check_orig_if_sink env orig taints =
+  let sinks =
+    orig_is_sink env.config orig
+    |> List.filter (Top_sinks.is_best_match env.top_sinks)
+    |> Common.map trace_of_match
+  in
+  let findings = findings_of_tainted_sinks env taints sinks in
+  report_findings env findings
+
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
 (* TODO: This should return a new var_env rather than just taint, it
@@ -735,18 +832,24 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
           |> Common2.swap
         in
         let e_taints, lval_env = check_expr { env with lval_env } e in
+        let all_args_taints =
+          List.fold_left Taints.union Taints.empty all_taints
+        in
         let call_taints =
           match check_function_signature env e args_taints with
           | Some call_taints -> call_taints
           | None ->
-              if propagate_through_functions env then
-                (* Assume that the function will propagate
-                   * the taint of its arguments. *)
-                List.fold_left Taints.union e_taints all_taints
-              else
+              if not (propagate_through_functions env) then (
                 (* If we asume that function calls are "safe", then taints from
-                 * the arguments are not present in the function's output. *)
-                e_taints
+                 * the arguments are not present in the function's output.
+                 * If the function is a sink, then we consider that all its
+                 * parameters are sinks. *)
+                check_orig_if_sink env instr.iorig all_args_taints;
+                e_taints)
+              else
+                (* Otherwise assume that the function will propagate
+                   * the taint of its arguments. *)
+                Taints.union e_taints all_args_taints
         in
         (call_taints, lval_env)
     | CallSpecial (_, _, args) ->
@@ -763,7 +866,9 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
       (Taints.empty, env.lval_env)
   | [] ->
       let sinks =
-        orig_is_sink env.config instr.iorig |> Common.map trace_of_match
+        orig_is_sink env.config instr.iorig
+        |> List.filter (Top_sinks.is_best_match env.top_sinks)
+        |> Common.map trace_of_match
       in
       let taint_sources =
         orig_is_source env.config instr.iorig |> taints_of_matches
@@ -787,6 +892,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
 let check_tainted_return env tok e : Taints.t * Lval_env.t =
   let sinks =
     env.config.is_sink (G.Tk tok) @ orig_is_sink env.config e.eorig
+    |> List.filter (Top_sinks.is_best_match env.top_sinks)
     |> Common.map trace_of_match
   in
   let taints, var_env' = check_tainted_expr env e in
@@ -812,21 +918,24 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | [ penv ] -> penv
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
 
-let (transfer :
-      Config_semgrep.t ->
-      config ->
-      Lval_env.t ->
-      string option ->
-      flow:F.cfg ->
-      Lval_env.t D.transfn) =
- fun options config enter_env opt_name ~flow
+let transfer :
+    Config_semgrep.t ->
+    config ->
+    Lval_env.t ->
+    string option ->
+    flow:F.cfg ->
+    top_sinks:Top_sinks.t ->
+    Lval_env.t D.transfn =
+ fun options config enter_env opt_name ~flow ~top_sinks
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
   let in' : Lval_env.t = input_env ~enter_env ~flow mapping ni in
   let node = flow.graph#nodes#assoc ni in
   let out' : Lval_env.t =
-    let env = { options; config; fun_name = opt_name; lval_env = in' } in
+    let env =
+      { options; config; fun_name = opt_name; lval_env = in'; top_sinks }
+    in
     match node.F.n with
     | NInstr x ->
         let taints, lval_env' = check_tainted_instr env x in
@@ -834,9 +943,15 @@ let (transfer :
         let lval_env' =
           match opt_lval with
           | Some lval ->
-              (* We call `check_tainted_var` here because the assigned `var`
+              (* We call `check_tainted_lval` here because the assigned `lval`
                * itself could be annotated as a source of taint. *)
-              check_tainted_lval { env with lval_env = lval_env' } lval |> snd
+              let taints, lval_env' =
+                check_tainted_lval { env with lval_env = lval_env' } lval
+              in
+              (* We check if the instruction is a sink, and if we so the taints
+               * from the `lval` could make a finding. *)
+              check_orig_if_sink env x.iorig taints;
+              lval_env'
           | None -> lval_env'
         in
         let lval_env' =
@@ -903,9 +1018,10 @@ let (fixpoint :
     | None -> Lval_env.empty
     | Some in_env -> in_env
   in
+  let top_sinks = top_level_sinks_in_nodes config flow in
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint ~eq_env:Lval_env.equal ~init:init_mapping
-    ~trans:(transfer options config enter_env opt_name ~flow)
+    ~trans:(transfer options config enter_env opt_name ~flow ~top_sinks)
       (* tainting is a forward analysis! *)
     ~forward:true ~flow

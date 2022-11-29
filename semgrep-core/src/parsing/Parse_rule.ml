@@ -1116,6 +1116,7 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
 
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_sink =
+  let sink_id = String.concat ":" env.path in
   let f =
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
@@ -1126,7 +1127,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     |> Option.value ~default:(R.default_sink_requires tok)
   in
   let sink_formula = f env sink_dict in
-  { sink_formula; sink_requires }
+  { sink_id; sink_formula; sink_requires }
 
 (*****************************************************************************)
 (* Parsers for extract mode *)
@@ -1171,7 +1172,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   | Some ("taint", _) ->
       let parse_specs parse_spec env key x =
         ( snd key,
-          parse_list env key
+          parse_listi env key
             (fun env -> parse_spec env (fst key ^ "list item", snd key))
             x )
       in
