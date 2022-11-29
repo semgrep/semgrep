@@ -179,10 +179,10 @@ def parse_yarn2(
         constraints = []
         for c in constraint_strs:
             if c[0] == "@":
-                name, constraint = c[1:].split("@")
+                name, constraint = c[1:].split("@", 1)
                 name = "@" + name
             else:
-                name, constraint = c.split("@")
+                name, constraint = c.split("@", 1)
 
             if ":" in constraint:
                 constraint = constraint.split(":")[1]  # npm:^1.0.0 --> ^1.0.0

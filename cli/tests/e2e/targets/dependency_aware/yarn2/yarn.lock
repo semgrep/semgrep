@@ -118,3 +118,12 @@ __metadata:
   checksum: 91a3015d384e93d9ffb4def904cad51218eb1a9eaf504c758083f2988a97d8bf8748bc280aa629864eb26fd9f7fc05bd087df95383d719e0c914c722016804b9
   languageName: node
   linkType: hard
+
+"@types/ol-ext@npm:@siedlerchr/types-ol-ext@3.0.6":
+  version: 3.0.6
+  resolution: "@siedlerchr/types-ol-ext@npm:3.0.6"
+  dependencies:
+    jspdf: ^2.5.1
+  checksum: d43e5c8730b04d1469407e24dfa017e38289a6f930e9d514be5811f3426b49c879e53e847f63ef5451de4194ee99eea70a7d1884fc4ab6476f00ad03c78d9f33
+  languageName: node
+  linkType: hard
