@@ -1334,14 +1334,14 @@ and m_compatible_type lang typed_mvar t e =
           m_type_option_with_hook idb (Some t) !tb >>= fun () ->
           envf typed_mvar (MV.Id (idb, Some id_infob))
       | _ta, _eb -> (
-          match type_of_expr e with
+          match type_of_expr lang e with
           | Some (idb, tb) ->
               m_type_option_with_hook idb (Some t) tb >>= fun () ->
               envf typed_mvar (MV.E e)
           | _ -> fail ()))
 
 (* returns a type option and an ident that can be used to query LSP *)
-and type_of_expr e : (G.ident * G.type_ option) option =
+and type_of_expr lang e : (G.ident * G.type_ option) option =
   match e.B.e with
   | B.New (tk, t, _) -> Some (("new", tk), Some t)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
@@ -1363,9 +1363,20 @@ and type_of_expr e : (G.ident * G.type_ option) option =
        * _params and _args to calculate the resulting type.
        *)
       | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
-      | Some _ -> None
-      | None -> None)
-  | B.ParenExpr (_, e, _) -> type_of_expr e
+      | Some _
+      | None ->
+          None)
+  (* deep: in Java, there can be an implicit `this.`
+     so calculate the type in the same way as above
+     THINK: should we do this for all languages? Why not? *)
+  | B.Call ({ e = N (Id (idb, { B.id_type = tb; _ })); _ }, _args)
+    when lang = Lang.Java -> (
+      match !tb with
+      | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
+      | Some _
+      | None ->
+          None)
+  | B.ParenExpr (_, e, _) -> type_of_expr lang e
   | _ -> None
 
 (*---------------------------------------------------------------------------*)
