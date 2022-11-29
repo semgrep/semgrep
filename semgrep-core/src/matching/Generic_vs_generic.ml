@@ -1334,14 +1334,14 @@ and m_compatible_type lang typed_mvar t e =
           m_type_option_with_hook idb (Some t) !tb >>= fun () ->
           envf typed_mvar (MV.Id (idb, Some id_infob))
       | _ta, _eb -> (
-          match type_of_expr e with
+          match type_of_expr lang e with
           | Some (idb, tb) ->
               m_type_option_with_hook idb (Some t) tb >>= fun () ->
               envf typed_mvar (MV.E e)
           | _ -> fail ()))
 
 (* returns a type option and an ident that can be used to query LSP *)
-and type_of_expr e : (G.ident * G.type_ option) option =
+and type_of_expr lang e : (G.ident * G.type_ option) option =
   match e.B.e with
   | B.New (tk, t, _) -> Some (("new", tk), Some t)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
@@ -1357,7 +1357,11 @@ and type_of_expr e : (G.ident * G.type_ option) option =
   (* deep: same *)
   | B.Call
       ( { e = B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))); _ },
-        _args ) -> (
+        _args )
+  (* deep: in Java, there can be an implicit `this.`
+     so look this up the type here too *)
+  | B.Call ({ e = N (Id (idb, { B.id_type = tb; _ })); _ }, _args)
+    when lang = Lang.Java -> (
       match !tb with
       (* less: in OCaml functions can be curried, so we need to match
        * _params and _args to calculate the resulting type.
@@ -1365,7 +1369,7 @@ and type_of_expr e : (G.ident * G.type_ option) option =
       | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
       | Some _ -> None
       | None -> None)
-  | B.ParenExpr (_, e, _) -> type_of_expr e
+  | B.ParenExpr (_, e, _) -> type_of_expr lang e
   | _ -> None
 
 (*---------------------------------------------------------------------------*)
