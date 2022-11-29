@@ -439,6 +439,7 @@ and vof_special = function
       let v = vof_inc_dec v in
       OCaml.VSum ("IncrDecr", [ v ])
   | NextArrayIndex -> OCaml.VSum ("NextArrayIndex", [])
+  | Require -> OCaml.VSum ("Require", [])
 
 and vof_interpolated_kind = function
   | FString v1 ->

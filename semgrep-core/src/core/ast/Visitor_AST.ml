@@ -518,6 +518,7 @@ let (mk_visitor :
     | Spread -> ()
     | HashSplat -> ()
     | NextArrayIndex -> ()
+    | Require -> ()
     | EncodedString v1 ->
         let v1 = v_string v1 in
         ()

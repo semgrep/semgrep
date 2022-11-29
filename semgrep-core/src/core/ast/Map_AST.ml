@@ -461,6 +461,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Spread
     | HashSplat
     | NextArrayIndex
+    | Require
     | InterpolatedElement ->
         x
     | Op v1 ->
