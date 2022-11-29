@@ -872,10 +872,10 @@ and map_case = function
 
 and map_catch (t, v1, v2) =
   let t = map_tok t in
-  let v1 = map_catch_condition v1 and v2 = map_stmt v2 in
+  let v1 = map_catch_exn v1 and v2 = map_stmt v2 in
   (t, v1, v2)
 
-and map_catch_condition = function
+and map_catch_exn = function
   | CatchPattern v1 ->
       let v1 = map_pattern v1 in
       `CatchPattern v1
@@ -1297,12 +1297,20 @@ and map_any x : B.any =
   match x with
   | Xmls _
   | ForOrIfComp _
-  | Tp _
   | Ta _ ->
       failwith "TODO"
-  | Cs _ -> failwith "TODO"
-  | Ce _ -> failwith "TODO"
-  | Anys _ -> error x
+  | Tp v1 ->
+      let v1 = map_type_parameter v1 in
+      `Tp v1
+  | Cs v1 ->
+      let v1 = map_case v1 in
+      `Cs v1
+  | Ce v1 ->
+      let v1 = map_catch_exn v1 in
+      `Ce v1
+  | Anys v1 ->
+      let v1 = map_of_list map_any v1 in
+      `Anys v1
   | E v1 ->
       let v1 = map_expr v1 in
       `E v1
@@ -1311,11 +1319,10 @@ and map_any x : B.any =
       `S v1
   | Ss v1 ->
       let v1 = map_of_list map_stmt v1 in
-      `Ss v1
+      `Anys (v1 |> map_of_list (fun x -> `S x))
   | Flds v1 ->
-      let _v1 = map_of_list map_field v1 in
-      (* TODO *)
-      error x
+      let v1 = map_of_list map_field v1 in
+      `Anys (v1 |> map_of_list (fun x -> `Fld x))
   | T v1 ->
       let v1 = map_type_ v1 in
       `T v1
@@ -1330,8 +1337,10 @@ and map_any x : B.any =
       `Fld v1
   | Args v1 ->
       let v1 = map_of_list map_argument v1 in
-      `Args v1
-  | Params _ -> failwith "TODO"
+      `Anys (v1 |> map_of_list (fun x -> `Ar x))
+  | Params v1 ->
+      let v1 = map_of_list map_parameter v1 in
+      `Anys (v1 |> map_of_list (fun x -> `Pa x))
   | I v1 ->
       let v1 = map_ident v1 in
       `I v1
@@ -1344,39 +1353,39 @@ and map_any x : B.any =
   | TodoK v1 ->
       let v1 = map_ident v1 in
       `TodoK v1
-  | Partial _v1 -> error x
   | Modn v1 ->
-      let _v1 = map_module_name v1 in
-      error x
-  | ModDk v1 ->
-      let _v1 = map_module_definition_kind v1 in
-      error x
+      let v1 = map_module_name v1 in
+      `Modn v1
   | En v1 ->
-      let _v1 = map_entity v1 in
-      error x
+      let v1 = map_entity v1 in
+      `En v1
   | Def v1 ->
-      let _v1 = map_definition v1 in
-      error x
+      let v1 = map_definition v1 in
+      `S (`DefStmt v1)
   | Dir v1 ->
-      let _v1 = map_directive v1 in
-      error x
+      let v1 = map_directive v1 in
+      `S (`DirectiveStmt v1)
   | Di v1 ->
-      let _v1 = map_dotted_ident v1 in
-      error x
+      let v1 = map_dotted_ident v1 in
+      `Di v1
   | Pa v1 ->
-      let _v1 = map_parameter v1 in
-      error x
+      let v1 = map_parameter v1 in
+      `Pa v1
   | Ar v1 ->
-      let _v1 = map_argument v1 in
-      error x
+      let v1 = map_argument v1 in
+      `Ar v1
+  | Pr v1 ->
+      let v1 = map_program v1 in
+      `Anys (v1 |> map_of_list (fun x -> `S x))
+  | Lbli v1 ->
+      let v1 = map_label_ident v1 in
+      `Lbli v1
   | Dk v1 ->
       let _v1 = map_definition_kind v1 in
       error x
-  | Pr v1 ->
-      let _v1 = map_program v1 in
-      error x
-  | Lbli v1 ->
-      let _v1 = map_label_ident v1 in
+  | Partial _v1 -> error x
+  | ModDk v1 ->
+      let _v1 = map_module_definition_kind v1 in
       error x
 
 (*****************************************************************************)
