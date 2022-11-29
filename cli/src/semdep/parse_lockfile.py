@@ -183,8 +183,11 @@ def parse_yarn2(
                 name = "@" + name
             else:
                 name, constraint = c.split("@")
-            constraint = constraint.split(":")[1]  # npm:^1.0.0 --> ^1.0.0
+
+            if ":" in constraint:
+                constraint = constraint.split(":")[1]  # npm:^1.0.0 --> ^1.0.0
             constraints.append((name, constraint))
+
         return constraints[0][0], constraints
 
     def parse_dep(dep: str) -> FoundDependency:
@@ -195,6 +198,7 @@ def parse_yarn2(
             l.split(":")
             for l in lines[1:]
             if not (l.startswith("dependencies") or l.startswith("resolution"))
+            if l
         ]
         fields = {f: v.strip(" ") for f, v in field_lines}
         if "version" not in fields:
@@ -227,6 +231,8 @@ def parse_yarn2(
 
     deps = lockfile_text.split("\n\n")[2:]
     for dep in deps:
+        if "@patch:" in dep:
+            continue
         yield parse_dep(dep)
 
 
