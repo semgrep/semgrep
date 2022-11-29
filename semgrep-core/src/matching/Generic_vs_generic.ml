@@ -1357,18 +1357,25 @@ and type_of_expr lang e : (G.ident * G.type_ option) option =
   (* deep: same *)
   | B.Call
       ( { e = B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))); _ },
-        _args )
-  (* deep: in Java, there can be an implicit `this.`
-     so look this up the type here too *)
-  | B.Call ({ e = N (Id (idb, { B.id_type = tb; _ })); _ }, _args)
-    when lang = Lang.Java -> (
+        _args ) -> (
       match !tb with
       (* less: in OCaml functions can be curried, so we need to match
        * _params and _args to calculate the resulting type.
        *)
       | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
-      | Some _ -> None
-      | None -> None)
+      | Some _
+      | None ->
+          None)
+  (* deep: in Java, there can be an implicit `this.`
+     so calculate the type in the same way as above
+     THINK: should we do this for all languages? Why not? *)
+  | B.Call ({ e = N (Id (idb, { B.id_type = tb; _ })); _ }, _args)
+    when lang = Lang.Java -> (
+      match !tb with
+      | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
+      | Some _
+      | None ->
+          None)
   | B.ParenExpr (_, e, _) -> type_of_expr lang e
   | _ -> None
 
