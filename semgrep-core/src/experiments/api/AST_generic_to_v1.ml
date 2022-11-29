@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open OCaml (* map_of_string, ... *)
+open OCaml (* map_of_string, map_of_option, ... *)
 open AST_generic
 module G = AST_generic
 module B = Ast_generic_v1_t
@@ -83,14 +83,7 @@ let map_bracket of_a (v1, v2, v3) =
 let map_ident (v : ident) : B.ident = map_wrap map_of_string v
 let map_dotted_ident v : B.dotted_ident = map_of_list map_ident v
 
-let rec _map_qualifier = function
-  | QDots _ -> failwith "TODO"
-  | QExpr (e, t) ->
-      let e = map_expr e in
-      let t = map_tok t in
-      `QExpr (e, t)
-
-and map_module_name = function
+let map_module_name = function
   | FileName v1 ->
       let v1 = map_wrap map_of_string v1 in
       `FileName v1
@@ -98,7 +91,7 @@ and map_module_name = function
       let v1 = map_dotted_ident v1 in
       `DottedName v1
 
-and map_resolved_name (v1, v2) =
+let rec map_resolved_name (v1, v2) =
   let v1 = map_resolved_name_kind v1 in
   let v2 = map_of_int v2 in
   (v1, v2)
@@ -189,7 +182,38 @@ and map_name = function
   | Id (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_id_info v2 in
       `Id (v1, v2)
-  | IdQualified _v1 -> failwith "TODO"
+  | IdQualified v1 ->
+      let v1 = map_qualified_info v1 in
+      `IdQualified v1
+
+and map_qualified_info { name_last; name_middle; name_top; name_info } =
+  let name_last =
+    match name_last with
+    | v1, v2 ->
+        let v1 = map_ident v1 in
+        let v2 = map_of_option map_type_arguments v2 in
+        (v1, v2)
+  in
+  let name_middle = map_of_option map_qualifier name_middle in
+  let name_top = map_of_option map_tok name_top in
+  let name_info = map_id_info name_info in
+  { B.name_last; name_middle; name_top; name_info }
+
+and map_qualifier = function
+  | QDots v1 ->
+      let v1 =
+        map_of_list
+          (fun (v1, v2) ->
+            let v1 = map_ident v1 in
+            let v2 = map_of_option map_type_arguments v2 in
+            (v1, v2))
+          v1
+      in
+      `QDots v1
+  | QExpr (e, t) ->
+      let e = map_expr e in
+      let t = map_tok t in
+      `QExpr (e, t)
 
 and map_expr x : B.expr =
   match x.e with
@@ -208,12 +232,10 @@ and map_expr x : B.expr =
       let v1 = map_container_operator v1
       and v2 = map_bracket (map_of_list map_expr) v2 in
       `Container (v1, v2)
-  | Comprehension (op, (l, (_eTODO, _xsTODO), r)) ->
-      (* TODO *)
-      let v1 = map_container_operator op in
-      let l = map_tok l in
-      let r = map_tok r in
-      `Container (v1, (l, [], r))
+  | Comprehension (v1, v2) ->
+      let v1 = map_container_operator v1 in
+      let v2 = map_bracket map_comprehension v2 in
+      `Comprehension (v1, v2)
   | Record v1 ->
       let v1 = map_bracket (map_of_list map_field) v1 in
       `Record v1
@@ -248,7 +270,11 @@ and map_expr x : B.expr =
   | Call (v1, v2) ->
       let v1 = map_expr v1 and v2 = map_arguments v2 in
       `Call (v1, v2)
-  | New (_v0, _v1, _v2) -> failwith "TODO"
+  | New (v1, v2, v3) ->
+      let v1 = map_tok v1 in
+      let v2 = map_type_ v2 in
+      let v3 = map_arguments v3 in
+      `New (v1, v2, v3)
   | Assign (v1, v2, v3) ->
       let v1 = map_expr v1 and v2 = map_tok v2 and v3 = map_expr v3 in
       `Assign (v1, v2, v3)
@@ -296,13 +322,39 @@ and map_expr x : B.expr =
       let t = map_tok t in
       let v1 = map_expr v1 in
       `DeRef (t, v1)
-  | Alias (_alias, _v1) -> failwith "TODO"
+  (* new: *)
+  | Alias ((s, tk), v2) ->
+      let tk = map_tok tk in
+      let v2 = map_expr v2 in
+      `OtherExpr (("Alias", tk), [ `I (s, tk); `E v2 ])
   | Ellipsis v1 ->
       let v1 = map_tok v1 in
       `Ellipsis v1
   | DeepEllipsis (v1, _, _) -> raise (SemgrepConstruct v1)
-  | OtherExpr (_v1, _v2) -> failwith "TODO"
-  | StmtExpr _ -> failwith "TODO"
+  | OtherExpr (v1, v2) ->
+      let v1 = map_todo_kind v1 in
+      let v2 = map_of_list map_any v2 in
+      `OtherExpr (v1, v2)
+  | StmtExpr v1 ->
+      let v1 = map_stmt v1 in
+      `StmtExpr v1
+
+and map_comprehension (v1, v2) =
+  let v1 = map_expr v1 in
+  let v2 = map_of_list map_for_or_if_comp v2 in
+  (v1, v2)
+
+and map_for_or_if_comp = function
+  | CompFor (v1, v2, v3, v4) ->
+      let v1 = map_tok v1 in
+      let v2 = map_pattern v2 in
+      let v3 = map_tok v3 in
+      let v4 = map_expr v4 in
+      `CompFor (v1, v2, v3, v4)
+  | CompIf (v1, v2) ->
+      let v1 = map_tok v1 in
+      let v2 = map_expr v2 in
+      `CompIf (v1, v2)
 
 and map_field_name = function
   | FN v1 ->
@@ -319,9 +371,13 @@ and map_entity_name = function
   | EDynamic v1 ->
       let v1 = map_expr v1 in
       `EDynamic v1
-  | EPattern _
-  | OtherEntity _ ->
-      failwith "TODO"
+  | EPattern v1 ->
+      let v1 = map_pattern v1 in
+      `EPattern v1
+  | OtherEntity (v1, v2) ->
+      let v1 = map_todo_kind v1 in
+      let v2 = map_of_list map_any v2 in
+      `OtherEntity (v1, v2)
 
 and map_literal = function
   | Unit v1 ->
@@ -498,16 +554,17 @@ and map_argument = function
       `OtherArg (v1, v2)
 
 and map_type_ { t; t_attrs } =
-  let tk = map_type_kind t in
+  let ty = map_type_kind t in
+  (* new: *)
   let _attrsTODO = map_of_list map_attribute t_attrs in
-  tk
+  ty
 
 and map_type_kind = function
   | TyEllipsis v1 -> raise (SemgrepConstruct v1)
-  | TyRecordAnon (v0, v1) ->
-      let _v0 = map_wrap map_class_kind v0 in
-      let _v1 = map_bracket (map_of_list map_field) v1 in
-      failwith "TODO"
+  | TyRecordAnon (v1, v2) ->
+      let v1 = map_wrap map_class_kind v1 in
+      let v2 = map_bracket (map_of_list map_field) v2 in
+      `TyRecordAnon (v1, v2)
   | TyOr (v1, v2, v3) ->
       let v1 = map_type_ v1 in
       let v2 = map_tok v2 in
@@ -555,8 +612,13 @@ and map_type_kind = function
       let v1 = map_type_ v1 in
       let t = map_tok t in
       `TyRest (t, v1)
-  | TyExpr _v1 -> failwith "TODO"
-  | OtherType (_v1, _v2) -> failwith "TODO"
+  | TyExpr v1 ->
+      let v1 = map_expr v1 in
+      `TyExpr v1
+  | OtherType (v1, v2) ->
+      let v1 = map_todo_kind v1 in
+      let v2 = map_of_list map_any v2 in
+      `OtherType (v1, v2)
 
 and map_type_arguments v = map_bracket (map_of_list map_type_argument) v
 
@@ -572,7 +634,9 @@ and map_type_argument = function
           v2
       in
       `TAWildcard (v1, v2)
-  | TAExpr _ -> failwith "TODO"
+  | TAExpr v1 ->
+      let v1 = map_expr v1 in
+      `TAExpr v1
   | OtherTypeArg (v1, v2) ->
       let v1 = map_todo_kind v1 in
       let v2 = map_of_list map_any v2 in
@@ -655,9 +719,9 @@ and map_stmt x : B.stmt =
         and v3 = map_of_option map_stmt v3 in
         `If (t, v1, v2, v3)
     | While (t, v1, v2) ->
-        let _t = map_tok t in
-        let _v1 = map_condition v1 and _v2 = map_stmt v2 in
-        failwith "TODO"
+        let t = map_tok t in
+        let v1 = map_condition v1 and v2 = map_stmt v2 in
+        `While (t, v1, v2)
     | DoWhile (t, v1, v2) ->
         let t = map_tok t in
         let v1 = map_stmt v1 and v2 = map_expr v2 in
@@ -710,25 +774,66 @@ and map_stmt x : B.stmt =
         let v2 = map_stmt v2 in
         `WithUsingResource (t, v1, v2)
     | Assert (t, args, sc) ->
-        let _t = map_tok t in
-        let _args = map_arguments args in
-        let _sc = map_tok sc in
-        failwith "TODO"
-        (* `Assert (t, v1, v2, sc) *)
+        let t = map_tok t in
+        let args = map_arguments args in
+        let sc = map_tok sc in
+        `Assert (t, args, sc)
     | OtherStmtWithStmt (v1, v2, v3) ->
-        let _v1 = map_other_stmt_with_stmt_operator v1
-        and _v2 = map_of_list map_any v2
-        and _v3 = map_stmt v3 in
-        (*`OtherStmtWithStmt (v1, v2, v3)*)
-        failwith "TODO"
+        let v1 = map_other_stmt_with_stmt_operator v1
+        and v2 = map_of_list map_any v2
+        and v3 = map_stmt v3 in
+        `OtherStmt ((v1, map_tok fk), v2 @ [ `S v3 ])
     | OtherStmt (v1, v2) ->
         let v1 = map_other_stmt_operator v1 and v2 = map_of_list map_any v2 in
-        `OtherStmt (v1, v2)
+        `OtherStmt ((v1, map_tok fk), v2)
   in
   skind
 
-and map_condition _x = failwith "TODO"
-and map_other_stmt_with_stmt_operator _x = "TODO"
+and map_other_stmt_operator = function
+  | OS_Delete -> "Delete"
+  | OS_ForOrElse -> "ForOrElse"
+  | OS_WhileOrElse -> "WhileOrElse"
+  | OS_TryOrElse -> "TryOrElse"
+  | OS_ThrowFrom -> "ThrowFrom"
+  | OS_ThrowNothing -> "ThrowNothing"
+  | OS_ThrowArgsLocation -> "ThrowArgsLocation"
+  | OS_Pass -> "Pass"
+  | OS_Async -> "Async"
+  | OS_Asm -> "Asm"
+  | OS_Go -> "Go"
+  | OS_Defer -> "Defer"
+  | OS_Fallthrough -> "Fallthrough"
+  | OS_GlobalComplex -> "GlobalComplex"
+  | OS_Redo -> "Redo"
+  | OS_Retry -> "Retry"
+  | OS_ExprStmt2 -> "ExprStmt2"
+  | OS_Todo -> "Todo"
+
+and map_other_stmt_with_stmt_operator = function
+  | OSWS_With -> "S_With"
+  | OSWS_BEGIN -> "S_BEGIN"
+  | OSWS_END -> "S_END"
+  | OSWS_Else_in_try -> "S_Else_in_try"
+  | OSWS_UnsafeBlock -> "S_UnsafeBlock"
+  | OSWS_AsyncBlock -> "S_AsyncBlock"
+  | OSWS_ConstBlock -> "S_ConstBlock"
+  | OSWS_ForeignBlock -> "S_ForeignBlock"
+  | OSWS_ImplBlock -> "S_ImplBlock"
+  | OSWS_Sync -> "S_Sync"
+  | OSWS_CheckedBlock -> "S_CheckedBlock"
+  | OSWS_UncheckedBlock -> "S_UncheckedBlock"
+  | OSWS_Iterator -> "S_Iterator"
+  | OSWS_Closure -> "S_Closure"
+  | OSWS_Todo -> "S_Todo"
+
+and map_condition = function
+  | Cond v1 ->
+      let v1 = map_expr v1 in
+      `Cond v1
+  | OtherCond (v1, v2) ->
+      let v1 = map_todo_kind v1 in
+      let v2 = map_of_list map_any v2 in
+      `OtherCond (v1, v2)
 
 and map_label_ident = function
   | LNone -> `LNone
@@ -749,7 +854,10 @@ and map_case_and_body = function
   | CaseEllipsis v1 -> raise (SemgrepConstruct v1)
 
 and map_case = function
-  | OtherCase _ -> failwith "TODO"
+  | OtherCase (v1, v2) ->
+      let v1 = map_todo_kind v1 in
+      let v2 = map_of_list map_any v2 in
+      `OtherCase (v1, v2)
   | Case (t, v1) ->
       let t = map_tok t in
       let v1 = map_pattern v1 in
@@ -774,7 +882,10 @@ and map_catch_condition = function
   | CatchParam p ->
       let p = map_parameter_classic p in
       `CatchParam p
-  | OtherCatch _ -> failwith "TODO"
+  | OtherCatch (v1, v2) ->
+      let v1 = map_todo_kind v1 in
+      let v2 = map_of_list map_any v2 in
+      `OtherCatch (v1, v2)
 
 and map_finally v = map_tok_and_stmt v
 
@@ -791,20 +902,33 @@ and map_for_header = function
       and v2 = map_of_option map_expr v2
       and v3 = map_of_option map_expr v3 in
       `ForClassic (v1, v2, v3)
-  | ForEach (v1, t, v2) ->
-      let t = map_tok t in
-      let v1 = map_pattern v1 and v2 = map_expr v2 in
-      `ForEach (v1, t, v2)
-  | MultiForEach (FE (v1, t, v2) :: _) ->
-      let t = map_tok t in
-      let v1 = map_pattern v1 and v2 = map_expr v2 in
-      `ForEach (v1, t, v2)
-  | MultiForEach _ -> failwith "todo - MultiForEach"
+  | ForEach v1 ->
+      let v1 = map_for_each v1 in
+      `ForEach v1
+  | MultiForEach v1 ->
+      let v1 = map_of_list map_multi_for_each v1 in
+      `MultiForEach v1
   | ForEllipsis t -> raise (SemgrepConstruct t)
   | ForIn (v1, v2) ->
       let v1 = map_of_list map_for_var_or_expr v1
       and v2 = map_of_list map_expr v2 in
       `ForIn (v1, v2)
+
+and map_for_each (v1, t, v2) =
+  let t = map_tok t in
+  let v1 = map_pattern v1 and v2 = map_expr v2 in
+  (v1, t, v2)
+
+and map_multi_for_each = function
+  | FE v1 ->
+      let v1 = map_for_each v1 in
+      `FE v1
+  | FECond (v1, v2, v3) ->
+      let v1 = map_for_each v1 in
+      let v2 = map_tok v2 in
+      let v3 = map_expr v3 in
+      `FECond (v1, v2, v3)
+  | FEllipsis tk -> raise (SemgrepConstruct tk)
 
 and map_for_var_or_expr = function
   | ForInitVar (v1, v2) ->
@@ -813,8 +937,6 @@ and map_for_var_or_expr = function
   | ForInitExpr v1 ->
       let v1 = map_expr v1 in
       `ForInitExpr v1
-
-and map_other_stmt_operator _x = failwith "TODO"
 
 and map_pattern = function
   | PatEllipsis v1 -> raise (SemgrepConstruct v1)
@@ -886,7 +1008,9 @@ and map_entity { G.name = v_name; attrs = v_attrs; tparams = v_tparams } =
   { B.name = v_name; attrs = v_attrs; tparams = v_tparams }
 
 and map_definition_kind = function
-  | EnumEntryDef _v -> failwith "TODO"
+  | EnumEntryDef v1 ->
+      let v1 = map_enum_entry_def v1 in
+      `EnumEntryDef v1
   | FuncDef v1 ->
       let v1 = map_function_definition v1 in
       `FuncDef v1
@@ -919,6 +1043,11 @@ and map_definition_kind = function
       let v2 = map_of_list map_any v2 in
       `OtherDef (v1, v2)
 
+and map_enum_entry_def { ee_args; ee_body } =
+  let ee_args = map_of_option map_arguments ee_args in
+  let ee_body = map_of_option (map_bracket (map_of_list map_field)) ee_body in
+  { B.ee_args; ee_body }
+
 and map_module_definition { G.mbody = v_mbody } =
   let v_mbody = map_module_definition_kind v_mbody in
   { B.mbody = v_mbody }
@@ -941,23 +1070,28 @@ and map_macro_definition
   let v_macroparams = map_of_list map_ident v_macroparams in
   { B.macroparams = v_macroparams; macrobody = v_macrobody }
 
-and map_type_parameter _tp = failwith "TODO"
+and map_type_parameter = function
+  | TP v1 ->
+      let v1 = map_type_parameter_classic v1 in
+      `TP v1
+  | TParamEllipsis tk -> raise (SemgrepConstruct tk)
+  | OtherTypeParam (v1, v2) ->
+      let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
+      `OtherTypeParam (v1, v2)
 
-(*
-and _map_type_parameter_constraints v =
-  map_of_list map_type_parameter_constraint v
+and map_type_parameter_classic
+    { tp_id; tp_attrs; tp_bounds; tp_default; tp_variance } =
+  let tp_id = map_ident tp_id in
+  let tp_attrs = map_of_list map_attribute tp_attrs in
+  let tp_bounds = map_of_list map_type_ tp_bounds in
+  let tp_default = map_of_option map_type_ tp_default in
+  let tp_variance = map_of_option (map_wrap map_variance) tp_variance in
+  { B.tp_id; tp_attrs; tp_bounds; tp_default; tp_variance }
 
-and map_type_parameter_constraint = function
-  | HasConstructor t ->
-      let t = map_tok t in
-      `HasConstructor t
-  | OtherTypeParam (t, xs) ->
-      let t = map_other_type_parameter_operator t in
-      let xs = map_of_list map_any xs in
-      `OtherTypeParam (t, xs)
+and map_variance = function
+  | Covariant -> `Covariant
+  | Contravariant -> `Contravariant
 
-and map_other_type_parameter_operator _x = "TODO"
-*)
 and map_function_kind = function
   | Function -> `Function
   | Method -> `Method
@@ -1004,8 +1138,8 @@ and map_parameter = function
       `ParamPattern v1
   | ParamEllipsis v1 -> raise (SemgrepConstruct v1)
   | OtherParam (v1, v2) ->
-      let _v1 = map_todo_kind v1 and _v2 = map_of_list map_any v2 in
-      failwith "TODO"
+      let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
+      `OtherParam (v1, v2)
 
 and map_parameter_classic
     {
@@ -1043,7 +1177,9 @@ and map_type_definition { G.tbody = v_tbody } =
   { B.tbody = v_tbody }
 
 and map_type_definition_kind = function
-  | AbstractType _v1 -> failwith "TODO"
+  | AbstractType v1 ->
+      let v1 = map_tok v1 in
+      `AbstractType v1
   | OrType v1 ->
       let v1 = map_of_list map_or_type_element v1 in
       `OrType v1
@@ -1098,7 +1234,10 @@ and map_class_definition
     cparams = v_cparams;
   }
 
-and map_class_parent (_v1, _v2) = failwith "TODO"
+and map_class_parent (v1, v2) =
+  let v1 = map_type_ v1 in
+  let v2 = map_of_option map_arguments v2 in
+  (v1, v2)
 
 and map_class_kind = function
   | Class -> `Class
@@ -1108,6 +1247,7 @@ and map_class_kind = function
 
 and map_directive { d; d_attrs } =
   let d = map_directive_kind d in
+  (* new: *)
   let _dattrsTODO = map_of_list map_attribute d_attrs in
   d
 
@@ -1136,7 +1276,10 @@ and map_directive_kind = function
   | PackageEnd t ->
       let t = map_tok t in
       `PackageEnd t
-  | OtherDirective (_v1, _v2) -> failwith "TODO"
+  | OtherDirective (v1, v2) ->
+      let v1 = map_todo_kind v1 in
+      let v2 = map_of_list map_any v2 in
+      `OtherDirective (v1, v2)
 
 and map_ident_and_id_info (v1, v2) =
   let v1 = map_ident v1 in
