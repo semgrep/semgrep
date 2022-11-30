@@ -1,1 +1,11 @@
-Scanning 11 files.
+name '_CoreRunner__get_cpu_count' is not defined
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 829, in scan
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 404, in main
+    core_runner = CoreRunner(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 527, in __init__
+    self._jobs = jobs if jobs else 1 if deep else __get_cpu_count()
+NameError: name '_CoreRunner__get_cpu_count' is not defined
