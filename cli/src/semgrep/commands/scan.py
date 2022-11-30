@@ -1,4 +1,3 @@
-import multiprocessing
 import os
 import tempfile
 from itertools import chain
@@ -55,13 +54,6 @@ logger = getLogger(__name__)
 
 
 ScanReturn = Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]
-
-
-def __get_cpu_count() -> int:
-    try:
-        return multiprocessing.cpu_count()
-    except NotImplementedError:
-        return 1  # CPU count is not implemented on Windows
 
 
 def __validate_lang(option: str, lang: Optional[str]) -> str:
@@ -711,8 +703,6 @@ def scan(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
-    jobs = jobs if jobs else 1 if deep else __get_cpu_count()
-
     output_time = time_flag
 
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
@@ -800,6 +790,7 @@ def scan(
                     try:
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
+                            deep=deep,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
