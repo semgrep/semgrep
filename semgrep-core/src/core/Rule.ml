@@ -125,6 +125,7 @@ type taint_spec = {
 
 and taint_source = {
   source_formula : formula;
+  source_by_side_effect : bool;
   label : string;
       (* The label to attach to the data.
        * Alt: We could have an optional label instead, allow taint that is not
@@ -153,6 +154,7 @@ and taint_source = {
  *)
 and taint_sanitizer = {
   sanitizer_formula : formula;
+  sanitizer_by_side_effect : bool;
   not_conflicting : bool;
       (* If [not_conflicting] is enabled, the sanitizer cannot conflict with
        * a sink or a source (i.e., match the exact same range) otherwise
