@@ -107,6 +107,7 @@ type final_profiling = {
   rules : Rule.rule list;
   rules_parse_time : float;
   file_times : file_profiling list;
+  max_memory_bytes : int;
 }
 [@@deriving show]
 
@@ -352,7 +353,12 @@ let make_final_result results rules ~rules_parse_time =
   let extra =
     let mk_profiling () =
       let file_times = results |> Common.map get_profiling in
-      { rules; rules_parse_time; file_times }
+      {
+        rules;
+        rules_parse_time;
+        file_times;
+        max_memory_bytes = (Gc.quick_stat ()).top_heap_words;
+      }
     in
     match !mode with
     | MDebug ->

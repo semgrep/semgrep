@@ -871,6 +871,7 @@ class CoreRunner:
 
             if ("time" in output_json) and core_output.time:
                 self._add_match_times(profiling_data, core_output.time)
+                profiling_data.set_max_memory_bytes(core_output.time.max_memory_bytes)
 
             # end with tempfile.NamedTemporaryFile(...) ...
             outputs = core_matches_to_rule_matches(rules, core_output)

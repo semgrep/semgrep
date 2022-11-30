@@ -127,6 +127,7 @@ def _build_time_json(
             for target, num_bytes in zip(targets, target_bytes)
         ],
         total_bytes=sum(n for n in target_bytes),
+        max_memory_bytes=profiling_data._max_memory_bytes,
     )
 
 
