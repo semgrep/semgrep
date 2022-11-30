@@ -320,7 +320,7 @@ let json_time_of_profiling_data profiling_data =
              });
     rules = Common.map (fun rule -> fst rule.Rule.id) profiling_data.RP.rules;
     rules_parse_time = Some profiling_data.RP.rules_parse_time;
-    max_ocaml_heap_words = profiling_data.max_ocaml_heap_words;
+    max_memory_bytes = profiling_data.max_memory_bytes;
   }
 
 let match_results_of_matches_and_errors render_fix nfiles res =
