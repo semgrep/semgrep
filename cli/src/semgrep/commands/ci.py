@@ -320,6 +320,10 @@ def ci(
                 logger.info(f"Could not start scan {e}")
                 sys.exit(FATAL_EXIT_CODE)
 
+            # Run DeepSemgrep when available but only for full scans
+            is_full_scan = metadata.merge_base_ref is None
+            deep = scan_handler.deepsemgrep if scan_handler and is_full_scan else False
+
             # Append ignores configured on semgrep.dev
             requested_excludes = scan_handler.ignore_patterns if scan_handler else []
             if requested_excludes:
@@ -346,6 +350,7 @@ def ci(
                 lockfile_scan_info,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
+                deep=deep,
                 output_handler=output_handler,
                 target=[os.curdir],  # semgrep ci only scans cwd
                 pattern=None,
