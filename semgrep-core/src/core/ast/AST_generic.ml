@@ -1754,6 +1754,11 @@ and directive_kind =
   | ImportFrom of
       tok (* 'import'/'from' for Python *)
       * module_name
+        (* We used to desugar each imported name in an import into its own
+         * separate ImportFrom statement. This caused matching issues such as
+         * those documented in #5305 and #6532. Removing this desugaring lets us
+         * match, for example, a pattern and a target which import the same
+         * things but in a different order. *)
       * (ident * alias option (* as name alias *)) list
   | ImportAs of tok * module_name * alias option (* as name *)
   (* Bad practice! hard to resolve name locally.
