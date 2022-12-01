@@ -1,3 +1,0 @@
-DeepSemgrep: If you have a Team tier account in Semgrep App, and you enable the
-_DeepSemgrep_ setting, then `semgrep ci` will automatically run the DeepSemgrep
-engine instead of the OSS engine on full scans (but not in PR scans).
