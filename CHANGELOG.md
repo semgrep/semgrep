@@ -8,6 +8,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.0.0](https://github.com/returntocorp/semgrep/releases/tag/v1.0.0) - 2022-12-01
+
+### Added
+
+- DeepSemgrep: If you have a Team tier account in Semgrep App, and you enable the
+  _DeepSemgrep_ setting, then `semgrep ci` will automatically run the DeepSemgrep
+  engine instead of the OSS engine on full scans (but not in PR scans). (pa-2226)
+
 ## [0.123.0](https://github.com/returntocorp/semgrep/releases/tag/v0.123.0) - 2022-11-29
 
 ### Added
