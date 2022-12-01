@@ -1,0 +1,1 @@
+CLI: Made the number of jobs when using `semgrep --deep` default to 1.
