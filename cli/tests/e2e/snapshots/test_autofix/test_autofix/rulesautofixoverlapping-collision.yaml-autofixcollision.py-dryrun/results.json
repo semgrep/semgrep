@@ -71,6 +71,9 @@
       "extra": {
         "fingerprint": "0x42",
         "fix": "twice",
+        "fixed_lines": [
+          "twice"
+        ],
         "is_ignored": false,
         "lines": "b = 2\nc = 3\nd = 4",
         "message": "Semgrep found a match",
