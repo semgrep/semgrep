@@ -8,17 +8,7 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 
 === stdout - plain
 
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
-
-
-Unreachable Supply Chain Findings:
-
-  poetry.lock 
-     supply-chain1
-        found a dependency
-
-
-First-Party Non-Blocking Findings:
+Non-Blocking Findings:
 
   foo.py 
      eqeq-five
@@ -27,7 +17,7 @@ First-Party Non-Blocking Findings:
          ▶▶┆ Autofix ▶ (x == 2)
          15┆ x == 5
 
-First-Party Blocking Findings:
+Blocking Findings:
 
   foo.py 
      eqeq-bad
@@ -51,7 +41,7 @@ First-Party Blocking Findings:
 
          27┆ sink(d2)
 
-First-Party Blocking Rules Fired:
+Blocking Rules Fired:
    eqeq-bad   
    eqeq-four   
    taint-test
@@ -73,7 +63,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 7 findings (6 blocking) from 6 rules.
   Uploading findings to Semgrep App.
 Would have sent findings and ignores blob: {
     "token": null,
@@ -286,47 +276,6 @@ Would have sent findings and ignores blob: {
                     ]
                 ]
             }
-        },
-        {
-            "check_id": "supply-chain1",
-            "path": "poetry.lock",
-            "line": 0,
-            "column": 0,
-            "end_line": 0,
-            "end_column": 0,
-            "message": "found a dependency",
-            "severity": 2,
-            "index": 0,
-            "commit_date": <MASKED>
-            "syntactic_id": "ff8806e5d262f88aeebbc15b80d84f12",
-            "metadata": {
-                "dev.semgrep.actions": [
-                    "block"
-                ]
-            },
-            "is_blocking": false,
-            "match_based_id": "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0",
-            "sca_info": {
-                "reachable": false,
-                "reachability_rule": false,
-                "sca_finding_schema": 20220913,
-                "dependency_match": {
-                    "dependency_pattern": {
-                        "ecosystem": "pypi",
-                        "package": "badlib",
-                        "semver_range": "== 1.0.0"
-                    },
-                    "found_dependency": {
-                        "package": "badlib",
-                        "version": "1.0.0",
-                        "ecosystem": "pypi",
-                        "allowed_hashes": {},
-                        "transitivity": "unknown",
-                        "line_number": 2
-                    },
-                    "lockfile": "poetry.lock"
-                }
-            }
         }
     ],
     "searched_paths": [
@@ -434,7 +383,7 @@ Would have sent findings and ignores blob: {
 Would have sent complete blob: {
     "exit_code": 1,
     "stats": {
-        "findings": 10,
+        "findings": 9,
         "errors": [],
         "total_time": <MASKED>
         "unsupported_exts": {
