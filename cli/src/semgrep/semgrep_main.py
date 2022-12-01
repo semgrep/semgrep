@@ -284,7 +284,7 @@ def main(
     lang: Optional[str],
     configs: Sequence[str],
     no_rewrite_rule_ids: bool = False,
-    jobs: Optional[int],
+    jobs: Optional[int] = None,
     include: Optional[Sequence[str]] = None,
     exclude: Optional[Sequence[str]] = None,
     exclude_rule: Optional[Sequence[str]] = None,
