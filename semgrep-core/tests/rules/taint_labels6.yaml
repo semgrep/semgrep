@@ -5,16 +5,19 @@ rules:
     languages: [py]
     mode: taint
     pattern-sources:
-      - label: closed
+      - by-side-effect: true
+        label: closed
         patterns:
           - pattern: $FILE.close()
           - focus-metavariable: $FILE
-      - label: closed_twice
+      - by-side-effect: true
+        label: closed_twice
         requires: closed
         patterns:
           - pattern: $FILE.close()
           - focus-metavariable: $FILE
-      - label: reopened
+      - by-side-effect: true
+        label: reopened
         requires: closed
         patterns:
           - pattern: |

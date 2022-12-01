@@ -1078,6 +1078,10 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
   let source_dict = yaml_to_dict env key value in
+  let source_by_side_effect =
+    take_opt source_dict env parse_bool "by-side-effect"
+    |> Option.value ~default:false
+  in
   let label =
     take_opt source_dict env parse_string "label"
     |> Option.value ~default:R.default_source_label
@@ -1088,7 +1092,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     |> Option.value ~default:(R.default_source_requires tok)
   in
   let source_formula = f env source_dict in
-  { source_formula; label; source_requires }
+  { source_formula; source_by_side_effect; label; source_requires }
 
 let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_propagator =
@@ -1106,13 +1110,17 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
   let sanitizer_dict = yaml_to_dict env key value in
+  let sanitizer_by_side_effect =
+    take_opt sanitizer_dict env parse_bool "by-side-effect"
+    |> Option.value ~default:false
+  in
   let not_conflicting =
     take_opt sanitizer_dict env parse_bool
       (if is_old then "not_conflicting" else "not-conflicting")
     |> Option.value ~default:false
   in
   let sanitizer_formula = f env sanitizer_dict in
-  { R.not_conflicting; sanitizer_formula }
+  { sanitizer_formula; sanitizer_by_side_effect; R.not_conflicting }
 
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_sink =

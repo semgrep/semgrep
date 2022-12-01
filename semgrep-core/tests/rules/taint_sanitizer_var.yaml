@@ -8,7 +8,8 @@ rules:
     pattern-sources:
       - pattern: source
     pattern-sanitizers:
-      - patterns:
+      - by-side-effect: true
+        patterns:
         - pattern-inside: sanitize($X)
         - focus-metavariable: $X
     pattern-sinks:

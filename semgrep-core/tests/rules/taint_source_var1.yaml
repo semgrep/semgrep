@@ -6,7 +6,8 @@ rules:
     severity: WARNING
     mode: taint
     pattern-sources:
-      - patterns:
+      - by-side-effect: true
+        patterns:
         # if $X is a variable, it will become tainted by side effect
         - pattern: taint($X)
         - focus-metavariable: $X

@@ -212,6 +212,11 @@ let merge_source_sink_mvars env source_mvars sink_mvars =
     (* The union of both sets, but taking the sink mvars in case of collision. *)
     sink_biased_union_mvars source_mvars sink_mvars
 
+let partition_mutating_sources sources_matches =
+  sources_matches
+  |> List.partition (fun (m : R.taint_source tmatch) ->
+         m.spec.source_by_side_effect && is_exact m)
+
 let labels_of_taints taints : LabelSet.t =
   taints |> Taints.to_seq
   |> Seq.filter_map (fun (t : T.taint) ->
@@ -385,7 +390,10 @@ let sanitize_lval_by_side_effect lval_env sanitizer_pms lval =
      * annotation, then we infer that the l-value itself has been updated
      * (presumably by side-effect) and is no longer tainted. We will update
      * the environment (i.e., `lval_env') accordingly. *)
-    List.exists is_exact sanitizer_pms
+    List.exists
+      (fun (m : R.taint_sanitizer tmatch) ->
+        m.spec.sanitizer_by_side_effect && is_exact m)
+      sanitizer_pms
   in
   if lval_is_now_safe then Lval_env.clean lval_env lval else lval_env
 
@@ -466,7 +474,7 @@ let find_lval_taint_sources env ~labels lval =
        * (presumably by side-effect) and we will update the `lval_env`
        * accordingly. Otherwise the lvalue belongs to a piece of code that
        * is a source of taint, but it is not tainted on its own. *)
-    List.partition is_exact source_pms
+    partition_mutating_sources source_pms
   in
   let taints_sources_reg =
     reg_source_pms |> taints_of_matches |> filter_taints_by_labels labels
