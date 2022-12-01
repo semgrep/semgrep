@@ -376,7 +376,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             "dependency_pattern": {
               "ecosystem": "pypi",
               "package": "badlib",
-              "semver_range": "== 1.0.0"
+              "semver_range": "== <MASKED>"
             },
             "found_dependency": {
               "allowed_hashes": {},
@@ -384,7 +384,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "line_number": 2,
               "package": "badlib",
               "transitivity": "unknown",
-              "version": "1.0.0"
+              "version": "<MASKED>"
             },
             "lockfile": "poetry.lock"
           },

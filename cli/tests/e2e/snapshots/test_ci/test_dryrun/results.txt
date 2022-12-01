@@ -314,11 +314,11 @@ Would have sent findings and ignores blob: {
                     "dependency_pattern": {
                         "ecosystem": "pypi",
                         "package": "badlib",
-                        "semver_range": "== 1.0.0"
+                        "semver_range": "== <MASKED>"
                     },
                     "found_dependency": {
                         "package": "badlib",
-                        "version": "1.0.0",
+                        "version": "<MASKED>",
                         "ecosystem": "pypi",
                         "allowed_hashes": {},
                         "transitivity": "unknown",
