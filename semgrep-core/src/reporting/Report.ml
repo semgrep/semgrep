@@ -107,6 +107,17 @@ type final_profiling = {
   rules : Rule.rule list;
   rules_parse_time : float;
   file_times : file_profiling list;
+  (* This is meant to represent the maximum amount of memory used by
+     Semgrep during the course of its execution.
+
+     This is useful to emit with the other profiling data for telemetry
+     purposes, particuarly as it relates to measuring memory management
+     with DeepSemgrep.
+
+     It's not important that this number be incredibly precise, but
+     measuring general trends is useful for ascertaining our memory
+     usage.
+  *)
   max_memory_bytes : int;
 }
 [@@deriving show]
@@ -357,7 +368,12 @@ let make_final_result results rules ~rules_parse_time =
         rules;
         rules_parse_time;
         file_times;
-        max_memory_bytes = (Gc.quick_stat ()).top_heap_words;
+        (* Notably, using the `top_heap_words` does not measure cumulative
+           memory usage across concurrent processes, meaning that if the most
+           amount of memory is consumed by forked processes, we would need to
+           multiply by the numbrer of processes to estimate the true maximum.
+        *)
+        max_memory_bytes = (Gc.quick_stat ()).top_heap_words * Sys.word_size;
       }
     in
     match !mode with
