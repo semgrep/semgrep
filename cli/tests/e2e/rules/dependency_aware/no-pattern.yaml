@@ -3,7 +3,7 @@ rules:
     r2c-internal-project-depends-on:
         namespace: npm
         package: bad-yarn-lib
-        version: "<= 1.0.0"
+        version: "<= 99.99.99"
     message: that's a bad lib
     languages: [javascript]
     severity: WARNING
