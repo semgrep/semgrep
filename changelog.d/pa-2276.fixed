@@ -1,0 +1,1 @@
+Autofix: If multiple autofixes are targeting an overlapping range, then one of them is picked arbitrarily to occur, to prevent autofixes which may produce incorrect code.
