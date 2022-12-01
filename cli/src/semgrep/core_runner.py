@@ -70,7 +70,7 @@ INPUT_BUFFER_LIMIT: int = 1024 * 1024 * 1024
 LARGE_READ_SIZE: int = 1024 * 1024 * 512
 
 
-def __get_cpu_count() -> int:
+def get_cpu_count() -> int:
     try:
         return multiprocessing.cpu_count()
     except NotImplementedError:
@@ -524,7 +524,7 @@ class CoreRunner:
         optimizations: str,
         core_opts_str: Optional[str],
     ):
-        self._jobs = jobs if jobs else 1 if deep else __get_cpu_count()
+        self._jobs = jobs if jobs else 1 if deep else get_cpu_count()
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
