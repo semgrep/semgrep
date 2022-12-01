@@ -82,7 +82,7 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
         dedent(
             """[[package]]
     name = "badlib"
-    version = "1.0.0"
+    version = "99.99.99"
     description = "it's bad"
     category = "dev"
     optional = false
@@ -203,7 +203,7 @@ def automocks(mocker):
           r2c-internal-project-depends-on:
             namespace: pypi
             package: badlib
-            version: == 1.0.0
+            version: == 99.9.99
           metadata:
             dev.semgrep.actions: [block]
         - id: supply-chain2
@@ -213,7 +213,7 @@ def automocks(mocker):
           r2c-internal-project-depends-on:
             namespace: npm
             package: badlib
-            version: == 1.0.0
+            version: == 99.99.99
         """
     ).lstrip()
 
