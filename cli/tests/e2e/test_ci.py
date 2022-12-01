@@ -203,7 +203,7 @@ def automocks(mocker):
           r2c-internal-project-depends-on:
             namespace: pypi
             package: badlib
-            version: == 99.9.99
+            version: == 99.99.99
           metadata:
             dev.semgrep.actions: [block]
         - id: supply-chain2
