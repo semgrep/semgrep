@@ -284,7 +284,7 @@ def main(
     lang: Optional[str],
     configs: Sequence[str],
     no_rewrite_rule_ids: bool = False,
-    jobs: int = 1,
+    jobs: Optional[int] = None,
     include: Optional[Sequence[str]] = None,
     exclude: Optional[Sequence[str]] = None,
     exclude_rule: Optional[Sequence[str]] = None,
@@ -403,6 +403,7 @@ def main(
     core_start_time = time.time()
     core_runner = CoreRunner(
         jobs=jobs,
+        deep=deep,
         timeout=timeout,
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
