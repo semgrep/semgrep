@@ -42,6 +42,7 @@ Git root path: <MASKED>/copy
 Getting scan configurations
 Starting scan
 Authenticated as org_name
+Failed to open resource deep-semgrep: [Errno 2] No such file or directory: '/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/deep-semgrep'.
 semgrep version <MASKED>
 running 6 rules from 1 config semgrep-app-rules
 Initializing git status
