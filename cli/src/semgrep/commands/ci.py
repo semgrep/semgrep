@@ -16,6 +16,7 @@ import click
 import semgrep.semgrep_main
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
+from semgrep.commands.install import run_install_deep_semgrep
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
@@ -33,6 +34,7 @@ from semgrep.output import OutputSettings
 from semgrep.project import ProjectConfig
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
 from semgrep.util import git_check_output
 from semgrep.util import unit_str
@@ -323,6 +325,9 @@ def ci(
             # Run DeepSemgrep when available but only for full scans
             is_full_scan = metadata.merge_base_ref is None
             deep = scan_handler.deepsemgrep if scan_handler and is_full_scan else False
+            deep_path = SemgrepCore.deep_path()
+            if deep and deep_path is None:
+                run_install_deep_semgrep()
 
             # Append ignores configured on semgrep.dev
             requested_excludes = scan_handler.ignore_patterns if scan_handler else []
