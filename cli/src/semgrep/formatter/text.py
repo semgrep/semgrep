@@ -596,12 +596,14 @@ class TextFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
+        is_ci_invocation: bool,
     ) -> str:
         reachable = []
         unreachable = []
         first_party_blocking = []
         first_party_nonblocking = []
         first_party_blocking_rules = []
+
         for match in rule_matches:
             if "sca_info" not in match.extra:
                 if match.is_blocking:
@@ -661,6 +663,11 @@ class TextFormatter(BaseFormatter):
                 + "\n".join(unreachable_output)
             )
 
+        blocking_description = "Blocking Findings" if is_ci_invocation else "Findings"
+        non_blocking_description = (
+            "Non-Blocking Findings" if is_ci_invocation else "Findings"
+        )
+
         if first_party_nonblocking:
             first_party_nonblocking_output = self._build_text_output(
                 first_party_nonblocking,
@@ -670,10 +677,11 @@ class TextFormatter(BaseFormatter):
                 extra["dataflow_traces"],
             )
             findings_output.append(
-                "\nFirst-Party Non-Blocking Findings:\n"
+                f"\nFirst-Party {non_blocking_description}:\n"
                 + "\n".join(first_party_nonblocking_output)
             ) if (reachable or unreachable) else findings_output.append(
-                "\nNon-Blocking Findings:\n" + "\n".join(first_party_nonblocking_output)
+                f"\n{non_blocking_description}:\n"
+                + "\n".join(first_party_nonblocking_output)
             )
         if first_party_blocking:
             first_party_blocking_output = self._build_text_output(
@@ -684,13 +692,14 @@ class TextFormatter(BaseFormatter):
                 extra["dataflow_traces"],
             )
             findings_output.append(
-                "\nFirst-Party Blocking Findings:\n"
+                f"\nFirst-Party {blocking_description}:\n"
                 + "\n".join(first_party_blocking_output)
             ) if (reachable or unreachable) else findings_output.append(
-                "\nBlocking Findings:\n" + "\n".join(first_party_blocking_output)
+                f"\n{blocking_description}:\n" + "\n".join(first_party_blocking_output)
             )
 
         first_party_blocking_rules_output = []
+
         if first_party_blocking_rules:
             formatted_first_party_blocking_rules = [
                 with_color(Colors.foreground, rule_id, bold=True)
@@ -699,17 +708,18 @@ class TextFormatter(BaseFormatter):
                     key=first_party_blocking_rules.index,
                 )
             ]
-            first_party_blocking_rules_output = (
-                [
-                    "\nFirst-Party Blocking Rules Fired:\n   "
-                    + "   \n   ".join(formatted_first_party_blocking_rules)
-                ]
-                if (reachable or unreachable)
-                else [
-                    "\nBlocking Rules Fired:\n   "
-                    + "   \n   ".join(formatted_first_party_blocking_rules)
-                ]
-            )
+            if is_ci_invocation:
+                first_party_blocking_rules_output = (
+                    [
+                        "\nFirst-Party Blocking Rules Fired:\n   "
+                        + "   \n   ".join(formatted_first_party_blocking_rules)
+                    ]
+                    if (reachable or unreachable)
+                    else [
+                        "\nBlocking Rules Fired:\n   "
+                        + "   \n   ".join(formatted_first_party_blocking_rules)
+                    ]
+                )
 
         return "\n".join(
             [
