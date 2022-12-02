@@ -1524,6 +1524,8 @@ and function_kind =
   | Arrow
   (* for Scala *)
   | BlockCases
+  (* For stubs and interfaces, such as in C or Java *)
+  | FunctionInterface
 
 and parameters = parameter list
 
