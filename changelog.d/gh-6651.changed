@@ -1,0 +1,1 @@
+Don't print out summary of blocking rules unless running with semgrep ci subcommand
