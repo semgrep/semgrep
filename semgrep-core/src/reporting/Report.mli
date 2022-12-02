@@ -60,6 +60,7 @@ type final_profiling = {
   rules : Rule.rule list;
   rules_parse_time : float;
   file_times : file_profiling list;
+  max_memory_bytes : int;
 }
 [@@deriving show]
 

@@ -519,6 +519,7 @@ def main(
         metrics.add_project_url(project_url)
         metrics.add_configs(configs)
         metrics.add_rules(filtered_rules, profiling_data)
+        metrics.add_max_memory_bytes(profiling_data)
         metrics.add_targets(all_targets, profiling_data)
         metrics.add_findings(filtered_matches_by_rule)
         metrics.add_errors(semgrep_errors)

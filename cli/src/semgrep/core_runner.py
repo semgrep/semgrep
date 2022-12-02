@@ -669,6 +669,17 @@ class CoreRunner:
             }
             profiling_data.set_file_times(Path(t.path), rule_timings, t.run_time)
 
+    def _add_max_memory_bytes(
+        self, profiling_data: ProfilingData, max_memory_bytes: int
+    ) -> None:
+        """
+        This represents the maximum amount of memory used by the OCaml side of
+        Semgrep during its execution.
+
+        This is useful for telemetry purposes.
+        """
+        profiling_data.set_max_memory_bytes(max_memory_bytes)
+
     def _plan_core_run(
         self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
     ) -> Plan:
@@ -880,6 +891,9 @@ class CoreRunner:
 
             if ("time" in output_json) and core_output.time:
                 self._add_match_times(profiling_data, core_output.time)
+                self._add_max_memory_bytes(
+                    profiling_data, core_output.time.max_memory_bytes
+                )
 
             # end with tempfile.NamedTemporaryFile(...) ...
             outputs = core_matches_to_rule_matches(rules, core_output)
