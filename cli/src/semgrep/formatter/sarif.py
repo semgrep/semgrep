@@ -364,6 +364,7 @@ class SarifFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
+        is_ci_invocation: bool,
     ) -> str:
         """
         Format matches in SARIF v2.1.0 formatted JSON.
