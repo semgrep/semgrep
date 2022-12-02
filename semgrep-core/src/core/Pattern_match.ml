@@ -132,7 +132,7 @@ let range pm =
 let submatch pm1 pm2 =
   pm1.rule_id = pm2.rule_id && pm1.file = pm2.file
   (* THINK: && "pm1.bindings = pm2.bindings" ? *)
-  && Range.( $<=$ ) (range pm1) (range pm2)
+  && Range.( $<$ ) (range pm1) (range pm2)
 
 (* Remove matches that are srictly inside another match. *)
 let no_submatches pms =

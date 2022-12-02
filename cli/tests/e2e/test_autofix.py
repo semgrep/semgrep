@@ -28,6 +28,8 @@ import pytest
         ("rules/autofix/three-autofixes.yaml", "autofix/three-autofixes.py"),
         ("rules/autofix/ocaml_paren_expr.yaml", "autofix/ocaml_paren_expr.ml"),
         ("rules/autofix/python-ranges.yaml", "autofix/python-ranges.py"),
+        ("rules/autofix/exact-collision.yaml", "autofix/collision.py"),
+        ("rules/autofix/overlapping-collision.yaml", "autofix/collision.py"),
         (
             "rules/autofix/yaml-excessive-mapping-capture.yaml",
             "autofix/yaml-excessive-mapping-capture.yaml",
