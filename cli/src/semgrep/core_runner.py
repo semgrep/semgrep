@@ -850,6 +850,7 @@ class CoreRunner:
                     target_file.name,
                     "--root",
                     root,
+                    "--json_time",
                     # "--timeout",
                     # str(self._timeout),
                     # "--timeout_threshold",
