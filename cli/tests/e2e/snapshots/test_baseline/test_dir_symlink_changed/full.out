@@ -1,5 +1,5 @@
 
-Blocking Findings:
+Findings:
 
   dir_one/foo.py 
           1┆ x = 23478921
