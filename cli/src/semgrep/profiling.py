@@ -86,6 +86,13 @@ class ProfilingData:
         """
         return self._file_num_times_scanned[target]
 
+    def get_max_memory_bytes(self) -> Optional[int]:
+        """
+        Returns the amount of bytes of memory used during Semgrep's
+        run on the OCaml side.
+        """
+        return self._max_memory_bytes
+
     def set_file_times(
         self, target: Path, times: Dict[core.RuleId, Times], run_time: float
     ) -> None:
