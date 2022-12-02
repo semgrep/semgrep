@@ -103,20 +103,38 @@ type fun_env = (var, Taints.t) Hashtbl.t
 (* NOTE "Top sinks":
  * (See note "Taint-tracking via ranges" in 'Match_tainting_mode.ml' for context.)
  *
- * Since we use sub-range checks to determine wheter a piece of code is a sink this
+ * We use sub-range checks to determine whether a piece of code is a sink, and this
  * can lead to unintuitive results. For example, `sink(if tainted then ok1 else ok2)`
  * is reported as a tainted sink despite `if tainted then ok1 else ok2` is actually
  * not tainted. The problem is that `tainted` is inside what `sink(...)` matches,
  * and using a sub-range check we end up considering `tainted` itself as a sink.
  *
- * Unfortunately we cannot simply check for exact matches, because sometimes we
- * cannot match sinks exactly. So, what we do is to check the top-level nodes in the
- * CFG for sinks, and from all those matches we keep the "best" (larger) fits. We
- * call these the "top sinks" (matches). Then we use those top sinks as a practical
- * definition of "exact match", thus if we find  another match which is a strict
- * sub-range of one of these top sinks, we simply disregard it. In our example above
- * the top sink match will be `sink(if tainted then ok1 else ok2)`, so we will
- * disregard `tainted` as a sink because we know there is a better match.
+ * Unfortunately simply checking for exact matches is fragile, because sometimes we
+ * are not able to match sinks exactly. For example, if you want `echo ...;` to be a
+ * sink in PHP, you cannot omit the ';' as `echo` is not an expression. But in the
+ * IL, `echo` is represented as a `Call` instruction and the ';' is not part of the
+ * `iorig`.
+ *
+ * A simple alternative would have been to add an `exact: true` option to request
+ * exact matches. This is trivial to implement but it is more a "patch" than a
+ * proper fix. It breaks some taint rules, and users would often not understand when
+ * and why they need to set (or unset) this option to make their rules work.
+ *
+ * So, instead, we went for a solution that requires no extra option, it just works,
+ * but it is a lot more complex to implement. Given a sink specification, we
+ * check whether the sink matches any of the top-level nodes in the CFG (see
+ * 'IL.node_kind'). Given two sink matches, if one is contained inside the other,
+ * then we consider them the same match and we take the larger one as the canonical.
+ * We store the canonical sink matches in a 'Top_sinks' data structure, and we use
+ * these "top sinks" matches as a practical definition of what an "exact match" is.
+ * For example, if the sink specification is `echo ...;`, and the code we have is
+ * `echo $_GET['foo'];`, then this method will determine that `echo $_GET['foo']`
+ * is the best match we can get, and that becomes the definition of exact. Then,
+ * when we check whether an expression or instruction is a sink, if its range is a
+ * strict sub-range of one of these top sinks, we simply disregard it (because it
+ * is not an exact match). In our example above the top sink match will be
+ * `sink(if tainted then ok1 else ok2)`, so we will disregard `tainted` as a sink
+ * because we know there is a better match.
  *)
 module Top_sinks = struct
   module S = Set.Make (struct
@@ -126,6 +144,8 @@ module Top_sinks = struct
       let sink_id_cmp = String.compare m1.spec.R.sink_id m2.spec.R.sink_id in
       if sink_id_cmp <> 0 then sink_id_cmp
       else
+        (* If m1 is contained in m2 or vice-versa, then they are the *same* sink match.
+         * We only want to keep one match per sink, the best match! *)
         let r1 = m1.range in
         let r2 = m2.range in
         if Range.(r1 $<=$ r2 || r2 $<=$ r1) then 0 else Stdlib.compare r1 r2
@@ -136,11 +156,15 @@ module Top_sinks = struct
   let empty = S.empty
 
   let add m' sinks =
+    (* We check if we have another match for the *same* sink specification
+     * (i.e., same 'sink_id'), and if so we must keep the best match and drop
+     * the other one. *)
     match S.find_opt m' sinks with
     | None -> S.add m' sinks
     | Some m ->
         let r = m.range in
         let r' = m'.range in
+        (* Note that by `S`s definition, either `r` is contained in `r'` or vice-versa. *)
         if r'.start > r.start || r'.end_ < r.end_ then
           (* The new match is a worse fit so we keep the current one. *)
           sinks
@@ -211,6 +235,10 @@ let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
 let orig_is_source config orig = config.is_source (any_of_orig orig)
 let orig_is_sanitized config orig = config.is_sanitizer (any_of_orig orig)
 let orig_is_sink config orig = config.is_sink (any_of_orig orig)
+
+let orig_is_best_sink env orig =
+  orig_is_sink env.config orig
+  |> List.filter (Top_sinks.is_best_match env.top_sinks)
 
 let any_of_lval lval =
   match lval with
@@ -726,9 +754,7 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
       (Taints.empty, lval_env)
   | None ->
       let sinks =
-        orig_is_sink env.config exp.eorig
-        |> List.filter (Top_sinks.is_best_match env.top_sinks)
-        |> Common.map trace_of_match
+        orig_is_best_sink env exp.eorig |> Common.map trace_of_match
       in
       let taints_sources =
         orig_is_source env.config exp.eorig |> taints_of_matches
@@ -798,11 +824,7 @@ let check_function_signature env fun_exp args_taints =
       None
 
 let check_orig_if_sink env orig taints =
-  let sinks =
-    orig_is_sink env.config orig
-    |> List.filter (Top_sinks.is_best_match env.top_sinks)
-    |> Common.map trace_of_match
-  in
+  let sinks = orig_is_best_sink env orig |> Common.map trace_of_match in
   let findings = findings_of_tainted_sinks env taints sinks in
   report_findings env findings
 
@@ -866,9 +888,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
       (Taints.empty, env.lval_env)
   | [] ->
       let sinks =
-        orig_is_sink env.config instr.iorig
-        |> List.filter (Top_sinks.is_best_match env.top_sinks)
-        |> Common.map trace_of_match
+        orig_is_best_sink env instr.iorig |> Common.map trace_of_match
       in
       let taint_sources =
         orig_is_source env.config instr.iorig |> taints_of_matches
@@ -948,7 +968,7 @@ let transfer :
               let taints, lval_env' =
                 check_tainted_lval { env with lval_env = lval_env' } lval
               in
-              (* We check if the instruction is a sink, and if we so the taints
+              (* We check if the instruction is a sink, and if so the taints
                * from the `lval` could make a finding. *)
               check_orig_if_sink env x.iorig taints;
               lval_env'
@@ -1018,7 +1038,12 @@ let (fixpoint :
     | None -> Lval_env.empty
     | Some in_env -> in_env
   in
-  let top_sinks = top_level_sinks_in_nodes config flow in
+  let top_sinks =
+    (* Here we compute the "canonical" or "top" sink matches, for each sink we check
+     * whether there is a "best match" among the top nodes in the CFG.
+     * See NOTE "Top sinks" *)
+    top_level_sinks_in_nodes config flow
+  in
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint ~eq_env:Lval_env.equal ~init:init_mapping
