@@ -277,9 +277,7 @@ class ScanHandler:
             for match in matches_of_rule
         ]
         new_ignored, new_matches = partition(
-            all_matches,
-            lambda match: bool(match.is_ignored)
-            or match.severity == RuleSeverity.EXPERIMENT,
+            all_matches, lambda match: bool(match.is_ignored)
         )
         findings = [
             match.to_app_finding_format(commit_date).to_json() for match in new_matches
