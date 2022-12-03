@@ -10,6 +10,8 @@ function f() {
     sink(x.b)
     //ruleid: test
     sink(x.b.c)
+    //ruleid: test
+    sink(x.c[j])
 
     //ok: test
     sink(x.a)
@@ -17,11 +19,7 @@ function f() {
     sink(x.a.b)
 
     //ok: test
-    sink(x.c[i].d)
+    sink(x.c[j].d)
     //ok: test
-    sink(x.c[i])
-    //ok: test
-    sink(x.c[j])
-    //ok: test
-    sink(x.c)
+    sink(x.c[j].d.e)
 }

@@ -3,13 +3,6 @@ type t =
 {% endfor %}
 [@@deriving show, eq]
 
-(* accept any variants *)
-val is_js : t -> bool
-
-val lang_map : (string, t) Hashtbl.t
-
-val lang_of_string_opt : string -> t option
-
 (* unsupported_language_message [lang] takes the language as a string and
  * returns an error message.
  *
@@ -19,14 +12,10 @@ val lang_of_string_opt : string -> t option
  *)
 val unsupported_language_message : string -> string
 
-(* Association from a valid name for a language to its unique internal ID. *)
-val assoc : (string * t) list
+val of_string_opt : string -> t option
 
-(* list of languages *)
-val keys : string list
-
-(* See also Find_target.files_of_dirs_or_files *)
-val langs_of_filename : Common.filename -> t list
+(* may raise Failure unsupported_language_message *)
+val of_string: string -> t
 
 (*
    Produce a human-readable representation of the language e.g. "C#"
@@ -71,3 +60,17 @@ val excluded_exts_of_lang : t -> string list
    Return a list of programs that can run a script written in this language.
 *)
 val shebangs_of_lang : t -> string list
+
+(* See also Find_target.files_of_dirs_or_files *)
+val langs_of_filename : Common.filename -> t list
+
+(* accept any variants *)
+val is_js : t -> bool
+
+val lang_map : (string, t) Hashtbl.t
+
+(* Association from a valid name for a language to its unique internal ID. *)
+val assoc : (string * t) list
+
+(* list of languages *)
+val keys : string list

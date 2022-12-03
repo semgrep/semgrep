@@ -19,7 +19,7 @@ on:
 
 jobs:
   build-semgrep-core:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: returntocorp/ocaml:alpine-2022-09-24
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
@@ -72,7 +72,7 @@ jobs:
           path: ocaml-build-artifacts.tgz
 
   build-docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -144,7 +144,7 @@ jobs:
   test-core:
     # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: returntocorp/ocaml:alpine-2022-09-24
     env:
       HOME: /root
@@ -198,7 +198,7 @@ jobs:
 
   test-cli:
     name: test semgrep-cli
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     permissions:
       contents: write
@@ -276,7 +276,7 @@ jobs:
   #
   test-qa:
     name: quality assurance on semgrep
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     strategy:
       fail-fast: false
@@ -321,7 +321,7 @@ jobs:
 
   # Run abbreviated version of benchmarks to check that they work
   benchmarks-lite:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     steps:
       - uses: actions/checkout@v3
@@ -353,7 +353,7 @@ jobs:
 
   # Run each benchmark twice to decrease effect of natural variance
   benchmarks-full:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     steps:
       - uses: actions/checkout@v3
@@ -366,7 +366,7 @@ jobs:
       - run: pip install pipenv==2022.6.7
       - name: Run timing benchmark
         run: |
-          pip3 install semgrep==0.94.0
+          pip3 install semgrep==0.122.0
           semgrep --version
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
@@ -441,7 +441,7 @@ jobs:
 
   build-ubuntu-release:
     needs: [build-semgrep-core]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
       - name: Checkout

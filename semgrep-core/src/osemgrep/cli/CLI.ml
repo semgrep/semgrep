@@ -170,6 +170,7 @@ let safe_run ~debug f : Exit_code.t =
     (* should never happen, you should prefer Error.Exit to Common.UnixExit
      * but just in case *)
     | Common.UnixExit i -> Exit_code.of_int i
+    (* TOPORT: PLEASE_FILE_ISSUE_TEXT for unexpected exn *)
     | Failure msg ->
         Logs.err (fun m -> m "Error: %s%!" msg);
         Exit_code.fatal
@@ -180,7 +181,7 @@ let safe_run ~debug f : Exit_code.t =
         Exit_code.fatal
 
 let before_exit ~profile () : unit =
-  (* alt: could be done in Main.ml instead really just before the exit *)
+  (* alt: could be done in Main.ml instead, just before the call to exit() *)
   !Hooks.exit |> List.iter (fun f -> f ());
   (* mostly a copy of Common.main_boilerplate finalize code *)
   if profile then (
@@ -200,7 +201,9 @@ let main argv : Exit_code.t =
   let debug = Array.mem "--debug" argv in
   let profile = Array.mem "--profile" argv in
 
-  (* LATER: move this function from Core_CLI to here at some point *)
+  (* LATER: move this function from Core_CLI to here at some point,
+   * or have each module defining exns register exns from the toplevel.
+   *)
   Core_CLI.register_exception_printers ();
 
   (* Some copy-pasted code from Core_CLI.ml *)
@@ -245,7 +248,6 @@ let main argv : Exit_code.t =
      if config.lsp then LSP_client.init ();
   *)
   (* TOPORT:
-      state = get_state()
       state.terminal.init_for_cli()
       abort_if_linux_arm64()
       state.app_session.authenticate()

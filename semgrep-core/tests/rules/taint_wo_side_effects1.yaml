@@ -1,0 +1,37 @@
+rules:
+  - id: regression_0116
+    message: Semgrep found a match
+    languages:
+      - php
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: source()
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $SOURCE
+          - pattern-either:
+              - pattern: |
+                  if (<... in_array($SOURCE, ...) ...>) {
+                    ...
+                    $SOURCE = '...';
+                  }
+              - pattern-inside: |
+                  if (<... '...' === $SOURCE ...>) {
+                    ...
+                  }
+              - pattern-inside: |
+                  if (<... '...' == $SOURCE ...>) {
+                    ...
+                  }
+              - pattern-inside: |
+                  if (<... $SOURCE === '...' ...>) {
+                    ...
+                  }
+              - pattern-inside: |
+                  if (<... $SOURCE == '...' ...>) {
+                    ...
+                  }
+

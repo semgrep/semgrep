@@ -1,0 +1,9 @@
+rules:
+  - id: sass
+    r2c-internal-project-depends-on:
+        namespace: npm
+        package: sass
+        version: "<= 1.43.5"
+    message: that's a bad lib
+    languages: [javascript]
+    severity: WARNING

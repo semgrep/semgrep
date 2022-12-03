@@ -125,6 +125,7 @@ type taint_spec = {
 
 and taint_source = {
   source_formula : formula;
+  source_by_side_effect : bool;
   label : string;
       (* The label to attach to the data.
        * Alt: We could have an optional label instead, allow taint that is not
@@ -153,6 +154,7 @@ and taint_source = {
  *)
 and taint_sanitizer = {
   sanitizer_formula : formula;
+  sanitizer_by_side_effect : bool;
   not_conflicting : bool;
       (* If [not_conflicting] is enabled, the sanitizer cannot conflict with
        * a sink or a source (i.e., match the exact same range) otherwise
@@ -294,10 +296,8 @@ let partition_rules (rules : rules) :
  *)
 let last_matched_rule : rule_id option ref = ref None
 
-(* Those are recoverable errors; We can just skip the rules containing
- * those errors.
- * less: use a record
- * alt: put in Output_from_core.atd?
+(* Those are recoverable errors; We can just skip the rules containing them.
+ * TODO? put in Output_from_core.atd?
  *)
 type invalid_rule_error = invalid_rule_error_kind * rule_id * Parse_info.t
 
@@ -315,6 +315,20 @@ and invalid_rule_error_kind =
   | MissingPositiveTermInAnd
   | InvalidOther of string
 [@@deriving show]
+
+(* General errors *)
+type error =
+  | InvalidRule of invalid_rule_error
+  | InvalidYaml of string * Parse_info.t
+  | DuplicateYamlKey of string * Parse_info.t
+  | UnparsableYamlException of string
+
+(* can't use Error because it's used for severity *)
+exception Err of error
+
+(*****************************************************************************)
+(* String-of *)
+(*****************************************************************************)
 
 let string_of_invalid_rule_error_kind = function
   | InvalidLanguage language -> spf "invalid language %s" language
@@ -334,44 +348,35 @@ let string_of_invalid_rule_error_kind = function
   | DeprecatedFeature s -> spf "deprecated feature: %s" s
   | InvalidOther s -> s
 
-(* General errors
-
-   TODO: define one exception for all this because pattern-matching
-   on exceptions has no exhaustiveness checking.
-*)
-exception InvalidRule of invalid_rule_error
-exception InvalidYaml of string * Parse_info.t
-exception DuplicateYamlKey of string * Parse_info.t
-exception UnparsableYamlException of string
-exception ExceededMemoryLimit of string
-
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
   spf "invalid rule %s, %s: %s" rule_id
     (Parse_info.string_of_info pos)
     (string_of_invalid_rule_error_kind kind)
+
+let string_of_error (error : error) : string =
+  match error with
+  | InvalidRule x -> string_of_invalid_rule_error x
+  | InvalidYaml (msg, pos) ->
+      spf "invalid YAML, %s: %s" (Parse_info.string_of_info pos) msg
+  | DuplicateYamlKey (key, pos) ->
+      spf "invalid YAML, %s: duplicate key %S"
+        (Parse_info.string_of_info pos)
+        key
+  | UnparsableYamlException s ->
+      (* TODO: what's the string s? *)
+      spf "unparsable YAML: %s" s
 
 (*
    Exception printers for Printexc.to_string.
 *)
 let opt_string_of_exn (exn : exn) =
   match exn with
-  | InvalidRule x -> Some (string_of_invalid_rule_error x)
-  | InvalidYaml (msg, pos) ->
-      Some (spf "invalid YAML, %s: %s" (Parse_info.string_of_info pos) msg)
-  | DuplicateYamlKey (key, pos) ->
-      Some
-        (spf "invalid YAML, %s: duplicate key %S"
-           (Parse_info.string_of_info pos)
-           key)
-  | UnparsableYamlException s ->
-      (* TODO: what's the string s? *)
-      Some (spf "unparsable YAML: %s" s)
-  | ExceededMemoryLimit s ->
-      (* TODO: what's the string s? *)
-      Some (spf "exceeded memory limit: %s" s)
+  | Err x -> Some (string_of_error x)
   | _else_ -> None
 
-(* to be called by the application's main() *)
+(* To be called by the application's main().
+ * TODO? why not evaluate it now like let () = Printexc.register_printer ...?
+ *)
 let register_exception_printer () = Printexc.register_printer opt_string_of_exn
 
 (*****************************************************************************)

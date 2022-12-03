@@ -43,8 +43,13 @@ let setup_logging (conf : Scan_CLI.conf) =
    * and use Logs instead, but it is still useful to get the semgrep-core
    * logging information at runtime, hence this call.
    *)
-  let config = Core_runner.runner_config_of_conf conf in
-  Setup_logging.setup config;
+  let debug =
+    match conf.logging_level with
+    | Some Logs.Debug -> true
+    | _else_ -> false
+  in
+  Logging_helpers.setup ~debug ~log_config_file:"log_config.json"
+    ~log_to_file:None;
   ()
 
 (* ugly: also partially done in CLI.ml *)
@@ -55,10 +60,10 @@ let setup_profiling (conf : Scan_CLI.conf) =
       else Report.mode := MNo_info;
   *)
   if conf.profile then (
-    (* no need to set Common.profile, this was done in CLI.ml *)
+    (* ugly: no need to set Common.profile, this was done in CLI.ml *)
     Logs.debug (fun m -> m "Profile mode On");
     Logs.debug (fun m -> m "disabling -j when in profiling mode");
-    { conf with num_jobs = 1 })
+    { conf with core_runner_conf = { conf.core_runner_conf with num_jobs = 1 } })
   else conf
 
 (*****************************************************************************)
@@ -72,6 +77,7 @@ let exit_code_of_errors ~strict (errors : Semgrep_output_v1_t.core_error list) :
     Exit_code.t =
   match List.rev errors with
   | [] -> Exit_code.ok
+  (* TODO? why do we look at the last error? What about the other errors? *)
   | x :: _ -> (
       (* alt: raise a Semgrep_error that would be catched by CLI_Common
        * wrapper instead of returning an exit code directly? *)
@@ -80,25 +86,6 @@ let exit_code_of_errors ~strict (errors : Semgrep_output_v1_t.core_error list) :
           Cli_json_output.exit_code_of_error_type x.error_type
       | _ when strict -> Cli_json_output.exit_code_of_error_type x.error_type
       | _else_ -> Exit_code.ok)
-
-(*****************************************************************************)
-(* Filtering rules *)
-(*****************************************************************************)
-let filter_rules (conf : Scan_CLI.conf) (rules : Rule.rules) : Rule.rules =
-  let res =
-    match conf.severity with
-    | [] -> rules
-    | xs ->
-        rules
-        |> List.filter (fun r ->
-               match
-                 Severity.rule_severity_of_rule_severity_opt r.Rule.severity
-               with
-               | None -> false
-               | Some x -> List.mem x xs)
-  in
-  res
-  |> Common.exclude (fun r -> List.mem (fst r.Rule.id) conf.exclude_rule_ids)
 
 (*****************************************************************************)
 (* Main logic *)
@@ -114,18 +101,19 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
 
   (* TOPORT: configure metrics *)
   match () with
-  (* "alternate modes" where no search is performed *)
+  (* "alternate modes" where no search is performed.
+   * coupling: if you add a new alternate mode, you probably need to modify
+   * Scan_CLI.cmdline_term.combine.rules_source match cases and allow
+   * more cases returning an empty 'Configs []'.
+   * TODO? stricter: we should allow just one of those alternate modes.
+   *)
   | _ when conf.version ->
       (* alt: we could use Common.pr, but because '--quiet' doc says
        * "Only output findings.", a version is not a finding so
        * we use Logs.app (which is filtered by --quiet).
        *)
       Logs.app (fun m -> m "%s" Version.version);
-      (* TOPORT:
-         if enable_version_check:
-               from semgrep.app.version import version_check
-               version_check()
-      *)
+      (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok
   | _ when conf.show_supported_languages ->
       Logs.app (fun m -> m "supported languages are: %s" Xlang.supported_xlangs);
@@ -133,33 +121,46 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   (* LATER: this should be real separate subcommands instead of abusing
    * semgrep scan flags
    *)
-  | _ when conf.test -> Test_subcommand.run conf
-  | _ when conf.validate -> Validate_subcommand.run conf
+  | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
+  | _ when conf.validate <> None ->
+      Validate_subcommand.run (Common2.some conf.validate)
+  | _ when conf.dump <> None -> Dump_subcommand.run (Common2.some conf.dump)
   | _else_ ->
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
-      let rules_and_origins = Config_resolver.rules_from_conf conf in
+      let rules_and_origins =
+        Rule_fetching.rules_from_rules_source conf.rules_source
+      in
       Logs.debug (fun m ->
           rules_and_origins
           |> List.iter (fun x ->
-                 m "rules = %s" (Config_resolver.show_rules_and_origin x)));
+                 m "rules = %s" (Rule_fetching.show_rules_and_origin x)));
       let rules, errors =
-        Config_resolver.partition_rules_and_errors rules_and_origins
+        Rule_fetching.partition_rules_and_errors rules_and_origins
       in
-      let filtered_rules = filter_rules conf rules in
+      let filtered_rules =
+        Rule_filtering.filter_rules conf.rule_filtering_conf rules
+      in
 
-      (* TODO: there are more ways to specify targets? see target_manager.py *)
       let (targets : Common.filename list), _skipped_targetsTODO =
-        Find_target.select_global_targets ~includes:conf.include_
-          ~excludes:conf.exclude ~max_target_bytes:conf.max_target_bytes
-          ~respect_git_ignore:conf.respect_git_ignore conf.target_roots
+        Find_target.get_targets conf.targeting_conf conf.target_roots
       in
       Logs.debug (fun m ->
           targets |> List.iter (fun file -> m "target = %s" file));
       let (res : Core_runner.result) =
-        Core_runner.invoke_semgrep_core conf filtered_rules errors targets
+        Core_runner.invoke_semgrep_core conf.core_runner_conf filtered_rules
+          errors targets
       in
+      (* TOPORT? was in formater/base.py
+         def keep_ignores(self) -> bool:
+           """
+           Return True if ignored findings should be passed to this formatter;
+           False otherwise.
+           Ignored findings can still be distinguished using their _is_ignore property.
+           """
+           return False
+      *)
       (* outputting the result! in JSON/Text/... depending on conf *)
       Output.output_result conf res;
       (* final result for the shell *)

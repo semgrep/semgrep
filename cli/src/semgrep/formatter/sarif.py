@@ -13,6 +13,9 @@ from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class SarifFormatter(BaseFormatter):
@@ -24,29 +27,33 @@ class SarifFormatter(BaseFormatter):
         taint_source = dataflow_trace.taint_source
         if not taint_source:
             return None
-        location = taint_source.location
-        content = "".join(taint_source.content).strip()
-        source_message_text = (
-            f"Source: '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
-        )
+        if isinstance(taint_source.value, out.CliCall):
+            logger.error(
+                "Emitting SARIF output for unsupported dataflow trace (source is a call)"
+            )
+            return None
+        elif isinstance(taint_source.value, out.CliLoc):
+            location = taint_source.value.value[0]
+            content = "".join(taint_source.value.value[1]).strip()
+            source_message_text = f"Source: '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
 
-        taint_source_location_sarif = {
-            "location": {
-                "message": {"text": source_message_text},
-                "physicalLocation": {
-                    "artifactLocation": {"uri": str(rule_match.path)},
-                    "region": {
-                        "startLine": location.start.line,
-                        "startColumn": location.start.col,
-                        "endLine": location.end.line,
-                        "endColumn": location.end.col,
-                        "snippet": {"text": content},
-                        "message": {"text": source_message_text},
+            taint_source_location_sarif = {
+                "location": {
+                    "message": {"text": source_message_text},
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": str(rule_match.path)},
+                        "region": {
+                            "startLine": location.start.line,
+                            "startColumn": location.start.col,
+                            "endLine": location.end.line,
+                            "endColumn": location.end.col,
+                            "snippet": {"text": content},
+                            "message": {"text": source_message_text},
+                        },
                     },
-                },
+                }
             }
-        }
-        return taint_source_location_sarif
+            return taint_source_location_sarif
 
     @staticmethod
     def _intermediate_vars_to_thread_flow_location_sarif(rule_match: RuleMatch) -> Any:
@@ -116,6 +123,7 @@ class SarifFormatter(BaseFormatter):
         if not dataflow_trace:
             return None
         taint_source = dataflow_trace.taint_source
+        # TODO: deal with taint sink
         intermediate_vars = dataflow_trace.intermediate_vars
 
         if taint_source:
@@ -148,16 +156,26 @@ class SarifFormatter(BaseFormatter):
         taint_source = dataflow_trace.taint_source
         if not taint_source:
             return None
-        location = taint_source.location
-        code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
-        code_flow_sarif = {
-            "message": {"text": code_flow_message},
-        }
-        thread_flows = SarifFormatter._dataflow_trace_to_thread_flows_sarif(rule_match)
-        if thread_flows:
-            code_flow_sarif["threadFlows"] = thread_flows
 
-        return code_flow_sarif
+        # TODO: handle rule_match.taint_sink
+        if isinstance(taint_source.value, out.CliCall):
+            logger.error(
+                "Emitting SARIF output for unsupported dataflow trace (source is a call)"
+            )
+            return None
+        elif isinstance(taint_source.value, out.CliLoc):
+            location = taint_source.value.value[0]
+            code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
+            code_flow_sarif = {
+                "message": {"text": code_flow_message},
+            }
+            thread_flows = SarifFormatter._dataflow_trace_to_thread_flows_sarif(
+                rule_match
+            )
+            if thread_flows:
+                code_flow_sarif["threadFlows"] = thread_flows
+
+            return code_flow_sarif
 
     @staticmethod
     def _rule_match_to_sarif(
@@ -346,6 +364,7 @@ class SarifFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
+        is_ci_invocation: bool,
     ) -> str:
         """
         Format matches in SARIF v2.1.0 formatted JSON.

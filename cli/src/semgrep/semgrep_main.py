@@ -284,7 +284,7 @@ def main(
     lang: Optional[str],
     configs: Sequence[str],
     no_rewrite_rule_ids: bool = False,
-    jobs: int = 1,
+    jobs: Optional[int] = None,
     include: Optional[Sequence[str]] = None,
     exclude: Optional[Sequence[str]] = None,
     exclude_rule: Optional[Sequence[str]] = None,
@@ -403,6 +403,7 @@ def main(
     core_start_time = time.time()
     core_runner = CoreRunner(
         jobs=jobs,
+        deep=deep,
         timeout=timeout,
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
@@ -527,6 +528,7 @@ def main(
         metrics.add_project_url(project_url)
         metrics.add_configs(configs)
         metrics.add_rules(filtered_rules, profiling_data)
+        metrics.add_max_memory_bytes(profiling_data)
         metrics.add_targets(all_targets, profiling_data)
         metrics.add_findings(filtered_matches_by_rule)
         metrics.add_errors(semgrep_errors)

@@ -160,6 +160,35 @@ let module_name_of_filename file =
   let module_name = String.capitalize_ascii b in
   module_name
 
+(* Should `$X(...)` match a call to an IdSpecial function? *)
+let should_match_call = function
+  (* e.g. `this()` in Java constructors *)
+  | G.This
+  (* e.g. `super()` in JS constructor. Should be Java too, but Java doesn't use
+   * IdSpecial for super calls *)
+  | G.Super
+  | G.Self
+  | G.Parent
+  (* JS `require("fs")` *)
+  | G.Require ->
+      true
+  (* TODO Eval should probably be allowed to match *)
+  | G.Eval
+  | G.Typeof
+  | G.Instanceof
+  | G.Sizeof
+  | G.NextArrayIndex
+  | G.Defined
+  | G.ConcatString _
+  | G.EncodedString _
+  | G.InterpolatedElement
+  | G.Spread
+  | G.HashSplat
+  | G.ForOf
+  | G.Op _
+  | G.IncrDecr _ ->
+      false
+
 (*****************************************************************************)
 (* Optimisations (caching, bloom filter) *)
 (*****************************************************************************)
@@ -775,8 +804,8 @@ and m_expr ?(is_root = false) a b =
    * $THIS to match IdSpecial (This) for example.
    *)
   | ( G.Call ({ e = G.N (G.Id ((str, _tok), _id_info)); _ }, _argsa),
-      B.Call ({ e = B.IdSpecial _; _ }, _argsb) )
-    when MV.is_metavar_name str ->
+      B.Call ({ e = B.IdSpecial (idspec, _); _ }, _argsb) )
+    when MV.is_metavar_name str && not (should_match_call idspec) ->
       fail ()
   (* metavar: *)
   (* Matching a generic Id metavariable to an IdSpecial will fail as it is
@@ -1186,6 +1215,7 @@ and m_special a b =
   | G.IncrDecr (a1, a2), B.IncrDecr (b1, b2) ->
       m_eq a1 b1 >>= fun () -> m_eq a2 b2
   | G.NextArrayIndex, B.NextArrayIndex -> return ()
+  | G.Require, B.Require -> return ()
   | G.This, _
   | G.Super, _
   | G.Self, _
@@ -1203,6 +1233,7 @@ and m_special a b =
   | G.Defined, _
   | G.ForOf, _
   | G.NextArrayIndex, _
+  | G.Require, _
   | InterpolatedElement, _ ->
       fail ()
 
@@ -1303,14 +1334,14 @@ and m_compatible_type lang typed_mvar t e =
           m_type_option_with_hook idb (Some t) !tb >>= fun () ->
           envf typed_mvar (MV.Id (idb, Some id_infob))
       | _ta, _eb -> (
-          match type_of_expr e with
+          match type_of_expr lang e with
           | Some (idb, tb) ->
               m_type_option_with_hook idb (Some t) tb >>= fun () ->
               envf typed_mvar (MV.E e)
           | _ -> fail ()))
 
 (* returns a type option and an ident that can be used to query LSP *)
-and type_of_expr e : (G.ident * G.type_ option) option =
+and type_of_expr lang e : (G.ident * G.type_ option) option =
   match e.B.e with
   | B.New (tk, t, _) -> Some (("new", tk), Some t)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
@@ -1332,9 +1363,20 @@ and type_of_expr e : (G.ident * G.type_ option) option =
        * _params and _args to calculate the resulting type.
        *)
       | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
-      | Some _ -> None
-      | None -> None)
-  | B.ParenExpr (_, e, _) -> type_of_expr e
+      | Some _
+      | None ->
+          None)
+  (* deep: in Java, there can be an implicit `this.`
+     so calculate the type in the same way as above
+     THINK: should we do this for all languages? Why not? *)
+  | B.Call ({ e = N (Id (idb, { B.id_type = tb; _ })); _ }, _args)
+    when lang = Lang.Java -> (
+      match !tb with
+      | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
+      | Some _
+      | None ->
+          None)
+  | B.ParenExpr (_, e, _) -> type_of_expr lang e
   | _ -> None
 
 (*---------------------------------------------------------------------------*)
@@ -2254,7 +2296,7 @@ and m_stmt a b =
       m_list m_any a2 b2 >>= fun () -> m_stmt a3 b3
   | G.WithUsingResource (a1, a2, a3), B.WithUsingResource (b1, b2, b3) ->
       m_tok a1 b1 >>= fun () ->
-      m_stmt a2 b2 >>= fun () -> m_stmt a3 b3
+      m_list m_stmt a2 b2 >>= fun () -> m_stmt a3 b3
   | G.ExprStmt _, _
   | G.DefStmt _, _
   | G.DirectiveStmt _, _
@@ -3003,16 +3045,17 @@ and m_directive a b =
 
   m_directive_basic a.d b.d >!> fun () ->
   match a.d with
-  (* normalize only if very simple import pattern (no alias) *)
-  | G.ImportFrom (_, _, _, None)
-  | G.ImportAs (_, _, None) -> (
-      (* equivalence: *)
-      let normal_a = Normalize_generic.normalize_import_opt true a.d in
-      let normal_b = Normalize_generic.normalize_import_opt false b.d in
-      match (normal_a, normal_b) with
-      | Some (a0, a1), Some (b0, b1) ->
-          m_tok a0 b0 >>= fun () -> m_module_name_prefix a1 b1
-      | _ -> fail ())
+  (* normalize only if very simple import pattern (no aliases) *)
+  | G.ImportFrom (_, _, imports)
+    when List.for_all
+           (function
+             (* None here means that there is no local alias for the imported
+              * name. *)
+             | _imported_name, None -> true
+             | _imported_name, Some _aliases -> false)
+           imports ->
+      m_normalized_imports a.d b.d
+  | G.ImportAs (_, _, None) -> m_normalized_imports a.d b.d
   (* more complex pattern should not be normalized *)
   | G.ImportFrom _
   | G.ImportAs _
@@ -3031,18 +3074,23 @@ and m_directive a b =
 and m_directive_basic a b =
   match (a, b) with
   (* metavar: import $LIB should bind $LIB to the full qualified name *)
-  | ( G.ImportFrom (a0, DottedName [], (str, tok), a3),
-      B.ImportFrom (b0, DottedName xs, x, b3) )
+  (* TODO Should we handle imports with multiple imported names here? Which
+   * import would the metavar bind to? *)
+  | ( G.ImportFrom (a0, DottedName [], [ ((str, tok), a3) ]),
+      B.ImportFrom (b0, DottedName xs, [ (x, b3) ]) )
     when MV.is_metavar_name str ->
       let name = H.name_of_ids (xs @ [ x ]) in
       let* () = m_tok a0 b0 in
       let* () = envf (str, tok) (MV.N name) in
       (m_option_none_can_match_some m_ident_and_id_info) a3 b3
-  | G.ImportFrom (a0, a1, a2, a3), B.ImportFrom (b0, b1, b2, b3) ->
+  | G.ImportFrom (a0, a1, a2), B.ImportFrom (b0, b1, b2) ->
       m_tok a0 b0 >>= fun () ->
       m_module_name_prefix a1 b1 >>= fun () ->
-      m_ident_and_empty_id_info a2 b2 >>= fun () ->
-      (m_option_none_can_match_some m_ident_and_id_info) a3 b3
+      let f (x1, x2) (y1, y2) =
+        m_ident_and_empty_id_info x1 y1 >>= fun () ->
+        (m_option_none_can_match_some m_ident_and_id_info) x2 y2
+      in
+      m_list_in_any_order ~less_is_ok:true f a2 b2
   | G.ImportAs (a0, a1, a2), B.ImportAs (b0, b1, b2) ->
       m_tok a0 b0 >>= fun () ->
       m_module_name_prefix a1 b1 >>= fun () ->
@@ -3066,6 +3114,16 @@ and m_directive_basic a b =
   | G.Package _, _
   | G.PackageEnd _, _ ->
       fail ()
+
+and m_normalized_imports a b =
+  (* equivalence: *)
+  let normal_as = Normalize_generic.normalize_import_opt true a in
+  let normal_bs = Normalize_generic.normalize_import_opt false b in
+  match (normal_as, normal_bs) with
+  | Some (a0, a1), Some (b0, b1) ->
+      m_tok a0 b0 >>= fun () ->
+      m_list_in_any_order ~less_is_ok:true m_module_name_prefix a1 b1
+  | _ -> fail ()
 
 (*****************************************************************************)
 (* Toplevel *)

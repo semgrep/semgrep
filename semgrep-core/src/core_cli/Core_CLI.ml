@@ -297,7 +297,7 @@ let dump_ext_of_lang () =
   let lang_to_exts =
     Lang.keys
     |> Common.map (fun lang_str ->
-           match Lang.lang_of_string_opt lang_str with
+           match Lang.of_string_opt lang_str with
            | Some lang ->
                lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)
            | None -> "")
@@ -427,6 +427,15 @@ let all_actions () =
     ( "-dump_jsonnet_ast",
       " <file>",
       Common.mk_action_1_arg Test_ojsonnet.dump_jsonnet_ast );
+    ( "-dump_jsonnet_core",
+      " <file>",
+      Common.mk_action_1_arg Test_ojsonnet.dump_jsonnet_core );
+    ( "-dump_jsonnet_value",
+      " <file>",
+      Common.mk_action_1_arg Test_ojsonnet.dump_jsonnet_value );
+    ( "-dump_jsonnet_json",
+      " <file>",
+      Common.mk_action_1_arg Test_ojsonnet.dump_jsonnet_json );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Common.mk_action_1_arg (fun file ->
@@ -732,7 +741,8 @@ let main (sys_argv : string array) : unit =
   else if config.report_time then Report.mode := MTime
   else Report.mode := MNo_info;
 
-  Setup_logging.setup config;
+  Logging_helpers.setup ~debug:config.debug
+    ~log_config_file:config.log_config_file ~log_to_file:config.log_to_file;
 
   logger#info "Executed as: %s" (argv |> String.concat " ");
   logger#info "Version: %s" version;

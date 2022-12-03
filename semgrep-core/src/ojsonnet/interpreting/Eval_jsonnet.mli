@@ -1,2 +1,4 @@
-(* may also raise an exception? *)
-val eval : Core_jsonnet.expr -> Value_jsonnet.value_
+exception Error of string * Parse_info.t
+
+(* may raise Error *)
+val eval_program : Core_jsonnet.program -> Value_jsonnet.value_

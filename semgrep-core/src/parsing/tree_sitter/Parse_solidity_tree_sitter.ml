@@ -644,7 +644,7 @@ let map_import_clause (env : env) (x : CST.import_clause) =
         | Left _tstar, Some alias ->
             [ ImportAs (timport, modname, Some alias) |> G.d ]
         | Right id, alias_opt ->
-            [ ImportFrom (timport, modname, id, alias_opt) |> G.d ])
+            [ ImportFrom (timport, modname, [ (id, alias_opt) ]) |> G.d ])
   | `Mult_import (v1, v2, v3) ->
       let _lb = (* "{" *) token env v1 in
       let xs =
@@ -667,7 +667,7 @@ let map_import_clause (env : env) (x : CST.import_clause) =
       fun timport modname ->
         xs
         |> Common.map (fun (id, aliasopt) ->
-               ImportFrom (timport, modname, id, aliasopt) |> G.d)
+               ImportFrom (timport, modname, [ (id, aliasopt) ]) |> G.d)
 
 let map_mapping_key (env : env) (x : CST.mapping_key) : type_ =
   match x with

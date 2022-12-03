@@ -232,22 +232,44 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               }
             }
           ],
-          "taint_source": {
-            "content": "danger",
-            "location": {
-              "end": {
-                "col": 16,
-                "line": 26,
-                "offset": 352
+          "taint_sink": [
+            "CliLoc",
+            [
+              {
+                "end": {
+                  "col": 13,
+                  "line": 27,
+                  "offset": 365
+                },
+                "path": "foo.py",
+                "start": {
+                  "col": 5,
+                  "line": 27,
+                  "offset": 357
+                }
               },
-              "path": "foo.py",
-              "start": {
-                "col": 10,
-                "line": 26,
-                "offset": 346
-              }
-            }
-          }
+              "sink(d2)"
+            ]
+          ],
+          "taint_source": [
+            "CliLoc",
+            [
+              {
+                "end": {
+                  "col": 16,
+                  "line": 26,
+                  "offset": 352
+                },
+                "path": "foo.py",
+                "start": {
+                  "col": 10,
+                  "line": 26,
+                  "offset": 346
+                }
+              },
+              "danger"
+            ]
+          ]
         },
         "fingerprint": "0x42",
         "is_ignored": false,
@@ -354,7 +376,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             "dependency_pattern": {
               "ecosystem": "pypi",
               "package": "badlib",
-              "semver_range": "== 1.0.0"
+              "semver_range": "== 99.99.99"
             },
             "found_dependency": {
               "allowed_hashes": {},
@@ -362,7 +384,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "line_number": 2,
               "package": "badlib",
               "transitivity": "unknown",
-              "version": "1.0.0"
+              "version": "99.99.99"
             },
             "lockfile": "poetry.lock"
           },

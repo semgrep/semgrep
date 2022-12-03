@@ -1,0 +1,23 @@
+rules:
+  - id: first-rule
+    pattern: |
+      a = $FOO
+      ...
+      c = $BAR
+    fix: |
+      once
+    message: Semgrep found a match
+    languages:
+      - python
+    severity: WARNING
+  - id: second-rule
+    pattern: |
+      b = $FOO
+      ...
+      d = $XD
+    fix: |
+      twice
+    message: Semgrep found a match
+    languages:
+      - python
+    severity: WARNING

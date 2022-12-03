@@ -86,6 +86,12 @@ type debug_taint = {
 }
 
 (*****************************************************************************)
+(* Hooks *)
+(*****************************************************************************)
+
+let hook_setup_hook_function_taint_signature = ref None
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 module F2 = IL
@@ -577,6 +583,11 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     in
     taint_config_of_rule xconf file (ast, []) rule handle_findings
   in
+
+  (match !hook_setup_hook_function_taint_signature with
+  | None -> ()
+  | Some setup_hook_function_taint_signature ->
+      setup_hook_function_taint_signature xconf rule taint_config xtarget);
 
   (* Check each function definition. *)
   Visit_function_defs.visit

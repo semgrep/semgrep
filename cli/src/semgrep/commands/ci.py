@@ -320,6 +320,10 @@ def ci(
                 logger.info(f"Could not start scan {e}")
                 sys.exit(FATAL_EXIT_CODE)
 
+            # Run DeepSemgrep when available but only for full scans
+            is_full_scan = metadata.merge_base_ref is None
+            deep = scan_handler.deepsemgrep if scan_handler and is_full_scan else False
+
             # Append ignores configured on semgrep.dev
             requested_excludes = scan_handler.ignore_patterns if scan_handler else []
             if requested_excludes:
@@ -346,6 +350,7 @@ def ci(
                 lockfile_scan_info,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
+                deep=deep,
                 output_handler=output_handler,
                 target=[os.curdir],  # semgrep ci only scans cwd
                 pattern=None,
@@ -423,13 +428,8 @@ def ci(
                 cai_matches_by_rule
                 if "r2c-internal-cai" in rule.id
                 else blocking_matches_by_rule
-                # if an SCA finding is unreachable, it always goes in non-blocking
-                if rule.is_blocking
-                and (
-                    match.extra["sca_info"].reachable
-                    if "sca_info" in match.extra
-                    else True
-                )
+                # note that SCA findings are always non-blocking
+                if rule.is_blocking and "sca_info" not in match.extra
                 else nonblocking_matches_by_rule
             )
             applicable_result_set[rule].append(match)
@@ -445,6 +445,7 @@ def ci(
         filtered_rules=filtered_rules,
         profiling_data=profiling_data,
         severities=shown_severities,
+        is_ci_invocation=True,
     )
 
     logger.info("CI scan completed successfully.")

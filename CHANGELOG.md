@@ -8,6 +8,51 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.0.0](https://github.com/returntocorp/semgrep/releases/tag/v1.0.0) - 2022-12-01
+
+### Added
+
+- DeepSemgrep: If you have a Team tier account in Semgrep App, and you enable the
+  _DeepSemgrep_ setting, then `semgrep ci` will automatically run the DeepSemgrep
+  engine instead of the OSS engine on full scans (but not in PR scans). (pa-2226)
+
+## [0.123.0](https://github.com/returntocorp/semgrep/releases/tag/v0.123.0) - 2022-11-29
+
+### Added
+
+- CLI: Added deep traces to `--dataflow-traces` (pa-2116)
+
+### Changed
+
+- Reachable Supply Chain findings will no longer block pull requests when using `semgrep ci`.
+  Note that unreachable findings have been non-blocking already. (sca-nonblocking)
+
+### Fixed
+
+- Fix matching issue related to JS imports with multiple imported values (gh-5305)
+- DeepSemgrep: Keep only the shortest trace originating from a taint source. This
+  also prevents falling into infinite loops when inferring taint signatures for
+  mutually recursive procedures. (pa-2224)
+- taint-mode: Improved taint tracking for array-like accesses. Previously, if
+  `x.a.b[i].c` got tainted, Semgrep would track `x.a.b` as tainted, and thus
+  `x.a.b[i].d` would be incorrectly considered as tainted too. Now Semgrep will
+  do the right thing and track `x.a.b[*].c` as tainted, and `x.a.b[i].d` will
+  not be considered tainted. (pa-2225)
+- Java: `private`, singly-assigned class variables now permit constant propagation (pa-2230)
+- JS/TS: Allow dependencies to @Injectable and @Component classes in Angular JS to be visible outside the scope of the constructor. (pa-2233)
+- Fix matching issue related to Python imports with multiple imported values (python-imports)
+- Supply Chain findings from a yarn.lock lockfile were marked as 'transitive'
+  when we couldn't find the matching package.json file.
+  These findings will now be marked as having 'unknown' transitivity. (sc-425)
+- Make `$X(...)` match `this()` and `super()`. (this-match)
+
+## [0.122.0](https://github.com/returntocorp/semgrep/releases/tag/v0.122.0) - 2022-11-16
+
+### Fixed
+
+- DeepSemgrep: Added installation path for DeepSemgrep on M1 machines (pa-2153)
+- Correctly handle optional name field in yaml1 lockfiles (parse_yaml)
+
 ## [0.121.2](https://github.com/returntocorp/semgrep/releases/tag/v0.121.2) - 2022-11-10
 
 ### Fixed

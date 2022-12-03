@@ -2,7 +2,8 @@ rules:
   - id: use-after-free-taint
     mode: taint
     pattern-sources:
-      - patterns:
+      - by-side-effect: true
+        patterns:
           - pattern: free($VAR);
           - focus-metavariable: $VAR
     pattern-sinks:

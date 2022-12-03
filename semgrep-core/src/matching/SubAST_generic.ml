@@ -297,7 +297,7 @@ let substmts_of_stmt st =
       [ st ]
   (* 2 *)
   | If (_, _, st1, st2) -> st1 :: Option.to_list st2
-  | WithUsingResource (_, st1, st2) -> [ st1; st2 ]
+  | WithUsingResource (_, st1, st2) -> st1 @ [ st2 ]
   (* n *)
   | Block (_, xs, _) -> xs
   | Switch (_, _, xs) ->

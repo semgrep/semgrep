@@ -90,23 +90,6 @@ let is_dots_offset offset =
          | Dot _ -> true
          | Index _ -> false)
 
-let lval_is_dotted_prefix lval1 lval2 =
-  let eq_name x y = compare_name x y = 0 in
-  let rec offset_prefix os1 os2 =
-    match (os1, os2) with
-    | [], _ -> true
-    | _ :: _, [] -> false
-    | { o = Index _; _ } :: _, _
-    | _, { o = Index _; _ } :: _ ->
-        false
-    | { o = Dot a; _ } :: os1, { o = Dot b; _ } :: os2 ->
-        eq_name a b && offset_prefix os1 os2
-  in
-  match (lval1, lval2) with
-  | { base = Var x; rev_offset = ro1 }, { base = Var y; rev_offset = ro2 } ->
-      eq_name x y && offset_prefix (List.rev ro1) (List.rev ro2)
-  | __else__ -> false
-
 let lval_of_instr_opt x =
   match x.i with
   | Assign (lval, _)

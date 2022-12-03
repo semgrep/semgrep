@@ -25,12 +25,15 @@ module MV = Metavariable
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* TODO? make it a flag? *)
+let use_ojsonnet = true
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* Parsing a Semgrep rule, including complex pattern formulas.
  *
- * See also the JSON schema in rule_schema_v1.yaml.
+ * See also the JSON schema for a rule in rule_schema_v1.yaml.
  *
  * history: we used to parse a semgrep rule by simply using the basic API of
  * the OCaml 'yaml' library. This API allows converting a yaml file into
@@ -41,7 +44,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * of tokens with location information. We actually used first that low-level
  * API to return the generic AST of a yaml file, to add support for
  * YAML in semgrep (allowing semgrep rules on any YAML files).
- * See the Yaml_to_generic.parse_rule function. We then abuse this function
+ * See the Yaml_to_generic.parse_rule function. We then (ab)used this function
  * to also parse a semgrep rule (which is a yaml file) in this file.
  *)
 
@@ -79,13 +82,13 @@ type dict = {
 (* Error Management *)
 (*****************************************************************************)
 
-let yaml_error t s = raise (R.InvalidYaml (s, t))
+let yaml_error t s = raise (R.Err (R.InvalidYaml (s, t)))
 
 let yaml_error_at_expr (e : G.expr) s =
   yaml_error (Visitor_AST.first_info_of_any (G.E e)) s
 
 let yaml_error_at_key (key : key) s = yaml_error (snd key) s
-let error env t s = raise (R.InvalidRule (R.InvalidOther s, env.id, t))
+let error env t s = raise (R.Err (R.InvalidRule (R.InvalidOther s, env.id, t)))
 let error_at_key env (key : key) s = error env (snd key) s
 
 let error_at_expr env (e : G.expr) s =
@@ -189,8 +192,9 @@ let yaml_to_dict_helper error_fun_f error_fun_d (enclosing : string R.wrap)
                   *)
                  if Hashtbl.mem dict key_str then
                    raise
-                     (R.DuplicateYamlKey
-                        (spf "duplicate key '%s' in dictionary" key_str, t));
+                     (R.Err
+                        (R.DuplicateYamlKey
+                           (spf "duplicate key '%s' in dictionary" key_str, t)));
                  Hashtbl.add dict key_str ((key_str, t), value)
              | _ -> error_fun_f field "Not a valid key value pair");
       { h = dict; first_tok = l }
@@ -351,8 +355,8 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
 (*****************************************************************************)
 
 let parse_language ~id ((s, t) as _lang) : Lang.t =
-  match Lang.lang_of_string_opt s with
-  | None -> raise (R.InvalidRule (R.InvalidLanguage s, id, t))
+  match Lang.of_string_opt s with
+  | None -> raise (R.Err (R.InvalidRule (R.InvalidLanguage s, id, t)))
   | Some l -> l
 
 let parse_languages ~id langs : Xlang.t =
@@ -364,8 +368,11 @@ let parse_languages ~id langs : Xlang.t =
       match languages with
       | [] ->
           raise
-            (R.InvalidRule
-               (R.InvalidOther "we need at least one language", fst id, snd id))
+            (R.Err
+               (R.InvalidRule
+                  ( R.InvalidOther "we need at least one language",
+                    fst id,
+                    snd id )))
       | x :: xs -> L (x, xs))
 
 let parse_severity ~id (s, t) =
@@ -377,11 +384,12 @@ let parse_severity ~id (s, t) =
   | "EXPERIMENT" -> R.Experiment
   | s ->
       raise
-        (R.InvalidRule
-           ( R.InvalidOther
-               (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s),
-             id,
-             t ))
+        (R.Err
+           (R.InvalidRule
+              ( R.InvalidOther
+                  (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s),
+                id,
+                t )))
 
 (*****************************************************************************)
 (* Parsers for extra (metavar-xxx:, fix:, etc.) *)
@@ -395,8 +403,7 @@ let parse_python_expression env key s =
     | AST_generic.E e -> e
     | _ -> error_at_key env key "not a Python expression"
   with
-  | Timeout _ as e -> Exception.catch_and_reraise e
-  | UnixExit _n as e -> Exception.catch_and_reraise e
+  | (Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_metavar_cond env key s = parse_python_expression env key s
@@ -410,7 +417,9 @@ let parse_regexp env (s, t) =
   with
   | Pcre.Error exn ->
       raise
-        (R.InvalidRule (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t))
+        (R.Err
+           (R.InvalidRule
+              (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t)))
 
 let parse_fix_regex (env : env) (key : key) fields =
   let fix_regex_dict = yaml_to_dict env key fields in
@@ -530,10 +539,12 @@ let parse_xpattern_expr env e =
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
       raise
-        (R.InvalidRule
-           ( R.InvalidPattern (s, env.languages, Common.exn_to_s exn, env.path),
-             env.id,
-             t ))
+        (R.Err
+           (R.InvalidRule
+              ( R.InvalidPattern
+                  (s, env.languages, Common.exn_to_s exn, env.path),
+                env.id,
+                t )))
 
 (*****************************************************************************)
 (* Parser for old (but current) formula *)
@@ -711,7 +722,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
       in
       let pos, _ = R.split_and conjuncts in
       if pos = [] && not env.in_metavariable_pattern then
-        raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
+        raise (R.Err (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t)));
       R.And (t, { conjuncts; focus; conditions })
   | "pattern-regex" ->
       let x = parse_string_wrap env key value in
@@ -732,7 +743,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   | "metavariable-comparison" ->
       error_at_key env key "Must occur directly under a patterns:"
   | "pattern-where-python" ->
-      raise (R.InvalidRule (R.DeprecatedFeature (fst key), env.id, t))
+      raise (R.Err (R.InvalidRule (R.DeprecatedFeature (fst key), env.id, t)))
   (* fix suggestions *)
   | "metavariable-regexp" ->
       error_at_key env key
@@ -761,7 +772,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
   | "metavariable-regex" ->
       let mv_regex_dict =
         try yaml_to_dict env key value with
-        | R.DuplicateYamlKey (msg, t) ->
+        | R.Err (R.DuplicateYamlKey (msg, t)) ->
             error env t (msg ^ ". You should use multiple metavariable-regex")
       in
       let metavar, regexp, const_prop =
@@ -880,11 +891,12 @@ and parse_formula env (value : G.expr) : R.formula =
         (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
         | exn ->
             raise
-              (R.InvalidRule
-                 ( R.InvalidPattern
-                     (s, env.languages, Common.exn_to_s exn, env.path),
-                   env.id,
-                   t )))
+              (R.Err
+                 (R.InvalidRule
+                    ( R.InvalidPattern
+                        (s, env.languages, Common.exn_to_s exn, env.path),
+                      env.id,
+                      t ))))
   (* If that doesn't work, it should be a key-value pairing.
    *)
   | Right dict -> (
@@ -1017,7 +1029,7 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
       let conjuncts = parse_listi env key parse_formula value in
       let pos, _ = R.split_and conjuncts in
       if pos = [] && not env.in_metavariable_pattern then
-        raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
+        raise (R.Err (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t)));
       R.And (t, { conjuncts; focus = []; conditions = [] })
   | "or" -> R.Or (t, parse_listi env key parse_formula value)
   | "regex" ->
@@ -1066,6 +1078,10 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
   let source_dict = yaml_to_dict env key value in
+  let source_by_side_effect =
+    take_opt source_dict env parse_bool "by-side-effect"
+    |> Option.value ~default:false
+  in
   let label =
     take_opt source_dict env parse_string "label"
     |> Option.value ~default:R.default_source_label
@@ -1076,7 +1092,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     |> Option.value ~default:(R.default_source_requires tok)
   in
   let source_formula = f env source_dict in
-  { source_formula; label; source_requires }
+  { source_formula; source_by_side_effect; label; source_requires }
 
 let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_propagator =
@@ -1094,13 +1110,17 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
   let sanitizer_dict = yaml_to_dict env key value in
+  let sanitizer_by_side_effect =
+    take_opt sanitizer_dict env parse_bool "by-side-effect"
+    |> Option.value ~default:false
+  in
   let not_conflicting =
     take_opt sanitizer_dict env parse_bool
       (if is_old then "not_conflicting" else "not-conflicting")
     |> Option.value ~default:false
   in
   let sanitizer_formula = f env sanitizer_dict in
-  { R.not_conflicting; sanitizer_formula }
+  { sanitizer_formula; sanitizer_by_side_effect; R.not_conflicting }
 
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_sink =
@@ -1132,11 +1152,13 @@ let parse_extract_reduction ~id (s, t) =
   | "separate" -> R.Separate
   | s ->
       raise
-        (R.InvalidRule
-           ( R.InvalidOther
-               (spf "Bad extract reduction: %s (expected concat or separate)" s),
-             id,
-             t ))
+        (R.Err
+           (R.InvalidRule
+              ( R.InvalidOther
+                  (spf "Bad extract reduction: %s (expected concat or separate)"
+                     s),
+                id,
+                t )))
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -1318,13 +1340,25 @@ let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
     |> List.mapi (fun i rule ->
            if error_recovery then (
              try Left (parse_one_rule t i rule) with
-             | R.InvalidRule ((kind, ruleid, _) as err) ->
+             | R.Err (R.InvalidRule ((kind, ruleid, _) as err)) ->
                  let s = Rule.string_of_invalid_rule_error_kind kind in
                  logger#warning "skipping rule %s, error = %s" ruleid s;
                  Right err)
            else Left (parse_one_rule t i rule))
   in
   Common.partition_either (fun x -> x) xs
+
+(* We can't call just Yaml_to_generic.program below because when we parse
+ * YAML Semgrep rules, we preprocess unicode characters differently.
+ * We also need to translate Parse_info.Other_error exn in
+ * (Rule.Err (Rule.InvalidYaml)) exn.
+ * Note that we can't generate a Rule.Err in Yaml_to_generic directly
+ * because we don't want parsing/other/ to depend on core/.
+ *)
+let parse_yaml_rule_file file =
+  let str = Common.read_file file in
+  try Yaml_to_generic.parse_yaml_file file str with
+  | Parse_info.Other_error (s, t) -> raise (R.Err (R.InvalidYaml (s, t)))
 
 let parse_file ?error_recovery file =
   let ast =
@@ -1356,17 +1390,23 @@ let parse_file ?error_recovery file =
         Json_to_generic.program ~unescape_strings:true
           (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
-        Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
-            let cmd = spf "jsonnet -J vendor %s -o %s" file tmpfile in
-            let n = Sys.command cmd in
-            if n <> 0 then failwith (spf "error executing %s" cmd);
-            Json_to_generic.program ~unescape_strings:true
-              (Parse_json.parse_program tmpfile))
-    | FT.Config FT.Yaml -> Yaml_to_generic.parse_rule file
-    | _ ->
+        if use_ojsonnet then
+          let ast = Parse_jsonnet.parse_program file in
+          let core = Desugar_jsonnet.desugar_program file ast in
+          let value_ = Eval_jsonnet.eval_program core in
+          Manifest_jsonnet_to_AST_generic.manifest_value value_
+        else
+          Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
+              let cmd = spf "jsonnet -J vendor %s -o %s" file tmpfile in
+              let n = Sys.command cmd in
+              if n <> 0 then failwith (spf "error executing %s" cmd);
+              let ast = Parse_json.parse_program tmpfile in
+              Json_to_generic.program ~unescape_strings:true ast)
+    | FT.Config FT.Yaml -> parse_yaml_rule_file file
+    | _else_ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
         logger#info "trying to parse %s as YAML" file;
-        Yaml_to_generic.parse_rule file
+        parse_yaml_rule_file file
   in
   parse_generic_ast ?error_recovery file ast
 
@@ -1397,16 +1437,19 @@ let parse_xpattern xlang (str, tok) =
 (*****************************************************************************)
 (* Those functions could be in a separate file *)
 
-(* TODO? could define
+(* alt: could define
  * type yaml_kind = YamlRule | YamlTest | YamlFixed | YamlOther
  *)
 let is_test_yaml_file filepath =
   (* .test.yaml files are YAML target files rather than config files! *)
   Filename.check_suffix filepath ".test.yaml"
+  || Filename.check_suffix filepath ".test.yml"
   || Filename.check_suffix filepath ".test.fixed.yaml"
+  || Filename.check_suffix filepath ".test.fixed.yml"
 
 let is_valid_rule_filename filename =
   match File_type.file_type_of_file filename with
+  (* ".yml" or ".yaml" *)
   | FT.Config FT.Yaml -> not (is_test_yaml_file filename)
   (* old: we were allowing Jsonnet before, but better to skip
    * them for now to avoid adding a jsonnet dependency in our docker/CI

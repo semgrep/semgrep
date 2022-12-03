@@ -80,7 +80,7 @@ let extract_strings_and_mvars ?lang any =
         V.kdir =
           (fun (k, _) x ->
             match x with
-            | { d = ImportFrom (_, FileName (str, _), _, _); _ }
+            | { d = ImportFrom (_, FileName (str, _), _); _ }
             | { d = ImportAs (_, FileName (str, _), _); _ }
             | { d = ImportAll (_, FileName (str, _), _); _ }
               when str <> "..."

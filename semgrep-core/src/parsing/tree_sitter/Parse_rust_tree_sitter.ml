@@ -2746,7 +2746,7 @@ and map_use_clause (env : env) (x : CST.use_clause) use : G.directive list =
   | `Choice_self x ->
       let dots, ident = map_path_ident env x in
       let modname = G.DottedName dots in
-      [ G.ImportFrom (use, modname, ident, None) |> G.d ]
+      [ G.ImportFrom (use, modname, [ (ident, None) ]) |> G.d ]
   | `Use_as_clause (v1, v2, v3) ->
       let dots, ident_ = map_path_ident env v1 in
       let modname = G.DottedName dots in
@@ -2754,7 +2754,8 @@ and map_use_clause (env : env) (x : CST.use_clause) use : G.directive list =
       let alias = ident env v3 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       [
-        G.ImportFrom (use, modname, ident_, Some (alias, G.empty_id_info ()))
+        G.ImportFrom
+          (use, modname, [ (ident_, Some (alias, G.empty_id_info ())) ])
         |> G.d;
       ]
   | `Use_list x -> map_use_list env x use None
@@ -2788,9 +2789,9 @@ and prepend_scope (dir : G.directive) (scope : G.dotted_ident option) :
   match scope with
   | Some scope -> (
       match dir.d with
-      | ImportFrom (tok, modname, id, alias) ->
+      | ImportFrom (tok, modname, imported_names) ->
           let modname = prepend_module_name scope modname in
-          { dir with d = G.ImportFrom (tok, modname, id, alias) }
+          { dir with d = G.ImportFrom (tok, modname, imported_names) }
       | ImportAs (tok, modname, alias) ->
           let modname = prepend_module_name scope modname in
           { dir with d = G.ImportAs (tok, modname, alias) }

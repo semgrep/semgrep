@@ -37,6 +37,7 @@ class ScanHandler:
         self.ignore_patterns: List[str] = []
         self._policy_names: List[str] = []
         self._autofix = False
+        self._deepsemgrep = False
         self.dry_run = dry_run
         self._dry_run_rules_url: str = ""
         self._skipped_syntactic_ids: List[str] = []
@@ -47,56 +48,63 @@ class ScanHandler:
     @property
     def deployment_id(self) -> Optional[int]:
         """
-        Seperate property for easy of mocking in test
+        Separate property for easy of mocking in test
         """
         return self._deployment_id
 
     @property
     def deployment_name(self) -> str:
         """
-        Seperate property for easy of mocking in test
+        Separate property for easy of mocking in test
         """
         return self._deployment_name
 
     @property
     def policy_names(self) -> List[str]:
         """
-        Seperate property for easy of mocking in test
+        Separate property for easy of mocking in test
         """
         return self._policy_names
 
     @property
     def autofix(self) -> bool:
         """
-        Seperate property for easy of mocking in test
+        Separate property for easy of mocking in test
         """
         return self._autofix
 
     @property
+    def deepsemgrep(self) -> bool:
+        """
+        Separate property for easy of mocking in test
+        """
+        return self._deepsemgrep
+
+    @property
     def skipped_syntactic_ids(self) -> List[str]:
         """
-        Seperate property for easy of mocking in test
+        Separate property for easy of mocking in test
         """
         return self._skipped_syntactic_ids
 
     @property
     def skipped_match_based_ids(self) -> List[str]:
         """
-        Seperate property for easy of mocking in test
+        Separate property for easy of mocking in test
         """
         return self._skipped_match_based_ids
 
     @property
     def scan_params(self) -> str:
         """
-        Seperate property for easy of mocking in test
+        Separate property for easy of mocking in test
         """
         return self._scan_params
 
     @property
     def rules(self) -> str:
         """
-        Seperate property for easy of mocking in test
+        Separate property for easy of mocking in test
         """
         return self._rules
 
@@ -182,6 +190,7 @@ class ScanHandler:
         self._policy_names = body["policy_names"]
         self._rules = body["rule_config"]
         self._autofix = body.get("autofix") or False
+        self._deepsemgrep = body.get("deepsemgrep") or False
         self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
         self.ignore_patterns = body.get("ignored_files") or []
@@ -268,9 +277,7 @@ class ScanHandler:
             for match in matches_of_rule
         ]
         new_ignored, new_matches = partition(
-            all_matches,
-            lambda match: bool(match.is_ignored)
-            or match.severity == RuleSeverity.EXPERIMENT,
+            all_matches, lambda match: bool(match.is_ignored)
         )
         findings = [
             match.to_app_finding_format(commit_date).to_json() for match in new_matches

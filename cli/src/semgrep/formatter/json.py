@@ -58,11 +58,12 @@ class JsonFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
+        is_ci_invocation: bool,
     ) -> str:
         # Note that extra is not used here! Every part of the JSON output should
-        # be specified in Semgrep_output_xxx.atd and be part of CliOutputExtra
+        # be specified in semgrep_output_v1.atd and be part of CliOutputExtra
         output = out.CliOutput(
-            version=out.Semver(__VERSION__),
+            version=out.Version(__VERSION__),
             results=[
                 self._rule_match_to_CliMatch(rule_match) for rule_match in rule_matches
             ],

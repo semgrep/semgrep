@@ -74,7 +74,7 @@ let special (x, tok) =
   | Undefined -> SR_Literal (G.Undefined tok)
   | This -> SR_Special (G.This, tok)
   | Super -> SR_Special (G.Super, tok)
-  | Require -> other_expr "Require"
+  | Require -> SR_Special (G.Require, tok)
   | Exports -> other_expr "Exports"
   | Module -> other_expr "Module"
   | Define -> other_expr "Define"
@@ -702,9 +702,16 @@ and module_directive x =
   | ReExportNamespace (v1, _v2, _opt_alias, _v3, v4) ->
       let v4 = filename v4 in
       G.OtherDirective (("ReExportNamespace", v1), [ G.Str v4 ])
-  | Import (t, (v1, v2), v3) ->
-      let v1 = name v1 and v2 = option alias v2 and v3 = filename v3 in
-      G.ImportFrom (t, G.FileName v3, v1, v2)
+  | Import (t, v1, v2) ->
+      let v1 =
+        Common.map
+          (fun (v1, v2) ->
+            let v1 = name v1 and v2 = option alias v2 in
+            (v1, v2))
+          v1
+      in
+      let v2 = filename v2 in
+      G.ImportFrom (t, G.FileName v2, v1)
   | ModuleAlias (t, v1, v2) ->
       let v1 = alias v1 and v2 = filename v2 in
       G.ImportAs (t, G.FileName v2, Some v1)
@@ -739,9 +746,9 @@ and require_to_import_in_stmt_opt st =
           } )
     when x =$= AST_generic_.special_multivardef_pattern -> (
       try
-        match pattern with
-        | Obj (_, xs, _) ->
-            let ys =
+        let imported_names =
+          match pattern with
+          | Obj (_, xs, _) ->
               xs
               |> Common.map (function
                    | FieldColon
@@ -756,22 +763,22 @@ and require_to_import_in_stmt_opt st =
                          | (s1, _), (s2, _) when s1 =$= s2 -> None
                          | _ -> Some (id2, G.empty_id_info ())
                        in
-                       G.DirectiveStmt
-                         (G.ImportFrom (treq, G.FileName file, id1, alias_opt)
-                         |> G.d)
-                       |> G.s
+                       (id1, alias_opt)
                    | _ -> raise ComplicatedCase)
-            in
-            (* we also keep the require() call in the AST so people using
-             * semgrep patterns like 'require("foo")' still find those
-             * requires in the target. The ImportFrom conversion is mostly
-             * for Naming_AST to recognize those require and do the
-             * right aliasing for them too.
-             * alt: do the conversion in Naming_AST.ml instead?
-             *)
-            let orig = stmt st in
-            Some (ys @ [ orig ])
-        | _ -> raise ComplicatedCase
+          | _ -> raise ComplicatedCase
+        in
+        let import =
+          G.DirectiveStmt
+            (G.ImportFrom (treq, G.FileName file, imported_names) |> G.d)
+          |> G.s
+        in
+        (* we also keep the require() call in the AST so people using
+         * semgrep patterns like 'require("foo")' still find those requires
+         * in the target. The ImportFrom conversion is mostly for Naming_AST
+         * to recognize those require and do the right aliasing for them
+         * too. alt: do the conversion in Naming_AST.ml instead? *)
+        let orig = stmt st in
+        Some [ import; orig ]
       with
       | ComplicatedCase -> None)
   | _ -> None

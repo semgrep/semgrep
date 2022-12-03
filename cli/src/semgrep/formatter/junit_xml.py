@@ -37,6 +37,7 @@ class JunitXmlFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
+        is_ci_invocation: bool,
     ) -> str:
         test_cases = [
             self._rule_match_to_test_case(rule_match) for rule_match in rule_matches

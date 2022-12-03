@@ -6,7 +6,8 @@ rules:
     severity: WARNING
     mode: taint
     pattern-sources:
-      - patterns:
+      - by-side-effect: true
+        patterns:
         - pattern: $X.b
         - focus-metavariable: $X
     pattern-sinks:

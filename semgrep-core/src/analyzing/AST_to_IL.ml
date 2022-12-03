@@ -786,6 +786,7 @@ and call_special _env (x, tok) =
     | G.Sizeof -> Sizeof
     | G.ConcatString _kindopt -> Concat
     | G.Spread -> Spread
+    | G.Require -> Require
     | G.EncodedString _
     | G.Defined
     | G.HashSplat
@@ -1252,7 +1253,7 @@ and stmt_aux env st =
       in
       [ mk_s (Try (try_stmt, List.rev catches_stmt_rev, finally_stmt)) ]
   | G.WithUsingResource (_, stmt1, stmt2) ->
-      let stmt1 = stmt env stmt1 in
+      let stmt1 = List.concat_map (stmt env) stmt1 in
       let stmt2 = stmt env stmt2 in
       stmt1 @ stmt2
   | G.DisjStmt _ -> sgrep_construct (G.S st)

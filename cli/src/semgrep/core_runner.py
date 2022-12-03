@@ -2,6 +2,7 @@ import asyncio
 import collections
 import contextlib
 import json
+import multiprocessing
 import resource
 import shlex
 import subprocess
@@ -67,6 +68,13 @@ INPUT_BUFFER_LIMIT: int = 1024 * 1024 * 1024
 #
 # test/e2e/test_performance.py is one test that exercises this risk.
 LARGE_READ_SIZE: int = 1024 * 1024 * 512
+
+
+def get_cpu_count() -> int:
+    try:
+        return multiprocessing.cpu_count()
+    except NotImplementedError:
+        return 1  # CPU count is not implemented on Windows
 
 
 def setrlimits_preexec_fn() -> None:
@@ -508,14 +516,15 @@ class CoreRunner:
 
     def __init__(
         self,
-        jobs: int,
+        jobs: Optional[int],
+        deep: bool,
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
         optimizations: str,
         core_opts_str: Optional[str],
     ):
-        self._jobs = jobs
+        self._jobs = jobs if jobs else 1 if deep else get_cpu_count()
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
@@ -659,6 +668,17 @@ class CoreRunner:
                 rt.rule_id: Times(rt.parse_time, rt.match_time) for rt in t.rule_times
             }
             profiling_data.set_file_times(Path(t.path), rule_timings, t.run_time)
+
+    def _add_max_memory_bytes(
+        self, profiling_data: ProfilingData, max_memory_bytes: int
+    ) -> None:
+        """
+        This represents the maximum amount of memory used by the OCaml side of
+        Semgrep during its execution.
+
+        This is useful for telemetry purposes.
+        """
+        profiling_data.set_max_memory_bytes(max_memory_bytes)
 
     def _plan_core_run(
         self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
@@ -830,6 +850,7 @@ class CoreRunner:
                     target_file.name,
                     "--root",
                     root,
+                    "--json_time",
                     # "--timeout",
                     # str(self._timeout),
                     # "--timeout_threshold",
@@ -871,6 +892,9 @@ class CoreRunner:
 
             if ("time" in output_json) and core_output.time:
                 self._add_match_times(profiling_data, core_output.time)
+                self._add_max_memory_bytes(
+                    profiling_data, core_output.time.max_memory_bytes
+                )
 
             # end with tempfile.NamedTemporaryFile(...) ...
             outputs = core_matches_to_rule_matches(rules, core_output)

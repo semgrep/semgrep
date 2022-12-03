@@ -1,0 +1,12 @@
+rules:
+- id: secrets
+  severity: WARNING
+  message: Test
+  languages: [python]
+  mode: taint
+  options:
+    taint_only_propagate_through_assignments: true
+  pattern-sources:
+  - pattern: '"password"'
+  pattern-sinks:
+  - pattern: sink(...)

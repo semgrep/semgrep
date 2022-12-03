@@ -1,7 +1,6 @@
 # PARTIALLY PORTED TO OCAML. DELETE PARTS AS YOU PORT THEM.
 
 from semgrep.app.version import get_no_findings_msg
-from semgrep.dump_ast import dump_parsed_ast
 from semgrep.notifications import possibly_notify_user
 from semgrep.project import get_project_url
 from semgrep.target_manager import write_pipes_to_disk
@@ -68,17 +67,6 @@ _scan_options: List[Callable] = [
     optgroup.option("--sarif", is_flag=True, help="Output results in SARIF format."),
 ]
 
-
-@optgroup.option(
-    "--dump-ast/--no-dump-ast",
-    is_flag=True,
-    default=False,
-    help="""
-        If --dump-ast, shows AST of the input file or passed expression and then exit
-        (can use --json).
-    """,
-)
-
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option(
@@ -91,7 +79,6 @@ _scan_options: List[Callable] = [
 def scan(
     *,
     deep: bool,
-    dump_ast: bool,
     enable_nosem: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
@@ -125,21 +112,6 @@ def scan(
 
     output_settings = OutputSettings(...)
 
-    if test:
-        # the test code (which isn't a "test" per se but is actually machinery to evaluate semgrep performance)
-        # uses managed_output internally
-        semgrep.test.test_main(
-            target=targets,
-            config=config,
-            test_ignore_todo=test_ignore_todo,
-            strict=strict,
-            json=json,
-            optimizations=optimizations,
-            deep=deep,
-        )
-
-    run_has_findings = False
-
     # The 'optional_stdin_target' context manager must remain before
     # 'managed_output'. Output depends on file contents so we cannot have
     # already deleted the temporary stdin file.
@@ -147,8 +119,8 @@ def scan(
         targets = write_pipes_to_disk(targets, Path(pipes_dir))
         output_handler = OutputHandler(output_settings)
 
-        if dump_ast:
-            dump_parsed_ast(json, __validate_lang("--dump-ast", lang), pattern, targets)
+        if ...:
+            ...
         else:
             try:
                 (
