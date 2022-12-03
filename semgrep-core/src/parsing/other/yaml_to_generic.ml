@@ -58,7 +58,6 @@ type env = {
   parser : S.parser;
   anchors : (string, G.expr * E.pos) Hashtbl.t;
   mutable last_event : (E.t * E.pos) option;
-
   is_target : bool;
 }
 
@@ -189,9 +188,9 @@ let make_alias anchor pos env =
 let scalar (_tag, pos, value) env : G.expr * E.pos =
   (* If it's a target, then we don't want to parse it like a metavariable,
      or else matching will mess up when it attempts to match a pattern
-     metavariable to target YAML code which looks like a metavariable 
+     metavariable to target YAML code which looks like a metavariable
      (but ought to be interpreted as a string)
-   *)
+  *)
   if AST_generic_.is_metavar_name value && not env.is_target then
     (G.N (mk_id value pos env) |> G.e, pos)
   else
