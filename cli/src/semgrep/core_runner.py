@@ -955,7 +955,7 @@ class CoreRunner:
         version, if the DeepSemgrep binary crashes for any reason.
         """
         try:
-            self._run_rules_direct_to_semgrep_core_helper(
+            return self._run_rules_direct_to_semgrep_core_helper(
                 rules, target_manager, dump_command_for_core, deep
             )
         except Exception as e:
