@@ -721,7 +721,7 @@ class CoreRunner:
             [rule.id for rule in rules],
         )
 
-    def _run_rules_direct_to_semgrep_core(
+    def _run_rules_direct_to_semgrep_core_helper(
         self,
         rules: List[Rule],
         target_manager: TargetManager,
@@ -931,6 +931,49 @@ class CoreRunner:
             parsing_data,
             core_output.explanations,
         )
+
+    def _run_rules_direct_to_semgrep_core(
+        self,
+        rules: List[Rule],
+        target_manager: TargetManager,
+        dump_command_for_core: bool,
+        deep: bool,
+    ) -> Tuple[
+        RuleMatchMap,
+        List[SemgrepError],
+        Set[Path],
+        ProfilingData,
+        ParsingData,
+        Optional[List[core.MatchingExplanation]],
+    ]:
+        """
+        Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
+        These issues may possibly cause a failure if a user, for instance, updates their
+        version of Semgrep, but does not update to the latest version of DeepSemgrep.
+
+        A short bandaid solution for now is to suggest that a user updates to the latest
+        version, if the DeepSemgrep binary crashes for any reason.
+        """
+        try:
+            return self._run_rules_direct_to_semgrep_core_helper(
+                rules, target_manager, dump_command_for_core, deep
+            )
+        except Exception as e:
+            if deep:
+                logger.error(
+                    f"""
+
+DeepSemgrep crashed during execution (unknown reason).
+This can sometimes happen because either DeepSemgrep or Semgrep is out of date.
+
+Try updating your version of DeepSemgrep (`semgrep --install-deep-semgrep`) or your version of Semgrep (`pip install semgrep/brew install semgrep`).
+If both are up-to-date and the crash persists, please contact support to report an issue!
+
+Exception raised: `{e}`
+                    """
+                )
+                sys.exit(2)
+            raise e
 
     # end _run_rules_direct_to_semgrep_core
 
