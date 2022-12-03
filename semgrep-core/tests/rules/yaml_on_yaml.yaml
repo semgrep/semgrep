@@ -7,7 +7,7 @@ rules:
       - metavariable-pattern:
           metavariable: $X
           language: generic
-          pattern-regex: ^\$.*\n+
+          pattern-regex: ^\$.*\n$
     message: Semgrep found a match - $X
     languages:
       - yaml
