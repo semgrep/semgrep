@@ -126,6 +126,42 @@ def test_omit_experiment(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
+def test_debug_experimental_rule(run_semgrep_in_tmp, snapshot):
+    result = run_semgrep_in_tmp(
+        "rules/experiment/experiment.yaml",
+        target_name="experiment/experiment.py",
+        output_format=OutputFormat.TEXT,
+        options=["--debug"],
+    )
+
+    # We need to do this so that we can operate independently of sensitive data which
+    # would otherwise be inconsistent between test runs, such as time elapsed.
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                # Mask variable debug output
+                re.compile(r"/(.*)/semgrep(-core|_bridge_python.so)"),
+                re.compile(r"loaded 1 configs in(.*)"),
+                re.compile(r".*https://semgrep.dev(.*).*"),
+                re.compile(r"(.*Main\.Dune__exe__Main.*)"),
+                re.compile(r"(.*Main\.Run_semgrep.*)"),
+                re.compile(r"(.*Main\.Common.*)"),
+                re.compile(r"(.*Main\.Parse_target.*)"),
+                re.compile(r"(.*Main\.Core_CLI.*)"),
+                re.compile(r"semgrep ran in (.*) on 1 files"),
+                re.compile(r"\"total_time\":(.*)"),
+                re.compile(r"\"commit_date\":(.*)"),
+                re.compile(r"-targets (.*) -timeout"),
+                re.compile(r"-rules (.*).json"),
+                re.compile(r".*Main.Autofix.*"),
+            ]
+        ),
+        "results.txt",
+    )
+
+
+@pytest.mark.kinda_slow
 def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
     output, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml", output_format=OutputFormat.JUNIT_XML

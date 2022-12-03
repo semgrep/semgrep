@@ -411,9 +411,18 @@ def main(
         core_opts_str=core_opts_str,
     )
 
+    experimental_rules, unexperimental_rules = partition(
+        filtered_rules, lambda rule: rule.severity == RuleSeverity.EXPERIMENT
+    )
+
     logger.verbose("Rules:")
-    for ruleid in sorted(rule.id for rule in filtered_rules):
+    for ruleid in sorted(rule.id for rule in unexperimental_rules):
         logger.verbose(f"- {ruleid}")
+
+    if len(experimental_rules) > 0:
+        logger.verbose("Experimental Rules:")
+        for ruleid in sorted(rule.id for rule in experimental_rules):
+            logger.verbose(f"- {ruleid}")
 
     (
         rule_matches_by_rule,
