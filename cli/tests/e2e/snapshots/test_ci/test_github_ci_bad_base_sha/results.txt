@@ -3,19 +3,10 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-0
+2
 === end of exit code
 
 === stdout - plain
-
-Non-Blocking Findings:
-
-  bar.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (bar == 2)
-          1┆ bar == 5
 
 === end of stdout - plain
 
@@ -150,115 +141,20 @@ Running semgrep-core with command:
 --- end semgrep-core stderr ---
 skipped 'bar.py' [rule RuleId(value='taint-test')]: SkipReason(value=IrrelevantRule()): No need to perform deeper matching because target does not contain some elements necessary for the rule to match 'taint-test'
 Using AST-based autofix rendered in semgrep-core: `(bar == 2)`
-semgrep ran in <MASKED> on 1 files
-findings summary: 1 error, 0 warning
-  Current version has 1 finding.
-
-Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
 Returning to original head revision 17b3114fb3d41437abc2a3e6499db84ad921e6f0
-
-========================================
-Files skipped:
-========================================
-
-  Always skipped by Semgrep:
-
-   • <none>
-
-  Skipped by .gitignore:
-  (Disable by passing --no-git-ignore)
-
-   • <all files not listed by `git ls-files` were skipped>
-
-  Skipped by .semgrepignore:
-  (See: https://semgrep.dev<MASKED>
-
-   • <none>
-
-  Skipped by --include patterns:
-
-   • <none>
-
-  Skipped by --exclude patterns:
-
-   • <none>
-
-  Skipped by limiting to files smaller than 1000000 bytes:
-  (Adjust with the --max-target-bytes flag)
-
-   • <none>
-
-  Skipped by analysis failure due to parsing or internal Semgrep error
-
-   • <none>
-
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 1 finding (0 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
-Sending findings and ignores blob: {
-    "token": null,
-    "gitlab_token": null,
-    "findings": [
-        {
-            "check_id": "eqeq-five",
-            "path": "bar.py",
-            "line": 1,
-            "column": 1,
-            "end_line": 1,
-            "end_column": 9,
-            "message": "useless comparison to 5",
-            "severity": 2,
-            "index": 0,
-            "commit_date":<MASKED>
-            "syntactic_id": "79b90242d13e90751d81594d5863a672",
-            "metadata": {
-                "dev.semgrep.actions": []
-            },
-            "is_blocking": false,
-            "match_based_id": "81ccf0034358a3caf8caef04451dc035f1b37240ce39ce08044ed5dcaafbe171d65792c5a3119e04e6802388c431ec8967d98a6c5666b1f4502a45df8b1eedd6_0"
-        }
-    ],
-    "searched_paths": [
-        "bar.py"
-    ],
-    "renamed_paths": [],
-    "rule_ids": [
-        "eqeq-bad",
-        "eqeq-five",
-        "eqeq-four",
-        "taint-test",
-        "supply-chain1",
-        "supply-chain2"
-    ],
-    "cai_ids": [],
-    "ignores": []
-}
-Sending complete blob: {
-    "exit_code": 0,
-    "stats": {
-        "findings": 1,
-        "errors": [],
-        "total_time":<MASKED>
-        "unsupported_exts": {},
-        "lockfile_scan_info": {
-            "poetry.lock": 1,
-            "yarn.lock": 1
-        },
-        "parse_rate": {
-            "python": {
-                "targets_parsed": 1,
-                "num_targets": 1,
-                "bytes_parsed": 10,
-                "num_bytes": 10
-            }
-        }
-    }
-}
-  No blocking findings so exiting with code 0
+cannot unpack non-iterable NoneType object
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 351, in ci
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 425, in main
+    ) = run_rules(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 170, in run_rules
+    ) = core_runner.invoke_semgrep(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 999, in invoke_semgrep
+    (
+TypeError: cannot unpack non-iterable NoneType object
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
 
 === end of stderr - plain

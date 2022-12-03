@@ -3,27 +3,10 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-0
+2
 === end of exit code
 
 === stdout - plain
-
-Non-Blocking Findings:
-
-  bar.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (bar == 2)
-          1┆ bar == 5
-
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (foo == 2)
-          2┆ foo == 5
 
 === end of stdout - plain
 
@@ -39,22 +22,19 @@ Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f
 Fetching configuration from semgrep.dev
 Authenticated as org_name
 Scanning 2 files with 4 python rules.
-  Current version has 3 findings.
-
-Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e689'.
-  Will report findings introduced by these commits:
-    * 7b5cda4 commit #4
-    * 5b37988 commit #3
-
-Scanning 1 file.
 Returning to original head revision 7b5cda417c780f1f96c888e1d7bd062f46df236e
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 2 findings (0 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
-  No blocking findings so exiting with code 0
+cannot unpack non-iterable NoneType object
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 351, in ci
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 425, in main
+    ) = run_rules(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 170, in run_rules
+    ) = core_runner.invoke_semgrep(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 999, in invoke_semgrep
+    (
+TypeError: cannot unpack non-iterable NoneType object
 
 === end of stderr - plain
