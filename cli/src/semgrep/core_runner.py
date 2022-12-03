@@ -878,7 +878,22 @@ class CoreRunner:
 
             runner = StreamingSemgrepCore(cmd, plan.num_targets)
             runner.vfs_map = vfs_map
-            returncode = runner.execute()
+
+            if deep:
+                # Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
+                # These issues may possibly cause a failure if a user, for instance, updates their
+                # version of Semgrep, but does not update to the latest version of DeepSemgrep.
+
+                # A short bandaid solution for now is to suggest that a user updates to the latest
+                # version, if the DeepSemgrep binary crashes for any reason.
+                try:
+                    returncode = runner.execute()
+                except:
+                    logger.error("DeepSemgrep crashed during execution (unknown reason).\nTry updating to the latest version? (`semgrep --install-deep-semgrep`)")
+                    sys.exit(0)
+            else:
+                returncode = runner.execute()
+
 
             # Process output
             output_json = self._extract_core_output(
