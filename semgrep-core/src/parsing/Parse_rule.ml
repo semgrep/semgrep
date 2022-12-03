@@ -1402,11 +1402,11 @@ let parse_file ?error_recovery file =
               if n <> 0 then failwith (spf "error executing %s" cmd);
               let ast = Parse_json.parse_program tmpfile in
               Json_to_generic.program ~unescape_strings:true ast)
-    | FT.Config FT.Yaml -> parse_yaml_rule_file file
+    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:false file
     | _else_ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
         logger#info "trying to parse %s as YAML" file;
-        parse_yaml_rule_file file
+        parse_yaml_rule_file ~is_target:false file
   in
   parse_generic_ast ?error_recovery file ast
 
