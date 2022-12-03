@@ -611,16 +611,12 @@ and method_decl ?(cl_kind = None) { m_var; m_formals; m_throws; m_body } =
     |> Common.map (fun t -> G.OtherAttribute (("Throw", G.fake ""), [ G.T t ]))
   in
   let fbody =
-    match cl_kind, v4 with
-    | Some (Interface, _), {s = G.Block (_, [], _); _} -> G.FBNothing
-    | _ -> FBStmt v4 in 
+    match (cl_kind, v4) with
+    | Some (Interface, _), { s = G.Block (_, [], _); _ } -> G.FBNothing
+    | _ -> FBStmt v4
+  in
   ( { ent with G.attrs = ent.G.attrs @ throws },
-    {
-      G.fparams = v2;
-      frettype = rett;
-      fbody; 
-      fkind = (G.Method, G.fake "");
-    } )
+    { G.fparams = v2; frettype = rett; fbody; fkind = (G.Method, G.fake "") } )
 
 and field v = var_with_init v
 
@@ -717,7 +713,7 @@ and decl ?(cl_kind = None) decl : G.stmt =
   | EmptyDecl t -> G.Block (t, [], t) |> G.s
   | AnnotationTypeElementTodo t -> G.OtherStmt (G.OS_Todo, [ G.Tk t ]) |> G.s
 
-and decls ?(cl_kind = None) v : G.stmt list = list (decl ~cl_kind)  v
+and decls ?(cl_kind = None) v : G.stmt list = list (decl ~cl_kind) v
 
 and import = function
   | ImportAll (t, xs, tok) -> G.ImportAll (t, G.DottedName xs, tok)
