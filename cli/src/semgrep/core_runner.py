@@ -889,11 +889,12 @@ class CoreRunner:
                 try:
                     returncode = runner.execute()
                 except:
-                    logger.error("DeepSemgrep crashed during execution (unknown reason).\nTry updating to the latest version? (`semgrep --install-deep-semgrep`)")
+                    logger.error(
+                        "DeepSemgrep crashed during execution (unknown reason).\nTry updating to the latest version? (`semgrep --install-deep-semgrep`)"
+                    )
                     sys.exit(0)
             else:
                 returncode = runner.execute()
-
 
             # Process output
             output_json = self._extract_core_output(
