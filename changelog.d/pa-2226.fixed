@@ -1,5 +1,0 @@
-DeepSemgrep: When the "DeepSemgrep" setting is enabled in Semgrep App, `semgrep ci`
-will try to run the analysis using the DeepSemgrep engine. But if this engine was
-not installed, `semgrep ci` failed. Now `semgrep ci` will automatically try to
-install DeepSemgrep if it is not already present. Note that, if DeepSemgrep is
-already installed, `semgrep ci` does not attempt to upgrade it to a newer version.

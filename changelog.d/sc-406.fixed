@@ -1,3 +1,0 @@
-Yarn 2 parse failure on versions like @storybook/react-docgen-typescript-plugin@canary. This is only present as some kind special version range specifier and never appears as a concrete version. It would only be used to check if the dependency was in the manifest file, so we just parse the version as "canary"
-Yarn 2 parse failure on versions like @types/ol-ext@npm:@siedlerchr/types-ol-ext@3.0.6
-Yarn 2 parse failure on versions like resolve@patch:resolve@^1.1.7#~builtin<compat/resolve>. These are now just ignored, as they appear to always come with a non-patch version as well.

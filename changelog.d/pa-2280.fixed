@@ -1,1 +1,0 @@
-DeepSemgrep: Time data now outputs properly when running `semgrep --deep --time`
