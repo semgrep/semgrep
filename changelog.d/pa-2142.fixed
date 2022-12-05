@@ -1,0 +1,3 @@
+taint-mode: Fixed matching of `pattern-sinks` to be more precise, so that e.g.
+it will no longer report `sink(ok1 if tainted else ok2)` as a tainted sink, as
+the expression passed to the `sink` is actually not tainted.

@@ -172,6 +172,7 @@ and taint_sanitizer = {
 }
 
 and taint_sink = {
+  sink_id : string;  (** See 'Parse_rule.parse_taint_sink'. *)
   sink_formula : formula;
   sink_requires : AST_generic.expr;
       (* A Boolean expression over taint labels. See also 'taint_source'.
