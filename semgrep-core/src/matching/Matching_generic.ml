@@ -96,6 +96,7 @@ and tout = tin list
  * same language for the host language and pattern language
  *)
 type 'a matcher = 'a -> 'a -> tin -> tout
+type ('a, 'b) general_matcher = 'a -> 'b -> tin -> tout
 type 'a comb_result = tin -> ('a * tout) list
 type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
 

@@ -2253,6 +2253,7 @@ and m_stmt a b =
       m_condition a1 b1 >>= fun () -> m_stmt a2 b2
   | G.DefStmt a1, B.DefStmt b1 -> m_definition a1 b1
   | G.DirectiveStmt a1, B.DirectiveStmt b1 -> m_directive a1 b1
+  | G.DirectiveStmt a1, B.DefStmt b1 -> m_directive_vs_def a1 b1
   | G.DoWhile (a0, a1, a2), B.DoWhile (b0, b1, b2) ->
       m_tok a0 b0 >>= fun () ->
       m_stmt a1 b1 >>= fun () -> m_expr a2 b2
@@ -3066,6 +3067,112 @@ and m_directive a b =
   | G.Pragma _
   | G.OtherDirective _ ->
       fail ()
+
+(* JS has two standards for importing and exporting values between modules. Rule
+ * writers want to avoid this complexity. So, we would like ES6 import patterns
+ * (e.g. "import {x} from 'y';") to match CommonJS requires (e.g.
+ * "const {x} = require('y');").
+ *
+ * We used to desugar requires, in some cases, to `ImportFrom` nodes. However,
+ * to allow e.g. `$F(...)` to match `require('y')`, and because there is not a
+ * one-to-one mapping to from `require` to `import`, we didn't replace the
+ * `require` nodes with the `ImportFrom` but instead added the `ImportFrom`.
+ *
+ * Having two places where the same symbol was defined complicated downstream
+ * analysis. See https://github.com/returntocorp/semgrep/pull/6532 for some
+ * of the issues that it caused.
+ *
+ * So, in order to simplify naming and maintain the existing matching behavior,
+ * we have to explicitly match certain import directives against certain
+ * definition statements.
+ * *)
+and m_directive_vs_def a b =
+  let f filea importsa =
+    match (importsa, b) with
+    (* Pattern: `import 'y';` or `import {} from 'y'`
+     *
+     * Target: `const x = require('y');` (or var, or let) *)
+    | ( [],
+        ( { B.name = B.EN (B.Id (_id, _id_info)); _ },
+          B.VarDef
+            {
+              vinit =
+                Some
+                  {
+                    e =
+                      B.Call
+                        ( { e = B.IdSpecial (B.Require, _); _ },
+                          (_, [ B.Arg { e = B.L (B.String fileb); _ } ], _) );
+                    _;
+                  };
+              vtype = _;
+            } ) ) ->
+        (* Match the pattern `import "foo"` against `const x = require("foo")` *)
+        m_wrap m_string filea fileb
+    (* Pattern: `import {...} from 'y'`
+     *
+     * Target: const {x, y} = require('z'); (or var, or let) *)
+    | ( importsa,
+        ( { B.name = B.EN (B.Id ((id_str, _), _)); _ },
+          B.VarDef
+            {
+              vinit =
+                Some
+                  {
+                    e =
+                      B.Assign
+                        ( { e = B.Record (_, fields, _); _ },
+                          _,
+                          {
+                            e =
+                              B.Call
+                                ( { e = B.IdSpecial (Require, _); _ },
+                                  ( _,
+                                    [ B.Arg { e = B.L (B.String fileb); _ } ],
+                                    _ ) );
+                            _;
+                          } );
+                    _;
+                  };
+              vtype = _;
+            } ) )
+      when id_str = B.special_multivardef_pattern ->
+        let* () = m_wrap m_string filea fileb in
+        m_list_in_any_order ~less_is_ok:true m_import_vs_field importsa fields
+    | _ -> fail ()
+  in
+  with_lang (fun lang ->
+      (* This construct is specific to JS. We also want to be able to run TS rules
+       * against JS targets, though, so we enable this behavior for TS as well.
+       *
+       * TODO incorporate TS's `import x = require('y')` syntax? *)
+      if lang = Lang.Js || lang = Lang.Ts then
+        match a.d with
+        (* JS: `import {x, y as z} from 'a';` *)
+        | G.ImportFrom (_, G.FileName filea, importsa) -> f filea importsa
+        (* JS: `import 'a';` *)
+        | G.ImportAs (_, G.FileName filea, None) -> f filea []
+        | _ -> fail ()
+      else fail ())
+
+(* This is specific to JS/TS. See m_directive_vs_def. *)
+and m_import_vs_field a b =
+  match (a, b) with
+  | ( (ida, aliasa),
+      B.F
+        {
+          s =
+            DefStmt
+              ( { name = EN (Id (idb, _)); attrs = []; tparams = [] },
+                FieldDefColon { vinit = Some { e = N (Id (aliasb, _)); _ }; _ }
+              );
+          _;
+        } ) -> (
+      let* () = m_ident ida idb in
+      match aliasa with
+      | None -> m_ident ida aliasb
+      | Some (aliasa, _) -> m_ident aliasa aliasb)
+  | _ -> fail ()
 
 (* less-is-ok: a few of these below with the use of m_module_name_prefix and
  * m_option_none_can_match_some.
