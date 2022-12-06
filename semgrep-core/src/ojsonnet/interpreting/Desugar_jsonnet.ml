@@ -289,7 +289,7 @@ and desugar_comprehension_helper env expr comps =
       let inner_exp =
         match rest with
         | [] -> mk_array [ expr ]
-        | _ -> desugar_comprehension_helper env expr rest
+        | __else__ -> desugar_comprehension_helper env expr rest
       in
       If (tok, cond, inner_exp, empty_else)
   | CompFor (_, x, _, for_expr) :: rest ->
@@ -307,7 +307,7 @@ and desugar_comprehension_helper env expr comps =
         let inner_exp =
           match rest with
           | [] -> mk_array [ expr ]
-          | _ -> desugar_comprehension_helper env expr rest
+          | __else__ -> desugar_comprehension_helper env expr rest
         in
         let i = freshvar () in
         Lambda
@@ -327,7 +327,7 @@ and desugar_comprehension_helper env expr comps =
           [ B (arr, fk, for_expr) ],
           fk,
           std_join (mk_array [], std_mk_array (std_length (Id arr), f)) )
-  | _ -> failwith "lol"
+  | [] -> failwith "impossible: Empty array comprehension"
 
 and desugar_comprehension env expr comps =
   desugar_expr env (desugar_comprehension_helper env expr comps)
