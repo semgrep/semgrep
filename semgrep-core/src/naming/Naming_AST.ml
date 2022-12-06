@@ -506,6 +506,91 @@ let resolve lang prog =
                   (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
                   with_new_function_scope (special_class_params @ class_params)
                     env.names (fun () -> k x))
+          (* `const x = require('y');` (or var, or let)
+           *
+           * JS: This is a CommonJS import, popularized before ES6 standardized
+           * imports/exports. *)
+          | ( { name = EN (Id (id, id_info)); _ },
+              VarDef
+                {
+                  vinit =
+                    Some
+                      {
+                        e =
+                          Call
+                            ( { e = IdSpecial (Require, _); _ },
+                              (_, [ Arg { e = L (String file); _ } ], _) );
+                        _;
+                      };
+                  vtype = _;
+                } )
+            when lang = Lang.Js || lang = Lang.Ts ->
+              let sid = H.gensym () in
+              let resolved =
+                untyped_ent (ImportedModule (DottedName [ file ]), sid)
+              in
+              set_resolved env id_info resolved;
+              add_ident_current_scope id resolved env.names
+          (* `const {x, y} = require('z');` (or var, or let)
+           *
+           * JS: This is a CommonJS import, popularized before ES6 standardized
+           * imports/exports. *)
+          | ( { name = EN (Id ((id_str, _), _)); _ },
+              VarDef
+                {
+                  vinit =
+                    Some
+                      {
+                        e =
+                          Assign
+                            ( { e = Record (_, fields, _); _ },
+                              _,
+                              {
+                                e =
+                                  Call
+                                    ( { e = IdSpecial (Require, _); _ },
+                                      (_, [ Arg { e = L (String file); _ } ], _)
+                                    );
+                                _;
+                              } );
+                        _;
+                      };
+                  vtype = _;
+                } )
+            when id_str = special_multivardef_pattern
+                 && (lang = Lang.Js || lang = Lang.Ts) ->
+              List.iter
+                (function
+                  | F
+                      {
+                        s =
+                          DefStmt
+                            ( {
+                                name = EN (Id (imported_id, _imported_id_info));
+                                attrs = [];
+                                tparams = [];
+                              },
+                              FieldDefColon
+                                {
+                                  vinit =
+                                    Some
+                                      {
+                                        e = N (Id (local_id, local_id_info));
+                                        _;
+                                      };
+                                  _;
+                                } );
+                        _;
+                      } ->
+                      let sid = H.gensym () in
+                      let resolved =
+                        untyped_ent (ImportedEntity [ file; imported_id ], sid)
+                      in
+                      set_resolved env local_id_info resolved;
+                      add_ident_current_scope local_id resolved env.names
+                      (* TODO handle nested destructuring? *)
+                  | _ -> ())
+                fields
           | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
           (* note that some languages such as Python do not have VarDef
            * construct
@@ -595,37 +680,54 @@ let resolve lang prog =
       V.kdir =
         (fun (k, _v) x ->
           (match x.d with
-          | ImportFrom (_, DottedName xs, id, Some (alias, id_info)) ->
-              (* for python *)
-              let sid = H.gensym () in
-              let resolved = untyped_ent (ImportedEntity (xs @ [ id ]), sid) in
-              set_resolved env id_info resolved;
-              add_ident_imported_scope alias resolved env.names
-          | ImportFrom (_, DottedName xs, id, None) ->
-              (* for python *)
-              let sid = H.gensym () in
-              let resolved = untyped_ent (ImportedEntity (xs @ [ id ]), sid) in
-              add_ident_imported_scope id resolved env.names
-          | ImportFrom (_, FileName (s, tok), id, None)
-            when Lang.is_js lang && fst id <> Ast_js.default_entity ->
-              (* for JS we consider import { x } from 'a/b/foo' as foo.x.
-               * Note that we guard this code with is_js lang, because Python
-               * uses also Filename in 'from ...conf import x'.
-               *)
-              let sid = H.gensym () in
-              let _, b, _ = Common2.dbe_of_filename_noext_ok s in
-              let base = (b, tok) in
-              let resolved = untyped_ent (ImportedEntity [ base; id ], sid) in
-              add_ident_imported_scope id resolved env.names
-          | ImportFrom (_, FileName (s, tok), id, Some (alias, id_info))
-            when Lang.is_js lang && fst id <> Ast_js.default_entity ->
-              (* for JS *)
-              let sid = H.gensym () in
-              let _, b, _ = Common2.dbe_of_filename_noext_ok s in
-              let base = (b, tok) in
-              let resolved = untyped_ent (ImportedEntity [ base; id ], sid) in
-              set_resolved env id_info resolved;
-              add_ident_imported_scope alias resolved env.names
+          | ImportFrom (_, DottedName xs, imported_names) ->
+              List.iter
+                (function
+                  | id, Some (alias, id_info) ->
+                      (* for python *)
+                      let sid = H.gensym () in
+                      let resolved =
+                        untyped_ent (ImportedEntity (xs @ [ id ]), sid)
+                      in
+                      set_resolved env id_info resolved;
+                      add_ident_imported_scope alias resolved env.names
+                  | id, None ->
+                      (* for python *)
+                      let sid = H.gensym () in
+                      let resolved =
+                        untyped_ent (ImportedEntity (xs @ [ id ]), sid)
+                      in
+                      add_ident_imported_scope id resolved env.names)
+                imported_names
+          | ImportFrom (_, FileName (s, tok), imported_names) ->
+              List.iter
+                (function
+                  | id, None
+                    when Lang.is_js lang && fst id <> Ast_js.default_entity ->
+                      (* for JS we consider import { x } from 'a/b/foo' as foo.x.
+                       * Note that we guard this code with is_js lang, because Python
+                       * uses also Filename in 'from ...conf import x'.
+                       *)
+                      let sid = H.gensym () in
+                      let _, b, _ = Common2.dbe_of_filename_noext_ok s in
+                      let base = (b, tok) in
+                      let resolved =
+                        untyped_ent (ImportedEntity [ base; id ], sid)
+                      in
+                      add_ident_imported_scope id resolved env.names
+                  | id, Some (alias, id_info)
+                    when Lang.is_js lang && fst id <> Ast_js.default_entity ->
+                      (* for JS *)
+                      let sid = H.gensym () in
+                      let _, b, _ = Common2.dbe_of_filename_noext_ok s in
+                      let base = (b, tok) in
+                      let resolved =
+                        untyped_ent (ImportedEntity [ base; id ], sid)
+                      in
+                      set_resolved env id_info resolved;
+                      add_ident_imported_scope alias resolved env.names
+                  | _ -> ())
+                imported_names
           | ImportAs (_, DottedName xs, Some (alias, id_info)) ->
               (* for python *)
               let sid = H.gensym () in

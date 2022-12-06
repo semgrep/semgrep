@@ -1,0 +1,14 @@
+rules:
+  - id: test
+    severity: ERROR
+    message: Test
+    languages:
+      - php
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $_GET
+          - pattern-not-inside: $_GET['page']
+    pattern-sinks:
+      - pattern: call_me(...)

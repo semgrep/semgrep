@@ -64,7 +64,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * limited to expressions or single statements.
  *
  * However, using sub-range checks leads to duplicates. For example, the PHP
- * expression `sink("$source" . 'here')` will be transalted to IL as two
+ * expression `sink("$source" . 'here')` will be translated to IL as two
  * instructions `tmp = "$source" . 'here'` and `sink(tmp)`. If `sink(...)`
  * is a `pattern-sinks`, then both instructions' ranges are inside
  * the `pattrn-sinks` ranges. If `$source` is a `pattern-sources`, then both
@@ -84,6 +84,12 @@ type debug_taint = {
   sanitizers : RM.ranges;
   sinks : (RM.t * R.taint_sink) list;
 }
+
+(*****************************************************************************)
+(* Hooks *)
+(*****************************************************************************)
+
+let hook_setup_hook_function_taint_signature = ref None
 
 (*****************************************************************************)
 (* Helpers *)
@@ -278,9 +284,9 @@ let any_is_in_sources_matches rule any matches =
   |> List.filter_map (fun (rwm, ts) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
-             (let pm = RM.range_to_pattern_match_adjusted rule rwm in
+             (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
               let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec = ts; pm; overlap })
+              { D.spec = ts; spec_pm; range = r; overlap })
          else None)
 
 (* Check whether `any` matches either the `from` or the `to` of any of the
@@ -294,12 +300,12 @@ let any_is_in_propagators_matches rule any matches :
       matches
       |> List.concat_map (fun prop ->
              let var = prop.id in
-             let pm = RM.range_to_pattern_match_adjusted rule prop.rwm in
+             let spec_pm = RM.range_to_pattern_match_adjusted rule prop.rwm in
              let is_from = is_exact_match ~match_range:prop.from r in
              let is_to = is_exact_match ~match_range:prop.to_ r in
              let mk_match kind =
                let spec : D.a_propagator = { kind; prop = prop.spec; var } in
-               { D.spec; pm; overlap = 1.0 }
+               { D.spec; spec_pm; range = r; overlap = 1.0 }
              in
              (if is_from then [ mk_match `From ] else [])
              @ (if is_to then [ mk_match `To ] else [])
@@ -312,9 +318,9 @@ let any_is_in_sanitizers_matches rule any matches =
   |> List.filter_map (fun (rwm, spec) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
-             (let pm = RM.range_to_pattern_match_adjusted rule rwm in
+             (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
               let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec; pm; overlap })
+              { D.spec; spec_pm; range = r; overlap })
          else None)
 
 let any_is_in_sinks_matches rule any matches =
@@ -324,9 +330,9 @@ let any_is_in_sinks_matches rule any matches =
   |> List.filter_map (fun (rwm, spec) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
-             (let pm = RM.range_to_pattern_match_adjusted rule rwm in
+             (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
               let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec; pm; overlap })
+              { D.spec; spec_pm; range = r; overlap })
          else None)
 
 let lazy_force x = Lazy.force x [@@profiling]
@@ -495,7 +501,7 @@ let check_fundef lang options taint_config opt_ent fdef =
     in
     let taints =
       source_pms
-      |> Common.map (fun (x : _ D.tmatch) -> (x.pm, x.spec))
+      |> Common.map (fun (x : _ D.tmatch) -> (x.spec_pm, x.spec))
       |> T.taints_of_pms
     in
     Lval_env.add env (IL_helpers.lval_of_var var) taints
@@ -577,6 +583,11 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     in
     taint_config_of_rule xconf file (ast, []) rule handle_findings
   in
+
+  (match !hook_setup_hook_function_taint_signature with
+  | None -> ()
+  | Some setup_hook_function_taint_signature ->
+      setup_hook_function_taint_signature xconf rule taint_config xtarget);
 
   (* Check each function definition. *)
   Visit_function_defs.visit

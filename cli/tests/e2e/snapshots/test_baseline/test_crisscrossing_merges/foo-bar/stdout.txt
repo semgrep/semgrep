@@ -1,5 +1,5 @@
 
-Blocking Findings:
+Findings:
 
   foo.py 
           3┆ foo = 23478921

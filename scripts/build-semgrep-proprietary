@@ -7,7 +7,7 @@ set -eu
 
 # Try to not print the GitHub access token since it's a secret.
 access=""
-if [[ -n "$GITHUB_TOKEN" ]]; then
+if [[ -n "${GITHUB_TOKEN+x}" ]]; then
   echo "Using GITHUB_TOKEN from environment."
   access="$GITHUB_TOKEN:@"
 fi
@@ -51,5 +51,8 @@ mkdir -p "$workdir"
 
     # Build semgrep-proprietary
     make
+
+    # Run the tests
+    make test
   )
 )

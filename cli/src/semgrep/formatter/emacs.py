@@ -37,6 +37,7 @@ class EmacsFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
+        is_ci_invocation: bool,
     ) -> str:
         sorted_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
         return "\n".join(":".join(self._get_parts(rm)) for rm in sorted_matches)

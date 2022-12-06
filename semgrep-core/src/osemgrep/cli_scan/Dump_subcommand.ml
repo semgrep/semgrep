@@ -16,15 +16,15 @@ module J = JSON
 (*****************************************************************************)
 
 (* a slice of Scan_CLI.conf *)
-type conf = {
-  (* alt: we could enforce a Lang.t (or XLang.t) *)
-  language : string;
-  target : target_kind;
-  json : bool;
-}
+type conf = { target : target_kind; json : bool }
 
-(* alt: we could accept multiple Files via multiple target_roots *)
-and target_kind = Pattern of string | File of Common.filename
+(* alt: we could accept multiple Files via multiple target_roots
+ * alt: we could accept XLang.t to dump extended patterns.
+ *)
+and target_kind =
+  | Pattern of string * Lang.t
+  | File of Common.filename * Lang.t
+  | Config of Semgrep_dashdash_config.config_str
 [@@deriving show]
 
 (*****************************************************************************)
@@ -67,24 +67,18 @@ let dump_v_to_format ~json (v : OCaml.v) =
 (*****************************************************************************)
 
 let run (conf : conf) : Exit_code.t =
-  let (lang : Lang.t) =
-    (* alt: we could support dumping eXtended patterns? *)
-    match Lang.lang_of_string_opt conf.language with
-    | None -> failwith (Lang.unsupported_language_message conf.language)
-    | Some l -> l
-  in
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?
    *)
   match conf.target with
-  | Pattern str ->
+  | Pattern (str, lang) ->
       (* mostly a copy paste of Core_CLI.dump_pattern *)
       let any = Parse_pattern.parse_pattern lang ~print_errors:true str in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format ~json:conf.json v in
       Logs.app (fun m -> m "%s" s);
       Exit_code.ok
-  | File file ->
+  | File (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
       let { Parse_target.ast; skipped_tokens = _; _ } =
         Parse_target.just_parse_with_lang lang file
@@ -94,4 +88,11 @@ let run (conf : conf) : Exit_code.t =
       Format.set_margin 120;
       let s = dump_v_to_format ~json:conf.json v in
       Logs.app (fun m -> m "%s" s);
+      Exit_code.ok
+  | Config config_str ->
+      let kind = Semgrep_dashdash_config.config_kind_of_config_str config_str in
+      let rules_and_origins = Rule_fetching.rules_from_dashdash_config kind in
+      rules_and_origins
+      |> List.iter (fun x ->
+             Logs.app (fun m -> m "%s" (Rule_fetching.show_rules_and_origin x)));
       Exit_code.ok

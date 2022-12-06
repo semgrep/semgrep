@@ -54,6 +54,7 @@ type ident = string wrap [@@deriving show]
  * no Array slices, no complex Array or Object comprehension,
  * no DotAccess (use generalized ArrayAccess), no Assert, no ParenExpr,
  * no Import (expanded during desugaring).
+ * TODO? add Import that resolves lazily during Eval?
  *)
 type expr =
   | L of AST_jsonnet.literal
@@ -82,6 +83,8 @@ type expr =
 
 (* no Dollar anymore *)
 and special = Self | Super
+
+(* the NamedArg are supposed to be the last arguments *)
 and argument = Arg of expr | NamedArg of ident * tok (* = *) * expr
 and unary_op = AST_jsonnet.unary_op
 

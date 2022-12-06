@@ -19,7 +19,7 @@ on:
 
 jobs:
   build-semgrep-core:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: returntocorp/ocaml:alpine-2022-09-24
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
@@ -121,7 +121,7 @@ jobs:
         run: ./scripts/build-semgrep-proprietary
 
   build-docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -193,7 +193,7 @@ jobs:
   test-core:
     # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: returntocorp/ocaml:alpine-2022-09-24
     env:
       HOME: /root
@@ -247,15 +247,14 @@ jobs:
 
   test-cli:
     name: test semgrep-cli
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     permissions:
       contents: write
       pull-requests: write
     strategy:
       matrix:
-        #TODO: we used to have also 3.7 but it started to fail during pipenv install
-        python: ["3.8", "3.9", "3.10"]
+        python: ["3.7", "3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -326,7 +325,7 @@ jobs:
   #
   test-qa:
     name: quality assurance on semgrep
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     strategy:
       fail-fast: false
@@ -371,7 +370,7 @@ jobs:
 
   # Run abbreviated version of benchmarks to check that they work
   benchmarks-lite:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     steps:
       - uses: actions/checkout@v3
@@ -379,7 +378,7 @@ jobs:
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.7"
           cache: pipenv
       - run: pip install pipenv==2022.6.7
       - name: Download artifacts
@@ -403,7 +402,7 @@ jobs:
 
   # Run each benchmark twice to decrease effect of natural variance
   benchmarks-full:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     steps:
       - uses: actions/checkout@v3
@@ -411,7 +410,7 @@ jobs:
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.7"
           cache: pipenv
       - run: pip install pipenv==2022.6.7
       - name: Run timing benchmark
@@ -491,7 +490,7 @@ jobs:
 
   build-ubuntu-release:
     needs: [build-semgrep-core]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
       - name: Checkout

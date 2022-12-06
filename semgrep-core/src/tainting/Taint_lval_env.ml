@@ -25,8 +25,6 @@ module VarMap = Var_env.VarMap
 module LvalMap = Map.Make (LV.LvalOrdered)
 module LvalSet = Set.Make (LV.LvalOrdered)
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 type t = {
   tainted : T.taints LvalMap.t;
       (** Lvalues that are tainted, it is only meant to track l-values of the form x.a_1. ... . a_N. *)
@@ -69,36 +67,53 @@ let union le1 le2 =
  * not represent the exact same object as the original l-value, but an
  * overapproximation. For example, the normalized l-value of `x[i]` will be `x`,
  * so the taints of any element of an array are tracked via the array itself. *)
-let rec normalize_lval lval =
+let normalize_lval lval =
+  let open Common in
   let { IL.base; rev_offset } = lval in
-  match lval.IL.rev_offset with
-  | [] -> (
-      (* Base case, no offset; we can only track variables. *)
-      match base with
-      | Var _ -> Some lval
-      | VarSpecial _
-      | Mem _ ->
-          None)
-  | _ :: rev_offset' -> (
-      (* Must find the longest prefix of the form x.a_1. ... . a_N. *)
-      let is_dots = LV.is_dots_offset rev_offset in
-      match base with
-      | Var _ when is_dots -> Some lval
-      | VarSpecial _ when is_dots -> (
-          (* this.x.a_1. ... . a_N becomes x.a_1. ... . a_N *)
-          match List.rev lval.rev_offset with
-          | { o = IL.Dot var; _ } :: offset' ->
-              Some { IL.base = Var var; rev_offset = List.rev offset' }
-          | []
-          | { o = IL.Index _; _ } :: _ ->
-              logger#error "normalize_lval: Impossible happened";
-              None)
-      | Var _
-      | VarSpecial _ ->
-          (* Offset-chain is not of the form .a_1. ... . a_N, so drop the last
-           * offset until the condition is met or we reach the base case. *)
-          normalize_lval { base; rev_offset = rev_offset' }
-      | Mem _ -> None)
+  let* base, rev_offset =
+    match base with
+    | Var _ -> Some (base, rev_offset)
+    | VarSpecial _ -> (
+        match List.rev rev_offset with
+        (* this.x o_1 ... o_N becomes x o_1 ... o_N *)
+        | { o = IL.Dot var; _ } :: offset' -> Some (Var var, List.rev offset')
+        (* we do not handle any other case *)
+        | []
+        | { o = IL.Index _; _ } :: _ ->
+            None)
+    | Mem _ -> None
+  in
+  let rev_offset =
+    rev_offset
+    |> List.filter (fun o ->
+           match o.IL.o with
+           | IL.Dot _ -> true
+           (* TODO: If we check here for constant indexes we could make it index
+            * sensitive! But we also need to tweak the look up. Since you may taint
+            * `x.a` and then look for `x.a[1]` and it should tell you it's tainted. *)
+           | IL.Index _ -> false)
+  in
+  Some { IL.base; rev_offset }
+
+let lval_is_prefix lval1 lval2 =
+  let open IL in
+  let eq_name x y = LV.compare_name x y = 0 in
+  let rec offset_prefix os1 os2 =
+    match (os1, os2) with
+    | [], _ -> true
+    | _ :: _, []
+    | { o = Index _; _ } :: _, { o = Dot _; _ } :: _
+    | { o = Dot _; _ } :: _, { o = Index _; _ } :: _ ->
+        false
+    | { o = Index _; _ } :: os1, { o = Index _; _ } :: os2 ->
+        offset_prefix os1 os2
+    | { o = Dot a; _ } :: os1, { o = Dot b; _ } :: os2 ->
+        eq_name a b && offset_prefix os1 os2
+  in
+  match (lval1, lval2) with
+  | { base = Var x; rev_offset = ro1 }, { base = Var y; rev_offset = ro2 } ->
+      eq_name x y && offset_prefix (List.rev ro1) (List.rev ro2)
+  | __else__ -> false
 
 let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
   match normalize_lval lval with
@@ -157,22 +172,21 @@ let clean ({ tainted; propagated; cleaned } as lval_env) lval =
       lval_env
   | Some lval ->
       let prefix_is_tainted =
-        tainted |> LvalMap.exists (fun lv _ -> LV.lval_is_dotted_prefix lv lval)
+        tainted |> LvalMap.exists (fun lv _ -> lval_is_prefix lv lval)
       in
       let needs_clean_mark = prefix_is_tainted && lval.rev_offset <> [] in
       {
         tainted =
           (* If `x.a` is clean then `x.a` and any extension of it (`x.a.b`, `x.a.b.c`,
            * and so on) are clean too, and we remove them all from tainted. *)
-          tainted
-          |> LvalMap.filter (fun lv _ -> not (LV.lval_is_dotted_prefix lval lv));
+          tainted |> LvalMap.filter (fun lv _ -> not (lval_is_prefix lval lv));
         propagated;
         cleaned =
           (* Similarly, if `x.a` will have a "clean" mark, then we can remove any
            * such mark on any extension of `x.a`. It would be redundant to record
            * `x.a.b` as clean when we already have that `x.a` is clean. *)
           (cleaned
-          |> LvalSet.filter (fun lv -> not (LV.lval_is_dotted_prefix lval lv))
+          |> LvalSet.filter (fun lv -> not (lval_is_prefix lval lv))
           |> if needs_clean_mark then LvalSet.add lval else fun x -> x);
       }
 

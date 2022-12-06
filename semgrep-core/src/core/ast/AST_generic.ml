@@ -748,6 +748,11 @@ and special =
   | Op of operator
   (* less: should be lift up and transformed in Assign at stmt level *)
   | IncrDecr of (incr_decr * prefix_postfix)
+  (* JS: `require('foo')`. Calls to require are different than imports as
+   * represented by e.g. `ImportFrom`. They are expressions rather than top
+   * level statements, and can therefore appear inline in any expression, so
+   * it's not generally possible to desugar to imports. *)
+  | Require
 
 (* mostly binary operators.
  * less: could be divided in really Arith vs Logical (bool) operators,
@@ -1749,8 +1754,12 @@ and directive_kind =
   | ImportFrom of
       tok (* 'import'/'from' for Python *)
       * module_name
-      * ident
-      * alias option (* as name alias *)
+        (* We used to desugar each imported name in an import into its own
+         * separate ImportFrom statement. This caused matching issues such as
+         * those documented in #5305 and #6532. Removing this desugaring lets us
+         * match, for example, a pattern and a target which import the same
+         * things but in a different order. *)
+      * (ident * alias option (* as name alias *)) list
   | ImportAs of tok * module_name * alias option (* as name *)
   (* Bad practice! hard to resolve name locally.
    * We use ImportAll for C/C++ #include and C++ 'using namespace'.

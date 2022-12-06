@@ -8,6 +8,97 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.1.0](https://github.com/returntocorp/semgrep/releases/tag/v1.1.0) - 2022-12-05
+
+### Added
+
+- JSON output: Added a `max_memory_bytes` field to the `semgrep --time` output which corresponds to the amount of memory allocated during the OCaml phase of Semgrep. This is useful for telemetry purposes. (pa-2075)
+
+### Changed
+
+- Don't print out summary of blocking rules unless running with semgrep ci subcommand (gh-6651)
+
+### Fixed
+
+- taint-mode: In 0.94.0 we made that when a `pattern-source` (or `pattern-sanitizer`)
+  matched a variable exactly, this was understood as that variable being tainted
+  (sanitized, resp.) by side-effect. For example, given `tainted(x)` we would taint `x`
+  by side-effect, and subsequent occurrences of `x` were also considered tainted.
+  This allowed to write rules like `c.lang.security.use-after-free.use-after-free`
+  in a very succint way, and it also addressed some limitations of the workarounds that
+  were being used to simulate this until then.
+
+  This worked well initially, or so we thought, until in 0.113.0 we added
+  field-sensitivity to taint-mode, and in subsequent versions we made sources and
+  sanitizers apply by side-effect to more kinds of l-values than just simple variables.
+  It was then that we started to see regressions that were fairly unintuitive for users.
+  For example, if `$_GET['foo']` was a taint source, this would make `$_GET` itself to
+  be tainted by side-effect, and a subsequent expression like `$_GET['bar']` was also
+  considered tainted.
+
+  We now correct the situation by adding the `by-side-effect` option to sources and
+  sanitizers, and requiring this option to be explicitly enabled
+  (that is, `by-side-effect: true`) in order to apply the source or the sanitizer by
+  side-effect. Otherwise, the default is that sources and sanitizers matching l-values
+  apply only to the precise occurrences that they match. (pa-1629)
+
+- taint-mode: Fixed matching of `pattern-sinks` to be more precise, so that e.g.
+  it will no longer report `sink(ok1 if tainted else ok2)` as a tainted sink, as
+  the expression passed to the `sink` is actually not tainted. (pa-2142)
+- CLI: Separated experimental rules from normal rules in `semgrep --debug` output. (pa-2159)
+- Taint: Fixed an issue where findings with the same sink would be identified as the same, and cause
+  only one of them to be reported, even if they had different sources. (pa-2208)
+- DeepSemgrep: When the "DeepSemgrep" setting is enabled in Semgrep App, `semgrep ci`
+  will try to run the analysis using the DeepSemgrep engine. But if this engine was
+  not installed, `semgrep ci` failed. Now `semgrep ci` will automatically try to
+  install DeepSemgrep if it is not already present. Note that, if DeepSemgrep is
+  already installed, `semgrep ci` does not attempt to upgrade it to a newer version. (pa-2226)
+- CLI: Made the number of jobs when using `semgrep --deep` default to 1. (pa-2231)
+- Autofix: If multiple autofixes are targeting an overlapping range, then one of them is picked arbitrarily to occur, to prevent autofixes which may produce incorrect code. (pa-2276)
+- DeepSemgrep: Time data now outputs properly when running `semgrep --deep --time` (pa-2280)
+- DeepSemgrep: Added a message which suggests that users update their version of DeepSemgrep, if the DeepSemgrep binary crashes (pa-2283)
+- Yarn 2 parse failure on versions like @storybook/react-docgen-typescript-plugin@canary. This is only present as some kind special version range specifier and never appears as a concrete version. It would only be used to check if the dependency was in the manifest file, so we just parse the version as "canary"
+  Yarn 2 parse failure on versions like @types/ol-ext@npm:@siedlerchr/types-ol-ext@3.0.6
+  Yarn 2 parse failure on versions like resolve@patch:resolve@^1.1.7#~builtin<compat/resolve>. These are now just ignored, as they appear to always come with a non-patch version as well. (sc-406)
+
+## [1.0.0](https://github.com/returntocorp/semgrep/releases/tag/v1.0.0) - 2022-12-01
+
+### Added
+
+- DeepSemgrep: If you have a Team tier account in Semgrep App, and you enable the
+  _DeepSemgrep_ setting, then `semgrep ci` will automatically run the DeepSemgrep
+  engine instead of the OSS engine on full scans (but not in PR scans). (pa-2226)
+
+## [0.123.0](https://github.com/returntocorp/semgrep/releases/tag/v0.123.0) - 2022-11-29
+
+### Added
+
+- CLI: Added deep traces to `--dataflow-traces` (pa-2116)
+
+### Changed
+
+- Reachable Supply Chain findings will no longer block pull requests when using `semgrep ci`.
+  Note that unreachable findings have been non-blocking already. (sca-nonblocking)
+
+### Fixed
+
+- Fix matching issue related to JS imports with multiple imported values (gh-5305)
+- DeepSemgrep: Keep only the shortest trace originating from a taint source. This
+  also prevents falling into infinite loops when inferring taint signatures for
+  mutually recursive procedures. (pa-2224)
+- taint-mode: Improved taint tracking for array-like accesses. Previously, if
+  `x.a.b[i].c` got tainted, Semgrep would track `x.a.b` as tainted, and thus
+  `x.a.b[i].d` would be incorrectly considered as tainted too. Now Semgrep will
+  do the right thing and track `x.a.b[*].c` as tainted, and `x.a.b[i].d` will
+  not be considered tainted. (pa-2225)
+- Java: `private`, singly-assigned class variables now permit constant propagation (pa-2230)
+- JS/TS: Allow dependencies to @Injectable and @Component classes in Angular JS to be visible outside the scope of the constructor. (pa-2233)
+- Fix matching issue related to Python imports with multiple imported values (python-imports)
+- Supply Chain findings from a yarn.lock lockfile were marked as 'transitive'
+  when we couldn't find the matching package.json file.
+  These findings will now be marked as having 'unknown' transitivity. (sc-425)
+- Make `$X(...)` match `this()` and `super()`. (this-match)
+
 ## [0.122.0](https://github.com/returntocorp/semgrep/releases/tag/v0.122.0) - 2022-11-16
 
 ### Fixed

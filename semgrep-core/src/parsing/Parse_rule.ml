@@ -25,6 +25,9 @@ module MV = Metavariable
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* TODO? make it a flag? *)
+let use_ojsonnet = true
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -352,7 +355,7 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
 (*****************************************************************************)
 
 let parse_language ~id ((s, t) as _lang) : Lang.t =
-  match Lang.lang_of_string_opt s with
+  match Lang.of_string_opt s with
   | None -> raise (R.Err (R.InvalidRule (R.InvalidLanguage s, id, t)))
   | Some l -> l
 
@@ -1075,6 +1078,10 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
   let source_dict = yaml_to_dict env key value in
+  let source_by_side_effect =
+    take_opt source_dict env parse_bool "by-side-effect"
+    |> Option.value ~default:false
+  in
   let label =
     take_opt source_dict env parse_string "label"
     |> Option.value ~default:R.default_source_label
@@ -1085,7 +1092,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     |> Option.value ~default:(R.default_source_requires tok)
   in
   let source_formula = f env source_dict in
-  { source_formula; label; source_requires }
+  { source_formula; source_by_side_effect; label; source_requires }
 
 let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_propagator =
@@ -1103,16 +1110,21 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
   let sanitizer_dict = yaml_to_dict env key value in
+  let sanitizer_by_side_effect =
+    take_opt sanitizer_dict env parse_bool "by-side-effect"
+    |> Option.value ~default:false
+  in
   let not_conflicting =
     take_opt sanitizer_dict env parse_bool
       (if is_old then "not_conflicting" else "not-conflicting")
     |> Option.value ~default:false
   in
   let sanitizer_formula = f env sanitizer_dict in
-  { R.not_conflicting; sanitizer_formula }
+  { sanitizer_formula; sanitizer_by_side_effect; R.not_conflicting }
 
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_sink =
+  let sink_id = String.concat ":" env.path in
   let f =
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
@@ -1123,7 +1135,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     |> Option.value ~default:(R.default_sink_requires tok)
   in
   let sink_formula = f env sink_dict in
-  { sink_formula; sink_requires }
+  { sink_id; sink_formula; sink_requires }
 
 (*****************************************************************************)
 (* Parsers for extract mode *)
@@ -1168,7 +1180,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   | Some ("taint", _) ->
       let parse_specs parse_spec env key x =
         ( snd key,
-          parse_list env key
+          parse_listi env key
             (fun env -> parse_spec env (fst key ^ "list item", snd key))
             x )
       in
@@ -1379,12 +1391,18 @@ let parse_file ?error_recovery file =
         Json_to_generic.program ~unescape_strings:true
           (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
-        Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
-            let cmd = spf "jsonnet -J vendor %s -o %s" file tmpfile in
-            let n = Sys.command cmd in
-            if n <> 0 then failwith (spf "error executing %s" cmd);
-            Json_to_generic.program ~unescape_strings:true
-              (Parse_json.parse_program tmpfile))
+        if use_ojsonnet then
+          let ast = Parse_jsonnet.parse_program file in
+          let core = Desugar_jsonnet.desugar_program file ast in
+          let value_ = Eval_jsonnet.eval_program core in
+          Manifest_jsonnet_to_AST_generic.manifest_value value_
+        else
+          Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
+              let cmd = spf "jsonnet -J vendor %s -o %s" file tmpfile in
+              let n = Sys.command cmd in
+              if n <> 0 then failwith (spf "error executing %s" cmd);
+              let ast = Parse_json.parse_program tmpfile in
+              Json_to_generic.program ~unescape_strings:true ast)
     | FT.Config FT.Yaml -> parse_yaml_rule_file file
     | _else_ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";

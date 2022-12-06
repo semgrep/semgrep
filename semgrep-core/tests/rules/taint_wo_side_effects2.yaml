@@ -1,0 +1,11 @@
+rules:
+  - id: regression_0121
+    message: Semgrep found a match
+    languages:
+      - php
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: $_SERVER['REQUEST_URI']
+    pattern-sinks:
+      - pattern: echo ...;

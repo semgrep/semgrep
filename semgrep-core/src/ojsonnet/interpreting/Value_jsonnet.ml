@@ -23,15 +23,20 @@ module C = Core_jsonnet
  * See https://jsonnet.org/ref/spec.html#jsonnet_values
  *)
 
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
 type value_ =
   | Primitive of primitive
-  | Object of object_
+  | Object of object_ A.bracket
   | Function of C.function_definition
-  | Array of C.expr array A.bracket
+  | Array of lazy_value array A.bracket
 
 (* mostly like AST_jsonnet.literal but with evaluated Double instead of
  * Number and a simplified string!
- * TODO: float enough for Double? string good enough for unicode? codepoints?
+ * Is float good enough? That's what we use in JSON.t so should be good.
+ * TODO? string good enough for unicode? codepoints?
  *)
 and primitive =
   | Null of A.tok
@@ -41,9 +46,29 @@ and primitive =
 
 and object_ = C.obj_assert list * field list
 
+(* opti? make it a hashtbl of string -> field for faster lookup? *)
 and field = {
-  fld_name : A.string_;
+  (* like Str, strictly evaluated! *)
+  fld_name : string A.wrap;
   fld_hidden : A.hidden A.wrap;
-  fld_value : C.expr;
+  fld_value : lazy_value;
+}
+
+(* old: was just C.expr but this can't work because manifest
+ * can't be passed the correct environment to evaluate the array
+ * elts or fields
+ *)
+and lazy_value = {
+  (* lazy closures built from a call to Eval_jsonnet.eval_expr *)
+  v : value_ Lazy.t;
+  (* just for pretty printing as we can't pretty print closures *)
+  e : C.expr;
 }
 [@@deriving show]
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+let empty_obj : value_ =
+  let fk = Parse_info.unsafe_fake_info "" in
+  Object (fk, ([], []), fk)

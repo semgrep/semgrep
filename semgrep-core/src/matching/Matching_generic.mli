@@ -23,6 +23,7 @@ and tout = tin list
  * same language for the host language and pattern language
  *)
 type 'a matcher = 'a -> 'a -> tin -> tout
+type ('a, 'b) general_matcher = 'a -> 'b -> tin -> tout
 
 type 'a comb_result = tin -> ('a * tout) list
 (** See [comb_matcher] *)
@@ -119,7 +120,10 @@ val m_list_with_dots_and_metavar_ellipsis :
     ('a -> (AST_generic.ident * ('a list -> Metavariable.mvalue)) option) ->
   'a list matcher
 
-val m_list_in_any_order : less_is_ok:bool -> 'a matcher -> 'a list matcher
+val m_list_in_any_order :
+  less_is_ok:bool ->
+  ('a, 'b) general_matcher ->
+  ('a list, 'b list) general_matcher
 
 val m_comb_unit : 'a -> 'a comb_result
 (** Unit operation for the comb_result monad. *)
