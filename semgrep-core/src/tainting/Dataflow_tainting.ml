@@ -865,23 +865,25 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let all_args_taints =
           List.fold_left Taints.union Taints.empty all_taints
         in
+        let opt_taint_sig = check_function_signature env e args_taints in
+        (* If the function is a sink, then we consider that all its parameters
+           * are sinks. *)
+        check_orig_if_sink env instr.iorig all_args_taints;
         let call_taints =
-          match check_function_signature env e args_taints with
+          match opt_taint_sig with
           | Some call_taints -> call_taints
           | None ->
-              if not (propagate_through_functions env) then (
-                (* If we asume that function calls are "safe", then taints from
-                 * the arguments are not present in the function's output.
-                 * If the function is a sink, then we consider that all its
-                 * parameters are sinks. *)
-                check_orig_if_sink env instr.iorig all_args_taints;
-                e_taints)
+              if not (propagate_through_functions env) then Taints.empty
               else
                 (* Otherwise assume that the function will propagate
                    * the taint of its arguments. *)
-                Taints.union e_taints all_args_taints
+                all_args_taints
         in
-        (call_taints, lval_env)
+        (* We add the taint of the function itselt (i.e., 'e_taints') too.
+         * DEEP: In DeepSemgrep this also helps identifying `x.foo()` as tainted
+         * when `x` is tainted, because the call is represented in IL as `(x.foo)()`.
+         * TODO: Properly track taint through objects. *)
+        (Taints.union e_taints call_taints, lval_env)
     | CallSpecial (_, _, args) ->
         args
         |> Common.map IL_helpers.exp_of_arg
