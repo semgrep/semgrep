@@ -62,6 +62,7 @@ type special_result =
   | SR_Other of G.todo_kind
   | SR_Literal of G.literal
   | SR_NeedArgs of (G.expr list -> G.expr_kind)
+  | SR_Expr of G.expr_kind
 
 let special (x, tok) =
   let other_expr s = SR_Other (s, tok) in
@@ -72,8 +73,15 @@ let special (x, tok) =
   | This -> SR_Special (G.This, tok)
   | Super -> SR_Special (G.Super, tok)
   | Require -> SR_Special (G.Require, tok)
-  | Exports -> other_expr "Exports"
-  | Module -> other_expr "Module"
+  (* We could add a new IdSpecial to Semgrep and DeepSemgrep for `module` and
+   * `exports` like we did for `Require`, but we only need to analyze CJS
+   * exports in a couple places, so it doesn't seem as worth it. Require needs
+   * special naming behavior in Semgrep and DeepSemgrep, special matching
+   * behavior in Semgrep, and special treatment when extracting dependencies in
+   * DeepSemgrep. In contrast, `module` and `exports` should only need to be
+   * handled in one place in DeepSemgrep. *)
+  | Exports -> SR_Expr (G.N (G.Id (("exports", tok), G.empty_id_info ())))
+  | Module -> SR_Expr (G.N (G.Id (("module", tok), G.empty_id_info ())))
   | Define -> other_expr "Define"
   | Arguments -> other_expr "Arguments"
   | NewTarget -> other_expr "NewTarget"
@@ -243,7 +251,8 @@ and expr (x : expr) =
       | SR_NeedArgs _ ->
           error (snd v1) "Impossible: should have been matched in Call first"
       | SR_Literal l -> G.L l
-      | SR_Other categ -> G.OtherExpr (categ, []))
+      | SR_Other categ -> G.OtherExpr (categ, [])
+      | SR_Expr e -> e)
   | Assign (v1, tok, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       let tok = info tok in
@@ -301,7 +310,8 @@ and expr (x : expr) =
           (* ex: NewTarget *)
           G.Call
             ( G.OtherExpr (categ, []) |> G.e,
-              bracket (Common.map (fun e -> G.Arg e)) v2 ))
+              bracket (Common.map (fun e -> G.Arg e)) v2 )
+      | SR_Expr e -> G.Call (e |> G.e, bracket (Common.map G.arg) v2))
   | Apply (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list expr) v2 in
       G.Call (v1, bracket (Common.map (fun e -> G.Arg e)) v2)
