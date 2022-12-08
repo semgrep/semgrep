@@ -493,7 +493,12 @@ let rec m_name a b =
            name_info =
              {
                B.id_resolved =
-                 { contents = Some (B.ImportedEntity dotted, _sid) };
+                 {
+                   contents =
+                     Some
+                       ( (B.ImportedEntity dotted | B.ResolvedName (dotted, _)),
+                         _sid );
+                 };
                _;
              };
            _;
