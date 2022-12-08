@@ -250,6 +250,16 @@ jobs:
           # (perhaps because of the github token's permissions)
           # so we disable recursive fetching
           git config fetch.recurseSubmodules false
+      # Because we are not persisting creds in the checkout step, we must create the creds file
+      # when it's needed to push up snapshot changes.
+      # Note that this is only done after tests are run, so that tests do not have access to the token
+      - name: Configure git creds for push
+        id: configure-creds
+        if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
+        run: |
+          echo "machine github.com" >> ~/.netrc
+          echo "login ${{ github.repository }}" >> ~/.netrc
+          echo "password ${{ secrets.GITHUB_TOKEN }}" >> ~/.netrc
       - name: Commit snapshot updates
         id: snapshot-commit
         if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
@@ -259,6 +269,10 @@ jobs:
           default_author: github_actions
           message: "Update pytest snapshots"
           new_branch: snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Remove Credentials
+        id: remove-creds
+        if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
+        run: rm ~/.netrc
       - name: Comment about any snapshot updates
         if: failure() && steps.snapshot-commit.outputs.pushed == 'true'
         run: |
