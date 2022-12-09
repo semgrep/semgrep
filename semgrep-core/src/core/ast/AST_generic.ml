@@ -1245,8 +1245,8 @@ and type_kind =
   | TyArray of (* const_expr *) expr option bracket * type_
   | TyTuple of type_ list bracket
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
-  (* anonymous type, '_' in OCaml, 'dynamic' in Kotlin, 'auto' in C++.
-   * TODO: type bounds Scala? *)
+  (* dynamic/unknown type: '_' in OCaml, 'dynamic' in Kotlin, 'auto' in C++,
+   * 'var' in Java. TODO: type bounds Scala? *)
   | TyAny of tok
   | TyPointer of tok * type_
   | TyRef of tok * type_ (* C++/Rust *)
