@@ -441,9 +441,12 @@ and basic_type_extra env = function
   | `Inte_type x -> integral_type env x
   | `Floa_point_type x -> floating_point_type env x
   | `Bool_type tok -> TBasic (str env tok) (* "boolean" *)
-  | `Id tok ->
+  | `Id tok -> (
       let x = str env tok (* pattern [a-zA-Z_]\w* *) in
-      TClass [ (x, None) ]
+      match x with
+      (* since Java 10 *)
+      | "var", tk -> TVar tk
+      | x -> TClass [ (x, None) ])
   | `Scoped_type_id x ->
       let x = scoped_type_identifier env x in
       TClass x

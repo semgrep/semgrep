@@ -83,6 +83,9 @@ let rec typ = function
   | TArray (t1, v1, t2) ->
       let v1 = typ v1 in
       G.TyArray ((t1, None, t2), v1) |> G.t
+  | TVar t ->
+      let t = info t in
+      G.TyAny t |> G.t
 
 and type_arguments v = bracket (list type_argument) v
 

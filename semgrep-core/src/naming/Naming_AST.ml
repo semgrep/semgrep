@@ -319,27 +319,26 @@ let make_type type_string tok =
  *)
 let get_resolved_type lang (vinit, vtype) =
   match vtype with
-  | Some _ -> vtype
-  | None -> (
-      (* Should never be reached by languages where the type is in the declaration *)
-      (* e.g. Java, C *)
-      let string_str =
-        match lang with
-        | Lang.Go -> "str"
-        | Lang.Js
-        | Lang.Ts ->
-            "string"
-        | _ -> "string"
-      in
+  | None
+  | Some { t = TyAny _; _ } -> (
       (* Currently these vary between languages *)
-      (* Alternative is to define a TyInt, TyBool, etc in the generic AST *)
-      (* so this is more portable across languages *)
+      (* Alternative is to define a TyInt, TyBool, etc. in the generic AST *)
+      (* so this would be more portable across languages *)
       match vinit with
       | Some { e = L (Bool (_, tok)); _ } -> make_type "bool" tok
       | Some { e = L (Int (_, tok)); _ } -> make_type "int" tok
       | Some { e = L (Float (_, tok)); _ } -> make_type "float" tok
       | Some { e = L (Char (_, tok)); _ } -> make_type "char" tok
-      | Some { e = L (String (_, tok)); _ } -> make_type string_str tok
+      | Some { e = L (String (_, tok)); _ } ->
+          let string_str =
+            match lang with
+            | Lang.Go -> "str"
+            | Lang.Js
+            | Lang.Ts ->
+                "string"
+            | _ -> "string"
+          in
+          make_type string_str tok
       | Some { e = L (Regexp ((_, (_, tok), _), _)); _ } ->
           make_type "regexp" tok
       | Some { e = RegexpTemplate ((l, _fragments, _r), _); _ } ->
@@ -352,6 +351,7 @@ let get_resolved_type lang (vinit, vtype) =
       | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
       | Some { e = New (_, tp, (_, _, _)); _ } -> Some tp
       | _ -> None)
+  | Some _ -> vtype
 
 (*****************************************************************************)
 (* Other Helpers *)
