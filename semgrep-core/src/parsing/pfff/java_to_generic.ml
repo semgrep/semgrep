@@ -709,9 +709,12 @@ and decl ?(cl_kind = None) decl : G.stmt =
   | Enum v1 ->
       let ent, def = enum_decl v1 in
       G.DefStmt (ent, G.ClassDef def) |> G.s
-  | Init (_v1TODO, v2) ->
-      let v2 = stmt v2 in
-      v2
+  | Init (v1, v2) -> (
+      let st = stmt v2 in
+      match v1 with
+      | Some tstatic ->
+          G.OtherStmtWithStmt (G.OSWS_Block ("Static", tstatic), [], st) |> G.s
+      | None -> st)
   | DeclEllipsis v1 -> G.ExprStmt (G.Ellipsis v1 |> G.e, G.sc) |> G.s
   | EmptyDecl t -> G.Block (t, [], t) |> G.s
   | AnnotationTypeElementTodo t -> G.OtherStmt (G.OS_Todo, [ G.Tk t ]) |> G.s
