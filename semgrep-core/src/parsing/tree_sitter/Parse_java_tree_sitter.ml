@@ -873,10 +873,10 @@ and statement_aux env x : Ast_java.stmt list =
           let _v3 = token env v3 (* ";" *) in
           [ Return (v1, v2) ]
       | `Sync_stmt (v1, v2, v3) ->
-          let _v1 = token env v1 (* "synchronized" *) in
+          let v1 = token env v1 (* "synchronized" *) in
           let v2 = parenthesized_expression env v2 in
           let v3 = block env v3 in
-          [ Sync (v2, v3) ]
+          [ Sync (v1, v2, v3) ]
       | `Local_var_decl x ->
           let xs = local_variable_declaration env x in
           [ LocalVarList xs ]

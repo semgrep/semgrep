@@ -1117,26 +1117,19 @@ and other_stmt_with_stmt_operator =
   (* Python/Javascript *)
   (* TODO: used in C# with 'Using', make new stmt TryWithResource? do Java?*)
   | OSWS_With (* newscope: newvar: in OtherStmtWithStmt with LetPattern *)
+  (* BEGIN/END in Ruby, Unsafe/Async/Const/Foreign/Impl in Rust,
+   * Checked/Unchecked/Lock in C#, Synchronized/Static in Java,
+   * Assembly in Solidity
+   * alt: use a keyword_attribute instead of todo_kind
+   *)
+  | OSWS_Block of todo_kind
   (* Ruby *)
-  | OSWS_BEGIN
-  | OSWS_END (* also in Awk, Perl? *)
   | OSWS_Else_in_try
-  (* Rust *)
-  | OSWS_UnsafeBlock
-  | OSWS_AsyncBlock
-  | OSWS_ConstBlock
-  | OSWS_ForeignBlock
-  | OSWS_ImplBlock
-  (* Java's synchronize / C#'s lock *)
-  | OSWS_Sync
-  (* C# *)
-  | OSWS_CheckedBlock
-  | OSWS_UncheckedBlock
   (* C/C++/cpp *)
   | OSWS_Iterator
   (* Closures in Swift *)
   | OSWS_Closure
-  (* e.g., Assembly in Solidity *)
+  (* e.g., Case/Default outside of switch in C/C++, StmtTodo in C++ *)
   | OSWS_Todo
 
 and other_stmt_operator =

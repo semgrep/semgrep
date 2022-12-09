@@ -2078,8 +2078,7 @@ and map_statement (env : env) (x : CST.statement) : stmt =
       let xs = Common.map (map_yul_statement env) v4 in
       let rb = (* "}" *) token env v5 in
       let st = Block (lb, xs, rb) |> G.s in
-      OtherStmtWithStmt (OSWS_Todo, [ TodoK ("Assembly", tassembly) ], st)
-      |> G.s
+      OtherStmtWithStmt (OSWS_Block ("Assembly", tassembly), [], st) |> G.s
   | `Revert_stmt (v1, v2, v3) ->
       let revert = (* "revert" *) str env v1 in
       (* less: could be a OtherExpr or OtherStmt *)

@@ -1031,9 +1031,11 @@ and map_closure_parameters (env : env) ((v1, v2, v3) : CST.closure_parameters) :
   params
 
 and map_const_block (env : env) ((v1, v2) : CST.const_block) : G.expr =
-  let _constTODO = token env v1 (* "const" *) in
+  let tconst = token env v1 (* "const" *) in
   let block = map_block env v2 in
-  let stmt = G.OtherStmtWithStmt (G.OSWS_ConstBlock, [], block) |> G.s in
+  let stmt =
+    G.OtherStmtWithStmt (G.OSWS_Block ("Const", tconst), [], block) |> G.s
+  in
   G.stmt_to_expr stmt
 
 and map_const_item (env : env)
@@ -1423,15 +1425,19 @@ and map_expression_ending_with_block (env : env)
   in
   match x with
   | `Unsafe_blk (v1, v2) ->
-      let _unsafeTODO = token env v1 (* "unsafe" *) in
+      let tunsafe = token env v1 (* "unsafe" *) in
       let block = map_block env v2 in
-      let stmt = G.OtherStmtWithStmt (G.OSWS_UnsafeBlock, [], block) |> G.s in
+      let stmt =
+        G.OtherStmtWithStmt (G.OSWS_Block ("Unsafe", tunsafe), [], block) |> G.s
+      in
       G.stmt_to_expr stmt
   | `Async_blk (v1, v2, v3) ->
-      let _asyncTODO = token env v1 (* "async" *) in
+      let tasync = token env v1 (* "async" *) in
       let _moveTODO = Option.map (fun tok -> token env tok (* "move" *)) v2 in
       let block = map_block env v3 in
-      let stmt = G.OtherStmtWithStmt (G.OSWS_AsyncBlock, [], block) |> G.s in
+      let stmt =
+        G.OtherStmtWithStmt (G.OSWS_Block ("Async", tasync), [], block) |> G.s
+      in
       G.stmt_to_expr stmt
   | `Blk x -> map_block_expr env x
   | `If_exp x -> map_if_expression env x
