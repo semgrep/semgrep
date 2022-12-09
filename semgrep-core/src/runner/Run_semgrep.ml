@@ -911,7 +911,7 @@ let semgrep_with_one_pattern config =
       in
       (* sanity check *)
       if config.filter_irrelevant_rules then
-        failwith "-fast does not work with -f/-e, or you need also -json";
+        logger#warning "-fast does not work with -f/-e, or you need also -json";
       files
       |> List.iter (fun file ->
              logger#info "processing: %s" file;
