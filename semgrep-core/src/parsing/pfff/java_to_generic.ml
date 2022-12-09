@@ -486,9 +486,9 @@ and stmt_aux st =
   | Label (v1, v2) ->
       let v1 = ident v1 and v2 = stmt v2 in
       [ G.Label (v1, v2) |> G.s ]
-  | Sync (v1, v2) ->
+  | Sync (v0, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
-      [ G.OtherStmtWithStmt (G.OSWS_Sync, [ G.E v1 ], v2) |> G.s ]
+      [ G.OtherStmtWithStmt (G.OSWS_Block ("Sync", v0), [ G.E v1 ], v2) |> G.s ]
   | Try (t, v0, v1, v2, v3) -> (
       let v1 = stmt v1 and v2 = catches v2 and v3 = option tok_and_stmt v3 in
       let try_stmt = G.Try (t, v1, v2, v3) |> G.s in

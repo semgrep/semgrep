@@ -1648,9 +1648,12 @@ and statement (env : env) (x : CST.statement) =
   | `Chec_stmt (v1, v2) ->
       let v1 =
         match v1 with
-        | `Chec _tok -> OSWS_CheckedBlock (* "checked" *)
-        | `Unch _tok -> OSWS_UncheckedBlock
-        (* "unchecked" *)
+        | `Chec tok (* "checked" *) ->
+            let tchecked = token env tok in
+            OSWS_Block ("Checked", tchecked)
+        | `Unch tok (* "unchecked" *) ->
+            let tunchecked = token env tok in
+            OSWS_Block ("Unchecked", tunchecked)
       in
       let v2 = block env v2 in
       OtherStmtWithStmt (v1, [], v2) |> G.s
@@ -1817,12 +1820,12 @@ and statement (env : env) (x : CST.statement) =
       in
       G.DefStmt (ent, def) |> G.s
   | `Lock_stmt (v1, v2, v3, v4, v5) ->
-      let _v1 = token env v1 (* "lock" *) in
-      let _v2 = token env v2 (* "(" *) in
-      let v3 = expression env v3 in
-      let _v4 = token env v4 (* ")" *) in
-      let v5 = statement env v5 in
-      OtherStmtWithStmt (OSWS_Sync, [ E v3 ], v5) |> G.s
+      let tlock = token env v1 (* "lock" *) in
+      let _l = token env v2 (* "(" *) in
+      let e = expression env v3 in
+      let _r = token env v4 (* ")" *) in
+      let st = statement env v5 in
+      OtherStmtWithStmt (OSWS_Block ("Lock", tlock), [ E e ], st) |> G.s
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "return" *) in
       let v2 = Option.map (expression env) v2 in
@@ -1852,9 +1855,9 @@ and statement (env : env) (x : CST.statement) =
       let v4 = Option.map (finally_clause env) v4 in
       Try (v1, v2, v3, v4) |> G.s
   | `Unsafe_stmt (v1, v2) ->
-      let _v1 = token env v1 (* "unsafe" *) in
+      let tunsafe = token env v1 (* "unsafe" *) in
       let v2 = block env v2 in
-      OtherStmtWithStmt (OSWS_UnsafeBlock, [], v2) |> G.s
+      OtherStmtWithStmt (OSWS_Block ("Unsafe", tunsafe), [], v2) |> G.s
   | `Using_stmt (v1, v2, v3, v4, v5, v6) ->
       let _v1TODO = Option.map (token env) v1 (* "await" *) in
       let v2 = token env v2 (* "using" *) in
