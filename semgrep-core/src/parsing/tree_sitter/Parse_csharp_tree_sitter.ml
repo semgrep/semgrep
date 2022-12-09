@@ -73,18 +73,23 @@ let var_def_stmt (decls : (entity * variable_definition) list)
   in
   stmt1 stmts
 
-type direction = Ascending | Descending
+(* TODO? integrate in AST_generic at some point? or extend
+ * AST_generic.comprehension to support also the Group/Into/Join/OrderBy?
+ *)
+type linq_query_part =
+  (* comprehension/SQL like *)
+  | From of tok * (type_ option * ident) * expr
+  | Select of tok * expr
+  | Where of tok * expr
+  (* PL like *)
+  | Let of tok * ident * expr
+  | Into of tok * ident * linq_query_part list
+  (* SQL like *)
+  | Group of tok * expr * expr
+  | Join of tok * (type_ option * ident) * expr * expr * expr * ident option
+  | OrderBy of tok * (expr * direction) list
 
-(* TODO? integrate in AST_generic at some point? *)
-and linq_query_part =
-  | From of (tok * (type_ option * ident) * expr)
-  | Group of (tok * expr * expr)
-  | Select of (tok * expr)
-  | Into of (tok * ident * linq_query_part list)
-  | Join of (tok * (type_ option * ident) * expr * expr * expr * ident option)
-  | Let of (tok * ident * expr)
-  | OrderBy of (tok * (expr * direction) list)
-  | Where of (tok * expr)
+and direction = Ascending | Descending
 
 let param_from_lambda_params lambda_params =
   match lambda_params with
@@ -139,7 +144,10 @@ let create_join_result_lambda lambda_params ident =
 let call_lambda base_expr funcname tok funcs =
   (* let funcs = exprs |> List.map (fun expr -> create_lambda lambda_params expr) in *)
   let args = funcs |> Common.map (fun func -> Arg func) in
-  let idinfo = empty_id_info () in
+  (* We use hidden:true because the funcname is a fake identifier
+   * that actually does not occur in the target code.
+   *)
+  let idinfo = empty_id_info ~hidden:true () in
   let method_ =
     DotAccess (base_expr, tok, FN (Id ((funcname, tok), idinfo))) |> G.e
   in
