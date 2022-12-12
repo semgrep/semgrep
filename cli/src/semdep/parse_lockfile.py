@@ -136,7 +136,7 @@ def parse_yarn1(
         version, line_number = get_version(lines)
         resolved = get_resolved(lines)
         integrity = get_integrity(lines)
-        if manifest_deps is None:
+        if not manifest_deps:
             transitivity = Transitivity(Unknown())
         else:
             if package_name in manifest_deps:
@@ -179,12 +179,15 @@ def parse_yarn2(
         constraints = []
         for c in constraint_strs:
             if c[0] == "@":
-                name, constraint = c[1:].split("@")
+                name, constraint = c[1:].split("@", 1)
                 name = "@" + name
             else:
-                name, constraint = c.split("@")
-            constraint = constraint.split(":")[1]  # npm:^1.0.0 --> ^1.0.0
+                name, constraint = c.split("@", 1)
+
+            if ":" in constraint:
+                constraint = constraint.split(":")[1]  # npm:^1.0.0 --> ^1.0.0
             constraints.append((name, constraint))
+
         return constraints[0][0], constraints
 
     def parse_dep(dep: str) -> FoundDependency:
@@ -195,13 +198,14 @@ def parse_yarn2(
             l.split(":")
             for l in lines[1:]
             if not (l.startswith("dependencies") or l.startswith("resolution"))
+            if l
         ]
         fields = {f: v.strip(" ") for f, v in field_lines}
         if "version" not in fields:
             raise SemgrepError("yarn.lock dependency {package} missing version?")
         version, line_number = fields["version"].split(" ")
 
-        if manifest_deps is None:
+        if not manifest_deps:
             transitivity = Transitivity(Unknown())
         else:
             if package in manifest_deps:
@@ -227,6 +231,8 @@ def parse_yarn2(
 
     deps = lockfile_text.split("\n\n")[2:]
     for dep in deps:
+        if "@patch:" in dep:
+            continue
         yield parse_dep(dep)
 
 

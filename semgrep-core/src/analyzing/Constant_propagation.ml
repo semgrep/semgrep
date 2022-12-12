@@ -92,6 +92,11 @@ type var_stats = (var, lr_stats) Hashtbl.t
 let ( let* ) o f = Option.bind o f
 let ( let/ ) o f = Option.iter f o
 
+let is_private attr =
+  match attr with
+  | KeywordAttr (Private, _) -> true
+  | _ -> false
+
 (*****************************************************************************)
 (* Environment Helpers *)
 (*****************************************************************************)
@@ -571,6 +576,8 @@ let propagate_basic lang prog =
                    H.has_keyword_attr Const attrs
                    || H.has_keyword_attr Final attrs
                    || (!(stats.lvalue) = 1 && is_js env)
+                   || !(stats.lvalue) = 1 && env.lang = Some Lang.Java
+                      && List.exists is_private attrs
                   then
                    match e.e with
                    | L literal -> add_constant_env id (sid, Lit literal) env

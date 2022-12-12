@@ -87,6 +87,7 @@ class PerformanceSchema(TypedDict, total=False):
     numRules: Optional[int]
     numTargets: Optional[int]
     totalBytesScanned: Optional[int]
+    maxMemoryBytes: Optional[int]
 
 
 class ErrorsSchema(TypedDict, total=False):
@@ -279,6 +280,12 @@ class Metrics:
             }
             for rule in rules
         ]
+
+    @suppress_errors
+    def add_max_memory_bytes(self, profiling_data: ProfilingData) -> None:
+        self.payload["performance"][
+            "maxMemoryBytes"
+        ] = profiling_data.get_max_memory_bytes()
 
     @suppress_errors
     def add_findings(self, findings: FilteredMatches) -> None:

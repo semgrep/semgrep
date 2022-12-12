@@ -1,0 +1,15 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: Match
+    mode: taint
+    options:
+      taint_assume_safe_functions: true
+      taint_assume_safe_indexes: true
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: tainted(...)
+    severity: WARNING
+

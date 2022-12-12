@@ -15,6 +15,9 @@
 
    spacegrep
 
+   ojsonnet_parsing
+   ojsonnet_interpreting
+
    semgrep_core
    semgrep_system
    semgrep_optimizing

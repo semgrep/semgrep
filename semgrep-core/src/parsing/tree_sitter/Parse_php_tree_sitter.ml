@@ -12,12 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-(*
-open Common
-module PI = Parse_info
-open Cst_cpp
-open Ast_c
-*)
+
 module CST = Tree_sitter_php.CST
 module H = Parse_tree_sitter_helpers
 module A = Ast_php
@@ -47,11 +42,6 @@ let _str = H.str
 (*****************************************************************************)
 
 (* This was started by copying tree-sitter-lang/semgrep-php/.../Boilerplate.ml *)
-
-(**
-   Boilerplate to be used as a template when mapping the php CST
-   to another type of tree.
-*)
 
 (* Disable warnings against unused variables *)
 [@@@warning "-26-27"]

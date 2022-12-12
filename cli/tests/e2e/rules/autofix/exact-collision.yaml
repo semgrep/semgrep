@@ -1,0 +1,19 @@
+rules:
+  - id: first-rule
+    pattern: |
+      1
+    fix: |
+      once
+    message: Semgrep found a match
+    languages:
+      - python
+    severity: WARNING
+  - id: second-rule
+    pattern: |
+      1
+    fix: |
+      twice
+    message: Semgrep found a match
+    languages:
+      - python
+    severity: WARNING

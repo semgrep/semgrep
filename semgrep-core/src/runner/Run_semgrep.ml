@@ -909,6 +909,9 @@ let semgrep_with_one_pattern config =
       let files =
         target_info.target_mappings |> Common.map (fun t -> t.In.path)
       in
+      (* sanity check *)
+      if config.filter_irrelevant_rules then
+        logger#warning "-fast does not work with -f/-e, or you need also -json";
       files
       |> List.iter (fun file ->
              logger#info "processing: %s" file;

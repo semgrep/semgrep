@@ -136,6 +136,8 @@ and string_content = string wrap list
  * probably simpler to have it here instead of in 3 special constructs.
  *)
 and special = Self | Super | Dollar (* ??? *)
+
+(* the NamedArg are supposed to be the last arguments *)
 and argument = Arg of expr | NamedArg of ident * tok (* = *) * expr
 
 (* alt: we could reuse AST_generic_.ml, but because we might want to
@@ -214,7 +216,12 @@ and field = {
 and field_name = FId of ident | FStr of string_ | FDynamic of expr bracket
 
 (* =~ visibility *)
-and hidden = Colon | TwoColons | ThreeColons
+and hidden =
+  | Visible
+  (* : *)
+  | Hidden
+  (* :: *)
+  | ForcedVisible (* ::: *)
 
 and attribute =
   (* concatenate fields, not valid for methods *)
@@ -259,3 +266,14 @@ type any = E of expr
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let mk_string_ (str, tk) =
+  let fk = Parse_info.unsafe_fake_info "" in
+  (None, DoubleQuote, (fk, [ (str, tk) ], fk))
+
+let string_of_string_ (x : string_) : string wrap =
+  let _verbatimTODO, _kindTODO, (l, xs, r) = x in
+  let str = xs |> Common.map fst |> String.concat "" in
+  let infos = xs |> Common.map snd in
+  let tk = Parse_info.combine_infos l (infos @ [ r ]) in
+  (str, tk)

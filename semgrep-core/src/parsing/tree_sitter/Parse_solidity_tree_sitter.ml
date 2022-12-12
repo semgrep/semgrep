@@ -37,7 +37,6 @@ let token = H.token
 let str = H.str
 let fb = G.fake_bracket
 let fake s = PI.unsafe_fake_info s
-let _todo _env _x = failwith "TODO"
 
 let map_trailing_comma env v =
   match v with
@@ -644,7 +643,7 @@ let map_import_clause (env : env) (x : CST.import_clause) =
         | Left _tstar, Some alias ->
             [ ImportAs (timport, modname, Some alias) |> G.d ]
         | Right id, alias_opt ->
-            [ ImportFrom (timport, modname, id, alias_opt) |> G.d ])
+            [ ImportFrom (timport, modname, [ (id, alias_opt) ]) |> G.d ])
   | `Mult_import (v1, v2, v3) ->
       let _lb = (* "{" *) token env v1 in
       let xs =
@@ -667,7 +666,7 @@ let map_import_clause (env : env) (x : CST.import_clause) =
       fun timport modname ->
         xs
         |> Common.map (fun (id, aliasopt) ->
-               ImportFrom (timport, modname, id, aliasopt) |> G.d)
+               ImportFrom (timport, modname, [ (id, aliasopt) ]) |> G.d)
 
 let map_mapping_key (env : env) (x : CST.mapping_key) : type_ =
   match x with
@@ -2078,8 +2077,7 @@ and map_statement (env : env) (x : CST.statement) : stmt =
       let xs = Common.map (map_yul_statement env) v4 in
       let rb = (* "}" *) token env v5 in
       let st = Block (lb, xs, rb) |> G.s in
-      OtherStmtWithStmt (OSWS_Todo, [ TodoK ("Assembly", tassembly) ], st)
-      |> G.s
+      OtherStmtWithStmt (OSWS_Block ("Assembly", tassembly), [], st) |> G.s
   | `Revert_stmt (v1, v2, v3) ->
       let revert = (* "revert" *) str env v1 in
       (* less: could be a OtherExpr or OtherStmt *)
@@ -2460,8 +2458,9 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_source_file env cst with
-      | G.Pr xs -> xs
-      | G.Ss xs -> xs
+      | G.Pr xs
+      | G.Ss xs ->
+          xs
       | _ -> failwith "not a program")
 
 let parse_pattern str =
@@ -2470,8 +2469,4 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match map_source_file env cst with
-      | G.Pr [ x ] -> G.S x
-      | G.Pr xs -> G.Ss xs
-      | G.Ss [ x ] -> G.S x
-      | x -> x)
+      map_source_file env cst)

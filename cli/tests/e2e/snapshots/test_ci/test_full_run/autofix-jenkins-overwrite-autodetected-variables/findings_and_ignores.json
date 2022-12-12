@@ -240,11 +240,11 @@
           "dependency_pattern": {
             "ecosystem": "pypi",
             "package": "badlib",
-            "semver_range": "== 1.0.0"
+            "semver_range": "== 99.99.99"
           },
           "found_dependency": {
             "package": "badlib",
-            "version": "1.0.0",
+            "version": "99.99.99",
             "ecosystem": "pypi",
             "allowed_hashes": {},
             "transitivity": "unknown",

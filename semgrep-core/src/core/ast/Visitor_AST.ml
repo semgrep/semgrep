@@ -518,6 +518,7 @@ let (mk_visitor :
     | Spread -> ()
     | HashSplat -> ()
     | NextArrayIndex -> ()
+    | Require -> ()
     | EncodedString v1 ->
         let v1 = v_string v1 in
         ()
@@ -1272,9 +1273,10 @@ let (mk_visitor :
     let k { d; d_attrs } =
       v_list v_attribute d_attrs;
       match d with
-      | ImportFrom (t, v1, v2, v3) ->
+      | ImportFrom (t, v1, v2) ->
           let t = v_tok t in
-          let v1 = v_module_name v1 and _ = v_alias (v2, v3) in
+          let v1 = v_module_name v1 in
+          let v2 = v_list v_alias v2 in
           ()
       | ImportAs (t, v1, v2) ->
           let t = v_tok t in
@@ -1308,6 +1310,7 @@ let (mk_visitor :
     v_id_info v2
   and v_program v = v_stmts v
   and v_any = function
+    | Name v1 -> v_name v1
     | Xmls v1 -> v_list v_xml_body v1
     | ForOrIfComp v1 -> v_for_or_if_comp v1
     | Tp v1 -> v_type_parameter v1

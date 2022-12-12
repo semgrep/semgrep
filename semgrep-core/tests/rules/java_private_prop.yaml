@@ -1,0 +1,8 @@
+rules:
+  - id: java_private_prop
+    message: Should be able to propagate a singly-assigned private field in Java 
+    languages:
+      - java 
+    severity: WARNING
+    pattern: |
+      return 5;

@@ -1,4 +1,3 @@
-import multiprocessing
 import os
 import tempfile
 from itertools import chain
@@ -55,13 +54,6 @@ logger = getLogger(__name__)
 
 
 ScanReturn = Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]
-
-
-def __get_cpu_count() -> int:
-    try:
-        return multiprocessing.cpu_count()
-    except NotImplementedError:
-        return 1  # CPU count is not implemented on Windows
 
 
 def __validate_lang(option: str, lang: Optional[str]) -> str:
@@ -315,10 +307,9 @@ _scan_options: List[Callable] = [
         "-j",
         "--jobs",
         type=int,
-        default=__get_cpu_count(),
         help="""
             Number of subprocesses to use to run checks in parallel. Defaults to the
-            number of cores on the system.
+            number of cores on the system (1 if using --deep).
         """,
     ),
     optgroup.option(
@@ -625,7 +616,7 @@ def scan(
     gitlab_sast: bool,
     gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
-    jobs: int,
+    jobs: Optional[int],
     json: bool,
     junit_xml: bool,
     lang: Optional[str],
@@ -799,6 +790,7 @@ def scan(
                     try:
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
+                            deep=deep,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,

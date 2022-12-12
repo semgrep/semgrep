@@ -127,6 +127,7 @@ def _build_time_json(
             for target, num_bytes in zip(targets, target_bytes)
         ],
         total_bytes=sum(n for n in target_bytes),
+        max_memory_bytes=profiling_data.get_max_memory_bytes(),
     )
 
 
@@ -173,6 +174,7 @@ class OutputHandler:
         self.semgrep_structured_errors: List[SemgrepError] = []
         self.error_set: Set[SemgrepError] = set()
         self.has_output = False
+        self.is_ci_invocation = False
         self.filtered_rules: List[Rule] = []
         self.profiling_data: ProfilingData = (
             ProfilingData()
@@ -291,6 +293,7 @@ class OutputHandler:
         explanations: Optional[List[out.MatchingExplanation]] = None,
         severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
+        is_ci_invocation: bool = False,
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -317,6 +320,8 @@ class OutputHandler:
             self.explanations = explanations
         if severities:
             self.severities = severities
+
+        self.is_ci_invocation = is_ci_invocation
 
         final_error = None
         any_findings_not_ignored = any(not rm.is_ignored for rm in self.rule_matches)
@@ -469,4 +474,5 @@ class OutputHandler:
             ),
             extra,
             self.severities,
+            is_ci_invocation=self.is_ci_invocation,
         )

@@ -39,7 +39,6 @@ let str = H.str
 
 (* this is not used anyway by Python_to_generic.ml, so I took whatever *)
 let no_ctx = Param
-let _fake = PI.fake_info
 let fb = AST_generic.fake_bracket
 let invalid () = raise (PI.NoTokenLocation "Invalid program")
 
@@ -60,16 +59,8 @@ let single_or_tuple e xs =
 (*****************************************************************************)
 (* This was started by copying tree-sitter-lang/semgrep-python/Boilerplate.ml *)
 
-(**
-   Boilerplate to be used as a template when mapping the python CST
-   to another type of tree.
-*)
-
 (* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
-
-let _todo (env : env) _ = failwith "not implemented"
-let _complicated (env : env) _ = failwith "not implemented"
+[@@@warning "-26"]
 
 let map_keyword_identifier (env : env) (x : CST.keyword_identifier) : name =
   match x with
@@ -559,7 +550,7 @@ and map_interpolation (env : env) ((v1, v2, v3, v4, v5, v6) : CST.interpolation)
   let e = map_type_ env v2 in
   let () =
     match v3 with
-    | Some tok -> (* "=" *) ()
+    | Some _tok -> (* "=" *) ()
     | None -> ()
   in
   let _type_conv_opt =
@@ -637,7 +628,7 @@ and map_parameter (env : env) (x : CST.parameter) : parameter =
   | `Id tok ->
       let id = (* pattern [_\p{XID_Start}][_\p{XID_Continue}]* *) str env tok in
       ParamPattern (PatternName id, None)
-  | `Typed_param (v1, v2, v3) -> (
+  | `Typed_param (v1, _v2TODO, v3) -> (
       let ty = map_type_ env v3 in
       match v1 with
       | `Id tok ->
@@ -738,7 +729,7 @@ and map_pattern_to_parameter (env : env) (x : CST.pattern) : param_pattern =
       let tstar, id = map_list_splat_pattern_to_id env x in
       invalid ()
   (* Tuples are not parameters, after the first. *)
-  | `Tuple_pat x -> invalid ()
+  | `Tuple_pat _x -> invalid ()
 
 and map_pattern (env : env) (x : CST.pattern) : pattern =
   match x with
@@ -755,15 +746,15 @@ and map_pattern (env : env) (x : CST.pattern) : pattern =
       (* Via the Python 3 grammar, you can only have a pow in a pattern if the next
          is just a NAME.
       *)
-      let tstar, names = map_list_splat_pattern_to_id env x in
+      let _tstarTODO, names = map_list_splat_pattern_to_id env x in
       let expr =
         List.fold_left
           (fun acc (x, tok) ->
             (* the token should only be None for the first one *)
             match (tok, acc) with
             | None, None -> Some (name_of_id x)
-            | None, Some res -> raise Common.Impossible
-            | Some tok, None -> raise Common.Impossible
+            | None, Some _res -> raise Common.Impossible
+            | Some _tok, None -> raise Common.Impossible
             | Some tok, Some acc -> Some (Attribute (acc, tok, x, no_ctx)))
           None names
       in
@@ -1004,8 +995,8 @@ and map_tuple_pattern (env : env) ((v1, v2, v3) : CST.tuple_pattern) :
   let rp = (* ")" *) token env v3 in
   (lp, xs, rp)
 
-and map_tuple_parameter (env : env) ((v1, v2, v3) : CST.tuple_pattern) :
-    param_pattern =
+and map_tuple_parameter (env : env) ((_v1TODO, v2, _v3TODO) : CST.tuple_pattern)
+    : param_pattern =
   let xs =
     match v2 with
     | Some x -> map_patterns_to_parameters env x
@@ -1038,7 +1029,7 @@ let map_relative_import (env : env) ((v1, v2) : CST.relative_import) :
   (* This case is an empty import and cannot happen. *)
   | [], None -> invalid ()
   (* This case is taken directly from the pfff parser. I do not know why it does that. *)
-  | fst :: rest, None -> ([ ("", fst (*TODO*)) ], Some v1)
+  | fst :: _restTODO, None -> ([ ("", fst (*TODO*)) ], Some v1)
   | [], Some dname -> (dname, None)
   | _, Some dname -> (dname, Some v1)
 
@@ -1066,7 +1057,7 @@ let rec map_assignment (env : env) ((v1, v2) : CST.assignment) =
   (* we can only reach here if we called `map_assignment` through at least one assignment already
      something like x = y : Int is not valid syntax, so we should reject here
   *)
-  | `COLON_type (v1, v2) -> invalid ()
+  | `COLON_type (_v1, _v2) -> invalid ()
   | `COLON_type_EQ_right_hand_side (v1, v2, v3, v4) ->
       let v1 = (* ":" *) token env v1 in
       let v2 = map_type_ env v2 in
@@ -1124,7 +1115,7 @@ and map_right_hand_side (env : env) (x : CST.right_hand_side) =
       let vars, tok, expr = map_assignment env x in
       (vars, Some tok, expr)
   (* An augmented assignment cannot actually occur as the RHS to an assignment. *)
-  | `Augm_assign x -> invalid ()
+  | `Augm_assign _x -> invalid ()
   | `Yield x -> ([], None, map_yield env x)
 
 let map_decorator (env : env) ((v1, v2, v3) : CST.decorator) =
@@ -1406,8 +1397,8 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt list =
       let t1, v2, t2 = map_string_ env v2 in
       let v3, v4 =
         match v3 with
-        | Some (v1, v2, []) -> (Some (map_type_ env v2), None)
-        | Some (v1, v2, [ e ]) ->
+        | Some (_v1TODO, v2, []) -> (Some (map_type_ env v2), None)
+        | Some (_v1TODO, v2, [ e ]) ->
             (Some (map_type_ env v2), Some (map_type_ env (e |> snd)))
         (* Python2 only permits two of these at maximum. *)
         | Some _ -> invalid ()
@@ -1452,7 +1443,7 @@ and map_case_clause (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.case_clause)
   in
   let v4 =
     match v4 with
-    | Some tok -> (* "," *) ()
+    | Some _tok -> (* "," *) ()
     | None -> ()
   in
   let cond =
@@ -1583,7 +1574,7 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
       in
       let () =
         match v4 with
-        | Some tok -> (* "," *) ()
+        | Some _tok -> (* "," *) ()
         | None -> ()
       in
       let cond = Tuple (CompList (fb (e :: es)), no_ctx) in
@@ -1685,8 +1676,4 @@ let parse file =
     (fun () -> Tree_sitter_python.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      try map_module_ env cst with
-      | Failure "not implemented" as exn ->
-          let e = Exception.catch exn in
-          H.debug_sexp_cst_after_error (CST.sexp_of_module_ cst);
-          Exception.reraise e)
+      map_module_ env cst)
