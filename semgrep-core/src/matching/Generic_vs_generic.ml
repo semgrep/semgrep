@@ -3307,6 +3307,7 @@ and m_any a b =
   | G.E a1, B.E b1 -> m_expr a1 b1
   | G.S a1, B.S b1 -> m_stmt a1 b1
   | G.Partial a1, B.Partial b1 -> m_partial a1 b1
+  | G.Name a1, B.Name b1 -> m_name a1 b1
   | G.Args a1, B.Args b1 -> m_list m_argument a1 b1
   | G.Params a1, B.Params b1 -> m_list m_parameter a1 b1
   | G.Xmls a1, B.Xmls b1 -> m_list m_xml_body a1 b1
@@ -3362,6 +3363,7 @@ and m_any a b =
   | G.ModDk _, _
   | G.TodoK _, _
   | G.Partial _, _
+  | G.Name _, _
   | G.Args _, _
   | G.Params _, _
   | G.Xmls _, _

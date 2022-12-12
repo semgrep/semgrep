@@ -1838,6 +1838,7 @@ and any =
   | Params of parameter list
   | Xmls of xml_body list
   | Partial of partial
+  | Name of name
   (* misc *)
   | I of ident
   | Str of string wrap
