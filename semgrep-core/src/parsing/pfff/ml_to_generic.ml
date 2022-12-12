@@ -715,7 +715,6 @@ and any = function
   | I x -> (
       match item x with
       | [] -> raise Impossible
-      | [ x ] -> G.S x
       | xs -> G.Ss xs)
   | T x ->
       let x = type_ x in

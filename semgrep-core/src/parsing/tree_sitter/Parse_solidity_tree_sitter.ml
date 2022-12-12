@@ -37,7 +37,6 @@ let token = H.token
 let str = H.str
 let fb = G.fake_bracket
 let fake s = PI.unsafe_fake_info s
-let _todo _env _x = failwith "TODO"
 
 let map_trailing_comma env v =
   match v with
@@ -2459,8 +2458,9 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_source_file env cst with
-      | G.Pr xs -> xs
-      | G.Ss xs -> xs
+      | G.Pr xs
+      | G.Ss xs ->
+          xs
       | _ -> failwith "not a program")
 
 let parse_pattern str =
@@ -2469,8 +2469,4 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match map_source_file env cst with
-      | G.Pr [ x ] -> G.S x
-      | G.Pr xs -> G.Ss xs
-      | G.Ss [ x ] -> G.S x
-      | x -> x)
+      map_source_file env cst)

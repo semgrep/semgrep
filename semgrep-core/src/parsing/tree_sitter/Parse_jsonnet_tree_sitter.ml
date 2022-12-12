@@ -623,5 +623,5 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      let _e = map_document env cst in
-      raise Todo)
+      let e = map_document env cst in
+      E e)
