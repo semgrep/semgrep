@@ -496,7 +496,7 @@ let rec m_name a b =
                  {
                    contents =
                      Some
-                       ( (B.ImportedEntity dotted | B.ResolvedName (dotted, _)),
+                       ( (B.ImportedEntity dotted | B.ResolvedName (dotted, _)) as resolved,
                          _sid );
                  };
                _;
