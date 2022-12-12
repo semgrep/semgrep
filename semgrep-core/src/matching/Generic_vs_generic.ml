@@ -496,15 +496,19 @@ let rec m_name a b =
                  {
                    contents =
                      Some
-                       ( (B.ImportedEntity dotted | B.ResolvedName (dotted, _)),
+                       ( ((B.ImportedEntity dotted | B.ResolvedName (dotted, _))
+                         as resolved),
                          _sid );
                  };
                _;
              };
            _;
          } as nameinfo) ) ->
+      try_parents dotted
+      >||> try_alternate_names resolved
       (* try without resolving anything *)
-      m_name a (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
+      >||> m_name a
+             (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
       >||>
       (* try this time by replacing the qualifier by the resolved one *)
       let new_qualifier =
