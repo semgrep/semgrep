@@ -160,6 +160,8 @@ class ScanHandler:
         self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
 
+        state.error_handler.append_request(scan_id=self.scan_id)
+
         logger.debug("Getting rules file")
         get_rules_url = (
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/rules.yaml"

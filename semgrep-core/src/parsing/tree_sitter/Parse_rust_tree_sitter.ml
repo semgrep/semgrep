@@ -25,7 +25,7 @@ module G = AST_generic
 (* Rust parser using tree-sitter-lang/semgrep-rust and converting
  * directly to AST_generic.ml
  *
- * Some comments are tag with ruin: to indicate code ruin0x11 wrote
+ * Some comments are tagged with ruin: to indicate code ruin0x11 wrote
  * in a fork of tree-sitter-rust that didn't get merge in the official
  * tree-sitter-rust (but we might want to merge at some point)
  *)
@@ -174,14 +174,9 @@ type rust_attribute =
 (*****************************************************************************)
 (* This was started by copying tree-sitter-lang/semgrep-rust/Boilerplate.ml *)
 
-(**
-   Boilerplate to be used as a template when mapping the rust CST
-   to another type of tree.
-*)
-
-let ident (env : env) (tok : CST.identifier) : G.ident = str env tok
-
-(* pattern [a-zA-Z_]\w* *)
+let ident (env : env) (tok : CST.identifier) : G.ident =
+  (* pattern [a-zA-Z_]\w* *)
+  str env tok
 
 let map_fragment_specifier (env : env) (x : CST.fragment_specifier) =
   match x with
@@ -1031,9 +1026,11 @@ and map_closure_parameters (env : env) ((v1, v2, v3) : CST.closure_parameters) :
   params
 
 and map_const_block (env : env) ((v1, v2) : CST.const_block) : G.expr =
-  let _constTODO = token env v1 (* "const" *) in
+  let tconst = token env v1 (* "const" *) in
   let block = map_block env v2 in
-  let stmt = G.OtherStmtWithStmt (G.OSWS_ConstBlock, [], block) |> G.s in
+  let stmt =
+    G.OtherStmtWithStmt (G.OSWS_Block ("Const", tconst), [], block) |> G.s
+  in
   G.stmt_to_expr stmt
 
 and map_const_item (env : env)
@@ -1423,15 +1420,19 @@ and map_expression_ending_with_block (env : env)
   in
   match x with
   | `Unsafe_blk (v1, v2) ->
-      let _unsafeTODO = token env v1 (* "unsafe" *) in
+      let tunsafe = token env v1 (* "unsafe" *) in
       let block = map_block env v2 in
-      let stmt = G.OtherStmtWithStmt (G.OSWS_UnsafeBlock, [], block) |> G.s in
+      let stmt =
+        G.OtherStmtWithStmt (G.OSWS_Block ("Unsafe", tunsafe), [], block) |> G.s
+      in
       G.stmt_to_expr stmt
   | `Async_blk (v1, v2, v3) ->
-      let _asyncTODO = token env v1 (* "async" *) in
+      let tasync = token env v1 (* "async" *) in
       let _moveTODO = Option.map (fun tok -> token env tok (* "move" *)) v2 in
       let block = map_block env v3 in
-      let stmt = G.OtherStmtWithStmt (G.OSWS_AsyncBlock, [], block) |> G.s in
+      let stmt =
+        G.OtherStmtWithStmt (G.OSWS_Block ("Async", tasync), [], block) |> G.s
+      in
       G.stmt_to_expr stmt
   | `Blk x -> map_block_expr env x
   | `If_exp x -> map_if_expression env x
@@ -2544,9 +2545,7 @@ and map_scoped_type_identifier_name (env : env)
 and map_scoped_type_identifier_in_expression_position (env : env)
     ((v1, v2, v3) : CST.scoped_type_identifier_in_expression_position) : G.name
     =
-  (* TODO: QTop *)
-  let _colons = token env v2 (* "::" *) in
-  let _optTODO =
+  let opt =
     match v1 with
     | Some x -> (
         match x with
@@ -2555,9 +2554,19 @@ and map_scoped_type_identifier_in_expression_position (env : env)
         )
     | None -> None
   in
+  let colons = token env v2 (* "::" *) in
   let ident = ident env v3 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-  H2.name_of_id ident
+  match opt with
+  | None ->
+      G.IdQualified
+        {
+          name_last = (ident, None);
+          name_middle = None;
+          name_top = Some colons;
+          name_info = G.empty_id_info ();
+        }
+  | Some name -> H2.add_id_opt_type_args_to_name name (ident, None)
 
 and map_statement (env : env) (x : CST.statement) : G.stmt list =
   match x with
@@ -3404,7 +3413,4 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in
-      match map_source_file env cst with
-      | G.Pr [ x ] -> G.S x
-      | G.Pr xs -> G.Ss xs
-      | x -> x)
+      map_source_file env cst)

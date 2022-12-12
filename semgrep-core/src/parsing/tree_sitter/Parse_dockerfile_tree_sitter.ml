@@ -992,7 +992,7 @@ let parse_dockerfile_pattern str =
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = (input_kind, Sh) } in
       let dockerfile_ast = source_file env cst in
-      Dockerfile_to_generic.(any input_kind dockerfile_ast))
+      Dockerfile_to_generic.any input_kind dockerfile_ast)
 
 let parse_pattern str =
   let dockerfile_res = parse_dockerfile_pattern str in

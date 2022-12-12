@@ -69,6 +69,43 @@ def test_send_nominal(
 
 
 @pytest.mark.quick
+def test_send_with_scan_id(
+    error_handler, mocker: MockerFixture, mock_get_token, mocked_state
+) -> None:
+    """
+    Check that data is posted to fail-open url and zero exit code is returned
+    """
+    mocked_requests = mocker.patch("requests.post")
+
+    error_handler.configure(suppress_errors=True)
+    error_handler.push_request(
+        "get", "https://semgrep.dev/api/agent/deployments/current"
+    )
+    scan_id = 1234
+    error_handler.append_request(scan_id=scan_id)
+    exit_code = error_handler.send(FATAL_EXIT_CODE)
+
+    expected_payload = {
+        "method": "get",
+        "url": "https://semgrep.dev/api/agent/deployments/current",
+        "scan_id": 1234,
+    }
+
+    expected_headers = {
+        "User-Agent": FAKE_USER_AGENT,
+        "Authorization": f"Bearer {FAKE_TOKEN}",
+    }
+
+    assert exit_code == 0
+    mocked_requests.assert_called_once_with(
+        FAIL_OPEN_URL,
+        headers=expected_headers,
+        json=expected_payload,
+        timeout=3,
+    )
+
+
+@pytest.mark.quick
 def test_send_nominal_with_trace(
     error_handler, mocker: MockerFixture, mock_get_token, mocked_state
 ) -> None:

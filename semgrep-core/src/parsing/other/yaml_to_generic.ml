@@ -570,7 +570,7 @@ let any str =
       parser;
       anchors = Hashtbl.create 1;
       last_event = None;
-      is_target = true;
+      is_target = false;
     }
   in
   let xs = parse env in
@@ -578,4 +578,4 @@ let any str =
 
 let program file =
   let str = mask_unicode (Common.read_file file) in
-  parse_yaml_file ~is_target:false file str
+  parse_yaml_file ~is_target:true file str

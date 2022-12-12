@@ -684,16 +684,4 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match map_config_file env cst with
-      | Pr [ { s = ExprStmt (e, _); _ } ] -> G.E e
-      | Pr [ x ] -> G.S x
-      (* TODO? depending on the shape of xs, we should sometimes return
-       * a Flds instead of Ss?
-       * With a = "foo" ... b = "bar", we should return a Flds, but
-       * with variable "foo" { } ... variable "bar" { } we should
-       * probably return an Ss?
-       * Or maybe we should require the user to use curly braces
-       * to disambiguate with '{ a = "foo" ... b = "bar" }'?
-       *)
-      | Pr xs -> G.Ss xs
-      | x -> x)
+      map_config_file env cst)

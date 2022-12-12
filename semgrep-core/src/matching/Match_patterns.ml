@@ -126,6 +126,11 @@ let match_flds_flds rule a b env =
       set_last_matched_rule rule (fun () -> GG.m_fields a b env))
   [@@profiling]
 
+let match_name_name rule a b env =
+  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+      set_last_matched_rule rule (fun () -> GG.m_name a b env))
+  [@@profiling]
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -240,6 +245,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
     let fld_rules = ref [] in
     let flds_rules = ref [] in
     let partial_rules = ref [] in
+    let name_rules = ref [] in
     rules
     |> List.iter (fun rule ->
            (* less: normalize the pattern? *)
@@ -268,6 +274,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            | Fld pattern -> Common.push (pattern, rule, cache) fld_rules
            | Flds pattern -> Common.push (pattern, rule, cache) flds_rules
            | Partial pattern -> Common.push (pattern, rule, cache) partial_rules
+           | Name pattern -> Common.push (pattern, rule, cache) name_rules
            | Args _
            | Params _
            | Xmls _
@@ -494,6 +501,12 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
             match_rules_and_recurse lang config (file, hook, matches)
               !partial_rules match_partial_partial k
               (fun x -> Partial x)
+              x);
+        V.kname =
+          (fun (k, _) x ->
+            match_rules_and_recurse lang config (file, hook, matches)
+              !name_rules match_name_name k
+              (fun x -> Name x)
               x);
       }
     in

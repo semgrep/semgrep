@@ -1117,26 +1117,19 @@ and other_stmt_with_stmt_operator =
   (* Python/Javascript *)
   (* TODO: used in C# with 'Using', make new stmt TryWithResource? do Java?*)
   | OSWS_With (* newscope: newvar: in OtherStmtWithStmt with LetPattern *)
+  (* BEGIN/END in Ruby, Unsafe/Async/Const/Foreign/Impl in Rust,
+   * Checked/Unchecked/Lock in C#, Synchronized/Static in Java,
+   * Assembly in Solidity
+   * alt: use a keyword_attribute instead of todo_kind
+   *)
+  | OSWS_Block of todo_kind
   (* Ruby *)
-  | OSWS_BEGIN
-  | OSWS_END (* also in Awk, Perl? *)
   | OSWS_Else_in_try
-  (* Rust *)
-  | OSWS_UnsafeBlock
-  | OSWS_AsyncBlock
-  | OSWS_ConstBlock
-  | OSWS_ForeignBlock
-  | OSWS_ImplBlock
-  (* Java's synchronize / C#'s lock *)
-  | OSWS_Sync
-  (* C# *)
-  | OSWS_CheckedBlock
-  | OSWS_UncheckedBlock
   (* C/C++/cpp *)
   | OSWS_Iterator
   (* Closures in Swift *)
   | OSWS_Closure
-  (* e.g., Assembly in Solidity *)
+  (* e.g., Case/Default outside of switch in C/C++, StmtTodo in C++ *)
   | OSWS_Todo
 
 and other_stmt_operator =
@@ -1245,8 +1238,8 @@ and type_kind =
   | TyArray of (* const_expr *) expr option bracket * type_
   | TyTuple of type_ list bracket
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
-  (* anonymous type, '_' in OCaml, 'dynamic' in Kotlin, 'auto' in C++.
-   * TODO: type bounds Scala? *)
+  (* dynamic/unknown type: '_' in OCaml, 'dynamic' in Kotlin, 'auto' in C++,
+   * 'var' in Java. TODO: type bounds Scala? *)
   | TyAny of tok
   | TyPointer of tok * type_
   | TyRef of tok * type_ (* C++/Rust *)
@@ -1845,6 +1838,7 @@ and any =
   | Params of parameter list
   | Xmls of xml_body list
   | Partial of partial
+  | Name of name
   (* misc *)
   | I of ident
   | Str of string wrap

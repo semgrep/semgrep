@@ -36,7 +36,6 @@ module H = Parse_tree_sitter_helpers
 
 type env = unit H.env
 
-let _todo (_env : env) _ = failwith "not implemented, yikes."
 let fb = PI.unsafe_fake_bracket
 
 let list_to_maybe_tuple = function
