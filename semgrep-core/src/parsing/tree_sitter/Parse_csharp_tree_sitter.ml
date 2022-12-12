@@ -3144,7 +3144,6 @@ let parse file =
     (fun () -> Tree_sitter_c_sharp.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-
       match compilation_unit env cst with
       | G.Pr xs -> xs
       | _ -> failwith "not a program")
@@ -3168,7 +3167,4 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match compilation_unit env cst with
-      | G.Pr [ x ] -> G.S x
-      | G.Pr xs -> G.Ss xs
-      | x -> x)
+      compilation_unit env cst)

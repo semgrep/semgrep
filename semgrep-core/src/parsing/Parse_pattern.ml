@@ -104,6 +104,18 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
   (* TODO: generalizing to other languages generate many regressions *)
   | G.E { e = G.N name; _ } when lang = Lang.Rust ->
       normalize_any lang (G.Name name)
+  (* TODO: taken from ml_to_generic.ml:
+   * | G.E {e = G.StmtExpr s; _} -> G.S s?
+   *)
+  (* TODO? depending on the shape of Ss xs, we should sometimes return
+   * a Flds instead of Ss? For example in terraform,
+   * With a = "foo" ... b = "bar", we should return a Flds, but
+   * with variable "foo" { } ... variable "bar" { } we should
+   * probably return an Ss?
+   * Or maybe we should require the user to use curly braces
+   * to disambiguate with '{ a = "foo" ... b = "bar" }'?
+   * Or maybe we should get rid of F and have field = stmt in AST_generic.
+   *)
   | _else_ -> any
 
 (*****************************************************************************)

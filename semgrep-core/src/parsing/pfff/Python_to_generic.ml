@@ -928,12 +928,9 @@ let any x =
   | Expr v1 ->
       let v1 = expr env v1 in
       G.E v1
-  | Stmt v1 -> (
+  | Stmt v1 ->
       let v1 = stmt env v1 in
-      (* in Python Assign is a stmt but in the generic AST it's an expression*)
-      match v1.G.s with
-      | G.ExprStmt (x, _t) -> G.E x
-      | _ -> G.S v1)
+      G.S v1
   | Stmts v1 ->
       let v1 = list_stmt env v1 in
       G.Ss v1

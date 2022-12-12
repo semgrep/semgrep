@@ -530,6 +530,9 @@ let pattern (x : blist) =
   let env = Pattern in
   match blist_as_expression x with
   | Some e -> G.E (expression env e)
+  (* TODO: simply | None -> G.Ss (program env x) but got regressions
+   * problem with Parse_pattern.normalize_any probably
+   *)
   | None -> (
       match program env x with
       | [ { G.s = G.ExprStmt (e, _semicolon); _ } ] -> G.E e
