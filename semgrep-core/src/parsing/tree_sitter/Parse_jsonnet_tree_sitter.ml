@@ -156,35 +156,32 @@ let map_string_ (env : env) (x : CST.string_) : string_ =
 
 let rec map_args (env : env) (x : CST.args) : argument list =
   match x with
-  | `Expr_opt_COMMA_expr_opt_COMMA_named_arg_opt_COMMA (v1, v2, v3, v4) ->
+  | `Expr_rep_COMMA_expr_rep_COMMA_named_arg_opt_COMMA (v1, v2, v3, v4) ->
       let v1 = map_document env v1 in
       let v2 =
-        match v2 with
-        | Some (v1, v2) ->
-            let _v1 = (* "," *) token env v1 in
-            let v2 = map_document env v2 in
-            [ Arg v2 ]
-        | None -> []
+        v2
+        |> Common.map (fun (v1, v2) ->
+               let _v1 = (* "," *) token env v1 in
+               let v2 = map_document env v2 in
+               Arg v2)
       in
       let v3 =
-        match v3 with
-        | Some (v1, v2) ->
-            let _v1 = (* "," *) token env v1 in
-            let v2 = map_named_argument env v2 in
-            [ v2 ]
-        | None -> []
+        v3
+        |> Common.map (fun (v1, v2) ->
+               let _v1 = (* "," *) token env v1 in
+               let v2 = map_named_argument env v2 in
+               v2)
       in
       let _v4 = trailing_comma env v4 in
       Arg v1 :: (v2 @ v3)
-  | `Named_arg_opt_COMMA_named_arg_opt_COMMA (v1, v2, v3) ->
+  | `Named_arg_rep_COMMA_named_arg_opt_COMMA (v1, v2, v3) ->
       let v1 = map_named_argument env v1 in
       let v2 =
-        match v2 with
-        | Some (v1, v2) ->
-            let _v1 = (* "," *) token env v1 in
-            let v2 = map_named_argument env v2 in
-            [ v2 ]
-        | None -> []
+        v2
+        |> Common.map (fun (v1, v2) ->
+               let _v1 = (* "," *) token env v1 in
+               let v2 = map_named_argument env v2 in
+               v2)
       in
       let _v3 = trailing_comma env v3 in
       v1 :: v2
