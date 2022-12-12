@@ -125,40 +125,44 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
   | Id (s, tk) -> lookup env tk (LId s)
   | IdSpecial (Self, tk) -> lookup env tk LSelf
   | IdSpecial (Super, tk) -> lookup env tk LSuper
-  (* Should not have to evaluate these on their own. *)
-  | IdSpecial (StdLength, _)
-  | IdSpecial (StdMakeArray, _) ->
-      assert false
-  | Call (IdSpecial (StdLength, _), (_l, args, _r)) ->
-      Primitive (Double (float_of_int (List.length args), fk))
-  | Call (IdSpecial (StdMakeArray, tk), (_l, args, _r)) -> (
-      let mk_lazy_val i fdef =
-        let e =
-          Call
-            (Lambda fdef, (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk))
-        in
-        { V.v = lazy (eval_expr env e); e }
-      in
-      match args with
-      | [ Arg e; Arg e' ] -> (
-          match (eval_expr env e, e') with
-          | Primitive (Double (n, tk)), Lambda fdef ->
-              if Float.is_integer n then
-                Array
-                  ( fk,
-                    Array.init (Float.to_int n) (fun i -> mk_lazy_val i fdef),
-                    fk )
-              else error tk (spf "Got non-integer %f in std.makeArray" n)
-          | v, e' ->
+  | Call
+      ( ArrayAccess
+          (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, s, _))), _)),
+        (_l, args, _r) ) -> (
+      match s with
+      | [ ("length", _) ] ->
+          Primitive (Double (float_of_int (List.length args), fk))
+      | [ ("makeArray", tk) ] -> (
+          let mk_lazy_val i fdef =
+            let e =
+              Call
+                ( Lambda fdef,
+                  (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
+            in
+            { V.v = lazy (eval_expr env e); e }
+          in
+          match args with
+          | [ Arg e; Arg e' ] -> (
+              match (eval_expr env e, e') with
+              | Primitive (Double (n, tk)), Lambda fdef ->
+                  if Float.is_integer n then
+                    Array
+                      ( fk,
+                        Array.init (Float.to_int n) (fun i ->
+                            mk_lazy_val i fdef),
+                        fk )
+                  else error tk (spf "Got non-integer %f in std.makeArray" n)
+              | v, e' ->
+                  error tk
+                    (spf "Improper arguments to std.makeArray: %s, %s" (sv v)
+                       ([%show: expr] e')))
+          | _ ->
               error tk
-                (spf "Improper arguments to std.makeArray: %s, %s" (sv v)
-                   ([%show: expr] e')))
-      | _ ->
-          error tk
-            (spf
-               "Improper number of arguments to std.makeArray: expected 2, got \
-                %d"
-               (List.length args)))
+                (spf
+                   "Improper number of arguments to std.makeArray: expected 2, \
+                    got %d"
+                   (List.length args)))
+      | _ -> failwith "impossible: invalid program in dynamics")
   | Local (_tlocal, binds, _tsemi, e) ->
       let locals =
         binds

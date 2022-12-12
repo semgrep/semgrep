@@ -83,7 +83,7 @@ let freshvar =
   let store = ref 0 in
   fun () ->
     incr store;
-    ("reallylongfreshvariablename" ^ string_of_int !store, fk)
+    ("!tmp" ^ string_of_int !store, fk)
 
 let todo _env _v = failwith "TODO"
 
@@ -223,8 +223,6 @@ and desugar_special _env v =
   match v with
   | Self -> C.Self
   | Super -> C.Super
-  | StdLength -> C.StdLength
-  | StdMakeArray -> C.StdMakeArray
   | Dollar -> assert false
 
 and desugar_argument env v =
@@ -282,7 +280,7 @@ and desugar_arr_inside env (l, v, r) : C.expr =
 
    I hope that applying a single outer-level desugar_expr is equivalent to interleaving it.
 *)
-and desugar_comprehension_helper env expr comps =
+and desugar_comprehension_helper env expr comps : AST_jsonnet.expr =
   match comps with
   | CompIf (tok, cond) :: rest ->
       let empty_else = Some (fk, mk_array []) in
@@ -294,13 +292,13 @@ and desugar_comprehension_helper env expr comps =
       If (tok, cond, inner_exp, empty_else)
   | CompFor (_, x, _, for_expr) :: rest ->
       let std_join (l, r) =
-        Call (DotAccess (Id ("std", fk), fk, ("join", fk)), fb [ Arg l; Arg r ])
+        Call (mk_DotAccess_std ("join", fk), fb [ Arg l; Arg r ])
       in
       let std_mk_array (length, f) =
-        Call (IdSpecial (StdMakeArray, fk), fb [ Arg length; Arg f ])
+        Call (mk_DotAccess_std ("makeArray", fk), fb [ Arg length; Arg f ])
       in
       let std_length array =
-        Call (IdSpecial (StdLength, fk), fb [ Arg array ])
+        Call (mk_DotAccess_std ("length", fk), fb [ Arg array ])
       in
       let arr = freshvar () in
       let f =

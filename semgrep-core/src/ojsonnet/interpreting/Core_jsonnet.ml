@@ -82,7 +82,7 @@ type expr =
 (* ------------------------------------------------------------------------- *)
 
 (* no Dollar anymore *)
-and special = Self | Super | StdLength | StdMakeArray
+and special = Self | Super
 
 (* the NamedArg are supposed to be the last arguments *)
 and argument = Arg of expr | NamedArg of ident * tok (* = *) * expr

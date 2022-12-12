@@ -135,13 +135,7 @@ and string_content = string wrap list
  * "core" language where super is at the expression level, so this is
  * probably simpler to have it here instead of in 3 special constructs.
  *)
-and special =
-  | Self
-  | Super
-  | Dollar
-  (* ??? *)
-  | StdMakeArray
-  | StdLength
+and special = Self | Super | Dollar
 
 (* the NamedArg are supposed to be the last arguments *)
 and argument = Arg of expr | NamedArg of ident * tok (* = *) * expr
