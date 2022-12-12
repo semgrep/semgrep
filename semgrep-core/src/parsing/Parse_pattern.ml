@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+module G = AST_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -88,6 +89,22 @@ let run_either ~print_errors parsers program =
   match f parsers with
   | Ok res -> res
   | Error e -> Exception.reraise e
+
+(* We used to do this normalization in each
+ * Parse_xxx_tree_sitter.parse_pattern or xxx_to_generic.any but it's
+ * better to factorize it here.
+ *)
+let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
+  match any with
+  | G.Pr xs -> normalize_any lang (G.Ss xs)
+  | G.Ss [ x ] -> normalize_any lang (G.S x)
+  | G.S { G.s = G.ExprStmt (e, sc); _ }
+    when Parse_info.is_fake sc || Parse_info.str_of_info sc = "" ->
+      normalize_any lang (G.E e)
+  (* TODO: generalizing to other languages generate many regressions *)
+  | G.E { e = G.N name; _ } when lang = Lang.Rust ->
+      normalize_any lang (G.Name name)
+  | _else_ -> any
 
 (*****************************************************************************)
 (* Entry point *)
@@ -212,6 +229,7 @@ let parse_pattern lang ?(print_errors = false) str =
         (* Lang.Xxx failwith "No Xxx generic parser yet" *)
     | Lang.Dart -> failwith "Dart patterns not supported yet"
   in
+  let any = normalize_any lang any in
 
   Caching.prepare_pattern any;
   Check_pattern.check lang any;

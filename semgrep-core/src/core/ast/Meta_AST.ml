@@ -1383,6 +1383,9 @@ and vof_partial = function
       OCaml.VSum ("PartialSwitchCase", [ v1 ])
 
 and vof_any = function
+  | Name v1 ->
+      let v1 = vof_name v1 in
+      OCaml.VSum ("Name", [ v1 ])
   | Xmls v1 ->
       let v1 = OCaml.vof_list vof_xml_body v1 in
       OCaml.VSum ("Xmls", [ v1 ])
