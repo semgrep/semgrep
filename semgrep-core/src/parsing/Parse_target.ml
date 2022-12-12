@@ -369,7 +369,7 @@ let rec just_parse_with_lang lang file =
   | Lang.R -> run file [ TreeSitter Parse_r_tree_sitter.parse ] (fun x -> x)
   | Lang.Yaml ->
       {
-        ast = Yaml_to_generic.program ~is_target:true file;
+        ast = Yaml_to_generic.program file;
         skipped_tokens = [];
         stat = Parse_info.default_stat file;
       }

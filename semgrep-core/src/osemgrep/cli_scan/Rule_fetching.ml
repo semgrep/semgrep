@@ -65,7 +65,7 @@ let parse_yaml_for_jsonnet (file : Common.filename) : AST_jsonnet.program =
   (* TODO? or use Yaml_to_generic.parse_yaml_file which seems
    * to be used to parse semgrep rules?
    *)
-  let gen = Yaml_to_generic.program ~is_target:false file in
+  let gen = Yaml_to_generic.program file in
   (* python: we were simply using a yaml parser and then
    * dumping it back as JSON and then parsing the JSON (which is
    * valid jsonnet). What we do here is a bit more complicated but

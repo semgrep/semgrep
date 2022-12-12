@@ -559,7 +559,7 @@ let parse_yaml_file ~is_target file str =
 
 (* The entry points for yaml-language parsing *)
 
-let any ~is_target str =
+let any str =
   let file = "<pattern_file>" in
   let str = preprocess_yaml (mask_unicode str) in
   let parser = get_res file (S.parser str) in
@@ -570,12 +570,12 @@ let any ~is_target str =
       parser;
       anchors = Hashtbl.create 1;
       last_event = None;
-      is_target;
+      is_target = true;
     }
   in
   let xs = parse env in
   make_pattern_expr xs
 
-let program ~is_target file =
+let program file =
   let str = mask_unicode (Common.read_file file) in
-  parse_yaml_file ~is_target file str
+  parse_yaml_file ~is_target:false file str
