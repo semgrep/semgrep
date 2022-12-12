@@ -503,8 +503,11 @@ let rec m_name a b =
              };
            _;
          } as nameinfo) ) ->
+      try_parents dotted
+      >||> try_alternate_names resolved
       (* try without resolving anything *)
-      m_name a (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
+      >||> m_name a
+             (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
       >||>
       (* try this time by replacing the qualifier by the resolved one *)
       let new_qualifier =
