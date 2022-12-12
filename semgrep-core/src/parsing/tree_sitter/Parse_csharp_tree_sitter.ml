@@ -73,18 +73,23 @@ let var_def_stmt (decls : (entity * variable_definition) list)
   in
   stmt1 stmts
 
-type direction = Ascending | Descending
+(* TODO? integrate in AST_generic at some point? or extend
+ * AST_generic.comprehension to support also the Group/Into/Join/OrderBy?
+ *)
+type linq_query_part =
+  (* comprehension/SQL like *)
+  | From of tok * (type_ option * ident) * expr
+  | Select of tok * expr
+  | Where of tok * expr
+  (* PL like *)
+  | Let of tok * ident * expr
+  | Into of tok * ident * linq_query_part list
+  (* SQL like *)
+  | Group of tok * expr * expr
+  | Join of tok * (type_ option * ident) * expr * expr * expr * ident option
+  | OrderBy of tok * (expr * direction) list
 
-(* TODO? integrate in AST_generic at some point? *)
-and linq_query_part =
-  | From of (tok * (type_ option * ident) * expr)
-  | Group of (tok * expr * expr)
-  | Select of (tok * expr)
-  | Into of (tok * ident * linq_query_part list)
-  | Join of (tok * (type_ option * ident) * expr * expr * expr * ident option)
-  | Let of (tok * ident * expr)
-  | OrderBy of (tok * (expr * direction) list)
-  | Where of (tok * expr)
+and direction = Ascending | Descending
 
 let param_from_lambda_params lambda_params =
   match lambda_params with
@@ -139,7 +144,10 @@ let create_join_result_lambda lambda_params ident =
 let call_lambda base_expr funcname tok funcs =
   (* let funcs = exprs |> List.map (fun expr -> create_lambda lambda_params expr) in *)
   let args = funcs |> Common.map (fun func -> Arg func) in
-  let idinfo = empty_id_info () in
+  (* We use hidden:true because the funcname is a fake identifier
+   * that actually does not occur in the target code.
+   *)
+  let idinfo = empty_id_info ~hidden:true () in
   let method_ =
     DotAccess (base_expr, tok, FN (Id ((funcname, tok), idinfo))) |> G.e
   in
@@ -1648,9 +1656,12 @@ and statement (env : env) (x : CST.statement) =
   | `Chec_stmt (v1, v2) ->
       let v1 =
         match v1 with
-        | `Chec _tok -> OSWS_CheckedBlock (* "checked" *)
-        | `Unch _tok -> OSWS_UncheckedBlock
-        (* "unchecked" *)
+        | `Chec tok (* "checked" *) ->
+            let tchecked = token env tok in
+            OSWS_Block ("Checked", tchecked)
+        | `Unch tok (* "unchecked" *) ->
+            let tunchecked = token env tok in
+            OSWS_Block ("Unchecked", tunchecked)
       in
       let v2 = block env v2 in
       OtherStmtWithStmt (v1, [], v2) |> G.s
@@ -1817,12 +1828,12 @@ and statement (env : env) (x : CST.statement) =
       in
       G.DefStmt (ent, def) |> G.s
   | `Lock_stmt (v1, v2, v3, v4, v5) ->
-      let _v1 = token env v1 (* "lock" *) in
-      let _v2 = token env v2 (* "(" *) in
-      let v3 = expression env v3 in
-      let _v4 = token env v4 (* ")" *) in
-      let v5 = statement env v5 in
-      OtherStmtWithStmt (OSWS_Sync, [ E v3 ], v5) |> G.s
+      let tlock = token env v1 (* "lock" *) in
+      let _l = token env v2 (* "(" *) in
+      let e = expression env v3 in
+      let _r = token env v4 (* ")" *) in
+      let st = statement env v5 in
+      OtherStmtWithStmt (OSWS_Block ("Lock", tlock), [ E e ], st) |> G.s
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "return" *) in
       let v2 = Option.map (expression env) v2 in
@@ -1852,9 +1863,9 @@ and statement (env : env) (x : CST.statement) =
       let v4 = Option.map (finally_clause env) v4 in
       Try (v1, v2, v3, v4) |> G.s
   | `Unsafe_stmt (v1, v2) ->
-      let _v1 = token env v1 (* "unsafe" *) in
+      let tunsafe = token env v1 (* "unsafe" *) in
       let v2 = block env v2 in
-      OtherStmtWithStmt (OSWS_UnsafeBlock, [], v2) |> G.s
+      OtherStmtWithStmt (OSWS_Block ("Unsafe", tunsafe), [], v2) |> G.s
   | `Using_stmt (v1, v2, v3, v4, v5, v6) ->
       let _v1TODO = Option.map (token env) v1 (* "await" *) in
       let v2 = token env v2 (* "using" *) in
@@ -3133,7 +3144,6 @@ let parse file =
     (fun () -> Tree_sitter_c_sharp.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-
       match compilation_unit env cst with
       | G.Pr xs -> xs
       | _ -> failwith "not a program")
@@ -3157,7 +3167,4 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match compilation_unit env cst with
-      | G.Pr [ x ] -> G.S x
-      | G.Pr xs -> G.Ss xs
-      | x -> x)
+      compilation_unit env cst)

@@ -1465,4 +1465,4 @@ let parse_pattern str =
       let env = { H.file; conv = Hashtbl.create 0; extra = input_kind } in
       let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
       let bash_ast = program env ~tok cst in
-      Bash_to_generic.(any input_kind bash_ast))
+      Bash_to_generic.any input_kind bash_ast)

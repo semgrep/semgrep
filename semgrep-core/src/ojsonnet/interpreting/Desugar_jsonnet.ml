@@ -12,16 +12,70 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 open AST_jsonnet
 module C = Core_jsonnet
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* AST_jsonnet to Core_jsonnet.
+ *
+ * See https://jsonnet.org/ref/spec.html#desugaring
+ *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* Hook to customize how ojsonnet should resolve import expressions
+ * (`local $NAME = import $PATH`). The first parameter below is the base
+ * directory of the file currently processed and the second is the $PATH
+ * above in the local expression.
+ * The hook should return an AST_jsonnet expression if it can handle
+ * the PATH or None, in which case it will default to a regular
+ * jsonnet file import as in `local x = import "foo.jsonnet".
+ *
+ * This callback is useful for example in osemgrep to let ojsonnet
+ * import yaml files (e.g., local x = import 'foo.yaml') or rules from the
+ * registry (e.g., local x = import 'p/python').
+ *)
+type import_callback = Common.dirname -> string -> AST_jsonnet.expr option
+
+let default_callback _ _ = None
+
+type env = {
+  (* like in Python jsonnet binding, "the base is the directly of the file" *)
+  base : Common.dirname;
+  import_callback : import_callback;
+  (* TODO: cache_file
+   * The cache_file is used to ensure referencial transparency (see the spec
+   * when talking about import in the core jsonnet spec).
+   *)
+  within_an_object : bool;
+}
+
+exception Error of string * Parse_info.t
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let error tk s =
+  (* TODO? if Parse_info.is_fake tk ... *)
+  raise (Error (s, tk))
+
+let fk = Parse_info.unsafe_fake_info ""
+let mk_str_literal (str, tk) = Str (None, DoubleQuote, (fk, [ (str, tk) ], fk))
+
+let mk_DotAccess_std id : expr =
+  let std_id = ("std", fk) in
+  DotAccess (Id std_id, fk, id)
+
+and expr_or_null v : expr =
+  match v with
+  | None -> L (Null fk)
+  | Some e -> e
 
 let todo _env _v = failwith "TODO"
 
@@ -31,9 +85,7 @@ let todo _env _v = failwith "TODO"
 
 (* todo? auto generate the right name in otarzan? *)
 let desugar_string _env x = x
-let desugar_bool _env x = x
 let desugar_list f env x = x |> Common.map (fun x -> f env x)
-let desugar_option f env x = x |> Option.map (fun x -> f env x)
 
 (*****************************************************************************)
 (* Boilerplate *)
@@ -46,186 +98,170 @@ let desugar_tok _env v = v
 let desugar_wrap ofa env (v1, v2) =
   let v1 = ofa env v1 in
   let v2 = desugar_tok env v2 in
-  todo env (v1, v2)
+  (v1, v2)
 
 let desugar_bracket ofa env (v1, v2, v3) =
   let v1 = desugar_tok env v1 in
   let v2 = ofa env v2 in
   let v3 = desugar_tok env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
-let desugar_ident env v = (desugar_wrap desugar_string) env v
+let desugar_ident env v : C.ident = (desugar_wrap desugar_string) env v
 
-let rec desugar_expr env v = desugar_expr_kind env v
+let rec desugar_expr env v : C.expr =
+  try desugar_expr_aux env v with
+  | Failure "TODO" ->
+      pr2 (spf "TODO: construct not handled:\n %s" (show_expr v));
+      failwith "TODO:desugar"
 
-and desugar_expr_kind env v =
+and desugar_expr_aux env v =
   match v with
-  | L v ->
-      let v = desugar_literal env v in
-      todo env v
+  | L v -> C.L v
   | O v ->
-      let v = (desugar_bracket desugar_obj_inside) env v in
-      todo env v
+      let v = desugar_obj_inside env v in
+      v
   | A v ->
-      let v = (desugar_bracket desugar_arr_inside) env v in
-      todo env v
+      let v = desugar_arr_inside env v in
+      v
   | Id v ->
       let v = (desugar_wrap desugar_string) env v in
-      todo env v
+      C.Id v
+  | IdSpecial (Dollar, tdollar) -> C.Id ("$", tdollar)
   | IdSpecial v ->
       let v = (desugar_wrap desugar_special) env v in
-      todo env v
+      C.IdSpecial v
   | Local (v1, v2, v3, v4) ->
-      let v1 = desugar_tok env v1 in
-      let v2 = (desugar_list desugar_bind) env v2 in
-      let v3 = desugar_tok env v3 in
-      let v4 = desugar_expr env v4 in
-      todo env (v1, v2, v3, v4)
+      let tlocal = desugar_tok env v1 in
+      let binds = (desugar_list desugar_bind) env v2 in
+      let tsemi = desugar_tok env v3 in
+      let e = desugar_expr env v4 in
+      C.Local (tlocal, binds, tsemi, e)
+  (* no need to handle specially super.id, handled by desugar_special *)
   | DotAccess (v1, v2, v3) ->
-      let v1 = desugar_expr env v1 in
-      let v2 = desugar_tok env v2 in
-      let v3 = desugar_ident env v3 in
-      todo env (v1, v2, v3)
+      let e = desugar_expr env v1 in
+      let tdot = desugar_tok env v2 in
+      let id = desugar_ident env v3 in
+      C.ArrayAccess (e, (tdot, C.L (mk_str_literal id), tdot))
   | ArrayAccess (v1, v2) ->
       let v1 = desugar_expr env v1 in
       let v2 = (desugar_bracket desugar_expr) env v2 in
-      todo env (v1, v2)
+      C.ArrayAccess (v1, v2)
+  | SliceAccess (e, (l, (e1opt, e2opt, e3opt), r)) ->
+      let e' = expr_or_null e1opt in
+      let e'' = expr_or_null e2opt in
+      let e''' = expr_or_null e3opt in
+      let std_slice = mk_DotAccess_std ("slice", l) in
+      desugar_expr env
+        (Call (std_slice, (l, [ Arg e; Arg e'; Arg e''; Arg e''' ], r)))
   | Call (v1, v2) ->
       let v1 = desugar_expr env v1 in
       let v2 = (desugar_bracket (desugar_list desugar_argument)) env v2 in
-      todo env (v1, v2)
+      C.Call (v1, v2)
   | UnaryOp (v1, v2) ->
       let v1 = (desugar_wrap desugar_unary_op) env v1 in
       let v2 = desugar_expr env v2 in
-      todo env (v1, v2)
+      C.UnaryOp (v1, v2)
+  | BinaryOp (v1, (NotEq, t), v3) ->
+      desugar_expr env (UnaryOp ((UBang, t), BinaryOp (v1, (Eq, t), v3)))
+  | BinaryOp (v1, (Eq, t), v3) ->
+      let std_equals = mk_DotAccess_std ("equals", t) in
+      desugar_expr env (Call (std_equals, (fk, [ Arg v1; Arg v3 ], fk)))
+  | BinaryOp (v1, (Mod, t), v3) ->
+      let std_equals = mk_DotAccess_std ("mod", t) in
+      desugar_expr env (Call (std_equals, (fk, [ Arg v1; Arg v3 ], fk)))
+  (* no need to handle specially e in super, handled by desugar_special *)
+  | BinaryOp (e, (In, t), e') ->
+      let std_objectHasEx = mk_DotAccess_std ("objectHasEx", t) in
+      let true_ = L (Bool (true, fk)) in
+      desugar_expr
+        { env with within_an_object = true }
+        (Call (std_objectHasEx, (fk, [ Arg e'; Arg e; Arg true_ ], fk)))
+  (* general case *)
   | BinaryOp (v1, v2, v3) ->
       let v1 = desugar_expr env v1 in
       let v2 = (desugar_wrap desugar_binary_op) env v2 in
       let v3 = desugar_expr env v3 in
-      todo env (v1, v2, v3)
-  | If (v1, v2, v3, v4) ->
-      let v1 = desugar_tok env v1 in
-      let v2 = desugar_expr env v2 in
-      let v3 = desugar_expr env v3 in
-      (* let v4 = (desugar_option TodoTyTuple) env v4 in *)
-      let v4 = todo env v4 in
-      todo env (v1, v2, v3, v4)
+      C.BinaryOp (v1, v2, v3)
+  | AdjustObj (v1, v2) -> desugar_expr env (BinaryOp (v1, (Plus, fk), O v2))
+  | If (tif, e, e', else_opt) ->
+      let tif = desugar_tok env tif in
+      let e = desugar_expr env e in
+      let e' = desugar_expr env e' in
+      let e'' =
+        match else_opt with
+        | Some (_telse, e'') -> desugar_expr env e''
+        | None -> C.L (Null fk)
+      in
+      C.If (tif, e, e', e'')
   | Lambda v ->
       let v = desugar_function_definition env v in
-      todo env v
-  | I v ->
-      let v = desugar_import env v in
-      todo env v
-  | Assert (v1, v2, v3) ->
-      let v1 = desugar_assert_ env v1 in
-      let v2 = desugar_tok env v2 in
-      let v3 = desugar_expr env v3 in
-      todo env (v1, v2, v3)
+      C.Lambda v
+  | I v -> desugar_import env v
+  | Assert ((tassert, e, None), tsemi, e') ->
+      let assert_failed_str = mk_str_literal ("Assertion failed", tassert) in
+      desugar_expr env
+        (Assert ((tassert, e, Some (fk, L assert_failed_str)), tsemi, e'))
+  | Assert ((tassert, e, Some (tcolon, e')), _tsemi, e'') ->
+      desugar_expr env (If (tassert, e, e'', Some (tcolon, Error (fk, e'))))
   | Error (v1, v2) ->
       let v1 = desugar_tok env v1 in
       let v2 = desugar_expr env v2 in
-      todo env (v1, v2)
+      C.Error (v1, v2)
   | ParenExpr v ->
-      let v = (desugar_bracket desugar_expr) env v in
-      todo env v
-  | TodoExpr (v1, v2) ->
-      let v1 = (desugar_wrap desugar_string) env v1 in
-      let v2 = (desugar_list desugar_expr) env v2 in
-      todo env (v1, v2)
+      let _, e, _ = (desugar_bracket desugar_expr) env v in
+      e
 
-and desugar_literal env v =
+and desugar_special _env v =
   match v with
-  | Null v ->
-      let v = desugar_tok env v in
-      todo env v
-  | Bool v ->
-      let v = (desugar_wrap desugar_bool) env v in
-      todo env v
-  | Number v ->
-      let v = (desugar_wrap desugar_string) env v in
-      todo env v
-  | Str v ->
-      let v = desugar_string_ env v in
-      todo env v
-
-and desugar_string_ env v =
-  (fun env (v1, v2, v3) ->
-    let v1 = (desugar_option desugar_verbatim) env v1 in
-    let v2 = desugar_string_kind env v2 in
-    let v3 = (desugar_bracket desugar_string_content) env v3 in
-    todo env (v1, v2, v3))
-    env v
-
-and desugar_verbatim env v = desugar_tok env v
-
-and desugar_string_kind env v =
-  match v with
-  | SingleQuote -> todo env
-  | DoubleQuote -> todo env
-  | TripleBar -> todo env
-
-and desugar_string_content env v =
-  (desugar_list (desugar_wrap desugar_string)) env v
-
-and desugar_special env v =
-  match v with
-  | Self -> todo env
-  | Super -> todo env
-  | Dollar -> todo env
+  | Self -> C.Self
+  | Super -> C.Super
+  | Dollar -> assert false
 
 and desugar_argument env v =
   match v with
   | Arg v ->
       let v = desugar_expr env v in
-      todo env v
+      C.Arg v
   | NamedArg (v1, v2, v3) ->
       let v1 = desugar_ident env v1 in
       let v2 = desugar_tok env v2 in
       let v3 = desugar_expr env v3 in
-      todo env (v1, v2, v3)
+      C.NamedArg (v1, v2, v3)
 
-and desugar_unary_op env v =
+and desugar_unary_op _env v = v
+
+(* the assert false are here because the cases should be handled by the
+ * caller in BinaryOp
+ *)
+and desugar_binary_op _env v =
   match v with
-  | UPlus -> todo env
-  | UMinus -> todo env
-  | UBang -> todo env
-  | UTilde -> todo env
+  | Plus -> C.Plus
+  | Minus -> C.Minus
+  | Mult -> C.Mult
+  | Div -> C.Div
+  | Mod -> assert false
+  | LSL -> C.LSL
+  | LSR -> C.LSR
+  | Lt -> C.Lt
+  | LtE -> C.LtE
+  | Gt -> C.Gt
+  | GtE -> C.GtE
+  | Eq -> assert false
+  | NotEq -> assert false
+  | And -> C.And
+  | Or -> C.Or
+  | BitAnd -> C.BitAnd
+  | BitOr -> C.BitOr
+  | BitXor -> C.BitXor
+  | In -> assert false
 
-and desugar_binary_op env v =
-  match v with
-  | Plus -> todo env
-  | Minus -> todo env
-  | Mult -> todo env
-  | Div -> todo env
-  | Mod -> todo env
-  | LSL -> todo env
-  | LSR -> todo env
-  | Lt -> todo env
-  | LtE -> todo env
-  | Gt -> todo env
-  | GtE -> todo env
-  | Eq -> todo env
-  | NotEq -> todo env
-  | And -> todo env
-  | Or -> todo env
-  | BitAnd -> todo env
-  | BitOr -> todo env
-  | BitXor -> todo env
-
-and desugar_assert_ env v =
-  (fun env (v1, v2, v3) ->
-    let v1 = todo env v1 in
-    (* let v2 = (desugar_option TodoTyTuple) env v2 in *)
-    let v2 = todo env v2 in
-    let v3 = todo env v3 in
-    todo env (v1, v2, v3))
-    env v
-
-and desugar_arr_inside env v =
+and desugar_arr_inside env (l, v, r) : C.expr =
+  let l = desugar_tok env l in
+  let r = desugar_tok env r in
   match v with
   | Array v ->
-      let v = (desugar_list desugar_expr) env v in
-      todo env v
+      let xs = (desugar_list desugar_expr) env v in
+      C.Array (l, xs, r)
   | ArrayComp v ->
       let v = (desugar_comprehension desugar_expr) env v in
       todo env v
@@ -263,108 +299,166 @@ and desugar_if_comp env v =
     todo env (v1, v2))
     env v
 
+(* The desugaring of method was already done at parsing time,
+ * so no need to handle id with parameters here. See AST_jsonnet.bind comment.
+ *)
 and desugar_bind env v =
   match v with
   | B (v1, v2, v3) ->
-      let v1 = desugar_ident env v1 in
-      let v2 = desugar_tok env v2 in
-      let v3 = desugar_expr env v3 in
-      todo env (v1, v2, v3)
+      let id = desugar_ident env v1 in
+      let teq = desugar_tok env v2 in
+      let e = desugar_expr env v3 in
+      C.B (id, teq, e)
 
-and desugar_function_definition env _v =
-  ignore desugar_parameter;
-  todo env "RECORD"
+and desugar_function_definition env { f_tok; f_params; f_body } =
+  let f_tok = desugar_tok env f_tok in
+  let f_params =
+    desugar_bracket (desugar_list desugar_parameter) env f_params
+  in
+  let f_body = desugar_expr env f_body in
+  { C.f_tok; f_params; f_body }
 
 and desugar_parameter env v =
   match v with
-  | P (v1, v2) ->
-      let v1 = desugar_ident env v1 in
-      (* let v2 = (desugar_option TodoTyTuple) env v2 in *)
-      let v2 = todo env v2 in
-      todo env (v1, v2)
+  | P (v1, v2) -> (
+      let id = desugar_ident env v1 in
+      match v2 with
+      | Some (v1, v2) ->
+          let teq = desugar_tok env v1 in
+          let e = desugar_expr env v2 in
+          C.P (id, teq, e)
+      | None ->
+          C.P
+            ( id,
+              fk,
+              C.Error (fk, C.L (mk_str_literal ("Parameter not bound", fk))) ))
 
-and desugar_obj_inside env v =
+and desugar_obj_inside env (l, v, r) : C.expr =
+  let l = desugar_tok env l in
+  let r = desugar_tok env r in
   match v with
   | Object v ->
-      let v = (desugar_list desugar_obj_member) env v in
-      todo env v
+      let binds, asserts, fields =
+        v
+        |> Common.partition_either3 (function
+             | OLocal (_tlocal, x) -> Left3 x
+             | OAssert x -> Middle3 x
+             | OField x -> Right3 x)
+      in
+      let binds =
+        if env.within_an_object then binds
+        else binds @ [ B (("$", fk), fk, IdSpecial (Self, fk)) ]
+      in
+      let asserts' =
+        asserts
+        |> Common.map (fun assert_ -> desugar_assert_ env (assert_, binds))
+      in
+      let fields' =
+        fields |> Common.map (fun field -> desugar_field env (field, binds))
+      in
+      let obj = C.Object (asserts', fields') in
+      if env.within_an_object then
+        C.Local
+          ( fk,
+            [
+              C.B (("$outerself", fk), fk, C.IdSpecial (C.Self, fk));
+              C.B (("$outersuper", fk), fk, C.IdSpecial (C.Super, fk));
+            ],
+            fk,
+            O (l, obj, r) )
+      else O (l, obj, r)
   | ObjectComp v ->
       let v = desugar_obj_comprehension env v in
       todo env v
 
-and desugar_obj_member env v =
-  match v with
-  | OLocal v ->
-      let v = desugar_obj_local env v in
-      todo env v
-  | OField v ->
-      let v = desugar_field env v in
-      todo env v
-  | OAssert v ->
-      let v = desugar_assert_ env v in
-      todo env v
+and desugar_assert_ (env : env) (v : assert_ * bind list) : C.obj_assert =
+  let (tassert, e, opt), binds = v in
+  match opt with
+  | None ->
+      let assert_failed_str = mk_str_literal ("Assertion failed", tassert) in
+      desugar_assert_ env ((tassert, e, Some (fk, L assert_failed_str)), binds)
+  | Some (_tcolon, e') ->
+      let if_expr =
+        If (tassert, e, L (Null fk), Some (tassert, Error (fk, e')))
+      in
+      let final_expr = Local (fk, binds, fk, if_expr) in
+      (tassert, desugar_expr { env with within_an_object = true } final_expr)
 
-and desugar_field env _v =
-  ignore (desugar_field_name, desugar_attribute, desugar_hidden);
-  todo env "RECORD"
+and desugar_field (env : env) (v : field * bind list) : C.field =
+  let { fld_name; fld_attr; fld_hidden; fld_value = e' }, binds = v in
+  let fld_name = desugar_field_name env fld_name in
+  let fld_hidden = (desugar_wrap desugar_hidden) env fld_hidden in
+  let fld_value =
+    desugar_expr
+      { env with within_an_object = true }
+      (Local (fk, binds, fk, e'))
+  in
+  match fld_attr with
+  | None -> { C.fld_name; fld_hidden; fld_value }
+  | Some (PlusField _) -> todo env "PlusField"
 
 and desugar_field_name env v =
   match v with
   | FId v ->
-      let v = desugar_ident env v in
-      todo env v
-  | FStr v ->
-      let v = desugar_string_ env v in
-      todo env v
+      let id = desugar_ident env v in
+      let str = mk_str_literal id in
+      C.FExpr (fk, C.L str, fk)
+  | FStr v -> C.FExpr (fk, C.L (Str v), fk)
   | FDynamic v ->
-      let v = (desugar_bracket desugar_expr) env v in
-      todo env v
+      let l, v, r = (desugar_bracket desugar_expr) env v in
+      C.FExpr (l, v, r)
 
-and desugar_hidden env v =
-  match v with
-  | Colon -> todo env
-  | TwoColons -> todo env
-  | ThreeColons -> todo env
-
-and desugar_attribute env v =
-  match v with
-  | PlusField v ->
-      let v = desugar_tok env v in
-      todo env v
-
-and desugar_obj_local env v =
-  (fun env (v1, v2) ->
-    let v1 = desugar_tok env v1 in
-    let v2 = desugar_bind env v2 in
-    todo env (v1, v2))
-    env v
-
+and desugar_hidden _env v = v
 and desugar_obj_comprehension env _v = todo env "RECORD"
 
-and desugar_import env v =
+and desugar_import env v : C.expr =
   match v with
-  | Import (v1, v2) ->
-      let v1 = desugar_tok env v1 in
-      let v2 = desugar_string_ env v2 in
-      todo env (v1, v2)
-  | ImportStr (v1, v2) ->
-      let v1 = desugar_tok env v1 in
-      let v2 = desugar_string_ env v2 in
-      todo env (v1, v2)
-
-let desugar_program env v = desugar_expr env v
-
-let desugar_any env v =
-  match v with
-  | E v ->
-      let v = desugar_expr env v in
-      todo env v
+  | Import (tk, str_) ->
+      (* TODO: keep history of import, use tk *)
+      let str, _tk = string_of_string_ str_ in
+      let expr, env =
+        match env.import_callback env.base str with
+        | None ->
+            let final_path = Filename.concat env.base str in
+            if not (Sys.file_exists final_path) then
+              error tk (spf "file does not exist: %s" final_path);
+            let ast = Parse_jsonnet.parse_program final_path in
+            let env = { env with base = Filename.dirname final_path } in
+            (ast, env)
+        | Some ast ->
+            (* TODO? let the import callback adjust base? *)
+            (ast, env)
+      in
+      (* recurse *)
+      desugar_expr env expr
+  (* TODO? could also have import_callback on ImportStr!
+   * so could fetch network data from our policies
+   *)
+  | ImportStr (tk, str_) ->
+      let str, _tk = string_of_string_ str_ in
+      let final_path = Filename.concat env.base str in
+      if not (Sys.file_exists final_path) then
+        error tk (spf "file does not exist: %s" final_path);
+      let s = Common.read_file final_path in
+      C.L (mk_str_literal (s, tk))
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-(* TODO: see https://jsonnet.org/ref/spec.html#desugaring *)
-let desugar (_e : expr) : C.expr =
-  ignore (desugar_program, desugar_any);
-  failwith "TODO"
+let desugar_program ?(import_callback = default_callback)
+    (file : Common.filename) (e : program) : C.program =
+  let env =
+    { within_an_object = false; base = Filename.dirname file; import_callback }
+  in
+  (* TODO: skipped for now because std.jsonnet contains too many complicated
+   * things we don't handle, and it actually does not even parse right now.
+   *)
+  (*
+  let std = Std_jsonnet.get_std_jsonnet () in
+  let e =
+    (* 'local std = e_std; e' *)
+    Local (fk, [B (("std", fk), fk, std)], fk, e) in
+  *)
+  let core = desugar_expr env e in
+  core

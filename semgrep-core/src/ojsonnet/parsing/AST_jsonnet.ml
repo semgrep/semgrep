@@ -60,23 +60,16 @@ type ident = string wrap [@@deriving show]
 (*****************************************************************************)
 (* Expressions *)
 (*****************************************************************************)
-
-(* Should we use a record for expressions like we do in AST_generic?
- * If we implement a Jsonnet interpreter, such a record could become useful
- * for example to store the types of each expressions?
- * Actually the Jsonnet spec defines an intermediate "Core" representation
+(* Very simple language, just expressions! No statement, no class defs (but
+ * some object defs).
+ * No need for a record for expressions like we do in AST_generic
+ * (e.g., to store the types of each expressions);
+ * the Jsonnet spec defines an intermediate "Core" representation
  * where things are simplified and unsugared
- * (see https://jsonnet.org/ref/spec.html#core), so we probably do not
- * need to use a record here, but we could in an hypothetical Core_jsonnet.ml
- * file at some point.
- * old: when using a record:
- *   type expr = { e : expr_kind }
+ * (see https://jsonnet.org/ref/spec.html#core), so we can define
+ * such a record there (see Core_jsonnet.expr).
  *)
-type expr = expr_kind
-
-(* very simple language, just expressions! no statement, no class defs (but
- * some object defs) *)
-and expr_kind =
+type expr =
   (* values *)
   | L of literal
   | O of obj_inside bracket
@@ -93,14 +86,15 @@ and expr_kind =
   (* accesses *)
   | DotAccess of expr * tok (* '.' *) * ident
   | ArrayAccess of expr * expr bracket
-  (* TODO: | SliceAccess of expr *  *)
+  (* the ':' tokens are omitted *)
+  | SliceAccess of expr * (expr option * expr option * expr option) bracket
   (* control flow *)
   | Call of expr * argument list bracket
   | UnaryOp of unary_op wrap * expr
   | BinaryOp of expr * binary_op wrap * expr
   | If of tok (* 'if' *) * expr * expr * (tok (* 'else' *) * expr) option
-  (* TODO: expr { objinside } ?? *)
-  (* TODO: expr in super ?? *)
+  (* e { obj } <=> e + { obj } *)
+  | AdjustObj of expr * obj_inside bracket
   | Lambda of function_definition
   (* directives *)
   | I of import
@@ -109,7 +103,6 @@ and expr_kind =
   | Error of tok (* 'error' *) * expr
   (* for the CST *)
   | ParenExpr of expr bracket
-  | TodoExpr of string wrap * expr list
 
 (* ------------------------------------------------------------------------- *)
 (* literals *)
@@ -143,6 +136,8 @@ and string_content = string wrap list
  * probably simpler to have it here instead of in 3 special constructs.
  *)
 and special = Self | Super | Dollar (* ??? *)
+
+(* the NamedArg are supposed to be the last arguments *)
 and argument = Arg of expr | NamedArg of ident * tok (* = *) * expr
 
 (* alt: we could reuse AST_generic_.ml, but because we might want to
@@ -164,7 +159,7 @@ and binary_op =
   | GtE
   | Eq
   | NotEq
-  (* TODO? in *)
+  | In
   | And
   | Or
   | BitAnd
@@ -221,7 +216,12 @@ and field = {
 and field_name = FId of ident | FStr of string_ | FDynamic of expr bracket
 
 (* =~ visibility *)
-and hidden = Colon | TwoColons | ThreeColons
+and hidden =
+  | Visible
+  (* : *)
+  | Hidden
+  (* :: *)
+  | ForcedVisible (* ::: *)
 
 and attribute =
   (* concatenate fields, not valid for methods *)
@@ -267,4 +267,13 @@ type any = E of expr
 (* Helpers *)
 (*****************************************************************************)
 
-let e ekind = (* old: when we use a record  { e = ekind } *) ekind
+let mk_string_ (str, tk) =
+  let fk = Parse_info.unsafe_fake_info "" in
+  (None, DoubleQuote, (fk, [ (str, tk) ], fk))
+
+let string_of_string_ (x : string_) : string wrap =
+  let _verbatimTODO, _kindTODO, (l, xs, r) = x in
+  let str = xs |> Common.map fst |> String.concat "" in
+  let infos = xs |> Common.map snd in
+  let tk = Parse_info.combine_infos l (infos @ [ r ]) in
+  (str, tk)

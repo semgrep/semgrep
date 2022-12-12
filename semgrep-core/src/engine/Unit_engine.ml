@@ -23,9 +23,11 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Constants *)
 (*****************************************************************************)
 
+(* TODO: move these to the "main" for the test suite. *)
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
 let tests_path_patterns = "../../../tests/patterns"
+let polyglot_pattern_path = Filename.concat tests_path_patterns "POLYGLOT"
 
 (*****************************************************************************)
 (* Helpers *)
@@ -82,6 +84,7 @@ let ga_features =
       "metavar_typed";
       "metavar_ellipsis_args";
       (* TODO: metavar_ellipsis_params *)
+      (* TODO: metavar_string? *)
       "regexp_string";
     ]
 
@@ -219,14 +222,21 @@ let maturity_tests () =
 (* Language-specific tests *)
 (*****************************************************************************)
 
-let related_file_of_target ~ext ~file =
-  let d, b, _e = Common2.dbe_of_filename file in
-  let candidate1 = Common2.filename_of_dbe (d, b, ext) in
-  if Sys.file_exists candidate1 then Some candidate1
+let related_file_of_target ~polyglot_pattern_path ~ext ~file =
+  let dirname, basename, _e = Common2.dbe_of_filename file in
+  let candidate1 = Common2.filename_of_dbe (dirname, basename, ext) in
+  if Sys.file_exists candidate1 then Ok candidate1
   else
-    let d = Filename.concat tests_path_patterns "POLYGLOT" in
-    let candidate2 = Common2.filename_of_dbe (d, b, ext) in
-    if Sys.file_exists candidate2 then Some candidate2 else None
+    let candidate2 =
+      Common2.filename_of_dbe (polyglot_pattern_path, basename, ext)
+    in
+    if Sys.file_exists candidate2 then Ok candidate2
+    else
+      let msg =
+        spf "could not find %s file for test '%s' in either %s or %s" ext
+          basename dirname polyglot_pattern_path
+      in
+      Error msg
 
 (* Allows the  semgrep-core test runner that we use to test matches to also test
  * autofix. The format is pretty simple: add a `.fix` file with the fix pattern
@@ -242,12 +252,14 @@ let related_file_of_target ~ext ~file =
  * Semgrep's `--test` flag can also test autofix
  * (https://github.com/returntocorp/semgrep/pull/5190), but it has the same
  * problems as the existing autofix e2e tests for these purposes. *)
-let compare_fixes ~file matches =
+let compare_fixes ~polyglot_pattern_path ~file matches =
   let expected_fixed_text =
     let expected_fixed_file =
-      match related_file_of_target ~ext:"fixed" ~file with
-      | Some file -> file
-      | None -> failwith (spf "could not find fixed file for %s" file)
+      match
+        related_file_of_target ~polyglot_pattern_path ~ext:"fixed" ~file
+      with
+      | Ok file -> file
+      | Error msg -> failwith msg
     in
     Common.read_file expected_fixed_file
   in
@@ -290,20 +302,26 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
 
    If foo/bar.sgrep is not found, POLYGLOT/bar.sgrep is used instead.
 *)
-let regression_tests_for_lang ~with_caching files lang =
+let regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang =
   files
   |> Common.map (fun file ->
          ( Filename.basename file,
            fun () ->
              let sgrep_file =
-               match related_file_of_target ~ext:"sgrep" ~file with
-               | Some file -> file
-               | None -> failwith (spf "could not find sgrep file for %s" file)
+               match
+                 related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
+                   ~file
+               with
+               | Ok file -> file
+               | Error msg -> failwith msg
              in
              let pattern = Common.read_file sgrep_file in
              let fix_pattern =
-               let* fix_file = related_file_of_target ~ext:"fix" ~file in
-               Some (Common.read_file fix_file)
+               match
+                 related_file_of_target ~polyglot_pattern_path ~ext:"fix" ~file
+               with
+               | Ok fix_file -> Some (Common.read_file fix_file)
+               | Error _ -> None
              in
 
              E.g_errors := [];
@@ -333,69 +351,91 @@ let regression_tests_for_lang ~with_caching files lang =
                      ~file ~pattern ~fix_pattern
                  in
                  (match fix_pattern with
-                 | Some _ -> compare_fixes ~file matches
+                 | Some _ -> compare_fixes ~polyglot_pattern_path ~file matches
                  | None -> ());
                  let actual = !E.g_errors in
                  let expected = E.expected_error_lines_of_files [ file ] in
                  E.compare_actual_to_expected_for_alcotest actual expected) ))
 
-let lang_regression_tests ~with_caching =
-  (* TODO: infer dir and ext from lang using Lang helper functions *)
-  let pack_regression_tests_for_lang lang dir ext =
-    pack_tests
-      (spf "semgrep %s" (Lang.show lang))
-      (let dir = Filename.concat tests_path_patterns dir in
-       let files = Common2.glob (spf "%s/*%s" dir ext) in
-       regression_tests_for_lang ~with_caching files lang)
-  in
-  let regression_tests_for_lang files lang =
-    regression_tests_for_lang ~with_caching files lang
-  in
+let pack_regression_tests_for_lang ~test_pattern_path ~polyglot_pattern_path
+    ~with_caching lang dir ext =
+  pack_tests
+    (spf "semgrep %s" (Lang.show lang))
+    (let dir = Filename.concat test_pattern_path dir in
+     let files = Common2.glob (spf "%s/*%s" dir ext) in
+     regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang)
+
+let pack_regression_tests ~with_caching lang_tests =
   let name_suffix = if with_caching then " with caching" else " no caching" in
-  pack_suites
-    ("lang testing" ^ name_suffix)
-    [
-      pack_regression_tests_for_lang Lang.Bash "bash" ".bash";
-      pack_regression_tests_for_lang Lang.Dockerfile "dockerfile" ".dockerfile";
-      pack_regression_tests_for_lang Lang.Python "python" ".py";
-      pack_regression_tests_for_lang Lang.Js "js" ".js";
-      pack_regression_tests_for_lang Lang.Ts "ts" ".ts";
-      pack_tests "semgrep Typescript on Javascript (no JSX)"
-        (let dir = Filename.concat tests_path_patterns "js" in
-         let files = Common2.glob (spf "%s/*.js" dir) in
-         let files =
-           Common.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
-         in
-         let lang = Lang.Ts in
-         regression_tests_for_lang files lang);
-      pack_regression_tests_for_lang Lang.Json "json" ".json";
-      pack_regression_tests_for_lang Lang.Java "java" ".java";
-      pack_regression_tests_for_lang Lang.C "c" ".c";
-      pack_regression_tests_for_lang Lang.Cpp "cpp" ".cpp";
-      pack_tests "semgrep C++ on C tests"
-        (let dir = Filename.concat tests_path_patterns "c" in
-         let files = Common2.glob (spf "%s/*.c" dir) in
-         let lang = Lang.Cpp in
-         regression_tests_for_lang files lang);
-      pack_regression_tests_for_lang Lang.Go "go" ".go";
-      pack_regression_tests_for_lang Lang.Ocaml "ocaml" ".ml";
-      pack_regression_tests_for_lang Lang.Ruby "ruby" ".rb";
-      pack_regression_tests_for_lang Lang.Php "php" ".php";
-      pack_regression_tests_for_lang Lang.Hack "hack" ".hack";
-      pack_regression_tests_for_lang Lang.Csharp "csharp" ".cs";
-      pack_regression_tests_for_lang Lang.Lua "lua" ".lua";
-      pack_regression_tests_for_lang Lang.Rust "rust" ".rs";
-      pack_regression_tests_for_lang Lang.Yaml "yaml" ".yaml";
-      pack_regression_tests_for_lang Lang.Scala "scala" ".scala";
-      pack_regression_tests_for_lang Lang.Swift "swift" ".swift";
-      pack_regression_tests_for_lang Lang.Html "html" ".html";
-      pack_regression_tests_for_lang Lang.Vue "vue" ".vue";
-      pack_regression_tests_for_lang Lang.Hcl "hcl" ".tf";
-      pack_regression_tests_for_lang Lang.Kotlin "kotlin" ".kt";
-      pack_regression_tests_for_lang Lang.Solidity "solidity" ".sol";
-      pack_regression_tests_for_lang Lang.Elixir "elixir" ".ex";
-      pack_regression_tests_for_lang Lang.R "r" ".r";
-    ]
+  pack_suites ("lang testing" ^ name_suffix) lang_tests
+
+let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
+    ~with_caching lang_data =
+  (* TODO: infer dir and ext from lang using Lang helper functions *)
+  let lang_tests =
+    lang_data
+    |> Common.map (fun (lang, dir, ext) ->
+           pack_regression_tests_for_lang ~test_pattern_path
+             ~polyglot_pattern_path ~with_caching lang dir ext)
+  in
+  pack_regression_tests ~with_caching lang_tests
+
+let lang_regression_tests ~polyglot_pattern_path ~with_caching =
+  let test_pattern_path = tests_path_patterns in
+  let regular_tests =
+    make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
+      ~with_caching
+      [
+        (Lang.Bash, "bash", ".bash");
+        (Lang.Dockerfile, "dockerfile", ".dockerfile");
+        (Lang.Python, "python", ".py");
+        (Lang.Js, "js", ".js");
+        (Lang.Ts, "ts", ".ts");
+        (Lang.Json, "json", ".json");
+        (Lang.Java, "java", ".java");
+        (Lang.C, "c", ".c");
+        (Lang.Cpp, "cpp", ".cpp");
+        (Lang.Go, "go", ".go");
+        (Lang.Ocaml, "ocaml", ".ml");
+        (Lang.Ruby, "ruby", ".rb");
+        (Lang.Php, "php", ".php");
+        (Lang.Hack, "hack", ".hack");
+        (Lang.Csharp, "csharp", ".cs");
+        (Lang.Lua, "lua", ".lua");
+        (Lang.Rust, "rust", ".rs");
+        (Lang.Yaml, "yaml", ".yaml");
+        (Lang.Scala, "scala", ".scala");
+        (Lang.Swift, "swift", ".swift");
+        (Lang.Html, "html", ".html");
+        (Lang.Vue, "vue", ".vue");
+        (Lang.Hcl, "hcl", ".tf");
+        (Lang.Kotlin, "kotlin", ".kt");
+        (Lang.Solidity, "solidity", ".sol");
+        (Lang.Elixir, "elixir", ".ex");
+        (Lang.R, "r", ".r");
+      ]
+  in
+  let irregular_tests =
+    pack_regression_tests ~with_caching
+      [
+        pack_tests "semgrep Typescript on Javascript (no JSX)"
+          (let dir = Filename.concat test_pattern_path "js" in
+           let files = Common2.glob (spf "%s/*.js" dir) in
+           let files =
+             Common.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
+           in
+           let lang = Lang.Ts in
+           regression_tests_for_lang ~polyglot_pattern_path ~with_caching files
+             lang);
+        pack_tests "semgrep C++ on C tests"
+          (let dir = Filename.concat test_pattern_path "c" in
+           let files = Common2.glob (spf "%s/*.c" dir) in
+           let lang = Lang.Cpp in
+           regression_tests_for_lang ~polyglot_pattern_path ~with_caching files
+             lang);
+      ]
+  in
+  regular_tests @ irregular_tests
 
 (*****************************************************************************)
 (* Eval_generic tests *)
@@ -665,6 +705,32 @@ let full_rule_semgrep_rules_regression_tests () =
                     || s =~ ".*/fingerprints/fingerprints.yaml"
                     || s
                        =~ ".*/terraform/aws/security/aws-fsx-lustre-files-ystem.yaml"
+                    (* TODO: Tests for tests/semgrep-rules/php/wordpress-plugins/security/audit/ are in
+                     * a subfolder due to `paths:` constraints in the rule, perhaps Semgrep should ignore
+                     * these constraints when in test mode. Note that `semgrep --test` simply ignores
+                     * these files, but our test runner fails if it cannot find an example target file. *)
+                    || s
+                       =~ ".*/php/wordpress-plugins/security/audit/wp-ajax-no-auth-and-auth-hooks-audit.yaml"
+                    || s
+                       =~ ".*/php/wordpress-plugins/security/audit/wp-authorisation-checks-audit.yaml"
+                    || s
+                       =~ ".*/php/wordpress-plugins/security/audit/wp-code-execution-audit.yaml"
+                    || s
+                       =~ ".*/php/wordpress-plugins/security/audit/wp-command-execution-audit.yaml"
+                    || s
+                       =~ ".*/php/wordpress-plugins/security/audit/wp-csrf-audit.yaml"
+                    || s
+                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-download-audit.yaml"
+                    || s
+                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-inclusion-audit.yaml"
+                    || s
+                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-manipulation-audit.yaml"
+                    || s
+                       =~ ".*/php/wordpress-plugins/security/audit/wp-open-redirect-audit.yaml"
+                    || s
+                       =~ ".*/php/wordpress-plugins/security/audit/wp-php-object-injection-audit.yaml"
+                    || s
+                       =~ ".*/php/wordpress-plugins/security/audit/wp-sql-injection-audit.yaml"
                     (* TODO: parse error, weird *)
                     || s =~ ".*/unicode/security/bidi.yml"
                     (* TODO many mismatches *)
@@ -721,8 +787,8 @@ let tests () =
   List.flatten
     [
       (* full testing for many languages *)
-      lang_regression_tests ~with_caching:false;
-      lang_regression_tests ~with_caching:true;
+      lang_regression_tests ~polyglot_pattern_path ~with_caching:false;
+      lang_regression_tests ~polyglot_pattern_path ~with_caching:true;
       eval_regression_tests ();
       filter_irrelevant_rules_tests ();
       extract_tests ();

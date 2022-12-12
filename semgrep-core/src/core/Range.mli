@@ -16,6 +16,9 @@ exception NotValidRange of string
 (* included or equal *)
 val ( $<=$ ) : t -> t -> bool
 
+(* included strictly*)
+val ( $<$ ) : t -> t -> bool
+
 (* disjoint *)
 val ( $<>$ ) : t -> t -> bool
 

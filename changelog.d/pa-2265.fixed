@@ -1,0 +1,1 @@
+DeepSemgrep: Fixed a bug which caused Java functions with interfaces to wipe taint (instead of propagating taint by default)

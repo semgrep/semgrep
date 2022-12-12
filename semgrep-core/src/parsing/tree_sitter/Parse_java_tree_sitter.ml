@@ -441,9 +441,12 @@ and basic_type_extra env = function
   | `Inte_type x -> integral_type env x
   | `Floa_point_type x -> floating_point_type env x
   | `Bool_type tok -> TBasic (str env tok) (* "boolean" *)
-  | `Id tok ->
+  | `Id tok -> (
       let x = str env tok (* pattern [a-zA-Z_]\w* *) in
-      TClass [ (x, None) ]
+      match x with
+      (* since Java 10 *)
+      | "var", tk -> TVar tk
+      | x -> TClass [ (x, None) ])
   | `Scoped_type_id x ->
       let x = scoped_type_identifier env x in
       TClass x
@@ -870,10 +873,10 @@ and statement_aux env x : Ast_java.stmt list =
           let _v3 = token env v3 (* ";" *) in
           [ Return (v1, v2) ]
       | `Sync_stmt (v1, v2, v3) ->
-          let _v1 = token env v1 (* "synchronized" *) in
+          let v1 = token env v1 (* "synchronized" *) in
           let v2 = parenthesized_expression env v2 in
           let v3 = block env v3 in
-          [ Sync (v2, v3) ]
+          [ Sync (v1, v2, v3) ]
       | `Local_var_decl x ->
           let xs = local_variable_declaration env x in
           [ LocalVarList xs ]

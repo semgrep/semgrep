@@ -17,7 +17,7 @@ Unreachable Supply Chain Findings:
         oh no
 
 
-First-Party Blocking Findings:
+First-Party Findings:
 
   targets/dependency_aware/monorepo/build.js 
      rules.dependency_aware.js-other
@@ -31,6 +31,3 @@ First-Party Blocking Findings:
         this is always bad
 
           1┆ bad()
-
-First-Party Blocking Rules Fired:
-   rules.dependency_aware.js-other

@@ -30,3 +30,8 @@ import '/modules/my-module.js';
 // TODO
 var promise = import("module-name");
 let module = await import('/modules/my-module.js');
+
+//ERROR: yes
+const {x} = require('module-name');
+//ERROR: yes
+const y = require('module-name');

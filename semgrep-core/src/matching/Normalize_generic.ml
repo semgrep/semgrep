@@ -34,13 +34,17 @@ open AST_generic
  *   from foo.bar import baz -> import foo.bar.baz
  *)
 
-let full_module_name is_pattern from_module_name import_opt =
-  match (from_module_name, import_opt) with
-  | DottedName idents, Some import_ident_name ->
-      let new_module_name : dotted_ident = idents @ [ import_ident_name ] in
-      Some (DottedName new_module_name)
-  | DottedName idents, None -> Some (DottedName idents)
-  | FileName s, None -> Some (FileName s)
+let full_module_names is_pattern from_module_name imports_opt =
+  match (from_module_name, imports_opt) with
+  | DottedName idents, Some import_ident_names ->
+      let new_module_names : module_name list =
+        Common.map
+          (fun import_ident_name -> DottedName (idents @ [ import_ident_name ]))
+          import_ident_names
+      in
+      Some new_module_names
+  | DottedName idents, None -> Some [ DottedName idents ]
+  | FileName s, None -> Some [ FileName s ]
   | FileName s, _ when not is_pattern ->
       (* bugfix: for languages such as JS, 'import x from "path"' should not
        * be converted in just "path". We should return None here as it
@@ -48,17 +52,22 @@ let full_module_name is_pattern from_module_name import_opt =
        * import y from "path". Use just 'import "path"' if you just want
        * to check you vaguely imported a package.
        *)
-      Some (FileName s)
+      Some [ FileName s ]
   | FileName _, Some _ -> None
 
 let normalize_import_opt is_pattern i =
   match i with
-  | ImportFrom (t, module_name, m, _alias_opt) ->
-      full_module_name is_pattern module_name (Some m) >>= fun x -> Some (t, x)
+  | ImportFrom (t, module_name, imports) ->
+      let imports =
+        (* Drop the local aliases *)
+        Common.map fst imports
+      in
+      full_module_names is_pattern module_name (Some imports) >>= fun x ->
+      Some (t, x)
   | ImportAs (t, module_name, _alias_opt) ->
-      full_module_name is_pattern module_name None >>= fun x -> Some (t, x)
+      full_module_names is_pattern module_name None >>= fun x -> Some (t, x)
   | ImportAll (t, module_name, _t2) ->
-      full_module_name is_pattern module_name None >>= fun x -> Some (t, x)
+      full_module_names is_pattern module_name None >>= fun x -> Some (t, x)
   | Package _
   | PackageEnd _
   | Pragma _

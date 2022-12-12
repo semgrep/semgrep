@@ -748,6 +748,11 @@ and special =
   | Op of operator
   (* less: should be lift up and transformed in Assign at stmt level *)
   | IncrDecr of (incr_decr * prefix_postfix)
+  (* JS: `require('foo')`. Calls to require are different than imports as
+   * represented by e.g. `ImportFrom`. They are expressions rather than top
+   * level statements, and can therefore appear inline in any expression, so
+   * it's not generally possible to desugar to imports. *)
+  | Require
 
 (* mostly binary operators.
  * less: could be divided in really Arith vs Logical (bool) operators,
@@ -1112,26 +1117,19 @@ and other_stmt_with_stmt_operator =
   (* Python/Javascript *)
   (* TODO: used in C# with 'Using', make new stmt TryWithResource? do Java?*)
   | OSWS_With (* newscope: newvar: in OtherStmtWithStmt with LetPattern *)
+  (* BEGIN/END in Ruby, Unsafe/Async/Const/Foreign/Impl in Rust,
+   * Checked/Unchecked/Lock in C#, Synchronized/Static in Java,
+   * Assembly in Solidity
+   * alt: use a keyword_attribute instead of todo_kind
+   *)
+  | OSWS_Block of todo_kind
   (* Ruby *)
-  | OSWS_BEGIN
-  | OSWS_END (* also in Awk, Perl? *)
   | OSWS_Else_in_try
-  (* Rust *)
-  | OSWS_UnsafeBlock
-  | OSWS_AsyncBlock
-  | OSWS_ConstBlock
-  | OSWS_ForeignBlock
-  | OSWS_ImplBlock
-  (* Java's synchronize / C#'s lock *)
-  | OSWS_Sync
-  (* C# *)
-  | OSWS_CheckedBlock
-  | OSWS_UncheckedBlock
   (* C/C++/cpp *)
   | OSWS_Iterator
   (* Closures in Swift *)
   | OSWS_Closure
-  (* e.g., Assembly in Solidity *)
+  (* e.g., Case/Default outside of switch in C/C++, StmtTodo in C++ *)
   | OSWS_Todo
 
 and other_stmt_operator =
@@ -1240,8 +1238,8 @@ and type_kind =
   | TyArray of (* const_expr *) expr option bracket * type_
   | TyTuple of type_ list bracket
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
-  (* anonymous type, '_' in OCaml, 'dynamic' in Kotlin, 'auto' in C++.
-   * TODO: type bounds Scala? *)
+  (* dynamic/unknown type: '_' in OCaml, 'dynamic' in Kotlin, 'auto' in C++,
+   * 'var' in Java. TODO: type bounds Scala? *)
   | TyAny of tok
   | TyPointer of tok * type_
   | TyRef of tok * type_ (* C++/Rust *)
@@ -1749,8 +1747,12 @@ and directive_kind =
   | ImportFrom of
       tok (* 'import'/'from' for Python *)
       * module_name
-      * ident
-      * alias option (* as name alias *)
+        (* We used to desugar each imported name in an import into its own
+         * separate ImportFrom statement. This caused matching issues such as
+         * those documented in #5305 and #6532. Removing this desugaring lets us
+         * match, for example, a pattern and a target which import the same
+         * things but in a different order. *)
+      * (ident * alias option (* as name alias *)) list
   | ImportAs of tok * module_name * alias option (* as name *)
   (* Bad practice! hard to resolve name locally.
    * We use ImportAll for C/C++ #include and C++ 'using namespace'.
@@ -1836,6 +1838,7 @@ and any =
   | Params of parameter list
   | Xmls of xml_body list
   | Partial of partial
+  | Name of name
   (* misc *)
   | I of ident
   | Str of string wrap

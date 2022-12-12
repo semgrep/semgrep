@@ -5,10 +5,10 @@ rules:
       depends-on-either:
         - namespace: gomod
           package: github.com/cheekybits/genny
-          version: "== 1.0.0"
+          version: "== 99.99.99"
         - namespace: gomod
           package: github.com/cheekybits/genny
-          version: "<= 0.9.0"
+          version: "<= 98.98.98"
     message: oh no
     languages: [go]
     severity: WARNING

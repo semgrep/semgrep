@@ -246,9 +246,10 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch):
     os.environ["TZ"] = "Asia/Tokyo"
     time.tzset()
 
-    # make the rule and file timings deterministic
+    # make the rule, file timings, and memory usage deterministic
     mocker.patch.object(ProfilingData, "set_file_times")
     mocker.patch.object(ProfilingData, "set_rules_parse_time")
+    mocker.patch.object(ProfilingData, "set_max_memory_bytes")
 
     # make the event ID deterministic
     mocker.patch("uuid.uuid4", return_value=uuid.UUID("0" * 32))

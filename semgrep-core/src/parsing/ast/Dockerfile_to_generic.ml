@@ -321,7 +321,4 @@ let instruction env (x : instruction) : G.stmt =
 let program (env : env) (x : program) : G.stmt list =
   Common.map (instruction env) x
 
-let any (env : env) x : G.any =
-  match program env x with
-  | [ stmt ] -> G.S stmt
-  | stmts -> G.Ss stmts
+let any (env : env) x : G.any = G.Ss (program env x)

@@ -31,3 +31,7 @@ val errors_from_skipped_tokens :
 
 (* used by Parse_pattern *)
 val lang_to_python_parsing_mode : Lang.t -> Parse_python.parsing_mode
+
+(* used by Parse_jsonnet *)
+val error_of_tree_sitter_error :
+  Tree_sitter_run.Tree_sitter_error.t -> Exception.t

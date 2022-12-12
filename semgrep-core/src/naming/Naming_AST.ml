@@ -319,27 +319,26 @@ let make_type type_string tok =
  *)
 let get_resolved_type lang (vinit, vtype) =
   match vtype with
-  | Some _ -> vtype
-  | None -> (
-      (* Should never be reached by languages where the type is in the declaration *)
-      (* e.g. Java, C *)
-      let string_str =
-        match lang with
-        | Lang.Go -> "str"
-        | Lang.Js
-        | Lang.Ts ->
-            "string"
-        | _ -> "string"
-      in
+  | None
+  | Some { t = TyAny _; _ } -> (
       (* Currently these vary between languages *)
-      (* Alternative is to define a TyInt, TyBool, etc in the generic AST *)
-      (* so this is more portable across languages *)
+      (* Alternative is to define a TyInt, TyBool, etc. in the generic AST *)
+      (* so this would be more portable across languages *)
       match vinit with
       | Some { e = L (Bool (_, tok)); _ } -> make_type "bool" tok
       | Some { e = L (Int (_, tok)); _ } -> make_type "int" tok
       | Some { e = L (Float (_, tok)); _ } -> make_type "float" tok
       | Some { e = L (Char (_, tok)); _ } -> make_type "char" tok
-      | Some { e = L (String (_, tok)); _ } -> make_type string_str tok
+      | Some { e = L (String (_, tok)); _ } ->
+          let string_str =
+            match lang with
+            | Lang.Go -> "str"
+            | Lang.Js
+            | Lang.Ts ->
+                "string"
+            | _ -> "string"
+          in
+          make_type string_str tok
       | Some { e = L (Regexp ((_, (_, tok), _), _)); _ } ->
           make_type "regexp" tok
       | Some { e = RegexpTemplate ((l, _fragments, _r), _); _ } ->
@@ -352,10 +351,12 @@ let get_resolved_type lang (vinit, vtype) =
       | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
       | Some { e = New (_, tp, (_, _, _)); _ } -> Some tp
       | _ -> None)
+  | Some _ -> vtype
 
 (*****************************************************************************)
 (* Other Helpers *)
 (*****************************************************************************)
+
 let is_resolvable_name_ctx env lang =
   match top_context env with
   | AtToplevel
@@ -401,6 +402,37 @@ let params_of_parameters env xs =
            set_resolved env id_info resolved;
            Some (H.str_of_ident id, resolved)
        | _ -> None)
+
+(* In Angular JS, we have some "Injectable" classes, which are marked with an
+   @Injectable decorator.
+   https://angular.io/guide/dependency-injection-in-action
+   These classes may reference parameters to the constructor of the class, outside
+   of the actual code of the constructor itself.
+   So we must add them to the scope, should we find the decorator and a constructor's
+   parameters.
+   This also works for `@Component`.
+*)
+let js_get_angular_constructor_args env attrs defs =
+  let is_injectable =
+    List.exists
+      (function
+        | NamedAttr (_, Id ((("Injectable" | "Component"), _), _), _) -> true
+        | _ -> false)
+      attrs
+  in
+  defs
+  |> List.filter_map (function
+       | {
+           s =
+             DefStmt
+               ( { name = EN (Id (("constructor", _), _)); _ },
+                 FuncDef { fparams; _ } );
+           _;
+         }
+         when is_injectable ->
+           Some (params_of_parameters env fparams)
+       | _ -> None)
+  |> List.concat
 
 let declare_var env lang id id_info ~explicit vinit vtype =
   let sid = H.gensym () in
@@ -455,18 +487,110 @@ let resolve lang prog =
                    * a parameter name is the same than type name used in ptype
                    * (see tests/naming/python/shadow_name_type.py) *)
                   k x)));
-      V.kclass_definition =
-        (fun (k, _v) x ->
-          (* todo: we should first process all fields in the class before
-           * processing the methods, as some languages may allow forward ref.
-           *)
-          let class_params = params_of_parameters env x.cparams in
-          with_new_context InClass env (fun () ->
-              (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
-              with_new_function_scope class_params env.names (fun () -> k x)));
       V.kdef =
         (fun (k, _v) x ->
           match x with
+          | { attrs; _ }, ClassDef c ->
+              (* todo: we should first process all fields in the class before
+                 * processing the methods, as some languages may allow forward ref.
+              *)
+              let class_params = params_of_parameters env c.cparams in
+              with_new_context InClass env (fun () ->
+                  let special_class_params =
+                    if Lang.is_js lang then
+                      let _, fields, _ = c.cbody in
+                      js_get_angular_constructor_args env attrs
+                        (Common.map (fun (F x) -> x) fields)
+                    else []
+                  in
+                  (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
+                  with_new_function_scope (special_class_params @ class_params)
+                    env.names (fun () -> k x))
+          (* `const x = require('y');` (or var, or let)
+           *
+           * JS: This is a CommonJS import, popularized before ES6 standardized
+           * imports/exports. *)
+          | ( { name = EN (Id (id, id_info)); _ },
+              VarDef
+                {
+                  vinit =
+                    Some
+                      {
+                        e =
+                          Call
+                            ( { e = IdSpecial (Require, _); _ },
+                              (_, [ Arg { e = L (String file); _ } ], _) );
+                        _;
+                      };
+                  vtype = _;
+                } )
+            when lang = Lang.Js || lang = Lang.Ts ->
+              let sid = H.gensym () in
+              let resolved =
+                untyped_ent (ImportedModule (DottedName [ file ]), sid)
+              in
+              set_resolved env id_info resolved;
+              add_ident_current_scope id resolved env.names
+          (* `const {x, y} = require('z');` (or var, or let)
+           *
+           * JS: This is a CommonJS import, popularized before ES6 standardized
+           * imports/exports. *)
+          | ( { name = EN (Id ((id_str, _), _)); _ },
+              VarDef
+                {
+                  vinit =
+                    Some
+                      {
+                        e =
+                          Assign
+                            ( { e = Record (_, fields, _); _ },
+                              _,
+                              {
+                                e =
+                                  Call
+                                    ( { e = IdSpecial (Require, _); _ },
+                                      (_, [ Arg { e = L (String file); _ } ], _)
+                                    );
+                                _;
+                              } );
+                        _;
+                      };
+                  vtype = _;
+                } )
+            when id_str = special_multivardef_pattern
+                 && (lang = Lang.Js || lang = Lang.Ts) ->
+              List.iter
+                (function
+                  | F
+                      {
+                        s =
+                          DefStmt
+                            ( {
+                                name = EN (Id (imported_id, _imported_id_info));
+                                attrs = [];
+                                tparams = [];
+                              },
+                              FieldDefColon
+                                {
+                                  vinit =
+                                    Some
+                                      {
+                                        e = N (Id (local_id, local_id_info));
+                                        _;
+                                      };
+                                  _;
+                                } );
+                        _;
+                      } ->
+                      let sid = H.gensym () in
+                      let resolved =
+                        untyped_ent (ImportedEntity [ file; imported_id ], sid)
+                      in
+                      set_resolved env local_id_info resolved;
+                      add_ident_current_scope local_id resolved env.names
+                      (* TODO handle nested destructuring? *)
+                  | _ -> ())
+                fields
           | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
           (* note that some languages such as Python do not have VarDef
            * construct
@@ -556,37 +680,54 @@ let resolve lang prog =
       V.kdir =
         (fun (k, _v) x ->
           (match x.d with
-          | ImportFrom (_, DottedName xs, id, Some (alias, id_info)) ->
-              (* for python *)
-              let sid = H.gensym () in
-              let resolved = untyped_ent (ImportedEntity (xs @ [ id ]), sid) in
-              set_resolved env id_info resolved;
-              add_ident_imported_scope alias resolved env.names
-          | ImportFrom (_, DottedName xs, id, None) ->
-              (* for python *)
-              let sid = H.gensym () in
-              let resolved = untyped_ent (ImportedEntity (xs @ [ id ]), sid) in
-              add_ident_imported_scope id resolved env.names
-          | ImportFrom (_, FileName (s, tok), id, None)
-            when Lang.is_js lang && fst id <> Ast_js.default_entity ->
-              (* for JS we consider import { x } from 'a/b/foo' as foo.x.
-               * Note that we guard this code with is_js lang, because Python
-               * uses also Filename in 'from ...conf import x'.
-               *)
-              let sid = H.gensym () in
-              let _, b, _ = Common2.dbe_of_filename_noext_ok s in
-              let base = (b, tok) in
-              let resolved = untyped_ent (ImportedEntity [ base; id ], sid) in
-              add_ident_imported_scope id resolved env.names
-          | ImportFrom (_, FileName (s, tok), id, Some (alias, id_info))
-            when Lang.is_js lang && fst id <> Ast_js.default_entity ->
-              (* for JS *)
-              let sid = H.gensym () in
-              let _, b, _ = Common2.dbe_of_filename_noext_ok s in
-              let base = (b, tok) in
-              let resolved = untyped_ent (ImportedEntity [ base; id ], sid) in
-              set_resolved env id_info resolved;
-              add_ident_imported_scope alias resolved env.names
+          | ImportFrom (_, DottedName xs, imported_names) ->
+              List.iter
+                (function
+                  | id, Some (alias, id_info) ->
+                      (* for python *)
+                      let sid = H.gensym () in
+                      let resolved =
+                        untyped_ent (ImportedEntity (xs @ [ id ]), sid)
+                      in
+                      set_resolved env id_info resolved;
+                      add_ident_imported_scope alias resolved env.names
+                  | id, None ->
+                      (* for python *)
+                      let sid = H.gensym () in
+                      let resolved =
+                        untyped_ent (ImportedEntity (xs @ [ id ]), sid)
+                      in
+                      add_ident_imported_scope id resolved env.names)
+                imported_names
+          | ImportFrom (_, FileName (s, tok), imported_names) ->
+              List.iter
+                (function
+                  | id, None
+                    when Lang.is_js lang && fst id <> Ast_js.default_entity ->
+                      (* for JS we consider import { x } from 'a/b/foo' as foo.x.
+                       * Note that we guard this code with is_js lang, because Python
+                       * uses also Filename in 'from ...conf import x'.
+                       *)
+                      let sid = H.gensym () in
+                      let _, b, _ = Common2.dbe_of_filename_noext_ok s in
+                      let base = (b, tok) in
+                      let resolved =
+                        untyped_ent (ImportedEntity [ base; id ], sid)
+                      in
+                      add_ident_imported_scope id resolved env.names
+                  | id, Some (alias, id_info)
+                    when Lang.is_js lang && fst id <> Ast_js.default_entity ->
+                      (* for JS *)
+                      let sid = H.gensym () in
+                      let _, b, _ = Common2.dbe_of_filename_noext_ok s in
+                      let base = (b, tok) in
+                      let resolved =
+                        untyped_ent (ImportedEntity [ base; id ], sid)
+                      in
+                      set_resolved env id_info resolved;
+                      add_ident_imported_scope alias resolved env.names
+                  | _ -> ())
+                imported_names
           | ImportAs (_, DottedName xs, Some (alias, id_info)) ->
               (* for python *)
               let sid = H.gensym () in

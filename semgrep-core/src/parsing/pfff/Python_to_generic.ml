@@ -813,10 +813,7 @@ and stmt_aux env x =
       [ G.DirectiveStmt (G.ImportAll (t, mname, v2) |> G.d) |> G.s ]
   | ImportFrom (t, v1, v2) ->
       let v1 = module_name env v1 and v2 = list (alias env) v2 in
-      Common.map
-        (fun (a, b) ->
-          G.DirectiveStmt (G.ImportFrom (t, v1, a, b) |> G.d) |> G.s)
-        v2
+      [ G.DirectiveStmt (G.ImportFrom (t, v1, v2) |> G.d) |> G.s ]
   | Global (t, v1)
   | NonLocal (t, v1) ->
       let v1 = list (name env) v1 in
@@ -931,12 +928,9 @@ let any x =
   | Expr v1 ->
       let v1 = expr env v1 in
       G.E v1
-  | Stmt v1 -> (
+  | Stmt v1 ->
       let v1 = stmt env v1 in
-      (* in Python Assign is a stmt but in the generic AST it's an expression*)
-      match v1.G.s with
-      | G.ExprStmt (x, _t) -> G.E x
-      | _ -> G.S v1)
+      G.S v1
   | Stmts v1 ->
       let v1 = list_stmt env v1 in
       G.Ss v1

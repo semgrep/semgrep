@@ -35,6 +35,8 @@ from semgrep.util import with_color
 
 MAX_TEXT_WIDTH = 120
 
+BASE_INDENT = 8
+
 terminal_size = get_terminal_size((MAX_TEXT_WIDTH, 1))[0]
 if terminal_size <= 0:
     terminal_size = MAX_TEXT_WIDTH
@@ -86,6 +88,7 @@ class TextFormatter(BaseFormatter):
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
         show_separator: bool,
+        show_path: bool,
     ) -> Iterator[str]:
         trimmed = 0
         stripped = False
@@ -140,6 +143,12 @@ class TextFormatter(BaseFormatter):
                     # while stripping a string, the ANSI code for resetting color might also get stripped.
                     line = line + colorama.Style.RESET_ALL
 
+            # plus one because we want this to be slightly separated from the intervening messages
+            if show_path:
+                yield f" " * (
+                    BASE_INDENT + 1
+                ) + f"{with_color(Colors.cyan, f'{path}', bold=False)}"
+
             yield f" " * (
                 11 - len(line_number)
             ) + f"{line_number}┆ {line}" if line_number else f"{line}"
@@ -181,43 +190,68 @@ class TextFormatter(BaseFormatter):
                 per_finding_max_lines_limit,
                 per_line_max_chars_limit,
                 show_separator,
+                False,
             )
 
     @staticmethod
-    def _dataflow_trace_to_lines(
-        dataflow_trace: Optional[out.CliMatchDataflowTrace],
+    def _match_to_lines(
+        location: out.Location,
+        content: str,
         color_output: bool,
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
     ) -> Iterator[str]:
-        if dataflow_trace:
-            source = dataflow_trace.taint_source
-            intermediate_vars = dataflow_trace.intermediate_vars
-            if source:
-                yield (8 * " " + "Taint comes from:")
-                path = Path(source.location.path)
-                lines = get_lines(
-                    path, source.location.start.line, source.location.end.line
-                )
-                # TODO with DeepSemgrep is it possible for the source (and
-                # intermediate vars) to be in a different file? If so, make sure
-                # we print the filename when needed.
-                yield from TextFormatter._format_lines(
-                    path,
-                    source.location.start.line,
-                    source.location.start.col,
-                    source.location.end.line,
-                    source.location.end.col,
-                    lines,
-                    color_output,
-                    per_finding_max_lines_limit,
-                    per_line_max_chars_limit,
-                    False,
-                )
+        path = Path(location.path)
+        lines = get_lines(path, location.start.line, location.end.line)
+        yield from TextFormatter._format_lines(
+            path,
+            location.start.line,
+            location.start.col,
+            location.end.line,
+            location.end.col,
+            lines,
+            color_output,
+            per_finding_max_lines_limit,
+            per_line_max_chars_limit,
+            False,
+            True,
+        )
+
+    @staticmethod
+    def _call_trace_to_lines(
+        call_trace: out.CliMatchCallTrace,
+        color_output: bool,
+        per_finding_max_lines_limit: Optional[int],
+        per_line_max_chars_limit: Optional[int],
+    ) -> Iterator[str]:
+        trace = call_trace.value
+        if isinstance(trace, out.CliLoc):
+            yield from TextFormatter._match_to_lines(
+                trace.value[0],
+                trace.value[1],
+                color_output,
+                per_finding_max_lines_limit,
+                per_line_max_chars_limit,
+            )
+
+        elif isinstance(trace, out.CliCall):
+            data, intermediate_vars, call_trace = trace.value
+
+            yield from TextFormatter._match_to_lines(
+                data[0],
+                data[1],
+                color_output,
+                per_finding_max_lines_limit,
+                per_line_max_chars_limit,
+            )
+
             if intermediate_vars and len(intermediate_vars) > 0:
-                # TODO change this message based on rule kind of we ever use
+                # TODO change this message based on rule kind if we ever use
                 # dataflow traces for more than just taint
-                yield (8 * " " + "Taint flows through these intermediate variables:")
+                yield (
+                    BASE_INDENT * " "
+                    + "Taint flows through these intermediate variables:"
+                )
                 for var in intermediate_vars:
                     loc = var.location
                     lines = get_lines(Path(loc.path), loc.start.line, loc.end.line)
@@ -232,7 +266,76 @@ class TextFormatter(BaseFormatter):
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
                         False,
+                        True,
                     )
+
+            if isinstance(call_trace.value, out.CliCall):
+                yield (BASE_INDENT * " " + "then call to:")
+            elif isinstance(call_trace.value, out.CliLoc):
+                yield (BASE_INDENT * " " + "then reaches:")
+            yield from TextFormatter._call_trace_to_lines(
+                call_trace,
+                color_output,
+                per_finding_max_lines_limit,
+                per_line_max_chars_limit,
+            )
+
+    @staticmethod
+    def _dataflow_trace_to_lines(
+        dataflow_trace: Optional[out.CliMatchDataflowTrace],
+        color_output: bool,
+        per_finding_max_lines_limit: Optional[int],
+        per_line_max_chars_limit: Optional[int],
+    ) -> Iterator[str]:
+        if dataflow_trace:
+            source = dataflow_trace.taint_source
+            intermediate_vars = dataflow_trace.intermediate_vars
+            sink = dataflow_trace.taint_sink
+
+            if source:
+                yield ""
+                yield (BASE_INDENT * " " + "Taint comes from:")
+                yield from TextFormatter._call_trace_to_lines(
+                    source,
+                    color_output,
+                    per_finding_max_lines_limit,
+                    per_line_max_chars_limit,
+                )
+
+            if intermediate_vars and len(intermediate_vars) > 0:
+                # TODO change this message based on rule kind of we ever use
+                # dataflow traces for more than just taint
+                yield ""
+                yield (
+                    BASE_INDENT * " "
+                    + "Taint flows through these intermediate variables:"
+                )
+                for var in intermediate_vars:
+                    loc = var.location
+                    lines = get_lines(Path(loc.path), loc.start.line, loc.end.line)
+                    yield from TextFormatter._format_lines(
+                        Path(loc.path),
+                        loc.start.line,
+                        loc.start.col,
+                        loc.end.line,
+                        loc.end.col,
+                        lines,
+                        color_output,
+                        per_finding_max_lines_limit,
+                        per_line_max_chars_limit,
+                        False,
+                        True,
+                    )
+
+            if sink:
+                yield ""
+                yield (BASE_INDENT * " " + "This is how taint reaches the sink:")
+                yield from TextFormatter._call_trace_to_lines(
+                    sink,
+                    color_output,
+                    per_finding_max_lines_limit,
+                    per_line_max_chars_limit,
+                )
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
@@ -474,12 +577,17 @@ class TextFormatter(BaseFormatter):
             )
 
             if dataflow_traces:
-                yield from TextFormatter._dataflow_trace_to_lines(
-                    rule_match.dataflow_trace,
-                    color_output,
-                    per_finding_max_lines_limit,
-                    per_line_max_chars_limit,
+                indented_dataflow_trace = (
+                    (2 * " ") + s
+                    for s in TextFormatter._dataflow_trace_to_lines(
+                        rule_match.dataflow_trace,
+                        color_output,
+                        per_finding_max_lines_limit,
+                        per_line_max_chars_limit,
+                    )
                 )
+
+                yield from indented_dataflow_trace
 
     def format(
         self,
@@ -488,12 +596,14 @@ class TextFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
+        is_ci_invocation: bool,
     ) -> str:
         reachable = []
         unreachable = []
         first_party_blocking = []
         first_party_nonblocking = []
         first_party_blocking_rules = []
+
         for match in rule_matches:
             if "sca_info" not in match.extra:
                 if match.is_blocking:
@@ -553,6 +663,11 @@ class TextFormatter(BaseFormatter):
                 + "\n".join(unreachable_output)
             )
 
+        blocking_description = "Blocking Findings" if is_ci_invocation else "Findings"
+        non_blocking_description = (
+            "Non-Blocking Findings" if is_ci_invocation else "Findings"
+        )
+
         if first_party_nonblocking:
             first_party_nonblocking_output = self._build_text_output(
                 first_party_nonblocking,
@@ -562,10 +677,11 @@ class TextFormatter(BaseFormatter):
                 extra["dataflow_traces"],
             )
             findings_output.append(
-                "\nFirst-Party Non-Blocking Findings:\n"
+                f"\nFirst-Party {non_blocking_description}:\n"
                 + "\n".join(first_party_nonblocking_output)
             ) if (reachable or unreachable) else findings_output.append(
-                "\nNon-Blocking Findings:\n" + "\n".join(first_party_nonblocking_output)
+                f"\n{non_blocking_description}:\n"
+                + "\n".join(first_party_nonblocking_output)
             )
         if first_party_blocking:
             first_party_blocking_output = self._build_text_output(
@@ -576,13 +692,14 @@ class TextFormatter(BaseFormatter):
                 extra["dataflow_traces"],
             )
             findings_output.append(
-                "\nFirst-Party Blocking Findings:\n"
+                f"\nFirst-Party {blocking_description}:\n"
                 + "\n".join(first_party_blocking_output)
             ) if (reachable or unreachable) else findings_output.append(
-                "\nBlocking Findings:\n" + "\n".join(first_party_blocking_output)
+                f"\n{blocking_description}:\n" + "\n".join(first_party_blocking_output)
             )
 
         first_party_blocking_rules_output = []
+
         if first_party_blocking_rules:
             formatted_first_party_blocking_rules = [
                 with_color(Colors.foreground, rule_id, bold=True)
@@ -591,17 +708,18 @@ class TextFormatter(BaseFormatter):
                     key=first_party_blocking_rules.index,
                 )
             ]
-            first_party_blocking_rules_output = (
-                [
-                    "\nFirst-Party Blocking Rules Fired:\n   "
-                    + "   \n   ".join(formatted_first_party_blocking_rules)
-                ]
-                if (reachable or unreachable)
-                else [
-                    "\nBlocking Rules Fired:\n   "
-                    + "   \n   ".join(formatted_first_party_blocking_rules)
-                ]
-            )
+            if is_ci_invocation:
+                first_party_blocking_rules_output = (
+                    [
+                        "\nFirst-Party Blocking Rules Fired:\n   "
+                        + "   \n   ".join(formatted_first_party_blocking_rules)
+                    ]
+                    if (reachable or unreachable)
+                    else [
+                        "\nBlocking Rules Fired:\n   "
+                        + "   \n   ".join(formatted_first_party_blocking_rules)
+                    ]
+                )
 
         return "\n".join(
             [

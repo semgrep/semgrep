@@ -35,5 +35,6 @@ class VimFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
+        is_ci_invocation: bool,
     ) -> str:
         return "\n".join(":".join(self._get_parts(rm)) for rm in rule_matches)

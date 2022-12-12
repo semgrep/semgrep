@@ -19,7 +19,7 @@ on:
 
 jobs:
   build-semgrep-core:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: returntocorp/ocaml:alpine-2022-09-24
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
@@ -27,6 +27,8 @@ jobs:
       HOME: /root
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       # This is needed later for caching, to generate the cache key
       - id: submodule-status
         name: Get submodule version
@@ -47,6 +49,7 @@ jobs:
         if: steps.core-cache.outputs.cache-hit != 'true'
         with:
           submodules: recursive
+          persist-credentials: false
       - name: Cache OCaml build files
         if: steps.core-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v3
@@ -72,7 +75,7 @@ jobs:
           path: ocaml-build-artifacts.tgz
 
   build-docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -82,6 +85,8 @@ jobs:
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       - run: ./scripts/validate-docker-build.sh candidate-image
       - uses: docker/login-action@v2
         if: github.actor != 'dependabot[bot]' && (github.event.pull_request.head.repo.full_name == github.repository || github.ref == 'refs/heads/develop')
@@ -144,7 +149,7 @@ jobs:
   test-core:
     # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: returntocorp/ocaml:alpine-2022-09-24
     env:
       HOME: /root
@@ -152,6 +157,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
+          persist-credentials: false
       - name: Cache OCaml build files
         uses: actions/cache@v3
         with:
@@ -198,17 +204,18 @@ jobs:
 
   test-cli:
     name: test semgrep-cli
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     permissions:
       contents: write
       pull-requests: write
     strategy:
       matrix:
-        #TODO: we used to have also 3.7 but it started to fail during pipenv install
-        python: ["3.8", "3.9", "3.10"]
+        python: ["3.7", "3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
@@ -243,6 +250,16 @@ jobs:
           # (perhaps because of the github token's permissions)
           # so we disable recursive fetching
           git config fetch.recurseSubmodules false
+      # Because we are not persisting creds in the checkout step, we must create the creds file
+      # when it's needed to push up snapshot changes.
+      # Note that this is only done after tests are run, so that tests do not have access to the token
+      - name: Configure git creds for push
+        id: configure-creds
+        if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
+        run: |
+          echo "machine github.com" >> ~/.netrc
+          echo "login ${{ github.repository }}" >> ~/.netrc
+          echo "password ${{ secrets.GITHUB_TOKEN }}" >> ~/.netrc
       - name: Commit snapshot updates
         id: snapshot-commit
         if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
@@ -252,6 +269,10 @@ jobs:
           default_author: github_actions
           message: "Update pytest snapshots"
           new_branch: snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Remove Credentials
+        id: remove-creds
+        if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
+        run: rm ~/.netrc
       - name: Comment about any snapshot updates
         if: failure() && steps.snapshot-commit.outputs.pushed == 'true'
         run: |
@@ -277,7 +298,7 @@ jobs:
   #
   test-qa:
     name: quality assurance on semgrep
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     strategy:
       fail-fast: false
@@ -285,6 +306,8 @@ jobs:
         split: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces semgrep-core/tests/semgrep-rules
       - uses: actions/setup-python@v4
@@ -322,15 +345,17 @@ jobs:
 
   # Run abbreviated version of benchmarks to check that they work
   benchmarks-lite:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.7"
           cache: pipenv
       - run: pip install pipenv==2022.6.7
       - name: Download artifacts
@@ -354,20 +379,22 @@ jobs:
 
   # Run each benchmark twice to decrease effect of natural variance
   benchmarks-full:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [build-semgrep-core]
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.7"
           cache: pipenv
       - run: pip install pipenv==2022.6.7
       - name: Run timing benchmark
         run: |
-          pip3 install semgrep==0.94.0
+          pip3 install semgrep==0.122.0
           semgrep --version
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
@@ -408,6 +435,8 @@ jobs:
     runs-on: ["self-hosted", "macOS", "X64"]
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
@@ -442,11 +471,13 @@ jobs:
 
   build-ubuntu-release:
     needs: [build-semgrep-core]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
       - name: Download artifacts

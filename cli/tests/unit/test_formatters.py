@@ -31,10 +31,14 @@ def create_taint_rule_match():
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}),
                 dataflow_trace=core.CoreMatchDataflowTrace(
-                    taint_source=core.Location(
-                        path="foo.py",
-                        start=core.Position(8, 9, 11),
-                        end=core.Position(8, 10, 12),
+                    taint_source=core.CoreMatchCallTrace(
+                        core.CoreLoc(
+                            core.Location(
+                                path="foo.py",
+                                start=core.Position(8, 9, 11),
+                                end=core.Position(8, 10, 12),
+                            )
+                        )
                     ),
                     intermediate_vars=[
                         core.CoreMatchIntermediateVar(
@@ -45,6 +49,15 @@ def create_taint_rule_match():
                             )
                         )
                     ],
+                    taint_sink=core.CoreMatchCallTrace(
+                        core.CoreLoc(
+                            core.Location(
+                                path="foo.py",
+                                start=core.Position(15, 16, 20),
+                                end=core.Position(15, 17, 21),
+                            )
+                        )
+                    ),
                 ),
             ),
         ),

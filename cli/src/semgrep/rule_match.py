@@ -190,6 +190,10 @@ class RuleMatch:
             self.start.offset,
             self.end.offset,
             self.message,
+            # This is necessary so we don't deduplicate taint findings which have different sources.
+            self.match.extra.dataflow_trace.to_json_string
+            if self.match.extra.dataflow_trace
+            else None,
         )
 
     @ci_unique_key.default
@@ -304,19 +308,45 @@ class RuleMatch:
 
     @property
     def dataflow_trace(self) -> Optional[core.CliMatchDataflowTrace]:
+        # We need this to quickly get augment a Location with the contents of the location
+        # Convenient to just have it as a separate function
+        def translate_loc(location: core.Location) -> Tuple[core.Location, str]:
+            with open(location.path, errors="replace") as fd:
+                content = util.read_range(
+                    fd, location.start.offset, location.end.offset
+                )
+            return (location, content)
+
+        def translate_core_match_call_trace(
+            call_trace: core.CoreMatchCallTrace,
+        ) -> core.CliMatchCallTrace:
+            if isinstance(call_trace.value, core.CoreLoc):
+                return core.CliMatchCallTrace(
+                    core.CliLoc(translate_loc(call_trace.value.value))
+                )
+            elif isinstance(call_trace.value, core.CoreCall):
+                intermediate_vars = [
+                    core.CliMatchIntermediateVar(*translate_loc(var.location))
+                    for var in call_trace.value.value[1]
+                ]
+
+                return core.CliMatchCallTrace(
+                    core.CliCall(
+                        (
+                            translate_loc(call_trace.value.value[0]),
+                            intermediate_vars,
+                            translate_core_match_call_trace(call_trace.value.value[2]),
+                        )
+                    )
+                )
+
         dataflow_trace = self.match.extra.dataflow_trace
         if dataflow_trace:
             taint_source = None
             intermediate_vars = None
             if dataflow_trace.taint_source:
-                location = dataflow_trace.taint_source
-                with open(location.path, errors="replace") as fd:
-                    content = util.read_range(
-                        fd, location.start.offset, location.end.offset
-                    )
-                taint_source = core.CliMatchTaintSource(
-                    location=location,
-                    content=content,
+                taint_source = translate_core_match_call_trace(
+                    dataflow_trace.taint_source
                 )
             if dataflow_trace.intermediate_vars:
                 intermediate_vars = []
@@ -335,9 +365,12 @@ class RuleMatch:
                             content=content,
                         )
                     )
+            if dataflow_trace.taint_sink:
+                taint_sink = translate_core_match_call_trace(dataflow_trace.taint_sink)
             return core.CliMatchDataflowTrace(
                 taint_source=taint_source,
                 intermediate_vars=intermediate_vars,
+                taint_sink=taint_sink,
             )
         return None
 

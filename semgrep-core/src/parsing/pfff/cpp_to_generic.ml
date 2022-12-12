@@ -1635,7 +1635,7 @@ and map_using_kind env x : G.tok -> (G.directive, G.definition) either =
         | [] -> error tk "Empty name in UsingName"
         | x :: xs ->
             let dots = List.rev xs in
-            Left (G.ImportFrom (tk, G.DottedName dots, x, None) |> G.d))
+            Left (G.ImportFrom (tk, G.DottedName dots, [ (x, None) ]) |> G.d))
   | UsingNamespace (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
       fun tk ->
@@ -1823,11 +1823,9 @@ let map_any env x : G.any =
   | Stmts v1 ->
       let v1 = map_of_list (map_stmt env) v1 in
       G.Ss v1
-  | Toplevel v1 -> (
+  | Toplevel v1 ->
       let v1 = map_toplevel env v1 in
-      match v1 with
-      | [ x ] -> G.S x
-      | xs -> G.Ss xs)
+      G.Ss v1
   | Toplevels v1 ->
       let v1 = map_of_list (map_toplevel env) v1 |> List.flatten in
       G.Ss v1
@@ -1842,7 +1840,7 @@ let map_any env x : G.any =
       G.T v1
   | Name v1 ->
       let v1 = map_name env v1 in
-      G.E (G.N v1 |> G.e)
+      G.Name v1
   | OneDecl v1 ->
       let v1 = map_onedecl env v1 in
       G.Ss (v1 |> Common.map (fun def -> G.DefStmt def |> G.s))

@@ -7,7 +7,18 @@ type overlap = float
  * 1.0 means that the AST node matches the annotation perfectly. For
  * practical purposes we can interpret >0.99 as being the same as 1.0. *)
 
-type 'spec tmatch = { spec : 'spec; pm : Pattern_match.t; overlap : overlap }
+type 'spec tmatch = {
+  spec : 'spec;
+      (** The specification on which the match is based, e.g. a taint source.
+      * This spec should have a pattern formula. *)
+  spec_pm : Pattern_match.t;
+      (** A pattern match obtained directly from the spec's pattern formula. *)
+  range : Range.t;
+      (** The range of this particular match, which will be a subrange of 'spec_pm',
+      * see note on 'Taint-tracking via ranges' in 'Match_tainting_mode.ml'. *)
+  overlap : overlap;
+      (** The overlap of this match ('range') with the spec match ('spec_pm'). *)
+}
 
 type a_propagator = {
   kind : [ `From | `To ];

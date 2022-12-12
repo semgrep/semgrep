@@ -1,0 +1,1 @@
+from m in somelist select m.foo;

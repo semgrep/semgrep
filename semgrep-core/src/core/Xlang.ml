@@ -62,7 +62,7 @@ let of_string ?id:(id_opt = None) s =
       LRegex
   | "generic" -> LGeneric
   | __else__ -> (
-      match Lang.lang_of_string_opt s with
+      match Lang.of_string_opt s with
       | None -> (
           match id_opt with
           | None -> failwith (unsupported_xlang_message s)

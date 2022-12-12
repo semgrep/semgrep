@@ -152,22 +152,25 @@
       "is_blocking": true,
       "match_based_id": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0",
       "dataflow_trace": {
-        "taint_source": {
-          "location": {
-            "path": "foo.py",
-            "start": {
-              "line": 26,
-              "col": 10,
-              "offset": 346
+        "taint_source": [
+          "CliLoc",
+          [
+            {
+              "path": "foo.py",
+              "start": {
+                "line": 26,
+                "col": 10,
+                "offset": 346
+              },
+              "end": {
+                "line": 26,
+                "col": 16,
+                "offset": 352
+              }
             },
-            "end": {
-              "line": 26,
-              "col": 16,
-              "offset": 352
-            }
-          },
-          "content": "danger"
-        },
+            "danger"
+          ]
+        ],
         "intermediate_vars": [
           {
             "location": {
@@ -185,6 +188,25 @@
             },
             "content": "d2"
           }
+        ],
+        "taint_sink": [
+          "CliLoc",
+          [
+            {
+              "path": "foo.py",
+              "start": {
+                "line": 27,
+                "col": 5,
+                "offset": 357
+              },
+              "end": {
+                "line": 27,
+                "col": 13,
+                "offset": 365
+              }
+            },
+            "sink(d2)"
+          ]
         ]
       }
     },
@@ -215,11 +237,11 @@
           "dependency_pattern": {
             "ecosystem": "pypi",
             "package": "badlib",
-            "semver_range": "== 1.0.0"
+            "semver_range": "== 99.99.99"
           },
           "found_dependency": {
             "package": "badlib",
-            "version": "1.0.0",
+            "version": "99.99.99",
             "ecosystem": "pypi",
             "allowed_hashes": {},
             "transitivity": "unknown",

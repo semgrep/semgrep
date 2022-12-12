@@ -40,8 +40,13 @@ type finding =
 
 type signature = finding list
 (** A taint signature, it is simply a list of findings for a function.
+ *
  * Note that `ArgToSink` and `ArgToReturn` introduce a form of
  * "taint polymorphism", making the taint analysis context-sensitive.
+ *
+ * Also note that, within each function, if there are multiple paths through
+ * which a taint source may reach a sink, we do not keep all of them but only
+ * the shortest one.
  *
  * THINK: We could write this in a way that resembles a function type,
  *   but right now it would probably just add complexity. *)
@@ -55,8 +60,23 @@ type orig =
 
 type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
-module Taint_set : Set.S with type elt = taint
 (** A set of taint sources. *)
+module Taint_set : sig
+  type t
+
+  val empty : t
+  val is_empty : t -> bool
+  val equal : t -> t -> bool
+  val singleton : taint -> t
+  val add : taint -> t -> t
+  val union : t -> t -> t
+  val map : (taint -> taint) -> t -> t
+  val iter : (taint -> unit) -> t -> unit
+  val fold : (taint -> 'a -> 'a) -> t -> 'a -> 'a
+  val of_list : taint list -> t
+  val to_seq : t -> taint Seq.t
+  val elements : t -> taint list
+end
 
 type taints = Taint_set.t
 
@@ -65,3 +85,4 @@ val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
 val taint_of_pm : Pattern_match.t * Rule.taint_source -> taint
 val taints_of_pms : (Pattern_match.t * Rule.taint_source) list -> taints
 val show_taints : taints -> string
+val _show_finding : finding -> string

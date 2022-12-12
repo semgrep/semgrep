@@ -2959,6 +2959,7 @@ let parse_pattern str =
        *)
       let extra = Pattern in
       let env = { H.file; conv = Hashtbl.create 0; extra } in
+      (* TODO: G.Ss (script env cst) but regressions *)
       match script env cst with
       | [ { G.s = G.ExprStmt (e, _); _ } ] -> G.E e
       | [ x ] -> G.S x

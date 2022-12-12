@@ -369,18 +369,48 @@ def cli_intermediate_vars_to_core_intermediate_vars(
     return [core.CoreMatchIntermediateVar(location=v.location) for v in i_vars]
 
 
+def cli_call_trace_to_core_call_trace(
+    trace: core.CliMatchCallTrace,
+) -> core.CoreMatchCallTrace:
+    value = trace.value
+    if isinstance(value, core.CliLoc):
+        return core.CoreMatchCallTrace(core.CoreLoc(value.value[0]))
+    elif isinstance(value, core.CliCall):
+        data, intermediate_vars, call_trace = value.value
+
+        return core.CoreMatchCallTrace(
+            core.CoreCall(
+                (
+                    data[0],
+                    cli_intermediate_vars_to_core_intermediate_vars(intermediate_vars),
+                    cli_call_trace_to_core_call_trace(call_trace),
+                )
+            )
+        )
+    else:
+        # unreachable, theoretically
+        logger.error("Reached unreachable code in cli call trace to core call trace")
+        return None
+
+
 def cli_trace_to_core_trace(
     trace: core.CliMatchDataflowTrace,
 ) -> core.CoreMatchDataflowTrace:
-    taint_source = trace.taint_source.location if trace.taint_source else None
+    taint_source = trace.taint_source if trace.taint_source else None
+    taint_sink = trace.taint_sink if trace.taint_sink else None
     intermediate_vars = (
         cli_intermediate_vars_to_core_intermediate_vars(trace.intermediate_vars)
         if trace.intermediate_vars
         else None
     )
     return core.CoreMatchDataflowTrace(
-        taint_source=taint_source,
+        taint_source=cli_call_trace_to_core_call_trace(taint_source)
+        if taint_source
+        else None,
         intermediate_vars=intermediate_vars,
+        taint_sink=cli_call_trace_to_core_call_trace(taint_sink)
+        if taint_sink
+        else None,
     )
 
 

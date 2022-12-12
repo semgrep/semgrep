@@ -1,0 +1,10 @@
+rules:
+  - id: js-constructor-naming 
+    message: Naming should work within the body of a JS class using the constructor's args! 
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    patterns:
+      - pattern: |
+          ($THING: Ty)
