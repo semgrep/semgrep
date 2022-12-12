@@ -1,0 +1,18 @@
+rules:
+  - id: my_target_id
+    patterns:
+      - pattern: |
+          pattern: 
+            $X
+      - pattern: |
+          ABC
+      # ruleid: my-pattern-id
+      - pattern: |
+          $A
+      # ruleid: my-pattern-id
+      - pattern: |
+          $ABC
+    message: Semgrep found a match - $X
+    languages:
+      - yaml
+    severity: WARNING

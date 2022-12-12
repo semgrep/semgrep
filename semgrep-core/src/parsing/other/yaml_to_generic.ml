@@ -58,6 +58,7 @@ type env = {
   parser : S.parser;
   anchors : (string, G.expr * E.pos) Hashtbl.t;
   mutable last_event : (E.t * E.pos) option;
+  is_target : bool;
 }
 
 (*****************************************************************************)
@@ -185,7 +186,12 @@ let make_alias anchor pos env =
 (* Scalars must first be checked for sgrep patterns *)
 (* Then, they may need to be converted from a string to a value *)
 let scalar (_tag, pos, value) env : G.expr * E.pos =
-  if AST_generic_.is_metavar_name value then
+  (* If it's a target, then we don't want to parse it like a metavariable,
+     or else matching will mess up when it attempts to match a pattern
+     metavariable to target YAML code which looks like a metavariable
+     (but ought to be interpreted as a string)
+  *)
+  if AST_generic_.is_metavar_name value && not env.is_target then
     (G.N (mk_id value pos env) |> G.e, pos)
   else
     let token = mk_tok pos value env in
@@ -533,7 +539,7 @@ let mask_unicode str =
 (* Entry points *)
 (*****************************************************************************)
 
-let parse_yaml_file file str =
+let parse_yaml_file ~is_target file str =
   (* we do not preprocess the yaml here; ellipsis should be transformed
    * only in the pattern *)
   let charpos_to_pos = Some (Parse_info.full_charpos_to_pos_large file) in
@@ -545,6 +551,7 @@ let parse_yaml_file file str =
       parser;
       anchors = Hashtbl.create 1;
       last_event = None;
+      is_target;
     }
   in
   let xs = parse env in
@@ -563,6 +570,7 @@ let any str =
       parser;
       anchors = Hashtbl.create 1;
       last_event = None;
+      is_target = false;
     }
   in
   let xs = parse env in
@@ -570,4 +578,4 @@ let any str =
 
 let program file =
   let str = mask_unicode (Common.read_file file) in
-  parse_yaml_file file str
+  parse_yaml_file ~is_target:true file str
