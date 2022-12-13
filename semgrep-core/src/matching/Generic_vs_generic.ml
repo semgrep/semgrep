@@ -427,7 +427,9 @@ let m_regexp_options a_opt b_opt =
 (* TODO: factorize with metavariable and aliasing logic in m_expr
  * TODO: remove MV.Id and use always MV.N?
  *)
-
+(* `is_resolved` should be true if `b` is the result of unpacking a `ResolvedName`.
+   See the case conditioning on `is_resolved` below.
+*)
 let rec m_name ?(is_resolved = false) a b =
   let try_parents dotted =
     let parents =
@@ -500,6 +502,24 @@ let rec m_name ?(is_resolved = false) a b =
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
   | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
+      (* If `is_resolved` is true, then we got the target `IdQualified` from a
+         `ResolvedName`.
+         Such an identifier has a nonsensical range. If the resolved name is `A.foo`, in
+         the following code:
+         ```
+         class A:
+           def foo():
+             pass
+         ```
+         then the pattern metavariable will match the range of the text
+         ```
+         A:
+         def foo
+         ```
+         because it is matching everything between `A` and `foo`.
+
+         So we should not permit this match.
+      *)
       if is_resolved then fail () else envf (str, tok) (MV.N b)
   (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
   | ( G.IdQualified _a1,

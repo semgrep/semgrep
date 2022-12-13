@@ -13,6 +13,10 @@ val m_attribute : AST_generic.attribute Matching_generic.matcher
 val m_partial : AST_generic.partial Matching_generic.matcher
 val m_field : AST_generic.field Matching_generic.matcher
 val m_fields : AST_generic.field list Matching_generic.matcher
+
+(* `is_resolved` is for checking if this name we are matching in the target
+   is resulting from a `ResolvedName`, which has a nonsensical range.
+*)
 val m_name : ?is_resolved:bool -> AST_generic.name Matching_generic.matcher
 
 (* used only for unit testing *)
