@@ -1176,6 +1176,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_case_and_body v1 in
         PartialSwitchCase v1
   and map_any = function
+    | Name v1 ->
+        let v1 = map_name v1 in
+        Name v1
     | Xmls v1 ->
         let v1 = map_of_list map_xml_body v1 in
         Xmls v1

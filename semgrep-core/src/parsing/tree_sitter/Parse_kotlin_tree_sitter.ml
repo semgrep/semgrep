@@ -2325,7 +2325,4 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match source_file env cst with
-      | G.Pr [ x ] -> G.S x
-      | G.Pr xs -> G.Ss xs
-      | x -> x)
+      source_file env cst)

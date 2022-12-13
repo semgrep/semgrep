@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       # We grab those submodules below because they are the one needed by 'mypy', which
       # runs as part of pre-commit to check our Python code.
       # update: we also grab pfff because of semgrep.jsonnet now including pfff/semgrep.yml
@@ -55,6 +57,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       - uses: pre-commit/action@v3.0.0
         with:
           extra_args: --hook-stage manual
@@ -75,6 +79,8 @@ jobs:
     # An alternative would be to run commands with 'sudo' or prefixed with 'HOME=root ...'
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       - name: Check OCaml code with ocamlformat
         env:
           HOME: /root

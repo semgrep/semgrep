@@ -1,3 +1,8 @@
+(* Note!!
+   `program` and `any` will behave slightly differently on metavariables.
+   `program` assumes a target, and `any` assumes a pattern.
+*)
+
 (* Parsing a YAML file.
  * This may raise Parse_info.Other_error.
  *)
@@ -7,4 +12,5 @@ val program : Common.filename -> AST_generic.program
 val any : string -> AST_generic.any
 
 (* internals used in Parse_rule.ml *)
-val parse_yaml_file : Common.filename -> string -> AST_generic.program
+val parse_yaml_file :
+  is_target:bool -> Common.filename -> string -> AST_generic.program

@@ -709,14 +709,14 @@ and definition def =
       let mkind = G.ModuleStruct (None, [ body ]) in
       let def = { G.mbody = mkind } in
       G.DefStmt (ent, G.ModuleDef def) |> G.s
-  | BeginBlock (_t, (t1, st, t2)) ->
+  | BeginBlock (t, (t1, st, t2)) ->
       let st = list_stmts st in
       let st = G.Block (t1, st, t2) |> G.s in
-      G.OtherStmtWithStmt (G.OSWS_BEGIN, [], st) |> G.s
-  | EndBlock (_t, (t1, st, t2)) ->
+      G.OtherStmtWithStmt (G.OSWS_Block ("BEGIN", t), [], st) |> G.s
+  | EndBlock (t, (t1, st, t2)) ->
       let st = list_stmts st in
       let st = G.Block (t1, st, t2) |> G.s in
-      G.OtherStmtWithStmt (G.OSWS_END, [], st) |> G.s
+      G.OtherStmtWithStmt (G.OSWS_Block ("END", t), [], st) |> G.s
   | Alias (t, mn1, mn2) ->
       let mn1 = method_name mn1 in
       let name_or_dyn =

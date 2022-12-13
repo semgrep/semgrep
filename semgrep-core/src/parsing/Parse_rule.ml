@@ -1124,6 +1124,7 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
 
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_sink =
+  let sink_id = String.concat ":" env.path in
   let f =
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
@@ -1134,7 +1135,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     |> Option.value ~default:(R.default_sink_requires tok)
   in
   let sink_formula = f env sink_dict in
-  { sink_formula; sink_requires }
+  { sink_id; sink_formula; sink_requires }
 
 (*****************************************************************************)
 (* Parsers for extract mode *)
@@ -1179,7 +1180,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   | Some ("taint", _) ->
       let parse_specs parse_spec env key x =
         ( snd key,
-          parse_list env key
+          parse_listi env key
             (fun env -> parse_spec env (fst key ^ "list item", snd key))
             x )
       in
@@ -1402,11 +1403,11 @@ let parse_file ?error_recovery file =
               if n <> 0 then failwith (spf "error executing %s" cmd);
               let ast = Parse_json.parse_program tmpfile in
               Json_to_generic.program ~unescape_strings:true ast)
-    | FT.Config FT.Yaml -> parse_yaml_rule_file file
+    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true file
     | _else_ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
         logger#info "trying to parse %s as YAML" file;
-        parse_yaml_rule_file file
+        parse_yaml_rule_file ~is_target:true file
   in
   parse_generic_ast ?error_recovery file ast
 
