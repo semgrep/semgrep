@@ -1,20 +1,21 @@
-#TODO? skip compiler? it may contain many test files
-https://github.com/rust-lang/rust
+# we skip the compiler and fmt projects because they contain many test files
+# which are not representative of typical Rust code
+#https://github.com/rust-lang/rust
+#https://github.com/rust-lang/rustfmt
 
 https://github.com/rust-lang/rustlings
-https://github.com/RustPython/RustPython
-https://github.com/RustScan/RustScan
 https://github.com/rust-lang/rustup
-https://github.com/rust-lang/rustfmt
 https://github.com/rust-lang/rust-clippy
 https://github.com/rust-lang/cargo
 https://github.com/rust-lang/mdBook
-https://github.com/rust-analyzer/rust-analyzer
+https://github.com/rust-lang/rust-bindgen
+
+https://github.com/RustPython/RustPython
+https://github.com/RustScan/RustScan
 https://github.com/shadowsocks/shadowsocks-rust
 https://github.com/SergioBenitez/Rocket
 https://github.com/ctz/rustls
 https://github.com/hyperium/hyper
-https://github.com/rust-lang/rust-bindgen
 https://github.com/actix/actix
 https://github.com/Geal/nom
 https://github.com/charliesome/rustboot
@@ -29,11 +30,17 @@ https://github.com/tokio-rs/tokio
 https://github.com/diesel-rs/diesel
 https://github.com/citybound/citybound
 https://github.com/ruffle-rs/ruffle
-https://github.com/servo/servo
-https://github.com/BurntSushi/ripgrep
 https://github.com/sharkdp/fd
 https://github.com/diem/diem
 https://github.com/Ruin0x11/adieu
 
 # used by r2c
 https://github.com/tree-sitter/tree-sitter
+
+# related to semgrep
+https://github.com/googleprojectzero/weggli
+https://github.com/rust-analyzer/rust-analyzer
+https://github.com/BurntSushi/ripgrep
+
+# old: not maintained anymore
+# https://github.com/servo/servo
