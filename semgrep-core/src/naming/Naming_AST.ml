@@ -319,27 +319,26 @@ let make_type type_string tok =
  *)
 let get_resolved_type lang (vinit, vtype) =
   match vtype with
-  | Some _ -> vtype
-  | None -> (
-      (* Should never be reached by languages where the type is in the declaration *)
-      (* e.g. Java, C *)
-      let string_str =
-        match lang with
-        | Lang.Go -> "str"
-        | Lang.Js
-        | Lang.Ts ->
-            "string"
-        | _ -> "string"
-      in
+  | None
+  | Some { t = TyAny _; _ } -> (
       (* Currently these vary between languages *)
-      (* Alternative is to define a TyInt, TyBool, etc in the generic AST *)
-      (* so this is more portable across languages *)
+      (* Alternative is to define a TyInt, TyBool, etc. in the generic AST *)
+      (* so this would be more portable across languages *)
       match vinit with
       | Some { e = L (Bool (_, tok)); _ } -> make_type "bool" tok
       | Some { e = L (Int (_, tok)); _ } -> make_type "int" tok
       | Some { e = L (Float (_, tok)); _ } -> make_type "float" tok
       | Some { e = L (Char (_, tok)); _ } -> make_type "char" tok
-      | Some { e = L (String (_, tok)); _ } -> make_type string_str tok
+      | Some { e = L (String (_, tok)); _ } ->
+          let string_str =
+            match lang with
+            | Lang.Go -> "str"
+            | Lang.Js
+            | Lang.Ts ->
+                "string"
+            | _ -> "string"
+          in
+          make_type string_str tok
       | Some { e = L (Regexp ((_, (_, tok), _), _)); _ } ->
           make_type "regexp" tok
       | Some { e = RegexpTemplate ((l, _fragments, _r), _); _ } ->
@@ -352,6 +351,7 @@ let get_resolved_type lang (vinit, vtype) =
       | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
       | Some { e = New (_, tp, (_, _, _)); _ } -> Some tp
       | _ -> None)
+  | Some _ -> vtype
 
 (*****************************************************************************)
 (* Other Helpers *)
@@ -506,6 +506,91 @@ let resolve lang prog =
                   (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
                   with_new_function_scope (special_class_params @ class_params)
                     env.names (fun () -> k x))
+          (* `const x = require('y');` (or var, or let)
+           *
+           * JS: This is a CommonJS import, popularized before ES6 standardized
+           * imports/exports. *)
+          | ( { name = EN (Id (id, id_info)); _ },
+              VarDef
+                {
+                  vinit =
+                    Some
+                      {
+                        e =
+                          Call
+                            ( { e = IdSpecial (Require, _); _ },
+                              (_, [ Arg { e = L (String file); _ } ], _) );
+                        _;
+                      };
+                  vtype = _;
+                } )
+            when lang = Lang.Js || lang = Lang.Ts ->
+              let sid = H.gensym () in
+              let resolved =
+                untyped_ent (ImportedModule (DottedName [ file ]), sid)
+              in
+              set_resolved env id_info resolved;
+              add_ident_current_scope id resolved env.names
+          (* `const {x, y} = require('z');` (or var, or let)
+           *
+           * JS: This is a CommonJS import, popularized before ES6 standardized
+           * imports/exports. *)
+          | ( { name = EN (Id ((id_str, _), _)); _ },
+              VarDef
+                {
+                  vinit =
+                    Some
+                      {
+                        e =
+                          Assign
+                            ( { e = Record (_, fields, _); _ },
+                              _,
+                              {
+                                e =
+                                  Call
+                                    ( { e = IdSpecial (Require, _); _ },
+                                      (_, [ Arg { e = L (String file); _ } ], _)
+                                    );
+                                _;
+                              } );
+                        _;
+                      };
+                  vtype = _;
+                } )
+            when id_str = special_multivardef_pattern
+                 && (lang = Lang.Js || lang = Lang.Ts) ->
+              List.iter
+                (function
+                  | F
+                      {
+                        s =
+                          DefStmt
+                            ( {
+                                name = EN (Id (imported_id, _imported_id_info));
+                                attrs = [];
+                                tparams = [];
+                              },
+                              FieldDefColon
+                                {
+                                  vinit =
+                                    Some
+                                      {
+                                        e = N (Id (local_id, local_id_info));
+                                        _;
+                                      };
+                                  _;
+                                } );
+                        _;
+                      } ->
+                      let sid = H.gensym () in
+                      let resolved =
+                        untyped_ent (ImportedEntity [ file; imported_id ], sid)
+                      in
+                      set_resolved env local_id_info resolved;
+                      add_ident_current_scope local_id resolved env.names
+                      (* TODO handle nested destructuring? *)
+                  | _ -> ())
+                fields
           | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
           (* note that some languages such as Python do not have VarDef
            * construct

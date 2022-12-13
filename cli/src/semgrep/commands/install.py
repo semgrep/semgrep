@@ -20,21 +20,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-@click.command(hidden=True)
-@handle_command_errors
-def install_deep_semgrep() -> None:
-    """
-    Install the DeepSemgrep binary (Experimental)
-
-    The binary is installed in the same directory that semgrep-core
-    is installed in. Does not reinstall if existing binary already exists.
-
-    Must be logged in and have access to DeepSemgrep beta
-    Visit https://semgrep.dev/deep-semgrep-beta for more information
-    """
-    state = get_state()
-    state.terminal.configure(verbose=False, debug=False, quiet=False, force_color=False)
-
+def determine_deep_semgrep_path() -> Path:
     core_path = SemgrepCore.path()
     if core_path is None:
         logger.info(
@@ -44,6 +30,14 @@ def install_deep_semgrep() -> None:
         sys.exit(FATAL_EXIT_CODE)
 
     deep_semgrep_path = Path(core_path).parent / "deep-semgrep"
+    return deep_semgrep_path
+
+
+def run_install_deep_semgrep() -> None:
+    state = get_state()
+    state.terminal.configure(verbose=False, debug=False, quiet=False, force_color=False)
+
+    deep_semgrep_path = determine_deep_semgrep_path()
     if deep_semgrep_path.exists():
         logger.info(
             f"Overwriting DeepSemgrep binary already installed in {deep_semgrep_path}"
@@ -106,3 +100,18 @@ def install_deep_semgrep() -> None:
         stderr=subprocess.DEVNULL,
     ).rstrip()
     logger.info(f"DeepSemgrep Version Info: ({version})")
+
+
+@click.command(hidden=True)
+@handle_command_errors
+def install_deep_semgrep() -> None:
+    """
+    Install the DeepSemgrep binary (Experimental)
+
+    The binary is installed in the same directory that semgrep-core
+    is installed in.
+
+    Must be logged in and have access to DeepSemgrep beta
+    Visit https://semgrep.dev/deep-semgrep-beta for more information
+    """
+    run_install_deep_semgrep()

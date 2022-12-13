@@ -247,7 +247,7 @@ let parse_pattern str =
 
       let xs = map_fragment env cst in
       match xs with
-      (* TODO: not sure why the parser adds thos enclosing XmlText ""
+      (* TODO: not sure why the parser adds those enclosing XmlText ""
        * Is this still needed after
        * https://github.com/tree-sitter/tree-sitter-html/commit/af9339f3deb131ab99acfac906713b81dbcc41c9 ?
        *)

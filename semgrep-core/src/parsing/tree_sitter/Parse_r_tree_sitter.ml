@@ -609,7 +609,4 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match map_program env cst with
-      | [ { s = ExprStmt (e, _); _ } ] -> G.E e
-      | [ x ] -> G.S x
-      | xs -> G.Ss xs)
+      G.Ss (map_program env cst))

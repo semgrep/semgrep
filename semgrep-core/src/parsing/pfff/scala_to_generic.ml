@@ -951,15 +951,12 @@ let v_any = function
   | Tk v1 ->
       let v1 = v_tok v1 in
       G.Tk v1
-  | Ex e -> (
-      match v_expr_for_stmt e with
-      | { G.s = G.ExprStmt (e, _); _ } -> G.E e
-      | st -> G.S st)
-  | Ss b -> (
+  | Ex e ->
+      let st = v_expr_for_stmt e in
+      G.S st
+  | Ss b ->
       let xs = v_block b in
-      match xs with
-      | [ s ] -> G.S s
-      | xs -> G.Ss xs)
+      G.Ss xs
 
 (*****************************************************************************)
 (* Entry points *)

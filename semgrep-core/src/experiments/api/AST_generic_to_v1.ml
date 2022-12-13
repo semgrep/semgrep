@@ -812,20 +812,11 @@ and map_other_stmt_operator = function
 
 and map_other_stmt_with_stmt_operator = function
   | OSWS_With -> "S_With"
-  | OSWS_BEGIN -> "S_BEGIN"
-  | OSWS_END -> "S_END"
   | OSWS_Else_in_try -> "S_Else_in_try"
-  | OSWS_UnsafeBlock -> "S_UnsafeBlock"
-  | OSWS_AsyncBlock -> "S_AsyncBlock"
-  | OSWS_ConstBlock -> "S_ConstBlock"
-  | OSWS_ForeignBlock -> "S_ForeignBlock"
-  | OSWS_ImplBlock -> "S_ImplBlock"
-  | OSWS_Sync -> "S_Sync"
-  | OSWS_CheckedBlock -> "S_CheckedBlock"
-  | OSWS_UncheckedBlock -> "S_UncheckedBlock"
   | OSWS_Iterator -> "S_Iterator"
   | OSWS_Closure -> "S_Closure"
   | OSWS_Todo -> "S_Todo"
+  | OSWS_Block _TODO -> "S_Todo"
 
 and map_condition = function
   | Cond v1 ->
@@ -1296,6 +1287,7 @@ and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | Name _
   | Xmls _
   | ForOrIfComp _
   | Ta _ ->
