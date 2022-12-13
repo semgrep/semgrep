@@ -427,7 +427,8 @@ let m_regexp_options a_opt b_opt =
 (* TODO: factorize with metavariable and aliasing logic in m_expr
  * TODO: remove MV.Id and use always MV.N?
  *)
-let rec m_name a b =
+
+let rec m_name ?(is_resolved = false) a b =
   let try_parents dotted =
     let parents =
       match !hook_find_possible_parents with
@@ -446,7 +447,7 @@ let rec m_name a b =
     | B.ResolvedName (_, alternate_names) ->
         List.fold_left
           (fun acc alternate_name ->
-            acc >||> m_name a (H.name_of_ids alternate_name))
+            acc >||> m_name ~is_resolved:true a (H.name_of_ids alternate_name))
           (fail ()) alternate_names
     | _ -> fail ()
   in
@@ -467,10 +468,15 @@ let rec m_name a b =
                };
              _;
            } as infob) ) ) -> (
+      let is_resolved =
+        match resolved with
+        | B.ResolvedName _ -> true
+        | _ -> false
+      in
       m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
       >||> try_alternate_names resolved
       (* Try the resolved entity *)
-      >||> m_name a (H.name_of_ids dotted)
+      >||> m_name ~is_resolved a (H.name_of_ids dotted)
       >||>
       (* Try the resolved entity and parents *)
       match a with
@@ -494,7 +500,7 @@ let rec m_name a b =
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
   | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
-      envf (str, tok) (MV.N b)
+      if is_resolved then fail () else envf (str, tok) (MV.N b)
   (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
   | ( G.IdQualified _a1,
       B.IdQualified
