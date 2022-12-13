@@ -401,8 +401,24 @@ let m_with_symbolic_propagation ~is_root f b =
       && not is_root)
     ~then_:
       (match b.G.e with
-      | G.N (G.Id (_, { id_svalue = { contents = Some (G.Sym b1) }; _ })) ->
-          f b1
+      | G.N (G.Id ((id, _), { id_svalue = { contents = Some (G.Sym b1) }; _ }))
+        ->
+          (* We shouldn't end up with a symbol that resolves to itself, but if
+           * we do, we shouldn't crash. This simple check will not protect
+           * against complicated paths through which a symbol could resolve to
+           * itself, but if it directly resolves to itself, we can easily catch
+           * it.
+           *
+           * Yes, Semgrep, I want physical equality.
+           *
+           * nosemgrep *)
+          if b1 == b then (
+            logger#warning
+              "Aborting symbolic propagation: Circular reference encountered \
+               (\"%s\")"
+              id;
+            fail ())
+          else f b1
       | ___else___ -> fail ())
     ~else_:(fail ())
 
