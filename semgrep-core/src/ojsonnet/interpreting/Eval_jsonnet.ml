@@ -126,11 +126,17 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
   | IdSpecial (Self, tk) -> lookup env tk LSelf
   | IdSpecial (Super, tk) -> lookup env tk LSuper
   | Call
-      ( ArrayAccess
-          (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, s, _))), _)),
-        (_l, args, _r) ) -> (
+      ( (ArrayAccess
+           (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, s, _))), _)) as
+        e0),
+        (l, args, r) ) -> (
       match s with
       | [ ("length", _) ] ->
+          (* TODO: This is wrong. You need to inspect args, which should
+           * always have one element, then evaluate it,
+           * then look at its type, and depending on its type
+           * (string, array, object) do different things.
+           *)
           Primitive (Double (float_of_int (List.length args), fk))
       | [ ("makeArray", tk) ] -> (
           let mk_lazy_val i fdef =
@@ -152,17 +158,17 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
                             mk_lazy_val i fdef),
                         fk )
                   else error tk (spf "Got non-integer %f in std.makeArray" n)
-              | v, e' ->
+              | v, _e' ->
                   error tk
-                    (spf "Improper arguments to std.makeArray: %s, %s" (sv v)
-                       ([%show: expr] e')))
-          | _ ->
+                    (spf "Improper arguments to std.makeArray: %s" (sv v)))
+          | _else_ ->
               error tk
                 (spf
                    "Improper number of arguments to std.makeArray: expected 2, \
                     got %d"
                    (List.length args)))
-      | _ -> failwith "impossible: invalid program in dynamics")
+      (* default to regular call, handled by std.jsonnet code hopefully *)
+      | _else_ -> eval_call env e0 (l, args, r))
   | Local (_tlocal, binds, _tsemi, e) ->
       let locals =
         binds
@@ -202,34 +208,7 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
           | Some fld -> Lazy.force fld.fld_value.v)
       (* TODO? support ArrayAccess for Strings? *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv e')))
-  | Call (e0, (l, args, _r)) -> (
-      match eval_expr env e0 with
-      | V.Function { f_tok = _; f_params = l, params, r; f_body = eb } ->
-          (* the named_args are supposed to be the last one *)
-          let basic_args, named_args =
-            args
-            |> Common.partition_either (function
-                 | Arg ei -> Left ei
-                 | NamedArg (id, _tk, ei) -> Right (fst id, ei))
-          in
-          (* opti? use a hashtbl? but for < 5 elts, probably worse? *)
-          let hnamed_args = Common.hash_of_list named_args in
-          let basic_args = Array.of_list basic_args in
-          let m = Array.length basic_args in
-          let binds =
-            params
-            |> List.mapi (fun i (P (id, teq, ei')) ->
-                   let ei'' =
-                     match i with
-                     | _ when i < m -> basic_args.(i) (* ei *)
-                     | _ when Hashtbl.mem hnamed_args (fst id) ->
-                         Hashtbl.find hnamed_args (fst id)
-                     | _else_ -> ei'
-                   in
-                   B (id, teq, ei''))
-          in
-          eval_expr env (Local (l, binds, r, eb))
-      | v -> error l (spf "not a function: %s" (sv v)))
+  | Call (e0, args) -> eval_call env e0 args
   | UnaryOp ((op, tk), e) -> (
       match op with
       | UBang -> (
@@ -260,6 +239,35 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
       match eval_expr env e with
       | V.Primitive (V.Str (s, tk)) -> error tk (spf "ERROR: %s" s)
       | v -> error tk (spf "ERROR: %s" (tostring v)))
+
+and eval_call env e0 (l, args, _r) =
+  match eval_expr env e0 with
+  | V.Function { f_tok = _; f_params = l, params, r; f_body = eb } ->
+      (* the named_args are supposed to be the last one *)
+      let basic_args, named_args =
+        args
+        |> Common.partition_either (function
+             | Arg ei -> Left ei
+             | NamedArg (id, _tk, ei) -> Right (fst id, ei))
+      in
+      (* opti? use a hashtbl? but for < 5 elts, probably worse? *)
+      let hnamed_args = Common.hash_of_list named_args in
+      let basic_args = Array.of_list basic_args in
+      let m = Array.length basic_args in
+      let binds =
+        params
+        |> List.mapi (fun i (P (id, teq, ei')) ->
+               let ei'' =
+                 match i with
+                 | _ when i < m -> basic_args.(i) (* ei *)
+                 | _ when Hashtbl.mem hnamed_args (fst id) ->
+                     Hashtbl.find hnamed_args (fst id)
+                 | _else_ -> ei'
+               in
+               B (id, teq, ei''))
+      in
+      eval_expr env (Local (l, binds, r, eb))
+  | v -> error l (spf "not a function: %s" (sv v))
 
 and eval_binary_op env el (op, tk) er =
   match op with
