@@ -271,26 +271,26 @@ and desugar_arr_inside env (l, v, r) : C.expr =
       let xs = (desugar_list desugar_expr) env v in
       C.Array (l, xs, r)
   | ArrayComp (expr, for_comp, rest_comp) ->
-      let v = desugar_comprehension env expr (CompFor for_comp :: rest_comp) in
-      todo env v
+      desugar_comprehension env expr (CompFor for_comp :: rest_comp)
 
-(* Strictly speaking, the semantics say you're supposed to desugar as an expression in tandem with
-   desugaring the comprehension.
-   However, these return two different types in our desugaring process. So we can't do that.
-
-   I hope that applying a single outer-level desugar_expr is equivalent to interleaving it.
-*)
-and desugar_comprehension_helper env expr comps : AST_jsonnet.expr =
+(* Strictly speaking, the semantics say you're supposed to desugar as an
+ * expression in tandem with desugaring the comprehension.
+ * However, these return two different types in our desugaring process.
+ * So we can't do that.
+ * I hope that applying a single outer-level desugar_expr is equivalent
+ * to interleaving it.
+ *)
+and desugar_comprehension_helper env e comps : AST_jsonnet.expr =
   match comps with
-  | CompIf (tok, cond) :: rest ->
+  | CompIf (tok, e') :: rest ->
       let empty_else = Some (fk, mk_array []) in
       let inner_exp =
         match rest with
-        | [] -> mk_array [ expr ]
-        | __else__ -> desugar_comprehension_helper env expr rest
+        | [] -> mk_array [ e ]
+        | __else__ -> desugar_comprehension_helper env e rest
       in
-      If (tok, cond, inner_exp, empty_else)
-  | CompFor (_, x, _, for_expr) :: rest ->
+      If (tok, e', inner_exp, empty_else)
+  | CompFor (_, x, _, e') :: rest ->
       let std_join (l, r) =
         Call (mk_DotAccess_std ("join", fk), fb [ Arg l; Arg r ])
       in
@@ -304,8 +304,8 @@ and desugar_comprehension_helper env expr comps : AST_jsonnet.expr =
       let f =
         let inner_exp =
           match rest with
-          | [] -> mk_array [ expr ]
-          | __else__ -> desugar_comprehension_helper env expr rest
+          | [] -> mk_array [ e ]
+          | __else__ -> desugar_comprehension_helper env e rest
         in
         let i = freshvar () in
         Lambda
@@ -322,7 +322,7 @@ and desugar_comprehension_helper env expr comps : AST_jsonnet.expr =
       in
       Local
         ( fk,
-          [ B (arr, fk, for_expr) ],
+          [ B (arr, fk, e') ],
           fk,
           std_join (mk_array [], std_mk_array (std_length (Id arr), f)) )
   | [] -> failwith "impossible: Empty array comprehension"
@@ -477,7 +477,7 @@ and desugar_import env v : C.expr =
 (* Entry point *)
 (*****************************************************************************)
 
-let desugar_program ?(import_callback = default_callback)
+let desugar_program ?(import_callback = default_callback) ?(use_std = true)
     (file : Common.filename) (e : program) : C.program =
   let env =
     { within_an_object = false; base = Filename.dirname file; import_callback }
@@ -485,11 +485,12 @@ let desugar_program ?(import_callback = default_callback)
   (* TODO: skipped for now because std.jsonnet contains too many complicated
    * things we don't handle, and it actually does not even parse right now.
    *)
-  (*
-  let std = Std_jsonnet.get_std_jsonnet () in
   let e =
-    (* 'local std = e_std; e' *)
-    Local (fk, [B (("std", fk), fk, std)], fk, e) in
-  *)
+    if use_std then
+      let std = Std_jsonnet.get_std_jsonnet () in
+      (* 'local std = e_std; e' *)
+      Local (fk, [ B (("std", fk), fk, std) ], fk, e)
+    else e
+  in
   let core = desugar_expr env e in
   core
