@@ -1,0 +1,10 @@
+rules:
+  - id: top-level-sym-prop 
+    options:
+      symbolic_propagation: true
+    message: We should be able to symbolically propagate at the top level of a program! 
+    languages:
+      - python 
+    severity: INFO
+    pattern: |
+      f(g(150))

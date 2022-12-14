@@ -694,4 +694,14 @@ let propagate_dataflow lang ast =
       |> Visit_function_defs.visit (fun _ent fdef ->
              let inputs, xs = AST_to_IL.function_definition lang fdef in
              let flow = CFG_build.cfg_of_stmts xs in
-             propagate_dataflow_one_function lang inputs flow)
+             propagate_dataflow_one_function lang inputs flow);
+
+      (* We consider the top-level function the interior of a degenerate function,
+         and simply run constant propagation on that.
+
+         Since we don't traverse into each function body recursively, we shouldn't
+         duplicate any work.
+      *)
+      let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
+      let flow = CFG_build.cfg_of_stmts xs in
+      propagate_dataflow_one_function lang [] flow
