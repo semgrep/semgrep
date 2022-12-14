@@ -263,7 +263,9 @@ let map_integer_literal (env : env) (tok : CST.integer_literal) : G.literal =
   let s, t = str env tok in
   G.Int (int_of_string_opt s, t)
 
-let map_mutation_modifier (env : env) (x : CST.mutation_modifier) =
+let map_mutation_modifier (env : env) (x : CST.mutation_modifier) : G.attribute
+    =
+  (* TODO? use G.Mutable and G.Const instead? *)
   match x with
   | `Muta tok ->
       (* "mutating" *)
@@ -305,7 +307,7 @@ let map_parameter_modifier (env : env) (x : CST.parameter_modifier) =
       (* "@autoclosure" *)
       G.unhandled_keywordattr (str env tok)
 
-let map_throws (env : env) (x : CST.throws) =
+let map_throws (env : env) (x : CST.throws) : G.attribute =
   match x with
   | `Throws_kw tok -> (* throws_keyword *) G.attr G.Throws (token env tok)
   | `Rethrs_kw tok -> (* rethrows_keyword *) G.attr G.Rethrows (token env tok)
@@ -331,20 +333,15 @@ let map_custom_operator (env : env) (x : CST.custom_operator) =
   | `Tok_pat_c201ddc x -> str env x
   | `Custom_op_ tok -> (* custom_operator_ *) str env tok
 
+let map_mutation_modifier_opt env v1 : G.attribute list =
+  Option.map (map_mutation_modifier env) v1 |> Option.to_list
+
 let map_setter_specifier (env : env) ((v1, v2) : CST.setter_specifier) =
-  let _v1TODO =
-    match v1 with
-    | Some x -> map_mutation_modifier env x |> todo env
-    | None -> ()
-  in
+  let _attrs = map_mutation_modifier_opt env v1 in
   str env v2
 
 let map_modify_specifier (env : env) ((v1, v2) : CST.modify_specifier) =
-  let _v1TODO =
-    match v1 with
-    | Some x -> map_mutation_modifier env x |> todo env
-    | None -> ()
-  in
+  let _attrs = map_mutation_modifier_opt env v1 in
   let v2 = (* "_modify" *) str env v2 in
   v2
 
@@ -401,8 +398,12 @@ let map_non_local_scope_modifier (env : env) (x : CST.non_local_scope_modifier)
   | `Param_modi x -> map_parameter_modifier env x
   | `Prop_beha_modi tok -> (* "lazy" *) G.attr G.Lazy (token env tok)
 
-let map_parameter_modifiers (env : env) (xs : CST.parameter_modifiers) =
+let map_parameter_modifiers (env : env) (xs : CST.parameter_modifiers) :
+    G.attribute list =
   Common.map (map_parameter_modifier env) xs
+
+let map_parameter_modifiers_opt env v : G.attribute list =
+  Option.map (map_parameter_modifiers env) v |> Common.optlist_to_list
 
 let map_simple_identifier (env : env) (x : CST.simple_identifier) : G.ident =
   match x with
@@ -626,10 +627,10 @@ let map_precedence_group_attribute (env : env)
 let map_tuple_type_item_identifier (env : env)
     ((v1, v2, v3) : CST.tuple_type_item_identifier) =
   (* I don't really know why we permit underscores here. *)
-  let _v1TODO =
+  let _underscore_optTODO =
     match v1 with
-    | Some tok -> (* "_" *) token env tok |> todo env
-    | None -> ()
+    | Some tok -> Some ((* "_" *) token env tok)
+    | None -> None
   in
   let v2 = map_simple_identifier env v2 in
   let _v3 = (* ":" *) token env v3 in
@@ -647,12 +648,16 @@ let map_line_string_content (env : env) (x : CST.line_string_content) =
   | `Line_str_text tok -> (* pattern "[^\\\\\"]+" *) str env tok
   | `Str_esca_char x -> map_str_escaped_char env x
 
-let map_getter_effects (env : env) (xs : CST.getter_effects) =
+let map_async_keyword env tok : G.attribute =
+  (* async_keyword_custom *) G.attr G.Async (token env tok)
+
+let map_getter_effects (env : env) (xs : CST.getter_effects) : G.attribute list
+    =
   Common.map
     (fun x ->
       match x with
-      | `Async_kw tok -> (* async_keyword_custom *) token env tok
-      | `Throws x -> map_throws env x |> todo env)
+      | `Async_kw tok -> map_async_keyword env tok
+      | `Throws x -> map_throws env x)
     xs
 
 let map_precedence_group_attributes (env : env)
@@ -670,16 +675,12 @@ let map_non_constructor_function_decl (env : env)
   v2
 
 let map_getter_specifier (env : env) ((v1, v2, v3) : CST.getter_specifier) =
-  let _v1TODO =
-    match v1 with
-    | Some x -> map_mutation_modifier env x |> todo env
-    | None -> ()
-  in
+  let _attrs1 = map_mutation_modifier_opt env v1 in
   let v2 = (* "get" *) str env v2 in
-  let _v3TODO =
+  let _attrs2 =
     match v3 with
-    | Some x -> map_getter_effects env x |> todo env
-    | None -> ()
+    | Some x -> map_getter_effects env x
+    | None -> []
   in
   v2
 
@@ -915,6 +916,9 @@ and map_array_type (env : env) ((v1, v2, v3) : CST.array_type) : G.type_ =
   let v3 = (* "]" *) token env v3 in
   G.TyArray ((v1, None, v3), v2) |> G.t
 
+and map_modifiers_opt env v : G.attribute list =
+  Option.map (map_modifiers env) v |> Common.optlist_to_list
+
 and map_associatedtype_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.associatedtype_declaration) =
   let v2 = (* "associatedtype" *) token env v2 in
@@ -930,10 +934,7 @@ and map_associatedtype_declaration (env : env)
           [ G.OtherAttribute (("DefaultType", v2), [ G.T ty ]) ]
       | None -> []
     in
-    (match v1 with
-    | Some x -> map_modifiers env x
-    | None -> [])
-    @ default
+    map_modifiers_opt env v1 @ default
   in
   let id = map_simple_identifier env v3 in
   (* however, type constraints are modifiers on the type *)
@@ -1134,20 +1135,16 @@ and map_block (env : env) ((v1, v2, v3) : CST.block) =
 
 and map_bodyless_function_declaration (env : env) ~in_class
     ((v1, v2, v3) : CST.bodyless_function_declaration) body =
-  let attrs =
-    match v1 with
-    | Some x -> map_modifiers env x
-    | None -> []
-  in
+  let attrs = map_modifiers_opt env v1 in
   (* I'm not sure this does anything. "class" is already a possible modifier
      from the `map_modifiers` - it's a property modifier.
   *)
-  let _v2TODO =
+  let _class_opt =
     match v2 with
     | Some tok ->
         (* "class" *)
-        token env tok |> todo env
-    | None -> ()
+        Some (token env tok)
+    | None -> None
   in
   let v3 =
     map_modifierless_function_declaration_no_body env ~in_class ~attrs v3 body
@@ -1254,11 +1251,7 @@ and map_class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   (v1, v2, v3)
 
 and map_class_declaration (env : env) ((v1, v2) : CST.class_declaration) =
-  let modifiers =
-    match v1 with
-    | Some x -> map_modifiers env x
-    | None -> []
-  in
+  let modifiers = map_modifiers_opt env v1 in
   map_modifierless_class_declaration env modifiers v2
 
 and map_class_member_separator (env : env) (x : CST.class_member_separator) =
@@ -1329,11 +1322,7 @@ and map_control_transfer_statement (env : env)
       map_optionally_valueful_control_keyword env v1 v2 semi
 
 and map_deinit_declaration (env : env) ((v1, v2, v3) : CST.deinit_declaration) =
-  let v1 =
-    match v1 with
-    | Some x -> map_modifiers env x
-    | None -> []
-  in
+  let v1 = map_modifiers_opt env v1 in
   let v2 = (* "deinit" *) str env v2 in
   let v3 = map_function_body env v3 in
   let entity = G.basic_entity ~attrs:v1 v2 in
@@ -1447,10 +1436,7 @@ and map_enum_entry (env : env)
           [ G.unhandled_keywordattr (str env tok) ]
       | None -> []
     in
-    (match v1 with
-    | Some x -> map_modifiers env x
-    | None -> [])
-    @ v2
+    map_modifiers_opt env v1 @ v2
   in
   let mk_variant _idTODO _suffix_optTODO =
     let ent = G.basic_entity ~attrs:modifiers (map_simple_identifier env v4) in
@@ -1558,6 +1544,11 @@ and map_function_declaration (env : env) ~in_class
   let v1 = map_bodyless_function_declaration env ~in_class v1 (G.FBStmt v2) in
   v1
 
+and map_async_keyword_opt env v =
+  Option.map (map_async_keyword env) v |> Option.to_list
+
+and map_throws_opt env v = Option.map (map_throws env) v |> Option.to_list
+
 and map_function_type (env : env) ((v1, v2, v3, v4, v5) : CST.function_type) =
   let v1 =
     match v1 with
@@ -1565,17 +1556,8 @@ and map_function_type (env : env) ((v1, v2, v3, v4, v5) : CST.function_type) =
     | `Unan_type x -> map_unannotated_type env x
   in
   let attrs =
-    let v2 =
-      match v2 with
-      | Some tok ->
-          (* async_keyword_custom *) [ G.attr G.Async (token env tok) ]
-      | None -> []
-    in
-    let v3 =
-      match v3 with
-      | Some x -> [ map_throws env x ]
-      | None -> []
-    in
+    let v2 = map_async_keyword_opt env v2 in
+    let v3 = map_throws_opt env v3 in
     v2 @ v3
   in
   let _v4TODO = (* arrow_operator_custom *) token env v4 in
@@ -1730,11 +1712,7 @@ and map_if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) =
 
 and map_import_declaration (env : env)
     ((v1, v2, v3, v4) : CST.import_declaration) =
-  let attrs =
-    match v1 with
-    | Some x -> map_modifiers env x
-    | None -> []
-  in
+  let attrs = map_modifiers_opt env v1 in
   let v2 = (* "import" *) token env v2 in
   let _v3TODO =
     match v3 with
@@ -1881,17 +1859,8 @@ and map_lambda_function_type (env : env)
         v2
   in
   let attrs =
-    let v2 =
-      match v2 with
-      | Some tok ->
-          (* async_keyword_custom *) [ G.attr G.Async (token env tok) ]
-      | None -> []
-    in
-    let v3 =
-      match v3 with
-      | Some x -> [ map_throws env x ]
-      | None -> []
-    in
+    let v2 = map_async_keyword_opt env v2 in
+    let v3 = map_throws_opt env v3 in
     v2 @ v3
   in
   let rettype =
@@ -1990,11 +1959,7 @@ and map_lambda_parameter (env : env) (v1 : CST.lambda_parameter) : G.parameter =
       in
       let v2 = map_simple_identifier env v2 in
       let _tcolon = (* ":" *) token env v3 in
-      let attrs =
-        match v4 with
-        | Some x -> map_parameter_modifiers env x
-        | None -> []
-      in
+      let attrs = map_parameter_modifiers_opt env v4 in
       let v5 = map_possibly_implicitly_unwrapped_type env v5 in
       let ty = { v5 with G.t_attrs = attrs @ v5.G.t_attrs } in
       G.Param (G.param_of_id ~ptype:(Some ty) ~pattrs:attrs v2)
@@ -2220,17 +2185,8 @@ and map_modifierless_function_declaration_no_body (env : env) ~in_class
   in
   let v3 = map_function_value_parameters env v3 in
   let rettype_attrs =
-    let v4 =
-      match v4 with
-      | Some tok ->
-          (* async_keyword_custom *) [ G.attr G.Async (token env tok) ]
-      | None -> []
-    in
-    let v5 =
-      match v5 with
-      | Some x -> [ map_throws env x ]
-      | None -> []
-    in
+    let v4 = map_async_keyword_opt env v4 in
+    let v5 = map_throws_opt env v5 in
     v4 @ v5
   in
   let type_constraints =
@@ -2458,12 +2414,7 @@ and map_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.parameter)
   in
   let v2 = map_simple_identifier env v2 in
   let _tcolon = (* ":" *) token env v3 in
-  let attrs =
-    (match v4 with
-    | Some x -> map_parameter_modifiers env x
-    | None -> [])
-    @ attrs
-  in
+  let attrs = map_parameter_modifiers_opt env v4 @ attrs in
   let v5 = map_possibly_implicitly_unwrapped_type env v5 in
   let ptype = Some { v5 with G.t_attrs = attrs @ v5.G.t_attrs } in
   let param = G.param_of_id ~pdefault:default ~ptype v2 in
@@ -2606,9 +2557,9 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
       let v3 =
         Common.map
           (fun (v1, v2) ->
-            let v1 = (* "." *) token env v1 in
+            let _v1 = (* "." *) token env v1 in
             let v2 = map_key_path_component env v2 in
-            todo env (v1, v2))
+            v2)
           v3
       in
       todo env (v1, v2, v3)
@@ -2633,11 +2584,7 @@ and map_property_declaration (env : env) ((v1, v2) : CST.property_declaration) =
   (* These modifiers apply to each consecutive declaration here.
      So pass them down and distribute them.
   *)
-  let modifiers =
-    match v1 with
-    | Some x -> map_modifiers env x
-    | None -> []
-  in
+  let modifiers = map_modifiers_opt env v1 in
   map_modifierless_property_declaration env modifiers v2
 
 and map_protocol_body (env : env) ((v1, v2, v3) : CST.protocol_body) :
@@ -2653,11 +2600,7 @@ and map_protocol_body (env : env) ((v1, v2, v3) : CST.protocol_body) :
 
 and map_protocol_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.protocol_declaration) =
-  let modifiers =
-    match v1 with
-    | Some x -> map_modifiers env x
-    | None -> []
-  in
+  let modifiers = map_modifiers_opt env v1 in
   let v2 = (* "protocol" *) token env v2 in
   let v3 = map_simple_identifier env v3 in
   let tparams =
@@ -2681,11 +2624,7 @@ and map_protocol_member_declaration (env : env)
       G.F v1
   | `Deinit_decl x -> G.F (map_deinit_declaration env x)
   | `Prot_prop_decl (v1, v2, v3, v4, v5) ->
-      let v1 =
-        match v1 with
-        | Some x -> map_modifiers env x
-        | None -> []
-      in
+      let v1 = map_modifiers_opt env v1 in
       let kinds, pat = map_binding_kind_and_pattern env v2 in
       let pat = apply_pattern_kinds env pat kinds in
       let entity = entity_of_pattern ~attrs:v1 pat in
@@ -2756,9 +2695,9 @@ and map_repeat_while_statement (env : env)
   let v7 =
     Common.map
       (fun (v1, v2) ->
-        let v1 = (* "," *) token env v1 in
+        let _v1 = (* "," *) token env v1 in
         let v2 = map_if_condition_sequence_item env v2 in
-        todo env (v1, v2))
+        v2)
       v7
   in
   let cond = combine_conds expr v7 in
@@ -2814,8 +2753,9 @@ and map_string_literal (env : env) (x : CST.string_literal) : G.expr =
             let v2 = map_raw_str_interpolation env v2 in
             let v3 =
               match v3 with
-              | Some tok -> (* raw_str_continuing_indicator *) token env tok
-              | None -> todo env ()
+              | Some tok ->
+                  Some ((* raw_str_continuing_indicator *) token env tok)
+              | None -> None
             in
             todo env (v1, v2, v3))
           v1
@@ -2826,11 +2766,7 @@ and map_string_literal (env : env) (x : CST.string_literal) : G.expr =
 and map_subscript_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.subscript_declaration) =
   let v2 = (* "subscript" *) token env v2 in
-  let attrs =
-    match v1 with
-    | Some x -> map_modifiers env x
-    | None -> []
-  in
+  let attrs = map_modifiers_opt env v1 in
   let tparams =
     match v3 with
     | Some x -> map_type_parameters env x
@@ -2862,11 +2798,7 @@ and map_subscript_declaration (env : env)
 
 and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =
   (* These are weird case-specific attributes... probably not important. *)
-  let _v1TODO =
-    match v1 with
-    | Some x -> map_modifiers env x |> todo env
-    | None -> ()
-  in
+  let _attrs = map_modifiers_opt env v1 in
   let case =
     match v2 with
     | `Case_switch_pat_opt_where_kw_exp_rep_COMMA_switch_pat (v1, v2, v3, v4) ->
@@ -2905,8 +2837,8 @@ and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =
   (* For now, don't deal with fallthrough. *)
   let _TODO =
     match v5 with
-    | Some tok -> (* "fallthrough" *) token env tok |> todo env
-    | None -> ()
+    | Some tok -> Some (* "fallthrough" *) (token env tok)
+    | None -> None
   in
   G.CasesAndBody ([ case ], stmt |> G.s)
 
@@ -3026,11 +2958,7 @@ and map_tuple_type_item (env : env) ((v1, v2, v3) : CST.tuple_type_item) =
           tparams = [];
         }
   in
-  let _v2TODO =
-    match v2 with
-    | Some x -> map_parameter_modifiers env x |> todo env
-    | None -> []
-  in
+  let _v2TODO = map_parameter_modifiers_opt env v2 in
   let v3 = map_type_ env v3 in
   G.DefStmt (ent, G.FieldDefColon { vinit = None; vtype = Some v3 }) |> G.s
 
@@ -3178,11 +3106,7 @@ and map_type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters)
 
 and map_typealias_declaration (env : env) ((v1, v2) : CST.typealias_declaration)
     =
-  let modifiers =
-    match v1 with
-    | Some x -> map_modifiers env x
-    | None -> []
-  in
+  let modifiers = map_modifiers_opt env v1 in
   map_modifierless_typealias_declaration env modifiers v2
 
 and map_unannotated_type (env : env) (x : CST.unannotated_type) =
@@ -3226,9 +3150,9 @@ and map_unannotated_type (env : env) (x : CST.unannotated_type) =
       let v2 =
         Common.map
           (fun (v1, v2) ->
-            let v1 = (* "&" *) token env v1 in
+            let _v1 = (* "&" *) token env v1 in
             let v2 = map_unannotated_type env v2 in
-            todo env (v1, v2))
+            v2)
           v2
       in
       todo env (v1, v2)
