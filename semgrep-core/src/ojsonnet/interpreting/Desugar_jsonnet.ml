@@ -66,7 +66,9 @@ let error tk s =
   raise (Error (s, tk))
 
 let fk = Parse_info.unsafe_fake_info ""
+let fb x = (fk, x, fk)
 let mk_str_literal (str, tk) = Str (None, DoubleQuote, (fk, [ (str, tk) ], fk))
+let mk_array exprs = A (fk, Array exprs, fk)
 
 let mk_DotAccess_std id : expr =
   let std_id = ("std", fk) in
@@ -76,6 +78,12 @@ and expr_or_null v : expr =
   match v with
   | None -> L (Null fk)
   | Some e -> e
+
+let freshvar =
+  let store = ref 0 in
+  fun () ->
+    incr store;
+    ("!tmp" ^ string_of_int !store, fk)
 
 let todo _env _v = failwith "TODO"
 
@@ -262,42 +270,65 @@ and desugar_arr_inside env (l, v, r) : C.expr =
   | Array v ->
       let xs = (desugar_list desugar_expr) env v in
       C.Array (l, xs, r)
-  | ArrayComp v ->
-      let v = (desugar_comprehension desugar_expr) env v in
+  | ArrayComp (expr, for_comp, rest_comp) ->
+      let v = desugar_comprehension env expr (CompFor for_comp :: rest_comp) in
       todo env v
 
-and desugar_comprehension ofa env v =
-  (fun env (v1, v2, v3) ->
-    let v1 = ofa env v1 in
-    let v2 = todo env v2 in
-    let v3 = (desugar_list desugar_for_or_if_comp) env v3 in
-    todo env (v1, v2, v3))
-    env v
+(* Strictly speaking, the semantics say you're supposed to desugar as an expression in tandem with
+   desugaring the comprehension.
+   However, these return two different types in our desugaring process. So we can't do that.
 
-and desugar_for_or_if_comp env v =
-  match v with
-  | CompFor v ->
-      let v = desugar_for_comp env v in
-      todo env v
-  | CompIf v ->
-      let v = desugar_if_comp env v in
-      todo env v
+   I hope that applying a single outer-level desugar_expr is equivalent to interleaving it.
+*)
+and desugar_comprehension_helper env expr comps : AST_jsonnet.expr =
+  match comps with
+  | CompIf (tok, cond) :: rest ->
+      let empty_else = Some (fk, mk_array []) in
+      let inner_exp =
+        match rest with
+        | [] -> mk_array [ expr ]
+        | __else__ -> desugar_comprehension_helper env expr rest
+      in
+      If (tok, cond, inner_exp, empty_else)
+  | CompFor (_, x, _, for_expr) :: rest ->
+      let std_join (l, r) =
+        Call (mk_DotAccess_std ("join", fk), fb [ Arg l; Arg r ])
+      in
+      let std_mk_array (length, f) =
+        Call (mk_DotAccess_std ("makeArray", fk), fb [ Arg length; Arg f ])
+      in
+      let std_length array =
+        Call (mk_DotAccess_std ("length", fk), fb [ Arg array ])
+      in
+      let arr = freshvar () in
+      let f =
+        let inner_exp =
+          match rest with
+          | [] -> mk_array [ expr ]
+          | __else__ -> desugar_comprehension_helper env expr rest
+        in
+        let i = freshvar () in
+        Lambda
+          {
+            f_tok = fk;
+            f_params = fb [ P (i, None) ];
+            f_body =
+              Local
+                ( fk,
+                  [ B (x, fk, ArrayAccess (Id arr, Id i |> fb)) ],
+                  fk,
+                  inner_exp );
+          }
+      in
+      Local
+        ( fk,
+          [ B (arr, fk, for_expr) ],
+          fk,
+          std_join (mk_array [], std_mk_array (std_length (Id arr), f)) )
+  | [] -> failwith "impossible: Empty array comprehension"
 
-and desugar_for_comp env v =
-  (fun env (v1, v2, v3, v4) ->
-    let v1 = todo env v1 in
-    let v2 = todo env v2 in
-    let v3 = todo env v3 in
-    let v4 = desugar_expr env v4 in
-    todo env (v1, v2, v3, v4))
-    env v
-
-and desugar_if_comp env v =
-  (fun env (v1, v2) ->
-    let v1 = desugar_tok env v1 in
-    let v2 = desugar_expr env v2 in
-    todo env (v1, v2))
-    env v
+and desugar_comprehension env expr comps =
+  desugar_expr env (desugar_comprehension_helper env expr comps)
 
 (* The desugaring of method was already done at parsing time,
  * so no need to handle id with parameters here. See AST_jsonnet.bind comment.
