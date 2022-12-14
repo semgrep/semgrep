@@ -295,13 +295,6 @@ let rec m_dotted_name_prefix_ok a b =
  *)
 let m_module_name_prefix a b =
   match (a, b) with
-  (* metavariable case *)
-  | G.FileName ((a_str, _) as a1), B.FileName b1 when MV.is_metavar_name a_str
-    ->
-      (* Bind as a literal string expression so that pretty-printing works.
-       * This also means that this metavar can match both literal strings and
-       * filenames with the same string content. *)
-      envf a1 (MV.E (B.L (B.String b1) |> G.e))
   (* dots: '...' on string or regexp *)
   | G.FileName a, B.FileName b ->
       m_string_ellipsis_or_metavar_or_default
