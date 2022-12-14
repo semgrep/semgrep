@@ -855,8 +855,8 @@ class CoreRunner:
                     # str(self._timeout),
                     # "--timeout_threshold",
                     # str(self._timeout_threshold),
-                    # "--max_memory",
-                    # str(self._max_memory),
+                    "--max_memory",
+                    str(self._max_memory),
                 ]
 
             stderr: Optional[int] = subprocess.PIPE
@@ -872,7 +872,9 @@ class CoreRunner:
                 # to copy+paste it to a shell.  (The real command is
                 # still visible in the log message above.)
                 printed_cmd = cmd.copy()
-                printed_cmd[0] = SemgrepCore.executable_path()
+                printed_cmd[0] = (
+                    deep_path if deep_path and deep else SemgrepCore.executable_path()
+                )
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
