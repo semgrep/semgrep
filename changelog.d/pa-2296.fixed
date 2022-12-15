@@ -1,2 +1,0 @@
-Fix matching of qualified names. For example, `new $X.Foo()` will now match
-`new a.b.Foo()`.
