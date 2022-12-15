@@ -601,9 +601,10 @@ and m_ident_and_type_arguments (a1, a2) (b1, b2) =
 
 and m_qualifier a b =
   match (a, b) with
-  | G.QDots a, B.QDots b ->
-      (* TODO? like for m_dotted_name, [$X] should match anything? *)
-      m_list m_ident_and_type_arguments a b
+  (* Like for m_dotted_name, [$X] should match anything *)
+  | G.QDots [ ((str, t), _) ], B.QDots b when MV.is_metavar_name str ->
+      envf (str, t) (MV.E (make_dotted (Common.map fst b)))
+  | G.QDots a, B.QDots b -> m_list m_ident_and_type_arguments a b
   | G.QExpr (a1, a2), B.QExpr (b1, b2) -> m_expr a1 b1 >>= fun () -> m_tok a2 b2
   | G.QDots _, _
   | G.QExpr _, _ ->
