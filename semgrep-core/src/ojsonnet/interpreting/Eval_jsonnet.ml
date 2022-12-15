@@ -57,7 +57,7 @@ let fk = Parse_info.unsafe_fake_info ""
 
 let sv e =
   let s = V.show_value_ e in
-  if String.length s > 100 then String.first_chars s 100 ^ "..." else s
+  if String.length s > 100 then Str.first_chars s 100 ^ "..." else s
 
 let eval_bracket ofa env (v1, v2, v3) =
   let v2 = ofa env v2 in
