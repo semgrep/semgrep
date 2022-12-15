@@ -1,0 +1,2 @@
+Constant propagation: Fixed a bug where constant propagation would only run within functions. Now,
+it runs on the top-level of the program as well.
