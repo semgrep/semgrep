@@ -1,0 +1,1 @@
+Fixed rare crash that could occur due to stale file caches when temp file names overlap
