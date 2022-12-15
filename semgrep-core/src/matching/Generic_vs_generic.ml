@@ -472,28 +472,32 @@ let rec m_name ?(is_resolved = false) a b =
            } as infob) ) ) -> (
       let is_resolved =
         match resolved with
-        | B.ResolvedName _ -> true
+        | B.ResolvedName _
+        | B.ImportedEntity _
+        | B.ImportedModule _ ->
+            true
         | _ -> false
       in
       m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
-      >||> try_alternate_names resolved
-      (* Try the resolved entity *)
+      >!> (* Try the resolved entity *)
+      fun () ->
+      try_alternate_names resolved
       >||> m_name ~is_resolved a (H.name_of_ids dotted)
       >||>
       (* Try the resolved entity and parents *)
       match a with
       (* > If we're matching against a metavariable, don't bother checking
-       * > the resolved entity or parents. It will only cause duplicate matches
-       * > that can't be deduped, since the captured metavariable will be
-       * > different.
-       *
-       * FIXME:
-       * This is actually not the correct way of dealing with the problem,
-       * because there could be `metavariable-xyz` operators filtering the
-       * potential values of the metavariable. See DeepSemgrep commit
-       *
-       *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
-       *)
+         * > the resolved entity or parents. It will only cause duplicate matches
+         * > that can't be deduped, since the captured metavariable will be
+         * > different.
+         *
+         * FIXME:
+         * This is actually not the correct way of dealing with the problem,
+         * because there could be `metavariable-xyz` operators filtering the
+         * potential values of the metavariable. See DeepSemgrep commit
+         *
+         *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
+      *)
       | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
       | _ ->
           (* Try matching against parent classes *)
@@ -504,7 +508,11 @@ let rec m_name ?(is_resolved = false) a b =
   | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
       (* If `is_resolved` is true, then we got the target `IdQualified` from a
          `ResolvedName`.
-         Such an identifier has a nonsensical range. If the resolved name is `A.foo`, in
+         Such an identifier has a nonsensical range, because it may have been
+         constructed from identifiers from arbitrary areas, such as imports or
+         classes.
+
+         If the resolved name is `A.foo`, in
          the following code:
          ```
          class A:
@@ -539,11 +547,12 @@ let rec m_name ?(is_resolved = false) a b =
              };
            _;
          } as nameinfo) ) ->
+      (* try without resolving anything *)
+      m_name a (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
+      >!> (* Try the resolved names. *)
+      fun () ->
       try_parents dotted
       >||> try_alternate_names resolved
-      (* try without resolving anything *)
-      >||> m_name a
-             (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
       >||>
       (* try this time by replacing the qualifier by the resolved one *)
       let new_qualifier =
