@@ -1225,7 +1225,7 @@ and type_kind =
    * note: the type_ should always be a TyN, so really it's a TyNameApply
    * but it's simpler to not repeat TyN to factorize code in semgrep regarding
    * aliasing.
-   * TODO: could merge with TyN now that qualified_info has type_arguments
+   * TODO: merge with TyN now that qualified_info has type_arguments?
    *)
   | TyApply of type_ * type_arguments
   (* old: was 'TyFun of type_ list * type*' , but languages such as C and
@@ -1241,11 +1241,12 @@ and type_kind =
   (* dynamic/unknown type: '_' in OCaml, 'dynamic' in Kotlin, 'auto' in C++,
    * 'var' in Java. TODO: type bounds Scala? *)
   | TyAny of tok
-  | TyPointer of tok * type_
+  | TyPointer of tok * type_ (* C/C++/Go *)
   | TyRef of tok * type_ (* C++/Rust *)
   | TyQuestion of type_ * tok (* a.k.a option type *)
   | TyRest of tok * type_ (* '...foo' e.g. in a typescript tuple type *)
-  (* intersection types, used for Java Cast, and in Typescript *)
+  (* intersection types, used for Java Cast, and in Typescript and in
+   * Swift for protocol composition *)
   | TyAnd of type_ * tok (* &, or 'with' in Scala *) * type_
   (* union types in Typescript *)
   | TyOr of type_ * tok (* | *) * type_
@@ -1277,7 +1278,8 @@ and type_kind =
   | TyExpr of expr
   (* e.g., Struct/Union/Enum names (convert in unique TyName?), TypeOf/TSized
    * TRefRef in C++, EnumAnon in C++/Hack, TyTodo in OCaml, TyLit in Scala/JS,
-   * lots of stuff in C#, Lifetime in Rust, Delegation in Kotlin
+   * lots of stuff in C#, Lifetime in Rust, Delegation in Kotlin,
+   * Any in Swift
    *)
   | OtherType of todo_kind * any list
 
