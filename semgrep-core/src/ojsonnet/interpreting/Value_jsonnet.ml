@@ -61,7 +61,7 @@ and field = {
 and lazy_value = {
   (* lazy closures built from a call to Eval_jsonnet.eval_expr *)
   v : value_ Lazy.t;
-  (* just for pretty printing as we can't pretty print closures *)
+  (* just for debugging as we can't inspect closures *)
   e : C.expr;
 }
 [@@deriving show]

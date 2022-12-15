@@ -54,8 +54,10 @@ let error tk s =
   raise (Error (s, tk))
 
 let fk = Parse_info.unsafe_fake_info ""
-let sv e = V.show_value_ e
-let todo _env _v = failwith "TODO"
+
+let sv e =
+  let s = V.show_value_ e in
+  if String.length s > 100 then String.first_chars s 100 ^ "..." else s
 
 let eval_bracket ofa env (v1, v2, v3) =
   let v2 = ofa env v2 in
@@ -91,13 +93,7 @@ let tostring (v : Value_jsonnet.value_) : string =
 (* eval_expr *)
 (*****************************************************************************)
 
-let rec eval_expr env e =
-  try eval_expr_aux env e with
-  | Failure "TODO" ->
-      pr2 (spf "TODO: construct not handled:\n %s" (show_expr e));
-      failwith "TODO:eval"
-
-and eval_expr_aux (env : env) (v : expr) : V.value_ =
+let rec eval_expr (env : env) (v : expr) : V.value_ =
   match v with
   | L v ->
       let prim =
@@ -204,7 +200,7 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
             |> List.find_opt (fun (field : V.field) ->
                    fst field.fld_name =$= fld)
           with
-          | None -> error tk (spf "field %s not present in %s" fld (sv e))
+          | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
           | Some fld -> Lazy.force fld.fld_value.v)
       (* TODO? support ArrayAccess for Strings? *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv e')))
@@ -239,6 +235,7 @@ and eval_expr_aux (env : env) (v : expr) : V.value_ =
       match eval_expr env e with
       | V.Primitive (V.Str (s, tk)) -> error tk (spf "ERROR: %s" s)
       | v -> error tk (spf "ERROR: %s" (tostring v)))
+  | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
 
 and eval_call env e0 (l, args, _r) =
   match eval_expr env e0 with
@@ -284,7 +281,8 @@ and eval_binary_op env el (op, tk) er =
       | v, V.Primitive (V.Str (s, tk)) ->
           V.Primitive (V.Str (tostring v ^ s, tk))
       (* TODO: when objects, inheritance, very complex! *)
-      | _else_ -> todo env ())
+      | v1, v2 ->
+          error tk (spf "TODO: Plus (%s, %s) not yet handled" (sv v1) (sv v2)))
   | And -> (
       match eval_expr env el with
       | V.Primitive (V.Bool (b, _)) as v -> if b then eval_expr env er else v
@@ -458,22 +456,23 @@ and eval_obj_inside env (l, x, r) : V.value_ =
                r ))
       in
       Lazy.force lazy_o
-  | ObjectComp x ->
+  | ObjectComp _x -> error l "TODO: ObjectComp"
+(*
       let v = eval_obj_comprehension env x in
-      todo env v
 
 and eval_obj_comprehension env v =
   (fun env (_fldname, _tk, v3, v4) ->
     let v3 = eval_expr env v3 in
     let v4 = eval_for_comp env v4 in
-    todo env (v3, v4))
+    ...)
     env v
 
 and eval_for_comp env v =
   (fun env (_tk1, _id, _tk2, v4) ->
     let v4 = eval_expr env v4 in
-    todo env v4)
+    ...)
     env v
+*)
 
 (*****************************************************************************)
 (* Entry points *)

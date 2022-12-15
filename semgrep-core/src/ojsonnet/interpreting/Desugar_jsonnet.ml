@@ -396,11 +396,9 @@ and desugar_obj_inside env (l, v, r) : C.expr =
               C.B (("$outersuper", fk), fk, C.IdSpecial (C.Super, fk));
             ],
             fk,
-            O (l, obj, r) )
-      else O (l, obj, r)
-  | ObjectComp v ->
-      let v = desugar_obj_comprehension env v in
-      todo env v
+            C.O (l, obj, r) )
+      else C.O (l, obj, r)
+  | ObjectComp _vTODO -> C.ExprTodo (("ObjectComp", l), O (l, v, r))
 
 and desugar_assert_ (env : env) (v : assert_ * bind list) : C.obj_assert =
   let (tassert, e, opt), binds = v in
@@ -440,7 +438,6 @@ and desugar_field_name env v =
       C.FExpr (l, v, r)
 
 and desugar_hidden _env v = v
-and desugar_obj_comprehension env _v = todo env "RECORD"
 
 and desugar_import env v : C.expr =
   match v with
