@@ -30,7 +30,7 @@ jobs:
       - run: git submodule update --init --recursive --recommend-shallow semgrep-core/src/pfff
       # Dogfooding on the bleeding edge by using jsonnet and the new syntax!
       # coupling: see also 'make check'
-      - run: semgrep --config semgrep.jsonnet --error --verbose --exclude tests
+      - run: semgrep --config semgrep.jsonnet --error --verbose --exclude tests --exclude pfff
 
   # For the benchmarks below, we had two alternatives:
   # A. run semgrep container from existing container: requires mounting
