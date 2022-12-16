@@ -1,0 +1,258 @@
+src: HTML & XHTML definitive guide edition 6
+
+a_content [a] 	::=	heading
+ 	|	text
+a_tag 	::=	<a>
+ 	 	{a_content}0
+ 	 	</a>
+abbr_tag 	::=	<abbr> text </abbr>
+acronym_tag 	::=	<acronym> text </acronym>
+address_content 	::=	p_tag
+ 	|	text
+address_tag 	::=	<address>
+ 	 	{address_content}0
+ 	 	</address>
+applet_content 	::=	{<param>}0
+ 	 	body_content
+applet_tag 	::=	<applet> applet_content </applet>
+b_tag 	::=	<b> text </b>
+basefont_tag 	::=	<basefont> body_content </basefont>
+bdo_tag 	::=	<bdo> text </bdo>
+big_tag 	::=	<big> text </big>
+blink_tag 	::=	<blink> text </blink>
+block 	::=	{block_content}0
+block_content 	::=	<isindex>
+ 	|	basefont_tag
+ 	|	blockquote_tag
+ 	|	center_tag
+ 	|	dir_tag
+ 	|	div_tag
+ 	|	dl_tag
+ 	|	form_tag
+ 	|	listing_tag
+ 	|	menu_tag
+ 	|	multicol_tag
+
+ 	|	nobr_tag
+ 	|	ol_tag
+ 	|	p_tag
+ 	|	pre_tag
+ 	|	table_tag
+ 	|	ul_tag
+ 	|	xmp_tag
+blockquote_tag 	::=	<blockquote> body_content </blockquote>
+body_content 	::=	<bgsound>
+ 	|	<hr>
+ 	|	address_tag
+ 	|	block
+ 	|	del_tag
+ 	|	heading
+ 	|	ins_tag
+ 	|	layer_tag
+ 	|	map_tag
+ 	|	marquee_tag
+ 	|	text
+body_tag 	::=	<body>
+ 	 	{body_content}0
+ 	 	</body>
+caption_tag 	::=	<caption> body_content </caption>
+center_tag 	::=	<center> body_content </center>
+cite_tag 	::=	<cite> text </cite>
+code_tag 	::=	<code> text </code>
+colgroup_content 	::=	{<col>}0
+colgroup_tag 	::=	<colgroup>
+ 	 	colgroup_content
+content_style 	::=	abbr_tag
+ 	|	acronym_tag
+ 	|	cite_tag
+ 	|	code_tag
+ 	|	dfn_tag
+ 	|	em_tag
+ 	|	kbd_tag
+ 	|	q_tag
+ 	|	strong_tag
+ 	|	var_tag
+dd_tag 	::=	<dd> flow </dd>
+del_tag 	::=	<del> flow </del>
+dfn_tag 	::=	<dfn> text </dfn>
+dir_tag [b] 	::=	<dir>
+ 	 	{li_tag}
+ 	 	</dir>
+div_tag 	::=	<div> body_content </div>
+dl_content 	::=	dt_tag dd_tag
+dl_tag 	::=	<dl>
+ 	 	{dl_content}
+ 	 	</dl>
+dt_tag 	::=	<dt>
+ 	 	text
+ 	 	</dt>
+em_tag 	::=	<em> text </em>
+fieldset_tag 	::=	<fieldset>
+ 	 	[legend_tag]
+ 	 	{form_content}0
+ 	 	</fieldset>
+flow 	::=	{flow_content}0
+flow_content 	::=	block
+ 	|	text
+font_tag 	::=	<font> style_text </font>
+form_content [c] 	::=	<input>
+ 	|	<keygen>
+ 	|	body_content
+ 	|	fieldset_tag
+ 	|	label_tag
+ 	|	select_tag
+ 	|	textarea_tag
+form_tag 	::=	<form>
+ 	 	{form_content}0
+ 	 	</form>
+frameset_content 	::=	<frame>
+ 	|	noframes_tag
+frameset_tag 	::=	<frameset>
+ 	 	{frameset_content}0
+ 	 	</frameset>
+h1_tag 	::=	<h1> text </h1>
+h2_tag 	::=	<h2> text </h2>
+h3_tag 	::=	<h3> text </h3>
+h4_tag 	::=	<h4> text </h4>
+h5_tag 	::=	<h5> text </h5>
+
+h6_tag 	::=	<h6> text </h6>
+head_content 	::=	<base>
+ 	|	<isindex>
+ 	|	<link>
+ 	|	<meta>
+ 	|	<nextid>
+ 	|	style_tag
+ 	|	title_tag
+head_tag 	::=	<head>
+ 	 	{head_content}0
+ 	 	</head>
+heading 	::=	h1_tag
+ 	|	h2_tag
+ 	|	h3_tag
+ 	|	h4_tag
+ 	|	h5_tag
+ 	|	h6_tag
+html_content 	::=	head_tag body_tag
+ 	|	head_tag frameset_tag
+html_document 	::=	html_tag
+html_tag 	::=	<html> html_content </html>
+i_tag 	::=	<i> text </i>
+ilayer_tag 	::=	<ilayer> body_content </ilayer>
+ins_tag 	::=	<ins> flow </ins>
+kbd_tag 	::=	<kbd> text </kbd>
+label_content [d] 	::=	<input>
+ 	|	body_content
+ 	|	select_tag
+ 	|	textarea_tag
+label_tag 	::=	<label>
+ 	 	{label_content}0
+ 	 	</label>
+layer_tag 	::=	<layer> body_content </layer>
+legend_tag 	::=	<legend> text </legend>
+li_tag 	::=	<li> flow </li>
+listing_tag 	::=	<listing> literal_text </listing>
+map_content 	::=	{<area>}0
+map_tag 	::=	<map> map_content </map>
+marquee_tag 	::=	<marquee> style_text </marquee>
+menu_tag [e] 	::=	<menu>
+ 	 	{li_tag}0
+ 	 	</menu>
+multicol_tag 	::=	<multicol> body_content </multicol>
+nobr_tag 	::=	<nobr> text </nobr>
+noembed_tag 	::=	<noembed> text </noembed>
+noframes_tag 	::=	<noframes>
+ 	 	{body_content}0
+ 	 	</noframes>
+noscript_tag 	::=	<noscript> text </noscript>
+object_content 	::=	{<param>}0
+ 	 	body_content
+object_tag 	::=	<object> object_content </object>
+ol_tag 	::=	<ol>
+ 	 	{li_tag}
+ 	 	</ol>
+optgroup_tag 	::=	<optgroup>
+ 	 	{option_tag}0
+ 	 	</optgroup>
+option_tag 	::=	<option> plain_text </option>
+p_tag 	::=	<p> text </p>
+physical_style 	::=	b_tag
+ 	|	bdo_tag
+ 	|	big_tag
+ 	|	blink_tag
+ 	|	font_tag
+ 	|	i_tag
+ 	|	s_tag
+ 	|	small_tag
+ 	|	span_tag
+ 	|	strike_tag
+ 	|	sub_tag
+ 	|	sup_tag
+ 	|	tt_tag
+ 	|	u_tag
+pre_content 	::=	<br>
+ 	|	<hr>
+ 	|	a_tag
+ 	|	style_text
+pre_tag 	::=	<pre>
+ 	 	{pre_content}0
+ 	 	</pre>
+q_tag 	::=	<q> text </q>
+s_tag 	::=	<s> text </s>
+samp_tag 	::=	<samp> text </samp>
+script_tag [f] 	::=	<script> plain_text </script>
+select_content 	::=	optgroup_tag
+ 	|	option_tag
+select_tag 	::=	<select>
+ 	 	{select_content}0
+ 	 	</select>
+server_tag [g] 	::=	<server> plain_text </server>
+small_tag 	::=	<small> text </small>
+span_tag 	::=	<span> text </span>
+strike_tag 	::=	<strike> text </strike>
+strong_tag 	::=	<strong> text </strong>
+style_tag 	::=	<style> plain_text </style>
+sub_tag 	::=	<sub> text </sub>
+sup_tag 	::=	<sup> text </sup>
+table_cell 	::=	td_tag
+ 	|	th_tag
+table_content 	::=	<tbody>
+ 	|	<tfoot>
+ 	|	<thead>
+ 	|	tr_tag
+table_tag 	::=	<table>
+ 	 	[caption_tag]
+ 	 	{colgroup_tag}0
+ 	 	{table_content}0
+ 	 	</table>
+td_tag 	::=	<td> body_content </td>
+text 	::=	{text_content}0
+text_content 	::=	<br>
+ 	|	<embed>
+ 	|	<iframe>
+ 	|	<img>
+ 	|	<spacer>
+ 	|	<wbr>
+ 	|	a_tag
+ 	|	applet_tag
+ 	|	content_style
+ 	|	ilayer_tag
+ 	|	noembed_tag
+ 	|	noscript_tag
+
+ 	|	object_tag
+ 	|	physical_style
+ 	|	plain_text
+textarea_tag 	::=	<textarea> plain_text </textarea>
+th_tag 	::=	<th> body_content </th>
+title_tag 	::=	<title> plain_text </title>
+tr_tag 	::=	<tr>
+ 	 	{table_cell}0
+ 	 	</tr>
+tt_tag 	::=	<tt> text </tt>
+u_tag 	::=	<u> text </u>
+ul_tag 	::=	<ul>
+ 	 	{li_tag}
+ 	 	</ul>
+var_tag 	::=	<var> text </var>
+xmp_tag 	::=	<xmp> literal_text </xmp>

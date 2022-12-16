@@ -1,0 +1,264 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2014 Facebook
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *
+ *)
+
+open OCaml
+open Ast_c
+
+(* Disable warnings against unused variables *)
+[@@@warning "-26"]
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* hooks *)
+type visitor_in = {
+  kexpr: Ast_c.expr vin;
+  kinfo: Cst_cpp.tok vin;
+}
+and visitor_out = any -> unit
+and 'a vin = ('a  -> unit) * visitor_out -> 'a  -> unit
+
+module Ast_cpp = struct
+  let v_assignOp _ = ()
+  let v_fixOp _ = ()
+  let v_unaryOp _ = ()
+  let v_binaryOp _ = ()
+end
+
+let default_visitor = {
+  kinfo = (fun (k,_) x -> k x);
+  kexpr = (fun (k,_) x -> k x);
+}
+
+let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
+
+let rec v_info x =
+  let k _ = () in
+  vin.kinfo (k, all_functions) x
+
+and v_wrap:'a. ('a -> unit) -> 'a wrap -> unit =
+ fun _of_a (v1, v2) ->
+   let v1 = _of_a v1 and v2 = v_info v2 in ()
+
+and v_bracket: 'a. ('a -> unit) -> 'a bracket -> unit =
+  fun of_a (v1, v2, v3) ->
+  let v1 = v_info v1 and v2 = of_a v2 and v3 = v_info v3 in ()
+
+and v_name v = v_wrap v_string v
+
+and v_type_ =
+  function
+  | TBase v1 -> let v1 = v_name v1 in ()
+  | TPointer (t, v1) -> let t = v_info t in let v1 = v_type_ v1 in ()
+  | TArray ((v1, v2)) ->
+      let v1 = v_option v_const_expr v1 and v2 = v_type_ v2 in ()
+  | TFunction v1 -> let v1 = v_function_type v1 in ()
+  | TStructName ((v1, v2)) ->
+      let v1 = v_struct_kind v1 and v2 = v_name v2 in ()
+  | TEnumName v1 -> let v1 = v_name v1 in ()
+  | TTypeName v1 -> let v1 = v_name v1 in ()
+
+and v_function_type (v1, v2) =
+  let v1 = v_type_ v1 and v2 = v_list v_parameter v2 in ()
+and v_parameter { p_type = v_p_type; p_name = v_p_name } =
+  let arg = v_type_ v_p_type in let arg = v_option v_name v_p_name in ()
+and v_struct_kind = function | Struct -> () | Union -> ()
+and v_const_expr v = v_expr v
+and v_expr x =
+  let k x = match x with
+  | Int v1 -> let v1 = v_wrap v_string v1 in ()
+  | Float v1 -> let v1 = v_wrap v_string v1 in ()
+  | String v1 -> let v1 = v_wrap v_string v1 in ()
+  | Char v1 -> let v1 = v_wrap v_string v1 in ()
+  | Id v1 -> let v1 = v_name v1 in ()
+  | Ellipses v1 -> let v1 = v_info v1 in ()
+  | DeepEllipsis v1 -> let v1 = v_bracket v_expr v1 in ()
+  | Call ((v1, v2)) -> let v1 = v_expr v1 and
+          v2 = v_bracket (v_list v_argument) v2 in ()
+  | Assign ((v1, v2, v3)) ->
+      let v1 = Ast_cpp.v_assignOp v1
+      and v2 = v_expr v2
+      and v3 = v_expr v3
+      in ()
+  | ArrayAccess ((v1, v2)) -> let v1 = v_expr v1 and v2 = v_bracket v_expr v2 in ()
+  | RecordPtAccess ((v1, t, v2)) ->
+        let v1 = v_expr v1 and t = v_info t and v2 = v_name v2 in ()
+  | Cast ((v1, v2)) -> let v1 = v_type_ v1 and v2 = v_expr v2 in ()
+  | Postfix ((v1, v2)) ->
+      let v1 = v_expr v1 and v2 = v_wrap Ast_cpp.v_fixOp v2 in ()
+  | Infix ((v1, v2)) ->
+      let v1 = v_expr v1 and v2 = v_wrap Ast_cpp.v_fixOp v2 in ()
+  | Unary ((v1, v2)) ->
+      let v1 = v_expr v1 and v2 = v_wrap Ast_cpp.v_unaryOp v2 in ()
+  | Binary ((v1, v2, v3)) ->
+      let v1 = v_expr v1
+      and v2 = v_wrap Ast_cpp.v_binaryOp v2
+      and v3 = v_expr v3
+      in ()
+  | CondExpr ((v1, v2, v3)) ->
+      let v1 = v_expr v1 and v2 = v_expr v2 and v3 = v_expr v3 in ()
+  | Sequence ((v1, v2)) -> let v1 = v_expr v1 and v2 = v_expr v2 in ()
+  | SizeOf v1 -> let v1 = OCaml.v_either v_expr v_type_ v1 in ()
+  | ArrayInit v1 ->
+      let v1 =
+        v_bracket (v_list
+          (fun (v1, v2) ->
+             let v1 = v_option v_expr v1 and v2 = v_expr v2 in ()))
+          v1
+      in ()
+  | RecordInit v1 ->
+      let v1 =
+        v_bracket (v_list (fun (v1, v2) -> let v1 = v_name v1 and v2 = v_expr v2 in ()))
+          v1
+      in ()
+  | GccConstructor ((v1, v2)) -> let v1 = v_type_ v1 and v2 = v_expr v2 in ()
+  in
+  vin.kexpr (k, all_functions) x
+and v_argument v = v_expr v
+
+and v_stmt =
+  function
+  | ExprSt (v1, t) -> let v1 = v_expr v1 in let t = v_info t in ()
+  | Block v1 -> let v1 = v_bracket (v_list v_stmt) v1 in ()
+  | If ((t, v1, v2, v3)) ->
+      let t = v_info t in
+      let v1 = v_expr v1 and v2 = v_stmt v2 and v3 = v_option v_stmt v3 in ()
+  | Switch ((v0, v1, v2)) ->
+      let v0 = v_info v0 in
+      let v1 = v_expr v1 and v2 = v_list v_case v2 in ()
+  | While ((t, v1, v2)) ->
+      let t = v_info t in
+      let v1 = v_expr v1 and v2 = v_stmt v2 in ()
+  | DoWhile ((t, v1, v2)) ->
+      let t = v_info t in
+      let v1 = v_stmt v1 and v2 = v_expr v2 in ()
+  | For ((t, v1, v2, v3, v4)) ->
+      let t = v_info t in
+      let v1 = v_option v_expr v1
+      and v2 = v_option v_expr v2
+      and v3 = v_option v_expr v3
+      and v4 = v_stmt v4
+      in ()
+  | Return (t, v1) ->
+      let t = v_info t in
+      let v1 = v_option v_expr v1 in ()
+  | Continue t ->
+      let t = v_info t in
+      ()
+  | Break t ->
+      let t = v_info t in
+      ()
+  | Label ((v1, v2)) -> let v1 = v_name v1 and v2 = v_stmt v2 in ()
+  | Goto (t, v1) ->
+      let t = v_info t in
+      let v1 = v_name v1 in ()
+  | Vars v1 -> let v1 = v_list v_var_decl v1 in ()
+  | Asm v1 -> let v1 = v_list v_expr v1 in ()
+
+and v_case =
+  function
+  | Case ((t, v1, v2)) ->
+      let t = v_info t in
+      let v1 = v_expr v1 and v2 = v_list v_stmt v2 in ()
+  | Default (t, v1) ->
+      let t = v_info t in
+      let v1 = v_list v_stmt v1 in ()
+and
+  v_var_decl {
+               v_name = v_v_name;
+               v_type = v_v_type;
+               v_storage = v_v_storage;
+               v_init = v_v_init
+             } =
+  let arg = v_name v_v_name in
+  let arg = v_type_ v_v_type in
+  let arg = v_storage v_v_storage in
+  let arg = v_option v_initialiser v_v_init in ()
+and v_initialiser v = v_expr v
+and v_storage = function | Extern -> () | Static -> () | DefaultStorage -> ()
+
+and  v_struct_def { s_name = v_s_name; s_kind = v_s_kind; s_flds = v_s_flds } =
+  let arg = v_name v_s_name in
+  let arg = v_struct_kind v_s_kind in
+  let arg = v_bracket (v_list v_field_def) v_s_flds in ()
+
+and v_field_def { fld_name = v_fld_name; fld_type = v_fld_type } =
+  let arg = v_option v_name v_fld_name in let arg = v_type_ v_fld_type in ()
+
+and v_func_def {
+                 f_name = v_f_name;
+                 f_type = v_f_type;
+                 f_body = v_f_body;
+                 f_static = v_f_static
+               } =
+  let arg = v_name v_f_name in
+  let arg = v_function_type v_f_type in
+  let arg = v_bracket (v_list v_stmt) v_f_body in
+  let arg = v_bool v_f_static in
+  ()
+
+and v_define_body =
+  function
+  | CppExpr v1 -> let v1 = v_expr v1 in ()
+  | CppStmt v1 -> let v1 = v_stmt v1 in ()
+
+and v_toplevel =
+  function
+  | Include (t, v1) ->
+      let t = v_info t in
+      let v1 = v_wrap v_string v1 in ()
+  | Define ((v1, v2)) -> let v1 = v_name v1 and v2 = v_define_body v2 in ()
+  | Macro ((v1, v2, v3)) ->
+      let v1 = v_name v1
+      and v2 = v_list v_name v2
+      and v3 = v_define_body v3
+      in ()
+  | StructDef v1 -> let v1 = v_struct_def v1 in ()
+  | TypeDef v1 -> let v1 = v_type_def v1 in ()
+  | EnumDef v1 -> let v1 = v_enum_def v1 in ()
+  | FuncDef v1 -> let v1 = v_func_def v1 in ()
+  | Global v1 -> let v1 = v_var_decl v1 in ()
+  | Prototype v1 -> let v1 = v_func_def v1 in ()
+
+and v_type_def (v1, v2) = let v1 = v_name v1 and v2 = v_type_ v2 in ()
+
+and v_enum_def (v1, v2) =
+  let v1 = v_name v1
+  and v2 =
+    v_list
+      (fun (v1, v2) -> let v1 = v_name v1 and v2 = v_option v_expr v2 in ())
+      v2
+  in ()
+
+and v_any =
+  function
+  | Expr v1 -> let v1 = v_expr v1 in ()
+  | Stmt v1 -> let v1 = v_stmt v1 in ()
+  | Stmts v1 -> let v1 = v_list v_stmt v1 in ()
+  | Type v1 -> let v1 = v_type_ v1 in ()
+  | Toplevel v1 -> let v1 = v_toplevel v1 in ()
+  | Toplevels v1 -> let v1 = v_list v_toplevel v1 in ()
+  | Program v1 -> let v1 = v_program v1 in ()
+
+and v_program v = v_list v_toplevel v
+
+ and all_functions x = v_any x
+in
+ v_any

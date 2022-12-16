@@ -1,6 +1,3 @@
-[submodule "pfff"]
-	path = semgrep-core/src/pfff
-	url = https://github.com/returntocorp/pfff.git
 [submodule "semgrep-core/tree-sitter-lang/semgrep-c"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-c
 	url = https://github.com/returntocorp/semgrep-c

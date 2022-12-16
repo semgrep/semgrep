@@ -1,0 +1,3511 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+
+      <title>Chapter&nbsp;19.&nbsp;Syntax</title>
+      <link rel="stylesheet" type="text/css" href="https://docs.oracle.com/javase/specs/jls/se9/html/../../../javaspec.css">
+      <meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1">
+      </head>
+   <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+      <div lang="en" class="chapterx" title="Chapter&nbsp;19.&nbsp;Syntax">
+         <div class="titlepage">
+            <div>
+               <div>
+                  <h2 class="title"><a name="jls-19"></a>Chapter&nbsp;19.&nbsp;Syntax
+                  </h2>
+               </div>
+            </div>
+         </div>
+         <p class="norm"><a name="jls-19-100"></a>This chapter repeats the syntactic
+            grammar given in Chapters 4, 6-10, 14, and 15, as well as key parts of
+            the lexical grammar from Chapter 3, using the notation from
+            <a class="xref" href="jls-2.html#jls-2.4" title="2.4.&nbsp;Grammar Notation">&sect;2.4</a>.
+         </p>
+         <div id="jls-19-3" class="productionset" title="Productions from &sect;3 (Lexical Structure)"><a name="jls-19-3"></a>
+
+            <p class="title"><b>Productions from <a class="xref" href="jls-3.html" title="Chapter&nbsp;3.&nbsp;Lexical Structure">&sect;3 (<i>Lexical Structure</i>)</a></b></p>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Identifier:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-IdentifierChars" title="IdentifierChars">IdentifierChars</a>
+                           <span class="lineannotation">but not a</span> <a href="jls-3.html#jls-Keyword" title="Keyword">Keyword</a>
+                           <span class="lineannotation">or</span> <a href="jls-3.html#jls-BooleanLiteral" title="BooleanLiteral">BooleanLiteral</a>
+                           <span class="lineannotation">or</span> <a href="jls-3.html#jls-NullLiteral" title="NullLiteral">NullLiteral</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">IdentifierChars:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-JavaLetter" title="JavaLetter">JavaLetter</a> {<a href="jls-3.html#jls-JavaLetterOrDigit" title="JavaLetterOrDigit">JavaLetterOrDigit</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">JavaLetter:</div>
+
+                  <div class="rhs">
+                           <span class="lineannotation">any Unicode character that is a "Java letter"</span>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">JavaLetterOrDigit:</div>
+
+                  <div class="rhs">
+                           <span class="lineannotation">any Unicode character that is a "Java letter-or-digit"</span>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeIdentifier:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <span class="lineannotation">but not</span> <code class="literal">var</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Literal:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-IntegerLiteral" title="IntegerLiteral">IntegerLiteral</a> <br>
+                           <a href="jls-3.html#jls-FloatingPointLiteral" title="FloatingPointLiteral">FloatingPointLiteral</a> <br>
+                           <a href="jls-3.html#jls-BooleanLiteral" title="BooleanLiteral">BooleanLiteral</a> <br>
+                           <a href="jls-3.html#jls-CharacterLiteral" title="CharacterLiteral">CharacterLiteral</a> <br>
+                           <a href="jls-3.html#jls-StringLiteral" title="StringLiteral">StringLiteral</a> <br>
+                           <a href="jls-3.html#jls-NullLiteral" title="NullLiteral">NullLiteral</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+         </div>
+         <div id="jls-19-4" class="productionset" title="Productions from &sect;4 (Types, Values, and Variables)"><a name="jls-19-4"></a>
+
+            <p class="title"><b>Productions from <a class="xref" href="jls-4.html" title="Chapter&nbsp;4.&nbsp;Types, Values, and Variables">&sect;4 (<i>Types, Values, and Variables</i>)</a></b></p>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Type:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-PrimitiveType" title="PrimitiveType">PrimitiveType</a> <br>
+                           <a href="jls-4.html#jls-ReferenceType" title="ReferenceType">ReferenceType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">PrimitiveType:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} <a href="jls-4.html#jls-NumericType" title="NumericType">NumericType</a> <br>
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} <code class="literal">boolean</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">NumericType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-IntegralType" title="IntegralType">IntegralType</a> <br>
+                           <a href="jls-4.html#jls-FloatingPointType" title="FloatingPointType">FloatingPointType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">IntegralType:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                           <code class="literal">byte</code> <code class="literal">short</code> <code class="literal">int</code> <code class="literal">long</code> <code class="literal">char</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">FloatingPointType:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                           <code class="literal">float</code> <code class="literal">double</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ReferenceType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-ClassOrInterfaceType" title="ClassOrInterfaceType">ClassOrInterfaceType</a> <br>
+                           <a href="jls-4.html#jls-TypeVariable" title="TypeVariable">TypeVariable</a> <br>
+                           <a href="jls-4.html#jls-ArrayType" title="ArrayType">ArrayType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ClassOrInterfaceType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-ClassType" title="ClassType">ClassType</a> <br>
+                           <a href="jls-4.html#jls-InterfaceType" title="InterfaceType">InterfaceType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+
+                  <div class="lhs">ClassType:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>}
+                           <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <br>
+
+                           <a href="jls-6.html#jls-PackageName" title="PackageName">PackageName</a> <code class="literal">.</code>
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>}
+                           <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <br>
+
+                           <a href="jls-4.html#jls-ClassOrInterfaceType" title="ClassOrInterfaceType">ClassOrInterfaceType</a> <code class="literal">.</code>
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>}
+                           <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>]
+
+
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">InterfaceType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-ClassType" title="ClassType">ClassType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+
+                  <div class="lhs">TypeVariable:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ArrayType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-PrimitiveType" title="PrimitiveType">PrimitiveType</a> <a href="jls-4.html#jls-Dims" title="Dims">Dims</a> <br>
+                           <a href="jls-4.html#jls-ClassOrInterfaceType" title="ClassOrInterfaceType">ClassOrInterfaceType</a> <a href="jls-4.html#jls-Dims" title="Dims">Dims</a> <br>
+                           <a href="jls-4.html#jls-TypeVariable" title="TypeVariable">TypeVariable</a> <a href="jls-4.html#jls-Dims" title="Dims">Dims</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Dims:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} <code class="literal">[</code> <code class="literal">]</code> {{<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} <code class="literal">[</code> <code class="literal">]</code>}
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+
+                  <div class="lhs">TypeParameter:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-4.html#jls-TypeParameterModifier" title="TypeParameterModifier">TypeParameterModifier</a>}
+                           <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+                           [<a href="jls-4.html#jls-TypeBound" title="TypeBound">TypeBound</a>]
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeParameterModifier:</div>
+
+                  <div class="rhs">
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeBound:</div>
+
+                  <div class="rhs">
+                           <code class="literal">extends</code> <a href="jls-4.html#jls-TypeVariable" title="TypeVariable">TypeVariable</a> <br>
+
+                           <code class="literal">extends</code> <a href="jls-4.html#jls-ClassOrInterfaceType" title="ClassOrInterfaceType">ClassOrInterfaceType</a> {<a href="jls-4.html#jls-AdditionalBound" title="AdditionalBound">AdditionalBound</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AdditionalBound:</div>
+
+                  <div class="rhs">
+                           <code class="literal">&amp;</code> <a href="jls-4.html#jls-InterfaceType" title="InterfaceType">InterfaceType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeArguments:</div>
+
+                  <div class="rhs">
+                           <code class="literal">&lt;</code> <a href="jls-4.html#jls-TypeArgumentList" title="TypeArgumentList">TypeArgumentList</a> <code class="literal">&gt;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeArgumentList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-TypeArgument" title="TypeArgument">TypeArgument</a> {<code class="literal">,</code> <a href="jls-4.html#jls-TypeArgument" title="TypeArgument">TypeArgument</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeArgument:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-ReferenceType" title="ReferenceType">ReferenceType</a> <br>
+                           <a href="jls-4.html#jls-Wildcard" title="Wildcard">Wildcard</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Wildcard:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} <code class="literal">?</code> [<a href="jls-4.html#jls-WildcardBounds" title="WildcardBounds">WildcardBounds</a>]
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">WildcardBounds:</div>
+
+                  <div class="rhs">
+                           <code class="literal">extends</code> <a href="jls-4.html#jls-ReferenceType" title="ReferenceType">ReferenceType</a> <br>
+                           <code class="literal">super</code> <a href="jls-4.html#jls-ReferenceType" title="ReferenceType">ReferenceType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+         </div>
+         <div id="jls-19-6" class="productionset" title="Productions from &sect;6 (Names)"><a name="jls-19-6"></a>
+
+            <p class="title"><b>Productions from <a class="xref" href="jls-6.html" title="Chapter&nbsp;6.&nbsp;Names">&sect;6 (<i>Names</i>)</a></b></p>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ModuleName:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+                           <a href="jls-6.html#jls-ModuleName" title="ModuleName">ModuleName</a> <code class="literal">.</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">PackageName:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+                           <a href="jls-6.html#jls-PackageName" title="PackageName">PackageName</a> <code class="literal">.</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeName:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a> <br>
+                           <a href="jls-6.html#jls-PackageOrTypeName" title="PackageOrTypeName">PackageOrTypeName</a> <code class="literal">.</code> <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ExpressionName:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+                           <a href="jls-6.html#jls-AmbiguousName" title="AmbiguousName">AmbiguousName</a> <code class="literal">.</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">MethodName:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">PackageOrTypeName:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+                           <a href="jls-6.html#jls-PackageOrTypeName" title="PackageOrTypeName">PackageOrTypeName</a> <code class="literal">.</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AmbiguousName:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+                           <a href="jls-6.html#jls-AmbiguousName" title="AmbiguousName">AmbiguousName</a> <code class="literal">.</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+         </div>
+         <div id="jls-19-7" class="productionset" title="Productions from &sect;7 (Packages and Modules)"><a name="jls-19-7"></a>
+
+            <p class="title"><b>Productions from <a class="xref" href="jls-7.html" title="Chapter&nbsp;7.&nbsp;Packages and Modules">&sect;7 (<i>Packages and Modules</i>)</a></b></p>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">CompilationUnit:</div>
+
+                  <div class="rhs">
+                           <a href="jls-7.html#jls-OrdinaryCompilationUnit" title="OrdinaryCompilationUnit">OrdinaryCompilationUnit</a> <br>
+                           <a href="jls-7.html#jls-ModularCompilationUnit" title="ModularCompilationUnit">ModularCompilationUnit</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">OrdinaryCompilationUnit:</div>
+
+                  <div class="rhs">
+                           [<a href="jls-7.html#jls-PackageDeclaration" title="PackageDeclaration">PackageDeclaration</a>]
+                           {<a href="jls-7.html#jls-ImportDeclaration" title="ImportDeclaration">ImportDeclaration</a>}
+                           {<a href="jls-7.html#jls-TypeDeclaration" title="TypeDeclaration">TypeDeclaration</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ModularCompilationUnit:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-7.html#jls-ImportDeclaration" title="ImportDeclaration">ImportDeclaration</a>}
+                           <a href="jls-7.html#jls-ModuleDeclaration" title="ModuleDeclaration">ModuleDeclaration</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+
+                  <div class="lhs">PackageDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-7.html#jls-PackageModifier" title="PackageModifier">PackageModifier</a>}
+                           <code class="literal">package</code>
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> {<code class="literal">.</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>}
+                           <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">PackageModifier:</div>
+
+                  <div class="rhs">
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ImportDeclaration:</div>
+
+                  <div class="rhs">
+                           <a href="jls-7.html#jls-SingleTypeImportDeclaration" title="SingleTypeImportDeclaration">SingleTypeImportDeclaration</a> <br>
+                           <a href="jls-7.html#jls-TypeImportOnDemandDeclaration" title="TypeImportOnDemandDeclaration">TypeImportOnDemandDeclaration</a> <br>
+                           <a href="jls-7.html#jls-SingleStaticImportDeclaration" title="SingleStaticImportDeclaration">SingleStaticImportDeclaration</a> <br>
+                           <a href="jls-7.html#jls-StaticImportOnDemandDeclaration" title="StaticImportOnDemandDeclaration">StaticImportOnDemandDeclaration</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">SingleTypeImportDeclaration:</div>
+
+                  <div class="rhs">
+                           <code class="literal">import</code> <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeImportOnDemandDeclaration:</div>
+
+                  <div class="rhs">
+                           <code class="literal">import</code> <a href="jls-6.html#jls-PackageOrTypeName" title="PackageOrTypeName">PackageOrTypeName</a> <code class="literal">.</code> <code class="literal">*</code> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">SingleStaticImportDeclaration:</div>
+
+                  <div class="rhs">
+                           <code class="literal">import</code> <code class="literal">static</code> <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a> <code class="literal">.</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">StaticImportOnDemandDeclaration:</div>
+
+                  <div class="rhs">
+                           <code class="literal">import</code> <code class="literal">static</code> <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a> <code class="literal">.</code> <code class="literal">*</code> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeDeclaration:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-ClassDeclaration" title="ClassDeclaration">ClassDeclaration</a> <br>
+                           <a href="jls-9.html#jls-InterfaceDeclaration" title="InterfaceDeclaration">InterfaceDeclaration</a> <br>
+                           <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ModuleDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} [<code class="literal">open</code>] <code class="literal">module</code>
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> {<code class="literal">.</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>}
+                            <code class="literal">{</code> {<a href="jls-7.html#jls-ModuleDirective" title="ModuleDirective">ModuleDirective</a>} <code class="literal">}</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ModuleDirective:</div>
+
+                  <div class="rhs">
+                           <code class="literal">requires</code>
+                           {<a href="jls-7.html#jls-RequiresModifier" title="RequiresModifier">RequiresModifier</a>}
+                           <a href="jls-6.html#jls-ModuleName" title="ModuleName">ModuleName</a> <code class="literal">;</code> <br>
+
+                           <code class="literal">exports</code> <a href="jls-6.html#jls-PackageName" title="PackageName">PackageName</a>
+                           [<code class="literal">to</code> <a href="jls-6.html#jls-ModuleName" title="ModuleName">ModuleName</a>
+                            {<code class="literal">,</code> <a href="jls-6.html#jls-ModuleName" title="ModuleName">ModuleName</a>}] <code class="literal">;</code> <br>
+
+                           <code class="literal">opens</code> <a href="jls-6.html#jls-PackageName" title="PackageName">PackageName</a>
+                           [<code class="literal">to</code> <a href="jls-6.html#jls-ModuleName" title="ModuleName">ModuleName</a>
+                            {<code class="literal">,</code> <a href="jls-6.html#jls-ModuleName" title="ModuleName">ModuleName</a>}] <code class="literal">;</code> <br>
+
+                           <code class="literal">uses</code> <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a> <code class="literal">;</code> <br>
+
+                           <code class="literal">provides</code> <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a>
+                           <code class="literal">with</code> <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a>
+                            {<code class="literal">,</code> <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a>} <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">RequiresModifier:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                           <code class="literal">transitive</code> <code class="literal">static</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+         </div>
+         <div id="jls-19-8" class="productionset" title="Productions from &sect;8 (Classes)"><a name="jls-19-8"></a>
+
+            <p class="title"><b>Productions from <a class="xref" href="jls-8.html" title="Chapter&nbsp;8.&nbsp;Classes">&sect;8 (<i>Classes</i>)</a></b></p>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ClassDeclaration:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-NormalClassDeclaration" title="NormalClassDeclaration">NormalClassDeclaration</a> <br>
+                           <a href="jls-8.html#jls-EnumDeclaration" title="EnumDeclaration">EnumDeclaration</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">NormalClassDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-ClassModifier" title="ClassModifier">ClassModifier</a>}
+                           <code class="literal">class</code> <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+                           [<a href="jls-8.html#jls-TypeParameters" title="TypeParameters">TypeParameters</a>]
+
+                           [<a href="jls-8.html#jls-Superclass" title="Superclass">Superclass</a>]
+                           [<a href="jls-8.html#jls-Superinterfaces" title="Superinterfaces">Superinterfaces</a>]
+                           <a href="jls-8.html#jls-ClassBody" title="ClassBody">ClassBody</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ClassModifier:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a> <code class="literal">public</code> <code class="literal">protected</code> <code class="literal">private</code> <br>
+                           <code class="literal">abstract</code> <code class="literal">static</code> <code class="literal">final</code> <code class="literal">strictfp</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeParameters:</div>
+
+                  <div class="rhs">
+                           <code class="literal">&lt;</code> <a href="jls-8.html#jls-TypeParameterList" title="TypeParameterList">TypeParameterList</a> <code class="literal">&gt;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeParameterList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-TypeParameter" title="TypeParameter">TypeParameter</a> {<code class="literal">,</code> <a href="jls-4.html#jls-TypeParameter" title="TypeParameter">TypeParameter</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Superclass:</div>
+
+                  <div class="rhs">
+                           <code class="literal">extends</code> <a href="jls-4.html#jls-ClassType" title="ClassType">ClassType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Superinterfaces:</div>
+
+                  <div class="rhs">
+                           <code class="literal">implements</code> <a href="jls-8.html#jls-InterfaceTypeList" title="InterfaceTypeList">InterfaceTypeList</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">InterfaceTypeList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-InterfaceType" title="InterfaceType">InterfaceType</a> {<code class="literal">,</code> <a href="jls-4.html#jls-InterfaceType" title="InterfaceType">InterfaceType</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ClassBody:</div>
+
+                  <div class="rhs">
+                           <code class="literal">{</code> {<a href="jls-8.html#jls-ClassBodyDeclaration" title="ClassBodyDeclaration">ClassBodyDeclaration</a>} <code class="literal">}</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ClassBodyDeclaration:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-ClassMemberDeclaration" title="ClassMemberDeclaration">ClassMemberDeclaration</a> <br>
+                           <a href="jls-8.html#jls-InstanceInitializer" title="InstanceInitializer">InstanceInitializer</a> <br>
+                           <a href="jls-8.html#jls-StaticInitializer" title="StaticInitializer">StaticInitializer</a> <br>
+                           <a href="jls-8.html#jls-ConstructorDeclaration" title="ConstructorDeclaration">ConstructorDeclaration</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ClassMemberDeclaration:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-FieldDeclaration" title="FieldDeclaration">FieldDeclaration</a> <br>
+                           <a href="jls-8.html#jls-MethodDeclaration" title="MethodDeclaration">MethodDeclaration</a> <br>
+                           <a href="jls-8.html#jls-ClassDeclaration" title="ClassDeclaration">ClassDeclaration</a> <br>
+                           <a href="jls-9.html#jls-InterfaceDeclaration" title="InterfaceDeclaration">InterfaceDeclaration</a> <br>
+                           <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">FieldDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-FieldModifier" title="FieldModifier">FieldModifier</a>}
+                           <a href="jls-8.html#jls-UnannType" title="UnannType">UnannType</a>
+                           <a href="jls-8.html#jls-VariableDeclaratorList" title="VariableDeclaratorList">VariableDeclaratorList</a> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">FieldModifier:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a> <code class="literal">public</code> <code class="literal">protected</code> <code class="literal">private</code> <br>
+                           <code class="literal">static</code> <code class="literal">final</code> <code class="literal">transient</code> <code class="literal">volatile</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">VariableDeclaratorList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-VariableDeclarator" title="VariableDeclarator">VariableDeclarator</a> {<code class="literal">,</code> <a href="jls-8.html#jls-VariableDeclarator" title="VariableDeclarator">VariableDeclarator</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">VariableDeclarator:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-VariableDeclaratorId" title="VariableDeclaratorId">VariableDeclaratorId</a> [<code class="literal">=</code> <a href="jls-8.html#jls-VariableInitializer" title="VariableInitializer">VariableInitializer</a>]
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">VariableDeclaratorId:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> [<a href="jls-4.html#jls-Dims" title="Dims">Dims</a>]
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">VariableInitializer:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <br>
+                           <a href="jls-10.html#jls-ArrayInitializer" title="ArrayInitializer">ArrayInitializer</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">UnannType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-UnannPrimitiveType" title="UnannPrimitiveType">UnannPrimitiveType</a> <br>
+                           <a href="jls-8.html#jls-UnannReferenceType" title="UnannReferenceType">UnannReferenceType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">UnannPrimitiveType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-NumericType" title="NumericType">NumericType</a> <br>
+                           <code class="literal">boolean</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">UnannReferenceType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-UnannClassOrInterfaceType" title="UnannClassOrInterfaceType">UnannClassOrInterfaceType</a> <br>
+                           <a href="jls-8.html#jls-UnannTypeVariable" title="UnannTypeVariable">UnannTypeVariable</a> <br>
+                           <a href="jls-8.html#jls-UnannArrayType" title="UnannArrayType">UnannArrayType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">UnannClassOrInterfaceType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-UnannClassType" title="UnannClassType">UnannClassType</a> <br>
+                           <a href="jls-8.html#jls-UnannInterfaceType" title="UnannInterfaceType">UnannInterfaceType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">UnannClassType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <br>
+
+                           <a href="jls-6.html#jls-PackageName" title="PackageName">PackageName</a> <code class="literal">.</code>
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>}
+                           <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <br>
+
+                           <a href="jls-8.html#jls-UnannClassOrInterfaceType" title="UnannClassOrInterfaceType">UnannClassOrInterfaceType</a> <code class="literal">.</code>
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>}
+                           <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>]
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">UnannInterfaceType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-UnannClassType" title="UnannClassType">UnannClassType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">UnannTypeVariable:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">UnannArrayType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-UnannPrimitiveType" title="UnannPrimitiveType">UnannPrimitiveType</a> <a href="jls-4.html#jls-Dims" title="Dims">Dims</a> <br>
+                           <a href="jls-8.html#jls-UnannClassOrInterfaceType" title="UnannClassOrInterfaceType">UnannClassOrInterfaceType</a> <a href="jls-4.html#jls-Dims" title="Dims">Dims</a> <br>
+                           <a href="jls-8.html#jls-UnannTypeVariable" title="UnannTypeVariable">UnannTypeVariable</a> <a href="jls-4.html#jls-Dims" title="Dims">Dims</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">MethodDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-MethodModifier" title="MethodModifier">MethodModifier</a>} <a href="jls-8.html#jls-MethodHeader" title="MethodHeader">MethodHeader</a> <a href="jls-8.html#jls-MethodBody" title="MethodBody">MethodBody</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">MethodModifier:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a> <code class="literal">public</code> <code class="literal">protected</code> <code class="literal">private</code> <br>
+                           <code class="literal">abstract</code> <code class="literal">static</code> <code class="literal">final</code> <code class="literal">synchronized</code> <code class="literal">native</code> <code class="literal">strictfp</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">MethodHeader:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-Result" title="Result">Result</a> <a href="jls-8.html#jls-MethodDeclarator" title="MethodDeclarator">MethodDeclarator</a> [<a href="jls-8.html#jls-Throws" title="Throws">Throws</a>] <br>
+
+                           <a href="jls-8.html#jls-TypeParameters" title="TypeParameters">TypeParameters</a> {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>}
+                           <a href="jls-8.html#jls-Result" title="Result">Result</a> <a href="jls-8.html#jls-MethodDeclarator" title="MethodDeclarator">MethodDeclarator</a> [<a href="jls-8.html#jls-Throws" title="Throws">Throws</a>]
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Result:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-UnannType" title="UnannType">UnannType</a> <br>
+                           <code class="literal">void</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">MethodDeclarator:</div>
+
+                  <div class="rhs">
+                            <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+                            <code class="literal">(</code> [<a href="jls-8.html#jls-ReceiverParameter" title="ReceiverParameter">ReceiverParameter</a> <code class="literal">,</code>] [<a href="jls-8.html#jls-FormalParameterList" title="FormalParameterList">FormalParameterList</a>] <code class="literal">)</code>
+                            [<a href="jls-4.html#jls-Dims" title="Dims">Dims</a>]
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ReceiverParameter:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} <a href="jls-8.html#jls-UnannType" title="UnannType">UnannType</a> [<a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <code class="literal">.</code>] <code class="literal">this</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">FormalParameterList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-FormalParameter" title="FormalParameter">FormalParameter</a> {<code class="literal">,</code> <a href="jls-8.html#jls-FormalParameter" title="FormalParameter">FormalParameter</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">FormalParameter:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-VariableModifier" title="VariableModifier">VariableModifier</a>} <a href="jls-8.html#jls-UnannType" title="UnannType">UnannType</a> <a href="jls-8.html#jls-VariableDeclaratorId" title="VariableDeclaratorId">VariableDeclaratorId</a> <br>
+                           <a href="jls-8.html#jls-VariableArityParameter" title="VariableArityParameter">VariableArityParameter</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">VariableArityParameter:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-VariableModifier" title="VariableModifier">VariableModifier</a>} <a href="jls-8.html#jls-UnannType" title="UnannType">UnannType</a> {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} <code class="literal">...</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">VariableModifier:</div>
+
+                  <div class="rhs">
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a> <br>
+                           <code class="literal">final</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Throws:</div>
+
+                  <div class="rhs">
+                           <code class="literal">throws</code> <a href="jls-8.html#jls-ExceptionTypeList" title="ExceptionTypeList">ExceptionTypeList</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ExceptionTypeList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-ExceptionType" title="ExceptionType">ExceptionType</a> {<code class="literal">,</code> <a href="jls-8.html#jls-ExceptionType" title="ExceptionType">ExceptionType</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ExceptionType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-ClassType" title="ClassType">ClassType</a> <br>
+                           <a href="jls-4.html#jls-TypeVariable" title="TypeVariable">TypeVariable</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">MethodBody:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-Block" title="Block">Block</a> <br>
+                           <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">InstanceInitializer:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-Block" title="Block">Block</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">StaticInitializer:</div>
+
+                  <div class="rhs">
+                           <code class="literal">static</code> <a href="jls-14.html#jls-Block" title="Block">Block</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ConstructorDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-ConstructorModifier" title="ConstructorModifier">ConstructorModifier</a>}
+                           <a href="jls-8.html#jls-ConstructorDeclarator" title="ConstructorDeclarator">ConstructorDeclarator</a>
+                           [<a href="jls-8.html#jls-Throws" title="Throws">Throws</a>]
+                           <a href="jls-8.html#jls-ConstructorBody" title="ConstructorBody">ConstructorBody</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ConstructorModifier:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a> <code class="literal">public</code> <code class="literal">protected</code> <code class="literal">private</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ConstructorDeclarator:</div>
+
+                  <div class="rhs">
+                           [<a href="jls-8.html#jls-TypeParameters" title="TypeParameters">TypeParameters</a>]
+                           <a href="jls-8.html#jls-SimpleTypeName" title="SimpleTypeName">SimpleTypeName</a>
+
+                           <code class="literal">(</code>
+                           [<a href="jls-8.html#jls-ReceiverParameter" title="ReceiverParameter">ReceiverParameter</a> <code class="literal">,</code>]
+                           [<a href="jls-8.html#jls-FormalParameterList" title="FormalParameterList">FormalParameterList</a>]
+                           <code class="literal">)</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">SimpleTypeName:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ConstructorBody:</div>
+
+                  <div class="rhs">
+                           <code class="literal">{</code>
+                           [<a href="jls-8.html#jls-ExplicitConstructorInvocation" title="ExplicitConstructorInvocation">ExplicitConstructorInvocation</a>]
+                           [<a href="jls-14.html#jls-BlockStatements" title="BlockStatements">BlockStatements</a>]
+                           <code class="literal">}</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ExplicitConstructorInvocation:</div>
+
+                  <div class="rhs">
+
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <code class="literal">this</code> <code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code> <code class="literal">;</code> <br>
+
+
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <code class="literal">super</code> <code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code> <code class="literal">;</code> <br>
+
+
+                           <a href="jls-6.html#jls-ExpressionName" title="ExpressionName">ExpressionName</a> <code class="literal">.</code> [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <code class="literal">super</code> <code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code> <code class="literal">;</code> <br>
+
+
+                           <a href="jls-15.html#jls-Primary" title="Primary">Primary</a> <code class="literal">.</code> [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <code class="literal">super</code> <code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">EnumDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-ClassModifier" title="ClassModifier">ClassModifier</a>}
+                           <code class="literal">enum</code> <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+                           [<a href="jls-8.html#jls-Superinterfaces" title="Superinterfaces">Superinterfaces</a>]
+                           <a href="jls-8.html#jls-EnumBody" title="EnumBody">EnumBody</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">EnumBody:</div>
+
+                  <div class="rhs">
+                           <code class="literal">{</code>
+                           [<a href="jls-8.html#jls-EnumConstantList" title="EnumConstantList">EnumConstantList</a>] [<code class="literal">,</code>]
+                           [<a href="jls-8.html#jls-EnumBodyDeclarations" title="EnumBodyDeclarations">EnumBodyDeclarations</a>]
+                           <code class="literal">}</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">EnumConstantList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-EnumConstant" title="EnumConstant">EnumConstant</a> {<code class="literal">,</code> <a href="jls-8.html#jls-EnumConstant" title="EnumConstant">EnumConstant</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">EnumConstant:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-EnumConstantModifier" title="EnumConstantModifier">EnumConstantModifier</a>}
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+                           [<code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code>]
+                           [<a href="jls-8.html#jls-ClassBody" title="ClassBody">ClassBody</a>]
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">EnumConstantModifier:</div>
+
+                  <div class="rhs">
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">EnumBodyDeclarations:</div>
+
+                  <div class="rhs">
+                           <code class="literal">;</code> {<a href="jls-8.html#jls-ClassBodyDeclaration" title="ClassBodyDeclaration">ClassBodyDeclaration</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+
+         </div>
+         <div id="jls-19-9" class="productionset" title="Productions from &sect;9 (Interfaces)"><a name="jls-19-9"></a>
+
+            <p class="title"><b>Productions from <a class="xref" href="jls-9.html" title="Chapter&nbsp;9.&nbsp;Interfaces">&sect;9 (<i>Interfaces</i>)</a></b></p>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">InterfaceDeclaration:</div>
+
+                  <div class="rhs">
+                           <a href="jls-9.html#jls-NormalInterfaceDeclaration" title="NormalInterfaceDeclaration">NormalInterfaceDeclaration</a> <br>
+                           <a href="jls-9.html#jls-AnnotationTypeDeclaration" title="AnnotationTypeDeclaration">AnnotationTypeDeclaration</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">NormalInterfaceDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-InterfaceModifier" title="InterfaceModifier">InterfaceModifier</a>}
+                           <code class="literal">interface</code> <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+                           [<a href="jls-8.html#jls-TypeParameters" title="TypeParameters">TypeParameters</a>]
+
+                           [<a href="jls-9.html#jls-ExtendsInterfaces" title="ExtendsInterfaces">ExtendsInterfaces</a>]
+                           <a href="jls-9.html#jls-InterfaceBody" title="InterfaceBody">InterfaceBody</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">InterfaceModifier:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a> <code class="literal">public</code> <code class="literal">protected</code> <code class="literal">private</code> <br>
+                           <code class="literal">abstract</code> <code class="literal">static</code> <code class="literal">strictfp</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ExtendsInterfaces:</div>
+
+                  <div class="rhs">
+                           <code class="literal">extends</code> <a href="jls-8.html#jls-InterfaceTypeList" title="InterfaceTypeList">InterfaceTypeList</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">InterfaceBody:</div>
+
+                  <div class="rhs">
+                           <code class="literal">{</code> {<a href="jls-9.html#jls-InterfaceMemberDeclaration" title="InterfaceMemberDeclaration">InterfaceMemberDeclaration</a>} <code class="literal">}</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">InterfaceMemberDeclaration:</div>
+
+                  <div class="rhs">
+                           <a href="jls-9.html#jls-ConstantDeclaration" title="ConstantDeclaration">ConstantDeclaration</a> <br>
+                           <a href="jls-9.html#jls-InterfaceMethodDeclaration" title="InterfaceMethodDeclaration">InterfaceMethodDeclaration</a> <br>
+                           <a href="jls-8.html#jls-ClassDeclaration" title="ClassDeclaration">ClassDeclaration</a> <br>
+                           <a href="jls-9.html#jls-InterfaceDeclaration" title="InterfaceDeclaration">InterfaceDeclaration</a> <br>
+                           <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ConstantDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-ConstantModifier" title="ConstantModifier">ConstantModifier</a>}
+                           <a href="jls-8.html#jls-UnannType" title="UnannType">UnannType</a>
+                           <a href="jls-8.html#jls-VariableDeclaratorList" title="VariableDeclaratorList">VariableDeclaratorList</a> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ConstantModifier:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a> <code class="literal">public</code> <br>
+                           <code class="literal">static</code> <code class="literal">final</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">InterfaceMethodDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-InterfaceMethodModifier" title="InterfaceMethodModifier">InterfaceMethodModifier</a>}
+                           <a href="jls-8.html#jls-MethodHeader" title="MethodHeader">MethodHeader</a>
+                           <a href="jls-8.html#jls-MethodBody" title="MethodBody">MethodBody</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">InterfaceMethodModifier:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a> <code class="literal">public</code> <code class="literal">private</code> <br>
+                           <code class="literal">abstract</code> <code class="literal">default</code> <code class="literal">static</code> <code class="literal">strictfp</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AnnotationTypeDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-InterfaceModifier" title="InterfaceModifier">InterfaceModifier</a>}
+                           <code class="literal">@</code> <code class="literal">interface</code> <a href="jls-3.html#jls-TypeIdentifier" title="TypeIdentifier">TypeIdentifier</a>
+                           <a href="jls-9.html#jls-AnnotationTypeBody" title="AnnotationTypeBody">AnnotationTypeBody</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AnnotationTypeBody:</div>
+
+                  <div class="rhs">
+                           <code class="literal">{</code>
+                           {<a href="jls-9.html#jls-AnnotationTypeMemberDeclaration" title="AnnotationTypeMemberDeclaration">AnnotationTypeMemberDeclaration</a>}
+                           <code class="literal">}</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AnnotationTypeMemberDeclaration:</div>
+
+                  <div class="rhs">
+                           <a href="jls-9.html#jls-AnnotationTypeElementDeclaration" title="AnnotationTypeElementDeclaration">AnnotationTypeElementDeclaration</a> <br>
+                           <a href="jls-9.html#jls-ConstantDeclaration" title="ConstantDeclaration">ConstantDeclaration</a> <br>
+                           <a href="jls-8.html#jls-ClassDeclaration" title="ClassDeclaration">ClassDeclaration</a> <br>
+                           <a href="jls-9.html#jls-InterfaceDeclaration" title="InterfaceDeclaration">InterfaceDeclaration</a> <br>
+                           <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AnnotationTypeElementDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-AnnotationTypeElementModifier" title="AnnotationTypeElementModifier">AnnotationTypeElementModifier</a>}
+                           <a href="jls-8.html#jls-UnannType" title="UnannType">UnannType</a> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+                           <code class="literal">(</code> <code class="literal">)</code> [<a href="jls-4.html#jls-Dims" title="Dims">Dims</a>]
+
+                           [<a href="jls-9.html#jls-DefaultValue" title="DefaultValue">DefaultValue</a>] <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AnnotationTypeElementModifier:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a> <code class="literal">public</code> <br>
+                           <code class="literal">abstract</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">DefaultValue:</div>
+
+                  <div class="rhs">
+                           <code class="literal">default</code> <a href="jls-9.html#jls-ElementValue" title="ElementValue">ElementValue</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Annotation:</div>
+
+                  <div class="rhs">
+                           <a href="jls-9.html#jls-NormalAnnotation" title="NormalAnnotation">NormalAnnotation</a> <br>
+                           <a href="jls-9.html#jls-MarkerAnnotation" title="MarkerAnnotation">MarkerAnnotation</a> <br>
+                           <a href="jls-9.html#jls-SingleElementAnnotation" title="SingleElementAnnotation">SingleElementAnnotation</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">NormalAnnotation:</div>
+
+                  <div class="rhs">
+                           <code class="literal">@</code> <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a>
+                           <code class="literal">(</code> [<a href="jls-9.html#jls-ElementValuePairList" title="ElementValuePairList">ElementValuePairList</a>] <code class="literal">)</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ElementValuePairList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-9.html#jls-ElementValuePair" title="ElementValuePair">ElementValuePair</a> {<code class="literal">,</code> <a href="jls-9.html#jls-ElementValuePair" title="ElementValuePair">ElementValuePair</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ElementValuePair:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <code class="literal">=</code> <a href="jls-9.html#jls-ElementValue" title="ElementValue">ElementValue</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ElementValue:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-ConditionalExpression" title="ConditionalExpression">ConditionalExpression</a> <br>
+                           <a href="jls-9.html#jls-ElementValueArrayInitializer" title="ElementValueArrayInitializer">ElementValueArrayInitializer</a> <br>
+                           <a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ElementValueArrayInitializer:</div>
+
+                  <div class="rhs">
+                           <code class="literal">{</code> [<a href="jls-9.html#jls-ElementValueList" title="ElementValueList">ElementValueList</a>] [<code class="literal">,</code>] <code class="literal">}</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ElementValueList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-9.html#jls-ElementValue" title="ElementValue">ElementValue</a> {<code class="literal">,</code> <a href="jls-9.html#jls-ElementValue" title="ElementValue">ElementValue</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">MarkerAnnotation:</div>
+
+                  <div class="rhs">
+                           <code class="literal">@</code> <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">SingleElementAnnotation:</div>
+
+                  <div class="rhs">
+                           <code class="literal">@</code> <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a>
+                           <code class="literal">(</code> <a href="jls-9.html#jls-ElementValue" title="ElementValue">ElementValue</a> <code class="literal">)</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+         </div>
+         <div id="jls-19-10" class="productionset" title="Productions from &sect;10 (Arrays)"><a name="jls-19-10"></a>
+
+            <p class="title"><b>Productions from <a class="xref" href="jls-10.html" title="Chapter&nbsp;10.&nbsp;Arrays">&sect;10 (<i>Arrays</i>)</a></b></p>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ArrayInitializer:</div>
+
+                  <div class="rhs">
+                           <code class="literal">{</code> [<a href="jls-10.html#jls-VariableInitializerList" title="VariableInitializerList">VariableInitializerList</a>] [<code class="literal">,</code>] <code class="literal">}</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">VariableInitializerList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-VariableInitializer" title="VariableInitializer">VariableInitializer</a> {<code class="literal">,</code> <a href="jls-8.html#jls-VariableInitializer" title="VariableInitializer">VariableInitializer</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+         </div>
+         <div id="jls-19-14" class="productionset" title="Productions from &sect;14 (Blocks and Statements)"><a name="jls-19-14"></a>
+
+            <p class="title"><b>Productions from <a class="xref" href="jls-14.html" title="Chapter&nbsp;14.&nbsp;Blocks and Statements">&sect;14 (<i>Blocks and Statements</i>)</a></b></p>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Block:</div>
+
+                  <div class="rhs">
+                           <code class="literal">{</code> [<a href="jls-14.html#jls-BlockStatements" title="BlockStatements">BlockStatements</a>] <code class="literal">}</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">BlockStatements:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-BlockStatement" title="BlockStatement">BlockStatement</a> {<a href="jls-14.html#jls-BlockStatement" title="BlockStatement">BlockStatement</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">BlockStatement:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-LocalVariableDeclarationStatement" title="LocalVariableDeclarationStatement">LocalVariableDeclarationStatement</a> <br>
+                           <a href="jls-8.html#jls-ClassDeclaration" title="ClassDeclaration">ClassDeclaration</a> <br>
+                           <a href="jls-14.html#jls-Statement" title="Statement">Statement</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">LocalVariableDeclarationStatement:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-LocalVariableDeclaration" title="LocalVariableDeclaration">LocalVariableDeclaration</a> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+
+                  <div class="lhs">LocalVariableDeclaration:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-VariableModifier" title="VariableModifier">VariableModifier</a>}
+                           <a href="jls-14.html#jls-LocalVariableType" title="LocalVariableType">LocalVariableType</a>
+                           <a href="jls-8.html#jls-VariableDeclaratorList" title="VariableDeclaratorList">VariableDeclaratorList</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">LocalVariableType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-UnannType" title="UnannType">UnannType</a> <br>
+                           <code class="literal">var</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Statement:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-StatementWithoutTrailingSubstatement" title="StatementWithoutTrailingSubstatement">StatementWithoutTrailingSubstatement</a> <br>
+                           <a href="jls-14.html#jls-LabeledStatement" title="LabeledStatement">LabeledStatement</a> <br>
+                           <a href="jls-14.html#jls-IfThenStatement" title="IfThenStatement">IfThenStatement</a> <br>
+                           <a href="jls-14.html#jls-IfThenElseStatement" title="IfThenElseStatement">IfThenElseStatement</a> <br>
+                           <a href="jls-14.html#jls-WhileStatement" title="WhileStatement">WhileStatement</a> <br>
+                           <a href="jls-14.html#jls-ForStatement" title="ForStatement">ForStatement</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">StatementNoShortIf:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-StatementWithoutTrailingSubstatement" title="StatementWithoutTrailingSubstatement">StatementWithoutTrailingSubstatement</a> <br>
+                           <a href="jls-14.html#jls-LabeledStatementNoShortIf" title="LabeledStatementNoShortIf">LabeledStatementNoShortIf</a> <br>
+                           <a href="jls-14.html#jls-IfThenElseStatementNoShortIf" title="IfThenElseStatementNoShortIf">IfThenElseStatementNoShortIf</a> <br>
+                           <a href="jls-14.html#jls-WhileStatementNoShortIf" title="WhileStatementNoShortIf">WhileStatementNoShortIf</a> <br>
+                           <a href="jls-14.html#jls-ForStatementNoShortIf" title="ForStatementNoShortIf">ForStatementNoShortIf</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">StatementWithoutTrailingSubstatement:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-Block" title="Block">Block</a> <br>
+                           <a href="jls-14.html#jls-EmptyStatement" title="EmptyStatement">EmptyStatement</a> <br>
+                           <a href="jls-14.html#jls-ExpressionStatement" title="ExpressionStatement">ExpressionStatement</a> <br>
+                           <a href="jls-14.html#jls-AssertStatement" title="AssertStatement">AssertStatement</a> <br>
+                           <a href="jls-14.html#jls-SwitchStatement" title="SwitchStatement">SwitchStatement</a> <br>
+                           <a href="jls-14.html#jls-DoStatement" title="DoStatement">DoStatement</a> <br>
+                           <a href="jls-14.html#jls-BreakStatement" title="BreakStatement">BreakStatement</a> <br>
+                           <a href="jls-14.html#jls-ContinueStatement" title="ContinueStatement">ContinueStatement</a> <br>
+                           <a href="jls-14.html#jls-ReturnStatement" title="ReturnStatement">ReturnStatement</a> <br>
+                           <a href="jls-14.html#jls-SynchronizedStatement" title="SynchronizedStatement">SynchronizedStatement</a> <br>
+                           <a href="jls-14.html#jls-ThrowStatement" title="ThrowStatement">ThrowStatement</a> <br>
+                           <a href="jls-14.html#jls-TryStatement" title="TryStatement">TryStatement</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">EmptyStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">LabeledStatement:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <code class="literal">:</code>
+                           <a href="jls-14.html#jls-Statement" title="Statement">Statement</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">LabeledStatementNoShortIf:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <code class="literal">:</code>
+                           <a href="jls-14.html#jls-StatementNoShortIf" title="StatementNoShortIf">StatementNoShortIf</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ExpressionStatement:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-StatementExpression" title="StatementExpression">StatementExpression</a> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">StatementExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-Assignment" title="Assignment">Assignment</a> <br>
+                           <a href="jls-15.html#jls-PreIncrementExpression" title="PreIncrementExpression">PreIncrementExpression</a> <br>
+                           <a href="jls-15.html#jls-PreDecrementExpression" title="PreDecrementExpression">PreDecrementExpression</a> <br>
+                           <a href="jls-15.html#jls-PostIncrementExpression" title="PostIncrementExpression">PostIncrementExpression</a> <br>
+                           <a href="jls-15.html#jls-PostDecrementExpression" title="PostDecrementExpression">PostDecrementExpression</a> <br>
+                           <a href="jls-15.html#jls-MethodInvocation" title="MethodInvocation">MethodInvocation</a> <br>
+                           <a href="jls-15.html#jls-ClassInstanceCreationExpression" title="ClassInstanceCreationExpression">ClassInstanceCreationExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">IfThenStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">if</code> <code class="literal">(</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">)</code>
+                           <a href="jls-14.html#jls-Statement" title="Statement">Statement</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">IfThenElseStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">if</code> <code class="literal">(</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">)</code>
+                           <a href="jls-14.html#jls-StatementNoShortIf" title="StatementNoShortIf">StatementNoShortIf</a>
+                           <code class="literal">else</code> <a href="jls-14.html#jls-Statement" title="Statement">Statement</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">IfThenElseStatementNoShortIf:</div>
+
+                  <div class="rhs">
+                           <code class="literal">if</code> <code class="literal">(</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">)</code>
+                           <a href="jls-14.html#jls-StatementNoShortIf" title="StatementNoShortIf">StatementNoShortIf</a>
+                           <code class="literal">else</code> <a href="jls-14.html#jls-StatementNoShortIf" title="StatementNoShortIf">StatementNoShortIf</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AssertStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">assert</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">;</code> <br>
+                           <code class="literal">assert</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">:</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">SwitchStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">switch</code> <code class="literal">(</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">)</code>
+                           <a href="jls-14.html#jls-SwitchBlock" title="SwitchBlock">SwitchBlock</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">SwitchBlock:</div>
+
+                  <div class="rhs">
+                           <code class="literal">{</code>
+                           {<a href="jls-14.html#jls-SwitchBlockStatementGroup" title="SwitchBlockStatementGroup">SwitchBlockStatementGroup</a>}
+                           {<a href="jls-14.html#jls-SwitchLabel" title="SwitchLabel">SwitchLabel</a>}
+                           <code class="literal">}</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">SwitchBlockStatementGroup:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-SwitchLabels" title="SwitchLabels">SwitchLabels</a> <a href="jls-14.html#jls-BlockStatements" title="BlockStatements">BlockStatements</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">SwitchLabels:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-SwitchLabel" title="SwitchLabel">SwitchLabel</a> {<a href="jls-14.html#jls-SwitchLabel" title="SwitchLabel">SwitchLabel</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">SwitchLabel:</div>
+
+                  <div class="rhs">
+                           <code class="literal">case</code> <a href="jls-15.html#jls-ConstantExpression" title="ConstantExpression">ConstantExpression</a> <code class="literal">:</code> <br>
+                           <code class="literal">case</code> <a href="jls-14.html#jls-EnumConstantName" title="EnumConstantName">EnumConstantName</a> <code class="literal">:</code> <br>
+                           <code class="literal">default</code> <code class="literal">:</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">EnumConstantName:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">WhileStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">while</code> <code class="literal">(</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">)</code>
+                           <a href="jls-14.html#jls-Statement" title="Statement">Statement</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">WhileStatementNoShortIf:</div>
+
+                  <div class="rhs">
+                           <code class="literal">while</code> <code class="literal">(</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">)</code>
+                           <a href="jls-14.html#jls-StatementNoShortIf" title="StatementNoShortIf">StatementNoShortIf</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">DoStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">do</code> <a href="jls-14.html#jls-Statement" title="Statement">Statement</a> <code class="literal">while</code>
+                           <code class="literal">(</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">)</code> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ForStatement:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-BasicForStatement" title="BasicForStatement">BasicForStatement</a> <br>
+                           <a href="jls-14.html#jls-EnhancedForStatement" title="EnhancedForStatement">EnhancedForStatement</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ForStatementNoShortIf:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-BasicForStatementNoShortIf" title="BasicForStatementNoShortIf">BasicForStatementNoShortIf</a> <br>
+                           <a href="jls-14.html#jls-EnhancedForStatementNoShortIf" title="EnhancedForStatementNoShortIf">EnhancedForStatementNoShortIf</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">BasicForStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">for</code> <code class="literal">(</code>
+                           [<a href="jls-14.html#jls-ForInit" title="ForInit">ForInit</a>] <code class="literal">;</code>
+                           [<a href="jls-15.html#jls-Expression" title="Expression">Expression</a>] <code class="literal">;</code>
+                           [<a href="jls-14.html#jls-ForUpdate" title="ForUpdate">ForUpdate</a>]
+                           <code class="literal">)</code> <a href="jls-14.html#jls-Statement" title="Statement">Statement</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">BasicForStatementNoShortIf:</div>
+
+                  <div class="rhs">
+                           <code class="literal">for</code> <code class="literal">(</code>
+                           [<a href="jls-14.html#jls-ForInit" title="ForInit">ForInit</a>] <code class="literal">;</code>
+                           [<a href="jls-15.html#jls-Expression" title="Expression">Expression</a>] <code class="literal">;</code>
+                           [<a href="jls-14.html#jls-ForUpdate" title="ForUpdate">ForUpdate</a>]
+                           <code class="literal">)</code> <a href="jls-14.html#jls-StatementNoShortIf" title="StatementNoShortIf">StatementNoShortIf</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ForInit:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-StatementExpressionList" title="StatementExpressionList">StatementExpressionList</a> <br>
+                           <a href="jls-14.html#jls-LocalVariableDeclaration" title="LocalVariableDeclaration">LocalVariableDeclaration</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ForUpdate:</div>
+
+                  <div class="rhs"><a href="jls-14.html#jls-StatementExpressionList" title="StatementExpressionList">StatementExpressionList</a></div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">StatementExpressionList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-StatementExpression" title="StatementExpression">StatementExpression</a> {<code class="literal">,</code> <a href="jls-14.html#jls-StatementExpression" title="StatementExpression">StatementExpression</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+
+                  <div class="lhs">EnhancedForStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">for</code> <code class="literal">(</code>
+                           {<a href="jls-8.html#jls-VariableModifier" title="VariableModifier">VariableModifier</a>}
+                           <a href="jls-14.html#jls-LocalVariableType" title="LocalVariableType">LocalVariableType</a>
+                           <a href="jls-8.html#jls-VariableDeclaratorId" title="VariableDeclaratorId">VariableDeclaratorId</a>
+
+                           <code class="literal">:</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a>
+                           <code class="literal">)</code>
+
+                           <a href="jls-14.html#jls-Statement" title="Statement">Statement</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+
+                  <div class="lhs">EnhancedForStatementNoShortIf:</div>
+
+                  <div class="rhs">
+                           <code class="literal">for</code> <code class="literal">(</code>
+                           {<a href="jls-8.html#jls-VariableModifier" title="VariableModifier">VariableModifier</a>}
+                           <a href="jls-14.html#jls-LocalVariableType" title="LocalVariableType">LocalVariableType</a>
+                           <a href="jls-8.html#jls-VariableDeclaratorId" title="VariableDeclaratorId">VariableDeclaratorId</a>
+
+                           <code class="literal">:</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a>
+                           <code class="literal">)</code>
+
+                           <a href="jls-14.html#jls-StatementNoShortIf" title="StatementNoShortIf">StatementNoShortIf</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">BreakStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">break</code> [<a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>] <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ContinueStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">continue</code> [<a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>] <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ReturnStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">return</code> [<a href="jls-15.html#jls-Expression" title="Expression">Expression</a>] <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ThrowStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">throw</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">SynchronizedStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">synchronized</code>
+                           <code class="literal">(</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">)</code>
+                           <a href="jls-14.html#jls-Block" title="Block">Block</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TryStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">try</code> <a href="jls-14.html#jls-Block" title="Block">Block</a> <a href="jls-14.html#jls-Catches" title="Catches">Catches</a> <br>
+                           <code class="literal">try</code> <a href="jls-14.html#jls-Block" title="Block">Block</a> [<a href="jls-14.html#jls-Catches" title="Catches">Catches</a>] <a href="jls-14.html#jls-Finally" title="Finally">Finally</a> <br>
+                           <a href="jls-14.html#jls-TryWithResourcesStatement" title="TryWithResourcesStatement">TryWithResourcesStatement</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Catches:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-CatchClause" title="CatchClause">CatchClause</a> {<a href="jls-14.html#jls-CatchClause" title="CatchClause">CatchClause</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">CatchClause:</div>
+
+                  <div class="rhs">
+                           <code class="literal">catch</code>
+                           <code class="literal">(</code> <a href="jls-14.html#jls-CatchFormalParameter" title="CatchFormalParameter">CatchFormalParameter</a> <code class="literal">)</code>
+                           <a href="jls-14.html#jls-Block" title="Block">Block</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">CatchFormalParameter:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-VariableModifier" title="VariableModifier">VariableModifier</a>}
+                           <a href="jls-14.html#jls-CatchType" title="CatchType">CatchType</a>
+                           <a href="jls-8.html#jls-VariableDeclaratorId" title="VariableDeclaratorId">VariableDeclaratorId</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">CatchType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-UnannClassType" title="UnannClassType">UnannClassType</a>
+                           {<code class="literal">|</code> <a href="jls-4.html#jls-ClassType" title="ClassType">ClassType</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Finally:</div>
+
+                  <div class="rhs">
+                           <code class="literal">finally</code> <a href="jls-14.html#jls-Block" title="Block">Block</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TryWithResourcesStatement:</div>
+
+                  <div class="rhs">
+                           <code class="literal">try</code>
+                           <a href="jls-14.html#jls-ResourceSpecification" title="ResourceSpecification">ResourceSpecification</a>
+                           <a href="jls-14.html#jls-Block" title="Block">Block</a>
+                           [<a href="jls-14.html#jls-Catches" title="Catches">Catches</a>]
+                           [<a href="jls-14.html#jls-Finally" title="Finally">Finally</a>]
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ResourceSpecification:</div>
+
+                  <div class="rhs">
+                           <code class="literal">(</code> <a href="jls-14.html#jls-ResourceList" title="ResourceList">ResourceList</a> [<code class="literal">;</code>] <code class="literal">)</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ResourceList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-14.html#jls-Resource" title="Resource">Resource</a> {<code class="literal">;</code> <a href="jls-14.html#jls-Resource" title="Resource">Resource</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+
+
+                  <div class="lhs">Resource:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-VariableModifier" title="VariableModifier">VariableModifier</a>}
+                           <a href="jls-14.html#jls-LocalVariableType" title="LocalVariableType">LocalVariableType</a>
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+                           <code class="literal">=</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <br>
+                           <a href="jls-14.html#jls-VariableAccess" title="VariableAccess">VariableAccess</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+         </div>
+         <div id="jls-19-15" class="productionset" title="Productions from &sect;15 (Expressions)"><a name="jls-19-15"></a>
+
+            <p class="title"><b>Productions from <a class="xref" href="jls-15.html" title="Chapter&nbsp;15.&nbsp;Expressions">&sect;15 (<i>Expressions</i>)</a></b></p>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Primary:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-PrimaryNoNewArray" title="PrimaryNoNewArray">PrimaryNoNewArray</a> <br>
+                           <a href="jls-15.html#jls-ArrayCreationExpression" title="ArrayCreationExpression">ArrayCreationExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">PrimaryNoNewArray:</div>
+
+                  <div class="rhs">
+                           <a href="jls-3.html#jls-Literal" title="Literal">Literal</a> <br>
+                           <a href="jls-15.html#jls-ClassLiteral" title="ClassLiteral">ClassLiteral</a> <br>
+                           <code class="literal">this</code> <br>
+                           <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a> <code class="literal">.</code> <code class="literal">this</code> <br>
+                           <code class="literal">(</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">)</code> <br>
+                           <a href="jls-15.html#jls-ClassInstanceCreationExpression" title="ClassInstanceCreationExpression">ClassInstanceCreationExpression</a> <br>
+                           <a href="jls-15.html#jls-FieldAccess" title="FieldAccess">FieldAccess</a> <br>
+                           <a href="jls-15.html#jls-ArrayAccess" title="ArrayAccess">ArrayAccess</a> <br>
+                           <a href="jls-15.html#jls-MethodInvocation" title="MethodInvocation">MethodInvocation</a> <br>
+                           <a href="jls-15.html#jls-MethodReference" title="MethodReference">MethodReference</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ClassLiteral:</div>
+
+                  <div class="rhs">
+                           <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a> {<code class="literal">[</code> <code class="literal">]</code>} <code class="literal">.</code> <code class="literal">class</code> <br>
+                           <a href="jls-4.html#jls-NumericType" title="NumericType">NumericType</a> {<code class="literal">[</code> <code class="literal">]</code>} <code class="literal">.</code> <code class="literal">class</code> <br>
+                           <code class="literal">boolean</code> {<code class="literal">[</code> <code class="literal">]</code>} <code class="literal">.</code> <code class="literal">class</code> <br>
+                           <code class="literal">void</code> <code class="literal">.</code> <code class="literal">class</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ClassInstanceCreationExpression:</div>
+
+                  <div class="rhs">
+
+                           <a href="jls-15.html#jls-UnqualifiedClassInstanceCreationExpression" title="UnqualifiedClassInstanceCreationExpression">UnqualifiedClassInstanceCreationExpression</a> <br>
+
+
+                           <a href="jls-6.html#jls-ExpressionName" title="ExpressionName">ExpressionName</a> <code class="literal">.</code> <a href="jls-15.html#jls-UnqualifiedClassInstanceCreationExpression" title="UnqualifiedClassInstanceCreationExpression">UnqualifiedClassInstanceCreationExpression</a> <br>
+
+
+                           <a href="jls-15.html#jls-Primary" title="Primary">Primary</a> <code class="literal">.</code> <a href="jls-15.html#jls-UnqualifiedClassInstanceCreationExpression" title="UnqualifiedClassInstanceCreationExpression">UnqualifiedClassInstanceCreationExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">UnqualifiedClassInstanceCreationExpression:</div>
+
+                  <div class="rhs">
+                           <code class="literal">new</code> [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>]
+
+                           <a href="jls-15.html#jls-ClassOrInterfaceTypeToInstantiate" title="ClassOrInterfaceTypeToInstantiate">ClassOrInterfaceTypeToInstantiate</a>
+                           <code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code> [<a href="jls-8.html#jls-ClassBody" title="ClassBody">ClassBody</a>]
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ClassOrInterfaceTypeToInstantiate:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+                           {<code class="literal">.</code> {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>}
+
+                           [<a href="jls-15.html#jls-TypeArgumentsOrDiamond" title="TypeArgumentsOrDiamond">TypeArgumentsOrDiamond</a>]
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">TypeArgumentsOrDiamond:</div>
+
+                  <div class="rhs">
+                           <a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a> <br>
+                           <code class="literal">&lt;&gt;</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">FieldAccess:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-Primary" title="Primary">Primary</a> <code class="literal">.</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+                           <code class="literal">super</code> <code class="literal">.</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+                           <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a> <code class="literal">.</code> <code class="literal">super</code> <code class="literal">.</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ArrayAccess:</div>
+
+                  <div class="rhs">
+                           <a href="jls-6.html#jls-ExpressionName" title="ExpressionName">ExpressionName</a> <code class="literal">[</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">]</code> <br>
+
+                           <a href="jls-15.html#jls-PrimaryNoNewArray" title="PrimaryNoNewArray">PrimaryNoNewArray</a> <code class="literal">[</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">]</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">MethodInvocation:</div>
+
+                  <div class="rhs">
+
+                           <a href="jls-6.html#jls-MethodName" title="MethodName">MethodName</a> <code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code> <br>
+
+
+                           <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a> <code class="literal">.</code> [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+                           <code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code> <br>
+
+
+                           <a href="jls-6.html#jls-ExpressionName" title="ExpressionName">ExpressionName</a> <code class="literal">.</code> [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+                           <code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code> <br>
+
+
+                           <a href="jls-15.html#jls-Primary" title="Primary">Primary</a> <code class="literal">.</code> [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+                           <code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code> <br>
+
+
+                           <code class="literal">super</code> <code class="literal">.</code> [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+                           <code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code> <br>
+
+
+                           <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a> <code class="literal">.</code> <code class="literal">super</code> <code class="literal">.</code> [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+                           <code class="literal">(</code> [<a href="jls-15.html#jls-ArgumentList" title="ArgumentList">ArgumentList</a>] <code class="literal">)</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ArgumentList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> {<code class="literal">,</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">MethodReference:</div>
+
+                  <div class="rhs">
+
+                           <a href="jls-6.html#jls-ExpressionName" title="ExpressionName">ExpressionName</a> <code class="literal">::</code>
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+
+
+                           <a href="jls-15.html#jls-Primary" title="Primary">Primary</a> <code class="literal">::</code>
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+
+
+                           <a href="jls-4.html#jls-ReferenceType" title="ReferenceType">ReferenceType</a> <code class="literal">::</code>
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+
+
+                           <code class="literal">super</code> <code class="literal">::</code>
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+
+
+                           <a href="jls-6.html#jls-TypeName" title="TypeName">TypeName</a> <code class="literal">.</code> <code class="literal">super</code> <code class="literal">::</code>
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> <br>
+
+
+                           <a href="jls-4.html#jls-ClassType" title="ClassType">ClassType</a> <code class="literal">::</code>
+                           [<a href="jls-4.html#jls-TypeArguments" title="TypeArguments">TypeArguments</a>] <code class="literal">new</code> <br>
+
+
+                           <a href="jls-4.html#jls-ArrayType" title="ArrayType">ArrayType</a> <code class="literal">::</code> <code class="literal">new</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ArrayCreationExpression:</div>
+
+                  <div class="rhs">
+                           <code class="literal">new</code> <a href="jls-4.html#jls-PrimitiveType" title="PrimitiveType">PrimitiveType</a> <a href="jls-15.html#jls-DimExprs" title="DimExprs">DimExprs</a> [<a href="jls-4.html#jls-Dims" title="Dims">Dims</a>] <br>
+
+                           <code class="literal">new</code> <a href="jls-4.html#jls-ClassOrInterfaceType" title="ClassOrInterfaceType">ClassOrInterfaceType</a> <a href="jls-15.html#jls-DimExprs" title="DimExprs">DimExprs</a> [<a href="jls-4.html#jls-Dims" title="Dims">Dims</a>] <br>
+
+                           <code class="literal">new</code> <a href="jls-4.html#jls-PrimitiveType" title="PrimitiveType">PrimitiveType</a> <a href="jls-4.html#jls-Dims" title="Dims">Dims</a> <a href="jls-10.html#jls-ArrayInitializer" title="ArrayInitializer">ArrayInitializer</a> <br>
+
+                           <code class="literal">new</code> <a href="jls-4.html#jls-ClassOrInterfaceType" title="ClassOrInterfaceType">ClassOrInterfaceType</a> <a href="jls-4.html#jls-Dims" title="Dims">Dims</a> <a href="jls-10.html#jls-ArrayInitializer" title="ArrayInitializer">ArrayInitializer</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">DimExprs:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-DimExpr" title="DimExpr">DimExpr</a> {<a href="jls-15.html#jls-DimExpr" title="DimExpr">DimExpr</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">DimExpr:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-9.html#jls-Annotation" title="Annotation">Annotation</a>} <code class="literal">[</code> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">]</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Expression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-LambdaExpression" title="LambdaExpression">LambdaExpression</a> <br>
+                           <a href="jls-15.html#jls-AssignmentExpression" title="AssignmentExpression">AssignmentExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">LambdaExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-LambdaParameters" title="LambdaParameters">LambdaParameters</a> <code class="literal">-&gt;</code> <a href="jls-15.html#jls-LambdaBody" title="LambdaBody">LambdaBody</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">LambdaParameters:</div>
+
+                  <div class="rhs">
+                           <code class="literal">(</code> [<a href="jls-15.html#jls-LambdaParameterList" title="LambdaParameterList">LambdaParameterList</a>] <code class="literal">)</code> <br>
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">LambdaParameterList:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-LambdaParameter" title="LambdaParameter">LambdaParameter</a> {<code class="literal">,</code> <a href="jls-15.html#jls-LambdaParameter" title="LambdaParameter">LambdaParameter</a>} <br>
+                           <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a> {<code class="literal">,</code> <a href="jls-3.html#jls-Identifier" title="Identifier">Identifier</a>}
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">LambdaParameter:</div>
+
+                  <div class="rhs">
+                           {<a href="jls-8.html#jls-VariableModifier" title="VariableModifier">VariableModifier</a>} <a href="jls-15.html#jls-LambdaParameterType" title="LambdaParameterType">LambdaParameterType</a> <a href="jls-8.html#jls-VariableDeclaratorId" title="VariableDeclaratorId">VariableDeclaratorId</a> <br>
+                           <a href="jls-8.html#jls-VariableArityParameter" title="VariableArityParameter">VariableArityParameter</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">LambdaParameterType:</div>
+
+                  <div class="rhs">
+                           <a href="jls-8.html#jls-UnannType" title="UnannType">UnannType</a> <br>
+                           <code class="literal">var</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">LambdaBody:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <br>
+                           <a href="jls-14.html#jls-Block" title="Block">Block</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AssignmentExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-ConditionalExpression" title="ConditionalExpression">ConditionalExpression</a> <br>
+                           <a href="jls-15.html#jls-Assignment" title="Assignment">Assignment</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">Assignment:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-LeftHandSide" title="LeftHandSide">LeftHandSide</a> <a href="jls-15.html#jls-AssignmentOperator" title="AssignmentOperator">AssignmentOperator</a> <a href="jls-15.html#jls-Expression" title="Expression">Expression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">LeftHandSide:</div>
+
+                  <div class="rhs">
+                           <a href="jls-6.html#jls-ExpressionName" title="ExpressionName">ExpressionName</a> <br>
+                           <a href="jls-15.html#jls-FieldAccess" title="FieldAccess">FieldAccess</a> <br>
+                           <a href="jls-15.html#jls-ArrayAccess" title="ArrayAccess">ArrayAccess</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AssignmentOperator:</div>
+
+                  <div class="rhs">
+                           (one of) <br>
+                     <pre class="screen"><code class="literal">=</code>  <code class="literal">*=</code>  <code class="literal">/=</code>  <code class="literal">%=</code>  <code class="literal">+=</code>  <code class="literal">-=</code>  <code class="literal">&lt;&lt;=</code>  <code class="literal">&gt;&gt;=</code>  <code class="literal">&gt;&gt;&gt;=</code>  <code class="literal">&amp;=</code>  <code class="literal">^=</code>  <code class="literal">|=</code></pre>
+                         </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ConditionalExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-ConditionalOrExpression" title="ConditionalOrExpression">ConditionalOrExpression</a> <br>
+
+                           <a href="jls-15.html#jls-ConditionalOrExpression" title="ConditionalOrExpression">ConditionalOrExpression</a> <code class="literal">?</code>
+                           <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">:</code>
+                           <a href="jls-15.html#jls-ConditionalExpression" title="ConditionalExpression">ConditionalExpression</a> <br>
+
+                           <a href="jls-15.html#jls-ConditionalOrExpression" title="ConditionalOrExpression">ConditionalOrExpression</a> <code class="literal">?</code>
+                           <a href="jls-15.html#jls-Expression" title="Expression">Expression</a> <code class="literal">:</code>
+                           <a href="jls-15.html#jls-LambdaExpression" title="LambdaExpression">LambdaExpression</a> <br>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ConditionalOrExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-ConditionalAndExpression" title="ConditionalAndExpression">ConditionalAndExpression</a> <br>
+                           <a href="jls-15.html#jls-ConditionalOrExpression" title="ConditionalOrExpression">ConditionalOrExpression</a> <code class="literal">||</code> ConditionalAndExpression
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ConditionalAndExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-InclusiveOrExpression" title="InclusiveOrExpression">InclusiveOrExpression</a> <br>
+                           <a href="jls-15.html#jls-ConditionalAndExpression" title="ConditionalAndExpression">ConditionalAndExpression</a> <code class="literal">&amp;&amp;</code> <a href="jls-15.html#jls-InclusiveOrExpression" title="InclusiveOrExpression">InclusiveOrExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">InclusiveOrExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-ExclusiveOrExpression" title="ExclusiveOrExpression">ExclusiveOrExpression</a> <br>
+                           <a href="jls-15.html#jls-InclusiveOrExpression" title="InclusiveOrExpression">InclusiveOrExpression</a> <code class="literal">|</code> <a href="jls-15.html#jls-ExclusiveOrExpression" title="ExclusiveOrExpression">ExclusiveOrExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ExclusiveOrExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-AndExpression" title="AndExpression">AndExpression</a> <br>
+                           <a href="jls-15.html#jls-ExclusiveOrExpression" title="ExclusiveOrExpression">ExclusiveOrExpression</a> <code class="literal">^</code> <a href="jls-15.html#jls-AndExpression" title="AndExpression">AndExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AndExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-EqualityExpression" title="EqualityExpression">EqualityExpression</a> <br>
+                           <a href="jls-15.html#jls-AndExpression" title="AndExpression">AndExpression</a> <code class="literal">&amp;</code> <a href="jls-15.html#jls-EqualityExpression" title="EqualityExpression">EqualityExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">EqualityExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-RelationalExpression" title="RelationalExpression">RelationalExpression</a> <br>
+                           <a href="jls-15.html#jls-EqualityExpression" title="EqualityExpression">EqualityExpression</a> <code class="literal">==</code> <a href="jls-15.html#jls-RelationalExpression" title="RelationalExpression">RelationalExpression</a> <br>
+                           <a href="jls-15.html#jls-EqualityExpression" title="EqualityExpression">EqualityExpression</a> <code class="literal">!=</code> <a href="jls-15.html#jls-RelationalExpression" title="RelationalExpression">RelationalExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">RelationalExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-ShiftExpression" title="ShiftExpression">ShiftExpression</a> <br>
+                           <a href="jls-15.html#jls-RelationalExpression" title="RelationalExpression">RelationalExpression</a> <code class="literal">&lt;</code> <a href="jls-15.html#jls-ShiftExpression" title="ShiftExpression">ShiftExpression</a> <br>
+                           <a href="jls-15.html#jls-RelationalExpression" title="RelationalExpression">RelationalExpression</a> <code class="literal">&gt;</code> <a href="jls-15.html#jls-ShiftExpression" title="ShiftExpression">ShiftExpression</a> <br>
+                           <a href="jls-15.html#jls-RelationalExpression" title="RelationalExpression">RelationalExpression</a> <code class="literal">&lt;=</code> <a href="jls-15.html#jls-ShiftExpression" title="ShiftExpression">ShiftExpression</a> <br>
+                           <a href="jls-15.html#jls-RelationalExpression" title="RelationalExpression">RelationalExpression</a> <code class="literal">&gt;=</code> <a href="jls-15.html#jls-ShiftExpression" title="ShiftExpression">ShiftExpression</a> <br>
+                           <a href="jls-15.html#jls-RelationalExpression" title="RelationalExpression">RelationalExpression</a> <code class="literal">instanceof</code> <a href="jls-4.html#jls-ReferenceType" title="ReferenceType">ReferenceType</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ShiftExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-AdditiveExpression" title="AdditiveExpression">AdditiveExpression</a> <br>
+                           <a href="jls-15.html#jls-ShiftExpression" title="ShiftExpression">ShiftExpression</a> <code class="literal">&lt;&lt;</code> <a href="jls-15.html#jls-AdditiveExpression" title="AdditiveExpression">AdditiveExpression</a> <br>
+                           <a href="jls-15.html#jls-ShiftExpression" title="ShiftExpression">ShiftExpression</a> <code class="literal">&gt;&gt;</code> <a href="jls-15.html#jls-AdditiveExpression" title="AdditiveExpression">AdditiveExpression</a> <br>
+                           <a href="jls-15.html#jls-ShiftExpression" title="ShiftExpression">ShiftExpression</a> <code class="literal">&gt;&gt;&gt;</code> <a href="jls-15.html#jls-AdditiveExpression" title="AdditiveExpression">AdditiveExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">AdditiveExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-MultiplicativeExpression" title="MultiplicativeExpression">MultiplicativeExpression</a> <br>
+                           <a href="jls-15.html#jls-AdditiveExpression" title="AdditiveExpression">AdditiveExpression</a> <code class="literal">+</code> <a href="jls-15.html#jls-MultiplicativeExpression" title="MultiplicativeExpression">MultiplicativeExpression</a> <br>
+                           <a href="jls-15.html#jls-AdditiveExpression" title="AdditiveExpression">AdditiveExpression</a> <code class="literal">-</code> <a href="jls-15.html#jls-MultiplicativeExpression" title="MultiplicativeExpression">MultiplicativeExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">MultiplicativeExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-UnaryExpression" title="UnaryExpression">UnaryExpression</a> <br>
+                           <a href="jls-15.html#jls-MultiplicativeExpression" title="MultiplicativeExpression">MultiplicativeExpression</a> <code class="literal">*</code> <a href="jls-15.html#jls-UnaryExpression" title="UnaryExpression">UnaryExpression</a> <br>
+                           <a href="jls-15.html#jls-MultiplicativeExpression" title="MultiplicativeExpression">MultiplicativeExpression</a> <code class="literal">/</code> <a href="jls-15.html#jls-UnaryExpression" title="UnaryExpression">UnaryExpression</a> <br>
+                           <a href="jls-15.html#jls-MultiplicativeExpression" title="MultiplicativeExpression">MultiplicativeExpression</a> <code class="literal">%</code> <a href="jls-15.html#jls-UnaryExpression" title="UnaryExpression">UnaryExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">UnaryExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-PreIncrementExpression" title="PreIncrementExpression">PreIncrementExpression</a> <br>
+                           <a href="jls-15.html#jls-PreDecrementExpression" title="PreDecrementExpression">PreDecrementExpression</a> <br>
+                           <code class="literal">+</code> <a href="jls-15.html#jls-UnaryExpression" title="UnaryExpression">UnaryExpression</a> <br>
+                           <code class="literal">-</code> <a href="jls-15.html#jls-UnaryExpression" title="UnaryExpression">UnaryExpression</a> <br>
+                           <a href="jls-15.html#jls-UnaryExpressionNotPlusMinus" title="UnaryExpressionNotPlusMinus">UnaryExpressionNotPlusMinus</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">PreIncrementExpression:</div>
+
+                  <div class="rhs">
+                           <code class="literal">++</code> <a href="jls-15.html#jls-UnaryExpression" title="UnaryExpression">UnaryExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">PreDecrementExpression:</div>
+
+                  <div class="rhs">
+                           <code class="literal">--</code> <a href="jls-15.html#jls-UnaryExpression" title="UnaryExpression">UnaryExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">UnaryExpressionNotPlusMinus:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-PostfixExpression" title="PostfixExpression">PostfixExpression</a> <br>
+                           <code class="literal">~</code> <a href="jls-15.html#jls-UnaryExpression" title="UnaryExpression">UnaryExpression</a> <br>
+                           <code class="literal">!</code> <a href="jls-15.html#jls-UnaryExpression" title="UnaryExpression">UnaryExpression</a> <br>
+                           <a href="jls-15.html#jls-CastExpression" title="CastExpression">CastExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">PostfixExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-Primary" title="Primary">Primary</a> <br>
+                           <a href="jls-6.html#jls-ExpressionName" title="ExpressionName">ExpressionName</a> <br>
+                           <a href="jls-15.html#jls-PostIncrementExpression" title="PostIncrementExpression">PostIncrementExpression</a> <br>
+                           <a href="jls-15.html#jls-PostDecrementExpression" title="PostDecrementExpression">PostDecrementExpression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">PostIncrementExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-PostfixExpression" title="PostfixExpression">PostfixExpression</a> <code class="literal">++</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">PostDecrementExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-PostfixExpression" title="PostfixExpression">PostfixExpression</a> <code class="literal">--</code>
+
+                  </div>
+
+               </div>
+            </div>
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">CastExpression:</div>
+
+                  <div class="rhs">
+                           <code class="literal">(</code> <a href="jls-4.html#jls-PrimitiveType" title="PrimitiveType">PrimitiveType</a> <code class="literal">)</code>
+                           <a href="jls-15.html#jls-UnaryExpression" title="UnaryExpression">UnaryExpression</a> <br>
+
+                           <code class="literal">(</code> <a href="jls-4.html#jls-ReferenceType" title="ReferenceType">ReferenceType</a> {<a href="jls-4.html#jls-AdditionalBound" title="AdditionalBound">AdditionalBound</a>} <code class="literal">)</code>
+                           <a href="jls-15.html#jls-UnaryExpressionNotPlusMinus" title="UnaryExpressionNotPlusMinus">UnaryExpressionNotPlusMinus</a> <br>
+
+                           <code class="literal">(</code> <a href="jls-4.html#jls-ReferenceType" title="ReferenceType">ReferenceType</a> {<a href="jls-4.html#jls-AdditionalBound" title="AdditionalBound">AdditionalBound</a>} <code class="literal">)</code>
+                           <a href="jls-15.html#jls-LambdaExpression" title="LambdaExpression">LambdaExpression</a> <br>
+
+                  </div>
+
+               </div>
+            </div>
+
+
+            <div class="productionrecap">
+               <div class="production">
+
+                  <div class="lhs">ConstantExpression:</div>
+
+                  <div class="rhs">
+                           <a href="jls-15.html#jls-Expression" title="Expression">Expression</a>
+
+                  </div>
+
+               </div>
+            </div>
+
+         </div>
+      </div>
+      <div class="navfooter">
+         <hr>
+         <table width="100%" summary="Navigation footer">
+            <tr>
+               <td width="40%" align="left"><a accesskey="p" href="jls-18.html">Prev</a>&nbsp;
+               </td>
+               <td width="20%" align="center">&nbsp;</td>
+               <td width="40%" align="right">&nbsp;<a accesskey="n" href="spec-license.html">Next</a></td>
+            </tr>
+            <tr>
+               <td width="40%" align="left" valign="top">Chapter&nbsp;18.&nbsp;Type Inference&nbsp;</td>
+               <td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td>
+               <td width="40%" align="right" valign="top">&nbsp;Appendix&nbsp;A.&nbsp;Limited License Grant</td>
+            </tr>
+         </table>
+      </div>
+      <div xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:rx="http://www.renderx.com/XSL/Extensions" class="navfooter">
+         <hr><a href="spec-frontmatter.html">
+                Legal Notice
+              </a></div>
+   </body>
+</html>

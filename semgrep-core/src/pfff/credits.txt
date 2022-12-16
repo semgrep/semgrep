@@ -1,0 +1,17 @@
+Thanks to
+ - Olivier Andrieu for ocamlcairo/ (LGPL)
+ - Jacques Garrigue for ocamlgtk/ (LGPL)
+ - Sylvain Conchon, J.C Filliâtre and Julien Signoles for ocamlgraph/ (LGPL)
+ - Martin Jambon, Mika Illouz and Gert Stolpmann for lib-json/ (BSD-like)
+ - Nicolas Canasse for lib-xml/ (LGPL)
+ - Jane Street for lib-sexp/ (LGPL)
+ - Thomas Gazagnaire for dynType (BSD-like)
+ - Maas-Maarten Zeeman for OUnit.ml (BSD-like)
+ - Guillaume Cottenceau for pleac/ (FDL)
+ - Eric Cooper for the Joust Java parser (LGPL)
+ - Dario Teixeira for the CSS parser (LGPL)
+ - Gert Stolpmann for the HTML parser (LGPL)
+ - John Whaley for bddbddb (LGPL)
+
+Thanks of course also to Stallman, Torvalds, Leroy, Knuth and their
+acolytes for respectively Emacs, Linux, OCaml, and (La)TeX.

@@ -1,0 +1,15 @@
+(library
+ (public_name pfff-lang_erlang)
+ (name pfff_lang_erlang)
+ (wrapped false)
+ (libraries
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show))
+)
+(ocamllex lexer_erlang)
+(ocamlyacc parser_erlang)
+;(menhir (modules parser_erlang)
+;        (flags --unused-tokens --explain --fixed-exception))

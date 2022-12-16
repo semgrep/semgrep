@@ -1,0 +1,4 @@
+lots of the examples in this directory come from the wikipedia page on Ruby.
+The glr_xxx are exposing (G)LR ambiguities that need special functions
+to be disambiguated.
+Other examples come from https://whitequark.org/blog/2013/04/01/ruby-hacking-guide-ch-11-finite-state-lexer/ exposing again ambiguities.

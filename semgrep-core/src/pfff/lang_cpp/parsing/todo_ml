@@ -1,0 +1,163 @@
+
+let noInstr = (ExprStatement (None), [])
+
+(*****************************************************************************)
+(* Wrappers *)
+(*****************************************************************************)
+
+let unwrap_expr ((unwrap_e, typ), iie) = unwrap_e
+let rewrap_expr ((_old_unwrap_e, typ), iie)  newe = ((newe, typ), iie)
+
+let get_type_expr ((unwrap_e, typ), iie) = !typ
+let set_type_expr ((unwrap_e, oldtyp), iie) newtyp =
+  oldtyp := newtyp
+  (* old: (unwrap_e, newtyp), iie *)
+
+let unwrap_typeC (qu, (typeC, ii)) = typeC
+let rewrap_typeC (qu, (typeC, ii)) newtypeC  = (qu, (newtypeC, ii))
+
+
+let is_fake ii =
+  match ii.pinfo with
+    FakeTok (_,_) -> true
+  | _ -> false
+
+
+
+let mcode_of_info ii = fst (!(ii.cocci_tag))
+
+type posrv = Real of Common.parse_info | Virt of virtual_position
+let compare_pos ii1 ii2 =
+  let get_pos = function
+      OriginTok pi -> Real pi
+    | FakeTok (s,vpi) -> Virt vpi
+    | ExpandedTok (pi,vpi) -> Virt vpi
+    | AbstractLineTok pi -> Real pi in (* used for printing *)
+  let pos1 = get_pos (pinfo_of_info ii1) in
+  let pos2 = get_pos (pinfo_of_info ii2) in
+  match (pos1,pos2) with
+    (Real p1, Real p2) -> compare p1.Common.charpos p2.Common.charpos
+  | (Virt (p1,_), Real p2) ->
+      if (compare p1.Common.charpos p2.Common.charpos) = (-1) then (-1) else 1
+  | (Real p1, Virt (p2,_)) ->
+      if (compare p1.Common.charpos p2.Common.charpos) = 1 then 1 else (-1)
+  | (Virt (p1,o1), Virt (p2,o2)) ->
+      let poi1 = p1.Common.charpos in
+      let poi2 = p2.Common.charpos in
+      match compare poi1 poi2 with
+	-1 -> -1
+      |	0 -> compare o1 o2
+      |	x -> x
+
+let equal_posl (l1,c1) (l2,c2) =
+  (l1 =|= l2) && (c1 =|= c2)
+
+let info_to_fixpos ii =
+  match pinfo_of_info ii with
+    OriginTok pi -> Ast_cocci.Real pi.Common.charpos
+  | ExpandedTok (_,(pi,offset)) ->
+      Ast_cocci.Virt (pi.Common.charpos,offset)
+  | FakeTok (_,(pi,offset)) ->
+      Ast_cocci.Virt (pi.Common.charpos,offset)
+  | AbstractLineTok pi -> failwith "unexpected abstract"
+
+
+(*****************************************************************************)
+(* Abstract line *)
+(*****************************************************************************)
+
+(* When we have extended the C Ast to add some info to the tokens,
+ * such as its line number in the file, we can not use anymore the
+ * ocaml '=' to compare Ast elements. To overcome this problem, to be
+ * able to use again '=', we just have to get rid of all those extra
+ * information, to "abstract those line" (al) information.
+ *)
+
+let al_info tokenindex x =
+  { pinfo =
+    (AbstractLineTok
+       {charpos = tokenindex;
+	 line = tokenindex;
+	 column = tokenindex;
+	 file = "";
+	 str = str_of_info x});
+    cocci_tag = ref emptyAnnot;
+    comments_tag = ref emptyComments;
+  }
+
+let semi_al_info x =
+  { x with
+    cocci_tag = ref emptyAnnot;
+    comments_tag = ref emptyComments;
+  }
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* todo? could also stringify the all ident? *)
+let string_of_name name =
+  let (_qtop, _scope, (ident, _ii)) = name in
+  match ident with
+  | IdIdent s -> s
+  | IdOperator op -> "op todo"
+  | IdConverter ft -> "converter todo"
+  | IdDestructor xx -> "destructor todo"
+  | IdTemplateId (s, args) -> "template todo"
+
+let is_simple_ident name =
+  let (qtop, scope, (ident, _ii)) = name in
+  match qtop, scope, ident with
+  | None, [], IdIdent _ -> true
+  | _ -> false
+
+(* good to look at su ? some people use class for struct too ? *)
+let is_class_structunion class_def =
+  let (su, _sopt, _bopt, (members: class_member_sequencable list)),_ii = class_def in
+  su = Class ||
+      (members +> List.exists (fun x ->
+        match x with
+        | ClassElem (DeclarationField _,ii) -> false
+        | ClassElem (EmptyField, ii)  -> false
+        | _ -> true
+      ))
+
+
+(*****************************************************************************)
+(* Views *)
+(*****************************************************************************)
+
+(* Transform a list of arguments (or parameters) where the commas are
+ * represented via the wrap2 and associated with an element, with
+ * a list where the comma are on their own. f(1,2,2) was
+ * [(1,[]); (2,[,]); (2,[,])] and become [1;',';2;',';2].
+ *
+ * Used in cocci_vs_c.ml, to have a more direct correspondance between
+ * the ast_cocci of julia and ast_c.
+ *)
+let rec (split_comma: 'a wrap2 list -> ('a, il) either list) =
+  function
+  | [] -> []
+  | (e, ii)::xs ->
+      if null ii
+      then (Left e)::split_comma xs
+      else Right ii::Left e::split_comma xs
+
+let rec (unsplit_comma: ('a, il) either list -> 'a wrap2 list) =
+  function
+  | [] -> []
+  | Right ii::Left e::xs ->
+      (e, ii)::unsplit_comma xs
+  | Left e::xs ->
+      let empty_ii = [] in
+      (e, empty_ii)::unsplit_comma xs
+  | Right ii::_ ->
+      raise Impossible
+
+
+let split_register_param = fun (hasreg, idb, ii_b_s) ->
+  match hasreg, idb,  ii_b_s with
+  | false, Some s, [i1] -> Left (s, [], i1)
+  | true, Some s, [i1;i2] -> Left (s, [i1], i2)
+  | _, None, ii -> Right ii
+  | _ -> raise Impossible

@@ -1,0 +1,19 @@
+(library
+ (public_name pfff-lang_FUZZY)
+ (name pfff_lang_FUZZY)
+ (wrapped false)
+ (libraries
+   dyp
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+   pfff-lang_php
+   pfff-lang_ml
+   pfff-lang_skip
+   pfff-lang_java
+   pfff-lang_js
+   pfff-lang_go
+   pfff-lang_cpp
+ )
+ (preprocess (pps ppx_deriving.show))
+)

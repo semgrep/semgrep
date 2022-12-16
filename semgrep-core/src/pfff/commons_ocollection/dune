@@ -1,0 +1,7 @@
+(library
+ (public_name commons_ocollection)
+ (wrapped false)
+ (libraries
+   commons
+ )
+)

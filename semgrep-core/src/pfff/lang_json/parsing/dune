@@ -1,0 +1,12 @@
+(library
+ (public_name pfff-lang_json)
+ (name pfff_lang_json)
+ (wrapped false)
+ (libraries
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+   pfff-lang_js pfff-lang_js-analyze
+ )
+ (preprocess (pps ppx_deriving.show))
+)

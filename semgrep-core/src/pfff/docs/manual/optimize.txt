@@ -1,0 +1,42 @@
+
+loading is faster now because:
+ - use of marshalling instead of json
+ - use of thread to do in the background
+
+building treemap is faster now because:
+ - specialized tree_of_files
+ - unix_stat_eff
+
+painting treemap is faster now because:
+ - nblines_eff,
+ - faster source_archi_of_filename with ocamllex and caching/reusing of
+   dir -> archi
+ - less draw labeling and text_extent, and memoizing stuff there too
+ - do the drawing of content in the backgrond
+
+refreshing treemap is faster now because:
+ - use glib timeout to not be so synchronous with the mouse movement.
+   delay by 10ms gives enough relief to ocaml
+
+completion is faster now because:
+ - use of big_grep and top_100
+ - use of glib timeout
+
+clicking on subdir is faster now because:
+ - caching archi_of_filename
+ - faster tree_of_files
+
+
+
+
+**** slow start
+too many fs reads. too many =~
+
+**** slow render
+too many text_extents and font computation ? quantitize ?
+
+**** slow search
+gc pbs ? gtk pbs ?
+
+**** slow mouse
+gc pbs ? use ancient ?

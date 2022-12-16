@@ -1,0 +1,11 @@
+Thanks to
+ - Richard Jones for his dumper.ml module (public domain?)
+ - Jane Street for the backtrace module and lib-sexp/ (LGPL)
+ - Martin Jambon, Mika Illouz and Gert Stolpmann for lib-json/ (BSD-like)
+ - Nicolas Canasse for lib-xml/ (LGPL)
+ - Thomas Gazagnaire for dynType (BSD-like)
+ - Maas-Maarten Zeeman for OUnit (BSD-like)
+ - Brian Hurt and Nicolas Cannasse for their dynArray module (LGPL)
+ - Christophe Troestler for his ANSITerminal.ml module (LGPL)
+ - Sebastien ferre for his suffix tree module (public domain?)
+ - Anil Madhavapeddy for pretty_print_ident.ml (BSD-like)

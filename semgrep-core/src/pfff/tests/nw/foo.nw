@@ -1,0 +1,18 @@
+\documentclass{report}
+
+\begin{document}
+
+\begin{verbatim}
+This is not a \command
+\end{verbatim}
+
+<<chunk 1>>=
+This is a chunk.
+<<chunk ref>>
+@
+
+This is not always [[bar]] as you can see [<foo()>].
+
+You can also {\em emphasize} or give \footnote{my note}.
+
+\end{document}

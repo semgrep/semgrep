@@ -1,0 +1,4 @@
+# ex of config, to put in ~/.gtkrc-2.0
+gtk-icon-theme-name = "Tango"
+gtk-theme-name = "Murrine-Gray"
+gtk-font-name = "DejaVu Sans 10"

@@ -1,0 +1,50 @@
+[ANN] pfff_visual, a fancy code visualizer/navigator for OCaml, and more
+
+Hi list,
+
+It is my pleasure to announce pfff_visual, a code visualizer/navigator
+for OCaml. Note that this is not a replacement for Emacs, but more a
+companion that works with Emacs.
+
+A demo is available here:
+ part1: http://www.youtube.com/watch?v=HRZjBGD3osw
+ part2: http://www.youtube.com/watch?v=993pmNLY_VU
+
+pfff_visual is using pfff, which is mainly an OCaml API to write
+static analysis, dynamic analysis, code visualizations, code
+navigations, or style-preserving source-to-source transformations such
+as refactorings on source code. For now the effort is focused on PHP
+but there is preliminary support for Javascript, and C++ code.
+There is also preliminary support for OCaml code so that the infrastructure
+can be used on the code of pfff itself.
+
+You can get the source of pfff and pfff_visual here:
+ http://github.com/facebook/pfff
+
+Here is how to install it:
+ $ git clone git@github.com:facebook/pfff.git
+ $ ./configure
+ $ make depend; make; make opt
+ $ ./pfff_visual /path/to/project/using/supported/languages
+
+pfff has been tested on MacOS and Linux and is licensed under the LGPL.
+
+Thanks to
+ - Lex Stein for ocamlbdb/
+ - Olivier Andrieu for ocamlcairo
+ - Jacques Garrigue for ocamlgtk
+ - Martin Jambon, Mika Illouz and Gert Stolpmann for lib-json
+ - Nicolas Canasse for lib-xml
+ - Jane Street for lib-sexp
+ - Thomas Gazagnaire for dynType
+ - Maas-Maarten Zeeman for OUnit.ml
+ - Thorsten Ohl for xHTML.ml
+ - Sylvain Conchon, Jean-Christophe Filliâtre and Julien Signoles for
+   ocamlgraph
+ - Xavier Leroy for ocamlmpi
+ - Markus Mottl for ocamlpcre
+ - Iain Proctor for ocamlthrift
+ - Guillaume Cottenceau for pleac
+
+
+Enjoy.

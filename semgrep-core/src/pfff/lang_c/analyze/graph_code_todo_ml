@@ -1,0 +1,84 @@
+  (* note: _address could be useful to know precisely to which field we
+   * access, but such an address can't be deduped in uninclude. Fortunately
+   * we can look at the type of the subexpression (see enum2 below) to
+   * infer the structure the field refers to.
+  *)
+  | MemberExpr, [_loc;_typ;_(*lval*);T (TDot|TArrow);
+                 T (TLowerIdent fld|TUpperIdent fld);
+                 _address;(Paren (enum2, l2, xs))]
+  | MemberExpr, [_loc;_typ;T (TDot|TArrow);
+                 T (TLowerIdent fld | TUpperIdent fld);
+                 _address;(Paren (enum2, l2, xs))]
+  | MemberExpr, [_loc;_typ;_(*lval*);T (TLowerIdent "bitfield");T(TDot|TArrow);
+                 T (TLowerIdent fld | TUpperIdent fld);
+                 _address;(Paren (enum2, l2, xs))] ->
+      if env.phase = Uses && env.conf.fields_dependencies
+      then begin
+        let loc = env.clang2_file, l2 in
+        let toks = Type_clang.tokens_of_paren_sexp loc (Paren(enum2, l2, xs))in
+        let typ_subexpr = Type_clang.type_of_tokens loc toks in
+        let typ_subexpr = Type_clang.expand_typedefs env.typedefs typ_subexpr in
+        (match typ_subexpr with
+        (* because TDot|TArrow above, need Pointer too *)
+        | Typ.StructName s | Typ.Pointer (Typ.StructName s) ->
+            add_use_edge env (spf "S__%s.%s" s fld, E.Field)
+
+        (* with some struct anon this can happen apparently, cf umalloc.c *)
+        | Typ.Typename s | Typ.Pointer (Typ.Typename s) ->
+            env.pr2_and_log (spf "member access to typedef not expanded: %s" s)
+
+        | Typ.TypeofStuff | Typ.Pointer (Typ.TypeofStuff) ->
+            error env ("impossible")
+
+        (* todo? should add deps no? *)
+        | Typ.UnionName _s  | Typ.Pointer (Typ.UnionName _s) -> ()
+        (* todo? *)
+        | Typ.AnonStuff | Typ.Pointer (Typ.AnonStuff) -> ()
+
+        | (Typ.Builtin _ |Typ.Function _ |Typ.EnumName _ |Typ.Other _
+          |Typ.Pointer _
+          ) ->
+            error env (spf "unhandled typ: %s" (Common.dump typ_subexpr))
+        )
+      end;
+      sexps env xs
+
+  | InitListExpr, _loc::typ::inits ->
+      if env.phase = Uses && env.conf.fields_dependencies
+      then begin
+        let t = type_clang_of_sexptype env typ in
+        (match t with
+        | Typ.StructName s ->
+          (match Common2.hfind_option (spf "S__%s" s) env.fields with
+          | Some fields ->
+              init_list_expr_fields { env with in_assign = true } s inits fields
+          | None -> error env (spf "structure unknown: %s" s)
+          )
+        | _ -> sexps env xs
+        )
+      end
+      else sexps env xs
+
+  (* anon field *)
+  | MemberExpr, _loc::_typ::_lval::T (TDot|TArrow)::
+      _address::(Paren (_enum2, _l2, _xs))::[] ->
+      if env.phase = Uses
+      then ();
+      sexps env xs
+
+
+and init_list_expr_fields env s inits fields =
+  match inits, fields with
+  | [], [] -> ()
+  | [], _x::_xs ->
+    (* less value than field, C semantic? *)
+    ()
+  | _x::_xs, [] ->
+    error env "more values than fields"
+  | x::xs, fld::ys ->
+    (* similar to what I do for MemberExpr *)
+    add_use_edge env (spf "S__%s.%s" s fld, E.Field);
+    let env = { env with ctx = P.AssignCtx ((spf "S__%s.%s" s fld, E.Field)) }
+    in
+    sexp env x;
+    init_list_expr_fields env s xs ys

@@ -1,0 +1,49 @@
+opam-version: "2.0"
+name: "pfff"
+version: "0.118.0"
+synopsis: "Tools and APIs for program analysis, code visualization, refactoring"
+description: """
+pfff is a set of tools and APIs to perform some static analysis,
+dynamic analysis, code visualizations, code navigations, or
+style-preserving source-to-source transformations such as refactorings
+on source code. For now the effort is focused on Javascript and Python
+but there is also good support for C, C++, Java, Go, Ruby, PHP, HTML, Css, and
+preliminary support for Erlang, C#, Lisp, Scheme, Haskell, Skip, SQL, and
+even TeX. There is also very good support for OCaml and noweb
+(literate programming) so that pfff can be used on the code of pfff
+itself.
+
+For more information see https://github.com/returntocorp/pfff/wiki/Main"""
+
+maintainer: "yoann.padioleau@gmail.com"
+authors: [ "Yoann Padioleau <yoann.padioleau@gmail.com>" ]
+homepage: "https://github.com/returntocorp/pfff/wiki/Main"
+bug-reports: "https://github.com/returntocorp/pfff/issues"
+dev-repo: "git+https://github.com/returntocorp/pfff.git"
+
+patches: [
+]
+build: [
+  ["dune" "build"]
+]
+install: [
+  ["dune" "install"]
+]
+depends: [
+  "ocaml" {>= "4.12.0"}
+  "stdcompat"
+  "dune"
+  "ocamlgraph"
+  "yojson"
+  "menhir" {= "20211128"} (* Newer versions cause massive build slowdowns *)
+  "grain_dypgen"
+  "ppx_deriving"
+  "ppx_hash"
+  "ppxlib"
+  "uutf"
+  "uucp"
+  "alcotest"
+  "ANSITerminal"
+  "easy_logging" { = "0.8.1" }
+  "easy_logging_yojson" { = "0.8.1" }
+]

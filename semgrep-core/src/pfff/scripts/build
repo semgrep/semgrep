@@ -1,0 +1,19 @@
+#! /usr/bin/env bash
+#
+# Group the few instructions to build pfff into one. This is meant to avoid
+# duplication in the various CI pipelines.
+#
+set -eu
+
+eval $(opam env)
+
+# Remove everything that's git-ignored so as to avoid surprises.
+git clean -dfX
+
+#old:
+#./configure --novisual --nocmt --nobytecode
+#make depend
+#make
+#make opt
+
+dune build

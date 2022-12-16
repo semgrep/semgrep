@@ -1,0 +1,136 @@
+from http://msdn.microsoft.com/en-us/library/ms711725%28VS.85%29.aspx
+but incomplete. no 'AS' for instance.
+
+
+CREATE TABLE base-table-name
+
+     (column-identifier data-type [,column-identifier data-type]...)
+NoteImportant
+
+As a data-type in a create-table-statement, applications must use a data type from the TYPE_NAME column of the result set returned by SQLGetTypeInfo.
+
+delete-statement-searched ::=
+
+     DELETE FROM table-name [WHERE search-condition]
+
+drop-table-statement ::=
+
+     DROP TABLE base-table-name
+
+insert-statement ::=
+
+     INSERT INTO table-name [( column-identifier [, column-identifier]...)]      VALUES (insert-value[, insert-value]... )
+
+select-statement ::=
+
+     SELECT [ALL | DISTINCT] select-list
+
+     FROM table-reference-list
+
+     [WHERE search-condition]
+
+     [order-by-clause]
+
+statement ::= create-table-statement
+
+     | delete-statement-searched
+
+     | drop-table-statement
+
+     | insert-statement
+
+     | select-statement
+
+     | update-statement-searched
+
+update-statement-searched
+
+     UPDATE table-name
+
+     SET column-identifier = {expression | NULL }
+
+          [, column-identifier = {expression | NULL}]...
+
+     [WHERE search-condition]
+
+
+
+ base-table-identifier ::= user-defined-name
+
+base-table-name ::= base-table-identifier
+
+boolean-factor ::= [NOT] boolean-primary
+
+boolean-primary ::= comparison-predicate | ( search-condition )
+
+boolean-term ::= boolean-factor [AND boolean-term]
+
+character-string-literal ::= ''{character}...'' (character is any character in the character set of the driver/data source. To include a single literal quote character ('') in a character-string-literal, use two literal quote characters [''''].)
+
+column-identifier ::= user-defined-name
+
+column-name ::= [table-name.]column-identifier
+
+comparison-operator ::= < | > | <= | >= | = | <>
+
+comparison-predicate ::= expression comparison-operator expression
+
+data-type ::= character-string-type (character-string-type is any data type for which the ""DATA_TYPE"" column in the result set returned by SQLGetTypeInfo is either SQL_CHAR or SQL_VARCHAR.)
+
+digit ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+
+dynamic-parameter ::= ?
+
+expression ::= term | expression {+|–} term
+
+factor ::= [+|–]primary
+
+insert-value ::=
+
+     dynamic-parameter
+
+     | literal
+
+     | NULL
+
+     | USER
+
+letter ::= lower-case-letter | upper-case-letter
+
+literal ::= character-string-literal
+
+lower-case-letter ::= a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p | q | r | s | t | u | v | w | x | y | z
+
+order-by-clause ::=    ORDER BY sort-specification [, sort-specification]...
+
+primary ::= column-name
+
+     | dynamic-parameter
+
+     | literal
+
+     | ( expression )
+
+search-condition ::= boolean-term [OR search-condition]
+
+select-list ::= * | select-sublist [, select-sublist]... (select-list cannot contain parameters.)
+
+select-sublist ::= expression
+
+sort-specification ::= {unsigned-integer | column-name} [ASC | DESC]
+
+table-identifier ::= user-defined-name
+
+table-name ::= table-identifier
+
+table-reference ::= table-name
+
+table-reference-list ::= table-reference [,table-reference]...
+
+term ::= factor | term {*|/} factor
+
+unsigned-integer ::= {digit}
+
+upper-case-letter ::= A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z
+
+user-defined-name ::= letter[digit | letter | _]...

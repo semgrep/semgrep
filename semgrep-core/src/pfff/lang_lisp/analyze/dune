@@ -1,0 +1,13 @@
+(library
+ (public_name pfff-lang_lisp-analyze)
+ (name pfff_lang_lisp_analyze)
+ (wrapped false)
+ (libraries
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+   pfff-graph_code
+   pfff-lang_lisp
+ )
+ (preprocess (pps ppx_deriving.show))
+)

@@ -1,0 +1,96 @@
+# -*- org -*-
+
+TODO:
+http://blog.robertelder.org/jim-roskind-grammar/
+http://eli.thegreenplace.net/2007/11/24/the-context-sensitivity-of-cs-grammar/
+
+* Typedefs
+
+simple_type_specifier:
+ ...
+ | type_cplusplus_id { Right3 (TypeName $1), noii }
+
+ (* history: cant put TIdent {} cos it makes the grammar ambiguous and
+  * generates lots of conflicts => we must use some tricks.
+  * We used to make the lexer and parser cooperate (in a lexerParser.ml file).
+  * But this was not enough because of declarations such as 'acpi acpi;'
+  * and so we had to enable/disable the ident->typedef mechanism
+  * (which requires even more lexer/parser cooperation). But
+  * this was ugly too so now we use a typedef "inference" mechanism.
+
+We do many things to handle typedefs ambiguities:
+ - parsing_hack_typedef heuristics
+ - token_view_context in Parameter heuristics
+ - dealing with template before the actual typedef
+ - a few rules added for parameter and arguments to allow
+   both TIdent and TIdent_typedef in both contexts
+ - ...
+
+
+** pointer decl, multiplication and ambiguity
+
+from "Yacc Is Dead" at http://lambda-the-ultimate.org/node/4148#comment
+
+" 'x*y;' in C++ this could be a multiplication, pointer declaration, or
+arbitrary overloaded meaning of "*". You have to hit name and type
+resolution before you can distinguish them."
+
+** cast and ambiguity
+
+can be cast or binary minus
+  (u32int)-pa
+
+can be cast or funcall
+  (u32int)(-pa));
+
+same with (uintptr)&x.
+
+* If-then-else
+
+see dangling-else section in lang_php/parsing/conflicts.txt
+
+* Template < >
+
+We do many things ...
+
+* C++
+
+* Lambda
+
+[a] in primary_expr can be a designator or the start of a lambda.
+
+* TODO ':'
+
+When have 'class X :' we don't know if it's the start of possibly a
+class with inheritance spec, or a bitfield as 'class X :3'.
+
+TODO why have conflict on TCol ???
+
+
+* Old notes
+
+(* Cocci: Each token will be decorated in the future by the mcodekind
+ * of cocci. It is the job of the pretty printer to look at this
+ * information and decide to print or not the token (and also the
+ * pending '+' associated sometimes with the token).
+ *
+ * The first time that we parse the original C file, the mcodekind is
+ * empty, or more precisely all is tagged as a CONTEXT with NOTHING
+ * associated. This is what I call a "clean" expr/statement/....
+ *
+ * Each token will also be decorated in the future with an environment,
+ * because the pending '+' may contain metavariables that refer to some
+ * C code.
+ *
+ * Update: Now I use a ref! so take care.
+ *
+ * Sometimes we want to add someting at the beginning or at the end
+ * of a construct. For 'function' and 'decl' we want add something
+ * to their left and for 'if' 'while' et 'for' and so on at their right.
+ * We want some kinds of "virtual placeholders" that represent the start or
+ * end of a construct. We use fakeInfo for that purpose.
+ * To identify those cases I have added a fakestart/fakeend comment.
+ *
+ * convention: I often use 'ii' for the name of a list of info.
+ *
+ *)

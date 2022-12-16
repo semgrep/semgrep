@@ -1,0 +1,35 @@
+The syncweb masters are in ~/pfff on macbook (MAC) or linux dev machine (DEV):
+
+ - commons/ ??
+
+ - docs/manual/ ??
+ - docs/ocaml/ MAC
+
+ - h_visualization/ MAC
+ - code_map/ MAC
+
+ - lang_php/parsing/ DEV
+ - lang_php/analyze/ DEV
+ - lang_cpp/parsing/ ??
+
+ - facebook/check_module/ DEV
+
+
+commons/ is partially copied in fork-zamcov/ and hack/src/pfff/commons
+
+The darcs masters are in ~/mobile/commons/ and here are the clones:
+
+ - commons/ DEV and MAC
+ - commons/lib-json ? DEV
+ - commons/lib-sexp ? DEV
+
+ - h_program-lang/ DEV
+ - h_version-control/ DEV
+ - h_visualization/ DEV
+
+ - docs/ocaml/ ?? DEV
+ - gui/ ?? DEV
+
+ - lang_html/ DEV
+ - lang_css/ DEV
+ - lang_js/ DEV

@@ -1,0 +1,290 @@
+
+<<common.mli>>=
+(*###########################################################################*)
+(* Globals *)
+(*###########################################################################*)
+<<common.mli globals>>
+
+(*###########################################################################*)
+(* Basic features *)
+(*###########################################################################*)
+<<common.mli basic features>>
+
+(*###########################################################################*)
+(* Basic types *)
+(*###########################################################################*)
+<<common.mli for basic types>>
+
+(*###########################################################################*)
+(* Collection-like types *)
+(*###########################################################################*)
+<<common.mli for collection types>>
+
+(*###########################################################################*)
+(* Misc functions *)
+(*###########################################################################*)
+<<common.mli misc>>
+
+(*###########################################################################*)
+(* Postlude *)
+(*###########################################################################*)
+<<common.mli postlude>>
+@
+
+\begin{verbatim}
+(* Some conventions:
+ *
+ * When I have some _xxx variables before some functions, it's
+ * because I want to show that those functions internally use a global
+ * variable. That does not mean I want people to modify this global.
+ * In fact they are kind of private, but I still want to show them.
+ * Maybe one day OCaml will have an effect type system so I don't need this.
+ *
+ * The variables that are called _init_xxx show the internal init
+ * side effect of the module (like static var trick used in C/C++)
+ *
+ * Why not split the functionnalities of this file in different files ?
+ * Because when I write ocaml script I want simply to load one
+ * file, common.ml, and that's it. Cf common_extra.ml for more on this.
+ *)
+\end{verbatim}
+
+
+<<common.mli globals>>=
+(*****************************************************************************)
+(* Flags *)
+(*****************************************************************************)
+<<common.mli globals flags>>
+
+(*****************************************************************************)
+(* Flags and actions *)
+(*****************************************************************************)
+(* cf poslude *)
+
+(*****************************************************************************)
+(* Misc/test *)
+(*****************************************************************************)
+<<common.mli misc/test>>
+
+@
+
+
+
+
+
+<<common.mli globals flags>>=
+(* see the corresponding section for the use of those flags. See also
+ * the "Flags and actions" section at the end of this file.
+ *)
+
+(* if set then will not do certain finalize so faster to go back in replay *)
+val debugger : bool ref
+
+type prof = PALL | PNONE | PSOME of string list
+val profile : prof ref
+val show_trace_profile : bool ref
+
+
+val verbose_level : int ref
+
+(* forbid pr2_once to do the once "optimisation" *)
+val disable_pr2_once : bool ref
+
+
+
+(* works with new_temp_file *)
+val save_tmp_files : bool ref
+@
+
+
+
+<<common.mli globals>>=
+(*****************************************************************************)
+(* Module side effect *)
+(*****************************************************************************)
+(*
+ * I define a few unit tests via some let _ = example (... = ...).
+ * I also initialize the random seed, cf _init_random .
+ * I also set Gc.stack_size, cf _init_gc_stack .
+*)
+@
+
+
+
+<<common.mli globals>>=
+(*****************************************************************************)
+(* Semi globals *)
+(*****************************************************************************)
+(* cf the _xxx variables in this file *)
+@
+
+
+% need put after cmdline_options
+<<common.mli postlude>>=
+val cmdline_flags_devel : unit -> cmdline_options
+val cmdline_flags_verbose : unit -> cmdline_options
+val cmdline_flags_other : unit -> cmdline_options
+
+val cmdline_actions : unit -> cmdline_actions
+@
+
+<<common.ml cmdline>>=
+
+(* I put it inside a func as it can help to give a chance to
+ * change the globals before getting the options as some
+ * options sometimes may want to show the default value.
+ *)
+let cmdline_flags_devel () =
+  [
+    "-debugger",         Arg.Set debugger ,
+    " option to set if launched inside ocamldebug";
+    "-profile",          Arg.Unit (fun () -> profile := PALL),
+    " gather timing information about important functions";
+  ]
+let cmdline_flags_verbose () =
+  [
+    "-verbose_level",  Arg.Set_int verbose_level,
+    " <int> guess what";
+    "-disable_pr2_once",     Arg.Set disable_pr2_once,
+    " to print more messages";
+    "-show_trace_profile",          Arg.Set show_trace_profile,
+    " show trace";
+  ]
+
+let cmdline_flags_other () =
+  [
+    "-nocheck_stack",      Arg.Clear _check_stack,
+    " ";
+    "-batch_mode", Arg.Set _batch_mode,
+    " no interactivity";
+    "-keep_tmp_files", Arg.Set save_tmp_files,
+    " ";
+  ]
+
+(* potentially other common options but not yet integrated:
+
+  "-timeout",        Arg.Set_int timeout,
+  "  <sec> interrupt LFS or buggy external plugins";
+
+  (* can't be factorized because of the $ cvs stuff, we want the date
+   * of the main.ml file, not common.ml
+   *)
+  "-version",   Arg.Unit (fun () ->
+    pr2 "version: _dollar_Date: 2008/06/14 00:54:22 _dollar_";
+    raise (Common.UnixExit 0)
+    ),
+  "   guess what";
+
+  "-shorthelp", Arg.Unit (fun () ->
+    !short_usage_func();
+    raise (Common.UnixExit 0)
+  ),
+  "    see short list of options";
+  "-longhelp", Arg.Unit (fun () ->
+    !long_usage_func();
+    raise (Common.UnixExit 0)
+    ),
+  "-help", Arg.Unit (fun () ->
+    !long_usage_func();
+    raise (Common.UnixExit 0)
+  ),
+  " ";
+  "--help", Arg.Unit (fun () ->
+    !long_usage_func();
+    raise (Common.UnixExit 0)
+  ),
+  " ";
+
+*)
+
+let cmdline_actions () =
+  [
+    "-test_check_stack", "  <limit>",
+    mk_action_1_arg test_check_stack_size;
+  ]
+
+@
+
+
+
+<<common.mli misc/test>>=
+val generic_print : 'a -> string -> string
+
+class ['a] olist :
+  'a list ->
+  object
+    val xs : 'a list
+    method fold : ('b -> 'a -> 'b) -> 'b -> 'b
+    method view : 'a list
+  end
+
+val typing_sux_test : unit -> unit
+@
+
+\begin{verbatim}
+
+(*****************************************************************************)
+(* Notes *)
+(*****************************************************************************)
+
+
+
+(* ---------------------------------------------------------------------- *)
+(* Maybe could split common.ml and use include tricks as in ofullcommon.ml or
+ * Jane Street core lib. But then harder to bundle simple scripts like my
+ * make_full_linux_kernel.ml because would then need to pass all the files
+ * either to ocamlc or either to some #load. Also as the code of many
+ * functions depends on other functions from this common, it would
+ * be tedious to add those dependencies. Here simpler (have just the
+ * pb of the Prelude, but it's a small problem).
+ *
+ * pixel means code from Pascal Rigaux
+ * julia means code from Julia Lawall
+ *)
+(* ---------------------------------------------------------------------- *)
+
+(*****************************************************************************)
+(* We use *)
+(*****************************************************************************)
+(*
+ * modules:
+ *   - Pervasives, of course
+ *   - List
+ *   - Str
+ *   - Hashtbl
+ *   - Format
+ *   - Buffer
+ *   - Unix and Sys
+ *   - Arg
+ *
+ * functions:
+ *   - =, <=, max min, abs, ...
+ *   - List.rev, List.mem, List.partition,
+ *   - List.fold*, List.concat, ...
+ *   - Str.global_replace
+ *   - Filename.is_relative
+ *   - String.uppercase, String.lowercase
+ *
+ *
+ * The Format library allows to hide passing an indent_level variable.
+ * You use as usual the print_string function except that there is
+ * this automatic indent_level variable handled for you (and maybe
+ * more services). src: julia in coccinelle unparse_cocci.
+ *
+ * Extra packages
+ *  - ocamlbdb
+ *  - ocamlgtk, and gtksourceview
+ *  - ocamlgl
+ *  - ocamlpython
+ *  - ocamlagrep
+ *  - ocamlfuse
+ *  - ocamlmpi
+ *  - ocamlcalendar
+ *
+ *  - pcre
+ *  - sdl
+ *
+ * Many functions in this file were inspired by Haskell or Lisp librairies.
+ *)
+
+\end{verbatim}

@@ -1,0 +1,30 @@
+(test
+ (name Test)
+ (libraries
+    bigarray str
+    yojson
+    dyp
+    ppx_deriving.runtime
+    uutf uucp
+
+    commons commons_core
+    pfff-testutil
+    pfff-config
+    pfff-h_program-lang
+    pfff-lang_python pfff-lang_python-analyze
+    pfff-lang_js pfff-lang_js-analyze
+    pfff-lang_json
+    pfff-lang_cpp pfff-lang_cpp-analyze
+    pfff-lang_c pfff-lang_c-analyze
+    pfff-lang_ml pfff-lang_ml-analyze
+    pfff-lang_java pfff-lang_java-analyze
+    pfff-lang_go pfff-lang_go-analyze
+    pfff-lang_ruby pfff-lang_ruby-analyze
+    pfff-lang_php pfff-lang_php-analyze
+    pfff-lang_lisp
+    pfff-lang_regexp
+    pfff-lang_skip
+    pfff-lang_scala
+    pfff-lang_FUZZY
+  )
+)

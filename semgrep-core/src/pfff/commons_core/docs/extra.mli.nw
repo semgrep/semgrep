@@ -1,0 +1,621 @@
+\todo{
+macro.ml4
+}
+\todo{
+common\_extra.ml
+}
+
+\todo{
+concurrency.ml
+distribution.ml
+graphic.ml
+gui.ml
+opengl.ml
+}
+
+
+\chapter{Interface}
+\todo{
+(cf also objet.ml)
+}
+
+<<interfaces.ml>>=
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2010 Facebook
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
+
+open Common.BasicType
+
+(*****************************************************************************)
+(* Type classes via module signature. *)
+(*****************************************************************************)
+(*
+ * This module has nothing to do with graphical user interface (GUI). See
+ * gui.ml for that.
+ *
+ * I use this module not so much for functors, I hate functors, but
+ * more to force me to have consistent naming of stuff.
+ *
+ * It's related to objet.ml in some way, but use a different scheme.
+ *
+ * src: (strongly) inspired by Jane Street core lib, which in turn
+ * may have been strongly inspired by Java Interfaces or Haskell
+ * type classes.
+ *
+ *
+ *
+ * Example of use in .mli:
+ *
+ *   open Interfaces
+ *   include Stringable with type stringable = t
+ *   include Comparable with type comparable = t
+ *
+ * Example of use in .ml:
+ *
+ *   type xxx
+ *   type stringable = xxx
+ *   let of_string = bool_of_string
+ *   let to_string = string_of_bool
+ *
+ *
+ * No this file is not about (graphical) user interface. See gui.ml for that.
+ *
+ *
+ * todo? but as in type class, or object, can not have default method
+ * with this scheme ?
+ *)
+
+
+
+(*****************************************************************************)
+(* Basic *)
+(*****************************************************************************)
+
+(* note: less need for cloneable, copyable as in Java. Only needed
+ * when use ref, but refs should be avoided anyway so better not to
+ * encourage it.
+ *
+ * Often found this in haskell:
+ *
+ *    data x = ... deriving (Read, Show, Eq, Ord, Enum, Bounded)
+ *
+ * Apparently this is what is considered basic by haskell.
+ *)
+
+
+module type Check_able = sig
+  type checkable
+  val invariant: checkable -> unit (* raise exception *)
+end
+
+
+
+(* Normally should not use the '=' of ocaml. cf common.mli on this issue. *)
+module type Eq_able = sig
+  type eqable
+  val equal : eqable -> eqable -> bool
+  (* Jane Street have far more (complex) stuff for this typeclass *)
+
+  val (=*=): eqable -> eqable -> bool
+end
+
+
+
+(* Same, should not use compare normally, dangerous when evolve code.
+ * Called Ord in haskell. Inherit Eq normally.
+ *)
+module type Compare_able = sig
+  type compareable
+  val compare: compareable -> compareable -> bool
+end
+(* Jane street have also some binable, sexpable *)
+
+
+(* Haskell have lots of related type class after Num such as
+ * Real, Fractional, Integral, RealFrac, Floating, RealFloat
+ *)
+module type Num_able = sig
+  type numable
+  (* +, -, etc *)
+end
+
+
+
+(*****************************************************************************)
+(* Show/read related *)
+(*****************************************************************************)
+
+
+(* Called show/read in haskell *)
+module type String_able = sig
+  type stringable
+  val of_string : string -> stringable
+  val to_string : stringable -> string
+end
+
+module type Debug_able = sig
+    type debugable
+    val debug: debugable -> string
+end
+
+
+module type XML_able = sig
+    type xmlable
+    val of_xml: string -> xmlable
+    val to_xml: xmlable -> string
+end
+(* Jane street have also some BIN_able, and SEXP_able (but no sex_able) *)
+
+module type File_able = sig
+    type fileable
+    val load: filename -> fileable
+    val save: fileable -> filename -> unit
+end
+
+(* a.k.a Marshall_able *)
+module type Serialize_able = sig
+    type serializeable
+    val serialize: serializeable -> string
+    val unserialize: string -> serializeable
+end
+
+
+module type Open_able = sig
+    type openable
+    val openfile: filename -> openable
+    val close: openable -> unit
+end
+
+(*****************************************************************************)
+(* Other *)
+(*****************************************************************************)
+
+(* This is related to ocollection.ml in some way, but use a different scheme *)
+
+(* Require Constructor class ? So can not do it ? apparently can. Note the
+ * 'b which is not declareted but seems to pose no problem to ocamlc.
+ *)
+module type Map_able = sig
+    type 'a mapable
+    val map: ('a -> 'b) -> 'a mapable -> 'b mapable
+end
+
+module type Iter_able = sig
+    type 'a iterable
+    val iter: ('a -> unit) -> 'a iterable -> unit
+end
+
+
+(* testable ? actionable ? *)
+
+(* *)
+
+(* monad ? functor *)
+
+
+
+(*****************************************************************************)
+(* Idea taken from Jane Street Core library, slightly changed.
+ *
+ * It's another way to organize data structures, module instead of objects.
+ * It's also the Java way.
+ *
+ * It makes some code looks a little bit like Haskell* typeclass.
+ *
+ *)
+
+(* In Jane Street they put each interface in its own file but then have to
+ * do that:
+ *
+ * module type Stringable = Stringable.S
+ * module type Comparable = Comparable.S
+ * module type Floatable = Floatable.S
+ * module type Hashable = Hashable.S
+ * module type Infix_comparators = Comparable.Infix
+ * module type Monad = Monad.S
+ * module type Robustly_comparable = Robustly_comparable.S
+ * module type Setable = Setable.S
+ * module type Sexpable = Sexpable.S
+ * module type Binable = Binable.S
+ *
+ * And I dont like having too much files, especially as all those xxable
+ * end with able, not start, so don't see them together in the directory.
+ *)
+
+@
+
+\chapter{Tests}
+
+%OUnit
+% Why ? vs my let _ = example, power of ocaml '='
+% My example is good for small unit test next to the definition of the function
+% But if one fail ? no report. And if takes time ? For instance
+% can not really do my callgraph unit testing with that. So
+% you want to have many tests, organized them so that one can easily
+% from the command line select the ones he wants to run. Enter OUnit.
+% This is just that! A way to organize tests. Also having a good
+% assert_equal can help to diagnose when things are different by providing
+% a good report.
+
+\chapter{Concurrency}
+
+<<concurrency.ml>>=
+open Common
+
+
+let _biglock = Mutex.create ()
+let atomic f =
+  Mutex.lock _biglock;
+  Common.finalize f (fun () -> Mutex.unlock _biglock)
+
+
+@
+
+
+\chapter{Distribution}
+
+\chapter{Graphic}
+
+
+\begin{verbatim}
+(* alternatives:
+ * - Graphics module of ocaml, very good for prototyping (used in
+ *   icfp contest)
+ * - opengl
+ * - gtk drawing area
+ * - sdl ?
+ *)
+\end{verbatim}
+
+
+
+\chapter{OpenGL}
+
+\chapter{GUI}
+
+\begin{verbatim}
+GUI via lablgtk.
+ *
+ * Alternatives:
+ *  - tk, but tk ... a little bit old style
+ *  - qt, but poor wrapper
+ *  - wxwindow, but poor wrapper or inexistant
+ * => lablgtk seems the most mature.
+ *
+ * cf also ocaml.org library notes on lablgtk.
+ *
+ *
+\end{verbatim}
+
+\chapter{ParserCombinators}
+
+parser\_combinators.ml
+
+\begin{verbatim}
+(* src: Jon Harrop.
+ *
+ * "Certain applications are extremely well suited to functional
+ * programming and parsing is one of them. Specifically, the ability to
+ * write functional combinators that allow parsers for everything from
+ * integers up to symbolic expressions to be composed is more general
+ * and provides more opportunity for code reuse than the use of
+ * conventional parser generators such as ocamllex and ocamlyacc. This
+ * article explains how parser combinators may be designed and
+ * implemented in OCaml, using the standard example of a calculator."
+ *
+ * Based on haskell articles I guess like meijer functional pearl or
+ * graham hutton articles. Also maybe based on haskell parsec.
+ *
+ * pad: a few bugfix. I also put more restrictive and descriptive types.
+ * pad: I remember having coded such a library, maybe not in ocaml.
+ * Or maybe it was during a "TP compilation" at INSA ? I remember having
+ * a generic lexer. Or maybe it was genlex ?
+ *
+ *
+ *
+ *
+ * alternatives: genlex + parser extension of ocaml (streams).
+ * cf genlex doc:
+ *
+ * Example: a lexer suitable for a desk calculator is obtained by
+ * let lexer = make_lexer ["+";"-";"*";"/";"let";"="; "("; ")"]
+ * let parse_expr = parser
+ *     [< 'Int n >] -> n
+ *   | [< 'Kwd "("; n = parse_expr; 'Kwd ")" >] -> n
+ *   | [< n1 = parse_expr; n2 = parse_remainder n1 >] -> n2
+ * and parse_remainder n1 = parser
+ *   [< 'Kwd "+"; n2 = parse_expr >] -> n1+n2
+ *   | ...
+ * type token =
+ * | 	Kwd of string
+ * | 	Ident of string
+ * | 	Int of int
+ * | 	Float of float
+ * | 	String of string
+ * | 	Char of char
+ *
+ *
+ * Cf also ocaml manual
+ *  let rec parse_expr = parser
+ *      [< e1 = parse_mult; e = parse_more_adds e1 >] -> e
+ *  and parse_more_adds e1 = parser
+ *      [< 'Kwd "+"; e2 = parse_mult; e = parse_more_adds (Sum(e1, e2)) >] -> e
+ *    | [< 'Kwd "-"; e2 = parse_mult; e = parse_more_adds (Diff(e1, e2)) >] -> e
+ *    | [< >] -> e1
+ *  and parse_mult = parser
+ *      [< e1 = parse_simple; e = parse_more_mults e1 >] -> e
+ *  and parse_more_mults e1 = parser
+ *      [< 'Kwd "*"; e2 = parse_simple; e = parse_more_mults (Prod(e1, e2)) >] -> e
+ *    | [< 'Kwd "/"; e2 = parse_simple; e = parse_more_mults (Quot(e1, e2)) >] -> e
+ *    | [< >] -> e1
+ *  and parse_simple = parser
+ *      [< 'Ident s >] -> Var s
+ *    | [< 'Int i >] -> Const(float i)
+ *    | [< 'Float f >] -> Const f
+ *    | [< 'Kwd "("; e = parse_expr; 'Kwd ")" >] -> e;;
+ * But see how they are forced to use a LL(1) grammar which denatures the
+ * grammar "parse_more_xxx"
+ *
+\end{verbatim}
+
+
+<<parser_combinators.mli>>=
+(*****************************************************************************)
+(* src: Jon Harrop.
+ *
+ * "Certain applications are extremely well suited to functional
+ * programming and parsing is one of them. Specifically, the ability to
+ * write functional combinators that allow parsers for everything from
+ * integers up to symbolic expressions to be composed is more general
+ * and provides more opportunity for code reuse than the use of
+ * conventional parser generators such as ocamllex and ocamlyacc. This
+ * article explains how parser combinators may be designed and
+ * implemented in OCaml, using the standard example of a calculator."
+ *
+ * pad: a few bugfixes. I also put more restrictive and descriptive types.
+ *
+ *)
+
+(*****************************************************************************)
+
+(* A generic parser takes a list of stuff (either char for lexical
+ * parser or tokens for grammar parser) and return something and the
+ * remaing list of stuff. *)
+type ('a, 'b) genp = 'a list -> 'b * 'a list
+val val_of_parser : 'b * 'a list -> 'b
+
+(* lexer = parser of char list *)
+(* type 'a lexer = (char, 'a) genp *)
+
+(* grammer = parser ot tokens *)
+(* type 'a pparser = (token, 'a) genp *)
+
+
+val ( ||| ) : ('a, 'b) genp -> ('a, 'b) genp -> ('a, 'b) genp
+(* ('a -> 'b) -> ('a -> 'b) -> 'a -> 'b *)
+val ( +++ ) : ('a, 'b) genp -> ('a, 'c) genp -> ('a,   'b * 'c) genp
+(* ('a -> 'b * 'c) -> ('c -> 'd * 'e) -> 'a -> ('b * 'd) * 'e *)
+
+val many : ('a, 'b) genp -> ('a, 'b list) genp
+(* ('a -> 'b * 'a) -> 'a -> 'b list * 'a *)
+
+val ( >| ) : ('a, 'b) genp -> ('b -> 'c) -> ('a, 'c) genp
+(* ('a -> 'b * 'c) -> ('b -> 'd) -> 'a -> 'd * 'c *)
+
+(* was called 'some', but confusing *)
+val pred : ('a -> bool) -> ('a, 'a) genp
+(* ('a -> bool) -> 'a list -> 'a * 'a list *)
+
+val a : 'a -> ('a, 'a) genp
+(* 'a -> 'a list -> 'a * 'a list *)
+
+val several : ('a -> bool) -> ('a, 'a list) genp
+(* ('a -> bool) -> 'a list -> 'a list * 'a list *)
+
+
+module Abstr : sig
+    type t
+    val x : t
+end
+
+val fin : ('a, Abstr.t) genp
+(* 'a list -> Abstr.t * 'b list *)
+
+
+val digit    : char -> bool
+val alpha    : char -> bool
+val symbol   : char -> bool
+val alphanum : char -> bool
+val space    : char -> bool
+
+val alphanum_underscore : char -> bool
+val alphanum_minus : char -> bool
+val alphanum_under_minus : char -> bool
+
+val collect : char * char list -> string
+val list_of_string : string -> char list
+
+
+(*****************************************************************************)
+type token =
+  | IDENT of string
+  | KWD of string
+  | INT of string
+  | SYM of string
+  | STR of string
+
+val string_of_token : token -> string
+
+type lexer = (char, token) genp
+
+val rawident : lexer
+(* char list -> token * char list *)
+val rawnumber : lexer
+(* char list -> token * char list *)
+
+val rawsymbol : lexer
+
+(* not space, not digit *)
+val rawkeyword : lexer
+(* char list -> token * char list *)
+
+val rawstring : lexer
+
+val lex_gen : lexer -> string -> token list
+
+(*****************************************************************************)
+val token : lexer
+(* char list -> token * char list *)
+val tokens : (char, token list) genp
+(* char list -> token list * char list *)
+
+val alltokens : (char, token list) genp
+(* char list -> token list * 'a list *)
+
+val lex : string -> token list
+
+
+(*****************************************************************************)
+(* cant use parser as it's a reseverd word *)
+type 'a pparser = (token, 'a) genp
+
+val ident : string pparser
+(* token list -> string * token list *)
+val int :  string pparser
+(* token list -> string * token list *)
+val string : string pparser
+
+type expr =
+    | Int of int
+    | Var of string
+    | Add of expr * expr
+    | Mul of expr * expr
+
+val atom : expr pparser
+(* token list -> expr * token list *)
+val factor : expr pparser
+(* token list -> expr * token list *)
+val term : expr pparser
+(* token list -> expr * token list *)
+val expr : expr pparser
+(* token list -> expr * 'a list *)
+
+val parse : 'a pparser -> string -> 'a
+(* (token list -> 'a * 'b) -> string -> 'a *)
+
+
+(*****************************************************************************)
+
+module Infix : sig
+  val ( ||| ) : ('a, 'b) genp -> ('a, 'b) genp -> ('a, 'b) genp
+    (* ('a -> 'b) -> ('a -> 'b) -> 'a -> 'b *)
+  val ( +++ ) : ('a, 'b) genp -> ('a, 'c) genp -> ('a,   'b * 'c) genp
+    (* ('a -> 'b * 'c) -> ('c -> 'd * 'e) -> 'a -> ('b * 'd) * 'e *)
+  val ( >| ) : ('a, 'b) genp -> ('b -> 'c) -> ('a, 'c) genp
+    (* ('a -> 'b * 'c) -> ('b -> 'd) -> 'a -> 'd * 'c *)
+end
+
+@
+
+
+\chapter{Backtrace}
+\todo{
+backtrace.ml
+backtrace\_c.c
+}
+
+\begin{verbatim}
+This function is especially useful with lablgtk which intercepts
+ * the exception and forbid them to reach the toplevel, or with LFS
+ * where I can not allow any exception to stop mount.lfs.
+ *
+\end{verbatim}
+
+\chapter{Glimpse}
+
+\todo{
+glimpse.ml
+}
+
+<<glimpse.mli>>=
+open Common
+
+(* ---------------------------------------------------------------------- *)
+type glimpse_search =
+  | GlimpseCaseInsensitive
+  | GlimpseWholeWord
+val default_glimpse_search : glimpse_search list
+
+type glimpsedir = Common.dirname
+
+(* ---------------------------------------------------------------------- *)
+val glimpseindex : string -> dirname -> glimpsedir -> unit
+
+val glimpseindex_files : filename list -> glimpsedir -> unit
+
+
+(* ---------------------------------------------------------------------- *)
+val glimpse :
+  string -> ?options:glimpse_search list -> glimpsedir -> filename list
+val grep : 'a -> 'b
+
+
+(* ---------------------------------------------------------------------- *)
+val check_have_glimpse : unit -> unit
+
+val s_of_glimpse_search : glimpse_search -> string
+val s_of_glimpse_options : glimpse_search list -> string
+
+
+@
+
+\chapter{Regexp}
+
+\todo{
+regexp.ml
+}
+\begin{verbatim}
+
+(* because Str of ocaml sux with word boundary, newline, etc.
+ * ex: \\bcia_pci_tbi_try2\\b
+ *)
+\end{verbatim}
+
+\chapter{Sexp and binio}
+
+\todo{
+bin\_common.ml
+sexp\_common.ml
+}
+
+\chapter{Python}
+
+\todo{
+python.ml
+python\_ocaml.py
+}
+
+\begin{verbatim}
+ * Cf also ocaml.org library notes on pycaml.
+ *
+ * As there are lots of libraries or library wrappers written in python,
+ * can conveniently get access to them, for instance nltk, with
+ * this module. Easier to talk to a lib through a python binding than
+ * to talk to the lib through the C foreign mechanism of Ocaml.
+ * But must still install the python dependencies on the client.
+ * Can not just distribute the ocaml binaries and ldd librairies
+ * dependencies. There is unfortunately hidden dependencies
+ * with the use of python.ml. So tradeoff.
+ *
+\end{verbatim}

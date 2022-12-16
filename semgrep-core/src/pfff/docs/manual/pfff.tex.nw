@@ -1,0 +1,197 @@
+\documentclass{report}
+
+%******************************************************************************
+% Prelude
+%******************************************************************************
+
+\newif\iffinal
+\newif\ifverbose
+\newif\iffacebook
+
+%\finaltrue\verbosefalse
+\finalfalse\verbosetrue\facebooktrue
+
+%cf also some \newif in Macros.tex
+
+%------------------------------------------------------------------------------
+% History
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+% Packages
+%------------------------------------------------------------------------------
+
+\usepackage{noweb}
+\noweboptions{}
+%note: allow chunk to be on different pages, so less white space at
+%  bottom of pages
+\def\nwendcode{\endtrivlist \endgroup}
+\let\nwdocspar=\par
+
+\usepackage{xspace}
+
+\usepackage{verbatim}
+%note: required by noweblatexpad for the \t \l \n macros in this file
+\usepackage{fancyvrb}
+
+\usepackage{url}
+\iffinal
+\usepackage{hyperref}
+\hypersetup{colorlinks=true}
+\fi
+
+\usepackage{shorttoc}
+
+\usepackage{multirow}
+
+%define: \toprule
+\usepackage{booktabs}
+%?\usepackage{ctable}
+\newcommand{\otoprule}{\midrule[\heavyrulewidth]}
+
+
+%define: \includegraphics
+\usepackage{graphicx}
+%\usepackage{dot2texi}
+%\usepackage{tikz}
+
+%pre: require to have installed also the dot2tex in your PATH
+%     and call with --shell-escape pdflatex
+%src: http://www.fauskes.net/nb/introducing-dot2texi/
+%\usepackage{latex/dot2texi}
+%\usepackage{tikz}
+%\usetikzlibrary{automata,shapes,arrows}
+
+%------------------------------------------------------------------------------
+% Macros
+%------------------------------------------------------------------------------
+\input{Macros}
+
+%------------------------------------------------------------------------------
+% Config
+%------------------------------------------------------------------------------
+
+%\implemtrue
+\implemfalse
+
+\implemoverviewtrue
+
+%\wantrepetitivecodetrue
+\wantrepetitivecodefalse
+
+
+
+%******************************************************************************
+% Title
+%******************************************************************************
+\begin{document}
+
+\title{
+{\Huge Pfff}\\
+Visualize, Navigate, Search, Refactor, Analyze\\
+Source Code
+}
+\author{
+Yoann Padioleau\\
+\texttt{yoann.padioleau@gmail.com}
+}
+
+\maketitle
+
+\pagebreak
+\hrule
+\begin{quote}
+    Copyright \copyright{}  2009-2010 Facebook \\
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3.
+\end{quote}
+\hrule
+\pagebreak
+
+\shorttoc{Short Contents}{0}
+
+\iffinal
+\begingroup
+\hypersetup{colorlinks=true, linkcolor=blue}
+\tableofcontents
+\endgroup
+\else
+\tableofcontents
+\fi
+
+
+%******************************************************************************
+% Body
+%******************************************************************************
+
+\chapter{Introduction}
+\label{sec:introduction}
+
+%dup: readme.txt and wiki
+pfff is mainly an OCaml API to write static analysis, dynamic
+analysis, code visualizations, code navigations, or style-preserving
+source-to-source transformations such as refactorings on source
+code. For now the effort is focused on PHP but there is preliminary
+support for Javascript, Sql, and C++ code. There is also preliminary
+support for OCaml code so that the framework can be used on the code
+of pfff itself.
+
+
+source organization
+
+further documentation
+
+TREEEMAP
+
+source + version + runtime + org = cool
+
+include toc of 2 other manuals
+
+\section{About OCaml}
+
+OCaml may seem to be a weird choice. It's not a very popular language.
+But actually in the static analysis world, it is the most popular
+langage. Researchers in Berkeley and Stanford are using OCaml for
+performing analysis of C code (e.g. Necula with CIL at Berkeley, Aiken
+with Saturn at Stanford), some type inferers for Ruby are written in
+OCaml (DRuby), the Windows Device verifiers (based on work from
+Microsoft Research by Thomas Ball on SLAM) is written in OCaml, people
+in the Linux kernel are using the Coccinelle tool to perform some
+complex refactoring and to find bugs, also written in OCaml. In fact
+one of the latest programming language of Microsoft, F#, is directly
+inspired (one could say copy) from OCaml.
+
+\begin{figure*}
+\includegraphics[width=15cm]{pfff_treemap_screen}
+%height=7cm
+\caption{Treemap of source code}
+\label{fig:archi-treemap-pfff}
+\end{figure*}
+
+
+\begin{figure*}
+\includegraphics[width=15cm]{pfff_browser_screen}
+%height=7cm
+\caption{Pfff browser}
+\label{fig:pfff-browser}
+\end{figure*}
+
+
+
+\appendix
+
+\begin{thebibliography}{99}
+
+\bibitem[1]{cil} George Necula,
+{\em CIL},
+CC.
+\verb+http://manju.cs.berkeley.edu/cil/+
+
+\end{thebibliography}
+
+
+%******************************************************************************
+% Postlude
+%******************************************************************************
+
+\end{document}

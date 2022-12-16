@@ -1,0 +1,218 @@
+# -*- sh -*- # the datalog dialect used by bddbddb is not prolog-mode compliant :(
+#*******************************************************************************
+# Prelude
+#*******************************************************************************
+
+# This file implements a basic interprocedural context-insensitive
+# inclusion-based pointer analysis for C. Its outputs are the following
+# relations:
+#
+#   point_to(V, M)           - variable 'V' may point to abstract memory loc 'M'
+#   field_point_to(FIELD, M) - qualified field may point to loc 'M'
+#   call_edge(INVOKE, TARGET) - invocation site 'INVOKE' calls function 'TARGET'
+
+# Based upon: Java context-insensitive inclusion-based pointer analysis
+# by John Whaley
+
+# Related work:
+# - Andersen, Steengaard, Manuvir Das, Lin, etc
+# - bddbddb, DOOP, http://pag-www.gtisc.gatech.edu/chord/user_guide/datalog.html
+# - http://blog.jetbrains.com/idea/2009/08/analyzing-dataflow-with-intellij-idea
+# - Frama C, CodeSonar, Coverity, ...
+#
+# note: I always wanted (but was never able to write ...) an interprocedural
+# (dataflow) analysis. With Datalog I did it in one day! It's so easy.
+#
+# TODO: abuse cpp to express context-sensitivity in a generic way
+# (like they do in DOOP with logiblox)
+
+.basedir "data"
+
+#*******************************************************************************
+# Domains
+#*******************************************************************************
+
+# actually for variables, heap alloc, func, globals, address of locals
+V 262144 V.map
+
+F 16384 F.map
+N 16384 N.map
+I 32768 I.map
+Z 256
+
+#todo? .bddvarorder N0_F0_I0_M1_M0_V1_V0_T0_Z0_T1_H0_H1
+
+#*******************************************************************************
+# Relations
+#*******************************************************************************
+
+# Abstract memory locations (also called heap objects), are mostly qualified
+# symbols (e.g 'main__foo', 'ret_main', '_cst_line2_'):
+# - each globals, functions, constants
+# - each malloc (context insensitively). will do sensitively later for
+#   malloc wrappers or maybe each malloc with certain type. (e.g. any Proc)
+#   so have some form of type sensitivty at least
+# - each locals (context insensitively first), when their addresses are taken
+# - each fields (field-based, see sep08.pdf lecture, so *.f, not x.*)
+# - array element (array insensitive, aggregation)
+
+# Invocations: line in the file (e.g. '_in_main_line_14_')
+
+assign0(dest:V, source:V) inputtuples
+assign_address (dest:V, source:V) inputtuples
+assign_deref(dest:V, source:V) inputtuples
+assign_content(dest:V, source:V) inputtuples
+
+parameter(f:N, z:Z, v:V) inputtuples
+return(f:N, v:V) inputtuples
+argument(i:I, z:Z, v:V) inputtuples
+call_direct(i:I, f:N) inputtuples
+call_indirect(i:I, v:V) inputtuples
+call_ret(i:I, v:V) inputtuples
+# typing!
+var_to_func(v:V, f:N) inputtuples
+
+assign_array_elt(dest:V, source:V) inputtuples
+assign_array_element_address(dest:V, source:V) inputtuples
+assign_array_deref(a:V, v:V) inputtuples
+
+assign_load_field(dest:V, source:V, fld:F) inputtuples
+assign_store_field(dest:V, fld:F, source:V) inputtuples
+assign_field_address(dest:V, source:V, fld:F) inputtuples
+# typing!
+field_to_var(fld:F, v:V) inputtuples
+#field_point_to?? hmm maybe once we differentiate objects heap
+# and not do just *.f
+
+point_to0(v:V, h:V) inputtuples
+
+point_to(v:V, h:V) outputtuples
+call_edge(i:I, f:N) outputtuples
+assign(dest:V, source:V)
+
+# the data we really care to export
+PointingData (v:V, h:V) outputtuples
+CallingData (i:I, f:N) outputtuples
+
+
+#*******************************************************************************
+# Rules
+#*******************************************************************************
+
+#-------------------------------------------------------------------------------
+# Basic
+#-------------------------------------------------------------------------------
+
+point_to(p, q) :- point_to0(p, q).
+
+# p = &q
+point_to(p, q) :- \
+        assign_address(p, q).
+
+# p = q
+# (covers regular assignments but also arguments to parameters and return
+#  to caller, see the assign/2 definition down in this file)
+point_to(p, l) :- \
+        assign(p, q),\
+        point_to(q, l).
+
+# *p = q, given: q -> l, and p -> w,  we can now infer w -> l
+point_to(w, l) :- \
+        assign_deref(p, q),\
+        point_to(q, l),\
+        point_to(p, w).
+
+# p = *q
+point_to(p, l) :- \
+        assign_content(p, q),\
+        point_to(q, x),\
+        point_to(x, l).
+# see here that X is used both as first and second argument of point_to
+# because the domain of the variable is included in the domain of abstract
+# memory locations.
+
+#-------------------------------------------------------------------------------
+# Arrays insensitive
+#-------------------------------------------------------------------------------
+
+# p = a[...],  which is really just equivalent to p = *a for array insensitivty
+point_to(p, q) :- \
+        assign_array_elt(p, a),\
+        point_to(a, aelt),\
+        point_to(aelt, q).
+
+# a[...] = q,   again similar to *a = q
+point_to(aelt, l) :- \
+        assign_array_deref(a, q),\
+        point_to(q, l),\
+        point_to(a, aelt).
+
+# p = &a[...],  equivalent to p = a for array insensitivty
+point_to(p, aelt) :- \
+        assign_array_element_address(p, a),\
+        point_to(a, aelt).
+
+
+#-------------------------------------------------------------------------------
+# Field-based sensitivity (*.f, not x.* nor x.f)
+#-------------------------------------------------------------------------------
+
+# p = x->fld
+point_to(p, l) :- \
+        assign_load_field(p, x, f),\
+        field_to_var(f, v),\
+        point_to(v, l).
+
+
+# p->fld = x
+point_to(v, l) :- \
+        assign_store_field(p, f, x),\
+        field_to_var(f, v), \
+        point_to(x, l).
+
+# p = &x->fld
+point_to(p, v) :- \
+        assign_field_address(p, x, f),\
+        field_to_var(f, v).
+
+#point_to(F, L) :-
+#        field_point_to(F, L).
+
+
+#-------------------------------------------------------------------------------
+# Calls context-insensitive
+#-------------------------------------------------------------------------------
+
+assign(a, b) :- assign0(a,b).
+
+# ret = foo(v1, v2, ...)
+#  (covers regular function calls but also dynamic calls, see call_edge/2 below)
+assign(param, arg) :- \
+        parameter(f, idx, param),\
+        call_edge(i, f),\
+        argument(i, idx, arg).
+
+assign(ret, v) :- \
+        return(f, v),\
+        call_edge(i, f),\
+        call_ret(i, ret).
+
+call_edge(i, f) :- \
+        call_direct(i, f).
+
+# power of mutually recursive analysis! dataflow -> controlflow -> dataflow
+call_edge(i, f) :- \
+        call_indirect(i, v),\
+        point_to(v, vf),\
+        var_to_func(vf, f).
+
+#note: heartbleed detection strongly relies on accurate tracking of calls
+# through function pointers, so this is important!
+
+#*******************************************************************************
+# Postlude
+#*******************************************************************************
+
+# the data we care to export
+PointingData (v,h) :- point_to(v,h).
+CallingData (i,f) :- call_indirect(i, v), point_to(v, vf), var_to_func(vf, f).

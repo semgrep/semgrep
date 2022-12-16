@@ -1,0 +1,12 @@
+stdlib/: used by everything
+
+json-wheel/: used for json input and output by lots of code (e.g., codemap)
+netstring/: needed by json-wheel
+netsys/: needed by json-wheel
+
+ocamlgraph/: used by commons/graph.ml and so graph_code, also a bit by
+ lang_html/? TODO why dependencies to codegraph is now shown in cg?
+
+
+bddbddb/: used by codequery -datalog (actually not ocaml code!)
+swiprolog/: used by codequery (also not ocaml code)

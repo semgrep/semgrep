@@ -1,0 +1,1 @@
+struct x : struct y;

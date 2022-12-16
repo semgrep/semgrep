@@ -1,0 +1,1164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<LINK rel="stylesheet" type="text/css" href="manual.css">
+<TITLE>
+Ocaml grammar overview
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="manual044.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="index.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<HR>
+
+<H1 CLASS="chapter">Ocaml grammar overview</H1>
+
+This appendix contains all grammar rules from this manual,
+including those for the toplevel and the debugger.
+<HR><P>
+
+<H2>Page navigation</H2>
+
+<UL>
+<LI> <A HREF="#anchor01">Lexical conventions</A></LI>
+<LI> <A HREF="#anchor02">Names</A></LI>
+<LI> <A HREF="#anchor03">Type expressions</A></LI>
+<LI> <A HREF="#anchor04">Constants</A></LI>
+<LI> <A HREF="#anchor05">Patterns</A></LI>
+<LI> <A HREF="#anchor06">Expressions</A></LI>
+<LI> <A HREF="#anchor07">Type and exception definitions</A></LI>
+<LI> <A HREF="#anchor08">Classes</A></LI>
+<LI> <A HREF="#anchor09">Module types (module specifications)</A></LI>
+<LI> <A HREF="#anchor10">Module expressions (module implementations)</A></LI>
+<LI> <A HREF="#anchor11">Compilation units</A></LI>
+<LI> <A HREF="#anchor12">Language extensions</A></LI>
+<LI> <A HREF="#anchor16">The toplevel system (ocaml)</A></LI>
+<LI> <A HREF="#anchor17">The debugger (ocamldebug)</A></LI>
+</UL>
+
+<P><HR><P>
+
+
+
+
+<!-- SOURCE FILE lex.html char 1317 -->
+
+<A NAME="anchor01"></A>
+<A HREF="lex.html#htoc52"><H2>6.1  Lexical conventions</H2></A>
+
+<A HREF="lex.html#xhtoc3"><H4>Identifiers</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="ident"><FONT COLOR=maroon>ident</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP> (<I><A HREF="#letter"><FONT COLOR=maroon>letter</FONT></A></I>&#X2223; <FONT COLOR=blue><TT>_</TT></FONT>) { <I><A HREF="#letter"><FONT COLOR=maroon>letter</FONT></A></I>&#X2223; <FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>&#X2223; <FONT COLOR=blue><TT>_</TT></FONT>&#X2223; <FONT COLOR=blue><TT>'</TT></FONT> }  </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="letter"><FONT COLOR=maroon>letter</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>A</TT></FONT> &#X2026; <FONT COLOR=blue><TT>Z</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>a</TT></FONT> &#X2026; <FONT COLOR=blue><TT>z</TT></FONT></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE lex.html char 2997 -->
+
+<A HREF="lex.html#xhtoc5"><H4>Integer literals</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="integer-literal"><FONT COLOR=maroon>integer-literal</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+[<FONT COLOR=blue><TT>-</TT></FONT>] (<FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>) { <FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>&#X2223; <FONT COLOR=blue><TT>_</TT></FONT> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> [<FONT COLOR=blue><TT>-</TT></FONT>] (<FONT COLOR=blue><TT>0x</TT></FONT>&#X2223; <FONT COLOR=blue><TT>0X</TT></FONT>) (<FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>&#X2223; <FONT COLOR=blue><TT>A</TT></FONT>&#X2026;<FONT COLOR=blue><TT>F</TT></FONT>&#X2223; <FONT COLOR=blue><TT>a</TT></FONT>&#X2026;<FONT COLOR=blue><TT>f</TT></FONT>)
+{ <FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>&#X2223; <FONT COLOR=blue><TT>A</TT></FONT>&#X2026;<FONT COLOR=blue><TT>F</TT></FONT>&#X2223; <FONT COLOR=blue><TT>a</TT></FONT>&#X2026;<FONT COLOR=blue><TT>f</TT></FONT>&#X2223; <FONT COLOR=blue><TT>_</TT></FONT> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> [<FONT COLOR=blue><TT>-</TT></FONT>] (<FONT COLOR=blue><TT>0o</TT></FONT>&#X2223; <FONT COLOR=blue><TT>0O</TT></FONT>) (<FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>7</TT></FONT>) { <FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>7</TT></FONT>&#X2223; <FONT COLOR=blue><TT>_</TT></FONT> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> [<FONT COLOR=blue><TT>-</TT></FONT>] (<FONT COLOR=blue><TT>0b</TT></FONT>&#X2223; <FONT COLOR=blue><TT>0B</TT></FONT>) (<FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>1</TT></FONT>) { <FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>1</TT></FONT>&#X2223; <FONT COLOR=blue><TT>_</TT></FONT> }</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE lex.html char 6293 -->
+
+<A HREF="lex.html#xhtoc6"><H4>Floating-point literals</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="float-literal"><FONT COLOR=maroon>float-literal</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+[<FONT COLOR=blue><TT>-</TT></FONT>] (<FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>) { <FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>&#X2223; <FONT COLOR=blue><TT>_</TT></FONT> } [<FONT COLOR=blue><TT>.</TT></FONT> { <FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>&#X2223; <FONT COLOR=blue><TT>_</TT></FONT> }]
+[(<FONT COLOR=blue><TT>e</TT></FONT>&#X2223; <FONT COLOR=blue><TT>E</TT></FONT>) [<FONT COLOR=blue><TT>+</TT></FONT>&#X2223; <FONT COLOR=blue><TT>-</TT></FONT>] (<FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>) { <FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>&#X2223; <FONT COLOR=blue><TT>_</TT></FONT> }]</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE lex.html char 8249 -->
+
+<A HREF="lex.html#xhtoc7"><H4>Character literals</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="char-literal"><FONT COLOR=maroon>char-literal</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>'</TT></FONT> <FONT COLOR=maroon><I>regular-char</I></FONT> <FONT COLOR=blue><TT>'</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>'</TT></FONT> <I><A HREF="#escape-sequence"><FONT COLOR=maroon>escape-sequence</FONT></A></I> <FONT COLOR=blue><TT>'</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="escape-sequence"><FONT COLOR=maroon>escape-sequence</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>\</TT></FONT> (<FONT COLOR=blue><TT>\</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>"</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>'</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>n</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>t</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>b</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>r</TT></FONT>)
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>\</TT></FONT> (<FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>) (<FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>) (<FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>)
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>\x</TT></FONT> (<FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>&#X2223; <FONT COLOR=blue><TT>A</TT></FONT>&#X2026;<FONT COLOR=blue><TT>F</TT></FONT>&#X2223; <FONT COLOR=blue><TT>a</TT></FONT>&#X2026;<FONT COLOR=blue><TT>f</TT></FONT>)
+(<FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>&#X2223; <FONT COLOR=blue><TT>A</TT></FONT>&#X2026;<FONT COLOR=blue><TT>F</TT></FONT>&#X2223; <FONT COLOR=blue><TT>a</TT></FONT>&#X2026;<FONT COLOR=blue><TT>f</TT></FONT>)</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE lex.html char 12072 -->
+
+<A HREF="lex.html#xhtoc8"><H4>String literals</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="string-literal"><FONT COLOR=maroon>string-literal</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>"</TT></FONT> { <I><A HREF="#string-character"><FONT COLOR=maroon>string-character</FONT></A></I> } <FONT COLOR=blue><TT>"</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="string-character"><FONT COLOR=maroon>string-character</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>regular-char-str</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#escape-sequence"><FONT COLOR=maroon>escape-sequence</FONT></A></I></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE lex.html char 13908 -->
+
+<A HREF="lex.html#xhtoc9"><H4>Naming labels</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="label"><FONT COLOR=maroon>label</FONT></A></I> </TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>~</TT></FONT> (<FONT COLOR=blue><TT>a</TT></FONT> &#X2026; <FONT COLOR=blue><TT>z</TT></FONT><span style="background-color:yellow; color:red">&#X2223; <FONT COLOR=blue><TT>_</TT></FONT></span>) { <I><A HREF="#letter"><FONT COLOR=maroon>letter</FONT></A></I>&#X2223; <FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>&#X2223; <FONT COLOR=blue><TT>_</TT></FONT>&#X2223; <FONT COLOR=blue><TT>'</TT></FONT> } <FONT COLOR=blue><TT>:</TT></FONT>  </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="optlabel"><FONT COLOR=maroon>optlabel</FONT></A></I> </TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>?</TT></FONT> (<FONT COLOR=blue><TT>a</TT></FONT> &#X2026; <FONT COLOR=blue><TT>z</TT></FONT><span style="background-color:yellow; color:red">&#X2223; <FONT COLOR=blue><TT>_</TT></FONT></span>) { <I><A HREF="#letter"><FONT COLOR=maroon>letter</FONT></A></I>&#X2223; <FONT COLOR=blue><TT>0</TT></FONT>&#X2026;<FONT COLOR=blue><TT>9</TT></FONT>&#X2223; <FONT COLOR=blue><TT>_</TT></FONT>&#X2223; <FONT COLOR=blue><TT>'</TT></FONT> } <FONT COLOR=blue><TT>:</TT></FONT></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE lex.html char 15919 -->
+
+<A HREF="lex.html#xhtoc10"><H4>Prefix and infix symbols</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="infix-symbol"><FONT COLOR=maroon>infix-symbol</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+(<FONT COLOR=blue><TT>=</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>&lt;</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>&gt;</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>@</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>^</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>|</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>&amp;</TT></FONT> &#X2223; 
+<FONT COLOR=blue><TT>+</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>-</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>*</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>/</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>$</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>%</TT></FONT>) { <I><A HREF="#operator-char"><FONT COLOR=maroon>operator-char</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="prefix-symbol"><FONT COLOR=maroon>prefix-symbol</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+(<FONT COLOR=blue><TT>!</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>?</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>~</TT></FONT>) { <I><A HREF="#operator-char"><FONT COLOR=maroon>operator-char</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="operator-char"><FONT COLOR=maroon>operator-char</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>!</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>$</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>%</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>&amp;</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>*</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>+</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>-</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>.</TT></FONT> &#X2223; 
+<FONT COLOR=blue><TT>/</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>:</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>&lt;</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>=</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>&gt;</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>?</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>@</TT></FONT> &#X2223; 
+<FONT COLOR=blue><TT>^</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>|</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>~</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE lex.html char 20597 -->
+
+<A HREF="lex.html#xhtoc11"><H4>Line number directives</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="linenum-directive"><FONT COLOR=maroon>linenum-directive</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>#</TT></FONT> {<FONT COLOR=blue><TT>0</TT></FONT> &#X2026; <FONT COLOR=blue><TT>9</TT></FONT>}<SUP>+</SUP>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>#</TT></FONT> {<FONT COLOR=blue><TT>0</TT></FONT> &#X2026; <FONT COLOR=blue><TT>9</TT></FONT>}<SUP>+</SUP> <FONT COLOR=blue><TT>"</TT></FONT> { <I><A HREF="#string-character"><FONT COLOR=maroon>string-character</FONT></A></I> } <FONT COLOR=blue><TT>"</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual011.html char 2652 -->
+
+<A NAME="anchor02"></A>
+<A HREF="manual011.html#htoc62"><H2>6.3  Names</H2></A>
+
+<A HREF="manual011.html#xhtoc12"><H4>Naming objects</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="value-name"><FONT COLOR=maroon>value-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>lowercase-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#operator-name"><FONT COLOR=maroon>operator-name</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="operator-name"><FONT COLOR=maroon>operator-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#prefix-symbol"><FONT COLOR=maroon>prefix-symbol</FONT></A></I> &#X2223;  <I><A HREF="#infix-op"><FONT COLOR=maroon>infix-op</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="infix-op"><FONT COLOR=maroon>infix-op</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#infix-symbol"><FONT COLOR=maroon>infix-symbol</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>*</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>=</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>or</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>&amp;</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>:=</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>mod</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>land</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>lor</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>lxor</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>lsl</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>lsr</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>asr</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="constr-name"><FONT COLOR=maroon>constr-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>capitalized-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="label-name"><FONT COLOR=maroon>label-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>lowercase-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="tag-name"><FONT COLOR=maroon>tag-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>capitalized-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="typeconstr-name"><FONT COLOR=maroon>typeconstr-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>lowercase-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="field-name"><FONT COLOR=maroon>field-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>lowercase-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="module-name"><FONT COLOR=maroon>module-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>capitalized-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="modtype-name"><FONT COLOR=maroon>modtype-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-name"><FONT COLOR=maroon>class-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>lowercase-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>lowercase-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="method-name"><FONT COLOR=maroon>method-name</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>lowercase-ident</I></FONT></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual011.html char 9070 -->
+
+<A HREF="manual011.html#xhtoc13"><H4>Referring to named objects</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="value-path"><FONT COLOR=maroon>value-path</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#value-name"><FONT COLOR=maroon>value-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#module-path"><FONT COLOR=maroon>module-path</FONT></A></I> <FONT COLOR=blue><TT>.</TT></FONT>  <I><A HREF="#value-name"><FONT COLOR=maroon>value-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="constr"><FONT COLOR=maroon>constr</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#constr-name"><FONT COLOR=maroon>constr-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#module-path"><FONT COLOR=maroon>module-path</FONT></A></I> <FONT COLOR=blue><TT>.</TT></FONT>  <I><A HREF="#constr-name"><FONT COLOR=maroon>constr-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="typeconstr"><FONT COLOR=maroon>typeconstr</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#typeconstr-name"><FONT COLOR=maroon>typeconstr-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#extended-module-path"><FONT COLOR=maroon>extended-module-path</FONT></A></I> <FONT COLOR=blue><TT>.</TT></FONT>  <I><A HREF="#typeconstr-name"><FONT COLOR=maroon>typeconstr-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="field"><FONT COLOR=maroon>field</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#field-name"><FONT COLOR=maroon>field-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#module-path"><FONT COLOR=maroon>module-path</FONT></A></I> <FONT COLOR=blue><TT>.</TT></FONT>  <I><A HREF="#field-name"><FONT COLOR=maroon>field-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="module-path"><FONT COLOR=maroon>module-path</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#module-path"><FONT COLOR=maroon>module-path</FONT></A></I> <FONT COLOR=blue><TT>.</TT></FONT>  <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="extended-module-path"><FONT COLOR=maroon>extended-module-path</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#extended-module-path"><FONT COLOR=maroon>extended-module-path</FONT></A></I> <FONT COLOR=blue><TT>.</TT></FONT>  <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#extended-module-path"><FONT COLOR=maroon>extended-module-path</FONT></A></I> <FONT COLOR=blue><TT>(</TT></FONT>  <I><A HREF="#extended-module-path"><FONT COLOR=maroon>extended-module-path</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="modtype-path"><FONT COLOR=maroon>modtype-path</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#modtype-name"><FONT COLOR=maroon>modtype-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#extended-module-path"><FONT COLOR=maroon>extended-module-path</FONT></A></I> <FONT COLOR=blue><TT>.</TT></FONT>  <I><A HREF="#modtype-name"><FONT COLOR=maroon>modtype-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-path"><FONT COLOR=maroon>class-path</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#class-name"><FONT COLOR=maroon>class-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#module-path"><FONT COLOR=maroon>module-path</FONT></A></I> <FONT COLOR=blue><TT>.</TT></FONT>  <I><A HREF="#class-name"><FONT COLOR=maroon>class-name</FONT></A></I></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual012.html char 675 -->
+
+<A NAME="anchor03"></A>
+<A HREF="manual012.html#htoc63"><H2>6.4  Type expressions</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>'</TT></FONT> <I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>_</TT></FONT> 
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> [[<FONT COLOR=blue><TT>?</TT></FONT>]<I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I><FONT COLOR=blue><TT>:</TT></FONT>]  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>-&gt;</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>  { <FONT COLOR=blue><TT>*</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> }<SUP>+</SUP>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#typeconstr"><FONT COLOR=maroon>typeconstr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>  <I><A HREF="#typeconstr"><FONT COLOR=maroon>typeconstr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>  { <FONT COLOR=blue><TT>,</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> } <FONT COLOR=blue><TT>)</TT></FONT>  <I><A HREF="#typeconstr"><FONT COLOR=maroon>typeconstr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>as</TT></FONT> <FONT COLOR=blue><TT>'</TT></FONT>  <I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#variant-type"><FONT COLOR=maroon>variant-type</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>&lt;</TT></FONT> [<FONT COLOR=blue><TT>..</TT></FONT>] <FONT COLOR=blue><TT>&gt;</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>&lt;</TT></FONT> <I><A HREF="#method-type"><FONT COLOR=maroon>method-type</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#method-type"><FONT COLOR=maroon>method-type</FONT></A></I> }  [<FONT COLOR=blue><TT>;</TT></FONT> <FONT COLOR=blue><TT>..</TT></FONT>] <FONT COLOR=blue><TT>&gt;</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>#</TT></FONT> <I><A HREF="#class-path"><FONT COLOR=maroon>class-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>#</TT></FONT>  <I><A HREF="#class-path"><FONT COLOR=maroon>class-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>  { <FONT COLOR=blue><TT>,</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> } ) <FONT COLOR=blue><TT>#</TT></FONT>  <I><A HREF="#class-path"><FONT COLOR=maroon>class-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="poly-typexpr"><FONT COLOR=maroon>poly-typexpr</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> { <FONT COLOR=blue><TT>'</TT></FONT> <I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I> }<SUP>+</SUP> <FONT COLOR=blue><TT>.</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="method-type"><FONT COLOR=maroon>method-type</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#method-name"><FONT COLOR=maroon>method-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#poly-typexpr"><FONT COLOR=maroon>poly-typexpr</FONT></A></I></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual012.html char 14143 -->
+
+<A HREF="manual012.html#xhtoc14"><H4>Variant types</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="variant-type"><FONT COLOR=maroon>variant-type</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>[</TT></FONT> [ <FONT COLOR=blue><TT>|</TT></FONT> ] <I><A HREF="#tag-spec"><FONT COLOR=maroon>tag-spec</FONT></A></I>  { <FONT COLOR=blue><TT>|</TT></FONT> <I><A HREF="#tag-spec"><FONT COLOR=maroon>tag-spec</FONT></A></I> } <FONT COLOR=blue><TT>]</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>[&gt;</TT></FONT> [ <I><A HREF="#tag-spec"><FONT COLOR=maroon>tag-spec</FONT></A></I> ]  { <FONT COLOR=blue><TT>|</TT></FONT> <I><A HREF="#tag-spec"><FONT COLOR=maroon>tag-spec</FONT></A></I> } <FONT COLOR=blue><TT>]</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>[&lt;</TT></FONT> [ <FONT COLOR=blue><TT>|</TT></FONT> ] <I><A HREF="#tag-spec-full"><FONT COLOR=maroon>tag-spec-full</FONT></A></I>  { <FONT COLOR=blue><TT>|</TT></FONT> <I><A HREF="#tag-spec-full"><FONT COLOR=maroon>tag-spec-full</FONT></A></I> }  [ <FONT COLOR=blue><TT>&gt;</TT></FONT> { <FONT COLOR=blue><TT>`</TT></FONT><I><A HREF="#tag-name"><FONT COLOR=maroon>tag-name</FONT></A></I> }<SUP>+</SUP> ] <FONT COLOR=blue><TT>]</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="tag-spec"><FONT COLOR=maroon>tag-spec</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>`</TT></FONT><I><A HREF="#tag-name"><FONT COLOR=maroon>tag-name</FONT></A></I>  [ <FONT COLOR=blue><TT>of</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> ]
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="tag-spec-full"><FONT COLOR=maroon>tag-spec-full</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>`</TT></FONT><I><A HREF="#tag-name"><FONT COLOR=maroon>tag-name</FONT></A></I>  [ <FONT COLOR=blue><TT>of</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> ]  { <FONT COLOR=blue><TT>&amp;</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual013.html char 626 -->
+
+<A NAME="anchor04"></A>
+<A HREF="manual013.html#htoc64"><H2>6.5  Constants</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="constant"><FONT COLOR=maroon>constant</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#integer-literal"><FONT COLOR=maroon>integer-literal</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#float-literal"><FONT COLOR=maroon>float-literal</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#char-literal"><FONT COLOR=maroon>char-literal</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#string-literal"><FONT COLOR=maroon>string-literal</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#constr"><FONT COLOR=maroon>constr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>false</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>true</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>[]</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>()</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>`</TT></FONT><I><A HREF="#tag-name"><FONT COLOR=maroon>tag-name</FONT></A></I></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE patterns.html char 657 -->
+
+<A NAME="anchor05"></A>
+<A HREF="patterns.html#htoc65"><H2>6.6  Patterns</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="pattern"><FONT COLOR=maroon>pattern</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#value-name"><FONT COLOR=maroon>value-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>_</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#constant"><FONT COLOR=maroon>constant</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I> <FONT COLOR=blue><TT>as</TT></FONT>  <I><A HREF="#value-name"><FONT COLOR=maroon>value-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I> <FONT COLOR=blue><TT>|</TT></FONT>  <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#constr"><FONT COLOR=maroon>constr</FONT></A></I>  <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>`</TT></FONT><I><A HREF="#tag-name"><FONT COLOR=maroon>tag-name</FONT></A></I>  <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>#</TT></FONT><I><A HREF="#typeconstr-name"><FONT COLOR=maroon>typeconstr-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>  { <FONT COLOR=blue><TT>,</TT></FONT> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>{</TT></FONT> <I><A HREF="#field"><FONT COLOR=maroon>field</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#field"><FONT COLOR=maroon>field</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I> } <FONT COLOR=blue><TT>}</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>[</TT></FONT> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I> } <FONT COLOR=blue><TT>]</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I> <FONT COLOR=blue><TT>::</TT></FONT>  <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>[|</TT></FONT> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I> } <FONT COLOR=blue><TT>|]</TT></FONT></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE expr.html char 1359 -->
+
+<A NAME="anchor06"></A>
+<A HREF="expr.html#htoc66"><H2>6.7  Expressions</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="expr"><FONT COLOR=maroon>expr</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#value-path"><FONT COLOR=maroon>value-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#constant"><FONT COLOR=maroon>constant</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>begin</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>end</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>,</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  { <FONT COLOR=blue><TT>,</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#constr"><FONT COLOR=maroon>constr</FONT></A></I>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>`</TT></FONT><I><A HREF="#tag-name"><FONT COLOR=maroon>tag-name</FONT></A></I>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>::</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>[</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> } <FONT COLOR=blue><TT>]</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>[|</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> } <FONT COLOR=blue><TT>|]</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>{</TT></FONT> <I><A HREF="#field"><FONT COLOR=maroon>field</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#field"><FONT COLOR=maroon>field</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> } <FONT COLOR=blue><TT>}</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>{</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>with</TT></FONT>  <I><A HREF="#field"><FONT COLOR=maroon>field</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#field"><FONT COLOR=maroon>field</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> } <FONT COLOR=blue><TT>}</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  { <I><A HREF="#argument"><FONT COLOR=maroon>argument</FONT></A></I> }<SUP>+</SUP>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#prefix-symbol"><FONT COLOR=maroon>prefix-symbol</FONT></A></I>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  <I><A HREF="#infix-op"><FONT COLOR=maroon>infix-op</FONT></A></I>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>.</TT></FONT>  <I><A HREF="#field"><FONT COLOR=maroon>field</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>.</TT></FONT>  <I><A HREF="#field"><FONT COLOR=maroon>field</FONT></A></I> <FONT COLOR=blue><TT>&lt;-</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>.(</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>.(</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT> <FONT COLOR=blue><TT>&lt;-</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>.[</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>]</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>.[</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>]</TT></FONT> <FONT COLOR=blue><TT>&lt;-</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>if</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>then</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  [ <FONT COLOR=blue><TT>else</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> ]
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>while</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>do</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>done</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>for</TT></FONT> <I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  ( <FONT COLOR=blue><TT>to</TT></FONT> &#X2223;  <FONT COLOR=blue><TT>downto</TT></FONT> ) <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>do</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>done</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>;</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>match</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>with</TT></FONT>  <I><A HREF="#pattern-matching"><FONT COLOR=maroon>pattern-matching</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>function</TT></FONT> <I><A HREF="#pattern-matching"><FONT COLOR=maroon>pattern-matching</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>fun</TT></FONT> <I><A HREF="#multiple-matching"><FONT COLOR=maroon>multiple-matching</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>try</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>with</TT></FONT>  <I><A HREF="#pattern-matching"><FONT COLOR=maroon>pattern-matching</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>let</TT></FONT> [<FONT COLOR=blue><TT>rec</TT></FONT>] <I><A HREF="#let-binding"><FONT COLOR=maroon>let-binding</FONT></A></I>   { <FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#let-binding"><FONT COLOR=maroon>let-binding</FONT></A></I> } <FONT COLOR=blue><TT>in</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>new</TT></FONT> <I><A HREF="#class-path"><FONT COLOR=maroon>class-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>object</TT></FONT> <I><A HREF="#class-body"><FONT COLOR=maroon>class-body</FONT></A></I> <FONT COLOR=blue><TT>end</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>#</TT></FONT>  <I><A HREF="#method-name"><FONT COLOR=maroon>method-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I> <FONT COLOR=blue><TT>&lt;-</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>:&gt;</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>:&gt;</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>{&lt;</TT></FONT> <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> } <FONT COLOR=blue><TT>&gt;}</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>assert</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>lazy</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=left NOWRAP colspan=3><A HREF="#xhtoc17">extentions method bodies:</A></TD>
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I> <FONT COLOR=blue><TT>&lt;-</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>{&lt;</TT></FONT> [ <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> } ] <FONT COLOR=blue><TT>&gt;}</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="argument"><FONT COLOR=maroon>argument</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>~</TT></FONT> <I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>~</TT></FONT> <I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>?</TT></FONT> <I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>?</TT></FONT> <I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="pattern-matching"><FONT COLOR=maroon>pattern-matching</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+[ <FONT COLOR=blue><TT>|</TT></FONT> ] <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>  [<FONT COLOR=blue><TT>when</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>] <FONT COLOR=blue><TT>-&gt;</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ { <FONT COLOR=blue><TT>|</TT></FONT> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>  [<FONT COLOR=blue><TT>when</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>] <FONT COLOR=blue><TT>-&gt;</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="multiple-matching"><FONT COLOR=maroon>multiple-matching</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+{ <I><A HREF="#parameter"><FONT COLOR=maroon>parameter</FONT></A></I> }<SUP>+</SUP>  [<FONT COLOR=blue><TT>when</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>] <FONT COLOR=blue><TT>-&gt;</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="let-binding"><FONT COLOR=maroon>let-binding</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#value-name"><FONT COLOR=maroon>value-name</FONT></A></I>  { <I><A HREF="#parameter"><FONT COLOR=maroon>parameter</FONT></A></I> }  [<FONT COLOR=blue><TT>:</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>] <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="parameter"><FONT COLOR=maroon>parameter</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>~</TT></FONT> <I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>~</TT></FONT> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I>  [<FONT COLOR=blue><TT>:</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>] <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>~</TT></FONT> <I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>?</TT></FONT> <I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>?</TT></FONT> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I>  [<FONT COLOR=blue><TT>:</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>]  [<FONT COLOR=blue><TT>=</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>] <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>?</TT></FONT> <I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>?</TT></FONT> <I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT> <FONT COLOR=blue><TT>(</TT></FONT>  <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>  [<FONT COLOR=blue><TT>:</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>]  [<FONT COLOR=blue><TT>=</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>] <FONT COLOR=blue><TT>)</TT></FONT></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual016.html char 1034 -->
+
+<A NAME="anchor07"></A>
+<A HREF="manual016.html#htoc72"><H2>6.8  Type and exception definitions</H2></A>
+
+<A HREF="manual016.html#htoc73"><H3>6.8.1  Type definitions</H3></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="type-definition"><FONT COLOR=maroon>type-definition</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>type</TT></FONT> <I><A HREF="#typedef"><FONT COLOR=maroon>typedef</FONT></A></I>  { <FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#typedef"><FONT COLOR=maroon>typedef</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="typedef"><FONT COLOR=maroon>typedef</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+[<I><A HREF="#type-params"><FONT COLOR=maroon>type-params</FONT></A></I>]  <I><A HREF="#typeconstr-name"><FONT COLOR=maroon>typeconstr-name</FONT></A></I>  [<I><A HREF="#type-information"><FONT COLOR=maroon>type-information</FONT></A></I>]
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="type-information"><FONT COLOR=maroon>type-information</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+[<I><A HREF="#type-equation"><FONT COLOR=maroon>type-equation</FONT></A></I>]  [<I><A HREF="#type-representation"><FONT COLOR=maroon>type-representation</FONT></A></I>]  { <I><A HREF="#type-constraint"><FONT COLOR=maroon>type-constraint</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="type-equation"><FONT COLOR=maroon>type-equation</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>=</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+
+
+<TR><TD ALIGN=left NOWRAP colspan=3><A HREF="#anchor15">extentions for private row types:</A></TD>
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>=</TT></FONT> <FONT COLOR=blue><TT>private</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I></TD></TR>
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="type-representation"><FONT COLOR=maroon>type-representation</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>=</TT></FONT> <I><A HREF="#constr-decl"><FONT COLOR=maroon>constr-decl</FONT></A></I>  { <FONT COLOR=blue><TT>|</TT></FONT> <I><A HREF="#constr-decl"><FONT COLOR=maroon>constr-decl</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>=</TT></FONT> <FONT COLOR=blue><TT>{</TT></FONT> <I><A HREF="#field-decl"><FONT COLOR=maroon>field-decl</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#field-decl"><FONT COLOR=maroon>field-decl</FONT></A></I> } <FONT COLOR=blue><TT>}</TT></FONT>
+ </TD></TR>
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=left NOWRAP colspan=3><A HREF="#anchor13">extentions for private types:</A></TD>
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>=</TT></FONT> <FONT COLOR=blue><TT>private</TT></FONT> <I><A HREF="#constr-decl"><FONT COLOR=maroon>constr-decl</FONT></A></I>  { <FONT COLOR=blue><TT>|</TT></FONT> <I><A HREF="#constr-decl"><FONT COLOR=maroon>constr-decl</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>=</TT></FONT> <FONT COLOR=blue><TT>private</TT></FONT> <FONT COLOR=blue><TT>{</TT></FONT> <I><A HREF="#field-decl"><FONT COLOR=maroon>field-decl</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#field-decl"><FONT COLOR=maroon>field-decl</FONT></A></I> } <FONT COLOR=blue><TT>}</TT></FONT></TD></TR>
+
+
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="type-params"><FONT COLOR=maroon>type-params</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#type-param"><FONT COLOR=maroon>type-param</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#type-param"><FONT COLOR=maroon>type-param</FONT></A></I>  { <FONT COLOR=blue><TT>,</TT></FONT> <I><A HREF="#type-param"><FONT COLOR=maroon>type-param</FONT></A></I> } <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="type-param"><FONT COLOR=maroon>type-param</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>'</TT></FONT> <I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>+</TT></FONT> <FONT COLOR=blue><TT>'</TT></FONT> <I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>-</TT></FONT> <FONT COLOR=blue><TT>'</TT></FONT> <I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="constr-decl"><FONT COLOR=maroon>constr-decl</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#constr-name"><FONT COLOR=maroon>constr-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#constr-name"><FONT COLOR=maroon>constr-name</FONT></A></I> <FONT COLOR=blue><TT>of</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>  { <FONT COLOR=blue><TT>*</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="field-decl"><FONT COLOR=maroon>field-decl</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#field-name"><FONT COLOR=maroon>field-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#poly-typexpr"><FONT COLOR=maroon>poly-typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>mutable</TT></FONT> <I><A HREF="#field-name"><FONT COLOR=maroon>field-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#poly-typexpr"><FONT COLOR=maroon>poly-typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="type-constraint"><FONT COLOR=maroon>type-constraint</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>constraint</TT></FONT> <FONT COLOR=blue><TT>'</TT></FONT> <I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual016.html char 17743 -->
+
+<A HREF="manual016.html#htoc74"><H3>6.8.2  Exception definitions</H3></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="exception-definition"><FONT COLOR=maroon>exception-definition</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>exception</TT></FONT> <I><A HREF="#constr-name"><FONT COLOR=maroon>constr-name</FONT></A></I>  [<FONT COLOR=blue><TT>of</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>  { <FONT COLOR=blue><TT>*</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> }]
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>exception</TT></FONT> <I><A HREF="#constr-name"><FONT COLOR=maroon>constr-name</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#constr"><FONT COLOR=maroon>constr</FONT></A></I></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual017.html char 1172 -->
+
+<A NAME="anchor08"></A>
+<A HREF="manual017.html#htoc75"><H2>6.9  Classes</H2></A>
+
+<A HREF="manual017.html#htoc76"><H3>6.9.1  Class types</H3></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-type"><FONT COLOR=maroon>class-type</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#class-body-type"><FONT COLOR=maroon>class-body-type</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  [[<FONT COLOR=blue><TT>?</TT></FONT>]<I><A HREF="#label-name"><FONT COLOR=maroon>label-name</FONT></A></I><FONT COLOR=blue><TT>:</TT></FONT>]  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>-&gt;</TT></FONT>  <I><A HREF="#class-type"><FONT COLOR=maroon>class-type</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-body-type"><FONT COLOR=maroon>class-body-type</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>object</TT></FONT> [<FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>]  {<I><A HREF="#class-field-spec"><FONT COLOR=maroon>class-field-spec</FONT></A></I>} <FONT COLOR=blue><TT>end</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <I><A HREF="#class-path"><FONT COLOR=maroon>class-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>[</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>  {<FONT COLOR=blue><TT>,</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>} <FONT COLOR=blue><TT>]</TT></FONT>  <I><A HREF="#class-path"><FONT COLOR=maroon>class-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-field-spec"><FONT COLOR=maroon>class-field-spec</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>inherit</TT></FONT> <I><A HREF="#class-type"><FONT COLOR=maroon>class-type</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>val</TT></FONT> [<FONT COLOR=blue><TT>mutable</TT></FONT>] <span style="background-color:yellow; color:red">[<FONT COLOR=blue><TT>virtual</TT></FONT>]</span> <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>method</TT></FONT> [<FONT COLOR=blue><TT>private</TT></FONT>] <I><A HREF="#method-name"><FONT COLOR=maroon>method-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#poly-typexpr"><FONT COLOR=maroon>poly-typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>method</TT></FONT> [<FONT COLOR=blue><TT>private</TT></FONT>] <FONT COLOR=blue><TT>virtual</TT></FONT> <I><A HREF="#method-name"><FONT COLOR=maroon>method-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#poly-typexpr"><FONT COLOR=maroon>poly-typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>constraint</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual017.html char 13236 -->
+
+<A HREF="manual017.html#htoc77"><H3>6.9.2  Class expressions</H3></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-expr"><FONT COLOR=maroon>class-expr</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#class-path"><FONT COLOR=maroon>class-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>[</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>  {<FONT COLOR=blue><TT>,</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>} <FONT COLOR=blue><TT>]</TT></FONT>  <I><A HREF="#class-path"><FONT COLOR=maroon>class-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#class-expr"><FONT COLOR=maroon>class-expr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#class-expr"><FONT COLOR=maroon>class-expr</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#class-type"><FONT COLOR=maroon>class-type</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <I><A HREF="#class-expr"><FONT COLOR=maroon>class-expr</FONT></A></I>  {<I><A HREF="#argument"><FONT COLOR=maroon>argument</FONT></A></I>}<SUP>+</SUP>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>fun</TT></FONT> {<I><A HREF="#parameter"><FONT COLOR=maroon>parameter</FONT></A></I>}<SUP>+</SUP> <FONT COLOR=blue><TT>-&gt;</TT></FONT>  <I><A HREF="#class-expr"><FONT COLOR=maroon>class-expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>let</TT></FONT> [<FONT COLOR=blue><TT>rec</TT></FONT>] <I><A HREF="#let-binding"><FONT COLOR=maroon>let-binding</FONT></A></I>  {<FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#let-binding"><FONT COLOR=maroon>let-binding</FONT></A></I>} <FONT COLOR=blue><TT>in</TT></FONT>  <I><A HREF="#class-expr"><FONT COLOR=maroon>class-expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>object</TT></FONT> [<FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>  [<FONT COLOR=blue><TT>:</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>] <FONT COLOR=blue><TT>)</TT></FONT>]  { <I><A HREF="#class-field"><FONT COLOR=maroon>class-field</FONT></A></I> } <FONT COLOR=blue><TT>end</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-field"><FONT COLOR=maroon>class-field</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>inherit</TT></FONT> <I><A HREF="#class-expr"><FONT COLOR=maroon>class-expr</FONT></A></I>  [<FONT COLOR=blue><TT>as</TT></FONT> <I><A HREF="#value-name"><FONT COLOR=maroon>value-name</FONT></A></I>]
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>val</TT></FONT> [<FONT COLOR=blue><TT>mutable</TT></FONT>] <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I>  [<FONT COLOR=blue><TT>:</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>] <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR style="background-color:yellow; color:red"><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>val</TT></FONT> [<FONT COLOR=blue><TT>mutable</TT></FONT>] <FONT COLOR=blue><TT>virtual</TT></FONT> <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>method</TT></FONT> [<FONT COLOR=blue><TT>private</TT></FONT>] <I><A HREF="#method-name"><FONT COLOR=maroon>method-name</FONT></A></I>  {<I><A HREF="#parameter"><FONT COLOR=maroon>parameter</FONT></A></I>}  [<FONT COLOR=blue><TT>:</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>] <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>method</TT></FONT> [<FONT COLOR=blue><TT>private</TT></FONT>] <I><A HREF="#method-name"><FONT COLOR=maroon>method-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#poly-typexpr"><FONT COLOR=maroon>poly-typexpr</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>method</TT></FONT> [<FONT COLOR=blue><TT>private</TT></FONT>] <FONT COLOR=blue><TT>virtual</TT></FONT> <I><A HREF="#method-name"><FONT COLOR=maroon>method-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#poly-typexpr"><FONT COLOR=maroon>poly-typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>constraint</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP>  <FONT COLOR=blue><TT>initializer</TT></FONT> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual017.html char 24421 -->
+
+<A HREF="manual017.html#xhtoc15"><H4>Class body</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-body"><FONT COLOR=maroon>class-body</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>  [<FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#pattern"><FONT COLOR=maroon>pattern</FONT></A></I>  [<FONT COLOR=blue><TT>:</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>] <FONT COLOR=blue><TT>)</TT></FONT>]  { <I><A HREF="#class-field"><FONT COLOR=maroon>class-field</FONT></A></I> }</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual017.html char 32450 -->
+
+<A NAME="xhtoc17"></A>
+<A HREF="manual017.html#xhtoc16"><H4>Method definition</H4></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0>
+<TR><TD ALIGN=right NOWRAP>
+<I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+&#X2026;
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I> <FONT COLOR=blue><TT>&lt;-</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>{&lt;</TT></FONT> [ <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#inst-var-name"><FONT COLOR=maroon>inst-var-name</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I> } ] <FONT COLOR=blue><TT>&gt;}</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual017.html char 37101 -->
+
+<A HREF="manual017.html#htoc78"><H3>6.9.3  Class definitions</H3></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-definition"><FONT COLOR=maroon>class-definition</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>class</TT></FONT> <I><A HREF="#class-binding"><FONT COLOR=maroon>class-binding</FONT></A></I>  { <FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#class-binding"><FONT COLOR=maroon>class-binding</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-binding"><FONT COLOR=maroon>class-binding</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+[<FONT COLOR=blue><TT>virtual</TT></FONT>] [<FONT COLOR=blue><TT>[</TT></FONT> <I><A HREF="#type-parameters"><FONT COLOR=maroon>type-parameters</FONT></A></I> <FONT COLOR=blue><TT>]</TT></FONT>]  <I><A HREF="#class-name"><FONT COLOR=maroon>class-name</FONT></A></I>
+ {<I><A HREF="#parameter"><FONT COLOR=maroon>parameter</FONT></A></I>}  [<FONT COLOR=blue><TT>:</TT></FONT> <I><A HREF="#class-type"><FONT COLOR=maroon>class-type</FONT></A></I>]  <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#class-expr"><FONT COLOR=maroon>class-expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="type-parameters"><FONT COLOR=maroon>type-parameters</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>'</TT></FONT> <I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I>  { <FONT COLOR=blue><TT>,</TT></FONT> <FONT COLOR=blue><TT>'</TT></FONT> <I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual017.html char 41263 -->
+
+<A HREF="manual017.html#htoc79"><H3>6.9.4  Class specification</H3></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-specification"><FONT COLOR=maroon>class-specification</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>class</TT></FONT> <I><A HREF="#class-spec"><FONT COLOR=maroon>class-spec</FONT></A></I>  { <FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#class-spec"><FONT COLOR=maroon>class-spec</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="class-spec"><FONT COLOR=maroon>class-spec</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+[<FONT COLOR=blue><TT>virtual</TT></FONT>] [<FONT COLOR=blue><TT>[</TT></FONT> <I><A HREF="#type-parameters"><FONT COLOR=maroon>type-parameters</FONT></A></I> <FONT COLOR=blue><TT>]</TT></FONT>]  <I><A HREF="#class-name"><FONT COLOR=maroon>class-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>
+ <I><A HREF="#class-type"><FONT COLOR=maroon>class-type</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual017.html char 42857 -->
+
+<A HREF="manual017.html#htoc80"><H3>6.9.5  Class type definitions</H3></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="classtype-definition"><FONT COLOR=maroon>classtype-definition</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>class</TT></FONT> <FONT COLOR=blue><TT>type</TT></FONT> <I><A HREF="#classtype-def"><FONT COLOR=maroon>classtype-def</FONT></A></I>
+ { <FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#classtype-def"><FONT COLOR=maroon>classtype-def</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="classtype-def"><FONT COLOR=maroon>classtype-def</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+[<FONT COLOR=blue><TT>virtual</TT></FONT>] [<FONT COLOR=blue><TT>[</TT></FONT> <I><A HREF="#type-parameters"><FONT COLOR=maroon>type-parameters</FONT></A></I> <FONT COLOR=blue><TT>]</TT></FONT>]  <I><A HREF="#class-name"><FONT COLOR=maroon>class-name</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#class-body-type"><FONT COLOR=maroon>class-body-type</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual018.html char 1183 -->
+
+<A NAME="anchor09"></A>
+<A HREF="manual018.html#htoc81"><H2>6.10  Module types (module specifications)</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="module-type"><FONT COLOR=maroon>module-type</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#modtype-path"><FONT COLOR=maroon>modtype-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>sig</TT></FONT> { <I><A HREF="#specification"><FONT COLOR=maroon>specification</FONT></A></I>  [<FONT COLOR=blue><TT>;;</TT></FONT>] } <FONT COLOR=blue><TT>end</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>functor</TT></FONT> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT> <FONT COLOR=blue><TT>-&gt;</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> <FONT COLOR=blue><TT>with</TT></FONT>  <I><A HREF="#mod-constraint"><FONT COLOR=maroon>mod-constraint</FONT></A></I>  { <FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#mod-constraint"><FONT COLOR=maroon>mod-constraint</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="mod-constraint"><FONT COLOR=maroon>mod-constraint</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>type</TT></FONT> [<I><A HREF="#type-parameters"><FONT COLOR=maroon>type-parameters</FONT></A></I>]  <I><A HREF="#typeconstr"><FONT COLOR=maroon>typeconstr</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>module</TT></FONT> <I><A HREF="#module-path"><FONT COLOR=maroon>module-path</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#extended-module-path"><FONT COLOR=maroon>extended-module-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="specification"><FONT COLOR=maroon>specification</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>val</TT></FONT> <I><A HREF="#value-name"><FONT COLOR=maroon>value-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>external</TT></FONT> <I><A HREF="#value-name"><FONT COLOR=maroon>value-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <FONT COLOR=maroon><I>external-declaration</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#type-definition"><FONT COLOR=maroon>type-definition</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>exception</TT></FONT> <I><A HREF="#constr-decl"><FONT COLOR=maroon>constr-decl</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#class-specification"><FONT COLOR=maroon>class-specification</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#classtype-definition"><FONT COLOR=maroon>classtype-definition</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>module</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>module</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I>  { <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT> }
+<FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>module</TT></FONT> <FONT COLOR=blue><TT>type</TT></FONT> <I><A HREF="#modtype-name"><FONT COLOR=maroon>modtype-name</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>module</TT></FONT> <FONT COLOR=blue><TT>type</TT></FONT> <I><A HREF="#modtype-name"><FONT COLOR=maroon>modtype-name</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>open</TT></FONT> <I><A HREF="#module-path"><FONT COLOR=maroon>module-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>include</TT></FONT> <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I>
+ </TD></TR>
+
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=left NOWRAP colspan=3><A HREF="#anchor14">extentions for recursive modules:</A></TD>
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>module</TT></FONT> <FONT COLOR=blue><TT>rec</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I>
+ { <FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I><FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> }</TD></TR>
+
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual019.html char 1246 -->
+
+<A NAME="anchor10"></A>
+<A HREF="manual019.html#htoc86"><H2>6.11  Module expressions (module implementations)</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#module-path"><FONT COLOR=maroon>module-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>struct</TT></FONT> { <I><A HREF="#definition"><FONT COLOR=maroon>definition</FONT></A></I>  [<FONT COLOR=blue><TT>;;</TT></FONT>] } <FONT COLOR=blue><TT>end</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>functor</TT></FONT> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT> <FONT COLOR=blue><TT>-&gt;</TT></FONT>  <I><A HREF="#module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I> <FONT COLOR=blue><TT>(</TT></FONT>  <I><A HREF="#module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="definition"><FONT COLOR=maroon>definition</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=blue><TT>let</TT></FONT> [<FONT COLOR=blue><TT>rec</TT></FONT>] <I><A HREF="#let-binding"><FONT COLOR=maroon>let-binding</FONT></A></I>   { <FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#let-binding"><FONT COLOR=maroon>let-binding</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>external</TT></FONT> <I><A HREF="#value-name"><FONT COLOR=maroon>value-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <FONT COLOR=maroon><I>external-declaration</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#type-definition"><FONT COLOR=maroon>type-definition</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#exception-definition"><FONT COLOR=maroon>exception-definition</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#class-definition"><FONT COLOR=maroon>class-definition</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#classtype-definition"><FONT COLOR=maroon>classtype-definition</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>module</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I>  { <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT> }
+ [ <FONT COLOR=blue><TT>:</TT></FONT> <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> ]  <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>module</TT></FONT> <FONT COLOR=blue><TT>type</TT></FONT> <I><A HREF="#modtype-name"><FONT COLOR=maroon>modtype-name</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>open</TT></FONT> <I><A HREF="#module-path"><FONT COLOR=maroon>module-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>include</TT></FONT> <I><A HREF="#module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I></TD></TR>
+
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=left NOWRAP colspan=3><A HREF="#anchor14">extentions for recursive modules:</A></TD>
+
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>module</TT></FONT> <FONT COLOR=blue><TT>rec</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I> 
+ { <FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I><FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I> }
+ </TD></TR>
+
+
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual020.html char 577 -->
+
+<A NAME="anchor11"></A>
+<A HREF="manual020.html#htoc90"><H2>6.12  Compilation units</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="unit-interface"><FONT COLOR=maroon>unit-interface</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP> { <I><A HREF="#specification"><FONT COLOR=maroon>specification</FONT></A></I>  [<FONT COLOR=blue><TT>;;</TT></FONT>] }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="unit-implementation"><FONT COLOR=maroon>unit-implementation</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP> { <I><A HREF="#definition"><FONT COLOR=maroon>definition</FONT></A></I>  [<FONT COLOR=blue><TT>;;</TT></FONT>] }</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual021.html char 988 -->
+
+<A NAME="anchor12"></A>
+<A HREF="manual021.html#htoc92"><H2>7.1  Integer literals for types int32, int64 and nativeint</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="int32-literal"><FONT COLOR=maroon>int32-literal</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP> <I><A HREF="#integer-literal"><FONT COLOR=maroon>integer-literal</FONT></A></I> <FONT COLOR=blue><TT>l</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="int64-literal"><FONT COLOR=maroon>int64-literal</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP> <I><A HREF="#integer-literal"><FONT COLOR=maroon>integer-literal</FONT></A></I> <FONT COLOR=blue><TT>L</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="nativeint-literal"><FONT COLOR=maroon>nativeint-literal</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP> <I><A HREF="#integer-literal"><FONT COLOR=maroon>integer-literal</FONT></A></I> <FONT COLOR=blue><TT>n</TT></FONT></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual021.html char 18350 -->
+
+<A NAME="anchor13"></A>
+<A HREF="manual021.html#htoc99"><H2>7.8  Private types</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A HREF="#type-representation"><FONT COLOR=maroon>type-representation</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+...
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>=</TT></FONT> <FONT COLOR=blue><TT>private</TT></FONT> <I><A HREF="#constr-decl"><FONT COLOR=maroon>constr-decl</FONT></A></I>  { <FONT COLOR=blue><TT>|</TT></FONT> <I><A HREF="#constr-decl"><FONT COLOR=maroon>constr-decl</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>=</TT></FONT> <FONT COLOR=blue><TT>private</TT></FONT> <FONT COLOR=blue><TT>{</TT></FONT> <I><A HREF="#field-decl"><FONT COLOR=maroon>field-decl</FONT></A></I>  { <FONT COLOR=blue><TT>;</TT></FONT> <I><A HREF="#field-decl"><FONT COLOR=maroon>field-decl</FONT></A></I> } <FONT COLOR=blue><TT>}</TT></FONT></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual021.html char 21345 -->
+
+<A NAME="anchor14"></A>
+<A HREF="manual021.html#htoc100"><H2>7.9  Recursive modules</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A HREF="#definition"><FONT COLOR=maroon>definition</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+...
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>module</TT></FONT> <FONT COLOR=blue><TT>rec</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I> 
+ { <FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I><FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> <FONT COLOR=blue><TT>=</TT></FONT>  <I><A HREF="#module-expr"><FONT COLOR=maroon>module-expr</FONT></A></I> }
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A HREF="#specification"><FONT COLOR=maroon>specification</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+...
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>module</TT></FONT> <FONT COLOR=blue><TT>rec</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I> <FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I>
+ { <FONT COLOR=blue><TT>and</TT></FONT> <I><A HREF="#module-name"><FONT COLOR=maroon>module-name</FONT></A></I><FONT COLOR=blue><TT>:</TT></FONT>  <I><A HREF="#module-type"><FONT COLOR=maroon>module-type</FONT></A></I> }</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual021.html char 26823 -->
+
+<A NAME="anchor15"></A>
+<A HREF="manual021.html#htoc101"><H2>7.10  Private row types</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A HREF="#type-equation"><FONT COLOR=maroon>type-equation</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+...
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>=</TT></FONT> <FONT COLOR=blue><TT>private</TT></FONT> <I><A HREF="#typexpr"><FONT COLOR=maroon>typexpr</FONT></A></I></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual023.html char 1302 -->
+
+<A NAME="anchor16"></A>
+<A HREF="manual023.html#htoc108"><H2>Chapter 9  The toplevel system (ocaml)</H2></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="toplevel-input"><FONT COLOR=maroon>toplevel-input</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+{ <I><A HREF="#toplevel-phrase"><FONT COLOR=maroon>toplevel-phrase</FONT></A></I> } <FONT COLOR=blue><TT>;;</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="toplevel-phrase"><FONT COLOR=maroon>toplevel-phrase</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<I><A HREF="#definition"><FONT COLOR=maroon>definition</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#expr"><FONT COLOR=maroon>expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>#</TT></FONT> <I><A HREF="#ident"><FONT COLOR=maroon>ident</FONT></A></I>  <I><A HREF="#directive-argument"><FONT COLOR=maroon>directive-argument</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+<TR><TD ALIGN=right NOWRAP>
+<I><A NAME="directive-argument"><FONT COLOR=maroon>directive-argument</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+&#X454;
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#string-literal"><FONT COLOR=maroon>string-literal</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#integer-literal"><FONT COLOR=maroon>integer-literal</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#value-path"><FONT COLOR=maroon>value-path</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+
+<!-- SOURCE FILE manual030.html char 18572 -->
+
+<A NAME="anchor17"></A>
+<A HREF="manual030.html#htoc171"><H2>Chapter 16  The debugger (ocamldebug)</H2></A>
+
+<A HREF="manual030.html#htoc187"><H3>16.7  Examining variable values</H3></A>
+
+<TABLE CLASS="display dcenter"><TR VALIGN="middle"><TD CLASS="dcell"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP>
+<I><A NAME="simple-expr"><FONT COLOR=maroon>simple-expr</FONT></A></I></TD><TD ALIGN=center NOWRAP>::=</TD><TD ALIGN=left NOWRAP>
+<FONT COLOR=maroon><I>lowercase-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> { <FONT COLOR=maroon><I>capitalized-ident</I></FONT> <FONT COLOR=blue><TT>.</TT></FONT> }  <FONT COLOR=maroon><I>lowercase-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>*</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>$</TT></FONT> <FONT COLOR=maroon><I>integer</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#simple-expr"><FONT COLOR=maroon>simple-expr</FONT></A></I> <FONT COLOR=blue><TT>.</TT></FONT>  <FONT COLOR=maroon><I>lowercase-ident</I></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#simple-expr"><FONT COLOR=maroon>simple-expr</FONT></A></I> <FONT COLOR=blue><TT>.(</TT></FONT>  <FONT COLOR=maroon><I>integer</I></FONT> <FONT COLOR=blue><TT>)</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <I><A HREF="#simple-expr"><FONT COLOR=maroon>simple-expr</FONT></A></I> <FONT COLOR=blue><TT>.[</TT></FONT>  <FONT COLOR=maroon><I>integer</I></FONT> <FONT COLOR=blue><TT>]</TT></FONT>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>!</TT></FONT> <I><A HREF="#simple-expr"><FONT COLOR=maroon>simple-expr</FONT></A></I>
+ </TD></TR>
+<TR><TD ALIGN=right NOWRAP>&nbsp;</TD><TD ALIGN=center NOWRAP>&#X2223;</TD><TD ALIGN=left NOWRAP> <FONT COLOR=blue><TT>(</TT></FONT> <I><A HREF="#simple-expr"><FONT COLOR=maroon>simple-expr</FONT></A></I> <FONT COLOR=blue><TT>)</TT></FONT></TD></TR>
+</TABLE></TD></TR>
+</TABLE></TABLE>
+
+<HR>
+<A HREF="manual044.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="index.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+</BODY>
+</HTML>

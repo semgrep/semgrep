@@ -1,0 +1,4 @@
+proc {|arg| puts arg}
+Proc.new {|arg| puts arg}
+lambda {|arg| puts arg}
+->(arg) {puts arg}         # introduced in Ruby 1.9

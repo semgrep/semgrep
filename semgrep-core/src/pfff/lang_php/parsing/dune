@@ -1,0 +1,15 @@
+(library
+ (public_name pfff-lang_php)
+ (name pfff_lang_php)
+ (wrapped false)
+ (libraries
+   dyp
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show))
+)
+(ocamllex lexer_php)
+(menhir (modules parser_php)
+        (flags --unused-tokens --explain --fixed-exception))

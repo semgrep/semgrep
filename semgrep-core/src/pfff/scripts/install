@@ -1,0 +1,12 @@
+#! /usr/bin/env bash
+#
+# Install pfff. This is intended for CI.
+#
+set -eu
+
+eval "$(opam env)"
+dune install
+
+#old:
+#make install
+#make reinstall-libs

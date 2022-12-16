@@ -1,0 +1,13 @@
+(library
+ (public_name pfff-lang_rust)
+ (name pfff_lang_rust)
+ (wrapped false)
+ (libraries
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show))
+)
+(ocamllex lexer_rust)
+(ocamlyacc parser_rust)

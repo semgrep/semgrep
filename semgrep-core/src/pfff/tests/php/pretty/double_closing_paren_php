@@ -1,0 +1,14 @@
+<?php
+
+function yieldAuthor() {
+  yield wait_for($this->prepareOwnerID());
+  $owner = null;
+  yield wait_for(
+    Ent::createLoader(
+      'EntUser',
+      $this->foo(),
+      $this->bar(),
+      $owner
+    ));
+  yield result($owner);
+}

@@ -1,0 +1,19 @@
+To install Pfff under Windows, you must first install Cygwin (see https://www.cygwin.com/).
+
+Then, install a few Cygwin packages:
+ - autoconf (needed to install from source many opam packages)
+ - automake
+ - opam
+
+Once OPAM is installed, you will need to install a compatible
+version of OCaml and a few OPAM packages:
+ - opam init
+ - opam switch 4.07.0
+ - opam install dune json-wheel
+
+
+Troubles?
+------------
+- If 'opam init' seems to never finish, still wait and later on, even
+  if the command does not terminate, you should get a valid ~/.opam/
+  directory.

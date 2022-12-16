@@ -1,0 +1,14 @@
+(library
+ (public_name pfff-lang_scala)
+ (name pfff_lang_scala)
+ (wrapped false)
+ (libraries
+
+commons commons_core
+   pfff-config pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
+)
+(ocamllex Lexer_scala)
+(menhir (modules Parser_scala)
+        (flags --unused-tokens --explain --fixed-exception --external-tokens Token_scala))

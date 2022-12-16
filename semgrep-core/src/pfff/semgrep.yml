@@ -1,0 +1,53 @@
+# This file contains Semgrep rules.
+# See https://semgrep.dev for more information.
+
+# You can use this file locally either with:
+#  - docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep:develop --config semgrep.yml
+# or if you have already installed semgrep:
+#  - semgrep --config semgrep.yml .
+
+# This file is also used in CI, see .circleci/config.yml
+
+rules:
+  - id: bad-pervasives
+    pattern: Pervasives.$X
+    message: Pervasives is deprecated and not available after 4.10. Use Stdlib.
+    languages: [ocaml]
+    severity: ERROR
+
+  - id: physical-inequality
+    pattern: $X != $Y
+    message: You probably want structural inequality with <>
+    languages: [ocaml]
+    severity: WARNING
+
+  - id: stupid-equal
+    pattern: $X = $X
+    message: this will always be true
+    languages: [ocaml]
+    severity: ERROR
+
+  - id: length-vs-equal
+    pattern: List.length $X = 0
+    message: you probably want $X = [], which is faster
+    languages: [ocaml]
+    severity: WARNING
+
+  - id: not-portable-tmp
+    pattern: |
+      "=~/\/tmp/"
+    message: you should probably use Filename.get_temp_dirname().
+    languages: [ocaml]
+    severity: WARNING
+    #TODO: fix at some point
+    paths:
+      exclude:
+       - commons/common2.ml
+       - commons_wrappers/graph/graphe.ml
+       - h_visualization/plot_jgraph.ml
+       - lang_c/analyze/test_analyze_c.ml
+       - lang_cpp/parsing/test_parsing_cpp.ml
+       - lang_php/analyze/foundation/unit_foundation_php.ml
+       - lang_php/analyze/foundation/unit_prolog_php.ml
+       - main_db.ml
+       - tests/Test.ml

@@ -1,0 +1,170 @@
+<<common.mli misc>>=
+
+(*xxxx*)
+
+<<common.mli misc other>>
+
+@
+
+\section{Geometry}
+
+
+<<common.mli misc>>=
+(*****************************************************************************)
+(* Geometry (ICFP raytracer) *)
+(*****************************************************************************)
+
+type vector = float * float * float
+
+type point = vector
+type color = vector
+
+val dotproduct : vector * vector -> float
+
+val vector_length : vector -> float
+
+val minus_point : point * point -> vector
+
+val distance : point * point -> float
+
+val normalise : vector -> vector
+
+val mult_coeff : vector -> float -> vector
+
+val add_vector : vector -> vector -> vector
+val mult_vector : vector -> vector -> vector
+val sum_vector : vector list -> vector
+@
+
+\section{Pics}
+
+<<common.mli misc>>=
+(*****************************************************************************)
+(* Pics (ICFP raytracer) *)
+(*****************************************************************************)
+type pixel = int * int * int
+val write_ppm : int -> int -> pixel list -> filename -> unit
+val test_ppm1 : unit -> unit
+@
+
+\section{Diff}
+
+<<common.mli misc>>=
+(*****************************************************************************)
+(* Diff (LFS) *)
+(*****************************************************************************)
+
+type diff = Match | BnotinA | AnotinB
+val diff : (int -> int -> diff -> unit) -> string list * string list -> unit
+val diff2 : (int -> int -> diff -> unit) -> string * string -> unit
+
+(*****************************************************************************)
+(* Grep (coccinelle) *)
+(*****************************************************************************)
+
+val contain_any_token_with_egrep: string list -> filename -> bool
+
+@
+
+\section{Parsers}
+
+<<common.mli misc>>=
+(*****************************************************************************)
+(* Parsers (aop-colcombet)                                                 *)
+(*****************************************************************************)
+
+val parserCommon : Lexing.lexbuf -> ('a -> Lexing.lexbuf -> 'b) -> 'a -> 'b
+val getDoubleParser :
+  ('a -> Lexing.lexbuf -> 'b) -> 'a -> (string -> 'b) * (string -> 'b)
+@
+
+<<common.mli misc>>=
+(*****************************************************************************)
+(* Parsers (cocci) *)
+(*****************************************************************************)
+(* now in h_program-lang/parse_info.ml *)
+@
+
+\section{Scope}
+
+<<common.mli misc>>=
+(*****************************************************************************)
+(* Scope managment (cocci) *)
+(*****************************************************************************)
+
+(* for example of use, see the code used in coccinelle *)
+type ('a, 'b) scoped_env = ('a, 'b) assoc list
+
+val lookup_env : (* Eq a *) 'a -> ('a, 'b) scoped_env -> 'b
+val member_env_key : 'a -> ('a, 'b) scoped_env -> bool
+
+val new_scope : ('a, 'b) scoped_env ref -> unit
+val del_scope : ('a, 'b) scoped_env ref -> unit
+
+val do_in_new_scope : ('a, 'b) scoped_env ref -> (unit -> unit) -> unit
+
+val add_in_scope : ('a, 'b) scoped_env ref -> 'a * 'b -> unit
+
+
+
+
+(* for example of use, see the code used in coccinelle *)
+type ('a, 'b) scoped_h_env = {
+  scoped_h : ('a, 'b) Hashtbl.t;
+  scoped_list : ('a, 'b) assoc list;
+}
+val empty_scoped_h_env : unit -> ('a, 'b) scoped_h_env
+val clone_scoped_h_env : ('a, 'b) scoped_h_env -> ('a, 'b) scoped_h_env
+
+val lookup_h_env : 'a -> ('a, 'b) scoped_h_env -> 'b
+val member_h_env_key : 'a -> ('a, 'b) scoped_h_env -> bool
+
+val new_scope_h : ('a, 'b) scoped_h_env ref -> unit
+val del_scope_h : ('a, 'b) scoped_h_env ref -> unit
+
+val do_in_new_scope_h : ('a, 'b) scoped_h_env ref -> (unit -> unit) -> unit
+
+val add_in_scope_h : ('a, 'b) scoped_h_env ref -> 'a * 'b -> unit
+@
+
+\section{Terminal}
+
+<<common.mli misc>>=
+(*****************************************************************************)
+(* Terminal (LFS) *)
+(*****************************************************************************)
+
+(* don't forget to call Common_extra.set_link () *)
+
+val _execute_and_show_progress_func :
+  (show_progress:bool -> int (* length *) -> ((unit -> unit) -> unit) -> unit)
+  ref
+val execute_and_show_progress :
+ ?show_progress:bool -> int (* length *) -> ((unit -> unit) -> unit) -> unit
+
+@
+
+
+\section{Other, Db, GUI, Graphics}
+
+<<common.mli misc other>>=
+(*****************************************************************************)
+(* DB *)
+(*****************************************************************************)
+
+(* cf oassocbdb.ml or oassocdbm.ml  (LFS)  *)
+
+(*****************************************************************************)
+(* GUI *)
+(*****************************************************************************)
+
+(* cf ocamlgtk and my gui.ml  (LFS, CComment, otimetracker) *)
+
+
+(*****************************************************************************)
+(* Graphics *)
+(*****************************************************************************)
+
+(* cf ocamlcairo, ocamlgl and my opengl.ml  (otimetracker) *)
+
+@

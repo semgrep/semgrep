@@ -1,0 +1,143 @@
+# -*- Makefile -*-
+##############################################################################
+# Generic variables
+##############################################################################
+
+OBJS    = $(SRC:.ml=.cmo)
+OPTOBJS = $(SRC:.ml=.cmx)
+
+INCLUDES=$(INCLUDEDIRS:%=-I %) $(INCLUDESEXTRA)
+
+LIB=$(LIBNAME).cma
+OPTLIB=$(LIB:.cma=.cmxa)
+
+##############################################################################
+# Generic OCaml variables
+##############################################################################
+
+# This flag can also be used in subdirectories so don't change its name here.
+# For profiling use:  -p -inline 0
+OPTFLAGS=-thread
+
+# The OPTBIN variable is here to allow to use ocamlc.opt instead of
+# ocaml, when it is available, which speeds up compilation. So
+# if you want the fast version of the ocaml chain tools, set this var
+# or setenv it to ".opt" in your startup script.
+OPTBIN ?= #.opt
+
+# duplicated from ../Makefile.common
+WARNING_FLAGS?=-w +a-4-6-7-29-41-44-45-48-52-67 -warn-error +a
+
+#coupling: ../Makefile.common, but want independent commons/
+OCAMLCFLAGS ?= -g -thread $(OCAMLCFLAGS_EXTRA) $(WARNING_FLAGS)
+
+# The OCaml tools.
+OCAMLC =ocamlc$(OPTBIN) $(OCAMLCFLAGS) $(INCLUDES)
+OCAMLOPT=ocamlopt$(OPTBIN) $(OPTFLAGS) $(INCLUDES)
+OCAMLLEX = ocamllex$(OPTBIN)
+OCAMLYACC= ocamlyacc -v
+OCAMLDEP = ocamldep$(OPTBIN)
+OCAMLMKTOP=ocamlmktop -g -custom $(INCLUDES)
+
+OCAMLMKLIB ?= ocamlmklib
+CC=gcc
+
+##############################################################################
+# Top rules
+##############################################################################
+
+
+all:: $(LIB)
+all.opt: $(OPTLIB)
+opt: all.opt
+top: $(LIBNAME).top
+
+$(LIB): $(OBJS) $(COBJS)
+	$(OCAMLMKLIB) -o $(LIBNAME).cma $(BUILTINLIBS) $^
+$(OPTLIB): $(OPTOBJS) $(COBJS)
+	$(OCAMLMKLIBOPT) -o $(LIBNAME).cmxa $(BUILTINLIBSOPT) $^
+$(LIBNAME).top: $(OBJS)
+	$(OCAMLMKTOP) -o $@ $(SYSLIBS) $^
+
+clean::
+	rm -f $(LIBNAME).top
+
+##############################################################################
+# Generic rules
+##############################################################################
+
+.SUFFIXES:
+.SUFFIXES: .ml .mli .cmo .cmi .cmx
+
+.ml.cmo:
+	$(OCAMLC)  -c $<
+.mli.cmi:
+	$(OCAMLC)  -c $<
+.ml.cmx:
+	$(OCAMLOPT)  -c $<
+
+clean::
+	rm -f *.cm[iox] *.o *.a *.cma *.cmxa *.annot *.cmt *.cmti *.so
+	rm -f *~ .*~ #*#
+
+clean::
+	for i in $(SUBDIRS); do (cd $$i; \
+        rm -f *.cm[iox] *.cmt* *.o *.a *.cma *.cmxa *.annot *~ .*~ ; \
+        cd ..; ) \
+	done
+
+# see https://stackoverflow.com/questions/6145041/makefile-filter-out-strings-containing-a-character
+FILTER_OUT = $(foreach v,$(2),$(if $(findstring $(1),$(v)),,$(v)))
+# we do not want to generate dependencies in the .depend towards external files
+# (which can cause to recompile some files in opam dirs that then cause pbs)
+INCLUDEDIRS2=$(call FILTER_OUT,external, $(INCLUDEDIRS))
+INCLUDES2=$(INCLUDEDIRS2:%=-I %)
+
+depend:
+	$(OCAMLDEP) $(INCLUDES2) *.mli *.ml  > .depend
+	for i in $(SUBDIRS); do $(OCAMLDEP) $$i/*.ml $$i/*.mli >> .depend; done
+
+distclean::
+	rm -f .depend
+
+-include .depend
+
+##############################################################################
+# install
+##############################################################################
+
+#note: I used to have LIBNAME to always be 'lib', which simplifies things,
+# but it does not allow to use the standard OCaml library installation
+# procedure (installing in `ocamlc -where`). Note that with the prevalence
+# of OPAM this becomes less a problem though.
+#old: I used to have a EXPORTSRC variable, e.g., EXPORTSRC=$(SRC:%.ml=%.mli)
+# but with merlin and codegraph you sometimes want to jump to a source file,
+# so it simpler to just install *.ml*
+#note: installing the .ml can be useful for tools like codegraph or Merlin,
+# but if your 'make depend' is wrong and include directories under OPAM,
+# then you will possibly get issues with inconcistent definitions because
+# make will try to recompile the .ml from OPAM.
+
+install: all all.opt
+	ocamlfind install $(OPAMPKG) META *.mli *.ml \
+    $(LIBNAME).cma $(LIBNAME).cmxa $(LIBNAME).a *.cmi *.cmt*  *.cmx
+
+uninstall:
+	ocamlfind remove $(OPAMPKG)
+
+install-lib: install
+uninstall-lib: uninstall
+
+#old: everybody uses OPAM now, where each package is in a separate
+# directory (even though the original scheme of OCaml was not bad either),
+# so those targets are now useless.
+#OCAMLSTDLIB=`ocamlc -where`
+#install: all all.opt
+#	mkdir -p $(OCAMLSTDLIB)/$(LIBNAME)
+#	cp $(LIBNAME).cma $(LIBNAME).cmxa \
+#          common.mli ocaml.mli \
+#          $(OCAMLSTDLIB)/$(LIBNAME)
+# note that the dlllib.so will be added in lib/stublibs/
+#          dlllib.so lib.a liblib.a \
+#          dlllib.so liblib.a\
+#note that $(EXPORTSRC:%.mli=%.cmt) but must be guarded by having bin-annot

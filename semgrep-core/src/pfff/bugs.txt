@@ -1,0 +1,2 @@
+Send a mail to yoann.padioleau@gmail.com with [pfff] as a prefix in the
+subject of your mail or submit an issue on http://github.com/aryx/pfff/

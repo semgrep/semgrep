@@ -1,0 +1,406 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2010, 2012 Facebook
+ * Copyright (C) 2020 R2C
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
+open Common
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* A Concrete Syntax Tree (CST) for OCaml.
+ *
+ * For an Abstract Syntax Tree (AST), see ../analyze/ast_ml.ml.
+ *)
+
+(*****************************************************************************)
+(* The AST related types *)
+(*****************************************************************************)
+
+(* ------------------------------------------------------------------------- *)
+(* Token/info *)
+(* ------------------------------------------------------------------------- *)
+type tok = Parse_info.t
+ [@@deriving show]
+
+(* a shortcut to annotate some information with token/position information *)
+type 'a wrap = 'a * tok
+
+and 'a paren   = tok * 'a * tok
+and 'a brace   = tok * 'a * tok
+and 'a bracket = tok * 'a * tok
+
+and 'a comma_list = ('a, tok (* ',' *)) Common.either list
+and 'a and_list = ('a, tok (* 'and' *)) Common.either list
+and 'a star_list = ('a, tok (* '*' *)) Common.either list
+(* optional first | *)
+and 'a pipe_list = ('a, tok (* '|' *)) Common.either list
+(* optional final ; *)
+and 'a semicolon_list = ('a, tok (* ';' *)) Common.either list
+
+ [@@deriving show] (* with tarzan *)
+
+(* ------------------------------------------------------------------------- *)
+(* Names  *)
+(* ------------------------------------------------------------------------- *)
+(* TODO: rename ident (at least things are better in ast_ml.ml *)
+type name = Name of string wrap
+  (* lower and uppernames aliases, just for clarity *)
+  and lname = name
+  and uname = name
+ [@@deriving show { with_path = false} ] (* with tarzan *)
+
+(* TODO: rename name *)
+type long_name = qualifier * name
+ and qualifier = (name * tok (*'.'*)) list
+ [@@deriving show] (* with tarzan *)
+
+type todo_category = string wrap
+ [@@deriving show] (* with tarzan *)
+
+(* ------------------------------------------------------------------------- *)
+(* Types *)
+(* ------------------------------------------------------------------------- *)
+
+type ty =
+  | TyName of long_name
+  | TyVar of tok (* ' *) * name
+
+  | TyTuple of ty star_list (* at least 2 *)
+  | TyTuple2 of ty star_list paren (* at least 1 *)
+  | TyFunction of ty * tok (* -> *) * ty
+  | TyApp of ty_args * long_name (* todo? could be merged with TyName *)
+
+  (* sgrep-ext: *)
+  | TyEllipsis of tok
+
+  | TyTodo of todo_category * ty list
+
+ and ty_args =
+    | TyArg1 of ty
+    | TyArgMulti of ty comma_list paren
+    (* todo? | TyNoArg and merge TyName and TyApp ? *)
+
+ [@@deriving show { with_path = false}]
+
+(* ------------------------------------------------------------------------- *)
+(* Expressions *)
+(* ------------------------------------------------------------------------- *)
+type expr =
+  | C of constant
+  | L of long_name (* val_longident *)
+
+  | Constr(*Algebric*) of long_name (* constr_longident *) * expr option
+  | Tuple of expr comma_list
+  | List of expr semicolon_list bracket
+
+  (* can be empty; can not be singular as we use instead ParenExpr *)
+  | Sequence of seq_expr paren (* can also be 'begin'/'end' *)
+
+  | Prefix of string wrap * expr
+  | Infix of expr * string wrap * expr
+
+  | FunCallSimple of long_name * argument list
+  | FunCall of expr * argument list
+
+  (* could be factorized with Prefix but it's not a usual prefix operator! *)
+  | RefAccess of tok (* ! *) * expr
+  | RefAssign of expr * tok (* := *) * expr
+
+  | FieldAccess of expr * tok (* . *) * long_name
+  | FieldAssign of expr * tok (* . *) * long_name * tok (* <- *) * expr
+  | Record of record_expr brace
+
+  | New of tok * long_name (* class_longident *)
+  | ObjAccess of expr * tok (* # *) * name
+
+
+  | LetIn of tok * rec_opt * let_binding and_list * tok (* in *) * seq_expr
+  | Fun of tok * parameter list (* at least one *) * tok (* -> *) * expr
+  | Function of tok * match_case pipe_list
+
+  (* why they allow seq_expr ?? *)
+  | If of tok * seq_expr * tok * expr * (tok * expr) option
+  | Match of tok * seq_expr * tok * match_case pipe_list
+
+  | Try of tok * seq_expr * tok * match_case pipe_list
+
+  | While of tok * seq_expr * tok * seq_expr * tok
+  | For of tok * name * tok * seq_expr * for_direction * seq_expr *
+           tok * seq_expr * tok
+
+  (* unparser *)
+  | ParenExpr of expr paren
+
+  (* sgrep-ext: *)
+  | Ellipsis of tok
+  | DeepEllipsis of expr bracket
+
+  | ExprTodo of todo_category * expr list
+
+
+ and seq_expr = expr semicolon_list
+
+ and constant =
+   | Int of string wrap
+   | Float of string wrap
+   | Char of string wrap
+   | String of string wrap
+
+ and record_expr =
+   | RecordNormal of                         field_and_expr semicolon_list
+   | RecordWith of expr * tok (* "with" *) * field_and_expr semicolon_list
+   and field_and_expr =
+     | FieldExpr of long_name * tok (* = *) * expr
+     (* new 3.12 feature *)
+     | FieldImplicitExpr of long_name
+
+ and argument =
+   | ArgExpr of expr
+
+   | ArgLabelTilde of name (* todo: without the tilde and : ? *) * expr
+   | ArgImplicitTildeExpr of tok * name
+
+   (* apparently can do 'foo ?attr:1' *)
+   | ArgLabelQuestion of name (* todo: without the tilde and : ? *) * expr
+   | ArgImplicitQuestionExpr of tok * name
+
+
+ and match_case =
+  pattern * match_action
+
+  and match_action =
+    | Action of tok (* -> *) * seq_expr
+    | WhenAction of tok (* when *) * seq_expr * tok (* -> *) * seq_expr
+
+
+ and for_direction =
+  | To of tok
+  | Downto of tok
+
+ and rec_opt = tok option
+
+(* ------------------------------------------------------------------------- *)
+(* Patterns *)
+(* ------------------------------------------------------------------------- *)
+and pattern =
+  | PatVar of name
+  | PatConstant of pattern_signed_constant
+  | PatConstr(*Algebric*) of long_name (* constr_longident *) * pattern option
+  | PatConsInfix of pattern * tok (* :: *) * pattern
+  | PatTuple of pattern comma_list
+  | PatList of pattern semicolon_list bracket
+  | PatUnderscore of tok
+  | PatRecord of field_pattern semicolon_list brace
+
+  | PatAs of pattern * tok (* as *) * name
+  (* ocaml disjunction patterns extension *)
+  | PatDisj of pattern * tok (* | *) * pattern
+
+  | PatTyped of tok (*'('*) * pattern * tok (*':'*) * ty * tok (*')'*)
+
+  (* unparser *)
+  | ParenPat of pattern paren
+
+  (* sgrep-ext: *)
+  | PatEllipsis of tok
+
+  | PatTodo of todo_category * pattern list
+
+ (* less? merge with expr, no need for too precise AST, remember ast_php.ml *)
+ and pattern_signed_constant =
+    | C2 of constant
+    (* actually only valid for the Int and Float case, not Char and String
+     * but don't want to introduce yet another intermediate type just for
+     * the Int and Float
+     *)
+    | CMinus of tok * constant
+    | CPlus of tok * constant
+
+ and field_pattern =
+  | PatField of long_name * tok (* = *) * pattern
+  (* new 3.12 feature *)
+  | PatImplicitField of long_name
+
+(* ------------------------------------------------------------------------- *)
+(* Let binding (global/local/function definition) *)
+(* ------------------------------------------------------------------------- *)
+
+and let_binding =
+  | LetClassic of let_def
+  | LetPattern of pattern * tok (* = *) * seq_expr
+
+ (* was called fun_binding in the grammar *)
+ and let_def = {
+   l_name: name; (* val_ident *)
+   l_params: parameter list; (* can be empty *)
+   l_tok: tok; (* = *)
+   l_body: seq_expr;
+   (* todo: l_type: ty option *)
+ }
+
+ and parameter =
+   | ParamPat of pattern
+   (* ParamEllipsis can be done via ParamPat (PatEllipsis) *)
+   | ParamTodo of tok
+
+ [@@deriving show { with_path = false}]
+
+(* ------------------------------------------------------------------------- *)
+(* Type declaration *)
+(* ------------------------------------------------------------------------- *)
+
+type type_declaration =
+  | TyAbstract of ty_params * name
+  | TyDef of ty_params * name * tok (* = *) * type_def_kind
+
+ and ty_params =
+   | TyNoParam
+   | TyParam1 of ty_parameter
+   | TyParamMulti of ty_parameter comma_list paren
+ and ty_parameter = tok (* ' *) * name (* a TyVar *)
+
+ and type_def_kind =
+   | TyCore of ty
+   (* or type *)
+   | TyAlgebric of constructor_declaration pipe_list
+   (* and type *)
+   | TyRecord   of field_declaration semicolon_list brace
+
+ (* OR type: algebric data type *)
+ and constructor_declaration = name (* constr_ident *) * constructor_arguments
+  and constructor_arguments =
+    | NoConstrArg
+    | Of of tok * ty star_list
+
+ (* AND type: record *)
+ and field_declaration = {
+   fld_mutable: tok option;
+   fld_name: name;
+   fld_tok: tok; (* : *)
+   fld_type: ty; (* poly_type ?? *)
+ }
+ [@@deriving show { with_path = false}]
+
+
+(* ------------------------------------------------------------------------- *)
+(* Class *)
+(* ------------------------------------------------------------------------- *)
+
+(* ------------------------------------------------------------------------- *)
+(* Module *)
+(* ------------------------------------------------------------------------- *)
+
+(* mutually recursive with item *)
+type module_expr =
+  | ModuleName of long_name
+  | ModuleStruct of tok (* struct *) * item list * tok (* end *)
+  | ModuleTodo of todo_category * module_expr list
+
+(* ------------------------------------------------------------------------- *)
+(* Signature/Structure items *)
+(* ------------------------------------------------------------------------- *)
+
+(* could split in sig_item and struct_item but many constructions are
+ * valid in both contexts.
+ *)
+and item =
+  | Type      of tok * type_declaration and_list
+
+  | Exception of tok * name * constructor_arguments
+  | External  of tok * name (* val_ident *) * tok (*:*) * ty * tok (* = *) *
+      string wrap list (* primitive declarations *)
+
+  | Open of tok * long_name
+
+  (* only in sig_item *)
+  | Val of tok * name (* val_ident *) * tok (*:*) * ty
+
+  (* only in struct_item *)
+  | Let of tok * rec_opt * let_binding and_list
+
+  | Module of tok * uname * tok * module_expr
+
+  | ItemTodo of todo_category * item list
+ [@@deriving show { with_path = false}]
+
+type sig_item = item
+ [@@deriving show]
+type struct_item = item
+ [@@deriving show]
+
+(* ------------------------------------------------------------------------- *)
+(* Toplevel phrases *)
+(* ------------------------------------------------------------------------- *)
+
+type toplevel =
+  | TopItem of item
+
+  (* should both be removed *)
+  | TopSeqExpr of seq_expr
+  | ScSc of tok (* ;; *)
+
+  (* some ml files contain some #! or even #load directives *)
+  | TopDirective of tok
+ [@@deriving show { with_path = false}]
+
+type program = toplevel list
+ [@@deriving show] (* with tarzan *)
+
+(*****************************************************************************)
+(* Any *)
+(*****************************************************************************)
+
+type any =
+  | Ty of ty
+  | Expr of expr
+  | Pattern of pattern
+
+  | Item of item
+  | Toplevel of toplevel
+  | Program of program
+
+  | TypeDeclaration of type_declaration
+  | TypeDefKind of type_def_kind
+  | FieldDeclaration of field_declaration
+
+  | MatchCase of match_case
+  | LetBinding of let_binding
+
+  | Constant of constant
+
+  | Argument of argument
+  | Body of seq_expr
+
+  | Info of tok
+  | InfoList of tok list
+ [@@deriving show { with_path = false}] (* with tarzan *)
+
+(*****************************************************************************)
+(* Wrappers *)
+(*****************************************************************************)
+
+let str_of_name (Name (s,_)) = s
+let info_of_name (Name (_,info)) = info
+
+let uncomma xs = Common.map_filter (function
+  | Left e -> Some e
+  | Right _info -> None
+  ) xs
+let unpipe xs = uncomma xs
+
+let name_of_long_name (_, name) = name
+let module_of_long_name (qu, _) =
+  qu |> List.map fst |> List.map str_of_name |> Common.join "."
+let module_infos_of_long_name (qu, _) =
+  qu |> List.map fst |> List.map info_of_name

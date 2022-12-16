@@ -1,0 +1,76 @@
+{
+  "program": {
+    "value": "NONE",
+    "body": {
+      "0": {
+        "package_declaration": {
+          "value": "package foo;",
+          "body": {
+            "0": { "package": { "value": "package" } },
+            "1": { "identifier": { "value": "foo;" } },
+            "2": { ";": { "value": ";" } }
+          }
+        }
+      },
+      "1": {
+        "class_declaration": {
+          "value": "NONE",
+          "body": {
+            "0": { "class": { "value": "class" } },
+            "1": { "identifier": { "value": "Bar" } },
+            "2": {
+              "class_body": {
+                "value": "NONE",
+                "body": {
+                  "0": { "{": { "value": "{" } },
+                  "1": {
+                    "method_declaration": {
+                      "value": "NONE",
+                      "body": {
+                        "0": { "void_type": { "value": "void" } },
+                        "1": { "identifier": { "value": "main(" } },
+                        "2": {
+                          "formal_parameters": {
+                            "value": "()",
+                            "body": {
+                              "0": { "(": { "value": "()" } },
+                              "1": { ")": { "value": ")" } }
+                            }
+                          }
+                        },
+                        "3": {
+                          "block": {
+                            "value": "NONE",
+                            "body": {
+                              "0": { "{": { "value": "{" } },
+                              "1": {
+                                "return_statement": {
+                                  "value": "return 1;",
+                                  "body": {
+                                    "0": { "return": { "value": "return" } },
+                                    "1": {
+                                      "decimal_integer_literal": {
+                                        "value": "1;"
+                                      }
+                                    },
+                                    "2": { ";": { "value": ";" } }
+                                  }
+                                }
+                              },
+                              "2": { "}": { "value": "}" } }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "2": { "}": { "value": "}" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

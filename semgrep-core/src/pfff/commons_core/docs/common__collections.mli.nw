@@ -1,0 +1,757 @@
+\todo{
+See also ocollection.mli
+}
+
+\section{List}
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* List *)
+(*****************************************************************************)
+
+
+(* tail recursive efficient map (but that also reverse the element!) *)
+val map_eff_rev : ('a -> 'b) -> 'a list -> 'b list
+(* tail recursive efficient map, use accumulator  *)
+val acc_map : ('a -> 'b) -> 'a list -> 'b list
+
+
+val zip : 'a list -> 'b list -> ('a * 'b) list
+val zip_safe : 'a list -> 'b list -> ('a * 'b) list
+val unzip : ('a * 'b) list -> 'a list * 'b list
+
+val take : int -> 'a list -> 'a list
+val take_safe : int -> 'a list -> 'a list
+val take_until : ('a -> bool) -> 'a list -> 'a list
+val take_while : ('a -> bool) -> 'a list -> 'a list
+
+val drop : int -> 'a list -> 'a list
+val drop_while : ('a -> bool) -> 'a list -> 'a list
+val drop_until : ('a -> bool) -> 'a list -> 'a list
+
+val span : ('a -> bool) -> 'a list -> 'a list * 'a list
+val span_tail_call : ('a -> bool) -> 'a list -> 'a list * 'a list
+
+val skip_until : ('a list -> bool) -> 'a list -> 'a list
+val skipfirst : (* Eq a *) 'a -> 'a list -> 'a list
+
+(* cf also List.partition *)
+val fpartition : ('a -> 'b option) -> 'a list -> 'b list * 'a list
+
+val groupBy : ('a -> 'a -> bool) -> 'a list -> 'a list list
+val exclude_but_keep_attached: ('a -> bool) -> 'a list -> ('a * 'a list) list
+val group_by_post: ('a -> bool) -> 'a list -> ('a list * 'a) list *    'a list
+val group_by_pre:  ('a -> bool) -> 'a list -> 'a list *    ('a * 'a list) list
+val group_by_mapped_key: ('a -> 'b) -> 'a list -> ('b * 'a list) list
+val group_and_count: 'a list -> ('a * int) list
+
+(* Use hash internally to not be in O(n2). If you want to use it on a
+ * simple list, then first do a List.map to generate a key, for instance the
+ * first char of the element, and then use this function.
+ *)
+val group_assoc_bykey_eff : ('a * 'b) list -> ('a * 'b list) list
+
+val splitAt : int -> 'a list -> 'a list * 'a list
+
+val split_when: ('a -> bool) -> 'a list -> 'a list * 'a * 'a list
+val split_gen_when: ('a list -> 'a list option) -> 'a list -> 'a list list
+
+val pack : int -> 'a list -> 'a list list
+val pack_safe: int -> 'a list -> 'a list list
+
+
+val enum : int -> int -> int list
+val enum_safe : int -> int -> int list
+val repeat : 'a -> int -> 'a list
+val generate : int -> 'a -> 'a list
+
+
+
+val index_list   : 'a list -> ('a * int) list
+val index_list_0 : 'a list -> ('a * int) list
+val index_list_1 : 'a list -> ('a * int) list
+val index_list_and_total   : 'a list -> ('a * int * int) list
+
+val iter_index : ('a -> int -> 'b) -> 'a list -> unit
+val map_index : ('a -> int -> 'b) -> 'a list -> 'b list
+val filter_index : (int -> 'a -> bool) -> 'a list -> 'a list
+val fold_left_with_index : ('a -> 'b -> int -> 'a) -> 'a -> 'b list -> 'a
+
+val nth : 'a list -> int -> 'a
+val rang : (* Eq a *) 'a -> 'a list -> int
+
+val last_n : int -> 'a list -> 'a list
+
+
+
+val snoc : 'a -> 'a list -> 'a list
+val cons : 'a -> 'a list -> 'a list
+val uncons : 'a list -> 'a * 'a list
+val safe_tl : 'a list -> 'a list
+val head_middle_tail : 'a list -> 'a * 'a list * 'a
+val list_last : 'a list -> 'a
+val list_init : 'a list -> 'a list
+val removelast : 'a list -> 'a list
+
+val inits : 'a list -> 'a list list
+val tails : 'a list -> 'a list list
+
+
+val ( ++ ) : 'a list -> 'a list -> 'a list
+
+val foldl1 : ('a -> 'a -> 'a) -> 'a list -> 'a
+val fold_k : ('a -> 'b -> ('a -> 'a) -> 'a) -> ('a -> 'a) -> 'a -> 'b list -> 'a
+val fold_right1 : ('a -> 'a -> 'a) -> 'a list -> 'a
+val fold_left : ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
+
+val rev_map : ('a -> 'b) -> 'a list -> 'b list
+
+val join_gen : 'a -> 'a list -> 'a list
+
+val do_withenv :
+  (('a -> 'b) -> 'c -> 'd) -> ('e -> 'a -> 'b * 'e) -> 'e -> 'c -> 'd * 'e
+val map_withenv : ('a -> 'b -> 'c * 'a) -> 'a -> 'b list -> 'c list * 'a
+val map_withkeep: ('a -> 'b) -> 'a list -> ('b * 'a) list
+
+val collect_accu : ('a -> 'b list) -> 'b list -> 'a list -> 'b list
+val collect : ('a -> 'b list) -> 'a list -> 'b list
+
+val remove : 'a -> 'a list -> 'a list
+val remove_first : 'a -> 'a list -> 'a list
+
+val exclude : ('a -> bool) -> 'a list -> 'a list
+
+(* Not like unix uniq command line tool that only delete contiguous repeated
+ * line. Here we delete any repeated line (here list element).
+ *)
+val uniq : 'a list -> 'a list
+val uniq_eff: 'a list -> 'a list
+val big_union_eff: 'a list list -> 'a list
+
+val has_no_duplicate: 'a list -> bool
+val is_set_as_list: 'a list -> bool
+val get_duplicates: 'a list -> 'a list
+
+val doublon : 'a list -> bool
+
+val reverse : 'a list -> 'a list (* alias *)
+val rev : 'a list -> 'a list (* alias *)
+val rotate : 'a list -> 'a list
+
+val map_flatten : ('a -> 'b list) -> 'a list -> 'b list
+
+val map2 : ('a -> 'b) -> 'a list -> 'b list
+val map3 : ('a -> 'b) -> 'a list -> 'b list
+
+
+val maximum : 'a list -> 'a
+val minimum : 'a list -> 'a
+
+val most_recurring_element: 'a list -> 'a
+val count_elements_sorted_highfirst: 'a list -> ('a * int) list
+
+val min_with : ('a -> 'b) -> 'a list -> 'a
+val two_mins_with : ('a -> 'b) -> 'a list -> 'a * 'a
+
+val all_assoc : (* Eq a *) 'a -> ('a * 'b) list -> 'b list
+val prepare_want_all_assoc : ('a * 'b) list -> ('a * 'b list) list
+
+val or_list : bool list -> bool
+val and_list : bool list -> bool
+
+val sum_float : float list -> float
+val sum_int : int list -> int
+val avg_list: int list -> float
+
+val return_when : ('a -> 'b option) -> 'a list -> 'b
+
+
+val grep_with_previous : ('a -> 'a -> bool) -> 'a list -> 'a list
+val iter_with_previous : ('a -> 'a -> 'b) -> 'a list -> unit
+val iter_with_previous_opt : ('a option -> 'a -> 'b) -> 'a list -> unit
+
+val iter_with_before_after :
+ ('a list -> 'a -> 'a list -> unit) -> 'a list -> unit
+
+val get_pair : 'a list -> ('a * 'a) list
+
+val permutation : 'a list -> 'a list list
+
+val remove_elem_pos : int -> 'a list -> 'a list
+val insert_elem_pos : ('a * int) -> 'a list -> 'a list
+val uncons_permut :   'a list -> (('a * int) * 'a list) list
+val uncons_permut_lazy :   'a list -> (('a * int) * 'a list Lazy.t) list
+
+
+val pack_sorted : ('a -> 'a -> bool) -> 'a list -> 'a list list
+
+val keep_best : ('a * 'a -> 'a option) -> 'a list -> 'a list
+val sorted_keep_best : ('a -> 'a -> 'a option) -> 'a list -> 'a list
+
+
+val cartesian_product : 'a list -> 'b list -> ('a * 'b) list
+
+(* old stuff *)
+val surEnsemble : 'a list -> 'a list list -> 'a list list
+val realCombinaison : 'a list -> 'a list list
+val combinaison : 'a list -> ('a * 'a) list
+val insere : 'a -> 'a list list -> 'a list list
+val insereListeContenant : 'a list -> 'a -> 'a list list -> 'a list list
+val fusionneListeContenant : 'a * 'a -> 'a list list -> 'a list list
+@
+
+\section{Array}
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Arrays *)
+(*****************************************************************************)
+
+val array_find_index : (int -> bool) -> 'a array -> int
+val array_find_index_via_elem : ('a -> bool) -> 'a array -> int
+
+(* for better type checking, as sometimes when have an 'int array', can
+ * easily mess up the index from the value.
+ *)
+type idx = Idx of int
+val next_idx: idx -> idx
+val int_of_idx: idx -> int
+
+val array_find_index_typed : (idx -> bool) -> 'a array -> idx
+@
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Fast array *)
+(*****************************************************************************)
+
+(* ?? *)
+@
+
+\section{Matrix}
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Matrix *)
+(*****************************************************************************)
+
+type 'a matrix = 'a array array
+
+val map_matrix : ('a -> 'b) -> 'a matrix -> 'b matrix
+
+val make_matrix_init:
+  nrow:int -> ncolumn:int -> (int -> int -> 'a) -> 'a matrix
+
+val iter_matrix:
+  (int -> int -> 'a -> unit) -> 'a matrix -> unit
+
+val nb_rows_matrix: 'a matrix -> int
+val nb_columns_matrix: 'a matrix -> int
+
+val rows_of_matrix: 'a matrix -> 'a list list
+val columns_of_matrix: 'a matrix -> 'a list list
+
+val all_elems_matrix_by_row: 'a matrix -> 'a list
+@
+
+
+\section{Set}
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Set. But have a look too at set*.mli; it's better. Or use Hashtbl. *)
+(*****************************************************************************)
+
+type 'a set = 'a list
+
+val empty_set : 'a set
+
+val insert_set : 'a -> 'a set -> 'a set
+val single_set : 'a -> 'a set
+val set : 'a list -> 'a set
+
+val is_set: 'a list -> bool
+
+val exists_set : ('a -> bool) -> 'a set -> bool
+val forall_set : ('a -> bool) -> 'a set -> bool
+
+val filter_set : ('a -> bool) -> 'a set -> 'a set
+val fold_set : ('a -> 'b -> 'a) -> 'a -> 'b set -> 'a
+val map_set : ('a -> 'b) -> 'a set -> 'b set
+
+val member_set : 'a -> 'a set -> bool
+val find_set : ('a -> bool) -> 'a list -> 'a
+
+val sort_set : ('a -> 'a -> int) -> 'a list -> 'a list
+
+val iter_set : ('a -> unit) -> 'a list -> unit
+
+val top_set : 'a set -> 'a
+
+val inter_set : 'a set -> 'a set -> 'a set
+val union_set : 'a set -> 'a set -> 'a set
+val minus_set : 'a set -> 'a set -> 'a set
+
+val union_all : ('a set) list -> 'a set
+
+val big_union_set : ('a -> 'b set) -> 'a set -> 'b set
+val card_set : 'a set -> int
+
+val include_set : 'a set -> 'a set -> bool
+val equal_set : 'a set -> 'a set -> bool
+val include_set_strict : 'a set -> 'a set -> bool
+
+(* could put them in Common.Infix *)
+val ( $*$ ) : 'a set -> 'a set -> 'a set
+val ( $+$ ) : 'a set -> 'a set -> 'a set
+val ( $-$ ) : 'a set -> 'a set -> 'a set
+
+val ( $?$ ) : 'a -> 'a set -> bool
+val ( $<$ ) : 'a set -> 'a set -> bool
+val ( $<=$ ) : 'a set -> 'a set -> bool
+val ( $=$ ) : 'a set -> 'a set -> bool
+
+val ( $@$ ) : 'a list -> 'a list -> 'a list
+
+val nub : 'a list -> 'a list
+
+(* use internally a hash and return
+ * - the common part,
+ * - part only in a,
+ * - part only in b
+ *)
+val diff_set_eff : 'a list -> 'a list ->
+  'a list * 'a list * 'a list
+@
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Set as normal list *)
+(*****************************************************************************)
+
+(* cf above *)
+@
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Set as sorted list *)
+(*****************************************************************************)
+@
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Sets specialized *)
+(*****************************************************************************)
+
+module StringSet :
+  sig
+    type elt = string
+    type t
+    val empty : t
+    val add : string -> t -> t
+    val remove : string -> t -> t
+    val singleton : string -> t
+
+    val of_list: string list -> t
+    val to_list: t -> string list
+
+    val is_empty : t -> bool
+    val mem : string -> t -> bool
+
+    val union : t -> t -> t
+    val inter : t -> t -> t
+    val diff : t -> t -> t
+
+    val subset : t -> t -> bool
+    val equal : t -> t -> bool
+
+    val compare : t -> t -> int
+    val iter : (string -> unit) -> t -> unit
+    val fold : (string -> 'a -> 'a) -> t -> 'a -> 'a
+    val for_all : (string -> bool) -> t -> bool
+    val exists : (string -> bool) -> t -> bool
+    val filter : (string -> bool) -> t -> t
+    val partition : (string -> bool) -> t -> t * t
+    val cardinal : t -> int
+    val elements : t -> string list
+      (*
+        val min_string : t -> string
+        val max_string : t -> string
+      *)
+    val choose : t -> string
+    val split : string -> t -> t * bool * t
+  end
+
+@
+
+\section{Assoc}
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Assoc. But have a look too at Mapb.mli; it's better. Or use Hashtbl. *)
+(*****************************************************************************)
+
+type ('a, 'b) assoc = ('a * 'b) list
+
+val assoc_to_function : (* Eq a *) ('a, 'b) assoc -> ('a -> 'b)
+
+val empty_assoc : ('a, 'b) assoc
+val fold_assoc : ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
+val insert_assoc : 'a -> 'a list -> 'a list
+val map_assoc : ('a -> 'b) -> 'a list -> 'b list
+val filter_assoc : ('a -> bool) -> 'a list -> 'a list
+
+val assoc : 'a -> ('a * 'b) list -> 'b
+
+val keys : ('a * 'b) list -> 'a list
+val lookup : 'a -> ('a * 'b) list -> 'b
+
+val del_assoc : 'a -> ('a * 'b) list -> ('a * 'b) list
+val replace_assoc : 'a * 'b -> ('a * 'b) list -> ('a * 'b) list
+val apply_assoc : 'a -> ('b -> 'b) -> ('a * 'b) list -> ('a * 'b) list
+
+val big_union_assoc : ('a -> 'b set) -> 'a list -> 'b set
+
+val assoc_reverse : ('a * 'b) list -> ('b * 'a) list
+val assoc_map : ('a * 'b) list -> ('a * 'b) list -> ('a * 'a) list
+
+val lookup_list : 'a -> ('a, 'b) assoc list -> 'b
+val lookup_list2 : 'a -> ('a, 'b) assoc list -> 'b * int
+
+val assoc_option : 'a -> ('a, 'b) assoc -> 'b option
+val assoc_with_err_msg : 'a -> ('a, 'b) assoc -> 'b
+
+type order = HighFirst | LowFirst
+val compare_order: order -> 'a -> 'a -> int
+
+val sort_by_val_lowfirst: ('a,'b) assoc -> ('a * 'b) list
+val sort_by_val_highfirst: ('a,'b) assoc -> ('a * 'b) list
+
+val sort_by_key_lowfirst: ('a,'b) assoc -> ('a * 'b) list
+val sort_by_key_highfirst: ('a,'b) assoc -> ('a * 'b) list
+
+val sortgen_by_key_lowfirst: ('a,'b) assoc -> ('a * 'b) list
+val sortgen_by_key_highfirst: ('a,'b) assoc -> ('a * 'b) list
+@
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Assoc, specialized. *)
+(*****************************************************************************)
+
+module IntMap :
+  sig
+    type key = int
+    type +'a t
+    val empty : 'a t
+    val is_empty : 'a t -> bool
+    val add : key -> 'a -> 'a t -> 'a t
+    val find : key -> 'a t -> 'a
+    val remove : key -> 'a t -> 'a t
+    val mem : key -> 'a t -> bool
+    val iter : (key -> 'a -> unit) -> 'a t -> unit
+    val map : ('a -> 'b) -> 'a t -> 'b t
+    val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
+    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+    val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
+    val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
+  end
+val intmap_to_list : 'a IntMap.t -> (IntMap.key * 'a) list
+val intmap_string_of_t : 'a -> 'b -> string
+
+module IntIntMap :
+  sig
+    type key = int * int
+    type +'a t
+    val empty : 'a t
+    val is_empty : 'a t -> bool
+    val add : key -> 'a -> 'a t -> 'a t
+    val find : key -> 'a t -> 'a
+    val remove : key -> 'a t -> 'a t
+    val mem : key -> 'a t -> bool
+    val iter : (key -> 'a -> unit) -> 'a t -> unit
+    val map : ('a -> 'b) -> 'a t -> 'b t
+    val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
+    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+    val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
+    val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
+  end
+val intintmap_to_list : 'a IntIntMap.t -> (IntIntMap.key * 'a) list
+val intintmap_string_of_t : 'a -> 'b -> string
+@
+
+\section{Hash}
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Hash *)
+(*****************************************************************************)
+
+(* Note that Hashtbl keep old binding to a key so if want a hash
+ * of a list, then can use the Hashtbl as is. Use Hashtbl.find_all then
+ * to get the list of bindings
+ *
+ * Note that Hashtbl module use different convention :( the object is
+ * the first argument, not last as for List or Map.
+ *)
+
+(* obsolete: can use directly the Hashtbl module *)
+val hcreate : unit -> ('a, 'b) Hashtbl.t
+val hadd : 'a * 'b -> ('a, 'b) Hashtbl.t -> unit
+val hmem : 'a -> ('a, 'b) Hashtbl.t -> bool
+val hfind : 'a -> ('a, 'b) Hashtbl.t -> 'b
+val hreplace : 'a * 'b -> ('a, 'b) Hashtbl.t -> unit
+val hiter : ('a -> 'b -> unit) -> ('a, 'b) Hashtbl.t -> unit
+val hfold : ('a -> 'b -> 'c -> 'c) -> ('a, 'b) Hashtbl.t -> 'c -> 'c
+val hremove : 'a -> ('a, 'b) Hashtbl.t -> unit
+
+
+val hfind_default : 'a -> (unit -> 'b) -> ('a, 'b) Hashtbl.t -> 'b
+val hfind_option : 'a -> ('a, 'b) Hashtbl.t -> 'b option
+val hupdate_default :
+  'a -> update:('b -> 'b) -> default:(unit -> 'b) -> ('a, 'b) Hashtbl.t -> unit
+
+val add1: int -> int
+val cst_zero: unit -> int
+
+val hash_to_list : ('a, 'b) Hashtbl.t -> ('a * 'b) list
+val hash_to_list_unsorted : ('a, 'b) Hashtbl.t -> ('a * 'b) list
+val hash_of_list : ('a * 'b) list -> ('a, 'b) Hashtbl.t
+
+
+val hkeys : ('a, 'b) Hashtbl.t -> 'a list
+@
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Hash sets *)
+(*****************************************************************************)
+
+type 'a hashset = ('a, bool) Hashtbl.t
+
+
+(* common use of hashset, in a hash of hash *)
+val hash_hashset_add : 'a -> 'b -> ('a, 'b hashset) Hashtbl.t -> unit
+
+val hashset_to_set :
+ < fromlist : ('a ) list -> 'c; .. > -> ('a, 'b) Hashtbl.t -> 'c
+
+val hashset_to_list : 'a hashset -> 'a list
+val hashset_of_list : 'a list -> 'a hashset
+@
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Hash  with default value *)
+(*****************************************************************************)
+val hash_with_default: (unit -> 'b) ->
+  < add : 'a -> 'b -> unit;
+    to_list : ('a * 'b) list;
+    to_h: ('a, 'b) Hashtbl.t;
+    update : 'a -> ('b -> 'b) -> unit;
+    assoc: 'a -> 'b;
+  >
+@
+
+\section{Stack}
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Stack *)
+(*****************************************************************************)
+
+type 'a stack = 'a list
+val empty_stack : 'a stack
+val push : 'a -> 'a stack -> 'a stack
+val top : 'a stack -> 'a
+val pop : 'a stack -> 'a stack
+
+val top_option: 'a stack -> 'a option
+
+val push2 : 'a -> 'a stack ref -> unit
+val pop2: 'a stack ref -> 'a
+@
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Stack with undo/redo support *)
+(*****************************************************************************)
+
+type 'a undo_stack = 'a list * 'a list
+val empty_undo_stack : 'a undo_stack
+val push_undo : 'a -> 'a undo_stack -> 'a undo_stack
+val top_undo : 'a undo_stack -> 'a
+val pop_undo : 'a undo_stack -> 'a undo_stack
+val redo_undo: 'a undo_stack -> 'a undo_stack
+val undo_pop: 'a undo_stack -> 'a undo_stack
+
+val top_undo_option: 'a undo_stack -> 'a option
+@
+
+\section{Trees}
+
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Binary tree *)
+(*****************************************************************************)
+type 'a bintree = Leaf of 'a | Branch of ('a bintree * 'a bintree)
+@
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* N-ary tree *)
+(*****************************************************************************)
+
+(* no empty tree, must have one root at least *)
+type 'a tree2 = Tree of 'a * ('a tree2) list
+
+val tree2_iter : ('a -> unit) -> 'a tree2 -> unit
+
+
+type ('a, 'b) tree =
+  | Node of 'a * ('a, 'b) tree list
+  | Leaf of 'b
+
+val map_tree:
+  fnode:('a -> 'abis) ->
+  fleaf:('b -> 'bbis) ->
+  ('a, 'b) tree -> ('abis, 'bbis) tree
+
+val dirs_and_base_of_file: path -> (string list * string)
+
+val tree_of_files: filename list -> (dirname, (string * filename)) tree
+
+@
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* N-ary tree with updatable childrens *)
+(*****************************************************************************)
+
+(* no empty tree, must have one root at least *)
+type 'a treeref =
+  | NodeRef of 'a *   'a treeref list ref
+
+val treeref_node_iter:
+  (('a * 'a treeref list ref) -> unit) -> 'a treeref -> unit
+val treeref_node_iter_with_parents:
+  (('a * 'a treeref list ref) -> ('a list) -> unit) ->
+  'a treeref -> unit
+
+val find_treeref:
+  (('a * 'a treeref list ref) -> bool) ->
+  'a treeref -> 'a treeref
+
+val treeref_children_ref:
+  'a treeref -> 'a treeref list ref
+
+val find_treeref_with_parents_some:
+ ('a * 'a treeref list ref -> 'a list -> 'c option) ->
+ 'a treeref -> 'c
+
+val find_multi_treeref_with_parents_some:
+ ('a * 'a treeref list ref -> 'a list -> 'c option) ->
+ 'a treeref -> 'c list
+
+
+(* Leaf can seem redundant, but sometimes want to directly see if
+ * a children is a leaf without looking if the list is empty.
+ *)
+type ('a, 'b) treeref2 =
+  | NodeRef2 of 'a * ('a, 'b) treeref2 list ref
+  | LeafRef2 of 'b
+
+
+val find_treeref2:
+  (('a * ('a, 'b) treeref2 list ref) -> bool) ->
+  ('a, 'b) treeref2 -> ('a, 'b) treeref2
+
+val treeref_node_iter_with_parents2:
+  (('a * ('a, 'b) treeref2 list ref) -> ('a list) -> unit) ->
+  ('a, 'b) treeref2 -> unit
+
+val treeref_node_iter2:
+  (('a * ('a, 'b) treeref2 list ref) -> unit) -> ('a, 'b) treeref2 -> unit
+
+(*
+
+
+val treeref_children_ref: ('a, 'b) treeref -> ('a, 'b) treeref list ref
+
+val find_treeref_with_parents_some:
+ ('a * ('a, 'b) treeref list ref -> 'a list -> 'c option) ->
+ ('a, 'b) treeref -> 'c
+
+val find_multi_treeref_with_parents_some:
+ ('a * ('a, 'b) treeref list ref -> 'a list -> 'c option) ->
+ ('a, 'b) treeref -> 'c list
+*)
+@
+
+\section{Graph}
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Graph. But have a look too at Ograph_*.mli; it's better *)
+(*****************************************************************************)
+
+type 'a graph = 'a set * ('a * 'a) set
+
+val add_node : 'a -> 'a graph -> 'a graph
+val del_node : 'a -> 'a graph -> 'a graph
+
+val add_arc : 'a * 'a -> 'a graph -> 'a graph
+val del_arc : 'a * 'a -> 'a graph -> 'a graph
+
+val successors : 'a -> 'a graph -> 'a set
+val predecessors : 'a -> 'a graph -> 'a set
+
+val nodes : 'a graph -> 'a set
+
+val fold_upward : ('a -> 'b -> 'a) -> 'b set -> 'a -> 'b graph -> 'a
+
+val empty_graph : 'a list * 'b list
+@
+
+\section{Generic op}
+
+
+<<common.mli for collection types>>=
+(*****************************************************************************)
+(* Generic op *)
+(*****************************************************************************)
+
+(* mostly alias to functions in List *)
+
+val map : ('a -> 'b) -> 'a list -> 'b list
+val filter : ('a -> bool) -> 'a list -> 'a list
+val fold : ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
+
+val member : 'a -> 'a list -> bool
+
+val iter : ('a -> unit) -> 'a list -> unit
+
+val find : ('a -> bool) -> 'a list -> 'a
+
+val exists : ('a -> bool) -> 'a list -> bool
+val forall : ('a -> bool) -> 'a list -> bool
+
+val big_union : ('a -> 'b set) -> 'a list -> 'b set
+
+(* same than [] but easier to search for, because [] can also be a pattern *)
+val empty_list : 'a list
+
+(* generic sort using Pervasives.compare *)
+val sort : 'a list -> 'a list
+
+val length : 'a list -> int
+
+val null : 'a list -> bool
+
+val head : 'a list -> 'a
+val tail : 'a list -> 'a list
+
+val is_singleton : 'a list -> bool
+
+@

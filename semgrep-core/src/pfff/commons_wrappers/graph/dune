@@ -1,0 +1,11 @@
+(library
+ (public_name pfff-commons-graph)
+ (name pfff_commons_graph)
+ (wrapped false)
+ (libraries
+   ocamlgraph
+
+   commons
+   pfff-h_files-format
+ )
+)

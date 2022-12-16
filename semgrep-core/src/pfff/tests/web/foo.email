@@ -1,0 +1,27 @@
+Received: from SC-MBXC1.TheFacebook.com ([192.168.18.102]) by
+ sc-hub01.TheFacebook.com ([192.168.18.104]) with mapi; Mon, 3 May 2010
+ 14:59:44 -0700
+From: Yoann Padioleau <pad@facebook.com>
+To: Yoann Padioleau <pad@facebook.com>
+Content-Class: urn:content-classes:message
+Date: Mon, 3 May 2010 14:59:44 -0700
+Subject: simple email
+Thread-Topic: simple email
+Thread-Index: AcrrC/CgD40jfsvKQPGqCfk408Uwsw==
+Message-ID: <433A65ED-9443-4CE0-AFF5-381BE7D0C81E@facebook.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Exchange-Organization-AuthAs: Internal
+X-MS-Exchange-Organization-AuthMechanism: 04
+X-MS-Exchange-Organization-AuthSource: sc-hub01.TheFacebook.com
+X-MS-Has-Attach:
+X-MS-Exchange-Organization-SCL: -1
+X-MS-TNEF-Correlator:
+acceptlanguage: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Hi,
+
+Very simple email indeed.

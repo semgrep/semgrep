@@ -1,0 +1,24 @@
+This directory contains a yacc grammar that was started from
+the yacc grammar in the source of the go compiler itself before
+it was removed at:
+
+commit b5fe07710f4a31bfc100fbc2e344be11e4b4d3fc
+Author: Robert Griesemer <gri@golang.org>
+Date:   Mon Nov 23 14:11:15 2015 -0800
+
+    cmd/compile: remove yacc-based parser
+
+    - moved yySymType and token constants (L...) to lex.go
+    - removed oldparser flag and related code
+    - removed go generate that generated y.go
+
+    Fixes #13240.
+
+    Change-Id: I2576ec61ee1efe482f2a5132175725c9c02ef977
+    Reviewed-on: https://go-review.googlesource.com/17176
+    Reviewed-by: Brad Fitzpatrick <bradfitz@golang.org>
+
+
+So the grammar and lexer files are accessible in
+git checkout b5fe07710f4a31bfc100fbc2e344be11e4b4d3fc^
+in src/cmd/compile/internal/gc/go.y

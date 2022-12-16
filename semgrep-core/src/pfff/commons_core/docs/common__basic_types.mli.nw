@@ -1,0 +1,721 @@
+\section{Bool}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Bool *)
+(*****************************************************************************)
+
+val ( ||| ) : 'a -> 'a -> 'a
+val ( ==> ) : bool -> bool -> bool
+val xor : 'a -> 'a -> bool
+
+@
+
+\section{Char}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Char *)
+(*****************************************************************************)
+
+val string_of_char : char -> string
+val string_of_chars : char list -> string
+
+val is_single : char -> bool
+val is_symbol : char -> bool
+val is_space : char -> bool
+val is_upper : char -> bool
+val is_lower : char -> bool
+val is_alpha : char -> bool
+val is_digit : char -> bool
+
+val cbetween : char -> char -> char -> bool
+@
+
+\section{Num}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Num *)
+(*****************************************************************************)
+
+val ( /! ) : int -> int -> int
+
+val do_n : int -> (unit -> unit) -> unit
+val foldn : ('a -> int -> 'a) -> 'a -> int -> 'a
+
+(* alias for flip do_n, ruby style *)
+val times : (unit -> unit) -> int -> unit
+
+val pi : float
+val pi2 : float
+val pi4 : float
+
+val deg_to_rad : float -> float
+
+val clampf : float -> float
+
+val square : float -> float
+val power : int -> int -> int
+
+val between : 'a -> 'a -> 'a -> bool
+val between_strict : int -> int -> int -> bool
+val bitrange : int -> int -> bool
+val borne: min:'a -> max:'a -> 'a -> 'a
+
+val prime1 : int -> int option
+val prime : int -> int option
+
+val sum : int list -> int
+val product : int list -> int
+
+val decompose : int -> int list
+
+val mysquare : int -> int
+val sqr : float -> float
+
+type compare = Equal | Inf | Sup
+val ( <=> ) : 'a -> 'a -> compare
+val ( <==> ) : 'a -> 'a -> int
+
+type uint = int
+
+val int_of_stringchar : string -> int
+val int_of_base : string -> int -> int
+val int_of_stringbits : string -> int
+val int_of_octal : string -> int
+val int_of_all : string -> int
+
+(* useful but sometimes when want grep for all places where do modif,
+ * easier to have just code using ':=' and '<-' to do some modifications.
+ * In the same way avoid using {contents = xxx} to build some ref.
+ *)
+val ( += ) : int ref -> int -> unit
+val ( -= ) : int ref -> int -> unit
+
+val pourcent: int -> int -> int
+val pourcent_float: int -> int -> float
+val pourcent_float_of_floats: float -> float -> float
+
+val pourcent_good_bad: int -> int -> int
+val pourcent_good_bad_float: int -> int -> float
+
+type 'a max_with_elem = int ref * 'a ref
+val update_max_with_elem:
+  'a max_with_elem -> is_better:(int -> int ref -> bool) -> int * 'a -> unit
+
+@
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Numeric/overloading *)
+(*****************************************************************************)
+
+type 'a numdict =
+    NumDict of
+      (('a -> 'a -> 'a) * ('a -> 'a -> 'a) * ('a -> 'a -> 'a) * ('a -> 'a))
+val add : 'a numdict -> 'a -> 'a -> 'a
+val mul : 'a numdict -> 'a -> 'a -> 'a
+val div : 'a numdict -> 'a -> 'a -> 'a
+val neg : 'a numdict -> 'a -> 'a
+
+val numd_int   : int   numdict
+val numd_float : float numdict
+
+val testd : 'a numdict -> 'a -> 'a
+
+
+module ArithFloatInfix : sig
+    val (+) : float -> float -> float
+    val (-) : float -> float -> float
+    val (/) : float -> float -> float
+    val ( * ) : float -> float -> float
+
+
+    val (+..) : int -> int -> int
+    val (-..) : int -> int -> int
+    val (/..) : int -> int -> int
+    val ( *..) : int -> int -> int
+
+    val (+=) : float ref -> float -> unit
+end
+@
+
+\section{Random}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Random *)
+(*****************************************************************************)
+
+val _init_random : unit
+val random_list : 'a list -> 'a
+val randomize_list : 'a list -> 'a list
+val random_subset_of_list : int -> 'a list -> 'a list
+@
+
+\section{Tuples}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Tuples *)
+(*****************************************************************************)
+
+type 'a pair = 'a * 'a
+type 'a triple = 'a * 'a * 'a
+
+val fst3 : 'a * 'b * 'c -> 'a
+val snd3 : 'a * 'b * 'c -> 'b
+val thd3 : 'a * 'b * 'c -> 'c
+
+val sndthd : 'a * 'b * 'c -> 'b * 'c
+
+val map_fst : ('a -> 'b) -> 'a * 'c -> 'b * 'c
+val map_snd : ('a -> 'b) -> 'c * 'a -> 'c * 'b
+
+val pair : ('a -> 'b) -> 'a * 'a -> 'b * 'b
+val triple : ('a -> 'b) -> 'a * 'a * 'a -> 'b * 'b * 'b
+
+val snd : 'a * 'b -> 'b (* alias *)
+val fst : 'a * 'b -> 'a (* alias *)
+
+val double : 'a -> 'a * 'a
+val swap : 'a * 'b -> 'b * 'a
+
+(* maybe a sign of bad programming if use those functions :) *)
+val tuple_of_list1 : 'a list -> 'a
+val tuple_of_list2 : 'a list -> 'a * 'a
+val tuple_of_list3 : 'a list -> 'a * 'a * 'a
+val tuple_of_list4 : 'a list -> 'a * 'a * 'a * 'a
+val tuple_of_list5 : 'a list -> 'a * 'a * 'a * 'a * 'a
+val tuple_of_list6 : 'a list -> 'a * 'a * 'a * 'a * 'a * 'a
+@
+
+\section{Maybe}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Maybe *)
+(*****************************************************************************)
+
+type ('a, 'b) either = Left of 'a | Right of 'b
+type ('a, 'b, 'c) either3 = Left3 of 'a | Middle3 of 'b | Right3 of 'c
+
+val just : 'a option -> 'a
+val some : 'a option -> 'a (* alias *)
+
+val fmap :       ('a -> 'b) -> 'a option -> 'b option
+val map_option : ('a -> 'b) -> 'a option -> 'b option (* alias *)
+
+val do_option : ('a -> unit) -> 'a option -> unit
+
+val optionise : (unit -> 'a) -> 'a option
+
+val some_or : 'a option -> 'a -> 'a
+
+val partition_either :
+  ('a -> ('b, 'c) either) -> 'a list -> 'b list * 'c list
+val partition_either3 :
+    ('a -> ('b, 'c, 'd) either3) -> 'a list -> 'b list * 'c list * 'd list
+
+val filter_some : 'a option list -> 'a list
+val map_filter : ('a -> 'b option) -> 'a list -> 'b list
+val find_some : ('a -> 'b option) -> 'a list -> 'b
+
+val list_to_single_or_exn: 'a list -> 'a
+
+val while_some: gen:(unit-> 'a option) -> f:('a -> 'b) -> unit -> 'b list
+
+val (||=): 'a option ref -> (unit -> 'a) -> unit
+
+@
+
+\section{TriBool}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* TriBool *)
+(*****************************************************************************)
+type bool3 = True3 | False3 | TrueFalsePb3 of string
+@
+
+\section{Strings}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Strings *)
+(*****************************************************************************)
+
+val slength : string -> int (* alias *)
+val concat : string -> string list -> string (* alias *)
+
+val i_to_s : int -> string
+val s_to_i : string -> int
+
+(* strings take space in memory. Better when can share the space used by
+ * similar strings.
+ *)
+val _shareds : (string, string) Hashtbl.t
+val shared_string : string -> string
+
+val chop : string -> string
+val chop_dirsymbol : string -> string
+
+val ( <!!> ) : string -> int * int -> string
+val ( <!> ) : string -> int -> char
+
+val take_string: int -> string -> string
+val take_string_safe: int -> string -> string
+
+val split_on_char : char -> string -> string list
+
+val lowercase : string -> string
+
+val quote : string -> string
+val unquote : string -> string
+
+val null_string : string -> bool
+val is_blank_string : string -> bool
+val is_string_prefix : string -> string -> bool
+
+
+val plural : int -> string -> string
+
+val showCodeHex : int list -> unit
+
+val size_mo_ko : int -> string
+val size_ko : int -> string
+
+val edit_distance: string -> string -> int
+
+val md5sum_of_string : string -> string
+
+val wrap: ?width:int -> string -> string
+
+@
+
+\begin{verbatim}
+(* Note: OCaml Str regexps are different from Perl regexp:
+ *  - The OCaml regexp must match the entire way.
+ *    So  "testBee" =~ "Bee" is wrong
+ *    but "testBee" =~ ".*Bee" is right
+ *    Can have the perl behavior if use  Str.search_forward instead of
+ *    Str.string_match.
+ *  - Must add some additional \ in front of some special char. So use
+ *    \\( \\|  and also \\b
+ *  - It does not always handle newlines very well.
+ *  - \\b does consider _ but not numbers in indentifiers.
+ *
+ * Note: PCRE regexps are then different from Str regexps ...
+ *  - just use '(' ')' for grouping, not '\\)'
+ *  - still need \\b for word boundary, but this time it works ...
+ *    so can match some word that have some digits in them.
+ *
+ *)
+\end{verbatim}
+
+\section{Regexp}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Regexp *)
+(*****************************************************************************)
+
+val regexp_alpha : Str.regexp
+val regexp_word : Str.regexp
+
+val _memo_compiled_regexp : (string, Str.regexp) Hashtbl.t
+val ( =~ ) : string -> string -> bool
+val ( ==~ ) : string -> Str.regexp -> bool
+
+
+
+val regexp_match : string -> string -> string
+
+val matched : int -> string -> string
+
+(* not yet politypic functions in ocaml *)
+val matched1 : string -> string
+val matched2 : string -> string * string
+val matched3 : string -> string * string * string
+val matched4 : string -> string * string * string * string
+val matched5 : string -> string * string * string * string * string
+val matched6 : string -> string * string * string * string * string * string
+val matched7 : string -> string * string * string * string * string * string * string
+
+val string_match_substring : Str.regexp -> string -> bool
+
+val split : string (* sep regexp *) -> string -> string list
+val join : string (* sep *) -> string list -> string
+
+val split_list_regexp : string -> string list -> (string * string list) list
+val split_list_regexp_noheading : string
+
+val all_match : string (* regexp *) -> string -> string list
+val global_replace_regexp :
+  string (* regexp *) -> (string -> string) -> string -> string
+
+val regular_words: string -> string list
+val contain_regular_word: string -> bool
+
+type regexp =
+  | Contain of string
+  | Start of string
+  | End of string
+  | Exact of string
+
+val regexp_string_of_regexp: regexp -> string
+val str_regexp_of_regexp: regexp -> Str.regexp
+
+val compile_regexp_union: regexp list -> Str.regexp
+
+@
+
+\section{Filenames}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Filenames *)
+(*****************************************************************************)
+
+(* now at beginning of this file: type filename = string *)
+val dirname : string -> string
+val basename : string -> string
+
+val filesuffix : filename -> string
+val fileprefix : filename -> string
+
+val adjust_ext_if_needed : filename -> string -> filename
+
+(* db for dir, base *)
+val db_of_filename : filename -> (string * filename)
+val filename_of_db : (string * filename) -> filename
+
+(* dbe for dir, base, ext *)
+val dbe_of_filename : filename -> string * string * string
+val dbe_of_filename_nodot : filename -> string * string * string
+(* Left (d,b,e) | Right (d,b)  if file has no extension *)
+val dbe_of_filename_safe :
+  filename -> (string * string * string,  string * string) either
+val dbe_of_filename_noext_ok : filename -> string * string * string
+
+val filename_of_dbe : string * string * string -> filename
+
+(* ex: replace_ext "toto.c" "c" "var" *)
+val replace_ext: filename -> string -> string -> filename
+
+(* remove the ., .. *)
+val normalize_path : filename -> filename
+
+val relative_to_absolute : filename -> filename
+
+val is_relative: filename -> bool
+val is_absolute: filename -> bool
+
+val filename_without_leading_path : string -> filename -> filename
+
+(* see below
+val tree2_of_files: filename list -> (dirname, (string * filename)) tree2
+*)
+
+val realpath: filename -> filename
+
+val inits_of_absolute_dir: dirname -> dirname list
+val inits_of_relative_dir: dirname -> dirname list
+
+(* basic file position *)
+type filepos = {
+  l: int;
+  c: int;
+}
+
+@
+
+\section{i18n}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* i18n *)
+(*****************************************************************************)
+type langage =
+  | English
+  | Francais
+  | Deutsch
+@
+
+\section{Date}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Dates *)
+(*****************************************************************************)
+
+(* can also use ocamlcalendar, but heavier, use many modules ... *)
+
+type month =
+  | Jan  | Feb  | Mar  | Apr  | May  | Jun
+  | Jul  | Aug  | Sep  | Oct  | Nov  | Dec
+type year = Year of int
+type day = Day of int
+
+type date_dmy = DMY of day * month * year
+
+type hour = Hour of int
+type minute = Min of int
+type second = Sec of int
+
+type time_hms = HMS of hour * minute * second
+
+type full_date = date_dmy * time_hms
+
+
+(* intervalle *)
+type days = Days of int
+
+type time_dmy = TimeDMY of day * month * year
+
+
+(* from Unix *)
+type float_time = float
+
+
+val mk_date_dmy : int -> int -> int -> date_dmy
+
+
+val check_date_dmy : date_dmy -> unit
+val check_time_dmy : time_dmy -> unit
+val check_time_hms : time_hms -> unit
+
+val int_to_month : int -> string
+val int_of_month : month -> int
+val month_of_string : string -> month
+val month_of_string_long : string -> month
+val string_of_month : month -> string
+
+val string_of_date_dmy : date_dmy -> string
+val date_dmy_of_string : string -> date_dmy
+
+val string_of_unix_time : ?langage:langage -> Unix.tm -> string
+val short_string_of_unix_time : ?langage:langage -> Unix.tm -> string
+val string_of_floattime: ?langage:langage -> float_time -> string
+val short_string_of_floattime: ?langage:langage -> float_time -> string
+
+val floattime_of_string: string -> float_time
+
+val dmy_to_unixtime: date_dmy -> float_time * Unix.tm
+val unixtime_to_dmy: Unix.tm -> date_dmy
+val unixtime_to_floattime: Unix.tm -> float_time
+val floattime_to_unixtime: float_time -> Unix.tm
+val floattime_to_dmy: float_time -> date_dmy
+
+val sec_to_days : int -> string
+val sec_to_hours : int -> string
+
+val today : unit -> float_time
+val yesterday : unit -> float_time
+val tomorrow : unit -> float_time
+
+val lastweek : unit -> float_time
+val lastmonth : unit -> float_time
+
+val week_before: float_time -> float_time
+val month_before: float_time -> float_time
+val week_after: float_time -> float_time
+
+val days_in_week_of_day : float_time -> float_time list
+
+val first_day_in_week_of_day : float_time -> float_time
+val last_day_in_week_of_day : float_time -> float_time
+
+val day_secs: float_time
+
+val rough_days_since_jesus : date_dmy -> days
+(* to get a positive numbers the second date must be more recent than
+ * the first.
+ *)
+val rough_days_between_dates : date_dmy -> date_dmy -> days
+
+val string_of_unix_time_lfs : Unix.tm -> string
+
+val is_more_recent : date_dmy -> date_dmy -> bool
+val max_dmy : date_dmy -> date_dmy -> date_dmy
+val min_dmy : date_dmy -> date_dmy -> date_dmy
+val maximum_dmy : date_dmy list -> date_dmy
+val minimum_dmy : date_dmy list -> date_dmy
+
+(* useful to put in logs as prefix *)
+val timestamp: unit -> string
+
+@
+
+\section{Lines/words/strings}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Lines/Words/Strings *)
+(*****************************************************************************)
+
+val list_of_string : string -> char list
+
+val lines : string -> string list
+val unlines : string list -> string
+
+val words : string -> string list
+val unwords : string list -> string
+
+val split_space : string -> string list
+
+val lines_with_nl : string -> string list
+
+val nblines : filename -> int
+val nblines_eff : filename -> int
+(* better when really large file, but fork is slow so don't call it often *)
+val nblines_with_wc : filename -> int
+
+val words_of_string_with_newlines: string -> string list
+
+(* e.g. on "ab\n\nc" it will return [Left "ab"; Right (); Right (); Left "c"] *)
+val lines_with_nl_either: string -> (string, unit) either  list
+
+(* reindent a string *)
+val indent_string: int -> string -> string
+
+@
+
+\section{Process/files}
+
+<<common.mli for basic types>>=
+(*****************************************************************************)
+(* Process/Files *)
+(*****************************************************************************)
+val cat :      filename -> string list
+val cat_orig : filename -> string list
+val cat_array: filename -> string array
+val cat_excerpts: filename -> int list -> string list
+
+val uncat: string list -> filename -> unit
+
+val interpolate : string -> string list
+
+val echo : string -> string
+
+val usleep : int -> unit
+
+val process_output_to_list : ?verbose:bool -> string -> string list
+val cmd_to_list :            ?verbose:bool -> string -> string list (* alias *)
+val cmd_to_list_and_status : ?verbose:bool -> string -> string list * Unix.process_status
+
+val command2 : string -> unit
+val _batch_mode: bool ref
+val command_safe: ?verbose:bool ->
+  filename (* executable *) -> string list (* args *) -> int
+
+val y_or_no: string -> bool
+
+val command2_y_or_no : string -> bool
+val command2_y_or_no_exit_if_no : string -> unit
+
+val do_in_fork : (unit -> unit) -> int
+
+val mkdir: ?mode:Unix.file_perm -> string -> unit
+
+val read_file : filename -> string
+val write_file : file:filename -> string -> unit
+
+
+val nblines_file : filename -> int
+
+val filesize : filename -> int
+val filemtime : filename -> float
+val lfile_exists : filename -> bool
+val is_directory : path -> bool
+val is_file      : path -> bool
+val is_executable : filename -> bool
+
+val unix_lstat_eff: filename -> Unix.stats
+
+(* require to pass absolute paths, and use internally a memoized lstat *)
+val filesize_eff : filename -> int
+val filemtime_eff : filename -> float
+val lfile_exists_eff : filename -> bool
+val is_directory_eff : path -> bool
+val is_file_eff      : path -> bool
+val is_executable_eff : filename -> bool
+
+val capsule_unix : ('a -> unit) -> 'a -> unit
+
+val readdir_to_kind_list : string -> Unix.file_kind -> string list
+val readdir_to_dir_list : string -> dirname list
+val readdir_to_file_list : string -> filename list
+val readdir_to_link_list : string -> string list
+val readdir_to_dir_size_list : string -> (string * int) list
+
+val glob : string -> filename list
+val files_of_dir_or_files :
+  string (* ext *) -> string list -> filename list
+val files_of_dir_or_files_no_vcs :
+  string (* ext *) -> string list -> filename list
+(* use a post filter =~ for the ext filtering *)
+val files_of_dir_or_files_no_vcs_post_filter :
+  string (* regexp *) -> string list -> filename list
+val files_of_dir_or_files_no_vcs_nofilter:
+ string list -> filename list
+
+val dirs_of_dir: dirname -> dirname list
+
+val common_prefix_of_files_or_dirs: path list -> dirname
+
+val sanity_check_files_and_adjust :
+  string (* ext *) -> string list -> filename list
+
+
+type rwx = [ `R | `W | `X ] list
+val file_perm_of : u:rwx -> g:rwx -> o:rwx -> Unix.file_perm
+
+val has_env : string -> bool
+
+(* scheme spirit. do a finalize so no leak. *)
+val with_open_outfile :
+  filename -> ((string -> unit) * out_channel -> 'a) -> 'a
+val with_open_infile :
+  filename -> (in_channel -> 'a) -> 'a
+val with_open_outfile_append :
+  filename -> ((string -> unit) * out_channel -> 'a) -> 'a
+
+val with_open_stringbuf :
+  (((string -> unit) * Buffer.t) -> unit) -> string
+
+exception Timeout
+
+(* subtil: have to make sure that Timeout is not intercepted before here. So
+ * avoid exn handler such as try (...) with _ -> cos Timeout will not bubble up
+ * enough. In such case, add a case before such as
+ * with Timeout -> raise Timeout | _ -> ...
+ *
+ * The same is true for UnixExit (see below).
+ *)
+val timeout_function : int -> (unit -> 'a) -> 'a
+
+val timeout_function_opt : int option -> (unit -> 'a) -> 'a
+
+
+(* creation of /tmp files, a la gcc
+ * ex: new_temp_file "cocci" ".c" will give "/tmp/cocci-3252-434465.c"
+ *)
+val _temp_files_created : string list ref
+(* see flag: val save_tmp_files : bool ref *)
+val new_temp_file : string (* prefix *) -> string (* suffix *) -> filename
+val erase_temp_files : unit -> unit
+val erase_this_temp_file : filename -> unit
+
+(* If the user use some exit 0 in his code, then no one can intercept this
+ * exit and do something before exiting. There is exn handler for exit 0
+ * so better never use exit 0 but instead use an exception and just at
+ * the very toplevel transform this exn in a unix exit code.
+ *
+ * subtil: same problem than with Timeout. Do not intercept such exception
+ * with some blind try (...) with _ -> ...
+ *)
+exception UnixExit of int
+val exn_to_real_unixexit : (unit -> 'a) -> 'a
+@

@@ -1,0 +1,4 @@
+<?php
+
+$x = function($y) {
+};

@@ -1,0 +1,47 @@
+version: 2.1
+jobs:
+
+  build:
+    docker:
+      - image: returntocorp/ocaml:ubuntu
+    steps:
+      - checkout
+      - run:
+          name: Install opam dependencies
+          command: ./scripts/install-opam-deps
+      - run:
+          name: Check code formatting
+          command: ./scripts/lint
+      - run:
+          name: Build
+          command: ./scripts/build
+      - run:
+          name: Test
+          command: ./scripts/test
+      - run:
+          name: Install
+          command: ./scripts/install
+
+  semgrep:
+    docker:
+      - image: returntocorp/semgrep:develop
+    working_directory: /src
+    steps:
+      - checkout
+      - run:
+          name: Semgrep checks
+          command: |
+            semgrep --config semgrep.yml --error --strict --verbose \
+              --exclude parsing_errors \
+              --exclude tests/ml/parsing \
+              --exclude todo \
+              --exclude TODO_more \
+              --exclude _build \
+              .
+
+workflows:
+  version: 2
+  build_and_semgrep:
+    jobs:
+      - build
+      - semgrep

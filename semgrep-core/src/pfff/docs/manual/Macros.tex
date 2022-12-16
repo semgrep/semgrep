@@ -1,0 +1,56 @@
+%------------------------------------------------------------------------------
+% Shortcuts
+%------------------------------------------------------------------------------
+\newcommand{\co}[1]{{\em #1}}
+
+\newcommand{\cmd}[1]{{\tt #1}}
+\newcommand{\f}[1]{{\tt #1}}
+
+%note: also work with noweblatex pad so that \t \n \l are alias
+\iffinal
+\newcommand{\todo}[1]{}
+\newcommand{\note}[1]{}
+\newcommand{\less}[1]{}
+\else
+\newcommand{\todo}[1]{\footnote{TODO: {\tt #1}}}
+ \ifverbose
+ \newcommand{\note}[1]{\footnote{NOTE: {\tt #1}}}
+ \newcommand{\less}[1]{\footnote{LESS: {\tt #1}}}
+ \else
+ \newcommand{\note}[1]{}
+ \newcommand{\less}[1]{}
+ \fi
+\fi
+%\newcommand{\todo}[1]{\marginpar{#1}}
+
+\iffacebook
+\newcommand{\fbnote}[1]{\footnote{FACEBOOK: #1}}
+\else
+\newcommand{\fbnote}[1]{}
+\fi
+
+%------------------------------------------------------------------------------
+% Globals
+%------------------------------------------------------------------------------
+\newcommand{\ocaml}{OCaml\xspace}
+
+\newcommand{\pfff}{pfff\xspace}
+\newcommand{\cm}{{\tt checkModule}\xspace}
+
+%------------------------------------------------------------------------------
+% More newif
+%------------------------------------------------------------------------------
+
+\newif\ifimplem
+\newif\ifimplemoverview
+
+
+\newif\ifdebugcode
+\newif\ifallcode
+
+\newif\ifadvanceduse
+\newif\ifadvancedexplain
+
+\newif\ifwanthistorycode
+\newif\ifwantalternatives
+\newif\ifwantrepetitivecode

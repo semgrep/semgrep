@@ -1,0 +1,32 @@
+#! /usr/bin/env bash
+#
+# Check that the user ran the pre-commit hooks.
+#
+set -eu
+
+eval $(opam env)
+
+pre-commit install
+if ! pre-commit run --all; then
+  cat <<EOF
+It looks like the user who committed the code did not set up their
+pre-commit hook. You need the following one-time setup:
+
+  1. Install the 'pre-commit' command:
+
+       $ pip3 install pre-commit
+
+  2. Install the pre-commit hooks for the repo:
+
+       $ pre-commit install
+
+  3. Install ocp-indent:
+
+       $ opam install ocp-indent
+
+  4. To fix already committed code, run:
+
+       $ pre-commit run --all
+EOF
+  exit 1
+fi

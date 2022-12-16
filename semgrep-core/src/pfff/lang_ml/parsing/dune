@@ -1,0 +1,14 @@
+(library
+ (public_name pfff-lang_ml)
+ (name pfff_lang_ml)
+ (wrapped false)
+ (libraries
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show))
+)
+(ocamllex lexer_ml)
+(menhir (modules parser_ml)
+        (flags --unused-tokens --explain --fixed-exception))

@@ -1,0 +1,18 @@
+To install pfff, you must first install recent versions of:
+ - OCaml (at least 4.07.0)
+   see http://caml.inria.fr/download.en.html
+ - opam - http://opam.ocaml.org
+ - dune - `opam install dune`, https://opam.ocaml.org/packages/dune/
+ - SWI-prolog
+   if you want the interactive code query tool
+ - Java (for bddbddb)
+   if you want the datalog pointer analysis
+
+If you want most of the good things just type:
+
+  $ ./configure
+  $ opam install . --deps-only
+  $ make
+
+This should generate a few binaries in `_build/install/default/bin/` such
+as `pfff`.  To install binaries and libraries, run `make install`.

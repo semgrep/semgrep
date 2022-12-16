@@ -1,0 +1,382 @@
+#!/usr/bin/perl
+use strict;
+
+use Getopt::Long;
+use Pod::Usage;
+
+######################################################################
+# Prelude
+######################################################################
+
+# Yes I know about autoconf ... and autoconf sucks.
+
+# I do not check for the following programs (I assume they are present):
+# - gcc, as, ld (the GNU toolchain)
+# - make, perl, bash
+# - diffutils, fileutils, findutils, grep, patchutils, sh-utils
+
+#todo: I now depend by default on a few OPAM packages:
+# - json-wheel
+# - ocamlgraph
+
+#less:
+# - should we check findutils? we need a good GNU find, not the macOS find
+#   which adds some extra '//' in paths, which bothers pfff
+
+# If you want to run the tests you will also need:
+# - swipl
+# - javac
+
+
+my $project =
+    "pfff";
+my $projectcmdline =
+    "./pfff -dump_php demos/foo.php";
+
+######################################################################
+# Options
+######################################################################
+
+my $prefix="/usr/local";
+
+# code_map/ and code_graph/ bring many dependencies (lablgtk2, cairo2),
+# so it's a configuration option
+# (less: could auto detect)
+my $visual=1;
+
+# lang_bytecode/ brings many dependencies (extlib, ptrees, ocamlzip), which
+# in turns require zlib.h, so it's a configuration option
+# (less: could auto detect)
+my $bytecode=1;
+
+# lang_cmt/ also requires compiler-libs and with the many changes in the
+# .cmt format, this can easily break compilations, so it's also
+#  a configuration option.
+my $cmt=1;
+
+
+
+# adjusted automatically based on local ocaml configuration
+my $opt= ""; # ocamlc.opt?
+my $ocamlc_flags = ""; #ocamlc -bin-annot?
+my $ocaml_version = 4023;
+
+my $opam_dir = "";
+
+
+my $man = 0;
+my $help = 0;
+
+#see: http://perldoc.perl.org/Getopt/Long.html
+#coupling: if you add an option here, add also an explanation at the bottom
+# of this file
+#later: add something in the documentation latex file (or use LP).
+GetOptions (
+    "prefix=s" => \$prefix,
+    "visual!" => \$visual,
+    "bytecode!" => \$bytecode,
+    "cmt!" => \$cmt,
+    'help|?' => \$help,
+    'man' => \$man
+    ) or pod2usage(2);
+    #or die "$0: GetOptions: $!";
+
+pod2usage(1) if $help;
+pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+my $src="$prefix/share/$project";
+
+######################################################################
+# Helpers
+######################################################################
+BEGIN { die "need Perl 5 or greater" if $] < 5 ; }
+
+#A mini Common.pm
+sub pr2 { print STDERR "@_\n" }
+sub cat {
+    my ($what) = @_;
+    my @list;
+    open(TMP, $what);
+    while(<TMP>) { push @list, "$_"; }
+    \@list;
+}
+sub notb   { !$_[0] }
+sub mapf   { my ($f, $xs) = @_; [ map { &$f($_) } @{$xs} ] }
+sub plural { my ($e) = @_; if ($e > 1) { "s" } else { "" } }
+
+sub check_config { my ($command, $expect, $msggood, $msgbad) = @_;
+    my $error = 0;
+
+    my $full = cat($command);
+    my $res = join(" ", @{$full});
+#	       pr2 $res;
+    if(notb($res =~ $expect)) { $error++; pr2 "!!!! $msgbad !!!!"; }
+    else { pr2 $msggood }
+    return $error;
+}
+
+sub show_error_msg_and_exit_if_error {
+    my ($error) = @_;
+    if($error) {
+        pr2 "
+----------------------------------------------------------------------
+!!!! There is a problem. We have found a missing program.
+Have a look at install.txt and the install_xxx.txt corresponding to your
+OS to fix the issue.!!!!
+----------------------------------------------------------------------
+";
+        exit 1;
+    }
+}
+
+sub show_missing_package_error_msg {
+    my ($error2) = @_;
+    pr2 "
+----------------------------------------------------------------------
+!!!! You can try to compile and test $project,
+but some features or plugins may be missing. !!!!\n
+We have found $error2 missing package" . plural($error2) . ". " .
+"
+Have a look at the install_xxx.txt corresponding to your OS.
+";
+}
+
+######################################################################
+# Let's go
+######################################################################
+
+pr2 "Checking your configuration.\n";
+
+# hard errors, missing programs
+my $error = 0;
+# soft errors, missing libraries, can not probably compile every pfff components
+my $error2 = 0;
+
+my $arch = `uname`;
+
+#---------------------------------------------------------------------
+# Compilers and runtimes
+#---------------------------------------------------------------------
+# We need at least 3.12 because I use the forall 'a. new typing feature
+# as well as the '_' pattern in records.
+# We optionaly need 4.00 or 4.01 for codegraph for ocaml code using the .cmt
+$error +=
+    check_config("echo \"1;;\\n\" | ocaml |",
+                 "(Objective|OCaml)(.*) ([34]\.*.*)",
+                 "OCaml (the wonderful language) is present.",
+                 "The program ocaml is missing or is not a good version. We need at least 3.12",
+                 );
+show_error_msg_and_exit_if_error($error);
+
+# setting $ocaml_version so we can have finer checks and settings later
+my $command = "echo \"1;;\\n\" | ocaml |";
+my $full = cat($command);
+my $res = join(" ", @{$full});
+if ($res =~ /(Objective|OCaml)(.*) ([34])\.([0-9]+).([0-9]+)/) {
+    my $major = $3;
+    my $minor = $4;
+    my $other = $5;
+    $ocaml_version = $major * 1000 + $minor * 10 + $other;
+} else {
+    die "wrong version of ocaml";
+}
+
+
+# allow to use ocamlc.opt instead of ocamlc, which speeds up compilation
+if (`which ocamlc.opt` && `which ocamlopt.opt`) {
+    $opt = ".opt";
+}
+
+# -bin-annot is for codegraph, it needs ocaml 4.00,
+# -absname is for tuareg mode under my mac; it also needs ocaml 4.00
+if($ocaml_version >= 4000) {
+    $ocamlc_flags="-bin-annot -absname";
+}
+
+if($ocaml_version < 4000) {
+    $cmt=0;
+    # I'm actually not even sure pfff compiles under 4.00 now
+} elsif($ocaml_version <= 4023) {
+    $cmt=1;
+    #TODO: need fix javalib error about JClassflow
+    $bytecode=0;
+} else {
+    #TODO: need to use parsetree-migrate
+    $cmt=0;
+    #TODO: need fix javalib error about JClassflow
+    $bytecode=0;
+
+    #LESS: I get many errors with ocaml 4.06; I would need to update packages
+}
+
+#TODO: I also depend on camlp4
+
+#---------------------------------------------------------------------
+# Package manager
+#---------------------------------------------------------------------
+
+#alt: battery_included, godi (still exist?)
+$error +=
+ check_config("opam --version |",
+             "^[12]\.[0-9]\.[0-9]",
+             "OPAM the OCaml package manager is present.",
+             "The program OPAM is missing or is not a good version.",
+             );
+show_error_msg_and_exit_if_error($error);
+$opam_dir = `opam config var prefix`;
+chomp($opam_dir);
+
+#---------------------------------------------------------------
+# Developers tools
+#---------------------------------------------------------------
+
+my $MAKE_PROGRAM = "make";
+if( ($arch =~ /FreeBSD/) || ($arch =~ /OpenBSD/) ) {
+  $MAKE_PROGRAM = "gmake";
+}
+
+my $BREW_PROGRAM = "";
+if($arch =~ /Darwin/) {
+  $BREW_PROGRAM = `which brew`;
+}
+
+#---------------------------------------------------------------
+# Installation directory
+#---------------------------------------------------------------
+
+# if darwin or cygwin then could just modify this variable ? enough ?
+my $prefix_distrib = "/usr";
+
+if( ($arch =~ /FreeBSD/) || (($arch =~ /Darwin/) && ($BREW_PROGRAM)) ) {
+    $prefix_distrib = "/usr/local";
+} elsif ($arch =~ /Darwin/) {
+    $prefix_distrib = "/opt/local";
+}
+
+#---------------------------------------------------------------------
+# Libraries
+#---------------------------------------------------------------------
+
+if($visual) {
+    #TODO: check if lablgtk installed
+    #pr2 "Checking ocamlgtk.";
+    #if ($err) { $visual = 0; $error2++; }
+
+    #pr2 "Checking ocamlcairo.";
+    #if ($err) { $visual = 0; $error2++; }
+}
+
+#TODO: should look if all external/ libs are installed,
+# just check if symlinks points to something value (File.exists) -f
+# and if not set the appropriate option when it's possible.
+
+######################################################################
+# Generating the configuration
+######################################################################
+
+pr2 "";
+pr2 "$project target prefix: $prefix (you can use --prefix to override it)";
+pr2 "Generating Makefile.config (VISUAL=$visual, BYTECODE=$bytecode, CMT=$cmt) (see also configure --help)";
+open(CONFIG, ">Makefile.config");
+print CONFIG "# autogenerated by configure
+
+# Where to install the binary
+BINDIR=$prefix/bin
+
+# Where to install the man pages
+MANDIR=$prefix/man
+
+# Where to install the lib
+LIBDIR=$prefix/lib
+
+# Where to install the configuration files
+SHAREDIR=$src
+
+# Features
+FEATURE_VISUAL=$visual
+FEATURE_BYTECODE=$bytecode
+FEATURE_CMT=$cmt
+
+OPTBIN=$opt
+OCAMLCFLAGS_EXTRA=$ocamlc_flags
+OCAMLVERSION=$ocaml_version
+";
+
+
+pr2 "Generating globals/config_pfff.ml";
+`perl -p -e 's#Not_found1.\*#Not_found->\\\"$src\\\"#' globals/config_pfff.ml.in > globals/config_pfff.ml`;
+
+`perl -p -i -e 's#Not_found[0-9]#Not_found#' globals/config_pfff.ml`;
+
+pr2 "Generating external/OPAM_DIR";
+system("rm -f external/OPAM_DIR");
+system("ln -s \"$opam_dir\" external/OPAM_DIR");
+
+
+######################################################################
+# Diagnostic
+######################################################################
+
+if($error || $error2) {
+    pr2 "!!Problems during ./configure!!";
+}
+
+if($error2) {
+    show_missing_package_error_msg($error2);
+} else {
+    pr2 "\nAll seems fine for $project.";
+}
+
+pr2 "To compile $project type:
+  \$ $MAKE_PROGRAM
+To test $project simply type:
+  \$ $projectcmdline
+
+If you want to use the code visualization tools see the readme.txt file.
+";
+
+
+
+######################################################################
+# Documentation
+######################################################################
+
+__END__
+
+=head1 NAME
+
+configure - checking and setting compilation options for pfff
+
+=head1 SYNOPSIS
+
+configure [options] [--prefix=/path/to/install]
+
+Options are:
+--prefix
+--[no]visual
+--[no]bytecode
+--[no]cmt
+--with-all
+
+=head1 OPTIONS
+
+=over 8
+
+
+=item B<-help>
+
+Print a brief help message and exits.
+
+=item B<-man>
+
+Prints the manual page and exits.
+
+=back
+
+=head1 DESCRIPTION
+
+B<This program> will read command line options and generate
+a B<Makefile.config> and a few files to set the compilation
+environment for pfff.
+
+=cut

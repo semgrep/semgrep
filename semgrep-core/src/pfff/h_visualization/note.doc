@@ -1,0 +1,38 @@
+Reuse tools code. Thin wrappers around cool tools.
+
+Here:
+ - dot for graphs
+ - gnuplot for plots
+ - jgraph for bars (and plots)
+ - html for colors, for code beautifier for example thx
+   also to emacs htmlizer
+ - latex for text and math and pictures and complex layout composition
+
+
+Not here:
+ - ANSITerminal.mli in commons/
+ - diff in commons/
+ - ppm/png in commons/
+
+ - r.mli in statistics/
+
+ - outline.mli in extra/ (emacs can make visualize complex tree easier)
+
+
+Other:
+ - pic ?
+ - xfig ?
+
+ - matlab ?
+ - mathematica ?
+ - http://matplotlib.sourceforge.net/
+
+ - maple
+ - octave ?
+
+ - grace? (there is even a ocaml binding for it)
+
+Todo?:
+ piccolo
+ prefuse
+ infovis

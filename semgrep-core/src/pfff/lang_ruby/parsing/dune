@@ -1,0 +1,20 @@
+(library
+ (public_name pfff-lang_ruby)
+ (name pfff_lang_ruby)
+ (wrapped false)
+ (libraries
+   dyp
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord))
+)
+(ocamllex lexer_ruby)
+
+(rule
+ (targets parser_ruby.ml)
+ (deps (:input-file parser_ruby.dyp))
+ (action (chdir %{project_root} (run %{bin:dypgen} --no-mli --pv-obj  %{input-file})))
+; --noemit-token-type
+)

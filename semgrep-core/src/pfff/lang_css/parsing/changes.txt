@@ -1,0 +1,17 @@
+-------------------------
+(2010-03-24) version 1.2:
+
+  * Handling of !important declarations;
+  * More leniency in characters allowed in identifiers;
+  * Allow division of quantities with the same unit (result is scalar);
+  * Always allow addition/subtraction when one of the operands is the scalar 0;
+
+-------------------------
+(2010-03-12) version 1.1:
+
+  * Added support for unit conversion.
+
+-------------------------
+(2010-03-10) version 1.0:
+
+  * First public release.
