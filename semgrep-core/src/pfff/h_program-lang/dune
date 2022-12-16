@@ -1,0 +1,14 @@
+(library
+ (public_name pfff-h_program-lang)
+ (name pfff_h_program_lang)
+ (wrapped false)
+ (libraries
+   stdcompat
+   yojson uucp uutf alcotest
+
+   commons
+   pfff-h_files-format pfff-config
+ )
+ (preprocess (pps ppx_deriving.show ppx_deriving.eq))
+)
+(ocamllex archi_code_lexer)

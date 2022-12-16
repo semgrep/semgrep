@@ -1,0 +1,132 @@
+Hi e,
+
+I've built a graphical tool to help visualize, navigate, and search
+our codebase. You can try it with
+  $ ssh -Y <devmachine>
+  $ ~pad/bin/www_visual /path/to/my/local/www
+or
+  $ ~pad/bin/fbcode_visual /path/to/my/local/fbcode
+or
+  $ ~pad/bin/pfff_visual.opt /path/to/whatever/software/src
+
+You can also pass the '-ss 1' option to those programs if you have a
+small screen.
+
+Here is a scenario of use: you've heard about 'nectar' and would like
+to know how to use it.
+ - run ~pad/bin/visual_www ~/www
+
+ - in the search box type "necta". The tool should then autocomplete
+   and propose you classes, methods, functions, directories, or files
+   that have "necta" in their name. For recurring directory names such
+   as 'privacy/' (spread in more than 20 subdirs in www) the tool will
+   also propose a special multi-dir entity. The tool sort all those
+   entities by number of uses so here NectarAppSpecificEvent will be
+   proposed first. It will also show you if the entity is unit tested
+   by displaying a green or red icon in the typeahead.
+
+ - click on the multi-dir "nectar" entity which will cause the tool to
+   zoom in all those directories at once (the nectar directories in
+   flib/, in lib/, in html/js/, etc). The tool will then tile and
+   render the contents of the files in those directories and will put
+   in bigger fonts the functions/methods/classes/interface very often used.
+   You can visually see that indeed NectarAppSpecificEvent is often used.
+   You can middle-click on the screen on the function name and it will open
+   the file under your favourite editor[1] at the right place.
+
+ - if you want to see an example of use of this function you can
+   go into the "Move" menu and select "Goto example" and the tool
+   will display this time some code that are good examples of use
+   of the function, that is unit test code that exercises this
+   function.
+
+There is good support for PHP (and XHP) and Javascript sources,
+preliminary support for thrift and C++, and excellent support
+for OCaml (nobody probably care).
+
+For PHP I have even indexed and included the builtin functions, e.g
+count(), and put the relevant part of the PHP manual in a comment
+associated with a fake definition of the builtin. That way the fact
+that some entities are builtins or defined by facebook does not matter;
+in both cases you can fastly go to its definition and see some comments
+that explain how to use it. I have also included code from the
+PHP PLEAC Cookbook project[2] so the goto-example-of-use feature
+also work for builtins.
+
+As you move the mouse, the blue highlighted areas are the next
+level of directories.
+
+Double-clicking zooms in on the blue-highlighted area.
+Right-clicking zoom directly to the file under the cursor.
+Middle-clicking open the file under the cursor in your
+emacs provided you have M-x server-start and have emacsclient
+in your path.
+
+Here are more information about the tool:
+
+This tool displays a \"code map\" of some source code using
+Treemaps. "Treemaps display hierarchical (tree-structured) data as a
+set of nested rectangles. Each branch of the tree is given a
+rectangle, which is then tiled with smaller rectangles representing
+sub-branches. A leaf node's rectangle has an area proportional
+to a specified dimension on the data.
+" [3]
+
+In my case the dimension is the size of the file.
+As you zoom in the tool also renders the content of the files
+and try to give visual feedback about important semantic information.
+For instance classes or methods that are very often used are displayed
+in a bigger font, bad code is highlighted in an ugly magenta color,
+unit tested code has a special icon, etc.
+
+Note that this is not a replacement for an editor; it's
+kinda like a speedbar. As you navigate and search you can at any time middle
+click on the screen and it will open the file under the cursor
+in your favourite editor[1] at the right position.
+
+Each file is colored at the beginnng according to its
+"category/aspect": core code in green, third party code in purple,
+test code in yellow, etc. The tool uses basic heuristics based on the
+name of the files and directories.
+
+Files and directories are sorted alphabetically
+and partially ordered from top to bottom and left to right.
+So a toplevel 'zzz' subdirectory should be located at the bottom
+right of the screen.
+
+[1] Emacs
+[2] http://pleac.sourceforge.net/pleac_php/index.html
+[3] http://en.wikipedia.org/wiki/Treemapping:
+
+----
+
+Still use emacs or vi, but
+you got another window, like a speedbar, that let you navigate faster
+(and grab the organization/architecture of a file/dir faster)
+
+in fact announce pfff_tags with it ! with even pleac/phpmanual
+support
+
+maybe have to sudo yum install cairo, gtk, and other stuff ?
+
+says that array_filter is defined by php, but array_pull is facebook
+specific, but should provide a single mechanism to find help
+about function. Also work with tags!!
+
+sorted: left->right, top->bottom
+
+announce: code navigator and visualizer (php, cpp, thrift, etc), pfff_visual
+ -filter places,  or -filter owner:test-eng (integration powa !!)
+ good: if soft splitted in many dirs (lib/xxx flib/xxx html/xxx) and
+   easy to navigate
+ good: when dont remember exactly what look for (where tags usually help,
+  even if php_etags provide class/func/method completion now)
+ good: when want understand code, archi, or refresh own memory on a source
+  structure
+ good: leverage this huge screens
+ install: need rpm -i gtk2, cairo, pcre, ... ? TEST on unittest005 :)
+ support: php, cpp, thrift, js?, ocaml :), and adding basic support for new
+  language takes few times.
+announce: php code checker, scheck_php (and php_etags)
+
+announce to guy who looked for files

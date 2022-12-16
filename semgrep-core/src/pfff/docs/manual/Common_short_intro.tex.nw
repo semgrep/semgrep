@@ -1,0 +1,59 @@
+
+%<pad> I plan to write some doc at some point about  how to read ocaml code,
+%      and what is important in my Common library  [14:50]
+%<pad> I could add those ++ and ++ [] idioms in it
+%<pad> For instance my command line handling is quite special  [14:51]
+%<pad> with those "actions" and "options
+%<iproctor> oh it was your own system?
+%<pad> and Common.main_boilerplate
+%<pad> yes  [14:52]
+%<iproctor> i remember there was something similar in the command line handling
+%           of the standard lib
+%<pad> yes Arg
+%<pad> but I have wrapped a few things around it
+%
+%
+%
+%
+%
+%[Mon Feb 22 2010]
+%<iproctor> what is ++ in your diff  [14:34]
+%<pad> ++ ?  [14:44]
+%<iproctor> did you make a ++ infix operator?
+%<pad> it's list concatenation
+%<iproctor> i thought that was @
+%<pad> also, but in haskell it's ++
+%<pad> I've taken a few functions and operators from haskell
+%<pad> and perl, and ruby, ...
+%<iproctor> oh that confused me
+%<iproctor> because i read it as list concat but i realized it was haskell
+%                                                                        [14:45]
+%<pad> I could switch to @ if you want
+%<iproctor> nah
+%<pad> in general I tend to not care that much about "conventions" or standard
+%                                                                        [14:46]
+%<pad> which is a problem, because there are lots of Common.xxx functions now
+%<pad> If you don't know the   pad's Common library, it can hurt
+%<iproctor> yeah
+%<iproctor> why do you end it with ++ [] though  [14:47]
+%<pad> but this common library take ideas from multiple languages (|> from F#,
+%      ++ haskell and many take/drop/span)
+%<pad> (with_open from scheme, unwind_protect from lisp, etc)
+%<pad> well in Perl you can write    foo(1,
+%<pad> 2,
+%<pad> 3,
+%<pad> );
+%<pad> that is the last comma is ok, which makes it easier to move code around
+%                                                                        [14:48]
+%<pad> so here it's the same
+%<pad> just so that I can cut/paste code without worring wether it was the last
+%      element
+%<pad> haskell people also do that sometimes
+%<pad> a
+%<pad> ++ b
+%<pad> ++ c
+%<pad> but I prefer my style  [14:49]
+%<iproctor> ic
+%<pad> I plan to write some doc at some point about  how to read ocaml code,
+%      and what is important in my Common library  [14:50]
+%<pad> I could add those ++ and ++ [] idioms in it

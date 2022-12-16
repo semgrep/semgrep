@@ -1,0 +1,35 @@
+# -*- org -*-
+
+* if header and loop body
+
+Go allow if/for/switch/select to omit the parenthesis around
+the conditional/iterator/... as in
+
+  if true { ... }
+
+However, this forces the grammar to introduce a special token
+for the left brace of the then body (called loop_body in the grammar).
+TODO: why?
+
+Thus, some LBRACE must be retagged as LBODY to maintain a simple
+unambiguous grammar. This is currently done in parsing_hacks_go.ml
+by using a braced view (see ast_fuzzy.ml) to easily match and find
+the right '{' to retag (basically the one following an if/for/switch/select.
+
+
+
+* Typename and CompositeLit
+
+From golang spec:
+
+"A parsing ambiguity arises when a composite literal using the TypeName
+form of the LiteralType appears as an operand between the keyword and
+the opening brace of the block of an "if", "for", or "switch"
+statement, and the composite literal is not enclosed in parentheses,
+square brackets, or curly braces. In this rare case, the opening brace
+of the literal is erroneously parsed as the one introducing the block
+of statements. To resolve the ambiguity, the composite literal must
+appear within parentheses."
+
+if x == (T{a,b,c}[i]) { ... }
+if (x == T{a,b,c}[i]) { ... }

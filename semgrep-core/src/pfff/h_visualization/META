@@ -1,0 +1,4 @@
+description = "Helper functions for dealing with visualization, from pfff"
+requires = "unix num"
+archive(byte) = "lib.cma"
+archive(native) = "lib.cmxa"

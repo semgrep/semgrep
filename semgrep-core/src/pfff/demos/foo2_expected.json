@@ -1,0 +1,11 @@
+{"includes":
+  [{"file":"lib/foo.php", "line":3, "column":1},
+   {"file":"flib/foo/bar/__init__.php", "line":4, "column":1}],
+ "provides":
+  [{"class":"Foo", "line":6, "column":1},
+   {"func":"bar_func", "line":17, "column":1}],
+ "depends":
+  [{"func":"require_module", "line":4, "column":1},
+   {"class":"Bar", "line":6, "column":18},
+   {"func":"foo_func", "line":8, "column":4},
+   {"class":"Bar", "line":12, "column":15}]}

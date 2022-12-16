@@ -1,0 +1,15 @@
+%\section{About this document}
+
+This document is a literate program~\cite{wp-literate-programming}. It
+is generated from a set of files that can be processed by tools
+(Noweb~\cite{noweb} and syncweb~\cite{syncweb}) to generate either
+this manual or the actual source code of the program. Thus the code and
+its documentation are strongly connected.
+
+\l speak about FACEBOOK: special marks ?
+
+\t what is wrong with Javadoc or omcaldoc in our case ?
+% I dont like it, cf sexp_int.mli, too many functions, given equal
+% importance. Of course could reorder, but then that's the point,
+% you want to reorder => use LP. Moreover 2 views will always be better
+% than just one view.

@@ -1,0 +1,70 @@
+#! /usr/bin/env bash
+#
+# Install external ocaml dependencies in an opam environment.
+#
+set -eu -o pipefail
+
+progname=$(basename "$0")
+
+usage() {
+  cat <<EOF
+Usage: $progname [OPTIONS]
+
+Install the prerequisites to build pfff, assuming opam is already installed.
+Must run from the root of the pfff source tree.
+
+Options:
+  --help
+      Show this message and exit.
+
+  --ocaml-version VERSION
+      Use this version of ocaml, i.e. change the opam switch to one that
+      supports this specific version of ocaml. This is intended for CI.
+      For manual use, it is recommended to select the desired opam switch
+      manually; see 'opam switch --help'.
+EOF
+}
+
+error() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+# If left blank, use the current opam switch.
+ocaml_version=''
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help)
+      usage
+      exit 0
+      ;;
+    --ocaml-version)
+      ocaml_version="$2"
+      shift
+      ;;
+    *)
+      error "Unsupported argument '$1'. Try '$progname --help'."
+  esac
+  shift
+done
+
+if [[ -n "$ocaml_version" ]]; then
+  opam switch create "$ocaml_version"
+fi
+
+eval $(opam env)
+
+# The docker images from the ocaml community ship with a stale (file://...)
+# opam repository and don't consult the live opam-repository hosted on github.
+# Here we try to detect whether we have at least one remote opam repository,
+# and we add one if needed. This allows us to get the recent versions of
+# packages we might need.
+#
+if ! (opam repo list | grep -q http); then
+  opam repo add --all -k git github \
+       https://github.com/ocaml/opam-repository.git
+fi
+
+opam update
+opam install --deps-only -y .

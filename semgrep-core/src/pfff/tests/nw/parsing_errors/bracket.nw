@@ -1,0 +1,2 @@
+This is \usepackage[ok]{foo}
+But this is not ok \usepackage[bad{foo}

@@ -1,0 +1,132 @@
+# -*- org -*-
+
+* Conflicts in Java 1.0
+
+A great prelimiary writeup to read on conflicts is the official
+LALR grammar comments in the 1st edition of the Java specification, which is
+still accessible at https://www.cs.cornell.edu/andru/javaspec/19.doc.html
+(also cached in pfff/docs/official-grammars/java/).
+
+** Different names for different entities
+See the writeup above pb #1.
+Led to just having a general Name non terminal.
+
+** Different modifiers for different entities
+See the writeup above pb #2.
+Led to just having a general Modifiers non terminal.
+
+** Field declaration vs method declaration
+See the writeup above pb #3.
+Led to inline ResultType in MethodHeader.
+
+** Array type vs array access.
+See the writeup above pb #4.
+Led to inline Type def in ArrayType.
+
+** Cast vs parenthesized expression
+See the writeup above pb #5.
+Led to generalize CastExpression and inline some of ReferenceType.
+
+* modifiers vs modifiers_opt
+
+In many places we can not use modifiers_opt (or one of its variant
+like variable_modifiers_opt) but have instead to inline its content
+and create in the parent 2 alternatives like
+
+ruleA:
+|  modifiers XXX { }
+|            XXX { }
+
+This is usually when XXX can be a type or an identifier.
+Seeing an identifier, which can be start of a type, yacc does not know
+if it can reduce modifiers_opt. It needs to read more than the next
+ident to know if this is the start of a declaration with a modifier and a type
+or a simple identifier.
+
+ex: lambda_param.
+
+update: %inline in menhir can help!
+
+* Cast vs unary_expr_not_plus_or_minus
+
+When have read '(foo)' and see a '+',
+if the cast_expression rule was written as:
+
+cast_expression:
+ | LP expression RP unary_expression
+
+then because of also this rule:
+
+primary_no_new_array:
+ | LP expression RP    { $2 }
+
+they is no way to disambiguate between   a possible (foo) + 2 addition
+and the cast  (foo) of the +2 unary expr.
+
+This is why the java grammar uses
+
+cast_expression:
+ | LP expression RP unary_expression_not_plus_minus
+
+* When add generics
+
+We can have expressions like:
+ i<b;
+and type declarations like
+ i<b> x;
+
+hence an ambiguity which requires some lookahead or semantic information
+to know what is 'i' (is it a type name?).
+
+solutions?
+ - (1) use a GLR parser
+ - (2) c/c++ parser trick to tag differently <
+ - (3) parser trick to tag differently typedef and idents
+
+I currently use #3.
+
+* when add generic methods
+
+* Lambda
+
+See the same notes on this subject in lang_php/parsing/conflicts.txt
+and lang_js/parsing/conflicts.txt
+
+* Lambda and Cast
+
+lambda_expression are at the very top in the grammar expr rules,
+so they can not appear anywhere unless put inside parenthesis. See:
+
+expression:
+ | assignment_expression  { $1 }
+ /*(* javaext: ? *)*/
+ | lambda_expression { $1 }
+
+For example this is is not allowed 'a -> 1 + a -> 2'
+because after 1 +, you can only have a multiplicative_expr, then
+ unary_expr, then postfix_expr then primary, which imposes
+ a LP expression RP.
+
+This breaks when lambda_expressions were allowed in
+cast_expression, which are very low in the java grammar, with originally:
+
+cast_expression:
+ ...
+ | LP expression RP lambda_expression
+
+In that case however, if you read '(foo) a -> 1 ' and then
+you look a '+2', there is no way to know if it should be parsed as
+(foo) a -> 1+2, or (foo) a -> 1     +   2
+because a cast_expression can be part of a multiplicative, or addivitive
+expression.
+
+To solve the ambiguity you need to forbid cast of lambda inside
+cast_expression, and instead allow it only at the top with
+
+expression:
+ | assignment_expression  { $1 }
+ | lambda_expression { $1 }
+ | lambda_cast_expression { }
+
+and
+lambda_cast_expression: LP expression RP lambda_expression

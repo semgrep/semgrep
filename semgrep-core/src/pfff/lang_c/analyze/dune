@@ -1,0 +1,13 @@
+(library
+ (public_name pfff-lang_c-analyze)
+ (name pfff_lang_c_analyze)
+ (wrapped false)
+ (libraries
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+   pfff-graph_code
+   pfff-lang_c
+ )
+ (preprocess (pps ppx_deriving.show))
+)

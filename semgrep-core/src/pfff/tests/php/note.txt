@@ -1,0 +1,2 @@
+the codegraph/, coverage/, deadcode/, parsing/, parsing_errors/,
+pretty/, spatch/, and scheck/ directories are used by ~/pfff/pfff_test.

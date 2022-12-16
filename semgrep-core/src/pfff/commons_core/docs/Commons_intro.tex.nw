@@ -1,0 +1,254 @@
+\todo{
+commons is OCaml library, complete standard library
+}
+
+%alternatives:
+% - extlib
+% - battery
+% - jane street core
+% - commons/ in unison
+% - stdext/ in xen api
+% ...
+
+
+
+\todo{
+getting started, commons.cma
+}
+
+\todo{
+why in single file ?
+}
+
+
+\section{Features}
+
+
+\todo{
+the most original features:
+ - +> or |>
+ - pr2/spf
+ - quicheck
+ - profile
+ - regression testing
+ - ocamltarzan and ocaml.ml ?
+maybe use latex visual trick to say when good function
+}
+
+\todo{
+make features stuff
+configure, Makefile.config
+cf readme.txt ?
+features.ml.cpp, MPI, Regexp, Backtrace
+yes sometimes cpp is useful
+cf also common\_extra
+}
+
+\todo{
+What was included? why includes that and not something else ?
+Why include lib-sexp/ lib-json/  and keep stuff in external/
+like ocamlbdb ?
+
+sexp/json are ``fundamental'', they really help to debug and are
+in standard in some language in some sense. Haskell has deriving
+Show!
+
+well first no c dependencies for sexp/json, pure ocaml code,
+so can included it in a common.cma and people can link with
+it easily. It's compositional.
+}
+
+%dup: readme.txt
+\begin{verbatim}
+This directory builds a common.cma library and also optionally
+multiple commons_xxx.cma small libraries. The reason not to just build
+a single one is that some functionnalities require external libraries
+(like Berkeley DB, MPI, etc) or special version of OCaml (like for the
+backtrace support) and I don't want to penalize the user by forcing
+him to install all those libs before being able to use some of my
+common helper functions. So, common.ml and other files offer
+convenient helpers that do not require to install anything. In some
+case I have directly included the code of those external libs when
+there are simple such as for ANSITerminal in ocamlextra/, and for
+dumper.ml I have even be further by inlining its code in common.ml so
+one can just do a open Common and have everything. Then if the user
+wants to, he can also leverage the other commons_xxx libraries by
+explicitely building them after he has installed the necessary
+external files.
+
+For many configurable things we can use some flags in ml files,
+and have some -xxx command line argument to set them or not,
+but for other things flags are not enough as they will not remove
+the header and linker dependencies in Makefiles. A solution is
+to use cpp and pre-process many files that have such configuration
+issue. Another solution is to centralize all the cpp issue in one
+file, features.ml.cpp, that acts as a generic wrapper for other
+librairies and depending on the configuration actually call
+the external library or provide a fake empty services indicating
+that the service is not present.
+So you should have a ../configure that call cpp on features.ml.cpp
+to set those linking-related configuration settings.
+\end{verbatim}
+
+
+
+\todo{
+why in single file ?
+}
+
+%was in common_extra.ml
+\begin{verbatim}
+(* I put those functions here and not in common.ml to try to avoid
+ * as much as possible dependencies in common.ml so I can more easily
+ * make ocaml script that just do a load common.ml without the need
+ * to load many other files (like dumper.ml, or ANSITerminal.ml and
+ * other recursive dependencies).
+ *
+ * Note that you can still use the functions below from an open Common.
+ * You don't need to do a 'open Common_extra'; loading the commons.cma is
+ * enough to make the connexions.
+ *)
+
+set_link
+\end{verbatim}
+
+\section{Copyright}
+
+
+\commons is governed by the following copyright:
+
+\verbatiminput{copyright.txt}
+
+\vspace{1cm}
+
+This manual is copyright 2009 Yoann Padioleau,
+and distributed under the terms of the
+GNU Free Documentation License version 1.3.
+
+
+\section{Source organization}
+
+
+
+
+%ls -lR
+%legend: TODO -> SEMI -> IN/DONE -> SPLITTED -> EXPLAINED
+
+%DONE common.mli
+%common.ml
+
+
+
+%features.ml.cpp
+
+%SEMI common_extra.ml
+
+
+%concurrency.ml
+%distribution.ml
+%graphic.ml
+%gui.ml
+%opengl.ml
+%regexp.ml
+
+%interfaces.ml
+%objet.ml
+%objet.mli
+%ofullcommon.ml
+
+%ocollection.ml
+%ocollection.mli
+%oarray.ml
+%oarray.mli
+%oassoc.ml
+%oassoc.mli
+%osequence.ml
+%osequence.mli
+%oset.ml
+%oset.mli
+%ograph.ml
+%ograph.mli
+%ograph_extended.ml
+%ograph_extended.mli
+%ograph_simple.ml
+%ograph_simple.mli
+%seti.ml
+%ocollection/
+
+
+
+
+%backtrace.ml
+%backtrace_c.c
+
+%parser_combinators.ml
+%parser_combinators.mli
+
+%glimpse.ml
+%glimpse.mli
+
+%bin_common.ml
+%sexp_common.ml
+
+%python.ml
+%python_ocaml.py
+
+
+%ocamlextra/
+
+%macro.ml4
+
+%SEMI readme.txt
+%SEMI authors.txt
+%SEMI credits.txt
+%copyright.txt
+%license.txt
+
+%clone.doc
+%Makefile
+%_darcs/
+
+
+
+%put other directories ? the lib-xxx ?
+
+\begin{table*}[tbh!]
+\begin{tabular}{lcl}
+\toprule
+{\bf Function} & {\bf Chapter} & {\bf Modules} \\
+\otoprule
+Main services
+  & \ref{chapter:parse-entry-point}
+  & [[parse_c.mli]] \\
+ % and parsing_stat.mli ?
+\midrule
+ & & \\
+\bottomrule
+\end{tabular}
+\caption{Chapters and modules}
+\label{tab:chapters-modules}
+\end{table*}
+
+\section{API organization}
+
+
+\section{Acknowledgements}
+
+Maybe a few code was borrowed from Pixel (Pascal Rigaux)
+and Julia Lawall may have written a few helpers.
+
+
+%dup: credits.txt
+Thanks to:
+\begin{itemize}
+  \item  Richard Jones for his dumper module,
+%ref ?
+  \item  Brian Hurt and Nicolas Cannasse for their dynArray module,
+%ref ?
+  \item  Troestler Christophe for his ANSITerminal module,
+%ref ?
+  \item  Sebastien ferre for his suffix tree module
+%ref ?
+  \item Jane street for their backtrace module and sexplib
+%ref ? now obsolete
+\end{itemize}

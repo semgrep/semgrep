@@ -1,0 +1,81 @@
+(* yes sometimes cpp is useful *)
+
+(* old:
+note: in addition to Makefile.config, globals/config.ml is also modified
+by configure
+features.ml: features.ml.cpp Makefile.config
+	cpp -DFEATURE_GUI=$(FEATURE_GUI) \
+            -DFEATURE_MPI=$(FEATURE_MPI) \
+	    -DFEATURE_PCRE=$(FEATURE_PCRE) \
+	   features.ml.cpp > features.ml
+
+clean::
+	rm -f features.ml
+
+beforedepend:: features.ml
+*)
+
+#if FEATURE_MPI==1
+
+module Distribution = struct
+  let map_reduce ?timeout ~fmap ~freduce c xs =
+    Distribution.map_reduce ?timeout ~fmap ~freduce c xs
+
+  let map_reduce_lazy ?timeout ~fmap ~freduce c fxs =
+    Distribution.map_reduce_lazy ?timeout ~fmap ~freduce c fxs
+
+
+  let under_mpirun () =
+    Distribution.under_mpirun()
+
+  let set_debug_mpi () =
+    Distribution.debug_mpi := true
+
+(* was only when use mpich and the ch4 module. with openmpi, no need.
+  let mpi_adjust_argv argv =
+    Distribution.mpi_adjust_argv argv
+*)
+
+end
+
+#else
+
+module Distribution = struct
+  let map_reduce ?timeout ~fmap:map_ex ~freduce:reduce_ex acc xs =
+    let not_done = [] in
+    List.fold_left reduce_ex acc (List.map map_ex xs), not_done
+
+  let map_reduce_lazy ?timeout ~fmap:map_ex ~freduce:reduce_ex acc fxs =
+    let xs = fxs() in (* changed code *)
+    let not_done = [] in
+    List.fold_left reduce_ex acc (List.map map_ex xs), not_done
+
+
+  let under_mpirun () =
+    false
+
+  let set_debug_mpi () =
+    ()
+
+end
+
+#endif
+
+
+#if FEATURE_REGEXP_PCRE==1
+#else
+#endif
+
+#if FEATURE_BACKTRACE==1
+module Backtrace = struct
+ let print () =
+   Backtrace.print ()
+end
+#else
+
+module Backtrace = struct
+ let print () =
+   print_string "no backtrace support, use configure --with-backtrace\n"
+end
+
+#endif

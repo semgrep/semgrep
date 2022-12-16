@@ -1,0 +1,1 @@
+type x = "foo" | "bar";

@@ -1,0 +1,11 @@
+;
+; General-purpose unit testing utilities used to complement Alcotest.
+;
+(library
+ (name pfff_testutil)
+ (public_name pfff-testutil)
+ (wrapped false)
+ (libraries
+   alcotest
+ )
+)

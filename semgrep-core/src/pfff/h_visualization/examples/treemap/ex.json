@@ -1,0 +1,48 @@
+{
+  "kind": "Node",
+  "label": ".",
+  "children": [
+    {
+      "kind": "Node",
+      "label": "a/",
+      "children": [
+        {
+          "kind": "Node",
+          "label": "c/",
+          "children": [
+            {
+              "kind": "Leaf",
+              "size": 2,
+              "color": "purple",
+              "label": "a/c/foo.txt"
+            }
+          ]
+        },
+        {
+          "kind": "Leaf",
+          "size": 1,
+          "color": "HotPink2",
+          "label": "a/foobar.txt"
+        }
+      ]
+    },
+    {
+      "kind": "Node",
+      "label": "b/",
+      "children": [
+        {
+          "kind": "Leaf",
+          "size": 1,
+          "color": "azure4",
+          "label": "b/bar.txt"
+        },
+        {
+          "kind": "Leaf",
+          "size": 4,
+          "color": "cyan",
+          "label": "b/bar2.txt"
+        }
+      ]
+    }
+  ]
+}

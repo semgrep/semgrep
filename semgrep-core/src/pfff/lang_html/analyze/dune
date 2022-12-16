@@ -1,0 +1,12 @@
+(library
+ (public_name pfff-lang_html-analyze)
+ (name pfff_lang_html_analyze)
+ (wrapped false)
+ (libraries
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+   pfff-lang_html
+ )
+ (preprocess (pps ppx_deriving.show))
+)

@@ -1,0 +1,51 @@
+[ANN] pfff 0.25, tools and APIs for program analysis of PHP/Java/JS/C/ML/PHP/...
+
+Hello,
+
+pfff is a set of tools and APIs to perform some static analysis,
+dynamic analysis, code visualizations, code navigations, or
+style-preserving source-to-source transformations such as refactorings
+on source code. For now the effort has focused mainly on PHP but there
+is also good support for C, C++, Java, HTML, JavaScript, and CSS.
+There is also very good support for OCaml and noweb (literate
+programming) so that pfff can be used on the code of pfff itself.
+
+For more information see the pfff wiki at:
+https://github.com/facebook/pfff/wiki/Main
+
+The current release source code is accessible from:
+https://github.com/facebook/pfff/releases/tag/v0.25.1
+
+There is now also an OPAM package for pfff. It contains though just
+the parsers, visitors, and AST dumpers (for C, Java, Javascript, PHP,
+ML, HTML and CSS). To install it just do:
+
+   $ opam install pfff
+
+Once installed you should have access to the different libraries
+in ~/.opam/.../lib/pfff-lang_yyy.
+
+The AST dumpers are useful to get familiar with the constructors.
+Here is an example:
+
+   $ cd pfff
+   $ cat demos/foo.js
+    function foo() {
+      return 1;
+    }
+   $ ./pfff -dump_js demos/foo.js
+    [FunDecl(
+       {f_tok=Some(()); f_name=Some(("foo", ())); f_params=[];
+        f_return_type=None;
+        f_body=[St(Return((), Some(L(Num(("1", ())))), Some(())))]; });
+        FinalDef(())]
+
+In the next few weeks I'll make OPAM packages for the other components
+of pfff: sgrep, spatch, stags, codemap, codegraph, the treemap
+library, etc.
+
+Thanks to:
+ - Eric Cooper for the initial version of the java parser
+ - Patrick Doane and Gerd Stolpmann for their html parser
+ - Dario Teixeira for his css parser
+ - Facebook

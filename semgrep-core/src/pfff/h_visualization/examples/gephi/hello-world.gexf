@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gexf xmlns="http://www.gexf.net/1.2draft" version="1.2">
+    <meta lastmodifieddate="2009-03-20">
+        <creator>Gexf.net</creator>
+        <description>A hello world! file</description>
+    </meta>
+    <graph mode="static" defaultedgetype="directed">
+        <nodes>
+            <node id="0" label="Hello" />
+            <node id="1" label="Word" />
+        </nodes>
+        <edges>
+            <edge id="0" source="0" target="1" />
+        </edges>
+    </graph>
+</gexf>

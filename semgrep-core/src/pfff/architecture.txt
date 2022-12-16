@@ -1,0 +1,11 @@
+Here is a rough software architecture overview of pfff:
+ - The main_xxx.ml in this directory are the only entry points
+   and correspond to the different binaries in pfff (sgrep, spatch, etc)
+ - All the lang_xxx/ are language specifics and so are not
+   really the core of pfff.
+ - graph_code/ and h_program-lang/ are the
+   generic code supporting the many programming languages
+ - The h_xxx/ are quite generic helper libraries.
+ - mini/ is useful to prototype
+ - tests/ contain test data used by the many unit_xxx.ml in lang_xxx/
+ - matcher/ is generic code supporting both sgrep and spatch

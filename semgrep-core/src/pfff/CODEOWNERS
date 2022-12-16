@@ -1,0 +1,7 @@
+# Together with the correct GitHub project setting, this limits who can
+# approve pull requests.
+# It's also used by GitHub to suggest reviewers.
+
+# Default owners:
+# Program Analysis team at r2c
+* @returntocorp/pa

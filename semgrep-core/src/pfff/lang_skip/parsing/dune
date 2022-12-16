@@ -1,0 +1,12 @@
+(library
+ (public_name pfff-lang_skip)
+ (name pfff_lang_skip)
+ (wrapped false)
+ (libraries
+   commons commons_core
+   pfff-config pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show))
+)
+(ocamllex lexer_skip)
+(ocamlyacc parser_skip)

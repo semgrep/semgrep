@@ -1,0 +1,12 @@
+(library
+ (public_name pfff-graph_code)
+ (name pfff_graph_code)
+ (wrapped false)
+ (libraries
+
+   commons commons_core
+   pfff-h_program-lang
+   pfff-commons-graph
+
+ )
+)

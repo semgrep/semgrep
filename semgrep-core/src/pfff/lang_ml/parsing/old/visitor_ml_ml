@@ -1,0 +1,596 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2010 Facebook
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
+open Cst_ml
+
+(* Disable warnings against unused variables *)
+[@@@warning "-26-27"]
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(*
+ * TODO: do a kmodule_name that is called by kqualifier and
+ * a few other places where the name in the long_name is actually
+ * also a module name
+ *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* hooks *)
+type visitor_in = {
+  kitem: item vin;
+  ktoplevel: toplevel vin;
+
+  kexpr: expr vin;
+  kpattern: pattern vin;
+  kty: ty vin;
+
+
+  kfield_decl: field_declaration vin;
+  kfield_expr: field_and_expr vin;
+  kfield_pat: field_pattern vin;
+
+  ktype_declaration: type_declaration vin;
+  klet_def: let_def vin;
+  klet_binding: let_binding vin;
+  kqualifier: qualifier vin;
+  kmodule_expr: module_expr vin;
+  kparameter: parameter vin;
+  kargument: argument vin;
+
+  kinfo: tok vin;
+}
+  and 'a vin = ('a  -> unit) * visitor_out -> 'a  -> unit
+
+and visitor_out = any -> unit
+
+
+let default_visitor = {
+  kinfo   = (fun (k,_) x -> k x);
+  kexpr   = (fun (k,_) x -> k x);
+  kfield_decl = (fun (k,_) x -> k x);
+  kfield_expr = (fun (k,_) x -> k x);
+  kty = (fun (k,_) x -> k x);
+  ktype_declaration  = (fun (k,_) x -> k x);
+  kitem  = (fun (k,_) x -> k x);
+  klet_def  = (fun (k,_) x -> k x);
+  kpattern = (fun (k,_) x -> k x);
+  klet_binding = (fun (k,_) x -> k x);
+  kqualifier = (fun (k,_) x -> k x);
+  kmodule_expr = (fun (k,_) x -> k x);
+  ktoplevel = (fun (k,_) x -> k x);
+  kparameter = (fun (k,_) x -> k x);
+  kargument = (fun (k,_) x -> k x);
+  kfield_pat = (fun (k,_) x -> k x);
+}
+
+
+let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
+
+(* start of auto generation *)
+
+let rec v_info x =
+  let k x = match x with { Parse_info.
+     token = _v_pinfox; transfo = _v_transfo
+    } ->
+(*
+    let _arg = Parse_info.v_pinfo v_pinfox in
+    let _arg = OCaml.v_unit v_comments in
+    let _arg = Parse_info.v_transformation v_transfo in
+*)
+    ()
+  in
+  vin.kinfo (k, all_functions) x
+
+and v_tok v = v_info v
+
+and v_wrap: 'a. ('a -> unit) -> 'a wrap -> unit = fun  _of_a (v1, v2) ->
+  let v1 = _of_a v1 and v2 = v_info v2 in ()
+and v_wrap1 _of_a (v1, v2) = let v1 = _of_a v1 and v2 = v_info v2 in ()
+and v_wrap2 _of_a (v1, v2) = let v1 = _of_a v1 and v2 = v_info v2 in ()
+
+and v_wrap11 _of_a (v1, v2) = let v1 = _of_a v1 and v2 = v_info v2 in ()
+and v_wrap12 _of_a (v1, v2) = let v1 = _of_a v1 and v2 = v_info v2 in ()
+and v_wrap13 _of_a (v1, v2) = let v1 = _of_a v1 and v2 = v_info v2 in ()
+and v_wrap14 _of_a (v1, v2) = let v1 = _of_a v1 and v2 = v_info v2 in ()
+and v_wrap15 _of_a (v1, v2) = let v1 = _of_a v1 and v2 = v_info v2 in ()
+and v_wrap16 _of_a (v1, v2) = let v1 = _of_a v1 and v2 = v_info v2 in ()
+and v_wrap17 _of_a (v1, v2) = let v1 = _of_a v1 and v2 = v_info v2 in ()
+and v_wrap18 _of_a (v1, v2) = let v1 = _of_a v1 and v2 = v_info v2 in ()
+
+
+and v_paren _of_a (v1, v2, v3) =
+  let v1 = v_tok v1 and v2 = _of_a v2 and v3 = v_tok v3 in ()
+and v_paren1 _of_a (v1, v2, v3) =
+  let v1 = v_tok v1 and v2 = _of_a v2 and v3 = v_tok v3 in ()
+and v_paren2 _of_a (v1, v2, v3) =
+  let v1 = v_tok v1 and v2 = _of_a v2 and v3 = v_tok v3 in ()
+
+and v_paren11 _of_a (v1, v2, v3) =
+  let v1 = v_tok v1 and v2 = _of_a v2 and v3 = v_tok v3 in ()
+and v_paren12 _of_a (v1, v2, v3) =
+  let v1 = v_tok v1 and v2 = _of_a v2 and v3 = v_tok v3 in ()
+
+and v_paren13 _of_a (v1, v2, v3) =
+  let v1 = v_tok v1 and v2 = _of_a v2 and v3 = v_tok v3 in ()
+
+and v_brace _of_a (v1, v2, v3) =
+  let v1 = v_tok v1 and v2 = _of_a v2 and v3 = v_tok v3 in ()
+and v_brace1 _of_a (v1, v2, v3) =
+  let v1 = v_tok v1 and v2 = _of_a v2 and v3 = v_tok v3 in ()
+
+and v_brace11 _of_a (v1, v2, v3) =
+  let v1 = v_tok v1 and v2 = _of_a v2 and v3 = v_tok v3 in ()
+
+
+and v_bracket: 'a. ('a -> unit) -> 'a bracket -> unit = fun
+  _of_a (v1, v2, v3) ->
+  let v1 = v_tok v1 and v2 = _of_a v2 and v3 = v_tok v3 in ()
+and v_comma_list _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_comma_list1 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_comma_list2 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+
+and v_comma_list11 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_comma_list12 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+
+and v_and_list _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_and_list1 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_and_list2 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+
+and v_and_list13 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+
+and v_pipe_list _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_pipe_list1 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+
+and v_pipe_list11 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_pipe_list12 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_pipe_list13 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+
+and v_semicolon_list: 'a. ('a -> unit) -> 'a semicolon_list -> unit = fun _of_a
+ -> OCaml.v_list (OCaml.v_either _of_a v_tok)
+
+and v_semicolon_list1 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_semicolon_list2 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+
+and v_semicolon_list11 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_semicolon_list12 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+
+and v_star_list _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_star_list1 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+and v_star_list2 _of_a = OCaml.v_list (OCaml.v_either _of_a v_tok)
+
+and v_name = function | Name v1 -> let v1 = v_wrap1 OCaml.v_string v1 in ()
+and v_lname v = v_name v
+and v_uname v = v_name v
+
+and v_long_name (v1, v2) =
+  let v1 = v_qualifier v1 and v2 = v_name v2 in ()
+and v_qualifier v =
+  let k _x =
+    OCaml.v_list (fun (v1, v2) -> let v1 = v_name v1 and v2 = v_tok v2 in ()) v
+  in
+  vin.kqualifier (k, all_functions) v
+
+and v_todo_category x = v_wrap OCaml.v_string x
+and v_ty x =
+  let k x =
+    match x with
+  | TyEllipsis v1 -> v_tok v1
+  | TyName v1 -> let v1 = v_long_name v1 in ()
+  | TyVar ((v1, v2)) -> let v1 = v_tok v1 and v2 = v_name v2 in ()
+  | TyTuple v1 -> let v1 = v_star_list2 v_ty v1 in ()
+  | TyTuple2 v1 -> let v1 = v_paren (v_star_list2 v_ty) v1 in ()
+  | TyFunction ((v1, v2, v3)) ->
+      let v1 = v_ty v1 and v2 = v_tok v2 and v3 = v_ty v3 in ()
+  | TyApp ((v1, v2)) -> let v1 = v_ty_args v1 and v2 = v_long_name v2 in ()
+  | TyTodo (v1, v2) -> v_todo_category v1; OCaml.v_list v_ty v2
+  in
+  vin.kty (k, all_functions) x
+
+and v_type_declaration x =
+  let k x =
+    match x with
+  | TyAbstract ((v1, v2)) -> let v1 = v_ty_params v1 and v2 = v_name v2 in ()
+  | TyDef ((v1, v2, v3, v4)) ->
+      let v1 = v_ty_params v1
+      and v2 = v_name v2
+      and v3 = v_tok v3
+      and v4 = v_type_def_kind v4
+      in ()
+  in
+  vin.ktype_declaration (k, all_functions) x
+
+and v_type_def_kind =
+  function
+  | TyCore v1 -> let v1 = v_ty v1 in ()
+  | TyAlgebric v1 -> let v1 = v_pipe_list1 v_constructor_declaration v1 in ()
+  | TyRecord v1 ->
+      let v1 = v_brace1 (v_semicolon_list2 v_label_declaration) v1 in ()
+and v_constructor_declaration (v1, v2) =
+  let v1 = v_name v1 and v2 = v_constructor_arguments v2 in ()
+and v_constructor_arguments =
+  function
+  | NoConstrArg -> ()
+  | Of ((v1, v2)) -> let v1 = v_tok v1 and v2 = v_star_list1 v_ty v2 in ()
+and
+  v_label_declaration x =
+   let k x =
+     match x with {
+       fld_mutable = v_fld_mutable;
+       fld_name = v_fld_name;
+       fld_tok = v_fld_tok;
+       fld_type = v_fld_type
+     } ->
+     let arg = OCaml.v_option v_tok v_fld_mutable in
+     let arg = v_name v_fld_name in
+     let arg = v_tok v_fld_tok in let arg = v_ty v_fld_type in ()
+   in
+   vin.kfield_decl (k, all_functions) x
+
+and v_ty_args =
+  function
+  | TyArg1 v1 -> let v1 = v_ty v1 in ()
+  | TyArgMulti v1 -> let v1 = v_paren2 (v_comma_list2 v_ty) v1 in ()
+and v_ty_params =
+  function
+  | TyNoParam -> ()
+  | TyParam1 v1 -> let v1 = v_ty_parameter v1 in ()
+  | TyParamMulti v1 ->
+      let v1 = v_paren1 (v_comma_list1 v_ty_parameter) v1 in ()
+and v_ty_parameter (v1, v2) = let v1 = v_tok v1 and v2 = v_name v2 in ()
+
+
+and v_expr v =
+  let k x =
+    match x with
+  | Ellipsis v1 -> v_tok v1
+  | DeepEllipsis (v1, v2, v3) -> v_tok v1; v_expr v2; v_tok v3
+  | C v1 -> let v1 = v_constant v1 in ()
+  | L v1 -> let v1 = v_long_name v1 in ()
+  | Constr ((v1, v2)) ->
+      let v1 = v_long_name v1 and v2 = OCaml.v_option v_expr v2 in ()
+  | Tuple v1 -> let v1 = v_comma_list12 v_expr v1 in ()
+  | List v1 -> let v1 = v_bracket (v_semicolon_list v_expr) v1 in ()
+  | ParenExpr v1 -> let v1 = v_paren12 v_expr v1 in ()
+  | Sequence v1 -> let v1 = v_paren11 v_seq_expr v1 in ()
+  | Prefix ((v1, v2)) ->
+      let v1 = v_wrap18 OCaml.v_string v1 and v2 = v_expr v2 in ()
+  | Infix ((v1, v2, v3)) ->
+      let v1 = v_expr v1
+      and v2 = v_wrap17 OCaml.v_string v2
+      and v3 = v_expr v3
+      in ()
+  | FunCallSimple ((v1, v2)) ->
+      let v1 = v_long_name v1 and v2 = OCaml.v_list v_argument v2 in ()
+  | FunCall ((v1, v2)) ->
+      let v1 = v_expr v1 and v2 = OCaml.v_list v_argument v2 in ()
+  | RefAccess ((v1, v2)) -> let v1 = v_tok v1 and v2 = v_expr v2 in ()
+  | RefAssign ((v1, v2, v3)) ->
+      let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_expr v3 in ()
+  | FieldAccess ((v1, v2, v3)) ->
+      let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_long_name v3 in ()
+  | FieldAssign ((v1, v2, v3, v4, v5)) ->
+      let v1 = v_expr v1
+      and v2 = v_tok v2
+      and v3 = v_long_name v3
+      and v4 = v_tok v4
+      and v5 = v_expr v5
+      in ()
+  | Record v1 -> let v1 = v_brace11 v_record_expr v1 in ()
+  | ObjAccess ((v1, v2, v3)) ->
+      let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_name v3 in ()
+  | New ((v1, v2)) -> let v1 = v_tok v1 and v2 = v_long_name v2 in ()
+  | LetIn ((v1, v2, v3, v4, v5)) ->
+      let v1 = v_tok v1
+      and v2 = v_rec_opt v2
+      and v3 = v_and_list13 v_let_binding v3
+      and v4 = v_tok v4
+      and v5 = v_seq_expr v5
+      in ()
+  | Fun ((v1, v2, t, v3)) ->
+      let v1 = v_tok v1
+      and v2 = OCaml.v_list v_parameter v2 in
+      let t = v_tok t in
+      let v3 = v_expr v3 in
+      ()
+  | Function ((v1, v2)) ->
+      let v1 = v_tok v1 and v2 = v_pipe_list13 v_match_case v2 in ()
+  | If ((v1, v2, v3, v4, v5)) ->
+      let v1 = v_tok v1
+      and v2 = v_seq_expr v2
+      and v3 = v_tok v3
+      and v4 = v_expr v4
+      and v5 =
+        OCaml.v_option (fun (v1, v2) -> let v1 = v_tok v1 and v2 = v_expr v2 in ())
+          v5
+      in ()
+  | Match ((v1, v2, v3, v4)) ->
+      let v1 = v_tok v1
+      and v2 = v_seq_expr v2
+      and v3 = v_tok v3
+      and v4 = v_pipe_list12 v_match_case v4
+      in ()
+  | Try ((v1, v2, v3, v4)) ->
+      let v1 = v_tok v1
+      and v2 = v_seq_expr v2
+      and v3 = v_tok v3
+      and v4 = v_pipe_list11 v_match_case v4
+      in ()
+  | While ((v1, v2, v3, v4, v5)) ->
+      let v1 = v_tok v1
+      and v2 = v_seq_expr v2
+      and v3 = v_tok v3
+      and v4 = v_seq_expr v4
+      and v5 = v_tok v5
+      in ()
+  | For ((v1, v2, v3, v4, v5, v6, v7, v8, v9)) ->
+      let v1 = v_tok v1
+      and v2 = v_name v2
+      and v3 = v_tok v3
+      and v4 = v_seq_expr v4
+      and v5 = v_for_direction v5
+      and v6 = v_seq_expr v6
+      and v7 = v_tok v7
+      and v8 = v_seq_expr v8
+      and v9 = v_tok v9
+      in ()
+  | ExprTodo (t, xs) -> v_todo_category t; OCaml.v_list v_expr xs
+  in
+  vin.kexpr (k, all_functions) v
+
+and v_constant =
+  function
+  | Int v1 -> let v1 = v_wrap16 OCaml.v_string v1 in ()
+  | Float v1 -> let v1 = v_wrap15 OCaml.v_string v1 in ()
+  | Char v1 -> let v1 = v_wrap14 OCaml.v_string v1 in ()
+  | String v1 -> let v1 = v_wrap13 OCaml.v_string v1 in ()
+
+and v_record_expr =
+  function
+  | RecordNormal v1 -> let v1 = v_semicolon_list12 v_field_and_expr v1 in ()
+  | RecordWith ((v1, v2, v3)) ->
+      let v1 = v_expr v1
+      and v2 = v_tok v2
+      and v3 = v_semicolon_list11 v_field_and_expr v3
+      in ()
+and v_field_and_expr v =
+  let k x =
+    match x with
+  | FieldExpr ((v1, v2, v3)) ->
+      let v1 = v_long_name v1 and v2 = v_tok v2 and v3 = v_expr v3 in ()
+  | FieldImplicitExpr v1 -> let v1 = v_long_name v1 in ()
+  in
+  vin.kfield_expr (k, all_functions) v
+
+and v_argument v =
+  let k x = match x with
+  | ArgExpr v1 -> let v1 = v_expr v1 in ()
+  | ArgLabelTilde ((v1, v2)) -> let v1 = v_name v1 and v2 = v_expr v2 in ()
+  | ArgImplicitTildeExpr ((v1, v2)) ->
+      let v1 = v_tok v1 and v2 = v_name v2 in ()
+  | ArgImplicitQuestionExpr ((v1, v2)) ->
+      let v1 = v_tok v1 and v2 = v_name v2 in ()
+  | ArgLabelQuestion ((v1, v2)) -> let v1 = v_name v1 and v2 = v_expr v2 in ()
+  in
+  vin.kargument (k, all_functions) v
+
+and v_match_action =
+  function
+  | Action ((v1, v2)) -> let v1 = v_tok v1 and v2 = v_seq_expr v2 in ()
+  | WhenAction ((v1, v2, v3, v4)) ->
+      let v1 = v_tok v1
+      and v2 = v_seq_expr v2
+      and v3 = v_tok v3
+      and v4 = v_seq_expr v4
+      in ()
+and v_match_case (v1, v2) =
+  let v1 = v_pattern v1 and v2 = v_match_action v2 in ()
+and v_for_direction =
+  function
+  | To v1 -> let v1 = v_tok v1 in ()
+  | Downto v1 -> let v1 = v_tok v1 in ()
+
+and v_seq_expr v = v_semicolon_list1 v_expr v
+
+and v_pattern x =
+   let k x = match x with
+  | PatEllipsis v1 -> v_tok v1
+  | PatVar v1 -> let v1 = v_name v1 in ()
+  | PatConstant v1 -> let v1 = v_signed_constant v1 in ()
+  | PatConstr ((v1, v2)) ->
+      let v1 = v_long_name v1 and v2 = OCaml.v_option v_pattern v2 in ()
+  | PatConsInfix ((v1, v2, v3)) ->
+      let v1 = v_pattern v1 and v2 = v_tok v2 and v3 = v_pattern v3 in ()
+  | PatTuple v1 -> let v1 = v_comma_list11 v_pattern v1 in ()
+  | PatList v1 -> let v1 = v_bracket (v_semicolon_list v_pattern) v1 in ()
+  | PatUnderscore v1 -> let v1 = v_tok v1 in ()
+  | PatRecord v1 ->
+      let v1 = v_brace (v_semicolon_list v_field_pattern) v1 in ()
+  | PatAs ((v1, v2, v3)) ->
+      let v1 = v_pattern v1 and v2 = v_tok v2 and v3 = v_name v3 in ()
+  | PatDisj ((v1, v2, v3)) ->
+      let v1 = v_pattern v1 and v2 = v_tok v2 and v3 = v_pattern v3 in ()
+  | PatTyped ((v1, v2, v3, v4, v5)) ->
+      let v1 = v_tok v1
+      and v2 = v_pattern v2
+      and v3 = v_tok v3
+      and v4 = v_ty v4
+      and v5 = v_tok v5
+      in ()
+  | ParenPat v1 -> let v1 = v_paren13 v_pattern v1 in ()
+
+  | PatTodo (t, xs) -> v_todo_category t; OCaml.v_list v_pattern xs
+
+   in
+   vin.kpattern (k, all_functions) x
+
+and v_simple_pattern v = OCaml.v_unit v
+and v_labeled_simple_pattern v = v_parameter v
+and v_parameter x =
+  let k x = match x with
+    | ParamPat v1 -> let v1 = v_pattern v1 in ()
+    | ParamTodo t -> v_tok t
+  in
+  vin.kparameter (k, all_functions) x
+
+and v_field_pattern x =
+  let k x = match x with
+  | PatField ((v1, v2, v3)) ->
+      let v1 = v_long_name v1 and v2 = v_tok v2 and v3 = v_pattern v3 in ()
+  | PatImplicitField v1 -> let v1 = v_long_name v1 in ()
+  in
+  vin.kfield_pat (k, all_functions) x
+
+and v_signed_constant =
+  function
+  | C2 v1 -> let v1 = v_constant v1 in ()
+  | CMinus ((v1, v2)) -> let v1 = v_tok v1 and v2 = v_constant v2 in ()
+  | CPlus ((v1, v2)) -> let v1 = v_tok v1 and v2 = v_constant v2 in ()
+
+and v_let_binding x =
+  let k x = match x with
+  | LetClassic v1 -> let v1 = v_let_def v1 in ()
+  | LetPattern ((v1, v2, v3)) ->
+      let v1 = v_pattern v1 and v2 = v_tok v2 and v3 = v_seq_expr v3 in ()
+  in
+  vin.klet_binding (k, all_functions) x
+
+and
+  v_let_def x =
+  let k x =
+    match x with
+ {
+              l_name = v_l_name;
+              l_params = v_l_args;
+              l_tok = v_l_tok;
+              l_body = v_l_body
+            } ->
+  let arg = v_name v_l_name in
+  let arg = OCaml.v_list v_labeled_simple_pattern v_l_args in
+  let arg = v_tok v_l_tok in let arg = v_seq_expr v_l_body in ()
+  in
+  vin.klet_def (k, all_functions) x
+
+and v_function_def v = OCaml.v_unit v
+and v_module_type v = OCaml.v_unit v
+and v_module_expr v =
+  let k v =
+  match v with
+  | ModuleName v1 ->
+      let v1 = v_long_name v1 in
+      ()
+  | ModuleStruct (v1, v2, v3) ->
+      let v1 = v_tok v1 in
+      let v2 = OCaml.v_list v_item v2 in
+      let v3 = v_tok v3 in
+      ()
+  | ModuleTodo (t, xs) -> v_todo_category t; OCaml.v_list v_module_expr xs
+
+  in
+  vin.kmodule_expr (k, all_functions) v
+
+and v_item x =
+  let k x =
+    match x with
+  | Type ((v1, v2)) ->
+      let v1 = v_tok v1 and v2 = v_and_list2 v_type_declaration v2 in ()
+  | Exception ((v1, v2, v3)) ->
+      let v1 = v_tok v1
+      and v2 = v_name v2
+      and v3 = v_constructor_arguments v3
+      in ()
+  | External ((v1, v2, v3, v4, v5, v6)) ->
+      let v1 = v_tok v1
+      and v2 = v_name v2
+      and v3 = v_tok v3
+      and v4 = v_ty v4
+      and v5 = v_tok v5
+      and v6 = OCaml.v_list (v_wrap2 OCaml.v_string) v6
+      in ()
+  | Open ((v1, v2)) -> let v1 = v_tok v1 and v2 = v_long_name v2 in ()
+  | Val ((v1, v2, v3, v4)) ->
+      let v1 = v_tok v1
+      and v2 = v_name v2
+      and v3 = v_tok v3
+      and v4 = v_ty v4
+      in ()
+  | Let ((v1, v2, v3)) ->
+      let v1 = v_tok v1
+      and v2 = v_rec_opt v2
+      and v3 = v_and_list1 v_let_binding v3
+      in ()
+  | Module ((v1, v2, v3, v4)) ->
+      let v1 = v_tok v1
+      and v2 = v_uname v2
+      and v3 = v_tok v3
+      and v4 = v_module_expr v4
+      in ()
+
+  | ItemTodo (t, xs) -> v_todo_category t; OCaml.v_list v_item xs
+
+  in
+  vin.kitem (k, all_functions) x
+
+and v_sig_item v = v_item v
+and v_struct_item v = v_item v
+and v_rec_opt v = OCaml.v_option v_tok v
+
+
+and v_toplevel x =
+  let k = function
+  | TopItem v1 -> let v1 = v_item v1 in ()
+  | ScSc v1 -> let v1 = v_info v1 in ()
+  | TopSeqExpr v1 -> let v1 = v_seq_expr v1 in ()
+  | TopDirective v1 -> let v1 = v_info v1 in ()
+  in
+  vin.ktoplevel (k, all_functions) x
+
+and v_program v = OCaml.v_list v_toplevel v
+
+and v_any = function
+  | Ty v1 -> let v1 = v_ty v1 in ()
+  | Expr v1 -> let v1 = v_expr v1 in ()
+  | Pattern v1 -> let v1 = v_pattern v1 in ()
+  | Item v1 -> let v1 = v_item v1 in ()
+  | Toplevel v1 -> let v1 = v_toplevel v1 in ()
+  | Program v1 -> let v1 = v_program v1 in ()
+  | TypeDeclaration v1 -> let v1 = v_type_declaration v1 in ()
+  | TypeDefKind v1 -> let v1 = v_type_def_kind v1 in ()
+  | MatchCase v1 -> let v1 = v_match_case v1 in ()
+  | FieldDeclaration v1 -> let v1 = v_label_declaration v1 in ()
+  | LetBinding v1 -> let v1 = v_let_binding v1 in ()
+  | Constant v1 -> let v1 = v_constant v1 in ()
+  | Argument v1 -> let v1 = v_argument v1 in ()
+  | Body v1 -> let v1 = v_seq_expr v1 in ()
+  | Info v1 -> let v1 = v_info v1 in ()
+  | InfoList v1 -> let v1 = OCaml.v_list v_info v1 in ()
+and all_functions x = v_any x
+in
+v_any
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(*
+let do_visit_with_ref mk_hooks = fun any ->
+  let res = ref [] in
+  let hooks = mk_hooks res in
+  let vout = mk_visitor hooks in
+  vout any;
+  List.rev !res
+*)

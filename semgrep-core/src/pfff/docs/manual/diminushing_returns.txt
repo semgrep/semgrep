@@ -1,0 +1,27 @@
+Here are the different steps we want to implement for each language:
+ - lexing,
+ - parsing,
+ - typing,
+ - linking,
+ - flowing
+
+Each step is significantly more complicated than the previous one.
+
+Each step is also arguably less important than the previous one. If
+you take code search for example: 90% of the time 'grep' (lexing level)
+is good enough to find what you want. Then in 5% of the time you
+would like something more syntactical, because for instance
+a name is used both for a method and a global. Then for 3% of the time
+you would like something type aware, because for instance a method
+name is used in different hierarchies and so finding all the calls
+to a method need types. Then for the rest, linking and flowing
+(which are related: you need linking to do interprocedural flowing),
+they are useful in less than 2% of the time, for instance to find
+where a callback is actually called. So this last step, which
+is really really hard to implement, is actually useful only in 2%
+of your code search ... and in practice for those 2% search you
+can find the code relatively quickly by following the flow
+yourself in the code.
+
+So for code search, code understanding, and also arguably for
+bug findings, there is diminushing returns at each step :(

@@ -1,0 +1,6 @@
+The official grammar in the java spec contains some errors.
+For instance it does not allow List<Object[]> because reference_type
+was very limited.
+
+Here are some fixes:
+http://www.cmis.brighton.ac.uk/staff/rnb/bosware/javaSyntax/syntaxV2.html

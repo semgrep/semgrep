@@ -1,0 +1,11 @@
+To install pfff under Linux, you will first need to install several development
+packages usually not present in a default install:
+ - swi-prolog
+ - ncurses-devel
+ - binutils-gold
+
+Then:
+  $ ./configure
+  $ opam install . --deps-only
+  $ make
+  $ make install

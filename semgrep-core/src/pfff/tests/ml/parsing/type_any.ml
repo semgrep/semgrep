@@ -1,0 +1,1 @@
+let things : _ list = []

@@ -1,0 +1,3 @@
+<?php
+
+foo($x=true);

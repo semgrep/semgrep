@@ -1,0 +1,213 @@
+\documentclass{article}
+
+%******************************************************************************
+% Prelude
+%******************************************************************************
+\newif\iffinal
+\newif\ifverbose
+\newif\iffacebook
+
+\finaltrue\verbosefalse\facebooktrue
+%\finalfalse\verbosetrue\facebooktrue
+
+%cf also some \newif below
+
+
+%------------------------------------------------------------------------------
+%history:
+%------------------------------------------------------------------------------
+%thx to LP, changed for the better a few things :)
+% - ??
+
+%history LP-ization:
+% - skeleton; a not too bad TOC
+% - TODO put all content of files in the Extra section
+% - TODO split the files in chuncks (for type, helpers, ...), using
+%   TODO my emacs macro
+% - TODO distribute parts of the file before
+% - TODO add figures (hand made)
+% - TODO add biblio
+
+%------------------------------------------------------------------------------
+% Packages
+%------------------------------------------------------------------------------
+
+\usepackage{noweb}
+\noweboptions{}
+%note: allow chunk to be on different pages, so less white space at
+%  bottom of pages
+\def\nwendcode{\endtrivlist \endgroup}
+\let\nwdocspar=\par
+
+\usepackage{xspace}
+
+\usepackage{verbatim}
+%note: required by noweblatexpad for the \t \l \n in this file
+\usepackage{fancyvrb}
+
+\usepackage{url}
+\iffinal
+\usepackage{hyperref}
+\hypersetup{colorlinks=true}
+\fi
+
+\usepackage[pageref]{backref}
+\def\backref{{\footnotesize cited page(s)}~}%en: \def\backref{{\footnotesize cited page(s)}~}
+
+
+\usepackage{multirow}
+
+\usepackage{booktabs}
+\newcommand{\otoprule}{\midrule[\heavyrulewidth]}
+
+\usepackage{graphicx}
+
+%------------------------------------------------------------------------------
+% Macros
+%------------------------------------------------------------------------------
+\input{Macros}
+
+%------------------------------------------------------------------------------
+% Config
+%------------------------------------------------------------------------------
+\implemtrue
+\implemoverviewtrue
+\wantrepetitivecodefalse
+\allcodefalse
+
+%******************************************************************************
+% Title
+%******************************************************************************
+
+\begin{document}
+
+\title{
+{\Huge
+Pfff visual
+}\\
+Google Maps for Source Code\\
+{version 0.1}
+}
+
+\author{
+Yoann Padioleau\\
+\texttt{pad@fb.com}
+}
+%dup: authors.txt
+
+\maketitle
+
+%dup: with section Copyright
+%\pagebreak
+\hrule
+\begin{quote}
+    Copyright \copyright{}  2010 Facebook \\
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3.
+\end{quote}
+\hrule
+%\pagebreak
+% if implem is included, then the doc contains the full source code
+% so the copyright should be LGPL ?
+
+\iffinal
+\begingroup
+\hypersetup{colorlinks=true, linkcolor=blue}
+\tableofcontents
+\endgroup
+\else
+\tableofcontents
+\fi
+
+%******************************************************************************
+% Body
+%******************************************************************************
+
+\section{Introduction}
+
+\subsection{Motivations}
+
+% can copy what is inside Treemap.tex.nw
+
+\subsection{Getting started}
+
+\subsection{Copyright}
+
+The source code of \pfff is governed by the following copyright:
+<<Facebook copyright>>=
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2010 Facebook
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
+@
+%alt: (* Copyright 2009, 2010 Facebook. All Rights Reserved. *)
+
+\subsection{About this document}
+#include "About.tex.nw"
+
+\section{Examples of use}
+
+\section{Conclusion}
+
+Hope you like it.
+
+
+\appendix
+
+\section{Extra Code}
+
+%\subsection{[[treemap.mli]]}
+
+\section{Changelog}
+\label{sec:changelog}
+
+\section*{Indexes}
+\addcontentsline{toc}{section}{Index}
+
+%\chapter{References}
+\addcontentsline{toc}{section}{References}
+
+\begin{thebibliography}{99}
+
+\bibitem[1]{wp-literate-programming} Donald Knuth,,
+{\em Literate Programming},
+\url{http://en.wikipedia.org/wiki/Literate\_Program}
+
+\bibitem[2]{noweb} Norman Ramsey,
+{\em Noweb},
+\url{http://www.cs.tufts.edu/~nr/noweb/}
+
+\bibitem[3]{syncweb} Yoann Padioleau,
+{\em Syncweb, literate programming meets unison},
+\url{http://padator.org/software/project-syncweb/readme.txt}
+
+
+\bibitem[4]{common-pad-manual} Yoann Padioleau,
+{\em Commons Pad OCaml Library},
+\url{http://padator.org/docs/Commons.pdf}
+
+
+\bibitem[5]{treemap-wikipedia} Wikipedia,
+{\em Treemapping},
+\url{http://en.wikipedia.org/wiki/Treemapping}
+
+
+% SeeSoft and other code visualization
+
+\end{thebibliography}
+
+%******************************************************************************
+% Postlude
+%******************************************************************************
+
+\end{document}

@@ -1,0 +1,9 @@
+This was generating a parse error at some point
+
+\begin{verbatim}
+
+\end{verbatim}
+% the %.5 is not a latex comment below!
+% [[ also introduces a special context
+\caption{[[match("foobar.5", "foo\%.5", ...)]].}\label{fig:mk-match}
+\end{figure}

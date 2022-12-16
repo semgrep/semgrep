@@ -1,0 +1,205 @@
+{
+  "@pos": {
+    "@type": "uast:Positions",
+    "end": { "@type": "uast:Position", "col": 29, "line": 3, "offset": 53 },
+    "start": { "@type": "uast:Position", "col": 1, "line": 1, "offset": 0 }
+  },
+  "@role": [ "File" ],
+  "@type": "java:CompilationUnit",
+  "imports": "None",
+  "package": {
+    "@pos": {
+      "@type": "uast:Positions",
+      "end": { "@type": "uast:Position", "col": 13, "line": 1, "offset": 12 },
+      "start": { "@type": "uast:Position", "col": 1, "line": 1, "offset": 0 }
+    },
+    "@role": [ "Declaration", "Package" ],
+    "@token": "package",
+    "@type": "java:PackageDeclaration",
+    "annotations": "None",
+    "javadoc": "None",
+    "name": {
+      "@pos": {
+        "@type": "uast:Positions",
+        "end": {
+          "@type": "uast:Position",
+          "col": 12,
+          "line": 1,
+          "offset": 11
+        },
+        "start": {
+          "@type": "uast:Position",
+          "col": 9,
+          "line": 1,
+          "offset": 8
+        }
+      },
+      "@type": "uast:Identifier",
+      "Name": "foo"
+    }
+  },
+  "types": [
+    {
+      "@pos": {
+        "@type": "uast:Positions",
+        "end": {
+          "@type": "uast:Position",
+          "col": 29,
+          "line": 3,
+          "offset": 53
+        },
+        "start": {
+          "@type": "uast:Position",
+          "col": 1,
+          "line": 2,
+          "offset": 13
+        }
+      },
+      "@role": [ "Visibility", "Package", "Declaration", "Type" ],
+      "@type": "java:TypeDeclaration",
+      "bodyDeclarations": [
+        {
+          "@pos": {
+            "@type": "uast:Positions",
+            "end": {
+              "@type": "uast:Position",
+              "col": 27,
+              "line": 3,
+              "offset": 51
+            },
+            "start": {
+              "@type": "uast:Position",
+              "col": 1,
+              "line": 3,
+              "offset": 25
+            }
+          },
+          "@type": "uast:FunctionGroup",
+          "Nodes": [
+            "None",
+            "None",
+            {
+              "@type": "uast:Alias",
+              "Name": {
+                "@pos": {
+                  "@type": "uast:Positions",
+                  "end": {
+                    "@type": "uast:Position",
+                    "col": 10,
+                    "line": 3,
+                    "offset": 34
+                  },
+                  "start": {
+                    "@type": "uast:Position",
+                    "col": 6,
+                    "line": 3,
+                    "offset": 30
+                  }
+                },
+                "@type": "uast:Identifier",
+                "Name": "main"
+              },
+              "Node": {
+                "@type": "uast:Function",
+                "Body": {
+                  "@pos": {
+                    "@type": "uast:Positions",
+                    "end": {
+                      "@type": "uast:Position",
+                      "col": 27,
+                      "line": 3,
+                      "offset": 51
+                    },
+                    "start": {
+                      "@type": "uast:Position",
+                      "col": 13,
+                      "line": 3,
+                      "offset": 37
+                    }
+                  },
+                  "@type": "uast:Block",
+                  "Statements": [
+                    {
+                      "@pos": {
+                        "@type": "uast:Positions",
+                        "end": {
+                          "@type": "uast:Position",
+                          "col": 24,
+                          "line": 3,
+                          "offset": 48
+                        },
+                        "start": {
+                          "@type": "uast:Position",
+                          "col": 15,
+                          "line": 3,
+                          "offset": 39
+                        }
+                      },
+                      "@role": [ "Statement", "Return" ],
+                      "@type": "java:ReturnStatement",
+                      "expression": {
+                        "@pos": {
+                          "@type": "uast:Positions",
+                          "end": {
+                            "@type": "uast:Position",
+                            "col": 23,
+                            "line": 3,
+                            "offset": 47
+                          },
+                          "start": {
+                            "@type": "uast:Position",
+                            "col": 22,
+                            "line": 3,
+                            "offset": 46
+                          }
+                        },
+                        "@role": [ "Expression", "Literal", "Number" ],
+                        "@token": "1",
+                        "@type": "java:NumberLiteral"
+                      }
+                    }
+                  ]
+                },
+                "Type": {
+                  "@type": "uast:FunctionType",
+                  "Arguments": "None",
+                  "Returns": "None"
+                }
+              }
+            },
+            {
+              "constructor": "false",
+              "thrownExceptionTypes": "None",
+              "typeParameters": "None"
+            }
+          ]
+        }
+      ],
+      "interface": "false",
+      "javadoc": "None",
+      "modifiers": "None",
+      "name": {
+        "@pos": {
+          "@type": "uast:Positions",
+          "end": {
+            "@type": "uast:Position",
+            "col": 10,
+            "line": 2,
+            "offset": 22
+          },
+          "start": {
+            "@type": "uast:Position",
+            "col": 7,
+            "line": 2,
+            "offset": 19
+          }
+        },
+        "@type": "uast:Identifier",
+        "Name": "Bar"
+      },
+      "superInterfaceTypes": "None",
+      "superclassType": "None",
+      "typeParameters": "None"
+    }
+  ]
+}

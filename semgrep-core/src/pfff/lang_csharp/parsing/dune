@@ -1,0 +1,15 @@
+(library
+ (public_name pfff-lang_csharp)
+ (name pfff_lang_csharp)
+ (wrapped false)
+ (libraries
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show))
+)
+(ocamllex lexer_csharp)
+(ocamlyacc parser_csharp)
+;(menhir (modules parser_csharp)
+;        (flags --unused-tokens --explain --fixed-exception))

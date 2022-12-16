@@ -1,0 +1,44 @@
+# The goals of this workflow are to check that:
+# - we can build pfff
+# - all our tests are passing
+
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [master, develop]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    # Use our own image with opam dependencies pre-installed to speed things up.
+    container: returntocorp/ocaml:ubuntu-2022-09-24
+    # We need this hack because GHA tampers with the HOME in container
+    # and this does not play well with 'opam' installed in /root
+    env:
+      HOME: /root
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install System Deps
+      run: sudo apt update && sudo apt-get install -y --no-install-recommends wget swi-prolog mercurial
+    - name: debugging
+      run: |
+        set -x
+        echo "$HOME"
+        echo "$PATH"
+        opam exec -- ocamlc -v
+        opam --version
+        opam switch list
+        opam switch
+        pwd
+        ls -a
+    - name: Install OCaml deps
+      #TODO: we should just do opam install -y .
+      # but this does not work! I get an error about git-ls-files, weird
+      # (it's not so needed because our Docker image is pre-built with
+      # the necessary packages, but each time we had a new package dependency
+      # that is not part of our Docker image, it crashes
+      run: opam install -y stdcompat
+    - name: Run Tests
+      run: eval $(opam env); dune build && dune runtest -f

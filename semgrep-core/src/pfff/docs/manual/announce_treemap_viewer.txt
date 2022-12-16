@@ -1,0 +1,21 @@
+
+I've made a simple treemap viewer command line program called treemap_viewer.
+It takes a JSON file describing a tree of dirs and files with size attributes
+and colors and renders it using one of the treemap algorithm. See ex.json
+for an example of input. In the futur I could generate a PNG or
+gif map so one can click on it (like graphviz)
+
+Test Plan:
+ssh -Y on a linux machine and do
+$ /home/pad/c-pfff/h_visualization/treemap_viewer  /home/pad/c-pfff/h_visualization/examples/treemap/ex.json
+this should display a treemap  X11 window.
+
+You can test on a bigger treemap:
+$ /home/pad/c-pfff/h_visualization/treemap_viewer  /home/pad/c-pfff/facebook/data/flib_treemap.json
+
+If you want to build it yourself, do
+$ git clone /home/engshare/git/projects/pfff
+$ cd pfff/
+$ source env.sh
+$ ./configure -facebook -bdb
+$ make depend; make

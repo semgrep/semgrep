@@ -1,0 +1,96 @@
+-*- org -*-
+
+* dangling else
+
+See http://plus.kaist.ac.kr/~shoh/ocaml/ocamllex-ocamlyacc/ocamlyacc-tutorial/sec-context-dependent-precedence.html
+
+The rules are essentially:
+
+stmt: if e then stmt else stmt (R1)
+    | if e then stmt           (R2)
+
+When we have 'if then if then else' we want to group that
+as 'if then (if then else)' and not 'if then (if then) else'
+so we want that once we have seen 'if then if then' and
+that we are looking at a 'else' to shift and not reduce.
+
+So we want the priority of the reduce rule R2 to be lower
+than the priority of shifting in R1 hence the %prec LOW_PRIORITY_RULE
+directive next to R2.
+
+Note that if you force people to use { } for if and else, as in Hack, then
+you don't have any conflic issues as you will either write
+
+ if e then { if then { } else { } }
+or
+ if e then { if then { } } else { }
+
+to indicate what you want.
+
+* xhp
+
+'<' is overloaded in PHP. It can be the start of an xhp element
+or a comparison. We use tricks in the lexer to generate
+two different tokens (as in my CC'09 paper, see the notion of "fresh tokens").
+
+% and ':' are also overloaded but when they are followed directly
+by some letters we can lex them correctly.
+
+* attributes
+
+One of the rule concerning attributes is:
+
+function_declaration_statement:
+ |            unticked_function_declaration_statement { $1 }
+ | attributes unticked_function_declaration_statement { $2 }
+
+but we can not factorize by using a attributes_opt as in:
+
+function_declaration_statement: attributes_opt unticked...
+
+attributes_opt:
+ | /* empty */ (R1)
+ | attributes  (R2)
+
+Indeed reading from the start a T_FUNCTION, one can not decide between the
+start of the definition of a function, hence reducing an hypotetical
+empty attributes_opt rule R1, or shifting to a state
+allowing both the definition of a function or the start
+of a closure statement.
+
+So as a classic trick we have to "unfold/inline" attributes_opt
+and duplicate rules to avoid early reduce and keep shifting.
+
+* types
+
+In the same way for
+constant_declaration_statement:
+ | T_CONST               T_IDENT TEQ static_scalar TSEMICOLON
+     { ($1, Name $2, $3, $4, $5) }
+ | T_CONST ext_type_hint T_IDENT TEQ static_scalar TSEMICOLON
+     { ($1, Name $3, $4, $5, $6) (* todo: use $2 *) }
+
+we can not factorize with a ext_type_hint_opt because seing an IDENT,
+one does not know if it should reduce ext_type_hint because it's
+the ident of a type or shift because maybe it's the ident of the const.
+
+update: can use ioption in menhir to solve the problem
+
+* short lambdas
+
+When we parse '_ ==> $x + 1' it could potentially be parsed as
+'( _ ==> $x + 1)' or '(_ ==> $x) + 1' but we don't
+want the second one, so we prefer to shift than reduce
+hence the %prec (just like for the dangling else) attached
+to expr in
+
+short_lambda_body:
+ | TOBRACE inner_statement_list TCBRACE { }
+ | expr  %prec LOW_PRIORITY_RULE { }
+
+
+The other conflict is that when we see '($x)' in '($x) ==> ...'
+there is no way to know whether this is an expression (reduce) or
+the parameter specification of a lambda (shift). To resolve the conflict,
+parsing_hacks_php replaces the parens in lambda tokens with special lambda
+paren tokens based on context.

@@ -1,0 +1,11 @@
+To install pfff under macOS, you must first install Brew (see http://brew.sh)
+or MacPorts (see http://www.macports.org/).
+
+Then, install a few packages, for example with Brew:
+ $ brew install objective-caml
+
+For codequery:
+ $ brew install swi-prolog
+
+=> you can now run './configure' and build the many pfff tools :)
+See install.txt for the remaining steps.

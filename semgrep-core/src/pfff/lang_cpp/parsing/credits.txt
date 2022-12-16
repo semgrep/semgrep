@@ -1,0 +1,8 @@
+Thanks to Julia Lawall for the idea to better parse C+CPP by using
+indentation information for heuristic-based parsing. Thanks to Julia
+again for many other things too long to enumerate.
+
+Inspiration:
+ - C yacc grammar published in 1985 by Jeff Lee:
+    lex:  http://www.lysator.liu.se/c/ANSI-C-grammar-l.html
+    yacc: http://www.lysator.liu.se/c/ANSI-C-grammar-y.html

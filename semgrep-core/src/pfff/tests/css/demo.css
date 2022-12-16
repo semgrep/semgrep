@@ -1,0 +1,16 @@
+/* from wikipedia page on CSS */
+body {
+    margin: 4px;
+    border: 3px dotted;
+    font-family: sans-serif;
+    color: #000000;
+    background-color: #FFFFFF;
+}
+
+h1 {
+    padding: 5px;
+    margin: 10px;
+    border: 1px solid #C0C0C0;
+    color: #FF0000;
+    background-color: #0000FF;
+}

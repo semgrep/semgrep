@@ -1,0 +1,14 @@
+(library
+ (public_name pfff-lang_python)
+ (name pfff_lang_python)
+ (wrapped false)
+ (libraries
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
+)
+(ocamllex Lexer_python)
+(menhir (modules Parser_python)
+        (flags --unused-tokens --explain --fixed-exception))

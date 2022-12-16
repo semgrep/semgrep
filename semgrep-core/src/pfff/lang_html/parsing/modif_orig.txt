@@ -1,0 +1,6 @@
+Many of the code in this directory comes from ocamlnet/netstring/.
+I've modified this code to remove the many dependencies to ocamlnet/, split
+nethtml.ml into a separate ast_html.ml and parse_html.ml and added
+some token information in the HTML tree so one can give precise
+error message with file location and one can also do a html highlighter
+for codemap.

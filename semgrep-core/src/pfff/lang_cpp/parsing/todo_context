@@ -1,0 +1,143 @@
+
+was in token_views_context.ml:
+
+
+
+(*
+let look_like_only_idents xs =
+  xs +> List.for_all (function
+  | Tok {t=(TComma _ | TIdent _)} -> true
+  (* when have cast *)
+  | Parens _ -> true
+  | _ -> false
+  )
+*)
+
+
+
+(*
+  | BToken ({t=tokstruct; _})::BToken ({t= TIdent (s,_); _})
+    ::Braceised(body, tok1, tok2)::xs when TH.is_classkey_keyword tokstruct ->
+      body +> List.iter (iter_token_brace (fun tok ->
+        tok.where <- (InClassStruct s)::tok.where;
+      ));
+      set_in_other xs
+
+  (* struct/union/class x : ... { } *)
+  | BToken ({t= tokstruct; _})::BToken ({t=TIdent _; _})
+    ::BToken ({t=TCol _})::xs when TH.is_classkey_keyword tokstruct ->
+
+      (try
+        let (before, elem, after) = Common2.split_when is_braceised xs in
+        (match elem with
+        | Braceised(body, tok1, tok2) ->
+            body +> List.iter (iter_token_brace (fun tok ->
+              tok.where <- InInitializer::tok.where;
+            ));
+            set_in_other after
+        | _ -> raise Impossible
+        )
+      with Not_found ->
+        pr2 ("PB: could not find braces after struct/union/class x : ...");
+      )
+
+    *)
+
+
+
+(* todo: this lead to some regressions :(
+  (* = ... ;  *)
+  | Tok ({t=TEq ii;where = [InTopLevel]})::xs ->
+
+      let (before, ptvirg, after) =
+        try
+          xs +> Common2.split_when (function
+          | Tok ({t=TPtVirg _;}) -> true
+          | _ -> false
+          )
+        with Not_found ->
+          raise (UnclosedSymbol (spf "PB with split_when at %s"
+                                    (Parse_info.string_of_info ii)))
+      in
+      before +> TV.iter_token_multi (fun tok ->
+        tok.TV.where <- TV.InAssign::tok.TV.where;
+      );
+      aux before;
+      aux [ptvirg];
+      aux after
+*)
+
+  (* TODO xx(...) {  InFunction (can have some try or const or throw after
+   * the paren *)
+
+ (* could try: ) { } but it can be the ) of a if or while, so
+  * better to base the heuristic on the position in column zero.
+  * Note that some struct or enum or init put also their { in first column
+  * but set_in_other will overwrite the previous InFunction tag.
+  *)
+
+(*TODOC++ext: now can have some const or throw between
+  => do a view that filter them first ?
+*)
+
+(*
+
+  (* ) { and the closing } is in column zero, then certainly a function *)
+(*TODO1 col 0 not valid anymore with c++ nestedness of method *)
+  | BToken ({t=TCPar _})::(Braceised (body, tok1, Some tok2))::xs
+      when tok1.col <> 0 && tok2.col = 0 ->
+      body +> List.iter (iter_token_brace (fun tok ->
+        tok.where <- InFunction::tok.where;
+      ));
+      aux xs
+
+  | (BToken x)::xs -> aux xs
+
+(*TODO1 not valid anymore with c++ nestedness of method *)
+  | (Braceised (body, tok1, Some tok2))::xs
+      when tok1.col = 0 && tok2.col = 0 ->
+      body +> List.iter (iter_token_brace (fun tok ->
+        tok.where <- InFunction::tok.where;
+      ));
+      aux xs
+  | Braceised (body, tok1, tok2)::xs ->
+      aux xs
+ in
+
+
+  (* TODO <...> InTemplateParam *)
+  *)
+
+
+
+
+
+
+
+  (* C++: second tentative on InArgument, if xx(xx, yy, ww) where have only
+   * identifiers, it's probably a constructed object!
+   * But FP on C code, so should guard that with Flag_parsing_cpp.lang = C++
+   *)
+(*
+  | Tok{t=TIdent _; where = ctx}::(Parens(_t1, body, _t2) as parens)::xs
+    when List.length body > 0 && look_like_only_idents body ->
+      [parens] +> TV.iter_token_multi (fun tok ->
+        let where =
+          match ctx with
+          | TV.InTopLevel::_ -> TV.InParameter
+          | TV.InAssign::_ -> TV.InArgument
+          | _ -> TV.InArgument
+        in
+        tok.TV.where <- where::tok.TV.where;
+      );
+      (* todo? recurse on body? *)
+      aux (parens::xs)
+
+  (* could be a cast too ... or what else? *)
+  | x::(Parens(_t1, _body, _t2) as parens)::xs ->
+      (* let's default to something? hmm, no, got lots of regressions then
+       *  old: msg_context t1.t (TV.InArgument); ...
+       *)
+      aux [x];
+      aux (parens::xs)
+*)

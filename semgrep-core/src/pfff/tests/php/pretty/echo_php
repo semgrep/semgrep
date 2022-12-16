@@ -1,0 +1,8 @@
+<?php
+
+for ($i=0;$i<10;$i++) {
+  echo "$i\n";
+  flush();
+  ob_flush();
+  sleep(1);
+}

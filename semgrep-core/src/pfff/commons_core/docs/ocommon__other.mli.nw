@@ -1,0 +1,295 @@
+\chapter{Oset}
+
+\todo{
+setxxx
+}
+
+<<oset.mli>>=
+class virtual ['a] oset :
+object ('o)
+  inherit ['a] Ocollection.ocollection
+
+  method cardinal : int
+
+  method virtual inter : 'o -> 'o
+  method virtual minus : 'o -> 'o
+  method virtual union : 'o -> 'o
+
+  method is_singleton : bool
+  method is_subset_of : 'o -> bool
+  method is_equal : 'o -> bool
+
+  method virtual toset : 'd
+  method tosetb : 'a Set_poly.t
+  method toseti : Seti.seti
+  method tosetpt : SetPt.t
+end
+
+val ( $??$ )  : 'a -> < mem : 'a -> bool; .. > -> bool
+val ( $++$ )  : < union : 'a -> 'o; .. > -> 'a -> 'o
+val ( $**$ )  : < inter : 'a -> 'o; .. > -> 'a -> 'o
+val ( $--$ )  : < minus : 'a -> 'o; .. > -> 'a -> 'o
+val ( $<<=$ ) : < is_subset_of : 'a -> bool; .. > -> 'a -> bool
+val ( $==$ )  : < is_equal : 'a -> bool; .. > -> 'a -> bool
+
+val mapo : ('a -> 'o) -> 'o oset -> 'a oset -> 'o oset
+
+@
+
+\chapter{Oassoc}
+
+<<oassoc.mli>>=
+
+class virtual ['a, 'b] oassoc :
+object ('o)
+  inherit ['a * 'b] Ocollection.ocollection
+
+  method virtual assoc : 'a -> 'b
+  method virtual delkey : 'a -> 'o
+
+  (* may raise NotFound *)
+  method find : 'a -> 'b
+  method find_opt: 'a -> 'b option
+
+  method haskey : 'a -> bool
+  method replkey : 'a * 'b -> 'o
+
+  (* better to implement it yourself *)
+  method virtual keys: 'a list
+
+  method apply : 'a -> ('b -> 'b) -> 'o
+  method apply_with_default : 'a -> ('b -> 'b) -> (unit -> 'b) -> 'o
+
+  (* effect version *)
+  method apply_with_default2 : 'a -> ('b -> 'b) -> (unit -> 'b) -> unit
+
+end
+
+@
+
+\chapter{Osequence}
+
+<<osequence.mli>>=
+class virtual ['a] osequence :
+object ('o)
+  inherit [int, 'a] Oassoc.oassoc
+
+  method virtual nth : int -> 'a
+  method virtual first : 'a
+  method virtual last : 'a
+end
+
+@
+\chapter{Oarray}
+
+<<oarray.mli>>=
+(* !!take care!!, this is not a pure data structure *)
+
+class ['a] oarray : int -> 'a ->
+object ('o)
+  inherit ['a] Osequence.osequence
+
+  (* ocollection concrete instantiation of virtual methods *)
+  method empty : 'o
+  method add : (int * 'a) -> 'o
+
+  method iter : (int * 'a -> unit) -> unit
+  method view : (int * 'a, 'o) Ocollection.view
+
+  method del : (int * 'a) -> 'o
+  method mem : int * 'a -> bool
+  method null : bool
+
+
+  (* oassoc concrete instantiation of virtual methods *)
+  method assoc : int -> 'a
+  method delkey : int -> 'o
+
+  method keys: int list
+
+  (* osequence concrete instantiation of virtual methods *)
+  method first : 'a
+  method last : 'a
+  method nth : int -> 'a
+
+end
+
+@
+
+\chapter{Ograph}
+
+<<ograph.mli>>=
+class virtual ['a] ograph :
+object ('o)
+  method virtual empty : 'o
+
+  method virtual add_node : 'a -> 'o
+  method virtual del_node : 'a -> 'o
+
+  method virtual add_arc : 'a * 'a -> 'o
+  method virtual del_arc : 'a * 'a -> 'o
+
+
+  method virtual nodes : 'a Oset.oset
+  method virtual predecessors : 'a -> 'a Oset.oset
+  method virtual successors : 'a -> 'a Oset.oset
+
+  method virtual ancestors : 'a Oset.oset -> 'a Oset.oset
+  method virtual brothers : 'a -> 'a Oset.oset
+  method virtual children : 'a Oset.oset -> 'a Oset.oset
+
+  method mydebug : ('a * 'a list) list
+end
+
+@
+
+
+
+<<ograph_simple.mli>>=
+open Common
+
+(* essentially a convenient way to access a hash and its reverse hash *)
+
+class ['key, 'node, 'edge] ograph_mutable :
+object ('o)
+  method add_node : 'key -> 'node -> unit
+  method del_node : 'key -> unit
+  method replace_node: 'key -> 'node -> unit
+  method add_node_if_not_present: 'key -> 'node -> unit
+
+
+  method add_arc : ('key * 'key) -> 'edge -> unit
+  method del_arc : ('key * 'key) -> 'edge -> unit
+
+  method nodes : ('key, 'node) Oassoc.oassoc
+
+  method successors : 'key -> ('key * 'edge) Oset.oset
+  method predecessors : 'key -> ('key * 'edge) Oset.oset
+  method allsuccessors : ('key, ('key * 'edge) Oset.oset) Oassoc.oassoc
+
+
+  method del_leaf_node_and_its_edges: 'key -> unit
+  method ancestors : 'key -> 'key Oset.oset
+  method leaf_nodes : unit -> 'key Oset.oset
+
+end
+
+val print_ograph_generic:
+  str_of_key:('key -> string) ->
+  str_of_node:('key -> 'node -> string) ->
+  Common.filename ->
+  ('key, 'node,'edge) ograph_mutable ->
+  unit
+
+@
+
+\begin{verbatim}
+ * graph structure:
+ *  -  node: index -> nodevalue
+ *  -  arc: (index * index) * edgevalue
+ *
+ * invariant: key in pred is also in succ (completness) and value in
+ * either assoc is a key also.
+ *
+ * How ? matrix ? but no growing array :(
+ *
+ * When need index ? Must have an index when can't just use nodevalue
+ * as a key, cos sometimes may have 2 times the same key, but it must
+ * be 2 different nodes. For instance in program f(); f(); we want 2
+ * nodes, one per f(); hence the index. If each node is different,
+ * then no problem, can omit index.
+ *
+\end{verbatim}
+
+<<ograph_extended.mli>>=
+open Common
+
+type nodei = int
+
+(* graph structure:
+ *  - node: index -> nodevalue
+ *  - arc: (index * index) * edgevalue
+ *
+ * How ? matrix ? but no growing array :(
+ *
+ * When need index ? Must have an index when can't just use the nodevalue
+ * as a key, cos sometimes may have 2 times the same key, but it must
+ * be 2 different nodes. For instance in a C program 'f(); f();' we want 2
+ * nodes, one per 'f();' hence the index. If each node is different, then
+ * no problem, can omit index.
+ *)
+
+class ['node, 'edge] ograph_extended :
+object ('o)
+  method add_node : 'node -> 'o * nodei
+  method add_nodei : nodei -> 'node -> 'o * nodei
+  method replace_node : nodei * 'node -> 'o
+  method del_node : nodei -> 'o
+
+  method add_arc : (nodei * nodei) * 'edge -> 'o
+  method del_arc : (nodei * nodei) * 'edge -> 'o
+
+  method nodes : (nodei, 'node) Oassoc.oassoc
+
+  method successors : nodei -> (nodei * 'edge) Oset.oset
+  method predecessors : nodei -> (nodei * 'edge) Oset.oset
+  method allsuccessors : (nodei, (nodei * 'edge) Oset.oset) Oassoc.oassoc
+end
+
+
+class ['node, 'edge] ograph_mutable :
+object ('o)
+  method add_node : 'node -> nodei
+  method add_nodei : nodei -> 'node -> unit
+  method replace_node : nodei * 'node -> unit
+  method del_node : nodei -> unit
+
+  method add_arc : (nodei * nodei) * 'edge -> unit
+  method del_arc : (nodei * nodei) * 'edge -> unit
+
+  method nodes : (nodei, 'node) Oassoc.oassoc
+
+  method successors : nodei -> (nodei * 'edge) Oset.oset
+  method predecessors : nodei -> (nodei * 'edge) Oset.oset
+  method allsuccessors : (nodei, (nodei * 'edge) Oset.oset) Oassoc.oassoc
+
+  method nb_nodes: int
+  method nb_edges: int
+end
+
+
+val dfs_iter :
+  nodei -> (nodei -> unit) -> ('node, 'edge) ograph_mutable -> unit
+
+val dfs_iter_with_path :
+  nodei -> (nodei -> nodei list -> unit) -> ('node, 'edge) ograph_mutable ->
+  unit
+
+val print_ograph_mutable_generic :
+  ?title:string option -> (* label for the entire graph *)
+  ?launch_gv:bool ->
+  ?output_file:filename ->
+  (* what string to print for a node and how to color it *)
+  s_of_node:((nodei * 'node) -> (string * string option * string option)) ->
+  ('node, 'edge) ograph_mutable ->
+  unit
+
+
+val print_ograph_extended :
+  ('node * string, 'edge) ograph_extended ->
+  filename (* output file *) ->
+  bool (* launch gv ? *) ->
+  unit
+
+val print_ograph_mutable :
+  ('node * string, 'edge) ograph_mutable ->
+  filename (* output file *) ->
+  bool (* launch gv ? *) ->
+  unit
+
+val launch_gv_cmd : Common.filename -> unit
+
+@
+
+
+\chapter{Odb}

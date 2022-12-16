@@ -1,0 +1,1503 @@
+*
+ *
+ *  SQL Parser
+ *
+ *  (C)Copyright 1998 OpenLink Software.
+ *  All Rights Reserved.
+ *
+ *  The copyright above and this notice must be preserved in all
+ *  copies of this source code.  The copyright above does not
+ *  evidence any actual or intended publication of this source code.
+ *
+ *  This is unpublished proprietary trade secret of OpenLink Software.
+ *  This source code may not be copied, disclosed, distributed, demonstrated
+ *  or licensed except as authorized by OpenLink Software.
+ */
+
+Grammar
+
+    0 $accept: sql_list $end
+
+    1 sql_list: sql_list1 ';'
+    2         | sql_list1
+
+    3 sql_list1: sql
+
+    4 sql: schema_element_list
+    5    | view_def
+    6    | xml_view
+    7    | create_xml_schema
+    8    | alter_constraint
+    9    | create_library
+   10    | create_assembly
+   11    | drop_library
+   12    | drop_assembly
+
+   13 schema_element_list: schema_element
+   14                    | add_column
+   15                    | schema_element_list schema_element
+   16                    | schema_element_list add_column
+
+   17 schema_element: base_table_def
+   18               | create_index_def
+   19               | drop_table
+   20               | drop_index
+   21               | table_rename
+   22               | privilege_def
+   23               | privilege_revoke
+   24               | create_user_statement
+   25               | delete_user_statement
+   26               | set_pass
+   27               | set_group_stmt
+   28               | add_group_stmt
+   29               | delete_group_stmt
+   30               | user_defined_type
+   31               | user_defined_type_drop
+   32               | user_defined_type_alter
+
+   33 identifier: NAME
+   34           | TYPE
+   35           | FINAL_L
+   36           | METHOD
+   37           | CHECKED
+   38           | SYSTEM
+   39           | GENERATED
+   40           | SOURCE
+   41           | RESULT
+   42           | LOCATOR
+   43           | INSTANCE_L
+   44           | CONSTRUCTOR
+   45           | SELF_L
+   46           | OVERRIDING
+   47           | STYLE
+   48           | SQL_L
+   49           | GENERAL
+   50           | DETERMINISTIC
+   51           | NO
+   52           | CONTAINS
+   53           | READS
+   54           | DATA
+   55           | MODIFIES
+   56           | INPUT
+   57           | CALLED
+   58           | ADA
+   59           | C
+   60           | COBOL
+   61           | FORTRAN
+   62           | MUMPS
+   63           | PASCAL_L
+   64           | PLI
+   65           | NAME_L
+   66           | TEXT_L
+   67           | JAVA
+   68           | INOUT_L
+   69           | REMOTE
+   70           | KEYSET
+   71           | VALUE
+   72           | PARAMETER
+   73           | VARIABLE
+   74           | CLR
+   75           | TEMPORARY
+   76           | ADMIN_L
+   77           | __SOAP_DOC
+   78           | __SOAP_DOCW
+   79           | __SOAP_HEADER
+   80           | __SOAP_HTTP
+   81           | __SOAP_NAME
+   82           | __SOAP_TYPE
+   83           | __SOAP_XML_TYPE
+   84           | __SOAP_FAULT
+   85           | __SOAP_DIME_ENC
+   86           | __SOAP_ENC_MIME
+   87           | __SOAP_OPTIONS
+   88           | START_L
+   89           | ATTRIBUTE
+   90           | REXECUTE
+   91           | PERMISSION_SET
+   92           | AUTOREGISTER_L
+   93           | LIBRARY_L
+   94           | ASSEMBLY_L
+   95           | SAFE_L
+   96           | UNRESTRICTED
+   97           | INCREMENT_L
+   98           | FOREACH
+
+   99 base_table_def: CREATE TABLE new_table_name '(' base_table_element_commalist ')'
+
+  100 base_table_element_commalist: base_table_element
+  101                             | base_table_element_commalist ',' base_table_element
+
+  102 base_table_element: column_def
+  103                   | table_constraint_def
+
+  104 column_def: column column_data_type column_def_opt_list
+
+  105 opt_referential_triggered_action: /* empty */
+  106                                 | referential_rule
+  107                                 | referential_rule referential_rule
+
+  108 referential_rule: ON UPDATE referential_action
+  109                 | delete_referential_rule
+
+  110 delete_referential_rule: ON DELETE_L referential_action
+
+  111 opt_on_delete_referential_rule: /* empty */
+  112                               | delete_referential_rule
+
+  113 referential_action: CASCADE
+  114                   | SET NULLX
+  115                   | SET DEFAULT
+
+  116 references: REFERENCES q_table_name opt_column_commalist opt_referential_triggered_action
+
+  117 column_def_opt_list: /* empty */
+  118                    | column_def_opt_list column_def_opt
+
+  119 identity_opt: START_L WITH signed_literal
+  120             | INCREMENT_L BY INTNUM
+
+  121 identity_opt_list: identity_opt
+  122                  | identity_opt_list ',' identity_opt
+
+  123 column_def_opt: NOT NULLX
+  124               | NULLX
+  125               | IDENTITY
+  126               | IDENTITY '(' identity_opt_list ')'
+  127               | PRIMARY KEY
+  128               | DEFAULT signed_literal
+  129               | COLLATE q_table_name
+  130               | references
+  131               | IDENTIFIED BY column
+  132               | CHECK '(' search_condition ')'
+  133               | WITH SCHEMA column_xml_schema_def
+  134               | UNIQUE
+
+  135 column_xml_schema_def: '(' STRING ',' STRING ')'
+  136                      | '(' STRING ',' STRING ',' STRING ')'
+
+  137 table_constraint_def: UNDER q_table_name
+  138                     | opt_constraint_name PRIMARY KEY '(' index_column_commalist ')' opt_index_option_list
+  139                     | opt_constraint_name FOREIGN KEY '(' column_commalist ')' references
+  140                     | opt_constraint_name CHECK '(' search_condition ')'
+  141                     | opt_constraint_name UNIQUE '(' column_commalist ')'
+
+  142 opt_constraint_name: /* empty */
+  143                    | CONSTRAINT identifier
+
+  144 column_commalist: column
+  145                 | column_commalist ',' column
+
+  146 index_column_commalist: column opt_asc_desc
+  147                       | index_column_commalist ',' column opt_asc_desc
+
+  148 index_option: CLUSTERED
+  149             | UNIQUE
+  150             | OBJECT_ID
+
+  151 index_option_list: index_option
+  152                  | index_option_list index_option
+
+  153 opt_index_option_list: /* empty */
+  154                      | index_option_list
+
+  155 create_index_def: CREATE opt_index_option_list INDEX index ON new_table_name '(' index_column_commalist ')'
+
+  156 drop_index: DROP INDEX identifier opt_table
+
+  157 opt_table: /* empty */
+  158          | q_table_name
+
+  159 drop_table: DROP TABLE q_table_name
+  160           | DROP VIEW q_table_name
+
+  161 opt_col_add_column: /* empty */
+  162                   | COLUMN
+
+  163 add_col_column_def_list: column_def
+  164                        | add_col_column_def_list ',' column_def
+
+  165 add_col_column_list: column
+  166                    | add_col_column_list ',' column
+
+  167 add_column: ALTER TABLE q_table_name ADD opt_col_add_column add_col_column_def_list
+  168           | ALTER TABLE q_table_name DROP opt_col_add_column add_col_column_list
+  169           | ALTER TABLE q_table_name MODIFY opt_col_add_column column_def
+
+  170 table_rename: ALTER TABLE q_table_name RENAME new_table_name
+
+  171 constraint_op: ADD
+  172              | DROP
+  173              | MODIFY
+
+  174 opt_drop_behavior: /* empty */
+  175                  | CASCADE
+  176                  | RESTRICT
+
+  177 opt_table_constraint_def: CONSTRAINT identifier opt_drop_behavior
+  178                         | table_constraint_def
+
+  179 alter_constraint: ALTER TABLE q_table_name constraint_op opt_table_constraint_def
+
+  180 create_xml_schema: CREATE XML SCHEMA STRING
+
+  181 view_query_spec: query_exp
+  182                | query_no_from_spec
+
+  183 @1: /* empty */
+
+  184 view_def: CREATE VIEW new_table_name @1 opt_column_commalist AS view_query_spec opt_with_check_option
+  185         | CREATE PROCEDURE VIEW new_table_name AS q_table_name '(' column_commalist_or_empty ')' '(' proc_col_list ')'
+
+  186 opt_with_check_option: /* empty */
+  187                      | WITH CHECK OPTION
+
+  188 opt_column_commalist: /* empty */
+  189                     | '(' column_commalist ')'
+
+  190 priv_opt_column_commalist: /* empty */
+  191                          | '(' column_commalist ')'
+
+  192 privilege_def: GRANT ALL PRIVILEGES TO grantee
+  193              | GRANT privileges ON table TO grantee_commalist opt_with_grant_option
+  194              | GRANT EXECUTE ON function_name TO grantee_commalist opt_with_grant_option
+  195              | GRANT REXECUTE ON STRING TO grantee_commalist
+  196              | GRANT UNDER ON q_old_type_name TO grantee_commalist opt_with_grant_option
+  197              | GRANT grantee_commalist TO grantee_commalist opt_with_admin_option
+
+  198 opt_with_admin_option: /* empty */
+  199                      | WITH ADMIN_L OPTION
+
+  200 privilege_revoke: REVOKE privileges ON table FROM grantee_commalist
+  201                 | REVOKE EXECUTE ON function_name FROM grantee_commalist
+  202                 | REVOKE UNDER ON q_old_type_name FROM grantee_commalist
+  203                 | REVOKE REXECUTE ON STRING FROM grantee_commalist
+  204                 | REVOKE grantee_commalist FROM grantee_commalist
+
+  205 opt_with_grant_option: /* empty */
+  206                      | WITH GRANT OPTION
+
+  207 privileges: ALL PRIVILEGES
+  208           | ALL
+  209           | operation_commalist
+
+  210 operation_commalist: operation
+  211                    | operation_commalist ',' operation
+
+  212 operation: SELECT priv_opt_column_commalist
+  213          | INSERT
+  214          | DELETE_L
+  215          | UPDATE priv_opt_column_commalist
+  216          | REFERENCES priv_opt_column_commalist
+
+  217 grantee_commalist: grantee
+  218                  | grantee_commalist ',' grantee
+
+  219 grantee: PUBLIC
+  220        | user
+
+  221 set_pass: SET PASSWORD identifier identifier
+
+  222 create_user_statement: CREATE USER user
+  223                      | CREATE ROLE_L user
+
+  224 delete_user_statement: DELETE_L USER user
+  225                      | DELETE_L USER user CASCADE
+  226                      | DROP USER user
+  227                      | DROP USER user CASCADE
+  228                      | DROP ROLE_L user
+
+  229 set_group_stmt: SET USER GROUP user user
+
+  230 add_group_stmt: ADD USER GROUP user user
+
+  231 delete_group_stmt: DELETE_L USER GROUP user user
+
+  232 opt_attach_primary_key: /* empty */
+  233                       | PRIMARY KEY '(' column_commalist ')'
+
+  234 attach_table: ATTACH TABLE attach_q_table_name opt_attach_primary_key opt_as FROM literal opt_login opt_not_select opt_remote_name
+
+  235 opt_as: /* empty */
+  236       | AS new_table_name
+
+  237 opt_login: /* empty */
+  238          | USER scalar_exp PASSWORD scalar_exp
+
+  239 opt_not_select: /* empty */
+  240               | NOT SELECT
+
+  241 opt_remote_name: /* empty */
+  242                | REMOTE AS scalar_exp
+
+  243 cursor_type: STATIC_L
+  244            | DYNAMIC
+  245            | KEYSET
+
+  246 cursor_def: DECLARE identifier CURSOR FOR query_exp
+  247           | DECLARE identifier cursor_type CURSOR FOR query_exp
+
+  248 opt_order_by_clause: /* empty */
+  249                    | ORDER BY ordering_spec_commalist
+
+  250 ordering_spec_commalist: ordering_spec
+  251                        | ordering_spec_commalist ',' ordering_spec
+
+  252 ordering_spec: scalar_exp opt_asc_desc
+  253              | mssql_xml_col opt_asc_desc
+
+  254 opt_asc_desc: /* empty */
+  255             | ASC
+  256             | DESC
+
+  257 create_snapshot_log: CREATE SNAPSHOT LOGX FOR q_table_name
+
+  258 drop_snapshot_log: DROP SNAPSHOT LOGX FOR q_table_name
+
+  259 purge_snapshot_log: PURGE SNAPSHOT LOGX FOR q_table_name
+
+  260 opt_snapshot_string_literal: /* empty */
+  261                            | STRING
+
+  262 opt_snapshot_where_clause: /* empty */
+  263                          | WHERE STRING
+
+  264 create_snapshot: CREATE SNAPSHOT q_table_name FROM q_table_name opt_snapshot_string_literal opt_snapshot_where_clause
+  265                | CREATE NONINCREMENTAL SNAPSHOT q_table_name AS STRING
+
+  266 opt_with_delete: /* empty */
+  267                | WITH DELETE_L
+
+  268 drop_snapshot: DROP SNAPSHOT q_table_name opt_with_delete
+
+  269 opt_nonincremental: /* empty */
+  270                   | AS NONINCREMENTAL
+
+  271 refresh_snapshot: UPDATE SNAPSHOT q_table_name opt_nonincremental
+
+  272 create_freetext_index: CREATE TEXT_L opt_xml INDEX ON q_table_name '(' column ')' opt_with_key opt_deffer_generation opt_with opt_data_modification_action opt_lang opt_enc
+
+  273 opt_data_modification_action: /* empty */
+  274                             | USING FUNCTION
+
+  275 opt_column: /* empty */
+  276           | '(' column ')'
+
+  277 create_freetext_trigger: CREATE TEXT_L TRIGGER ON q_table_name opt_column
+
+  278 drop_freetext_trigger: DROP TEXT_L TRIGGER ON q_table_name opt_column
+
+  279 opt_xml: /* empty */
+  280        | XML
+
+  281 opt_with_key: /* empty */
+  282             | WITH KEY column
+
+  283 opt_with: /* empty */
+  284         | CLUSTERED WITH '(' column_commalist ')'
+
+  285 opt_lang: /* empty */
+  286         | LANGUAGE STRING
+
+  287 opt_enc: /* empty */
+  288        | ENCODING STRING
+
+  289 opt_deffer_generation: /* empty */
+  290                      | NOT INSERT
+
+  291 sql: manipulative_statement
+
+  292 manipulative_statement: query_exp
+  293                       | query_no_from_spec
+  294                       | update_statement_positioned
+  295                       | update_statement_searched
+  296                       | insert_statement
+  297                       | delete_statement_positioned
+  298                       | delete_statement_searched
+  299                       | call_statement
+  300                       | static_method_invocation
+  301                       | METHOD CALL static_method_invocation
+  302                       | top_level_method_invocation
+  303                       | set_statement
+  304                       | drop_xml_view
+  305                       | commit_statement
+  306                       | rollback_statement
+  307                       | admin_statement
+  308                       | use_statement
+  309                       | attach_table
+  310                       | create_snapshot_log
+  311                       | drop_snapshot_log
+  312                       | purge_snapshot_log
+  313                       | create_snapshot
+  314                       | drop_snapshot
+  315                       | refresh_snapshot
+  316                       | create_freetext_index
+  317                       | create_freetext_trigger
+  318                       | drop_freetext_trigger
+
+  319 use_statement: USE identifier
+
+  320 close_statement: CLOSE cursor
+
+  321 commit_statement: COMMIT WORK
+
+  322 delete_statement_positioned: DELETE_L FROM table WHERE CURRENT OF cursor
+
+  323 delete_statement_searched: DELETE_L FROM table opt_where_clause
+
+  324 fetch_statement: FETCH cursor INTO target_commalist
+  325                | FETCH cursor NAME INTO target_commalist
+  326                | FETCH cursor NAME scalar_exp INTO target_commalist
+
+  327 insert_mode: INTO
+  328            | REPLACING
+  329            | SOFT
+
+  330 insert_statement: INSERT insert_mode table priv_opt_column_commalist values_or_query_spec
+
+  331 values_or_query_spec: VALUES '(' insert_atom_commalist ')'
+  332                     | query_spec
+
+  333 insert_atom_commalist: insert_atom
+  334                      | insert_atom_commalist ',' insert_atom
+
+  335 insert_atom: scalar_exp
+
+  336 sql_option: ORDER
+  337           | HASH
+  338           | LOOP
+  339           | INDEX identifier
+  340           | INDEX PRIMARY KEY
+  341           | INDEX TEXT_L KEY
+  342           | NAME INTNUM
+
+  343 sql_opt_commalist: sql_option
+  344                  | sql_opt_commalist ',' sql_option
+
+  345 opt_sql_opt: /* empty */
+  346            | OPTION '(' sql_opt_commalist ')'
+
+  347 opt_table_opt: /* empty */
+  348              | TABLE OPTION '(' sql_opt_commalist ')'
+
+  349 cursor_option: EXCLUSIVE
+  350              | PREFETCH INTNUM
+
+  351 cursor_options_commalist: cursor_option
+  352                         | cursor_options_commalist ',' cursor_option
+
+  353 opt_cursor_options_list: /* empty */
+  354                        | '(' cursor_options_commalist ')'
+
+  355 open_statement: OPEN cursor opt_cursor_options_list
+
+  356 rollback_statement: ROLLBACK WORK
+
+  357 with_opt_cursor_options_list: /* empty */
+  358                             | WITH opt_cursor_options_list
+
+  359 select_statement: SELECT opt_top selection INTO target_commalist table_exp with_opt_cursor_options_list
+
+  360 opt_all_distinct: /* empty */
+  361                 | ALL
+  362                 | DISTINCT
+
+  363 opt_ties: /* empty */
+  364         | WITH TIES
+
+  365 opt_top: opt_all_distinct
+  366        | opt_all_distinct TOP INTNUM opt_ties
+  367        | opt_all_distinct TOP '(' scalar_exp ')' opt_ties
+  368        | opt_all_distinct TOP INTNUM ',' INTNUM opt_ties
+  369        | opt_all_distinct TOP '(' scalar_exp ',' scalar_exp ')' opt_ties
+
+  370 update_statement_positioned: UPDATE table SET assignment_commalist WHERE CURRENT OF cursor
+
+  371 assignment_commalist: /* empty */
+  372                     | assignment
+  373                     | assignment_commalist ',' assignment
+
+  374 assignment: column COMPARISON scalar_exp
+
+  375 update_statement_searched: UPDATE table SET assignment_commalist opt_where_clause
+
+  376 target_commalist: target
+  377                 | target_commalist ',' target
+
+  378 target: column_ref
+  379       | member_observer
+  380       | lvalue_array_ref
+
+  381 opt_where_clause: /* empty */
+  382                 | where_clause
+
+  383 opt_best: /* empty */
+  384         | BEST
+
+  385 query_exp: query_term
+  386          | non_final_union_exp opt_best UNION opt_corresponding query_term
+  387          | non_final_union_exp opt_best UNION ALL opt_corresponding query_term
+  388          | non_final_union_exp INTERSECT opt_corresponding query_term
+  389          | non_final_union_exp INTERSECT ALL opt_corresponding query_term
+  390          | non_final_union_exp EXCEPT opt_corresponding query_term
+  391          | non_final_union_exp EXCEPT ALL opt_corresponding query_term
+
+  392 non_final_union_exp: non_final_query_term
+  393                    | non_final_union_exp opt_best UNION opt_corresponding non_final_query_term
+  394                    | non_final_union_exp opt_best UNION ALL opt_corresponding non_final_query_term
+  395                    | non_final_union_exp INTERSECT opt_corresponding non_final_query_term
+  396                    | non_final_union_exp INTERSECT ALL opt_corresponding non_final_query_term
+  397                    | non_final_union_exp EXCEPT opt_corresponding non_final_query_term
+  398                    | non_final_union_exp EXCEPT ALL opt_corresponding non_final_query_term
+
+  399 non_final_query_term: non_final_query_spec
+  400                     | XPATH STRING
+
+  401 query_term: query_spec
+  402           | '(' query_exp ')' opt_order_by_clause
+  403           | XPATH STRING
+
+  404 opt_corresponding: /* empty */
+  405                  | CORRESPONDING BY '(' column_commalist ')'
+
+  406 non_final_query_spec: SELECT opt_top selection non_final_table_exp
+
+  407 query_spec: SELECT opt_top selection table_exp
+
+  408 query_no_from_spec: SELECT opt_top selection
+
+  409 selection: select_scalar_exp_commalist
+
+  410 non_final_table_exp: from_clause opt_where_clause opt_group_by_clause opt_having_clause
+
+  411 table_exp: from_clause opt_where_clause opt_group_by_clause opt_having_clause opt_order_by_clause opt_lock_mode opt_sql_opt
+
+  412 from_clause: FROM table_ref_commalist
+
+  413 table_ref_commalist: table_ref
+  414                    | table_ref_commalist ',' table_ref
+
+  415 proc_col_list: column_def
+  416              | proc_col_list ',' column_def
+
+  417 opt_proc_col_list: '(' proc_col_list ')'
+
+  418 column_commalist_or_empty: /* empty */
+  419                          | column_commalist
+
+  420 table_ref: table
+  421          | '(' query_exp ')' identifier
+  422          | '(' query_exp ')' AS identifier
+  423          | joined_table
+  424          | q_table_name '(' column_commalist_or_empty ')' opt_proc_col_list identifier
+
+  425 table_ref_nj: table
+  426             | subquery identifier
+  427             | subquery AS identifier
+  428             | '(' joined_table ')'
+
+  429 jtype: /* empty */
+  430      | LEFT opt_outer
+  431      | RIGHT opt_outer
+  432      | FULL opt_outer
+  433      | INNER
+  434      | CROSS
+
+  435 opt_outer: /* empty */
+  436          | OUTER
+
+  437 join: NATURAL jtype
+  438     | jtype
+
+  439 joined_table: joined_table_1
+  440             | BEGIN_OJ_X joined_table_1 ENDX
+  441             | '(' joined_table_1 ')'
+
+  442 joined_table_1: table_ref join JOIN table_ref_nj join_condition
+
+  443 join_condition: /* empty */
+  444               | ON search_condition
+  445               | USING '(' column_commalist ')'
+
+  446 where_clause: WHERE search_condition
+
+  447 opt_group_by_clause: /* empty */
+  448                    | GROUP BY ordering_spec_commalist
+  449                    | GROUP BY ROLLUP '(' ordering_spec_commalist ')'
+  450                    | GROUP BY CUBE '(' ordering_spec_commalist ')'
+
+  451 opt_having_clause: /* empty */
+  452                  | HAVING search_condition
+
+  453 opt_lock_mode: /* empty */
+  454              | FOR UPDATE
+  455              | FOR XML NAME
+  456              | FOR XML NAME NAME
+
+  457 search_condition: search_condition OR search_condition
+  458                 | search_condition AND search_condition
+  459                 | NOT search_condition
+  460                 | '(' search_condition ')'
+  461                 | predicate
+
+  462 predicate: comparison_predicate
+  463          | between_predicate
+  464          | like_predicate
+  465          | test_for_null
+  466          | in_predicate
+  467          | all_or_any_predicate
+  468          | existence_test
+  469          | scalar_exp_predicate
+
+  470 scalar_exp_predicate: scalar_exp
+
+  471 comparison_predicate: scalar_exp COMPARISON scalar_exp
+
+  472 between_predicate: scalar_exp NOT BETWEEN scalar_exp AND scalar_exp
+  473                  | scalar_exp BETWEEN scalar_exp AND scalar_exp
+
+  474 like_predicate: scalar_exp NOT LIKE scalar_exp opt_escape
+  475               | scalar_exp LIKE scalar_exp opt_escape
+
+  476 opt_escape: /* empty */
+  477           | ESCAPE atom
+  478           | BEGINX ESCAPE atom ENDX
+
+  479 test_for_null: scalar_exp IS NOT NULLX
+  480              | scalar_exp IS NULLX
+
+  481 in_predicate: scalar_exp NOT IN_L subquery
+  482             | scalar_exp IN_L subquery
+  483             | scalar_exp NOT IN_L '(' scalar_exp_commalist ')'
+  484             | scalar_exp IN_L '(' scalar_exp_commalist ')'
+
+  485 all_or_any_predicate: scalar_exp COMPARISON any_all_some subquery
+
+  486 any_all_some: ANY
+  487             | ALL
+  488             | SOME
+
+  489 existence_test: EXISTS subquery
+
+  490 scalar_subquery: subquery
+
+  491 subquery: '(' SELECT opt_top selection table_exp ')'
+
+  492 scalar_exp: scalar_exp '-' scalar_exp
+  493           | scalar_exp '+' scalar_exp
+  494           | scalar_exp '*' scalar_exp
+  495           | scalar_exp '/' scalar_exp
+  496           | '+' scalar_exp
+  497           | '-' scalar_exp
+  498           | assignment_statement
+  499           | string_concatenation_operator
+  500           | column_ref
+  501           | scalar_exp_no_col_ref
+  502           | obe_literal
+
+  503 scalar_exp_no_col_ref: atom_no_obe
+  504                      | aggregate_ref
+  505                      | scalar_subquery
+  506                      | '(' scalar_exp ')'
+  507                      | '(' scalar_exp ',' scalar_exp_commalist ')'
+  508                      | function_call
+  509                      | new_invocation
+  510                      | cvt_exp
+  511                      | cast_exp
+  512                      | simple_case
+  513                      | searched_case
+  514                      | coalesce_exp
+  515                      | nullif_exp
+  516                      | array_ref
+  517                      | static_method_invocation
+  518                      | method_invocation
+  519                      | member_observer
+
+  520 scalar_exp_no_col_ref_no_mem_obs_chain: atom_no_obe
+  521                                       | aggregate_ref
+  522                                       | scalar_subquery
+  523                                       | '(' scalar_exp ')'
+  524                                       | '(' scalar_exp ',' scalar_exp_commalist ')'
+  525                                       | function_call
+  526                                       | new_invocation
+  527                                       | cvt_exp
+  528                                       | cast_exp
+  529                                       | simple_case
+  530                                       | searched_case
+  531                                       | coalesce_exp
+  532                                       | nullif_exp
+  533                                       | array_ref
+  534                                       | static_method_invocation
+  535                                       | method_invocation
+  536                                       | member_observer_no_id_chain
+
+  537 cvt_exp: CONVERT '(' data_type ',' scalar_exp ')'
+
+  538 opt_collate_exp: /* empty */
+  539                | COLLATE q_table_name
+
+  540 cast_exp: CAST '(' scalar_exp AS data_type opt_collate_exp ')'
+
+  541 mssql_xml_col: MSSQL_XMLCOL_NAME1 MSSQL_XMLCOL_INTNUM MSSQL_XMLCOL_NAMEZ
+  542              | MSSQL_XMLCOL_NAME1 MSSQL_XMLCOL_INTNUM MSSQL_XMLCOL_NAMEYZ
+  543              | MSSQL_XMLCOL_NAME1 MSSQL_XMLCOL_INTNUM MSSQL_XMLCOL_NAME MSSQL_XMLCOL_NAMEZ
+
+  544 as_expression: scalar_exp AS identifier data_type
+  545              | scalar_exp AS identifier
+  546              | scalar_exp identifier
+  547              | scalar_exp AS mssql_xml_col
+
+  548 array_ref: scalar_exp_no_col_ref '[' scalar_exp ']'
+  549          | lvalue_array_ref
+
+  550 lvalue_array_ref: column_ref '[' scalar_exp ']'
+
+  551 opt_scalar_exp_commalist: /* empty */
+  552                         | scalar_exp_commalist
+
+  553 function_name: identifier
+  554              | identifier '.' method_identifier
+  555              | identifier '.' identifier '.' method_identifier
+  556              | identifier '.' identifier '.' identifier '.' method_identifier
+  557              | identifier '.' '.' method_identifier
+  558              | identifier '.' '.' identifier '.' method_identifier
+  559              | LEFT
+  560              | RIGHT
+  561              | LOGX
+
+  562 kwd_commalist: identifier KWD_TAG scalar_exp
+  563              | kwd_commalist ',' identifier KWD_TAG scalar_exp
+
+  564 as_commalist: as_expression
+  565             | as_commalist ',' as_expression
+  566             | as_commalist ',' scalar_exp
+
+  567 opt_arg_commalist: /* empty */
+  568                  | kwd_commalist
+  569                  | scalar_exp_commalist
+  570                  | scalar_exp_commalist ',' kwd_commalist
+  571                  | scalar_exp_commalist ',' as_commalist
+  572                  | as_commalist
+
+  573 function_call: function_name '(' opt_arg_commalist ')'
+  574              | TIMESTAMP_FUNC '(' SQL_TSI ',' scalar_exp ',' scalar_exp ')'
+  575              | EXTRACT '(' NAME FROM scalar_exp ')'
+  576              | BEGIN_FN_X identifier '(' opt_scalar_exp_commalist ')' ENDX
+  577              | BEGIN_FN_X LEFT '(' opt_scalar_exp_commalist ')' ENDX
+  578              | BEGIN_FN_X RIGHT '(' opt_scalar_exp_commalist ')' ENDX
+  579              | BEGIN_FN_X LOGX '(' opt_scalar_exp_commalist ')' ENDX
+  580              | BEGIN_FN_X identifier '(' scalar_exp IN_L scalar_exp ')' ENDX
+  581              | BEGIN_CALL_X function_name '(' opt_scalar_exp_commalist ')' ENDX
+  582              | BEGIN_CALL_X function_name ENDX
+  583              | BEGIN_FN_X USER '(' opt_scalar_exp_commalist ')' ENDX
+  584              | BEGIN_FN_X CHARACTER '(' opt_scalar_exp_commalist ')' ENDX
+  585              | BEGIN_FN_X TIMESTAMP_FUNC '(' SQL_TSI ',' scalar_exp ',' scalar_exp ')' ENDX
+  586              | BEGIN_FN_X CONVERT '(' scalar_exp ',' NAME ')' ENDX
+  587              | BEGIN_FN_X EXTRACT '(' NAME FROM scalar_exp ')' ENDX
+  588              | CALL '(' scalar_exp ')' '(' opt_arg_commalist ')'
+  589              | CURRENT_DATE
+  590              | CURRENT_TIME
+  591              | CURRENT_TIME '(' scalar_exp ')'
+  592              | CURRENT_TIMESTAMP
+  593              | CURRENT_TIMESTAMP '(' scalar_exp ')'
+  594              | GROUPING '(' column_ref ')'
+
+  595 sql: BEGIN_EQCALL_X q_table_name ENDX
+  596    | BEGIN_EQCALL_X q_table_name '(' opt_scalar_exp_commalist ')' ENDX
+
+  597 obe_literal: BEGINX identifier atom ENDX
+  598            | BEGIN_U_X STRING ENDX
+
+  599 scalar_exp_commalist: scalar_exp
+  600                     | scalar_exp_commalist ',' scalar_exp
+
+  601 select_scalar_exp_commalist: scalar_exp
+  602                            | as_expression
+  603                            | select_scalar_exp_commalist ',' scalar_exp
+  604                            | select_scalar_exp_commalist ',' as_expression
+
+  605 atom_no_obe: parameter_ref
+  606            | literal
+  607            | USER
+
+  608 atom: atom_no_obe
+  609     | obe_literal
+
+  610 simple_case: CASE scalar_exp simple_when_list ENDX
+
+  611 searched_case: CASE searched_when_list ENDX
+
+  612 searched_when_list: searched_when
+  613                   | searched_when_list searched_when
+
+  614 simple_when_list: simple_when
+  615                 | simple_when_list simple_when
+
+  616 simple_when: WHEN scalar_exp THEN scalar_exp
+  617            | ELSE scalar_exp
+
+  618 searched_when: WHEN search_condition THEN scalar_exp
+  619              | ELSE scalar_exp
+
+  620 coalesce_exp: COALESCE '(' scalar_exp_commalist ')'
+
+  621 nullif_exp: NULLIF '(' scalar_exp ',' scalar_exp ')'
+
+  622 parameter_ref: parameter
+  623              | parameter parameter
+  624              | parameter INDICATOR parameter
+
+  625 aggregate_ref: AGGREGATE function_name '(' opt_arg_commalist ')'
+  626              | AMMSC '(' DISTINCT scalar_exp ')'
+  627              | AMMSC '(' ALL scalar_exp ')'
+  628              | AMMSC '(' scalar_exp ')'
+
+  629 literal: STRING
+  630        | WSTRING
+  631        | INTNUM
+  632        | APPROXNUM
+  633        | BINARYNUM
+  634        | NULLX
+
+  635 signed_literal: STRING
+  636               | WSTRING
+  637               | INTNUM
+  638               | '-' INTNUM
+  639               | '+' INTNUM
+  640               | APPROXNUM
+  641               | '-' APPROXNUM
+  642               | '+' APPROXNUM
+  643               | BINARYNUM
+  644               | NULLX
+
+  645 q_table_name: identifier
+  646             | identifier '.' identifier
+  647             | identifier '.' identifier '.' identifier
+  648             | identifier '.' '.' identifier
+
+  649 attach_q_table_name: identifier
+  650                    | identifier '.' identifier
+  651                    | identifier '.' identifier '.' identifier
+  652                    | identifier '.' '.' identifier
+
+  653 new_proc_or_bif_name: identifier
+  654                     | identifier '.' identifier
+  655                     | identifier '.' identifier '.' identifier
+  656                     | identifier '.' '.' identifier
+
+  657 new_table_name: identifier
+  658               | identifier '.' identifier
+  659               | identifier '.' identifier '.' identifier
+  660               | identifier '.' '.' identifier
+
+  661 table: q_table_name opt_table_opt
+  662      | q_table_name AS identifier opt_table_opt
+  663      | q_table_name identifier opt_table_opt
+
+  664 column_ref: identifier
+  665           | identifier '.' identifier
+  666           | identifier '.' identifier '.' identifier
+  667           | identifier '.' identifier '.' identifier '.' identifier
+  668           | identifier '.' '.' identifier '.' identifier
+  669           | '*'
+  670           | identifier '.' '*'
+  671           | identifier '.' identifier '.' '*'
+  672           | identifier '.' identifier '.' identifier '.' '*'
+  673           | identifier '.' '.' identifier '.' '*'
+
+  674 base_data_type: NUMERIC
+  675               | NUMERIC '(' INTNUM ')'
+  676               | NUMERIC '(' INTNUM ',' INTNUM ')'
+  677               | DECIMAL
+  678               | DECIMAL '(' INTNUM ')'
+  679               | DECIMAL '(' INTNUM ',' INTNUM ')'
+  680               | INTEGER
+  681               | SMALLINT
+  682               | FLOAT
+  683               | FLOAT '(' INTNUM ')'
+  684               | REAL
+  685               | DOUBLE PRECISION
+  686               | LONG VARCHAR
+  687               | LONG VARBINARY
+  688               | VARBINARY
+  689               | VARBINARY '(' INTNUM ')'
+  690               | BINARY '(' INTNUM ')'
+  691               | TIMESTAMP
+  692               | DATETIME
+  693               | TIME
+  694               | DATE
+  695               | NCHAR
+  696               | NCHAR '(' INTNUM ')'
+  697               | NVARCHAR
+  698               | NVARCHAR '(' INTNUM ')'
+  699               | LONG NVARCHAR
+  700               | ANY
+  701               | ANY '(' INTNUM ')'
+
+  702 data_type: base_data_type
+  703          | CHARACTER
+  704          | VARCHAR
+  705          | VARCHAR '(' INTNUM ')'
+  706          | CHARACTER '(' INTNUM ')'
+
+  707 array_modifier: ARRAY
+  708               | ARRAY '[' INTNUM ']'
+
+  709 data_type_ref: data_type_ref array_modifier
+  710              | data_type
+  711              | q_type_name
+
+  712 column_data_type: base_data_type
+  713                 | CHARACTER
+  714                 | VARCHAR
+  715                 | VARCHAR '(' INTNUM ')'
+  716                 | CHARACTER '(' INTNUM ')'
+  717                 | q_type_name
+  718                 | LONG q_type_name
+  719                 | LONG XML
+
+  720 column: identifier
+  721       | identifier '.' identifier '.' identifier '.' identifier
+
+  722 index: identifier
+
+  723 cursor: identifier
+
+  724 parameter: PARAMETER_L
+  725          | NAMED_PARAMETER
+
+  726 user: identifier
+
+  727 opt_log: /* empty */
+  728        | STRING
+
+  729 comma_opt_log: /* empty */
+  730              | ',' STRING
+
+  731 admin_statement: SHUTDOWN opt_log
+  732                | CHECKPOINT opt_log
+  733                | CHECKPOINT STRING STRING
+  734                | BACKUP STRING
+  735                | CHECK
+  736                | SYNC REPLICATION opt_log comma_opt_log
+  737                | DISCONNECT REPLICATION opt_log
+  738                | LOGX ON
+  739                | LOGX OFF
+
+  740 sql: user_aggregate_declaration
+  741    | routine_declaration
+  742    | module_declaration
+  743    | method_declaration
+  744    | trigger_def
+  745    | drop_trigger
+  746    | drop_proc
+
+  747 user_aggregate_declaration: CREATE AGGREGATE new_table_name rout_parameter_list opt_return FROM new_proc_or_bif_name ',' new_proc_or_bif_name ',' new_proc_or_bif_name user_aggregate_merge_opt
+
+  748 user_aggregate_merge_opt: /* empty */
+  749                         | ',' new_proc_or_bif_name
+
+  750 routine_declaration: CREATE routine_head new_table_name rout_parameter_list opt_return rout_alt_type compound_statement
+  751                    | ATTACH routine_head attach_q_table_name rout_parameter_list opt_return rout_alt_type opt_as FROM literal
+  752                    | CREATE routine_head new_table_name rout_parameter_list opt_return rout_alt_type LANGUAGE external_language_name EXTERNAL NAME_L STRING opt_type_option_list
+
+  753 module_body_part: routine_head identifier rout_parameter_list opt_return rout_alt_type compound_statement
+
+  754 module_body: module_body_part ';'
+  755            | module_body module_body_part ';'
+
+  756 module_declaration: CREATE MODULE new_table_name BEGINX module_body ENDX
+
+  757 routine_head: FUNCTION
+  758             | PROCEDURE
+
+  759 opt_return: /* empty */
+  760           | RETURNS data_type_ref
+
+  761 rout_parameter_list: '(' ')'
+  762                    | '(' parameter_commalist ')'
+
+  763 parameter_commalist: rout_parameter
+  764                    | parameter_commalist ',' rout_parameter
+
+  765 rout_parameter: parameter_mode column_ref data_type_ref rout_alt_type
+  766               | parameter_mode column_ref data_type_ref DEFAULT signed_literal rout_alt_type
+  767               | parameter_mode column_ref data_type_ref EQUALS signed_literal rout_alt_type
+
+  768 parameter_mode: IN_L
+  769               | OUT_L
+  770               | INOUT_L
+
+  771 opt_parameter_mode: /* empty */
+  772                   | parameter_mode
+
+  773 opt_soap_enc_mode: /* empty */
+  774                  | __SOAP_DIME_ENC IN_L
+  775                  | __SOAP_DIME_ENC OUT_L
+  776                  | __SOAP_DIME_ENC INOUT_L
+  777                  | __SOAP_ENC_MIME IN_L
+  778                  | __SOAP_ENC_MIME OUT_L
+  779                  | __SOAP_ENC_MIME INOUT_L
+
+  780 soap_proc_opt_list: soap_proc_opt
+  781                   | soap_proc_opt_list ',' soap_proc_opt
+
+  782 soap_proc_opt: NAME EQUALS signed_literal
+
+  783 soap_kwd: __SOAP_TYPE
+  784         | __SOAP_HEADER
+  785         | __SOAP_FAULT
+  786         | __SOAP_DOC
+  787         | __SOAP_XML_TYPE
+  788         | __SOAP_DOCW
+  789         | __SOAP_HTTP
+
+  790 rout_alt_type: /* empty */
+  791              | __SOAP_OPTIONS '(' soap_kwd EQUALS STRING opt_soap_enc_mode ',' soap_proc_opt_list ')'
+  792              | soap_kwd STRING opt_soap_enc_mode
+
+  793 routine_statement: select_statement
+  794                  | update_statement_positioned
+  795                  | update_statement_searched
+  796                  | insert_statement
+  797                  | delete_statement_positioned
+  798                  | delete_statement_searched
+  799                  | close_statement
+  800                  | fetch_statement
+  801                  | open_statement
+  802                  | rollback_statement
+  803                  | commit_statement
+  804                  | /* empty */
+
+  805 @2: /* empty */
+
+  806 compound_statement: BEGINX @2 statement_list ENDX
+
+  807 statement_list: statement_in_cs
+  808               | statement_list statement_in_cs
+
+  809 statement_in_cs: local_declaration ';'
+  810                | compound_statement
+
+  811 @3: /* empty */
+
+  812 statement_in_cs: @3 statement_in_cs_oper
+
+  813 statement_in_cs_oper: routine_statement ';'
+  814                     | control_statement
+  815                     | identifier COLON statement_in_cs
+  816                     | HTMLSTR
+  817                     | COMPARISON scalar_exp HTMLSTR
+  818                     | '/' scalar_exp HTMLSTR
+
+  819 statement: compound_statement
+
+  820 @4: /* empty */
+
+  821 statement: @4 routine_statement ';'
+
+  822 @5: /* empty */
+
+  823 statement: @5 control_statement
+
+  824 local_declaration: cursor_def
+  825                  | variable_declaration
+  826                  | handler_declaration
+
+  827 variable_declaration: DECLARE variable_list data_type_ref
+
+  828 variable_list: identifier
+  829              | variable_list ',' identifier
+
+  830 condition: NOT FOUND
+  831          | SQLSTATE STRING
+  832          | SQLSTATE VALUE STRING
+  833          | SQLEXCEPTION
+  834          | SQLWARNING
+
+  835 handler_statement: compound_statement
+  836                  | routine_statement
+  837                  | call_statement
+  838                  | method_invocation
+  839                  | static_method_invocation
+  840                  | set_statement
+  841                  | RESIGNAL
+  842                  | RESIGNAL scalar_exp
+  843                  | return_statement
+  844                  | assignment_statement
+  845                  | if_statement
+  846                  | goto_statement
+  847                  | for_statement
+  848                  | while_statement
+
+  849 handler_declaration: WHENEVER condition GOTO identifier
+  850                    | WHENEVER condition GO TO identifier
+  851                    | WHENEVER condition DEFAULT
+  852                    | DECLARE handler_type HANDLER FOR cond_value_list handler_statement
+
+  853 handler_type: CONTINUE
+  854             | EXIT
+
+  855 cond_value_list: condition
+  856                | cond_value_list ',' condition
+
+  857 control_statement: call_statement ';'
+  858                  | method_invocation ';'
+  859                  | static_method_invocation ';'
+  860                  | set_statement ';'
+  861                  | RESIGNAL ';'
+  862                  | RESIGNAL scalar_exp ';'
+  863                  | return_statement ';'
+  864                  | assignment_statement ';'
+  865                  | if_statement
+  866                  | goto_statement ';'
+  867                  | for_statement
+  868                  | while_statement
+
+  869 assignment_statement: lvalue EQUALS scalar_exp
+  870                     | column_ref '[' scalar_exp ']' EQUALS scalar_exp
+
+  871 lvalue: column_ref
+  872       | member_observer
+
+  873 if_statement: IF '(' search_condition ')' statement opt_else
+
+  874 opt_else: /* empty */
+  875         | ELSE statement
+
+  876 call_statement: CALL function_name '(' opt_arg_commalist ')'
+  877               | function_call
+
+  878 set_statement: SET identifier COMPARISON scalar_exp
+  879              | SET identifier ON
+  880              | SET identifier OFF
+
+  881 goto_statement: GOTO identifier
+  882               | GO TO identifier
+
+  883 return_statement: RETURN scalar_exp
+  884                 | RETURN
+
+  885 while_statement: WHILE '(' search_condition ')' statement
+
+  886 for_init_statement: assignment_statement
+  887                   | variable_declaration
+  888                   | call_statement
+  889                   | static_method_invocation
+
+  890 for_init_statement_list: /* empty */
+  891                        | for_init_statement
+  892                        | for_init_statement_list ',' for_init_statement
+
+  893 for_inc_statement: assignment_statement
+  894                  | call_statement
+  895                  | static_method_invocation
+
+  896 for_inc_statement_list: /* empty */
+  897                       | for_inc_statement
+  898                       | for_inc_statement_list ',' for_inc_statement
+
+  899 for_opt_search_cond: /* empty */
+  900                    | search_condition
+
+  901 for_statement: FOR query_exp DO statement
+  902              | FOR '(' for_init_statement_list ';' for_opt_search_cond ';' for_inc_statement_list ')' statement
+  903              | FOREACH '(' data_type_ref identifier IN_L scalar_exp ')' DO statement
+
+  904 trigger_def: CREATE TRIGGER identifier action_time event ON q_table_name opt_order opt_old_ref trig_action
+
+  905 opt_order: /* empty */
+  906          | ORDER INTNUM
+
+  907 trig_action: compound_statement
+
+  908 action_time: BEFORE
+  909            | AFTER
+  910            | INSTEAD OF
+
+  911 event: INSERT
+  912      | UPDATE opt_column_commalist
+  913      | DELETE_L
+
+  914 opt_old_ref: /* empty */
+  915            | REFERENCING old_commalist
+
+  916 old_commalist: old_alias
+  917              | old_commalist ',' old_alias
+
+  918 old_alias: OLD AS identifier
+  919          | NEW AS identifier
+
+  920 drop_trigger: DROP TRIGGER q_table_name
+
+  921 drop_proc: DROP AGGREGATE q_table_name
+  922          | DROP routine_head q_table_name
+  923          | DROP MODULE q_table_name
+
+  924 opt_element: /* empty */
+  925            | AS identifier
+
+  926 xml_col: column_ref
+  927        | scalar_exp AS identifier
+  928        | scalar_exp IN_L identifier
+
+  929 xml_col_list: xml_col
+  930             | xml_col_list ',' xml_col
+
+  931 opt_xml_col_list: '(' xml_col_list ')'
+
+  932 opt_pk: /* empty */
+  933       | PRIMARY KEY '(' column_commalist ')'
+
+  934 opt_join: /* empty */
+  935         | ON '(' search_condition ')'
+
+  936 opt_elt: /* empty */
+  937        | NAME
+
+  938 xml_join_elt: q_table_name identifier opt_element opt_xml_col_list opt_join opt_pk opt_elt opt_xml_child
+
+  939 opt_xml_child: /* empty */
+  940              | BEGINX xml_join_list ENDX
+
+  941 top_xml_child: query_spec
+  942              | BEGINX xml_join_list ENDX
+
+  943 xml_join_list: xml_join_elt
+  944              | xml_join_list ',' xml_join_elt
+
+  945 opt_persist: /* empty */
+  946            | PERSISTENT
+
+  947 opt_interval: /* empty */
+  948             | INTERVAL INTNUM
+
+  949 opt_metas: /* empty */
+  950          | DTD INTERNAL
+  951          | DTD EXTERNAL
+  952          | DTD STRING
+  953          | SCHEMA EXTERNAL
+  954          | SCHEMA STRING
+
+  955 opt_publish: /* empty */
+  956            | PUBLIC STRING identifier STRING opt_persist opt_interval opt_metas
+
+  957 xmlview_param_value: NAME
+  958                    | STRING
+
+  959 xmlview_param: NAME COMPARISON xmlview_param_value
+
+  960 xmlview_params: xmlview_param
+  961               | xmlview_params xmlview_param
+
+  962 opt_xmlview_params: /* empty */
+  963                   | '[' xmlview_params ']'
+
+  964 xml_view: CREATE XML VIEW new_table_name AS opt_xmlview_params top_xml_child opt_elt opt_publish
+
+  965 drop_xml_view: DROP XML VIEW q_table_name
+
+  966 string_concatenation_operator: scalar_exp STRING_CONCAT_OPERATOR scalar_exp
+
+  967 q_type_name: identifier
+  968            | identifier '.' identifier
+  969            | identifier '.' identifier '.' identifier
+  970            | identifier '.' '.' identifier
+
+  971 q_old_type_name: identifier
+  972                | identifier '.' identifier
+  973                | identifier '.' identifier '.' identifier
+  974                | identifier '.' '.' identifier
+
+  975 new_type_name: identifier
+  976              | identifier '.' identifier
+  977              | identifier '.' identifier '.' identifier
+  978              | identifier '.' '.' identifier
+
+  979 @6: /* empty */
+
+  980 user_defined_type: CREATE TYPE new_type_name opt_subtype_clause opt_external_and_language_clause @6 opt_as_type_representation opt_type_option_list opt_method_specification_list
+
+  981 user_defined_type_drop: DROP TYPE q_old_type_name opt_drop_behavior
+
+  982 opt_external_and_language_clause: /* empty */
+  983                                 | LANGUAGE language_name EXTERNAL NAME_L STRING
+  984                                 | EXTERNAL NAME_L STRING LANGUAGE language_name
+  985                                 | LANGUAGE language_name
+
+  986 opt_subtype_clause: /* empty */
+  987                   | UNDER q_type_name
+
+  988 opt_as_type_representation: /* empty */
+  989                           | AS type_representation
+
+  990 type_representation: '(' type_member_list ')'
+
+  991 type_member_list: type_member
+  992                 | type_member_list ',' type_member
+
+  993 opt_external_clause: /* empty */
+  994                    | EXTERNAL NAME_L STRING
+  995                    | EXTERNAL NAME_L STRING EXTERNAL TYPE STRING
+  996                    | EXTERNAL TYPE STRING
+
+  997 opt_soap_clause: /* empty */
+  998                | __SOAP_NAME STRING
+  999                | __SOAP_TYPE STRING
+  1000                | __SOAP_TYPE STRING __SOAP_NAME STRING
+  1001                | __SOAP_NAME STRING __SOAP_TYPE STRING
+
+  1002 opt_external_type: /* empty */
+  1003                  | EXTERNAL TYPE STRING
+
+  1004 type_member: identifier data_type_ref opt_reference_scope_check opt_default_clause opt_collate_exp opt_external_clause opt_soap_clause
+
+  1005 opt_reference_scope_check: /* empty */
+  1006                          | REFERENCES ARE CHECKED opt_on_delete_referential_rule
+  1007                          | REFERENCES ARE NOT CHECKED
+
+  1008 opt_default_clause: /* empty */
+  1009                   | DEFAULT signed_literal
+
+  1010 opt_type_option_list: /* empty */
+  1011                     | type_option_list
+
+  1012 type_option_list: type_option
+  1013                 | type_option_list type_option
+
+  1014 type_option: FINAL_L
+  1015            | NOT FINAL_L
+  1016            | REF USING data_type_ref
+  1017            | REF FROM '(' column_commalist ')'
+  1018            | REF IS SYSTEM GENERATED
+  1019            | CAST '(' SOURCE AS REF ')' WITH identifier
+  1020            | CAST '(' REF AS SOURCE ')' WITH identifier
+  1021            | SELF_L AS REF
+  1022            | TEMPORARY
+  1023            | UNRESTRICTED
+  1024            | __SOAP_TYPE STRING
+
+  1025 opt_method_specification_list: /* empty */
+  1026                              | method_specification_list
+
+  1027 method_specification_list: method_specification
+  1028                          | method_specification_list ',' method_specification
+
+  1029 method_type: /* empty */
+  1030            | STATIC_L
+  1031            | INSTANCE_L
+
+  1032 decl_parameter_list: '(' ')'
+  1033                    | '(' decl_parameter_commalist ')'
+
+  1034 decl_parameter_commalist: decl_parameter
+  1035                         | decl_parameter_commalist ',' decl_parameter
+
+  1036 decl_parameter: opt_parameter_mode column_ref data_type_ref opt_external_type
+
+  1037 partial_method_specification: method_type METHOD method_identifier decl_parameter_list RETURNS data_type_ref opt_specific_method_name
+  1038                             | CONSTRUCTOR METHOD method_identifier decl_parameter_list opt_specific_method_name
+
+  1039 method_specification: partial_method_specification opt_self_result opt_method_characteristics
+  1040                     | OVERRIDING partial_method_specification
+
+  1041 opt_self_result: /* empty */
+  1042                | SELF_L AS RESULT
+  1043                | SELF_L AS LOCATOR
+  1044                | SELF_L AS RESULT SELF_L AS LOCATOR
+
+  1045 opt_specific_method_name: /* empty */
+  1046                         | SPECIFIC new_table_name
+
+  1047 opt_method_characteristics: /* empty */
+  1048                           | method_characteristics
+
+  1049 method_characteristics: method_characteristic
+  1050                       | method_characteristics method_characteristic
+
+  1051 method_characteristic: LANGUAGE language_name
+  1052                      | PARAMETER STYLE SQL_L
+  1053                      | PARAMETER STYLE GENERAL
+  1054                      | DETERMINISTIC
+  1055                      | NOT DETERMINISTIC
+  1056                      | NO SQL_L
+  1057                      | CONTAINS SQL_L
+  1058                      | READS SQL_L DATA
+  1059                      | MODIFIES SQL_L DATA
+  1060                      | RETURNS NULLX ON NULLX INPUT
+  1061                      | CALLED ON NULLX INPUT
+  1062                      | EXTERNAL NAME_L STRING
+  1063                      | EXTERNAL VARIABLE NAME_L STRING
+  1064                      | EXTERNAL TYPE STRING
+
+  1065 external_language_name: ADA
+  1066                       | C
+  1067                       | COBOL
+  1068                       | FORTRAN
+  1069                       | MUMPS
+  1070                       | PASCAL_L
+  1071                       | PLI
+  1072                       | JAVA
+  1073                       | CLR
+
+  1074 language_name: external_language_name
+  1075              | SQL_L
+
+  1076 opt_constructor_return: /* empty */
+  1077                       | RETURNS new_type_name
+
+  1078 method_declaration: CREATE method_type METHOD method_identifier rout_parameter_list opt_return rout_alt_type FOR q_type_name compound_statement
+  1079                   | CREATE CONSTRUCTOR METHOD q_table_name rout_parameter_list opt_constructor_return FOR q_type_name compound_statement
+
+  1080 static_method_invocation: q_type_name DOUBLE_COLON method_identifier '(' opt_arg_commalist ')'
+
+  1081 identifier_chain: identifier '.' identifier '.' identifier '.' method_identifier
+  1082                 | identifier '.' '.' identifier '.' method_identifier
+  1083                 | identifier '.' identifier_chain
+
+  1084 identifier_chain_method: identifier '.' identifier '.' identifier '.' identifier '.' method_identifier
+  1085                        | identifier '.' '.' identifier '.' identifier '.' method_identifier
+  1086                        | identifier '.' identifier_chain_method
+
+  1087 method_invocation: scalar_exp_no_col_ref_no_mem_obs_chain '.' method_identifier '(' opt_arg_commalist ')'
+  1088                  | identifier_chain_method '(' opt_arg_commalist ')'
+  1089                  | '(' scalar_exp_no_col_ref AS q_type_name ')' '.' method_identifier '(' opt_arg_commalist ')'
+  1090                  | '(' column_ref AS q_type_name ')' '.' method_identifier '(' opt_arg_commalist ')'
+
+  1091 top_level_method_invocation: METHOD CALL scalar_exp_no_col_ref_no_mem_obs_chain '.' method_identifier '(' opt_arg_commalist ')'
+  1092                            | METHOD CALL identifier_chain_method '(' opt_arg_commalist ')'
+  1093                            | METHOD CALL '(' scalar_exp_no_col_ref AS q_type_name ')' '.' method_identifier '(' opt_arg_commalist ')'
+  1094                            | METHOD CALL '(' column_ref AS q_type_name ')' '.' method_identifier '(' opt_arg_commalist ')'
+
+  1095 member_observer: member_observer_no_id_chain
+  1096                | identifier '.' identifier_chain
+
+  1097 member_observer_no_id_chain: scalar_exp_no_col_ref_no_mem_obs_chain '.' method_identifier
+  1098                            | '(' scalar_exp_no_col_ref AS q_type_name ')' '.' method_identifier
+  1099                            | '(' column_ref AS q_type_name ')' '.' method_identifier
+
+  1100 method_identifier: identifier
+  1101                  | EXTRACT
+
+  1102 new_invocation: NEW q_type_name '(' opt_arg_commalist ')'
+
+  1103 user_defined_type_alter: ALTER TYPE q_type_name alter_type_action
+
+  1104 alter_type_action: ADD ATTRIBUTE type_member
+  1105                  | DROP ATTRIBUTE identifier opt_drop_behavior
+  1106                  | ADD method_specification
+  1107                  | DROP partial_method_specification opt_drop_behavior
+
+  1108 opt_with_permission_set: /* empty */
+  1109                        | WITH PERMISSION_SET COMPARISON SAFE_L
+  1110                        | WITH PERMISSION_SET COMPARISON UNRESTRICTED
+
+  1111 opt_with_autoregister: /* empty */
+  1112                      | WITH AUTOREGISTER_L
+
+  1113 create_library: CREATE LIBRARY_L q_table_name AS scalar_exp opt_with_permission_set opt_with_autoregister
+
+  1114 create_assembly: CREATE ASSEMBLY_L q_table_name FROM scalar_exp opt_with_permission_set opt_with_autoregister
+
+  1115 drop_library: DROP LIBRARY_L q_table_name
+
+  1116 drop_assembly: DROP ASSEMBLY_L q_table_name

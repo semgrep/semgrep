@@ -1,0 +1,15 @@
+(library
+ (public_name pfff-lang_java)
+ (name pfff_lang_java)
+ (wrapped false)
+ (libraries
+   dyp
+
+   commons commons_core
+   pfff-config pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show))
+)
+(ocamllex lexer_java)
+(menhir (modules parser_java)
+        (flags --unused-tokens --explain --fixed-exception))

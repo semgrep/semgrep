@@ -1,0 +1,10 @@
+(library
+ (public_name commons)
+ (wrapped false)
+ (libraries
+   yojson easy_logging_yojson
+   pfff-testutil
+   str unix
+ )
+ (preprocess (pps ppx_deriving.show ppx_deriving.eq))
+)

@@ -1,0 +1,560 @@
+\documentclass{report}
+
+%******************************************************************************
+% Prelude
+%******************************************************************************
+
+\newif\iffinal
+\newif\ifverbose
+\newif\iffacebook
+
+%\finaltrue\verbosefalse
+\finalfalse\verbosetrue
+
+%cf also some \newif in Macros.tex
+
+%------------------------------------------------------------------------------
+% History
+%------------------------------------------------------------------------------
+% some stuff was in ocaml.org before
+
+%TODO:
+% - pgoctut.tex in reference/template/latex, good style, good look
+% - 7 lang in 7 weeks   inspiration ?
+% - jon harrop ray tracer C++ vs ocaml (old version)
+% - graydon hoare tutorial on DSL and ocaml http://www.venge.net/graydon/talks/
+% - ocaml-tutorial.org ?
+% - my ocaml.org file
+% - some of the .txt I put in shared project, like developer.txt
+%   extract stuff specific to ocaml
+% - jane street experience report ?
+
+%SEMI:
+% - slides on haxe
+% - xen experience report
+% - elsa gunter slides
+
+%------------------------------------------------------------------------------
+% Packages
+%------------------------------------------------------------------------------
+
+\usepackage{noweb}
+\noweboptions{}
+%note: allow chunk to be on different pages, so less white space at
+%  bottom of pages
+\def\nwendcode{\endtrivlist \endgroup}
+\let\nwdocspar=\par
+
+\usepackage{xspace}
+
+\usepackage{verbatim}
+%note: required by noweblatexpad for the \t \l \n macros in this file
+\usepackage{fancyvrb}
+
+\usepackage{url}
+\iffinal
+\usepackage{hyperref}
+\hypersetup{colorlinks=true}
+\fi
+
+\usepackage{shorttoc}
+
+\usepackage{multirow}
+
+%define: \toprule
+\usepackage{booktabs}
+%?\usepackage{ctable}
+\newcommand{\otoprule}{\midrule[\heavyrulewidth]}
+
+
+%define: \includegraphics
+\usepackage{graphicx}
+%\usepackage{dot2texi}
+%\usepackage{tikz}
+
+%pre: require to have installed also the dot2tex in your PATH
+%     and call with --shell-escape pdflatex
+%src: http://www.fauskes.net/nb/introducing-dot2texi/
+%\usepackage{latex/dot2texi}
+%\usepackage{tikz}
+%\usetikzlibrary{automata,shapes,arrows}
+
+%------------------------------------------------------------------------------
+% Macros
+%------------------------------------------------------------------------------
+\input{Macros}
+
+%------------------------------------------------------------------------------
+% Config
+%------------------------------------------------------------------------------
+
+%\implemtrue
+\implemfalse
+
+\implemoverviewtrue
+
+%\wantrepetitivecodetrue
+\wantrepetitivecodefalse
+
+
+%******************************************************************************
+% Title
+%******************************************************************************
+\begin{document}
+
+\title{
+{\Huge OCaml for Smarties}\\
+% ocaml tips of an old OCaml programmer
+}
+\author{
+Yoann Padioleau\\
+\texttt{pad@fb.com}
+}
+
+\maketitle
+
+\pagebreak
+\hrule
+\begin{quote}
+    Copyright \copyright{}  2010-2011 Facebook \\
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3.
+\end{quote}
+\hrule
+\pagebreak
+
+\shorttoc{Short Contents}{0}
+
+\iffinal
+\begingroup
+\hypersetup{colorlinks=true, linkcolor=blue}
+\tableofcontents
+\endgroup
+\else
+\tableofcontents
+\fi
+
+%******************************************************************************
+% Body
+%******************************************************************************
+
+\chapter{Introduction}
+\label{sec:introduction}
+\n convention: use we/you, but try to limit their use
+
+\url{http://en.wikipedia.org/wiki/Objective_Caml}
+% ML tradition, type inference, functional, powerful type system,
+% impure so can have references/globals and exceptions, strict, gc, ...
+% and fast! (rewrite from php to ocaml: 30x faster ... (algo different
+% but still)
+
+% type safety without burden of annotation! best of both worlds
+
+\ocaml is a powerful language, trust me.
+% xen tool stack on top of xen kernel, static driver verifier microsoft
+% jane street trading software (X% of ws transactions)
+% mylife full backend stack,
+% unison file two-way synchronizer (rsync on steroids),
+%  mldonkey (peer-to-peer),
+% fftw generator (MIT),
+% many top static analysis tools in the academic world at top
+% universities like stanford, berkeley, caltech, and industry world
+% CEA (french nuclear plant, they don't like bugs in their code)
+% so used by static analysis world, by financial world (jane street), by system
+% world (Xen, mldonkey, mylife backend),
+% F# is a copy of OCaml, and of course
+% origin in academics, especially program analysis, compilation, theorem
+% proving, its original niche.
+
+%goal of this document ?
+
+% wikipedia link ? and set of features
+% - HOF (now in mainstream in c#3 and c++0x, after 30 years ...)
+% - best of static type and dynamic type: type inference
+% - powerful types (ADTs) and pattern matching
+% - very good performance for a functional langage (order of magniture
+%   faster than perl/python/PHP which are convenient lang to prog but slow
+%   and not far away from C. Faster than Java, C++ in practice.
+%   why fast func lang? static typing (vs LISP), good but simple compiler, not lazy
+%   like haskell
+% - F# by MSR is inspired by OCaml (F# is fast, but only on windows platform
+%   for now unfortunately). Same syntax so easy to port if one day F#
+%   really mainstream
+
+%why good according to me, cf also peyton jones in 'coder at work':
+% - for maintenance, when change something, compiler tells us all dependent
+%   places should be changed too. Confidence!! No confident in PHP.
+%   if change data repr or number of args, you are on your own.
+%   I'll be anxious in PHP
+% - debugging, no side effect, so local, so when bug, local
+% - documentation, I can say something but not too much about what the program
+%   does.
+% - code factorization power, with HOF, ex with_open, finalize is not a
+%   keyword, cache_computation, etc
+% - easy debugging, replay!!, and display complex structure in
+%   debugger/interpreter (in contrast to C++ world ...), a la vardump
+
+\section{\ocaml vs X}
+
+%vs java
+%vs python/ruby
+%vs c/c++
+%vs PHP :)
+
+%less:
+%vs haskell
+%vs lisp
+%vs erlang
+
+% see section X for ocaml deficiencies against other languages too
+
+\section{Toolset}
+%see emacs.org
+
+%ocamlc
+%ocamlopt
+%ocamlmklib
+
+%ocamldep
+
+%ocamllex ocamlyacc
+
+%ocamldebug!!!
+%ocamlmktop
+
+%profiler ?
+
+%emacs mode, cf later
+
+%package manager, cf later
+% ocamlfind and findlib
+
+\chapter{Installing OCaml}
+
+%different ways
+
+%if with pad, then no need, see section X
+
+% unix packages (rpm, deb, macports, etc)
+
+\section{From source}
+
+\section{Godi}
+%why godi ?
+
+\section{Unix distributions}
+
+\section{Pad's installation}
+%also /home/pad/packages/bin
+
+
+\chapter{Your First Program}
+
+%ocamlc
+
+\section{[[foo.ml]]}
+
+% currification
+% link to syntax memento section for why that way
+
+% wierd, let main = ...
+% like in PHP, toplevel statements
+% compiler generate code for functions and anonymous functions for toplevel
+%  and when run it run all those fake functions (in the order of the
+% file and the modules given at link time). Usually only toplevel
+% is let main =
+
+% (actually in C too, because can do
+% static int x = <expression>;
+
+% type inference
+% link to emacs C-c C-t, see more later
+
+<<foo.ml>>=
+let x = 1
+@
+
+\section{Command line arguments}
+
+\section{A Simple Makefile}
+
+\chapter{\ocaml Crash Course}
+
+% functional style vs imperative
+% total = 0;
+% for(i = 0; i < 10; i ++) { total += i; } return total;
+% fold (+) (enum 1 10),   composable!
+
+\section{Type inference}
+
+% don't repeat yourself, cf haxe slides
+
+% type inference for polymorphic code too !! no ugly
+% Map<...,<...,...>> x = new Map<....<....,...>>
+
+\section{Values}
+
+% many builtins, tuples, lists,  records
+
+\section{Function call syntax}
+
+% explain syntax, but don't explain too much about curry and so on
+% tell the reader to go to section X if want to know more
+
+\section{Algebraic data types}
+
+% enum on steroids. Show ex of enum, red, green, blue.
+% show ex of error type, enum and string_of_error function.
+% then show want to extend!, how to do it in X ?
+
+\section{Expression oriented}
+% nice if then else as expression. Like ternary. This has
+% implication. Instead of  $x = 0; if (...) then $x =1; else $x = 2;
+% (which is modifying memory cells),
+% instead do  let x = if ... then ... else ...
+% can do that in C with ternary, but not that readable for big
+%  expression and can't nest them. Not unusual in OCaml to do:
+% let x = if ... then  (match ...) else ....
+
+\section{Closures}
+% and higher order
+
+\section{How to do X ?}
+
+% option type (I want null or something)
+% ??
+
+\chapter{Your First Project}
+
+\section{Project organization}
+
+% dir organization
+
+% flags
+
+% libraries .cma (even C people dunno that ...)
+
+% .mli !!!!!   also ocamlc -i,  but dont use it
+
+\section{[[Makefile]] template}
+
+% libraries .cma
+
+%ocamldep
+
+% vs omake, ocamlbuild, Mottl, ... ?
+
+%beforedepend trick
+
+% :: trick
+
+
+\section{[[main.ml]] template}
+
+\chapter{Editing}
+
+\section{Emacs}
+
+\subsection{Tuareg mode}
+%good color
+%more colors
+
+\subsection{Tags}
+% use pfff/tags :)
+
+\subsection{Type Inference feedback}
+% .annot
+
+% ocamlc -dtype
+% C-c C-t
+
+\subsection{Debugging}
+%ocamldebug !!!
+
+\subsection{[[project.el]] template}
+
+%c-c c-g
+%c-c c-l
+
+\subsection{Addons}
+
+\section{Vi}
+
+\section{Codemap}
+
+\chapter{Testing}
+
+% my let _ = example ..., my cmdline_actions,
+% my regression style, ounit, quickcheck
+
+\chapter{Debugging}
+
+%ocamlc -g
+
+%OCAMLRUNPARAM="b"
+
+
+% for profiling, see my commons
+
+Amazing debugger. Can go back in time.
+
+% cf later emacs section
+
+\section{Printf style debugging}
+
+%pr2_gen, a la Perl Dumper
+
+% cf also ocamltarzan
+
+\section{Displaying complex values}
+
+% p
+
+% vs C++ STL :) no need ddd
+
+% p *  it
+
+%ocaml.v json sexp
+
+\section{Breaking points}
+
+\section{Time traveling}
+%back
+
+%cool for exn
+%backtrace good, but cant see value of args (perl better for that)
+
+\chapter{Libraries}
+
+% sdtlib
+
+% commons, cf commons.pdf
+
+% external/ocamlxxx
+
+% ocamltarzan
+
+% caml hump, godi
+
+\chapter{The \ocaml PLEAC cookbook}
+
+\chapter{Pitfalls}
+
+\section{Ugly stuff}
+% a few ugly stuff
+
+%no '-' in filename!!! otherwise can't open, or cant debug because tools
+%are not prepared to have _ in name, like ocamldebug ...
+
+\section{Confusing syntax for a C/Java/... programmer}
+
+% '*' are not pointers ... they mean tuples (pair, triples, ...)
+
+% !  is not negation !! it's pointer reference, so if see
+% if !flag then .... it does not mean negation
+
+\section{\ocaml deficiencies}
+
+% no typeclass :( have generic Eq (but sucks),
+% can emulate Show and deriving with camlp4 but not as good.
+
+% no multicore ...
+
+\section{Syntax memento}
+
+% let
+% ;;
+
+% function calls, currification, why that way ?
+%  less chars when  foo 1 2 than foo(1, 2)
+%  encourage make no diff between func and other values, a func
+%  can be passed as a param, partially applied, etc
+
+% comments are (* *)
+
+\chapter{Tricks}
+% cf commons ?  put in commons ?
+
+% of other languages
+%  - with_open
+%  - finalize unwind_protect
+%  - +>, better sense of reading
+%  - visitor
+%  - hooks
+%  - ocamltarzan/camlmix, -dump_ast, ocaml.ml, see also camlp4, dyntype, ...
+
+% advanced stuff: functors, objects, labels, etc
+
+%hashbtl, setg mapg
+
+
+%\chapter{More stuff}
+
+% don't talk about curry, curry does not matter that much, but
+%  explain why this syntax. Because save space :) no (,,,). If
+% function and funcall matters more than if/do/while, then optimize
+% the syntax, and also allow for partial application ! and code like
+% List.map (fff "xxx") [...],  section, etc (pointwise programming a la FP)
+
+\chapter{Coding style}
+
+% http://wiki.xensource.com/xenwiki/OCaml_Best_Practices
+
+\section{Coding conventions}
+% why ? make it easier for other people to read your code
+
+%NO OPEN, except for Ast
+% and Common. But for Common use directly only
+% popular func, such as pr2, spf. otherwise qualify, as in
+% Common.map_filter
+
+\section{Do's and don't}
+
+% module sux ?
+
+
+\chapter{More Documentation}
+
+\url{http://en.wikipedia.org/wiki/Objective_Caml}
+
+% chailloux chapter on internals !!! great way to understand
+% how things work, and you need that to be proficient, know what
+% cost things (not like lisp programmer ... cf quote)
+
+\section{\ocaml tutorials}
+
+\url{http://www.ocaml-tutorial.org}
+
+\section{\ocaml books}
+
+\section{Functional programming}
+
+% wadler, htdp, sicp
+% seven languages in seven weeks ?
+
+\section{\ocaml cookbook}
+%PLEAC
+
+%excellent ressource
+
+\appendix
+
+\begin{thebibliography}{99}
+
+\bibitem[1]{cil} George Necula,
+{\em CIL},
+CC.
+\verb+http://manju.cs.berkeley.edu/cil/+
+
+\end{thebibliography}
+
+% xen paper on ocaml experience
+% jane street paper on ocaml experience
+% haxe slides
+% graydon hoare from mozilla
+
+%******************************************************************************
+% Postlude
+%******************************************************************************
+
+\end{document}

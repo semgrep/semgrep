@@ -1,0 +1,38 @@
+# -*- org -*-
+
+* use of plain (ocaml)yacc for most grammars:
+
+alternatives:
+ - Yacc: LALR(1), no EBNF, but simple.
+ - Menhir: LR(1), EBNF, probably nice, but was an added dependency
+   (less relevant nowadays with OPAM), and I didn't like it has such
+   a huge codebase (ocamlyacc is 2K max, menhir is 20 KLOC)
+ - GLR: nice (see dypgen in lang_ruby/parsing), but there is no static
+   guarantee that you've handled all the merging possibilities. dypgen
+   does not list the list of s/r conflicts or whether the merge are
+   exhaustive.
+ - PEG: ??
+ - ANTLR: LL(k), so require to rewrite the grammar to avoid
+   some left recursion (can handle some for binary operators, but not all)
+
+related readings (I did not fully read those articles):
+ - ANTLR advocacy: "Why you should not use flex/yacc/bison"
+   https://tomassetti.me/why-you-should-not-use-flex-yacc-and-bison/
+ - PEG advocacy: "Yacc is Dead"
+   https://arxiv.org/abs/1010.5023
+ - yacc defense: "Yacc is not Dead"
+   https://research.swtch.com/yaccalive
+
+* use of tok and wrap in most CSTs/ASTs.
+
+alternatives:
+ - use of tok: simple, work good with sgrep to extract ranges (as long
+   as you add a minimum amount of tok in the AST).
+ - add one location information per expr constructors.
+   Done in Haxe, and a few other compilers.
+ - use expr and exprbis where expr is a record with position/typing/... info.
+   Done in OCaml compiler source.
+   cons: pattern matching complex expression requires to match also
+   all those intermediate records.
+
+* ...
