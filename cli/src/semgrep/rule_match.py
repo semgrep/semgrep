@@ -190,10 +190,12 @@ class RuleMatch:
             self.start.offset,
             self.end.offset,
             self.message,
+            # TODO: Bring this back.
             # This is necessary so we don't deduplicate taint findings which have different sources.
-            self.match.extra.dataflow_trace.to_json_string
-            if self.match.extra.dataflow_trace
-            else None,
+            # self.match.extra.dataflow_trace.to_json_string
+            # if self.match.extra.dataflow_trace
+            # else None,
+            None,
         )
 
     @ci_unique_key.default
