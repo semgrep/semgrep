@@ -39,9 +39,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 
-from parsy import *
-from string import whitespace as whitespace_chars
-
 def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
     """
     Go from:
@@ -53,7 +50,6 @@ def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
     rest = s[len(algorithm) + 1 :]
     decode_base_64 = base64.b64decode(rest)
     return {algorithm: [base64.b16encode(decode_base_64).decode("ascii").lower()]}
-
 
 
 def parse_yarn1(
