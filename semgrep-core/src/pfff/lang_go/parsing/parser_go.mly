@@ -311,7 +311,7 @@ sgrep_spatch_pattern:
          * empty functions/methods, but I doubt people want explicitely
          * to match that => better to return a Partial
          *)
-        | DFunc (_, _, _, (_, Empty)) | DMethod (_, _, _, (_, Empty))
+        | DFunc (_, _, (_, Empty)) | DMethod (_, _, (_, Empty))
            -> Partial (PartialDecl top_decl)
         | _ -> item1 $1
         )
@@ -338,7 +338,7 @@ sgrep_spatch_pattern:
     { let pret =
          [ParamClassic { pname = None; ptype = $5; pdots = None }] in
       let ftype = { ftok = $2; fparams = ($2, $3, $4); fresults = pret } in
-      let top_decl = DFunc ($2, $1, None, (ftype, Empty)) in
+      let top_decl = DFunc ($1, None, (ftype, Empty)) in
       Partial (PartialDecl top_decl)
     }
 
@@ -996,7 +996,7 @@ xfndcl: LFUNC fndcl fnbody
 fndcl:
 |   sym "(" oarg_type_list_ocomma ")" fnres
      { fun ftok body ->
-        DFunc (ftok, $1, None, ({ ftok; fparams=($2, $3, $4); fresults = $5; },body))
+        DFunc ($1, None, ({ ftok; fparams=($2, $3, $4); fresults = $5; },body))
      }
 |   "(" oarg_type_list_ocomma ")" sym
     "(" oarg_type_list_ocomma ")" fnres
@@ -1004,7 +1004,7 @@ fndcl:
       fun ftok body ->
         match $2 with
         | [ParamClassic x] ->
-            DMethod (ftok, $4, x, ({ ftok; fparams = ($5, $6, $7); fresults = $8 }, body))
+            DMethod ($4, x, ({ ftok; fparams = ($5, $6, $7); fresults = $8 }, body))
         | [] -> error $1 "method has no receiver"
         | [ParamEllipsis _] -> error $1 "method has ... for receiver"
         | _::_::_ -> error $1 "method has multiple receivers"

@@ -1352,9 +1352,7 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration) :
         | Some x -> block env x
         | None -> Empty
       in
-      [
-        DFunc (tfunc, id, tparams, ({ ftok = tfunc; fparams; fresults }, body));
-      ]
+      [ DFunc (id, tparams, ({ ftok = tfunc; fparams; fresults }, body)) ]
   | `Meth_decl (v1, v2, v3, v4, v5, v6) ->
       let ftok = token env v1 (* "func" *) in
       let _l, v2, _r = parameter_list env v2 in
@@ -1376,9 +1374,7 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration) :
         | [ ParamClassic x ] -> x
         | _ -> failwith "expected one receiver"
       in
-      [
-        DMethod (ftok, v3, receiver, ({ ftok; fparams = v4; fresults = v5 }, v6));
-      ]
+      [ DMethod (v3, receiver, ({ ftok; fparams = v4; fresults = v5 }, v6)) ]
   | `Import_decl (v1, v2) ->
       let v1 = token env v1 (* "import" *) in
       let v2 =
