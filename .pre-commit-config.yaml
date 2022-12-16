@@ -5,7 +5,9 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
-exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations|TOPORT"
+#TODO: remove semgrep-core/src/pfff at some point from below
+
+exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations|TOPORT|^semgrep-core/src/pfff"
 
 # See https://pre-commit.com/#pre-commit-configyaml---repos
 # for more information on the format of the content below
