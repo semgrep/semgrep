@@ -99,9 +99,13 @@ let tok (index, line, column) str env =
     Parse_info.transfo = NoTransfo;
   }
 
-let mk_tok ?(double_quoted = false)
-    { E.start_mark = { M.index; M.line; M.column }; _ } str env =
-  let str = if double_quoted then "\"" ^ str ^ "\"" else str in
+let mk_tok ?(quoted = None) { E.start_mark = { M.index; M.line; M.column }; _ }
+    str env =
+  let str =
+    match quoted with
+    | Some s -> s ^ str ^ s
+    | None -> str
+  in
   (* their tokens are 0 indexed for line and column, AST_generic's are 1
    * indexed for line, 0 for column *)
   tok (index, line, column) str env
@@ -193,17 +197,18 @@ let scalar (_tag, pos, value, style) env : G.expr * E.pos =
      metavariable to target YAML code which looks like a metavariable
      (but ought to be interpreted as a string)
   *)
-  let double_quoted =
+  let quoted =
     match style with
-    | `Double_quoted -> true
-    | __else__ -> false
+    | `Double_quoted -> Some "\""
+    | `Single_quoted -> Some "'"
+    | __else__ -> None
   in
   if
     AST_generic_.is_metavar_name value
-    && (not env.is_target) && not double_quoted
+    && (not env.is_target) && Option.is_none quoted
   then (G.N (mk_id value pos env) |> G.e, pos)
   else
-    let token = mk_tok ~double_quoted pos value env in
+    let token = mk_tok ~quoted pos value env in
     let expr =
       (match value with
       | "__sgrep_ellipses__" -> G.Ellipsis (Parse_info.fake_info token "...")
