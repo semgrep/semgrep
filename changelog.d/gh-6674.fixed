@@ -1,1 +1,0 @@
-When matching module specifiers in imports, prevent metavariables from capturing quotes.

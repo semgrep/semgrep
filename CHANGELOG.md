@@ -8,6 +8,32 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.2.0](https://github.com/returntocorp/semgrep/releases/tag/v1.2.0) - 2022-12-15
+
+### Fixed
+
+- Fixed rare crash that could occur due to stale file caches when temp file names overlap (cache-invalidation)
+- PHP: support metavariables in string (as in `foo("$VAR")`) (gh-6311)
+- Java: support static block patterns (gh-6366)
+- Rust: parse correctly scoped identifier in constructor (gh-6594)
+- Java: support `super(...)` patterns (gh-6638)
+- C#: bugfix on bad interaction between -fast and the internal code generated
+  for LINQ queries (gh-6666)
+- Java: support the Java 10 'var' keyword by not using 'var' as a valid type when
+  using typed metavariables. (gh-6672)
+- When matching module specifiers in imports, prevent metavariables from capturing quotes. (gh-6674)
+- Swift: support complex expression in switch case (gh-6704)
+- Constant propagation: Fixed a bug where constant propagation would only run within functions. Now,
+  it runs on the top-level of the program as well. (pa-1656)
+- DeepSemgrep: Fixed a bug where imports which reached type names (among other things) would not resolve properly (pa-2260)
+- DeepSemgrep: Fixed a bug which caused Java functions with interfaces to wipe taint (instead of propagating taint by default) (pa-2265)
+- Fix matching of qualified names. For example, `new $X.Foo()` will now match
+  `new a.b.Foo()`. (pa-2296)
+- DeepSemgrep: Fix regression in taint-mode introduced by Semgrep v1.1 that caused
+  some findings to be missed. Also, DeepSemgrep will assume, for now, that a method
+  call on a tainted object is always tainted. (pa-2304)
+- Improved matching behavior on JS `require` calls (require-match)
+
 ## [1.1.0](https://github.com/returntocorp/semgrep/releases/tag/v1.1.0) - 2022-12-05
 
 ### Added
