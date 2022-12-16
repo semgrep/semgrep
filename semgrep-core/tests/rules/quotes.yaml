@@ -1,0 +1,25 @@
+rules:
+  - id: bare_metavar 
+    message: LANG is $FOO
+    patterns:
+      - pattern: |
+          bare: $FOO
+      - metavariable-regex:
+          metavariable: $FOO
+          regex: ^\".*+
+      - focus-metavariable: $FOO
+    languages:
+      - yaml
+    severity: ERROR
+  - id: quoted_metavar
+    message: LANG is $FOO
+    patterns:
+      - pattern: |
+          quoted: "$FOO"
+      - metavariable-regex:
+          metavariable: $FOO
+          regex: ^\".*+
+      - focus-metavariable: $FOO
+    languages:
+      - yaml
+    severity: ERROR

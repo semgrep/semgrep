@@ -1,0 +1,10 @@
+# ruleid: bare-metavar
+- bare: "double"
+- bare: |
+    piped 
+
+- quoted: "double"
+# ruleid: quoted-metavar
+- quoted: "\"double"
+- quoted: |
+    piped 
