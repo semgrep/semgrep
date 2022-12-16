@@ -92,8 +92,9 @@ and type_arguments = type_ list bracket (* at least 1 elt *)
 
 and chan_dir = TSend | TRecv | TBidirectional
 and func_type =  {
-  fparams: parameter_binding list;
-  fresults: parameter_binding list;
+  ftok: (* 'func' *) tok;
+  fparams: parameter_binding list bracket;
+  fresults: parameter_binding list; (* TODO: bracket also here *)
 }
 and parameter_binding =
   | ParamClassic of parameter
@@ -354,6 +355,8 @@ type top_decl =
   | Package of tok * ident
   | Import of import
 
+  (* TODO: the first tok is now redundant because the 'func' keyword is now in
+   * function_ in ftok *)
   | DFunc   of tok * ident * type_parameters option (* generics *) * function_
   | DMethod of tok * ident * parameter (* receiver *) * function_
   | DTop of decl
