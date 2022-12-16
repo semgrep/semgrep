@@ -1,0 +1,2 @@
+Reverted a change which caused findings with different sources (but the same sink) to be deduplicated. This would cause findings which
+looked identical in range and data, but had different taint traces.
