@@ -930,9 +930,6 @@ and m_expr ?(is_root = false) a b =
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
   | G.New (_a0, a1, a2), B.New (_b0, b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_arguments a2 b2
-  | G.Call _, _ ->
-      m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
-  | G.New _, _ -> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
       m_expr a1 b1
       >>= (fun () -> m_tok at bt >>= fun () -> m_expr a2 b2)
@@ -985,8 +982,6 @@ and m_expr ?(is_root = false) a b =
       aux candidates
   | G.ArrayAccess (a1, a2), B.ArrayAccess (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_bracket m_expr a2 b2
-  | G.ArrayAccess _, _ ->
-      m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
       m_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
@@ -1043,6 +1038,8 @@ and m_expr ?(is_root = false) a b =
   | G.N (G.Id _ as a), B.N (B.IdQualified _ as b) -> m_name a b
   | _, G.N (G.Id _) ->
       m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
+  | G.ArrayAccess _, _
+  | G.Call _, _
   | G.Container _, _
   | G.Comprehension _, _
   | G.Record _, _
@@ -1051,6 +1048,7 @@ and m_expr ?(is_root = false) a b =
   | G.Lambda _, _
   | G.AnonClass _, _
   | G.N _, _
+  | G.New _, _
   | G.IdSpecial _, _
   | G.ParenExpr _, _
   | G.Xml _, _
