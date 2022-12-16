@@ -128,10 +128,10 @@ let top_func () =
         let t1, _v1, t2 = bracket tok v1 and v2 = type_ v2 in
         G.TyArray ((t1, None, t2), v2)
     | TFunc v1 ->
-        let (l, params, _r), ret = func_type v1 in
+        let _ftok, (_l, params, r), ret = func_type v1 in
         let ret =
           match ret with
-          | None -> G.ty_builtin ("void", l)
+          | None -> G.ty_builtin ("void", r)
           | Some t -> t
         in
         G.TyFun (params, ret)
@@ -157,11 +157,11 @@ let top_func () =
     | TRecv -> G.TyN (G.Id (unsafe_fake_id "recv", G.empty_id_info ())) |> G.t
     | TBidirectional ->
         G.TyN (G.Id (unsafe_fake_id "bidirectional", G.empty_id_info ())) |> G.t
-  and func_type { ftok = _TODO; fparams = l, params, r; fresults } :
-      G.parameters bracket * G.type_ option =
+  and func_type { ftok; fparams = l, params, r; fresults } :
+      G.tok * G.parameters bracket * G.type_ option =
     let fparams = list parameter_binding params in
     let fresults = list parameter_binding fresults in
-    ((l, fparams, r), return_type_of_results fresults)
+    (ftok, (l, fparams, r), return_type_of_results fresults)
   and parameter_binding x =
     match x with
     | ParamClassic x -> parameter x
@@ -203,11 +203,10 @@ let top_func () =
   and interface_field = function
     | Method (v1, v2) ->
         let v1 = ident v1 in
-        let (_l, params, _r), ret = func_type v2 in
+        let ftok, (_l, params, _r), ret = func_type v2 in
         let ent = G.basic_entity v1 in
         let fdef =
-          G.FuncDef
-            (mk_func_def (G.Method, G.fake "") params ret (G.FBDecl G.sc))
+          G.FuncDef (mk_func_def (G.Method, ftok) params ret (G.FBDecl G.sc))
         in
         G.fld (ent, fdef)
     | EmbeddedInterface v1 ->
@@ -297,9 +296,8 @@ let top_func () =
         let v3 = type_ v3 in
         G.TypedMetavar (v1, v2, v3)
     | FuncLit (v1, v2) ->
-        let (_l, params, _r), ret = func_type v1 and v2 = stmt v2 in
-        G.Lambda
-          (mk_func_def (G.LambdaKind, G.fake "") params ret (G.FBStmt v2))
+        let ftok, (_l, params, _r), ret = func_type v1 and v2 = stmt v2 in
+        G.Lambda (mk_func_def (G.LambdaKind, ftok) params ret (G.FBStmt v2))
     | Receive (v1, v2) ->
         let v1 = tok v1 and v2 = expr v2 in
         G.OtherExpr (("Receive", v1), [ G.E v2 ])
@@ -606,24 +604,24 @@ let top_func () =
     let p = parameter_binding v in
     G.OtherTypeParam (("Param", G.fake ""), [ G.Pa p ])
   and top_decl = function
-    | DFunc (t, v1, v2, (v3, v4)) ->
+    | DFunc (v1, v2, (v3, v4)) ->
         let v1 = ident v1 in
         let tparams = option type_parameters v2 |> Common.optlist_to_list in
-        let (_l, params, _r), ret = func_type v3 in
+        let ftok, (_l, params, _r), ret = func_type v3 in
         let body = stmt v4 in
         let ent = G.basic_entity v1 ~tparams in
         G.DefStmt
           ( ent,
-            G.FuncDef (mk_func_def (G.Function, t) params ret (G.FBStmt body))
-          )
+            G.FuncDef
+              (mk_func_def (G.Function, ftok) params ret (G.FBStmt body)) )
         |> G.s
-    | DMethod (t, v1, v2, (v3, v4)) ->
+    | DMethod (v1, v2, (v3, v4)) ->
         let v1 = ident v1
         and v2 = parameter v2
-        and (_l, params, _r), ret = func_type v3
+        and ftok, (_l, params, _r), ret = func_type v3
         and v4 = stmt v4 in
         let ent = G.basic_entity v1 in
-        let def = mk_func_def (G.Method, t) params ret (G.FBStmt v4) in
+        let def = mk_func_def (G.Method, ftok) params ret (G.FBStmt v4) in
         let receiver = G.OtherParam (("Receiver", snd v1), [ G.Pa v2 ]) in
         G.DefStmt
           (ent, G.FuncDef { def with G.fparams = receiver :: def.G.fparams })

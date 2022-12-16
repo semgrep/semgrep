@@ -355,10 +355,9 @@ type top_decl =
   | Package of tok * ident
   | Import of import
 
-  (* TODO: the first tok is now redundant because the 'func' keyword is now in
-   * function_ in ftok *)
-  | DFunc   of tok * ident * type_parameters option (* generics *) * function_
-  | DMethod of tok * ident * parameter (* receiver *) * function_
+  (* the 'func' keyword is accessible in function_ in ftok *)
+  | DFunc   of ident * type_parameters option (* generics *) * function_
+  | DMethod of ident * parameter (* receiver *) * function_
   | DTop of decl
   (* tree-sitter-go: not used in pfff Go grammar *)
   | STop of stmt
