@@ -337,7 +337,7 @@ sgrep_spatch_pattern:
  | name LPAREN_SEMGREP oarg_type_list_ocomma ")" fnret_type  ";"? EOF
     { let pret =
          [ParamClassic { pname = None; ptype = $5; pdots = None }] in
-      let ftype = { fparams = $3; fresults = pret } in
+      let ftype = { ftok = $2; fparams = ($2, $3, $4); fresults = pret } in
       let top_decl = DFunc ($2, $1, None, (ftype, Empty)) in
       Partial (PartialDecl top_decl)
     }
@@ -870,7 +870,7 @@ ptrtype: "*" ntype { TPtr ($1, $2) }
 recvchantype: "<-" LCHAN ntype { TChan ($2, TRecv, $3) }
 
 fntype: LFUNC "(" oarg_type_list_ocomma ")" fnres
-  { { fparams = $3; fresults = $5 } }
+  { { ftok = $1; fparams = ($2, $3, $4); fresults = $5 } }
 
 fnres:
 | (*empty *)    %prec NotParen      { [] }
@@ -983,7 +983,7 @@ interfacedcl:
 
 (* fntype // without func keyword *)
 indcl: "(" oarg_type_list_ocomma ")" fnres
-   { { fparams = $2; fresults = $4; } }
+   { { ftok = $1; fparams = ($1, $2, $3); fresults = $4; } }
 
 (*************************************************************************)
 (* Function *)
@@ -995,16 +995,16 @@ xfndcl: LFUNC fndcl fnbody
 
 fndcl:
 |   sym "(" oarg_type_list_ocomma ")" fnres
-     { fun tok body ->
-        DFunc (tok, $1, None, ({ fparams=$3; fresults = $5; },body))
+     { fun ftok body ->
+        DFunc (ftok, $1, None, ({ ftok; fparams=($2, $3, $4); fresults = $5; },body))
      }
 |   "(" oarg_type_list_ocomma ")" sym
     "(" oarg_type_list_ocomma ")" fnres
      {
-      fun tok body ->
+      fun ftok body ->
         match $2 with
         | [ParamClassic x] ->
-            DMethod (tok, $4, x, ({ fparams = $6; fresults = $8 }, body))
+            DMethod (ftok, $4, x, ({ ftok; fparams = ($5, $6, $7); fresults = $8 }, body))
         | [] -> error $1 "method has no receiver"
         | [ParamEllipsis _] -> error $1 "method has ... for receiver"
         | _::_::_ -> error $1 "method has multiple receivers"

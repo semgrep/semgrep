@@ -1233,7 +1233,7 @@ and type_kind =
    * parameters so we need at least 'type_ * attributes', at which point
    * it's simpler to just reuse parameter.
    *)
-  | TyFun of parameter list * type_ (* return type *)
+  | TyFun of parameter list (* TODO bracket *) * type_ (* return type *)
   (* a special case of TApply, also a special case of TPointer *)
   | TyArray of (* const_expr *) expr option bracket * type_
   | TyTuple of type_ list bracket
@@ -1520,6 +1520,7 @@ and function_kind =
   (* for Scala *)
   | BlockCases
 
+(* TODO bracket *)
 and parameters = parameter list
 
 (* newvar: *)

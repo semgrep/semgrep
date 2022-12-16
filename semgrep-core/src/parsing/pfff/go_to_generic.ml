@@ -78,7 +78,7 @@ let list_to_tuple_or_expr xs =
   | [ x ] -> x
   | xs -> G.Container (G.Tuple, G.fake_bracket xs) |> G.e
 
-let mk_func_def fkind params ret st =
+let mk_func_def fkind params ret st : G.function_definition =
   { G.fparams = params; frettype = ret; fbody = st; fkind }
 
 (* TODO: use CondDecl *)
@@ -128,10 +128,10 @@ let top_func () =
         let t1, _v1, t2 = bracket tok v1 and v2 = type_ v2 in
         G.TyArray ((t1, None, t2), v2)
     | TFunc v1 ->
-        let params, ret = func_type v1 in
+        let (l, params, _r), ret = func_type v1 in
         let ret =
           match ret with
-          | None -> G.ty_builtin (unsafe_fake_id "void")
+          | None -> G.ty_builtin ("void", l)
           | Some t -> t
         in
         G.TyFun (params, ret)
@@ -157,10 +157,11 @@ let top_func () =
     | TRecv -> G.TyN (G.Id (unsafe_fake_id "recv", G.empty_id_info ())) |> G.t
     | TBidirectional ->
         G.TyN (G.Id (unsafe_fake_id "bidirectional", G.empty_id_info ())) |> G.t
-  and func_type { fparams; fresults } =
-    let fparams = list parameter_binding fparams in
+  and func_type { ftok = _TODO; fparams = l, params, r; fresults } :
+      G.parameters bracket * G.type_ option =
+    let fparams = list parameter_binding params in
     let fresults = list parameter_binding fresults in
-    (fparams, return_type_of_results fresults)
+    ((l, fparams, r), return_type_of_results fresults)
   and parameter_binding x =
     match x with
     | ParamClassic x -> parameter x
@@ -202,7 +203,7 @@ let top_func () =
   and interface_field = function
     | Method (v1, v2) ->
         let v1 = ident v1 in
-        let params, ret = func_type v2 in
+        let (_l, params, _r), ret = func_type v2 in
         let ent = G.basic_entity v1 in
         let fdef =
           G.FuncDef
@@ -296,7 +297,7 @@ let top_func () =
         let v3 = type_ v3 in
         G.TypedMetavar (v1, v2, v3)
     | FuncLit (v1, v2) ->
-        let params, ret = func_type v1 and v2 = stmt v2 in
+        let (_l, params, _r), ret = func_type v1 and v2 = stmt v2 in
         G.Lambda
           (mk_func_def (G.LambdaKind, G.fake "") params ret (G.FBStmt v2))
     | Receive (v1, v2) ->
@@ -608,7 +609,7 @@ let top_func () =
     | DFunc (t, v1, v2, (v3, v4)) ->
         let v1 = ident v1 in
         let tparams = option type_parameters v2 |> Common.optlist_to_list in
-        let params, ret = func_type v3 in
+        let (_l, params, _r), ret = func_type v3 in
         let body = stmt v4 in
         let ent = G.basic_entity v1 ~tparams in
         G.DefStmt
@@ -619,7 +620,7 @@ let top_func () =
     | DMethod (t, v1, v2, (v3, v4)) ->
         let v1 = ident v1
         and v2 = parameter v2
-        and params, ret = func_type v3
+        and (_l, params, _r), ret = func_type v3
         and v4 = stmt v4 in
         let ent = G.basic_entity v1 in
         let def = mk_func_def (G.Method, t) params ret (G.FBStmt v4) in
