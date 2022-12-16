@@ -8,6 +8,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.2.1](https://github.com/returntocorp/semgrep/releases/tag/v1.2.1) - 2022-12-16
+
+### Fixed
+
+- Go: fix NoTokenLocation for metavariables matching function type without
+  an argument (e.g. `func()`) (gh-6715)
+- typed-metavariables: handle ternary expressions so we can type correctly
+  expressions like `foo(cond ? new A() : this.a)` (pa-2328)
+- Reverted a change which caused findings with different sources (but the same sink) to be deduplicated. This would cause findings which
+  looked identical in range and data, but had different taint traces. (pa-2336)
+
 ## [1.2.0](https://github.com/returntocorp/semgrep/releases/tag/v1.2.0) - 2022-12-15
 
 ### Fixed

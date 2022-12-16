@@ -1,2 +1,0 @@
-Go: fix NoTokenLocation for metavariables matching function type without
-an argument (e.g. `func()`)
