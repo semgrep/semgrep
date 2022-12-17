@@ -1,0 +1,19 @@
+rules:
+  - id: spring-tainted-code-execution
+    message: User data flows into a script engine or another means of dynamic code
+      evaluation. This is unsafe and could lead to code injection or arbitrary
+      code execution  as a result. Avoid inputting user data into code execution
+      or use proper  sandboxing if user code evaluation is necessary.
+    severity: ERROR
+    languages:
+      - java
+    mode: taint
+    pattern-sources:
+      - pattern: |
+          $METHODNAME(..., @RequestParam $TYPE $SOURCE,...) {
+            ...
+          }
+    pattern-sinks:
+      - pattern: |
+          @Value(...)
+

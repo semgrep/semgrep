@@ -59,6 +59,15 @@ let entity_to_param { G.name; attrs; tparams = _unused } t =
     pdefault = None;
   }
 
+let parse_basic_spring_annotations xs =
+    let parse_spring _str =
+      failwith "TODO"
+    in
+    match xs with
+    | [ G.Arg( { e = L(String((str, _))); _ }) ] -> parse_spring str
+    | _else -> xs
+
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -173,7 +182,21 @@ and annotation (t, v1, v2) =
     | Some x -> bracket annotation_element x
   in
   let name = H.name_of_ids v1 in
-  G.NamedAttr (t, name, xs)
+  (* TODO this is a hack to kind of support Spring annotations
+     https://docs.spring.io/spring-framework/docs/3.2.x/spring-framework-reference/html/
+     To do this correctly, we should implement a SpEL parser,
+     which probably should be a separate language that can be
+     used via join mode *)
+  let res = G.NamedAttr (t, name, xs) in
+  let hacky_spring_annotation_transformation =
+  match name with
+    | Id (("Value", _), _) ->
+        let (t1, xs, t2) = xs in
+        let hacked_xs = parse_basic_spring_annotations xs in
+        G.NamedAttr (t, name, (t1, hacked_xs, t2)) 
+    | __else -> res
+  in
+  hacky_spring_annotation_transformation
 
 and annotation_element = function
   | AnnotArgValue v1 ->
