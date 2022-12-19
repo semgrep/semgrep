@@ -1,2 +1,0 @@
-typed-metavariables: handle ternary expressions so we can type correctly
-expressions like `foo(cond ? new A() : this.a)`
