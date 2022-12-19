@@ -17,6 +17,9 @@ open Core_jsonnet
 module A = AST_jsonnet
 module V = Value_jsonnet
 module J = JSON
+module PI = Parse_info
+
+let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -237,9 +240,20 @@ let rec eval_expr (env : env) (v : expr) : V.value_ =
       | v -> error tk (spf "ERROR: %s" (tostring v)))
   | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
 
-and eval_call env e0 (l, args, _r) =
+and eval_call env e0 (largs, args, _rargs) =
   match eval_expr env e0 with
-  | V.Function { f_tok = _; f_params = l, params, r; f_body = eb } ->
+  | V.Function { f_tok = _; f_params = lparams, params, rparams; f_body = eb }
+    ->
+      let fstr =
+        match e0 with
+        | Id (s, _) -> s
+        | ArrayAccess
+            ( Id (obj, _),
+              (_, L (Str (None, DoubleQuote, (_, [ (meth, _) ], _))), _) ) ->
+            spf "%s.%s" obj meth
+        | _else_ -> "<unknown>"
+      in
+      logger#trace "calling %s at %s" fstr (PI.string_of_info largs);
       (* the named_args are supposed to be the last one *)
       let basic_args, named_args =
         args
@@ -263,8 +277,8 @@ and eval_call env e0 (l, args, _r) =
                in
                B (id, teq, ei''))
       in
-      eval_expr env (Local (l, binds, r, eb))
-  | v -> error l (spf "not a function: %s" (sv v))
+      eval_expr env (Local (lparams, binds, rparams, eb))
+  | v -> error largs (spf "not a function: %s" (sv v))
 
 and eval_binary_op env el (op, tk) er =
   match op with
