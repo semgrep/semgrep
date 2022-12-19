@@ -39,6 +39,8 @@ type env = {
    * evaluation so we model this by using Lazy below.
    *)
   locals : (local_id, V.value_ Lazy.t) Map_.t;
+  (* for call tracing *)
+  depth : int;
 }
 
 and local_id = LSelf | LSuper | LId of string
@@ -92,6 +94,44 @@ let tostring (v : Value_jsonnet.value_) : string =
   let j = Manifest_jsonnet.manifest_value v in
   JSON.string_of_json j
 
+let log_call env str tk =
+  logger#trace "calling %s> %s at %s"
+    (Common2.repeat "-" env.depth |> Common.join "")
+    str (PI.string_of_info tk)
+
+(*****************************************************************************)
+(* Builtins *)
+(*****************************************************************************)
+(* alt: could move to Value_jsonnet.ml *)
+let std_type _env (v : V.value_) : string =
+  match v with
+  | V.Primitive (V.Null _) -> "null"
+  | V.Primitive (V.Bool _) -> "boolean"
+  | V.Primitive (V.Double _) -> "number"
+  | V.Primitive (V.Str _) -> "string"
+  | V.Object _ -> "object"
+  | V.Array _ -> "array"
+  | V.Function _ -> "function"
+
+let std_primivite_equals _env (v : V.value_) (v' : V.value_) : bool =
+  match (v, v') with
+  | V.Primitive p, V.Primitive p' -> (
+      match (p, p') with
+      (* alt: use deriving and Primitive.eq *)
+      | V.Null _, V.Null _ -> true
+      | V.Bool (b, _), V.Bool (b', _) -> b =:= b'
+      | V.Str (s, _), V.Str (s', _) -> s =$= s'
+      | V.Double (f, _), V.Double (f', _) -> f = f'
+      | V.Null _, _
+      | V.Bool _, _
+      | V.Str _, _
+      | V.Double _, _ ->
+          false)
+  (* Should we raise an exn if one of the value is not a primitive?
+   * No, the spec seems to not restrict what v and v' can be.
+   *)
+  | _else_ -> false
+
 (*****************************************************************************)
 (* eval_expr *)
 (*****************************************************************************)
@@ -126,48 +166,10 @@ let rec eval_expr (env : env) (v : expr) : V.value_ =
   | IdSpecial (Super, tk) -> lookup env tk LSuper
   | Call
       ( (ArrayAccess
-           (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, s, _))), _)) as
-        e0),
-        (l, args, r) ) -> (
-      match s with
-      | [ ("length", _) ] ->
-          (* TODO: This is wrong. You need to inspect args, which should
-           * always have one element, then evaluate it,
-           * then look at its type, and depending on its type
-           * (string, array, object) do different things.
-           *)
-          Primitive (Double (float_of_int (List.length args), fk))
-      | [ ("makeArray", tk) ] -> (
-          let mk_lazy_val i fdef =
-            let e =
-              Call
-                ( Lambda fdef,
-                  (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
-            in
-            { V.v = lazy (eval_expr env e); e }
-          in
-          match args with
-          | [ Arg e; Arg e' ] -> (
-              match (eval_expr env e, e') with
-              | Primitive (Double (n, tk)), Lambda fdef ->
-                  if Float.is_integer n then
-                    Array
-                      ( fk,
-                        Array.init (Float.to_int n) (fun i ->
-                            mk_lazy_val i fdef),
-                        fk )
-                  else error tk (spf "Got non-integer %f in std.makeArray" n)
-              | v, _e' ->
-                  error tk
-                    (spf "Improper arguments to std.makeArray: %s" (sv v)))
-          | _else_ ->
-              error tk
-                (spf
-                   "Improper number of arguments to std.makeArray: expected 2, \
-                    got %d"
-                   (List.length args)))
-      (* default to regular call, handled by std.jsonnet code hopefully *)
-      | _else_ -> eval_call env e0 (l, args, r))
+           (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ meth ], _))), _))
+        as e0),
+        (l, args, r) ) ->
+      eval_std_method env e0 meth (l, args, r)
   | Local (_tlocal, binds, _tsemi, e) ->
       let locals =
         binds
@@ -175,11 +177,11 @@ let rec eval_expr (env : env) (v : expr) : V.value_ =
              (fun acc (B (id, _teq, e)) ->
                (* closure! *)
                (* TODO? should we use env.locals or acc ? *)
-               let lzv = lazy (eval_expr { locals = env.locals } e) in
+               let lzv = lazy (eval_expr { env with locals = env.locals } e) in
                Map_.add (LId (fst id)) lzv acc)
              env.locals
       in
-      eval_expr { (* env with *) locals } e
+      eval_expr { env with locals } e
   | ArrayAccess (v1, v2) -> (
       let e = eval_expr env v1 in
       let l, e', _r = (eval_bracket eval_expr) env v2 in
@@ -240,6 +242,74 @@ let rec eval_expr (env : env) (v : expr) : V.value_ =
       | v -> error tk (spf "ERROR: %s" (tostring v)))
   | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
 
+and eval_std_method env e0 (method_str, tk) (l, args, r) =
+  match method_str with
+  | "type" -> (
+      log_call env ("std." ^ method_str) l;
+      match args with
+      | [ Arg e ] ->
+          let v = eval_expr env e in
+          let s = std_type env v in
+          Primitive (Str (s, l))
+      | _else_ ->
+          error tk
+            (spf "Improper #arguments to std.type: expected 1, got %d"
+               (List.length args)))
+  (* this method is called in std.jsonnet equals()::, and calls to
+   * this equals() are generated in Desugar_jsonnet when
+   * desugaring the == opeerator.
+   *)
+  | "primitiveEquals" -> (
+      log_call env ("std." ^ method_str) l;
+      match args with
+      | [ Arg e; Arg e' ] ->
+          let v = eval_expr env e in
+          let v' = eval_expr env e' in
+          let b = std_primivite_equals env v v' in
+          Primitive (Bool (b, l))
+      | _else_ ->
+          error tk
+            (spf
+               "Improper #arguments to std.primitiveEquals: expected 2, got %d"
+               (List.length args)))
+  | "length" ->
+      log_call env ("std." ^ method_str) l;
+      (* TODO: This is wrong. You need to inspect args, which should
+       * always have one element, then evaluate it,
+       * then look at its type, and depending on its type
+       * (string, array, object) do different things.
+       *)
+      Primitive (Double (float_of_int (List.length args), fk))
+  | "makeArray" -> (
+      log_call env ("std." ^ method_str) l;
+      let mk_lazy_val i fdef =
+        let e =
+          Call
+            (Lambda fdef, (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk))
+        in
+        { V.v = lazy (eval_expr env e); e }
+      in
+      match args with
+      | [ Arg e; Arg e' ] -> (
+          match (eval_expr env e, e') with
+          | Primitive (Double (n, tk)), Lambda fdef ->
+              if Float.is_integer n then
+                Array
+                  ( fk,
+                    Array.init (Float.to_int n) (fun i -> mk_lazy_val i fdef),
+                    fk )
+              else error tk (spf "Got non-integer %f in std.makeArray" n)
+          | v, _e' ->
+              error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
+      | _else_ ->
+          error tk
+            (spf
+               "Improper number of arguments to std.makeArray: expected 2, got \
+                %d"
+               (List.length args)))
+  (* default to regular call, handled by std.jsonnet code hopefully *)
+  | _else_ -> eval_call env e0 (l, args, r)
+
 and eval_call env e0 (largs, args, _rargs) =
   match eval_expr env e0 with
   | V.Function { f_tok = _; f_params = lparams, params, rparams; f_body = eb }
@@ -253,7 +323,7 @@ and eval_call env e0 (largs, args, _rargs) =
             spf "%s.%s" obj meth
         | _else_ -> "<unknown>"
       in
-      logger#trace "calling %s at %s" fstr (PI.string_of_info largs);
+      log_call env fstr largs;
       (* the named_args are supposed to be the last one *)
       let basic_args, named_args =
         args
@@ -277,7 +347,9 @@ and eval_call env e0 (largs, args, _rargs) =
                in
                B (id, teq, ei''))
       in
-      eval_expr env (Local (lparams, binds, rparams, eb))
+      eval_expr
+        { env with depth = env.depth + 1 }
+        (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
 
 and eval_binary_op env el (op, tk) er =
@@ -459,7 +531,7 @@ and eval_obj_inside env (l, x, r) : V.value_ =
                                      env.locals |> Map_.add LSelf lazy_o
                                      |> Map_.add LSuper (lazy V.empty_obj)
                                    in
-                                   eval_expr { (* env with *) locals } fld_value)
+                                   eval_expr { env with locals } fld_value)
                               in
                               { V.v; e = fld_value }
                             in
@@ -493,6 +565,6 @@ and eval_for_comp env v =
 (*****************************************************************************)
 
 let eval_program (e : Core_jsonnet.program) : Value_jsonnet.value_ =
-  let empty_env = { locals = Map_.empty } in
+  let empty_env = { locals = Map_.empty; depth = 0 } in
   let v = eval_expr empty_env e in
   v
