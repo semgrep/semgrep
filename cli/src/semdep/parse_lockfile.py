@@ -616,7 +616,6 @@ def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]
         dep = dep[j:]
         transitivity = Transitivity(Direct() if depth(j) else Transitive())
         [_, package, _, version, _] = dep.strip().split(":")
-        print(package, version)
         yield FoundDependency(
             package=package,
             version=version,
