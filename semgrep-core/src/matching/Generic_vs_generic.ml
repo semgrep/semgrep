@@ -436,6 +436,8 @@ let m_regexp_options a_opt b_opt =
    See the case conditioning in `is_resolved` below.
 *)
 let rec m_name ?(is_resolved = false) a b =
+  Common.(
+    pr2 (spf "names are %s and %s" ([%show: G.name] a) ([%show: G.name] b)));
   let try_parents dotted =
     let parents =
       match !hook_find_possible_parents with
@@ -460,126 +462,179 @@ let rec m_name ?(is_resolved = false) a b =
   in
   match (a, b) with
   (* equivalence: aliasing (name resolving) part 1 *)
-  | a, B.Id (idb, infob) -> (
+  | ( a,
+      B.Id
+        ( idb,
+          ({
+             B.id_resolved =
+               {
+                 contents =
+                   Some
+                     ( (( B.ImportedEntity dotted
+                        | B.ImportedModule (B.DottedName dotted)
+                        | B.ResolvedName (dotted, _) ) as resolved),
+                       _sid );
+               };
+             _;
+           } as infob) ) ) -> (
+      let is_resolved =
+        match resolved with
+        | B.ResolvedName _
+        | B.ImportedEntity _
+        | B.ImportedModule _ ->
+            true
+        | _ -> false
+      in
       (match a with
-      | G.Id (a1, a2) ->
-          (* this will handle metavariables in Id *)
-          m_ident_and_id_info (a1, a2) (idb, infob)
-      (* semantic! try to handle open in OCaml by querying LSP! The
-       * target code is using an unqualified Id possibly because of some open!
-       *)
-      | IdQualified { name_last = ida, None; _ } when fst ida = fst idb -> (
-          match !Hooks.get_def idb with
-          | None -> fail ()
-          | Some file ->
-              let m = module_name_of_filename file in
-              let t = snd idb in
-              pr2_gen m;
-              let _n = H.name_of_ids [ (m, t); idb ] in
-              (* retry with qualified target *)
-              (* m_name a n *)
-              return ())
+      | G.Id (a1, a2) -> m_ident_and_id_info (a1, a2) (idb, infob)
       | _ -> fail ())
+      >!>
       (* Try to match the resolved name.
          We want to gate this behind `>!>`, because we prefer not to break it apart
          if we don't have to! We should only descend underneath the `ResolvedName` if
          it is not possible to produce a match to the identifier which contains that
          information within it. That allows us to have strictly more information, including
          the location date of the original identifier.
-
          For instance, we may want to match `$X` to a identifier whose resolved name is `x.y`.
          Matching `$X` to `x.y` will screw with the range of the metavariable, but matching
          the original identifier is totally fine.
       *)
-      >!>
       fun () ->
-      match !(infob.id_resolved) with
-      | Some
-          ( (( B.ImportedEntity dotted
-             | B.ImportedModule (B.DottedName dotted)
-             | B.ResolvedName (dotted, _) ) as resolved),
-            _ ) -> (
-          try_alternate_names resolved
-          >||> m_name ~is_resolved:true a (H.name_of_ids dotted)
-          >||>
-          (* Try the resolved entity and parents *)
-          match a with
-          (* > If we're matching against a metavariable, don't bother checking
-             * > the resolved entity or parents. It will only cause duplicate matches
-             * > that can't be deduped, since the captured metavariable will be
-             * > different.
-             *
-             * FIXME:
-             * This is actually not the correct way of dealing with the problem,
-             * because there could be `metavariable-xyz` operators filtering the
-             * potential values of the metavariable. See DeepSemgrep commit
-             *
-             *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
-          *)
-          | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
-          | _ ->
-              (* Try matching against parent classes *)
-              try_parents dotted)
-      | __else__ -> fail ())
-  | a, B.IdQualified nameinfo -> (
+      try_alternate_names resolved
+      >||> m_name ~is_resolved a (H.name_of_ids dotted)
+      >||>
+      (* Try the resolved entity and parents *)
+      match a with
+      (* > If we're matching against a metavariable, don't bother checking
+         * > the resolved entity or parents. It will only cause duplicate matches
+         * > that can't be deduped, since the captured metavariable will be
+         * > different.
+         *
+         * FIXME:
+         * This is actually not the correct way of dealing with the problem,
+         * because there could be `metavariable-xyz` operators filtering the
+         * potential values of the metavariable. See DeepSemgrep commit
+         *
+         *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
+      *)
+      | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
+      | _ ->
+          (* Try matching against parent classes *)
+          try_parents dotted)
+  | G.Id (a1, a2), B.Id (b1, b2) ->
+      (* this will handle metavariables in Id *)
+      m_ident_and_id_info (a1, a2) (b1, b2)
+  | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
+      (* If `is_resolved` is true, then we got the target `IdQualified` from a
+         `ResolvedName`.
+         Such an identifier has a nonsensical range, because it may have been
+         constructed from identifiers from arbitrary areas, such as imports or
+         classes.
+         If the resolved name is `A.foo`, in
+         the following code:
+         ```
+         class A:
+           def foo():
+             pass
+         ```
+         then the pattern metavariable will match the range of the text
+         ```
+         A:
+         def foo
+         ```
+         because it is matching everything between `A` and `foo`.
+         So we should not permit this match.
+
+         The reason why this is not concerning in terms of preventing matches
+         (such as with `metavariable-pattern`) which should occur is because we will
+         _allow_ the match farther up in the matching logic, to the identifier that
+         contains the packed resolved name in the first place.
+
+         Then, the resolved name can be unpacked later as necessary. It is not
+         necessary to produce this match to the resolved name verbatim, however.
+      *)
+      if is_resolved then fail () else envf (str, tok) (MV.N b)
+  (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
+  | ( G.IdQualified a1,
+      B.IdQualified
+        ({
+           name_info =
+             {
+               B.id_resolved =
+                 {
+                   contents =
+                     Some
+                       ( ((B.ImportedEntity dotted | B.ResolvedName (dotted, _))
+                         as resolved),
+                         _sid );
+                 };
+               _;
+             };
+           _;
+         } as nameinfo) ) ->
       (* try without resolving anything *)
-      (match a with
-      | B.Id ((str, tok), _info) when MV.is_metavar_name str ->
-          (* If `is_resolved` is true, then we got the target `IdQualified` from a
-             `ResolvedName`, `ImportedEntity`, or `ImportedModule`.
-             Such an identifier has a nonsensical range, because it may have been
-             constructed from identifiers from arbitrary areas, such as imports or
-             classes.
-             If the resolved name is `A.foo`, in
-             the following code:
-             ```
-             class A:
-               def foo():
-                 pass
-             ```
-             then the pattern metavariable will match the range of the text
-             ```
-             A:
-             def foo
-             ```
-             because it is matching everything between `A` and `foo`.
-             So we should not permit this match.
-
-             The reason why this is not concerning in terms of preventing matches
-             (such as with `metavariable-pattern`) which should occur is because we will
-             _allow_ the match farther up in the matching logic, to the identifier that
-             contains the packed resolved name in the first place.
-
-             Then, the resolved name can be unpacked later as necessary. It is not
-             necessary to produce this match to the resolved name verbatim, however.
-          *)
-          if is_resolved then fail () else envf (str, tok) (MV.N b)
-      | B.Id _ -> fail ()
-      | B.IdQualified a1 -> m_name_info a1 nameinfo)
-      >!> fun () ->
-      match !(nameinfo.name_info.id_resolved) with
-      | Some
-          ( (( B.ImportedEntity dotted
-             | B.ImportedModule (B.DottedName dotted)
-             | B.ResolvedName (dotted, _) ) as resolved),
-            _ ) ->
-          try_parents dotted
-          >||> try_alternate_names resolved
-          >||>
-          (* try this time by replacing the qualifier by the resolved one *)
-          let new_qualifier =
-            match List.rev dotted with
-            | [] -> raise Impossible
-            | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
-          in
-          m_name a ~is_resolved:true
-            (B.IdQualified
-               {
-                 nameinfo with
-                 name_middle = Some (B.QDots new_qualifier);
-                 name_info = B.empty_id_info ();
-               })
-      | __else__ -> fail ())
+      m_name_info a1 nameinfo >!> (* Try the resolved names. *)
+                              fun () ->
+      try_parents dotted
+      >||> try_alternate_names resolved
+      >||>
+      (* try this time by replacing the qualifier by the resolved one *)
+      let new_qualifier =
+        match List.rev dotted with
+        | [] -> raise Impossible
+        | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
+      in
+      m_name a
+        (B.IdQualified
+           {
+             nameinfo with
+             name_middle = Some (B.QDots new_qualifier);
+             name_info = B.empty_id_info ();
+           })
+  (* semantic! try to handle open in OCaml by querying LSP! The
+   * target code is using an unqualified Id possibly because of some open!
+   *)
+  | G.IdQualified { name_last = ida, None; _ }, B.Id (idb, _infob)
+    when fst ida = fst idb -> (
+      match !Hooks.get_def idb with
+      | None -> fail ()
+      | Some file ->
+          let m = module_name_of_filename file in
+          let t = snd idb in
+          pr2_gen m;
+          let _n = H.name_of_ids [ (m, t); idb ] in
+          (* retry with qualified target *)
+          (* m_name a n *)
+          return ())
+  (* boilerplate *)
+  | ( _,
+      G.IdQualified
+        ({
+           name_info =
+             {
+               B.id_resolved =
+                 {
+                   contents =
+                     Some
+                       ( (( B.ImportedEntity dotted
+                          | B.ImportedModule (B.DottedName dotted)
+                          | B.ResolvedName (dotted, _) ) as resolved),
+                         _sid );
+                 };
+               _;
+             };
+           _;
+         } as b1) ) -> (
+      try_parents dotted
+      >||> try_alternate_names resolved
+      >||>
+      match a with
+      | IdQualified a1 -> m_name_info a1 b1
+      | Id _ -> fail ())
+  | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
+  | G.Id _, _
+  | G.IdQualified _, _ ->
+      fail ()
 
 and m_name_info a b =
   match (a, b) with
@@ -803,7 +858,6 @@ and m_expr ?(is_root = false) a b =
   (* Put this before the next case to prevent overly eager dealiasing *)
   | G.N (G.IdQualified _ as na), B.N ((B.IdQualified _ | B.Id _) as nb) ->
       m_name na nb
-      >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   (* Matches pattern
    *   a.b.C.x
    * to code
