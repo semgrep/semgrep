@@ -1,0 +1,2 @@
+Removed the poor support for reading dependencies from pom.xml files. Instead semgrep will try to read dependencies from a maven_dep_tree.txt file,
+which can be generated using the command `mvn dependency:tree -DoutputFile=maven_dep_tree.txt`

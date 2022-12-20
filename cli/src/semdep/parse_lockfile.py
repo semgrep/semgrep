@@ -13,7 +13,6 @@ from typing import Set
 from typing import Tuple
 
 import tomli
-from defusedxml import ElementTree as ET  # type: ignore
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
@@ -475,67 +474,6 @@ def parse_cargo(
     yield from (parse_dep(dep) for dep in deps)
 
 
-def parse_pom(
-    manifest_text: str, _: Optional[str]
-) -> Generator[FoundDependency, None, None]:
-    NAMESPACE = "{http://maven.apache.org/POM/4.0.0}"
-
-    def parse_dep(
-        properties: Any,
-        # Optional[ET.Element]
-        el: Any
-        # ET.Element
-    ) -> Optional[FoundDependency]:
-        dep_el = el.find(f"{NAMESPACE}artifactId")
-        if dep_el is None:
-            return None
-        dep = dep_el.text
-        if dep is None:
-            return None
-        version_el = el.find(f"{NAMESPACE}version")
-        if version_el is None:
-            return None
-        version = version_el.text
-        if version is None:
-            return None
-        if version[0] == "$":
-            if properties is None:
-                raise SemgrepError("invalid pom.xml?")
-
-            version = version[2:-1]
-            prop_version = properties.find(f"{NAMESPACE}{version}")
-            if prop_version is None:
-                return None
-            version = prop_version.text
-            if version is None:
-                return None
-
-        try:
-            # pom.xml does not specify an exact version, so we give up
-            Version(version)
-        except InvalidVersion:
-            return None
-
-        return FoundDependency(
-            package=dep,
-            version=version,
-            ecosystem=Ecosystem(Maven()),
-            resolved_url=None,
-            allowed_hashes={},
-            transitivity=Transitivity(Unknown()),
-        )
-
-    root = ET.fromstring(manifest_text)
-    deps = root.find(f"{NAMESPACE}dependencies")
-    if deps is None:
-        raise SemgrepError("No dependencies in pom.xml?")
-    properties = root.find(f"{NAMESPACE}properties")
-    for dep in deps:
-        dep_opt = parse_dep(properties, dep)
-        if dep_opt:
-            yield dep_opt
-
-
 def parse_gradle(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
@@ -661,6 +599,35 @@ def parse_requirements(
         )
 
 
+def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]:
+    def package_index(line: str) -> int:
+        i = 0
+        while line[i] in ["+", "-", " ", "\\"]:
+            i += 1
+        return i
+
+    def depth(package_index: int) -> int:
+        return package_index // 3 + 1
+
+    lines = tree_str.split("\n")
+    # Drop first line, it's the name of the project itself
+    deps = [l for l in lines[1:] if l]  # Filter any empty lines
+    for i, dep in enumerate(deps):
+        j = package_index(dep)
+        dep = dep[j:]
+        transitivity = Transitivity(Direct() if depth(j) else Transitive())
+        [_, package, _, version, _] = dep.strip().split(":")
+        yield FoundDependency(
+            package=package,
+            version=version,
+            ecosystem=Ecosystem(Maven()),
+            resolved_url=None,
+            allowed_hashes={},
+            transitivity=transitivity,
+            line_number=i + 1,
+        )
+
+
 LOCKFILE_PARSERS = {
     "pipfile.lock": parse_pipfile,  # Python
     "yarn.lock": parse_yarn,  # JavaScript
@@ -668,7 +635,7 @@ LOCKFILE_PARSERS = {
     "gemfile.lock": parse_gemfile,  # Ruby
     "go.sum": parse_go_sum,  # Go
     "cargo.lock": parse_cargo,  # Rust
-    "pom.xml": parse_pom,  # Java
+    "maven_dep_tree.txt": parse_pom_tree,  # Java
     "gradle.lockfile": parse_gradle,  # Java
     "poetry.lock": parse_poetry,  # Python
     "requirements.txt": parse_requirements,

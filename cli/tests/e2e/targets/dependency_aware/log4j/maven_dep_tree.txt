@@ -1,0 +1,17 @@
+com.example.log4j:log4j-examples:jar:1.0-SNAPSHOT
++- org.apache.logging.log4j:log4j-api:jar:0.0.2:compile
++- org.apache.logging.log4j:log4j-core:jar:0.0.2:compile
++- junit:junit:jar:3.8.1:test
++- org.apache.maven:maven-plugin-api:jar:3.8.6:provided
+|  +- org.apache.maven:maven-model:jar:3.8.6:provided
+|  +- org.apache.maven:maven-artifact:jar:3.8.6:provided
+|  |  \- org.apache.commons:commons-lang3:jar:3.8.1:provided
+|  +- org.eclipse.sisu:org.eclipse.sisu.plexus:jar:0.3.5:provided
+|  |  +- javax.annotation:javax.annotation-api:jar:1.2:provided
+|  |  +- org.eclipse.sisu:org.eclipse.sisu.inject:jar:0.3.5:provided
+|  |  \- org.codehaus.plexus:plexus-component-annotations:jar:1.5.5:provided
+|  +- org.codehaus.plexus:plexus-utils:jar:3.3.1:provided
+|  \- org.codehaus.plexus:plexus-classworlds:jar:2.6.0:provided
++- org.apache.maven.plugin-tools:maven-plugin-annotations:jar:3.6.4:provided
+\- com.zaxxer:nuprocess:jar:2.0.3:compile
+   \- net.java.dev.jna:jna:jar:5.11.0:compile
