@@ -520,7 +520,7 @@ let all_actions () =
   @ Test_dataflow_tainting.actions ()
   @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program
 
-let options () =
+let options actions =
   [
     ("-e", Arg.Set_string pattern_string, " <str> use the string as the pattern");
     ( "-f",
@@ -676,7 +676,7 @@ let options () =
         " keep temporary generated files" );
     ]
   @ Meta_parse_info.cmdline_flags_precision ()
-  @ Common.options_of_actions action (all_actions ())
+  @ Common.options_of_actions action (actions ())
   @ [
       ( "-version",
         Arg.Unit
@@ -733,7 +733,9 @@ let main (sys_argv : string array) : unit =
   in
 
   (* does side effect on many global flags *)
-  let args = Common.parse_options (options ()) usage_msg (Array.of_list argv) in
+  let args =
+    Common.parse_options (options all_actions) usage_msg (Array.of_list argv)
+  in
 
   let config = mk_config () in
 
