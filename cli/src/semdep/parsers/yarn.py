@@ -1,85 +1,72 @@
-from string import whitespace as whitespace_chars
+from dataclasses import dataclass
+from typing import Dict
+from typing import Tuple
+from typing import TypeVar
+from typing import Union
 
-from parsy import *
+from parsy import any_char
+from parsy import Parser
+from parsy import string
+from parsy import success
 
-from semdep.parsers.util import extract_npm_lockfile_hash
+from semdep.parsers.util import mark_line
 from semdep.parsers.util import not_any
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
+from semdep.parsers.util import pair
+from semdep.parsers.util import Pos
 from semgrep.verbose_logging import getLogger
 
 
 logger = getLogger(__name__)
 
-
-@generate
-def p_key_noquote():
-    return (yield not_any(['"', ":", ",", *whitespace_chars]))
+A = TypeVar("A")
 
 
-@generate
-def p_key_quote():
-    yield string('"')
-    key = yield not_any(['"'])
-    yield string('"')
-    return key
+@dataclass
+class Yarn:
+    line_number: int
+    value: Dict[Union[Tuple[str, ...], str], Union["Yarn", str]]
+
+    def __getitem__(self, index: Union[Tuple[str, ...], str]) -> Union["Yarn", str]:
+        return self.value[index]
+
+    @staticmethod
+    def make(
+        marked: Tuple[Pos, Dict[Union[Tuple[str, ...], str], Union["Yarn", str]], Pos]
+    ) -> "Yarn":
+        return Yarn(marked[0][0] + 1, marked[1])
 
 
-@generate
-def p_key():
-    return (yield p_key_quote | p_key_noquote)
+p_key_noquote = not_any(['"', ":", ",", " ", "\n"])
+p_key_quote = string('"') >> not_any(['"']) << string('"')
+
+p_key = p_key_quote | p_key_noquote
+p_multikey = p_key.sep_by(string(", ")).map(lambda x: tuple(x))
+
+p_value = not_any(["\n"])
 
 
-@generate
-def p_multikey():
-    keys = yield p_key.sep_by(string(", "))
-    return tuple(keys)
+def p_yarn_object(depth: int, sep: "Parser[A]") -> "Parser[Yarn]":
+    return mark_line(
+        (
+            Parser(lambda x, y: p_multikey_value(depth, sep)(x, y))
+            | p_key_value(depth, sep)
+        ).sep_by(string("\n"))
+    ).map(lambda t: Yarn(t[0], dict(t[1])))
 
 
-@generate
-def p_value():
-    return (yield not_any(["\n"]))
+def p_multikey_value(
+    depth: int, sep: "Parser[A]"
+) -> "Parser[Tuple[Tuple[str,...],Yarn]]":
+    return pair(
+        string("  " * depth) >> p_multikey << string(":\n"),
+        Parser(lambda x, y: p_yarn_object(depth + 1, sep)(x, y)),
+    )
 
 
-@generate
-def p_key_value():
-    yield string(" ").many()
-    key = yield p_key
-    yield string(" ")
-    value = yield p_value
-    return (key.strip('"'), value.strip('"'))
-
-
-@generate
-def p_blob():
-    pos = yield line_info
-    yield string(" ").many()
-    keys = yield p_multikey
-    yield string(":\n")
-    blobs = yield (p_key_value | p_blob).sep_by(string("\n"))
-    return ((keys, pos), blobs)
-
-
-def blobs_to_dict(blobs):
-    d = {}
-    for (k, v) in blobs:
-        if isinstance(v, list):
-            v = blobs_to_dict(v)
-        d[k] = v
-    return d
-
-
-@generate
-def p_source():
-    at_prefix = yield string("@").optional()
-    package = yield not_any(["@"])
-    package = ("@" if at_prefix else "") + package
-    yield string("@")
-    version = yield any_char.until(eof)
-    return (package, version)
+def p_key_value(depth: int, sep: "Parser[A]") -> "Parser[Tuple[str,str]]":
+    return pair(
+        string("  " * depth) >> p_key << sep, p_value.map(lambda x: x.strip('"'))
+    )
 
 
 YARN1_PREFIX = """\
@@ -89,40 +76,9 @@ YARN1_PREFIX = """\
 
 """
 
-
-@generate
-def p_yarn1():
-    yield string(YARN1_PREFIX)
-    blobs = yield p_blob.sep_by(string("\n\n")).map(blobs_to_dict)
-    yield string("\n").optional()
-    deps = []
-    for (sources, pos), fields in blobs.items():
-        sources = [p_source.parse(s) for s in sources]
-        if len(sources) < 1:
-            logger.info("Found empty dependency in yarn.lock")
-            continue
-        package = sources[0][0]
-        version = fields.get("version")
-        if version is None:
-            logger.info("Found dependency with no version in yarn.lock")
-            continue
-        integrity = fields.get("integrity")
-        resolved_url = fields.get("resolved")
-        deps.append(
-            FoundDependency(
-                ecosystem=Ecosystem(Npm()),
-                package=package,
-                version=version,
-                allowed_hashes=extract_npm_lockfile_hash(integrity)
-                if integrity
-                else {},
-                resolved_url=resolved_url,
-                line_number=pos[0],
-                transitivity=Transitivity(Unknown()),
-            )
-        )
-    return deps
-
+p_yarn1_data = string(YARN1_PREFIX) >> p_yarn_object(0, string(" ")).sep_by(
+    string("\n\n")
+)
 
 YARN2_PREFIX = """\
 # This file is generated by running "yarn install" inside your project.
@@ -133,3 +89,83 @@ __metadata:
   cacheKey: 8
 
 """
+p_yarn2_data = string(YARN2_PREFIX) >> p_yarn_object(0, string(": ")).sep_by(
+    string("\n\n")
+)
+
+
+def p_source(yarn_version: int) -> "Parser[Tuple[str,str]]":
+    return (
+        string("@")
+        .optional(default="")
+        .bind(
+            lambda at_prefix: not_any(["@"]).bind(
+                lambda package: string("@")
+                >> (not_any([":"]) >> string(":") if yarn_version == 1 else success(""))
+                >> any_char.many()
+                .concat()
+                .bind(lambda version: success((at_prefix + package, version)))
+            )
+        )
+    )
+
+
+# def p_yarn(yarn_version, manifest_text):
+#     def transitivity(package, sources, manifest_deps):
+#         if not manifest_deps:
+#             return Transitivity(Unknown())
+#         elif (package, manifest_deps.get(package)) in sources:
+#             return Transitivity(Direct())
+#         else:
+#             return Transitivity(Transitive())
+
+#     if manifest_text:
+#         manifest = json.loads(manifest_text)
+#         manifest_deps = manifest["dependencies"] if "dependencies" in manifest else {}
+#     else:
+#         manifest_deps = None
+
+#     @generate
+#     def parse():
+#         p_prefix, p_sep, p_blob_key = SETTINGS[yarn_version]
+#         yield p_prefix
+#         blobs = (
+#             yield p_blob(0, p_sep, p_blob_key).sep_by(string("\n\n")).map(blobs_to_dict)
+#         )
+#         yield string("\n").optional()
+#         deps = []
+#         for (sources, line_number), fields in blobs.items():
+#             sources = [p_source(yarn_version).parse(s) for s in sources]
+#             if len(sources) < 1:
+#                 logger.info("Found empty dependency in yarn.lock")
+#                 continue
+#             if yarn_version == 0:
+#                 package = sources[0][0]
+#             else:
+#                 resolution = fields.get("resolution")
+#                 if resolution is None:
+#                     logger.info("Found dependency with no resolved name in yarn.lock")
+#                     continue
+#                 package = p_source(yarn_version).parse(resolution)[0]
+#             version = fields.get("version")
+#             if version is None:
+#                 logger.info("Found dependency with no version in yarn.lock")
+#                 continue
+#             integrity = fields.get("integrity")
+#             resolved_url = fields.get("resolved")
+#             deps.append(
+#                 FoundDependency(
+#                     ecosystem=Ecosystem(Npm()),
+#                     package=package,
+#                     version=version,
+#                     allowed_hashes=extract_npm_lockfile_hash(integrity)
+#                     if integrity
+#                     else {},
+#                     resolved_url=resolved_url,
+#                     line_number=line_number,
+#                     transitivity=transitivity(package, sources, manifest_deps),
+#                 )
+#             )
+#         return deps
+
+#     return parse
