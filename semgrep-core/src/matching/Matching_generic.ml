@@ -341,7 +341,6 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
 
 let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
  fun (mvar, _imvar) any tin ->
-  Common.(pr2 (spf "envf on %s" ([%show: MV.mvalue] any)));
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
       logger#ldebug (lazy (spf "envf: fail, %s (%s)" mvar (MV.str_of_mval any)));

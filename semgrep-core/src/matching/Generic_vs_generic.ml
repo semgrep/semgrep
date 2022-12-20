@@ -749,25 +749,6 @@ and m_expr_root a b = m_expr ~is_root:true a b
  * also add them in m_pattern
  *)
 and m_expr ?(is_root = false) a b =
-  let _match_dotted_if_resolved a b =
-    match b.G.e with
-    | B.N
-        (B.Id
-          ( _,
-            {
-              B.id_resolved =
-                {
-                  contents =
-                    Some
-                      ( ( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted) ),
-                        _sid );
-                };
-              _;
-            } )) ->
-        m_expr a (make_dotted dotted)
-    | _ -> fail ()
-  in
   Trace_matching.(if on then print_expr_pair a b);
   match (a.G.e, b.G.e) with
   (* the order of the matches matters! take care! *)
@@ -878,7 +859,6 @@ and m_expr ?(is_root = false) a b =
       >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.N (G.Id ((str, tok), _id_info)), _b when MV.is_metavar_name str ->
       envf (str, tok) (MV.E b)
-      >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   (* metavar: typed! *)
   | G.TypedMetavar ((str, tok), _, t), _b when MV.is_metavar_name str ->
       with_lang (fun lang -> m_compatible_type lang (str, tok) t b)
