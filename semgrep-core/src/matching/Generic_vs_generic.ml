@@ -818,6 +818,11 @@ and m_expr ?(is_root = false) a b =
          name directly, and then break it apart "safely" in `m_name`.
       *)
       fun () -> m_expr a (make_dotted dotted)
+  (* equivalence: name resolving on qualified ids (for OCaml) *)
+  (* Put this before the next case to prevent overly eager dealiasing *)
+  | G.N (G.IdQualified _ as na), B.N ((B.IdQualified _ | B.Id _) as nb) ->
+      m_name na nb
+      >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   (* Matches pattern
    *   a.b.C.x
    * to code
@@ -826,34 +831,16 @@ and m_expr ?(is_root = false) a b =
    *)
   | ( G.N
         (G.IdQualified
-           {
-             G.name_last = alabel, None;
-             name_middle = Some (G.QDots names);
-             name_top = None;
-             _;
-           } as na),
+          {
+            G.name_last = alabel, None;
+            name_middle = Some (G.QDots names);
+            name_top = None;
+            _;
+          }),
       _b ) ->
-      (match b.e with
-      (* equivalence: name resolving on qualified ids (for OCaml) *)
-      (* Put this before the next case to prevent overly eager dealiasing *)
-      | B.N nb ->
-          m_name na nb
-          >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
-      | _ -> fail ())
       (* TODO: double check names does not have any type_args *)
-      >||>
       let full = (names |> Common.map fst) @ [ alabel ] in
       m_expr (make_dotted full) b
-  (* Important to bind to MV.Id when we can, so this must be before
-   * the next case where we bind to the more general MV.E.
-   * TODO: should be B.N (B.Id _ | B.IdQualified _)?
-   *)
-  | G.N (G.Id _ as na), B.N (B.Id _ as nb) ->
-      m_name na nb
-      >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
-  | G.N (G.Id ((str, tok), _id_info)), _b when MV.is_metavar_name str ->
-      envf (str, tok) (MV.E b)
-      >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.DotAccess (_, _, _), B.N b1 ->
       (* Reinterprets a DotAccess expression such as a.b.c as a name, when
        * a,b,c are all identifiers. Note that something like a.b.c could get
@@ -882,6 +869,16 @@ and m_expr ?(is_root = false) a b =
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.Instanceof, _)
     when MV.is_metavar_name str ->
       fail ()
+  (* Important to bind to MV.Id when we can, so this must be before
+   * the next case where we bind to the more general MV.E.
+   * TODO: should be B.N (B.Id _ | B.IdQualified _)?
+   *)
+  | G.N (G.Id _ as na), B.N (B.Id _ as nb) ->
+      m_name na nb
+      >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
+  | G.N (G.Id ((str, tok), _id_info)), _b when MV.is_metavar_name str ->
+      envf (str, tok) (MV.E b)
+      >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   (* metavar: typed! *)
   | G.TypedMetavar ((str, tok), _, t), _b when MV.is_metavar_name str ->
       with_lang (fun lang -> m_compatible_type lang (str, tok) t b)
@@ -1074,6 +1071,7 @@ and m_expr ?(is_root = false) a b =
   | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.N (G.Id _ as a), B.N (B.IdQualified _ as b) -> m_name a b
   | _, G.N (G.Id _) ->
       m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.ArrayAccess _, _
