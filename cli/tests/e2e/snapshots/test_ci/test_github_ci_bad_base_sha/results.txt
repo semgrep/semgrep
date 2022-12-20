@@ -142,6 +142,24 @@ Running semgrep-core with command:
 <MASKED>
 <MASKED>
 <MASKED>
+envf on (Metavariable.Id (("bar", ()),
+   (Some { id_resolved = ref (None); id_type = ref (None);
+           id_svalue = ref (None); id_hidden = false; id_info_id = 39 })
+   ))
+envf on (Metavariable.E
+   { e = (L (Int ((Some 5), ()))); e_id = 0;
+     e_range =
+     (Some ({ str = "5"; charpos = 7; line = 1; column = 7; file = "bar.py" },
+            { str = "5"; charpos = 7; line = 1; column = 7; file = "bar.py" }))
+     })
+envf on (Metavariable.Id (("bar", ()),
+   (Some { id_resolved = ref (None); id_type = ref (None);
+           id_svalue = ref (None); id_hidden = false; id_info_id = 39 })
+   ))
+envf on (Metavariable.Id (("bar", ()),
+   (Some { id_resolved = ref (None); id_type = ref (None);
+           id_svalue = ref (None); id_hidden = false; id_info_id = 39 })
+   ))
 <MASKED>
 <MASKED>
 <MASKED>
