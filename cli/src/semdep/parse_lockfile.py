@@ -13,7 +13,6 @@ from typing import Set
 from typing import Tuple
 
 import tomli
-from defusedxml import ElementTree as ET  # type: ignore
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
@@ -473,67 +472,6 @@ def parse_cargo(
 
     deps = lockfile_text.split("[[package]]")[1:]
     yield from (parse_dep(dep) for dep in deps)
-
-
-def parse_pom(
-    manifest_text: str, _: Optional[str]
-) -> Generator[FoundDependency, None, None]:
-    NAMESPACE = "{http://maven.apache.org/POM/4.0.0}"
-
-    def parse_dep(
-        properties: Any,
-        # Optional[ET.Element]
-        el: Any
-        # ET.Element
-    ) -> Optional[FoundDependency]:
-        dep_el = el.find(f"{NAMESPACE}artifactId")
-        if dep_el is None:
-            return None
-        dep = dep_el.text
-        if dep is None:
-            return None
-        version_el = el.find(f"{NAMESPACE}version")
-        if version_el is None:
-            return None
-        version = version_el.text
-        if version is None:
-            return None
-        if version[0] == "$":
-            if properties is None:
-                raise SemgrepError("invalid pom.xml?")
-
-            version = version[2:-1]
-            prop_version = properties.find(f"{NAMESPACE}{version}")
-            if prop_version is None:
-                return None
-            version = prop_version.text
-            if version is None:
-                return None
-
-        try:
-            # pom.xml does not specify an exact version, so we give up
-            Version(version)
-        except InvalidVersion:
-            return None
-
-        return FoundDependency(
-            package=dep,
-            version=version,
-            ecosystem=Ecosystem(Maven()),
-            resolved_url=None,
-            allowed_hashes={},
-            transitivity=Transitivity(Unknown()),
-        )
-
-    root = ET.fromstring(manifest_text)
-    deps = root.find(f"{NAMESPACE}dependencies")
-    if deps is None:
-        raise SemgrepError("No dependencies in pom.xml?")
-    properties = root.find(f"{NAMESPACE}properties")
-    for dep in deps:
-        dep_opt = parse_dep(properties, dep)
-        if dep_opt:
-            yield dep_opt
 
 
 def parse_gradle(
