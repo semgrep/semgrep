@@ -1,0 +1,16 @@
+# ruleid: bare-metavar
+- bare_double: "double"
+- bare_double: |
+    piped 
+
+# ruleid: bare-metavar
+- bare_single: 'single'
+- bare_single: |
+    piped 
+
+- quoted: "double"
+# ruleid: quoted-metavar
+- quoted: "\"double"
+- quoted: 'double'
+- quoted: |
+    piped 
