@@ -480,7 +480,19 @@ let rec m_name ?(is_resolved = false) a b =
               (* m_name a n *)
               return ())
       | _ -> fail ())
-      >||>
+      (* Try to match the resolved name.
+         We want to gate this behind `>!>`, because we prefer not to break it apart
+         if we don't have to! We should only descend underneath the `ResolvedName` if
+         it is not possible to produce a match to the identifier which contains that
+         information within it. That allows us to have strictly more information, including
+         the location date of the original identifier.
+
+         For instance, we may want to match `$X` to a identifier whose resolved name is `x.y`.
+         Matching `$X` to `x.y` will screw with the range of the metavariable, but matching
+         the original identifier is totally fine.
+      *)
+      >!>
+      fun () ->
       match !(infob.id_resolved) with
       | Some
           ( (( B.ImportedEntity dotted
@@ -544,7 +556,7 @@ let rec m_name ?(is_resolved = false) a b =
           if is_resolved then fail () else envf (str, tok) (MV.N b)
       | B.Id _ -> fail ()
       | B.IdQualified a1 -> m_name_info a1 nameinfo)
-      >||>
+      >!> fun () ->
       match !(nameinfo.name_info.id_resolved) with
       | Some
           ( (( B.ImportedEntity dotted
@@ -797,8 +809,15 @@ and m_expr ?(is_root = false) a b =
           m_name na nb
           >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
       | _ -> fail ())
-      >||> (* try this time a match with the resolved entity *)
-      m_expr a (make_dotted dotted)
+      >!>
+      (* try this time a match with the resolved entity *)
+      (* This needs to be gated behind a `>!>`! This is because we want to avoid
+         matching this `dotted` unless we _have_ to, because it is breaking apart
+         an imported name. This means that the tokens of the produced `DotAccess`
+         are potentially all out of order, meaning we should prefer to match the
+         name directly, and then break it apart "safely" in `m_name`.
+      *)
+      fun () -> m_expr a (make_dotted dotted)
   (* Matches pattern
    *   a.b.C.x
    * to code
