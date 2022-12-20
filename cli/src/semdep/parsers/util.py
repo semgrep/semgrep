@@ -96,11 +96,11 @@ class JSON:
     ) -> "JSON":
         return JSON(marked[0], marked[1])
 
-    def __getitem__(self, key: str) -> "JSON":
+    def get(self, key: str) -> Optional["JSON"]:
         if isinstance(self.value, dict):
-            return self.value[key]
+            return self.value.get(key)
         else:
-            return self
+            return None
 
 
 # Utilities
