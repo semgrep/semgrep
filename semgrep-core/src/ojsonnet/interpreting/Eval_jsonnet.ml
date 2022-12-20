@@ -243,44 +243,48 @@ let rec eval_expr (env : env) (v : expr) : V.value_ =
   | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
 
 and eval_std_method env e0 (method_str, tk) (l, args, r) =
-  match method_str with
-  | "type" -> (
+  match (method_str, args) with
+  | "type", [ Arg e ] ->
       log_call env ("std." ^ method_str) l;
-      match args with
-      | [ Arg e ] ->
-          let v = eval_expr env e in
-          let s = std_type env v in
-          Primitive (Str (s, l))
-      | _else_ ->
-          error tk
-            (spf "Improper #arguments to std.type: expected 1, got %d"
-               (List.length args)))
+      let v = eval_expr env e in
+      let s = std_type env v in
+      Primitive (Str (s, l))
   (* this method is called in std.jsonnet equals()::, and calls to
    * this equals() are generated in Desugar_jsonnet when
    * desugaring the == opeerator.
    *)
-  | "primitiveEquals" -> (
+  | "type", _else_ ->
+      error tk
+        (spf "Improper #arguments to std.type: expected 1, got %d"
+           (List.length args))
+  | "primitiveEquals", [ Arg e; Arg e' ] ->
       log_call env ("std." ^ method_str) l;
-      match args with
-      | [ Arg e; Arg e' ] ->
-          let v = eval_expr env e in
-          let v' = eval_expr env e' in
-          let b = std_primivite_equals env v v' in
-          Primitive (Bool (b, l))
-      | _else_ ->
-          error tk
-            (spf
-               "Improper #arguments to std.primitiveEquals: expected 2, got %d"
-               (List.length args)))
-  | "length" ->
+      let v = eval_expr env e in
+      let v' = eval_expr env e' in
+      let b = std_primivite_equals env v v' in
+      Primitive (Bool (b, l))
+  | "primitiveEquals", _else_ ->
+      error tk
+        (spf "Improper #arguments to std.primitiveEquals: expected 2, got %d"
+           (List.length args))
+  | "length", [ Arg e ] -> (
       log_call env ("std." ^ method_str) l;
-      (* TODO: This is wrong. You need to inspect args, which should
-       * always have one element, then evaluate it,
-       * then look at its type, and depending on its type
-       * (string, array, object) do different things.
-       *)
-      Primitive (Double (float_of_int (List.length args), fk))
-  | "makeArray" -> (
+      match eval_expr env e with
+      | Primitive (Str (s, tk)) ->
+          let i = String.length s in
+          Primitive (Double (float_of_int i, tk))
+      | Array (_, arr, _) ->
+          let i = Array.length arr in
+          Primitive (Double (float_of_int i, tk))
+      | Object (_, (_asserts, flds), _) ->
+          let i = List.length flds in
+          (* TODO: in the spec they use std.objectFieldsEx *)
+          Primitive (Double (float_of_int i, tk))
+      | v ->
+          error l
+            (spf "length operates on strings, objects, and arrays, got %s"
+               (sv v)))
+  | "makeArray", [ Arg e; Arg e' ] -> (
       log_call env ("std." ^ method_str) l;
       let mk_lazy_val i fdef =
         let e =
@@ -289,24 +293,18 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
         in
         { V.v = lazy (eval_expr env e); e }
       in
-      match args with
-      | [ Arg e; Arg e' ] -> (
-          match (eval_expr env e, e') with
-          | Primitive (Double (n, tk)), Lambda fdef ->
-              if Float.is_integer n then
-                Array
-                  ( fk,
-                    Array.init (Float.to_int n) (fun i -> mk_lazy_val i fdef),
-                    fk )
-              else error tk (spf "Got non-integer %f in std.makeArray" n)
-          | v, _e' ->
-              error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
-      | _else_ ->
-          error tk
-            (spf
-               "Improper number of arguments to std.makeArray: expected 2, got \
-                %d"
-               (List.length args)))
+      match (eval_expr env e, e') with
+      | Primitive (Double (n, tk)), Lambda fdef ->
+          if Float.is_integer n then
+            Array
+              (fk, Array.init (Float.to_int n) (fun i -> mk_lazy_val i fdef), fk)
+          else error tk (spf "Got non-integer %f in std.makeArray" n)
+      | v, _e' ->
+          error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
+  | "makeArray", _else_ ->
+      error tk
+        (spf "Improper number of arguments to std.makeArray: expected 2, got %d"
+           (List.length args))
   (* default to regular call, handled by std.jsonnet code hopefully *)
   | _else_ -> eval_call env e0 (l, args, r)
 
