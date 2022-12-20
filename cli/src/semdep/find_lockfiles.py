@@ -20,7 +20,7 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Gem()): ["Gemfile.lock"],
     Ecosystem(Gomod()): ["go.sum"],
     Ecosystem(Cargo()): ["Cargo.lock"],
-    Ecosystem(Maven()): ["dep_tree.txt", "gradle.lockfile"],
+    Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
 }
 
 LOCKFILE_TO_MANIFEST = {
@@ -32,7 +32,7 @@ LOCKFILE_TO_MANIFEST = {
     "Gemfile.lock": None,
     "go.sum": None,
     "Cargo.lock": None,
-    "dep_tree.txt": None,
+    "maven_dep_tree.txt": None,
     "gradle.lockfile": None,
 }
 

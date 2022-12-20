@@ -672,13 +672,13 @@ def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]
         return package_index // 3 + 1
 
     lines = tree_str.split("\n")
-    lines[0]
-    deps = lines[1:]
+    deps = [l for l in lines[1:] if l]  # Filter any empty lines
     for i, dep in enumerate(deps):
         j = package_index(dep)
         dep = dep[j:]
         transitivity = Transitivity(Direct() if depth(j) else Transitive())
         [_, package, _, version, _] = dep.strip().split(":")
+        print(package, version)
         yield FoundDependency(
             package=package,
             version=version,
@@ -697,7 +697,7 @@ LOCKFILE_PARSERS = {
     "gemfile.lock": parse_gemfile,  # Ruby
     "go.sum": parse_go_sum,  # Go
     "cargo.lock": parse_cargo,  # Rust
-    "dep_tree.txt": parse_pom_tree,  # Java
+    "maven_dep_tree.txt": parse_pom_tree,  # Java
     "gradle.lockfile": parse_gradle,  # Java
     "poetry.lock": parse_poetry,  # Python
     "requirements.txt": parse_requirements,

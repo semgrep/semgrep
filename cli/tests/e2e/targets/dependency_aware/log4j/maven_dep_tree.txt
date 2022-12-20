@@ -1,0 +1,4 @@
+com.example.log4j:log4j-examples:jar:1.0-SNAPSHOT
++- org.apache.logging.log4j:log4j-api:jar:0.0.2:compile
++- org.apache.logging.log4j:log4j-core:jar:0.0.2:compile
+\- junit:junit:jar:3.8.1:test
