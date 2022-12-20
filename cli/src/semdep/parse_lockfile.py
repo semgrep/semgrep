@@ -610,6 +610,7 @@ def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]
         return package_index // 3 + 1
 
     lines = tree_str.split("\n")
+    # Drop first line, it's the name of the project itself
     deps = [l for l in lines[1:] if l]  # Filter any empty lines
     for i, dep in enumerate(deps):
         j = package_index(dep)
