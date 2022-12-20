@@ -1,6 +1,8 @@
+SEMGREP_CORE ?= semgrep-core
+
 .PHONY: all
 all:
-	./run-all
+	./run-all --semgrep-core "$(SEMGREP_CORE)"
 
 .PHONY: test
 test:
