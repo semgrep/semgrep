@@ -475,15 +475,14 @@ let rec m_name ?(is_resolved = false) a b =
                };
              _;
            } as infob) ) ) -> (
-      let is_resolved =
-        match resolved with
-        | B.ResolvedName _
-        | B.ImportedEntity _
-        | B.ImportedModule _ ->
-            true
-        | _ -> false
-      in
       m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
+      >||> (* We want to do this, because we may want to produce a match to a metavariable of an
+              identifier, along with its stored resolved contents.
+              So we don't want to just wipe the data.
+           *)
+      (match a with
+      | G.Id (a1, a2) -> m_ident_and_id_info (a1, a2) (idb, infob)
+      | _ -> fail ())
       >||> (* Try to match the resolved name.
               We want to gate this behind `>!>`, because we prefer not to break it apart
               if we don't have to! We should only descend underneath the `ResolvedName` if
@@ -495,7 +494,7 @@ let rec m_name ?(is_resolved = false) a b =
               the original identifier is totally fine.
            *)
       try_alternate_names resolved
-      >||> m_name ~is_resolved a (H.name_of_ids dotted)
+      >||> m_name ~is_resolved:true a (H.name_of_ids dotted)
       >||>
       (* Try the resolved entity and parents *)
       match a with
@@ -549,7 +548,7 @@ let rec m_name ?(is_resolved = false) a b =
       *)
       if is_resolved then fail () else envf (str, tok) (MV.N b)
   (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
-  | ( G.IdQualified _a1,
+  | ( G.IdQualified a1,
       B.IdQualified
         ({
            name_info =
@@ -568,7 +567,10 @@ let rec m_name ?(is_resolved = false) a b =
          } as nameinfo) ) ->
       (* try without resolving anything *)
       m_name a (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
-      >||> try_parents dotted
+      >||> m_name_info a1 nameinfo
+      >!> (* Try the resolved names. *)
+      fun () ->
+      try_parents dotted
       >||> try_alternate_names resolved
       >||>
       (* try this time by replacing the qualifier by the resolved one *)
