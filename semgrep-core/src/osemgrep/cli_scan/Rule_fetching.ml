@@ -125,6 +125,7 @@ let import_callback base str =
              Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
                  parse_yaml_for_jsonnet file))
+  [@@profiling]
 
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.

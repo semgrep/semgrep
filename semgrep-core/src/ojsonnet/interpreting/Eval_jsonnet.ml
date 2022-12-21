@@ -663,3 +663,4 @@ let eval_program (e : Core_jsonnet.program) : Value_jsonnet.value_ =
   let empty_env = { locals = Map_.empty; depth = 0 } in
   let v = eval_expr empty_env e in
   v
+  [@@profiling]
