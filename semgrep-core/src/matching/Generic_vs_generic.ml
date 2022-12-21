@@ -483,21 +483,17 @@ let rec m_name ?(is_resolved = false) a b =
             true
         | _ -> false
       in
-      (match a with
-      | G.Id (a1, a2) -> m_ident_and_id_info (a1, a2) (idb, infob)
-      | _ -> fail ())
-      >!>
-      (* Try to match the resolved name.
-         We want to gate this behind `>!>`, because we prefer not to break it apart
-         if we don't have to! We should only descend underneath the `ResolvedName` if
-         it is not possible to produce a match to the identifier which contains that
-         information within it. That allows us to have strictly more information, including
-         the location date of the original identifier.
-         For instance, we may want to match `$X` to a identifier whose resolved name is `x.y`.
-         Matching `$X` to `x.y` will screw with the range of the metavariable, but matching
-         the original identifier is totally fine.
-      *)
-      fun () ->
+      m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
+      >||> (* Try to match the resolved name.
+              We want to gate this behind `>!>`, because we prefer not to break it apart
+              if we don't have to! We should only descend underneath the `ResolvedName` if
+              it is not possible to produce a match to the identifier which contains that
+              information within it. That allows us to have strictly more information, including
+              the location date of the original identifier.
+              For instance, we may want to match `$X` to a identifier whose resolved name is `x.y`.
+              Matching `$X` to `x.y` will screw with the range of the metavariable, but matching
+              the original identifier is totally fine.
+           *)
       try_alternate_names resolved
       >||> m_name ~is_resolved a (H.name_of_ids dotted)
       >||>
@@ -553,7 +549,7 @@ let rec m_name ?(is_resolved = false) a b =
       *)
       if is_resolved then fail () else envf (str, tok) (MV.N b)
   (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
-  | ( G.IdQualified a1,
+  | ( G.IdQualified _a1,
       B.IdQualified
         ({
            name_info =
@@ -571,9 +567,8 @@ let rec m_name ?(is_resolved = false) a b =
            _;
          } as nameinfo) ) ->
       (* try without resolving anything *)
-      m_name_info a1 nameinfo >!> (* Try the resolved names. *)
-                              fun () ->
-      try_parents dotted
+      m_name a (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
+      >||> try_parents dotted
       >||> try_alternate_names resolved
       >||>
       (* try this time by replacing the qualifier by the resolved one *)
@@ -825,8 +820,7 @@ and m_expr ?(is_root = false) a b =
                   contents =
                     Some
                       ( ( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted)
-                        | B.ResolvedName (dotted, _) ),
+                        | B.ImportedModule (B.DottedName dotted) ),
                         _sid );
                 };
               _;
