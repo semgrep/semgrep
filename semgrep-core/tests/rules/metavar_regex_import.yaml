@@ -1,0 +1,16 @@
+rules:
+- id: my_pattern_id
+  patterns:
+  - pattern: |
+      foo($BAR)
+  - metavariable-regex:
+      metavariable: $BAR
+      regex: "^[^_].*"
+  message: |
+    We do not want a match here. This rule is looking for `foo` being called on an identifier
+    which does not start with `_`, which clearly `_y` does.
+    Unfortunately, because of our matching logic, we decide to produce a match to both the
+    identifier, and the resolved name. So we flag this, even though in intention it isn't
+    faithful. 
+  severity: WARNING
+  languages: [javascript]

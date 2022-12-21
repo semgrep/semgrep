@@ -451,131 +451,71 @@ let rec m_name a b =
     | _ -> fail ()
   in
   match (a, b) with
+  | G.Id (((str, tok) as a1), a2), _ when MV.is_metavar_name str -> (
+      match b with
+      | G.Id (b1, b2) -> m_ident_and_id_info (a1, a2) (b1, b2)
+      | _ -> envf (str, tok) (MV.N b))
   (* equivalence: aliasing (name resolving) part 1 *)
-  | ( a,
-      B.Id
-        ( idb,
-          ({
-             B.id_resolved =
-               {
-                 contents =
-                   Some
-                     ( (( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted)
-                        | B.ResolvedName (dotted, _) ) as resolved),
-                       _sid );
-               };
-             _;
-           } as infob) ) ) -> (
-      m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
-      >||> try_alternate_names resolved
-      (* Try the resolved entity *)
-      >||> m_name a (H.name_of_ids dotted)
-      >||>
-      (* Try the resolved entity and parents *)
-      match a with
-      (* > If we're matching against a metavariable, don't bother checking
-       * > the resolved entity or parents. It will only cause duplicate matches
-       * > that can't be deduped, since the captured metavariable will be
-       * > different.
-       *
-       * FIXME:
-       * This is actually not the correct way of dealing with the problem,
-       * because there could be `metavariable-xyz` operators filtering the
-       * potential values of the metavariable. See DeepSemgrep commit
-       *
-       *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
+  | a, B.Id (idb, infob) -> (
+      (match a with
+      | G.Id (a1, a2) -> m_ident_and_id_info (a1, a2) (idb, infob)
+      (* semantic! try to handle open in OCaml by querying LSP! The
+       * target code is using an unqualified Id possibly because of some open!
        *)
-      | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
-      | _ ->
-          (* Try matching against parent classes *)
-          try_parents dotted)
-  | G.Id (a1, a2), B.Id (b1, b2) ->
-      (* this will handle metavariables in Id *)
-      m_ident_and_id_info (a1, a2) (b1, b2)
-  | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
-      envf (str, tok) (MV.N b)
-  (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
-  | ( G.IdQualified _a1,
-      B.IdQualified
-        ({
-           name_info =
-             {
-               B.id_resolved =
-                 {
-                   contents =
-                     Some
-                       ( ((B.ImportedEntity dotted | B.ResolvedName (dotted, _))
-                         as resolved),
-                         _sid );
-                 };
-               _;
-             };
-           _;
-         } as nameinfo) ) ->
-      try_parents dotted
-      >||> try_alternate_names resolved
-      (* try without resolving anything *)
-      >||> m_name a
-             (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
-      >||>
-      (* try this time by replacing the qualifier by the resolved one *)
-      let new_qualifier =
-        match List.rev dotted with
-        | [] -> raise Impossible
-        | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
-      in
-      m_name a
-        (B.IdQualified
-           {
-             nameinfo with
-             name_middle = Some (B.QDots new_qualifier);
-             name_info = B.empty_id_info ();
-           })
-  (* semantic! try to handle open in OCaml by querying LSP! The
-   * target code is using an unqualified Id possibly because of some open!
-   *)
-  | G.IdQualified { name_last = ida, None; _ }, B.Id (idb, _infob)
-    when fst ida = fst idb -> (
-      match !Hooks.get_def idb with
-      | None -> fail ()
-      | Some file ->
-          let m = module_name_of_filename file in
-          let t = snd idb in
-          pr2_gen m;
-          let _n = H.name_of_ids [ (m, t); idb ] in
-          (* retry with qualified target *)
-          (* m_name a n *)
-          return ())
-  (* boilerplate *)
-  | ( _,
-      G.IdQualified
-        ({
-           name_info =
-             {
-               B.id_resolved =
-                 {
-                   contents =
-                     Some
-                       ( (( B.ImportedEntity dotted
-                          | B.ImportedModule (B.DottedName dotted)
-                          | B.ResolvedName (dotted, _) ) as resolved),
-                         _sid );
-                 };
-               _;
-             };
-           _;
-         } as b1) ) -> (
-      try_parents dotted
-      >||> try_alternate_names resolved
-      >||>
-      match a with
-      | IdQualified a1 -> m_name_info a1 b1
-      | Id _ -> fail ())
-  | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
-  | G.Id _, _
-  | G.IdQualified _, _ ->
-      fail ()
+      | G.IdQualified { name_last = ida, None; _ } when fst ida = fst idb -> (
+          match !Hooks.get_def idb with
+          | None -> fail ()
+          | Some file ->
+              let m = module_name_of_filename file in
+              let t = snd idb in
+              pr2_gen m;
+              let _n = H.name_of_ids [ (m, t); idb ] in
+              (* retry with qualified target *)
+              (* m_name a n *)
+              return ())
+      | _ -> fail ())
+      >!> fun () ->
+      match !(infob.id_resolved) with
+      | Some
+          ( (( ResolvedName (dotted, _)
+             | ImportedEntity dotted
+             | ImportedModule (DottedName dotted) ) as resolved),
+            _ ) ->
+          (* Try the resolved entity *)
+          m_name a (H.name_of_ids dotted)
+          >||> try_alternate_names resolved
+          >||> (* Try matching against parent classes *)
+          try_parents dotted
+      | _ -> fail ())
+  | a, B.IdQualified nameinfo -> (
+      (match a with
+      | G.Id (_a1, _a2) -> fail ()
+      | G.IdQualified a1 -> m_name_info a1 nameinfo)
+      >!> fun () ->
+      match !(nameinfo.name_info.id_resolved) with
+      | Some
+          ( (( ResolvedName (dotted, _)
+             | ImportedEntity dotted
+             | ImportedModule (DottedName dotted) ) as resolved),
+            _ ) ->
+          try_parents dotted
+          >||> try_alternate_names resolved
+          (* try without resolving anything *)
+          >||>
+          (* try this time by replacing the qualifier by the resolved one *)
+          let new_qualifier =
+            match List.rev dotted with
+            | [] -> raise Impossible
+            | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
+          in
+          m_name a
+            (B.IdQualified
+               {
+                 nameinfo with
+                 name_middle = Some (B.QDots new_qualifier);
+                 name_info = B.empty_id_info ();
+               })
+      | __else__ -> fail ())
 
 and m_name_info a b =
   match (a, b) with
@@ -753,37 +693,6 @@ and m_expr ?(is_root = false) a b =
   | _, G.Alias (_alias, b1) -> m_expr a b1
   (* equivalence: user-defined equivalence! *)
   | G.DisjExpr (a1, a2), _b -> m_expr a1 b >||> m_expr a2 b
-  (* equivalence: name resolving! *)
-  (* todo: it would be nice to factorize the aliasing code by just calling
-   * m_name, but below we use make_dotted, which is different from what
-   * we do in m_name.
-   *)
-  | ( _a,
-      B.N
-        (B.Id
-          ( idb,
-            {
-              B.id_resolved =
-                {
-                  contents =
-                    Some
-                      ( ( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted) ),
-                        _sid );
-                };
-              _;
-            } )) ) ->
-      (* We used to force to fully qualify entities in the pattern
-       * (e.g., with org.foo(...)) but this is confusing for users.
-       * We now allow an unqualified pattern like 'foo' to match resolved
-       * entities like import org.foo; foo(), just like for attributes.
-       *
-       * bugfix: important to call with empty_id_info() below to avoid
-       * infinite recursion.
-       *)
-      m_expr a (B.N (B.Id (idb, B.empty_id_info ())) |> G.e)
-      >||> (* try this time a match with the resolved entity *)
-      m_expr a (make_dotted dotted)
   (* equivalence: name resolving on qualified ids (for OCaml) *)
   (* Put this before the next case to prevent overly eager dealiasing *)
   | G.N (G.IdQualified _ as na), B.N ((B.IdQualified _ | B.Id _) as nb) ->
