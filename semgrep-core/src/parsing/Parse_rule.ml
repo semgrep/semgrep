@@ -1393,6 +1393,12 @@ let parse_file ?error_recovery file =
     | FT.Config FT.Jsonnet ->
         if use_ojsonnet then
           let ast = Parse_jsonnet.parse_program file in
+          (* Note that here we do not support registry-aware import;
+           * those are defined in osemgrep/.../Rule_fetching.ml where
+           * we use Network.get functions. Thus, semgrep-core -dump_rule
+           * will not work with registry-aware import either.
+           * Use osemgrep --dump-config instead.
+           *)
           let core = Desugar_jsonnet.desugar_program file ast in
           let value_ = Eval_jsonnet.eval_program core in
           Manifest_jsonnet_to_AST_generic.manifest_value value_
