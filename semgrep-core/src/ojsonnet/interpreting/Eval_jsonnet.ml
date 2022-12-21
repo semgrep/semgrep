@@ -423,6 +423,28 @@ and eval_call env e0 (largs, args, _rargs) =
         (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
 
+(* This is a very naive implementation of plus for objects that
+ * just merge the fields.
+ * TODO: handle inheritance with complex self/super semantic in the presence
+ * of plus
+ *)
+and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
+  let l, (lassert, lflds), _r = objl in
+  let _, (rassert, rflds), r = objr in
+  let hobjr =
+    rflds
+    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.hashset_of_list
+  in
+  (* TODO: wrong *)
+  let asserts = lassert @ rassert in
+  let lflds' =
+    lflds
+    |> List.filter (fun { V.fld_name = s, _; _ } -> not (Hashtbl.mem hobjr s))
+  in
+  let flds = lflds' @ rflds in
+  (l, (asserts, flds), r)
+
 and eval_binary_op env el (op, tk) er =
   match op with
   | Plus -> (
@@ -437,7 +459,9 @@ and eval_binary_op env el (op, tk) er =
           V.Primitive (V.Str (s ^ tostring v, tk))
       | v, V.Primitive (V.Str (s, tk)) ->
           V.Primitive (V.Str (tostring v ^ s, tk))
-      (* TODO: when objects, inheritance, very complex! *)
+      | V.Object objl, V.Object objr ->
+          let obj = eval_plus_object env tk objl objr in
+          V.Object obj
       | v1, v2 ->
           error tk (spf "TODO: Plus (%s, %s) not yet handled" (sv v1) (sv v2)))
   | And -> (
