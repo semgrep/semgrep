@@ -305,8 +305,56 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
       error tk
         (spf "Improper number of arguments to std.makeArray: expected 2, got %d"
            (List.length args))
+  | "filter", [ Arg e; Arg e' ] -> (
+      match (eval_expr env e, eval_expr env e') with
+      | V.Function f, V.Array (l, eis, r) ->
+          (* note that we do things lazily even here, so we still
+           * return an Array with the same lazy value elements in it,
+           * but just filtered
+           *)
+          let elts' =
+            (* TODO? use Array.to_seqi instead? *)
+            eis |> Array.to_list |> Common.index_list
+            |> List.filter_map (fun (ei, ji) ->
+                   match eval_std_filter_element env tk f ei with
+                   | V.Primitive (V.Bool (false, _)) -> None
+                   | V.Primitive (V.Bool (true, _)) -> Some ji
+                   | v ->
+                       error tk
+                         (spf "filter function must return boolean, got: %s"
+                            (sv v)))
+            |> Array.of_list
+            |> Array.map (fun idx -> eis.(idx))
+          in
+          V.Array (l, elts', r)
+      | v1, v2 ->
+          error tk
+            (spf
+               "Builtin function filter expected (function, array) but got \
+                (%s, %s)"
+               (sv v1) (sv v2)))
+  | "filter", _else_ ->
+      error tk
+        (spf "Improper number of arguments to std.filter: expected 2, got %d"
+           (List.length args))
   (* default to regular call, handled by std.jsonnet code hopefully *)
   | _else_ -> eval_call env e0 (l, args, r)
+
+(* In theory, we should just recursively evaluate f(ei), but
+ * ei is actually not an expression but a lazy_value coming from
+ * a V.array, so we can't just call eval_call(). The code below is
+ * a specialization of eval_call and eval_expr for Local.
+ *)
+and eval_std_filter_element (env : env) (tk : tok) (f : function_definition)
+    (ei : V.lazy_value) : V.value_ =
+  ignore (env, f, ei);
+  match f with
+  | { f_params = _l, [ P (id, _eq, _default) ], _r; f_body; _ } ->
+      (* similar to eval_expr for Local *)
+      let locals = Map_.add (LId (fst id)) ei.v env.locals in
+      (* similar to eval_call *)
+      eval_expr { (*env with*) depth = env.depth + 1; locals } f_body
+  | _else_ -> error tk "filter function takes 1 parameter"
 
 and eval_call env e0 (largs, args, _rargs) =
   match eval_expr env e0 with
