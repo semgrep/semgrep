@@ -818,18 +818,19 @@ and m_expr ?(is_root = false) a b =
   | ( _a,
       B.N
         (B.Id
-           ( _idb,
-             {
-               B.id_resolved =
-                 {
-                   contents =
-                     Some
-                       ( ( B.ImportedEntity dotted
-                         | B.ImportedModule (B.DottedName dotted) ),
-                         _sid );
-                 };
-               _;
-             } ) as nb) ) ->
+          ( idb,
+            {
+              B.id_resolved =
+                {
+                  contents =
+                    Some
+                      ( ( B.ImportedEntity dotted
+                        | B.ImportedModule (B.DottedName dotted)
+                        | B.ResolvedName (dotted, _) ),
+                        _sid );
+                };
+              _;
+            } )) ) ->
       (* We used to force to fully qualify entities in the pattern
        * (e.g., with org.foo(...)) but this is confusing for users.
        * We now allow an unqualified pattern like 'foo' to match resolved
@@ -838,20 +839,9 @@ and m_expr ?(is_root = false) a b =
        * bugfix: important to call with empty_id_info() below to avoid
        * infinite recursion.
        *)
-      (match a.e with
-      | G.N na ->
-          m_name na nb
-          >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
-      | _ -> fail ())
-      >!>
-      (* try this time a match with the resolved entity *)
-      (* This needs to be gated behind a `>!>`! This is because we want to avoid
-         matching this `dotted` unless we _have_ to, because it is breaking apart
-         an imported name. This means that the tokens of the produced `DotAccess`
-         are potentially all out of order, meaning we should prefer to match the
-         name directly, and then break it apart "safely" in `m_name`.
-      *)
-      fun () -> m_expr a (make_dotted dotted)
+      m_expr a (B.N (B.Id (idb, B.empty_id_info ())) |> G.e)
+      >||> (* try this time a match with the resolved entity *)
+      m_expr a (make_dotted dotted)
   (* equivalence: name resolving on qualified ids (for OCaml) *)
   (* Put this before the next case to prevent overly eager dealiasing *)
   | G.N (G.IdQualified _ as na), B.N ((B.IdQualified _ | B.Id _) as nb) ->
