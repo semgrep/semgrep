@@ -337,6 +337,31 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
       error tk
         (spf "Improper number of arguments to std.filter: expected 2, got %d"
            (List.length args))
+  | "objectHasEx", [ Arg e; Arg e'; Arg e'' ] -> (
+      match (eval_expr env e, eval_expr env e', eval_expr env e'') with
+      | V.Object o, V.Primitive (V.Str (s, _)), V.Primitive (V.Bool (b, _)) ->
+          let _, (_asserts, flds), _ = o in
+          let eltopt =
+            flds |> List.find_opt (fun { V.fld_name; _ } -> fst fld_name = s)
+          in
+          let b =
+            match eltopt with
+            | None -> false
+            | Some { V.fld_hidden = visibility, _; _ } ->
+                visibility <> A.Hidden || b
+          in
+          V.Primitive (V.Bool (b, tk))
+      | v1, v2, v3 ->
+          error tk
+            (spf
+               "Builtin function objectHasEx expected (object, string, \
+                boolean), got (%s, %s, %s)"
+               (sv v1) (sv v2) (sv v3)))
+  | "objectHasEx", _else_ ->
+      error tk
+        (spf
+           "Improper number of arguments to std.objectHasEx: expected 3, got %d"
+           (List.length args))
   (* default to regular call, handled by std.jsonnet code hopefully *)
   | _else_ -> eval_call env e0 (l, args, r)
 
