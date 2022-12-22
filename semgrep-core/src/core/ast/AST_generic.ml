@@ -361,6 +361,9 @@ and id_info = {
   (* sgrep: in OCaml we also use that to store the type of
    * a typed entity, which can be interpreted as a TypedMetavar in semgrep.
    * alt: have an explicity type_ field in entity.
+   * We do not use this for equality, because we want to say that two variables
+   * are the same if their resolved names are the same, even if type analysis
+   * did not propagate the same type to them.
    *)
   id_type : type_ option ref; [@equal fun _a _b -> true]
   (* type checker (typing) *)

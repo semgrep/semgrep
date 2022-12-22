@@ -451,12 +451,17 @@ let rec m_name a b =
     | _ -> fail ()
   in
   match (a, b) with
+  (* The base case, when we have a metavariable in the pattern.
+   *)
   | G.Id (((str, tok) as a1), a2), _ when MV.is_metavar_name str -> (
       match b with
       | G.Id (b1, b2) -> m_ident_and_id_info (a1, a2) (b1, b2)
       | _ -> envf (str, tok) (MV.N b))
   (* equivalence: aliasing (name resolving) part 1 *)
   | a, B.Id (idb, infob) -> (
+      (* Try to match using the ordinary logic first.
+         If this fails, then we will go to unpacking the resolved names.
+      *)
       (match a with
       | G.Id (a1, a2) -> m_ident_and_id_info (a1, a2) (idb, infob)
       (* semantic! try to handle open in OCaml by querying LSP! The
@@ -475,6 +480,8 @@ let rec m_name a b =
               return ())
       | _ -> fail ())
       >!> fun () ->
+      (* Now, try to match with the resolved names.
+       *)
       match !(infob.id_resolved) with
       | Some
           ( (( ResolvedName (dotted, _)
@@ -492,6 +499,8 @@ let rec m_name a b =
       | G.Id (_a1, _a2) -> fail ()
       | G.IdQualified a1 -> m_name_info a1 nameinfo)
       >!> fun () ->
+      (* Now, try to match with the resolved names.
+       *)
       match !(nameinfo.name_info.id_resolved) with
       | Some
           ( (( ResolvedName (dotted, _)
@@ -500,7 +509,6 @@ let rec m_name a b =
             _ ) ->
           try_parents dotted
           >||> try_alternate_names resolved
-          (* try without resolving anything *)
           >||>
           (* try this time by replacing the qualifier by the resolved one *)
           let new_qualifier =

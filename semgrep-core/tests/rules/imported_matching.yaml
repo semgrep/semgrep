@@ -17,10 +17,7 @@ rules:
             res2 = $B.y
         - focus-metavariable: $B
   message: |
-    We do not want a match here. This rule is looking for `foo` being called on an identifier
-    which does not start with `_`, which clearly `_y` does.
-    Unfortunately, because of our matching logic, we decide to produce a match to both the
-    identifier, and the resolved name. So we flag this, even though in intention it isn't
-    faithful. 
+    We want to make sure that we can unpack imported names, at least partially, with metavariables.
+    Also, different variables should not unify.
   severity: WARNING
   languages: [python]
