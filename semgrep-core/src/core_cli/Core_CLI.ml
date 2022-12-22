@@ -175,7 +175,7 @@ let json_of_v (v : OCaml.v) =
         match xs with
         | [] -> J.String (spf "%s" s)
         | [ one_element ] -> J.Object [ (s, aux one_element) ]
-        | _ -> J.Object [ (s, J.Array (Common.map aux xs)) ])
+        | _ :: _ :: _ -> J.Object [ (s, J.Array (Common.map aux xs)) ])
     | OCaml.VVar (s, i64) -> J.String (spf "%s_%d" s (Int64.to_int i64))
     | OCaml.VArrow _ -> failwith "Arrow TODO"
     | OCaml.VNone -> J.Null
