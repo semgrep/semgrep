@@ -1,3 +1,4 @@
+# MATCH:
 class A:
     def method1(self, args):
         pass
