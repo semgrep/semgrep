@@ -1,6 +1,6 @@
-##########################################################################################
+###############################################################################
 # Prelude
-##########################################################################################
+###############################################################################
 # The main goals of this pipeline are to:
 # - dogfood Semgrep by running it on each semgrep PRs.
 # - check that Semgrep can run in alternate CI platforms like Circle CI
@@ -11,23 +11,19 @@
 
 version: 2.1
 
-##########################################################################################
+###############################################################################
 # The jobs
-##########################################################################################
+###############################################################################
 
 jobs:
   # Dogfood!
   semgrep:
-    #TODO: used to be returntocorp/semgrep:develop for maximum dogfooding
-    # but something broke after https://app.circleci.com/pipelines/github/returntocorp/semgrep/14848   # which seems unrelated. Weird.
     docker:
       - image: returntocorp/semgrep:develop
         user: root
     working_directory: /src
     steps:
       - checkout
-      # we now need the submodules because semgrep.jsonnet includes semgrep-core/pfff/semgrep.yml
-      - run: git submodule update --init --recursive --recommend-shallow semgrep-core/src/pfff
       # Dogfooding on the bleeding edge by using jsonnet and the new syntax!
       # coupling: see also 'make check'
       - run: semgrep --config semgrep.jsonnet --error --verbose --exclude tests --exclude pfff
@@ -97,9 +93,9 @@ jobs:
             PATH=$PATH:"$(pip3 show semgrep | grep '^Location' | sed -e 's/Location: //')/semgrep/bin"
             opam exec -- ./autofix-printing-stats/run --upload
 
-##########################################################################################
+###############################################################################
 # The workflows
-##########################################################################################
+###############################################################################
 
 workflows:
   version: 2
