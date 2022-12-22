@@ -1,0 +1,3 @@
+func $FUNC($ARG func()) {
+        ...
+}
