@@ -1,0 +1,1 @@
+Use the GitHub REST API when possible to compute the merge base for `semgrep ci`, improving performance on shallow clones of large repositories.

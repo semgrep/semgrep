@@ -302,6 +302,7 @@ def main(
     severity: Optional[Sequence[str]] = None,
     optimizations: str = "none",
     baseline_commit: Optional[str] = None,
+    baseline_commit_is_mergebase: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -380,7 +381,9 @@ def main(
     baseline_handler = None
     if baseline_commit:
         try:
-            baseline_handler = BaselineHandler(baseline_commit)
+            baseline_handler = BaselineHandler(
+                baseline_commit, is_mergebase=baseline_commit_is_mergebase
+            )
         # TODO better handling
         except Exception as e:
             raise SemgrepError(e)
