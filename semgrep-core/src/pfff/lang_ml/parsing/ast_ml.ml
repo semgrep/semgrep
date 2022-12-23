@@ -303,7 +303,7 @@ and type_def_kind =
   (* or type *)
   | AlgebraicType of constructor_decl list
   (* and type *)
-  | RecordType   of field_decl list bracket
+  | RecordType of field_decl list bracket
   | TdTodo of todo_category
 
 and constructor_decl = ident * constructor_decl_kind

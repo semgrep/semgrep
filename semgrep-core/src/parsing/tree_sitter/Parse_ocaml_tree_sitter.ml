@@ -3040,9 +3040,10 @@ and map_tuple_type_ext (env : env) (x : CST.tuple_type_ext) : type_ list =
 
 and map_type_ (env : env) (x : CST.type_) : type_ =
   match x with
-  | `Tuple_type_ x ->
-      let xs = map_tuple_type_ env x in
-      TyTuple xs
+  | `Tuple_type_ x -> (
+      match map_tuple_type_ env x with
+      | [ type_ ] -> type_
+      | xs -> TyTuple xs)
   | `Func_type (v1, v2, v3) ->
       let v1 =
         match v1 with
