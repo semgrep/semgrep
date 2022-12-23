@@ -1,0 +1,9 @@
+YAML: Fixed a bug where literal or folded blocks would not be parsed properly.
+
+So for instance, in:
+```
+key: |
+  string goes here
+```
+
+A metavariable matching the contents of the string value might not be correct.
