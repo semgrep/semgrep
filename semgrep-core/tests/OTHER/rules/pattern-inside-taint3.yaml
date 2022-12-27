@@ -1,0 +1,14 @@
+rules:
+- id: test
+  message: matches a statement inside a control flow
+  languages: [python]
+  severity: WARNING
+  match:
+    and:
+    - $FOO.qux()
+    - inside:
+        taint:
+          sources:
+          - pattern: $FOO = $PROVIDER.foo()
+          sinks:
+          - pattern: $FOO.bar()

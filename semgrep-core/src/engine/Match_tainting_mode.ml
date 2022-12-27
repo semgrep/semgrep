@@ -474,8 +474,10 @@ let pm_of_finding finding =
            Lazy.from_val
              (taint_trace_of_src_to_sink source tokens sink))
       in
+      let source_pm, _ = T.pm_of_trace source in
       let sink_pm, _ = T.pm_of_trace sink in
-      Some { sink_pm with env = merged_env; taint_trace }
+      Some { sink_pm with env = merged_env; taint_trace;
+                          range_loc = fst source_pm.range_loc, snd sink_pm.range_loc }
   | T.SrcToReturn _
   (* TODO: We might want to report functions that let input taint
    * go into a sink (?) *)

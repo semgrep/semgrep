@@ -1,0 +1,14 @@
+rules:
+- id: pattern-inside-taint
+  message: matches a statement inside a control flow
+  languages: [javascript]
+  severity: WARNING
+  match:
+    and:
+    - $FOO.qux();
+    - inside:
+        taint:
+          sources:
+          - pattern: $FOO = $PROVIDER.foo();
+          sinks:
+          - pattern: $FOO.bar();
