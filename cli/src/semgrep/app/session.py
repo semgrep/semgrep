@@ -77,6 +77,37 @@ class UserAgent:
         return result
 
 
+def enhance_ssl_error(
+    err: requests.exceptions.SSLError,
+) -> requests.exceptions.SSLError:
+    # see if we can find a CertificateError
+    inner_err: Exception = err
+    for i in range(10):
+        if not isinstance(inner_err, BaseException) or isinstance(
+            inner_err, urllib3.connectionpool.CertificateError
+        ):
+            break
+        elif (
+            isinstance(inner_err, urllib3.connectionpool.MaxRetryError)
+            and inner_err.reason
+        ):
+            inner_err = inner_err.reason
+        elif inner_err.args:
+            inner_err = inner_err.args[0]
+
+    if (
+        isinstance(inner_err, urllib3.connectionpool.CertificateError)
+        and inner_err.args
+        and inner_err.args[0].startswith("hostname")
+        and "doesn't match" in inner_err.args[0]
+    ):
+        return requests.exceptions.SSLError(
+            f"SSL certificate error: {inner_err.args[0]}. This error typically occurs when your internet traffic is being routed through a proxy. If this is the case, try setting the REQUESTS_CA_BUNDLE environment variable to the location of your proxy's CA certificate."
+        )
+    else:
+        return err
+
+
 class AppSession(requests.Session):
     """
     Send requests to Semgrep App with this session.
@@ -114,10 +145,12 @@ class AppSession(requests.Session):
             max_retries=urllib3.Retry(
                 total=3,
                 backoff_factor=4,
+                other=0,
                 allowed_methods=["GET", "POST"],
                 status_forcelist=(413, 429, 500, 502, 503),
             ),
         )
+
         self.mount("https://", retry_adapter)
         self.mount("http://", retry_adapter)
 
@@ -143,7 +176,11 @@ class AppSession(requests.Session):
         error_handler = get_state().error_handler
         method, url = args
         error_handler.push_request(method, url, **kwargs)
-        response = super().request(*args, **kwargs)
+        try:
+            response = super().request(*args, **kwargs)
+        except requests.exceptions.SSLError as err:
+            raise enhance_ssl_error(err)
+
         if response.ok:
             error_handler.pop_request()
         else:
