@@ -77,35 +77,35 @@ class UserAgent:
         return result
 
 
-def enhance_ssl_error(
+def enhance_ssl_error_message(
     err: requests.exceptions.SSLError,
 ) -> requests.exceptions.SSLError:
-    # see if we can find a CertificateError
-    inner_err: Exception = err
-    for i in range(10):
-        if not isinstance(inner_err, BaseException) or isinstance(
-            inner_err, urllib3.connectionpool.CertificateError
-        ):
-            break
-        elif (
-            isinstance(inner_err, urllib3.connectionpool.MaxRetryError)
-            and inner_err.reason
-        ):
-            inner_err = inner_err.reason
-        elif inner_err.args:
-            inner_err = inner_err.args[0]
+    """
+    If the provided SSLError wraps a SSL hostname mismatch exception, re-create the SSLError with a more descriptive error message.
+    """
+    inner_err: Optional[Exception] = None
+
+    if err.args:
+        inner_err = err.args[0]
+
+    if isinstance(inner_err, urllib3.connectionpool.MaxRetryError) and inner_err.reason:
+        inner_err = inner_err.reason
+
+    if isinstance(inner_err, requests.exceptions.SSLError) and inner_err.args:
+        inner_err = inner_err.args[0]
 
     if (
         isinstance(inner_err, urllib3.connectionpool.CertificateError)
         and inner_err.args
+        and isinstance(inner_err.args[0], str)
         and inner_err.args[0].startswith("hostname")
         and "doesn't match" in inner_err.args[0]
     ):
         return requests.exceptions.SSLError(
             f"SSL certificate error: {inner_err.args[0]}. This error typically occurs when your internet traffic is being routed through a proxy. If this is the case, try setting the REQUESTS_CA_BUNDLE environment variable to the location of your proxy's CA certificate."
         )
-    else:
-        return err
+
+    return err
 
 
 class AppSession(requests.Session):
@@ -179,7 +179,7 @@ class AppSession(requests.Session):
         try:
             response = super().request(*args, **kwargs)
         except requests.exceptions.SSLError as err:
-            raise enhance_ssl_error(err)
+            raise enhance_ssl_error_message(err)
 
         if response.ok:
             error_handler.pop_request()
