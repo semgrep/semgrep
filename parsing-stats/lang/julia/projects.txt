@@ -2,7 +2,8 @@
 # Top julia projects from GitHub, sorted by stars.
 # Created by /Users/brandonspark/semgrep/semgrep-core/src/ocaml-tree-sitter-core/scripts/most-starred-for-language.
 #
-https://github.com/JuliaLang/julia
+# This one probably has a lot of edge cases and grammar limitations we don't care about
+# https://github.com/JuliaLang/julia
 https://github.com/fonsp/Pluto.jl
 https://github.com/FluxML/Flux.jl
 https://github.com/JuliaLang/IJulia.jl
