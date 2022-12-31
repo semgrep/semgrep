@@ -11,9 +11,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *
-*)
+ *)
 
-module TH   = Token_helpers_erlang
+module TH = Token_helpers_erlang
 
 (*****************************************************************************)
 (* Prelude *)
@@ -32,11 +32,10 @@ type program_and_tokens = Ast_erlang.program * Parser_erlang.token list
 
 let tokens2 file =
   let token lexbuf = Lexer_erlang.token lexbuf in
-  Parse_info.tokenize_all_and_adjust_pos
-    file token TH.visitor_info_of_tok TH.is_eof
+  Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+    TH.is_eof
 
-let tokens a =
-  Common.profile_code "Parse_erlang.tokens" (fun () -> tokens2 a)
+let tokens a = Common.profile_code "Parse_erlang.tokens" (fun () -> tokens2 a)
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -46,8 +45,6 @@ let parse2 filename =
   let stat = Parse_info.default_stat filename in
   let toks_orig = tokens filename in
   (* TODO *)
-  ((), toks_orig), stat
+  (((), toks_orig), stat)
 
-
-let parse a =
-  Common.profile_code "Parse_erlang.parse" (fun () -> parse2 a)
+let parse a = Common.profile_code "Parse_erlang.parse" (fun () -> parse2 a)

@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
 module J = JSON
 
@@ -39,23 +39,21 @@ module J = JSON
  *
  * reference:
  *  - TODO https://nodejs.org/api/modules.html
-*)
+ *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 let main_entry_of_package_json file json =
   match json with
-  | J.Object xs ->
-      (try
-         (match List.assoc "main" xs with
-          | J.String s -> s
-          | _ -> raise Not_found
-         )
-       with Not_found -> failwith (spf "no main entry in %s" file)
-      )
+  | J.Object xs -> (
+      try
+        match List.assoc "main" xs with
+        | J.String s -> s
+        | _ -> raise Not_found
+      with
+      | Not_found -> failwith (spf "no main entry in %s" file))
   | _ -> failwith (spf "wrong package.json format for %s" file)
-
 
 (*****************************************************************************)
 (* Entry point *)
@@ -63,40 +61,45 @@ let main_entry_of_package_json file json =
 
 let resolve_path ~root ~pwd str =
   let candidates =
-    [Filename.concat root (Filename.concat pwd str);
-     Filename.concat root (Filename.concat pwd (spf "%s.js" str));
-
-     (* less: should always look at package.json? or useful opti? *)
-     Filename.concat root (spf "node_modules/%s" str);
-     Filename.concat root (spf "node_modules/%s.js" str);
-     Filename.concat root (spf "node_modules/%s/index.js" str);
+    [
+      Filename.concat root (Filename.concat pwd str);
+      Filename.concat root (Filename.concat pwd (spf "%s.js" str));
+      (* less: should always look at package.json? or useful opti? *)
+      Filename.concat root (spf "node_modules/%s" str);
+      Filename.concat root (spf "node_modules/%s.js" str);
+      Filename.concat root (spf "node_modules/%s/index.js" str);
     ]
   in
   try
-    let found = candidates |> List.find (fun path ->
-      Sys.file_exists path && not (Sys.is_directory path)
-    )
+    let found =
+      candidates
+      |> List.find (fun path ->
+             Sys.file_exists path && not (Sys.is_directory path))
     in
     Some (Common.fullpath found)
-  with Not_found ->
-    (* look in package.json (of root/package or root/node_modules/package) *)
-    let package_json_candidates =
-      [ Filename.concat root (spf "%s/package.json" str);
-        Filename.concat root (spf "node_modules/%s/package.json" str);
-      ]
-    in
-    (try
-       let package_json =
-         package_json_candidates |> List.find Sys.file_exists in
-       let json = J.load_json package_json in
-       let main_path = main_entry_of_package_json package_json json in
-       let dir = Filename.dirname package_json in
-       let file = Filename.concat dir main_path in
+  with
+  | Not_found -> (
+      (* look in package.json (of root/package or root/node_modules/package) *)
+      let package_json_candidates =
+        [
+          Filename.concat root (spf "%s/package.json" str);
+          Filename.concat root (spf "node_modules/%s/package.json" str);
+        ]
+      in
+      try
+        let package_json =
+          package_json_candidates |> List.find Sys.file_exists
+        in
+        let json = J.load_json package_json in
+        let main_path = main_entry_of_package_json package_json json in
+        let dir = Filename.dirname package_json in
+        let file = Filename.concat dir main_path in
 
-       let candidates = [file; spf "%s.js" file] in
-       candidates |> Common.find_opt (fun path ->
-         Sys.file_exists path && not (Sys.is_directory path))
-     with Not_found ->
-       pr2 (spf "could not find a package.json for %s" str);
-       None
-    )
+        let candidates = [ file; spf "%s.js" file ] in
+        candidates
+        |> Common.find_opt (fun path ->
+               Sys.file_exists path && not (Sys.is_directory path))
+      with
+      | Not_found ->
+          pr2 (spf "could not find a package.json for %s" str);
+          None)

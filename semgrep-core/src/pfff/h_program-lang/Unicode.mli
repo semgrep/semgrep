@@ -17,5 +17,4 @@
    This is meant to be used as a hack to tolerate non-ascii input in
    lexers that only support ascii.
 *)
-val input_and_replace_non_ascii :
-  replacement_byte:char -> in_channel -> string
+val input_and_replace_non_ascii : replacement_byte:char -> in_channel -> string

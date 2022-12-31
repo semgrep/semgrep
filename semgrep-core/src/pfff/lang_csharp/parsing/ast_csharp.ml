@@ -11,14 +11,14 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* No C# AST yet. We currently use tree-sitter-csharp in semgrep to
  * handle C# and convert its CST directly to the generic AST.
-*)
+ *)
 
 (*****************************************************************************)
 (* The AST related types *)
@@ -49,7 +49,6 @@ and 'a wrap = 'a * tok
 (* ------------------------------------------------------------------------- *)
 
 type toplevel = unit
-
 type program = unit
 
 (*****************************************************************************)

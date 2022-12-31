@@ -11,10 +11,9 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 open Ast_cpp
-
 module Ast = Ast_cpp
 
 (*****************************************************************************)
@@ -32,10 +31,7 @@ let is_function_type x =
 
 let rec is_method_type x =
   match Ast.unwrap_typeC x with
-  | TPointer (_, y, _) ->
-      is_method_type y
-  | ParenType paren_ft ->
-      is_method_type (Ast.unparen paren_ft)
-  | TFunction _ ->
-      true
+  | TPointer (_, y, _) -> is_method_type y
+  | ParenType paren_ft -> is_method_type (Ast.unparen paren_ft)
+  | TFunction _ -> true
   | _ -> false

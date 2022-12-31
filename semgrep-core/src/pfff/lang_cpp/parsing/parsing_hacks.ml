@@ -12,9 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *
-*)
+ *)
 open Common
-
 module Flag = Flag_parsing
 module Flag_cpp = Flag_parsing_cpp
 module TH = Token_helpers_cpp
@@ -86,44 +85,53 @@ let insert_virtual_positions l =
   let rec loop acc prev offset = function
     (* Tail-recursive to prevent stack overflows. *)
     | [] -> List.rev acc
-    | x::xs ->
+    | x :: xs -> (
         let ii = TH.info_of_tok x in
         let inject pi =
-          TH.visitor_info_of_tok (function ii -> Ast_cpp.rewrap_pinfo pi ii)x in
+          TH.visitor_info_of_tok
+            (function
+              | ii -> Ast_cpp.rewrap_pinfo pi ii)
+            x
+        in
         match ii.Parse_info.token with
-          Parse_info.OriginTok _pi ->
+        | Parse_info.OriginTok _pi ->
             let prev = Parse_info.unsafe_token_location_of_info ii in
-            (loop (x::acc) prev (strlen ii) xs)
-        | Parse_info.ExpandedTok (pi,_, _) ->
-            let acc' = inject (Parse_info.ExpandedTok (pi, prev,offset)) :: acc in
-            (loop acc' prev (offset + (strlen ii)) xs)
-        | Parse_info.FakeTokStr (s,_) ->
-            let acc' = inject (Parse_info.FakeTokStr (s, (Some (prev,offset)))) :: acc in
-            (loop acc' prev (offset + (strlen ii)) xs)
-        | Parse_info.Ab -> failwith "abstract not expected" in
+            loop (x :: acc) prev (strlen ii) xs
+        | Parse_info.ExpandedTok (pi, _, _) ->
+            let acc' =
+              inject (Parse_info.ExpandedTok (pi, prev, offset)) :: acc
+            in
+            loop acc' prev (offset + strlen ii) xs
+        | Parse_info.FakeTokStr (s, _) ->
+            let acc' =
+              inject (Parse_info.FakeTokStr (s, Some (prev, offset))) :: acc
+            in
+            loop acc' prev (offset + strlen ii) xs
+        | Parse_info.Ab -> failwith "abstract not expected")
+  in
   let rec skip_fake acc = function
     (* Tail-recursive to prevent stack overflows. *)
     | [] -> List.rev acc
-    | x::xs ->
+    | x :: xs -> (
         let ii = TH.info_of_tok x in
         match ii.Parse_info.token with
-          Parse_info.OriginTok _pi ->
+        | Parse_info.OriginTok _pi ->
             let prev = Parse_info.unsafe_token_location_of_info ii in
-            (loop (x::acc) prev (strlen ii) xs)
-        | _ -> skip_fake (x::acc) xs in
+            loop (x :: acc) prev (strlen ii) xs
+        | _ -> skip_fake (x :: acc) xs)
+  in
   skip_fake [] l
 
 (*****************************************************************************)
 (* C vs C++ *)
 (*****************************************************************************)
 let fix_tokens_for_language lang xs =
-  xs |> Common.map (fun tok ->
-    if lang = Flag_parsing_cpp.C && TH.is_cpp_keyword tok
-    then
-      let ii = TH.info_of_tok tok in
-      T.TIdent (PI.str_of_info ii, ii)
-    else tok
-  )
+  xs
+  |> Common.map (fun tok ->
+         if lang = Flag_parsing_cpp.C && TH.is_cpp_keyword tok then
+           let ii = TH.info_of_tok tok in
+           T.TIdent (PI.str_of_info ii, ii)
+         else tok)
 
 (*****************************************************************************)
 (* Fuzzy build *)
@@ -131,10 +139,10 @@ let fix_tokens_for_language lang xs =
 
 let fix_tokens_fuzzy toks =
   try
-    let trees = Lib_ast_fuzzy.mk_trees { Lib_ast_fuzzy.
-                                         tokf = TH.info_of_tok;
-                                         kind = TH.token_kind_of_tok;
-                                       } toks
+    let trees =
+      Lib_ast_fuzzy.mk_trees
+        { Lib_ast_fuzzy.tokf = TH.info_of_tok; kind = TH.token_kind_of_tok }
+        toks
     in
     let retag_lambda = Hashtbl.create 101 in
 
@@ -142,38 +150,39 @@ let fix_tokens_fuzzy toks =
       match trees with
       | [] -> ()
       (* [...] { } *)
-      | F.Bracket (l, xs, _r)::F.Braces _::ys ->
+      | F.Bracket (l, xs, _r) :: F.Braces _ :: ys ->
           Hashtbl.add retag_lambda l true;
           aux env xs;
           aux env ys
-
-      | x::xs ->
+      | x :: xs ->
           (match x with
-           | F.Parens (_, xs, _) -> iter_parens env xs
-           | F.Braces (_, xs, _) -> aux env xs
-           | F.Angle _ | F.Bracket _
-           | F.Metavar _ | F.Dots _ | F.Tok _ -> ()
-          );
+          | F.Parens (_, xs, _) -> iter_parens env xs
+          | F.Braces (_, xs, _) -> aux env xs
+          | F.Angle _
+          | F.Bracket _
+          | F.Metavar _
+          | F.Dots _
+          | F.Tok _ ->
+              ());
           aux env xs
     and iter_parens env xs =
-      xs |> List.iter (function
-        | Left trees -> aux env trees
-        | Right _comma -> ()
-      )
+      xs
+      |> List.iter (function
+           | Left trees -> aux env trees
+           | Right _comma -> ())
     in
     aux () trees;
 
     (* use the tagged information and transform tokens *)
-    toks |> List.map (function
-      | T.TOCro info when Hashtbl.mem retag_lambda info ->
-          T.TOCro_Lambda info
-      | x -> x
-    )
-
-  with Lib_ast_fuzzy.Unclosed (msg, info) ->
-    if !Flag.error_recovery
-    then toks
-    else raise (Parse_info.Lexical_error (msg, info))
+    toks
+    |> List.map (function
+         | T.TOCro info when Hashtbl.mem retag_lambda info ->
+             T.TOCro_Lambda info
+         | x -> x)
+  with
+  | Lib_ast_fuzzy.Unclosed (msg, info) ->
+      if !Flag.error_recovery then toks
+      else raise (Parse_info.Lexical_error (msg, info))
 
 (*****************************************************************************)
 (* Fix tokens *)
@@ -201,9 +210,8 @@ let fix_tokens_fuzzy toks =
  * might be good to have two different functions and do far less in
  * fix_tokens_c (even though the extra steps in fix_tokens_cpp should
  * have no effect on regular C code).
-*)
+ *)
 let fix_tokens_c ~macro_defs tokens =
-
   let tokens = Parsing_hacks_define.fix_tokens_define tokens in
   let tokens = fix_tokens_for_language Flag_cpp.C tokens in
 
@@ -214,24 +222,23 @@ let fix_tokens_c ~macro_defs tokens =
 
   let ifdef_grouped = TV.mk_ifdef cleaner in
   Parsing_hacks_pp.find_ifdef_funheaders ifdef_grouped;
-  Parsing_hacks_pp.find_ifdef_bool       ifdef_grouped;
-  Parsing_hacks_pp.find_ifdef_mid        ifdef_grouped;
+  Parsing_hacks_pp.find_ifdef_bool ifdef_grouped;
+  Parsing_hacks_pp.find_ifdef_mid ifdef_grouped;
 
   (* macro part 1 *)
   let cleaner = !tokens2 |> Parsing_hacks_pp.filter_pp_or_comment_stuff in
-  let paren_grouped = TV.mk_parenthised  cleaner in
+  let paren_grouped = TV.mk_parenthised cleaner in
   Pp_token.apply_macro_defs macro_defs paren_grouped;
   (* because the before field is used by apply_macro_defs *)
   tokens2 := TV.rebuild_tokens_extented !tokens2;
 
   let cleaner = !tokens2 |> Parsing_hacks_pp.filter_pp_or_comment_stuff in
 
-  let paren_grouped      = TV.mk_parenthised  cleaner in
+  let paren_grouped = TV.mk_parenthised cleaner in
   Parsing_hacks_pp.find_define_init_brace_paren paren_grouped;
   Parsing_hacks_pp.find_string_macro_paren paren_grouped;
-  Parsing_hacks_pp.find_macro_paren        paren_grouped;
+  Parsing_hacks_pp.find_macro_paren paren_grouped;
   let cleaner = !tokens2 |> Parsing_hacks_pp.filter_pp_or_comment_stuff in
-
 
   (* tagging contextual info (InFunc, InStruct, etc) *)
   let multi_grouped = TV.mk_multi cleaner in
@@ -241,13 +248,10 @@ let fix_tokens_c ~macro_defs tokens =
 
   insert_virtual_positions (!tokens2 |> Common2.acc_map (fun x -> x.TV.t))
 
-
-
-
 let fix_tokens_cpp ~macro_defs tokens =
   let tokens = Parsing_hacks_define.fix_tokens_define tokens in
-  (* let tokens = fix_tokens_for_language Flag_cpp.Cplusplus tokens in *)
 
+  (* let tokens = fix_tokens_for_language Flag_cpp.Cplusplus tokens in *)
   let tokens2 = ref (tokens |> Common2.acc_map TV.mk_token_extended) in
 
   (* ifdef *)
@@ -255,8 +259,8 @@ let fix_tokens_cpp ~macro_defs tokens =
 
   let ifdef_grouped = TV.mk_ifdef cleaner in
   Parsing_hacks_pp.find_ifdef_funheaders ifdef_grouped;
-  Parsing_hacks_pp.find_ifdef_bool       ifdef_grouped;
-  Parsing_hacks_pp.find_ifdef_mid        ifdef_grouped;
+  Parsing_hacks_pp.find_ifdef_bool ifdef_grouped;
+  Parsing_hacks_pp.find_ifdef_mid ifdef_grouped;
 
   (* macro part 1 *)
   let cleaner = !tokens2 |> Parsing_hacks_pp.filter_pp_or_comment_stuff in
@@ -267,10 +271,10 @@ let fix_tokens_cpp ~macro_defs tokens =
    *
    * todo? expand macro first? some expand to lexical_cast ...
    * but need correct parenthized view to expand macros => mutually recursive :(
-  *)
+   *)
   Parsing_hacks_cpp.find_template_inf_sup cleaner;
 
-  let paren_grouped = TV.mk_parenthised  cleaner in
+  let paren_grouped = TV.mk_parenthised cleaner in
   Pp_token.apply_macro_defs macro_defs paren_grouped;
 
   (* because the before field is used by apply_macro_defs *)
@@ -281,26 +285,25 @@ let fix_tokens_cpp ~macro_defs tokens =
 
   (* tagging contextual info (InFunc, InStruct, etc). Better to do
    * that after the "ifdef-simplification" phase.
-  *)
+   *)
   let multi_grouped = TV.mk_multi cleaner in
   Token_views_context.set_context_tag_multi multi_grouped;
 
   (* macro part 2 *)
   let cleaner = !tokens2 |> Parsing_hacks_pp.filter_pp_or_comment_stuff in
 
-  let paren_grouped      = TV.mk_parenthised  cleaner in
+  let paren_grouped = TV.mk_parenthised cleaner in
   let line_paren_grouped = TV.mk_line_parenthised paren_grouped in
   Parsing_hacks_pp.find_define_init_brace_paren paren_grouped;
   Parsing_hacks_pp.find_string_macro_paren paren_grouped;
-  if not !Flag_parsing.sgrep_mode then begin
-    Parsing_hacks_pp.find_macro_lineparen    line_paren_grouped;
-    Parsing_hacks_pp.find_macro_paren        paren_grouped;
-  end;
+  if not !Flag_parsing.sgrep_mode then (
+    Parsing_hacks_pp.find_macro_lineparen line_paren_grouped;
+    Parsing_hacks_pp.find_macro_paren paren_grouped);
 
   (* todo: at some point we need to remove that and use
    * a better filter_for_typedef that also
    * works on the nested template arguments.
-  *)
+   *)
   (* COMMENT OR STUFF NOT IN AST
      Parsing_hacks_cpp.find_template_commentize multi_grouped;
   *)
@@ -322,7 +325,7 @@ let fix_tokens_cpp ~macro_defs tokens =
   (* TODO: need improve if we do not call find_template_commentize and
    * find_qualifier_commentize. We need to find a way to skip those
    * tokens just temporarily, and then put them back.
-  *)
+   *)
   let xxs = Parsing_hacks_typedef.filter_for_typedef multi_grouped in
   Parsing_hacks_typedef.find_typedefs xxs;
 
@@ -332,13 +335,12 @@ let fix_tokens_cpp ~macro_defs tokens =
   Parsing_hacks_cpp.reclassify_tokens_before_idents_or_typedefs multi_grouped;
 
   let toks =
-    insert_virtual_positions (!tokens2 |> Common2.acc_map (fun x -> x.TV.t)) in
+    insert_virtual_positions (!tokens2 |> Common2.acc_map (fun x -> x.TV.t))
+  in
   fix_tokens_fuzzy toks
-
 
 let fix_tokens ~macro_defs lang a =
   Common.profile_code "C++ parsing.fix_tokens" (fun () ->
-    match lang with
-    | Flag_parsing_cpp.C -> fix_tokens_c ~macro_defs a
-    | Flag_parsing_cpp.Cplusplus -> fix_tokens_cpp ~macro_defs a
-  )
+      match lang with
+      | Flag_parsing_cpp.C -> fix_tokens_c ~macro_defs a
+      | Flag_parsing_cpp.Cplusplus -> fix_tokens_cpp ~macro_defs a)

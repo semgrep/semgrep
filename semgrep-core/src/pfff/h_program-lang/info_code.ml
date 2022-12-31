@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -24,7 +24,6 @@
  *  - http://www.gnu.org/manual/blurbs.html
  *)
 
-
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -36,8 +35,7 @@ type info_txt = Outline.outline
 (* IO *)
 (*****************************************************************************)
 
-let load file =
-  Outline.parse_outline file
+let load file = Outline.parse_outline file
 
 (* old:
    let xs =
@@ -55,5 +53,4 @@ let load file =
     else
       failwith (spf "wrong format in %s, entry: %s" file s)
    )
-
 *)

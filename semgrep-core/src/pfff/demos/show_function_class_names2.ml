@@ -1,6 +1,5 @@
 open Common
 open Cst_php
-
 module V = Visitor_php
 
 let pr_func_def func_def =
@@ -19,19 +18,23 @@ let show_function_calls file =
   let ast = Parse_php.parse_program file in
 
   (*s: create visitor *)
-  let visitor = V.mk_visitor { V.default_visitor with
-                               V.kfunc_def = (fun (k, _) e ->
-                                 pr_func_def e; k e
-                               );
-                               (*V.kmethod_def = (fun (k, _) e ->
-                                 pr_func_def e; k e
-                                 );*)
-                               V.kclass_def = (fun (k, _) e ->
-                                 pr_class_def e; k e
-                               );
-                             }
+  let visitor =
+    V.mk_visitor
+      {
+        V.default_visitor with
+        V.kfunc_def =
+          (fun (k, _) e ->
+            pr_func_def e;
+            k e);
+        (*V.kmethod_def = (fun (k, _) e ->
+          pr_func_def e; k e
+          );*)
+        V.kclass_def =
+          (fun (k, _) e ->
+            pr_class_def e;
+            k e);
+      }
   in
-  visitor (Program  ast)
+  visitor (Program ast)
 
-let main =
-  show_function_calls Sys.argv.(1)
+let main = show_function_calls Sys.argv.(1)

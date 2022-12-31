@@ -17,41 +17,34 @@ let execute_and_show_progress ~show len f =
   let continue_pourcentage () =
     incr _count;
     ANSITerminal.set_cursor 1 (-1);
-    ANSITerminal.printf [] "%d / %d" !_count len; flush stdout;
+    ANSITerminal.printf [] "%d / %d" !_count len;
+    flush stdout
   in
   let nothing () = () in
 
   (* ANSITerminal.printf [] "0 / %d" len; flush stdout; *)
-  (if !Common2._batch_mode || not show
-   then f nothing
-   else f continue_pourcentage
-  );
+  if !Common2._batch_mode || not show then f nothing else f continue_pourcentage;
   Common.pr2 ""
 
-
-let execute_and_show_progress2 ?(show=true) len f =
+let execute_and_show_progress2 ?(show = true) len f =
   let _count = ref 0 in
   (* kind of continuation passed to f *)
   let continue_pourcentage () =
     incr _count;
     ANSITerminal.set_cursor 1 (-1);
-    ANSITerminal.eprintf [] "%d / %d" !_count len; flush stderr;
+    ANSITerminal.eprintf [] "%d / %d" !_count len;
+    flush stderr
   in
   let nothing () = () in
 
   (* ANSITerminal.printf [] "0 / %d" len; flush stdout; *)
-  if !Common2._batch_mode || not show
-  then f nothing
-  else f continue_pourcentage
+  if !Common2._batch_mode || not show then f nothing else f continue_pourcentage
 
 let with_progress_list_metter ?show fk xs =
   let len = List.length xs in
-  execute_and_show_progress2 ?show len
-    (fun k -> fk k xs)
+  execute_and_show_progress2 ?show len (fun k -> fk k xs)
 
-let progress ?show fk xs =
-  with_progress_list_metter ?show fk xs
-
+let progress ?show fk xs = with_progress_list_metter ?show fk xs
 
 (*
 (* old code
@@ -88,4 +81,4 @@ let _init_execute =
 
 (* now in common_extra.ml:
  * let execute_and_show_progress len f = ...
-*)
+ *)

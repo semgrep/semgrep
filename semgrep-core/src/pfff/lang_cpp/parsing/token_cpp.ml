@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *
-*)
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -65,9 +65,7 @@ type cppcommentkind =
   | CppOther
 
 (* at some point we are supposed to also parse those constructs *)
-type cpluspluscommentkind =
-  | CplusplusTemplate
-  | CplusplusQualifier
+type cpluspluscommentkind = CplusplusTemplate | CplusplusQualifier
 
 (*****************************************************************************)
 (* Types *)

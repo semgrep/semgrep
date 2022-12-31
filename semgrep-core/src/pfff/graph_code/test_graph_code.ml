@@ -34,7 +34,7 @@ let test_dsm file =
   let g = Graph_code.load file in
   let config = Dependencies_matrix_code.basic_config g in
   let gopti = Graph_code_opti.convert g in
-  let dm,_ = Dependencies_matrix_build.build config None gopti in
+  let dm, _ = Dependencies_matrix_build.build config None gopti in
   Dependencies_matrix_code.display dm;
   ()
 
@@ -42,9 +42,8 @@ let test_dsm file =
 (* Main entry for Arg *)
 (*****************************************************************************)
 
-let actions () = [
-  "-test_graph_code", " <>",
-  Common.mk_action_0_arg test_graph_code;
-  "-test_dsm", " <file>",
-  Common.mk_action_1_arg test_dsm;
-]
+let actions () =
+  [
+    ("-test_graph_code", " <>", Common.mk_action_0_arg test_graph_code);
+    ("-test_dsm", " <file>", Common.mk_action_1_arg test_dsm);
+  ]

@@ -1,2 +1,1 @@
-
-val vof_any: Ast_skip.any -> OCaml.v
+val vof_any : Ast_skip.any -> OCaml.v

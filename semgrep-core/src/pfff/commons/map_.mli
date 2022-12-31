@@ -51,47 +51,47 @@ module type S =
 type ('key, 'a) t
 (** The type of maps from type [key] to type ['a]. *)
 
-val empty: ('key, 'a) t
+val empty : ('key, 'a) t
 (** The empty map. *)
 
-val is_empty: ('key, 'a) t -> bool
+val is_empty : ('key, 'a) t -> bool
 (** Test whether a map is empty or not. *)
 
-val add: 'key -> 'a -> ('key, 'a) t -> ('key, 'a) t
+val add : 'key -> 'a -> ('key, 'a) t -> ('key, 'a) t
 (** [add x y m] returns a map containing the same bindings as
     [m], plus a binding of [x] to [y]. If [x] was already bound
     in [m], its previous binding disappears. *)
 
-val find: 'key -> ('key, 'a) t -> 'a
+val find : 'key -> ('key, 'a) t -> 'a
 (** [find x m] returns the current binding of [x] in [m],
     or raises [Not_found] if no such binding exists. *)
 
-val remove: 'key -> ('key, 'a) t -> ('key, 'a) t
+val remove : 'key -> ('key, 'a) t -> ('key, 'a) t
 (** [remove x m] returns a map containing the same bindings as
     [m], except for [x] which is unbound in the returned map. *)
 
-val mem: 'key -> ('key, 'a) t -> bool
+val mem : 'key -> ('key, 'a) t -> bool
 (** [mem x m] returns [true] if [m] contains a binding for [x],
     and [false] otherwise. *)
 
-val iter: ('key -> 'a -> unit) -> ('key, 'a) t -> unit
+val iter : ('key -> 'a -> unit) -> ('key, 'a) t -> unit
 (** [iter f m] applies [f] to all bindings in map [m].
     [f] receives the key as first argument, and the associated value
     as second argument.  The bindings are passed to [f] in increasing
     order with respect to the ordering over the type of the keys. *)
 
-val map: ('a -> 'b) -> ('key, 'a) t -> ('key, 'b) t
+val map : ('a -> 'b) -> ('key, 'a) t -> ('key, 'b) t
 (** [map f m] returns a map with same domain as [m], where the
     associated value [a] of all bindings of [m] has been
     replaced by the result of the application of [f] to [a].
     The bindings are passed to [f] in increasing order
     with respect to the ordering over the type of the keys. *)
 
-val mapi: ('key -> 'a -> 'b) -> ('key, 'a) t -> ('key, 'b) t
+val mapi : ('key -> 'a -> 'b) -> ('key, 'a) t -> ('key, 'b) t
 (** Same as {!Map.S.map}, but the function receives as arguments both the
     key and the associated value for each binding of the map. *)
 
-val fold: ('key -> 'a -> 'b -> 'b) -> ('key, 'a) t -> 'b -> 'b
+val fold : ('key -> 'a -> 'b -> 'b) -> ('key, 'a) t -> 'b -> 'b
 (** [fold f m a] computes [(f kN dN ... (f k1 d1 a)...)],
     where [k1 ... kN] are the keys of all bindings in [m]
     (in increasing order), and [d1 ... dN] are the associated data. *)
@@ -119,5 +119,5 @@ module Make (Ord : OrderedType) : S with type key = Ord.t
 *)
 
 (* addons pad *)
-val of_list: ('key * 'a) list -> ('key, 'a) t
-val to_list: ('key, 'a) t -> ('key * 'a) list
+val of_list : ('key * 'a) list -> ('key, 'a) t
+val to_list : ('key, 'a) t -> ('key * 'a) list

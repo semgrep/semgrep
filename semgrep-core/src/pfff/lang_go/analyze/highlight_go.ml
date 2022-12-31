@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 open Highlight_code
 module T = Parser_go
@@ -27,7 +27,7 @@ module E = Entity_code
  *  - parameters semantic in Go is special (foo(a,b,c,d int)) or foo(int,int)
  *  - need List.rev for stmts in many more places, not just compound_stmt
  *  -
-*)
+ *)
 
 (*****************************************************************************)
 (* Helpers when have global-analysis information *)
@@ -35,10 +35,9 @@ module E = Entity_code
 
 (* we generate fake value here because the real one are computed in a
  * later phase in rewrite_categ_using_entities in pfff_visual.
-*)
+ *)
 let _def2 = Def2 NoUse
 let use2 = Use2 (NoInfoPlace, UniqueDef, MultiUse)
-
 
 (* coupling: dupe of list in lexer_go.mll comment *)
 (* declared in the "universe block"
@@ -53,17 +52,25 @@ let use2 = Use2 (NoInfoPlace, UniqueDef, MultiUse)
  *    len,
  *  - nil
  *  - _ (blank identifier)
-*)
-let builtin_functions = Common.hashset_of_list [
-  "iota";
-  "new"; "make";
-
-  "print"; "println";
-  "complex"; "imag"; "real";
-  "append"; "cap";
-  "close"; "delete";"copy";
-  "len";
-]
+ *)
+let builtin_functions =
+  Common.hashset_of_list
+    [
+      "iota";
+      "new";
+      "make";
+      "print";
+      "println";
+      "complex";
+      "imag";
+      "real";
+      "append";
+      "cap";
+      "close";
+      "delete";
+      "copy";
+      "len";
+    ]
 
 (*****************************************************************************)
 (* Code highlighter *)
@@ -73,24 +80,23 @@ let builtin_functions = Common.hashset_of_list [
  * AST or its list of tokens. The tokens are easier for tagging keywords,
  * number and basic entities. The AST is better for tagging idents
  * to figure out what kind of ident it is.
-*)
+ *)
 
 let visit_program ~tag_hook _prefs (_program, toks) =
   let already_tagged = Hashtbl.create 101 in
-  let tag = (fun ii categ ->
+  let tag ii categ =
     tag_hook ii categ;
     Hashtbl.replace already_tagged ii true
-  )
   in
   let tag_if_not_tagged ii categ =
     (* thx to the if below, you can treat the most specific in enclosing code
      * and then not fear to write very general case patterns later because
      * the specific will have priority over the general
      * (e.g., a Method use vs a Field use)
-    *)
-    if not (Hashtbl.mem already_tagged ii)
-    then tag ii categ
+     *)
+    if not (Hashtbl.mem already_tagged ii) then tag ii categ
   in
+
   (* Resolve_go.resolve program; *)
 
   (* -------------------------------------------------------------------- *)
@@ -98,7 +104,7 @@ let visit_program ~tag_hook _prefs (_program, toks) =
   (* -------------------------------------------------------------------- *)
   (* try to better colorize identifiers which can be many different things
    * e.g. a field, a type, a function, a parameter, etc
-  *)
+   *)
   (* TODO: use the generic AST highlighter now
    * or update it to handle the idioms below
      let tag_ident (_s, ii) categ = tag_if_not_tagged ii categ in  let _tag_qid xs categ =
@@ -256,7 +262,7 @@ let visit_program ~tag_hook _prefs (_program, toks) =
 
                                } in
      visitor (P program);
-  *)
+   *)
 
   (* -------------------------------------------------------------------- *)
   (* tokens phase 1 (list of tokens) *)
@@ -264,114 +270,122 @@ let visit_program ~tag_hook _prefs (_program, toks) =
   (* -------------------------------------------------------------------- *)
   (* Tokens phase 2 (individual tokens) *)
   (* -------------------------------------------------------------------- *)
-
-  toks |> List.iter (fun tok ->
-    match tok with
-
-    (* specials *)
-    | T.TUnknown ii ->
-        tag ii Error
-    | T.EOF _ii ->
-        ()
-
-    (* comments *)
-    | T.TComment ii ->
-        tag_if_not_tagged ii Comment
-    | T.TCommentSpace _ | T.TCommentNewline _ -> ()
-
-    (* values  *)
-    | T.LSTR (_,ii) ->
-        tag_if_not_tagged ii String (* can be a Module in an import, or a Tag *)
-    | T.LRUNE (_, ii) ->
-        tag ii String
-    | T.LFLOAT (_,ii) | T.LINT (_,ii) | T.LIMAG (_,ii) ->
-        tag ii Number
-
-    (* ident  *)
-    | T.LNAME (s, ii) ->
-        (match s with
-         | "true" | "false" -> tag_if_not_tagged ii Boolean
-         | "nil" -> tag_if_not_tagged ii Null
-
-         | "panic" | "recover" -> tag ii KeywordExn
-         | "int" | "uint32" | "string" ->
-             tag_if_not_tagged ii (Entity (E.Type, use2))
-         | s when Hashtbl.mem builtin_functions s ->
-             tag_if_not_tagged ii Builtin
-
-         (* should have been tagged by the AST visitor *)
-         | _ ->
-             tag_if_not_tagged ii IdentUnknown
-        )
-
-    (* keywords  *)
-    | T.LFUNC ii | T.LCONST ii | T.LVAR ii | T.LTYPE ii ->
-        tag ii Keyword
-    | T.LSTRUCT ii -> tag ii Keyword
-    | T.LINTERFACE ii
-      -> tag ii KeywordObject
-    | T.LIF ii | T.LELSE ii
-    | T.LSWITCH ii | T.LCASE ii | T.LDEFAULT ii
-      ->
-        tag ii KeywordConditional
-    | T.LFOR ii | T.LRANGE ii
-      -> tag ii KeywordLoop
-    | T.LPACKAGE ii  | T.LIMPORT ii
-      -> tag ii KeywordModule
-    | T.LSELECT ii | T.LGO ii | T.LCHAN ii
-      -> tag ii KeywordConcurrency
-    | T.LCONTINUE ii | T.LBREAK ii
-    | T.LFALL ii
-    | T.LRETURN ii
-      -> tag ii Keyword
-    | T.LGOTO ii
-      -> tag ii Keyword (* dangerous? *)
-    | T.LMAP ii ->
-        tag ii (Entity (E.Type, use2))
-    | T.LDEFER ii ->
-        tag ii KeywordExn
-
-    (* symbols *)
-    | T.LEQ ii | T.LCOLAS ii ->
-        tag ii Punctuation
-
-    | T.LASOP (_, ii) -> tag ii Punctuation
-
-    | T.LBRACE ii | T.LBODY ii | T.LBRACE_SEMGREP ii
-    | T.RBRACE ii
-    | T.LBRACKET ii | T.RBRACKET ii
-    | T.LPAREN ii | T.RPAREN ii | LPAREN_SEMGREP ii
-      -> tag ii Punctuation
-
-    | T.LPLUS ii  -> tag ii Punctuation
-    | T.LMINUS ii -> tag ii Punctuation
-
-    | T.LMULT ii | T.LDIV ii
-    | T.LPERCENT ii
-
-    | T.LLSH ii | T.LRSH ii
-    | T.LINC ii | T.LDEC ii
-
-    | T.LANDAND ii | T.LOROR ii
-    | T.LAND ii | T.LPIPE ii | T.LHAT ii | T.LANDNOT ii
-
-    | T.LBANG ii
-
-    | T.LEQEQ ii | T.LNE ii
-    | T.LLT ii  | T.LGT ii
-    | T.LLE ii | T.LGE ii
-
-    | T.LDOT ii
-    | T.LCOLON ii | T.LCOLON_SEMGREP ii
-    | T.LCOMMA ii
-    | T.LSEMICOLON ii
-      ->
-        tag ii Punctuation
-
-    | T.LCOMM ii ->
-        tag ii KeywordConcurrency
-
-    | T.LDDD ii | T.LDots ii | T.RDots ii ->
-        tag ii Punctuation
-  );
+  toks
+  |> List.iter (fun tok ->
+         match tok with
+         (* specials *)
+         | T.TUnknown ii -> tag ii Error
+         | T.EOF _ii -> ()
+         (* comments *)
+         | T.TComment ii -> tag_if_not_tagged ii Comment
+         | T.TCommentSpace _
+         | T.TCommentNewline _ ->
+             ()
+         (* values  *)
+         | T.LSTR (_, ii) ->
+             tag_if_not_tagged ii
+               String (* can be a Module in an import, or a Tag *)
+         | T.LRUNE (_, ii) -> tag ii String
+         | T.LFLOAT (_, ii)
+         | T.LINT (_, ii)
+         | T.LIMAG (_, ii) ->
+             tag ii Number
+         (* ident  *)
+         | T.LNAME (s, ii) -> (
+             match s with
+             | "true"
+             | "false" ->
+                 tag_if_not_tagged ii Boolean
+             | "nil" -> tag_if_not_tagged ii Null
+             | "panic"
+             | "recover" ->
+                 tag ii KeywordExn
+             | "int"
+             | "uint32"
+             | "string" ->
+                 tag_if_not_tagged ii (Entity (E.Type, use2))
+             | s when Hashtbl.mem builtin_functions s ->
+                 tag_if_not_tagged ii Builtin
+             (* should have been tagged by the AST visitor *)
+             | _ -> tag_if_not_tagged ii IdentUnknown)
+         (* keywords  *)
+         | T.LFUNC ii
+         | T.LCONST ii
+         | T.LVAR ii
+         | T.LTYPE ii ->
+             tag ii Keyword
+         | T.LSTRUCT ii -> tag ii Keyword
+         | T.LINTERFACE ii -> tag ii KeywordObject
+         | T.LIF ii
+         | T.LELSE ii
+         | T.LSWITCH ii
+         | T.LCASE ii
+         | T.LDEFAULT ii ->
+             tag ii KeywordConditional
+         | T.LFOR ii
+         | T.LRANGE ii ->
+             tag ii KeywordLoop
+         | T.LPACKAGE ii
+         | T.LIMPORT ii ->
+             tag ii KeywordModule
+         | T.LSELECT ii
+         | T.LGO ii
+         | T.LCHAN ii ->
+             tag ii KeywordConcurrency
+         | T.LCONTINUE ii
+         | T.LBREAK ii
+         | T.LFALL ii
+         | T.LRETURN ii ->
+             tag ii Keyword
+         | T.LGOTO ii -> tag ii Keyword (* dangerous? *)
+         | T.LMAP ii -> tag ii (Entity (E.Type, use2))
+         | T.LDEFER ii -> tag ii KeywordExn
+         (* symbols *)
+         | T.LEQ ii
+         | T.LCOLAS ii ->
+             tag ii Punctuation
+         | T.LASOP (_, ii) -> tag ii Punctuation
+         | T.LBRACE ii
+         | T.LBODY ii
+         | T.LBRACE_SEMGREP ii
+         | T.RBRACE ii
+         | T.LBRACKET ii
+         | T.RBRACKET ii
+         | T.LPAREN ii
+         | T.RPAREN ii
+         | LPAREN_SEMGREP ii ->
+             tag ii Punctuation
+         | T.LPLUS ii -> tag ii Punctuation
+         | T.LMINUS ii -> tag ii Punctuation
+         | T.LMULT ii
+         | T.LDIV ii
+         | T.LPERCENT ii
+         | T.LLSH ii
+         | T.LRSH ii
+         | T.LINC ii
+         | T.LDEC ii
+         | T.LANDAND ii
+         | T.LOROR ii
+         | T.LAND ii
+         | T.LPIPE ii
+         | T.LHAT ii
+         | T.LANDNOT ii
+         | T.LBANG ii
+         | T.LEQEQ ii
+         | T.LNE ii
+         | T.LLT ii
+         | T.LGT ii
+         | T.LLE ii
+         | T.LGE ii
+         | T.LDOT ii
+         | T.LCOLON ii
+         | T.LCOLON_SEMGREP ii
+         | T.LCOMMA ii
+         | T.LSEMICOLON ii ->
+             tag ii Punctuation
+         | T.LCOMM ii -> tag ii KeywordConcurrency
+         | T.LDDD ii
+         | T.LDots ii
+         | T.RDots ii ->
+             tag ii Punctuation);
   ()

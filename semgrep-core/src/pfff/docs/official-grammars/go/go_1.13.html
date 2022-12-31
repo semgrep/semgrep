@@ -25,7 +25,6 @@ Repetition  = "{" Expression "}" .
 
 <h2 id="Introduction">Lexer</h2>
 
-
 <pre class="ebnf">
 newline        = /* the Unicode code point U+000A */ .
 unicode_char   = /* an arbitrary Unicode code point except newline */ .
@@ -75,7 +74,6 @@ octal_digits   = octal_digit { [ "_" ] octal_digit } .
 hex_digits     = hex_digit { [ "_" ] hex_digit } .
 </pre>
 
-
 <pre class="ebnf">
 float_lit         = decimal_float_lit | hex_float_lit .
 
@@ -91,11 +89,9 @@ hex_mantissa      = [ "_" ] hex_digits "." [ hex_digits ] |
 hex_exponent      = ( "p" | "P" ) [ "+" | "-" ] decimal_digits .
 </pre>
 
-
 <pre class="ebnf">
 imaginary_lit = (decimal_digits | int_lit | float_lit) "i" .
 </pre>
-
 
 <pre class="grammar">
 \a   U+0007 alert or bell
@@ -122,15 +118,11 @@ big_u_value      = `\` "U" hex_digit hex_digit hex_digit hex_digit
 escaped_char     = `\` ( "a" | "b" | "f" | "n" | "r" | "t" | "v" | `\` | "'" | `"` ) .
 </pre>
 
-
 <pre class="ebnf">
 string_lit             = raw_string_lit | interpreted_string_lit .
 raw_string_lit         = "`" { unicode_char | newline } "`" .
 interpreted_string_lit = `"` { unicode_value | byte_value } `"` .
 </pre>
-
-
-
 
 <h2 id="Introduction">Grammar</h2>
 
@@ -142,7 +134,6 @@ TypeName  = identifier | QualifiedIdent .
 TypeLit   = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
 	    SliceType | MapType | ChannelType .
 </pre>
-
 
 <pre class="grammar">
 uint8       the set of all unsigned  8-bit integers (0 to 255)
@@ -177,13 +168,9 @@ ArrayLength = Expression .
 ElementType = Type .
 </pre>
 
-
 <pre class="ebnf">
 SliceType = "[" "]" ElementType .
 </pre>
-
-
-
 
 <pre class="ebnf">
 StructType    = "struct" "{" { FieldDecl ";" } "}" .
@@ -192,18 +179,10 @@ EmbeddedField = [ "*" ] TypeName .
 Tag           = string_lit .
 </pre>
 
-
-
-
-
-
-
-
 <pre class="ebnf">
 PointerType = "*" BaseType .
 BaseType    = Type .
 </pre>
-
 
 <pre class="ebnf">
 FunctionType   = "func" Signature .
@@ -214,7 +193,6 @@ ParameterList  = ParameterDecl { "," ParameterDecl } .
 ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
 </pre>
 
-
 <pre class="ebnf">
 InterfaceType      = "interface" "{" { ( MethodSpec | InterfaceTypeName ) ";" } "}" .
 MethodSpec         = MethodName Signature .
@@ -222,35 +200,16 @@ MethodName         = identifier .
 InterfaceTypeName  = TypeName .
 </pre>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <pre class="ebnf">
 MapType     = "map" "[" KeyType "]" ElementType .
 KeyType     = Type .
 </pre>
 
-
-
-
 <pre class="ebnf">
 ChannelType = ( "chan" | "chan" "&lt;-" | "&lt;-" "chan" ) ElementType .
 </pre>
 
-
 <h3>Declarations</h3>
-
 
 <pre class="ebnf">
 Block = "{" StatementList "}" .
@@ -287,13 +246,6 @@ IdentifierList = identifier { "," identifier } .
 ExpressionList = Expression { "," Expression } .
 </pre>
 
-
-
-
-
-
-
-
 <pre class="ebnf">
 TypeDecl = "type" ( TypeSpec | "(" { TypeSpec ";" } ")" ) .
 TypeSpec = AliasDecl | TypeDef .
@@ -303,23 +255,14 @@ TypeSpec = AliasDecl | TypeDef .
 AliasDecl = identifier "=" Type .
 </pre>
 
-
 <pre class="ebnf">
 TypeDef = identifier Type .
 </pre>
-
-
-
-
-
 
 <pre class="ebnf">
 VarDecl     = "var" ( VarSpec | "(" { VarSpec ";" } ")" ) .
 VarSpec     = IdentifierList ( Type [ "=" ExpressionList ] | "=" ExpressionList ) .
 </pre>
-
-
-
 
 <pre class="ebnf">
 ShortVarDecl = IdentifierList ":=" ExpressionList .
@@ -328,17 +271,11 @@ ShortVarDecl = IdentifierList ":=" ExpressionList .
 "var" IdentifierList = ExpressionList .
 </pre>
 
-
-
-
 <pre class="ebnf">
 FunctionDecl = "func" FunctionName Signature [ FunctionBody ] .
 FunctionName = identifier .
 FunctionBody = Block .
 </pre>
-
-
-
 
 <pre class="ebnf">
 MethodDecl = "func" Receiver MethodName Signature [ FunctionBody ] .
@@ -346,8 +283,6 @@ Receiver   = Parameters .
 </pre>
 
 <h3>Expressions</h3>
-
-
 
 <pre class="ebnf">
 Operand     = Literal | OperandName | "(" Expression ")" .
@@ -358,7 +293,6 @@ OperandName = identifier | QualifiedIdent.
 <pre class="ebnf">
 QualifiedIdent = PackageName "." identifier .
 </pre>
-
 
 <pre class="ebnf">
 CompositeLit  = LiteralType LiteralValue .
@@ -372,15 +306,9 @@ FieldName     = identifier .
 Element       = Expression | LiteralValue .
 </pre>
 
-
-
-
-
 <pre class="ebnf">
 FunctionLit = "func" Signature FunctionBody .
 </pre>
-
-
 
 <pre class="ebnf">
 PrimaryExpr =
@@ -401,17 +329,10 @@ TypeAssertion  = "." "(" Type ")" .
 Arguments      = "(" [ ( ExpressionList | Type [ "," ExpressionList ] ) [ "..." ] [ "," ] ] ")" .
 </pre>
 
-
 <pre class="ebnf">
 MethodExpr    = ReceiverType "." MethodName .
 ReceiverType  = Type .
 </pre>
-
-
-
-
-
-
 
 <pre class="ebnf">
 Expression = UnaryExpr | Expression binary_op Expression .
@@ -425,7 +346,6 @@ mul_op     = "*" | "/" | "%" | "&lt;&lt;" | "&gt;&gt;" | "&amp;" | "&amp;^" .
 unary_op   = "+" | "-" | "!" | "^" | "*" | "&amp;" | "&lt;-" .
 </pre>
 
-
 <pre class="grammar">
 Precedence    Operator
     5             *  /  %  &lt;&lt;  &gt;&gt;  &amp;  &amp;^
@@ -434,7 +354,6 @@ Precedence    Operator
     2             &amp;&amp;
     1             ||
 </pre>
-
 
 <pre class="grammar">
 +    sum                    integers, floats, complex values, strings
@@ -452,22 +371,12 @@ Precedence    Operator
 &gt;&gt;   right shift            integer &gt;&gt; unsigned integer
 </pre>
 
-
-
-
-
-
-
-
 <pre class="grammar">
 +x                          is 0 + x
 -x    negation              is 0 - x
 ^x    bitwise complement    is m ^ x  with m = "all bits set to 1" for unsigned x
                                       and  m = -1 for signed x
 </pre>
-
-
-
 
 <pre class="grammar">
 ==    equal
@@ -478,21 +387,17 @@ Precedence    Operator
 &gt;=    greater or equal
 </pre>
 
-
 <pre class="grammar">
 &amp;&amp;    conditional AND    p &amp;&amp; q  is  "if p then q else false"
 ||    conditional OR     p || q  is  "if p then true else q"
 !     NOT                !p      is  "not p"
 </pre>
 
-
 <pre class="ebnf">
 Conversion = Type "(" Expression [ "," ] ")" .
 </pre>
 
-
 <h3>Statements</h3>
-
 
 <pre class="ebnf">
 Statement =
@@ -511,19 +416,14 @@ LabeledStmt = Label ":" Statement .
 Label       = identifier .
 </pre>
 
-
 <pre class="ebnf">
 ExpressionStmt = Expression .
 </pre>
-
-
-
 
 <pre class="ebnf">
 SendStmt = Channel "&lt;-" Expression .
 Channel  = Expression .
 </pre>
-
 
 <pre class="ebnf">
 IncDecStmt = Expression ( "++" | "--" ) .
@@ -541,14 +441,9 @@ Assignment = ExpressionList assign_op ExpressionList .
 assign_op = [ add_op | mul_op ] "=" .
 </pre>
 
-
-
 <pre class="ebnf">
 IfStmt = "if" [ SimpleStmt ";" ] Expression Block [ "else" ( IfStmt | Block ) ] .
 </pre>
-
-
-
 
 <pre class="ebnf">
 SwitchStmt = ExprSwitchStmt | TypeSwitchStmt .
@@ -559,9 +454,6 @@ ExprCaseClause = ExprSwitchCase ":" StatementList .
 ExprSwitchCase = "case" ExpressionList | "default" .
 </pre>
 
-
-
-
 <pre class="ebnf">
 TypeSwitchStmt  = "switch" [ SimpleStmt ";" ] TypeSwitchGuard "{" { TypeCaseClause } "}" .
 TypeSwitchGuard = [ identifier ":=" ] PrimaryExpr "." "(" "type" ")" .
@@ -570,23 +462,16 @@ TypeSwitchCase  = "case" TypeList | "default" .
 TypeList        = Type { "," Type } .
 </pre>
 
-
-
-
 <pre class="ebnf">
 ForStmt = "for" [ Condition | ForClause | RangeClause ] Block .
 Condition = Expression .
 </pre>
-
 
 <pre class="ebnf">
 ForClause = [ InitStmt ] ";" [ Condition ] ";" [ PostStmt ] .
 InitStmt = SimpleStmt .
 PostStmt = SimpleStmt .
 </pre>
-
-
-
 
 <pre class="ebnf">
 RangeClause = [ ExpressionList "=" | IdentifierList ":=" ] "range" Expression .
@@ -600,11 +485,9 @@ map             m  map[K]V                key      k  K      m[k]       V
 channel         c  chan E, &lt;-chan E       element  e  E
 </pre>
 
-
 <pre class="ebnf">
 GoStmt = "go" Expression .
 </pre>
-
 
 <pre class="ebnf">
 SelectStmt = "select" "{" { CommClause } "}" .
@@ -614,30 +497,21 @@ RecvStmt   = [ ExpressionList "=" | IdentifierList ":=" ] RecvExpr .
 RecvExpr   = Expression .
 </pre>
 
-
 <pre class="ebnf">
 ReturnStmt = "return" [ ExpressionList ] .
 </pre>
-
-
-
 
 <pre class="ebnf">
 BreakStmt = "break" [ Label ] .
 </pre>
 
-
 <pre class="ebnf">
 ContinueStmt = "continue" [ Label ] .
 </pre>
 
-
 <pre class="ebnf">
 GotoStmt = "goto" Label .
 </pre>
-
-
-
 
 <pre class="ebnf">
 FallthroughStmt = "fallthrough" .
@@ -646,11 +520,7 @@ FallthroughStmt = "fallthrough" .
 DeferStmt = "defer" Expression .
 </pre>
 
-
-
-
 <h3>Source file</h3>
-
 
 <pre class="ebnf">
 SourceFile       = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
@@ -660,7 +530,6 @@ SourceFile       = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
 PackageClause  = "package" PackageName .
 PackageName    = identifier .
 </pre>
-
 
 <pre class="ebnf">
 ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .

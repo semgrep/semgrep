@@ -13,7 +13,7 @@
  *
  * pad: a few bugfixes. I also put more restrictive and descriptive types.
  *
-*)
+ *)
 
 (*****************************************************************************)
 
@@ -21,6 +21,7 @@
  * parser or tokens for grammar parser) and return something and the
  * remaing list of stuff. *)
 type ('a, 'b) genp = 'a list -> 'b * 'a list
+
 val val_of_parser : 'b * 'a list -> 'b
 
 (* lexer = parser of char list *)
@@ -29,10 +30,10 @@ val val_of_parser : 'b * 'a list -> 'b
 (* grammer = parser ot tokens *)
 (* type 'a pparser = (token, 'a) genp *)
 
-
 val ( ||| ) : ('a, 'b) genp -> ('a, 'b) genp -> ('a, 'b) genp
+
 (* ('a -> 'b) -> ('a -> 'b) -> 'a -> 'b *)
-val ( +++ ) : ('a, 'b) genp -> ('a, 'c) genp -> ('a,   'b * 'c) genp
+val ( +++ ) : ('a, 'b) genp -> ('a, 'c) genp -> ('a, 'b * 'c) genp
 (* ('a -> 'b * 'c) -> ('c -> 'd * 'e) -> 'a -> ('b * 'd) * 'e *)
 
 val many : ('a, 'b) genp -> ('a, 'b list) genp
@@ -51,29 +52,25 @@ val a : 'a -> ('a, 'a) genp
 val several : ('a -> bool) -> ('a, 'a list) genp
 (* ('a -> bool) -> 'a list -> 'a list * 'a list *)
 
-
 module Abstr : sig
   type t
+
   val x : t
 end
 
 val fin : ('a, Abstr.t) genp
 (* 'a list -> Abstr.t * 'b list *)
 
-
-val digit    : char -> bool
-val alpha    : char -> bool
-val symbol   : char -> bool
+val digit : char -> bool
+val alpha : char -> bool
+val symbol : char -> bool
 val alphanum : char -> bool
-val space    : char -> bool
-
+val space : char -> bool
 val alphanum_underscore : char -> bool
 val alphanum_minus : char -> bool
 val alphanum_under_minus : char -> bool
-
 val collect : char * char list -> string
 val list_of_string : string -> char list
-
 
 (*****************************************************************************)
 type token =
@@ -88,6 +85,7 @@ val string_of_token : token -> string
 type lexer = (char, token) genp
 
 val rawident : lexer
+
 (* char list -> token * char list *)
 val rawnumber : lexer
 (* char list -> token * char list *)
@@ -99,11 +97,11 @@ val rawkeyword : lexer
 (* char list -> token * char list *)
 
 val rawstring : lexer
-
 val lex_gen : lexer -> string -> token list
 
 (*****************************************************************************)
 val token : lexer
+
 (* char list -> token * char list *)
 val tokens : (char, token list) genp
 (* char list -> token list * char list *)
@@ -113,14 +111,15 @@ val alltokens : (char, token list) genp
 
 val lex : string -> token list
 
-
 (*****************************************************************************)
 (* cant use parser as it's a reseverd word *)
 type 'a pparser = (token, 'a) genp
 
 val ident : string pparser
+
 (* token list -> string * token list *)
-val int :  string pparser
+val int : string pparser
+
 (* token list -> string * token list *)
 val string : string pparser
 
@@ -131,10 +130,13 @@ type expr =
   | Mul of expr * expr
 
 val atom : expr pparser
+
 (* token list -> expr * token list *)
 val factor : expr pparser
+
 (* token list -> expr * token list *)
 val term : expr pparser
+
 (* token list -> expr * token list *)
 val expr : expr pparser
 (* token list -> expr * 'a list *)
@@ -142,13 +144,14 @@ val expr : expr pparser
 val parse : 'a pparser -> string -> 'a
 (* (token list -> 'a * 'b) -> string -> 'a *)
 
-
 (*****************************************************************************)
 
 module Infix : sig
   val ( ||| ) : ('a, 'b) genp -> ('a, 'b) genp -> ('a, 'b) genp
+
   (* ('a -> 'b) -> ('a -> 'b) -> 'a -> 'b *)
-  val ( +++ ) : ('a, 'b) genp -> ('a, 'c) genp -> ('a,   'b * 'c) genp
+  val ( +++ ) : ('a, 'b) genp -> ('a, 'c) genp -> ('a, 'b * 'c) genp
+
   (* ('a -> 'b * 'c) -> ('c -> 'd * 'e) -> 'a -> ('b * 'd) * 'e *)
   val ( >| ) : ('a, 'b) genp -> ('b -> 'c) -> ('a, 'c) genp
   (* ('a -> 'b * 'c) -> ('b -> 'd) -> 'a -> 'd * 'c *)

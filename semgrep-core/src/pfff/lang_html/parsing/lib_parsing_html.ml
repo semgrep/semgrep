@@ -11,12 +11,10 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 open Common
-
 open Ast_html
-
 module V = Visitor_html
 
 (*****************************************************************************)
@@ -30,24 +28,27 @@ module V = Visitor_html
 let find_html_files_of_dir_or_files xs =
   Common.files_of_dir_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
-    let ftype = File_type.file_type_of_file filename in
-    match ftype with
-    | File_type.PL (File_type.Web (File_type.Html)) -> true
-    | _ -> false
-  ) |> Common.sort
+         let ftype = File_type.file_type_of_file filename in
+         match ftype with
+         | File_type.PL (File_type.Web File_type.Html) -> true
+         | _ -> false)
+  |> Common.sort
 
 (*****************************************************************************)
 (* AST helpers *)
 (*****************************************************************************)
 
 let get_data_any any =
-  V.do_visit_with_ref (fun aref -> { V.default_visitor with
-                                     V.khtml_tree = (fun (k, _) x ->
-                                       match x with
-                                       | Data (s, _info) -> Common.push s aref
-                                       | _ -> k x
-                                     )
-                                   }) any
+  V.do_visit_with_ref
+    (fun aref ->
+      {
+        V.default_visitor with
+        V.khtml_tree =
+          (fun (k, _) x ->
+            match x with
+            | Data (s, _info) -> Common.push s aref
+            | _ -> k x);
+      })
+    any
 
-let html_tree_to_html _tree =
-  raise Todo
+let html_tree_to_html _tree = raise Todo

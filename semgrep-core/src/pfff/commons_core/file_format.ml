@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -26,6 +26,4 @@
 (*****************************************************************************)
 let read_tsv_file file =
   let xs = Common.cat file in
-  xs |> List.map (fun s ->
-    Str.split_delim (Str.regexp "\t") s
-  )
+  xs |> List.map (fun s -> Str.split_delim (Str.regexp "\t") s)

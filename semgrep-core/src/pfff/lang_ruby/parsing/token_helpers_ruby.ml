@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Parser_ruby
 
 (*****************************************************************************)
@@ -23,7 +23,9 @@ let is_eof = function
 
 (* do not filter T_EOL here! they are used in the grammar *)
 let is_comment = function
-  | T_SPACE _ | T_COMMENT _ -> true
+  | T_SPACE _
+  | T_COMMENT _ ->
+      true
   | _ -> false
 
 (*****************************************************************************)
@@ -36,11 +38,8 @@ let visitor_info_of_tok f = function
   | T_SPACE ii -> T_SPACE (f ii)
   | T_COMMENT ii -> T_COMMENT (f ii)
   | T_UNKNOWN ii -> T_UNKNOWN (f ii)
-
   | LDots ii -> LDots (f ii)
   | RDots ii -> RDots (f ii)
-
-
   | T_UAMPER ii -> T_UAMPER (f ii)
   | T_AMPER ii -> T_AMPER (f ii)
   | T_TILDE ii -> T_TILDE (f ii)
@@ -91,7 +90,6 @@ let visitor_info_of_tok f = function
   | T_ASSOC ii -> T_ASSOC (f ii)
   | T_COMMA ii -> T_COMMA (f ii)
   | T_DOT ii -> T_DOT (f ii)
-
   | K_FALSE ii -> K_FALSE (f ii)
   | K_TRUE ii -> K_TRUE (f ii)
   | K_SELF ii -> K_SELF (f ii)
@@ -125,12 +123,10 @@ let visitor_info_of_tok f = function
   | K_DEF ii -> K_DEF (f ii)
   | K_MODULE ii -> K_MODULE (f ii)
   | K_CLASS ii -> K_CLASS (f ii)
-
   | T_ATOM_BEG ii -> T_ATOM_BEG (f ii)
   | T_REGEXP_BEG ii -> T_REGEXP_BEG (f ii)
   | T_TICK_BEG ii -> T_TICK_BEG (f ii)
   | T_DOUBLE_BEG ii -> T_DOUBLE_BEG (f ii)
-
   | T_OP_ASGN (s, ii) -> T_OP_ASGN (s, f ii)
   | T_INTERP_END (s, ii) -> T_INTERP_END (s, f ii)
   | T_INTERP_STR (s, ii) -> T_INTERP_STR (s, f ii)
@@ -142,7 +138,6 @@ let visitor_info_of_tok f = function
   | T_GLOBAL_VAR (s, ii) -> T_GLOBAL_VAR (s, f ii)
   | T_LID (s, ii) -> T_LID (s, f ii)
   | T_UID (s, ii) -> T_UID (s, f ii)
-
   | T_FLOAT (a, ii) -> T_FLOAT (a, f ii)
   | T_NUM (s, ii) -> T_NUM (s, f ii)
   | T_ATOM (ii1, (s, ii2)) ->
@@ -150,10 +145,14 @@ let visitor_info_of_tok f = function
       let ii2' = f ii2 in
       T_ATOM (ii1', (s, ii2'))
 
-
 let info_of_tok tok =
   let res = ref None in
-  visitor_info_of_tok (fun ii -> res := Some ii; ii) tok |> ignore;
+  visitor_info_of_tok
+    (fun ii ->
+      res := Some ii;
+      ii)
+    tok
+  |> ignore;
   match !res with
   | Some x -> x
   | None -> Parse_info.unsafe_fake_info "NOTOK"

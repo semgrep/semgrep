@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 module T = Parser_python
 
@@ -43,25 +43,22 @@ module T = Parser_python
  *  - could insert those closing tokens during error recovery
  *  - could look at state.offset_stack when encounters EOF in the lexer
  *    and also pop and create the DEDENT.
-*)
+ *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
 let rec add_dedent_aux num ii xs =
-  if num <= 0
-  then xs
-  else T.DEDENT ii::add_dedent_aux (num - 1) ii xs
+  if num <= 0 then xs else T.DEDENT ii :: add_dedent_aux (num - 1) ii xs
 
 let add_dedent num ii xs =
-  if num <= 0
-  then xs
-  (* this closes the small_stmt from the stmt_list in suite (see grammar)
-   * which then can be reduced by the series of DEDENT created by
-   * add_dedent_aux.
-  *)
-  else T.NEWLINE ii::add_dedent_aux num ii xs
+  if num <= 0 then xs
+    (* this closes the small_stmt from the stmt_list in suite (see grammar)
+     * which then can be reduced by the series of DEDENT created by
+     * add_dedent_aux.
+     *)
+  else T.NEWLINE ii :: add_dedent_aux num ii xs
 
 (*****************************************************************************)
 (* Entry point *)
@@ -69,16 +66,16 @@ let add_dedent num ii xs =
 let fix_tokens toks =
   let rec aux indent xs =
     match xs with
-    | [T.NEWLINE ii; T.EOF _] -> add_dedent indent ii xs
-    | [T.EOF ii] -> add_dedent indent ii [T.NEWLINE ii; T.EOF ii]
+    | [ T.NEWLINE ii; T.EOF _ ] -> add_dedent indent ii xs
+    | [ T.EOF ii ] -> add_dedent indent ii [ T.NEWLINE ii; T.EOF ii ]
     | [] -> raise Common.Impossible
-    | x::xs ->
+    | x :: xs ->
         let new_indent =
           match x with
           | T.INDENT _ -> indent + 1
           | T.DEDENT _ -> indent - 1
           | _ -> indent
         in
-        x::aux new_indent xs
+        x :: aux new_indent xs
   in
   aux 0 toks

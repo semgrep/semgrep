@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
 
 (*****************************************************************************)
@@ -43,75 +43,62 @@ type entity_kind =
   | Package
   (* when we use the database for completion purpose, then files/dirs
    * are also useful "entities" to get completion for.
-  *)
+   *)
   | Dir
-
   | Module
   | File
-
   | Function
   | Class (* Less: Obj, because in JS it differs from Class *)
   | Type
-  | Constant | Global
+  | Constant
+  | Global
   | Macro
   | Exception
   | TopStmts
-
   (* nested entities *)
   | Field
   | Method
   | ClassConstant
   | Constructor (* for ml *)
-
   (* forward decl *)
-  | Prototype | GlobalExtern
-
+  | Prototype
+  | GlobalExtern
   (* people often spread the same component in multiple dirs with the same
    * name (hmm could be merged now with Package)
-  *)
+   *)
   | MultiDirs
-
   | Other of string
-
 
 (* todo: IsInlinedMethod, ...
  * todo: IsOverriding, IsOverriden
-*)
+ *)
 type property =
   (* mostly function properties *)
 
   (* todo: could also say which argument is dataflow involved in the
    * dynamic call if any
-  *)
+   *)
   | ContainDynamicCall
   | ContainReflectionCall
-
   (* the argument position taken by ref; 0-index based *)
   | TakeArgNByRef of int
-
   | UseGlobal of string
   | ContainDeadStatements
-
   | DeadCode (* the function itself is dead, e.g. never called *)
   | CodeCoverage of int list (* e.g. covered lines by unit tests *)
-
   (* for class *)
   | ClassKind of class_kind
-
   | Privacy of privacy
   | Abstract
   | Final
   | Static
-
   (* used for the xhp @required fields for now *)
   | Required
   | Async
 
 (* todo: git info, e.g. Age, Authors, Age_profile (range) *)
 and privacy = Public | Protected | Private
-
 and class_kind = Struct | Class_ | Interface | Trait | Enum
-
 
 (*****************************************************************************)
 (* String of *)
@@ -124,7 +111,6 @@ let string_of_entity_kind e =
   | Prototype -> "Prototype"
   | GlobalExtern -> "GlobalExtern"
   | Class -> "Class"
-
   | Module -> "Module"
   | Package -> "Package"
   | Type -> "Type"
@@ -161,5 +147,4 @@ let entity_kind_of_string s =
   | "Exception" -> Exception
   | "Constructor" -> Constructor
   | _ when s =~ "Other:\\(.*\\)" -> Other (Common.matched1 s)
-
   | _ -> failwith ("entity_of_string: bad string = " ^ s)

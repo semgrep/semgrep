@@ -1,7 +1,7 @@
 (* Expanding or extracting macros, at the token level *)
 
 (* the either is to differentialte macro-variables from macro-functions *)
-type define_body = (unit,string list) Common.either * Parser_cpp.token list
+type define_body = (unit, string list) Common.either * Parser_cpp.token list
 
 (* TODO
    (* corresponds to what is in the yacfe configuration file (e.g. standard.h) *)
@@ -23,14 +23,11 @@ type define_body = (unit,string list) Common.either * Parser_cpp.token list
         | HintMacroStatement
         | HintAttribute
         | HintMacroIdentBuilder
-
 *)
-
 
 (* extracting define_def, e.g. from a standard.h; assume have called
  * fix_tokens_define before to have the TDefEol *)
-val extract_macros:
-  Parser_cpp.token list -> (string, define_body) Common.assoc
+val extract_macros : Parser_cpp.token list -> (string, define_body) Common.assoc
 
 (* TODO
    val string_of_define_def: define_def -> string
@@ -46,14 +43,15 @@ val extract_macros:
  *
  * note: it does not do some fixpoint, so the generated code may also
  * contain some macros names.
-*)
+ *)
 
-val apply_macro_defs:
-(*
+val apply_macro_defs :
+  (*
   msg_apply_known_macro:(string -> unit) ->
   msg_apply_known_macro_hint:(string -> unit) ->
   ?evaluate_concatop:bool ->
   ?inplace_when_single:bool ->
 *)
   (string, define_body (* define_def *)) Hashtbl.t ->
-  Token_views_cpp.paren_grouped list -> unit
+  Token_views_cpp.paren_grouped list ->
+  unit

@@ -11,13 +11,12 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
-
 module E = Entity_code
 module G = Graphe
 
-let logger = Logging.get_logger [__MODULE__]
+let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -87,9 +86,10 @@ let logger = Logging.get_logger [__MODULE__]
 (*****************************************************************************)
 
 type node = entity_name * E.entity_kind
+
 (* TODO: at some point we might want a 'string list' here, to better represent
  * entities like "Package1.Subpackage.FooClass.BarMethod"
-*)
+ *)
 and entity_name = string
 
 type edge =
@@ -104,21 +104,18 @@ type edge =
    * But it could be useful for instance for field access to know
    * weather it's a read or write access! Instead of having a variant
    * here one could also have an edgeinfo.
-  *)
+   *)
   | Use
 
 type nodeinfo = {
-  pos: Parse_info.token_location;
-  props: E.property list;
+  pos : Parse_info.token_location;
+  props : E.property list;
   (* would be better to have a more structured form than string at some point *)
-  typ: string option;
+  typ : string option;
 }
 
 (* could also have a pos: and props: here *)
-type edgeinfo = {
-  write: bool;
-  read: bool;
-}
+type edgeinfo = { write : bool; read : bool }
 
 (*
  * We use an imperative, directed, without intermediate node-index, graph.
@@ -134,44 +131,44 @@ type t = {
   (* Actually the Has graph should really be a tree, but we need convenient
    * access to the children or parent of a node, which are provided
    * by the graph API so let's reuse that.
-  *)
-  has: node G.graph;
+   *)
+  has : node G.graph;
   (* The source and target should be enough information to understand
    * the kind of Use. For instance a class referencing another class
    * has to be an 'extends'. A class referencing an Interface has to
    * be an 'implements'.
-  *)
-  use: node G.graph;
-
-  nodeinfo: (node, nodeinfo) Hashtbl.t;
-  edgeinfo: ((node * node * edge), edgeinfo) Hashtbl.t;
+   *)
+  use : node G.graph;
+  nodeinfo : (node, nodeinfo) Hashtbl.t;
+  edgeinfo : (node * node * edge, edgeinfo) Hashtbl.t;
 }
 
-type error =
-  | NodeAlreadyPresent of node
+type error = NodeAlreadyPresent of node
 
 exception Error of error
 
 (* coupling: see print_statistics below *)
 type statistics = {
-  parse_errors: Common.filename list ref;
+  parse_errors : Common.filename list ref;
   (* could be Parse_info.token_location*)
-  lookup_fail: (Parse_info.t * node) list ref;
-  method_calls: (Parse_info.t * resolved) list ref;
-  field_access: (Parse_info.t * resolved) list ref;
-  unresolved_class_access: Parse_info.t list ref;
-  unresolved_calls: Parse_info.t list ref;
+  lookup_fail : (Parse_info.t * node) list ref;
+  method_calls : (Parse_info.t * resolved) list ref;
+  field_access : (Parse_info.t * resolved) list ref;
+  unresolved_class_access : Parse_info.t list ref;
+  unresolved_calls : Parse_info.t list ref;
 }
+
 and resolved = bool
 
-let empty_statistics () = {
-  parse_errors = ref [];
-  lookup_fail = ref [];
-  method_calls = ref [];
-  unresolved_calls = ref [];
-  unresolved_class_access = ref [];
-  field_access = ref [];
-}
+let empty_statistics () =
+  {
+    parse_errors = ref [];
+    lookup_fail = ref [];
+    method_calls = ref [];
+    unresolved_calls = ref [];
+    unresolved_class_access = ref [];
+    field_access = ref [];
+  }
 
 (* we sometimes want to collapse unimportant directories under a "..."
  * fake intermediate directory. So one can create an adjust file with
@@ -179,50 +176,47 @@ let empty_statistics () = {
  *   api -> extra/
  * and we will delete the current parent of 'api' and relink it to the
  * extra/ entity (possibly newly created)
-*)
-type adjust = (string * string)
+ *)
+type adjust = string * string
 
 (* skip certain edges that are marked as ok regarding backward dependencies *)
-type dependency = (node * node)
+type dependency = node * node
 type whitelist = dependency list
 
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
-let root = ".", E.Dir
-let pb = "PB", E.Dir
-let not_found = "NOT_FOUND", E.Dir
-let dupe = "DUPE", E.Dir
-let _stdlib = "STDLIB", E.Dir
+let root = (".", E.Dir)
+let pb = ("PB", E.Dir)
+let not_found = ("NOT_FOUND", E.Dir)
+let dupe = ("DUPE", E.Dir)
+let _stdlib = ("STDLIB", E.Dir)
 
 (*****************************************************************************)
 (* Debugging *)
 (*****************************************************************************)
 
-let string_of_node (s, kind) =
-  E.string_of_entity_kind kind ^ ": " ^ s
+let string_of_node (s, kind) = E.string_of_entity_kind kind ^ ": " ^ s
 
 let string_of_error = function
-  | NodeAlreadyPresent n -> ("Node already present: " ^ string_of_node n)
+  | NodeAlreadyPresent n -> "Node already present: " ^ string_of_node n
 
 let node_of_string s =
-  if s =~ "\\([^:]*\\):\\(.*\\)"
-  then
-    let (s1, s2) = Common.matched2 s in
-    s2, E.entity_kind_of_string s1
-  else
-    failwith (spf "node_of_string: wrong format '%s'" s)
+  if s =~ "\\([^:]*\\):\\(.*\\)" then
+    let s1, s2 = Common.matched2 s in
+    (s2, E.entity_kind_of_string s1)
+  else failwith (spf "node_of_string: wrong format '%s'" s)
 
 let display_with_gv g =
   (* TODO? use different colors for the different kind of edges? *)
   G.display_with_gv g.has
 
-
 (*****************************************************************************)
 (* Graph construction *)
 (*****************************************************************************)
 let create () =
-  { has = G.create ();
+  {
+    has = G.create ();
     use = G.create ();
     nodeinfo = Hashtbl.create 101;
     edgeinfo = Hashtbl.create 101;
@@ -230,41 +224,34 @@ let create () =
 
 let add_node n g =
   Common.profile_code "Graph_code.add_node" (fun () ->
-    if G.has_node n g.has
-    then begin
-      pr2_gen n;
-      raise (Error (NodeAlreadyPresent n))
-    end;
-    if G.has_node n g.use
-    then begin
-      pr2_gen n;
-      raise (Error (NodeAlreadyPresent n))
-    end;
+      if G.has_node n g.has then (
+        pr2_gen n;
+        raise (Error (NodeAlreadyPresent n)));
+      if G.has_node n g.use then (
+        pr2_gen n;
+        raise (Error (NodeAlreadyPresent n)));
 
-    G.add_vertex_if_not_present n g.has;
-    G.add_vertex_if_not_present n g.use;
-    ()
-  )
+      G.add_vertex_if_not_present n g.has;
+      G.add_vertex_if_not_present n g.use;
+      ())
 
 let add_edge (n1, n2) e g =
   Common.profile_code "Graph_code.add_edge" (fun () ->
-    match e with
-    | Has -> G.add_edge n1 n2 g.has
-    | Use -> G.add_edge n1 n2 g.use
-  )
+      match e with
+      | Has -> G.add_edge n1 n2 g.has
+      | Use -> G.add_edge n1 n2 g.use)
+
 let remove_edge (n1, n2) e g =
   match e with
   | Has -> G.remove_edge n1 n2 g.has
   | Use -> G.remove_edge n1 n2 g.use
 
 let add_nodeinfo n info g =
-  if not (G.has_node n g.has)
-  then failwith "unknown node";
+  if not (G.has_node n g.has) then failwith "unknown node";
 
   Hashtbl.replace g.nodeinfo n info
 
-let add_edgeinfo (n1, n2) e info g =
-  Hashtbl.replace g.edgeinfo (n1, n2, e) info
+let add_edgeinfo (n1, n2) e info g = Hashtbl.replace g.edgeinfo (n1, n2, e) info
 
 (*****************************************************************************)
 (* IO *)
@@ -279,27 +266,20 @@ let save g file =
 
 let load file =
   logger#info "loading %s" file;
-  let (g, serialized_cpt_vertex, version2) = Common2.get_value file in
-  if version <> version2
-  then failwith (spf "your marshalled file has an old version, delete it");
+  let g, serialized_cpt_vertex, version2 = Common2.get_value file in
+  if version <> version2 then
+    failwith (spf "your marshalled file has an old version, delete it");
   Graph.Blocks.after_unserialization serialized_cpt_vertex;
   g
 
-let default_filename =
-  "graph_code.marshall"
+let default_filename = "graph_code.marshall"
 
 (*****************************************************************************)
 (* Iteration *)
 (*****************************************************************************)
-let iter_use_edges f g =
-  G.iter_edges f g.use
-
-let iter_has_edges f g =
-  G.iter_edges f g.has
-
-let iter_nodes f g =
-  G.iter_nodes f g.has
-
+let iter_use_edges f g = G.iter_edges f g.use
+let iter_has_edges f g = G.iter_edges f g.has
+let iter_nodes f g = G.iter_nodes f g.has
 
 let all_use_edges g =
   let res = ref [] in
@@ -320,15 +300,13 @@ let all_nodes g =
 (* Graph access *)
 (*****************************************************************************)
 
-let has_node n g =
-  G.has_node n g.has
+let has_node n g = G.has_node n g.has
 
 let pred n e g =
   Common.profile_code "Graph_code.pred" (fun () ->
-    match e with
-    | Has -> G.pred n g.has
-    | Use -> G.pred n g.use
-  )
+      match e with
+      | Has -> G.pred n g.has
+      | Use -> G.pred n g.use)
 
 let succ n e g =
   match e with
@@ -339,84 +317,68 @@ let succ n e g =
  * get the successor but not good at all for the predecessors
  * so if you need to use pred many times, use this precomputation
  * function.
-*)
+ *)
 let mk_eff_use_pred g =
   (* we use its find_all property *)
   let h = Hashtbl.create 101 in
 
-  g |> iter_nodes (fun n1 ->
-    let uses = succ n1 Use g in
-    uses |> List.iter (fun n2 ->
-      Hashtbl.add h n2 n1
-    )
-  );
-  (fun n ->
-     Hashtbl.find_all h n
-  )
-
+  g
+  |> iter_nodes (fun n1 ->
+         let uses = succ n1 Use g in
+         uses |> List.iter (fun n2 -> Hashtbl.add h n2 n1));
+  fun n -> Hashtbl.find_all h n
 
 let parent n g =
   Common.profile_code "Graph_code.parent" (fun () ->
-    let xs = G.pred n g.has in
-    Common2.list_to_single_or_exn xs
-  )
+      let xs = G.pred n g.has in
+      Common2.list_to_single_or_exn xs)
 
 let parents n g =
-  Common.profile_code "Graph_code.parents" (fun () ->
-    G.pred n g.has
-  )
-let children n g =
-  G.succ n g.has
+  Common.profile_code "Graph_code.parents" (fun () -> G.pred n g.has)
+
+let children n g = G.succ n g.has
 
 let rec node_and_all_children n g =
   let xs = G.succ n g.has in
-  if null xs
-  then [n]
-  else
-    n::(xs |> List.map (fun n -> node_and_all_children n g) |> List.flatten)
+  if null xs then [ n ]
+  else n :: (xs |> List.map (fun n -> node_and_all_children n g) |> List.flatten)
 
-
-
-let nb_nodes g =
-  G.nb_nodes g.has
-let nb_use_edges g =
-  G.nb_edges g.use
-
-let nodeinfo n g =
-  Hashtbl.find g.nodeinfo n
+let nb_nodes g = G.nb_nodes g.has
+let nb_use_edges g = G.nb_edges g.use
+let nodeinfo n g = Hashtbl.find g.nodeinfo n
 
 let nodeinfo_opt n g =
-  try Some (nodeinfo n g)
-  with Not_found -> None
+  try Some (nodeinfo n g) with
+  | Not_found -> None
 
 let edgeinfo_opt (n1, n2) e g =
-  try Some (Hashtbl.find g.edgeinfo (n1, n2, e))
-  with Not_found -> None
+  try Some (Hashtbl.find g.edgeinfo (n1, n2, e)) with
+  | Not_found -> None
 
 (* todo? assert it's a readable path? graph_code_php.ml is using readable
  * path now but the other might not yet or it can be sometimes convenient
  * also to have absolute path here, so not sure if can assert anything.
-*)
+ *)
 let file_of_node n g =
   try
     let info = nodeinfo n g in
     info.pos.Parse_info.file
-  with Not_found ->
-    (match n with
-     | str, E.File -> str
-     | _ ->
-         raise Not_found
-         (* todo: BAD no? *)
-         (* spf "NOT_FOUND_FILE (for node %s)" (string_of_node n) *)
-    )
+  with
+  | Not_found -> (
+      match n with
+      | str, E.File -> str
+      | _ ->
+          raise Not_found
+          (* todo: BAD no? *)
+          (* spf "NOT_FOUND_FILE (for node %s)" (string_of_node n) *))
 
 let privacy_of_node n g =
   let info = nodeinfo n g in
   let props = info.props in
-  props |> Common.find_some (function
-    | E.Privacy x -> Some x
-    | _ -> None
-  )
+  props
+  |> Common.find_some (function
+       | E.Privacy x -> Some x
+       | _ -> None)
 
 (* see also Graph_code_class_analysis.class_method_of_string *)
 let shortname_of_node (s, _kind) =
@@ -424,26 +386,21 @@ let shortname_of_node (s, _kind) =
   let s = Common2.list_last xs in
   (* undo what was in gensym, otherwise codemap for instance will not
    * recognize the entity as one hovers on its name in a file. *)
-  let s =
-    if s =~ "\\(.*\\)__[0-9]+"
-    then Common.matched1 s
-    else s
-  in
+  let s = if s =~ "\\(.*\\)__[0-9]+" then Common.matched1 s else s in
   let s =
     (* see graph_code_clang.ml handling of struct/typedef/unions *)
-    if s =~ "^[STU]__\\(.*\\)"
-    then begin
+    if s =~ "^[STU]__\\(.*\\)" then
       (* assert (kind =*= E.Type);, hmm have constructor like T__AT *)
       Common.matched1 s
-    end
     else s
   in
   s
 
 let cnt = ref 0
+
 (* when we have static entities, or main(), we rename them locally
  * and add a unique __xxx suffix, to avoid DUPES.
-*)
+ *)
 let gensym s =
   incr cnt;
   spf "%s__%d" s !cnt
@@ -458,18 +415,15 @@ let create_intermediate_directories_if_not_present g dir =
   let rec aux current xs =
     match xs with
     | [] -> ()
-    | x::xs ->
-        let entity = x, E.Dir in
-        if has_node entity g
-        then aux entity xs
-        else begin
+    | x :: xs ->
+        let entity = (x, E.Dir) in
+        if has_node entity g then aux entity xs
+        else (
           g |> add_node entity;
           g |> add_edge (current, entity) Has;
-          aux entity xs
-        end
+          aux entity xs)
   in
   aux root dirs
-
 
 let create_initial_hierarchy g =
   g |> add_node root;
@@ -485,76 +439,62 @@ let create_initial_hierarchy g =
 
 let remove_empty_nodes g xs =
   let use_pred = mk_eff_use_pred g in
-  xs |> List.iter (fun n ->
-    if succ n Use g = [] &&
-       use_pred n = []
-    then begin
-      (* less: could also remove the node? but slow? removing the edge
-       * should be enough for what we want (avoid clutter in codegraph)
-      *)
-      remove_edge (parent n g, n) Has g;
-    end
-  )
+  xs
+  |> List.iter (fun n ->
+         if succ n Use g = [] && use_pred n = [] then
+           (* less: could also remove the node? but slow? removing the edge
+            * should be enough for what we want (avoid clutter in codegraph)
+            *)
+           remove_edge (parent n g, n) Has g)
 
 let basename_to_readable_disambiguator xs ~root =
   let xs = xs |> List.map (Common.readable ~root) in
   (* use the Hashtbl.find_all property of this hash *)
   let h = Hashtbl.create 101 in
-  xs |> List.iter (fun file ->
-    Hashtbl.add h (Filename.basename file) file
-  );
-  (fun file ->
-     Hashtbl.find_all h file
-  )
+  xs |> List.iter (fun file -> Hashtbl.add h (Filename.basename file) file);
+  fun file -> Hashtbl.find_all h file
 
 (*****************************************************************************)
 (* Misc *)
 (*****************************************************************************)
 
 let group_edges_by_files_edges xs g =
-  xs |> Common2.group_by_mapped_key (fun (n1, n2) ->
-    (file_of_node n1 g, file_of_node n2 g)
-  ) |> List.map (fun (x, deps) -> List.length deps, (x, deps))
-  |> Common.sort_by_key_highfirst
-  |> List.map snd
+  xs
+  |> Common2.group_by_mapped_key (fun (n1, n2) ->
+         (file_of_node n1 g, file_of_node n2 g))
+  |> List.map (fun (x, deps) -> (List.length deps, (x, deps)))
+  |> Common.sort_by_key_highfirst |> List.map snd
 
 (*****************************************************************************)
 (* Graph algorithms *)
 (*****************************************************************************)
 let strongly_connected_components_use_graph g =
-  let (scc, hscc) = G.strongly_connected_components g.use in
-  scc, hscc
+  let scc, hscc = G.strongly_connected_components g.use in
+  (scc, hscc)
 
 let top_down_numbering g =
-  let (scc, hscc) =
-    G.strongly_connected_components g.use in
-  let g2 =
-    G.strongly_connected_components_condensation g.use (scc, hscc) in
-  let hdepth =
-    G.depth_nodes g2 in
+  let scc, hscc = G.strongly_connected_components g.use in
+  let g2 = G.strongly_connected_components_condensation g.use (scc, hscc) in
+  let hdepth = G.depth_nodes g2 in
 
   let hres = Hashtbl.create 101 in
-  hdepth |> Hashtbl.iter (fun k v ->
-    let nodes_at_k = scc.(k) in
-    nodes_at_k |> List.iter (fun n -> Hashtbl.add hres n v)
-  );
+  hdepth
+  |> Hashtbl.iter (fun k v ->
+         let nodes_at_k = scc.(k) in
+         nodes_at_k |> List.iter (fun n -> Hashtbl.add hres n v));
   hres
 
 let bottom_up_numbering g =
-  let (scc, hscc) =
-    G.strongly_connected_components g.use in
-  let g2 =
-    G.strongly_connected_components_condensation g.use (scc, hscc) in
-  let g3 =
-    G.mirror g2 in
-  let hdepth =
-    G.depth_nodes g3 in
+  let scc, hscc = G.strongly_connected_components g.use in
+  let g2 = G.strongly_connected_components_condensation g.use (scc, hscc) in
+  let g3 = G.mirror g2 in
+  let hdepth = G.depth_nodes g3 in
 
   let hres = Hashtbl.create 101 in
-  hdepth |> Hashtbl.iter (fun k v ->
-    let nodes_at_k = scc.(k) in
-    nodes_at_k |> List.iter (fun n -> Hashtbl.add hres n v)
-  );
+  hdepth
+  |> Hashtbl.iter (fun k v ->
+         let nodes_at_k = scc.(k) in
+         nodes_at_k |> List.iter (fun n -> Hashtbl.add hres n v));
   hres
 
 (*****************************************************************************)
@@ -562,65 +502,54 @@ let bottom_up_numbering g =
 (*****************************************************************************)
 let load_adjust file =
   Common.cat file
-  |> Common.exclude (fun s ->
-    s =~ "#.*" || s =~ "^[ \t]*$"
-  )
+  |> Common.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
   |> List.map (fun s ->
-    match s with
-    | _ when s =~ "\\([^ ]+\\)[ ]+->[ ]*\\([^ ]+\\)" ->
-        Common.matched2 s
-    | _ -> failwith ("wrong line format in adjust file: " ^ s)
-  )
+         match s with
+         | _ when s =~ "\\([^ ]+\\)[ ]+->[ ]*\\([^ ]+\\)" -> Common.matched2 s
+         | _ -> failwith ("wrong line format in adjust file: " ^ s))
 
 let load_whitelist file =
-  Common.cat file |>
-  List.map (fun s ->
-    if s =~ "\\(.*\\) --> \\(.*\\) "
-    then
-      let (s1, s2) = Common.matched2 s in
-      node_of_string s1, node_of_string s2
-    else failwith (spf "load_whitelist: wrong line: %s" s)
-  )
+  Common.cat file
+  |> List.map (fun s ->
+         if s =~ "\\(.*\\) --> \\(.*\\) " then
+           let s1, s2 = Common.matched2 s in
+           (node_of_string s1, node_of_string s2)
+         else failwith (spf "load_whitelist: wrong line: %s" s))
 
 let save_whitelist xs file g =
   Common.with_open_outfile file (fun (pr_no_nl, _chan) ->
-    xs |> List.iter (fun (n1, n2) ->
-      let file = file_of_node n2 g in
-      pr_no_nl (spf "%s --> %s (%s)\n"
-                  (string_of_node n1) (string_of_node n2) file);
-    )
-  )
-
+      xs
+      |> List.iter (fun (n1, n2) ->
+             let file = file_of_node n2 g in
+             pr_no_nl
+               (spf "%s --> %s (%s)\n" (string_of_node n1) (string_of_node n2)
+                  file)))
 
 (* Used mainly to collapse many entries under a "..." intermediate fake
  * parent. Maybe this could be done automatically in codegraph at some point,
  * like ndepend does I think.
-*)
+ *)
 let adjust_graph g xs whitelist =
   let mapping = Hashtbl.create 101 in
-  g |> iter_nodes (fun (s, kind) ->
-    Hashtbl.add mapping s (s, kind)
-  );
-  xs |> List.iter (fun (s1, s2) ->
-    let nodes = Hashtbl.find_all mapping s1 in
+  g |> iter_nodes (fun (s, kind) -> Hashtbl.add mapping s (s, kind));
+  xs
+  |> List.iter (fun (s1, s2) ->
+         let nodes = Hashtbl.find_all mapping s1 in
 
-    let new_parent = (s2, E.Dir) in
-    create_intermediate_directories_if_not_present g s2;
-    (match nodes with
-     | [n] ->
-         let old_parent = parent n g in
-         remove_edge (old_parent, n) Has g;
-         add_edge (new_parent, n) Has g;
-     | [] -> failwith (spf "could not find entity %s" s1)
-     | _ -> failwith (spf "multiple entities with %s as a name" s1)
-    )
-  );
-  whitelist |> Console.progress ~show:true (fun k ->
-    List.iter (fun (n1, n2) ->
-      k();
-      remove_edge (n1, n2) Use g;
-    )
-  )
+         let new_parent = (s2, E.Dir) in
+         create_intermediate_directories_if_not_present g s2;
+         match nodes with
+         | [ n ] ->
+             let old_parent = parent n g in
+             remove_edge (old_parent, n) Has g;
+             add_edge (new_parent, n) Has g
+         | [] -> failwith (spf "could not find entity %s" s1)
+         | _ -> failwith (spf "multiple entities with %s as a name" s1));
+  whitelist
+  |> Console.progress ~show:true (fun k ->
+         List.iter (fun (n1, n2) ->
+             k ();
+             remove_edge (n1, n2) Use g))
 
 (*****************************************************************************)
 (* Example *)
@@ -629,47 +558,41 @@ let adjust_graph g xs whitelist =
 let graph_of_dotfile dotfile =
   let xs = Common.cat dotfile in
   let deps =
-    xs |> Common.map_filter (fun s ->
-      if s =~ "^\"\\(.*\\)\" -> \"\\(.*\\)\"$"
-      then
-        let (src, dst) = Common.matched2 s in
-        Some (src, dst)
-      else begin
-        pr2 (spf "ignoring line: %s" s);
-        None
-      end
-    )
+    xs
+    |> Common.map_filter (fun s ->
+           if s =~ "^\"\\(.*\\)\" -> \"\\(.*\\)\"$" then
+             let src, dst = Common.matched2 s in
+             Some (src, dst)
+           else (
+             pr2 (spf "ignoring line: %s" s);
+             None))
   in
   let g = create () in
   create_initial_hierarchy g;
   (* step1: defs *)
-  deps |> List.iter (fun (src, dst) ->
-    let srcdir = Filename.dirname src in
-    let dstdir = Filename.dirname dst in
-    try
-      create_intermediate_directories_if_not_present g srcdir;
-      create_intermediate_directories_if_not_present g dstdir;
-      if not (has_node (src, E.File) g) then begin
-        g |> add_node (src, E.File);
-        g |> add_edge ((srcdir, E.Dir), (src, E.File)) Has;
-      end;
-      if not (has_node (dst, E.File) g) then begin
-        g |> add_node (dst, E.File);
-        g |> add_edge ((dstdir, E.Dir), (dst, E.File)) Has;
-      end;
-
-    with Assert_failure _ ->
-      pr2_gen (src, dst);
-  );
+  deps
+  |> List.iter (fun (src, dst) ->
+         let srcdir = Filename.dirname src in
+         let dstdir = Filename.dirname dst in
+         try
+           create_intermediate_directories_if_not_present g srcdir;
+           create_intermediate_directories_if_not_present g dstdir;
+           if not (has_node (src, E.File) g) then (
+             g |> add_node (src, E.File);
+             g |> add_edge ((srcdir, E.Dir), (src, E.File)) Has);
+           if not (has_node (dst, E.File) g) then (
+             g |> add_node (dst, E.File);
+             g |> add_edge ((dstdir, E.Dir), (dst, E.File)) Has)
+         with
+         | Assert_failure _ -> pr2_gen (src, dst));
   (* step2: use *)
-  deps |> List.iter (fun (src, dst) ->
-    let src_node = (src, E.File) in
-    let dst_node = (dst, E.File) in
+  deps
+  |> List.iter (fun (src, dst) ->
+         let src_node = (src, E.File) in
+         let dst_node = (dst, E.File) in
 
-    g |> add_edge (src_node, dst_node) Use;
-  );
+         g |> add_edge (src_node, dst_node) Use);
   g
-
 
 (*****************************************************************************)
 (* Statistics *)
@@ -679,18 +602,26 @@ let print_statistics stats g =
   pr (spf "parse errors = %d" (!(stats.parse_errors) |> List.length));
   pr (spf "lookup fail = %d" (!(stats.lookup_fail) |> List.length));
 
-  pr (spf "unresolved method calls = %d"
-        (!(stats.method_calls) |> List.filter (fun (_, x) -> not x) |> List.length));
-  pr (spf "(resolved method calls = %d)"
-        (!(stats.method_calls) |> List.filter (fun (_, x) -> x ) |> List.length));
+  pr
+    (spf "unresolved method calls = %d"
+       (!(stats.method_calls)
+       |> List.filter (fun (_, x) -> not x)
+       |> List.length));
+  pr
+    (spf "(resolved method calls = %d)"
+       (!(stats.method_calls) |> List.filter (fun (_, x) -> x) |> List.length));
 
-  pr (spf "unresolved field access = %d"
-        (!(stats.field_access) |> List.filter (fun (_, x) -> not x) |> List.length));
-  pr (spf "(resolved field access) = %d)"
-        (!(stats.field_access) |> List.filter (fun (_, x) -> x ) |> List.length));
+  pr
+    (spf "unresolved field access = %d"
+       (!(stats.field_access)
+       |> List.filter (fun (_, x) -> not x)
+       |> List.length));
+  pr
+    (spf "(resolved field access) = %d)"
+       (!(stats.field_access) |> List.filter (fun (_, x) -> x) |> List.length));
 
-  pr (spf "unresolved class access = %d"
-        (!(stats.unresolved_class_access) |> List.length));
-  pr (spf "unresolved calls = %d"
-        (!(stats.unresolved_calls) |> List.length));
+  pr
+    (spf "unresolved class access = %d"
+       (!(stats.unresolved_class_access) |> List.length));
+  pr (spf "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length));
   ()

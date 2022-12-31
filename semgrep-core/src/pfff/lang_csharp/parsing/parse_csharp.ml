@@ -11,9 +11,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *
-*)
+ *)
 
-module TH   = Token_helpers_csharp
+module TH = Token_helpers_csharp
 
 (*****************************************************************************)
 (* Prelude *)
@@ -25,8 +25,8 @@ module TH   = Token_helpers_csharp
 
 (* the token list contains also the comment-tokens *)
 type program_and_tokens =
-  Ast_csharp.program (* NotParsedCorrectly if parse error *) *
-  Parser_csharp.token list
+  Ast_csharp.program (* NotParsedCorrectly if parse error *)
+  * Parser_csharp.token list
 
 (*****************************************************************************)
 (* Lexing only *)
@@ -34,11 +34,10 @@ type program_and_tokens =
 
 let tokens2 file =
   let token lexbuf = Lexer_csharp.token lexbuf in
-  Parse_info.tokenize_all_and_adjust_pos
-    file token TH.visitor_info_of_tok TH.is_eof
+  Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+    TH.is_eof
 
-let tokens a =
-  Common.profile_code "Parse_csharp.tokens" (fun () -> tokens2 a)
+let tokens a = Common.profile_code "Parse_csharp.tokens" (fun () -> tokens2 a)
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -48,8 +47,6 @@ let parse2 filename =
   let stat = Parse_info.default_stat filename in
   let toks_orig = tokens filename in
   (* TODO *)
-  ((), toks_orig), stat
+  (((), toks_orig), stat)
 
-
-let parse a =
-  Common.profile_code "Parse_csharp.parse" (fun () -> parse2 a)
+let parse a = Common.profile_code "Parse_csharp.parse" (fun () -> parse2 a)

@@ -11,10 +11,9 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 open Parser_html
-
 module PI = Parse_info
 
 (*****************************************************************************)
@@ -33,7 +32,6 @@ let visitor_info_of_tok f = function
   | Relement_empty ii -> Relement_empty (f ii)
   | Eq ii -> Eq (f ii)
   | Other ii -> Other (f ii)
-
   | Lelement (ii, s) -> Lelement (f ii, s)
   | Lelementend (ii, s) -> Lelementend (f ii, s)
   | Cdata (ii, s) -> Cdata (f ii, s)
@@ -41,14 +39,17 @@ let visitor_info_of_tok f = function
   | Space (ii, s) -> Space (f ii, s)
   | Name (ii, s) -> Name (f ii, s)
   | Literal (ii, s) -> Literal (f ii, s)
-
   | EOF ii -> EOF (f ii)
 
 let info_of_tok tok =
   let res = ref None in
-  visitor_info_of_tok (fun ii -> res := Some ii; ii) tok |> ignore;
+  visitor_info_of_tok
+    (fun ii ->
+      res := Some ii;
+      ii)
+    tok
+  |> ignore;
   Common2.some !res
-
 
 (*****************************************************************************)
 (* Accessors *)
@@ -56,10 +57,9 @@ let info_of_tok tok =
 
 let linecol_of_tok tok =
   let info = info_of_tok tok in
-  PI.line_of_info info, PI.col_of_info info
+  (PI.line_of_info info, PI.col_of_info info)
 
 let line_of_tok x = fst (linecol_of_tok x)
-
-let str_of_tok  x = PI.str_of_info  (info_of_tok x)
+let str_of_tok x = PI.str_of_info (info_of_tok x)
 let file_of_tok x = PI.file_of_info (info_of_tok x)
-let pos_of_tok x =  PI.pos_of_info (info_of_tok x)
+let pos_of_tok x = PI.pos_of_info (info_of_tok x)

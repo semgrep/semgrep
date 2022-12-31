@@ -11,10 +11,9 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 open Common
-
 open Ast_html
 
 (*****************************************************************************)
@@ -27,20 +26,20 @@ open Ast_html
 
 let string_of_html_tree tree =
   match tree with
-  | Element ((Tag ("__root__", _)), [], xs) ->
+  | Element (Tag ("__root__", _), [], xs) ->
       let rec aux x =
         match x with
-        | Element ((Tag (stag, _), attrs, xs)) ->
+        | Element (Tag (stag, _), attrs, xs) ->
             let subs = xs |> List.map aux |> Common.join "" in
             let start_tag =
               match attrs with
               | [] -> spf "<%s>" stag
               | _ ->
                   spf "<%s %s>" stag
-                    (attrs |> List.map (fun ((Attr (sattr,_)), (Val (sval,_)))->
-                       spf "%s=%s" sattr sval
-                     ) |> Common.join " "
-                    )
+                    (attrs
+                    |> List.map (fun (Attr (sattr, _), Val (sval, _)) ->
+                           spf "%s=%s" sattr sval)
+                    |> Common.join " ")
             in
             let end_tag = spf "</%s>" stag in
             start_tag ^ subs ^ end_tag

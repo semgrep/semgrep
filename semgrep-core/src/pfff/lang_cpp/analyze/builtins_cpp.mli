@@ -1,3 +1,1 @@
-
-val rename_header_std_files:
-  Common.dirname -> unit
+val rename_header_std_files : Common.dirname -> unit

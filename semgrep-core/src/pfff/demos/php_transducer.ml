@@ -1,5 +1,4 @@
 open Common
-
 open Cst_php
 module Ast = Cst_php
 module Flag = Flag_parsing
@@ -33,23 +32,23 @@ module V = Visitor_php
 let visit asts =
   let props = ref [] in
 
-  let visitor = V.mk_visitor { V.default_visitor with
-                               V.ktop = (fun (k, bigf) top ->
-                                 match top with
-                                 | FuncDef def ->
-                                     let name = Ast.str_of_ident def.f_name in
-                                     Common.push ("function:" ^name) props;
-                                 | _ ->
-                                     ()
-                               );
-                             } in
+  let visitor =
+    V.mk_visitor
+      {
+        V.default_visitor with
+        V.ktop =
+          (fun (k, bigf) top ->
+            match top with
+            | FuncDef def ->
+                let name = Ast.str_of_ident def.f_name in
+                Common.push ("function:" ^ name) props
+            | _ -> ());
+      }
+  in
   visitor (Program asts);
   List.rev !props
 
-
-
-
-let transduce  file =
+let transduce file =
   Flag.verbose_lexing := false;
   Flag.verbose_parsing := false;
   Flag.show_parsing_error := false;
@@ -63,45 +62,34 @@ let transduce  file =
 (* The options *)
 (*****************************************************************************)
 
-let options () = [
-]
+let options () = []
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-
 let main () =
   let usage_msg =
-    "Usage: " ^ Filename.basename Sys.argv.(0) ^
-    " [options] <file> " ^ "\n" ^ "Options are:"
+    "Usage: "
+    ^ Filename.basename Sys.argv.(0)
+    ^ " [options] <file> " ^ "\n" ^ "Options are:"
   in
   (* does side effect on many global flags *)
-  let args = Common.parse_options (options()) usage_msg Sys.argv in
+  let args = Common.parse_options (options ()) usage_msg Sys.argv in
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Common.profile_code "Main total" (fun () ->
-
-    (match args with
-
-     (* --------------------------------------------------------- *)
-     (* main entry *)
-     (* --------------------------------------------------------- *)
-     | [x] ->
-         transduce x
-
-     (* --------------------------------------------------------- *)
-     (* empty entry *)
-     (* --------------------------------------------------------- *)
-     | _  ->
-         Common.usage usage_msg (options());
-         failwith "too few or too many arguments"
-
-    )
-  )
+      match args with
+      (* --------------------------------------------------------- *)
+      (* main entry *)
+      (* --------------------------------------------------------- *)
+      | [ x ] -> transduce x
+      (* --------------------------------------------------------- *)
+      (* empty entry *)
+      (* --------------------------------------------------------- *)
+      | _ ->
+          Common.usage usage_msg (options ());
+          failwith "too few or too many arguments")
 
 (*****************************************************************************)
-let _ =
-  Common.main_boilerplate (fun () ->
-    main ();
-  )
+let _ = Common.main_boilerplate (fun () -> main ())

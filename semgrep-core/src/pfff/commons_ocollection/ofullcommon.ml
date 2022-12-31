@@ -6,14 +6,12 @@
  * correspond to old std lib and a module Std_internal that instead
  * include all their extensions over the standard lib (a more complete
  * List module, Arg, etc)
-*)
+ *)
 include Common2
-
 include Oset
 include Oassoc
 include Oarray
 include Ograph
-
 include Osetb
 include Oassoch
 include Oassocb

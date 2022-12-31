@@ -11,12 +11,10 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
-
 module Flag = Flag_parsing
 module Db = Database_code
-
 module T = Parser_ml
 
 (*****************************************************************************)
@@ -56,9 +54,8 @@ module T = Parser_ml
 
 (* poor's man id for now. It's quite close to the fullid we have in
  * database_php.ml.
-*)
-type entity_poor_id =
-    Id of (Common.filename * Common2.filepos)
+ *)
+type entity_poor_id = Id of (Common.filename * Common2.filepos)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -70,46 +67,37 @@ let is_pleac_file file =
 
 (* todo? quite pad specific ...
  * try detect when use OUnit ?
-*)
+ *)
 let is_test_file file =
   let file = String.lowercase_ascii file in
-  (file =~ ".*/test_" || file =~ ".*/unit_")
+  file =~ ".*/test_" || file =~ ".*/unit_"
 
-let is_test_or_pleac_file file =
-  is_test_file file || is_pleac_file file
-
-
-
-let entity_poor_id_of_entity e =
-  Id (e.Db.e_file, e.Db.e_pos)
+let is_test_or_pleac_file file = is_test_file file || is_pleac_file file
+let entity_poor_id_of_entity e = Id (e.Db.e_file, e.Db.e_pos)
 
 (* give a score per id and then sort and return top k *)
 let rank_and_filter_examples_of_use ~root ids entities_arr =
-  ids |> List.map (fun id ->
-    let file = entities_arr.(id).Db.e_file in
-    let file = Filename.concat root file in
-    let size = Common2.filesize file in
+  ids
+  |> List.map (fun id ->
+         let file = entities_arr.(id).Db.e_file in
+         let file = Filename.concat root file in
+         let size = Common2.filesize file in
 
-    (* Low means better; so prefer small size and pleac files *)
-    let score =
-      size / (if is_pleac_file file then 4 else 1) in
-    score, id
-  )
-  |> Common.sort_by_key_lowfirst
-  |> List.map snd
+         (* Low means better; so prefer small size and pleac files *)
+         let score = size / if is_pleac_file file then 4 else 1 in
+         (score, id))
+  |> Common.sort_by_key_lowfirst |> List.map snd
 
 let parse file =
   Common.save_excursion Flag.error_recovery true (fun () ->
-    Common.save_excursion Flag.show_parsing_error false (fun () ->
-      Parse_ml.parse file
-    ))
+      Common.save_excursion Flag.show_parsing_error false (fun () ->
+          Parse_ml.parse file))
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-let compute_database ?(verbose=false) files_or_dirs =
-
+let compute_database ?(verbose = false) files_or_dirs =
   let root = Common2.common_prefix_of_files_or_dirs files_or_dirs in
   let root = Common2.chop_dirsymbol root in
   if verbose then pr2 (spf "generating ML db_light with root = %s" root);
@@ -120,7 +108,7 @@ let compute_database ?(verbose=false) files_or_dirs =
   (* PHASE 1: collecting definitions *)
   if verbose then pr2 (spf "PHASE 1: collecting definitions");
 
-  let (hdefs: (string, Db.entity) Hashtbl.t) = Hashtbl.create 1001 in
+  let (hdefs : (string, Db.entity) Hashtbl.t) = Hashtbl.create 1001 in
 
   (* This is used later when one wants to get the first id of a file.
    *
@@ -131,18 +119,17 @@ let compute_database ?(verbose=false) files_or_dirs =
    * file.
    *
    * todo: once we have a real callgraph we will not need this anymore.
-  *)
-  let (hfile_to_entities: (filename, entity_poor_id) Hashtbl.t) =
-    Hashtbl.create 1001 in
+   *)
+  let (hfile_to_entities : (filename, entity_poor_id) Hashtbl.t) =
+    Hashtbl.create 1001
+  in
 
-  files |> Console.progress ~show:verbose (fun k ->
-    List.iter (fun file ->
-      k();
-      let { Parse_info. ast = _; tokens = _toks; _ } =
-        parse file
-      in
-      ()
-    ));
+  files
+  |> Console.progress ~show:verbose (fun k ->
+         List.iter (fun file ->
+             k ();
+             let { Parse_info.ast = _; tokens = _toks; _ } = parse file in
+             ()));
 
   (* TODO highlighter no more in pfff
         (* this is quite similar to what we do in tags_ml.ml *)
@@ -220,14 +207,15 @@ let compute_database ?(verbose=false) files_or_dirs =
 
   (* this is useful when we want to add cross-references in the entities
    * such as the good_examples_of_use that reference another Db.entity_id.
-  *)
-  let (h_id_mldb_to_id_db: (entity_poor_id, Db.entity_id) Hashtbl.t) =
-    Hashtbl.create 1001 in
+   *)
+  let (h_id_mldb_to_id_db : (entity_poor_id, Db.entity_id) Hashtbl.t) =
+    Hashtbl.create 1001
+  in
 
-  entities_arr |> Array.iteri (fun id_db e ->
-    let id_mldb = entity_poor_id_of_entity e in
-    Hashtbl.add h_id_mldb_to_id_db id_mldb id_db;
-  );
+  entities_arr
+  |> Array.iteri (fun id_db e ->
+         let id_mldb = entity_poor_id_of_entity e in
+         Hashtbl.add h_id_mldb_to_id_db id_mldb id_db);
 
   (* todo: could rank later.
    *  so would need a first phase where we collect with
@@ -243,122 +231,122 @@ let compute_database ?(verbose=false) files_or_dirs =
    * in which entity a function call is by reusing the highlight/visitor
    * above and tracking the tokens and what was the last entity
    * encountered.
-  *)
+   *)
   let add_good_example_of_use test_file entity =
     let poor_id_opt = Common2.hfind_option test_file hfile_to_entities in
-    (match poor_id_opt with
-     | None -> pr2 (spf "WEIRD, could not find an entity in %s" test_file)
-     | Some poor_id_user ->
-         let id_user = Hashtbl.find h_id_mldb_to_id_db poor_id_user in
-         (* could do a take_safe 3 but for ocaml I don't think we have
-          * any scaling issues
+    match poor_id_opt with
+    | None -> pr2 (spf "WEIRD, could not find an entity in %s" test_file)
+    | Some poor_id_user ->
+        let id_user = Hashtbl.find h_id_mldb_to_id_db poor_id_user in
+        (* could do a take_safe 3 but for ocaml I don't think we have
+         * any scaling issues
          *)
-         entity.Db.e_good_examples_of_use <-
-           (id_user :: entity.Db.e_good_examples_of_use);
-    )
+        entity.Db.e_good_examples_of_use <-
+          id_user :: entity.Db.e_good_examples_of_use
   in
 
+  files
+  |> Console.progress ~show:verbose (fun k ->
+         List.iter (fun file ->
+             k ();
 
-  files |> Console.progress ~show:verbose (fun k ->
-    List.iter (fun file ->
-      k ();
+             if
+               file =~ ".*external/"
+               && (* I don't really want pleac files to participate in the
+                   * e_number_external_users statistics but I want pleac files
+                   * to participate in the e_good_examples_of_use so have
+                   * to special case it here. Could introduce a step3 phase ...
+                   *)
+               not (file =~ ".*pleac/")
+             then pr2 (spf "skipping external file: %s" file)
+             else
+               let { Parse_info.tokens = toks; _ } = parse file in
 
-      if file =~ ".*external/" &&
-         (* I don't really want pleac files to participate in the
-          * e_number_external_users statistics but I want pleac files
-          * to participate in the e_good_examples_of_use so have
-          * to special case it here. Could introduce a step3 phase ...
-         *)
-         not (file =~ ".*pleac/")
-      then pr2 (spf "skipping external file: %s" file)
-      else begin
+               let file = Common.readable ~root file in
 
-        let { Parse_info. tokens = toks; _} = parse file in
+               (* try to resolve function use more precisely instead of incrementing
+                * all entities that have xxx as a name. Look if the module name
+                * match the basename of the file defining the entity.
+                * But have to remember the module X = XXX aliases.
+                *)
+               let hmodule_aliases = Hashtbl.create 11 in
 
-        let file = Common.readable ~root file in
+               let toks =
+                 toks
+                 |> Common.exclude (function
+                      | T.TCommentSpace _ -> true
+                      | _ -> false)
+               in
 
-        (* try to resolve function use more precisely instead of incrementing
-         * all entities that have xxx as a name. Look if the module name
-         * match the basename of the file defining the entity.
-         * But have to remember the module X = XXX aliases.
-        *)
-        let hmodule_aliases = Hashtbl.create 11 in
+               (* Only consider Module.xxx. Otherwise names such as 'x', or 'yylex'
+                * which are variables or internal functions are considered
+                * as having a huge count.
+                *
+                *)
+               let rec aux_toks toks =
+                 match toks with
+                 | T.Tmodule _
+                   :: T.TUpperIdent (s, _ii)
+                   :: T.TEq _
+                   :: T.TUpperIdent (s2, _ii2)
+                   :: xs ->
+                     (* we want to transform every occurence of s  into s2,
+                      * to remove the alias sugar
+                      *)
+                     Hashtbl.add hmodule_aliases s s2;
+                     aux_toks xs
+                 | T.TUpperIdent (s, _ii)
+                   :: T.TDot _ii2
+                   :: T.TLowerIdent (s2, _ii3)
+                   :: xs ->
+                     Hashtbl.find_all hdefs s2
+                     |> List.iter (fun entity ->
+                            let file_entity = entity.Db.e_file in
 
-        let toks = toks |> Common.exclude (function
-          | T.TCommentSpace _ -> true
-          | _ -> false
-        )
-        in
+                            let final_module_name =
+                              if Hashtbl.mem hmodule_aliases s then
+                                Hashtbl.find hmodule_aliases s
+                              else s
+                            in
+                            let module_entity =
+                              let _d, b, _e =
+                                Common2.dbe_of_filename file_entity
+                              in
+                              String.capitalize_ascii b
+                            in
 
-        (* Only consider Module.xxx. Otherwise names such as 'x', or 'yylex'
-         * which are variables or internal functions are considered
-         * as having a huge count.
-         *
-        *)
-        let rec aux_toks toks =
-          match toks with
-          | T.Tmodule _
-            ::T.TUpperIdent(s, _ii)
-            ::T.TEq _
-            ::T.TUpperIdent(s2, _ii2)::xs
-            ->
-              (* we want to transform every occurence of s  into s2,
-               * to remove the alias sugar
-              *)
-              Hashtbl.add hmodule_aliases s s2;
-              aux_toks xs
+                            if
+                              file_entity <> file
+                              && final_module_name = module_entity
+                            then (
+                              entity.Db.e_number_external_users <-
+                                entity.Db.e_number_external_users + 1;
 
-          | T.TUpperIdent(s, _ii)::T.TDot _ii2::T.TLowerIdent(s2, _ii3)::xs ->
-
-              Hashtbl.find_all hdefs s2 |> List.iter (fun entity ->
-                let file_entity = entity.Db.e_file in
-
-                let final_module_name =
-                  if Hashtbl.mem hmodule_aliases s
-                  then Hashtbl.find hmodule_aliases s
-                  else s
-                in
-                let module_entity =
-                  let (_d,b,_e) = Common2.dbe_of_filename file_entity in
-                  String.capitalize_ascii b
-                in
-
-                if file_entity <> file && final_module_name = module_entity
-                then begin
-                  entity.Db.e_number_external_users <-
-                    entity.Db.e_number_external_users + 1;
-
-                  if is_test_or_pleac_file file
-                  then
-                    add_good_example_of_use file entity;
-                end
-              );
-              aux_toks xs
-
-          | [] -> ()
-          | _x::xs ->
-              aux_toks xs
-        in
-        aux_toks toks;
-      end
-    )
-  );
+                              if is_test_or_pleac_file file then
+                                add_good_example_of_use file entity));
+                     aux_toks xs
+                 | [] -> ()
+                 | _x :: xs -> aux_toks xs
+               in
+               aux_toks toks));
 
   (* PHASE 3: adjusting entities *)
   if verbose then pr2 (spf "PHASE 3: adjusting entities");
 
-  entities_arr |> Array.iter (fun e ->
-    let ids = e.Db.e_good_examples_of_use in
-    e.Db.e_good_examples_of_use <-
-      rank_and_filter_examples_of_use ~root ids entities_arr;
-  );
+  entities_arr
+  |> Array.iter (fun e ->
+         let ids = e.Db.e_good_examples_of_use in
+         e.Db.e_good_examples_of_use <-
+           rank_and_filter_examples_of_use ~root ids entities_arr);
 
   let dirs = dirs |> List.map (fun s -> Common.readable ~root s) in
   let dirs = Db.alldirs_and_parent_dirs_of_relative_dirs dirs in
 
-  { Db.
-    root = root;
-    dirs = dirs |> List.map (fun d -> d, 0); (* TODO *)
-    files = files |> List.map (fun f -> Common.readable ~root f, 0); (* TODO *)
+  {
+    Db.root;
+    dirs = dirs |> List.map (fun d -> (d, 0));
+    (* TODO *)
+    files = files |> List.map (fun f -> (Common.readable ~root f, 0));
+    (* TODO *)
     entities = entities_arr;
   }

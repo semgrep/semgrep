@@ -9,20 +9,19 @@ open Common
 let test_dump_cil file =
   let _ast = Parse_c.parse_program file in
 
-  let env = { Datalog_c.
-              (* only thing that actually matters *)
-              locals = ref [];
-              globals = Graph_code.create ();
-              globals_renames = (fun x -> x);
-
-              (* not actually used by instrs_of_expr *)
-              scope = "";
-              c_file_readable = "";
-              long_format = false;
-              facts = ref [];
-            }
+  let env =
+    {
+      Datalog_c.locals (* only thing that actually matters *) = ref [];
+      globals = Graph_code.create ();
+      globals_renames = (fun x -> x);
+      (* not actually used by instrs_of_expr *)
+      scope = "";
+      c_file_readable = "";
+      long_format = false;
+      facts = ref [];
+    }
   in
-  ignore(env);
+  ignore env;
   raise Todo
 (*
   (* todo: actually need to build a correct set of locals!
@@ -43,27 +42,26 @@ let test_dump_cil file =
   ()
 *)
 
-
 let test_dataflow_c file =
   let file = Common.fullpath file in
   let root = Sys.getcwd () |> Common.fullpath in
   Graph_code_c.facts := Some (ref []);
   Datalog_c.long_format := false;
-  let _g = Graph_code_c.build ~verbose:false root [file] in
-  let facts = List.rev !(Common2.some (!Graph_code_c.facts)) in
-  Common2.pr2_xxxxxxxxxxxxxxxxx();
+  let _g = Graph_code_c.build ~verbose:false root [ file ] in
+  let facts = List.rev !(Common2.some !Graph_code_c.facts) in
+  Common2.pr2_xxxxxxxxxxxxxxxxx ();
   (* debug *)
   facts |> List.iter (fun fact -> pr2 (Datalog_code.string_of_fact fact));
-  Common2.pr2_xxxxxxxxxxxxxxxxx();
+  Common2.pr2_xxxxxxxxxxxxxxxxx ();
 
   let facts_file = "/tmp/facts.dl" in
   Common.with_open_outfile facts_file (fun (pr_no_nl, _chan) ->
-    let pr s = pr_no_nl (s ^ ".\n") in
-    facts |> List.iter (fun fact -> pr (Datalog_code.string_of_fact fact));
-  );
+      let pr s = pr_no_nl (s ^ ".\n") in
+      facts |> List.iter (fun fact -> pr (Datalog_code.string_of_fact fact)));
 
   let logic_file =
-    Filename.concat Config_pfff.path_pfff_home "h_program-lang/datalog_code.dl" in
+    Filename.concat Config_pfff.path_pfff_home "h_program-lang/datalog_code.dl"
+  in
 
   let final_file = "/tmp/datalog.dl" in
   let cmd = spf "cat %s %s > %s" facts_file logic_file final_file in
@@ -73,15 +71,12 @@ let test_dataflow_c file =
   Common.command2 cmd;
   ()
 
-
 (*****************************************************************************)
 (* Main entry for Arg *)
 (*****************************************************************************)
 
-let actions () = [
-  "-dump_cil", " <file>",
-  Common.mk_action_1_arg test_dump_cil;
-
-  "-dataflow_c", "   <file>",
-  Common.mk_action_1_arg test_dataflow_c;
-]
+let actions () =
+  [
+    ("-dump_cil", " <file>", Common.mk_action_1_arg test_dump_cil);
+    ("-dataflow_c", "   <file>", Common.mk_action_1_arg test_dataflow_c);
+  ]

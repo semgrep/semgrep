@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 module PI = Parse_info
 open Parser_go
 
@@ -24,28 +24,31 @@ let is_eof = function
   | _ -> false
 
 let is_irrelevant = function
-  | TComment _ | TCommentSpace _ | TCommentNewline _ -> true
+  | TComment _
+  | TCommentSpace _
+  | TCommentNewline _ ->
+      true
   | _ -> false
 
 let is_comment_or_space = function
-  | TComment _ | TCommentSpace _ -> true
+  | TComment _
+  | TCommentSpace _ ->
+      true
   | _ -> false
 
 let token_kind_of_tok t =
   match t with
-  | LBRACE _ | LBODY _ -> PI.LBrace
+  | LBRACE _
+  | LBODY _ ->
+      PI.LBrace
   | RBRACE _ -> PI.RBrace
-
   | LPAREN _ -> PI.LPar
   | RPAREN _ -> PI.RPar
-
   | LBRACKET _ -> PI.LBracket
   | RBRACKET _ -> PI.RBracket
-
   | TComment _ -> PI.Esthet PI.Comment
   | TCommentSpace _ -> PI.Esthet PI.Space
   | TCommentNewline _ -> PI.Esthet PI.Newline
-
   | _ -> PI.Other
 
 (*****************************************************************************)
@@ -56,13 +59,11 @@ let visitor_info_of_tok f = function
   | LBRACE_SEMGREP ii -> LBRACE_SEMGREP (f ii)
   | LCOLON_SEMGREP ii -> LCOLON_SEMGREP (f ii)
   | LPAREN_SEMGREP ii -> LPAREN_SEMGREP (f ii)
-
   | TUnknown ii -> TUnknown (f ii)
   | EOF ii -> EOF (f ii)
   | TCommentSpace ii -> TCommentSpace (f ii)
   | TComment ii -> TComment (f ii)
   | TCommentNewline ii -> TCommentNewline (f ii)
-
   | LINT (s, ii) -> LINT (s, f ii)
   | LFLOAT (s, ii) -> LFLOAT (s, f ii)
   | LIMAG (s, ii) -> LIMAG (s, f ii)
@@ -70,7 +71,6 @@ let visitor_info_of_tok f = function
   | LSTR (s, ii) -> LSTR (s, f ii)
   | LASOP (s, ii) -> LASOP (s, f ii)
   | LNAME (s, ii) -> LNAME (s, f ii)
-
   | LIF ii -> LIF (f ii)
   | LELSE ii -> LELSE (f ii)
   | LFOR ii -> LFOR (f ii)
@@ -108,11 +108,9 @@ let visitor_info_of_tok f = function
   | LDOT ii -> LDOT (f ii)
   | LCOMMA ii -> LCOMMA (f ii)
   | LCOLAS ii -> LCOLAS (f ii)
-
   | LDDD ii -> LDDD (f ii)
   | LDots ii -> LDots (f ii)
   | RDots ii -> RDots (f ii)
-
   | LPLUS ii -> LPLUS (f ii)
   | LMINUS ii -> LMINUS (f ii)
   | LMULT ii -> LMULT (f ii)
@@ -140,7 +138,12 @@ let visitor_info_of_tok f = function
 
 let info_of_tok tok =
   let res = ref None in
-  visitor_info_of_tok (fun ii -> res := Some ii; ii) tok |> ignore;
+  visitor_info_of_tok
+    (fun ii ->
+      res := Some ii;
+      ii)
+    tok
+  |> ignore;
   match !res with
   | Some x -> x
   | None -> Parse_info.unsafe_fake_info "NOTOK"

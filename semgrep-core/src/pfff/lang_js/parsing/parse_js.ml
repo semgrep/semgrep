@@ -12,15 +12,14 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
-
 module Flag = Flag_parsing
 module Ast = Ast_js
-module TH   = Token_helpers_js
+module TH = Token_helpers_js
 module PI = Parse_info
 
-let logger = Logging.get_logger [__MODULE__]
+let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -29,8 +28,7 @@ let logger = Logging.get_logger [__MODULE__]
 (*****************************************************************************)
 (* Error diagnostic  *)
 (*****************************************************************************)
-let error_msg_tok tok =
-  Parse_info.error_message_info (TH.info_of_tok tok)
+let error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
 
 (*****************************************************************************)
 (* Helpers  *)
@@ -58,30 +56,28 @@ let error_msg_tok tok =
  *
  * see also top comment in tests/js/items.js
  *
-*)
+ *)
 let put_back_lookahead_token_if_needed tr item_opt =
   match item_opt with
   | None -> ()
   | Some item ->
-      let iis = Lib_parsing_js.ii_of_any (Ast.Program [item]) in
+      let iis = Lib_parsing_js.ii_of_any (Ast.Program [ item ]) in
       let current = tr.PI.current in
       let info = TH.info_of_tok current in
       (* bugfix: without test on is_origintok, the parser timeout
        * TODO: why?
-      *)
-      if not (PI.is_origintok info) || List.mem info iis
-      then ()
-      else begin
+       *)
+      if (not (PI.is_origintok info)) || List.mem info iis then ()
+      else (
         (* TODO: could sanity check that what we put back make sense, for
          * example we should never put back a closing '}', which can
          * happen if the item returned is incomplete and does not contain
          * all the tokens (more risky now that we use ast_js.ml instead of
          * cst_js.ml)
-        *)
+         *)
         logger#debug "putting back lookahead token %s" (Common.dump current);
-        tr.PI.rest <- current::tr.PI.rest;
-        tr.PI.passed <- List.tl tr.PI.passed;
-      end
+        tr.PI.rest <- current :: tr.PI.rest;
+        tr.PI.passed <- List.tl tr.PI.passed)
 
 (*****************************************************************************)
 (* ASI (Automatic Semicolon Insertion) part 2 *)
@@ -101,49 +97,44 @@ let put_back_lookahead_token_if_needed tr item_opt =
  * look like a parse error. To handle those cases we
  * need a parsing_hack phase that inserts semicolon after the
  * continue if there is a newline after.
-*)
+ *)
 
 let rec line_previous_tok xs =
   match xs with
   | [] -> None
-  | x::xs ->
-      if TH.is_comment x
-      then line_previous_tok xs
-      else Some (TH.line_of_tok x)
+  | x :: xs ->
+      if TH.is_comment x then line_previous_tok xs else Some (TH.line_of_tok x)
 
 let asi_opportunity charpos last_charpos_error cur tr =
   match tr.PI.passed with
   | _ when charpos <= !last_charpos_error -> None
   | [] -> None
   (* see tests/js/parsing/asi_incr_bis.js *)
-  | offending::((Parser_js.T_INCR _|Parser_js.T_DECR _) as real_offender)::xs ->
-      (match line_previous_tok xs, offending with
-       | Some line, _ when TH.line_of_tok real_offender > line ->
-           Some ([offending], real_offender, xs)
-       | _, (Parser_js.T_RCURLY _ | Parser_js.EOF _) ->
-           Some ([], offending, (real_offender::xs))
-       | _ -> None
-      )
-  | offending::xs ->
-      (match line_previous_tok xs, cur with
-       | Some line, _ when TH.line_of_tok cur > line -> Some ([], offending, xs)
-       | _, (Parser_js.T_RCURLY _ | Parser_js.EOF _) -> Some ([], offending, xs)
-       | _ -> None
-      )
-
+  | offending
+    :: ((Parser_js.T_INCR _ | Parser_js.T_DECR _) as real_offender)
+    :: xs -> (
+      match (line_previous_tok xs, offending) with
+      | Some line, _ when TH.line_of_tok real_offender > line ->
+          Some ([ offending ], real_offender, xs)
+      | _, (Parser_js.T_RCURLY _ | Parser_js.EOF _) ->
+          Some ([], offending, real_offender :: xs)
+      | _ -> None)
+  | offending :: xs -> (
+      match (line_previous_tok xs, cur) with
+      | Some line, _ when TH.line_of_tok cur > line -> Some ([], offending, xs)
+      | _, (Parser_js.T_RCURLY _ | Parser_js.EOF _) -> Some ([], offending, xs)
+      | _ -> None)
 
 let asi_insert charpos last_charpos_error tr
     (passed_before, passed_offending, passed_after) =
-
   let info = TH.info_of_tok passed_offending in
-  let virtual_semi =
-    Parser_js.T_VIRTUAL_SEMICOLON (Ast.fakeInfoAttach info) in
+  let virtual_semi = Parser_js.T_VIRTUAL_SEMICOLON (Ast.fakeInfoAttach info) in
   logger#debug "ASI: insertion fake ';' at %s" (PI.string_of_info info);
 
-  let toks = List.rev passed_after @
-             [virtual_semi; passed_offending] @
-             passed_before @
-             tr.PI.rest
+  let toks =
+    List.rev passed_after
+    @ [ virtual_semi; passed_offending ]
+    @ passed_before @ tr.PI.rest
   in
   (* like in Parse_info.mk_tokens_state *)
   tr.PI.rest <- toks;
@@ -157,7 +148,7 @@ let asi_insert charpos last_charpos_error tr
    * that we parse again and again the same series of tokens, just
    * progressing a bit more everytime, and restarting from scratch.
    * This is quadratic behavior.
-  *)
+   *)
   last_charpos_error := charpos
 
 (*****************************************************************************)
@@ -165,26 +156,24 @@ let asi_insert charpos last_charpos_error tr
 (*****************************************************************************)
 
 let tokens file =
-  Lexer_js.reset();
+  Lexer_js.reset ();
   let token lexbuf =
     let tok =
-      match Lexer_js.current_mode() with
-      | Lexer_js.ST_IN_CODE ->
-          Lexer_js.initial lexbuf
+      match Lexer_js.current_mode () with
+      | Lexer_js.ST_IN_CODE -> Lexer_js.initial lexbuf
       | Lexer_js.ST_IN_XHP_TAG current_tag ->
           Lexer_js.st_in_xhp_tag current_tag lexbuf
       | Lexer_js.ST_IN_XHP_TEXT current_tag ->
           Lexer_js.st_in_xhp_text current_tag lexbuf
-      | Lexer_js.ST_IN_BACKQUOTE ->
-          Lexer_js.backquote lexbuf
+      | Lexer_js.ST_IN_BACKQUOTE -> Lexer_js.backquote lexbuf
     in
-    if not (TH.is_comment tok)
-    then Lexer_js._last_non_whitespace_like_token := Some tok;
+    if not (TH.is_comment tok) then
+      Lexer_js._last_non_whitespace_like_token := Some tok;
     tok
   in
-  Parse_info.tokenize_all_and_adjust_pos
-    file token TH.visitor_info_of_tok TH.is_eof
-[@@profiling]
+  Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+    TH.is_eof
+  [@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -197,8 +186,7 @@ let parse2 opt_timeout filename =
   let toks = Parsing_hacks_js.fix_tokens toks in
   let toks = Parsing_hacks_js.fix_tokens_ASI toks in
 
-  let tr, lexer, lexbuf_fake =
-    PI.mk_lexer_for_yacc toks TH.is_comment in
+  let tr, lexer, lexbuf_fake = PI.mk_lexer_for_yacc toks TH.is_comment in
 
   let last_charpos_error = ref 0 in
 
@@ -209,37 +197,35 @@ let parse2 opt_timeout filename =
         (* Call parser *)
         (* -------------------------------------------------- *)
         Common.profile_code "Parser_js.module_item" (fun () ->
-          Parser_js.module_item_or_eof lexer lexbuf_fake
-        )
+            Parser_js.module_item_or_eof lexer lexbuf_fake)
       in
       (* this seems optional *)
       Parsing.clear_parser ();
       put_back_lookahead_token_if_needed tr item;
       Left item
+    with
+    | Parsing.Parse_error -> (
+        (* coupling: update also any_of_string if you modify the code below *)
+        let cur = tr.PI.current in
+        let info = TH.info_of_tok cur in
+        let charpos = Parse_info.pos_of_info info in
 
-    with Parsing.Parse_error ->
-      (* coupling: update also any_of_string if you modify the code below *)
-      let cur = tr.PI.current in
-      let info = TH.info_of_tok cur in
-      let charpos = Parse_info.pos_of_info info in
-
-      (* try Automatic Semicolon Insertion *)
-      (match asi_opportunity charpos last_charpos_error cur tr with
-       | None ->
-           if !Flag.show_parsing_error
-           then pr2 ("parse error \n = " ^ error_msg_tok cur);
-           Right cur
-       | Some (passed_before, passed_offending, passed_after) ->
-           asi_insert charpos last_charpos_error tr
-             (passed_before, passed_offending, passed_after);
-           parse_module_item_or_eof tr
-      )
+        (* try Automatic Semicolon Insertion *)
+        match asi_opportunity charpos last_charpos_error cur tr with
+        | None ->
+            if !Flag.show_parsing_error then
+              pr2 ("parse error \n = " ^ error_msg_tok cur);
+            Right cur
+        | Some (passed_before, passed_offending, passed_after) ->
+            asi_insert charpos last_charpos_error tr
+              (passed_before, passed_offending, passed_after);
+            parse_module_item_or_eof tr)
   in
   let rec aux tr =
     let line_start = TH.line_of_tok tr.PI.current in
     let res = parse_module_item_or_eof tr in
     tr.PI.passed <- [];
-(*
+    (*
     let _passed = tr.PI.passed in
     let lines =
       try
@@ -252,47 +238,42 @@ let parse2 opt_timeout filename =
 *)
     match res with
     (* EOF *)
-    | Left None ->
-        []
+    | Left None -> []
     | Left (Some x) ->
-        logger#ldebug (lazy
-                        (spf "parsed: %s" (Ast.Program [x] |> Ast_js.show_any)));
+        logger#ldebug
+          (lazy (spf "parsed: %s" (Ast.Program [ x ] |> Ast_js.show_any)));
 
-        x::aux tr
+        x :: aux tr
     | Right err_tok ->
         let max_line = Common.cat filename |> List.length in
-        if !Flag.show_parsing_error
-        then begin
-          let filelines = Common2.cat_array filename in
-          let cur = tr.PI.current in
-          let line_error = TH.line_of_tok cur in
-          PI.print_bad line_error (line_start, min max_line (line_error + 10))
-            filelines;
-        end;
-        if !Flag.error_recovery
-        then begin
+        (if !Flag.show_parsing_error then
+         let filelines = Common2.cat_array filename in
+         let cur = tr.PI.current in
+         let line_error = TH.line_of_tok cur in
+         PI.print_bad line_error
+           (line_start, min max_line (line_error + 10))
+           filelines);
+        if !Flag.error_recovery then (
           (* todo? try to recover? call 'aux tr'? but then can be really slow*)
           (* TODO: count a bad line twice? use Hashtbl.length tech instead *)
           stat.PI.error_line_count <-
             stat.PI.error_line_count + (max_line - line_start);
-          []
-        end
+          [])
         else raise (PI.Parsing_error (TH.info_of_tok err_tok))
   in
   let items =
     match
-      Common.set_timeout_opt ~name:"Parse_js.parse" opt_timeout
-        (fun () -> aux tr)
+      Common.set_timeout_opt ~name:"Parse_js.parse" opt_timeout (fun () ->
+          aux tr)
     with
     | Some res -> res
     | None ->
-        if !Flag.show_parsing_error
-        then pr2 (spf "TIMEOUT on %s" filename);
+        if !Flag.show_parsing_error then pr2 (spf "TIMEOUT on %s" filename);
         stat.PI.error_line_count <- stat.PI.total_line_count;
         stat.PI.have_timeout <- true;
         []
   in
-  {PI. ast = items; tokens = toks; stat }
+  { PI.ast = items; tokens = toks; stat }
 
 let parse ?timeout a =
   Common.profile_code "Parse_js.parse" (fun () -> parse2 timeout a)
@@ -301,7 +282,6 @@ let parse_program file =
   let res = parse file in
   res.PI.ast
 
-
 let parse_string (w : string) : Ast.a_program =
   Common2.with_tmp_file ~str:w ~ext:"js" parse_program
 
@@ -309,18 +289,15 @@ let parse_string (w : string) : Ast.a_program =
 (* Sub parsers *)
 (*****************************************************************************)
 
-let (program_of_string: string -> Ast_js.a_program) = fun s ->
-  Common2.with_tmp_file ~str:s ~ext:"js" (fun file ->
-    parse_program file
-  )
+let (program_of_string : string -> Ast_js.a_program) =
+ fun s ->
+  Common2.with_tmp_file ~str:s ~ext:"js" (fun file -> parse_program file)
 
 let type_of_string s =
   let lexbuf = Lexing.from_string s in
   let rec lexer lexbuf =
     let res = Lexer_js.initial lexbuf in
-    if TH.is_comment res
-    then lexer lexbuf
-    else res
+    if TH.is_comment res then lexer lexbuf else res
   in
   let ty = Parser_js.type_for_lsif lexer lexbuf in
   ty
@@ -328,30 +305,28 @@ let type_of_string s =
 (* for sgrep/spatch *)
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-    Common2.with_tmp_file ~str:s ~ext:"js" (fun file ->
-      let toks = tokens file in
-      let toks = Parsing_hacks_js.fix_tokens toks in
-      let toks = Parsing_hacks_js.fix_tokens_ASI toks in
+      Common2.with_tmp_file ~str:s ~ext:"js" (fun file ->
+          let toks = tokens file in
+          let toks = Parsing_hacks_js.fix_tokens toks in
+          let toks = Parsing_hacks_js.fix_tokens_ASI toks in
 
-      let tr, lexer, lexbuf_fake = PI.mk_lexer_for_yacc toks TH.is_comment in
-      let last_charpos_error = ref 0 in
+          let tr, lexer, lexbuf_fake =
+            PI.mk_lexer_for_yacc toks TH.is_comment
+          in
+          let last_charpos_error = ref 0 in
 
-      let rec parse_pattern tr =
-        try
-          Parser_js.sgrep_spatch_pattern lexer lexbuf_fake
-
-        with Parsing.Parse_error ->
-          let cur = tr.PI.current in
-          let info = TH.info_of_tok cur in
-          let charpos = Parse_info.pos_of_info info in
-          (* try Automatic Semicolon Insertion *)
-          (match asi_opportunity charpos last_charpos_error cur tr with
-           | None -> raise Parsing.Parse_error
-           | Some (passed_before, passed_offending, passed_after) ->
-               asi_insert charpos last_charpos_error tr
-                 (passed_before, passed_offending, passed_after);
-               parse_pattern tr
-          )
-      in
-      parse_pattern tr
-    ))
+          let rec parse_pattern tr =
+            try Parser_js.sgrep_spatch_pattern lexer lexbuf_fake with
+            | Parsing.Parse_error -> (
+                let cur = tr.PI.current in
+                let info = TH.info_of_tok cur in
+                let charpos = Parse_info.pos_of_info info in
+                (* try Automatic Semicolon Insertion *)
+                match asi_opportunity charpos last_charpos_error cur tr with
+                | None -> raise Parsing.Parse_error
+                | Some (passed_before, passed_offending, passed_after) ->
+                    asi_insert charpos last_charpos_error tr
+                      (passed_before, passed_offending, passed_after);
+                    parse_pattern tr)
+          in
+          parse_pattern tr))

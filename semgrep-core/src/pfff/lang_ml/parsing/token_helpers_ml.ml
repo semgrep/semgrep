@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 open Parser_ml
 module PI = Parse_info
@@ -25,7 +25,10 @@ let is_eof = function
   | _ -> false
 
 let is_comment = function
-  | TComment _ | TCommentSpace _ | TCommentNewline _ -> true
+  | TComment _
+  | TCommentSpace _
+  | TCommentNewline _ ->
+      true
   | TCommentMisc _ -> true
   | _ -> false
 
@@ -40,13 +43,12 @@ let token_kind_of_tok t =
   | TOBrace _ -> PI.LBrace
   | TCBrace _ -> PI.RBrace
   | TOParen _ -> PI.LPar
-  | TCParen _ -> PI.RPar
-  (* less: also TOBracket? (and TOBracketAt...) *)
-
-  | TComment _ | TCommentMisc _ -> PI.Esthet PI.Comment
+  | TCParen _ -> PI.RPar (* less: also TOBracket? (and TOBracketAt...) *)
+  | TComment _
+  | TCommentMisc _ ->
+      PI.Esthet PI.Comment
   | TCommentSpace _ -> PI.Esthet PI.Space
   | TCommentNewline _ -> PI.Esthet PI.Newline
-
   | _ -> PI.Other
 
 (*****************************************************************************)
@@ -58,16 +60,13 @@ let visitor_info_of_tok f = function
   | TDots ii -> TDots (f ii)
   | LDots ii -> LDots (f ii)
   | RDots ii -> RDots (f ii)
-
   | TCommentSpace ii -> TCommentSpace (f ii)
   | TCommentNewline ii -> TCommentNewline (f ii)
   | TComment ii -> TComment (f ii)
   | TCommentMisc ii -> TCommentMisc (f ii)
   | TUnknown ii -> TUnknown (f ii)
   | EOF ii -> EOF (f ii)
-
   | TSharpDirective ii -> TSharpDirective (f ii)
-
   | TInt (s, ii) -> TInt (s, f ii)
   | TFloat (s, ii) -> TFloat (s, f ii)
   | TChar (s, ii) -> TChar (s, f ii)
@@ -80,7 +79,6 @@ let visitor_info_of_tok f = function
   | TOptLabelDecl (s, ii) -> TOptLabelDecl (s, f ii)
   | TPrefixOperator (s, ii) -> TPrefixOperator (s, f ii)
   | TInfixOperator (s, ii) -> TInfixOperator (s, f ii)
-
   | Tfun ii -> Tfun (f ii)
   | Tfunction ii -> Tfunction (f ii)
   | Trec ii -> Trec (f ii)
@@ -188,7 +186,12 @@ let visitor_info_of_tok f = function
 
 let info_of_tok tok =
   let res = ref None in
-  visitor_info_of_tok (fun ii -> res := Some ii; ii) tok |> ignore;
+  visitor_info_of_tok
+    (fun ii ->
+      res := Some ii;
+      ii)
+    tok
+  |> ignore;
   Common2.some !res
 
 (*****************************************************************************)

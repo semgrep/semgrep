@@ -1,4 +1,3 @@
-
 (* Use/def variables related checks, e.g.
  *  - unused var,
  *  - use of undefined var
@@ -9,7 +8,8 @@
  * update: can now pass a hook to find class definitions as
  * some access to variables can be legit if the superclass (defined
  * in another file) has defined those protected variables.
-*)
-val check_and_annotate_program:
+ *)
+val check_and_annotate_program :
   (*?find_entity: Ast_entity_php.entity_finder option -> *)
-  Ast_cpp.program -> unit
+  Ast_cpp.program ->
+  unit

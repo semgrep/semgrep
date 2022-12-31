@@ -1,4 +1,3 @@
-
 (* This path type uses private variants:
    https://v2.ocaml.org/manual/privatetypes.html#ss%3Aprivate-types-variant
 
@@ -17,22 +16,16 @@
 type path = private Path of string [@@deriving show, eq]
 type t = path [@@deriving show, eq]
 
-
 val of_string : string -> t
 val to_string : t -> string
 val canonical : string -> string
-
-val (/) : t -> string -> t
+val ( / ) : t -> string -> t
 val concat : t -> string -> t
 val apply : f:(string -> 'a) -> t -> 'a
-
 val cat : t -> string list
-
 val write_file : file:t -> string -> unit
-
 val read_file : ?max_len:int -> t -> string
 val file_exists : t -> bool
-
 val is_directory : t -> bool
 val basename : t -> string
 val dirname : t -> t

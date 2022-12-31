@@ -7,7 +7,7 @@
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
  * special exception on linking described in the license.txt file.
-*)
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -25,7 +25,7 @@
  * alternatives:
  * - css parser and preprocessor: http://forge.ocamlcore.org/projects/ccss/
  * - camlp4 and css https://github.com/samoht/cass
-*)
+ *)
 
 (*****************************************************************************)
 (* The AST related types *)
@@ -37,7 +37,7 @@
  *  consists of a property, a colon (:), a value. If there are multiple
  *  declarations in a block, a semi-colon (;) must be inserted to
  *  separate each declaration"
-*)
+ *)
 
 (* ------------------------------------------------------------------------- *)
 (* Token/info *)
@@ -57,10 +57,7 @@ and simplesel =
   | Generic of qualifier * qualifier list
 
 and combinator = Descendant | GeneralSibling | AdjacentSibling | Child
-
-and element =
-  | Tag of string
-  | Universal
+and element = Tag of string | Universal
 
 and qualifier =
   | Id of string
@@ -70,9 +67,7 @@ and qualifier =
   | PseudoElement of string
   | SelFunc of string * functiont
 
-and functiont =
-  | Qualified of qualifier list
-  | Nth of string
+and functiont = Qualified of qualifier list | Nth of string
 
 and attr =
   | AttrExists
@@ -90,10 +85,8 @@ and attr =
 (* ------------------------------------------------------------------------- *)
 
 type declaration = property * expression * important
-
 and property = string
 and important = bool
-
 and expression = sentence list
 and sentence = term list
 
@@ -116,7 +109,6 @@ and calc =
   | Div of calc * calc
 
 and quantity = float * string option
-
 and variable = string
 
 (* with tarzan *)

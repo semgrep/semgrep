@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
 module J = JSON
 
@@ -136,18 +136,17 @@ type color = string (* Simple_color.emacs_color *)
  *    that is then interpreted in codemap instead of forcing
  *    the layer creator to specific how to show the micro_level
  *    data at the macro_level.
-*)
+ *)
 
 type layer = {
-  title: string;
-  description: string;
-  files: (filename * file_info) list;
-  kinds: (kind * color) list;
+  title : string;
+  description : string;
+  files : (filename * file_info) list;
+  kinds : (kind * color) list;
 }
+
 and file_info = {
-
-  micro_level: (int (* line *) * kind) list;
-
+  micro_level : (int (* line *) * kind) list;
   (* The list can be empty in which case codemap can use
    * the micro_level information and show a mix of colors.
    *
@@ -155,66 +154,61 @@ and file_info = {
    * different than the one used in the micro_level. For instance
    * for the coverage one can have red/green at micro_level
    * and grey_xxx at macro_level.
-  *)
-  macro_level: (kind * float (* percentage of rectangle *)) list;
+   *)
+  macro_level : (kind * float (* percentage of rectangle *)) list;
 }
+
 (* ugly: because of the ugly way OCaml.json_of_v currently works
  * the kind can not start with a uppercase
-*)
+ *)
 and kind = string
 
 (* with tarzan *)
 
-
 (* The filenames in the index are in absolute path format. That way they
  * can be used from codemap in hashtbl and compared to the
  * current file.
-*)
+ *)
 type layers_with_index = {
-  root: Common.dirname;
-  layers: (layer * bool (* is active *)) list;
-
-  micro_index:
-    (filename, (int, color) Hashtbl.t) Hashtbl.t;
-  macro_index:
-    (filename, (float * color) list) Hashtbl.t;
+  root : Common.dirname;
+  layers : (layer * bool (* is active *)) list;
+  micro_index : (filename, (int, color) Hashtbl.t) Hashtbl.t;
+  macro_index : (filename, (float * color) list) Hashtbl.t;
 }
 
 (*****************************************************************************)
 (* Reusable properties *)
 (*****************************************************************************)
 
-let red_green_properties = [
-  "ok", "green";
-  "bad", "red";
-  "no_info", "white";
-]
+let red_green_properties =
+  [ ("ok", "green"); ("bad", "red"); ("no_info", "white") ]
 
-let heat_map_properties = [
-  "cover 100%", "red3";
-  "cover 90%", "red1";
-  "cover 80%", "orange";
-  "cover 70%", "yellow";
-  "cover 60%", "YellowGreen";
-  "cover 50%", "green";
-  "cover 40%", "cyan";
-  "cover 30%", "cyan3";
-  "cover 20%", "DeepSkyBlue1";
-  "cover 10%", "blue";
-  (* Should we use a dark blue for 0, as it is the case usually with
-   * heatmaps? The picture can become very blue then.
-   * Do not use white though because draw_macrolevel use white when nothing
-   * was found so we want to differentiate such cases
-  *)
-  "cover 0%", "blue4"; (* alternative: snow4 *)
+let heat_map_properties =
+  [
+    ("cover 100%", "red3");
+    ("cover 90%", "red1");
+    ("cover 80%", "orange");
+    ("cover 70%", "yellow");
+    ("cover 60%", "YellowGreen");
+    ("cover 50%", "green");
+    ("cover 40%", "cyan");
+    ("cover 30%", "cyan3");
+    ("cover 20%", "DeepSkyBlue1");
+    ("cover 10%", "blue");
+    (* Should we use a dark blue for 0, as it is the case usually with
+     * heatmaps? The picture can become very blue then.
+     * Do not use white though because draw_macrolevel use white when nothing
+     * was found so we want to differentiate such cases
+     *)
+    ("cover 0%", "blue4");
+    (* alternative: snow4 *)
 
-  (* when we zoom on a file we just show red/green coverage, no heat color *)
-  "ok", "green";
-  "bad", "red";
-
-  "base", "azure4";
-  "no_info", "white";
-]
+    (* when we zoom on a file we just show red/green coverage, no heat color *)
+    ("ok", "green");
+    ("bad", "red");
+    ("base", "azure4");
+    ("no_info", "white");
+  ]
 
 (*****************************************************************************)
 (* Multi layers indexing *)
@@ -224,7 +218,7 @@ let heat_map_properties = [
  * to store layer information so one can then just use SQL to
  * fastly get all the information relevant to a file and a line ?
  * I doubt MySQL can be as fast and light as my JSON + hashtbl indexing.
-*)
+ *)
 let build_index_of_layers ~root layers =
   let hmicro = Common2.hash_with_default (fun () -> Hashtbl.create 101) in
   let hmacro = Common2.hash_with_default (fun () -> []) in
@@ -232,64 +226,55 @@ let build_index_of_layers ~root layers =
   layers
   |> List.filter (fun (_layer, active) -> active)
   |> List.iter (fun (layer, _active) ->
-    let hkind = Common.hash_of_list layer.kinds in
+         let hkind = Common.hash_of_list layer.kinds in
 
-    layer.files |> List.iter (fun (file, finfo) ->
+         layer.files
+         |> List.iter (fun (file, finfo) ->
+                let file = Filename.concat root file in
 
-      let file = Filename.concat root file in
+                (* todo? v is supposed to be a float representing a percentage of
+                 * the rectangle but below we will add the macro info of multiple
+                 * layers together which mean the float may not represent percentage
+                 * anynore. They still represent a part of the file though.
+                 * The caller would have to first recompute the sum of all those
+                 * floats to recompute the actual multi-layer percentage.
+                 *)
+                let color_macro_level =
+                  finfo.macro_level
+                  |> Common.map_filter (fun (kind, v) ->
+                         (* some sanity checking *)
+                         try Some (v, Hashtbl.find hkind kind) with
+                         | Not_found ->
+                             (* I was originally doing a failwith, but it can be convenient
+                              * to be able to filter kinds in codemap by just editing the
+                              * JSON file and removing certain kind definitions
+                              *)
+                             pr2_once (spf "PB: kind %s was not defined" kind);
+                             None)
+                in
+                hmacro#update file (fun old -> color_macro_level @ old);
 
-      (* todo? v is supposed to be a float representing a percentage of
-       * the rectangle but below we will add the macro info of multiple
-       * layers together which mean the float may not represent percentage
-       * anynore. They still represent a part of the file though.
-       * The caller would have to first recompute the sum of all those
-       * floats to recompute the actual multi-layer percentage.
-      *)
-      let color_macro_level =
-        finfo.macro_level |> Common.map_filter (fun (kind, v) ->
-          (* some sanity checking *)
-          try Some (v, Hashtbl.find hkind kind)
-          with Not_found ->
-            (* I was originally doing a failwith, but it can be convenient
-             * to be able to filter kinds in codemap by just editing the
-             * JSON file and removing certain kind definitions
-            *)
-            pr2_once (spf "PB: kind %s was not defined" kind);
-            None
-        )
-      in
-      hmacro#update file (fun old -> color_macro_level @ old);
+                finfo.micro_level
+                |> List.iter (fun (line, kind) ->
+                       try
+                         let color = Hashtbl.find hkind kind in
 
-      finfo.micro_level |> List.iter (fun (line, kind) ->
-        try
-          let color = Hashtbl.find hkind kind in
-
-          hmicro#update file (fun oldh ->
-            (* We add so the same line could be assigned multiple colors.
-             * The order of the layer could determine which color should
-             * have priority.
-            *)
-            Hashtbl.add oldh line color;
-            oldh
-          )
-        with Not_found ->
-          pr2_once (spf "PB: kind %s was not defined" kind);
-      )
-    );
-  );
-  {
-    layers = layers;
-    root = root;
-    macro_index = hmacro#to_h;
-    micro_index = hmicro#to_h;
-  }
-
+                         hmicro#update file (fun oldh ->
+                             (* We add so the same line could be assigned multiple colors.
+                              * The order of the layer could determine which color should
+                              * have priority.
+                              *)
+                             Hashtbl.add oldh line color;
+                             oldh)
+                       with
+                       | Not_found ->
+                           pr2_once (spf "PB: kind %s was not defined" kind))));
+  { layers; root; macro_index = hmacro#to_h; micro_index = hmicro#to_h }
 
 (*****************************************************************************)
 (* Layers helpers *)
 (*****************************************************************************)
-let has_active_layers layers =
-  layers.layers |> List.map snd |> Common2.or_list
+let has_active_layers layers = layers.layers |> List.map snd |> Common2.or_list
 
 (*****************************************************************************)
 (* Meta *)
@@ -300,60 +285,62 @@ let has_active_layers layers =
 let vof_emacs_color s = OCaml.vof_string s
 let vof_filename s = OCaml.vof_string s
 
-
-let rec
-  vof_layer {
-    title = v_title;
-    description = v_description;
-    files = v_files;
-    kinds = v_kinds
-  } =
+let rec vof_layer
+    {
+      title = v_title;
+      description = v_description;
+      files = v_files;
+      kinds = v_kinds;
+    } =
   let bnds = [] in
   let arg =
     OCaml.vof_list
       (fun (v1, v2) ->
-         let v1 = vof_kind v1
-         and v2 = vof_emacs_color v2
-         in OCaml.VTuple [ v1; v2 ])
-      v_kinds in
+        let v1 = vof_kind v1 and v2 = vof_emacs_color v2 in
+        OCaml.VTuple [ v1; v2 ])
+      v_kinds
+  in
   let bnd = ("kinds", arg) in
   let bnds = bnd :: bnds in
   let arg =
     OCaml.vof_list
       (fun (v1, v2) ->
-         let v1 = vof_filename v1
-         and v2 = vof_file_info v2
-         in OCaml.VTuple [ v1; v2 ])
-      v_files in
+        let v1 = vof_filename v1 and v2 = vof_file_info v2 in
+        OCaml.VTuple [ v1; v2 ])
+      v_files
+  in
   let bnd = ("files", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_string v_description in
   let bnd = ("description", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_string v_title in
-  let bnd = ("title", arg) in let bnds = bnd :: bnds in OCaml.VDict bnds
-and
-  vof_file_info { micro_level = v_micro_level; macro_level = v_macro_level }
-  =
+  let bnd = ("title", arg) in
+  let bnds = bnd :: bnds in
+  OCaml.VDict bnds
+
+and vof_file_info { micro_level = v_micro_level; macro_level = v_macro_level } =
   let bnds = [] in
   let arg =
     OCaml.vof_list
       (fun (v1, v2) ->
-         let v1 = vof_kind v1
-         and v2 = OCaml.vof_float v2
-         in OCaml.VTuple [ v1; v2 ])
-      v_macro_level in
+        let v1 = vof_kind v1 and v2 = OCaml.vof_float v2 in
+        OCaml.VTuple [ v1; v2 ])
+      v_macro_level
+  in
   let bnd = ("macro_level", arg) in
   let bnds = bnd :: bnds in
   let arg =
     OCaml.vof_list
       (fun (v1, v2) ->
-         let v1 = OCaml.vof_int v1
-         and v2 = vof_kind v2
-         in OCaml.VTuple [ v1; v2 ])
-      v_micro_level in
+        let v1 = OCaml.vof_int v1 and v2 = vof_kind v2 in
+        OCaml.VTuple [ v1; v2 ])
+      v_micro_level
+  in
   let bnd = ("micro_level", arg) in
-  let bnds = bnd :: bnds in OCaml.VDict bnds
+  let bnds = bnd :: bnds in
+  OCaml.VDict bnds
+
 and vof_kind v = OCaml.vof_string v
 
 (*****************************************************************************)
@@ -362,287 +349,274 @@ and vof_kind v = OCaml.vof_string v
 
 let emacs_color_ofv v = OCaml.string_ofv v
 let filename_ofv v = OCaml.string_ofv v
-
 let record_check_extra_fields = ref true
 
 module OCamlx = struct
   open OCaml
   module J = JSON
 
-(*
+  (*
 let stag_incorrect_n_args _loc tag _v =
   failwith ("stag_incorrect_n_args on: " ^ tag)
 *)
 
-(*
+  (*
 let unexpected_stag loc v =
   failwith ("unexpected_stag:")
 *)
 
-(*
+  (*
 let record_only_pairs_expected loc v =
   failwith ("record_only_pairs_expected:")
 *)
 
   let record_duplicate_fields _loc _dup_flds _v =
-    failwith ("record_duplicate_fields:")
+    failwith "record_duplicate_fields:"
 
-  let record_extra_fields _loc _flds _v =
-    failwith ("record_extra_fields:")
+  let record_extra_fields _loc _flds _v = failwith "record_extra_fields:"
 
   let record_undefined_elements _loc _v _xs =
-    failwith ("record_undefined_elements:")
+    failwith "record_undefined_elements:"
 
-  let record_list_instead_atom _loc _v =
-    failwith ("record_list_instead_atom:")
+  let record_list_instead_atom _loc _v = failwith "record_list_instead_atom:"
 
-  let tuple_of_size_n_expected  _loc n v =
+  let tuple_of_size_n_expected _loc n v =
     failwith (spf "tuple_of_size_n_expected: %d, got %s" n (Common2.dump v))
 
   let rec json_of_v v =
     match v with
     | VString s -> J.String s
-    | VSum (s, vs) ->J.Array ((J.String s)::(List.map json_of_v vs ))
+    | VSum (s, vs) -> J.Array (J.String s :: List.map json_of_v vs)
     | VTuple xs -> J.Array (xs |> List.map json_of_v)
-    | VDict xs -> J.Object (xs |> List.map (fun (s, v) ->
-      s, json_of_v v
-    ))
+    | VDict xs -> J.Object (xs |> List.map (fun (s, v) -> (s, json_of_v v)))
     | VList xs -> J.Array (xs |> List.map json_of_v)
     | VNone -> J.Null
-    | VSome v -> J.Array [ J.String "Some"; json_of_v v]
-    | VRef v -> J.Array [ J.String "Ref"; json_of_v v]
+    | VSome v -> J.Array [ J.String "Some"; json_of_v v ]
+    | VRef v -> J.Array [ J.String "Ref"; json_of_v v ]
     | VUnit -> J.Null (* ? *)
     | VBool b -> J.Bool b
-
     (* Note that 'Inf' can be used as a constructor but is also recognized
      * by float_of_string as a float (infinity), so when I was implementing
      * this code by reverse engineering the generated sexp, it was important
      * to guard certain code.
-    *)
+     *)
     | VFloat f -> J.Float f
     | VChar c -> J.String (Common2.string_of_char c)
     | VInt i -> J.Int i
     | VTODO _v1 -> J.String "VTODO"
-    | VVar _v1 ->
-        failwith "json_of_v: VVar not handled"
-    | VArrow _v1 ->
-        failwith "json_of_v: VArrow not handled"
+    | VVar _v1 -> failwith "json_of_v: VVar not handled"
+    | VArrow _v1 -> failwith "json_of_v: VArrow not handled"
 
-(*
- * Assumes the json was generated via 'ocamltarzan -choice json_of', which
- * have certain conventions on how to encode variants for instance.
- *)
-  let rec (v_of_json: J.t -> v) = fun j ->
+  (*
+   * Assumes the json was generated via 'ocamltarzan -choice json_of', which
+   * have certain conventions on how to encode variants for instance.
+   *)
+  let rec (v_of_json : J.t -> v) =
+   fun j ->
     match j with
     | J.String s -> VString s
     | J.Int i -> VInt i
     | J.Float f -> VFloat f
     | J.Bool b -> VBool b
     | J.Null -> raise Todo
-
     (* Arrays are used for represent constructors or regular list. Have to
      * go sligtly deeper to disambiguate.
-    *)
-    | J.Array xs ->
-        (match xs with
-         (* VERY VERY UGLY. It is legitimate to have for instance tuples
-          * of strings where the first element is a string that happen to
-          * look like a constructor. With this ugly code we currently
-          * not handle that :(
-          *
-          * update: in the layer json file, one can have a filename
-          * like Makefile and we don't want it to be a constructor ...
-          * so for now I just generate constructors strings like
-          * __Pass so we know it comes from an ocaml constructor.
+     *)
+    | J.Array xs -> (
+        match xs with
+        (* VERY VERY UGLY. It is legitimate to have for instance tuples
+         * of strings where the first element is a string that happen to
+         * look like a constructor. With this ugly code we currently
+         * not handle that :(
+         *
+         * update: in the layer json file, one can have a filename
+         * like Makefile and we don't want it to be a constructor ...
+         * so for now I just generate constructors strings like
+         * __Pass so we know it comes from an ocaml constructor.
          *)
-         | (J.String s)::xs when s =~ "^__\\([A-Z][A-Za-z_]*\\)$" ->
-             let constructor = Common.matched1 s in
-             VSum (constructor, List.map v_of_json  xs)
-         | ys ->
-             VList (ys |> List.map v_of_json)
-        )
+        | J.String s :: xs when s =~ "^__\\([A-Z][A-Za-z_]*\\)$" ->
+            let constructor = Common.matched1 s in
+            VSum (constructor, List.map v_of_json xs)
+        | ys -> VList (ys |> List.map v_of_json))
     | J.Object flds ->
-        VDict (flds |> List.map (fun (s, fld) ->
-          s, v_of_json fld
-        ))
+        VDict (flds |> List.map (fun (s, fld) -> (s, v_of_json fld)))
 
   let save_json file json =
     let s = J.string_of_json json in
     Common.write_file ~file s
-
 end
 
 (* I have not yet an ocamltarzan script for the of_json ... but I have one
  * for of_v, so have to pass through OCaml.v ... ugly
-*)
+ *)
 
 let rec layer_ofv__ =
-  let _loc = "Xxx.layer"
-  in
+  let _loc = "Xxx.layer" in
   function
-  | (OCaml.VDict field_sexps as sexp) ->
-      let title_field = ref None and description_field = ref None
-      and files_field = ref None and kinds_field = ref None
-      and duplicates = ref [] and extra = ref [] in
-      let rec iter =
-        (function
-          | (field_name, field_sexp) :: tail ->
-              ((match field_name with
-                 | "title" ->
-                     (match !title_field with
-                      | None ->
-                          let fvalue = OCaml.string_ofv field_sexp
-                          in title_field := Some fvalue
-                      | Some _ -> duplicates := field_name :: !duplicates)
-                 | "description" ->
-                     (match !description_field with
-                      | None ->
-                          let fvalue = OCaml.string_ofv field_sexp
-                          in description_field := Some fvalue
-                      | Some _ -> duplicates := field_name :: !duplicates)
-                 | "files" ->
-                     (match !files_field with
-                      | None ->
-                          let fvalue =
-                            OCaml.list_ofv
-                              (function
-                                | OCaml.VList ([ v1; v2 ]) ->
-                                    let v1 = filename_ofv v1
-                                    and v2 = file_info_ofv v2
-                                    in (v1, v2)
-                                | sexp ->
-                                    OCamlx.tuple_of_size_n_expected _loc 2 sexp)
-                              field_sexp
-                          in files_field := Some fvalue
-                      | Some _ -> duplicates := field_name :: !duplicates)
-                 | "kinds" ->
-                     (match !kinds_field with
-                      | None ->
-                          let fvalue =
-                            OCaml.list_ofv
-                              (function
-                                | OCaml.VList ([ v1; v2 ]) ->
-                                    let v1 = kind_ofv v1
-                                    and v2 = emacs_color_ofv v2
-                                    in (v1, v2)
-                                | sexp ->
-                                    OCamlx.tuple_of_size_n_expected _loc 2 sexp)
-                              field_sexp
-                          in kinds_field := Some fvalue
-                      | Some _ -> duplicates := field_name :: !duplicates)
-                 | _ ->
-                     if !record_check_extra_fields
-                     then extra := field_name :: !extra
-                     else ());
-               iter tail)
-          | [] -> ())
+  | OCaml.VDict field_sexps as sexp -> (
+      let title_field = ref None
+      and description_field = ref None
+      and files_field = ref None
+      and kinds_field = ref None
+      and duplicates = ref []
+      and extra = ref [] in
+      let rec iter = function
+        | (field_name, field_sexp) :: tail ->
+            (match field_name with
+            | "title" -> (
+                match !title_field with
+                | None ->
+                    let fvalue = OCaml.string_ofv field_sexp in
+                    title_field := Some fvalue
+                | Some _ -> duplicates := field_name :: !duplicates)
+            | "description" -> (
+                match !description_field with
+                | None ->
+                    let fvalue = OCaml.string_ofv field_sexp in
+                    description_field := Some fvalue
+                | Some _ -> duplicates := field_name :: !duplicates)
+            | "files" -> (
+                match !files_field with
+                | None ->
+                    let fvalue =
+                      OCaml.list_ofv
+                        (function
+                          | OCaml.VList [ v1; v2 ] ->
+                              let v1 = filename_ofv v1
+                              and v2 = file_info_ofv v2 in
+                              (v1, v2)
+                          | sexp -> OCamlx.tuple_of_size_n_expected _loc 2 sexp)
+                        field_sexp
+                    in
+                    files_field := Some fvalue
+                | Some _ -> duplicates := field_name :: !duplicates)
+            | "kinds" -> (
+                match !kinds_field with
+                | None ->
+                    let fvalue =
+                      OCaml.list_ofv
+                        (function
+                          | OCaml.VList [ v1; v2 ] ->
+                              let v1 = kind_ofv v1
+                              and v2 = emacs_color_ofv v2 in
+                              (v1, v2)
+                          | sexp -> OCamlx.tuple_of_size_n_expected _loc 2 sexp)
+                        field_sexp
+                    in
+                    kinds_field := Some fvalue
+                | Some _ -> duplicates := field_name :: !duplicates)
+            | _ ->
+                if !record_check_extra_fields then extra := field_name :: !extra
+                else ());
+            iter tail
+        | [] -> ()
       in
-      (iter field_sexps;
-       if !duplicates <> []
-       then OCamlx.record_duplicate_fields _loc !duplicates sexp
-       else
-       if !extra <> []
-       then OCamlx.record_extra_fields _loc !extra sexp
-       else
-         (match ((!title_field), (!description_field), (!files_field),
-                 (!kinds_field))
-          with
-          | (Some title_value, Some description_value,
-             Some files_value, Some kinds_value) ->
-              {
-                title = title_value;
-                description = description_value;
-                files = files_value;
-                kinds = kinds_value;
-              }
-          | _ ->
-              OCamlx.record_undefined_elements _loc sexp
-                [ ((!title_field = None), "title");
-                  ((!description_field = None), "description");
-                  ((!files_field = None), "files");
-                  ((!kinds_field = None), "kinds") ]))
+      iter field_sexps;
+      if !duplicates <> [] then
+        OCamlx.record_duplicate_fields _loc !duplicates sexp
+      else if !extra <> [] then OCamlx.record_extra_fields _loc !extra sexp
+      else
+        match
+          (!title_field, !description_field, !files_field, !kinds_field)
+        with
+        | ( Some title_value,
+            Some description_value,
+            Some files_value,
+            Some kinds_value ) ->
+            {
+              title = title_value;
+              description = description_value;
+              files = files_value;
+              kinds = kinds_value;
+            }
+        | _ ->
+            OCamlx.record_undefined_elements _loc sexp
+              [
+                (!title_field = None, "title");
+                (!description_field = None, "description");
+                (!files_field = None, "files");
+                (!kinds_field = None, "kinds");
+              ])
   | sexp -> OCamlx.record_list_instead_atom _loc sexp
 
 and layer_ofv sexp = layer_ofv__ sexp
+
 and file_info_ofv__ =
-  let _loc = "Xxx.file_info"
-  in
+  let _loc = "Xxx.file_info" in
   function
-  | (OCaml.VDict field_sexps as sexp) ->
-      let micro_level_field = ref None and macro_level_field = ref None
-      and duplicates = ref [] and extra = ref [] in
-      let rec iter =
-        (function
-          | (field_name, field_sexp) :: tail ->
-              ((match field_name with
-                 | "micro_level" ->
-                     (match !micro_level_field with
-                      | None ->
-                          let fvalue =
-                            OCaml.list_ofv
-                              (function
-                                | OCaml.VList ([ v1; v2 ]) ->
-                                    let v1 = OCaml.int_ofv v1
-                                    and v2 = kind_ofv v2
-                                    in (v1, v2)
-                                | sexp ->
-                                    OCamlx.tuple_of_size_n_expected _loc 2 sexp)
-                              field_sexp
-                          in micro_level_field := Some fvalue
-                      | Some _ -> duplicates := field_name :: !duplicates)
-                 | "macro_level" ->
-                     (match !macro_level_field with
-                      | None ->
-                          let fvalue =
-                            OCaml.list_ofv
-                              (function
-                                | OCaml.VList ([ v1; v2 ]) ->
-                                    let v1 = kind_ofv v1
-                                    and v2 = OCaml.float_ofv v2
-                                    in (v1, v2)
-                                | sexp ->
-                                    OCamlx.tuple_of_size_n_expected _loc 2 sexp)
-                              field_sexp
-                          in macro_level_field := Some fvalue
-                      | Some _ -> duplicates := field_name :: !duplicates)
-                 | _ ->
-                     if !record_check_extra_fields
-                     then extra := field_name :: !extra
-                     else ());
-               iter tail)
-          | [] -> ())
+  | OCaml.VDict field_sexps as sexp -> (
+      let micro_level_field = ref None
+      and macro_level_field = ref None
+      and duplicates = ref []
+      and extra = ref [] in
+      let rec iter = function
+        | (field_name, field_sexp) :: tail ->
+            (match field_name with
+            | "micro_level" -> (
+                match !micro_level_field with
+                | None ->
+                    let fvalue =
+                      OCaml.list_ofv
+                        (function
+                          | OCaml.VList [ v1; v2 ] ->
+                              let v1 = OCaml.int_ofv v1 and v2 = kind_ofv v2 in
+                              (v1, v2)
+                          | sexp -> OCamlx.tuple_of_size_n_expected _loc 2 sexp)
+                        field_sexp
+                    in
+                    micro_level_field := Some fvalue
+                | Some _ -> duplicates := field_name :: !duplicates)
+            | "macro_level" -> (
+                match !macro_level_field with
+                | None ->
+                    let fvalue =
+                      OCaml.list_ofv
+                        (function
+                          | OCaml.VList [ v1; v2 ] ->
+                              let v1 = kind_ofv v1
+                              and v2 = OCaml.float_ofv v2 in
+                              (v1, v2)
+                          | sexp -> OCamlx.tuple_of_size_n_expected _loc 2 sexp)
+                        field_sexp
+                    in
+                    macro_level_field := Some fvalue
+                | Some _ -> duplicates := field_name :: !duplicates)
+            | _ ->
+                if !record_check_extra_fields then extra := field_name :: !extra
+                else ());
+            iter tail
+        | [] -> ()
       in
-      (iter field_sexps;
-       if !duplicates <> []
-       then OCamlx.record_duplicate_fields _loc !duplicates sexp
-       else
-       if !extra <> []
-       then OCamlx.record_extra_fields _loc !extra sexp
-       else
-         (match ((!micro_level_field), (!macro_level_field)) with
-          | (Some micro_level_value, Some macro_level_value) ->
-              {
-                micro_level = micro_level_value;
-                macro_level = macro_level_value;
-              }
-          | _ ->
-              OCamlx.record_undefined_elements _loc sexp
-                [ ((!micro_level_field = None), "micro_level");
-                  ((!macro_level_field = None), "macro_level") ]))
+      iter field_sexps;
+      if !duplicates <> [] then
+        OCamlx.record_duplicate_fields _loc !duplicates sexp
+      else if !extra <> [] then OCamlx.record_extra_fields _loc !extra sexp
+      else
+        match (!micro_level_field, !macro_level_field) with
+        | Some micro_level_value, Some macro_level_value ->
+            { micro_level = micro_level_value; macro_level = macro_level_value }
+        | _ ->
+            OCamlx.record_undefined_elements _loc sexp
+              [
+                (!micro_level_field = None, "micro_level");
+                (!macro_level_field = None, "macro_level");
+              ])
   | sexp -> OCamlx.record_list_instead_atom _loc sexp
+
 and file_info_ofv sexp = file_info_ofv__ sexp
-and kind_ofv__ = let _loc = "Xxx.kind" in fun sexp -> OCaml.string_ofv sexp
+
+and kind_ofv__ =
+  let _loc = "Xxx.kind" in
+  fun sexp -> OCaml.string_ofv sexp
+
 and kind_ofv sexp = kind_ofv__ sexp
 
 (*****************************************************************************)
 (* Json *)
 (*****************************************************************************)
 
-let json_of_layer layer =
-  layer |> vof_layer |> OCamlx.json_of_v
-
-let layer_of_json json =
-  json |> OCamlx.v_of_json |> layer_ofv
+let json_of_layer layer = layer |> vof_layer |> OCamlx.json_of_v
+let layer_of_json json = json |> OCamlx.v_of_json |> layer_ofv
 
 (*****************************************************************************)
 (* Load/Save *)
@@ -650,18 +624,18 @@ let layer_of_json json =
 
 (* we allow to save in JSON format because it may be useful to let
  * the user edit the layer file, for instance to adjust the colors.
-*)
+ *)
 let load_layer file =
   (* pr2 (spf "loading layer: %s" file); *)
-  if File_type.is_json_filename file
-  then J.load_json file |> layer_of_json
+  if File_type.is_json_filename file then J.load_json file |> layer_of_json
   else Common2.get_value file
 
 let save_layer layer file =
-  if File_type.is_json_filename file
-  (* layer +> vof_layer +> OCaml.string_of_v +> Common.write_file ~file *)
+  if
+    File_type.is_json_filename file
+    (* layer +> vof_layer +> OCaml.string_of_v +> Common.write_file ~file *)
   then layer |> json_of_layer |> OCamlx.save_json file
-  else  Common2.write_value layer file
+  else Common2.write_value layer file
 
 (*****************************************************************************)
 (* Layer builder helper *)
@@ -670,65 +644,72 @@ let save_layer layer file =
 (* Simple layer builder - group by file, by line, by property.
  * The layer can also be used to summarize statistics per dirs and
  * subdirs and so on.
-*)
-let simple_layer_of_parse_infos ~root ~title ?(description="") xs kinds =
+ *)
+let simple_layer_of_parse_infos ~root ~title ?(description = "") xs kinds =
   let ranks_kinds =
-    kinds |> List.map (fun (k, _color) -> k)
+    kinds
+    |> List.map (fun (k, _color) -> k)
     |> Common.index_list_1 |> Common.hash_of_list
   in
 
   (* group by file, group by line, uniq categ *)
-  let files_and_lines = xs |> List.map (fun (tok, kind) ->
-    let file = Parse_info.file_of_info tok in
-    let line = Parse_info.line_of_info tok in
-    let file' = Common2.relative_to_absolute file in
-    Common.readable ~root file', (line, kind)
-  )
+  let files_and_lines =
+    xs
+    |> List.map (fun (tok, kind) ->
+           let file = Parse_info.file_of_info tok in
+           let line = Parse_info.line_of_info tok in
+           let file' = Common2.relative_to_absolute file in
+           (Common.readable ~root file', (line, kind)))
   in
 
-  let (group_by_file: (Common.filename * (int * kind) list) list) =
+  let (group_by_file : (Common.filename * (int * kind) list) list) =
     Common.group_assoc_bykey_eff files_and_lines
   in
 
   {
-    title = title;
-    description = description;
-    kinds = kinds;
-    files = group_by_file |> List.map (fun (file, lines_and_kinds) ->
+    title;
+    description;
+    kinds;
+    files =
+      group_by_file
+      |> List.map (fun (file, lines_and_kinds) ->
+             let (group_by_line : (int * kind list) list) =
+               Common.group_assoc_bykey_eff lines_and_kinds
+             in
+             let all_kinds_in_file =
+               group_by_line |> List.map snd |> List.flatten |> Common2.uniq
+             in
 
-      let (group_by_line: (int * kind list) list) =
-        Common.group_assoc_bykey_eff lines_and_kinds
-      in
-      let all_kinds_in_file =
-        group_by_line |> List.map snd |> List.flatten |> Common2.uniq in
-
-      (file, {
-         micro_level =
-           group_by_line |> List.map (fun (line, kinds) ->
-             let kinds = Common2.uniq kinds in
-             (* many kinds om same line, keep highest prio *)
-             match kinds with
-             | [] -> raise Impossible
-             | [x] -> line, x
-             | _ ->
-                 let sorted = kinds |> List.map (fun x ->
-                   x, Hashtbl.find ranks_kinds x) |> Common.sort_by_val_lowfirst
-                 in
-                 line, List.hd sorted |> fst
-           );
-
-         macro_level =
-           (* we could give a percentage per kind but right now
-            * we instead give a priority based on the rank of the kinds
-            * in the kind list
-           *)
-           all_kinds_in_file |> List.map (fun kind ->
-             (kind, 1. /. (float_of_int (Hashtbl.find ranks_kinds kind)))
-           )
-       })
-    );
+             ( file,
+               {
+                 micro_level =
+                   group_by_line
+                   |> List.map (fun (line, kinds) ->
+                          let kinds = Common2.uniq kinds in
+                          (* many kinds om same line, keep highest prio *)
+                          match kinds with
+                          | [] -> raise Impossible
+                          | [ x ] -> (line, x)
+                          | _ ->
+                              let sorted =
+                                kinds
+                                |> List.map (fun x ->
+                                       (x, Hashtbl.find ranks_kinds x))
+                                |> Common.sort_by_val_lowfirst
+                              in
+                              (line, List.hd sorted |> fst));
+                 macro_level =
+                   (* we could give a percentage per kind but right now
+                    * we instead give a priority based on the rank of the kinds
+                    * in the kind list
+                    *)
+                   all_kinds_in_file
+                   |> List.map (fun kind ->
+                          ( kind,
+                            1. /. float_of_int (Hashtbl.find ranks_kinds kind)
+                          ));
+               } ));
   }
-
 
 (* old: superseded by Layer_code.layer.files and file_info
  * type stat_per_file =
@@ -758,13 +739,12 @@ let simple_layer_of_parse_infos ~root ~title ?(description="") xs kinds =
  * );
  * Common.write_value h "/tmp/bigh";
  * print_statistics h
-*)
-
+ *)
 
 (* Generates a layer_red_green<output> and layer_heatmap<output> file.
  * Take a list of files with a percentage and possibly micro_level
  * information.
-*)
+ *)
 (*
 let layer_red_green_and_heatmap ~root ~output xs =
   raise Todo
@@ -776,22 +756,16 @@ let layer_red_green_and_heatmap ~root ~output xs =
 
 (* todo? could be useful also to show # of files involved instead of
  * just the line count.
-*)
+ *)
 let stat_of_layer layer =
   let h = Common2.hash_with_default (fun () -> 0) in
 
-  layer.kinds |> List.iter (fun (kind, _color) ->
-    h#add kind 0
-  );
-  layer.files |> List.iter (fun (_file, finfo) ->
-    finfo.micro_level |> List.iter (fun (_line, kind) ->
-      h#update kind (fun old -> old + 1)
-    )
-  );
+  layer.kinds |> List.iter (fun (kind, _color) -> h#add kind 0);
+  layer.files
+  |> List.iter (fun (_file, finfo) ->
+         finfo.micro_level
+         |> List.iter (fun (_line, kind) -> h#update kind (fun old -> old + 1)));
   h#to_list
 
-
 let filter_layer f layer =
-  { layer with
-    files = layer.files |> List.filter (fun (file, _) -> f file);
-  }
+  { layer with files = layer.files |> List.filter (fun (file, _) -> f file) }

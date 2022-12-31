@@ -42,11 +42,9 @@ type special =
 
 type abstract_char_class =
   | Dot (* any character except newline, unless we're in dotall mode *)
-
   | Unicode_character_property of string
-  (* Unicode character property introduced with \p{...}
-     e.g. \p{Meroitic_Hieroglyphs} *)
-
+    (* Unicode character property introduced with \p{...}
+       e.g. \p{Meroitic_Hieroglyphs} *)
   | Extended_grapheme_cluster (* \X *)
 
 (*
@@ -90,14 +88,11 @@ type group_kind =
 
 type t =
   | Empty of loc
-  | Char of loc * char_class
-  (* match a single character from a set *)
-
+  | Char of loc * char_class (* match a single character from a set *)
   | Special of loc * special
-  (* all the backslash sequences like '\A' that don't consume
-     a character. Some of them are assertions, others may modify the
-     behavior of the matching engine. *)
-
+    (* all the backslash sequences like '\A' that don't consume
+       a character. Some of them are assertions, others may modify the
+       behavior of the matching engine. *)
   | Seq of loc * t * t
   | Alt of loc * t * t
   | Repeat of loc * t * repeat_range * matching_pref
@@ -111,8 +106,9 @@ and condition =
   | Num_group_recursion_cond of int
   | Named_group_recursion_cond of string
   | Define
-  | Assertion of t (* must be one of the 4
-                      positive/negative lookahead/lookbehind assertions *)
+  | Assertion of t
+(* must be one of the 4
+   positive/negative lookahead/lookbehind assertions *)
 
 (***************************************************************************)
 (* Constructors, meant for the parser or for testing. *)
@@ -125,7 +121,6 @@ val union : char_class -> char_class -> char_class
 (* Eliminate one of the terms if it's'Empty' since we get that a lot due
    to how parsing is done *)
 val seq : t -> t -> t
-
 val seq_of_list : t list -> t
 val seq_of_code_points : (loc * int) list -> t
 val seq_of_ascii_string : loc -> string -> t
@@ -137,7 +132,6 @@ val seq_of_ascii_string : loc -> string -> t
 val chars_of_ascii_string : string -> char list
 val code_points_of_ascii_string : string -> int list
 val code_points_of_ascii_string_loc : loc -> string -> (loc * int) list
-
 val location : t -> loc
 val location2 : t -> t -> loc
 val range : loc -> loc -> loc

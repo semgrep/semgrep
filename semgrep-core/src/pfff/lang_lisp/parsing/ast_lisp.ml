@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *
-*)
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -27,9 +27,8 @@
 
 type info = Parse_info.t
 type tok = info
-
 type 'a wrap = 'a * tok
-type 'a paren   = tok * 'a * tok
+type 'a paren = tok * 'a * tok
 
 (* ------------------------------------------------------------------------- *)
 (* Sexp *)
@@ -40,16 +39,8 @@ type sexp =
   | Atom of atom
   | Special of special wrap * sexp
 
-and special =
-  | Quote
-  | BackQuote
-  | Comma
-  | At
-
-and atom =
-  | Number of string wrap
-  | String of string wrap
-  | Id of string wrap
+and special = Quote | BackQuote | Comma | At
+and atom = Number of string wrap | String of string wrap | Id of string wrap
 
 (* with tarzan *)
 

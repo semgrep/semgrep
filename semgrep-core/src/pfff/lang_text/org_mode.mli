@@ -1,4 +1,3 @@
-
 type org_line =
   | Header of int * string (* full string, including starting stars *)
   | Comment of string
@@ -6,8 +5,7 @@ type org_line =
 
 type org = org_line list
 
-val parse:
-  Common.filename -> org
+val parse : Common.filename -> org
 
-val highlight:
+val highlight :
   org -> (string * Highlight_code.category option * Common2.filepos) list

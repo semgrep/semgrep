@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Parser_python
 
 (*****************************************************************************)
@@ -23,7 +23,9 @@ let is_eof = function
   | _ -> false
 
 let is_comment = function
-  | TComment _ | TCommentSpace _ -> true
+  | TComment _
+  | TCommentSpace _ ->
+      true
   | _ -> false
 
 (*****************************************************************************)
@@ -31,36 +33,30 @@ let is_comment = function
 (*****************************************************************************)
 
 let visitor_info_of_tok f = function
-
   | TUnknown ii -> TUnknown (f ii)
   | EOF ii -> EOF (f ii)
   | TCommentSpace ii -> TCommentSpace (f ii)
   | TComment ii -> TComment (f ii)
-
   | FSTRING_START ii -> FSTRING_START (f ii)
   | FSTRING_END ii -> FSTRING_END (f ii)
   | FSTRING_LBRACE ii -> FSTRING_LBRACE (f ii)
   | FSTRING_STRING (x, ii) -> FSTRING_STRING (x, f ii)
   | BANG ii -> BANG (f ii)
-
   | NAME (x, ii) -> NAME (x, f ii)
   | INT (x, ii) -> INT (x, f ii)
   | LONGINT (x, ii) -> LONGINT (x, f ii)
   | FLOAT (x, ii) -> FLOAT (x, f ii)
   | IMAG (x, ii) -> IMAG (x, f ii)
   | STR (x, pre, ii) -> STR (x, pre, f ii)
-
   | NONE ii -> NONE (f ii)
   | TRUE ii -> TRUE (f ii)
   | FALSE ii -> FALSE (f ii)
   | ASYNC ii -> ASYNC (f ii)
   | AWAIT ii -> AWAIT (f ii)
   | NONLOCAL ii -> NONLOCAL (f ii)
-
   | ELLIPSES ii -> ELLIPSES (f ii)
   | LDots ii -> LDots (f ii)
   | RDots ii -> RDots (f ii)
-
   | AND ii -> AND (f ii)
   | AS ii -> AS (f ii)
   | ASSERT ii -> ASSERT (f ii)
@@ -92,7 +88,6 @@ let visitor_info_of_tok f = function
   | YIELD ii -> YIELD (f ii)
   | PRINT ii -> PRINT (f ii)
   | EXEC ii -> EXEC (f ii)
-
   | LPAREN ii -> LPAREN (f ii)
   | RPAREN ii -> RPAREN (f ii)
   | LBRACK ii -> LBRACK (f ii)
@@ -138,14 +133,18 @@ let visitor_info_of_tok f = function
   | GT ii -> GT (f ii)
   | LEQ ii -> LEQ (f ii)
   | GEQ ii -> GEQ (f ii)
-
   | INDENT ii -> INDENT (f ii)
   | DEDENT ii -> DEDENT (f ii)
   | NEWLINE ii -> NEWLINE (f ii)
 
 let info_of_tok tok =
   let res = ref None in
-  visitor_info_of_tok (fun ii -> res := Some ii; ii) tok |> ignore;
+  visitor_info_of_tok
+    (fun ii ->
+      res := Some ii;
+      ii)
+    tok
+  |> ignore;
   match !res with
   | Some x -> x
   | None -> Parse_info.unsafe_fake_info "NOTOK"

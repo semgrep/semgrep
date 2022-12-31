@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Parser_sql
 
 (*****************************************************************************)
@@ -21,7 +21,6 @@ open Parser_sql
 let is_eof = function
   | EOF _ -> true
   | _ -> false
-
 
 let visitor_info_of_tok f = function
   | T_SELECT ii -> T_SELECT (f ii)

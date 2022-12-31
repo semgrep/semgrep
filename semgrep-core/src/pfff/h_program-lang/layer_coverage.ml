@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
 
 (*****************************************************************************)
@@ -39,89 +39,89 @@ open Common
 (*****************************************************************************)
 
 let gen_red_green_layer lines_coverage =
-  { Layer_code.
-    title = "Test coverage (red/green)";
+  {
+    Layer_code.title = "Test coverage (red/green)";
     description = "Use information from xdebug";
-    files = lines_coverage |> List.map (fun (file, lines_cover) ->
-      let covered = lines_cover.Coverage_code.covered_sites in
-      let all = lines_cover.Coverage_code.all_sites in
-      let not_covered = Common2.minus_set all covered in
-      let percent =
-        try
-          Common2.pourcent_good_bad
-            (List.length covered) (List.length not_covered)
-        with Division_by_zero -> 0
-      in
-      file,
-      { Layer_code.
-        micro_level =
-          (covered |> List.map (fun line -> line, "ok")) @
-          (not_covered |> List.map (fun line -> line, "bad"))
-        ;
-        macro_level = [
-          (match percent with
-           | 0 -> "no_info"
-           | n when n < 50 -> "bad"
-           | _ -> "ok"
-          ),
-          1.
-        ];
-      }
-    );
+    files =
+      lines_coverage
+      |> List.map (fun (file, lines_cover) ->
+             let covered = lines_cover.Coverage_code.covered_sites in
+             let all = lines_cover.Coverage_code.all_sites in
+             let not_covered = Common2.minus_set all covered in
+             let percent =
+               try
+                 Common2.pourcent_good_bad (List.length covered)
+                   (List.length not_covered)
+               with
+               | Division_by_zero -> 0
+             in
+             ( file,
+               {
+                 Layer_code.micro_level =
+                   (covered |> List.map (fun line -> (line, "ok")))
+                   @ (not_covered |> List.map (fun line -> (line, "bad")));
+                 macro_level =
+                   [
+                     ( (match percent with
+                       | 0 -> "no_info"
+                       | n when n < 50 -> "bad"
+                       | _ -> "ok"),
+                       1. );
+                   ];
+               } ));
     kinds = Layer_code.red_green_properties;
   }
 
-
 (* mostly a copy paste of gen_red_green_layer *)
 let gen_heatmap_layer lines_coverage =
-
-  { Layer_code.
-    title = "Test coverage (heatmap)";
+  {
+    Layer_code.title = "Test coverage (heatmap)";
     description = "Use information from xdebug";
-    files = lines_coverage |> List.map (fun (file, lines_cover) ->
-      let covered = lines_cover.Coverage_code.covered_sites in
-      let all = lines_cover.Coverage_code.all_sites in
-      let not_covered = Common2.minus_set all covered in
-      let percent =
-        try
-          Common2.pourcent_good_bad
-            (List.length covered) (List.length not_covered)
-        with Division_by_zero -> 0
-      in
+    files =
+      lines_coverage
+      |> List.map (fun (file, lines_cover) ->
+             let covered = lines_cover.Coverage_code.covered_sites in
+             let all = lines_cover.Coverage_code.all_sites in
+             let not_covered = Common2.minus_set all covered in
+             let percent =
+               try
+                 Common2.pourcent_good_bad (List.length covered)
+                   (List.length not_covered)
+               with
+               | Division_by_zero -> 0
+             in
 
-      file,
-      { Layer_code.
-        micro_level =
-          (covered |> List.map (fun line -> line, "ok")) @
-          (not_covered |> List.map (fun line -> line, "bad"))
-        ;
-        macro_level = [
-          (let percent_round = (percent / 10) * 10 in
-           spf "cover %d%%" percent_round
-          ),
-          1.
-        ];
-      }
-    );
+             ( file,
+               {
+                 Layer_code.micro_level =
+                   (covered |> List.map (fun line -> (line, "ok")))
+                   @ (not_covered |> List.map (fun line -> (line, "bad")));
+                 macro_level =
+                   [
+                     ( (let percent_round = percent / 10 * 10 in
+                        spf "cover %d%%" percent_round),
+                       1. );
+                   ];
+               } ));
     kinds = Layer_code.heat_map_properties;
   }
-
 
 (*****************************************************************************)
 (* Actions *)
 (*****************************************************************************)
 
-let actions () = [
-  "-gen_red_green_coverage_layer", " <json> <output>",
-  Common.mk_action_2_arg (fun jsonfile output ->
-    let cover = Coverage_code.load_lines_coverage jsonfile in
-    let layer = gen_red_green_layer cover in
-    Layer_code.save_layer layer output
-  );
-  "-gen_heatmap_coverage_layer", " <json> <output>",
-  Common.mk_action_2_arg (fun jsonfile output ->
-    let cover = Coverage_code.load_lines_coverage jsonfile in
-    let layer = gen_heatmap_layer cover in
-    Layer_code.save_layer layer output
-  );
-]
+let actions () =
+  [
+    ( "-gen_red_green_coverage_layer",
+      " <json> <output>",
+      Common.mk_action_2_arg (fun jsonfile output ->
+          let cover = Coverage_code.load_lines_coverage jsonfile in
+          let layer = gen_red_green_layer cover in
+          Layer_code.save_layer layer output) );
+    ( "-gen_heatmap_coverage_layer",
+      " <json> <output>",
+      Common.mk_action_2_arg (fun jsonfile output ->
+          let cover = Coverage_code.load_lines_coverage jsonfile in
+          let layer = gen_heatmap_layer cover in
+          Layer_code.save_layer layer output) );
+  ]

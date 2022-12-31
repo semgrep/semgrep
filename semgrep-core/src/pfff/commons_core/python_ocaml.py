@@ -1,6 +1,3 @@
-
-
-
 #int test
 def reverse_test(xs):
     for i in xs:

@@ -1,6 +1,6 @@
 #! /bin/env python
 
-"""Print the "directory blah" statements necessary for ocamldebug
+r"""Print the "directory blah" statements necessary for ocamldebug
    to find all of the source files under a given root directory.
    We could feasibly just generate the commandline ('-I') parameters,
    but if we have many directories, we might hit the max command

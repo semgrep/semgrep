@@ -1,6 +1,5 @@
 version: 2.1
 jobs:
-
   build:
     docker:
       - image: returntocorp/ocaml:ubuntu

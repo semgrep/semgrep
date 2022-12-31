@@ -11,14 +11,13 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
-
 open Cst_php
 module Ast = Cst_php
 module T = Parser_php
-
-open Entity_code open Highlight_code
+open Entity_code
+open Highlight_code
 module E = Entity_code
 module Db = Database_code
 
@@ -38,7 +37,7 @@ module Db = Database_code
 
 (* todo: should do that generically via the light db.
  * look if def in same file of current file
-*)
+ *)
 (*
 let place_ids current_file ids db =
   match ids with
@@ -68,7 +67,7 @@ let place_ids current_file ids db =
 
 (* obsolete: this is now computed generically in pfff_visual via the light_db
  * in rewrite_categ_using_entities using x.e_number_external_users.
-*)
+ *)
 (*
 let arity_of_number nbuses =
   match nbuses with
@@ -95,12 +94,12 @@ let use_arity_ident_function_or_macro s db =
 
 (* we generate fake value here because the real one are computed in a
  * later phase in rewrite_categ_using_entities in pfff_visual.
-*)
+ *)
 let _fake_no_def2 = NoUse
 let fake_no_use2 = (NoInfoPlace, UniqueDef, MultiUse)
 
 let _highlight_funcall_simple ~tag ~hentities f _args info =
-(*
+  (*
   if Hashtbl.mem Env_php.hdynamic_call_wrappers f
   then begin
     match args with
@@ -116,26 +115,26 @@ let _highlight_funcall_simple ~tag ~hentities f _args info =
   end;
 *)
   (match () with
-   (* security: *)
-(*
+  (* security: *)
+  (*
   | _ when Hashtbl.mem Env_php.hbad_functions f ->
       tag info BadSmell
 *)
-   | _ ->
-       (match Hashtbl.find_all hentities f with
-        | [e] ->
-            let ps = e.Db.e_properties in
-            (* dynamic call *)
-            (if List.mem E.ContainDynamicCall ps
+  | _ -> (
+      match Hashtbl.find_all hentities f with
+      | [ e ] ->
+          let ps = e.Db.e_properties in
+          (* dynamic call *)
+          if
+            List.mem E.ContainDynamicCall ps
             (* todo: should try to find instead which arguments
              * is called dynamically using dataflow analysis
-            *)
-             then tag info PointerCall
-             else tag info (Entity (Function, (Use2 fake_no_use2)))
-            );
+             *)
+          then tag info PointerCall
+          else tag info (Entity (Function, Use2 fake_no_use2));
 
-            (* args by ref *)
-(*
+          (* args by ref *)
+          (*
           ps |> List.iter (function
           | E.TakeArgNByRef i ->
               (try
@@ -149,16 +148,14 @@ let _highlight_funcall_simple ~tag ~hentities f _args info =
           | _ -> raise Todo
           );
 *)
-            ()
-        | _x::_y::_xs ->
-            pr2_once ("highlight_php: multiple entities for: " ^ f);
-            (* todo: place of id *)
-            tag info (Entity (Function, (Use2 fake_no_use2)));
-        | [] ->
-            (* todo: place of id *)
-            tag info (Entity (Function, (Use2 fake_no_use2)));
-       );
-  );
+          ()
+      | _x :: _y :: _xs ->
+          pr2_once ("highlight_php: multiple entities for: " ^ f);
+          (* todo: place of id *)
+          tag info (Entity (Function, Use2 fake_no_use2))
+      | [] ->
+          (* todo: place of id *)
+          tag info (Entity (Function, Use2 fake_no_use2))));
   ()
 
 (*****************************************************************************)
@@ -168,7 +165,7 @@ let _highlight_funcall_simple ~tag ~hentities f _args info =
 (* strings are more than just strings in PHP (and webapps in general) *)
 let tag_string ~tag s ii =
   match s with
-  | s when s =~ "/.*"       -> tag ii EmbededUrl
+  | s when s =~ "/.*" -> tag ii EmbededUrl
   | s when s =~ "[a-z]+://" -> tag ii EmbededUrl
   (* security: html in strings is BAD ! *)
   | s when s =~ "<" -> tag ii BadSmell
@@ -178,11 +175,12 @@ let tag_name ~tag name =
   match name with
   | XName qu ->
       let info = Ast.info_of_qualified_ident qu in
-      tag info (Entity (Class, (Use2 fake_no_use2)));
+      tag info (Entity (Class, Use2 fake_no_use2))
       (* will be highlighted by the 'toks phase 2' *)
-  | Self _tok | Parent _tok -> ()
-  | LateStatic tok ->
-      tag tok BadSmell
+  | Self _tok
+  | Parent _tok ->
+      ()
+  | LateStatic tok -> tag tok BadSmell
 
 let _tag_class_name_reference ~tag qualif =
   match qualif with
@@ -216,23 +214,19 @@ let _tag_class_name_reference ~tag qualif =
  *  - I was using emacs_mode_xxx before but now have inlined the code
  *    and extended it.
  *)
-let visit_program ~tag _prefs  _hentities (ast, toks) =
-
+let visit_program ~tag _prefs _hentities (ast, toks) =
   let already_tagged = Hashtbl.create 101 in
-  let tag = (fun ii categ ->
+  let tag ii categ =
     (* with xhp lots of tokens such as 'var' can also be used
      * as attribute name so we must highlight them with their
      * generic keyword category only if there were not already
      * tagged.
      *
      * The same is true for other kinds of tokens.
-    *)
-    if not (Hashtbl.mem already_tagged ii)
-    then begin
+     *)
+    if not (Hashtbl.mem already_tagged ii) then (
       tag ii categ;
-      Hashtbl.add already_tagged ii true
-    end
-  )
+      Hashtbl.add already_tagged ii true)
   in
 
   (* -------------------------------------------------------------------- *)
@@ -241,36 +235,31 @@ let visit_program ~tag _prefs  _hentities (ast, toks) =
   let rec aux_toks xs =
     match xs with
     | [] -> ()
-
     (* a little bit pad specific *)
-    |   T.T_COMMENT(ii)
-        ::T.TNewline _ii2
-        ::T.T_COMMENT(ii3)
-        ::T.TNewline _ii4
-        ::T.T_COMMENT(ii5)
-        ::xs ->
+    | T.T_COMMENT ii
+      :: T.TNewline _ii2
+      :: T.T_COMMENT ii3
+      :: T.TNewline _ii4
+      :: T.T_COMMENT ii5
+      :: xs ->
         let s = Parse_info.str_of_info ii in
-        let s5 =  Parse_info.str_of_info ii5 in
+        let s5 = Parse_info.str_of_info ii5 in
         (match () with
-         | _ when s =~ ".*\\*\\*\\*\\*" && s5 =~ ".*\\*\\*\\*\\*" ->
-             tag ii CommentEstet;
-             tag ii5 CommentEstet;
-             tag ii3 CommentSection1
-         | _ when s =~ ".*------" && s5 =~ ".*------" ->
-             tag ii CommentEstet;
-             tag ii5 CommentEstet;
-             tag ii3 CommentSection2
-         | _ when s =~ ".*####" && s5 =~ ".*####" ->
-             tag ii CommentEstet;
-             tag ii5 CommentEstet;
-             tag ii3 CommentSection0
-         | _ ->
-             ()
-        );
+        | _ when s =~ ".*\\*\\*\\*\\*" && s5 =~ ".*\\*\\*\\*\\*" ->
+            tag ii CommentEstet;
+            tag ii5 CommentEstet;
+            tag ii3 CommentSection1
+        | _ when s =~ ".*------" && s5 =~ ".*------" ->
+            tag ii CommentEstet;
+            tag ii5 CommentEstet;
+            tag ii3 CommentSection2
+        | _ when s =~ ".*####" && s5 =~ ".*####" ->
+            tag ii CommentEstet;
+            tag ii5 CommentEstet;
+            tag ii3 CommentSection0
+        | _ -> ());
         aux_toks xs
-
-    | _x::xs ->
-        aux_toks xs
+    | _x :: xs -> aux_toks xs
   in
   aux_toks toks;
 
@@ -618,200 +607,242 @@ let visit_program ~tag _prefs  _hentities (ast, toks) =
       visitor (Program ast)
      with Cst_php.TodoNamespace _ -> ()
      );
-  *)
+   *)
 
   (* -------------------------------------------------------------------- *)
   (* toks phase 2 *)
   (* -------------------------------------------------------------------- *)
-  toks |> List.iter (fun tok ->
-    match tok with
-    | T.TNewline _ii | T.TSpaces _ii | T.EOF _ii -> ()
-    (* less: could highlight certain words in the comment? *)
-    | T.T_COMMENT (ii)  | T.T_DOC_COMMENT ii  -> tag ii Comment
-    | T.TCommentPP _ii -> ()
-    | T.TUnknown ii -> tag ii Error
-
-    (* all the name and varname should have been tagged by now. *)
-    | T.T_IDENT (_, ii) | T.T_METAVAR (_, ii) ->
-        if not (Hashtbl.mem already_tagged ii)
-        then tag ii Error
-    (* they should have been covered before *)
-    | T.T_VARIABLE (_, ii) ->
-        if not (Hashtbl.mem already_tagged ii)
-        then tag ii Error
-
-    | T.TOPAR ii   | T.TCPAR ii
-    | T.T_LAMBDA_OPAR ii | T.T_LAMBDA_CPAR ii
-    | T.TOBRACE ii | T.TCBRACE ii
-    | T.TOBRA ii   | T.TCBRA ii
-    | T.TOATTR ii
-      ->tag ii Punctuation
-
-    | T.T_ELLIPSIS ii
-    | T.LDots ii | T.RDots ii
-      -> tag ii Punctuation
-    | T.TANTISLASH ii -> tag ii KeywordModule
-    | T.T_NAMESPACE ii -> tag ii Keyword
-
-    | T.TGUIL ii -> tag ii String
-
-    | T.TDOLLAR ii -> tag ii Punctuation
-    | T.TDOLLARDOLLAR ii -> tag ii Punctuation
-    | T.TSEMICOLON ii -> tag ii Punctuation
-    | T.TBACKQUOTE ii -> tag ii Punctuation
-
-    (* we want to highlight code using eval! *)
-    | T.T_EVAL ii -> tag ii BadSmell
-
-    | T.T_OPEN_TAG ii ->
-        tag ii Keyword
-
-    | T.T_REQUIRE_ONCE ii | T.T_REQUIRE ii
-    | T.T_INCLUDE_ONCE ii | T.T_INCLUDE ii
-      -> tag ii Include
-
-    | T.T_NEW ii | T.T_CLONE ii -> tag ii KeywordObject
-    | T.T_INSTANCEOF ii -> tag ii KeywordObject
-
-    | T.T__AT ii -> tag ii Builtin
-
-    | T.T_IS_NOT_EQUAL ii   | T.T_IS_EQUAL ii
-    | T.T_IS_NOT_IDENTICAL ii  | T.T_IS_IDENTICAL ii
-    | T.T_ROCKET ii
-      -> tag ii Operator
-
-    (* done in Cast *)
-    | T.T_UNSET_CAST _ii   | T.T_OBJECT_CAST _ii
-    | T.T_ARRAY_CAST _ii   | T.T_STRING_CAST _ii
-    | T.T_DOUBLE_CAST _ii   | T.T_INT_CAST _ii
-    | T.T_BOOL_CAST _ii
-      -> ()
-
-    | T.T_IS_GREATER_OR_EQUAL ii  | T.T_IS_SMALLER_OR_EQUAL ii
-    | T.T_SR ii   | T.T_SL ii
-    | T.T_LOGICAL_XOR ii  | T.T_LOGICAL_AND ii
-    | T.T_LOGICAL_OR ii   | T.T_BOOLEAN_AND ii
-    | T.T_BOOLEAN_OR ii
-    | T.T_BOOLEAN_PIPE ii
-    | T.T_DEC ii  | T.T_INC ii
-    | T.T_SR_EQUAL ii   | T.T_SL_EQUAL ii
-    | T.T_XOR_EQUAL ii  | T.T_OR_EQUAL ii  | T.T_AND_EQUAL ii
-    | T.T_MOD_EQUAL ii
-    | T.T_CONCAT_EQUAL ii
-    | T.T_DIV_EQUAL ii  | T.T_MUL_EQUAL ii
-    | T.T_MINUS_EQUAL ii  | T.T_PLUS_EQUAL ii
-    | T.TGREATER ii   | T.TSMALLER ii
-    | T.TEQ ii | T.TXOR ii | T.TOR ii | T.TAND ii
-    | T.TMOD ii | T.TDIV ii | T.TMUL ii | T.TMINUS ii | T.TPLUS ii | T.TPOW ii
-      -> tag ii Operator
-
-    | T.TQUESTION ii  | T.TTILDE ii  | T.TBANG ii  | T.TDOT ii
-    | T.TCOMMA ii  | T.TCOLON ii
-    | T.TCOLCOL ii
-      -> tag ii Punctuation
-
-    | T.T_CURLY_OPEN ii -> tag ii Punctuation
-    | T.T_DOLLAR_OPEN_CURLY_BRACES ii -> tag ii Punctuation
-
-    | T.T_END_HEREDOC ii | T.T_START_HEREDOC ii -> tag ii Punctuation
-    | T.T_CLOSE_TAG_OF_ECHO ii | T.T_OPEN_TAG_WITH_ECHO ii -> tag ii Punctuation
-    | T.T_CLOSE_TAG ii -> tag ii Punctuation
-
-    (* done in PreProcess *)
-    | T.T_FILE _ii  | T.T_LINE _ii | T.T_DIR _ii
-    | T.T_FUNC_C _ii | T.T_METHOD_C _ii | T.T_CLASS_C _ii | T.T_TRAIT_C _ii
-    | T.T_NAMESPACE_C _ii
-      -> ()
-
-    (* can be a type hint *)
-    | T.T_ARRAY ii ->
-        if not (Hashtbl.mem already_tagged ii)
-        then tag ii Builtin
-    | T.T_LIST ii -> tag ii Builtin
-
-    | T.T_ARROW ii ->  tag ii Punctuation
-    | T.T_OBJECT_OPERATOR ii -> tag ii Punctuation
-    | T.T_DOUBLE_ARROW ii -> tag ii Punctuation
-
-    | T.T_CLASS ii | T.T_TRAIT ii | T.T_ENUM ii -> tag ii KeywordObject
-
-    | T.T_IMPLEMENTS ii | T.T_EXTENDS ii | T.T_INTERFACE ii ->
-        tag ii KeywordObject
-
-    | T.T_INSTEADOF ii -> tag ii KeywordObject
-
-    | T.T_TYPE ii -> tag ii Keyword
-
-    | T.T_EMPTY ii  | T.T_ISSET ii | T.T_UNSET ii -> tag ii Builtin
-
-    | T.T_VAR ii -> tag ii Keyword
-    | T.T_PUBLIC ii | T.T_PROTECTED ii | T.T_PRIVATE ii -> tag ii Keyword
-    | T.T_FINAL ii | T.T_ABSTRACT ii -> tag ii KeywordObject
-
-    | T.T_STATIC ii -> tag ii Keyword
-    | T.T_CONST ii -> tag ii Keyword
-
-    | T.T_SELF ii | T.T_PARENT ii ->
-        tag ii (Entity (Class, (Use2 fake_no_use2)));
-
-        (* could be for func or method or lambda so tagged via ast *)
-    | T.T_FUNCTION ii ->
-        if not (Hashtbl.mem already_tagged ii)
-        then tag ii Keyword
-
-    | T.T_AS ii -> tag ii Keyword
-    | T.T_SUPER ii -> tag ii Keyword
-    | T.T_GLOBAL ii -> tag ii Keyword
-    | T.T_USE ii -> tag ii Keyword
-    | T.T_ENDDECLARE ii -> tag ii Keyword
-    | T.T_DECLARE ii -> tag ii Keyword
-    | T.T_EXIT ii -> tag ii Keyword
-
-    | T.T_THROW ii | T.T_CATCH ii | T.T_FINALLY ii
-    | T.T_TRY ii -> tag ii KeywordExn
-    | T.T_RETURN ii | T.T_CONTINUE ii | T.T_BREAK ii | T.T_GOTO ii -> tag ii Keyword
-    | T.T_DEFAULT ii | T.T_CASE ii -> tag ii Keyword
-    | T.T_ENDSWITCH ii | T.T_SWITCH ii -> tag ii KeywordConditional
-
-    | T.T_ENDFOREACH ii | T.T_FOREACH ii
-    | T.T_ENDFOR ii | T.T_FOR ii
-    | T.T_ENDWHILE ii | T.T_WHILE ii
-    | T.T_DO ii
-      -> tag ii KeywordLoop
-
-    | T.T_IF ii | T.T_ELSEIF ii  | T.T_ELSE ii | T.T_ENDIF ii
-      -> tag ii KeywordConditional
-
-    | T.T_PRINT ii | T.T_ECHO ii -> tag ii Builtin
-
-
-    | T.T_YIELD ii  | T.T_FROM ii
-    | T.T_AWAIT ii | T.T_ASYNC ii -> tag ii Keyword
-
-    (* should have been handled in field *)
-    | T.T_STRING_VARNAME _ii -> ()
-
-    | T.T_INLINE_HTML (_, ii) -> tag ii EmbededHtml
-    | T.T_NUM_STRING _ii -> ()
-
-    | T.T_ENCAPSED_AND_WHITESPACE (s, ii) ->
-        if not (Hashtbl.mem already_tagged ii)
-        then tag_string ~tag s ii
-
-    | T.T_CONSTANT_ENCAPSED_STRING (s, ii) ->
-        if not (Hashtbl.mem already_tagged ii)
-        then tag_string ~tag s ii
-
-    (* should been handled in Constant *)
-    | T.T_BOOL _ | T.T_DNUMBER _ | T.T_LNUMBER _ -> ()
-  );
+  toks
+  |> List.iter (fun tok ->
+         match tok with
+         | T.TNewline _ii
+         | T.TSpaces _ii
+         | T.EOF _ii ->
+             ()
+         (* less: could highlight certain words in the comment? *)
+         | T.T_COMMENT ii
+         | T.T_DOC_COMMENT ii ->
+             tag ii Comment
+         | T.TCommentPP _ii -> ()
+         | T.TUnknown ii -> tag ii Error
+         (* all the name and varname should have been tagged by now. *)
+         | T.T_IDENT (_, ii)
+         | T.T_METAVAR (_, ii) ->
+             if not (Hashtbl.mem already_tagged ii) then tag ii Error
+         (* they should have been covered before *)
+         | T.T_VARIABLE (_, ii) ->
+             if not (Hashtbl.mem already_tagged ii) then tag ii Error
+         | T.TOPAR ii
+         | T.TCPAR ii
+         | T.T_LAMBDA_OPAR ii
+         | T.T_LAMBDA_CPAR ii
+         | T.TOBRACE ii
+         | T.TCBRACE ii
+         | T.TOBRA ii
+         | T.TCBRA ii
+         | T.TOATTR ii ->
+             tag ii Punctuation
+         | T.T_ELLIPSIS ii
+         | T.LDots ii
+         | T.RDots ii ->
+             tag ii Punctuation
+         | T.TANTISLASH ii -> tag ii KeywordModule
+         | T.T_NAMESPACE ii -> tag ii Keyword
+         | T.TGUIL ii -> tag ii String
+         | T.TDOLLAR ii -> tag ii Punctuation
+         | T.TDOLLARDOLLAR ii -> tag ii Punctuation
+         | T.TSEMICOLON ii -> tag ii Punctuation
+         | T.TBACKQUOTE ii -> tag ii Punctuation
+         (* we want to highlight code using eval! *)
+         | T.T_EVAL ii -> tag ii BadSmell
+         | T.T_OPEN_TAG ii -> tag ii Keyword
+         | T.T_REQUIRE_ONCE ii
+         | T.T_REQUIRE ii
+         | T.T_INCLUDE_ONCE ii
+         | T.T_INCLUDE ii ->
+             tag ii Include
+         | T.T_NEW ii
+         | T.T_CLONE ii ->
+             tag ii KeywordObject
+         | T.T_INSTANCEOF ii -> tag ii KeywordObject
+         | T.T__AT ii -> tag ii Builtin
+         | T.T_IS_NOT_EQUAL ii
+         | T.T_IS_EQUAL ii
+         | T.T_IS_NOT_IDENTICAL ii
+         | T.T_IS_IDENTICAL ii
+         | T.T_ROCKET ii ->
+             tag ii Operator
+         (* done in Cast *)
+         | T.T_UNSET_CAST _ii
+         | T.T_OBJECT_CAST _ii
+         | T.T_ARRAY_CAST _ii
+         | T.T_STRING_CAST _ii
+         | T.T_DOUBLE_CAST _ii
+         | T.T_INT_CAST _ii
+         | T.T_BOOL_CAST _ii ->
+             ()
+         | T.T_IS_GREATER_OR_EQUAL ii
+         | T.T_IS_SMALLER_OR_EQUAL ii
+         | T.T_SR ii
+         | T.T_SL ii
+         | T.T_LOGICAL_XOR ii
+         | T.T_LOGICAL_AND ii
+         | T.T_LOGICAL_OR ii
+         | T.T_BOOLEAN_AND ii
+         | T.T_BOOLEAN_OR ii
+         | T.T_BOOLEAN_PIPE ii
+         | T.T_DEC ii
+         | T.T_INC ii
+         | T.T_SR_EQUAL ii
+         | T.T_SL_EQUAL ii
+         | T.T_XOR_EQUAL ii
+         | T.T_OR_EQUAL ii
+         | T.T_AND_EQUAL ii
+         | T.T_MOD_EQUAL ii
+         | T.T_CONCAT_EQUAL ii
+         | T.T_DIV_EQUAL ii
+         | T.T_MUL_EQUAL ii
+         | T.T_MINUS_EQUAL ii
+         | T.T_PLUS_EQUAL ii
+         | T.TGREATER ii
+         | T.TSMALLER ii
+         | T.TEQ ii
+         | T.TXOR ii
+         | T.TOR ii
+         | T.TAND ii
+         | T.TMOD ii
+         | T.TDIV ii
+         | T.TMUL ii
+         | T.TMINUS ii
+         | T.TPLUS ii
+         | T.TPOW ii ->
+             tag ii Operator
+         | T.TQUESTION ii
+         | T.TTILDE ii
+         | T.TBANG ii
+         | T.TDOT ii
+         | T.TCOMMA ii
+         | T.TCOLON ii
+         | T.TCOLCOL ii ->
+             tag ii Punctuation
+         | T.T_CURLY_OPEN ii -> tag ii Punctuation
+         | T.T_DOLLAR_OPEN_CURLY_BRACES ii -> tag ii Punctuation
+         | T.T_END_HEREDOC ii
+         | T.T_START_HEREDOC ii ->
+             tag ii Punctuation
+         | T.T_CLOSE_TAG_OF_ECHO ii
+         | T.T_OPEN_TAG_WITH_ECHO ii ->
+             tag ii Punctuation
+         | T.T_CLOSE_TAG ii -> tag ii Punctuation
+         (* done in PreProcess *)
+         | T.T_FILE _ii
+         | T.T_LINE _ii
+         | T.T_DIR _ii
+         | T.T_FUNC_C _ii
+         | T.T_METHOD_C _ii
+         | T.T_CLASS_C _ii
+         | T.T_TRAIT_C _ii
+         | T.T_NAMESPACE_C _ii ->
+             ()
+         (* can be a type hint *)
+         | T.T_ARRAY ii ->
+             if not (Hashtbl.mem already_tagged ii) then tag ii Builtin
+         | T.T_LIST ii -> tag ii Builtin
+         | T.T_ARROW ii -> tag ii Punctuation
+         | T.T_OBJECT_OPERATOR ii -> tag ii Punctuation
+         | T.T_DOUBLE_ARROW ii -> tag ii Punctuation
+         | T.T_CLASS ii
+         | T.T_TRAIT ii
+         | T.T_ENUM ii ->
+             tag ii KeywordObject
+         | T.T_IMPLEMENTS ii
+         | T.T_EXTENDS ii
+         | T.T_INTERFACE ii ->
+             tag ii KeywordObject
+         | T.T_INSTEADOF ii -> tag ii KeywordObject
+         | T.T_TYPE ii -> tag ii Keyword
+         | T.T_EMPTY ii
+         | T.T_ISSET ii
+         | T.T_UNSET ii ->
+             tag ii Builtin
+         | T.T_VAR ii -> tag ii Keyword
+         | T.T_PUBLIC ii
+         | T.T_PROTECTED ii
+         | T.T_PRIVATE ii ->
+             tag ii Keyword
+         | T.T_FINAL ii
+         | T.T_ABSTRACT ii ->
+             tag ii KeywordObject
+         | T.T_STATIC ii -> tag ii Keyword
+         | T.T_CONST ii -> tag ii Keyword
+         | T.T_SELF ii
+         | T.T_PARENT ii ->
+             tag ii (Entity (Class, Use2 fake_no_use2))
+         (* could be for func or method or lambda so tagged via ast *)
+         | T.T_FUNCTION ii ->
+             if not (Hashtbl.mem already_tagged ii) then tag ii Keyword
+         | T.T_AS ii -> tag ii Keyword
+         | T.T_SUPER ii -> tag ii Keyword
+         | T.T_GLOBAL ii -> tag ii Keyword
+         | T.T_USE ii -> tag ii Keyword
+         | T.T_ENDDECLARE ii -> tag ii Keyword
+         | T.T_DECLARE ii -> tag ii Keyword
+         | T.T_EXIT ii -> tag ii Keyword
+         | T.T_THROW ii
+         | T.T_CATCH ii
+         | T.T_FINALLY ii
+         | T.T_TRY ii ->
+             tag ii KeywordExn
+         | T.T_RETURN ii
+         | T.T_CONTINUE ii
+         | T.T_BREAK ii
+         | T.T_GOTO ii ->
+             tag ii Keyword
+         | T.T_DEFAULT ii
+         | T.T_CASE ii ->
+             tag ii Keyword
+         | T.T_ENDSWITCH ii
+         | T.T_SWITCH ii ->
+             tag ii KeywordConditional
+         | T.T_ENDFOREACH ii
+         | T.T_FOREACH ii
+         | T.T_ENDFOR ii
+         | T.T_FOR ii
+         | T.T_ENDWHILE ii
+         | T.T_WHILE ii
+         | T.T_DO ii ->
+             tag ii KeywordLoop
+         | T.T_IF ii
+         | T.T_ELSEIF ii
+         | T.T_ELSE ii
+         | T.T_ENDIF ii ->
+             tag ii KeywordConditional
+         | T.T_PRINT ii
+         | T.T_ECHO ii ->
+             tag ii Builtin
+         | T.T_YIELD ii
+         | T.T_FROM ii
+         | T.T_AWAIT ii
+         | T.T_ASYNC ii ->
+             tag ii Keyword
+         (* should have been handled in field *)
+         | T.T_STRING_VARNAME _ii -> ()
+         | T.T_INLINE_HTML (_, ii) -> tag ii EmbededHtml
+         | T.T_NUM_STRING _ii -> ()
+         | T.T_ENCAPSED_AND_WHITESPACE (s, ii) ->
+             if not (Hashtbl.mem already_tagged ii) then tag_string ~tag s ii
+         | T.T_CONSTANT_ENCAPSED_STRING (s, ii) ->
+             if not (Hashtbl.mem already_tagged ii) then tag_string ~tag s ii
+         (* should been handled in Constant *)
+         | T.T_BOOL _
+         | T.T_DNUMBER _
+         | T.T_LNUMBER _ ->
+             ());
 
   (* -------------------------------------------------------------------- *)
   (* ast phase 2 *)
   (* -------------------------------------------------------------------- *)
   (match ast with
-   | NotParsedCorrectly iis::_ ->
-       iis |> List.iter (fun ii -> tag ii NotParsed)
-   | _ -> ()
-  );
+  | NotParsedCorrectly iis :: _ -> iis |> List.iter (fun ii -> tag ii NotParsed)
+  | _ -> ());
   ()

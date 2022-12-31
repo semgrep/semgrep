@@ -9,7 +9,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *
-*)
+ *)
 
 module PI = Parse_info
 open Parser_java
@@ -23,7 +23,10 @@ let is_eof = function
   | _ -> false
 
 let is_comment = function
-  | TComment _ | TCommentSpace _  | TCommentNewline _ -> true
+  | TComment _
+  | TCommentSpace _
+  | TCommentNewline _ ->
+      true
   | _ -> false
 
 let is_just_comment = function
@@ -34,17 +37,15 @@ let token_kind_of_tok t =
   match t with
   | LC _ -> PI.LBrace
   | RC _ -> PI.RBrace
-
-  | LP _ | LP_LAMBDA _ -> PI.LPar
+  | LP _
+  | LP_LAMBDA _ ->
+      PI.LPar
   | RP _ -> PI.RPar
-
   | LB _ -> PI.LBracket
   | RB _ -> PI.RBracket
-
   | TComment _ -> PI.Esthet PI.Comment
   | TCommentSpace _ -> PI.Esthet PI.Space
   | TCommentNewline _ -> PI.Esthet PI.Newline
-
   | _ -> PI.Other
 
 (*****************************************************************************)
@@ -53,16 +54,14 @@ let token_kind_of_tok t =
 
 (* Because ocamlyacc force us to do it that way. The ocamlyacc token
  * cant be a pair of a sum type, it must be directly a sum type.
-*)
+ *)
 
 (* used by tokens to complete the parse_info with filename, line, col infos *)
 let visitor_info_of_tok f = function
-
   | TUnknown ii -> TUnknown (f ii)
   | TComment ii -> TComment (f ii)
   | TCommentSpace ii -> TCommentSpace (f ii)
   | TCommentNewline ii -> TCommentNewline (f ii)
-
   | TInt (s, ii) -> TInt (s, f ii)
   | TFloat (s, ii) -> TFloat (s, f ii)
   | TChar (s, ii) -> TChar (s, f ii)
@@ -70,14 +69,10 @@ let visitor_info_of_tok f = function
   | TRUE ii -> TRUE (f ii)
   | FALSE ii -> FALSE (f ii)
   | NULL ii -> NULL (f ii)
-
-  | IDENTIFIER (id,ii) -> IDENTIFIER (id, f ii)
+  | IDENTIFIER (id, ii) -> IDENTIFIER (id, f ii)
   | PRIMITIVE_TYPE (s, ii) -> PRIMITIVE_TYPE (s, f ii)
-
   | OPERATOR_EQ (op, ii) -> OPERATOR_EQ (op, f ii)
-
   | COLONCOLON ii -> COLONCOLON (f ii)
-
   (* 3.11 Separators *)
   | LP ii -> LP (f ii)
   | RP ii -> RP (f ii)
@@ -89,7 +84,6 @@ let visitor_info_of_tok f = function
   | SM ii -> SM (f ii)
   | CM ii -> CM (f ii)
   | DOT ii -> DOT (f ii)
-
   (* 3.12 Operators *)
   | EQ ii -> EQ (f ii)
   | GT ii -> GT (f ii)
@@ -120,14 +114,11 @@ let visitor_info_of_tok f = function
   | LS ii -> LS (f ii)
   | SRS ii -> SRS (f ii)
   | URS ii -> URS (f ii)
-
   | AT ii -> AT (f ii)
   | DOTS ii -> DOTS (f ii)
   | LDots ii -> LDots (f ii)
   | RDots ii -> RDots (f ii)
-
   | ARROW ii -> ARROW (f ii)
-
   | VAR ii -> VAR (f ii)
   | ABSTRACT ii -> ABSTRACT (f ii)
   | BREAK ii -> BREAK (f ii)
@@ -170,16 +161,18 @@ let visitor_info_of_tok f = function
   | VOID ii -> VOID (f ii)
   | VOLATILE ii -> VOLATILE (f ii)
   | WHILE ii -> WHILE (f ii)
-
   | ASSERT ii -> ASSERT (f ii)
   | ENUM ii -> ENUM (f ii)
-
   | EOF ii -> EOF (f ii)
-
 
 let info_of_tok tok =
   let res = ref None in
-  visitor_info_of_tok (fun ii -> res := Some ii; ii) tok |> ignore;
+  visitor_info_of_tok
+    (fun ii ->
+      res := Some ii;
+      ii)
+    tok
+  |> ignore;
   match !res with
   | Some x -> x
   | None -> Parse_info.unsafe_fake_info "NOTOK"
@@ -190,7 +183,7 @@ let info_of_tok tok =
 
 (* todo: remove, just use by parse_java.ml checkpoint mechanism that
  * we actually don't use
-*)
+ *)
 let line_of_tok tok =
   let info = info_of_tok tok in
   PI.line_of_info info

@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -45,10 +45,11 @@
  *    But, it supports all the requirements if you know how to use it!
  * => I use easy_logging (actually I use easy_logging_yojson for (6))
  *
-*)
+ *)
 open Easy_logging_yojson
 
 type level = Easy_logging__.Logging_types.level
+
 module Handlers = Easy_logging_yojson.Handlers
 
 class type logger =
@@ -61,13 +62,23 @@ class type logger =
         {[logger#warning "Unexpected value: %s" (to_string my_value)]}
     *)
 
-    method flash : 'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
-    method error : 'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
-    method warning : 'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
-    method info : 'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
-    method trace : 'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
-    method debug : 'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
+    method flash :
+      'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
 
+    method error :
+      'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
+
+    method warning :
+      'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
+
+    method info :
+      'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
+
+    method trace :
+      'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
+
+    method debug :
+      'a. ?tags:string list -> ('a, unit, string, unit) format4 -> 'a
 
     (** {3 Lazy logging methods}
         Each of these methods takes a [string lazy_t] as an input (as well as the optional tags. If the log level of the instance is low enough, the lazy value will forced into a [string], a log item will be created then passed to the handlers.
@@ -90,7 +101,6 @@ class type logger =
         {[logger#sdebug string_variable]}
     *)
 
-
     method sdebug : ?tags:string list -> string -> unit
     method strace : ?tags:string list -> string -> unit
     method sinfo : ?tags:string list -> string -> unit
@@ -98,63 +108,56 @@ class type logger =
     method serror : ?tags:string list -> string -> unit
     method sflash : ?tags:string list -> string -> unit
 
-
     (** {3 Other methods} *)
 
-    method name: string
+    method name : string
     method internal_level : level
 
+    method set_level : level -> unit
     (** Sets the log level of the logger instance. *)
-    method set_level : level  -> unit
 
-    (** Adds a handler to the logger instance. *)
     method add_handler : Handlers.t -> unit
+    (** Adds a handler to the logger instance. *)
 
     method get_handlers : Handlers.t list
     method set_handlers : Handlers.t list -> unit
 
+    method add_tag_generator : (unit -> string) -> unit
     (** Will add a tag to each log message, resulting from the call of the supplied fonction (called each time a message is logged)*)
-    method add_tag_generator: (unit -> string) -> unit
 
-    (** Sets the propagate attribute, which decides whether messages passed to this logger are propagated to its ancestors' handlers. *)
     method set_propagate : bool -> unit
+    (** Sets the propagate attribute, which decides whether messages passed to this logger are propagated to its ancestors' handlers. *)
 
     (** {4 Internal methods} *)
 
+    method get_handlers_propagate : Handlers.t list
     (** Returns the list of handlers of the logger, recursing with parents handlers
         if propagate is true*)
-    method get_handlers_propagate : Handlers.t list
 
-    (** Returns this logger level if it is not [None], else searches amongst ancestors for the first defined level; returns [NoLevel] if no level can be found. *)
     method effective_level : level
-
+    (** Returns this logger level if it is not [None], else searches amongst ancestors for the first defined level; returns [NoLevel] if no level can be found. *)
   end
-
 
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
 let all_loggers = ref ([] : logger list)
-
-let apply_to_all_loggers f =
-  List.iter (fun logger -> f logger) !all_loggers
-
+let apply_to_all_loggers f = List.iter (fun logger -> f logger) !all_loggers
 let get_loggers () = !all_loggers
 
 let set_global_level level =
   apply_to_all_loggers (fun logger -> logger#set_level level)
 
 let add_PID_tag () =
-  let pid_string = Unix.getpid() |> string_of_int in
+  let pid_string = Unix.getpid () |> string_of_int in
   apply_to_all_loggers (fun logger ->
-    logger#add_tag_generator (fun () -> pid_string))
+      logger#add_tag_generator (fun () -> pid_string))
 
 let get_logger xs : logger =
-  let final_name = ("Main"::xs) |> String.concat "." in
+  let final_name = "Main" :: xs |> String.concat "." in
   let logger = Logging.get_logger final_name in
   all_loggers := logger :: !all_loggers;
   logger
 
-let load_config_file file =
-  Logging.load_global_config_file file
+let load_config_file file = Logging.load_global_config_file file

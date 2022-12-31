@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -24,7 +24,7 @@
  * reference: https://golang.org/src/go/ast/ast.go
  *
  * This AST supports also generics (introduced in Go 1.18)
-*)
+ *)
 
 (*****************************************************************************)
 (* Names *)
@@ -36,32 +36,28 @@
 (* Contains among other things the position of the token through
  * the Parse_info.token_location embedded inside it, as well as the
  * transformation field that makes possible spatch on the code.
-*)
-type tok = Parse_info.t
-[@@deriving show] (* with tarzan *)
+ *)
+type tok = Parse_info.t [@@deriving show] (* with tarzan *)
 
 (* a shortcut to annotate some information with token/position information *)
-type 'a wrap = 'a * tok
-[@@deriving show] (* with tarzan *)
+type 'a wrap = 'a * tok [@@deriving show] (* with tarzan *)
 
 (* round(), square[], curly{}, angle<> brackets *)
-type 'a bracket = tok * 'a * tok
-[@@deriving show] (* with tarzan *)
+type 'a bracket = tok * 'a * tok [@@deriving show] (* with tarzan *)
 
 (* ------------------------------------------------------------------------- *)
 (* Ident, qualifier *)
 (* ------------------------------------------------------------------------- *)
 (* For functions/methods/parameters/fields/labels *)
-type ident = string wrap
-[@@deriving show] (* with tarzan *)
+type ident = string wrap [@@deriving show] (* with tarzan *)
 
 (* For type names  (called names in ast.go). It could also be used for
  * imported entities from other module, but they are currently parsed as
  * a Selector (Id, Id) instead of a qualified_ident because of ambiguities
  * that require a semantic analysis to disambiguate.
-*)
-type qualified_ident = ident list (* 1 or 2 elements *)
-[@@deriving show] (* with tarzan *)
+ *)
+type qualified_ident = ident list (* 1 or 2 elements *) [@@deriving show]
+(* with tarzan *)
 
 (*****************************************************************************)
 (* Type *)
@@ -71,48 +67,49 @@ type type_ =
   | TPtr of tok * type_
   (* generics: generalize TArray and TMap to any types.
    * alt: we could merge it with TName
-  *)
+   *)
   | TGeneric of qualified_ident * type_arguments
-
   (* old: a TArray (None) was called a TSlice before *)
   | TArray of expr option bracket * type_
   (* only in CompositeLit (could be rewritten as TArray with static length) *)
   | TArrayEllipsis of tok (* ... *) bracket * type_
-
   | TFunc of func_type
   (* this could be deprecated in favor of TGeneric at some point *)
   | TMap of tok * type_ bracket * type_
   | TChan of tok * chan_dir * type_
-
-  | TStruct    of tok * struct_field list bracket
+  | TStruct of tok * struct_field list bracket
   | TInterface of tok * interface_field list bracket
 
 (* generics: *)
 and type_arguments = type_ list bracket (* at least 1 elt *)
-
 and chan_dir = TSend | TRecv | TBidirectional
-and func_type =  {
-  ftok: (* 'func' *) tok;
-  fparams: parameter_binding list bracket;
-  fresults: parameter_binding list; (* TODO: bracket also here *)
+
+and func_type = {
+  ftok : (* 'func' *) tok;
+  fparams : parameter_binding list bracket;
+  fresults : parameter_binding list; (* TODO: bracket also here *)
 }
+
 and parameter_binding =
   | ParamClassic of parameter
   (* sgrep-ext: *)
   | ParamEllipsis of tok
+
 and parameter = {
-  pname: ident option;
-  ptype: type_;
+  pname : ident option;
+  ptype : type_;
   (* only at last element position *)
-  pdots: tok option;
+  pdots : tok option;
 }
 
 and struct_field = struct_field_kind * tag option
+
 and struct_field_kind =
   | Field of ident * type_ (* could factorize with entity *)
   | EmbeddedField of tok option (* * *) * qualified_ident
   (* sgrep-ext: *)
   | FieldEllipsis of tok
+
 and tag = string wrap
 
 and interface_field =
@@ -127,7 +124,6 @@ and interface_field =
 
 (* the 'type_' below can't be an interface itself and can't be a type param *)
 and constraint_ = tok option (* '~', "underlying" type *) * type_
-
 and expr_or_type = (expr, type_) Common.either
 
 (*****************************************************************************)
@@ -138,60 +134,49 @@ and expr =
   (* less: the type of TarrayEllipsis ( [...]{...}) in a CompositeLit
    *  could be transformed in TArray (length {...}) *)
   | CompositeLit of type_ * init list bracket
-
   (* This Id can actually denotes sometimes a type (e.g., in Arg), or
    * a package (e.g., in Selector).
    * To disambiguate requires semantic information.
    * Selector (Name,'.', ident) can be many things.
-  *)
+   *)
   | Id of ident (* * AST_generic.resolved_name option ref *)
-
   (* A Selector can be a
    *  - a field access of a struct
    *  - a top decl access of a package
    *  - a method access when expr denotes actually a type
    *  - a method value
    * We need more semantic information on expr to know what it is.
-  *)
+   *)
   | Selector of expr * tok * ident
-
   (* valid for TArray, TMap, Tptr, TName ("string") *)
   | Index of expr * index bracket
   (* low, high, max *)
   | Slice of expr * (expr option * expr option * expr option) bracket
-
   | Call of call_expr
   (* note that some Call are really Cast, e.g., uint(1), but we need
    * semantic information to know that. Actually, some Cast
    * such as (Foo)(nil) are unfortunately parsed as Calls, because again
    * you need typing information to know that.
-  *)
+   *)
   | Cast of type_ * expr bracket
-
   (* special cases of Unary *)
   | Deref of tok (* * *) * expr
   (* less: some &T{...} should be transformed in call to new? *)
-  | Ref   of tok (* & *) * expr
+  | Ref of tok (* & *) * expr
   | Receive of tok * expr (* denote a channel *)
-
-  | Unary of         AST_generic_.operator (* +/-/~/! *) wrap * expr
+  | Unary of AST_generic_.operator (* +/-/~/! *) wrap * expr
   | Binary of expr * AST_generic_.operator wrap * expr
-
   (* x.(<type>), panic if false unless used as x, ok = x.(<type>) *)
   | TypeAssert of expr * type_ bracket
   (* x.(type)
    * less: can appear only in a TypeSwitch, so could be moved there *)
   | TypeSwitchExpr of expr * tok (* 'type' *)
-
   | FuncLit of function_
-
   (* only used as an intermediate during parsing, should be converted *)
   | ParenType of type_
-
   (* TODO: move in stmt, but need better comm_clause *)
   (* Send as opposed to Receive is a statement, not an expr *)
   | Send of expr (* denote a channel *) * tok (* <- *) * expr
-
   (* sgrep-ext: *)
   | Ellipsis of tok
   | DeepEllipsis of expr bracket
@@ -209,6 +194,7 @@ and literal =
 
 and index = expr
 and arguments = argument list
+
 and argument =
   (* less: could also use Arg of expr_or_type *)
   | Arg of expr
@@ -229,43 +215,37 @@ and constant_expr = expr
 (*****************************************************************************)
 and stmt =
   | DeclStmts of decl list (* inside a Block *)
-
   | Block of stmt list bracket
   (* less: could be rewritten as Block [] *)
   | Empty
-
   | SimpleStmt of simple
-
-  | If     of tok * simple option (* init *) * expr * stmt * stmt option
+  | If of tok * simple option (* init *) * expr * stmt * stmt option
   (* todo: cond should be an expr, except for TypeSwitch where it can also
    * be x := expr
-  *)
+   *)
   | Switch of tok * simple option (* init *) * simple option * case_clause list
   (* todo: expr should always be a TypeSwitchExpr *)
   (* | TypeSwitch of stmt option * expr (* Assign *) * case_clause list *)
   | Select of tok * comm_clause list
-
   (* note: no While or DoWhile, just For and Foreach (Range) *)
   | For of tok * for_header * stmt
-
   | Return of tok * expr list option
   (* was put together in a Branch in ast.go, but better to split *)
-  | Break    of tok * ident option
+  | Break of tok * ident option
   | Continue of tok * ident option
-  | Goto     of tok * ident
+  | Goto of tok * ident
   | Fallthrough of tok
-
   | Label of ident * stmt
-
-  | Go    of tok * call_expr
+  | Go of tok * call_expr
   | Defer of tok * call_expr
+
 and for_header =
   | ForClassic of simple option * expr option * simple option
   (* todo: should impose (expr * tok * expr option) for key/value *)
   | ForRange of
-      (expr list * tok (* = or := *)) option (* key/value pattern *) *
-      tok (* 'range' *) *
-      expr
+      (expr list * tok (* = or := *)) option (* key/value pattern *)
+      * tok (* 'range' *)
+      * expr
   (* sgrep-ext: *)
   | ForEllipsis of tok
 
@@ -274,13 +254,14 @@ and case_clause =
   | CaseClause of (case_kind * stmt) (* the stmt can be Empty*)
   (* sgrep-ext: *)
   | CaseEllipsis of tok (* 'case' *) * tok (* '...' *)
+
 and case_kind =
   | CaseExprs of tok * expr_or_type list
   | CaseAssign of tok * expr_or_type list * tok (* = or := *) * expr
   | CaseDefault of tok
-  (* TODO: stmt (* Send or Receive *) * stmt (* can be empty *) *)
-and comm_clause = case_clause
+(* TODO: stmt (* Send or Receive *) * stmt (* can be empty *) *)
 
+and comm_clause = case_clause
 and call_expr = expr * type_arguments option (* generics *) * arguments bracket
 
 and simple =
@@ -288,7 +269,7 @@ and simple =
   (* good boy! not an expression but a statement! better! *)
   (* note: lhs and rhs do not always have the same length as in
    *  a,b = foo()
-  *)
+   *)
   | Assign of expr list (* lhs, pattern *) * tok * expr list (* rhs *)
   | AssignOp of expr * AST_generic_.operator wrap * expr
   | IncDec of expr * AST_generic_.incr_decr wrap * AST_generic_.prefix_postfix
@@ -298,30 +279,26 @@ and simple =
 (*****************************************************************************)
 (* Declarations *)
 (*****************************************************************************)
-
 and decl =
   (* consts can have neither a type nor an expr but the expr is usually
    * a copy of the expr of the previous const in a list of consts (e.g., iota),
    * and the grammar imposes that the first const at least has an expr.
    * less: could do this transformation during parsing.
-  *)
+   *)
   | DConst of ident * type_ option * constant_expr option
   (* vars have at least a type or an expr ((None,None) is impossible) *)
-  | DVar   of ident * type_ option * (* = *) expr option (* value *)
-
+  | DVar of ident * type_ option * (* = *) expr option (* value *)
   (* type can be a TStruct to define and name a structure *)
   | DTypeAlias of ident * tok (* = *) * type_
   (* this introduces a distinct type, with different method set *)
   | DTypeDef of ident * type_parameters option (* generics: *) * type_
-  (* with tarzan *)
+(* with tarzan *)
 
 and function_ = func_type * stmt
 
 (* generics: *)
 and type_parameters = type_parameter list bracket (* at least one *)
-and type_parameter = parameter_binding
-
-[@@deriving show { with_path = false }]
+and type_parameter = parameter_binding [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Directives *)
@@ -331,11 +308,8 @@ and type_parameter = parameter_binding
 (* Import *)
 (*****************************************************************************)
 
-type import = {
-  i_tok: tok;
-  i_path: string wrap;
-  i_kind: import_kind;
-}
+type import = { i_tok : tok; i_path : string wrap; i_kind : import_kind }
+
 and import_kind =
   (* basename of i_path is usually the package name *)
   | ImportOrig
@@ -343,7 +317,8 @@ and import_kind =
   | ImportNamed of ident
   (* inline in current file scope all the entities of the imported module *)
   | ImportDot of tok
-[@@deriving show { with_path = false }] (* with tarzan *)
+[@@deriving show { with_path = false }]
+(* with tarzan *)
 
 (*****************************************************************************)
 (* Toplevel *)
@@ -354,34 +329,29 @@ type top_decl =
   (* old: used to be in a record in program *)
   | Package of tok * ident
   | Import of import
-
   (* the 'func' keyword is accessible in function_ in ftok *)
-  | DFunc   of ident * type_parameters option (* generics *) * function_
+  | DFunc of ident * type_parameters option (* generics *) * function_
   | DMethod of ident * parameter (* receiver *) * function_
   | DTop of decl
   (* tree-sitter-go: not used in pfff Go grammar *)
   | STop of stmt
-
-[@@deriving show { with_path = false }] (* with tarzan *)
+[@@deriving show { with_path = false }]
+(* with tarzan *)
 
 (* old: used to be a record with package, imports, and then decls but
  * tree-sitter-go is more flexible and so I put package and imports in
  * top_decl above. Note that this also makes things easier for semgrep
  * by allowing to have a pattern with just a package declaration for example.
-*)
-type program = top_decl list
-[@@deriving show { with_path = false }] (* with tarzan *)
+ *)
+type program = top_decl list [@@deriving show { with_path = false }]
+(* with tarzan *)
 
 (*****************************************************************************)
 (* Any *)
 (*****************************************************************************)
 
 (* this is just for sgrep *)
-type item =
-  | ITop of top_decl
-  | IImport of import
-  | IStmt of stmt
-
+type item = ITop of top_decl | IImport of import | IStmt of stmt
 [@@deriving show { with_path = false }]
 
 type partial =
@@ -389,7 +359,6 @@ type partial =
   | PartialDecl of top_decl
   | PartialInitBraces of init list bracket
   | PartialSingleField of string wrap (* id *) * tok (*:*) * init
-
 [@@deriving show { with_path = false }]
 
 type any =
@@ -399,52 +368,52 @@ type any =
   | Decl of decl
   | I of import
   | P of program
-
   | Ident of ident
   | Ss of stmt list
   | Item of item
   | Items of item list
   | Partial of partial
-
-[@@deriving show { with_path = false }] (* with tarzan *)
+[@@deriving show { with_path = false }]
+(* with tarzan *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let mk_Id id = Id (id (*, ref None*))
+let mk_Id id = Id id (*, ref None*)
 
 let stmt1_with b xs =
   match xs with
   | [] -> Empty
-  | [st] -> st
+  | [ st ] -> st
   | xs -> Block (b xs)
 
 let stmt1 tok xs = stmt1_with (Parse_info.fake_bracket tok) xs
-
 let unsafe_stmt1 xs = stmt1_with Parse_info.unsafe_fake_bracket xs
 
 let item1 xs =
   match xs with
   | [] -> raise Common.Impossible
-  | [x] -> Item x
+  | [ x ] -> Item x
   | xs -> Items xs
 
-let str_of_id (s,_) = s
+let str_of_id (s, _) = s
 
 let package_and_imports_of_program xs =
   let package =
     match xs with
-    | (Package (v1, v2))::_ -> (v1, v2)
+    | Package (v1, v2) :: _ -> (v1, v2)
     | _ -> failwith "first top decl is not a package"
   in
-  let imports = xs |> Common.map_filter (function
-    | Import x -> Some x
-    | _ -> None
-  ) in
-  package, imports
+  let imports =
+    xs
+    |> Common.map_filter (function
+         | Import x -> Some x
+         | _ -> None)
+  in
+  (package, imports)
 
 (* used in parser_go.mly and Parse_go_tree_sitter.ml *)
-let mk_vars_or_consts ?(rev=false) xs type_opt exprs_opt mk_var_or_const =
+let mk_vars_or_consts ?(rev = false) xs type_opt exprs_opt mk_var_or_const =
   let xs = if rev then List.rev xs else xs in
   let ys =
     match exprs_opt with
@@ -453,19 +422,16 @@ let mk_vars_or_consts ?(rev=false) xs type_opt exprs_opt mk_var_or_const =
   in
   (* less: for consts we should copy the last value *)
   let rec aux xs ys =
-    match xs, ys with
+    match (xs, ys) with
     | [], [] -> []
-    | x::xs, [] -> mk_var_or_const x type_opt None :: aux xs ys
-    | x::xs, y::ys -> mk_var_or_const x type_opt (Some y) :: aux xs ys
-    | [], _y::_ys ->
-        failwith "more values than entities"
+    | x :: xs, [] -> mk_var_or_const x type_opt None :: aux xs ys
+    | x :: xs, y :: ys -> mk_var_or_const x type_opt (Some y) :: aux xs ys
+    | [], _y :: _ys -> failwith "more values than entities"
   in
   aux xs ys
 
 let mk_vars ?rev xs type_opt exprs_opt =
-  mk_vars_or_consts ?rev xs type_opt exprs_opt
-    (fun a b c -> DVar (a,b,c))
+  mk_vars_or_consts ?rev xs type_opt exprs_opt (fun a b c -> DVar (a, b, c))
 
 let mk_consts ?rev xs type_opt exprs_opt =
-  mk_vars_or_consts ?rev xs type_opt exprs_opt
-    (fun a b c -> DConst (a,b,c))
+  mk_vars_or_consts ?rev xs type_opt exprs_opt (fun a b c -> DConst (a, b, c))

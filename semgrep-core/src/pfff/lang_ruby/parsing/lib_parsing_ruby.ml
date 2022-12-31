@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *
-*)
+ *)
 
 module FT = File_type
 
@@ -22,7 +22,7 @@ module FT = File_type
 let find_source_files_of_dir_or_files xs =
   Common.files_of_dir_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
-    match File_type.file_type_of_file filename with
-    | FT.PL (FT.Ruby) -> true
-    | _ -> false
-  ) |> Common.sort
+         match File_type.file_type_of_file filename with
+         | FT.PL FT.Ruby -> true
+         | _ -> false)
+  |> Common.sort

@@ -1,2 +1,1 @@
-
-val actions: unit -> Common.cmdline_actions
+val actions : unit -> Common.cmdline_actions

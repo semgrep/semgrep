@@ -11,10 +11,9 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 open Common
-
 
 (*****************************************************************************)
 (* Purpose *)
@@ -42,7 +41,7 @@ let action = ref ""
 (*****************************************************************************)
 
 let main_action file =
-  let (ast2, _stat) = Parse_php.parse file in
+  let ast2, _stat = Parse_php.parse file in
   let ast = Parse_php.program_of_program2 ast2 in
 
   Export_ast_php.show_info := true;
@@ -57,19 +56,16 @@ let main_action file =
 
   ()
 
-
 (*****************************************************************************)
 (* Extra actions *)
 (*****************************************************************************)
-let test_python_gen s =
-  raise Todo
+let test_python_gen s = raise Todo
 (*
   let t = OCaml.get_type s in
   Python_php.generate_classes (s, t)
 *)
 
-let test_python_all () =
-  raise Todo
+let test_python_all () = raise Todo
 (*
   pr (Python_php.prelude);
 
@@ -163,33 +159,26 @@ let test_python_all () =
   ()
 *)
 
-let ffi_extra_actions () = [
-  "-python_gen", "<type>",
-  Common.mk_action_1_arg test_python_gen;
-  "-python_gen_all", "",
-  Common.mk_action_0_arg test_python_all;
-]
+let ffi_extra_actions () =
+  [
+    ("-python_gen", "<type>", Common.mk_action_1_arg test_python_gen);
+    ("-python_gen_all", "", Common.mk_action_0_arg test_python_all);
+  ]
 
 (*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
-let all_actions () =
-  ffi_extra_actions() ++
-  Test_meta_php.actions () ++
-  []
+let all_actions () = ffi_extra_actions () ++ Test_meta_php.actions () ++ []
 
 let options () =
-  [
-    "-verbose", Arg.Set verbose,
-    " ";
-  ] ++
-  Common.options_of_actions action (all_actions()) ++
-  Common.cmdline_flags_devel () ++
-  Common.cmdline_flags_verbose () ++
-  Common.cmdline_flags_other () ++
-  [
-(*
+  [ ("-verbose", Arg.Set verbose, " ") ]
+  ++ Common.options_of_actions action (all_actions ())
+  ++ Common.cmdline_flags_devel ()
+  ++ Common.cmdline_flags_verbose ()
+  ++ Common.cmdline_flags_other ()
+  ++ [
+       (*
   "-version",   Arg.Unit (fun () ->
     pr2 (spf "XXX version: %s" Config.version);
     exit 0;
@@ -197,14 +186,15 @@ let options () =
     "  guess what";
 *)
 
-    (* this can not be factorized in Common *)
-    "-date",   Arg.Unit (fun () ->
-      pr2 "version: $Date: 2008/10/26 00:44:57 $";
-      raise (Common.UnixExit 0)
-    ),
-    "   guess what";
-  ] ++
-  []
+       (* this can not be factorized in Common *)
+       ( "-date",
+         Arg.Unit
+           (fun () ->
+             pr2 "version: $Date: 2008/10/26 00:44:57 $";
+             raise (Common.UnixExit 0)),
+         "   guess what" );
+     ]
+  ++ []
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -212,48 +202,34 @@ let options () =
 
 let main () =
   let usage_msg =
-    "Usage: " ^ Common.basename Sys.argv.(0) ^
-    " [options] <file or dir> " ^ "\n" ^ "Options are:"
+    "Usage: "
+    ^ Common.basename Sys.argv.(0)
+    ^ " [options] <file or dir> " ^ "\n" ^ "Options are:"
   in
   (* does side effect on many global flags *)
-  let args = Common.parse_options (options()) usage_msg Sys.argv in
+  let args = Common.parse_options (options ()) usage_msg Sys.argv in
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Common.profile_code "Main total" (fun () ->
-
-    (match args with
-
-     (* --------------------------------------------------------- *)
-     (* actions, useful to debug subpart *)
-     (* --------------------------------------------------------- *)
-     | xs when List.mem !action (Common.action_list (all_actions())) ->
-         Common.do_action !action xs (all_actions())
-
-     | [] when !action = "-yyy" ->
-         pr2 "yyy"
-
-     | _ when not (Common.null_string !action) ->
-         failwith ("unrecognized action or wrong params: " ^ !action)
-
-     (* --------------------------------------------------------- *)
-     (* main entry *)
-     (* --------------------------------------------------------- *)
-     | x::xs ->
-         main_action x
-
-     (* --------------------------------------------------------- *)
-     (* empty entry *)
-     (* --------------------------------------------------------- *)
-     | [] ->
-         Common.usage usage_msg (options());
-         failwith "too few arguments"
-    )
-  )
-
-
+      match args with
+      (* --------------------------------------------------------- *)
+      (* actions, useful to debug subpart *)
+      (* --------------------------------------------------------- *)
+      | xs when List.mem !action (Common.action_list (all_actions ())) ->
+          Common.do_action !action xs (all_actions ())
+      | [] when !action = "-yyy" -> pr2 "yyy"
+      | _ when not (Common.null_string !action) ->
+          failwith ("unrecognized action or wrong params: " ^ !action)
+      (* --------------------------------------------------------- *)
+      (* main entry *)
+      (* --------------------------------------------------------- *)
+      | x :: xs -> main_action x
+      (* --------------------------------------------------------- *)
+      (* empty entry *)
+      (* --------------------------------------------------------- *)
+      | [] ->
+          Common.usage usage_msg (options ());
+          failwith "too few arguments")
 
 (*****************************************************************************)
-let _ =
-  Common.main_boilerplate (fun () ->
-    main ();
-  )
+let _ = Common.main_boilerplate (fun () -> main ())

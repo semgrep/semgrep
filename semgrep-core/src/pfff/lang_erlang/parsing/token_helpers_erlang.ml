@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Parser_erlang
 
 (*****************************************************************************)
@@ -23,7 +23,10 @@ let is_eof = function
   | _ -> false
 
 let is_comment = function
-  | TComment _ | TCommentSpace _ | TCommentNewline _ -> true
+  | TComment _
+  | TCommentSpace _
+  | TCommentNewline _ ->
+      true
   | TCommentMisc _ -> true
   | _ -> false
 
@@ -36,14 +39,12 @@ let visitor_info_of_tok f = function
   | TCommentNewline ii -> TCommentNewline (f ii)
   | TComment ii -> TComment (f ii)
   | TCommentMisc ii -> TCommentMisc (f ii)
-
   | TInt (s, ii) -> TInt (s, f ii)
   | TFloat (s, ii) -> TFloat (s, f ii)
   | TChar (s, ii) -> TChar (s, f ii)
   | TString (s, ii) -> TString (s, f ii)
   | TIdent (s, ii) -> TIdent (s, f ii)
   | TVariable (s, ii) -> TVariable (s, f ii)
-
   | Tif ii -> Tif (f ii)
   | Tcond ii -> Tcond (f ii)
   | Twhen ii -> Twhen (f ii)
@@ -102,13 +103,15 @@ let visitor_info_of_tok f = function
   | TEq ii -> TEq (f ii)
   | TBang ii -> TBang (f ii)
   | TAssign ii -> TAssign (f ii)
-
-
   | TUnknown ii -> TUnknown (f ii)
   | EOF ii -> EOF (f ii)
 
-
 let info_of_tok tok =
   let res = ref None in
-  visitor_info_of_tok (fun ii -> res := Some ii; ii) tok |> ignore;
+  visitor_info_of_tok
+    (fun ii ->
+      res := Some ii;
+      ii)
+    tok
+  |> ignore;
   Common2.some !res

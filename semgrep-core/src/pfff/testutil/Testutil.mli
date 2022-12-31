@@ -56,7 +56,6 @@ type test = string * (unit -> unit)
      ["do something"], test_do_something;
 *)
 val pack_tests : string -> test list -> test list
-
 val pack_suites : string -> test list list -> test list
 
 (*

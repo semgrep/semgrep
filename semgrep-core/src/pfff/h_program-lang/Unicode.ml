@@ -10,7 +10,4 @@ let input_all ic =
 
 let input_and_replace_non_ascii ~replacement_byte ic =
   input_all ic
-  |> String.map (fun c ->
-    if Char.code c >= 128 then replacement_byte
-    else c
-  )
+  |> String.map (fun c -> if Char.code c >= 128 then replacement_byte else c)

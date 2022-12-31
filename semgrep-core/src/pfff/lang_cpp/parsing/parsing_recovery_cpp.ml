@@ -12,12 +12,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *
-*)
+ *)
 open Common
-
 module Flag = Flag_parsing
 module PI = Parse_info
-
 module T = Parser_cpp
 module TH = Token_helpers_cpp
 
@@ -25,8 +23,7 @@ module TH = Token_helpers_cpp
 (* Wrappers *)
 (*****************************************************************************)
 let pr2_err, _pr2_once = Common2.mk_pr2_wrappers Flag.verbose_parsing
-
-let pr2_err s = pr2_err ("ERROR_RECOV: " ^s)
+let pr2_err s = pr2_err ("ERROR_RECOV: " ^ s)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -38,7 +35,6 @@ let pr2_err s = pr2_err ("ERROR_RECOV: " ^s)
 
 (* todo: do something if find T.Eof ? *)
 let rec find_next_synchro ~next ~already_passed =
-
   (* Maybe because not enough }, because for example an ifdef contains
    * in both branch some opening {, we later eat too much, "on deborde
    * sur la fonction d'apres". So already_passed may be too big and
@@ -55,87 +51,64 @@ let rec find_next_synchro ~next ~already_passed =
    *
    * I have chosen to start search for next synchro point after the
    * first { I found, so quite sure we will not loop. *)
-
   let last_round = List.rev already_passed in
   let is_define =
     let xs = last_round |> List.filter TH.is_not_comment in
     match xs with
-    | T.TDefine _::_ -> true
+    | T.TDefine _ :: _ -> true
     | _ -> false
   in
-  if is_define
-  then find_next_synchro_define (last_round @ next) []
+  if is_define then find_next_synchro_define (last_round @ next) []
   else
-
-    let (before, after) =
-      last_round |> Common.span (fun tok ->
-        match tok with
-        (* by looking at TOBrace we are sure that the "start of something"
-         * will not arrive too early
-        *)
-        | T.TOBrace _ -> false
-        | T.TDefine _ -> false
-        | _ -> true
-      )
+    let before, after =
+      last_round
+      |> Common.span (fun tok ->
+             match tok with
+             (* by looking at TOBrace we are sure that the "start of something"
+              * will not arrive too early
+              *)
+             | T.TOBrace _ -> false
+             | T.TDefine _ -> false
+             | _ -> true)
     in
-    find_next_synchro_orig (after @ next)  (List.rev before)
-
-
+    find_next_synchro_orig (after @ next) (List.rev before)
 
 and find_next_synchro_define next already_passed =
   match next with
   | [] ->
       pr2_err "end of file while in recovery mode";
-      already_passed, []
-  | (T.TCommentNewline_DefineEndOfMacro _ as v)::xs  ->
+      (already_passed, [])
+  | (T.TCommentNewline_DefineEndOfMacro _ as v) :: xs ->
       pr2_err (spf "found sync end of #define  at line %d" (TH.line_of_tok v));
-      v::already_passed, xs
-  | v::xs ->
-      find_next_synchro_define xs (v::already_passed)
-
-
-
+      (v :: already_passed, xs)
+  | v :: xs -> find_next_synchro_define xs (v :: already_passed)
 
 and find_next_synchro_orig next already_passed =
   match next with
   | [] ->
       pr2_err "end of file while in recovery mode";
-      already_passed, []
-
-  | (T.TCBrace i as v)::xs when PI.col_of_info i = 0 ->
+      (already_passed, [])
+  | (T.TCBrace i as v) :: xs when PI.col_of_info i = 0 -> (
       pr2_err (spf "found sync '}' at line %d" (PI.line_of_info i));
 
-      (match xs with
-       | [] -> raise Impossible (* there is a EOF token normally *)
-
-       (* still useful: now parser.mly allow empty ';' so normally no pb *)
-       | T.TPtVirg iptvirg::xs ->
-           pr2_err "found sync bis, eating } and ;";
-           (T.TPtVirg iptvirg)::v::already_passed, xs
-
-       | T.TIdent x::T.TPtVirg iptvirg::xs ->
-           pr2_err "found sync bis, eating ident, }, and ;";
-           (T.TPtVirg iptvirg)::(T.TIdent x)::v::already_passed,
-           xs
-
-       | T.TCommentSpace sp::T.TIdent x::T.TPtVirg iptvirg
-         ::xs ->
-           pr2_err "found sync bis, eating ident, }, and ;";
-           (T.TCommentSpace sp)::
-           (T.TPtVirg iptvirg)::
-           (T.TIdent x)::
-           v::
-           already_passed,
-           xs
-
-       | _ ->
-           v::already_passed, xs
-      )
-  | v::xs ->
+      match xs with
+      | [] -> raise Impossible (* there is a EOF token normally *)
+      (* still useful: now parser.mly allow empty ';' so normally no pb *)
+      | T.TPtVirg iptvirg :: xs ->
+          pr2_err "found sync bis, eating } and ;";
+          (T.TPtVirg iptvirg :: v :: already_passed, xs)
+      | T.TIdent x :: T.TPtVirg iptvirg :: xs ->
+          pr2_err "found sync bis, eating ident, }, and ;";
+          (T.TPtVirg iptvirg :: T.TIdent x :: v :: already_passed, xs)
+      | T.TCommentSpace sp :: T.TIdent x :: T.TPtVirg iptvirg :: xs ->
+          pr2_err "found sync bis, eating ident, }, and ;";
+          ( T.TCommentSpace sp :: T.TPtVirg iptvirg :: T.TIdent x :: v
+            :: already_passed,
+            xs )
+      | _ -> (v :: already_passed, xs))
+  | v :: xs ->
       let info = TH.info_of_tok v in
-      if PI.col_of_info info = 0 && TH.is_start_of_something v
-      then begin
+      if PI.col_of_info info = 0 && TH.is_start_of_something v then (
         pr2_err (spf "found sync col 0 at line %d " (PI.line_of_info info));
-        already_passed, v::xs
-      end
-      else find_next_synchro_orig xs (v::already_passed)
+        (already_passed, v :: xs))
+      else find_next_synchro_orig xs (v :: already_passed)
