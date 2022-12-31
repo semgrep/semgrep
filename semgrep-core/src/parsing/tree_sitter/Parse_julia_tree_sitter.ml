@@ -242,11 +242,11 @@ let map_prefixed_command_literal (env : env)
   *)
   let v1 = map_identifier_exp env v1 in
   let ((s2, t2) as v2) = (* immediate_command_start *) str env v2 in
-  let v3 = List.map (map_anon_choice_str_content_no_interp_24ac4f9 env) v3 in
+  let v3 = Common.map (map_anon_choice_str_content_no_interp_24ac4f9 env) v3 in
   let s4, t4 = (* command_end *) str env v4 in
   let cmd_id =
-    ( s2 ^ String.concat "" (List.map fst v3) ^ s4,
-      Parse_info.combine_infos t2 (List.map snd v3 @ [ t4 ]) )
+    ( s2 ^ String.concat "" (Common.map fst v3) ^ s4,
+      Parse_info.combine_infos t2 (Common.map snd v3 @ [ t4 ]) )
   in
   let v5 =
     match v5 with
@@ -259,10 +259,10 @@ let map_prefixed_string_literal (env : env)
     ((v1, v2, v3, v4, v5) : CST.prefixed_string_literal) =
   let v1 = map_identifier env v1 in
   let s2, t2 = (* immediate_string_start *) str env v2 in
-  let v3 = List.map (map_anon_choice_str_content_no_interp_24ac4f9 env) v3 in
+  let v3 = Common.map (map_anon_choice_str_content_no_interp_24ac4f9 env) v3 in
   let s4, t4 = (* string_end *) str env v4 in
-  let tok = Parse_info.combine_infos t2 (List.map snd v3 @ [ t4 ]) in
-  let s = s2 ^ String.concat "" (List.map fst v3) ^ s4 in
+  let tok = Parse_info.combine_infos t2 (Common.map snd v3 @ [ t4 ]) in
+  let s = s2 ^ String.concat "" (Common.map fst v3) ^ s4 in
   let v5 =
     match v5 with
     | Some tok -> [ G.I (map_identifier env tok) ]
@@ -419,7 +419,7 @@ and map_anon_choice_exp_rep_COMMA_choice_exp_7e6cb67 (env : env)
     argument list =
   let v1 = map_anon_choice_exp_91c2553 env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_anon_choice_exp_91c2553 env v2 in
@@ -432,7 +432,7 @@ and map_anon_choice_exp_rep_COMMA_choice_exp_7e6cb67_exp (env : env)
     ((v1, v2) : CST.anon_choice_exp_rep_COMMA_choice_exp_7e6cb67) : expr list =
   let v1 = map_anon_choice_exp_91c2553_exp env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_anon_choice_exp_91c2553_exp env v2 in
@@ -698,7 +698,7 @@ and map_argument_list (env : env) ((v1, v2, v3, v4, v5) : CST.argument_list) :
             (v1, v2, v3) ->
             let v1 = map_anon_choice_exp_91c2553 env v1 in
             let v2 =
-              List.map
+              Common.map
                 (fun (v1, v2) ->
                   let v1 = (* "," *) token env v1 in
                   let v2 = map_anon_choice_exp_91c2553 env v2 in
@@ -769,7 +769,7 @@ and map_assignment_exp (env : env) ((v1, v2, v3) : CST.assignment) : expr =
 and map_bare_tuple (env : env) ((v1, v2) : CST.bare_tuple) : expr list =
   let v1 = map_expression env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_expression env v2 in
@@ -899,7 +899,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
 and map_block (env : env) ((v1, v2, v3) : CST.block) =
   let v1 = map_anon_choice_exp_c681153 env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = map_terminator env v1 in
         let v2 = map_anon_choice_exp_c681153 env v2 in
@@ -971,7 +971,7 @@ and map_closed_macrocall_expression (env : env)
 
 and map_command_literal (env : env) ((v1, v2, v3) : CST.command_literal) =
   let s, v1 = (* command_start *) str env v1 in
-  let v2 = List.map (map_anon_choice_str_content_838a78d env) v2 in
+  let v2 = Common.map (map_anon_choice_str_content_838a78d env) v2 in
   let v3 = (* command_end *) token env v3 in
   OtherExpr ((s, v1), [ G.E (G.interpolated (v1, v2, v3)) ]) |> G.e
 
@@ -984,7 +984,7 @@ and map_comprehension_clause (env : env)
     | Some (v1, v2) ->
         let v1 = map_anon_choice_for_clause_4e31839 env v1 in
         let v2 =
-          List.map
+          Common.map
             (fun (v1, v2) ->
               let _v1 = map_newline_opt env v1 in
               let v2 = map_anon_choice_for_clause_4e31839 env v2 in
@@ -1014,7 +1014,7 @@ and map_type_parameter_list (env : env)
     | Some (v1, v2) ->
         let v1 = map_type_parameter env v1 in
         let v2 =
-          List.map
+          Common.map
             (fun (v1, v2) ->
               let v1 = (* "," *) token env v1 in
               let v2 = map_type_parameter env v2 in
@@ -1135,7 +1135,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
               DefStmt (ent, FuncDef fun_def) |> G.s
           | `Param_list_rep_where_clause (v1, v2) ->
               let _, fparams, _ = map_parameter_list env v1 in
-              let v2 = List.map (map_where_clause env) v2 in
+              let v2 = Common.map (map_where_clause env) v2 in
               (* I don't really have anywhere else to put this "where" in a lambda, so let's just
                   add it as a return type (which otherwise is not specified).
                   Note that this doesn't actually make sense. The "where" is a restriction on
@@ -1203,7 +1203,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       let v3 = (* immediate_paren *) token env v3 in
       let _, v4, _ = map_parameter_list env v4 in
       let macroparams =
-        List.map
+        Common.map
           (function
             | Param { pname = Some id; _ } -> Some id
             (* TODO: Accommodate this, macros currently just can't take in arguments which are not idents...
@@ -1247,7 +1247,7 @@ and map_do_parameter_list (env : env) ((v1, v2) : CST.do_parameter_list) :
     | Some (v1, v2) ->
         let v1 = map_anon_choice_id_6965274 env v1 in
         let v2 =
-          List.map
+          Common.map
             (fun (v1, v2) ->
               let v1 = (* "," *) token env v1 in
               let v2 = map_anon_choice_id_6965274 env v2 in
@@ -1429,7 +1429,7 @@ and map_for_clause (env : env) ((v1, v2, v3) : CST.for_clause) =
   let v1 = (* "for" *) token env v1 in
   let v2 = map_for_binding env v2 in
   let v3 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_for_binding env v2 in
@@ -1441,7 +1441,7 @@ and map_for_clause (env : env) ((v1, v2, v3) : CST.for_clause) =
 and map_function_signature ~body ~func_tok (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.function_signature) =
   let ent =
-    let attrs = List.map (map_where_clause env) v6 in
+    let attrs = Common.map (map_where_clause env) v6 in
     let tparams =
       match v2 with
       | Some (v1, v2) ->
@@ -1523,7 +1523,7 @@ and map_import_alias (env : env) ((v1, v2, v3) : CST.import_alias) :
 and map_import_list ~import_tok (env : env) ((v1, v2) : CST.import_list) =
   let v1 = map_anon_choice_impo_a542259 ~import_tok env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_anon_choice_impo_a542259 ~import_tok env v2 in
@@ -1539,7 +1539,7 @@ and map_importable (env : env) (x : CST.importable) : ident list option =
       let* dotted = map_scoped_identifier_closed env x in
       Some dotted
   | `Rela_qual (v1, v2) ->
-      let v1 = List.map (str env (* "." *)) v1 in
+      let v1 = Common.map (str env (* "." *)) v1 in
       let* v2 = map_anon_choice_id_f1f5a37_closed env v2 in
       Some (v1 @ v2)
   | `LPAR_choice_id_RPAR (v1, v2, v3) ->
@@ -1592,7 +1592,7 @@ and map_keyword_parameters (env : env)
   let v1 = (* ";" *) token env v1 in
   let v2 = map_anon_choice_id_687d935 env v2 in
   let v3 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_anon_choice_id_687d935 env v2 in
@@ -1656,7 +1656,7 @@ and map_matrix_expression (env : env)
     | `Matrix_row_rep_choice_LF_opt_LF_matrix_row (v1, v2) ->
         let v1 = map_matrix_row env v1 in
         let v2 =
-          List.map
+          Common.map
             (fun (v1, v2, v3) ->
               let v1 = map_terminator env v1 in
               let v2 = map_newline_opt env v2 in
@@ -1724,7 +1724,7 @@ and map_parameter_list (env : env) ((v1, v2, v3, v4, v5) : CST.parameter_list) :
     | Some (v1, v2) ->
         let v1 = map_anon_choice_id_c087cf9 env v1 in
         let v2 =
-          List.map
+          Common.map
             (fun (v1, v2) ->
               let v1 = (* "," *) token env v1 in
               let v2 = map_anon_choice_id_c087cf9 env v2 in
@@ -1807,7 +1807,7 @@ and map_quotable (env : env) (x : CST.quotable) : expr =
       let v1 = (* "(" *) token env v1 in
       let v2 = map_anon_choice_decl_f2ab0d0 env v2 in
       let v3 =
-        List.map
+        Common.map
           (fun (v1, v2) ->
             let v1 = (* ";" *) token env v1 in
             let v2 = map_anon_choice_decl_f2ab0d0 env v2 in
@@ -1866,7 +1866,7 @@ and map_selected_import ~import_tok (env : env)
   let v2 = map_imm_tok_colon env v2 in
   let* v3 = map_import_subject env v3 in
   let v4 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_import_subject env v2 in
@@ -1928,7 +1928,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
         | Some (v1, v2) ->
             let v1 = map_anon_choice_id_c313bb1 env v1 in
             let v2 =
-              List.map
+              Common.map
                 (fun (v1, v2) ->
                   let v1 = (* "," *) token env v1 in
                   let v2 = map_anon_choice_id_c313bb1 env v2 in
@@ -1948,7 +1948,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
       let _v3 = map_terminator_opt env v3 in
       let v4 = map_source_file_stmt env v4 in
       let elses =
-        let v5 = List.map (map_elseif_clause env) v5 in
+        let v5 = Common.map (map_elseif_clause env) v5 in
         let v6 =
           match v6 with
           | Some x -> Some (map_else_clause env x)
@@ -1975,7 +1975,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
       let header =
         let v2 = map_for_binding env v2 in
         let v3 =
-          List.map
+          Common.map
             (fun (v1, v2) ->
               let _v1 = (* "," *) token env v1 in
               let v2 = map_for_binding env v2 in
@@ -2034,7 +2034,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
           map_import_list ~import_tok:v1 env x
           (* Filter map here, as unrelated imports need not interfere with each other. *)
           |> List.filter_map Fun.id
-          |> List.map (fun dk -> DirectiveStmt (dk |> G.d) |> G.s)
+          |> Common.map (fun dk -> DirectiveStmt (dk |> G.d) |> G.s)
       | `Sele_import x -> (
           match map_selected_import ~import_tok:v1 env x with
           | None -> []
@@ -2043,7 +2043,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
 
 and map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) : expr =
   let v1 = (* string_start *) token env v1 in
-  let v2 = List.map (map_anon_choice_str_content_838a78d env) v2 in
+  let v2 = Common.map (map_anon_choice_str_content_838a78d env) v2 in
   let v3 = (* string_end *) token env v3 in
   G.interpolated (v1, v2, v3)
 
@@ -2064,7 +2064,7 @@ and map_tuple_expression (env : env) ((v1, v2, v3) : CST.tuple_expression) :
             let contents =
               let v1 = map_anon_choice_exp_91c2553_exp env v1 in
               let v2 =
-                List.map
+                Common.map
                   (fun (v1, v2) ->
                     let v1 = (* "," *) token env v1 in
                     let v2 = map_anon_choice_exp_91c2553_exp env v2 in
@@ -2094,7 +2094,7 @@ and map_tuple_expression (env : env) ((v1, v2, v3) : CST.tuple_expression) :
             let v1 = (* ";" *) token env v1 in
             let v2 = map_anon_choice_exp_91c2553_exp env v2 in
             let v3 =
-              List.map
+              Common.map
                 (fun (v1, v2) ->
                   let v1 = (* "," *) token env v1 in
                   let v2 = map_anon_choice_exp_91c2553_exp env v2 in
