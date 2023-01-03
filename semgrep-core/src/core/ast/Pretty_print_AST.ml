@@ -74,6 +74,9 @@ let print_bool env = function
   | true -> (
       match env.lang with
       | Lang.Dart
+      | Lang.Clojure
+      | Lang.Lisp
+      | Lang.Scheme
       | Lang.Julia ->
           raise Todo
       | Lang.Python
@@ -112,6 +115,9 @@ let print_bool env = function
   | false -> (
       match env.lang with
       | Lang.Dart
+      | Lang.Clojure
+      | Lang.Lisp
+      | Lang.Scheme
       | Lang.Julia ->
           raise Todo
       | Lang.Python
@@ -241,6 +247,9 @@ and if_stmt env level (tok, e, s, sopt) =
   let format_cond, elseif_str, format_block =
     match env.lang with
     | Lang.Dart
+    | Lang.Clojure
+    | Lang.Lisp
+    | Lang.Scheme
     | Lang.Julia
     | Lang.Elixir
     | Lang.Bash
@@ -308,6 +317,9 @@ and while_stmt env level (tok, e, s) =
   let while_format =
     match env.lang with
     | Lang.Dart
+    | Lang.Clojure
+    | Lang.Lisp
+    | Lang.Scheme
     | Lang.Julia
     | Lang.Elixir
     | Lang.Bash
@@ -351,6 +363,9 @@ and do_while stmt env level (s, e) =
   let do_while_format =
     match env.lang with
     | Lang.Dart
+    | Lang.Clojure
+    | Lang.Lisp
+    | Lang.Scheme
     | Lang.Julia
     | Lang.Elixir
     | Lang.Bash
@@ -393,6 +408,9 @@ and for_stmt env level (for_tok, hdr, s) =
   let for_format =
     match env.lang with
     | Lang.Dart
+    | Lang.Clojure
+    | Lang.Lisp
+    | Lang.Scheme
     | Lang.Julia
     | Lang.Elixir
     | Lang.Bash
@@ -472,6 +490,9 @@ and def_stmt env (entity, def_kind) =
     let no_val, with_val =
       match env.lang with
       | Lang.Dart
+      | Lang.Clojure
+      | Lang.Lisp
+      | Lang.Scheme
       | Lang.Julia
       | Lang.Elixir
       | Lang.Bash
@@ -543,6 +564,9 @@ and return env (tok, eopt) _sc =
   in
   match env.lang with
   | Lang.Dart
+  | Lang.Clojure
+  | Lang.Lisp
+  | Lang.Scheme
   | Lang.Julia
   | Lang.Elixir
   | Lang.Bash
@@ -589,6 +613,9 @@ and break env (tok, lbl) _sc =
   in
   match env.lang with
   | Lang.Dart
+  | Lang.Clojure
+  | Lang.Lisp
+  | Lang.Scheme
   | Lang.Julia
   | Lang.Elixir
   | Lang.Bash
@@ -635,6 +662,9 @@ and continue env (tok, lbl) _sc =
   in
   match env.lang with
   | Lang.Dart
+  | Lang.Clojure
+  | Lang.Lisp
+  | Lang.Scheme
   | Lang.Julia
   | Lang.Elixir
   | Lang.Bash
@@ -753,6 +783,9 @@ and literal env l =
   | String (s, _) -> (
       match env.lang with
       | Lang.Dart
+      | Lang.Clojure
+      | Lang.Lisp
+      | Lang.Scheme
       | Lang.Julia
       | Lang.Elixir
       | Lang.Bash

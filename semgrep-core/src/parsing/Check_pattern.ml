@@ -12,6 +12,9 @@ let lang_has_no_dollar_ids =
     | Cpp
     | Dart
     | Julia
+    | Clojure
+    | Lisp
+    | Scheme
     | Ocaml
     | Json
     | Jsonnet
