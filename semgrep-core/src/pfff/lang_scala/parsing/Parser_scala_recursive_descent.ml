@@ -90,7 +90,7 @@ type env = {
   (* imitating the Scala implementation *)
   mutable token: T.token;
 
-  (** a stack of tokens which indicates whether line-ends can be statement
+  (* a stack of tokens which indicates whether line-ends can be statement
    *  separators also used for keeping track of nesting levels.
    *  We keep track of the closing symbol of a region. This can be
    *  RPAREN    if region starts with '('
@@ -2405,7 +2405,7 @@ let importExpr in_ : import_expr =
       accept (DOT ab) in_;
       This (nameopt, ii), [result]
     in
-    (** Walks down import `foo.bar.baz.{ ... }` until it ends at
+    (* Walks down import `foo.bar.baz.{ ... }` until it ends at
      * an underscore, a left brace, or an undotted identifier.
     *)
     let rec loop (expr: stable_id) in_ =

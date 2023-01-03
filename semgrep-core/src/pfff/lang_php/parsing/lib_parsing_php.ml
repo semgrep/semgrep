@@ -44,7 +44,7 @@ let is_php_filename filename =
   filename =~ ".*\\.php$" || filename =~ ".*\\.phpt$"
   (* hotcrp uses this extension *)
   || filename =~ ".*\\.inc"
-  ||
+  || 
   (* todo: can not include those files for now because
    * they conflict with pfff/data/php_stdlib and generate lots
    * of DUPE in codegraph

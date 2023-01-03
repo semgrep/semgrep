@@ -162,7 +162,7 @@ val string_of_info: t -> string
 val is_origintok: t -> bool
 
 val token_location_of_info: t -> (token_location, string) result
-(** @raise NoTokenLocation if given an unsafe fake token (without location info) *)
+(* @raise NoTokenLocation if given an unsafe fake token (without location info) *)
 val unsafe_token_location_of_info: t -> token_location
 val get_original_token_location: token_origin -> token_location
 

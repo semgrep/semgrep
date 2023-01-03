@@ -860,7 +860,7 @@ val dbe_of_filename_nodot : filename -> string * string * string
 val dbe_of_filename_safe :
   filename -> (string * string * string,  string * string) either
 val dbe_of_filename_noext_ok : filename -> string * string * string
-(** [dbe_of_filename_many_ext_opt filename] returns [Some (d,b,e)], where
+(* [dbe_of_filename_many_ext_opt filename] returns [Some (d,b,e)], where
  * [d] is the directory path, and [b ^ "." ^ e] is the base name, where
  * [b] contains no period '.' characters. If this split is not possible,
  * the result is [None].
