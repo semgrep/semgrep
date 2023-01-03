@@ -1,0 +1,35 @@
+#
+# Top julia projects from GitHub, sorted by stars.
+# Created by /Users/brandonspark/semgrep/semgrep-core/src/ocaml-tree-sitter-core/scripts/most-starred-for-language.
+#
+# This one probably has a lot of edge cases and grammar limitations we don't care about
+# https://github.com/JuliaLang/julia
+https://github.com/fonsp/Pluto.jl
+https://github.com/FluxML/Flux.jl
+https://github.com/JuliaLang/IJulia.jl
+https://github.com/SciML/DifferentialEquations.jl
+https://github.com/mitmath/18S191
+https://github.com/GenieFramework/Genie.jl
+https://github.com/jump-dev/JuMP.jl
+https://github.com/GiovineItalia/Gadfly.jl
+https://github.com/MakieOrg/Makie.jl
+https://github.com/TuringLang/Turing.jl
+https://github.com/probcomp/Gen.jl
+https://github.com/JuliaPlots/Plots.jl
+https://github.com/alan-turing-institute/MLJ.jl
+https://github.com/JuliaData/DataFrames.jl
+https://github.com/FluxML/Zygote.jl
+https://github.com/JuliaPy/PyCall.jl
+https://github.com/svaksha/Julia.jl
+https://github.com/pluskid/Mocha.jl
+https://github.com/mossr/BeautifulAlgorithms.jl
+https://github.com/JuliaLang/PackageCompiler.jl
+https://github.com/SciML/ModelingToolkit.jl
+https://github.com/caseykneale/VIMKiller
+https://github.com/jonathan-laurent/AlphaZero.jl
+https://github.com/JuliaSymbolics/Symbolics.jl
+https://github.com/nealmckee/penumbra
+https://github.com/h-Klok/StatsWithJuliaBook
+https://github.com/JuliaPlots/UnicodePlots.jl
+https://github.com/timholy/Revise.jl
+https://github.com/JuliaStats/Distributions.jl
