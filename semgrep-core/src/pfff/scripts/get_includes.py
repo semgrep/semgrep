@@ -18,19 +18,21 @@ r"""Print the "directory blah" statements necessary for ocamldebug
 import os
 import sys
 
+
 def checkargs():
     usage = "Usage: get_includes.py debug|toplevel root_dir\n"
     if len(sys.argv) != 3:
         print(usage)
         exit(-1)
 
-    if sys.argv[1] not in [ "debug", "toplevel" ]:
+    if sys.argv[1] not in ["debug", "toplevel"]:
         print(usage)
         exit(-1)
 
+
 def removenothrow(l, item):
     """Remove a specified item from a list; don't do anything
-       if the item doesn't exist. """
+    if the item doesn't exist."""
     try:
         l.remove(item)
     except:
@@ -55,4 +57,4 @@ if __name__ == "__main__":
     if mode == "debug":
         print("".join(["directory %s\n" % (d,) for d in getdirs(rootdir)]))
     else:
-        print("".join(["#directory \"%s\";;\n" % (d,) for d in getdirs(rootdir)]))
+        print("".join(['#directory "%s";;\n' % (d,) for d in getdirs(rootdir)]))
