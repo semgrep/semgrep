@@ -329,6 +329,9 @@ let rec just_parse_with_lang lang file =
         ]
         Json_to_generic.program
   | Lang.Jsonnet -> failwith "Jsonnet is not supported yet"
+  | Lang.Clojure -> failwith "clojure is not supported yet"
+  | Lang.Lisp -> failwith "Lisp is not supported yet"
+  | Lang.Scheme -> failwith "Scheme is not supported yet"
   | Lang.Cpp ->
       run file
         [
