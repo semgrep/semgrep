@@ -40,18 +40,16 @@ let is_php_script file =
       with
       | End_of_file -> false)
 
+(* todo: can not include those files for now because
+ * they conflict with pfff/data/php_stdlib and generate lots
+ * of DUPE in codegraph
+ *
+ * (filename =~ ".*\\.hhi") (* hack uses this extension *)
+ *)
 let is_php_filename filename =
   filename =~ ".*\\.php$" || filename =~ ".*\\.phpt$"
   (* hotcrp uses this extension *)
   || filename =~ ".*\\.inc"
-  || 
-  (* todo: can not include those files for now because
-   * they conflict with pfff/data/php_stdlib and generate lots
-   * of DUPE in codegraph
-   *
-   * (filename =~ ".*\\.hhi")
-   *)(* hack uses this extension *)
-  false
 
 let is_hhi_filename filename = filename =~ ".*\\.hhi$" || false
 let is_php_filename_phar filename = filename =~ ".*\\.phar$" || false

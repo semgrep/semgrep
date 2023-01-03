@@ -172,6 +172,8 @@ repos:
         entry: ./scripts/lint-ocaml
         language: script
         files: "\\.mli?$"
+        # weird ocamlformat bug, can't process this file
+        exclude: "^semgrep-core/src/pfff/lang_js/analyze/graph_code_js.ml"
 
   # ----------------------------------------------------------
   # Dogfood! running semgrep in pre-commit!
