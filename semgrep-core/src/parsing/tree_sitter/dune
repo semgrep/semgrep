@@ -8,6 +8,7 @@
    tree-sitter-lang.bash
    tree-sitter-lang.c
    tree-sitter-lang.c-sharp
+   tree-sitter-lang.clojure
    tree-sitter-lang.cpp
    tree-sitter-lang.dart
    tree-sitter-lang.dockerfile
