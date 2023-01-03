@@ -148,6 +148,7 @@ repos:
         language: docker_image
         entry: koalaman/shellcheck:v0.8.0
         files: "[.]sh$"
+        exclude: "pfff"
       - id: hadolint
         name: hadolint
         language: docker_image
