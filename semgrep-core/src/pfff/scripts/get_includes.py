@@ -1,5 +1,4 @@
 #! /bin/env python
-
 r"""Print the "directory blah" statements necessary for ocamldebug
    to find all of the source files under a given root directory.
    We could feasibly just generate the commandline ('-I') parameters,
@@ -14,7 +13,6 @@ r"""Print the "directory blah" statements necessary for ocamldebug
           (kill-new (shell-command-to-string
             "/path/to/get_includes.py /path/to/pfff"))))
 """
-
 import os
 import sys
 
