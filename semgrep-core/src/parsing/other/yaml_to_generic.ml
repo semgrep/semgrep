@@ -51,6 +51,11 @@ module PI = Parse_info
 type env = {
   (* when we parse a pattern, the filename is fake ("<pattern_file>") *)
   file : Common.filename;
+  (* This is the literal text of the program.
+     We will use this to help us find the proper content of a metavariable matching
+     a "folded" or "literal" style string.
+     Essentially, a string using "|" or ">".
+  *)
   text : string;
   (* function *)
   charpos_to_pos : (int -> int * int) option;
