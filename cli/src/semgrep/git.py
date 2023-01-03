@@ -57,9 +57,13 @@ class StatusCode:
 class BaselineHandler:
     """
     base_commit: Git ref to compare against
+
+    is_mergebase: Is it safe to assume that the given commit is the mergebase?
+    If not, we have to compute the mergebase ourselves, which can be impossible
+    on shallow checkouts.
     """
 
-    def __init__(self, base_commit: str) -> None:
+    def __init__(self, base_commit: str, is_mergebase: bool = False) -> None:
         """
         Raises Exception if
         - cwd is not in git repo
@@ -68,6 +72,7 @@ class BaselineHandler:
         - there are untracked files that will be overwritten by a file in the base commit
         """
         self._base_commit = base_commit
+        self._is_mergebase = is_mergebase
         self._dirty_paths_by_status: Optional[Dict[str, List[Path]]] = None
 
         try:
@@ -111,9 +116,13 @@ class BaselineHandler:
             self._base_commit,
         ]
         try:
+            if self._is_mergebase:
+                cmd = status_cmd
+            else:
+                cmd = [*status_cmd, "--merge-base"]
             # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
             raw_output = subprocess.run(
-                [*status_cmd, "--merge-base"],
+                cmd,
                 timeout=env.git_command_timeout,
                 capture_output=True,
                 encoding="utf-8",
