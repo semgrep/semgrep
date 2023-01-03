@@ -33,12 +33,12 @@ def removenothrow(l, item):
     if the item doesn't exist."""
     try:
         l.remove(item)
-    except:
+    except Exception:
         pass
 
 
 def getdirs(rootdir):
-    for root, dirs, files in os.walk(rootdir):
+    for root, dirs, _files in os.walk(rootdir):
         # add excludes here as needed
         removenothrow(dirs, ".git")
         removenothrow(dirs, "mini_www")
