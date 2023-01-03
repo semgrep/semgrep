@@ -5,14 +5,10 @@ open Common
 (*****************************************************************************)
 
 let test_tokens_web file =
-  if not (file =~ ".*\\.html")
-  then pr2 "warning: seems not a html file";
+  if not (file =~ ".*\\.html") then pr2 "warning: seems not a html file";
   raise Todo
 
-
-let test_parse_web _xs =
-  raise Todo
-
+let test_parse_web _xs = raise Todo
 
 (*
 let test_dump_web file =
@@ -25,13 +21,12 @@ let test_dump_web file =
 (* Main entry for Arg *)
 (*****************************************************************************)
 
-let actions () = [
-  "-tokens_web", "   <file>",
-  Common.mk_action_1_arg test_tokens_web;
-  "-parse_web", "   <files or dirs>",
-  Common.mk_action_n_arg test_parse_web;
-(*
+let actions () =
+  [
+    ("-tokens_web", "   <file>", Common.mk_action_1_arg test_tokens_web);
+    ("-parse_web", "   <files or dirs>", Common.mk_action_n_arg test_parse_web)
+    (*
   "-dump_web", "   <file>",
   Common.mk_action_1_arg test_dump_web;
-*)
-]
+*);
+  ]

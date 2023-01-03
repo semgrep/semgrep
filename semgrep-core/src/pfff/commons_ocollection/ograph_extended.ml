@@ -1,5 +1,4 @@
 open Common
-
 open Oassocb
 open Osetb
 
@@ -29,74 +28,62 @@ type nodei = int
 (* Pure version *)
 (*****************************************************************************)
 
-class ['a,'b] ograph_extended =
-  let build_assoc () = new oassocb [] in (* opti?: = oassoch *)
-  let build_set ()   = new osetb Set_.empty in
+class ['a, 'b] ograph_extended =
+  let build_assoc () = new oassocb [] in
+  (* opti?: = oassoch *)
+  let build_set () = new osetb Set_.empty in
 
-  object(_o)
+  object (_o)
     (* inherit ['a] ograph *)
-
     val free_index = 0
+    val succ = build_assoc ()
+    val pred = build_assoc ()
+    val nods = build_assoc ()
 
-    val succ = build_assoc()
-    val pred = build_assoc()
-    val nods = build_assoc()
-
-    method add_node (e: 'a) =
+    method add_node (e : 'a) =
       let i = free_index in
-      ({<
-        nods = nods#add (i, e);
-        pred = pred#add (i, build_set() );
-        succ = succ#add (i, build_set() );
-        free_index = i + 1;
-      >}, i)
+      ( {<nods = nods#add (i, e)
+         ; pred = pred#add (i, build_set ())
+         ; succ = succ#add (i, build_set ())
+         ; free_index = i + 1>},
+        i )
 
-    method add_nodei i (e: 'a) =
-      ({<
-        nods = nods#add (i, e);
-        pred = pred#add (i, build_set() );
-        succ = succ#add (i, build_set() );
-        free_index = (max free_index i) + 1;
-      >}, i)
+    method add_nodei i (e : 'a) =
+      ( {<nods = nods#add (i, e)
+         ; pred = pred#add (i, build_set ())
+         ; succ = succ#add (i, build_set ())
+         ; free_index = max free_index i + 1>},
+        i )
 
-
-    method del_node (i) =
-      {<
-        (* check: e is effectively the index associated with e,
+    method del_node i =
+      {<(* check: e is effectively the index associated with e,
            and check that already in *)
 
         (* todo: assert that have no pred and succ, otherwise
          * will have some dangling pointers
-        *)
-        nods = nods#delkey i;
-        pred = pred#delkey i;
-        succ = succ#delkey i;
-      >}
+         *)
+         nods = nods#delkey i
+       ; pred = pred#delkey i
+       ; succ = succ#delkey i>}
 
-    method replace_node (i, (e: 'a)) =
+    method replace_node (i, (e : 'a)) =
       assert (nods#haskey i);
-      {<
-        nods = nods#replkey (i, e);
-      >}
+      {<nods = nods#replkey (i, e)>}
 
-    method add_arc ((a,b),(v: 'b)) =
-      {<
-        succ = succ#replkey (a, (succ#find a)#add (b, v));
-        pred = pred#replkey (b, (pred#find b)#add (a, v));
-      >}
-    method del_arc ((a,b),v) =
-      {<
-        succ = succ#replkey (a, (succ#find a)#del (b,v));
-        pred = pred#replkey (b, (pred#find b)#del (a,v));
-      >}
+    method add_arc ((a, b), (v : 'b)) =
+      {<succ = succ#replkey (a, (succ#find a)#add (b, v))
+       ; pred = pred#replkey (b, (pred#find b)#add (a, v))>}
 
-    method successors   e = succ#find e
+    method del_arc ((a, b), v) =
+      {<succ = succ#replkey (a, (succ#find a)#del (b, v))
+       ; pred = pred#replkey (b, (pred#find b)#del (a, v))>}
+
+    method successors e = succ#find e
     method predecessors e = pred#find e
-
     method nodes = nods
     method allsuccessors = succ
 
-(*
+    (*
     method ancestors xs =
       let rec aux xs acc =
         match xs#view with (* could be done with an iter *)
@@ -120,77 +107,71 @@ class ['a,'b] ograph_extended =
       (parents#fold (fun acc e -> acc $++$ o#successors e) (f2()))#del x
 
 *)
-
   end
 
 (*****************************************************************************)
 (* Mutable version *)
 (*****************************************************************************)
 
-class ['a,'b] ograph_mutable =
+class ['a, 'b] ograph_mutable =
   let build_assoc () = new oassocb [] in
-  let build_set ()   = new osetb Set_.empty in
+  let build_set () = new osetb Set_.empty in
 
-  object(o)
-
+  object (o)
     val mutable free_index = 0
+    val mutable succ = build_assoc ()
+    val mutable pred = build_assoc ()
+    val mutable nods = build_assoc ()
 
-    val mutable succ = build_assoc()
-    val mutable pred = build_assoc()
-    val mutable nods = build_assoc()
-
-    method add_node (e: 'a) =
+    method add_node (e : 'a) =
       let i = free_index in
       nods <- nods#add (i, e);
-      pred <- pred#add (i, build_set() );
-      succ <- succ#add (i, build_set() );
+      pred <- pred#add (i, build_set ());
+      succ <- succ#add (i, build_set ());
       free_index <- i + 1;
       i
 
-    method add_nodei i (e: 'a) =
+    method add_nodei i (e : 'a) =
       nods <- nods#add (i, e);
-      pred <- pred#add (i, build_set() );
-      succ <- succ#add (i, build_set() );
-      free_index <- (max free_index i) + 1;
+      pred <- pred#add (i, build_set ());
+      succ <- succ#add (i, build_set ());
+      free_index <- max free_index i + 1
 
-
-    method del_node (i) =
+    method del_node i =
       (* check: e is effectively the index associated with e,
          and check that already in *)
 
       (* todo: assert that have no pred and succ, otherwise
        * will have some dangling pointers
-      *)
+       *)
       nods <- nods#delkey i;
       pred <- pred#delkey i;
-      succ <- succ#delkey i;
+      succ <- succ#delkey i
 
-    method replace_node (i, (e: 'a)) =
+    method replace_node (i, (e : 'a)) =
       assert (nods#haskey i);
-      nods <- nods#replkey (i, e);
+      nods <- nods#replkey (i, e)
 
-    method add_arc ((a,b),(v: 'b)) =
+    method add_arc ((a, b), (v : 'b)) =
       succ <- succ#replkey (a, (succ#find a)#add (b, v));
-      pred <- pred#replkey (b, (pred#find b)#add (a, v));
-    method del_arc ((a,b),v) =
-      succ <- succ#replkey (a, (succ#find a)#del (b,v));
-      pred <- pred#replkey (b, (pred#find b)#del (a,v));
+      pred <- pred#replkey (b, (pred#find b)#add (a, v))
 
-    method successors   e = succ#find e
+    method del_arc ((a, b), v) =
+      succ <- succ#replkey (a, (succ#find a)#del (b, v));
+      pred <- pred#replkey (b, (pred#find b)#del (a, v))
+
+    method successors e = succ#find e
     method predecessors e = pred#find e
-
     method nodes = nods
     method allsuccessors = succ
-
-    method nb_nodes =
-      nods#length
+    method nb_nodes = nods#length
 
     method nb_edges =
-      nods#fold (fun acc (i, _e) ->
-        let children = o#successors i in
-        acc + children#cardinal
-      ) 0
-
+      nods#fold
+        (fun acc (i, _e) ->
+          let children = o#successors i in
+          acc + children#cardinal)
+        0
   end
 
 (*****************************************************************************)
@@ -201,126 +182,115 @@ class ['a,'b] ograph_mutable =
 let dfs_iter xi f g =
   let already = Hashtbl.create 101 in
   let rec aux_dfs xs =
-    xs |> List.iter (fun xi ->
-      if Hashtbl.mem already xi then ()
-      else begin
-        Hashtbl.add already xi true;
-        f xi;
-        let succ = g#successors xi in
-        aux_dfs (succ#tolist |> List.map fst);
-      end
-    ) in
-  aux_dfs [xi]
-
+    xs
+    |> List.iter (fun xi ->
+           if Hashtbl.mem already xi then ()
+           else (
+             Hashtbl.add already xi true;
+             f xi;
+             let succ = g#successors xi in
+             aux_dfs (succ#tolist |> List.map fst)))
+  in
+  aux_dfs [ xi ]
 
 let dfs_iter_with_path xi f g =
   let already = Hashtbl.create 101 in
   let rec aux_dfs path xi =
     if Hashtbl.mem already xi then ()
-    else begin
+    else (
       Hashtbl.add already xi true;
       f xi path;
       let succ = g#successors xi in
       let succ' = succ#tolist |> List.map fst in
-      succ' |> List.iter (fun yi ->
-        aux_dfs (xi::path) yi
-      );
-    end
+      succ' |> List.iter (fun yi -> aux_dfs (xi :: path) yi))
   in
   aux_dfs [] xi
 
-
-
 let generate_ograph_generic g label fnode filename =
-  Common.with_open_outfile filename (fun (pr,_) ->
-    pr "digraph misc {\n" ;
-    pr "size = \"10,10\";\n" ;
-    (match label with
-       None -> ()
-     | Some x -> pr (Printf.sprintf "label = \"%s\";\n" x));
+  Common.with_open_outfile filename (fun (pr, _) ->
+      pr "digraph misc {\n";
+      pr "size = \"10,10\";\n";
+      (match label with
+      | None -> ()
+      | Some x -> pr (Printf.sprintf "label = \"%s\";\n" x));
 
-    let nodes = g#nodes in
-    nodes#iter (fun (k,node) ->
-      let (str,border_color,inner_color) = fnode (k, node) in
-      let color =
-        match inner_color with
-          None ->
-            (match border_color with
-               None -> ""
-             | Some x -> Printf.sprintf ", style=\"setlinewidth(3)\", color = %s" x)
-        | Some x ->
-            (match border_color with
-               None -> Printf.sprintf ", style=\"setlinewidth(3),filled\", fillcolor = %s" x
-             | Some x' -> Printf.sprintf ", style=\"setlinewidth(3),filled\", fillcolor = %s, color = %s" x x') in
-      (* so can see if nodes without arcs were created *)
-      pr (spf "%d [label=\"%s   [%d]\"%s];\n" k str k color)
-    );
+      let nodes = g#nodes in
+      nodes#iter (fun (k, node) ->
+          let str, border_color, inner_color = fnode (k, node) in
+          let color =
+            match inner_color with
+            | None -> (
+                match border_color with
+                | None -> ""
+                | Some x ->
+                    Printf.sprintf ", style=\"setlinewidth(3)\", color = %s" x)
+            | Some x -> (
+                match border_color with
+                | None ->
+                    Printf.sprintf
+                      ", style=\"setlinewidth(3),filled\", fillcolor = %s" x
+                | Some x' ->
+                    Printf.sprintf
+                      ", style=\"setlinewidth(3),filled\", fillcolor = %s, \
+                       color = %s"
+                      x x')
+          in
+          (* so can see if nodes without arcs were created *)
+          pr (spf "%d [label=\"%s   [%d]\"%s];\n" k str k color));
 
-    nodes#iter (fun (k,_node) ->
-      let succ = g#successors k in
-      succ#iter (fun (j,_edge) ->
-        pr (spf "%d -> %d;\n" k j);
-      );
-    );
-    pr "}\n" ;
-  );
+      nodes#iter (fun (k, _node) ->
+          let succ = g#successors k in
+          succ#iter (fun (j, _edge) -> pr (spf "%d -> %d;\n" k j)));
+      pr "}\n");
   ()
-
 
 let generate_ograph_xxx g filename =
-  with_open_outfile filename (fun (pr,_) ->
-    pr "digraph misc {\n" ;
-    pr "size = \"10,10\";\n" ;
+  with_open_outfile filename (fun (pr, _) ->
+      pr "digraph misc {\n";
+      pr "size = \"10,10\";\n";
 
-    let nodes = g#nodes in
-    nodes#iter (fun (k,(_node, s)) ->
-      (* so can see if nodes without arcs were created *)
-      pr (spf "%d [label=\"%s   [%d]\"];\n" k s k)
-    );
+      let nodes = g#nodes in
+      nodes#iter (fun (k, (_node, s)) ->
+          (* so can see if nodes without arcs were created *)
+          pr (spf "%d [label=\"%s   [%d]\"];\n" k s k));
 
-    nodes#iter (fun (k,_node) ->
-      let succ = g#successors k in
-      succ#iter (fun (j,_edge) ->
-        pr (spf "%d -> %d;\n" k j);
-      );
-    );
-    pr "}\n" ;
-  );
+      nodes#iter (fun (k, _node) ->
+          let succ = g#successors k in
+          succ#iter (fun (j, _edge) -> pr (spf "%d -> %d;\n" k j)));
+      pr "}\n");
   ()
 
-
 let get_os =
-  let os = lazy (
-    let ic = Unix.open_process_in "uname" in
-    Fun.protect
-      (fun () ->
-         let uname = input_line ic in
-         match uname with
-         | "Darwin" -> `MacOs
-         | "Linux" -> `Linux
-         | _ -> `Unknown
-      )
-      ~finally:(fun () -> ignore (Unix.close_process_in ic))
-  ) in
+  let os =
+    lazy
+      (let ic = Unix.open_process_in "uname" in
+       Fun.protect
+         (fun () ->
+           let uname = input_line ic in
+           match uname with
+           | "Darwin" -> `MacOs
+           | "Linux" -> `Linux
+           | _ -> `Unknown)
+         ~finally:(fun () -> ignore (Unix.close_process_in ic)))
+  in
   fun () -> Lazy.force os
 
 let launch_png_cmd filename =
   let _status =
-    Unix.system (Printf.sprintf "dot -Tpng %s -o %s.png" filename filename) in
-  let _status =
-    Unix.system (Printf.sprintf "open %s.png" filename)
-  in ()
+    Unix.system (Printf.sprintf "dot -Tpng %s -o %s.png" filename filename)
+  in
+  let _status = Unix.system (Printf.sprintf "open %s.png" filename) in
+  ()
 
 let launch_gv_cmd filename =
   let _status =
-    Unix.system ("dot " ^ filename ^ " -Tps  -o " ^ filename ^ ".ps;") in
-  let _status =
-    Unix.system ("gv " ^ filename ^ ".ps")
+    Unix.system ("dot " ^ filename ^ " -Tps  -o " ^ filename ^ ".ps;")
   in
+  let _status = Unix.system ("gv " ^ filename ^ ".ps") in
   (* zarb: I needed this when I launch the program with '&' via eshell,
    * otherwise gv did not get the chance to be launched
    * Unix.sleep 1;
-  *)
+   *)
   ()
 
 let display_graph_cmd filename =
@@ -337,11 +307,7 @@ let print_ograph_mutable g filename display_graph =
   generate_ograph_xxx g filename;
   if display_graph then display_graph_cmd filename
 
-let print_ograph_mutable_generic
-    ?(title=None)
-    ?(display_graph = true)
-    ?(output_file = "/tmp/ograph.dot")
-    ~s_of_node
-    g =
+let print_ograph_mutable_generic ?(title = None) ?(display_graph = true)
+    ?(output_file = "/tmp/ograph.dot") ~s_of_node g =
   generate_ograph_generic g title s_of_node output_file;
   if display_graph then display_graph_cmd output_file

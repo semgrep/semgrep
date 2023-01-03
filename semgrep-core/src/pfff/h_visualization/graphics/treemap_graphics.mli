@@ -34,13 +34,15 @@ val display_treemap_interactive :
 (*s: signature graphic helpers *)
 val draw_rect_treemap_float_ortho :
   (float * float) * (float * float) ->
-  Graphics.color -> int * int -> ((int * int) * (int * int)) option
+  Graphics.color ->
+  int * int ->
+  ((int * int) * (int * int)) option
+
 (*x: signature graphic helpers *)
 val info_of_file_under_cursor_default :
-  Graphics.status -> (Common.filename * 'a) -> string
+  Graphics.status -> Common.filename * 'a -> string
 
-val current_dim:
-  w_legend:int -> h_status:int -> screen_dim
+val current_dim : w_legend:int -> h_status:int -> screen_dim
 (*e: signature graphic helpers *)
 
 (*s: signature test treemap functions *)

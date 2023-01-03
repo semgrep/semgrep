@@ -11,9 +11,8 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
-
 module E = Entity_code
 
 (*****************************************************************************)
@@ -32,42 +31,37 @@ module E = Entity_code
 type fact =
   | At of entity * Common.filename (* readable path *) * int (* line *)
   | Kind of entity * Entity_code.entity_kind
-
   | Type of entity * string (* could be more structured ... *)
-
   | Extends of string * string
   | Implements of string * string
   | Mixins of string * string
-
   | Privacy of entity * Entity_code.privacy
-
   (* direct use of entities, e.g. foo() *)
   | Call of entity * entity
   | UseData of entity * entity * bool option (* read/write *)
   (* indirect uses of entities, e.g. xxx.f = &foo; *)
-  | Special of entity (* enclosing *) *
-               entity (* ctx entity, e.g. function/field/global *) *
-               entity (* the value *) *
-               string (* field/function *)
-
+  | Special of
+      entity (* enclosing *)
+      * entity (* ctx entity, e.g. function/field/global *)
+      * entity (* the value *)
+      * string (* field/function *)
   | Misc of string
 
 (* todo? could use a record with
  *  namespace: string list;
  *  enclosing: string option;
  *  name: string
-*)
+ *)
 and entity =
-  string list (* package/module/namespace/class/struct/type qualifier*) *
-  string (* name *)
-
+  string list (* package/module/namespace/class/struct/type qualifier*)
+  * string (* name *)
 
 (*****************************************************************************)
 (* IO *)
 (*****************************************************************************)
 (* todo: hmm need to escape x no? In OCaml toplevel values can have a quote
  * in their name, like foo'', which will not work well with Prolog atoms.
-*)
+ *)
 
 (* http://pleac.sourceforge.net/pleac_ocaml/strings.html *)
 let escape charlist str =
@@ -79,13 +73,13 @@ let escape_quote_and_double_quote s = escape "'\"" s
 let string_of_entity (xs, x) =
   match xs with
   | [] -> spf "'%s'" (escape_quote_and_double_quote x)
-  | xs -> spf "('%s', '%s')" (Common.join "." xs)
-            (escape_quote_and_double_quote x)
+  | xs ->
+      spf "('%s', '%s')" (Common.join "." xs) (escape_quote_and_double_quote x)
 
 (* Quite similar to database_code.string_of_id_kind, but with lowercase
  * because of prolog atom convention. See also prolog_code.pl comment
  * about kind/2.
-*)
+ *)
 let string_of_entity_kind = function
   | E.Function -> "function"
   | E.Constant -> "constant"
@@ -93,23 +87,20 @@ let string_of_entity_kind = function
   | E.Macro -> "macro"
   | E.Class -> "class"
   | E.Type -> "type"
-
   | E.Method -> "method"
   | E.ClassConstant -> "constant"
   | E.Field -> "field"
   | E.Constructor -> "constructor"
-
-  | E.TopStmts  -> "stmtlist"
+  | E.TopStmts -> "stmtlist"
   | E.Other _ -> "idmisc"
   | E.Exception -> "exception"
-
   | E.Module -> "module"
   | E.Package -> "package"
-
   | E.Prototype -> "prototype"
   | E.GlobalExtern -> "global_extern"
-
-  | (E.MultiDirs|E.Dir|E.File) ->
+  | E.MultiDirs
+  | E.Dir
+  | E.File ->
       raise Impossible
 
 let string_of_fact fact =
@@ -123,14 +114,9 @@ let string_of_fact fact =
     | Type (entity, str) ->
         spf "type(%s, '%s')" (string_of_entity entity)
           (escape_quote_and_double_quote str)
-
-    | Extends (s1, s2) ->
-        spf "extends('%s', '%s')" s1 s2
-    | Mixins (s1, s2) ->
-        spf "mixins('%s', '%s')" s1 s2
-    | Implements (s1, s2) ->
-        spf "implements('%s', '%s')" s1 s2
-
+    | Extends (s1, s2) -> spf "extends('%s', '%s')" s1 s2
+    | Mixins (s1, s2) -> spf "mixins('%s', '%s')" s1 s2
+    | Implements (s1, s2) -> spf "implements('%s', '%s')" s1 s2
     | Privacy (entity, p) ->
         let predicate =
           match p with
@@ -139,26 +125,18 @@ let string_of_fact fact =
           | E.Protected -> "is_protected"
         in
         spf "%s(%s)" predicate (string_of_entity entity)
-
     (* less: depending on kind of e1 we could have 'method' or 'constructor'*)
     | Call (e1, e2) ->
-        spf "docall(%s, %s)"
-          (string_of_entity e1) (string_of_entity e2)
+        spf "docall(%s, %s)" (string_of_entity e1) (string_of_entity e2)
     | UseData (e1, e2, b) ->
-        spf "use(%s, %s, %s)"
-          (string_of_entity e1) (string_of_entity e2)
+        spf "use(%s, %s, %s)" (string_of_entity e1) (string_of_entity e2)
           (match b with
-           | None -> "na"
-           | Some true -> "write"
-           | Some false -> "read"
-          )
+          | None -> "na"
+          | Some true -> "write"
+          | Some false -> "read")
     | Special (e1, e2, e3, str) ->
-        spf "special(%s, %s, %s, '%s')"
-          (string_of_entity e1)
-          (string_of_entity e2)
-          (string_of_entity e3)
-          str
-
+        spf "special(%s, %s, %s, '%s')" (string_of_entity e1)
+          (string_of_entity e2) (string_of_entity e3) str
     | Misc s -> s
   in
   s ^ "."
@@ -171,5 +149,5 @@ let entity_of_str s =
   let xs = Common.split "\\." s in
   match List.rev xs with
   | [] -> raise Impossible
-  | [x] -> ([], x)
-  | x::xs -> (List.rev xs, x)
+  | [ x ] -> ([], x)
+  | x :: xs -> (List.rev xs, x)

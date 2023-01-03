@@ -15,8 +15,8 @@ FROM ocaml/opam2:debian-stable
 COPY --chown=opam:opam . /home/opam/pfff
 WORKDIR /home/opam/pfff
 
-RUN ./scripts/setup-debian
-RUN ./scripts/install-opam-deps
-RUN ./scripts/build
-RUN ./scripts/test
-RUN ./scripts/install
+RUN ./scripts/setup-debian &&\
+    ./scripts/install-opam-deps &&\
+    ./scripts/build &&\
+    ./scripts/test &&\
+    ./scripts/install

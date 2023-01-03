@@ -28,10 +28,9 @@ type t =
   | Python
 
 (* Convert between lowercase/underscore representation and OCaml
-   e.g. "pcre" for PCRE and "perl_xx" for Perl_xx.  *)
+   e.g. "pcre" for PCRE and "perl_xx" for Perl_xx. *)
 val to_string : t -> string
 val of_string : string -> t option
-
 val conf : t -> Conf.t
 
 (* The default is the same as PCRE with the default options. *)

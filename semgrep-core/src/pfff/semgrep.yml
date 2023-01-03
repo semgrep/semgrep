@@ -42,12 +42,12 @@ rules:
     #TODO: fix at some point
     paths:
       exclude:
-       - commons/common2.ml
-       - commons_wrappers/graph/graphe.ml
-       - h_visualization/plot_jgraph.ml
-       - lang_c/analyze/test_analyze_c.ml
-       - lang_cpp/parsing/test_parsing_cpp.ml
-       - lang_php/analyze/foundation/unit_foundation_php.ml
-       - lang_php/analyze/foundation/unit_prolog_php.ml
-       - main_db.ml
-       - tests/Test.ml
+        - commons/common2.ml
+        - commons_wrappers/graph/graphe.ml
+        - h_visualization/plot_jgraph.ml
+        - lang_c/analyze/test_analyze_c.ml
+        - lang_cpp/parsing/test_parsing_cpp.ml
+        - lang_php/analyze/foundation/unit_foundation_php.ml
+        - lang_php/analyze/foundation/unit_prolog_php.ml
+        - main_db.ml
+        - tests/Test.ml

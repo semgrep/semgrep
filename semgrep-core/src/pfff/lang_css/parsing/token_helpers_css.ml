@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Parser_css
 
 let is_eof = function
@@ -60,7 +60,6 @@ let visitor_info_of_tok f = function
   | ATTR_SUFFIX ii -> ATTR_SUFFIX (f ii)
   | ATTR_SUBSTRING ii -> ATTR_SUBSTRING (f ii)
   | URI ii -> URI (f ii)
-
   | TString (s, ii) -> TString (s, f ii)
   | IDENT (s, ii) -> IDENT (s, f ii)
   | NTH (s, ii) -> NTH (s, f ii)
@@ -69,11 +68,15 @@ let visitor_info_of_tok f = function
   | SEL_FUNC (s, ii) -> SEL_FUNC (s, f ii)
   | TERM_FUNC (s, ii) -> TERM_FUNC (s, f ii)
   | QUANTITY (s, ii) -> QUANTITY (s, f ii)
-
   | TUnknown ii -> TUnknown (f ii)
-  | EOF(ii) -> EOF(f ii)
+  | EOF ii -> EOF (f ii)
 
 let info_of_tok tok =
   let res = ref None in
-  visitor_info_of_tok (fun ii -> res := Some ii; ii) tok |> ignore;
+  visitor_info_of_tok
+    (fun ii ->
+      res := Some ii;
+      ii)
+    tok
+  |> ignore;
   Common2.some !res

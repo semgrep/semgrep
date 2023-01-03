@@ -11,9 +11,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *
-*)
+ *)
 
-module TH   = Token_helpers_nw
+module TH = Token_helpers_nw
 
 (*****************************************************************************)
 (* Prelude *)
@@ -31,24 +31,18 @@ type program_and_tokens = Ast_nw.program * Lexer_nw.token list
 (*****************************************************************************)
 
 let tokens2 file =
-  Lexer_nw.reset();
+  Lexer_nw.reset ();
   let token lexbuf =
-    (match Lexer_nw.current_mode () with
-     | Lexer_nw.INITIAL ->
-         Lexer_nw.tex lexbuf
-     | Lexer_nw.IN_VERBATIM ->
-         Lexer_nw.verbatim lexbuf
-     | Lexer_nw.IN_VERB c ->
-         Lexer_nw.verb c lexbuf
-     | Lexer_nw.IN_NOWEB_CHUNK ->
-         Lexer_nw.noweb lexbuf
-    )
+    match Lexer_nw.current_mode () with
+    | Lexer_nw.INITIAL -> Lexer_nw.tex lexbuf
+    | Lexer_nw.IN_VERBATIM -> Lexer_nw.verbatim lexbuf
+    | Lexer_nw.IN_VERB c -> Lexer_nw.verb c lexbuf
+    | Lexer_nw.IN_NOWEB_CHUNK -> Lexer_nw.noweb lexbuf
   in
-  Parse_info.tokenize_all_and_adjust_pos
-    file token TH.visitor_info_of_tok TH.is_eof
+  Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+    TH.is_eof
 
-let tokens a =
-  Common.profile_code "Parse_nw.tokens" (fun () -> tokens2 a)
+let tokens a = Common.profile_code "Parse_nw.tokens" (fun () -> tokens2 a)
 
 (*****************************************************************************)
 (* Fuzzy parsing *)
@@ -56,12 +50,12 @@ let tokens a =
 
 let parse_fuzzy file =
   let toks = tokens file in
-  let trees = Lib_ast_fuzzy.mk_trees { Lib_ast_fuzzy.
-                                       tokf = TH.info_of_tok;
-                                       kind = TH.token_kind_of_tok;
-                                     } toks
+  let trees =
+    Lib_ast_fuzzy.mk_trees
+      { Lib_ast_fuzzy.tokf = TH.info_of_tok; kind = TH.token_kind_of_tok }
+      toks
   in
-  trees, toks
+  (trees, toks)
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -69,8 +63,7 @@ let parse_fuzzy file =
 
 let parse2 filename =
   let stat = Parse_info.default_stat filename in
-  let (ast, toks) = parse_fuzzy filename in
-  (ast, toks), stat
+  let ast, toks = parse_fuzzy filename in
+  ((ast, toks), stat)
 
-let parse a =
-  Common.profile_code "Parse_nw.parse" (fun () -> parse2 a)
+let parse a = Common.profile_code "Parse_nw.parse" (fun () -> parse2 a)

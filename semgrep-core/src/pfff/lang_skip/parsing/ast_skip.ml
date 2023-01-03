@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -89,9 +89,7 @@ type program = unit
 (* Any *)
 (*****************************************************************************)
 
-type any =
-  | Program of program
-  | Info of tok
+type any = Program of program | Info of tok
 
 (* with tarzan *)
 
@@ -99,5 +97,5 @@ type any =
 (* Wrappers *)
 (*****************************************************************************)
 
-let str_of_name (s,_) = s
-let info_of_name (_,info) = info
+let str_of_name (s, _) = s
+let info_of_name (_, info) = info

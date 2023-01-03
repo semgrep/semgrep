@@ -1,6 +1,5 @@
 (* module E = Entity_code *)
 
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -9,41 +8,40 @@
 (* Unit tests *)
 (*****************************************************************************)
 let tests =
-  Testutil.pack_tests "analyze_js" [
-
-    "commonjs annotations", (fun () ->
-      let file_content = "
-/**
- * @providesModule my-module
- */
-function foo() {}
-/**
- * @providesLegacy other-module
- */
-function bar() {}
-" in
-      Common2.with_tmp_file ~str:file_content ~ext:"js" (fun tmpfile ->
-        let res = Parse_js.parse tmpfile in
-        let annots =
-          Annotation_js.annotations_of_program_with_comments res
-          |> List.map fst
-        in
-        Alcotest.(check bool)
-          "it should extract @providesModule annotations"
-          true
-          ([Annotation_js.ProvidesModule "my-module";
-            Annotation_js.ProvidesLegacy "other-module";
-           ] =
-           annots)
-      )
-    );
-
-    (* TODO need Class_pre_es6
+  Testutil.pack_tests "analyze_js"
+    [
+      ( "commonjs annotations",
+        fun () ->
+          let file_content =
+            "\n\
+             /**\n\
+            \ * @providesModule my-module\n\
+            \ */\n\
+             function foo() {}\n\
+             /**\n\
+            \ * @providesLegacy other-module\n\
+            \ */\n\
+             function bar() {}\n"
+          in
+          Common2.with_tmp_file ~str:file_content ~ext:"js" (fun tmpfile ->
+              let res = Parse_js.parse tmpfile in
+              let annots =
+                Annotation_js.annotations_of_program_with_comments res
+                |> List.map fst
+              in
+              Alcotest.(check bool)
+                "it should extract @providesModule annotations" true
+                ([
+                   Annotation_js.ProvidesModule "my-module";
+                   Annotation_js.ProvidesLegacy "other-module";
+                 ]
+                = annots)) )
+      (* TODO need Class_pre_es6
        "commonjs tags support", (fun () ->
          let file_content = "
        /**
-     * @providesModule my-module
-     */
+       * @providesModule my-module
+       */
        function foo() {}
        " in
          Common2.with_tmp_file ~str:file_content ~ext:"js" (fun tmpfile ->
@@ -65,5 +63,5 @@ function bar() {}
                str
            else assert_failure "it should generate the write vi tags file"
          ));
-    *)
-  ]
+       *);
+    ]

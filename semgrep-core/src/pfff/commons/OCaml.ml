@@ -177,27 +177,26 @@ open Common
  *  - Changed Int of int option
  *  - Introduced List, Apply, Poly
  *  - debugging support (using sexp :) )
-*)
+ *)
 
 (* OCaml type definitions *)
 type t =
   | Unit
-  | Bool | Float | Char | String | Int
-
+  | Bool
+  | Float
+  | Char
+  | String
+  | Int
   | Tuple of t list
-  | Dict of (string * [`RW|`RO] * t) list
+  | Dict of (string * [ `RW | `RO ] * t) list
   | Sum of (string * t list) list
-
   | Var of string
   | Poly of string
   | Arrow of t * t
-
   | Apply of string * t
-
   (* special cases of Apply *)
   | Option of t
   | List of t
-
   (* todo? split in another type, because here it's the left part,
    * whereas before is the right part of a type definition. Also
    * have not the polymorphic args to some defs like ('a, 'b) Hashbtbl
@@ -205,107 +204,108 @@ type t =
    * | Ext of string * t
    *
    * | Enum of t (* ??? *)
-  *)
-
+   *)
   | TTODO of string
-  (* with tarzan *)
+(* with tarzan *)
 
 (* OCaml values (a restricted form of expressions) *)
 type v =
   | VUnit
-  | VBool of bool | VFloat of float | VInt of int (* was int64 *)
-  | VChar of char | VString of string
-
+  | VBool of bool
+  | VFloat of float
+  | VInt of int (* was int64 *)
+  | VChar of char
+  | VString of string
   | VTuple of v list
   | VDict of (string * v) list
   | VSum of string * v list
-
   | VVar of (string * int64)
   | VArrow of string
-
   (* special cases *)
-  | VNone | VSome of v
+  | VNone
+  | VSome of v
   | VList of v list
   | VRef of v
-
-(*
+  (*
   | VEnum of v list (* ??? *)
   | VRec of (string * int64) * v
   | VExt of (string * int64) * v
 *)
-
   | VTODO of string
-  (* with tarzan *)
+(* with tarzan *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
 (* the generated code can use that if he wants *)
-let (_htype: (string, t) Hashtbl.t) =
-  Hashtbl.create 101
-let (add_new_type: string -> t -> unit) = fun s t ->
-  Hashtbl.add _htype s t
-let (get_type: string -> t) = fun s ->
-  Hashtbl.find _htype s
-
-
+let (_htype : (string, t) Hashtbl.t) = Hashtbl.create 101
+let (add_new_type : string -> t -> unit) = fun s t -> Hashtbl.add _htype s t
+let (get_type : string -> t) = fun s -> Hashtbl.find _htype s
 
 (* for generated code that want to transform and in and out of a v or t *)
-let vof_unit () =
-  VUnit
-let vof_int x =
-  VInt ((*Int64.of_int*) x)
-let vof_float x =
-  VFloat ((*Int64.of_int*) x)
-let vof_string x =
-  VString x
-let vof_bool b =
-  VBool b
-let vof_list ofa x =
-  VList (Common.map ofa x)
+let vof_unit () = VUnit
+let vof_int x = VInt (*Int64.of_int*) x
+let vof_float x = VFloat (*Int64.of_int*) x
+let vof_string x = VString x
+let vof_bool b = VBool b
+let vof_list ofa x = VList (Common.map ofa x)
+
 let vof_option ofa x =
   match x with
   | None -> VNone
   | Some x -> VSome (ofa x)
+
 let vof_ref ofa x =
   match x with
-  | {contents = x } -> VRef (ofa x)
-let vof_either _of_a _of_b =
-  function
-  | Left v1 -> let v1 = _of_a v1 in VSum ("Left", [ v1 ])
-  | Right v1 -> let v1 = _of_b v1 in VSum ("Right", [ v1 ])
+  | { contents = x } -> VRef (ofa x)
 
-let vof_either3 _of_a _of_b _of_c =
-  function
-  | Left3 v1 -> let v1 = _of_a v1 in VSum ("Left3", [ v1 ])
-  | Middle3 v1 -> let v1 = _of_b v1 in VSum ("Middle3", [ v1 ])
-  | Right3 v1 -> let v1 = _of_c v1 in VSum ("Right3", [ v1 ])
+let vof_either _of_a _of_b = function
+  | Left v1 ->
+      let v1 = _of_a v1 in
+      VSum ("Left", [ v1 ])
+  | Right v1 ->
+      let v1 = _of_b v1 in
+      VSum ("Right", [ v1 ])
 
-let vof_all3 of_a of_b of_c (a, b, c) =
-  VTuple [of_a a; of_b b; of_c c]
+let vof_either3 _of_a _of_b _of_c = function
+  | Left3 v1 ->
+      let v1 = _of_a v1 in
+      VSum ("Left3", [ v1 ])
+  | Middle3 v1 ->
+      let v1 = _of_b v1 in
+      VSum ("Middle3", [ v1 ])
+  | Right3 v1 ->
+      let v1 = _of_c v1 in
+      VSum ("Right3", [ v1 ])
 
+let vof_all3 of_a of_b of_c (a, b, c) = VTuple [ of_a a; of_b b; of_c c ]
 
 let int_ofv = function
   | VInt x -> x
   | _ -> failwith "ofv: was expecting a VInt"
+
 let float_ofv = function
   | VFloat x -> x
   | _ -> failwith "ofv: was expecting a VFloat"
+
 let string_ofv = function
   | VString x -> x
   | _ -> failwith "ofv: was expecting a VString"
+
 let unit_ofv = function
   | VUnit -> ()
   | _ -> failwith "ofv: was expecting a VUnit"
 
-let list_ofv a__of_sexp sexp = match sexp with
+let list_ofv a__of_sexp sexp =
+  match sexp with
   | VList lst ->
       let rev_lst = List.rev_map a__of_sexp lst in
       List.rev rev_lst
   | _ -> failwith "list_ofv: VLlist needed"
 
-let option_ofv a__of_sexp sexp = match sexp with
+let option_ofv a__of_sexp sexp =
+  match sexp with
   | VNone -> None
   | VSome x -> Some (a__of_sexp x)
   | _ -> failwith "option_ofv: VNone or VSome needed"
@@ -339,67 +339,64 @@ let add_sep xs =
 
 let string_of_v ?(max_depth = max_int) v =
   Common2.format_to_string (fun () ->
-    let ppf = Format.printf in
-    let rec aux max_depth v =
-      if max_depth <= 0 then
-        ppf "..."
-      else (
-        match v with
-        | VUnit -> ppf "()"
-        | VBool v1 ->
-            if v1
-            then ppf "true"
-            else ppf "false"
-        | VFloat v1 -> ppf "%f" v1
-        | VChar v1 -> ppf "'%c'" v1
-        | VString v1 -> ppf "\"%s\"" v1
-        | VInt i -> ppf "%d" i
-        | VTuple xs ->
-            ppf "(@[";
-            xs |> add_sep |> List.iter (function
-              | Left _ -> ppf ",@ ";
-              | Right v -> aux (max_depth - 1) v
-            );
-            ppf "@])";
-        | VDict xs ->
-            ppf "{@[";
-            xs |> List.iter (fun (s, v) ->
-              (* less: could open a box there too? *)
-              ppf "@,%s=" s;
+      let ppf = Format.printf in
+      let rec aux max_depth v =
+        if max_depth <= 0 then ppf "..."
+        else
+          match v with
+          | VUnit -> ppf "()"
+          | VBool v1 -> if v1 then ppf "true" else ppf "false"
+          | VFloat v1 -> ppf "%f" v1
+          | VChar v1 -> ppf "'%c'" v1
+          | VString v1 -> ppf "\"%s\"" v1
+          | VInt i -> ppf "%d" i
+          | VTuple xs ->
+              ppf "(@[";
+              xs |> add_sep
+              |> List.iter (function
+                   | Left _ -> ppf ",@ "
+                   | Right v -> aux (max_depth - 1) v);
+              ppf "@])"
+          | VDict xs ->
+              ppf "{@[";
+              xs
+              |> List.iter (fun (s, v) ->
+                     (* less: could open a box there too? *)
+                     ppf "@,%s=" s;
+                     aux (max_depth - 1) v;
+                     ppf ";@ ");
+              ppf "@]}"
+          | VSum (s, xs) -> (
+              match xs with
+              | [] -> ppf "%s" s
+              | _y :: _ys ->
+                  ppf "@[<hov 2>%s(@," s;
+                  xs |> add_sep
+                  |> List.iter (function
+                       | Left _ -> ppf ",@ "
+                       | Right v -> aux (max_depth - 1) v);
+                  ppf "@])")
+          | VVar (s, i64) -> ppf "%s_%d" s (Int64.to_int i64)
+          | VArrow _v1 -> failwith "Arrow TODO"
+          | VNone -> ppf "None"
+          | VSome v ->
+              ppf "Some(@[";
               aux (max_depth - 1) v;
-              ppf ";@ ";
-            );
-            ppf "@]}";
-
-        | VSum (s, xs) ->
-            (match xs with
-             | [] -> ppf "%s" s
-             | _y::_ys ->
-                 ppf "@[<hov 2>%s(@," s;
-                 xs |> add_sep |> List.iter (function
-                   | Left _ -> ppf ",@ ";
-                   | Right v -> aux (max_depth - 1) v
-                 );
-                 ppf "@])";
-            )
-
-        | VVar (s, i64) -> ppf "%s_%d" s (Int64.to_int i64)
-        | VArrow _v1 -> failwith "Arrow TODO"
-        | VNone -> ppf "None";
-        | VSome v -> ppf "Some(@["; aux (max_depth - 1) v; ppf "@])";
-        | VRef v -> ppf "Ref(@["; aux (max_depth - 1) v; ppf "@])";
-        | VList xs ->
-            ppf "[@[<hov>";
-            xs |> add_sep |> List.iter (function
-              | Left _ -> ppf ";@ ";
-              | Right v -> aux (max_depth - 1) v
-            );
-            ppf "@]]";
-        | VTODO _v1 -> ppf "VTODO"
-      )
-    in
-    aux max_depth v
-  )
+              ppf "@])"
+          | VRef v ->
+              ppf "Ref(@[";
+              aux (max_depth - 1) v;
+              ppf "@])"
+          | VList xs ->
+              ppf "[@[<hov>";
+              xs |> add_sep
+              |> List.iter (function
+                   | Left _ -> ppf ";@ "
+                   | Right v -> aux (max_depth - 1) v);
+              ppf "@]]"
+          | VTODO _v1 -> ppf "VTODO"
+      in
+      aux max_depth v)
 
 (*****************************************************************************)
 (* Mapper Visitor *)
@@ -409,71 +406,102 @@ let map_of_unit () = ()
 let map_of_bool x = x
 let map_of_float x = x
 let map_of_char x = x
-let map_of_string (s:string) = s
-
+let map_of_string (s : string) = s
 let map_of_ref f aref = ref (f !aref)
 let map_of_ref_do_nothing_share_ref _f x = x (* dont go into ref *)
+
 let map_of_option v_of_a v =
   match v with
   | None -> None
   | Some x -> Some (v_of_a x)
-let map_of_list of_a xs =
-  List.map of_a xs
+
+let map_of_list of_a xs = List.map of_a xs
 let map_of_int x = x
 let map_of_int64 x = x
 
-let map_of_either _of_a _of_b =
-  function
-  | Left v1 -> let v1 = _of_a v1 in Left v1
-  | Right v1 -> let v1 = _of_b v1 in Right v1
+let map_of_either _of_a _of_b = function
+  | Left v1 ->
+      let v1 = _of_a v1 in
+      Left v1
+  | Right v1 ->
+      let v1 = _of_b v1 in
+      Right v1
 
-let map_of_either3 _of_a _of_b _of_c =
-  function
-  | Left3 v1 -> let v1 = _of_a v1 in Left3 v1
-  | Middle3 v1 -> let v1 = _of_b v1 in Middle3 v1
-  | Right3 v1 -> let v1 = _of_c v1 in Right3 v1
+let map_of_either3 _of_a _of_b _of_c = function
+  | Left3 v1 ->
+      let v1 = _of_a v1 in
+      Left3 v1
+  | Middle3 v1 ->
+      let v1 = _of_b v1 in
+      Middle3 v1
+  | Right3 v1 ->
+      let v1 = _of_c v1 in
+      Right3 v1
 
-let map_of_all3 of_a of_b of_c (a, b, c) =
-  (of_a a, of_b b, of_c c)
+let map_of_all3 of_a of_b of_c (a, b, c) = (of_a a, of_b b, of_c c)
 
 (* this is subtle ... *)
-let (map_v: f:( k:(v -> v) -> v -> v) -> v -> v) =
-  fun ~f x ->
-
+let (map_v : f:(k:(v -> v) -> v -> v) -> v -> v) =
+ fun ~f x ->
   let rec map_v v =
     (* generated by ocamltarzan with: camlp4o -o /tmp/yyy.ml -I pa/ pa_type_conv.cmo pa_map.cmo  pr_o.cmo /tmp/xxx.ml  *)
     let k x =
       match x with
       | VUnit -> VUnit
-      | VBool v1 -> let v1 = map_of_bool v1 in VBool v1
-      | VFloat v1 -> let v1 = map_of_float v1 in VFloat v1
-      | VChar v1 -> let v1 = map_of_char v1 in VChar v1
-      | VString v1 -> let v1 = map_of_string v1 in VString v1
-      | VInt v1 -> let v1 = map_of_int v1 in VInt v1
-      | VTuple v1 -> let v1 = map_of_list map_v v1 in VTuple v1
+      | VBool v1 ->
+          let v1 = map_of_bool v1 in
+          VBool v1
+      | VFloat v1 ->
+          let v1 = map_of_float v1 in
+          VFloat v1
+      | VChar v1 ->
+          let v1 = map_of_char v1 in
+          VChar v1
+      | VString v1 ->
+          let v1 = map_of_string v1 in
+          VString v1
+      | VInt v1 ->
+          let v1 = map_of_int v1 in
+          VInt v1
+      | VTuple v1 ->
+          let v1 = map_of_list map_v v1 in
+          VTuple v1
       | VDict v1 ->
           let v1 =
             map_of_list
               (fun (v1, v2) ->
-                 let v1 = map_of_string v1 and v2 = map_v v2 in (v1, v2))
+                let v1 = map_of_string v1 and v2 = map_v v2 in
+                (v1, v2))
               v1
-          in VDict v1
+          in
+          VDict v1
       | VSum (v1, v2) ->
-          let v1 = map_of_string v1
-          and v2 = map_of_list map_v v2
-          in VSum (v1, v2)
+          let v1 = map_of_string v1 and v2 = map_of_list map_v v2 in
+          VSum (v1, v2)
       | VVar v1 ->
           let v1 =
-            (match v1 with
-             | (v1, v2) ->
-                 let v1 = map_of_string v1 and v2 = map_of_int64 v2 in (v1, v2))
-          in VVar v1
-      | VArrow v1 -> let v1 = map_of_string v1 in VArrow v1
+            match v1 with
+            | v1, v2 ->
+                let v1 = map_of_string v1 and v2 = map_of_int64 v2 in
+                (v1, v2)
+          in
+          VVar v1
+      | VArrow v1 ->
+          let v1 = map_of_string v1 in
+          VArrow v1
       | VNone -> VNone
-      | VSome v1 -> let v1 = map_v v1 in VSome v1
-      | VRef v1 -> let v1 = map_v v1 in VRef v1
-      | VList v1 -> let v1 = map_of_list map_v v1 in VList v1
-      | VTODO v1 -> let v1 = map_of_string v1 in VTODO v1
+      | VSome v1 ->
+          let v1 = map_v v1 in
+          VSome v1
+      | VRef v1 ->
+          let v1 = map_v v1 in
+          VRef v1
+      | VList v1 ->
+          let v1 = map_of_list map_v v1 in
+          VList v1
+      | VTODO v1 ->
+          let v1 = map_of_string v1 in
+          VTODO v1
     in
     f ~k v
   in
@@ -487,15 +515,16 @@ let v_unit _x = ()
 let v_bool _x = ()
 let v_int _x = ()
 let v_float _x = ()
-let v_string (_s:string) = ()
-let v_ref_do_visit op aref  = op !aref
+let v_string (_s : string) = ()
+let v_ref_do_visit op aref = op !aref
 let v_ref_do_not_visit _aref _x = () (* dont go into ref *)
+
 let v_option v_of_a v =
   match v with
   | None -> ()
   | Some x -> v_of_a x
-let v_list of_a xs =
-  List.iter of_a xs
+
+let v_list of_a xs = List.iter of_a xs
 
 let v_either of_a of_b x =
   match x with

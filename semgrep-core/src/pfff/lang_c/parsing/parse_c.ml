@@ -11,10 +11,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *
-*)
+ *)
 module PI = Parse_info
 
-let logger = Logging.get_logger [__MODULE__]
+let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -28,19 +28,20 @@ let logger = Logging.get_logger [__MODULE__]
 (*****************************************************************************)
 
 let parse file =
-  let {PI. ast; tokens; stat} =
-    Parse_cpp.parse_with_lang ~lang:Flag_parsing_cpp.C file in
+  let { PI.ast; tokens; stat } =
+    Parse_cpp.parse_with_lang ~lang:Flag_parsing_cpp.C file
+  in
   (* less: merge stat? *)
   let ast, stat =
-    try (Ast_c_build.program ast), stat
-    with exn ->
-      let e = Exception.catch exn in
-      logger#error "PB: Ast_c_build, on %s (exn = %s)"
-        file (Common.exn_to_s exn);
-      (*None, { stat with Stat.bad = stat.Stat.bad + stat.Stat.correct } *)
-      Exception.reraise e
+    try (Ast_c_build.program ast, stat) with
+    | exn ->
+        let e = Exception.catch exn in
+        logger#error "PB: Ast_c_build, on %s (exn = %s)" file
+          (Common.exn_to_s exn);
+        (*None, { stat with Stat.bad = stat.Stat.bad + stat.Stat.correct } *)
+        Exception.reraise e
   in
-  { Parse_info. ast; tokens; stat }
+  { Parse_info.ast; tokens; stat }
 
 let parse_program file =
   let res = parse file in

@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
 
 (*module V = Visitor_ml*)
@@ -23,50 +23,47 @@ open Common
 let find_source_files_of_dir_or_files xs =
   Common.files_of_dir_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
-    match File_type.file_type_of_file filename with
-    | File_type.PL (File_type.OCaml ("ml" | "mli")) -> true
-    | _ -> false
-  ) |> Common.sort
+         match File_type.file_type_of_file filename with
+         | File_type.PL (File_type.OCaml ("ml" | "mli")) -> true
+         | _ -> false)
+  |> Common.sort
 
 let find_ml_files_of_dir_or_files xs =
   Common.files_of_dir_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
-    match File_type.file_type_of_file filename with
-    | File_type.PL (File_type.OCaml ("ml")) -> true
-    | _ -> false
-  ) |> Common.sort
+         match File_type.file_type_of_file filename with
+         | File_type.PL (File_type.OCaml "ml") -> true
+         | _ -> false)
+  |> Common.sort
 
 let find_cmt_files_of_dir_or_files xs =
   Common.files_of_dir_or_files_no_vcs_nofilter xs
-  |> List.filter (fun filename->
-    match File_type.file_type_of_file filename with
-    | File_type.Obj ("cmt" | "cmti") -> true
-    | _ -> false
-  )
+  |> List.filter (fun filename ->
+         match File_type.file_type_of_file filename with
+         | File_type.Obj ("cmt" | "cmti") -> true
+         | _ -> false)
   (* ocaml 4.07 stdlib now has those .p.cmt files that cause dupe errors *)
   |> Common.exclude (fun filename -> filename =~ ".*\\.p\\.cmt")
   (* sometimes there is just a .cmti and no corresponding .cmt because
    * people put the information only in a .mli
-  *)
+   *)
   |> (fun xs ->
-    let hfiles = Hashtbl.create 101 in
-    xs |> List.iter (fun file ->
-      let (d,b,e) = Common2.dbe_of_filename file in
-      Hashtbl.add hfiles (d,b) e
-    );
-    Common2.hkeys hfiles |> List.map (fun (d,b) ->
-      let xs = Hashtbl.find_all hfiles (d,b) in
-      (match xs with
-       | ["cmt";"cmti"]
-       | ["cmti";"cmt"]
-       | ["cmt"] ->
-           Common2.filename_of_dbe (d,b,"cmt")
-       | ["cmti"] ->
-           Common2.filename_of_dbe (d,b,"cmti")
-       | _ -> raise Impossible
-      )
-    )
-  ) |> Common.sort
+       let hfiles = Hashtbl.create 101 in
+       xs
+       |> List.iter (fun file ->
+              let d, b, e = Common2.dbe_of_filename file in
+              Hashtbl.add hfiles (d, b) e);
+       Common2.hkeys hfiles
+       |> List.map (fun (d, b) ->
+              let xs = Hashtbl.find_all hfiles (d, b) in
+              match xs with
+              | [ "cmt"; "cmti" ]
+              | [ "cmti"; "cmt" ]
+              | [ "cmt" ] ->
+                  Common2.filename_of_dbe (d, b, "cmt")
+              | [ "cmti" ] -> Common2.filename_of_dbe (d, b, "cmti")
+              | _ -> raise Impossible))
+  |> Common.sort
 
 (*****************************************************************************)
 (* Extract infos *)

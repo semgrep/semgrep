@@ -1,8 +1,7 @@
 (*s: concurrency.ml *)
 open Common
 
-let _biglock =
-  Mutex.create ()
+let _biglock = Mutex.create ()
 
 let atomic f =
   Mutex.lock _biglock;

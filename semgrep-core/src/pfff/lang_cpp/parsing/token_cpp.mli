@@ -1,4 +1,3 @@
-
 type cppcommentkind =
   | CppDirective
   | CppAttr
@@ -8,6 +7,4 @@ type cppcommentkind =
   | CppPassingCosWouldGetError (* expr passsing *)
   | CppOther
 
-type cpluspluscommentkind =
-  | CplusplusTemplate
-  | CplusplusQualifier
+type cpluspluscommentkind = CplusplusTemplate | CplusplusQualifier

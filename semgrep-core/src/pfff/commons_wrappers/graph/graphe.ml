@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
 
 (*****************************************************************************)
@@ -106,24 +106,21 @@ open Common
  * todo: maybe time to use the non generic implementation and
  * use something more efficient, especially for G.pred,
  * see Imperative.ConcreteBidirectional for instance
-*)
+ *)
 module OG = Graph.Pack.Digraph
 
 (* Polymorphic graph *)
 type 'key graph = {
-  og: OG.t;
-
+  og : OG.t;
   (* Note that OG.V.t is not even an integer. It's an abstract data type
    * from which one can get its 'label' which is an int. It's a little
    * bit tedious because to create such a 't' you also have to use
    * yet another function: OG.V.create that takes an int ...
-  *)
-
-  key_of_vertex: (OG.V.t, 'key) Hashtbl.t;
-  vertex_of_key: ('key, OG.V.t) Hashtbl.t;
-
+   *)
+  key_of_vertex : (OG.V.t, 'key) Hashtbl.t;
+  vertex_of_key : ('key, OG.V.t) Hashtbl.t;
   (* used to create vertexes (OG.V.create n) *)
-  cnt: int ref;
+  cnt : int ref;
 }
 
 (*
@@ -276,33 +273,30 @@ DONE    val display_with_gv : t -> unit
   end
 *)
 
-
 (*****************************************************************************)
 (* Graph construction *)
 (*****************************************************************************)
 
-let create () = {
-  og = OG.create ();
-  key_of_vertex = Hashtbl.create 101;
-  vertex_of_key = Hashtbl.create 101;
-  cnt = ref 0;
-}
+let create () =
+  {
+    og = OG.create ();
+    key_of_vertex = Hashtbl.create 101;
+    vertex_of_key = Hashtbl.create 101;
+    cnt = ref 0;
+  }
 
 let add_vertex_if_not_present key g =
-  if Hashtbl.mem g.vertex_of_key key
-  then ()
-  else begin
+  if Hashtbl.mem g.vertex_of_key key then ()
+  else (
     incr g.cnt;
     let v = OG.V.create !(g.cnt) in
     Hashtbl.replace g.key_of_vertex v key;
     Hashtbl.replace g.vertex_of_key key v;
     (* not necessary as add_edge automatically do that *)
-    OG.add_vertex g.og v;
-  end
-let vertex_of_key key g =
-  Hashtbl.find g.vertex_of_key key
-let key_of_vertex v g =
-  Hashtbl.find g.key_of_vertex v
+    OG.add_vertex g.og v)
+
+let vertex_of_key key g = Hashtbl.find g.vertex_of_key key
+let key_of_vertex v g = Hashtbl.find g.key_of_vertex v
 
 let add_edge k1 k2 g =
   let vx = g |> vertex_of_key k1 in
@@ -314,20 +308,18 @@ let add_edge k1 k2 g =
 (* Graph access *)
 (*****************************************************************************)
 
-let nodes g =
-  Common2.hkeys g.vertex_of_key
-
+let nodes g = Common2.hkeys g.vertex_of_key
 let out_degree k g = OG.out_degree g.og (g |> vertex_of_key k)
-let in_degree k g  = OG.in_degree  g.og (g |> vertex_of_key k)
-
+let in_degree k g = OG.in_degree g.og (g |> vertex_of_key k)
 let nb_nodes g = OG.nb_vertex g.og
 let nb_edges g = OG.nb_edges g.og
 
-let succ k g = OG.succ g.og (g |> vertex_of_key k)
-               |> List.map (fun k -> key_of_vertex k g)
+let succ k g =
+  OG.succ g.og (g |> vertex_of_key k) |> List.map (fun k -> key_of_vertex k g)
+
 (* this seems slow on the version of ocamlgraph I currently have *)
-let pred k g  = OG.pred  g.og (g |> vertex_of_key k)
-                |> List.map (fun k -> key_of_vertex k g)
+let pred k g =
+  OG.pred g.og (g |> vertex_of_key k) |> List.map (fun k -> key_of_vertex k g)
 
 let ivertex k g =
   let v = vertex_of_key k g in
@@ -337,27 +329,25 @@ let has_node k g =
   try
     let _ = ivertex k g in
     true
-  with Not_found -> false
+  with
+  | Not_found -> false
 
 let entry_nodes2 g =
   (* old: slow: nodes g +> List.filter (fun n -> pred n g = [])
    * Once I use a better underlying graph implementation maybe I
    * will not need this kind of things.
-  *)
+   *)
   let res = ref [] in
   let hdone = Hashtbl.create 101 in
   let finished = ref false in
-  g.og |> OG.Topological.iter (fun v ->
-    if !finished || Hashtbl.mem hdone v
-    then finished := true
-    else begin
-      let xs = OG.succ g.og v in
-      xs |> List.iter (fun n -> Hashtbl.replace hdone n true);
-      Common.push v res;
-    end
-  );
+  g.og
+  |> OG.Topological.iter (fun v ->
+         if !finished || Hashtbl.mem hdone v then finished := true
+         else
+           let xs = OG.succ g.og v in
+           xs |> List.iter (fun n -> Hashtbl.replace hdone n true);
+           Common.push v res);
   !res |> List.map (fun i -> key_of_vertex i g) |> List.rev
-
 
 let entry_nodes a =
   Common.profile_code "Graph.entry_nodes" (fun () -> entry_nodes2 a)
@@ -366,17 +356,17 @@ let entry_nodes a =
 (* Iteration *)
 (*****************************************************************************)
 let iter_edges f g =
-  g.og |> OG.iter_edges (fun v1 v2 ->
-    let k1 = key_of_vertex v1 g in
-    let k2 = key_of_vertex v2 g in
-    f k1 k2
-  )
+  g.og
+  |> OG.iter_edges (fun v1 v2 ->
+         let k1 = key_of_vertex v1 g in
+         let k2 = key_of_vertex v2 g in
+         f k1 k2)
 
 let iter_nodes f g =
-  g.og |> OG.iter_vertex (fun v ->
-    let k = key_of_vertex v g in
-    f k
-  )
+  g.og
+  |> OG.iter_vertex (fun v ->
+         let k = key_of_vertex v g in
+         f k)
 (*****************************************************************************)
 (* Graph deletion *)
 (*****************************************************************************)
@@ -402,14 +392,14 @@ let remove_edge k1 k2 g =
 (* todo? make the graph more functional ? it's very imperative right now
  * which forces the caller to write in an imperative way and use functions
  * like this 'copy()'. Look at launchbary haskell paper?
-*)
-let copy oldg =
-(*
- * bugfix: we can't just OG.copy the graph and Hashtbl.copy the vertex because
- * the vertex will actually be different in the copied graph, and so the
- * vertex_of_key will return a vertex in the original graph, not in
- * the new copied graph.
  *)
+let copy oldg =
+  (*
+   * bugfix: we can't just OG.copy the graph and Hashtbl.copy the vertex because
+   * the vertex will actually be different in the copied graph, and so the
+   * vertex_of_key will return a vertex in the original graph, not in
+   * the new copied graph.
+   *)
   (* {
      og = OG.copy g.og;
      key_of_vertex = Hashtbl.copy g.key_of_vertex;
@@ -421,11 +411,11 @@ let copy oldg =
   let g = create () in
   let nodes = nodes oldg in
   nodes |> List.iter (fun n -> add_vertex_if_not_present n g);
-  nodes |> List.iter (fun n ->
-    (* bugfix: it's oldg, not 'g', wow, copying stuff is error prone *)
-    let succ = succ n oldg in
-    succ |> List.iter (fun n2 -> add_edge n n2 g)
-  );
+  nodes
+  |> List.iter (fun n ->
+         (* bugfix: it's oldg, not 'g', wow, copying stuff is error prone *)
+         let succ = succ n oldg in
+         succ |> List.iter (fun n2 -> add_edge n n2 g));
   g
 
 (*****************************************************************************)
@@ -436,12 +426,9 @@ let shortest_path k1 k2 g =
   let vx = g |> vertex_of_key k1 in
   let vy = g |> vertex_of_key k2 in
 
-  let (edges, _len) = OG.shortest_path g.og vx vy in
-  let vertexes =
-    vx::(edges |> List.map (fun edge -> OG.E.dst edge))
-  in
+  let edges, _len = OG.shortest_path g.og vx vy in
+  let vertexes = vx :: (edges |> List.map (fun edge -> OG.E.dst edge)) in
   vertexes |> List.map (fun v -> key_of_vertex v g)
-
 
 (* todo? this works? I get some
  * Fatal error: exception Invalid_argument("[ocamlgraph] fold_succ")
@@ -453,50 +440,48 @@ let shortest_path k1 k2 g =
  *  is it because node references something from g? Is is the same
  *  issue that for copy?
  *
-*)
+ *)
 let transitive_closure g =
-
   let label_to_vertex = Hashtbl.create 101 in
-  g.og |> OG.iter_vertex (fun v ->
-    let lbl = OG.V.label v in
-    Hashtbl.replace label_to_vertex lbl v
-  );
+  g.og
+  |> OG.iter_vertex (fun v ->
+         let lbl = OG.V.label v in
+         Hashtbl.replace label_to_vertex lbl v);
 
   let og' = OG.transitive_closure ~reflexive:true g.og in
   let g' = create () in
 
-  og' |> OG.iter_vertex (fun v ->
-    let lbl = OG.V.label v in
-    let vertex_in_g = Hashtbl.find label_to_vertex lbl in
-    let key_in_g = Hashtbl.find g.key_of_vertex vertex_in_g in
-    Hashtbl.replace g'.key_of_vertex v key_in_g;
-    Hashtbl.replace g'.vertex_of_key key_in_g v;
-  );
-  { g' with og = og'  }
-
+  og'
+  |> OG.iter_vertex (fun v ->
+         let lbl = OG.V.label v in
+         let vertex_in_g = Hashtbl.find label_to_vertex lbl in
+         let key_in_g = Hashtbl.find g.key_of_vertex vertex_in_g in
+         Hashtbl.replace g'.key_of_vertex v key_in_g;
+         Hashtbl.replace g'.vertex_of_key key_in_g v);
+  { g' with og = og' }
 
 let mirror g =
   let og' = OG.mirror g.og in
   (* todo: have probably to do the same gymnastic than for transitive_closure*)
-  { g with og = og';  }
-
+  { g with og = og' }
 
 (* http://en.wikipedia.org/wiki/Strongly_connected_component *)
 let strongly_connected_components2 g =
   let scc_array_vt = OG.Components.scc_array g.og in
   let scc_array =
-    scc_array_vt |> Array.map (fun xs -> xs |> List.map (fun vt ->
-      key_of_vertex vt g
-    ))
+    scc_array_vt
+    |> Array.map (fun xs -> xs |> List.map (fun vt -> key_of_vertex vt g))
   in
   let h = Hashtbl.create 101 in
-  scc_array |> Array.iteri (fun i xs ->
-    xs |> List.iter (fun k ->
-      if Hashtbl.mem h k
-      then failwith "the strongly connected components should be disjoint";
-      Hashtbl.add h k i
-    ));
-  scc_array, h
+  scc_array
+  |> Array.iteri (fun i xs ->
+         xs
+         |> List.iter (fun k ->
+                if Hashtbl.mem h k then
+                  failwith
+                    "the strongly connected components should be disjoint";
+                Hashtbl.add h k i));
+  (scc_array, h)
 
 let strongly_connected_components a =
   Common.profile_code "Graph.scc" (fun () -> strongly_connected_components2 a)
@@ -505,55 +490,48 @@ let strongly_connected_components a =
 let strongly_connected_components_condensation2 g (scc, hscc) =
   let g2 = create () in
   let n = Array.length scc in
-  for i = 0 to n -1 do
+  for i = 0 to n - 1 do
     g2 |> add_vertex_if_not_present i
   done;
-  g |> iter_edges (fun n1 n2 ->
-    let k1 = Hashtbl.find hscc n1 in
-    let k2 = Hashtbl.find hscc n2 in
-    if k1 <> k2
-    then g2 |> add_edge k1 k2;
-  );
+  g
+  |> iter_edges (fun n1 n2 ->
+         let k1 = Hashtbl.find hscc n1 in
+         let k2 = Hashtbl.find hscc n2 in
+         if k1 <> k2 then g2 |> add_edge k1 k2);
   g2
+
 let strongly_connected_components_condensation a b =
   Common.profile_code "Graph.scc_condensation" (fun () ->
-    strongly_connected_components_condensation2 a b)
-
+      strongly_connected_components_condensation2 a b)
 
 let depth_nodes2 g =
-  if OG.Dfs.has_cycle g.og
-  then failwith "not a DAG";
+  if OG.Dfs.has_cycle g.og then failwith "not a DAG";
 
   let hres = Hashtbl.create 101 in
 
   (* do in toplogical order *)
-  g.og |> OG.Topological.iter (fun v ->
-    let ncurrent =
-      if not (Hashtbl.mem hres v)
-      then 0
-      else Hashtbl.find hres v
-    in
-    Hashtbl.replace hres v ncurrent;
-    let xs = OG.succ g.og v in
-    xs |> List.iter (fun v2 ->
-      let nchild =
-        if not (Hashtbl.mem hres v2)
-        then ncurrent + 1
-        (* todo: max or min? can lead to different metrics,
-         * either to know the longest path from the top, or to know some
-         * possible shortest path from the top.
-        *)
-        else max (Hashtbl.find hres v2) (ncurrent + 1)
-      in
-      Hashtbl.replace hres v2 nchild;
-      ()
-    );
-  );
+  g.og
+  |> OG.Topological.iter (fun v ->
+         let ncurrent =
+           if not (Hashtbl.mem hres v) then 0 else Hashtbl.find hres v
+         in
+         Hashtbl.replace hres v ncurrent;
+         let xs = OG.succ g.og v in
+         xs
+         |> List.iter (fun v2 ->
+                let nchild =
+                  if not (Hashtbl.mem hres v2) then ncurrent + 1
+                    (* todo: max or min? can lead to different metrics,
+                     * either to know the longest path from the top, or to know some
+                     * possible shortest path from the top.
+                     *)
+                  else max (Hashtbl.find hres v2) (ncurrent + 1)
+                in
+                Hashtbl.replace hres v2 nchild;
+                ()));
 
   let hfinalres = Hashtbl.create 101 in
-  hres |> Hashtbl.iter (fun v n ->
-    Hashtbl.add hfinalres (key_of_vertex v g) n
-  );
+  hres |> Hashtbl.iter (fun v n -> Hashtbl.add hfinalres (key_of_vertex v g) n);
   hfinalres
 
 let depth_nodes a =
@@ -563,46 +541,41 @@ let depth_nodes a =
 (* Graph visualization and debugging *)
 (*****************************************************************************)
 
-let display_with_gv g =
-  OG.display_with_gv g.og
+let display_with_gv g = OG.display_with_gv g.og
 
-let print_graph_generic ?(launch_gv=true) ?(extra_string="") ~str_of_key
+let print_graph_generic ?(launch_gv = true) ?(extra_string = "") ~str_of_key
     filename g =
-  Common.with_open_outfile filename (fun (pr,_) ->
-    pr "digraph misc {\n" ;
-    (* pr "size = \"10,10\";\n" ; *)
-    pr extra_string;
-    pr "\n";
+  Common.with_open_outfile filename (fun (pr, _) ->
+      pr "digraph misc {\n";
+      (* pr "size = \"10,10\";\n" ; *)
+      pr extra_string;
+      pr "\n";
 
-    g.og |> OG.iter_vertex (fun v ->
-      let k = key_of_vertex v g in
-      (* todo? could also use the str_of_key to represent the node *)
-      pr (spf "%d [label=\"%s\"];\n"
-            (OG.V.label v)
-            (str_of_key k));
-    );
+      g.og
+      |> OG.iter_vertex (fun v ->
+             let k = key_of_vertex v g in
+             (* todo? could also use the str_of_key to represent the node *)
+             pr (spf "%d [label=\"%s\"];\n" (OG.V.label v) (str_of_key k)));
 
-    g.og |> OG.iter_vertex (fun v ->
-      let succ = OG.succ g.og v in
-      succ |> List.iter (fun v2 ->
-        pr (spf "%d -> %d;\n" (OG.V.label v) (OG.V.label v2));
-      )
-    );
-    pr "}\n" ;
-  );
-  if launch_gv
-  then failwith "TODO: Ograph_extended.launch_gv_cmd filename";
+      g.og
+      |> OG.iter_vertex (fun v ->
+             let succ = OG.succ g.og v in
+             succ
+             |> List.iter (fun v2 ->
+                    pr (spf "%d -> %d;\n" (OG.V.label v) (OG.V.label v2))));
+      pr "}\n");
+  if launch_gv then failwith "TODO: Ograph_extended.launch_gv_cmd filename";
   (* Ograph_extended.launch_gv_cmd filename; *)
   ()
 
 let tmpfile = "/tmp/graph_ml.dot"
 
 let display_strongly_connected_components ~str_of_key hscc g =
-  print_graph_generic ~str_of_key:(fun k ->
-    let s = str_of_key k in
-    spf "%s (scc=%d)" s (Hashtbl.find hscc k)
-  ) tmpfile g
-
+  print_graph_generic
+    ~str_of_key:(fun k ->
+      let s = str_of_key k in
+      spf "%s (scc=%d)" s (Hashtbl.find hscc k))
+    tmpfile g
 
 (*****************************************************************************)
 (* stat *)

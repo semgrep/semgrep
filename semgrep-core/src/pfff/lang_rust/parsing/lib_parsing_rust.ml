@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 module Ast = Ast_rust
 module Flag = Flag_parsing
@@ -29,8 +29,8 @@ module FT = File_type
 let find_source_files_of_dir_or_files xs =
   Common.files_of_dir_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
-    let ftype = File_type.file_type_of_file filename in
-    match ftype with
-    | FT.PL (FT.Rust) -> true
-    | _ -> false
-  ) |> Common.sort
+         let ftype = File_type.file_type_of_file filename in
+         match ftype with
+         | FT.PL FT.Rust -> true
+         | _ -> false)
+  |> Common.sort

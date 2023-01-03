@@ -5,9 +5,7 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
-#TODO: remove semgrep-core/src/pfff at some point from below
-
-exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations|TOPORT|^semgrep-core/src/pfff"
+exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^semgrep-core/src/pfff/tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations|TOPORT"
 
 # See https://pre-commit.com/#pre-commit-configyaml---repos
 # for more information on the format of the content below
@@ -85,7 +83,7 @@ repos:
     rev: v0.961
     hooks:
       - id: mypy
-        exclude: ^cli/tests/.+$|^setup.py$|^scripts/.+$|^parsing-stats/.+$|^perf/.+$$
+        exclude: ^cli/tests/.+$|^setup.py$|^scripts/.+$|^parsing-stats/.+$|pfff|^perf/.+$$
         args: [--config, mypy.ini, --show-error-codes]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:
@@ -150,6 +148,7 @@ repos:
         language: docker_image
         entry: koalaman/shellcheck:v0.8.0
         files: "[.]sh$"
+        exclude: "pfff"
       - id: hadolint
         name: hadolint
         language: docker_image
@@ -173,6 +172,8 @@ repos:
         entry: ./scripts/lint-ocaml
         language: script
         files: "\\.mli?$"
+        # weird ocamlformat bug, can't process this file
+        exclude: "^semgrep-core/src/pfff/lang_js/analyze/graph_code_js.ml"
 
   # ----------------------------------------------------------
   # Dogfood! running semgrep in pre-commit!
@@ -188,7 +189,11 @@ repos:
         # 'docker_image' to run semgrep, but for now jsonnet support
         # is not available via setup.py and only (unofficially)
         # available in docker.
-        entry: -e SEMGREP_LOG_FILE=/tmp/out.log -e SEMGREP_VERSION_CACHE_PATH=/tmp/cache returntocorp/semgrep:0.116.0 semgrep
+        entry: -e SEMGREP_LOG_FILE=/tmp/out.log -e SEMGREP_VERSION_CACHE_PATH=/tmp/cache returntocorp/semgrep:develop semgrep
+        exclude: "^semgrep-core/src/pfff"
+        #note that the --exclude below are useless because pre-commit pass
+        # a list of files explicitely which prevents --exclude to work
+        # hence the separate exclude: above.
         #coupling: 'make check' and the SEMGREP_ARGS variable
         args: [
             "--config",
@@ -211,7 +216,6 @@ repos:
             # want an OCaml rule to be applied on a script.
             "--skip-unknown-extensions",
           ]
-
   # Dogfooding .pre-commit-hooks.yml and setup.py
   - repo: https://github.com/returntocorp/semgrep
     rev: v0.100.0

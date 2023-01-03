@@ -13,11 +13,11 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 (*e: Facebook copyright *)
 open Common
-
 module PI = Parse_info
+
 (*s: basic pfff module open and aliases *)
 (*module Ast = Cst_php*)
 (*e: basic pfff module open and aliases *)
@@ -33,38 +33,30 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag_parsing.verbose_parsing
 
 let is_php_script file =
   Common.with_open_infile file (fun chan ->
-    try
-      let l = input_line chan in
-      l =~ "#!/usr/.*/php" ||
-      l =~ "#!/bin/env php" ||
-      l =~ "#!/usr/bin/env php"
+      try
+        let l = input_line chan in
+        l =~ "#!/usr/.*/php" || l =~ "#!/bin/env php"
+        || l =~ "#!/usr/bin/env php"
+      with
+      | End_of_file -> false)
 
-    with End_of_file -> false
-  )
-
+(* todo: can not include those files for now because
+ * they conflict with pfff/data/php_stdlib and generate lots
+ * of DUPE in codegraph
+ *
+ * (filename =~ ".*\\.hhi") (* hack uses this extension *)
+ *)
 let is_php_filename filename =
-  (filename =~ ".*\\.php$") || (filename =~ ".*\\.phpt$") ||
+  filename =~ ".*\\.php$" || filename =~ ".*\\.phpt$"
   (* hotcrp uses this extension *)
-  (filename =~ ".*\\.inc") ||
-  (* hack uses this extension *)
-  (* todo: can not include those files for now because
-   * they conflict with pfff/data/php_stdlib and generate lots
-   * of DUPE in codegraph
-   *
-   * (filename =~ ".*\\.hhi")
-  *)
-  false
+  || filename =~ ".*\\.inc"
 
-let is_hhi_filename filename =
-  (filename =~ ".*\\.hhi$") ||
-  false
-
-let is_php_filename_phar filename =
-  (filename =~ ".*\\.phar$") ||
-  false
+let is_hhi_filename filename = filename =~ ".*\\.hhi$" || false
+let is_php_filename_phar filename = filename =~ ".*\\.phar$" || false
 
 let is_php_file filename =
-  not (is_php_filename_phar filename) && (is_php_filename filename || is_php_script filename)
+  (not (is_php_filename_phar filename))
+  && (is_php_filename filename || is_php_script filename)
 
 (*
  * In command line tools like git or mercurial, many operations works
@@ -72,27 +64,26 @@ let is_php_file filename =
  * We want the same with pfff, hence this small helper function that
  * transform such files_or_dirs into a flag set of filenames.
  *)
-let find_source_files_of_dir_or_files ?(verbose=false) ?(include_hack=false) xs =
+let find_source_files_of_dir_or_files ?(verbose = false) ?(include_hack = false)
+    xs =
   Common.files_of_dir_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
-    (* note: there was a possible race here because between the time we
-     * do the 'find' and the time we call is_php_file(), the file may have
-     * disappeared (this happens for instance because of watchman).
-     * Hence the Sys.file_exists guard.
-    *)
-    let valid =
-      (* note that there is still a race between the call to file_exists
-       * and is_php_file, but this one is far shorter :)
-      *)
-      Sys.file_exists filename && (
-        is_php_file filename ||
-        (include_hack && is_hhi_filename filename)
-      )
-    in
-    if not valid && verbose
-    then pr2 ("not analyzing: " ^ filename);
-    valid
-  ) |> Common.sort
+         (* note: there was a possible race here because between the time we
+          * do the 'find' and the time we call is_php_file(), the file may have
+          * disappeared (this happens for instance because of watchman).
+          * Hence the Sys.file_exists guard.
+          *)
+         let valid =
+           (* note that there is still a race between the call to file_exists
+            * and is_php_file, but this one is far shorter :)
+            *)
+           Sys.file_exists filename
+           && (is_php_file filename
+              || (include_hack && is_hhi_filename filename))
+         in
+         if (not valid) && verbose then pr2 ("not analyzing: " ^ filename);
+         valid)
+  |> Common.sort
 
 (*****************************************************************************)
 (* Extract infos *)
@@ -136,18 +127,17 @@ let ii_of_any any =
 (*s: max min range *)
 (*x: max min range *)
 
-let (range_of_origin_ii: Cst_php.tok list -> (int * int) option) =
-  fun ii ->
+let (range_of_origin_ii : Cst_php.tok list -> (int * int) option) =
+ fun ii ->
   let ii = List.filter Parse_info.is_origintok ii in
   try
-    let (min, max) = Parse_info.min_max_ii_by_pos ii in
-    assert(PI.is_origintok max);
-    assert(PI.is_origintok min);
+    let min, max = Parse_info.min_max_ii_by_pos ii in
+    assert (PI.is_origintok max);
+    assert (PI.is_origintok min);
     let strmax = PI.str_of_info max in
-    Some
-      (PI.pos_of_info min, PI.pos_of_info max + String.length strmax)
-  with _ ->
-    None
+    Some (PI.pos_of_info min, PI.pos_of_info max + String.length strmax)
+  with
+  | _ -> None
 (*e: max min range *)
 
 (*****************************************************************************)
@@ -336,5 +326,5 @@ let get_vars_assignements_any recursor =
       );
     }
   ) recursor |> Common.group_assoc_bykey_eff
-*)
+ *)
 (*e: lib_parsing_php.ml *)

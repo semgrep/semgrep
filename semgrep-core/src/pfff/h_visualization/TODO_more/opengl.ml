@@ -17,8 +17,7 @@ open Common
  * is actually a function that operates on the matrix system of opengl).
  * The glMlite actually provides some script to translate programs using
  * lablGL or glMlite in one another.
-*)
-
+ *)
 
 (*
  * ref: Jon Harrop article and books

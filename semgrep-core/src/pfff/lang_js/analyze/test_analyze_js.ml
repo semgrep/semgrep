@@ -4,5 +4,4 @@
 
 (* nothing for now, now that ast_js.ml has replace cst_js.ml *)
 
-let actions () = [
-]
+let actions () = []

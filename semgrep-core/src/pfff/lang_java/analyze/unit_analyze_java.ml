@@ -3,24 +3,23 @@
 (*****************************************************************************)
 
 let tests =
-  Testutil.pack_tests "analyze_java" [
+  Testutil.pack_tests "analyze_java"
+    [ (* now done in semgrep/Test.ml
+          "regression files", (fun () ->
+            let dir = Config_pfff.tests_path "java/parsing" in
+            let files = Common2.glob (spf "%s/*.java" dir) in
+            files |> List.iter (fun file ->
+              try
+                let ast = Parse_java.parse_program file in
+                let _gen = Java_to_generic.program ast in
+                ()
+              with _exn ->
+                assert_failure (spf "it should generate a generic AST %s" file)
+            )
+          );
+      *)
 
-    (* now done in semgrep/Test.ml
-        "regression files", (fun () ->
-          let dir = Config_pfff.tests_path "java/parsing" in
-          let files = Common2.glob (spf "%s/*.java" dir) in
-          files |> List.iter (fun file ->
-            try
-              let ast = Parse_java.parse_program file in
-              let _gen = Java_to_generic.program ast in
-              ()
-            with _exn ->
-              assert_failure (spf "it should generate a generic AST %s" file)
-          )
-        );
-    *)
-
-(*
+      (*
  "tags_java" [
 
    "basic tags", (fun () ->
@@ -45,5 +44,4 @@ let tests =
         )
    );
  ]
-*)
-  ]
+*) ]

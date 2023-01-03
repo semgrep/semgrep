@@ -3,16 +3,16 @@
 Pfff welcomes contributions from anyone. To contribute:
 
 1. Please make sure you read and agree to the
-[Contributor License Agreement](https://cla-assistant.io/returntocorp/pfff).
-The purpose of the CLA is to allow future relicensing without having to
-track down any past contributor. By signing the CLA, **your contribution will
-remain under the current license (LGPL) regardless of future changes**.
+   [Contributor License Agreement](https://cla-assistant.io/returntocorp/pfff).
+   The purpose of the CLA is to allow future relicensing without having to
+   track down any past contributor. By signing the CLA, **your contribution will
+   remain under the current license (LGPL) regardless of future changes**.
 2. If you have an idea for a feature or notice a bug please
-[open an issue](https://github.com/returntocorp/pfff/issues/new/choose).
-Creating an issue first is preferable to moving directly to a pull request so
-that we can ensure you're on the right track without any wasted effort. This
-is also a great way to contribute to pfff even if you're not making changes
-yourself.
+   [open an issue](https://github.com/returntocorp/pfff/issues/new/choose).
+   Creating an issue first is preferable to moving directly to a pull request so
+   that we can ensure you're on the right track without any wasted effort. This
+   is also a great way to contribute to pfff even if you're not making changes
+   yourself.
 
 ## Developer setup
 

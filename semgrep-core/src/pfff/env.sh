@@ -1,4 +1,4 @@
-#!!!!You need to source me with "source env.sh" from the right directory!!!!
+# !!!!You need to source me with "source env.sh" from the right directory!!!!
 if [ ! -r main.ml ]
     then echo "There is no main.ml here.
 Are you sure you ran this script from the source directory of pfff?

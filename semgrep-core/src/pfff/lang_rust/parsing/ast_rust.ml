@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -46,7 +46,6 @@ and 'a wrap = 'a * tok
 (* ------------------------------------------------------------------------- *)
 
 type toplevel = unit
-
 type program = unit
 
 (*****************************************************************************)

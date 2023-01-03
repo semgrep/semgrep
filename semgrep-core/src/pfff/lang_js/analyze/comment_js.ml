@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 open Common
 
@@ -23,7 +23,7 @@ open Common
  * less: at one point we should parse more the comment and have
  * tokens such as TWord, TAnnot, etc. as in CComment.
  *
-*)
+ *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -31,7 +31,7 @@ open Common
 
 (* Copy paste of Comment_php.strip_comment_marks for now.
  * less: factorize and put stuff in a h_program-lang/comment.ml file
-*)
+ *)
 let strip_comment_marks s =
   match () with
   | _ when s =~ "^//[ ]*\\(.*\\)" -> Common.matched1 s

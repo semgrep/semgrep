@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 
 open Common2.BasicType
 
@@ -52,8 +52,6 @@ open Common2.BasicType
  * with this scheme ?
  *)
 
-
-
 (*****************************************************************************)
 (* Basic *)
 (*****************************************************************************)
@@ -67,90 +65,88 @@ open Common2.BasicType
  *    data x = ... deriving (Read, Show, Eq, Ord, Enum, Bounded)
  *
  * Apparently this is what is considered basic by haskell.
-*)
-
+ *)
 
 module type Check_able = sig
   type checkable
-  val invariant: checkable -> unit (* raise exception *)
+
+  val invariant : checkable -> unit (* raise exception *)
 end
-
-
 
 (* Normally should not use the '=' of ocaml. cf common.mli on this issue. *)
 module type Eq_able = sig
   type eqable
+
   val equal : eqable -> eqable -> bool
   (* Jane Street have far more (complex) stuff for this typeclass *)
 
-  val (=*=): eqable -> eqable -> bool
+  val ( =*= ) : eqable -> eqable -> bool
 end
-
-
 
 (* Same, should not use compare normally, dangerous when evolve code.
  * Called Ord in haskell. Inherit Eq normally.
-*)
+ *)
 module type Compare_able = sig
   type compareable
-  val compare: compareable -> compareable -> bool
+
+  val compare : compareable -> compareable -> bool
 end
 (* Jane street have also some binable, sexpable *)
 
-
 (* Haskell have lots of related type class after Num such as
  * Real, Fractional, Integral, RealFrac, Floating, RealFloat
-*)
+ *)
 module type Num_able = sig
   type numable
   (* +, -, etc *)
 end
 
-
-
 (*****************************************************************************)
 (* Show/read related *)
 (*****************************************************************************)
 
-
 (* Called show/read in haskell *)
 module type String_able = sig
   type stringable
+
   val of_string : string -> stringable
   val to_string : stringable -> string
 end
 
 module type Debug_able = sig
   type debugable
-  val debug: debugable -> string
-end
 
+  val debug : debugable -> string
+end
 
 module type XML_able = sig
   type xmlable
-  val of_xml: string -> xmlable
-  val to_xml: xmlable -> string
+
+  val of_xml : string -> xmlable
+  val to_xml : xmlable -> string
 end
 (* Jane street have also some BIN_able, and SEXP_able (but no sex_able) *)
 
 module type File_able = sig
   type fileable
-  val load: filename -> fileable
-  val save: fileable -> filename -> unit
+
+  val load : filename -> fileable
+  val save : fileable -> filename -> unit
 end
 
 (* a.k.a Marshall_able *)
 module type Serialize_able = sig
   type serializeable
-  val serialize: serializeable -> string
-  val unserialize: string -> serializeable
-end
 
+  val serialize : serializeable -> string
+  val unserialize : string -> serializeable
+end
 
 module type Open_able = sig
   type openable
-  val openfile: filename -> openable
-  val close: openable -> unit
+
+  val openfile : filename -> openable
+  val close : openable -> unit
 end
 
 (*****************************************************************************)
@@ -161,25 +157,24 @@ end
 
 (* Require Constructor class ? So can not do it ? apparently can. Note the
  * 'b which is not declareted but seems to pose no problem to ocamlc.
-*)
+ *)
 module type Map_able = sig
   type 'a mapable
-  val map: ('a -> 'b) -> 'a mapable -> 'b mapable
+
+  val map : ('a -> 'b) -> 'a mapable -> 'b mapable
 end
 
 module type Iter_able = sig
   type 'a iterable
-  val iter: ('a -> unit) -> 'a iterable -> unit
-end
 
+  val iter : ('a -> unit) -> 'a iterable -> unit
+end
 
 (* testable ? actionable ? *)
 
 (* *)
 
 (* monad ? functor *)
-
-
 
 (*****************************************************************************)
 (* Idea taken from Jane Street Core library, slightly changed.
@@ -189,7 +184,7 @@ end
  *
  * It makes some code looks a little bit like Haskell* typeclass.
  *
-*)
+ *)
 
 (* In Jane Street they put each interface in its own file but then have to
  * do that:
@@ -207,6 +202,6 @@ end
  *
  * And I dont like having too much files, especially as all those xxable
  * end with able, not start, so don't see them together in the directory.
-*)
+ *)
 
 (*e: interfaces.ml *)
