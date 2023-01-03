@@ -45,7 +45,7 @@ def getdirs(rootdir):
         removenothrow(dirs, "docs")
 
         for d in dirs:
-            yield "%s" % (os.path.join(root, d),)
+            yield "{}".format(os.path.join(root, d))
 
 
 if __name__ == "__main__":
@@ -53,6 +53,6 @@ if __name__ == "__main__":
     mode = sys.argv[1]
     rootdir = sys.argv[2]
     if mode == "debug":
-        print("".join(["directory %s\n" % (d,) for d in getdirs(rootdir)]))
+        print("".join(["directory {}\n".format(d) for d in getdirs(rootdir)]))
     else:
-        print("".join(['#directory "%s";;\n' % (d,) for d in getdirs(rootdir)]))
+        print("".join(['#directory "{}";;\n'.format(d) for d in getdirs(rootdir)]))
