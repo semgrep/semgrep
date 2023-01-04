@@ -2,8 +2,10 @@
 
 name: semgrep
 on:
-  # Run Semgrep on contributor PRs (from outside forks) while preventing
-  # execution of unsafe code from the head of the pull request.
+  # This workflow runs on 'pull_request_target' so that PRs from forks are able
+  # to run an action that uses the SEMGREP_APP_TOKEN secret
+  # Note that any modification of this file in a PR does not reflect on said PR
+  # Changes must be merged to develop first
   pull_request_target: {}
   push:
     branches:
