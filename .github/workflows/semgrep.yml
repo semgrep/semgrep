@@ -1,9 +1,10 @@
-# This workflow dogfoods Semgrep Code and Supply Chain by running
-# `semgrep ci` on our own Semgrep repo.
+# This workflow dogfoods Semgrep Code and Supply Chain.
 
-name: Semgrep
+name: semgrep
 on:
-  pull_request: {}
+  # Run Semgrep on contributor PRs (from outside forks) while preventing
+  # execution of unsafe code from the head of the pull request.
+  pull_request_target: {}
   push:
     branches:
       - develop
@@ -14,7 +15,7 @@ on:
     - cron: "50 15 * * *"
 jobs:
   semgrep:
-    name: Scan
+    name: semgrep ci
     runs-on: ubuntu-20.04
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
