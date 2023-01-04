@@ -426,8 +426,15 @@ let m_regexp_options a_opt b_opt =
 (* start of recursive need *)
 (* TODO: factorize with metavariable and aliasing logic in m_expr
  * TODO: remove MV.Id and use always MV.N?
+ * `is_resolved` should be true if `b` is the result of unpacking a resolved name,
+   resulting from ImportedEntity, ImportedModule, or ResolvedName.
+   If it is, then we prevent calls to `envf`, because this will produce a match
+   with a nonsensical range, because the tokens that constitute it may be distributed
+   around the target corpus non-contiguously. In this case, it messes up `metavariable-pattern`
+   and friends.
+   See the case conditioning in `is_resolved` below.
  *)
-let rec m_name a b =
+let rec m_name ?(is_resolved = false) a b =
   let try_parents dotted =
     let parents =
       match !hook_find_possible_parents with
@@ -438,7 +445,7 @@ let rec m_name a b =
     let rec aux xs =
       match xs with
       | [] -> fail ()
-      | x :: xs -> m_name a x >||> aux xs
+      | x :: xs -> m_name ~is_resolved:true a x >||> aux xs
     in
     aux parents
   in
@@ -446,7 +453,7 @@ let rec m_name a b =
     | B.ResolvedName (_, alternate_names) ->
         List.fold_left
           (fun acc alternate_name ->
-            acc >||> m_name a (H.name_of_ids alternate_name))
+            acc >||> m_name ~is_resolved:true a (H.name_of_ids alternate_name))
           (fail ()) alternate_names
     | _ -> fail ()
   in
@@ -456,7 +463,34 @@ let rec m_name a b =
   | G.Id (((str, tok) as a1), a2), _ when MV.is_metavar_name str -> (
       match b with
       | G.Id (b1, b2) -> m_ident_and_id_info (a1, a2) (b1, b2)
-      | _ -> envf (str, tok) (MV.N b))
+      (* If `is_resolved` is true, then we got the target `IdQualified` from a
+         brandonspark marked this conversation as resolved.
+         `ResolvedName`.
+         Such an identifier has a nonsensical range, because it may have been
+         constructed from identifiers from arbitrary areas, such as imports or
+         classes.
+         If the resolved name is `A.foo`, in
+         the following code:
+         ```
+         class A:
+           def foo():
+             pass
+         ```
+         then the pattern metavariable will match the range of the text
+         ```
+         A:
+         def foo
+         ```
+         because it is matching everything between `A` and `foo`.
+         So we should not permit this match.
+         The reason why this is not concerning in terms of preventing matches
+         (such as with `metavariable-pattern`) which should occur is because we will
+         _allow_ the match farther up in the matching logic, to the identifier that
+         contains the packed resolved name in the first place.
+         Then, the resolved name can be unpacked later as necessary. It is not
+         necessary to produce this match to the resolved name verbatim, however.
+      *)
+      | _ -> if is_resolved then fail () else envf (str, tok) (MV.N b))
   (* equivalence: aliasing (name resolving) part 1 *)
   | a, B.Id (idb, infob) -> (
       (* Try to match using the ordinary logic first.
