@@ -1,1 +1,0 @@
-Semgrep no longer crashes in certain cases when `metavariable-pattern/regex` are used on a metavariable referencing a variable which has been imported.
