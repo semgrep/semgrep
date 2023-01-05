@@ -1,67 +1,7 @@
-import functools
-import hashlib
-import json
-import os
-import uuid
-from datetime import datetime
-from enum import auto
-from enum import Enum
-from pathlib import Path
-from typing import Any
-from typing import Callable
-from typing import cast
-from typing import Dict
-from typing import List
-from typing import NewType
-from typing import Optional
-from typing import Sequence
-from typing import Set
-from urllib.parse import urlparse
-
-import click
-import requests
-from attr import define
-from attr import Factory
-from typing_extensions import LiteralString
-from typing_extensions import TypedDict
-
-from semgrep import __VERSION__
-from semgrep.error import SemgrepError
-from semgrep.parsing_data import ParsingData
-from semgrep.profile_manager import ProfileManager
-from semgrep.profiling import ProfilingData
-from semgrep.rule import Rule
-from semgrep.semgrep_types import Language
-from semgrep.types import FilteredMatches
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
-
-METRICS_ENDPOINT = "https://metrics.semgrep.dev"
-
-
-class MetricsState(Enum):
-    """
-    Configures metrics upload.
-
-    ON - Metrics always sent
-    OFF - Metrics never sent
-    AUTO - Metrics only sent if config is pulled from the server
-    """
-
-    ON = auto()
-    OFF = auto()
-    AUTO = auto()
-
-
-Sha256Hash = NewType("Sha256Hash", str)
-
-
 class RuleStats(TypedDict, total=False):
     ruleHash: str
     bytesScanned: int
     matchTime: Optional[float]
-
 
 class FileStats(TypedDict, total=False):
     size: int
@@ -159,20 +99,8 @@ def suppress_errors(func: Callable[..., None]) -> Callable[..., None]:
     return wrapper
 
 
-@define
 class Metrics:
-    """
-    To prevent sending unintended metrics:
-    1. send all data into this class with add_* methods
-    2. ensure all add_* methods only set sanitized data
-
-    These methods go directly from raw data to transported data,
-    thereby skipping a "stored data" step,
-    and enforcing that we sanitize before saving, not before sending.
-    """
-
     _is_using_registry: bool = False
-    metrics_state: MetricsState = MetricsState.OFF
     payload: PayloadSchema = Factory(
         lambda: PayloadSchema(
             environment=EnvironmentSchema(),
@@ -189,31 +117,6 @@ class Metrics:
         self.payload["environment"]["version"] = __VERSION__
         self.payload["environment"]["ci"] = os.getenv("CI")
         self.payload["event_id"] = uuid.uuid4()
-
-    def configure(
-        self,
-        metrics_state: Optional[MetricsState],
-        legacy_state: Optional[MetricsState],
-    ) -> None:
-        """
-        Configures whether to always, never, or automatically send metrics (based on whether config
-        is pulled from the server).
-
-        :param metrics_state: The value of the --metrics option
-        :param legacy_state: Value of the --enable-metrics/--disable-metrics option
-        :raises click.BadParameter: if both --metrics and --enable-metrics/--disable-metrics are passed
-        and their values are different
-        """
-
-        if (
-            metrics_state is not None
-            and legacy_state is not None
-            and metrics_state != legacy_state
-        ):
-            raise click.BadParameter(
-                "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-            )
-        self.metrics_state = metrics_state or legacy_state or MetricsState.AUTO
 
     @property
     def is_using_registry(self) -> bool:
@@ -416,8 +319,6 @@ class Metrics:
 
         Will if is_enabled is True
         """
-        from semgrep.state import get_state  # avoiding circular import
-
         state = get_state()
         logger.verbose(
             f"{'Sending' if self.is_enabled else 'Not sending'} pseudonymous metrics since metrics are configured to {self.metrics_state.name} and registry usage is {self.is_using_registry}"

@@ -133,7 +133,7 @@ let import_callback base str =
 let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
   match FT.file_type_of_file file with
   | FT.Config FT.Jsonnet ->
-      Logs.err (fun m ->
+      Logs.warn (fun m ->
           m
             "Support for Jsonnet rules is experimental and currently meant for \
              internal use only. The syntax may change or be removed at any \
