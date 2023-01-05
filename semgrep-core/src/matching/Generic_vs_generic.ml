@@ -426,7 +426,7 @@ let m_regexp_options a_opt b_opt =
 (* start of recursive need *)
 (* TODO: factorize with metavariable and aliasing logic in m_expr
  * TODO: remove MV.Id and use always MV.N?
- * `is_resolved` should be true if `b` is the result of unpacking a resolved name,
+   `is_resolved` should be true if `b` is the result of unpacking a resolved name,
    resulting from ImportedEntity, ImportedModule, or ResolvedName.
    If it is, then we prevent calls to `envf`, because this will produce a match
    with a nonsensical range, because the tokens that constitute it may be distributed
