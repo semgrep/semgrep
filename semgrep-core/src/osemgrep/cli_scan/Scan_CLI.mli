@@ -31,7 +31,7 @@ type conf = {
   profile : bool;
   rewrite_rule_ids : bool;
   (* Networking options *)
-  metrics : Metrics.State.t;
+  metrics : Metrics.state;
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
   version : bool;

@@ -47,7 +47,7 @@ type conf = {
   profile : bool;
   rewrite_rule_ids : bool;
   (* Networking options *)
-  metrics : Metrics.State.t;
+  metrics : Metrics.state;
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
   version : bool;
@@ -95,7 +95,7 @@ let default : conf =
     profile = false;
     rewrite_rule_ids = true;
     time_flag = false;
-    metrics = Metrics.State.Auto;
+    metrics = Metrics.Auto;
     version_check = true;
     (* ugly: should be separate subcommands *)
     version = false;
@@ -120,7 +120,7 @@ let default : conf =
 (* TOPORT? there's also a --disable-metrics and --enable-metrics
  * but they are marked as legacy flags, so maybe not worth porting
  *)
-let o_metrics : Metrics.State.t Term.t =
+let o_metrics : Metrics.state Term.t =
   let info =
     Arg.info [ "metrics" ]
       ~env:(Cmd.Env.info "SEMGREP_SEND_METRICS")
@@ -133,7 +133,7 @@ SEMGREP_SEND_METRICS environment variable value will be used. If no
 environment variable, defaults to 'auto'.
 |}
   in
-  Arg.value (Arg.opt Metrics.State.converter default.metrics info)
+  Arg.value (Arg.opt Metrics.converter default.metrics info)
 
 (* alt: was in "Performance and memory options" before *)
 let o_version_check : bool Term.t =
@@ -778,7 +778,7 @@ let cmdline_term : conf Term.t =
     in
 
     (* sanity checks *)
-    if List.mem "auto" config && metrics = Metrics.State.Off then
+    if List.mem "auto" config && metrics = Metrics.Off then
       Error.abort
         "Cannot create auto config when metrics are off. Please allow metrics \
          or run with a specific config.";
