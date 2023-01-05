@@ -340,7 +340,7 @@ and unique_name = { dotted : dotted_ident; tok : tok option }
  *
  * sgrep-ext: note that ident can be a metavariable.
  *)
-type name = Id of ident * id_info | IdQualified of qualified_info
+and name = Id of ident * id_info | IdQualified of qualified_info
 
 (* A qualified (via type arguments or module/namespace/package) id.
  * The type should be enough to represent Java/Rust/C++ generics.
