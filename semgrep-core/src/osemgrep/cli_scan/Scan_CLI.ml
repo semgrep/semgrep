@@ -47,7 +47,7 @@ type conf = {
   profile : bool;
   rewrite_rule_ids : bool;
   (* Networking options *)
-  metrics : Metrics.state;
+  metrics : Metrics.config;
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
   version : bool;
@@ -120,7 +120,7 @@ let default : conf =
 (* TOPORT? there's also a --disable-metrics and --enable-metrics
  * but they are marked as legacy flags, so maybe not worth porting
  *)
-let o_metrics : Metrics.state Term.t =
+let o_metrics : Metrics.config Term.t =
   let info =
     Arg.info [ "metrics" ]
       ~env:(Cmd.Env.info "SEMGREP_SEND_METRICS")

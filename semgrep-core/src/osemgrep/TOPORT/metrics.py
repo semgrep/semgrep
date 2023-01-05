@@ -1,78 +1,3 @@
-class RuleStats(TypedDict, total=False):
-    ruleHash: str
-    bytesScanned: int
-    matchTime: Optional[float]
-
-class FileStats(TypedDict, total=False):
-    size: int
-    numTimesScanned: int
-    parseTime: Optional[float]
-    matchTime: Optional[float]
-    runTime: Optional[float]
-
-
-class EnvironmentSchema(TypedDict, total=False):
-    version: str
-    projectHash: Optional[Sha256Hash]
-    configNamesHash: Sha256Hash
-    rulesHash: Sha256Hash
-    ci: Optional[str]
-    isAuthenticated: bool
-
-
-class PerformanceSchema(TypedDict, total=False):
-    fileStats: List[FileStats]
-    ruleStats: List[RuleStats]
-    profilingTimes: Dict[str, float]
-    numRules: Optional[int]
-    numTargets: Optional[int]
-    totalBytesScanned: Optional[int]
-
-
-class ErrorsSchema(TypedDict, total=False):
-    returnCode: Optional[int]
-    errors: List[str]
-
-
-class ValueRequiredSchema(TypedDict):
-    features: Set[str]
-
-
-class ValueSchema(ValueRequiredSchema, total=False):
-    numFindings: int
-    numIgnored: int
-    ruleHashesWithFindings: Dict[str, int]
-
-
-class FixRateSchema(TypedDict, total=False):
-    lowerLimits: Dict[str, int]
-    upperLimits: Dict[str, int]
-
-
-class ParseStatSchema(TypedDict, total=False):
-    targets_parsed: int
-    num_targets: int
-    # Number of bytes
-    bytes_parsed: int
-    num_bytes: int
-
-
-class TopLevelSchema(TypedDict, total=False):
-    event_id: uuid.UUID
-    anonymous_user_id: str
-    started_at: datetime
-    sent_at: datetime
-
-
-class PayloadSchema(TopLevelSchema):
-    environment: EnvironmentSchema
-    performance: PerformanceSchema
-    errors: ErrorsSchema
-    value: ValueSchema
-    fix_rate: FixRateSchema
-    parse_rate: Dict[Language, ParseStatSchema]
-
-
 class MetricsJsonEncoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
         if isinstance(obj, datetime):
@@ -100,18 +25,6 @@ def suppress_errors(func: Callable[..., None]) -> Callable[..., None]:
 
 
 class Metrics:
-    _is_using_registry: bool = False
-    payload: PayloadSchema = Factory(
-        lambda: PayloadSchema(
-            environment=EnvironmentSchema(),
-            errors=ErrorsSchema(),
-            performance=PerformanceSchema(),
-            value=ValueSchema(features=set()),
-            fix_rate=FixRateSchema(),
-            parse_rate=dict(),
-        )
-    )
-
     def __attrs_post_init__(self) -> None:
         self.payload["started_at"] = datetime.now()
         self.payload["environment"]["version"] = __VERSION__
