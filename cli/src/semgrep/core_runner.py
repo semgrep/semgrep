@@ -968,7 +968,7 @@ class CoreRunner:
 DeepSemgrep crashed during execution (unknown reason).
 This can sometimes happen because either DeepSemgrep or Semgrep is out of date.
 
-Try updating your version of DeepSemgrep (`semgrep --install-deep-semgrep`) or your version of Semgrep (`pip install semgrep/brew install semgrep`).
+Try updating your version of DeepSemgrep (`semgrep install-deep-semgrep`) or your version of Semgrep (`pip install semgrep/brew install semgrep`).
 If both are up-to-date and the crash persists, please contact support to report an issue!
 
 Exception raised: `{e}`
