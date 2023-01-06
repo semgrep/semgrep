@@ -211,6 +211,7 @@ let maturity_tests () =
       *)
       check_maturity Lang.Solidity "solidity" ".sol" Experimental;
       check_maturity Lang.Elixir "elixir" ".ex" Experimental;
+      check_maturity Lang.Swift "swift" ".swift" Experimental;
       check_maturity Lang.Julia "julia" ".jl" Experimental;
       (* YAML has too many NA, not worth it *)
       check_maturity Lang.R "r" ".r" Experimental
