@@ -21,7 +21,7 @@ open IL
 
 let compare_name x y =
   let ident_cmp = String.compare (fst x.ident) (fst y.ident) in
-  if ident_cmp <> 0 then ident_cmp else Int.compare x.sid y.sid
+  if ident_cmp <> 0 then ident_cmp else AST_generic.SidTemp.compare x.sid y.sid
 
 let exp_of_arg arg =
   match arg with

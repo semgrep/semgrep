@@ -474,3 +474,12 @@ type 'a smap = 'a SMap.t
 
 (* you should set this flag when you run code compiled by js_of_ocaml *)
 val jsoo : bool ref
+
+module MkTemp () : sig
+  type t [@@deriving show, eq, ord, hash]
+
+  val mk : unit -> t
+  val to_int : t -> int
+  val unsafe_default : t
+  val unsafe_reset_counter : unit -> unit
+end

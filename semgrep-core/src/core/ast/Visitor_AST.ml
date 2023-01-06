@@ -101,6 +101,7 @@ let default_visitor =
   }
 
 let v_id _ = ()
+let v_temp _ = ()
 
 let (mk_visitor :
       ?vardef_assign:bool ->
@@ -166,7 +167,7 @@ let (mk_visitor :
         ()
   and v_resolved_name (v1, v2) =
     v_resolved_name_kind v1;
-    v_int v2
+    v_temp v2
   and v_resolved_name_kind = function
     | LocalVar -> ()
     | Parameter -> ()

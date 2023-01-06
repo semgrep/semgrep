@@ -160,6 +160,13 @@ open Ppx_hash_lib.Std.Hash.Builtin
 let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 
 (*****************************************************************************)
+(* Temps *)
+(*****************************************************************************)
+
+module SidTemp = Common.MkTemp ()
+module IdInfoIdTemp = Common.MkTemp ()
+
+(*****************************************************************************)
 (* Token (leaf) *)
 (*****************************************************************************)
 (* Contains among other things the position of the token through
@@ -244,7 +251,7 @@ type module_name =
  * Resolve_xxx.resolve) on the generic AST to set it correctly.
  *)
 (* a single unique gensym'ed number. See gensym() below *)
-type sid = int
+type sid = SidTemp.t
 and resolved_name = resolved_name_kind * sid
 
 and resolved_name_kind =
@@ -397,7 +404,7 @@ and id_info = {
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
 
-and id_info_id = int
+and id_info_id = IdInfoIdTemp.t
 
 (*****************************************************************************)
 (* Expression *)
@@ -1955,14 +1962,10 @@ let p x = x
  * This can be reseted to 0 before parsing each file, or not. It does
  * not matter as the couple (filename, id_info_id) is unique.
  *)
-let id_info_id_counter = ref 0
-
-let id_info_id () : id_info_id =
-  incr id_info_id_counter;
-  !id_info_id_counter
+let id_info_id = IdInfoIdTemp.mk
 
 (* before Naming_AST.resolve can do its job *)
-let sid_TODO = -1
+let sid_TODO = SidTemp.unsafe_default
 let empty_var = { vinit = None; vtype = None }
 
 let empty_id_info ?(hidden = false) () =

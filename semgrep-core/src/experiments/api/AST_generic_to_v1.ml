@@ -93,7 +93,7 @@ let map_module_name = function
 
 let rec map_resolved_name (v1, v2) =
   let v1 = map_resolved_name_kind v1 in
-  let v2 = map_of_int v2 in
+  let v2 = AST_generic.SidTemp.to_int v2 in
   (v1, v2)
 
 and map_resolved_name_kind = function

@@ -67,8 +67,7 @@ val parameter_to_catch_exn_opt :
   AST_generic.parameter -> AST_generic.catch_exn option
 
 val opt_to_label_ident : AST_generic.ident option -> AST_generic.label_ident
-val gensym_counter : int ref
-val gensym : unit -> int
+val gensym : unit -> AST_generic.SidTemp.t
 
 val has_keyword_attr :
   AST_generic.keyword_attribute -> AST_generic.attribute list -> bool

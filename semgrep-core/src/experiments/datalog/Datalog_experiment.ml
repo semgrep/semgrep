@@ -71,7 +71,9 @@ let todo any =
   pr2 s;
   failwith "Datalog_experiment: TODO: IL element not handled (see above)"
 
-let var_of_name _env name = spf "%s__%d" (fst name.ident) name.sid
+let var_of_name _env name =
+  spf "%s__%s" (fst name.ident) (G.SidTemp.show name.sid)
+
 let heap_of_int _env (_, tok) = spf "int %s" (Parse_info.str_of_info tok)
 
 (*****************************************************************************)
