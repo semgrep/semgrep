@@ -163,6 +163,11 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 (* Temps *)
 (*****************************************************************************)
 
+(* OCaml has generative functors. This means the types `SidTemp.t` and
+   `IdInfoIdTemp.t` are different, even though both are represented by ints.
+   This will help enforce that we don't do bad things with these ints by making
+   them abstract.
+*)
 module SidTemp = Common.MkTemp ()
 module IdInfoIdTemp = Common.MkTemp ()
 
@@ -1933,7 +1938,7 @@ let sc = Parse_info.unsafe_fake_info ""
 let s skind =
   {
     s = skind;
-    s_id = AST_utils.Node_ID.create ();
+    s_id = AST_utils.Node_ID.mk ();
     s_use_cache = false;
     s_backrefs = None;
     s_strings = None;

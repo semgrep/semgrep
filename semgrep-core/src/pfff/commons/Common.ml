@@ -1644,6 +1644,14 @@ type 'a smap = 'a SMap.t
 (* Temps *)
 (*****************************************************************************)
 
+(* OCaml has generative functors.
+   This means that abstract types minted from different applications of the same
+   functor are _always_ different, even if they are constructed in the exact
+   same way.
+   So different instances of the module `MkTemp` will have distinct types.
+   This helps us not conflate types when we need a new kind of temp, and avoid
+   boilerplate code with refs and counters.
+*)
 module MkTemp () : sig
   type t [@@deriving show, eq, ord, hash]
 
