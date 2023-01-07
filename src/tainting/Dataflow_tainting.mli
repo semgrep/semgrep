@@ -70,7 +70,7 @@ type config = {
       * 'pattern-sanitizers:' in taint-mode. *)
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
   handle_findings :
-    var option (** function name ('None' if anonymous) *) ->
+    AST_generic.unique_name option (** function name ('None' if anonymous) *) ->
     Taint.finding list ->
     Taint_lval_env.t ->
     unit;
@@ -102,7 +102,7 @@ val hook_function_taint_signature :
 
 val fixpoint :
   ?in_env:Taint_lval_env.t ->
-  ?name:var ->
+  ?name:AST_generic.unique_name ->
   Config_semgrep.t ->
   config ->
   IL.cfg ->

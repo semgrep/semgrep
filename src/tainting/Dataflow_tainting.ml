@@ -92,7 +92,8 @@ type config = {
        * `sanitize(sink(tainted))` will not yield any finding.
        * *)
   unify_mvars : bool;
-  handle_findings : var option -> T.finding list -> Lval_env.t -> unit;
+  handle_findings :
+    AST_generic.unique_name option -> T.finding list -> Lval_env.t -> unit;
 }
 
 type mapping = Lval_env.t D.mapping
@@ -181,7 +182,7 @@ end
 type env = {
   options : Config_semgrep.t; (* rule options *)
   config : config;
-  fun_name : var option;
+  fun_name : AST_generic.unique_name option;
   lval_env : Lval_env.t;
   top_sinks : Top_sinks.t;
 }
@@ -952,20 +953,18 @@ let transfer :
     Config_semgrep.t ->
     config ->
     Lval_env.t ->
-    string option ->
+    AST_generic.unique_name option ->
     flow:F.cfg ->
     top_sinks:Top_sinks.t ->
     Lval_env.t D.transfn =
- fun options config enter_env opt_name ~flow ~top_sinks
+ fun options config enter_env uniq ~flow ~top_sinks
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
   let in' : Lval_env.t = input_env ~enter_env ~flow mapping ni in
   let node = flow.graph#nodes#assoc ni in
   let out' : Lval_env.t =
-    let env =
-      { options; config; fun_name = opt_name; lval_env = in'; top_sinks }
-    in
+    let env = { options; config; fun_name = uniq; lval_env = in'; top_sinks } in
     match node.F.n with
     | NInstr x ->
         let taints, lval_env' = check_tainted_instr env x in
@@ -1036,7 +1035,7 @@ let transfer :
 
 let (fixpoint :
       ?in_env:Lval_env.t ->
-      ?name:Var_env.var ->
+      ?name:AST_generic.unique_name ->
       Config_semgrep.t ->
       config ->
       F.cfg ->

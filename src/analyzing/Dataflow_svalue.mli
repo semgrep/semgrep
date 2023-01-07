@@ -8,7 +8,7 @@ type mapping = AST_generic.svalue Dataflow_var_env.mapping
 type constness_type = Constant | NotAlwaysConstant [@@deriving show]
 
 val hook_constness_table_of_functions :
-  (string -> constness_type option) option ref
+  (AST_generic.unique_name -> constness_type option) option ref
 
 val is_symbolic_expr : AST_generic.expr -> bool
 val eq : AST_generic.svalue -> AST_generic.svalue -> bool

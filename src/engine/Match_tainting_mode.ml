@@ -487,8 +487,8 @@ let pm_of_finding finding =
 let check_fundef lang options taint_config opt_ent fdef =
   let name =
     let* ent = opt_ent in
-    let* name = AST_to_IL.name_of_entity ent in
-    Some (D.str_of_name name)
+    let* unique = AST_to_IL.unique_name_of_entity ent in
+    Some unique
   in
   let add_to_env env id ii pdefault =
     let var = AST_to_IL.var_of_id_info id ii in

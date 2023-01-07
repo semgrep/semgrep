@@ -203,11 +203,18 @@ let ident_of_entity_opt ent =
   | G.OtherEntity _ ->
       None
 
-let name_of_entity ent =
+let unique_name_of_entity ent =
   match ident_of_entity_opt ent with
-  | Some (i, pinfo) ->
-      let name = var_of_id_info i pinfo in
-      Some name
+  | Some (i, pinfo) -> (
+      match pinfo with
+      | {
+       id_resolved = { contents = Some (ResolvedName (unique, _), _); _ };
+       _;
+      } ->
+          Some unique
+      | __else__ ->
+          let { ident; id_info; _ } = var_of_id_info i pinfo in
+          Some { dotted = [ ident ]; id = Some id_info.id_info_id })
   | _____else_____ -> None
 
 let composite_of_container : G.container_operator -> IL.composite_kind =

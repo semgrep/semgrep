@@ -36,7 +36,7 @@ val taint_config_of_rule :
   Common.filename ->
   AST_generic.program * Parse_info.token_location list ->
   Rule.taint_rule ->
-  (Dataflow_tainting.var option ->
+  (AST_generic.unique_name option ->
   Taint.finding list ->
   Taint_lval_env.t ->
   unit) ->
