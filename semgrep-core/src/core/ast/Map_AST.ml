@@ -347,6 +347,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | OtherExpr (v1, v2) ->
             let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
             OtherExpr (v1, v2)
+        | RawExpr x -> RawExpr (map_raw_tree x)
       in
       (* TODO? reuse the e_id or create a new one? *)
       G.e ekind
@@ -1278,6 +1279,27 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Lbli v1 ->
         let v1 = map_label_ident v1 in
         Lbli v1
+  and map_raw_tree v =
+    match v with
+    | RawToken v ->
+        let v = map_tok v in
+        RawToken v
+    | RawList v ->
+        let v = (map_of_list map_raw_tree) v in
+        RawList v
+    | RawTuple v ->
+        let v = (map_of_list map_raw_tree) v in
+        RawTuple v
+    | RawCase (v1, v2) ->
+        let v1 = map_of_string v1 in
+        let v2 = map_raw_tree v2 in
+        RawCase (v1, v2)
+    | RawOption v ->
+        let v = (map_of_option map_raw_tree) v in
+        RawOption v
+    | RawAny v ->
+        let v = map_any v in
+        RawAny v
   and all_functions =
     {
       vitem = map_item;

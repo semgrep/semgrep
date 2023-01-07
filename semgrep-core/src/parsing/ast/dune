@@ -5,6 +5,7 @@
    commons
    pfff-lang_GENERIC
    semgrep_core
+   tree-sitter.run
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )

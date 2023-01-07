@@ -583,6 +583,10 @@ and expr_kind =
    * StmtExpr above to wrap stmt if it's not an expr but a stmt
    *)
   | OtherExpr of todo_kind * any list
+  (* experimental alternative to OtherExpr. This allows us to have
+     proper exprs, stmts, etc. embedded in constructs that were not
+     fully translated into the generic AST. *)
+  | RawExpr of raw_tree
 
 and literal =
   | Bool of bool wrap
@@ -1866,6 +1870,20 @@ and any =
   | Lbli of label_ident
   (* Used only for Rust macro arguments for now *)
   | Anys of any list
+
+(*
+   A concrete syntax subtree that was not fully translated yet.
+   We get this representation automatically from ocaml-tree-sitter.
+   This type is normally translated one-to-one from the Raw_tree.t
+   type provided by the ocaml-tree-sitter runtime library.
+*)
+and raw_tree =
+  | RawToken of tok (* keyword, identifier, punctuation, int literal, ... *)
+  | RawList of raw_tree list (* sequence of variable length [repeat] *)
+  | RawTuple of raw_tree list (* sequence of fixed length (wrt type) [seq] *)
+  | RawCase of string * raw_tree (* tagged value = variant [choice] *)
+  | RawOption of raw_tree option (* optional value [optional] *)
+  | RawAny of any (* return to the normal generic AST *)
 [@@deriving show { with_path = false }, eq, hash]
 
 (*****************************************************************************)

@@ -743,6 +743,7 @@ and expr_aux env ?(void = false) e_gen =
       let _, tmp = mk_aux_var ~str env tok other_expr in
       let partial = mk_e (Fetch tmp) (related_tok tok) in
       fixme_exp ToDo (G.E e_gen) (related_tok tok) ~partial
+  | G.RawExpr _ -> todo (G.E e_gen)
 
 and expr env ?void e_gen =
   try expr_aux env ?void e_gen with

@@ -1035,6 +1035,7 @@ and m_expr ?(is_root = false) a b =
   | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.RawExpr a, B.RawExpr b -> m_raw_tree a b
   | G.N (G.Id _ as a), B.N (B.IdQualified _ as b) -> m_name a b
   | _, G.N (G.Id _) ->
       m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
@@ -1066,8 +1067,28 @@ and m_expr ?(is_root = false) a b =
   | G.DeRef _, _
   | G.StmtExpr _, _
   | G.OtherExpr _, _
+  | G.RawExpr _, _
   | G.TypedMetavar _, _
   | G.DotAccessEllipsis _, _ ->
+      fail ()
+
+(* Require an exact match between raw trees except for Any nodes which
+   are matched normally. *)
+and m_raw_tree (a : G.raw_tree) (b : G.raw_tree) =
+  match (a, b) with
+  | RawToken a, RawToken b -> m_tok a b
+  | RawList a, RawList b -> m_list m_raw_tree a b
+  | RawTuple a, RawTuple b -> m_list m_raw_tree a b
+  | RawCase (a_cons, a), RawCase (b_cons, b) ->
+      m_string a_cons b_cons >>= fun () -> m_raw_tree a b
+  | RawOption a, RawOption b -> m_option m_raw_tree a b
+  | RawAny a, RawAny b -> m_any a b
+  | RawToken _, _
+  | RawList _, _
+  | RawTuple _, _
+  | RawCase _, _
+  | RawOption _, _
+  | RawAny _, _ ->
       fail ()
 
 and m_entity_name a b =
