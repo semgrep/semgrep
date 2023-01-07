@@ -1,2 +1,0 @@
-YAML: Fixed a bug where metavariables matching YAML double-quoted strings would not capture the entire range of the string, and would
-not contain the double-quotes. Also added the ability to properly use patterns like `"$FOO"`, which will unpack the contents of the matched string.

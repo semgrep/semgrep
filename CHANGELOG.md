@@ -8,6 +8,32 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.3.0](https://github.com/returntocorp/semgrep/releases/tag/v1.3.0) - 2023-01-04
+
+### Changed
+
+- Removed the poor support for reading dependencies from pom.xml files. Instead semgrep will try to read dependencies from a maven_dep_tree.txt file,
+  which can be generated using the command `mvn dependency:tree -DoutputFile=maven_dep_tree.txt` (sc-pom)
+
+### Fixed
+
+- Use the GitHub REST API when possible to compute the merge base for `semgrep ci`, improving performance on shallow clones of large repositories. (gha-mergebase)
+- YAML: Fixed a bug where metavariables matching YAML double-quoted strings would not capture the entire range of the string, and would
+  not contain the double-quotes. Also added the ability to properly use patterns like `"$FOO"`, which will unpack the contents of the matched string. (pa-2332)
+- Fixed a race condition related to the parsing cache that could lead to internal errors (pa-2335)
+- YAML: Fixed a bug where literal or folded blocks would not be parsed properly.
+
+  So for instance, in:
+
+  ```
+  key: |
+    string goes here
+  ```
+
+  A metavariable matching the contents of the string value might not be correct. (pa-2347)
+
+- Julia: Greatly improved parsing support (pa-2362)
+
 ## [1.2.1](https://github.com/returntocorp/semgrep/releases/tag/v1.2.1) - 2022-12-16
 
 ### Fixed
