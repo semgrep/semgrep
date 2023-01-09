@@ -211,7 +211,7 @@ let prepare_pattern any =
             if Metavariable.is_metavar_name id then add_metavar id);
         kstmt =
           (fun (k, _) stmt ->
-            let stmt_id = (stmt.s_id :> int) in
+            let stmt_id = (AST_utils.Node_ID.to_int stmt.s_id :> int) in
             if debug then printf "kstmt %i\n" stmt_id;
 
             (* compare the number of backreferences encountered before and after
@@ -335,10 +335,12 @@ module Cache_key = struct
       (match k.list_kind with
       | Original -> "orig"
       | Flattened_until last_id ->
-          sprintf "flat[%i-%i]" (k.target_stmt_id :> int) (last_id :> int))
+          sprintf "flat[%i-%i]"
+            (AST_utils.Node_ID.to_int k.target_stmt_id :> int)
+            (AST_utils.Node_ID.to_int last_id :> int))
       k.less_is_ok
-      (k.pattern_stmt_id :> int)
-      (k.target_stmt_id :> int)
+      (AST_utils.Node_ID.to_int k.pattern_stmt_id :> int)
+      (AST_utils.Node_ID.to_int k.target_stmt_id :> int)
 
   (* debugging.
      More calls to 'equal' than to 'hash' indicate frequent collisions. *)
@@ -360,8 +362,8 @@ module Cache_key = struct
 
   let hash (k : t) =
     incr hash_calls;
-    (k.pattern_stmt_id :> int)
-    ++ (k.target_stmt_id :> int)
+    (AST_utils.Node_ID.to_int k.pattern_stmt_id :> int)
+    ++ (AST_utils.Node_ID.to_int k.target_stmt_id :> int)
     ++ Hashtbl.hash k.function_id ++ Hashtbl.hash k.list_kind
     ++ Hashtbl.hash k.less_is_ok
     ++ Metavariable.Referential.hash_bindings k.min_env

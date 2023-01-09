@@ -833,7 +833,7 @@ let resolve lang prog =
                      imported *)
                   | Some { entname = ImportedEntity xs, _sidm; _ } ->
                       (* The entity is fully qualified, no need for sid *)
-                      let sid = 0 in
+                      let sid = SId.unsafe_default in
                       let rest_of_middle = Common.map fst rest_of_middle in
                       let resolved =
                         untyped_ent

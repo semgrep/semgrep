@@ -37,7 +37,7 @@ let vof_dotted_ident = vof_dotted_name
 
 let rec vof_resolved_name (v1, v2) =
   let v1 = vof_resolved_name_kind v1 in
-  let v2 = OCaml.vof_int v2 in
+  let v2 = OCaml.vof_int (SId.to_int v2) in
   OCaml.VTuple [ v1; v2 ]
 
 and vof_resolved_name_kind = function
@@ -116,7 +116,7 @@ and vof_id_info
   let arg = OCaml.vof_bool id_hidden in
   let bnd = ("id_hidden", arg) in
   let bnds = bnd :: bnds in
-  let arg = OCaml.vof_int id_info_id in
+  let arg = OCaml.vof_int (IdInfoId.to_int id_info_id) in
   let bnd = ("id_info_id", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
