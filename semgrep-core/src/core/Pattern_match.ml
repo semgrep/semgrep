@@ -37,10 +37,10 @@
  *)
 
 (* The locations of variables which taint propagates through *)
-type tainted_tokens = Parse_info.t list [@@deriving show, eq]
+type tainted_tokens = Parse_info.token_location list [@@deriving show, eq]
 
 (* The tokens associated with a single pattern match involved in a taint trace *)
-type pattern_match_tokens = Parse_info.t list [@@deriving show, eq]
+type pattern_match_tokens = Parse_info.token_location list [@@deriving show, eq]
 
 (* Simplified version of Taint.source_to_sink meant for finding reporting *)
 type taint_call_trace =
@@ -69,17 +69,15 @@ type t = {
   (* less: redundant with location? *)
   (* note that the two token_location can be equal *)
   range_loc : Parse_info.token_location * Parse_info.token_location;
-  (* less: do we need to be lazy? *)
-  tokens : Parse_info.t list Lazy.t; [@equal fun _a _b -> true]
+  tokens : Parse_info.token_location list; [@equal fun _a _b -> true]
   (* metavars for the pattern match *)
   env : Metavariable.bindings;
-  (* Lazy since construction involves forcing lazy token lists. *)
   (* We used to have `[@equal fun _a _b -> true]` here, but this causes issues with
      multiple findings to the same sink (but different sources) being removed
      in deduplication.
      We now rely on equality of taint traces, which in turn relies on equality of `Parse_info.t`.
   *)
-  taint_trace : taint_trace Lazy.t option;
+  taint_trace : taint_trace option;
 }
 
 (* This is currently a record, but really only the rule id should matter.

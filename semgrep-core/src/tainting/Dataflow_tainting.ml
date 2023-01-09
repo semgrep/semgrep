@@ -813,7 +813,10 @@ let check_function_signature env fun_exp args_taints =
                    (arg_taints
                    |> Taints.map (fun taint ->
                           let tokens =
-                            List.rev_append tokens (snd ident :: taint.tokens)
+                            match (snd ident).token with
+                            | Parse_info.OriginTok loc ->
+                                List.rev_append tokens (loc :: taint.tokens)
+                            | _ -> taint.tokens
                           in
                           { taint with tokens }))
              | T.ArgToSink (argpos, tokens, sink) ->

@@ -164,13 +164,13 @@ let metavars startp_of_match_range (s, mval) =
 
 (* None if pi has no location information. Fake tokens should have been filtered
  * out earlier, but in case one slipped through we handle this case. *)
-let parse_info_to_location pi =
+let _parse_info_to_location pi =
   PI.token_location_of_info pi
   |> Result.to_option
   |> Option.map (fun token_location ->
          OutH.location_of_token_location token_location)
 
-let tokens_to_locations toks = List.filter_map parse_info_to_location toks
+let tokens_to_locations toks = Common.map OutH.location_of_token_location toks
 
 let tokens_to_single_loc toks =
   (* toks should be nonempty and should contain only origintoks, but since we
@@ -179,7 +179,7 @@ let tokens_to_single_loc toks =
    * taint rule finding but it shouldn't happen in practice. *)
   let locations =
     tokens_to_locations
-      (List.filter PI.is_origintok toks |> List.sort PI.compare_pos)
+      (toks |> List.sort (fun p1 p2 -> Int.compare p1.PI.charpos p2.charpos))
   in
   let* first_loc, last_loc = first_and_last locations in
   Some
@@ -214,12 +214,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     =
   let min_loc, max_loc = x.range_loc in
   let startp, endp = OutH.position_range min_loc max_loc in
-  let dataflow_trace =
-    Option.map
-      (function
-        | (lazy trace) -> taint_trace_to_dataflow_trace trace)
-      x.taint_trace
-  in
+  let dataflow_trace = Option.map taint_trace_to_dataflow_trace x.taint_trace in
   let rendered_fix =
     let* render_fix = render_fix_opt in
     let* edit = render_fix x in

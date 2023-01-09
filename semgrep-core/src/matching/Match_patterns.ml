@@ -164,7 +164,9 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                         (show_any (any x));
                       ()
                   | Some range_loc ->
-                      let tokens = lazy (V.ii_of_any (any x)) in
+                      let tokens =
+                        V.ii_of_any (any x) |> PI.filter_origin_toks
+                      in
                       let rule_id = rule_id_of_mini_rule rule in
                       let pm =
                         {
@@ -328,7 +330,9 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                          matches_with_env
                          |> List.iter (fun (env : MG.tin) ->
                                 let env = env.mv.full_env in
-                                let tokens = lazy (V.ii_of_any (E x)) in
+                                let tokens =
+                                  V.ii_of_any (E x) |> PI.filter_origin_toks
+                                in
                                 let rule_id = rule_id_of_mini_rule rule in
                                 let pm =
                                   {
@@ -381,7 +385,9 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     (show_stmt x);
                                   ()
                               | Some range_loc ->
-                                  let tokens = lazy (V.ii_of_any (S x)) in
+                                  let tokens =
+                                    V.ii_of_any (S x) |> PI.filter_origin_toks
+                                  in
                                   let rule_id = rule_id_of_mini_rule rule in
                                   let pm =
                                     {
@@ -448,9 +454,8 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                 | Some range_loc ->
                                     let env = env.mv.full_env in
                                     let tokens =
-                                      lazy
-                                        (Stmts_match_span.list_original_tokens
-                                           span)
+                                      Stmts_match_span.list_original_tokens span
+                                      |> PI.filter_origin_toks
                                     in
                                     let rule_id = rule_id_of_mini_rule rule in
                                     let pm =

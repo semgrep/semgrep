@@ -1,4 +1,4 @@
-type tainted_tokens = AST_generic.tok list [@@deriving show]
+type tainted_tokens = AST_generic.loc list [@@deriving show]
 (** A list of tokens showing where the taint passed through,
   * at present these represent only code variables. *)
 

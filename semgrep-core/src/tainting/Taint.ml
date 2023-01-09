@@ -22,7 +22,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Call traces *)
 (*****************************************************************************)
 
-type tainted_tokens = G.tok list [@@deriving show]
+type tainted_tokens = G.loc list [@@deriving show]
 (* TODO: Given that the analysis is path-insensitive, the trace should capture
  * all potential paths. So a set of tokens seems more appropriate than a list.
  * TODO: May have to annotate each tainted token with a `call_trace` that explains
@@ -54,10 +54,10 @@ let trace_of_pm (pm, x) = PM (pm, x)
 
 let rec _show_call_trace show_thing = function
   | PM (pm, x) ->
-      let toks =
-        Lazy.force pm.PM.tokens |> List.filter Parse_info.is_origintok
+      let toks = pm.PM.tokens in
+      let s =
+        toks |> Common.map (fun tok -> tok.Parse_info.str) |> String.concat " "
       in
-      let s = toks |> Common.map Parse_info.str_of_info |> String.concat " " in
       Printf.sprintf "%s [%s]" s (show_thing x)
   | Call (_e, _, trace) ->
       Printf.sprintf "Call(... %s)" (_show_call_trace show_thing trace)

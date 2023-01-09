@@ -126,12 +126,14 @@ let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
         (* If the lvalue is a simple variable, we record it as part of
            the taint trace. *)
         match lval with
-        | { IL.base = Var var; rev_offset = [] } ->
+        | { IL.base = Var var; rev_offset = [] } -> (
             let var_tok = snd var.ident in
-            if Parse_info.is_fake var_tok then taints
-            else
-              taints
-              |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
+            (* FIXME: Should be OriginTok and nothing else... *)
+            match Parse_info.token_location_of_info var_tok with
+            | Error _ -> taints
+            | Ok loc ->
+                taints
+                |> Taints.map (fun t -> { t with tokens = loc :: t.tokens }))
         | __else__ -> taints
       in
       if Taints.is_empty taints then lval_env

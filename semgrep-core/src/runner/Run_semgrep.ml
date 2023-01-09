@@ -91,7 +91,7 @@ let timeout_function file timeout f =
 let _matching_tokens = ref []
 
 let string_of_toks toks =
-  String.concat ", " (Common.map (fun tok -> PI.str_of_info tok) toks)
+  String.concat ", " (Common.map (fun tok -> tok.PI.str) toks)
 
 let rec print_taint_call_trace ~format ~spaces = function
   | Pattern_match.Toks toks -> Matching_report.print_match ~format ~spaces toks
@@ -108,7 +108,7 @@ let rec print_taint_call_trace ~format ~spaces = function
 
 let print_taint_trace ~format taint_trace =
   if format = Matching_report.Normal then (
-    let (lazy { Pattern_match.source; tokens; sink }) = taint_trace in
+    let { Pattern_match.source; tokens; sink } = taint_trace in
     pr "  * Taint comes from:";
     print_taint_call_trace ~format ~spaces:4 source;
     if tokens <> [] then
@@ -125,18 +125,17 @@ let print_match ?str config match_ ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
    * for DotAccess generated outside the grammar) *)
   let { match_format; mvars; _ } = config in
-  let { Pattern_match.env; tokens = (lazy tokens_matched_code); taint_trace; _ }
-      =
+  let { Pattern_match.env; tokens = tokens_matched_code; taint_trace; _ } =
     match_
   in
-  let toks = tokens_matched_code |> List.filter PI.is_origintok in
+  let toks = tokens_matched_code in
   (if mvars = [] then Matching_report.print_match ?str ~format:match_format toks
   else
     (* similar to the code of Lib_matcher.print_match, maybe could
      * factorize code a bit.
      *)
-    let mini, _maxi = PI.min_max_ii_by_pos toks in
-    let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
+    let mini, _maxi = PI.min_max_loc_by_pos toks in
+    let file, line = (mini.file, mini.line) in
 
     let strings_metavars =
       mvars

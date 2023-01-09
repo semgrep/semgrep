@@ -373,6 +373,16 @@ let is_origintok ii =
   | OriginTok _ -> true
   | _ -> false
 
+let filter_origin_toks toks =
+  toks
+  |> List.filter_map (fun tok ->
+         match tok.token with
+         | OriginTok loc -> Some loc
+         | FakeTokStr _
+         | ExpandedTok _
+         | Ab ->
+             None)
+
 (* info about the current location *)
 
 (* original info *)
@@ -430,6 +440,26 @@ let min_max_ii_by_pos xs =
   | [ x ] -> (x, x)
   | x :: xs ->
       let pos_leq p1 p2 = compare_pos p1 p2 =|= -1 in
+      xs
+      |> List.fold_left
+           (fun (minii, maxii) e ->
+             let maxii' = if pos_leq maxii e then e else maxii in
+             let minii' = if pos_leq e minii then e else minii in
+             (minii', maxii'))
+           (x, x)
+
+(* FIXME duplication ~compare *)
+let min_max_loc_by_pos xs =
+  match xs with
+  | [] ->
+      raise
+        (NoTokenLocation
+           "Match returned an empty list with no token location information; \
+            this may be fixed by adding enclosing token information (e.g. \
+            bracket or parend tokens) to the list's enclosing node type.")
+  | [ x ] -> (x, x)
+  | x :: xs ->
+      let pos_leq p1 p2 = Int.compare p1.charpos p2.charpos =|= -1 in
       xs
       |> List.fold_left
            (fun (minii, maxii) e ->

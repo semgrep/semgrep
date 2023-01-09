@@ -118,8 +118,8 @@ let gen_layer ~root ~query _matching_tokens file =
   let files_and_lines =
     toks
     |> Common.map (fun tok ->
-           let file = PI.file_of_info tok in
-           let line = PI.line_of_info tok in
+           let file = tok.PI.file in
+           let line = tok.PI.line in
            let file = Common2.relative_to_absolute file in
            (Common.readable root file, line))
   in

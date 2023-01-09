@@ -69,13 +69,11 @@ let lines_of_file (start_line, end_line) file : string list =
 (*****************************************************************************)
 let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
   try
-    let mini, maxi = PI.min_max_ii_by_pos ii in
-    let end_line, _, _ =
-      PI.get_token_end_info (PI.unsafe_token_location_of_info maxi)
-    in
-    let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
+    let mini, maxi = PI.min_max_loc_by_pos ii in
+    let end_line, _, _ = PI.get_token_end_info maxi in
+    let file, line = (mini.file, mini.line) in
     let prefix = spf "%s:%d" file line in
-    let lines_str = lines_of_file (PI.line_of_info mini, end_line) file in
+    let lines_str = lines_of_file (mini.line, end_line) file in
     match format with
     | Normal ->
         let prefix = if str = "" then prefix else prefix ^ " " ^ str in
@@ -88,7 +86,9 @@ let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
     | OneLine ->
         pr
           (prefix ^ ": "
-          ^ (ii |> Common.map PI.str_of_info |> join_with_space_if_needed))
+          ^ (ii
+            |> Common.map (fun loc -> loc.PI.str)
+            |> join_with_space_if_needed))
   with
   | Failure "get_pos: Ab or FakeTok" ->
       pr "<could not locate match, FakeTok or AbstractTok>"

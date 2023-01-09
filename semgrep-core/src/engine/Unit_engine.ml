@@ -339,15 +339,11 @@ let regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang =
                (fun () ->
                  let matches =
                    match_pattern ~lang
-                     ~hook:(fun { Pattern_match.tokens = (lazy xs); _ } ->
+                     ~hook:(fun { Pattern_match.tokens = toks; _ } ->
                        (* there are a few fake tokens in the generic ASTs now (e.g.,
                         * for DotAccess generated outside the grammar) *)
-                       let toks = xs |> List.filter Parse_info.is_origintok in
-                       let minii, _maxii = Parse_info.min_max_ii_by_pos toks in
-                       let minii_loc =
-                         Parse_info.unsafe_token_location_of_info minii
-                       in
-                       E.error "test pattern" minii_loc "" Out.SemgrepMatchFound)
+                       let minii, _maxii = Parse_info.min_max_loc_by_pos toks in
+                       E.error "test pattern" minii "" Out.SemgrepMatchFound)
                      ~file ~pattern ~fix_pattern
                  in
                  (match fix_pattern with

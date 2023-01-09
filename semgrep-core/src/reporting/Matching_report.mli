@@ -14,7 +14,7 @@ val print_match :
   ?format:match_format ->
   ?str:string ->
   ?spaces:int ->
-  Parse_info.t list ->
+  Parse_info.token_location list ->
   unit
 
 val join_with_space_if_needed : string list -> string

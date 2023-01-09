@@ -167,6 +167,7 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
  * transformation field that makes possible spatch on the code.
  *)
 type tok = Parse_info.t [@@deriving show]
+type loc = Parse_info.token_location [@@deriving show]
 
 (* sgrep: we do not care about position when comparing for equality 2 ASTs.
  * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.
@@ -410,9 +411,7 @@ and expr = {
   e : expr_kind;
   e_id : int;
   (* used to quickly get the range of an expression *)
-  mutable e_range :
-    (Parse_info.token_location * Parse_info.token_location) option;
-      [@equal fun _a _b -> true] [@hash.ignore]
+  mutable e_range : (loc * loc) option; [@equal fun _a _b -> true] [@hash.ignore]
 }
 
 and expr_kind =
@@ -956,9 +955,7 @@ and stmt = {
   mutable s_strings : string Set_.t option;
       [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
   (* used to quickly get the range of a statement *)
-  mutable s_range :
-    (Parse_info.token_location * Parse_info.token_location) option;
-      [@equal fun _a _b -> true] [@hash.ignore]
+  mutable s_range : (loc * loc) option; [@equal fun _a _b -> true] [@hash.ignore]
 }
 
 and stmt_kind =

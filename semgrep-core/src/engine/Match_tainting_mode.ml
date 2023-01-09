@@ -437,12 +437,12 @@ let taint_config_of_rule xconf file ast_and_errors
 
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
-      let toks = Lazy.force pm.PM.tokens |> List.filter PI.is_origintok in
+      let toks = pm.PM.tokens in
       PM.Toks toks
   | Taint.Call (expr, toks, ct) ->
       PM.Call
         {
-          call_toks = V.ii_of_any (G.E expr) |> List.filter PI.is_origintok;
+          call_toks = V.ii_of_any (G.E expr) |> PI.filter_origin_toks;
           intermediate_vars = toks;
           call_trace = convert_taint_call_trace ct;
         }
@@ -472,9 +472,7 @@ let pm_of_finding finding =
        * for the injection bug... but most users seem to be confused about this. They
        * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
        *)
-      let taint_trace =
-        Some (lazy (taint_trace_of_src_to_sink source tokens sink))
-      in
+      let taint_trace = Some (taint_trace_of_src_to_sink source tokens sink) in
       let sink_pm, _ = T.pm_of_trace sink in
       Some { sink_pm with env = merged_env; taint_trace }
   | T.SrcToReturn _

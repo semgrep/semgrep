@@ -175,17 +175,17 @@ let map_loc pos line col file (loc : Parse_info.token_location) =
   }
 
 let map_taint_trace map_loc { Pattern_match.source; tokens; sink } =
-  let lift_map_loc f x =
-    let token =
-      match x.Parse_info.token with
-      | Parse_info.OriginTok loc -> Parse_info.OriginTok (f loc)
-      | Parse_info.ExpandedTok (pp_loc, v_loc, i) ->
-          Parse_info.ExpandedTok (f pp_loc, v_loc, i)
-      | x -> x
-    in
-    { x with token }
-  in
-  let map_loc = lift_map_loc map_loc in
+  (* let lift_map_loc f x =
+       let token =
+         match x.Parse_info.token with
+         | Parse_info.OriginTok loc -> Parse_info.OriginTok (f loc)
+         | Parse_info.ExpandedTok (pp_loc, v_loc, i) ->
+             Parse_info.ExpandedTok (f pp_loc, v_loc, i)
+         | x -> x
+       in
+       { x with token }
+     in *)
+  (* let map_loc = lift_map_loc map_loc in *)
   let rec map_taint_call_trace trace =
     match trace with
     | Pattern_match.Toks tokens ->
@@ -213,10 +213,7 @@ let map_res map_loc tmpfile file
           m with
           file;
           range_loc = Common2.pair map_loc m.range_loc;
-          taint_trace =
-            Option.map
-              (Stdcompat.Lazy.map_val (map_taint_trace map_loc))
-              m.taint_trace;
+          taint_trace = Option.map (map_taint_trace map_loc) m.taint_trace;
         })
       mr.matches
   in

@@ -373,7 +373,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                PM.rule_id = fake_rule_id (-1, focus_mvar);
                PM.file = env.xtarget.file;
                PM.range_loc;
-               PM.tokens = lazy (MV.ii_of_mval mval);
+               PM.tokens = MV.ii_of_mval mval |> PI.filter_origin_toks;
                PM.env = range.mvars;
                PM.taint_trace = None;
              })
