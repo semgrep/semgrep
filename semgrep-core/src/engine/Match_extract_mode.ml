@@ -141,6 +141,15 @@ let mk_extract_target dst_lang contents rule_ids =
     rule_nums = List.mapi (fun i _ -> i) rule_ids;
   }
 
+(* Unescapes JSON array string *)
+let extract_code_from_json json =
+  let json' = "{ \"semgrep_fake_payload\": " ^ json ^ "}" in
+  Yojson.Basic.from_string json'
+  |> Yojson.Basic.Util.member "semgrep_fake_payload"
+  |> Yojson.Basic.Util.to_list
+  |> List.map (fun x -> x |> Yojson.Basic.Util.to_string)
+  |> String.concat "\n"
+
 (*****************************************************************************)
 (* Error reporting *)
 (*****************************************************************************)
@@ -293,12 +302,14 @@ let extract_and_concat erule_table xtarget rule_ids matches =
          |> List.rev
          (* Read the extracted text from the source file *)
          |> Common.map (fun { start_pos; start_line; start_col; end_pos } ->
-                let contents =
+                let contents_raw =
                   Common.with_open_infile xtarget.Xtarget.file (fun chan ->
                       let extract_size = end_pos - start_pos in
                       seek_in chan start_pos;
                       really_input_string chan extract_size)
                 in
+                let contents = (let (`Extract { Rule.json; _ }) = r.Rule.mode in
+                  if json then extract_code_from_json contents_raw else contents_raw) in
                 logger#trace
                   "Extract rule %s extracted the following from %s at bytes \
                    %d-%d\n\
@@ -386,12 +397,14 @@ let extract_as_separate erule_table xtarget rule_ids matches =
                    None
              in
              (* Read the extracted text from the source file *)
-             let contents =
+             let contents_raw =
                Common.with_open_infile m.file (fun chan ->
                    let extract_size = end_extract_pos - start_extract_pos in
                    seek_in chan start_extract_pos;
                    really_input_string chan extract_size)
              in
+             let contents = (let (`Extract { Rule.json; _ }) = erule.mode in
+              if json then extract_code_from_json contents_raw else contents_raw) in
              logger#trace
                "Extract rule %s extracted the following from %s at bytes %d-%d\n\
                 %s"

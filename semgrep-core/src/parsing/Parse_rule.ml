@@ -1220,12 +1220,15 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       (* TODO: determine fmt---string with interpolated metavars? *)
       let extract = take rule_dict env parse_string "extract" in
+      let json = take_opt rule_dict env parse_bool "json"
+        |> Option.value ~default:false
+      in
       let reduce =
         take_opt rule_dict env parse_string_wrap "reduce"
         |> Option.map (parse_extract_reduction ~id:env.id)
         |> Option.value ~default:R.Separate
       in
-      `Extract { formula; dst_lang; extract; reduce }
+      `Extract { formula; dst_lang; extract; reduce; json }
   | Some key ->
       error_at_key env key
         (spf

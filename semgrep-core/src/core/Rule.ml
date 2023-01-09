@@ -209,6 +209,7 @@ type extract_spec = {
   dst_lang : Xlang.t;
   (* e.g., $...BODY, $CMD *)
   extract : MV.mvar;
+  json: bool;
 }
 
 (* Method to combine extracted ranges within a file:
