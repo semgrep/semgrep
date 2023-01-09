@@ -52,7 +52,7 @@ let warning tok s =
 (* Helpers *)
 (*****************************************************************************)
 
-let str_of_name name = spf "%s:%s" (fst name.ident) (G.SidTemp.show name.sid)
+let str_of_name name = spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
 
 let str_of_resolved_name name =
   let name = Common.map fst name in

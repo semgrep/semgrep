@@ -523,7 +523,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
  * no shadowing, and we prefix with var. and local. so there is no
  * ambiguity and name clash.
  *)
-let terraform_sid = SidTemp.unsafe_default
+let terraform_sid = SId.unsafe_default
 
 let add_special_constants env lang prog =
   if lang = Lang.Hcl then
@@ -592,7 +592,7 @@ let propagate_basic lang prog =
                   k x
               | None ->
                   logger#debug "No stats for (%s,%s)" (H.str_of_ident id)
-                    (G.SidTemp.show sid);
+                    (G.SId.show sid);
                   k x)
           | _ -> k x);
       (* the uses (and also defs for Python Assign) *)
@@ -658,7 +658,7 @@ let propagate_basic lang prog =
                          then add_constant_env id (sid, svalue) env
                      | None ->
                          logger#debug "No stats for (%s,%s)" (H.str_of_ident id)
-                           (G.SidTemp.show sid);
+                           (G.SId.show sid);
                          ());
               v (E rexp)
           | Assign (e1, _, e2)

@@ -125,7 +125,7 @@ let var_of_id_info id id_info =
         let id_str, id_tok = id in
         let msg = spf "the ident '%s' is not resolved" id_str in
         log_warning (Some id_tok) msg;
-        G.SidTemp.unsafe_default
+        G.SId.unsafe_default
   in
   { ident = id; sid; id_info }
 
@@ -149,8 +149,8 @@ let lval_of_base base = { base; rev_offset = [] }
 (* TODO: should do first pass on body to get all labels and assign
  * a gensym to each.
  *)
-let label_of_label _env lbl = (lbl, G.SidTemp.unsafe_default)
-let lookup_label _env lbl = (lbl, G.SidTemp.unsafe_default)
+let label_of_label _env lbl = (lbl, G.SId.unsafe_default)
+let lookup_label _env lbl = (lbl, G.SId.unsafe_default)
 let mk_e e eorig = { e; eorig }
 let mk_i i iorig = { i; iorig }
 let mk_s s = { s }

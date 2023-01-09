@@ -2,7 +2,7 @@ open IL
 
 (* coupling: Dataflow_xyz.str_of_name *)
 let string_of_name name =
-  Common.spf "%s:%s" (fst name.ident) (AST_generic.SidTemp.show name.sid)
+  Common.spf "%s:%s" (fst name.ident) (AST_generic.SId.show name.sid)
 
 let string_of_base base =
   match base with

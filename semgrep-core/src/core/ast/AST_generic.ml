@@ -160,16 +160,16 @@ open Ppx_hash_lib.Std.Hash.Builtin
 let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 
 (*****************************************************************************)
-(* Temps *)
+(* Unique identifiers *)
 (*****************************************************************************)
 
-(* OCaml has generative functors. This means the types `SidTemp.t` and
-   `IdInfoIdTemp.t` are different, even though both are represented by ints.
+(* OCaml has generative functors. This means the types `SId.t` and
+   `IdInfoId.t` are different, even though both are represented by ints.
    This will help enforce that we don't do bad things with these ints by making
    them abstract.
 *)
-module SidTemp = Common.MkTemp ()
-module IdInfoIdTemp = Common.MkTemp ()
+module SId = Common.MkId ()
+module IdInfoId = Common.MkId ()
 
 (*****************************************************************************)
 (* Token (leaf) *)
@@ -256,7 +256,7 @@ type module_name =
  * Resolve_xxx.resolve) on the generic AST to set it correctly.
  *)
 (* a single unique gensym'ed number. See gensym() below *)
-type sid = SidTemp.t
+type sid = SId.t
 and resolved_name = resolved_name_kind * sid
 
 and resolved_name_kind =
@@ -409,7 +409,7 @@ and id_info = {
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
 
-and id_info_id = IdInfoIdTemp.t
+and id_info_id = IdInfoId.t
 
 (*****************************************************************************)
 (* Expression *)
@@ -1967,10 +1967,10 @@ let p x = x
  * This can be reseted to 0 before parsing each file, or not. It does
  * not matter as the couple (filename, id_info_id) is unique.
  *)
-let id_info_id = IdInfoIdTemp.mk
+let id_info_id = IdInfoId.mk
 
 (* before Naming_AST.resolve can do its job *)
-let sid_TODO = SidTemp.unsafe_default
+let sid_TODO = SId.unsafe_default
 let empty_var = { vinit = None; vtype = None }
 
 let empty_id_info ?(hidden = false) () =
