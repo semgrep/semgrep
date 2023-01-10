@@ -147,7 +147,7 @@ let extract_code_from_json json =
   Yojson.Basic.from_string json'
   |> Yojson.Basic.Util.member "semgrep_fake_payload"
   |> Yojson.Basic.Util.to_list
-  |> List.map (fun x -> x |> Yojson.Basic.Util.to_string)
+  |> Common.map (fun x -> x |> Yojson.Basic.Util.to_string)
   |> String.concat "\n"
 
 (*****************************************************************************)
@@ -308,8 +308,12 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                       seek_in chan start_pos;
                       really_input_string chan extract_size)
                 in
-                let contents = (let (`Extract { Rule.json; _ }) = r.Rule.mode in
-                  if json then extract_code_from_json contents_raw else contents_raw) in
+                (* Convert from JSON to plaintext, if required *)
+                let contents =
+                  let (`Extract { Rule.json; _ }) = r.Rule.mode in
+                  if json then extract_code_from_json contents_raw
+                  else contents_raw
+                in
                 logger#trace
                   "Extract rule %s extracted the following from %s at bytes \
                    %d-%d\n\
@@ -403,8 +407,12 @@ let extract_as_separate erule_table xtarget rule_ids matches =
                    seek_in chan start_extract_pos;
                    really_input_string chan extract_size)
              in
-             let contents = (let (`Extract { Rule.json; _ }) = erule.mode in
-              if json then extract_code_from_json contents_raw else contents_raw) in
+             (* Convert from JSON to plaintext, if required *)
+             let contents =
+               let (`Extract { Rule.json; _ }) = erule.mode in
+               if json then extract_code_from_json contents_raw
+               else contents_raw
+             in
              logger#trace
                "Extract rule %s extracted the following from %s at bytes %d-%d\n\
                 %s"

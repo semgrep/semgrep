@@ -1220,8 +1220,8 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       (* TODO: determine fmt---string with interpolated metavars? *)
       let extract = take rule_dict env parse_string "extract" in
-      let json = take_opt rule_dict env parse_bool "json"
-        |> Option.value ~default:false
+      let json =
+        take_opt rule_dict env parse_bool "json" |> Option.value ~default:false
       in
       let reduce =
         take_opt rule_dict env parse_string_wrap "reduce"
