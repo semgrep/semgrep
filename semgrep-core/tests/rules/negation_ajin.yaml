@@ -3,10 +3,10 @@ rules:
   languages:
   - python
   match:
-    and:
+    all:
     - os.environ
     - not:
-        or:
+        any:
         - inside: os.environ.get(...)
         - inside: os.environ[...]
   message: rule_template_message
