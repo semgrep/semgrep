@@ -1491,22 +1491,22 @@ and vof_any = function
 
 and vof_raw_tree x =
   match x with
-  | RawToken v ->
+  | Token v ->
       let v = vof_tok v in
-      OCaml.VSum ("RawToken", [ v ])
-  | RawList v ->
+      OCaml.VSum ("Token", [ v ])
+  | List v ->
       let v = (OCaml.vof_list vof_raw_tree) v in
-      OCaml.VSum ("RawList", [ v ])
-  | RawTuple v ->
+      OCaml.VSum ("List", [ v ])
+  | Tuple v ->
       let v = (OCaml.vof_list vof_raw_tree) v in
-      OCaml.VSum ("RawTuple", [ v ])
-  | RawCase (v1, v2) ->
+      OCaml.VSum ("Tuple", [ v ])
+  | Case (v1, v2) ->
       let v1 = OCaml.vof_string v1 in
       let v2 = vof_raw_tree v2 in
-      OCaml.VSum ("RawCase", [ v1; v2 ])
-  | RawOption v ->
+      OCaml.VSum ("Case", [ v1; v2 ])
+  | Option v ->
       let v = (OCaml.vof_option vof_raw_tree) v in
-      OCaml.VSum ("RawOption", [ v ])
-  | RawAny v ->
+      OCaml.VSum ("Option", [ v ])
+  | Any v ->
       let v = vof_any v in
-      OCaml.VSum ("RawAny", [ v ])
+      OCaml.VSum ("Any", [ v ])

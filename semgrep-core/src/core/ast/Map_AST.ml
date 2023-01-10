@@ -1281,25 +1281,25 @@ let (mk_visitor : visitor_in -> visitor_out) =
         Lbli v1
   and map_raw_tree v =
     match v with
-    | RawToken v ->
+    | Token v ->
         let v = map_tok v in
-        RawToken v
-    | RawList v ->
+        Token v
+    | List v ->
         let v = (map_of_list map_raw_tree) v in
-        RawList v
-    | RawTuple v ->
+        List v
+    | Tuple v ->
         let v = (map_of_list map_raw_tree) v in
-        RawTuple v
-    | RawCase (v1, v2) ->
+        Tuple v
+    | Case (v1, v2) ->
         let v1 = map_of_string v1 in
         let v2 = map_raw_tree v2 in
-        RawCase (v1, v2)
-    | RawOption v ->
+        Case (v1, v2)
+    | Option v ->
         let v = (map_of_option map_raw_tree) v in
-        RawOption v
-    | RawAny v ->
+        Option v
+    | Any v ->
         let v = map_any v in
-        RawAny v
+        Any v
   and all_functions =
     {
       vitem = map_item;

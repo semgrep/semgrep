@@ -1387,14 +1387,14 @@ let (mk_visitor :
     | Lbli v1 -> v_label_ident v1
   and v_raw_tree v =
     match v with
-    | RawToken v -> v_tok v
-    | RawList v -> (v_list v_raw_tree) v
-    | RawTuple v -> (v_list v_raw_tree) v
-    | RawCase (v1, v2) ->
+    | Token v -> v_tok v
+    | List v -> (v_list v_raw_tree) v
+    | Tuple v -> (v_list v_raw_tree) v
+    | Case (v1, v2) ->
         v_string v1;
         v_raw_tree v2
-    | RawOption v -> (v_option v_raw_tree) v
-    | RawAny v -> v_any v
+    | Option v -> (v_option v_raw_tree) v
+    | Any v -> v_any v
   and all_functions x = v_any x in
   all_functions
 

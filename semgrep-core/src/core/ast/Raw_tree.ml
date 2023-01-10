@@ -2,22 +2,30 @@
    Utilities for working with AST_generic.raw_tree
 *)
 
-type t = AST_generic.raw_tree
+(* Provide hash_* and hash_fold_* for the core ocaml types *)
+open Ppx_hash_lib.Std.Hash.Builtin
 
-module G = AST_generic
+type ('tok, 'any) t =
+  | Token of 'tok
+  | List of ('tok, 'any) t list
+  | Tuple of ('tok, 'any) t list
+  | Case of string * ('tok, 'any) t
+  | Option of ('tok, 'any) t option
+  | Any of 'any
+[@@deriving show { with_path = false }, eq, hash]
 
 (* Find the left-most token in the tree *)
-let rec first_tok (x : t) =
+let rec first_tok (x : (_, _) t) =
   match x with
-  | RawToken tok -> Some tok
-  | RawList xs -> first_tok_in_list xs
-  | RawTuple xs -> first_tok_in_list xs
-  | RawCase (_cons, x) -> first_tok x
-  | RawOption opt -> (
+  | Token tok -> Some tok
+  | List xs -> first_tok_in_list xs
+  | Tuple xs -> first_tok_in_list xs
+  | Case (_cons, x) -> first_tok x
+  | Option opt -> (
       match opt with
       | None -> None
       | Some x -> first_tok x)
-  | RawAny _ ->
+  | Any _ ->
       (* We could continue the search in the generic AST but that would
          be a big endeavor. *)
       None
@@ -31,17 +39,17 @@ and first_tok_in_list xs =
   | [] -> None
 
 (* Find the right-most token in the tree *)
-let rec last_tok (x : t) =
+let rec last_tok (x : (_, _) t) =
   match x with
-  | RawToken tok -> Some tok
-  | RawList xs -> last_tok_in_list xs
-  | RawTuple xs -> last_tok_in_list xs
-  | RawCase (_cons, x) -> last_tok x
-  | RawOption opt -> (
+  | Token tok -> Some tok
+  | List xs -> last_tok_in_list xs
+  | Tuple xs -> last_tok_in_list xs
+  | Case (_cons, x) -> last_tok x
+  | Option opt -> (
       match opt with
       | None -> None
       | Some x -> last_tok x)
-  | RawAny _ -> None
+  | Any _ -> None
 
 and last_tok_in_list xs =
   match xs with
@@ -67,16 +75,16 @@ let unsafe_loc x =
       (tok, tok)
 
 let anys x =
-  let rec anys acc (x : t) =
+  let rec anys acc (x : (_, _) t) =
     match x with
-    | RawToken _tok -> acc
-    | RawList xs -> List.fold_left anys acc xs
-    | RawTuple xs -> List.fold_left anys acc xs
-    | RawCase (_cons, x) -> anys acc x
-    | RawOption opt -> (
+    | Token _tok -> acc
+    | List xs -> List.fold_left anys acc xs
+    | Tuple xs -> List.fold_left anys acc xs
+    | Case (_cons, x) -> anys acc x
+    | Option opt -> (
         match opt with
         | None -> acc
         | Some x -> anys acc x)
-    | RawAny any -> any :: acc
+    | Any any -> any :: acc
   in
   anys [] x |> List.rev

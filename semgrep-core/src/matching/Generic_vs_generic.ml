@@ -1076,19 +1076,19 @@ and m_expr ?(is_root = false) a b =
    are matched normally. *)
 and m_raw_tree (a : G.raw_tree) (b : G.raw_tree) =
   match (a, b) with
-  | RawToken a, RawToken b -> m_tok a b
-  | RawList a, RawList b -> m_list m_raw_tree a b
-  | RawTuple a, RawTuple b -> m_list m_raw_tree a b
-  | RawCase (a_cons, a), RawCase (b_cons, b) ->
+  | Token a, Token b -> m_tok a b
+  | List a, List b -> m_list m_raw_tree a b
+  | Tuple a, Tuple b -> m_list m_raw_tree a b
+  | Case (a_cons, a), Case (b_cons, b) ->
       m_string a_cons b_cons >>= fun () -> m_raw_tree a b
-  | RawOption a, RawOption b -> m_option m_raw_tree a b
-  | RawAny a, RawAny b -> m_any a b
-  | RawToken _, _
-  | RawList _, _
-  | RawTuple _, _
-  | RawCase _, _
-  | RawOption _, _
-  | RawAny _, _ ->
+  | Option a, Option b -> m_option m_raw_tree a b
+  | Any a, Any b -> m_any a b
+  | Token _, _
+  | List _, _
+  | Tuple _, _
+  | Case _, _
+  | Option _, _
+  | Any _, _ ->
       fail ()
 
 and m_entity_name a b =
