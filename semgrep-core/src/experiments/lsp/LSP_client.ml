@@ -50,6 +50,8 @@ let global = ref { io = None; last_uri = Uri.of_path "" }
 (* Helpers *)
 (*****************************************************************************)
 
+let dump x = Dumper.dump x
+
 let server =
   match 0 with
   | 0 -> "ocamllsp"
@@ -117,7 +119,7 @@ module Client_request2 = struct
     | TextDocumentDefinition _ ->
         Json.Option.t_of_yojson Locations.t_of_yojson json
     | x ->
-        logger#error "Response TODO: %s" (Common.dump x);
+        logger#error "Response TODO: %s" (dump x);
         failwith "TODO"
 end
 
@@ -141,7 +143,7 @@ let send_notif notif io =
   Io.flush io
 
 let rec read_response (id, req) io =
-  logger#info "read_response %s" (Common.dump id);
+  logger#info "read_response %s" (dump id);
   let res = Io.read io in
   match res with
   | None -> failwith "no answer"
@@ -151,11 +153,11 @@ let rec read_response (id, req) io =
           { Jsonrpc.Message.method_ = "textDocument/publishDiagnostics"; _ } ->
           read_response (id, req) io
       | Jsonrpc.Message _ ->
-          logger#error "Message TODO: %s" (Common.dump res);
+          logger#error "Message TODO: %s" (dump res);
           failwith "got a message, not a Response"
       | Jsonrpc.Response { Jsonrpc.Response.id = id2; result } -> (
           if id2 <> id then
-            failwith (spf "ids are different: %s" (Common.dump (id, id2)));
+            failwith (spf "ids are different: %s" (dump (id, id2)));
           match result with
           | Ok json ->
               let response = Client_request2.response_of_json req json in
@@ -203,7 +205,7 @@ let def_at_tok tk uri io =
   in
   let id = send_request req io in
   let res = read_response (id, req) io in
-  logger#info "%s" (Common.dump res);
+  logger#info "%s" (dump res);
   match res with
   | None ->
       logger#error "NO TYPE INFO for %s" (PI.string_of_info tk);
@@ -233,7 +235,7 @@ let type_at_tok tk uri io =
   in
   let id = send_request req io in
   let res = read_response (id, req) io in
-  logger#info "%s" (Common.dump res);
+  logger#info "%s" (dump res);
   match res with
   | None ->
       logger#error "NO TYPE INFO for %s" (PI.string_of_info tk);
@@ -241,7 +243,7 @@ let type_at_tok tk uri io =
   | Some { Hover.contents = x; _ } -> (
       match x with
       | `MarkupContent { MarkupContent.value = s; kind = _ } ->
-          logger#info "%s" (Common.dump x);
+          logger#info "%s" (dump x);
           let s = final_type_string s in
           let ty =
             try
@@ -271,7 +273,7 @@ let connect_server () =
   let req = init_request (Uri.of_path "") in
   let id = send_request req io in
   let res = read_response (id, req) io in
-  logger#info "connect_server: %s" (Common.dump res);
+  logger#info "connect_server: %s" (dump res);
   let notif = Client_notification.Initialized in
   send_notif notif io;
   io

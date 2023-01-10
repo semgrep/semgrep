@@ -109,7 +109,7 @@ let extract_defs ~g ~duplicate_modules ~ast ~readable ~file =
       | _ ->
           pr2
             (spf "PB: module %s is already present (%s)" m
-               (Common.dump (List.assoc m duplicate_modules))))
+               (Dumper.dump (List.assoc m duplicate_modules))))
   | _ when G.has_node (m, E.Module) g -> (
       match G.parents (m, E.Module) g with
       (* probably because processed .mli or .ml before which created the node *)

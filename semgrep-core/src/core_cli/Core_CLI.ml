@@ -218,7 +218,7 @@ let dump_ast ?(naming = false) lang file =
       if skipped_tokens <> [] then (
         pr2 (spf "WARNING: fail to fully parse %s" file);
         pr2
-          (Common.map (fun e -> "  " ^ Common.dump e) skipped_tokens
+          (Common.map (fun e -> "  " ^ Dumper.dump e) skipped_tokens
           |> String.concat "\n");
         Runner_exit.(exit_semgrep False)))
 

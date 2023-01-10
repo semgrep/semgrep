@@ -62,7 +62,7 @@ let rec expr_to_type tok e =
   | Deref (t, e) -> TPtr (t, expr_to_type tok e)
   | Selector (Id (id1), _, id2) -> TName [id1;id2]
   | ParenType t -> t
-  | _ -> error tok ("TODO: expr_to_type: " ^ Common.dump e)
+  | _ -> error tok ("TODO: expr_to_type: " ^ Dumper.dump e)
 
 let expr_or_type_to_type tok x =
   match x with
@@ -81,7 +81,7 @@ let mk_call_or_cast (e, targs_opt, args) =
 let type_to_id x =
   match x with
   | TName [id] -> id
-  | _ -> failwith ("type_to_id: was expecting an id" ^ Common.dump x)
+  | _ -> failwith ("type_to_id: was expecting an id" ^ Dumper.dump x)
 
 (* see golang spec on signatures. If you have
  * func foo(a, b, c) then it means a, b, and c are types. If you have once
@@ -105,7 +105,7 @@ let adjust_signatures params =
               then []
               else begin
                 failwith ("last parameter should have a type and id" ^
-                    Common.dump acc)
+                    Dumper.dump acc)
               end
       | x::xs ->
         (match x with
