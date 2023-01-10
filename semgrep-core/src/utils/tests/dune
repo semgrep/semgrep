@@ -1,0 +1,14 @@
+(library
+ (public_name semgrep_utils_tests)
+ (wrapped false)
+ (libraries
+   alcotest
+   semgrep_utils
+ )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+   )
+ )
+)

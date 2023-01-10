@@ -136,12 +136,13 @@ let module_name env (v1, dots) =
       G.FileName (s, tok)
 
 let resolved_name = function
-  | LocalVar -> Some (G.LocalVar, G.sid_TODO)
-  | Parameter -> Some (G.Parameter, G.sid_TODO)
-  | GlobalVar -> Some (G.Global, G.sid_TODO)
+  | LocalVar -> Some (G.LocalVar, G.SId.unsafe_default)
+  | Parameter -> Some (G.Parameter, G.SId.unsafe_default)
+  | GlobalVar -> Some (G.Global, G.SId.unsafe_default)
   | ClassField -> None
-  | ImportedModule xs -> Some (G.ImportedModule (G.DottedName xs), G.sid_TODO)
-  | ImportedEntity xs -> Some (G.ImportedEntity xs, G.sid_TODO)
+  | ImportedModule xs ->
+      Some (G.ImportedModule (G.DottedName xs), G.SId.unsafe_default)
+  | ImportedEntity xs -> Some (G.ImportedEntity xs, G.SId.unsafe_default)
   | NotResolved -> None
 
 let expr_context = function

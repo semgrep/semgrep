@@ -1,12 +1,11 @@
 ; Stuff independent of semgrep, that could be used in other projects.
-; Ideally this would be moved to pfff/commons/
+; Ideally we should remove the semgrep_ prefix to this library.
 
 (library
  (public_name semgrep_utils)
  (wrapped false)
  (libraries
    re
-   alcotest
    pcre
 
    commons
@@ -18,6 +17,7 @@
      ppx_profiling
      ppx_deriving.show
      ppx_deriving.eq
+     ppx_deriving.ord
      ppx_hash
    )
  )

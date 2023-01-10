@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 1998-2022 Yoann Padioleau
+ * Copyright (C) 1998-2023 Yoann Padioleau
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,6 +12,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*###########################################################################*)
 (* Prelude *)
 (*###########################################################################*)
@@ -30,10 +33,9 @@ let debugger = ref false
  * node or in the browser.
  *)
 let jsoo = ref false
-let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
-(* Prelude *)
+(* Circular dependencies *)
 (*****************************************************************************)
 
 (* The following functions should be in their respective sections but
@@ -649,7 +651,7 @@ let write_value valu filename =
 (*****************************************************************************)
 
 (*****************************************************************************)
-(* Error managment *)
+(* Error management *)
 (*****************************************************************************)
 
 (*****************************************************************************)
@@ -1639,38 +1641,3 @@ let files_of_dir_or_files_no_vcs_nofilter xs =
 module SMap = Map.Make (String)
 
 type 'a smap = 'a SMap.t
-
-(*****************************************************************************)
-(* Identifiers *)
-(*****************************************************************************)
-
-(* OCaml has generative functors.
-   This means that abstract types minted from different applications of the same
-   functor are _always_ different, even if they are constructed in the exact
-   same way.
-   So different instances of the module `MkId` will have distinct types.
-   This helps us not conflate types when we need a new kind of unique identifier type,
-   and avoid boilerplate code with refs and counters.
-*)
-module MkId () : sig
-  type t [@@deriving show, eq, ord, hash]
-
-  val mk : unit -> t
-  val to_int : t -> int
-  val unsafe_default : t
-  val unsafe_reset_counter : unit -> unit
-end = struct
-  open Ppx_hash_lib.Std.Hash.Builtin
-
-  type t = int [@@deriving show, eq, ord, hash]
-
-  let counter = ref 0
-
-  let mk () =
-    incr counter;
-    !counter
-
-  let to_int = Fun.id
-  let unsafe_default = -1
-  let unsafe_reset_counter () = counter := 0
-end

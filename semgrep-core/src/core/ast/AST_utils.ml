@@ -25,7 +25,7 @@ end
    Such ID should not be expected to be unique across ASTs,
    since ASTs can be loaded from an external cache, for example.
 *)
-module Node_ID = Common.MkId ()
+module Node_ID = Gensym.MkId ()
 
 (*
    Trickery to offer two collections of equality functions:

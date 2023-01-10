@@ -101,7 +101,7 @@ let default_visitor =
   }
 
 let v_id _ = ()
-let v_temp _ = ()
+let v_sid _ = ()
 
 let (mk_visitor :
       ?vardef_assign:bool ->
@@ -167,7 +167,7 @@ let (mk_visitor :
         ()
   and v_resolved_name (v1, v2) =
     v_resolved_name_kind v1;
-    v_temp v2
+    v_sid v2
   and v_resolved_name_kind = function
     | LocalVar -> ()
     | Parameter -> ()
@@ -1167,7 +1167,7 @@ let (mk_visitor :
      * 'class Foo { x = function() { return; } }'.
      *)
     | FuncDef fdef when flddef_assign ->
-        let resolved = Some (LocalVar, G.sid_TODO) in
+        let resolved = Some (LocalVar, G.SId.unsafe_default) in
         v_expr (H.funcdef_to_lambda (ventity, fdef) resolved)
     | _ -> ()
   and v_field x =

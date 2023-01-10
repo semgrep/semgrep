@@ -26,6 +26,7 @@
 
     pfff-lang_GENERIC-analyze-tests ; Unit_dataflow
 
+    semgrep_utils_tests
     semgrep_core
     semgrep_core_ast_tests
     semgrep_fixing_tests
