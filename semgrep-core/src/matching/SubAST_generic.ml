@@ -159,6 +159,7 @@ let subexprs_of_expr with_symbolic_propagation e =
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
       subexprs_of_any_list anys
+  | RawExpr x -> Raw_tree.anys x |> subexprs_of_any_list
   | Alias (_, e1) -> [ e1 ]
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
   (* TODO? or call recursively on e? *)
@@ -256,6 +257,7 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
   | Comprehension (_, (_, (_e, _xs), _)) -> []
   | New (_, _t, _args) -> []
   | OtherExpr (_, _anys) -> []
+  | RawExpr _ -> []
   | Alias (_, _e1) -> []
   | Xml _xmlbody -> []
   | Constructor _ -> []

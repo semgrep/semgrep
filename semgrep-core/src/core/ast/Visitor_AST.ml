@@ -415,6 +415,7 @@ let (mk_visitor :
       | OtherExpr (v1, v2) ->
           let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
+      | RawExpr v -> v_raw_tree v
     in
     vin.kexpr (k, all_functions) x
   and v_field_name = function
@@ -1385,6 +1386,16 @@ let (mk_visitor :
         let v1 = v_tok v1 in
         ()
     | Lbli v1 -> v_label_ident v1
+  and v_raw_tree v =
+    match v with
+    | Token v -> v_tok v
+    | List v -> (v_list v_raw_tree) v
+    | Tuple v -> (v_list v_raw_tree) v
+    | Case (v1, v2) ->
+        v_string v1;
+        v_raw_tree v2
+    | Option v -> (v_option v_raw_tree) v
+    | Any v -> v_any v
   and all_functions x = v_any x in
   all_functions
 

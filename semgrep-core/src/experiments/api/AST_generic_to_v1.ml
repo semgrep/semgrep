@@ -338,6 +338,9 @@ and map_expr x : B.expr =
   | StmtExpr v1 ->
       let v1 = map_stmt v1 in
       `StmtExpr v1
+  | RawExpr x ->
+      let first_tok, _last_tok = Raw_tree.unsafe_loc x in
+      `OtherExpr (("RawExpr", map_tok first_tok), [])
 
 and map_comprehension (v1, v2) =
   let v1 = map_expr v1 in

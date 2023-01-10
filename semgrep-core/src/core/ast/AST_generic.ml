@@ -591,6 +591,10 @@ and expr_kind =
    * StmtExpr above to wrap stmt if it's not an expr but a stmt
    *)
   | OtherExpr of todo_kind * any list
+  (* experimental alternative to OtherExpr. This allows us to have
+     proper exprs, stmts, etc. embedded in constructs that were not
+     fully translated into the generic AST. *)
+  | RawExpr of raw_tree
 
 and literal =
   | Bool of bool wrap
@@ -1874,6 +1878,8 @@ and any =
   | Lbli of label_ident
   (* Used only for Rust macro arguments for now *)
   | Anys of any list
+
+and raw_tree = (tok, any) Raw_tree.t
 [@@deriving show { with_path = false }, eq, hash]
 
 (*****************************************************************************)
