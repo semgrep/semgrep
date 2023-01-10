@@ -106,11 +106,11 @@ let fresh_var ?(str = "_tmp") _env tok =
        variables to the taint trace. *)
     if Parse_info.is_fake tok then tok else Parse_info.fake_info tok str
   in
-  let i = H.gensym () in
+  let i = G.SId.mk () in
   { ident = (str, tok); sid = i; id_info = G.empty_id_info () }
 
 let fresh_label ?(label = "_label") _env tok =
-  let i = H.gensym () in
+  let i = G.SId.mk () in
   ((label, tok), i)
 
 let fresh_lval ?str env tok =

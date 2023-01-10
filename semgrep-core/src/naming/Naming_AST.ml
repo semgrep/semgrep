@@ -397,7 +397,7 @@ let params_of_parameters env xs =
   xs
   |> Common.map_filter (function
        | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
-           let sid = H.gensym () in
+           let sid = SId.mk () in
            let resolved = { entname = (Parameter, sid); enttype = typ } in
            set_resolved env id_info resolved;
            Some (H.str_of_ident id, resolved)
@@ -435,7 +435,7 @@ let js_get_angular_constructor_args env attrs defs =
   |> List.concat
 
 let declare_var env lang id id_info ~explicit vinit vtype =
-  let sid = H.gensym () in
+  let sid = SId.mk () in
   (* for the type, we use the (optional) type in vtype, or, if we can infer
    * the type of the expression vinit (literal or id), we use that as a type
    * useful when the type is not given, e.g. in Go: `var x = 2` *)
@@ -525,7 +525,7 @@ let resolve lang prog =
                   vtype = _;
                 } )
             when lang = Lang.Js || lang = Lang.Ts ->
-              let sid = H.gensym () in
+              let sid = SId.mk () in
               let resolved =
                 untyped_ent (ImportedModule (DottedName [ file ]), sid)
               in
@@ -582,7 +582,7 @@ let resolve lang prog =
                                 } );
                         _;
                       } ->
-                      let sid = H.gensym () in
+                      let sid = SId.mk () in
                       let resolved =
                         untyped_ent (ImportedEntity [ file; imported_id ], sid)
                       in
@@ -624,7 +624,7 @@ let resolve lang prog =
                *)
               | Lang.Js
               | Lang.Ts ->
-                  let sid = H.gensym () in
+                  let sid = SId.mk () in
                   let resolved =
                     untyped_ent (resolved_name_kind env lang, sid)
                   in
@@ -666,7 +666,7 @@ let resolve lang prog =
           | ( { name = EN (Id (id, id_info)); _ },
               ModuleDef { mbody = ModuleAlias xs } ) ->
               (* similar to the ImportAs case *)
-              let sid = H.gensym () in
+              let sid = SId.mk () in
               let resolved =
                 untyped_ent (ImportedModule (DottedName xs), sid)
               in
@@ -685,7 +685,7 @@ let resolve lang prog =
                 (function
                   | id, Some (alias, id_info) ->
                       (* for python *)
-                      let sid = H.gensym () in
+                      let sid = SId.mk () in
                       let resolved =
                         untyped_ent (ImportedEntity (xs @ [ id ]), sid)
                       in
@@ -693,7 +693,7 @@ let resolve lang prog =
                       add_ident_imported_scope alias resolved env.names
                   | id, None ->
                       (* for python *)
-                      let sid = H.gensym () in
+                      let sid = SId.mk () in
                       let resolved =
                         untyped_ent (ImportedEntity (xs @ [ id ]), sid)
                       in
@@ -708,7 +708,7 @@ let resolve lang prog =
                        * Note that we guard this code with is_js lang, because Python
                        * uses also Filename in 'from ...conf import x'.
                        *)
-                      let sid = H.gensym () in
+                      let sid = SId.mk () in
                       let _, b, _ = Common2.dbe_of_filename_noext_ok s in
                       let base = (b, tok) in
                       let resolved =
@@ -718,7 +718,7 @@ let resolve lang prog =
                   | id, Some (alias, id_info)
                     when Lang.is_js lang && fst id <> Ast_js.default_entity ->
                       (* for JS *)
-                      let sid = H.gensym () in
+                      let sid = SId.mk () in
                       let _, b, _ = Common2.dbe_of_filename_noext_ok s in
                       let base = (b, tok) in
                       let resolved =
@@ -730,7 +730,7 @@ let resolve lang prog =
                 imported_names
           | ImportAs (_, DottedName xs, Some (alias, id_info)) ->
               (* for python *)
-              let sid = H.gensym () in
+              let sid = SId.mk () in
               let resolved =
                 untyped_ent (ImportedModule (DottedName xs), sid)
               in
@@ -738,7 +738,7 @@ let resolve lang prog =
               add_ident_imported_scope alias resolved env.names
           | ImportAs (_, FileName (s, tok), Some (alias, id_info)) ->
               (* for Go *)
-              let sid = H.gensym () in
+              let sid = SId.mk () in
               let pkgname =
                 let pkgpath, pkgbase = Common2.dirs_and_base_of_file s in
                 if pkgbase =~ "v[0-9]+" then

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -16,8 +16,8 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* A generic AST, to factorize similar "analysis" in different programming
- * languages (e.g., naming, semantic code highlighting, semgrep!).
+(* A generic AST, to factorize similar analysis in different programming
+ * languages (e.g., naming, semantic code highlighting, semgrep matching).
  *
  * Right now this generic AST is mostly the factorized union of:
  *  - Python, Ruby, Lua
@@ -160,18 +160,6 @@ open Ppx_hash_lib.Std.Hash.Builtin
 let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 
 (*****************************************************************************)
-(* Unique identifiers *)
-(*****************************************************************************)
-
-(* OCaml has generative functors. This means the types `SId.t` and
-   `IdInfoId.t` are different, even though both are represented by ints.
-   This will help enforce that we don't do bad things with these ints by making
-   them abstract.
-*)
-module SId = Common.MkId ()
-module IdInfoId = Common.MkId ()
-
-(*****************************************************************************)
 (* Token (leaf) *)
 (*****************************************************************************)
 (* Contains among other things the position of the token through
@@ -241,6 +229,14 @@ type module_name =
   | FileName of string wrap (* ex: Js import, C #include, Go import *)
 [@@deriving show { with_path = false }, eq, hash]
 
+(* OCaml has generative functors. This means the types `SId.t` and
+   `IdInfoId.t` are different, even though both are represented by ints.
+   This will help enforce that we don't do bad things with these ints by making
+   them abstract.
+*)
+module SId = Gensym.MkId ()
+module IdInfoId = Gensym.MkId ()
+
 (* A single unique id: sid (uid would be a better name, but it usually
  * means "user id" for people).
  *
@@ -251,11 +247,11 @@ type module_name =
  *
  * See Naming_AST.ml for more information.
  *
- * Most generic ASTs have a fake value (sid_TODO = -1) at first.
+ * Most generic ASTs have a fake value (SId.unsafe_default at first.
  * You need to call Naming_AST.resolve (or one of the lang-specific
  * Resolve_xxx.resolve) on the generic AST to set it correctly.
  *)
-(* a single unique gensym'ed number. See gensym() below *)
+(* a single unique gensym'ed number. *)
 type sid = SId.t
 and resolved_name = resolved_name_kind * sid
 
@@ -285,7 +281,7 @@ and resolved_name_kind =
   (* sgrep: those cases allow to match entities/modules even if they were
    * aliased when imported.
    * both dotted_ident must at least contain one element *)
-  | ImportedEntity of dotted_ident (* can also use 0 for gensym *)
+  | ImportedEntity of dotted_ident
   | ImportedModule of module_name
   (* used in Go, where you can pass types as arguments and where we
    * need to resolve those cases
@@ -1963,14 +1959,11 @@ let p x = x
 (* Ident and names *)
 (* ------------------------------------------------------------------------- *)
 
-(* For Naming_X.ml in deep-semgrep.
+(* For Naming_SAST.ml in deep-semgrep.
  * This can be reseted to 0 before parsing each file, or not. It does
  * not matter as the couple (filename, id_info_id) is unique.
  *)
 let id_info_id = IdInfoId.mk
-
-(* before Naming_AST.resolve can do its job *)
-let sid_TODO = SId.unsafe_default
 let empty_var = { vinit = None; vtype = None }
 
 let empty_id_info ?(hidden = false) () =
@@ -2056,7 +2049,7 @@ let param_of_id ?(pattrs = []) ?(ptype = None) ?(pdefault = None) id =
     pdefault;
     ptype;
     pattrs;
-    pinfo = basic_id_info (Parameter, sid_TODO);
+    pinfo = basic_id_info (Parameter, SId.unsafe_default);
   }
 
 let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
@@ -2065,7 +2058,7 @@ let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
     pname;
     pdefault;
     pattrs;
-    pinfo = basic_id_info (Parameter, sid_TODO);
+    pinfo = basic_id_info (Parameter, SId.unsafe_default);
   }
 
 (* for 'function 0 -> 1 ...' in OCaml or 'do 0 -> 1 ...' in Elixir *)

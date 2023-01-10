@@ -35,11 +35,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let str_of_ident = fst
 
-(* You can use 0 for globals, even though this will work only on a single
- * file. Any global analysis will need to set a unique ID for globals too. *)
-(* see sid type in resolved_name *)
-let gensym = G.SId.mk
-
 let name_of_ids_with_opt_typeargs xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids_with_opt_typeargs: empty ids"

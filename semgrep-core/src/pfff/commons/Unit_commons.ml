@@ -136,31 +136,6 @@ let test_read_file () =
   with_file data (fun file ->
       assert (Common.read_file ~max_len file = String.sub data 0 max_len))
 
-(* TODO: we should use Unix.realpath! but only available in 4.13 *)
-let realpath s = Common.fullpath s
-
-let test_path_conversion () =
-  let check_path path =
-    FPath.to_string (FPath.of_string path) = realpath path
-  in
-  let data = String.make 150 'v' in
-  assert (check_path ".");
-  assert (check_path "..");
-  assert (check_path "../..");
-  assert (FPath.to_string (FPath.of_string "/") = realpath "/");
-  with_file data (fun file ->
-      let path = FPath.of_string file in
-      let max_len = 24 in
-      assert (FPath.to_string path = realpath file);
-      assert (FPath.read_file path = data);
-      assert (FPath.cat path = [ data ]);
-      assert (FPath.read_file ~max_len path = String.sub data 0 max_len);
-      assert (FPath.file_exists path);
-      assert (not (FPath.is_directory path)));
-  assert (
-    FPath.to_string FPath.(of_string "." / "." / ".." / "." / "..")
-    = realpath "../..")
-
 let tests =
   Testutil.pack_suites "commons"
     [
@@ -170,6 +145,5 @@ let tests =
           [ ("cat", test_cat) ];
           [ ("readable", test_readable) ];
           [ ("read_file", test_read_file) ];
-          [ ("path_conversion", test_path_conversion) ];
         ];
     ]

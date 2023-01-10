@@ -263,7 +263,7 @@ let report_findings env findings =
 
 let top_level_sinks_in_nodes config flow =
   flow.CFG.reachable |> CFG.NodeiSet.to_seq
-  |> Seq.concat_map (fun ni ->
+  |> Stdcompat.Seq.concat_map (fun ni ->
          let node = flow.CFG.graph#nodes#assoc ni in
          match node.n with
          | NInstr instr -> orig_is_sink config instr.iorig |> List.to_seq

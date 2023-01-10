@@ -2285,7 +2285,7 @@ and m_stmt a b =
       if_config
         (fun x -> x.flddef_assign)
         ~then_:
-          (let resolved = Some (G.LocalVar, G.sid_TODO) in
+          (let resolved = Some (G.LocalVar, G.SId.unsafe_default) in
            let b1 = H.funcdef_to_lambda (ent, fdef) resolved in
            m_expr_root a1 b1)
         ~else_:(fail ())
