@@ -352,7 +352,13 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                   fun ({ Parse_info.charpos; _ } as loc) ->
                     if charpos < consumed_loc.start_pos then map_contents loc
                     else
-                      let line = loc.line - consumed_loc.start_line in
+                      (* For some reason, with json extraction option, it needs a fix to point the right line *)
+                      (* TODO: Find the reason of this behaviour and fix it properly *)
+                      let line =
+                        let (`Extract { Rule.json; _ }) = r.Rule.mode in
+                        if json then loc.line - consumed_loc.start_line - 1
+                        else loc.line - consumed_loc.start_line
+                      in
                       map_snippet
                         {
                           loc with
@@ -420,9 +426,16 @@ let extract_as_separate erule_table xtarget rule_ids matches =
              (* Write out the extracted text in a tmpfile *)
              let (`Extract { Rule.dst_lang; _ }) = erule.mode in
              let target = mk_extract_target dst_lang contents rule_ids in
+             (* For some reason, with json extraction option, it needs a fix to point the right line *)
+             (* TODO: Find the reason of this behaviour and fix it properly *)
              let map_loc =
-               map_loc start_extract_pos line_offset col_offset
-                 xtarget.Xtarget.file
+               let (`Extract { Rule.json; _ }) = erule.mode in
+               if json then
+                 map_loc start_extract_pos (line_offset - 1) col_offset
+                   xtarget.Xtarget.file
+               else
+                 map_loc start_extract_pos line_offset col_offset
+                   xtarget.Xtarget.file
              in
              Some (target, map_res map_loc target.path xtarget.file)
          | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)
