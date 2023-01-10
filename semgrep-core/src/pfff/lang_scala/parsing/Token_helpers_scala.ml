@@ -200,7 +200,7 @@ let inFirstOfStat x =
   | LBRACKET _ ->
       false
   | _ ->
-      logger#info "inFirstOfStat: true for %s" (Common.dump x);
+      logger#info "inFirstOfStat: true for %s" (Dumper.dump x);
       true
 
 (** Can token end a statement? *)
@@ -236,7 +236,7 @@ let inLastOfStat x =
   (* semgrep-ext: *)
   | Ellipsis _
   | RDots _ ->
-      logger#info "inLastOfStat: true for %s" (Common.dump x);
+      logger#info "inLastOfStat: true for %s" (Dumper.dump x);
       true
   | _ -> false
 

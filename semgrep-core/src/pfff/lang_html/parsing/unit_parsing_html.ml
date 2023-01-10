@@ -25,5 +25,5 @@ let tests =
           | _ ->
               Alcotest.failf "wrong ast for %s, got %s" s
                 ((*Export_html.ml_pattern_string_of_html_tree*)
-                 Common.dump ast) );
+                 Dumper.dump ast) );
     ]

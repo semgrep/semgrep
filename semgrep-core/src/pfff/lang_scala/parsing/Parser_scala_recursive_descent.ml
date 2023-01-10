@@ -307,7 +307,7 @@ let adjustSepRegions lastToken in_ =
 let insertNL ?(newlines = false) in_ =
   if !debug_newline then (
     logger#info "%s: %s" "insertNL" (T.show in_.token);
-    logger#info "inserting back a newline:%s" (Common.dump in_.last_nl));
+    logger#info "inserting back a newline:%s" (Dumper.dump in_.last_nl));
   match in_.last_nl with
   | None -> error "IMPOSSIBLE? no last newline to insert back" in_
   | Some x ->
@@ -857,7 +857,7 @@ let paramType_ =
 let literal ?(isNegated = None) ?(inPattern = false) in_ : literal =
   in_
   |> with_logging
-       (spf "literal(isNegated:%s, inPattern:%b)" (Common.dump isNegated)
+       (spf "literal(isNegated:%s, inPattern:%b)" (Dumper.dump isNegated)
           inPattern)
        (fun () ->
          let finish value_ =

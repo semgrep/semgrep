@@ -643,8 +643,8 @@ and definition env x =
           then env.log (spf "you should factorize struct %s definitions" s)
           else (
             env.pr2_and_log
-              (spf "conflicting structs for %s, %s <> %s" s (Common.dump old)
-                 (Common.dump def));
+              (spf "conflicting structs for %s, %s <> %s" s (Dumper.dump old)
+                 (Dumper.dump def));
             Hashtbl.replace env.dupes (fst name, E.Type) true)
         else (
           Hashtbl.add env.structs s def;
@@ -709,8 +709,8 @@ and definition env x =
           then ()
           else (
             env.pr2_and_log
-              (spf "conflicting typedefs for %s, %s <> %s" s (Common.dump old)
-                 (Common.dump t));
+              (spf "conflicting typedefs for %s, %s <> %s" s (Dumper.dump old)
+                 (Dumper.dump t));
             Hashtbl.replace env.dupes (fst name, E.Type) true)
           (* todo: if are in Source, then maybe can add in local_typedefs *)
         else Hashtbl.add env.typedefs s t;

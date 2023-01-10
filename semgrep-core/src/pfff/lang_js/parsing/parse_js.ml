@@ -75,7 +75,7 @@ let put_back_lookahead_token_if_needed tr item_opt =
          * all the tokens (more risky now that we use ast_js.ml instead of
          * cst_js.ml)
          *)
-        logger#debug "putting back lookahead token %s" (Common.dump current);
+        logger#debug "putting back lookahead token %s" (Dumper.dump current);
         tr.PI.rest <- current :: tr.PI.rest;
         tr.PI.passed <- List.tl tr.PI.passed)
 

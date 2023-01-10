@@ -72,7 +72,7 @@ let emit_extra tok k = fun state lexbuf ->
     pop_lexer state;
     k state lexbuf
   in
-  Stack.push ("once-" ^ Common.dump tok, once) state.S.lexer_stack;
+  Stack.push ("once-" ^ Dumper.dump tok, once) state.S.lexer_stack;
   tok
 
 (* helper for transitioning between states *)

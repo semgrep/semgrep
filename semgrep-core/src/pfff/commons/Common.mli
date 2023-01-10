@@ -43,16 +43,8 @@ val disable_pr2_once : bool ref
  * again and again) *)
 val pr2_once : string -> unit
 
-(* Print on stderr any data structure (see dump() below) *)
+(* Print on stderr any data structure (using Dumper.dump) *)
 val pr2_gen : 'a -> unit
-
-(* Dump any OCaml data-structure in a string. dump() relies on the Obj module
- * internally so it is limited (e.g., it just dumps numbers for constructors).
- * You should use instead 'deriving show' which correctly handle
- * constructors, fields, etc. However, if you can't use 'deriving show',
- * then this function helps.
- *)
-val dump : 'a -> string
 
 (* to be used in pipes as in foo() |> before_return (fun v -> pr2_gen v)*)
 val before_return : ('a -> unit) -> 'a -> 'a

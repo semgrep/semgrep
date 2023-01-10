@@ -831,7 +831,7 @@ and typ env = function
                 | [ _x ] ->
                     if looks_like_class_name str then
                       add_use_edge env (str, E.Package)
-                    else pr2 ("PB: " ^ Common.dump reft)
+                    else pr2 ("PB: " ^ Dumper.dump reft)
                 | _x :: _y :: _xs ->
                     (* unknown package probably *)
                     add_use_edge env (str, E.Package))))

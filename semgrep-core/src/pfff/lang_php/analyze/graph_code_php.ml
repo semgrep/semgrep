@@ -1153,7 +1153,7 @@ let build ?(verbose = true)
                | Not_found ->
                    failwith
                      (spf "PB with %s, no file found, dupes = %s"
-                        (G.string_of_node node) (Common.dump files))
+                        (G.string_of_node node) (Dumper.dump files))
              in
 
              let dupes = orig_file :: List.map fst files in

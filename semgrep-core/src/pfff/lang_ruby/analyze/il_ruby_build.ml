@@ -290,7 +290,7 @@ let refactor_binop pos : Ast.binary_op -> binary_op = function
     | Ast.B Ast.Op_DOT2
     | Ast.Op_DOT3 ) as bop ->
       Log.fatal (Log.of_tok pos)
-        "trying to refactor construct posing as binary op: %s" (Common.dump bop)
+        "trying to refactor construct posing as binary op: %s" (Dumper.dump bop)
 
 let msg_id_from_string = function
   | "+" -> ID_Operator Op_Plus
