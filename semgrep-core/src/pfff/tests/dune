@@ -23,7 +23,6 @@
     pfff-lang_php pfff-lang_php-analyze
     pfff-lang_lisp
     pfff-lang_regexp
-    pfff-lang_skip
     pfff-lang_scala
     pfff-lang_FUZZY
   )

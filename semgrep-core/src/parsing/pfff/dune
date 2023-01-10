@@ -2,6 +2,7 @@
 ; used to be in pfff and is still used in projects outside semgrep (e.g.,
 ; codemap/efuns) which rely on this pfff-lang_... name and rely on
 ; small dependencies.
+
 (library
  (public_name pfff-lang_GENERIC)
  (name pfff_lang_GENERIC)
@@ -17,7 +18,6 @@
 
    pfff-lang_php pfff-lang_php-analyze
    pfff-lang_ml pfff-lang_ml-analyze
-   pfff-lang_skip
    pfff-lang_java pfff-lang_java-analyze
    pfff-lang_js pfff-lang_js-analyze
    pfff-lang_json

@@ -60,6 +60,7 @@ let parse_and_tokens_with_lang lang file =
         }
       in
       (Lib_ast_fuzzy.mk_trees hooks toks, Lib_ast_fuzzy.mk_tokens hooks toks)
+  (*
   | Lang_fuzzy.Skip ->
       let toks =
         Parse_skip.tokens file |> fun toks ->
@@ -74,6 +75,7 @@ let parse_and_tokens_with_lang lang file =
         }
       in
       (Lib_ast_fuzzy.mk_trees hooks toks, Lib_ast_fuzzy.mk_tokens hooks toks)
+ *)
   | Lang_fuzzy.Java ->
       let toks =
         Parse_java.tokens file |> fun toks ->
