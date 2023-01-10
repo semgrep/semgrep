@@ -9,7 +9,6 @@
    pfff-config pfff-h_program-lang
    pfff-lang_php
    pfff-lang_ml
-   pfff-lang_skip
    pfff-lang_java
    pfff-lang_js
    pfff-lang_go

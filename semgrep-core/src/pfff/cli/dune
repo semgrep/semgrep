@@ -19,10 +19,7 @@
     pfff-lang_ruby pfff-lang_ruby-analyze
     pfff-lang_php
     pfff-lang_lisp
-    pfff-lang_haskell  pfff-lang_csharp  pfff-lang_erlang  pfff-lang_rust
-    pfff-lang_text
     pfff-lang_html
-    pfff-lang_skip
     pfff-lang_scala
     pfff-lang_FUZZY
 ; now in semgrep/

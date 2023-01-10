@@ -24,7 +24,6 @@
     pfff-lang_ruby pfff-lang_ruby-analyze
     pfff-lang_php
     pfff-lang_lisp
-    pfff-lang_skip
 
     ; tree-sitter deps
     tree-sitter-lang.ruby
