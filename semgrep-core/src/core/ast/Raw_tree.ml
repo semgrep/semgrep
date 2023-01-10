@@ -88,3 +88,34 @@ let anys x =
     | Any any -> any :: acc
   in
   anys [] x |> List.rev
+
+let map ~map_tok ~map_any x =
+  let rec map x =
+    match x with
+    | Token tok -> Token (map_tok tok)
+    | List xs -> List (Common.map map xs)
+    | Tuple xs -> List (Common.map map xs)
+    | Case (cons, x) -> Case (cons, map x)
+    | Option opt ->
+        Option
+          (match opt with
+          | None -> None
+          | Some x -> Some (map x))
+    | Any any -> Any (map_any any)
+  in
+  map x
+
+let visit ~v_tok ~v_any x =
+  let rec iter x =
+    match x with
+    | Token tok -> v_tok tok
+    | List xs -> List.iter iter xs
+    | Tuple xs -> List.iter iter xs
+    | Case (_cons, x) -> iter x
+    | Option opt -> (
+        match opt with
+        | None -> ()
+        | Some x -> iter x)
+    | Any any -> v_any any
+  in
+  iter x

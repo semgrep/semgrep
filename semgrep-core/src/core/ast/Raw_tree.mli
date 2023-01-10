@@ -39,3 +39,14 @@ val unsafe_loc : (Parse_info.t, _) t -> Parse_info.t * Parse_info.t
    (without descending recursively into these nodes)
 *)
 val anys : (_, 'any) t -> 'any list
+
+(* Translate the tokens and/or the custom nodes into another type. *)
+val map :
+  map_tok:('tok1 -> 'tok2) ->
+  map_any:('any1 -> 'any2) ->
+  ('tok1, 'any1) t ->
+  ('tok2, 'any2) t
+
+(* Iterate over the tree. *)
+val visit :
+  v_tok:('tok -> unit) -> v_any:('any -> unit) -> ('tok, 'any) t -> unit
