@@ -77,7 +77,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
   | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]
   | And (_, { conjuncts; focus; conditions; _ }) ->
       `O
-        (("and", `A (Common.map translate_formula conjuncts :> Yaml.value list))
+        (("all", `A (Common.map translate_formula conjuncts :> Yaml.value list))
         ::
         (if focus = [] && conditions = [] then []
         else
@@ -98,7 +98,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
                     focus) );
           ]))
   | Or (_, fs) ->
-      `O [ ("or", `A (Common.map translate_formula fs :> Yaml.value list)) ]
+      `O [ ("any", `A (Common.map translate_formula fs :> Yaml.value list)) ]
   | Not (_, f) -> `O [ ("not", (translate_formula f :> Yaml.value)) ]
 
 let rec json_to_yaml json : Yaml.value =
