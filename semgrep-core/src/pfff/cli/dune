@@ -21,7 +21,6 @@
     pfff-lang_lisp
     pfff-lang_html
     pfff-lang_scala
-    pfff-lang_FUZZY
 ; now in semgrep/
 ;    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
  )
