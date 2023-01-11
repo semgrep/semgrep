@@ -2,6 +2,9 @@
  * OCaml hacks to support reflection (works with ocamltarzan).
  *
  * See also sexp.ml, json.ml, and xml.ml for other "reflective" techniques.
+ *
+ * DEPRECATED: this module is deprecated, you should prefer to use
+ * the deriving ppx technique (e.g., deriving show).
  *)
 
 (* OCaml core type definitions (no objects, no modules) *)

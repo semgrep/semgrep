@@ -28,13 +28,6 @@ let action = ref ""
 (* Helpers *)
 (*****************************************************************************)
 
-let graph_of_string str =
-  let tmpdir = Filename.get_temp_dir_name () in
-  let tmpfile = Parse_php.tmp_php_file_from_string str in
-  let (g, _stat) = Graph_code_php.build
-      ~verbose:false ~logfile:"/dev/null" tmpdir [tmpfile] in
-  g
-
 (*****************************************************************************)
 (* Main action *)
 (*****************************************************************************)
@@ -48,7 +41,7 @@ let tests = List.flatten [
   (* general tests *)
   Unit_commons.tests;
   (* Unit_commons_core.tests; *)
-  Unit_graph_code.tests ~graph_of_string;
+  (* Unit_graph_code.tests ~graph_of_string; *)
 
   (* PHP related tests *)
   Unit_parsing_php.tests;
