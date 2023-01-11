@@ -588,9 +588,6 @@ let options actions =
     ( "-pvar",
       Arg.String (fun s -> mvars := Common.split "," s),
       " <metavars> print the metavariables, not the matched code" );
-    ( "-gen_layer",
-      Arg.String (fun s -> Experiments.layer_file := Some s),
-      " <file> save result in a codemap layer file" );
     ( "-error_recovery",
       Arg.Unit
         (fun () ->

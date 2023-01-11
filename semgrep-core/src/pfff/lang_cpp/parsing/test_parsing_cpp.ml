@@ -57,22 +57,24 @@ let test_parse_cpp ?lang xs =
   Stat.print_parsing_stat_list !stat_list;
   Stat.print_regression_information ~ext:"cpp" xs newscore;
 
-  (match xs with
-  | [ dirname ] when Common2.is_directory dirname ->
-      let layer_file = "/tmp/layer_parse_errors_red_green.json" in
-      pr2 (spf "generating parse error layer in %s" layer_file);
-      let layer =
-        Layer_parse_errors.gen_red_green_layer ~root:dirname !stat_list
-      in
-      Layer_code.save_layer layer layer_file;
+  (* TODO: restore layer generation for errors
+     (match xs with
+     | [ dirname ] when Common2.is_directory dirname ->
+         let layer_file = "/tmp/layer_parse_errors_red_green.json" in
+         pr2 (spf "generating parse error layer in %s" layer_file);
+         let layer =
+           Layer_parse_errors.gen_red_green_layer ~root:dirname !stat_list
+         in
+         Layer_code.save_layer layer layer_file;
 
-      let layer_file = "/tmp/layer_parse_errors_heatmap.json" in
-      pr2 (spf "generating parse error layer in %s" layer_file);
-      let layer =
-        Layer_parse_errors.gen_heatmap_layer ~root:dirname !stat_list
-      in
-      Layer_code.save_layer layer layer_file
-  | _ -> ());
+         let layer_file = "/tmp/layer_parse_errors_heatmap.json" in
+         pr2 (spf "generating parse error layer in %s" layer_file);
+         let layer =
+           Layer_parse_errors.gen_heatmap_layer ~root:dirname !stat_list
+         in
+         Layer_code.save_layer layer layer_file
+     | _ -> ());
+  *)
   ()
 
 let test_dump_cpp file =
