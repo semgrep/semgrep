@@ -79,7 +79,7 @@ def parse_gradle(
         try:
             Version(version)
         except InvalidVersion:
-            logger.info("No valid version found for {name}")
+            logger.info(f"No valid version found for {package}")
             continue
         output.append(
             FoundDependency(
