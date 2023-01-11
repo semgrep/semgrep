@@ -1,8 +1,0 @@
-(library
- (public_name pfff-h_files-format)
- (name pfff_h_files_format)
- (wrapped false)
- (libraries
-   commons
- )
-)

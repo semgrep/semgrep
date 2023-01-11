@@ -25,7 +25,6 @@
    pfff-lang_cpp
    pfff-lang_c
    pfff-lang_python
-   pfff-lang_lisp
    pfff-lang_ruby pfff-lang_ruby-analyze
    pfff-lang_scala
  )

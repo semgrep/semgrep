@@ -20,7 +20,6 @@
     pfff-lang_go
     pfff-lang_ruby pfff-lang_ruby-analyze
     pfff-lang_php
-    pfff-lang_lisp
 
     pfff-lang_GENERIC-analyze-tests ; Unit_dataflow
 
