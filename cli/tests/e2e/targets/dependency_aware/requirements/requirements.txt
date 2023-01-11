@@ -65,7 +65,11 @@ pytest-xdist==2.5.0
     # via -r requirements.in
 python-dateutil==2.8.2
     # via pandas
-pytz==2021.3
+pytz==2021.3; python_version >= "3.6" and sys_platform == "darwin" \
+    --hash=sha256:4f401444068d4ca8dc4a472b6de14b346e988af27af99c124d0478cb03da1d0c \
+    --hash=sha256:c896ea1ca59b47d93777c7de092ca93f9ab7a00578f89805a2cea331ac98b545 \
+    --hash=sha256:60b2f966701962747a6c3ad089c8be7a61376e77ce37fec5225aeb5bd0747e7f \
+    --hash=sha256:4a30919f4ac52a2f8d7fd1c656b2a322396e42070f78dd6b884b5c0bd2b27576
     # via pandas
 six==1.16.0
     # via python-dateutil
@@ -75,7 +79,11 @@ tomli==2.0.0 # Comment
     # via
     #   pylint
     #   pytest
-tqdm==4.64.0
+tqdm==4.64.0; python_version >= "3.6" and sys_platform == "darwin" and platform_release >= "9.0" \
+    --hash=sha256:c45207ffc5f583e9519561414298f713d299a6fe659ffff3d2a1554ae46111c6 \
+    --hash=sha256:ceb1af4bb4da6347fb8a99c2ef5d88145b962fd87514fbf0aeca4717e584443c \
+    --hash=sha256:a7d09ebc17fb7870edcab2ad30f56ab62bcabd069d1094557fb29f726ab19f83 \
+    --hash=sha256:6fad2ce0a5f8cf7042716aa8b451c61416ae7a97165b6cc29cad4f2dce2de0fa
     # via -r requirements.in
 wcmatch==8.3
     # via -r requirements.in
