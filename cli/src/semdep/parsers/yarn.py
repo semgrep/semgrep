@@ -198,6 +198,3 @@ def parse_yarn(
             )
         )
     return output
-
-
-text = open("/Users/matthewmcquaid/test/grafana/yarn.lock").read()
