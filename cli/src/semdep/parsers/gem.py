@@ -37,9 +37,9 @@ gemfile = (
     .bind(
         lambda deps: string("\n\n")
         >> any_char.until(string("DEPENDENCIES\n"), consume_other=True)
-        >> manifest_package.sep_by(string("\n"))
-        .map(lambda xs: set(xs))
-        .bind(lambda manifest: success((deps, manifest)))
+        >> (manifest_package.sep_by(string("\n")) << any_char.many()).bind(
+            lambda manifest: success((deps, set(manifest)))
+        )
     )
 )
 
