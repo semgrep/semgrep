@@ -1,6 +1,8 @@
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
+from typing import Callable
+from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -33,13 +35,15 @@ def not_any(chars: List[str]) -> "Parser[str]":
     return regex(f"[^{''.join(chars)}]+")
 
 
-def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
+def extract_npm_lockfile_hash(s: Optional[str]) -> Dict[str, List[str]]:
     """
     Go from:
         sha512-aePbxDmcYW++PaqBsJ+HYUFwCdv4LVvdnhBy78E57PIor8/OVvhMrADFFEDh8DHDFRv/O9i3lPhsENjO7QX0+A==
     To:
         sha512,
     """
+    if s is None:
+        return {}
     algorithm = s.split("-")[0]
     rest = s[len(algorithm) + 1 :]
     decode_base_64 = b64decode(rest)
@@ -63,9 +67,12 @@ def pair(p1: "Parser[A]", p2: "Parser[B]") -> "Parser[Tuple[A,B]]":
     return p1.bind(lambda a: p2.bind(lambda b: success((a, b))))
 
 
-def transitivity(manifest_deps: Optional[Set[A]], dep_source: A) -> Transitivity:
+def transitivity(manifest_deps: Optional[Set[A]], dep_sources: List[A]) -> Transitivity:
     if manifest_deps:
-        return Transitivity(Direct() if dep_source in manifest_deps else Transitive())
+        for dep_source in dep_sources:
+            if dep_source in manifest_deps:
+                return Transitivity(Direct())
+        return Transitivity(Transitive())
     else:
         return Transitivity(Unknown())
 
@@ -78,12 +85,40 @@ def become(p1: "Parser[A]", p2: "Parser[A]") -> None:
     p1.__class__ = p2.__class__
 
 
+def delay(p: Callable[[], "Parser[A]"]) -> "Parser[A]":
+    return Parser(lambda x, y: p()(x, y))
+
+
+def quoted(p: "Parser[A]") -> "Parser[A]":
+    return string('"') >> p << string('"')
+
+
+word = not_any([" "])
+consume_word = word >> success(None)
+
+line = not_any(["\n"])
+consume_line = line >> success(None)
+
+
+def upto(
+    s: List[str], include_other: bool = False, consume_other: bool = False
+) -> "Parser[str]":
+    if include_other:
+        return not_any(s).bind(
+            lambda x: alt(*(string(x) for x in s)).map(lambda y: x + y)
+        )
+    elif consume_other:
+        return not_any(s) << alt(*(string(x) for x in s))
+    else:
+        return not_any(s)
+
+
 #### JSON Parser, adapted from parsy example ####
 
 
 @dataclass
 class JSON:
-    pos: Pos
+    line_number: int
     value: Union[None, bool, str, float, int, List["JSON"], Dict[str, "JSON"]]
 
     @staticmethod
@@ -94,13 +129,16 @@ class JSON:
             Pos,
         ]
     ) -> "JSON":
-        return JSON(marked[0], marked[1])
+        return JSON(marked[0][0] + 1, marked[1])
 
-    def get(self, key: str) -> Optional["JSON"]:
-        if isinstance(self.value, dict):
-            return self.value.get(key)
-        else:
-            return None
+    def as_dict(self) -> Dict[str, "JSON"]:
+        return cast(Dict[str, "JSON"], self)
+
+    def as_str(self) -> str:
+        return cast(str, self)
+
+    def as_list(self) -> List["JSON"]:
+        return cast(List["JSON"], self)
 
 
 # Utilities
@@ -136,20 +174,18 @@ string_esc = string("\\") >> (
     | string("t").result("\t")
     | regex(r"u[0-9a-fA-F]{4}").map(lambda s: chr(int(s[1:], 16)))
 )
-quoted = lexeme(
-    string('"') >> (string_part | string_esc).many().concat() << string('"')
-)
+quoted_str = lexeme(quoted((string_part | string_esc).many().concat()))
 
 # Data structures
 json_value: "Parser[JSON]" = fail("forward ref")
-object_pair = pair((quoted << colon), json_value)
+object_pair = pair((quoted_str << colon), json_value)
 json_object = lbrace >> object_pair.sep_by(comma).map(lambda x: dict(x)) << rbrace
 array = lbrack >> json_value.sep_by(comma) << rbrack
 # Everything
 become(
     json_value,
     alt(
-        quoted.mark().map(JSON.make),
+        quoted_str.mark().map(JSON.make),
         number.mark().map(JSON.make),
         json_object.mark().map(JSON.make),
         array.mark().map(JSON.make),

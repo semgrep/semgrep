@@ -17,50 +17,47 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 
 
-p_comment = string(" ").many() >> string("#") >> not_any(["\n"])
-p_newline = p_comment.optional() >> string("\n")
+comment = string(" ").many() >> string("#") >> not_any(["\n"])
+newline = comment.optional() >> string("\n")
 
-p_extra_info = not_any(["\\\\", "\n"])
+extra_info = not_any(["\\\\", "\n"])
 
-p_package = not_any(["=", "<", ">", " ", "\n"])
-p_version = not_any([";", " ", "\n"])
+package = not_any(["=", "<", ">", " ", "\n"])
+version = not_any([";", " ", "\n"])
 
 
-def p_dep(sep: "Parser[str]") -> "Parser[Tuple[str,str]]":
-    return p_package.bind(
+def dep(sep: "Parser[str]") -> "Parser[Tuple[str,str]]":
+    return package.bind(
         lambda package: print("Package" + repr(package))
         or sep
-        >> p_version.bind(
+        >> version.bind(
             lambda version: print("Version" + repr(version))
-            or p_extra_info.optional() >> success((package, version))
+            or extra_info.optional() >> success((package, version))
         )
     )
 
 
-p_manifest_dep = p_dep(any_str(["==", "<=", ">=", ">", "<"])) | p_package.map(
+manifest_dep = dep(any_str(["==", "<=", ">=", ">", "<"])) | package.map(
     lambda x: (x, "")
 )
 
-p_manifest = (
-    (p_manifest_dep << p_newline.many())
-    .map(lambda t: t[0])
-    .many()
-    .map(lambda x: set(x))
+manifest = (
+    (manifest_dep << newline.many()).map(lambda t: t[0]).many().map(lambda x: set(x))
 )
 
-p_hash = string("    --hash=sha256:") >> not_any([" ", "\n"])
+hash = string("    --hash=sha256:") >> not_any([" ", "\n"])
 
-p_hashes = p_hash.sep_by(string(" \\") >> p_newline.many())
+hashes = hash.sep_by(string(" \\") >> newline.many())
 
 empty_hashes: Dict[str, List[str]] = {}
 
 
-def p_dep_hashes(manifest_deps: Optional[Set[str]]) -> "Parser[FoundDependency]":
-    return p_dep(string("==")).bind(
+def dep_hashes(manifest_deps: Optional[Set[str]]) -> "Parser[FoundDependency]":
+    return dep(string("==")).bind(
         lambda dep: line_number.bind(
             lambda line_number: string("\\").optional()
-            >> p_newline
-            >> p_hashes.map(lambda hashes: {"sha256": hashes})
+            >> newline
+            >> hashes.map(lambda hashes: {"sha256": hashes})
             .optional(default=empty_hashes)
             .bind(
                 lambda hashes: success(
@@ -69,7 +66,7 @@ def p_dep_hashes(manifest_deps: Optional[Set[str]]) -> "Parser[FoundDependency]"
                         version=dep[1],
                         ecosystem=Ecosystem(Pypi()),
                         allowed_hashes=hashes,
-                        transitivity=transitivity(manifest_deps, dep[0]),
+                        transitivity=transitivity(manifest_deps, [dep[0]]),
                         line_number=line_number,
                     )
                 )
@@ -78,13 +75,13 @@ def p_dep_hashes(manifest_deps: Optional[Set[str]]) -> "Parser[FoundDependency]"
     )
 
 
-def p_requirements(
+def requirements(
     manifest_deps: Optional[Set[str]],
 ) -> "Parser[List[FoundDependency]]":
-    return (p_dep_hashes(manifest_deps) << p_newline.many()).many()
+    return (dep_hashes(manifest_deps) << newline.many()).many()
 
 
-manifest = """\
+manifest_text = """\
 bunch==1.0.1 # foo
 # foo
 coverage==6.3.3
