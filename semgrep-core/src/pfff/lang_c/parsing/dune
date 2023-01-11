@@ -3,7 +3,7 @@
  (name pfff_lang_c)
  (wrapped false)
  (libraries
-   commons commons_core
+   commons
    pfff-config pfff-h_program-lang
    pfff-lang_cpp
  )

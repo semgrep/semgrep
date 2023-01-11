@@ -13,6 +13,9 @@
  * LICENSE for more details.
  *)
 
+(* TODO: we should use ocamlgraph instead of ograph and its Ograph_extended.ml
+ *)
+
 type nodei = Ograph_extended.nodei
 
 module NodeiSet = Set.Make (Int)

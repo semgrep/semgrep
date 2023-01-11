@@ -8,6 +8,5 @@
  (libraries
    unix
    commons
-   pfff-testutil
  )
 )

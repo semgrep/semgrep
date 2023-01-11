@@ -3,10 +3,9 @@
  (name pfff_graph_code)
  (wrapped false)
  (libraries
+   ocamlgraph
 
-   commons commons_core
+   commons
    pfff-h_program-lang
-   pfff-commons-graph
-
  )
 )

@@ -4,7 +4,7 @@
  (wrapped false)
  (libraries
 
-commons commons_core
+   commons
    pfff-config pfff-h_program-lang
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))

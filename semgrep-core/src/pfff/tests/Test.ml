@@ -47,7 +47,7 @@ let tests = List.flatten [
 
   (* general tests *)
   Unit_commons.tests;
-  Unit_commons_core.tests;
+  (* Unit_commons_core.tests; *)
   Unit_graph_code.tests ~graph_of_string;
 
   (* PHP related tests *)
