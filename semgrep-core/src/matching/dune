@@ -3,11 +3,12 @@
  (wrapped false)
  (libraries
    yaml ppx_deriving.runtime re
+
    commons
    pfff-config
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
-   pfff-lang_js pfff-lang_js-analyze  ; for Ast_js.default_entity
+   pfff-lang_js ; for Ast_js.default_entity
 
    semgrep_core
    semgrep_optimizing

@@ -84,32 +84,19 @@ let all_actions () =
   (* Test_parsing_generic.actions() @ *)
   (*x: [[Main.all_actions]] concatenated actions *)
   @ Test_parsing_ml.actions ()
-  @ Test_analyze_ml.actions ()
   @ Test_parsing_scala.actions ()
   @ Test_parsing_php.actions ()
   @ Test_parsing_js.actions ()
   @ Test_parsing_json.actions ()
-  @ Test_analyze_js.actions ()
   @ Test_parsing_python.actions ()
   @ Test_parsing_ruby.actions ()
-  @ Test_analyze_ruby.actions ()
   @ Test_parsing_c.actions ()
   @ Test_parsing_cpp.actions ()
   @ Test_parsing_java.actions ()
   @ Test_parsing_go.actions () @ Test_parsing_nw.actions ()
   @ Test_parsing_html.actions ()
   @ Test_parsing_lisp.actions ()
-  @ (* beta *)
-
-    (*  Test_analyze_generic.actions() @ *)
-    (*
-    Test_analyze_cpp.actions () ++
-    Test_analyze_php.actions () ++
-    Test_analyze_ml.actions () ++
-    Test_analyze_c.actions() ++
-  *)
-    (*e: [[Main.all_actions]] concatenated actions *)
-  []
+  @ []
 (*e: function [[Main.all_actions]] *)
 
 (*s: function [[Main.options]] *)

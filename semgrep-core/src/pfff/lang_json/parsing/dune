@@ -6,7 +6,7 @@
 
    commons commons_core
    pfff-config pfff-h_program-lang
-   pfff-lang_js pfff-lang_js-analyze
+   pfff-lang_js
  )
  (preprocess (pps ppx_deriving.show))
 )
