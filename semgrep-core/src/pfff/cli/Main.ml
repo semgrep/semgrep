@@ -93,10 +93,7 @@ let all_actions () =
   @ Test_parsing_c.actions ()
   @ Test_parsing_cpp.actions ()
   @ Test_parsing_java.actions ()
-  @ Test_parsing_go.actions () @ Test_parsing_nw.actions ()
-  @ Test_parsing_html.actions ()
-  @ Test_parsing_lisp.actions ()
-  @ []
+  @ Test_parsing_go.actions () @ []
 (*e: function [[Main.all_actions]] *)
 
 (*s: function [[Main.options]] *)

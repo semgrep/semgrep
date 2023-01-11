@@ -1,1 +1,0 @@
-copy http://csslint.net/about.html ?
