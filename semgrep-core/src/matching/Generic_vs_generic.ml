@@ -295,13 +295,6 @@ let rec m_dotted_name_prefix_ok a b =
  *)
 let m_module_name_prefix a b =
   match (a, b) with
-  (* metavariable case *)
-  | G.FileName ((a_str, _) as a1), B.FileName b1 when MV.is_metavar_name a_str
-    ->
-      (* Bind as a literal string expression so that pretty-printing works.
-       * This also means that this metavar can match both literal strings and
-       * filenames with the same string content. *)
-      envf a1 (MV.E (B.L (B.String b1) |> G.e))
   (* dots: '...' on string or regexp *)
   | G.FileName a, B.FileName b ->
       m_string_ellipsis_or_metavar_or_default
@@ -601,9 +594,10 @@ and m_ident_and_type_arguments (a1, a2) (b1, b2) =
 
 and m_qualifier a b =
   match (a, b) with
-  | G.QDots a, B.QDots b ->
-      (* TODO? like for m_dotted_name, [$X] should match anything? *)
-      m_list m_ident_and_type_arguments a b
+  (* Like for m_dotted_name, [$X] should match anything *)
+  | G.QDots [ ((str, t), _) ], B.QDots b when MV.is_metavar_name str ->
+      envf (str, t) (MV.E (make_dotted (Common.map fst b)))
+  | G.QDots a, B.QDots b -> m_list m_ident_and_type_arguments a b
   | G.QExpr (a1, a2), B.QExpr (b1, b2) -> m_expr a1 b1 >>= fun () -> m_tok a2 b2
   | G.QDots _, _
   | G.QExpr _, _ ->
@@ -936,9 +930,6 @@ and m_expr ?(is_root = false) a b =
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
   | G.New (_a0, a1, a2), B.New (_b0, b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_arguments a2 b2
-  | G.Call _, _ ->
-      m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
-  | G.New _, _ -> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
       m_expr a1 b1
       >>= (fun () -> m_tok at bt >>= fun () -> m_expr a2 b2)
@@ -991,8 +982,6 @@ and m_expr ?(is_root = false) a b =
       aux candidates
   | G.ArrayAccess (a1, a2), B.ArrayAccess (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_bracket m_expr a2 b2
-  | G.ArrayAccess _, _ ->
-      m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
       m_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
@@ -1046,9 +1035,12 @@ and m_expr ?(is_root = false) a b =
   | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.RawExpr a, B.RawExpr b -> m_raw_tree a b
   | G.N (G.Id _ as a), B.N (B.IdQualified _ as b) -> m_name a b
   | _, G.N (G.Id _) ->
       m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
+  | G.ArrayAccess _, _
+  | G.Call _, _
   | G.Container _, _
   | G.Comprehension _, _
   | G.Record _, _
@@ -1057,6 +1049,7 @@ and m_expr ?(is_root = false) a b =
   | G.Lambda _, _
   | G.AnonClass _, _
   | G.N _, _
+  | G.New _, _
   | G.IdSpecial _, _
   | G.ParenExpr _, _
   | G.Xml _, _
@@ -1074,8 +1067,28 @@ and m_expr ?(is_root = false) a b =
   | G.DeRef _, _
   | G.StmtExpr _, _
   | G.OtherExpr _, _
+  | G.RawExpr _, _
   | G.TypedMetavar _, _
   | G.DotAccessEllipsis _, _ ->
+      fail ()
+
+(* Require an exact match between raw trees except for Any nodes which
+   are matched normally. *)
+and m_raw_tree (a : G.raw_tree) (b : G.raw_tree) =
+  match (a, b) with
+  | Token a, Token b -> m_wrap m_string a b
+  | List a, List b -> m_list m_raw_tree a b
+  | Tuple a, Tuple b -> m_list m_raw_tree a b
+  | Case (a_cons, a), Case (b_cons, b) ->
+      m_string a_cons b_cons >>= fun () -> m_raw_tree a b
+  | Option a, Option b -> m_option m_raw_tree a b
+  | Any a, Any b -> m_any a b
+  | Token _, _
+  | List _, _
+  | Tuple _, _
+  | Case _, _
+  | Option _, _
+  | Any _, _ ->
       fail ()
 
 and m_entity_name a b =
@@ -1317,7 +1330,10 @@ and m_container_ordered_elements a b =
       | _ -> false)
     ~less_is_ok:false (* empty list can not match non-empty list *) a b
 
-(* Poor's man typechecker on literals (for now).
+(* Poor's man typechecker. Note that some of the typing work is also
+ * done in Naming_AST.get_resolved_type() (or in deepSemgrep in
+ * Naming_SAST.map_expr()) and leveraged below via the id_type field.
+ *
  * old: was partly in typing/Typechecking_generic.ml before.
  *
  * todo:
@@ -1338,7 +1354,7 @@ and m_compatible_type lang typed_mvar t e =
       | T.TString, B.String _ ->
           envf typed_mvar (MV.E e)
       | _ -> fail ())
-  | _ -> (
+  | _else_ -> (
       match (t.G.t, e.G.e) with
       (* for C specific literals *)
       | ( G.TyPointer (_, { t = TyN (G.Id (("char", _), _)); _ }),
@@ -1360,15 +1376,22 @@ and m_compatible_type lang typed_mvar t e =
           envf typed_mvar (MV.Id (idb, Some id_infob))
       | _ta, _eb -> (
           match type_of_expr lang e with
-          | Some (idb, tb) ->
-              m_type_option_with_hook idb (Some t) tb >>= fun () ->
+          | tbopt, Some idb ->
+              m_type_option_with_hook idb (Some t) tbopt >>= fun () ->
               envf typed_mvar (MV.E e)
-          | _ -> fail ()))
+          | Some tb, None ->
+              let* () = m_type_ t tb in
+              envf typed_mvar (MV.E e)
+          | None, None -> fail ()))
 
-(* returns a type option and an ident that can be used to query LSP *)
-and type_of_expr lang e : (G.ident * G.type_ option) option =
+(* returns possibly the inferred type of the expression,
+ * as well as an ident option that can then be used to query LSP to get the
+ * type of the ident.
+ *)
+and type_of_expr lang e : G.type_ option * G.ident option =
   match e.B.e with
-  | B.New (tk, t, _) -> Some (("new", tk), Some t)
+  (* TODO? or generate a fake "new" id for LSP to query on tk? *)
+  | B.New (_tk, t, _) -> (Some t, None)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
   | B.N
       (B.IdQualified
@@ -1376,9 +1399,9 @@ and type_of_expr lang e : (G.ident * G.type_ option) option =
   | B.DotAccess
       ({ e = IdSpecial (This, _); _ }, _, FN (Id (idb, { B.id_type = tb; _ })))
     ->
-      Some (idb, !tb)
+      (!tb, Some idb)
   (* deep: those are usually resolved only in deep mode *)
-  | B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))) -> Some (idb, !tb)
+  | B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))) -> (!tb, Some idb)
   (* deep: same *)
   | B.Call
       ( { e = B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))); _ },
@@ -1387,22 +1410,46 @@ and type_of_expr lang e : (G.ident * G.type_ option) option =
       (* less: in OCaml functions can be curried, so we need to match
        * _params and _args to calculate the resulting type.
        *)
-      | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
+      | Some { t = TyFun (_params, tret); _ } -> (Some tret, Some idb)
       | Some _
       | None ->
-          None)
+          (None, Some idb))
   (* deep: in Java, there can be an implicit `this.`
      so calculate the type in the same way as above
      THINK: should we do this for all languages? Why not? *)
   | B.Call ({ e = N (Id (idb, { B.id_type = tb; _ })); _ }, _args)
     when lang = Lang.Java -> (
       match !tb with
-      | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
+      | Some { t = TyFun (_params, tret); _ } -> (Some tret, Some idb)
       | Some _
       | None ->
-          None)
+          (None, Some idb))
   | B.ParenExpr (_, e, _) -> type_of_expr lang e
-  | _ -> None
+  | B.Conditional (_, e1, e2) ->
+      let ( let* ) = Option.bind in
+      let t1opt, id1opt = type_of_expr lang e1 in
+      let t2opt, id2opt = type_of_expr lang e2 in
+      (* LATER: we could also not enforce to have a type for both branches,
+       * but let's go simple for now and enforce both branches have
+       * a type and that the types are equal.
+       *)
+      let topt =
+        let* t1 = t1opt in
+        let* t2 = t2opt in
+        (* LATER: in theory we should look if the types are compatible,
+         * and take the lowest upper bound of the two types *)
+        if AST_utils.with_structural_equal G.equal_type_ t1 t2 then Some t1
+        else None
+      in
+      let idopt =
+        (* TODO? is there an Option.xxx or Common.xxx function for that? *)
+        match (id1opt, id2opt) with
+        | Some id1, _ -> Some id1
+        | _, Some id2 -> Some id2
+        | None, None -> None
+      in
+      (topt, idopt)
+  | _else_ -> (None, None)
 
 (*---------------------------------------------------------------------------*)
 (* XML *)
@@ -2259,7 +2306,7 @@ and m_stmt a b =
       if_config
         (fun x -> x.flddef_assign)
         ~then_:
-          (let resolved = Some (G.LocalVar, G.sid_TODO) in
+          (let resolved = Some (G.LocalVar, G.SId.unsafe_default) in
            let b1 = H.funcdef_to_lambda (ent, fdef) resolved in
            m_expr_root a1 b1)
         ~else_:(fail ())

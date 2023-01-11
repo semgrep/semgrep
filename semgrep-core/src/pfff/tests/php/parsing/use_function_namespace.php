@@ -1,0 +1,3 @@
+<?php
+
+use Foo\func;

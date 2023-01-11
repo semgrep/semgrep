@@ -1,0 +1,8 @@
+rules:
+  - id: yaml-key
+    pattern: |
+      key: $VALUE
+    message: |
+      $VALUE
+    languages: [yaml]
+    severity: ERROR

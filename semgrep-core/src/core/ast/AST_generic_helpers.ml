@@ -35,15 +35,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let str_of_ident = fst
 
-(* You can use 0 for globals, even though this will work only on a single
- * file. Any global analysis will need to set a unique ID for globals too. *)
-let gensym_counter = ref 0
-
-(* see sid type in resolved_name *)
-let gensym () =
-  incr gensym_counter;
-  !gensym_counter
-
 let name_of_ids_with_opt_typeargs xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids_with_opt_typeargs: empty ids"
@@ -179,14 +170,13 @@ let dotted_ident_of_name (n : name) : dotted_ident =
       in
       before @ [ ident ]
 
-(* In Go a pattern can be a complex expressions. It is just
+(* In Go/Swift a pattern can be a complex expressions. It is just
  * matched for equality with the thing it's matched against, so in that
  * case it should be a pattern like | _ when expr = x.
  * For Python you can actually have a PatDisj of exception classes.
  * coupling: see pattern_to_expr below
  *)
 let rec expr_to_pattern e =
-  (* TODO: diconstruct e and generate the right pattern (PatLiteral, ...) *)
   match e.e with
   | N (Id (id, info)) -> PatId (id, info)
   | Container (Tuple, (t1, xs, t2)) ->
@@ -195,7 +185,7 @@ let rec expr_to_pattern e =
   | Container (List, (t1, xs, t2)) ->
       PatList (t1, xs |> Common.map expr_to_pattern, t2)
   | Ellipsis t -> PatEllipsis t
-  (* Todo:  PatKeyVal *)
+  (* TODO:  PatKeyVal and more *)
   | _ -> OtherPat (("ExprToPattern", fake ""), [ E e ])
 
 exception NotAnExpr

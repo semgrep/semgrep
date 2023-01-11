@@ -1,0 +1,3 @@
+<?php
+
+yield result(null);

@@ -1,9 +1,9 @@
 rules:
 - id: new-syntax
   match:
-    and:
+    all:
       - foo(...) 
-      - or:
+      - any:
         - foo(1, ...)
         - foo(1, 2, ...)
       - not: |

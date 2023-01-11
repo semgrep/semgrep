@@ -106,11 +106,11 @@ let fresh_var ?(str = "_tmp") _env tok =
        variables to the taint trace. *)
     if Parse_info.is_fake tok then tok else Parse_info.fake_info tok str
   in
-  let i = H.gensym () in
+  let i = G.SId.mk () in
   { ident = (str, tok); sid = i; id_info = G.empty_id_info () }
 
 let fresh_label ?(label = "_label") _env tok =
-  let i = H.gensym () in
+  let i = G.SId.mk () in
   ((label, tok), i)
 
 let fresh_lval ?str env tok =
@@ -125,7 +125,7 @@ let var_of_id_info id id_info =
         let id_str, id_tok = id in
         let msg = spf "the ident '%s' is not resolved" id_str in
         log_warning (Some id_tok) msg;
-        -1
+        G.SId.unsafe_default
   in
   { ident = id; sid; id_info }
 
@@ -149,8 +149,8 @@ let lval_of_base base = { base; rev_offset = [] }
 (* TODO: should do first pass on body to get all labels and assign
  * a gensym to each.
  *)
-let label_of_label _env lbl = (lbl, -1)
-let lookup_label _env lbl = (lbl, -1)
+let label_of_label _env lbl = (lbl, G.SId.unsafe_default)
+let lookup_label _env lbl = (lbl, G.SId.unsafe_default)
 let mk_e e eorig = { e; eorig }
 let mk_i i iorig = { i; iorig }
 let mk_s s = { s }
@@ -743,6 +743,7 @@ and expr_aux env ?(void = false) e_gen =
       let _, tmp = mk_aux_var ~str env tok other_expr in
       let partial = mk_e (Fetch tmp) (related_tok tok) in
       fixme_exp ToDo (G.E e_gen) (related_tok tok) ~partial
+  | G.RawExpr _ -> todo (G.E e_gen)
 
 and expr env ?void e_gen =
   try expr_aux env ?void e_gen with

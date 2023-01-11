@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -16,8 +16,8 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* A generic AST, to factorize similar "analysis" in different programming
- * languages (e.g., naming, semantic code highlighting, semgrep!).
+(* A generic AST, to factorize similar analysis in different programming
+ * languages (e.g., naming, semantic code highlighting, semgrep matching).
  *
  * Right now this generic AST is mostly the factorized union of:
  *  - Python, Ruby, Lua
@@ -165,15 +165,10 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 (* Contains among other things the position of the token through
  * the Parse_info.token_location embedded inside it, as well as the
  * transformation field that makes possible spatch on the code.
+ * Tok.t is the same type as Parse_info.t but provides special equal and
+ * hash functions used by the ppx derivers eq and hash.
  *)
-type tok = Parse_info.t [@@deriving show]
-
-(* sgrep: we do not care about position when comparing for equality 2 ASTs.
- * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.
- *)
-let equal_tok _t1 _t2 = true
-let hash_tok _t = 0
-let hash_fold_tok acc _t = acc
+type tok = Tok.t [@@deriving show, eq, hash]
 
 (* a shortcut to annotate some information with position information *)
 type 'a wrap = 'a * tok [@@deriving show, eq, hash]
@@ -229,6 +224,14 @@ type module_name =
   | FileName of string wrap (* ex: Js import, C #include, Go import *)
 [@@deriving show { with_path = false }, eq, hash]
 
+(* OCaml has generative functors. This means the types `SId.t` and
+   `IdInfoId.t` are different, even though both are represented by ints.
+   This will help enforce that we don't do bad things with these ints by making
+   them abstract.
+*)
+module SId = Gensym.MkId ()
+module IdInfoId = Gensym.MkId ()
+
 (* A single unique id: sid (uid would be a better name, but it usually
  * means "user id" for people).
  *
@@ -239,12 +242,12 @@ type module_name =
  *
  * See Naming_AST.ml for more information.
  *
- * Most generic ASTs have a fake value (sid_TODO = -1) at first.
+ * Most generic ASTs have a fake value (SId.unsafe_default at first.
  * You need to call Naming_AST.resolve (or one of the lang-specific
  * Resolve_xxx.resolve) on the generic AST to set it correctly.
  *)
-(* a single unique gensym'ed number. See gensym() below *)
-type sid = int
+(* a single unique gensym'ed number. *)
+type sid = SId.t
 and resolved_name = resolved_name_kind * sid
 
 and resolved_name_kind =
@@ -273,7 +276,7 @@ and resolved_name_kind =
   (* sgrep: those cases allow to match entities/modules even if they were
    * aliased when imported.
    * both dotted_ident must at least contain one element *)
-  | ImportedEntity of dotted_ident (* can also use 0 for gensym *)
+  | ImportedEntity of dotted_ident
   | ImportedModule of module_name
   (* used in Go, where you can pass types as arguments and where we
    * need to resolve those cases
@@ -397,7 +400,7 @@ and id_info = {
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
 
-and id_info_id = int
+and id_info_id = IdInfoId.t
 
 (*****************************************************************************)
 (* Expression *)
@@ -583,6 +586,10 @@ and expr_kind =
    * StmtExpr above to wrap stmt if it's not an expr but a stmt
    *)
   | OtherExpr of todo_kind * any list
+  (* experimental alternative to OtherExpr. This allows us to have
+     proper exprs, stmts, etc. embedded in constructs that were not
+     fully translated into the generic AST. *)
+  | RawExpr of raw_tree
 
 and literal =
   | Bool of bool wrap
@@ -1225,7 +1232,7 @@ and type_kind =
    * note: the type_ should always be a TyN, so really it's a TyNameApply
    * but it's simpler to not repeat TyN to factorize code in semgrep regarding
    * aliasing.
-   * TODO: could merge with TyN now that qualified_info has type_arguments
+   * TODO: merge with TyN now that qualified_info has type_arguments?
    *)
   | TyApply of type_ * type_arguments
   (* old: was 'TyFun of type_ list * type*' , but languages such as C and
@@ -1233,7 +1240,7 @@ and type_kind =
    * parameters so we need at least 'type_ * attributes', at which point
    * it's simpler to just reuse parameter.
    *)
-  | TyFun of parameter list * type_ (* return type *)
+  | TyFun of parameter list (* TODO bracket *) * type_ (* return type *)
   (* a special case of TApply, also a special case of TPointer *)
   | TyArray of (* const_expr *) expr option bracket * type_
   | TyTuple of type_ list bracket
@@ -1241,11 +1248,12 @@ and type_kind =
   (* dynamic/unknown type: '_' in OCaml, 'dynamic' in Kotlin, 'auto' in C++,
    * 'var' in Java. TODO: type bounds Scala? *)
   | TyAny of tok
-  | TyPointer of tok * type_
+  | TyPointer of tok * type_ (* C/C++/Go *)
   | TyRef of tok * type_ (* C++/Rust *)
   | TyQuestion of type_ * tok (* a.k.a option type *)
   | TyRest of tok * type_ (* '...foo' e.g. in a typescript tuple type *)
-  (* intersection types, used for Java Cast, and in Typescript *)
+  (* intersection types, used for Java Cast, and in Typescript and in
+   * Swift for protocol composition *)
   | TyAnd of type_ * tok (* &, or 'with' in Scala *) * type_
   (* union types in Typescript *)
   | TyOr of type_ * tok (* | *) * type_
@@ -1277,7 +1285,8 @@ and type_kind =
   | TyExpr of expr
   (* e.g., Struct/Union/Enum names (convert in unique TyName?), TypeOf/TSized
    * TRefRef in C++, EnumAnon in C++/Hack, TyTodo in OCaml, TyLit in Scala/JS,
-   * lots of stuff in C#, Lifetime in Rust, Delegation in Kotlin
+   * lots of stuff in C#, Lifetime in Rust, Delegation in Kotlin,
+   * Any in Swift
    *)
   | OtherType of todo_kind * any list
 
@@ -1518,6 +1527,7 @@ and function_kind =
   (* for Scala *)
   | BlockCases
 
+(* TODO bracket *)
 and parameters = parameter list
 
 (* newvar: *)
@@ -1863,7 +1873,8 @@ and any =
   | Lbli of label_ident
   (* Used only for Rust macro arguments for now *)
   | Anys of any list
-[@@deriving show { with_path = false }, eq, hash]
+
+and raw_tree = any Raw_tree.t [@@deriving show { with_path = false }, eq, hash]
 
 (*****************************************************************************)
 (* Special constants *)
@@ -1923,7 +1934,7 @@ let sc = Parse_info.unsafe_fake_info ""
 let s skind =
   {
     s = skind;
-    s_id = AST_utils.Node_ID.create ();
+    s_id = AST_utils.Node_ID.mk ();
     s_use_cache = false;
     s_backrefs = None;
     s_strings = None;
@@ -1948,18 +1959,11 @@ let p x = x
 (* Ident and names *)
 (* ------------------------------------------------------------------------- *)
 
-(* For Naming_X.ml in deep-semgrep.
+(* For Naming_SAST.ml in deep-semgrep.
  * This can be reseted to 0 before parsing each file, or not. It does
  * not matter as the couple (filename, id_info_id) is unique.
  *)
-let id_info_id_counter = ref 0
-
-let id_info_id () : id_info_id =
-  incr id_info_id_counter;
-  !id_info_id_counter
-
-(* before Naming_AST.resolve can do its job *)
-let sid_TODO = -1
+let id_info_id = IdInfoId.mk
 let empty_var = { vinit = None; vtype = None }
 
 let empty_id_info ?(hidden = false) () =
@@ -2045,7 +2049,7 @@ let param_of_id ?(pattrs = []) ?(ptype = None) ?(pdefault = None) id =
     pdefault;
     ptype;
     pattrs;
-    pinfo = basic_id_info (Parameter, sid_TODO);
+    pinfo = basic_id_info (Parameter, SId.unsafe_default);
   }
 
 let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
@@ -2054,7 +2058,7 @@ let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
     pname;
     pdefault;
     pattrs;
-    pinfo = basic_id_info (Parameter, sid_TODO);
+    pinfo = basic_id_info (Parameter, SId.unsafe_default);
   }
 
 (* for 'function 0 -> 1 ...' in OCaml or 'do 0 -> 1 ...' in Elixir *)

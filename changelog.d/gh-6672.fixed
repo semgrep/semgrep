@@ -1,2 +1,0 @@
-Java: support the Java 10 'var' keyword by not using 'var' as a valid type when
-using typed metavariables.

@@ -188,6 +188,9 @@ let parse_pattern lang ?(print_errors = false) str =
         let any = Parse_json.any_of_string str in
         Json_to_generic.any any
     | Lang.Jsonnet -> failwith "Jsonnet is not supported yet"
+    | Lang.Clojure -> failwith "clojure is not supported yet"
+    | Lang.Lisp -> failwith "Lisp is not supported yet"
+    | Lang.Scheme -> failwith "Scheme is not supported yet"
     | Lang.C ->
         let any = Parse_c.any_of_string str in
         C_to_generic.any any

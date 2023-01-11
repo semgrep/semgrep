@@ -24,7 +24,6 @@ class Repo(NamedTuple):
 
 REPOS = [
     Repo("https://github.com/apache/airflow"),
-    Repo("https://github.com/zulip/zulip"),
     Repo("https://github.com/coinbase/bifrost"),
     Repo("https://github.com/coinbase/bip38"),
     Repo("https://github.com/coinbase/btcexport"),
@@ -183,6 +182,11 @@ REPOS = [
     Repo("https://github.com/gitlabhq/gitlabhq", ["ruby"], xfail_reason="unknown"),
     Repo(
         "https://github.com/bkimminich/juice-shop",
+        ["javascript", "typescript"],
+        xfail_reason="Failure to parse typescript",
+    ),
+    Repo(
+        "https://github.com/zulip/zulip",
         ["javascript", "typescript"],
         xfail_reason="Failure to parse typescript",
     ),

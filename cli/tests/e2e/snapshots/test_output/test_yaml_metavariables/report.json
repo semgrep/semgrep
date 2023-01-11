@@ -1,0 +1,308 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/yaml/target.yaml"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 13,
+        "line": 1,
+        "offset": 12
+      },
+      "extra": {
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: \"one\"",
+        "message": "\"one\"\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "\"one\"",
+            "end": {
+              "col": 13,
+              "line": 1,
+              "offset": 12
+            },
+            "start": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 1,
+        "offset": 2
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 13,
+        "line": 2,
+        "offset": 25
+      },
+      "extra": {
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: 'two'",
+        "message": "'two'\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "'two'",
+            "end": {
+              "col": 13,
+              "line": 2,
+              "offset": 25
+            },
+            "start": {
+              "col": 8,
+              "line": 2,
+              "offset": 20
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 2,
+        "offset": 15
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 11,
+        "line": 4,
+        "offset": 45
+      },
+      "extra": {
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: |\n    three",
+        "message": "|\n    three\n\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "|\n    three\n",
+            "end": {
+              "col": 1,
+              "line": 5,
+              "offset": 45
+            },
+            "start": {
+              "col": 8,
+              "line": 3,
+              "offset": 33
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 3,
+        "offset": 28
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 9,
+        "line": 6,
+        "offset": 62
+      },
+      "extra": {
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: |\n   four",
+        "message": "|\n   four\n\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "|\n   four\n",
+            "end": {
+              "col": 1,
+              "line": 7,
+              "offset": 62
+            },
+            "start": {
+              "col": 8,
+              "line": 5,
+              "offset": 52
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 5,
+        "offset": 47
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 8,
+        "line": 10,
+        "offset": 93
+      },
+      "extra": {
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: |       \n    fi\n\n    ve",
+        "message": "|       \n    fi\n\n    ve\n\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "|       \n    fi\n\n    ve\n",
+            "end": {
+              "col": 1,
+              "line": 11,
+              "offset": 93
+            },
+            "start": {
+              "col": 8,
+              "line": 7,
+              "offset": 69
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 7,
+        "offset": 64
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 6,
+        "line": 15,
+        "offset": 123
+      },
+      "extra": {
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: |\n    si\n\n      x",
+        "message": "|\n    si\n\n      x\n    \n\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "|\n    si\n\n      x\n    \n",
+            "end": {
+              "col": 1,
+              "line": 16,
+              "offset": 123
+            },
+            "start": {
+              "col": 8,
+              "line": 11,
+              "offset": 100
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 11,
+        "offset": 95
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 11,
+        "line": 17,
+        "offset": 142
+      },
+      "extra": {
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: >\n    seven",
+        "message": ">\n    seven\n\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": ">\n    seven\n",
+            "end": {
+              "col": 1,
+              "line": 18,
+              "offset": 142
+            },
+            "start": {
+              "col": 8,
+              "line": 16,
+              "offset": 130
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 16,
+        "offset": 125
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 7,
+        "line": 21,
+        "offset": 166
+      },
+      "extra": {
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: >\n    eig\n\n    ht",
+        "message": ">\n    eig\n\n    ht\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": ">\n    eig\n\n    ht",
+            "end": {
+              "col": 7,
+              "line": 21,
+              "offset": 166
+            },
+            "start": {
+              "col": 8,
+              "line": 18,
+              "offset": 149
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 18,
+        "offset": 144
+      }
+    }
+  ],
+  "version": "0.42"
+}

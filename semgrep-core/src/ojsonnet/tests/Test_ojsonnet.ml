@@ -8,12 +8,12 @@ let dump_jsonnet_ast file =
 
 let dump_jsonnet_core file =
   let ast = Parse_jsonnet.parse_program file in
-  let core = Desugar_jsonnet.desugar_program file ast in
+  let core = Desugar_jsonnet.desugar_program ~use_std:false file ast in
   pr2 (Core_jsonnet.show_program core)
 
 let dump_jsonnet_value file =
   let ast = Parse_jsonnet.parse_program file in
-  let core = Desugar_jsonnet.desugar_program file ast in
+  let core = Desugar_jsonnet.desugar_program ~use_std:false file ast in
   let value_ = Eval_jsonnet.eval_program core in
   pr2 (Value_jsonnet.show_value_ value_)
 

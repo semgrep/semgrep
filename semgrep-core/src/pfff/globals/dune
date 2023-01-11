@@ -1,0 +1,7 @@
+(library
+ (public_name pfff-config)
+ (name pfff_config)
+ (wrapped false)
+ (libraries
+ )
+)

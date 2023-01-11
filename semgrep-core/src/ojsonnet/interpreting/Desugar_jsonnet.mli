@@ -15,10 +15,15 @@ type import_callback = Common.dirname -> string -> AST_jsonnet.expr option
 val default_callback : import_callback
 
 (* We pass the original file in addition to its AST so desugar can
- * handle correctly imports and import from the dirname of the file.
+ * handle correctly imports by using the dirname of the file as the
+ * base directory for imports.
+ * The use_std argument is set to true by default and means that
+ * the program is first prefixed with 'local std = import "std.jsonnet"
+ * where std.jsonnet is the content in Std_jsonnet.std.
  *)
 val desugar_program :
   ?import_callback:import_callback ->
+  ?use_std:bool ->
   Common.filename ->
   AST_jsonnet.program ->
   Core_jsonnet.program

@@ -1,0 +1,23 @@
+#-----------------------------------------------------------------------------
+# Other stuff
+#-----------------------------------------------------------------------------
+
+#backtrace
+MYBACKTRACESRC=backtrace.ml
+BACKTRACEINCLUDES=-I $(shell ocamlc -where)
+
+backtrace: commons_backtrace.cma
+backtrace.opt: commons_backtrace.cmxa
+
+backtrace_c.o: backtrace_c.c
+	$(CC) $(BACKTRACEINCLUDES) -c $^
+
+commons_backtrace.cma: $(MYBACKTRACESRC:.ml=.cmo) backtrace_c.o
+	$(OCAMLMKLIB) -o commons_backtrace $^
+
+commons_backtrace.cmxa: $(MYBACKTRACESRC:.ml=.cmx) backtrace_c.o
+	$(OCAMLMKLIB) -o commons_backtrace  $^
+
+
+clean::
+	rm -f dllcommons_backtrace.so

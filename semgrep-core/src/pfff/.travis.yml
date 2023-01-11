@@ -1,0 +1,9 @@
+language: c
+script: bash -ex travis-ci.sh
+
+notifications:
+  email:
+    recipients:
+      - yoann.padioleau@gmail.com
+  on_success: change
+  on_failure: always

@@ -1,2 +1,0 @@
-C#: bugfix on bad interaction between -fast and the internal code generated
-for LINQ queries

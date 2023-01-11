@@ -49,28 +49,6 @@ let tat_optional env v =
    to another type of tree.
 *)
 
-(* TODO? in? *)
-let map_binaryop (env : env) (x : CST.binaryop) : binary_op wrap =
-  match x with
-  | `STAR tok -> (Mult, (* "*" *) token env tok)
-  | `SLASH tok -> (Div, (* "/" *) token env tok)
-  | `PERC tok -> (Mod, (* "%" *) token env tok)
-  | `PLUS tok -> (Plus, (* "+" *) token env tok)
-  | `DASH tok -> (Minus, (* "-" *) token env tok)
-  | `LTLT tok -> (LSL, (* "<<" *) token env tok)
-  | `GTGT tok -> (LSR, (* ">>" *) token env tok)
-  | `LT tok -> (Lt, (* "<" *) token env tok)
-  | `LTEQ tok -> (LtE, (* "<=" *) token env tok)
-  | `GT tok -> (Gt, (* ">" *) token env tok)
-  | `GTEQ tok -> (GtE, (* ">=" *) token env tok)
-  | `EQEQ tok -> (Eq, (* "==" *) token env tok)
-  | `BANGEQ tok -> (NotEq, (* "!=" *) token env tok)
-  | `AMP tok -> (BitAnd, (* "&" *) token env tok)
-  | `HAT tok -> (BitXor, (* "^" *) token env tok)
-  | `BAR tok -> (BitOr, (* "|" *) token env tok)
-  | `AMPAMP tok -> (And, (* "&&" *) token env tok)
-  | `BARBAR tok -> (Or, (* "||" *) token env tok)
-
 let map_unaryop (env : env) (x : CST.unaryop) : unary_op wrap =
   match x with
   | `DASH tok -> (UMinus, (* "-" *) token env tok)
@@ -255,9 +233,6 @@ and map_expr (env : env) (x : CST.expr) : expr =
   | `Num tok ->
       let s = (* number *) str env tok in
       L (Number s)
-  | `Super tok ->
-      let t = (* "super" *) token env tok in
-      IdSpecial (Super, t)
   | `Str x ->
       let s = map_string_ env x in
       L (Str s)
@@ -345,7 +320,7 @@ and map_expr (env : env) (x : CST.expr) : expr =
       let idx = map_document env v3 in
       let rb = (* "]" *) token env v4 in
       ArrayAccess (IdSpecial (Super, tsuper), (lb, idx, rb))
-  | `Expr_LPAR_opt_args_RPAR (v1, v2, v3, v4) ->
+  | `Expr_LPAR_opt_args_RPAR_opt_tail (v1, v2, v3, v4, v5) ->
       let e = map_document env v1 in
       let lp = (* "(" *) token env v2 in
       let args =
@@ -354,6 +329,7 @@ and map_expr (env : env) (x : CST.expr) : expr =
         | None -> []
       in
       let rp = (* ")" *) token env v4 in
+      let _tailstrictTODO = Option.map (token env) v5 in
       Call (e, (lp, args, rp))
   | `Id tok ->
       let id = (* pattern [_a-zA-Z][_a-zA-Z0-9]* *) str env tok in
@@ -386,11 +362,7 @@ and map_expr (env : env) (x : CST.expr) : expr =
         | None -> None
       in
       If (tif, cond, then_, else_opt)
-  | `Expr_bina_expr (v1, v2, v3) ->
-      let v1 = map_document env v1 in
-      let v2 = map_binaryop env v2 in
-      let v3 = map_document env v3 in
-      BinaryOp (v1, v2, v3)
+  | `Bin_expr v1 -> map_binary_expr env v1
   | `Unar_expr (v1, v2) ->
       let v1 = map_unaryop env v1 in
       let v2 = map_document env v2 in
@@ -443,6 +415,83 @@ and map_expr (env : env) (x : CST.expr) : expr =
       let e = map_document env v2 in
       let rp = (* ")" *) token env v3 in
       ParenExpr (lp, e, rp)
+
+(* TODO? in? *)
+and map_binary_expr (env : env) (x : CST.binary_expr) : expr =
+  match x with
+  | `Expr_choice_STAR_expr (v1, v2, v3) ->
+      let v1 = map_document env v1 in
+      let v2 =
+        match v2 with
+        | `STAR tok -> (Mult, (* "*" *) token env tok)
+        | `SLASH tok -> (Div, (* "/" *) token env tok)
+        | `PERC tok -> (Mod, (* "%" *) token env tok)
+      in
+      let v3 = map_document env v3 in
+      BinaryOp (v1, v2, v3)
+  | `Expr_choice_PLUS_expr (v1, v2, v3) ->
+      let v1 = map_document env v1 in
+      let v2 =
+        match v2 with
+        | `PLUS tok -> (Plus, (* "+" *) token env tok)
+        | `DASH tok -> (Minus, (* "-" *) token env tok)
+      in
+      let v3 = map_document env v3 in
+      BinaryOp (v1, v2, v3)
+  | `Expr_choice_LTLT_expr (v1, v2, v3) ->
+      let v1 = map_document env v1 in
+      let v2 =
+        match v2 with
+        | `LTLT tok -> (LSL, (* "<<" *) token env tok)
+        | `GTGT tok -> (LSR, (* ">>" *) token env tok)
+      in
+      let v3 = map_document env v3 in
+      BinaryOp (v1, v2, v3)
+  | `Expr_choice_LT_expr (v1, v2, v3) ->
+      let v1 = map_document env v1 in
+      let v2 =
+        match v2 with
+        | `LT tok -> (Lt, (* "<" *) token env tok)
+        | `LTEQ tok -> (LtE, (* "<=" *) token env tok)
+        | `GT tok -> (Gt, (* ">" *) token env tok)
+        | `GTEQ tok -> (GtE, (* ">=" *) token env tok)
+      in
+      let v3 = map_document env v3 in
+      BinaryOp (v1, v2, v3)
+  | `Expr_choice_EQEQ_expr (v1, v2, v3) ->
+      let v1 = map_document env v1 in
+      let v2 =
+        match v2 with
+        | `EQEQ tok -> (Eq, (* "==" *) token env tok)
+        | `BANGEQ tok -> (NotEq, (* "!=" *) token env tok)
+      in
+      let v3 = map_document env v3 in
+      BinaryOp (v1, v2, v3)
+  | `Expr_AMP_expr (v1, v2, v3) ->
+      let v1 = map_document env v1 in
+      let v2 = (BitAnd, (* "&" *) token env v2) in
+      let v3 = map_document env v3 in
+      BinaryOp (v1, v2, v3)
+  | `Expr_HAT_expr (v1, v2, v3) ->
+      let v1 = map_document env v1 in
+      let v2 = (BitXor, (* "^" *) token env v2) in
+      let v3 = map_document env v3 in
+      BinaryOp (v1, v2, v3)
+  | `Expr_BAR_expr (v1, v2, v3) ->
+      let v1 = map_document env v1 in
+      let v2 = (BitOr, (* "|" *) token env v2) in
+      let v3 = map_document env v3 in
+      BinaryOp (v1, v2, v3)
+  | `Expr_AMPAMP_expr (v1, v2, v3) ->
+      let v1 = map_document env v1 in
+      let v2 = (And, (* "&&" *) token env v2) in
+      let v3 = map_document env v3 in
+      BinaryOp (v1, v2, v3)
+  | `Expr_BARBAR_expr (v1, v2, v3) ->
+      let v1 = map_document env v1 in
+      let v2 = (Or, (* "||" *) token env v2) in
+      let v3 = map_document env v3 in
+      BinaryOp (v1, v2, v3)
 
 and map_field (env : env) (x : CST.field) : field =
   match x with

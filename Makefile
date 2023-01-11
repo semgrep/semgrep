@@ -282,7 +282,7 @@ update_semgrep_rules:
 
 
 #coupling: see also .circleci/config.yml and its 'semgrep' job
-SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
+SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests --exclude pfff
 # you can add --verbose for debugging
 
 DOCKER_IMAGE=returntocorp/semgrep:develop

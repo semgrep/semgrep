@@ -115,7 +115,7 @@ install_requires = [
     # Flexibility is achieved by, in order of preference:
     # 1. x.0~= operator pinning to x major version
     # 2. >=x,<y operator pinning to multiple major versions
-    "attrs~=21.3",
+    "attrs>=21.3",
     "boltons~=21.0",
     "colorama~=0.4.0",
     "click~=8.1",
@@ -140,7 +140,7 @@ extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
-    version="1.1.0",
+    version="1.3.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",

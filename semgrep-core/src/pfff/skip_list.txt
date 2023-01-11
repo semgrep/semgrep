@@ -1,0 +1,82 @@
+# -*- sh -*-
+
+dir: _build
+dir: tmp
+
+file: lang_ruby/parsing/parser_ruby.ml
+file: lang_ruby/parsing/parser_ruby_temp.ml
+file: lang_cpp/parsing/parser_cpp2.ml
+file: lang_cpp/parsing/parser_cpp2_temp.ml
+
+# ignore for now
+dir: web
+dir: facebook
+
+# to focus only on pfff code in codemap
+#dir: commons
+# this needs -symlink anyway
+#dir: external
+
+# -------------------------------------------------------------------------
+# parse errors
+# -------------------------------------------------------------------------
+# ok to skip
+dir: tests/ml/parsing_errors
+dir: tests/ml/db/parsing_errors
+
+# -------------------------------------------------------------------------
+# cmt, for codegraph to skip
+# -------------------------------------------------------------------------
+
+dir: external/OPAM_DIR
+
+#dir: external/FOR_MERLIN
+# I uppercased below the first letter of directories I don't want to skip
+# (e.g., we want json-wheel, lablgtk, and ocaml hence JLO uppercase below)
+dir: external/FOR_MERLIN/[abcdefghiJkLmnOpqrstuvwxyz]
+# We skip cairo2 above because the external/ contains the .cmt (good citizen)
+# we want ocamlgraph
+dir: external/FOR_MERLIN/ocaml[abcdefGhijklmnopqrstuvwxyz]
+# but actually we skip it because we get some "no cmt_source" error because
+# they use Packing I think
+dir: external/FOR_MERLIN/ocamlgraph
+# We want stdlib, otherlibs (unix, str), parsing, and typing (compiler-libs)
+dir: external/FOR_MERLIN/ocaml-base-compiler.4.07.1/[abcdefghijklmnOPqrSTuvwxyz]
+# complex cmt without a cmt_source_file field (weird)
+dir: external/FOR_MERLIN/ocaml-base-compiler.4.07.1/otherlibs/dynlink
+# dupes for condition/mutex/...
+dir: external/FOR_MERLIN/ocaml-base-compiler.4.07.1/otherlibs/threads
+# dupe with stdlib/bigarray.ml
+# dupes
+dir: external/FOR_MERLIN/ocaml-base-compiler.4.07.1/ocamldoc/stdlib_non_prefixed
+dir: external/FOR_MERLIN/ocaml-base-compiler.4.07.1/ocamldoc
+# advanced constructs
+dir: external/FOR_MERLIN/ocaml-migrate-parsetree
+
+
+# already handled above
+dir: external/STDLIB
+dir: external/compiler-libs
+#dir: external/STDLIB/camlp4
+# dupe
+#dir: external/STDLIB/vmthreads
+
+#dupes with external/stdlib and ok to skip because they are test files
+dir: tests/ml/cmt
+
+# -------------------------------------------------------------------------
+# ml
+# -------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------
+# old/
+# -------------------------------------------------------------------------
+#less: have a dir_element: old ?
+
+# -------------------------------------------------------------------------
+# _build
+# -------------------------------------------------------------------------
+
+#less: factorize in a 'dir_element: _build' ?
+#dir: opa/_build
+#dir: tests/opa/parsing/todo/_build

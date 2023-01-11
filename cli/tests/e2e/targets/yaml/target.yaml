@@ -1,0 +1,21 @@
+- key: "one"
+- key: 'two'
+- key: |
+    three
+- key: |
+   four
+- key: |       
+    fi
+
+    ve
+- key: |
+    si
+
+      x
+    
+- key: >
+    seven
+- key: >
+    eig
+
+    ht

@@ -1,0 +1,327 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2019 r2c
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
+open Common
+
+module A = Ast_js
+module C = Cst_js
+module G = AST_generic
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Poor's man Javascript transpiler!
+ * Probably incorrect and incomplete but good enough for codegraph.
+ *
+ * You can test the babel transpiler and see live how it transpiles code
+ * here: https://babeljs.io/repl (great ressource).
+ *
+ * alt:
+ *  - just call babel
+ *  - r2s's transpiler (calls babel internally)
+ *
+ * related:
+ *  - babel and its "polyfill"
+ *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+let fake s = Parse_info.fake_info s
+let fake_bracket x = fake "(", x, fake ")"
+
+(*****************************************************************************)
+(* Xhp *)
+(*****************************************************************************)
+(* TODO probably incomplete *)
+
+let id_of_tag tag =
+  A.Id (tag, ref A.NotResolved)
+
+let xhp_attr_value expr x =
+  match x with
+  | C.XhpAttrString str -> A.String str
+  | C.XhpAttrExpr (_, e, _) -> expr e
+  | C.XhpAttrEllipsis t -> A.Ellipsis t
+
+(* todo: should probably use Obj instead of tuples with string keys *)
+let xhp_attribute expr x =
+  match x with
+  | C.XhpAttrNoValue (str) -> A.Arr (fake_bracket [A.String str])
+  | C.XhpAttrValue (str, _tok, attrval) ->
+    let v = xhp_attr_value expr attrval in
+    A.Arr (fake_bracket [A.String str; v])
+  | C.XhpAttrSpread (_, (tokdot, e), _) ->
+    A.Apply (A.IdSpecial (A.Spread, tokdot), G.fake_bracket [expr e])
+
+let rec xhp expr x =
+  match x with
+  | C.XhpSingleton (tag, attrs, _tok) ->
+    let id = id_of_tag tag in
+    let args1 = List.map (xhp_attribute expr) attrs in
+    let args2 = [] in
+    (* TODO: is it the actual result? good enough for codegraph for now *)
+    A.Apply(id, fake_bracket [A.Arr (fake_bracket args1); A.Arr (fake_bracket args2)])
+  | C.Xhp (tag, attrs, _tok, body, _endtag_opt) ->
+    let id = id_of_tag tag in
+    let args1 = List.map (xhp_attribute expr) attrs in
+    let args2 = List.map (xhp_body expr) body in
+    A.Apply (id, fake_bracket [A.Arr (fake_bracket args1); A.Arr (fake_bracket args2)])
+and xhp_body expr x =
+  match x with
+  (* todo: contain enclosing quote? *)
+  | C.XhpText str -> A.String str
+  | C.XhpNested x -> xhp expr x
+  | C.XhpExpr (_, eopt, _) ->
+     (match eopt with
+     | None -> A.String ("", fake "")
+     | Some e -> expr e
+     )
+
+(*****************************************************************************)
+(* Patterns *)
+(*****************************************************************************)
+(* TODO incomplete, handle all patterns, and compare with
+ * what babel actually does.
+ *)
+
+(* mostly a dupe of graph_code.ml, but avoid deps and take a tok *)
+let cnt = ref 0
+let gensym_name s tok =
+  incr cnt;
+  spf "!%s__%d!" s !cnt, tok
+
+
+let var_of_simple_pattern (expr, fname) init_builder pat =
+  (* Creates a basic variable "let" assignment from a single leaf pattern element;
+   * The variable initializer is determined from init_builder *)
+  match pat with
+  (* { x } = varname; -~> x = varname.x *)
+  | C.PatId (name, None) ->
+    let name = fname name in
+    let init = init_builder name in
+    { A.v_name = name; v_kind = A.Let, (fake "let"); v_init = Some init;
+      v_type = None;
+      v_resolved = ref A.NotResolved;
+    }
+  (* { x = y } = varname; -~> x = pfff_builtin_default(varname.x, y) *)
+  | C.PatId (name, Some (tok, e)) ->
+    let name = fname name in
+    let e = expr e in
+    let init1 = init_builder name in
+    let init = A.Apply (A.Id (("pfff_builtin_default", tok),ref A.NotResolved),
+                       fake_bracket [init1; e]) in
+    { A.v_name = name; v_kind = A.Let, fake "let"; v_init = Some init;
+      v_type = None;
+      v_resolved = ref A.NotResolved;
+    }
+  | _ -> failwith "TODO: simple pattern not handled"
+
+let rec compile_pattern_over_array idx element_expansions remainder =
+  (* Converts each element in a pattern array into a variable assignment;
+   * in the case of nested arrays these are flattened into one list of
+   * assignment statements *)
+  match remainder with
+  | [] -> []
+  | [Right _] -> failwith "useless comma"
+  | [Left pat] -> element_expansions idx pat
+  | (Left pat)::(Right _)::remainder ->
+       let var = element_expansions idx pat in
+       var @ (compile_pattern_over_array (idx + 1) element_expansions remainder)
+  (* elision *)
+  | (Right _)::remainder ->
+       compile_pattern_over_array (idx + 1) element_expansions remainder
+  | Left _::Left _::_ -> failwith "Impossible Left Left"
+
+
+let rec compile_pattern_inner ((expr, fname, fpname) as context) varexpr pat =
+  (* Compiles an arbitrary complex pattern destructuring into a list of variable assignments
+   * when the right-hand-side of the destructuring assignment is an arbitrary expression *)
+  match pat with
+  (* 'var { x, y } = varexpr'  -~> 'var x = varexpr.x; var y = varexpr.y;' *)
+  | C.PatObj x ->
+    x |> C.unbrace |> C.uncomma |> List.map (compile_object_element_pattern context varexpr) |> List.flatten
+  (* 'var [x,y] = varexpr' -~> 'var x = varexpr[0]; var y = varexpr[1] *)
+  | C.PatArr x ->
+    let xs = x |> C.unbrace in
+    let aux_pats idx pat =
+      match pat with
+      | C.PatId _ ->
+        let init_builder (_name, tok) =
+          A.ArrAccess (varexpr, fake_bracket (A.Num (string_of_int idx, tok)))
+        in
+        [var_of_simple_pattern (expr, fname) init_builder pat]
+      | C.PatDots (tok, pat) ->
+         let init_builder (_name, _tok) =
+           A.Apply(
+             A.ObjAccess (varexpr, fake ".", (A.PN (("slice", tok)))),
+             fake_bracket [A.Num (string_of_int idx, tok)]
+           )
+        in
+        [var_of_simple_pattern (expr, fname) init_builder pat]
+      | C.PatNest (pat_inner, _) ->
+        (* var [[x, y]] = varexpr -~> var x = varexpr[0][0]; var y = varexpr[0][1] *)
+        let varexpr = A.ArrAccess (varexpr, fake_bracket (A.Num (string_of_int idx, fake ""))) in
+        compile_pattern_inner (expr, fname, fpname) varexpr pat_inner
+      | C.PatObj _ | C.PatArr _ | C.PatProp _ ->
+        failwith "Unexpected pattern PatObj, PatArr or PatProp found inside PatArr"
+    in
+    compile_pattern_over_array 0 aux_pats xs
+  | _ -> failwith "TODO: pattern not handled"
+
+and compile_object_element_pattern (expr, fname, fpname) varexpr pat = match pat with
+  | C.PatId _ ->
+   let init_builder name =
+     A.ObjAccess (varexpr, fake ".", A.PN name)
+   in
+   [var_of_simple_pattern (expr, fname) init_builder pat]
+  (* { x: y, z } = varexpr; *)
+  | C.PatProp (pname, _tok, pat_inner) ->
+   let pname = fpname pname in
+   let init_builder _name =
+     A.ObjAccess (varexpr, fake ".", pname)
+   in
+   (
+     match pat_inner with
+       | C.PatId _ ->
+         [var_of_simple_pattern (expr, fname) init_builder pat_inner]
+       | C.PatNest (pat_nested, _) ->
+         compile_pattern_inner (expr, fname, fpname) (init_builder pname) pat_nested
+       | _ ->
+         failwith "Unexpected pattern not PatId or PatNest inside PatProp"
+   )
+  | C.PatDots (_tok, pat) ->
+   (* Need to effectively augment JS semantics here, so transformation target needs to
+    * be impossible in actual JS:
+    *
+    *   var {...a} = b --> var a = <spread>(b)
+    *
+    * cf. xhp_attribute transpilation
+    *
+    * TODO:
+    *   Apply(
+    *     IdSpecial(Spread, fake "omit"),
+    *     [Id (varname, _), ...<all omitted keys>]
+    *   )
+    *)
+   let init_builder (_name, _tok) =
+     A.Apply (
+       A.IdSpecial(A.Spread, fake "omit"),
+       fake_bracket [varexpr]
+     )
+   in
+   [var_of_simple_pattern (expr, fname) init_builder pat]
+  | C.PatObj _ | C.PatArr _ | C.PatNest _ ->
+   failwith "Unexpected pattern PatObj, PatArr, or PatNest found inside PatObj"
+
+let compile_pattern desc varname pat =
+  (* Compiles an arbitrary complex pattern destructuring into a list of variable assignments
+   * when the right-hand-side of the destructuring assignment is a simple variable name *)
+  let varexpr = A.Id (varname, ref A.NotResolved) in
+  compile_pattern_inner desc varexpr pat
+
+
+let var_pattern (expr, fname, fpname) x =
+  match x.C.vpat_init with
+  | None -> failwith "weird var_pattern without init; Part of ForOf?"
+  | Some (tok, e) ->
+    let e = expr e in
+    let vname, vars =
+      match e with
+      | A.Id (name, _) -> name, []
+      | _ ->
+        let intermediate = gensym_name "tmp" tok in
+        let var = { A.v_name = intermediate; v_kind = A.Let, fake "let";
+                    v_init = Some e; v_type = None;
+                    v_resolved = ref A.NotResolved } in
+        intermediate, [var]
+    in
+    vars @ compile_pattern (expr, fname, fpname) vname x.C.vpat
+
+(*****************************************************************************)
+(* Iterator for of *)
+(*****************************************************************************)
+(* for (xx of yy) -~>
+ *   for (var _iterator = yy[Symbol.iterator](), _step;
+ *        !(_step = _iterator.next()).done;;) {
+ *     xx = _step.value;
+ * TODO probably incomplete.
+ *)
+
+let forof (lhs_var, tok, e2, st) (expr, stmt, var_binding) =
+  let e2 = expr e2 in
+  let st = stmt st in
+
+  let iterator = "!iterator!", tok in
+  let step = "!step!", tok in
+  let symbol_iterator =
+    A.ObjAccess (A.Id (("Symbol", tok), ref A.NotResolved),
+                 fake ".",
+                 A.PN ("iterator", tok))
+  in
+
+  let for_init =
+    Left [
+      { A.v_name = iterator; v_kind = A.Let, fake "let";
+        v_resolved = ref A.NotResolved; v_type = None;
+        v_init = Some (A.Apply (A.ArrAccess (e2, fake_bracket symbol_iterator),
+            fake_bracket [])) };
+      { A.v_name = step; v_kind = A.Let, fake "let";
+        v_resolved = ref A.NotResolved; v_type = None;
+        v_init = None; }
+    ]
+  in
+  let for_cond =
+    A.Apply (A.IdSpecial (A.ArithOp G.Not, tok), fake_bracket [
+      A.ObjAccess (A.Assign (A.Id (step, ref A.NotResolved),
+                         fake "=",
+                          A.Apply (A.ObjAccess (A.Id (iterator,
+                                                      ref A.NotResolved),
+                                                fake ".",
+                                                A.PN ("next", tok)),
+                                   fake_bracket [])),
+        fake ".",
+        A.PN ("done", tok))
+       ])
+  in
+  let step_value = A.ObjAccess (A.Id (step, ref A.NotResolved),
+                                fake ".",
+                               A.PN ("value", tok))
+  in
+  let step_value_cst =
+    C.Period (C.V step, tok, ("value", tok))
+  in
+
+  let vars_or_assign_stmts =
+   match lhs_var with
+   | C.LHS2 e ->
+     let e = expr e in
+     [A.ExprStmt (A.Assign (e, fake "=", step_value), G.sc)]
+   | C.ForVar (vkind, binding) ->
+      let binding =
+        match binding with
+        | C.VarClassic x ->
+            if x.C.v_init <> None
+            then failwith "for-of loop variable can not have an initializer";
+            C.VarClassic { x with C.v_init = Some (tok, step_value_cst) }
+        | C.VarPattern x ->
+            if x.C.vpat_init <> None
+            then failwith "for-of loop variable can not have an initializer";
+            C.VarPattern { x with C.vpat_init = Some (tok, step_value_cst) }
+      in
+      var_binding vkind binding |> List.map (fun var -> A.DefStmt var)
+  in
+  let finalst = vars_or_assign_stmts @ st  in
+  [A.For (fake "for", A.ForClassic (for_init, Some for_cond, None),
+      A.Block (fake_bracket finalst))]

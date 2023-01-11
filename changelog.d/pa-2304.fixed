@@ -1,3 +1,0 @@
-DeepSemgrep: Fix regression in taint-mode introduced by Semgrep v1.1 that caused
-some findings to be missed. Also, DeepSemgrep will assume, for now, that a method
-call on a tainted object is always tainted.

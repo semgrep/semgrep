@@ -1,0 +1,35 @@
+cf engler article about all the difficulty they had because
+had to find how to compile code!!
+
+same with elsa, need to know cpp flags.
+
+Well if do certain tools like refactorer, then partial code,
+and have not all library code, and lots of other stuff
+that cries for a different kind of approach: parse as is.
+
+sgrep_cpp also requires to parse patterns of code passed on the
+command line.
+
+
+
+related work:
+ - FrontC of hughes casse
+ - CIL
+
+ - EDG
+ - semantic designs
+ - elsa
+ - cppcheck
+ - llvm clang
+ - gcc xml
+
+
+\section{When pb}
+
+pfff -parse_cpp xxx.cpp
+
+Maybe because of typedef inference is wrong. Had to extend heuristics.
+
+Maybe because template. Had to extend heuristics.
+
+Maybe because of macros. Had to extend macros.h

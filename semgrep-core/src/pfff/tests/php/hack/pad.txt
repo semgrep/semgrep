@@ -1,0 +1,2 @@
+most of those tests do not parse because they use collections
+(Vector { ... }) which has a s/r conflict in the grammar.

@@ -98,7 +98,14 @@ let cache_computation use_parsing_cache version_cur file cache_file_of_file f =
 
 let cache_file_of_file parsing_cache_dir suffix filename =
   let dir = parsing_cache_dir in
-  if not (Sys.file_exists dir) then Unix.mkdir dir 0o700;
+  (if not (Sys.file_exists dir) then
+   try
+     Unix.mkdir dir 0o700
+     (* bugfix: Despite the check above, we may race with another thread to
+      * create the directory, leading to a crash if this exception is unhandled.
+      * *)
+   with
+   | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
   (* hopefully there will be no collision *)
   let md5 = Digest.string filename in
   Filename.concat dir (spf "%s%s" (Digest.to_hex md5) suffix)

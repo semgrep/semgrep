@@ -9,6 +9,7 @@ from typing import Any
 from typing import Dict
 from typing import Optional
 
+import requests
 from boltons.cacheutils import cachedproperty
 from glom import glom
 from glom import T
@@ -185,6 +186,10 @@ class GithubMeta(GitMeta):
         return {}
 
     @property
+    def gh_token(self) -> Optional[str]:
+        return os.getenv("GH_TOKEN")
+
+    @property
     def is_pull_request_event(self) -> bool:
         """Return if running on a PR, even for variant types such as `pull_request_target`."""
         return self.event_name in {"pull_request", "pull_request_target"}
@@ -204,6 +209,10 @@ class GithubMeta(GitMeta):
         if self.repo_name:
             return f"{server_url}/{self.repo_name}"
         return None
+
+    @property
+    def api_url(self) -> Optional[str]:
+        return os.getenv("GITHUB_API_URL")
 
     @property
     def commit_sha(self) -> Optional[str]:
@@ -228,6 +237,26 @@ class GithubMeta(GitMeta):
                 "--force",
                 "--update-head-ok",
                 f"{branch_name}:{branch_name}",
+            ]
+        )
+
+    def _shallow_fetch_commit(self, commit_hash: str) -> None:
+        """
+        Split out shallow fetch so we can mock it away in tests
+
+        Different from _shallow_fetch_branch because it does not assign a local
+        name to the commit. It just does the fetch.
+        """
+        logger.debug(f"Trying to shallow fetch commit {commit_hash} from origin")
+        git_check_output(
+            [
+                "git",
+                "fetch",
+                "origin",
+                "--depth=1",
+                "--force",
+                "--update-head-ok",
+                commit_hash,
             ]
         )
 
@@ -347,6 +376,62 @@ class GithubMeta(GitMeta):
                     f"{self.head_branch_hash}",
                 ]
             )
+
+        # By default, the GitHub Actions checkout action gives you a shallow
+        # clone of the repository. In order to get the merge base, we need to
+        # fetch the history of the head branch and the base branch, all the way
+        # back to the point where the head branch diverged. In a large
+        # repository, this can be a lot of commits, and this fetching can
+        # dramatically impact performance.
+        #
+        # To avoid this, on the first attempt to find the merge base, we try to
+        # use the GitHub REST API instead of fetching enough history to compute
+        # it locally. We only do this if the `GH_TOKEN` environment variable is
+        # provided. GitHub Actions provides that token to workflows, but the
+        # workflow needs to explicitly make it available to Semgrep via an
+        # environment variable like this:
+        #
+        # env:
+        #   GH_TOKEN: ${{ github.token }}
+        #
+        # This will allow Semgrep to make this API request even for private
+        # repositories.
+        if (
+            attempt_count == 0
+            and self.gh_token is not None
+            and self.api_url is not None
+            and self.repo_name is not None
+        ):
+            logger.debug("Trying to get merge base using GitHub API")
+            try:
+                headers = {"Authorization": f"Bearer {self.gh_token}"}
+                req = requests.get(
+                    f"{self.api_url}/repos/{self.repo_name}/compare/{self.base_branch_hash}...{self.head_branch_hash}",
+                    headers=headers,
+                )
+                if req.status_code == 200:
+                    compare_json = json.loads(req.text)
+                    base = glom(
+                        compare_json, T["merge_base_commit"]["sha"], default=None
+                    )
+                    if type(base) == str:
+                        logger.debug(f"Got merge base using GitHub API: {base}")
+                        # Normally, we fetch commits until we can compute the
+                        # merge base locally. That guarantees that the merge
+                        # base itself has been fetched. However, when we just
+                        # query the GH API, we don't necessarily have anything
+                        # locally. Later steps will check out the merge base, so
+                        # we need to make sure it is available locally or those
+                        # steps will error.
+                        self._shallow_fetch_commit(base)
+                        return base
+            except Exception as e:
+                # We're relying on an external service here. If something goes
+                # wrong, just log the exception and continue with the ordinary
+                # method of computing the merge base.
+                logger.debug(
+                    f"Encountered error while getting merge base using GitHub API: {repr(e)}"
+                )
 
         try:  # check if both branches connect to the yet-unknown branch-off point now
             # nosem: use-git-check-output-helper

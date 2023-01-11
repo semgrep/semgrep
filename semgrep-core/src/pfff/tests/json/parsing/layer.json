@@ -1,0 +1,10 @@
+{
+  "files": [
+    [
+  "foo.php",
+      { "micro_level": [ [ 8, "m" ], [ 11, "m" ] ], "macro_level": [] }
+   ],
+   [ "foo1.php", { "micro_level": [ [ 5, "m" ] ], "macro_level": [] } ]
+  ],
+  "kinds": [ [ "m", "red2" ] ]
+}

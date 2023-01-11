@@ -1,0 +1,3 @@
+def Functions::true()
+  true
+end

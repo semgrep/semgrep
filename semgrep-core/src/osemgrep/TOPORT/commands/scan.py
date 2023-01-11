@@ -86,12 +86,8 @@ def scan(
     max_chars_per_line: int,
     max_lines_per_finding: int,
     dataflow_traces: bool,
-    output: Optional[str],
     sarif: bool,
 ) -> ScanReturn:
-
-    state = get_state()
-    state.metrics.configure(metrics, metrics_legacy)
 
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()

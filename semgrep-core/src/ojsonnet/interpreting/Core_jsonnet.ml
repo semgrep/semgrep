@@ -34,6 +34,7 @@
 type tok = Parse_info.t [@@deriving show]
 type 'a wrap = 'a * tok [@@deriving show]
 type 'a bracket = tok * 'a * tok [@@deriving show]
+type todo_kind = string wrap [@@deriving show]
 
 (*****************************************************************************)
 (* Names *)
@@ -76,6 +77,7 @@ type expr =
   | Lambda of function_definition
   (* builtins *)
   | Error of tok (* 'error' *) * expr
+  | ExprTodo of todo_kind * AST_jsonnet.expr
 
 (* ------------------------------------------------------------------------- *)
 (* Calls *)

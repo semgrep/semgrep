@@ -523,7 +523,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
  * no shadowing, and we prefix with var. and local. so there is no
  * ambiguity and name clash.
  *)
-let terraform_sid = 0
+let terraform_sid = SId.unsafe_default
 
 let add_special_constants env lang prog =
   if lang = Lang.Hcl then
@@ -591,7 +591,8 @@ let propagate_basic lang prog =
                    | _ -> ());
                   k x
               | None ->
-                  logger#debug "No stats for (%s,%d)" (H.str_of_ident id) sid;
+                  logger#debug "No stats for (%s,%s)" (H.str_of_ident id)
+                    (G.SId.show sid);
                   k x)
           | _ -> k x);
       (* the uses (and also defs for Python Assign) *)
@@ -656,8 +657,8 @@ let propagate_basic lang prog =
                            && (is_global kind || is_resolved_name kind)
                          then add_constant_env id (sid, svalue) env
                      | None ->
-                         logger#debug "No stats for (%s,%d)" (H.str_of_ident id)
-                           sid;
+                         logger#debug "No stats for (%s,%s)" (H.str_of_ident id)
+                           (G.SId.show sid);
                          ());
               v (E rexp)
           | Assign (e1, _, e2)
@@ -694,4 +695,14 @@ let propagate_dataflow lang ast =
       |> Visit_function_defs.visit (fun _ent fdef ->
              let inputs, xs = AST_to_IL.function_definition lang fdef in
              let flow = CFG_build.cfg_of_stmts xs in
-             propagate_dataflow_one_function lang inputs flow)
+             propagate_dataflow_one_function lang inputs flow);
+
+      (* We consider the top-level function the interior of a degenerate function,
+         and simply run constant propagation on that.
+
+         Since we don't traverse into each function body recursively, we shouldn't
+         duplicate any work.
+      *)
+      let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
+      let flow = CFG_build.cfg_of_stmts xs in
+      propagate_dataflow_one_function lang [] flow

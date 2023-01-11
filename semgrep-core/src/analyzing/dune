@@ -9,10 +9,9 @@
  (libraries
    dyp
 
-   commons commons_core commons_ocollection
+   commons
    pfff-lang_GENERIC
    semgrep_core_il
-   pfff-testutil
  )
  (preprocess
     (pps

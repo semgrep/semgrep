@@ -1,0 +1,4 @@
+description = "required pfff modules when using -linkall, from pfff"
+requires = "unix num"
+archive(byte) = "lib.cma"
+archive(native) = "lib.cmxa"

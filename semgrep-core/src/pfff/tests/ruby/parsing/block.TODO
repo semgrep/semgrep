@@ -1,0 +1,5 @@
+{ puts 'Hello, World!' } # note the braces
+# or:
+do
+  puts 'Hello, World!'
+end

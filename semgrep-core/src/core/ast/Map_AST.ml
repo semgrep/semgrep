@@ -81,6 +81,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
    fun _of_a (v1, v2) ->
     let v1 = _of_a v1 and v2 = map_tok v2 in
     (v1, v2)
+  and map_sid x = x
   and map_bracket : 'a. ('a -> 'a) -> 'a bracket -> 'a bracket =
    fun of_a (v1, v2, v3) ->
     let v1 = map_tok v1 and v2 = of_a v2 and v3 = map_tok v3 in
@@ -106,7 +107,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         DottedName v1
   and map_resolved_name (v1, v2) =
     let v1 = map_resolved_name_kind v1 in
-    let v2 = map_of_int v2 in
+    let v2 = map_sid v2 in
     (v1, v2)
   and map_resolved_name_kind = function
     | LocalVar -> LocalVar
@@ -347,6 +348,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | OtherExpr (v1, v2) ->
             let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
             OtherExpr (v1, v2)
+        | RawExpr x -> RawExpr (map_raw_tree x)
       in
       (* TODO? reuse the e_id or create a new one? *)
       G.e ekind
@@ -1278,6 +1280,27 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Lbli v1 ->
         let v1 = map_label_ident v1 in
         Lbli v1
+  and map_raw_tree v =
+    match v with
+    | Token v ->
+        let v = map_wrap map_of_string v in
+        Token v
+    | List v ->
+        let v = (map_of_list map_raw_tree) v in
+        List v
+    | Tuple v ->
+        let v = (map_of_list map_raw_tree) v in
+        Tuple v
+    | Case (v1, v2) ->
+        let v1 = map_of_string v1 in
+        let v2 = map_raw_tree v2 in
+        Case (v1, v2)
+    | Option v ->
+        let v = (map_of_option map_raw_tree) v in
+        Option v
+    | Any v ->
+        let v = map_any v in
+        Any v
   and all_functions =
     {
       vitem = map_item;

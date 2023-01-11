@@ -125,6 +125,7 @@ let import_callback base str =
              Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
                  parse_yaml_for_jsonnet file))
+  [@@profiling]
 
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
@@ -132,7 +133,7 @@ let import_callback base str =
 let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
   match FT.file_type_of_file file with
   | FT.Config FT.Jsonnet ->
-      Logs.err (fun m ->
+      Logs.warn (fun m ->
           m
             "Support for Jsonnet rules is experimental and currently meant for \
              internal use only. The syntax may change or be removed at any \
