@@ -1283,7 +1283,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_raw_tree v =
     match v with
     | Token v ->
-        let v = map_tok v in
+        let v = map_wrap map_of_string v in
         Token v
     | List v ->
         let v = (map_of_list map_raw_tree) v in

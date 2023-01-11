@@ -165,6 +165,8 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 (* Contains among other things the position of the token through
  * the Parse_info.token_location embedded inside it, as well as the
  * transformation field that makes possible spatch on the code.
+ * Tok.t is the same type as Parse_info.t but provides special equal and
+ * hash functions used by the ppx derivers eq and hash.
  *)
 type tok = Tok.t [@@deriving show, eq, hash]
 

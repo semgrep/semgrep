@@ -9,8 +9,8 @@
    type provided by the ocaml-tree-sitter runtime library.
 *)
 type 'any t =
-  (* keyword, identifier, punctuation, int literal, ... *)
-  | Token of Tok.t
+  (* keyword, identifier, punctuation, int literal, ... = string wrap *)
+  | Token of (string * Tok.t)
   (* sequence of variable length [repeat] *)
   | List of 'any t list
   (* sequence of fixed length (wrt type) [seq] *)
@@ -44,4 +44,5 @@ val anys : 'any t -> 'any list
 val map : map_any:('a -> 'b) -> 'a t -> 'b t
 
 (* Iterate over the tree. *)
-val visit : v_tok:(Tok.t -> unit) -> v_any:('any -> unit) -> 'any t -> unit
+val visit :
+  v_token:(string * Tok.t -> unit) -> v_any:('any -> unit) -> 'any t -> unit

@@ -1492,7 +1492,7 @@ and vof_any = function
 and vof_raw_tree x =
   match x with
   | Token v ->
-      let v = vof_tok v in
+      let v = vof_wrap OCaml.vof_string v in
       OCaml.VSum ("Token", [ v ])
   | List v ->
       let v = (OCaml.vof_list vof_raw_tree) v in
