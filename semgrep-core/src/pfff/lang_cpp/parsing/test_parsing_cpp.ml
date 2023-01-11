@@ -137,12 +137,13 @@ let test_parse_cpp_fuzzy xs =
                      pr2
                        (spf "PB with: %s, exn = %s" file (Common.exn_to_s exn)))))
 
+(*
 let test_dump_cpp_fuzzy file =
   let fuzzy, _toks = Parse_cpp.parse_fuzzy file in
   let v = Meta_ast_fuzzy.vof_trees fuzzy in
   let s = OCaml.string_of_v v in
   pr2 s
-
+ *)
 (*
 let test_parse_cpp_dyp xs =
   let fullxs = Lib_parsing_cpp.find_source_files_of_dir_or_files xs
@@ -194,6 +195,8 @@ let actions () =
 *)
     ( "-parse_cpp_fuzzy",
       "   <files or dirs>",
-      Common.mk_action_n_arg test_parse_cpp_fuzzy );
+      Common.mk_action_n_arg test_parse_cpp_fuzzy )
+    (*
     ("-dump_cpp_fuzzy", "   <file>", Common.mk_action_1_arg test_dump_cpp_fuzzy);
+ *);
   ]
