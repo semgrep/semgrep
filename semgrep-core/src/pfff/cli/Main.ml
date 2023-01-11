@@ -68,11 +68,7 @@ let pfff_extra_actions () =
   [
     ("-dump_json", " <file>", Common.mk_action_1_arg test_json_pretty_printer);
     (*s: [[Main.pfff_extra_actions]] other cases *)
-    ("-json_pp", " <file>", Common.mk_action_1_arg test_json_pretty_printer);
-    (*x: [[Main.pfff_extra_actions]] other cases *)
-    ( "-layer_stat",
-      " <file>",
-      Common.mk_action_1_arg Test_program_lang.layer_stat )
+    ("-json_pp", " <file>", Common.mk_action_1_arg test_json_pretty_printer)
     (*e: [[Main.pfff_extra_actions]] other cases *);
   ]
 (*e: function [[Main.pfff_extra_actions]] *)
