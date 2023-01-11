@@ -2037,6 +2037,7 @@ let interpolated (lquote, xs, rquote) =
 
 (* todo? use a special construct KeyVal valid only inside Dict? *)
 let keyval k _tarrow v = Container (Tuple, fake_bracket [ k; v ]) |> e
+let raw x = RawExpr x |> e
 
 (* ------------------------------------------------------------------------- *)
 (* Parameters *)
