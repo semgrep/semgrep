@@ -165,15 +165,10 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 (* Contains among other things the position of the token through
  * the Parse_info.token_location embedded inside it, as well as the
  * transformation field that makes possible spatch on the code.
+ * Tok.t is the same type as Parse_info.t but provides special equal and
+ * hash functions used by the ppx derivers eq and hash.
  *)
-type tok = Parse_info.t [@@deriving show]
-
-(* sgrep: we do not care about position when comparing for equality 2 ASTs.
- * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.
- *)
-let equal_tok _t1 _t2 = true
-let hash_tok _t = 0
-let hash_fold_tok acc _t = acc
+type tok = Tok.t [@@deriving show, eq, hash]
 
 (* a shortcut to annotate some information with position information *)
 type 'a wrap = 'a * tok [@@deriving show, eq, hash]
@@ -1879,8 +1874,7 @@ and any =
   (* Used only for Rust macro arguments for now *)
   | Anys of any list
 
-and raw_tree = (tok, any) Raw_tree.t
-[@@deriving show { with_path = false }, eq, hash]
+and raw_tree = any Raw_tree.t [@@deriving show { with_path = false }, eq, hash]
 
 (*****************************************************************************)
 (* Special constants *)

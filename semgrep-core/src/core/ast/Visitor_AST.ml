@@ -1388,7 +1388,7 @@ let (mk_visitor :
     | Lbli v1 -> v_label_ident v1
   and v_raw_tree v =
     match v with
-    | Token v -> v_tok v
+    | Token v -> v_wrap v_string v
     | List v -> (v_list v_raw_tree) v
     | Tuple v -> (v_list v_raw_tree) v
     | Case (v1, v2) ->

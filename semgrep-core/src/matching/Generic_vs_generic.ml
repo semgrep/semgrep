@@ -1076,7 +1076,7 @@ and m_expr ?(is_root = false) a b =
    are matched normally. *)
 and m_raw_tree (a : G.raw_tree) (b : G.raw_tree) =
   match (a, b) with
-  | Token a, Token b -> m_tok a b
+  | Token a, Token b -> m_wrap m_string a b
   | List a, List b -> m_list m_raw_tree a b
   | Tuple a, Tuple b -> m_list m_raw_tree a b
   | Case (a_cons, a), Case (b_cons, b) ->
