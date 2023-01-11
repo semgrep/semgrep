@@ -5,7 +5,6 @@ from typing import Optional
 from typing import Tuple
 
 from semdep.parse_lockfile import parse_lockfile_str
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
@@ -19,7 +18,6 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Npm()): ["package-lock.json", "yarn.lock"],
     Ecosystem(Gem()): ["Gemfile.lock"],
     Ecosystem(Gomod()): ["go.sum"],
-    Ecosystem(Cargo()): ["Cargo.lock"],
     Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
 }
 
@@ -31,7 +29,6 @@ LOCKFILE_TO_MANIFEST = {
     "yarn.lock": "package.json",
     "Gemfile.lock": None,
     "go.sum": None,
-    "Cargo.lock": None,
     "maven_dep_tree.txt": None,
     "gradle.lockfile": None,
 }

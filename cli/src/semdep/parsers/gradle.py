@@ -10,12 +10,11 @@ from parsy import success
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import consume_word
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -45,51 +44,18 @@ manifest_dep = upto([":"], consume_other=True) >> upto([":", "'"]).bind(
 )
 
 manifest_line = (
-    string("\t") >> consume_word >> string(" '") >> manifest_dep << string("'")
+    string("\t")
+    >> consume_word
+    >> string(" '")
+    >> upto([":"], consume_other=True)
+    >> upto([":", "'"]).bind(lambda package: success(package) << consume_line)
 )
 
 manifest = (
     any_char.until(string("dependencies {\n"), consume_other=True)
-    >> manifest_line.sep_by(string("\n"))
+    >> manifest_line.sep_by(string("\n")).map(lambda xs: set(xs))
     << any_char.many()
 )
-
-text = """\
-plugins {
-	id 'java'
-	id 'org.springframework.boot' version '2.7.7'
-	id 'io.spring.dependency-management' version '1.0.15.RELEASE'
-}
-
-group = 'kr.co.bookstore'
-version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '11'
-
-configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
-}
-
-repositories {
-	mavenCentral()
-}
-
-dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:2.3.0'
-	compileOnly 'org.projectlombok:lombok'
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-	runtimeOnly 'com.mysql:mysql-connector-j'
-	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-}
-
-tasks.named('test') {
-	useJUnitPlatform()
-}
-"""
 
 gradle = string(PREFIX) >> (dep | (string("empty=") >> consume_line)).sep_by(
     string("\n")
@@ -100,6 +66,7 @@ def parse_gradle(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> List[FoundDependency]:
     deps = gradle.parse(lockfile_text)
+    manifest_deps = manifest.parse(manifest_text) if manifest_text else None
     output = []
     for line_number, (package, version) in deps:
         try:
@@ -114,7 +81,7 @@ def parse_gradle(
                 ecosystem=Ecosystem(Maven()),
                 resolved_url=None,
                 allowed_hashes={},
-                transitivity=Transitivity(Unknown()),
+                transitivity=transitivity(manifest_deps, [package]),
                 line_number=line_number,
             )
         )

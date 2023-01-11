@@ -81,6 +81,13 @@ def requirements(
     return (dep_hashes(manifest_deps) << newline.many()).many()
 
 
+def parse_requirements(
+    lockfile_text: str, manifest_text: Optional[str]
+) -> List[FoundDependency]:
+    manifest_deps = manifest.parse(manifest_text) if manifest_text else None
+    return requirements(manifest_deps).parse(lockfile_text)
+
+
 manifest_text = """\
 bunch==1.0.1 # foo
 # foo

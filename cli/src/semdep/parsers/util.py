@@ -1,6 +1,7 @@
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
+from re import escape
 from typing import Callable
 from typing import cast
 from typing import Dict
@@ -32,7 +33,7 @@ Pos = Tuple[int, int]
 
 
 def not_any(chars: List[str]) -> "Parser[str]":
-    return regex(f"[^{''.join(chars)}]+")
+    return regex(f"[^{escape(''.join(chars))}]+")
 
 
 def extract_npm_lockfile_hash(s: Optional[str]) -> Dict[str, List[str]]:
@@ -132,13 +133,13 @@ class JSON:
         return JSON(marked[0][0] + 1, marked[1])
 
     def as_dict(self) -> Dict[str, "JSON"]:
-        return cast(Dict[str, "JSON"], self)
+        return cast(Dict[str, "JSON"], self.value)
 
     def as_str(self) -> str:
-        return cast(str, self)
+        return cast(str, self.value)
 
     def as_list(self) -> List["JSON"]:
-        return cast(List["JSON"], self)
+        return cast(List["JSON"], self.value)
 
 
 # Utilities

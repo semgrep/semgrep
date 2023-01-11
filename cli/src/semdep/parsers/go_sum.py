@@ -1,6 +1,7 @@
 from typing import List
 from typing import Optional
 
+from parsy import any_char
 from parsy import string
 from parsy import success
 
@@ -16,10 +17,14 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 dep = mark_line(
     upto([" "], consume_other=True).bind(
         lambda package: string("v")
-        >> upto(["/", "-", "+"]).bind(
-            lambda version: upto([" "], consume_other=True)
-            >> string("h1:")
-            >> upto(["\n"]).bind(lambda hash: success((package, version, hash)))
+        >> upto(["/", "-", "+", " "]).bind(
+            lambda version: any_char.bind(
+                lambda next: (
+                    success("") if next == " " else upto([" "], consume_other=True)
+                )
+                >> string("h1:")
+                >> upto(["\n"]).bind(lambda hash: success((package, version, hash)))
+            )
         )
     )
 )

@@ -28,6 +28,7 @@ Addable = TypeVar("Addable", bound=SupportsAdd)
 
 Pos = Tuple[int, int]
 
+class ParseError(RuntimeError): ...
 class Result(Generic[T]): ...
 
 class Parser(Generic[T]):
