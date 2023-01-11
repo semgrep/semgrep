@@ -5,17 +5,17 @@
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
 
-type ('tok, 'any) t =
-  | Token of 'tok
-  | List of ('tok, 'any) t list
-  | Tuple of ('tok, 'any) t list
-  | Case of string * ('tok, 'any) t
-  | Option of ('tok, 'any) t option
+type 'any t =
+  | Token of Tok.t
+  | List of 'any t list
+  | Tuple of 'any t list
+  | Case of string * 'any t
+  | Option of 'any t option
   | Any of 'any
 [@@deriving show { with_path = false }, eq, hash]
 
 (* Find the left-most token in the tree *)
-let rec first_tok (x : (_, _) t) =
+let rec first_tok (x : _ t) =
   match x with
   | Token tok -> Some tok
   | List xs -> first_tok_in_list xs
@@ -39,7 +39,7 @@ and first_tok_in_list xs =
   | [] -> None
 
 (* Find the right-most token in the tree *)
-let rec last_tok (x : (_, _) t) =
+let rec last_tok (x : _ t) =
   match x with
   | Token tok -> Some tok
   | List xs -> last_tok_in_list xs
@@ -75,7 +75,7 @@ let unsafe_loc x =
       (tok, tok)
 
 let anys x =
-  let rec anys acc (x : (_, _) t) =
+  let rec anys acc (x : _ t) =
     match x with
     | Token _tok -> acc
     | List xs -> List.fold_left anys acc xs
@@ -89,10 +89,10 @@ let anys x =
   in
   anys [] x |> List.rev
 
-let map ~map_tok ~map_any x =
+let map ~map_any x =
   let rec map x =
     match x with
-    | Token tok -> Token (map_tok tok)
+    | Token tok -> Token tok
     | List xs -> List (Common.map map xs)
     | Tuple xs -> List (Common.map map xs)
     | Case (cons, x) -> Case (cons, map x)
