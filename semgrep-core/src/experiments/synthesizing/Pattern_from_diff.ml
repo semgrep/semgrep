@@ -2,7 +2,6 @@ module In = Input_to_core_j
 module Out = Output_from_core_j
 module R = Range
 module E = Entity_code
-module G = Graph_code
 module Set = Set_
 
 (*****************************************************************************)

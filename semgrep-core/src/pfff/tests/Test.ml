@@ -41,7 +41,6 @@ let tests = List.flatten [
   (* general tests *)
   Unit_commons.tests;
   (* Unit_commons_core.tests; *)
-  (* Unit_graph_code.tests ~graph_of_string; *)
 
   (* PHP related tests *)
   Unit_parsing_php.tests;
@@ -142,26 +141,6 @@ let pfff_extra_actions () = [
         print_string (spf "%s " b)
     );
     print_string "\n";
-  );
-  "-mv_kernel", "<file1> <dirdst>", Common.mk_action_2_arg (fun file dirdst ->
-    let file = Common.fullpath file in
-    let kerneldir = "/home/pad/plan9/sys/src/9" in
-    let candidates = Common.cmd_to_list (spf "find %s -type l" kerneldir) in
-    let fcandidates =
-      Graph_code.basename_to_readable_disambiguator ~root:"" candidates in
-    match fcandidates (Filename.basename file) with
-    | [] -> failwith "No candidate found"
-    | [x] ->
-        let x = "/" ^ x in
-        let cmd s = Sys.command s |> ignore in
-        cmd (spf "cp %s /tmp" x);
-        cmd (spf "rm -f %s" x);
-        cmd (spf "mv %s %s" file dirdst);
-        let file = Filename.concat dirdst (Filename.basename file) in
-        let file = Common.fullpath file in
-        cmd (spf "ln -s %s %s" file x);
-        pr2 (spf "ln -s %s %s" file x);
-    | _ -> failwith "too many candidates"
   );
 
   "-relativize", "<dir>", Common.mk_action_1_arg (fun dir ->

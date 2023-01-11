@@ -9,8 +9,7 @@
  (libraries
    commons
 
-   pfff-graph_code ; in pfff
-   pfff-lang_GENERIC ; actually now in semgrep
+pfff-lang_GENERIC ; actually now in semgrep
  )
  (preprocess
     (pps
