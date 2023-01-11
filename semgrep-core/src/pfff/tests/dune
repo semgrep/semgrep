@@ -15,7 +15,7 @@
     pfff-lang_js pfff-lang_js-analyze
     pfff-lang_json
     pfff-lang_cpp pfff-lang_cpp-analyze
-    pfff-lang_c pfff-lang_c-analyze
+    pfff-lang_c
     pfff-lang_ml pfff-lang_ml-analyze
     pfff-lang_java pfff-lang_java-analyze
     pfff-lang_go pfff-lang_go-analyze

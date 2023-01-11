@@ -23,7 +23,7 @@
    pfff-lang_json
    pfff-lang_go pfff-lang_go-analyze
    pfff-lang_cpp
-   pfff-lang_c pfff-lang_c-analyze
+   pfff-lang_c
    pfff-lang_python pfff-lang_python-analyze
    pfff-lang_lisp
    pfff-lang_ruby pfff-lang_ruby-analyze
