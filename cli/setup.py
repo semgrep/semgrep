@@ -128,11 +128,9 @@ install_requires = [
     "jsonschema~=4.6",
     "wcmatch~=8.3",
     "peewee~=3.14",
-    "defusedxml~=0.7.1",
     "urllib3~=1.26",
     "typing-extensions~=4.2",
     "python-lsp-jsonrpc~=1.0.0",
-    "tomli~=2.0.1",
     "parsy~=2.0",
 ]
 
