@@ -836,7 +836,7 @@ let find_formula env (rule_dict : dict) : key * G.expr =
   let find key_str = Hashtbl.find_opt rule_dict.h key_str in
   match
     find_some_opt find
-      [ "pattern"; "and"; "or"; "regex"; "taint"; "not"; "inside" ]
+      [ "pattern"; "all"; "any"; "regex"; "taint"; "not"; "inside" ]
   with
   | None ->
       error env rule_dict.first_tok
@@ -1025,13 +1025,13 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
   | "pattern" -> R.P (get_string_pattern value)
   | "not" -> R.Not (t, parse_formula env value)
   | "inside" -> R.Inside (t, parse_formula env value)
-  | "and" ->
+  | "all" ->
       let conjuncts = parse_listi env key parse_formula value in
       let pos, _ = R.split_and conjuncts in
       if pos = [] && not env.in_metavariable_pattern then
         raise (R.Err (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t)));
       R.And (t, { conjuncts; focus = []; conditions = [] })
-  | "or" -> R.Or (t, parse_listi env key parse_formula value)
+  | "any" -> R.Or (t, parse_listi env key parse_formula value)
   | "regex" ->
       let x = parse_string_wrap env key value in
       let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
