@@ -6,7 +6,7 @@
 open Ppx_hash_lib.Std.Hash.Builtin
 
 type 'any t =
-  | Token of Tok.t
+  | Token of Tok.t (* = Parse_info.t with special equal and hash functions *)
   | List of 'any t list
   | Tuple of 'any t list
   | Case of string * 'any t
