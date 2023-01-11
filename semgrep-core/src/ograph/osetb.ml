@@ -7,7 +7,7 @@ class ['a] osetb xs =
   object (o)
     inherit ['a] oset
     val data = xs (*  Set_.empty *)
-    method tosetb = data
+    method! tosetb = data
 
     (* if put [] then no segfault, if [11] then segfault *)
     method toset = Obj.magic data
@@ -24,8 +24,8 @@ class ['a] osetb xs =
     method del e = {<data = Set_.remove e data>}
     method mem e = Set_.mem e data
     method null = Set_.is_empty data
-    method tolist = Set_.elements data
-    method length = Set_.cardinal data
+    method! tolist = Set_.elements data
+    method! length = Set_.cardinal data
     method union s = {<data = Set_.union data s#tosetb>}
     method inter s = {<data = Set_.inter data s#tosetb>}
     method minus s = {<data = Set_.diff data s#tosetb>}

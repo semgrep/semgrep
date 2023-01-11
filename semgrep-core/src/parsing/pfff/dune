@@ -10,7 +10,7 @@
  (libraries
    dyp
 
-   commons commons_core
+   commons
 
    pfff-config pfff-h_program-lang
 

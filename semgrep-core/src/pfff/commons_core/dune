@@ -1,9 +1,0 @@
-(library
- (public_name commons_core)
- (wrapped false)
- (libraries
-   ANSITerminal
-   commons
-   alcotest
- )
-)

@@ -4,7 +4,7 @@
     str unix bigarray
     yojson
 
-    commons commons_core commons_ocollection
+    commons
     pfff-config
     pfff-h_program-lang
     pfff-lang_python

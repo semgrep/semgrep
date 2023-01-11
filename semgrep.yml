@@ -44,6 +44,7 @@ rules:
         - Test_*.ml
         - runner/*.ml
         - experiments/*
+        - ograph/*
         - Check_*.ml
 
   - id: use-pytest-mock

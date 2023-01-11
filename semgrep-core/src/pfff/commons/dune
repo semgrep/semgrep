@@ -5,6 +5,7 @@
    str unix
    yojson easy_logging_yojson
    alcotest
+   ANSITerminal
  )
  (preprocess (pps ppx_deriving.show ppx_deriving.eq))
 )

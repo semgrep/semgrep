@@ -4,7 +4,7 @@
  (wrapped false)
  (libraries
 
-   commons commons_core commons_ocollection
+   commons
    pfff-config pfff-h_program-lang
    pfff-graph_code
    pfff-lang_php

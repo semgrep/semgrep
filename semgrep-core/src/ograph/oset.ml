@@ -12,8 +12,11 @@ class virtual ['a] oset =
 
     (* allow binary methods tricks, generate exception when not good type *)
     method tosetb : 'a Set_.t = raise Impossible
+
+    (*
     method tosetpt : SetPt.t = raise Impossible
     method toseti : Seti.seti = raise Impossible
+    *)
     method virtual toset : 'b. 'b (* generic (not safe) tricks *)
 
     (* is_intersect, equal, subset *)

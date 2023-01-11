@@ -11,8 +11,10 @@ class virtual ['a] oset :
     method is_equal : 'o -> bool
     method virtual toset : 'd
     method tosetb : 'a Set_.t
+    (*
     method toseti : Seti.seti
     method tosetpt : SetPt.t
+     *)
   end
 
 val ( $??$ ) : 'a -> < mem : 'a -> bool ; .. > -> bool

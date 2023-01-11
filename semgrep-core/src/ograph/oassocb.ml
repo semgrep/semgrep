@@ -7,7 +7,7 @@ class ['a, 'b] oassocb _xs =
     val data = Map_.empty
     method empty = {<data = Map_.empty>}
     method add (k, v) = {<data = Map_.add k v data>}
-    method replkey (k, v) = {<data = Map_.add k v (Map_.remove k data)>}
+    method! replkey (k, v) = {<data = Map_.add k v (Map_.remove k data)>}
     method iter f = Map_.iter (Common2.curry f) data
     method view = raise Todo
     method del (k, _v) = {<data = Map_.remove k data>}
