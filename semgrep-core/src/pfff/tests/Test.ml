@@ -250,7 +250,6 @@ let all_actions () =
   Test_analyze_ruby.actions()@
   Test_analyze_ml.actions()@
   Test_analyze_cpp.actions()@
-  Test_analyze_c.actions()@
 (*
  Builtins_php.actions()@
 *)
