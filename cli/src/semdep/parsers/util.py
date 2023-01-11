@@ -1,6 +1,7 @@
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
+from pathlib import Path
 from re import escape
 from typing import Callable
 from typing import cast
@@ -15,6 +16,7 @@ from typing import Union
 from parsy import alt
 from parsy import fail
 from parsy import line_info
+from parsy import ParseError
 from parsy import Parser
 from parsy import regex
 from parsy import string
@@ -24,6 +26,9 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 A = TypeVar("A")
@@ -112,6 +117,17 @@ def upto(
         return not_any(s) << alt(*(string(x) for x in s))
     else:
         return not_any(s)
+
+
+def safe_path_parse(path: Optional[Path], parser: "Parser[A]") -> Optional[A]:
+    if not path:
+        return None
+    with open(path) as f:
+        try:
+            return parser.parse(f.read())
+        except ParseError as e:
+            logger.error(f"Failed to parse {path} with exception {e}")
+            return None
 
 
 #### JSON Parser, adapted from parsy example ####

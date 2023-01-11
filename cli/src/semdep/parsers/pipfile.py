@@ -1,10 +1,12 @@
 from collections import defaultdict
+from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Optional
 
 from semdep.parsers.poetry import manifest
 from semdep.parsers.util import json_doc
+from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -16,12 +18,15 @@ logger = getLogger(__name__)
 
 
 def parse_pipfile(
-    lockfile_text: str, manifest_text: Optional[str]
+    lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    manifest_deps = manifest.parse(manifest_text) if manifest_text else None
+    lockfile_json_opt = safe_path_parse(lockfile_path, json_doc)
+    if not lockfile_json_opt:
+        return []
 
-    lockfile_json = json_doc.parse(lockfile_text).as_dict()
-    deps = lockfile_json["default"].as_dict()
+    deps = lockfile_json_opt.as_dict()["default"].as_dict()
+
+    manifest_deps = safe_path_parse(manifest_path, manifest)
 
     def extract_pipfile_hashes(
         hashes: List[str],

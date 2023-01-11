@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -8,6 +9,7 @@ from packaging.version import Version
 from semdep.parsers.util import extract_npm_lockfile_hash
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
+from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -20,9 +22,14 @@ logger = getLogger(__name__)
 
 
 def parse_package_lock(
-    lockfile_text: str, manifest_text: Optional[str]
+    lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    lockfile_json = json_doc.parse(lockfile_text).as_dict()
+    lockfile_json_opt = safe_path_parse(lockfile_path, json_doc)
+    if not lockfile_json_opt:
+        return []
+
+    lockfile_json = lockfile_json_opt.as_dict()
+
     # Newer versions of NPM (>= v7) use 'packages'
     # But 'dependencies' is kept up to date, and 'packages' uses relative, not absolute names
     # https://docs.npmjs.com/cli/v8/configuring-npm/package-lock-json
@@ -31,13 +38,24 @@ def parse_package_lock(
         logger.debug("Found package-lock with no 'dependencies'")
         return []
 
-    if manifest_text:
-        manifest_json = json_doc.parse(manifest_text).as_dict()
+    manifest_json_opt = safe_path_parse(manifest_path, json_doc)
+    if not manifest_json_opt:
+        manifest_deps = None
+    else:
+        manifest_json = manifest_json_opt.as_dict()
         manifest_deps = (
             set(manifest_json["dependencies"].as_dict().keys())
             if "dependencies" in manifest_json
             else set()
         )
+    if manifest_path:
+        with open(manifest_path) as f:
+            manifest_json = json_doc.parse(f.read()).as_dict()
+            manifest_deps = (
+                set(manifest_json["dependencies"].as_dict().keys())
+                if "dependencies" in manifest_json
+                else set()
+            )
     else:
         manifest_deps = None
 

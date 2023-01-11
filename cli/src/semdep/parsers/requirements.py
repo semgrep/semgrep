@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -11,6 +12,7 @@ from parsy import success
 from semdep.parsers.util import any_str
 from semdep.parsers.util import line_number
 from semdep.parsers.util import not_any
+from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -82,10 +84,12 @@ def requirements(
 
 
 def parse_requirements(
-    lockfile_text: str, manifest_text: Optional[str]
+    lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    manifest_deps = manifest.parse(manifest_text) if manifest_text else None
-    return requirements(manifest_deps).parse(lockfile_text)
+    manifest_deps = safe_path_parse(manifest_path, manifest)
+
+    output = safe_path_parse(lockfile_path, requirements(manifest_deps))
+    return output if output else []
 
 
 manifest_text = """\

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 from typing import Optional
 
@@ -6,6 +7,7 @@ from parsy import success
 
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import not_any
+from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -42,10 +44,12 @@ manifest = (manifest_deps | poetry_sub_dep).sep_by(string("\n\n")).map(
 
 
 def parse_poetry(
-    lockfile_text: str, manifest_text: Optional[str]
+    lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    manifest_deps = manifest.parse(manifest_text) if manifest_text else None
-    deps = poetry.parse(lockfile_text)
+    deps = safe_path_parse(lockfile_path, poetry)
+    if not deps:
+        return []
+    manifest_deps = safe_path_parse(manifest_path, manifest)
     output = []
     for line_number, dep in deps:
         if "name" not in dep or "version" not in dep:

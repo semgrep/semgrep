@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 from typing import Optional
 
@@ -6,6 +7,7 @@ from parsy import success
 
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -48,8 +50,10 @@ pom_tree = (
 )
 
 
-def parse_pom_tree(tree_str: str, _: Optional[str]) -> List[FoundDependency]:
-    deps = pom_tree.parse(tree_str)
+def parse_pom_tree(tree_path: Path, _: Optional[Path]) -> List[FoundDependency]:
+    deps = safe_path_parse(tree_path, pom_tree)
+    if not deps:
+        return []
     output = []
     for line_number, (transitivity, package, version) in deps:
         output.append(

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 from typing import Optional
 
@@ -6,6 +7,7 @@ from parsy import string
 from parsy import success
 
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -33,9 +35,11 @@ go_sum = dep.sep_by(string("\n")) << (string("\n") | string("\r")).optional()
 
 
 def parse_go_sum(
-    lockfile_text: str, manifest_text: Optional[str]
+    lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps = go_sum.parse(lockfile_text)
+    deps = safe_path_parse(lockfile_path, go_sum)
+    if not deps:
+        return []
     output = []
     for line_number, (package, version, hash) in deps:
         output.append(

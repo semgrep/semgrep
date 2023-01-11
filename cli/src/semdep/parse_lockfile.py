@@ -3,8 +3,6 @@ from pathlib import Path
 from typing import List
 from typing import Optional
 
-from parsy import ParseError
-
 from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_sum import parse_go_sum
 from semdep.parsers.gradle import parse_gradle
@@ -34,18 +32,12 @@ LOCKFILE_PARSERS = {
 
 
 @lru_cache(maxsize=1000)
-def parse_lockfile_str(
-    lockfile_text: str, filepath_for_reference: Path, manifest_text: Optional[str]
+def parse_lockfile_path(
+    lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
+    lockfile_name = lockfile_path.name.lower()
     # coupling with the github action, which decides to send files with these names back to us
-    filepath = filepath_for_reference.name.lower()
-    if filepath in LOCKFILE_PARSERS:
-        try:
-            return list(LOCKFILE_PARSERS[filepath](lockfile_text, manifest_text))
-        except ParseError as e:
-            logger.error(f"Failed to parse {filepath_for_reference} with exception {e}")
-            return []
+    if lockfile_name in LOCKFILE_PARSERS:
+        return LOCKFILE_PARSERS[lockfile_name](lockfile_path, manifest_path)
     else:
-        raise SemgrepError(
-            f"don't know how to parse this filename: {filepath_for_reference}"
-        )
+        raise SemgrepError(f"don't know how to parse this filename: {lockfile_path}")
