@@ -58,7 +58,7 @@ manifest = (
     any_char.until(string("dependencies {\n"), consume_other=True)
     >> (manifest_line | success(None))
     .sep_by(string("\n"), min=1)
-    .map(lambda xs: print(xs) or {x for x in xs if x})
+    .map(lambda xs: {x for x in xs if x})
     << any_char.many()
 )
 

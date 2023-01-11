@@ -30,11 +30,9 @@ version = not_any([";", " ", "\n"])
 
 def dep(sep: "Parser[str]") -> "Parser[Tuple[str,str]]":
     return package.bind(
-        lambda package: print("Package" + repr(package))
-        or sep
+        lambda package: sep
         >> version.bind(
-            lambda version: print("Version" + repr(version))
-            or extra_info.optional() >> success((package, version))
+            lambda version: extra_info.optional() >> success((package, version))
         )
     )
 
