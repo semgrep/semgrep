@@ -55,23 +55,6 @@ let tests = List.flatten [
   (* TODO dune .opam file
         Unit_pretty_print_php.unittest;
   *)
-(*
-   Unit_foundation_php.unittest;
-   Unit_static_analysis_php.unittest;
-   Unit_typeinfer_php.unittest;
-*)
-  (*      Unit_analyze_db_php.unittest; *)
-  (*      Unit_static_analysis_simple_php.unittest;*)
-  (* TODO need extra deps to swipl
-        Unit_prolog_php.unittest;
-  *)
-  (*      Unit_checker_php.unittest; should be in check_generic/ now *)
-  (* this one needs xdebug to work *)
-  (* TODO dune .opam file
-        Unit_coverage_php.unittest;
-  *)
-
-  (* non PHP related tests *)
 
   Unit_parsing_ml.tests;
   Unit_parsing_scala.tests;
@@ -79,14 +62,12 @@ let tests = List.flatten [
         Unit_analyze_ml.unittest;
   *)
   Unit_parsing_java.tests;
-  Unit_analyze_java.tests;
   (* TODO dune
      #if FEATURE_BYTECODE
         Unit_analyze_bytecode.unittest;
      #endif
   *)
   Unit_parsing_js.tests;
-  Unit_analyze_js.tests;
   Unit_parsing_json.tests;
   Unit_parsing_python.tests;
   Unit_parsing_ruby.tests;
@@ -243,16 +224,6 @@ let pfff_extra_actions () = [
 
 let all_actions () =
   pfff_extra_actions() @
-  (* TODO .opam dune file
-     Test_analyze_php.actions()@
-  *)
-  Test_analyze_js.actions()@
-  Test_analyze_ruby.actions()@
-  Test_analyze_ml.actions()@
-  Test_analyze_cpp.actions()@
-(*
- Builtins_php.actions()@
-*)
   []
 
 let options () = [
