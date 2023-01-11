@@ -154,31 +154,6 @@ let pfff_extra_actions () = [
   "-json_bench", " <file>",
   Common.mk_action_1_arg test_json_bench;
 
-  "-check_overlay", " <dir_orig> <dir_overlay>",
-  Common.mk_action_2_arg (fun dir_orig dir_overlay ->
-    Overlay_code.check_overlay ~dir_orig ~dir_overlay;
-  );
-  "-gen_overlay", " <dir_orig> <dir_overlay> <output>",
-  Common.mk_action_3_arg (fun dir_orig dir_overlay output ->
-    Overlay_code.gen_overlay ~dir_orig ~dir_overlay ~output;
-  );
-  "-adapt_layers_overlay", " <overlay> <dir_layers> <dir_ayers_overlay>",
-  Common.mk_action_3_arg
-    (fun overlay dir_layers_orig dir_layers_overlay ->
-       Overlay_code.adapt_layers
-         ~overlay:(Overlay_code.load_overlay overlay)
-         ~dir_layers_orig
-         ~dir_layers_overlay
-       ;
-    );
-  "-adapt_database_overlay", "<overlay> <file> <output>",
-  Common.mk_action_3_arg (fun overlay orig output ->
-    let db =
-      Database_code.load_database orig in
-    let db2 =
-      Overlay_code.adapt_database db (Overlay_code.load_overlay overlay) in
-    Database_code.save_database db2 output
-  );
   "-action1", "", Common.mk_action_0_arg action1;
 
   (* TODO: move this outside pfff :) *)
@@ -276,7 +251,6 @@ let all_actions () =
   Test_analyze_ml.actions()@
   Test_analyze_cpp.actions()@
   Test_analyze_c.actions()@
-  Test_program_lang.actions()@
 (*
  Builtins_php.actions()@
 *)
