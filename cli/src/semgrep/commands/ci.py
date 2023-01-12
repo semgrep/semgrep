@@ -10,6 +10,7 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
+import json as jsonlib
 
 import click
 
@@ -26,6 +27,7 @@ from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.ignores import IGNORE_FILE_NAME
+from semgrep.config_resolver import Config
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitMeta
@@ -328,6 +330,18 @@ def ci(
             deep_semgrep_path = determine_deep_semgrep_path()
             if deep and not deep_semgrep_path.exists():
                 run_install_deep_semgrep()
+            if deep:
+                # Add the p/deepsemgrep rules
+                # TODO this is a temporary hack!!! In the future,
+                # we will ensure that deepsemgrep rules are in the
+                # default-v1 ruleset. This code should be removed
+                # by Feburary 2023
+                deep_semgrep_rules = Config.from_config_list(["p/deepsemgrep"], None)[0].get_rules(True)
+                deep_semgrep_rules = [r.raw for r in deep_semgrep_rules]
+                rules = jsonlib.loads(config[0])
+                if "rules" in rules:
+                    rules["rules"].extend(deep_semgrep_rules)
+                config = (jsonlib.dumps(rules), )
 
             # Append ignores configured on semgrep.dev
             requested_excludes = scan_handler.ignore_patterns if scan_handler else []
