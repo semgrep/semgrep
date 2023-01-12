@@ -322,7 +322,7 @@ Would have sent findings and ignores blob: {
                         "ecosystem": "pypi",
                         "allowed_hashes": {},
                         "transitivity": "unknown",
-                        "line_number": 2
+                        "line_number": 1
                     },
                     "lockfile": "poetry.lock"
                 }
@@ -442,7 +442,7 @@ Would have sent complete blob: {
         },
         "lockfile_scan_info": {
             "poetry.lock": 1,
-            "yarn.lock": 1
+            "yarn.lock": 0
         },
         "parse_rate": {
             "python": {
