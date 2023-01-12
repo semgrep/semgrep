@@ -209,7 +209,7 @@ type extract_spec = {
   dst_lang : Xlang.t;
   (* e.g., $...BODY, $CMD *)
   extract : MV.mvar;
-  json : bool;
+  transform : extract_transform;
 }
 
 (* Method to combine extracted ranges within a file:
@@ -217,6 +217,12 @@ type extract_spec = {
     - concatentate them together
 *)
 and extract_reduction = Separate | Concat [@@deriving show]
+
+(* Method to transform extracted content:
+    - either treat them as a raw string; or
+    - transform JSON array into a raw string
+*)
+and extract_transform = Unquote | ConcatJsonArray [@@deriving show]
 
 (*****************************************************************************)
 (* The rule *)

@@ -142,12 +142,12 @@ let mk_extract_target dst_lang contents rule_ids =
   }
 
 (* Unescapes JSON array string *)
-let extract_code_from_json json =
+let convert_from_json_array_to_string json =
   let json' = "{ \"semgrep_fake_payload\": " ^ json ^ "}" in
   Yojson.Basic.from_string json'
   |> Yojson.Basic.Util.member "semgrep_fake_payload"
   |> Yojson.Basic.Util.to_list
-  |> Common.map (fun x -> x |> Yojson.Basic.Util.to_string)
+  |> Common.map Yojson.Basic.Util.to_string
   |> String.concat "\n"
 
 (*****************************************************************************)
@@ -310,8 +310,9 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                 in
                 (* Convert from JSON to plaintext, if required *)
                 let contents =
-                  let (`Extract { Rule.json; _ }) = r.Rule.mode in
-                  if json then extract_code_from_json contents_raw
+                  let (`Extract { Rule.transform; _ }) = r.Rule.mode in
+                  if transform = ConcatJsonArray then
+                    convert_from_json_array_to_string contents_raw
                   else contents_raw
                 in
                 logger#trace
@@ -352,11 +353,12 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                   fun ({ Parse_info.charpos; _ } as loc) ->
                     if charpos < consumed_loc.start_pos then map_contents loc
                     else
-                      (* For some reason, with json extraction option, it needs a fix to point the right line *)
+                      (* For some reason, with the concat_json_string_array option, it needs a fix to point the right line *)
                       (* TODO: Find the reason of this behaviour and fix it properly *)
                       let line =
-                        let (`Extract { Rule.json; _ }) = r.Rule.mode in
-                        if json then loc.line - consumed_loc.start_line - 1
+                        let (`Extract { Rule.transform; _ }) = r.Rule.mode in
+                        if transform = ConcatJsonArray then
+                          loc.line - consumed_loc.start_line - 1
                         else loc.line - consumed_loc.start_line
                       in
                       map_snippet
@@ -415,8 +417,9 @@ let extract_as_separate erule_table xtarget rule_ids matches =
              in
              (* Convert from JSON to plaintext, if required *)
              let contents =
-               let (`Extract { Rule.json; _ }) = erule.mode in
-               if json then extract_code_from_json contents_raw
+               let (`Extract { Rule.transform; _ }) = erule.mode in
+               if transform = ConcatJsonArray then
+                 convert_from_json_array_to_string contents_raw
                else contents_raw
              in
              logger#trace
@@ -424,13 +427,12 @@ let extract_as_separate erule_table xtarget rule_ids matches =
                 %s"
                m.rule_id.id m.file start_extract_pos end_extract_pos contents;
              (* Write out the extracted text in a tmpfile *)
-             let (`Extract { Rule.dst_lang; _ }) = erule.mode in
+             let (`Extract { Rule.dst_lang; Rule.transform; _ }) = erule.mode in
              let target = mk_extract_target dst_lang contents rule_ids in
-             (* For some reason, with json extraction option, it needs a fix to point the right line *)
+             (* For some reason, with the concat_json_string_array option, it needs a fix to point the right line *)
              (* TODO: Find the reason of this behaviour and fix it properly *)
              let map_loc =
-               let (`Extract { Rule.json; _ }) = erule.mode in
-               if json then
+               if transform = ConcatJsonArray then
                  map_loc start_extract_pos (line_offset - 1) col_offset
                    xtarget.Xtarget.file
                else
