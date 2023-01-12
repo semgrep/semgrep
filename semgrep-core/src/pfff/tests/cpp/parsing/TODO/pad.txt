@@ -1,2 +1,0 @@
-those are regressions when I removed the call to
-find_template_commentize, find_qualifier_commentize

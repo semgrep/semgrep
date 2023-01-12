@@ -4,8 +4,11 @@
 
 open Common
 
+(* ran from _build/default/tests/ hence the '..'s below *)
+let tests_path = "../../../tests"
+
 let test_valid_files dialect rel_path () =
-  let dir = Config_pfff.tests_path rel_path in
+  let dir = Filename.concat tests_path rel_path in
   let files = Common2.glob (spf "%s/*.regexp" dir) in
   files
   |> List.iter (fun file ->
@@ -18,7 +21,7 @@ let test_valid_files dialect rel_path () =
                (Common.exn_to_s exn))
 
 let test_invalid_files dialect rel_path () =
-  let dir = Config_pfff.tests_path rel_path in
+  let dir = Filename.concat tests_path rel_path in
   let files = Common2.glob (spf "%s/*.regexp" dir) in
   files
   |> List.iter (fun file ->

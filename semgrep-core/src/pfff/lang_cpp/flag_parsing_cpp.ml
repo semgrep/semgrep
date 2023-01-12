@@ -9,7 +9,9 @@ type language = C | Cplusplus
 (*****************************************************************************)
 
 let macros_h =
-  ref (Filename.concat Config_pfff.path_pfff_home "/data/cpp_stdlib/macros.h")
+  ref
+    (Filename.concat (*Config_pfff.path_pfff_home*) ""
+       "/data/cpp_stdlib/macros.h")
 
 let cmdline_flags_macrofile () =
   [ ("-macros", Arg.Set_string macros_h, " <file> list of macros to expand") ]

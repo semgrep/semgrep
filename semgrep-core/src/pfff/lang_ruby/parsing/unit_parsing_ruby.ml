@@ -4,12 +4,14 @@ open Common
 (* Unit tests *)
 (*****************************************************************************)
 
+let tests_path = "../../../tests"
+
 let tests =
   Testutil.pack_tests "parsing_ruby"
     [
       ( "regression files",
         fun () ->
-          let dir = Config_pfff.tests_path "ruby/parsing" in
+          let dir = Filename.concat tests_path "ruby/parsing" in
           let files = Common2.glob (spf "%s/*.rb" dir) in
           files
           |> List.iter (fun file ->

@@ -4,12 +4,15 @@ open Common
 (* Unit tests *)
 (*****************************************************************************)
 
+(* ran from _build/default/tests/ hence the '..'s below *)
+let tests_path = "../../../tests"
+
 let tests =
   Testutil.pack_tests "parsing_js"
     [
       ( "regression files",
         fun () ->
-          let dir = Config_pfff.tests_path "js/parsing" in
+          let dir = Filename.concat tests_path "js/parsing" in
           let files =
             Common2.glob (spf "%s/*.js" dir)
             @ Common2.glob (spf "%s/jsx/*.js" dir)
@@ -26,7 +29,7 @@ let tests =
                      Alcotest.failf "it should correctly parse %s" file) );
       ( "regression files typescript",
         fun () ->
-          let dir = Config_pfff.tests_path "typescript/parsing" in
+          let dir = Filename.concat tests_path "typescript/parsing" in
           let files =
             Common2.glob (spf "%s/*.js" dir)
             @ Common2.glob (spf "%s/*.ts" dir)

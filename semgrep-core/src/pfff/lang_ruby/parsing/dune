@@ -6,7 +6,7 @@
    dyp
 
    commons
-   pfff-config pfff-h_program-lang
+   pfff-h_program-lang
  )
  (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord))
 )

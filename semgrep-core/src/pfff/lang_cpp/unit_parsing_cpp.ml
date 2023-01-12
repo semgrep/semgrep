@@ -9,9 +9,13 @@ let parse file =
       Common.save_excursion Flag.show_parsing_error false (fun () ->
           Common.save_excursion Flag.verbose_parsing false (fun () ->
               Parse_cpp.parse file)))
+
 (*****************************************************************************)
 (* Unit tests *)
 (*****************************************************************************)
+
+(* ran from _build/default/tests/ hence the '..'s below *)
+let tests_path = "../../../tests"
 
 let tests =
   Testutil.pack_tests "parsing_cpp"
@@ -30,7 +34,7 @@ let tests =
       (*-----------------------------------------------------------------------*)
       ( "regression files",
         fun () ->
-          let dir = Config_pfff.tests_path "cpp/parsing" in
+          let dir = Filename.concat tests_path "cpp/parsing" in
           let files =
             Common2.glob (spf "%s/*.cpp" dir) @ Common2.glob (spf "%s/*.h" dir)
           in
@@ -44,7 +48,7 @@ let tests =
                      Alcotest.failf "it should correctly parse %s" file) );
       ( "rejecting bad code",
         fun () ->
-          let dir = Config_pfff.tests_path "cpp/parsing_errors" in
+          let dir = Filename.concat tests_path "cpp/parsing_errors" in
           let files = Common2.glob (spf "%s/*.cpp" dir) in
           files
           |> List.iter (fun file ->
@@ -59,7 +63,7 @@ let tests =
       (* parsing C files (and not C++ files) possibly containing C++ keywords *)
       ( "C regression files",
         fun () ->
-          let dir = Config_pfff.tests_path "c/parsing" in
+          let dir = Filename.concat tests_path "c/parsing" in
           let files =
             Common2.glob (spf "%s/*.c" dir)
             (* @ Common2.glob (spf "%s/*.h" dir) *)

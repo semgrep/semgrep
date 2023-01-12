@@ -130,8 +130,7 @@ let action = ref ""
 (* Helpers *)
 (*****************************************************************************)
 
-let version =
-  spf "semgrep-core version: %s, pfff: %s" Version.version Config_pfff.version
+let version = spf "semgrep-core version: %s" Version.version
 
 (* Note that set_gc() may not interact well with Memory_limit and its use of
  * Gc.alarm. Indeed, the Gc.alarm triggers only at major cycle
