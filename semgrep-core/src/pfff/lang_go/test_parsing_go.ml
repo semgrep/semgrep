@@ -18,6 +18,9 @@ let test_tokens_go file =
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 
+(* TODO: was Error_code.try_with_print_exn_and_reraise *)
+let try_with_print_exn_and_reraise _a b = b ()
+
 let test_parse_go xs =
   let xs = List.map Common.fullpath xs in
 
@@ -34,7 +37,7 @@ let test_parse_go xs =
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
-             Error_code.try_with_print_exn_and_reraise file (fun () ->
+             try_with_print_exn_and_reraise file (fun () ->
                  let { Parse_info.stat; _ } =
                    Common.save_excursion Flag.error_recovery true (fun () ->
                        Common.save_excursion Flag.exn_when_lexical_error false

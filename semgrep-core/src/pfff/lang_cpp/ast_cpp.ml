@@ -227,7 +227,7 @@ and expr =
    * c++ext: N is now a 'name' instead of a 'string' and can be
    *  also an operator name.
    *)
-  | N of name * ident_info (* semantic: see check_variables_cpp.ml *)
+  | N of name
   | C of constant
   | IdSpecial of special wrap
   (* I used to have FunCallSimple but not that useful, and we want scope info
@@ -284,11 +284,6 @@ and expr =
   | DeepEllipsis of expr bracket
   | TypedMetavar of ident * type_
   | ExprTodo of todo_category * expr list
-
-(* see check_variables_cpp.ml *)
-and ident_info = {
-  mutable i_scope : Scope_code.t; [@printer fun _fmt _ -> "??"]
-}
 
 and special =
   (* c++ext: *)
@@ -1003,7 +998,6 @@ and declarator_name =
 (* Some constructors *)
 (*****************************************************************************)
 let nQ = []
-let noIdInfo () = { i_scope = Scope_code.NoScope }
 let noQscope = []
 
 (*****************************************************************************)
@@ -1013,7 +1007,7 @@ let unwrap x = fst x
 let unparen (_, x, _) = x
 let unwrap_typeC (_qu, typeC) = typeC
 let name_of_id (id : ident) : name = (None, [], IdIdent id)
-let expr_of_id id = N (name_of_id id, noIdInfo ())
+let expr_of_id id = N (name_of_id id)
 let expr_to_arg e = Arg e
 
 (* often used for fake return type for constructor *)

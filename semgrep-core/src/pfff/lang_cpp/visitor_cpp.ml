@@ -233,8 +233,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
     vin.kexpr (k, all_functions) v
   and v_expr x = v_expression x
   and v_expressionbis = function
-    | N (v1, v2) ->
-        let v1 = v_name v1 and v2 = v_ident_info v2 in
+    | N v1 ->
+        let v1 = v_name v1 in
         ()
     | C v1 ->
         let v1 = v_constant v1 in
@@ -373,9 +373,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Inits v1 ->
         let v1 = v_brace (v_list v_initialiser) v1 in
         ()
-  and v_ident_info { i_scope = _v_i_scope } =
-    (* todo? let arg = Scope_code.v_scope v_i_scope in () *)
-    ()
   and v_argument = function
     | Arg e -> v_expression e
     | ArgType v1 ->
