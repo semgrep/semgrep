@@ -314,7 +314,7 @@ _scan_options: List[Callable] = [
     ),
     optgroup.option(
         "--max-memory",
-        type=Optional[int],
+        type=int,
         help="""
             Maximum system memory to use running a rule on a single file in MiB. If set to
             0 will not have memory limit. Defaults to 0 unless the DeepSemgrep toggle is
