@@ -384,137 +384,141 @@ let all_actions () =
     (* possibly useful to the user *)
     ( "-show_ast_json",
       " <file> dump on stdout the generic AST of file in JSON",
-      Common.mk_action_1_arg dump_v1_json );
+      Arg_helpers.mk_action_1_arg dump_v1_json );
     ( "-generate_ast_json",
       " <file> save in file.ast.json the generic AST of file in JSON",
-      Common.mk_action_1_arg generate_ast_json );
+      Arg_helpers.mk_action_1_arg generate_ast_json );
     ( "-generate_ast_binary",
       " <file> save in file.ast.binary the marshalled generic AST of file",
-      Common.mk_action_1_arg (fun file ->
+      Arg_helpers.mk_action_1_arg (fun file ->
           generate_ast_binary (Xlang.lang_of_opt_xlang_exn !lang) file) );
     ( "-prefilter_of_rules",
       " <file> dump the prefilter regexps of rules in JSON ",
-      Common.mk_action_1_arg prefilter_of_rules );
+      Arg_helpers.mk_action_1_arg prefilter_of_rules );
     ( "-parsing_stats",
       " <files or dirs> generate parsing statistics (use -json for JSON output)",
-      Common.mk_action_n_arg (fun xs ->
+      Arg_helpers.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_stats
             (Xlang.lang_of_opt_xlang_exn !lang)
             ~json:(!output_format <> Text) ~verbose:true xs) );
     (* the dumpers *)
     ( "-dump_extensions",
       " print file extension to language mapping",
-      Common.mk_action_0_arg dump_ext_of_lang );
-    ("-dump_pattern", " <file>", Common.mk_action_1_arg dump_pattern);
+      Arg_helpers.mk_action_0_arg dump_ext_of_lang );
+    ("-dump_pattern", " <file>", Arg_helpers.mk_action_1_arg dump_pattern);
     ( "-dump_ast",
       " <file>",
       fun file ->
-        Common.mk_action_1_arg
+        Arg_helpers.mk_action_1_arg
           (dump_ast ~naming:false (Xlang.lang_of_opt_xlang_exn !lang))
           file );
     ( "-dump_named_ast",
       " <file>",
       fun file ->
-        Common.mk_action_1_arg
+        Arg_helpers.mk_action_1_arg
           (dump_ast ~naming:true (Xlang.lang_of_opt_xlang_exn !lang))
           file );
-    ("-dump_il_all", " <file>", Common.mk_action_1_arg dump_il_all);
-    ("-dump_il", " <file>", Common.mk_action_1_arg dump_il);
-    ("-dump_rule", " <file>", Common.mk_action_1_arg dump_rule);
+    ("-dump_il_all", " <file>", Arg_helpers.mk_action_1_arg dump_il_all);
+    ("-dump_il", " <file>", Arg_helpers.mk_action_1_arg dump_il);
+    ("-dump_rule", " <file>", Arg_helpers.mk_action_1_arg dump_rule);
     ( "-dump_equivalences",
       " <file> (deprecated)",
-      Common.mk_action_1_arg dump_equivalences );
+      Arg_helpers.mk_action_1_arg dump_equivalences );
     ( "-dump_jsonnet_ast",
       " <file>",
-      Common.mk_action_1_arg Test_ojsonnet.dump_jsonnet_ast );
+      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_ast );
     ( "-dump_jsonnet_core",
       " <file>",
-      Common.mk_action_1_arg Test_ojsonnet.dump_jsonnet_core );
+      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_core );
     ( "-dump_jsonnet_value",
       " <file>",
-      Common.mk_action_1_arg Test_ojsonnet.dump_jsonnet_value );
+      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_value );
     ( "-dump_jsonnet_json",
       " <file>",
-      Common.mk_action_1_arg Test_ojsonnet.dump_jsonnet_json );
+      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_json );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
-      Common.mk_action_1_arg (fun file ->
+      Arg_helpers.mk_action_1_arg (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_tree_sitter_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
             file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
-      Common.mk_action_1_arg (fun file ->
+      Arg_helpers.mk_action_1_arg (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Parse_pattern.dump_tree_sitter_pattern_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
             file) );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
-      Common.mk_action_1_arg (fun file ->
+      Arg_helpers.mk_action_1_arg (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) file)
     );
     ( "-diff_pfff_tree_sitter",
       " <file>",
-      Common.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
+      Arg_helpers.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
     (* Misc stuff *)
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
-      Common.mk_action_2_arg Test_synthesizing.expr_at_range );
+      Arg_helpers.mk_action_2_arg Test_synthesizing.expr_at_range );
     ( "-synthesize_patterns",
       " <l:c-l:c> <file>",
-      Common.mk_action_2_arg Test_synthesizing.synthesize_patterns );
+      Arg_helpers.mk_action_2_arg Test_synthesizing.synthesize_patterns );
     ( "-generate_patterns",
       " <l:c-l:c>+ <file>",
-      Common.mk_action_n_arg Test_synthesizing.generate_pattern_choices );
+      Arg_helpers.mk_action_n_arg Test_synthesizing.generate_pattern_choices );
     ( "-locate_patched_functions",
       " <file>",
-      Common.mk_action_1_arg Test_synthesizing.locate_patched_functions );
+      Arg_helpers.mk_action_1_arg Test_synthesizing.locate_patched_functions );
     ( "-stat_matches",
       " <marshalled file>",
-      Common.mk_action_1_arg Experiments.stat_matches );
+      Arg_helpers.mk_action_1_arg Experiments.stat_matches );
     ( "-ebnf_to_menhir",
       " <ebnf file>",
-      Common.mk_action_1_arg Experiments.ebnf_to_menhir );
+      Arg_helpers.mk_action_1_arg Experiments.ebnf_to_menhir );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
-      Common.mk_action_n_arg (fun xs ->
+      Arg_helpers.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_regressions
             (Xlang.lang_of_opt_xlang_exn !lang)
             xs) );
     ( "-test_parse_tree_sitter",
       " <files or dirs> test tree-sitter parser on target files",
-      Common.mk_action_n_arg (fun xs ->
+      Arg_helpers.mk_action_n_arg (fun xs ->
           Test_parsing.test_parse_tree_sitter
             (Xlang.lang_of_opt_xlang_exn !lang)
             xs) );
     ( "-check_rules",
       " <metachecks file> <files or dirs>",
-      Common.mk_action_n_arg (Check_rule.check_files mk_config Parse_rule.parse)
-    );
+      Arg_helpers.mk_action_n_arg
+        (Check_rule.check_files mk_config Parse_rule.parse) );
     ( "-translate_rules",
       " <files or dirs>",
-      Common.mk_action_n_arg (Translate_rule.translate_files Parse_rule.parse)
-    );
+      Arg_helpers.mk_action_n_arg
+        (Translate_rule.translate_files Parse_rule.parse) );
     ( "-stat_rules",
       " <files or dirs>",
-      Common.mk_action_n_arg (Check_rule.stat_files Parse_rule.parse) );
+      Arg_helpers.mk_action_n_arg (Check_rule.stat_files Parse_rule.parse) );
     ( "-test_rules",
       " <files or dirs>",
-      Common.mk_action_n_arg Test_engine.test_rules );
+      Arg_helpers.mk_action_n_arg Test_engine.test_rules );
     ( "-parse_rules",
       " <files or dirs>",
-      Common.mk_action_n_arg Test_parsing.test_parse_rules );
+      Arg_helpers.mk_action_n_arg Test_parsing.test_parse_rules );
     ( "-datalog_experiment",
       " <file> <dir>",
-      Common.mk_action_2_arg Datalog_experiment.gen_facts );
-    ("-postmortem", " <log file", Common.mk_action_1_arg Statistics_report.stat);
+      Arg_helpers.mk_action_2_arg Datalog_experiment.gen_facts );
+    ( "-postmortem",
+      " <log file",
+      Arg_helpers.mk_action_1_arg Statistics_report.stat );
     ( "-test_comby",
       " <pattern> <file>",
-      Common.mk_action_2_arg Test_comby.test_comby );
-    ("-test_eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.test_eval);
+      Arg_helpers.mk_action_2_arg Test_comby.test_comby );
+    ( "-test_eval",
+      " <JSON file>",
+      Arg_helpers.mk_action_1_arg Eval_generic.test_eval );
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
   @ Test_dataflow_tainting.actions ()
@@ -673,7 +677,7 @@ let options actions =
         " keep temporary generated files" );
     ]
   @ Meta_parse_info.cmdline_flags_precision ()
-  @ Common.options_of_actions action (actions ())
+  @ Arg_helpers.options_of_actions action (actions ())
   @ [
       ( "-version",
         Arg.Unit
@@ -731,7 +735,8 @@ let main (sys_argv : string array) : unit =
 
   (* does side effect on many global flags *)
   let args =
-    Common.parse_options (options all_actions) usage_msg (Array.of_list argv)
+    Arg_helpers.parse_options (options all_actions) usage_msg
+      (Array.of_list argv)
   in
 
   let config = mk_config () in
@@ -761,8 +766,10 @@ let main (sys_argv : string array) : unit =
       (* --------------------------------------------------------- *)
       (* actions, useful to debug subpart *)
       (* --------------------------------------------------------- *)
-      | xs when List.mem config.action (Common.action_list (all_actions ())) ->
-          Common.do_action config.action xs (all_actions ())
+      | xs
+        when List.mem config.action (Arg_helpers.action_list (all_actions ()))
+        ->
+          Arg_helpers.do_action config.action xs (all_actions ())
       | _ when not (Common.null_string config.action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
       (* --------------------------------------------------------- *)

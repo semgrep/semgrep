@@ -5597,7 +5597,7 @@ let cmdline_actions () =
   [
     ( "-test_check_stack",
       "  <limit>",
-      Common.mk_action_1_arg test_check_stack_size );
+      Arg_helpers.mk_action_1_arg test_check_stack_size );
   ]
 
 (*e: common.ml cmdline *)

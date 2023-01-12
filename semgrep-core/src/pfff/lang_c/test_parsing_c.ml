@@ -33,6 +33,6 @@ let test_dump_c file =
 
 let actions () =
   [
-    ("-parse_c", "   <file or dir>", Common.mk_action_n_arg test_parse_c);
-    ("-dump_c", "   <file>", Common.mk_action_1_arg test_dump_c);
+    ("-parse_c", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse_c);
+    ("-dump_c", "   <file>", Arg_helpers.mk_action_1_arg test_dump_c);
   ]

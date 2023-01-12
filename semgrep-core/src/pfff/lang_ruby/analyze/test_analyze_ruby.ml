@@ -60,6 +60,8 @@ let test_dump file =
 
 let actions () =
   [
-    ("-parse_il_ruby", "   <files or dirs>", Common.mk_action_n_arg test_parse);
-    ("-dump_il_ruby", "   <file>", Common.mk_action_1_arg test_dump);
+    ( "-parse_il_ruby",
+      "   <files or dirs>",
+      Arg_helpers.mk_action_n_arg test_parse );
+    ("-dump_il_ruby", "   <file>", Arg_helpers.mk_action_1_arg test_dump);
   ]

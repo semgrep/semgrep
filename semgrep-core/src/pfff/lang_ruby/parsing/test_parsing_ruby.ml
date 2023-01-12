@@ -80,7 +80,7 @@ let test_dump file =
 
 let actions () =
   [
-    ("-tokens_ruby", "   <file>", Common.mk_action_1_arg test_tokens);
-    ("-parse_ruby", "   <files or dirs>", Common.mk_action_n_arg test_parse);
-    ("-dump_ruby", "   <file>", Common.mk_action_1_arg test_dump);
+    ("-tokens_ruby", "   <file>", Arg_helpers.mk_action_1_arg test_tokens);
+    ("-parse_ruby", "   <files or dirs>", Arg_helpers.mk_action_n_arg test_parse);
+    ("-dump_ruby", "   <file>", Arg_helpers.mk_action_1_arg test_dump);
   ]

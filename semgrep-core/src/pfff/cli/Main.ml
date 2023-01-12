@@ -66,9 +66,11 @@ let test_json_pretty_printer file =
 (*s: function [[Main.pfff_extra_actions]] *)
 let pfff_extra_actions () =
   [
-    ("-dump_json", " <file>", Common.mk_action_1_arg test_json_pretty_printer);
+    ( "-dump_json",
+      " <file>",
+      Arg_helpers.mk_action_1_arg test_json_pretty_printer );
     (*s: [[Main.pfff_extra_actions]] other cases *)
-    ("-json_pp", " <file>", Common.mk_action_1_arg test_json_pretty_printer)
+    ("-json_pp", " <file>", Arg_helpers.mk_action_1_arg test_json_pretty_printer)
     (*e: [[Main.pfff_extra_actions]] other cases *);
   ]
 (*e: function [[Main.pfff_extra_actions]] *)
@@ -127,7 +129,7 @@ let options () =
   @ Common2.cmdline_flags_other ()
   (*e: [[Main.options]] concatenated flags *)
   (*s: [[Main.options]] concatenated actions *)
-  @ Common.options_of_actions action (all_actions ())
+  @ Arg_helpers.options_of_actions action (all_actions ())
   @ (*e: [[Main.options]] concatenated actions *)
   [
     ( "-version",
@@ -155,7 +157,7 @@ let main () =
     ^ " [options] <file or dir> " ^ "\n" ^ "Options are:"
   in
   (* does side effect on many global flags *)
-  let args = Common.parse_options (options ()) usage_msg Sys.argv in
+  let args = Arg_helpers.parse_options (options ()) usage_msg Sys.argv in
 
   if Sys.file_exists !log_config_file then (
     Logging.load_config_file !log_config_file;
@@ -168,8 +170,8 @@ let main () =
       (* --------------------------------------------------------- *)
       (* actions, useful to debug subpart *)
       (* --------------------------------------------------------- *)
-      | xs when List.mem !action (Common.action_list (all_actions ())) ->
-          Common.do_action !action xs (all_actions ())
+      | xs when List.mem !action (Arg_helpers.action_list (all_actions ())) ->
+          Arg_helpers.do_action !action xs (all_actions ())
       | _ when not (Common.null_string !action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
       (*e: [[Main.main()]] match [[args]] actions *)
@@ -181,7 +183,7 @@ let main () =
       (* empty entry *)
       (* --------------------------------------------------------- *)
       | [] ->
-          Common.usage usage_msg (options ());
+          Arg_helpers.usage usage_msg (options ());
           failwith "too few arguments")
 (*e: function [[Main.main]] *)
 

@@ -87,12 +87,12 @@ let refactor_grammar subst_file file =
 
 let actions () =
   [
-    ("-tokens_ml", "   <file>", Common.mk_action_1_arg test_tokens_ml);
+    ("-tokens_ml", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_ml);
     ( "-parse_ml",
       "   <files or dirs>",
-      Common.mk_action_n_arg test_parse_ml_or_mli );
-    ("-dump_ml", "   <file>", Common.mk_action_1_arg test_show_ml);
+      Arg_helpers.mk_action_n_arg test_parse_ml_or_mli );
+    ("-dump_ml", "   <file>", Arg_helpers.mk_action_1_arg test_show_ml);
     ( "-refactor_grammar",
       "   <subst_file> <file>",
-      Common.mk_action_2_arg refactor_grammar );
+      Arg_helpers.mk_action_2_arg refactor_grammar );
   ]

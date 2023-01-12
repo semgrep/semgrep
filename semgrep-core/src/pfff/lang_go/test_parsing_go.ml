@@ -66,7 +66,9 @@ let test_dump_go file =
 
 let actions () =
   [
-    ("-tokens_go", "   <file>", Common.mk_action_1_arg test_tokens_go);
-    ("-parse_go", "   <files or dirs>", Common.mk_action_n_arg test_parse_go);
-    ("-dump_go", "   <file>", Common.mk_action_1_arg test_dump_go);
+    ("-tokens_go", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_go);
+    ( "-parse_go",
+      "   <files or dirs>",
+      Arg_helpers.mk_action_n_arg test_parse_go );
+    ("-dump_go", "   <file>", Arg_helpers.mk_action_1_arg test_dump_go);
   ]

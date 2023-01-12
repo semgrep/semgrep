@@ -123,14 +123,14 @@ let test_json_bench file =
 (* ---------------------------------------------------------------------- *)
 let pfff_extra_actions () = [
   "-json_pp", " <file>",
-  Common.mk_action_1_arg test_json_pretty_printer;
+  Arg_helpers.mk_action_1_arg test_json_pretty_printer;
   "-json_bench", " <file>",
-  Common.mk_action_1_arg test_json_bench;
+  Arg_helpers.mk_action_1_arg test_json_bench;
 
-  "-action1", "", Common.mk_action_0_arg action1;
+  "-action1", "", Arg_helpers.mk_action_0_arg action1;
 
   (* TODO: move this outside pfff :) *)
-  "-action2", "<files>", Common.mk_action_n_arg (fun xs ->
+  "-action2", "<files>", Arg_helpers.mk_action_n_arg (fun xs ->
     xs |> List.iter (fun file ->
       let (_d,b,_e) = Common2.dbe_of_filename file in
       let (d,b,e) = "/home/pad/plan9/sys/src/include", b, "h.clang2" in
@@ -143,7 +143,7 @@ let pfff_extra_actions () = [
     print_string "\n";
   );
 
-  "-relativize", "<dir>", Common.mk_action_1_arg (fun dir ->
+  "-relativize", "<dir>", Arg_helpers.mk_action_1_arg (fun dir ->
     let dir = Common.fullpath dir in
     let candidates = Common.cmd_to_list (spf "find %s -type l" dir) in
     let root = "/Users/yoann.padioleau/github/xix/xix-plan9/" in
@@ -160,7 +160,7 @@ let pfff_extra_actions () = [
     );
   );
 
-  "-luisa", "<files>", Common.mk_action_4_arg (fun t1 t2 t3 s6 ->
+  "-luisa", "<files>", Arg_helpers.mk_action_4_arg (fun t1 t2 t3 s6 ->
     let f file =
       Common.cat file
 
@@ -202,7 +202,7 @@ let options () = [
   "-verbose", Arg.Set verbose,
   " ";
 ] @
-  Common.options_of_actions action (all_actions()) @
+  Arg_helpers.options_of_actions action (all_actions()) @
   Common2.cmdline_flags_devel () @
   Common2.cmdline_flags_other () @
   [
@@ -232,7 +232,7 @@ let run_cli () =
     " [options] <file or dir> " ^ "\n" ^ "Options are:"
   in
   (* does side effect on many global flags *)
-  let args = Common.parse_options (options()) usage_msg Sys.argv in
+  let args = Arg_helpers.parse_options (options()) usage_msg Sys.argv in
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Common.profile_code "Main total" (fun () ->
@@ -242,8 +242,8 @@ let run_cli () =
      (* --------------------------------------------------------- *)
      (* actions, useful to debug subpart *)
      (* --------------------------------------------------------- *)
-     | xs when List.mem !action (Common.action_list (all_actions())) ->
-         Common.do_action !action xs (all_actions())
+     | xs when List.mem !action (Arg_helpers.action_list (all_actions())) ->
+         Arg_helpers.do_action !action xs (all_actions())
 
      | _ when not (Common.null_string !action) ->
          failwith ("unrecognized action or wrong params: " ^ !action)
@@ -259,7 +259,7 @@ let run_cli () =
      (* --------------------------------------------------------- *)
      | [] -> run_alcotest_tests ()
      | _ ->
-         Common.usage usage_msg (options());
+         Arg_helpers.usage usage_msg (options());
          failwith "too few or too many arguments"
     )
   )

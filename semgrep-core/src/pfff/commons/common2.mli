@@ -1808,9 +1808,9 @@ val unserial : 'a cached -> 'a
 (* Postlude *)
 (*###########################################################################*)
 (*s: common.mli postlude *)
-val cmdline_flags_devel : unit -> Common.cmdline_options
-val cmdline_flags_verbose : unit -> Common.cmdline_options
-val cmdline_flags_other : unit -> Common.cmdline_options
-val cmdline_actions : unit -> Common.cmdline_actions
+val cmdline_flags_devel : unit -> Arg_helpers.cmdline_options
+val cmdline_flags_verbose : unit -> Arg_helpers.cmdline_options
+val cmdline_flags_other : unit -> Arg_helpers.cmdline_options
+val cmdline_actions : unit -> Arg_helpers.cmdline_actions
 (*e: common.mli postlude *)
 (*e: common.mli *)
