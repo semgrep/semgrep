@@ -404,85 +404,87 @@ let actions () =
   [
     ( "-parse_php_simple",
       "   <files or dirs>",
-      Common.mk_action_n_arg test_parse_simple );
-    ("-dump_php_simple", "   <file>", Common.mk_action_1_arg test_dump_simple)
+      Arg_helpers.mk_action_n_arg test_parse_simple );
+    ( "-dump_php_simple",
+      "   <file>",
+      Arg_helpers.mk_action_1_arg test_dump_simple )
     (*
   "-pp_php_simple", "   <file>",
-  Common.mk_action_1_arg test_pp_simple;
+  Arg_helpers.mk_action_1_arg test_pp_simple;
 *)
     (*
   "-scope_php", " <file>",
-  Common.mk_action_1_arg test_scope_php;
+  Arg_helpers.mk_action_1_arg test_scope_php;
   "-type_php", " <file>",
-  Common.mk_action_1_arg test_type_php;
+  Arg_helpers.mk_action_1_arg test_type_php;
 *)
     (*s: test_analyze_php actions *)
     (*
     "-cfg_php",  " <file>",
-    Common.mk_action_1_arg test_cfg_php;
+    Arg_helpers.mk_action_1_arg test_cfg_php;
 
     "-dflow_php",  " <file>",
-    Common.mk_action_1_arg test_dflow_php;
+    Arg_helpers.mk_action_1_arg test_dflow_php;
   (*x: test_analyze_php actions *)
     "-cyclomatic_php", " <file>",
-    Common.mk_action_1_arg test_cyclomatic_php;
+    Arg_helpers.mk_action_1_arg test_cyclomatic_php;
   (*e: test_analyze_php actions *)
   "-callgraph_php", "   <file>",
-  Common.mk_action_1_arg test_callgraph_php;
+  Arg_helpers.mk_action_1_arg test_callgraph_php;
 *)
     (*
   "-dfg_php",  " <file>",
-    Common.mk_action_1_arg test_dfg_php;
+    Arg_helpers.mk_action_1_arg test_dfg_php;
     "-test_pil",  " <file>",
-    Common.mk_action_1_arg test_pil;
+    Arg_helpers.mk_action_1_arg test_pil;
     "-test_pretty_print_pil", " <file>",
-    Common.mk_action_1_arg test_pretty_print_pil;
+    Arg_helpers.mk_action_1_arg test_pretty_print_pil;
     "-cfg_pil",  " <file>",
-    Common.mk_action_1_arg test_cfg_pil;
+    Arg_helpers.mk_action_1_arg test_cfg_pil;
     "-dataflow_pil", " <file",
-    Common.mk_action_1_arg test_dataflow_pil;
+    Arg_helpers.mk_action_1_arg test_dataflow_pil;
     "-visitor_pil", " <file",
-    Common.mk_action_1_arg test_visitor_pil;
+    Arg_helpers.mk_action_1_arg test_visitor_pil;
 *)
     (*
   "-ia_php", " <file> <depth>",
-  Common.mk_action_1_arg (fun file ->
+  Arg_helpers.mk_action_1_arg (fun file ->
     test_abstract_interpreter file 6
   );
   "-ia_php_depth", " <file> <depth>",
-  Common.mk_action_2_arg (fun file n ->
+  Arg_helpers.mk_action_2_arg (fun file n ->
     test_abstract_interpreter file (int_of_string n)
   );
 
   "-prolog_php", " <file> <query>",
-  Common.mk_action_2_arg (fun file query ->
+  Arg_helpers.mk_action_2_arg (fun file query ->
     test_prolog_php file query;
   );
 
   "-stat_php", " <files_or_dirs>",
-  Common.mk_action_n_arg test_stat_php;
+  Arg_helpers.mk_action_n_arg test_stat_php;
 
   "-include_require_static", " <file>",
-  Common.mk_action_1_arg test_include_require;
+  Arg_helpers.mk_action_1_arg test_include_require;
   "-unsugar_php", " <file>",
-  Common.mk_action_1_arg test_unsugar_php;
+  Arg_helpers.mk_action_1_arg test_unsugar_php;
 
   "-php_xdebug", " <file>",
-  Common.mk_action_1_arg test_php_xdebug;
+  Arg_helpers.mk_action_1_arg test_php_xdebug;
   "-type_xdebug_php", " <file>",
-  Common.mk_action_1_arg test_type_xdebug_php;
+  Arg_helpers.mk_action_1_arg test_type_xdebug_php;
   "-parse_xdebug_dumpfile", " <dumpfile>",
-  Common.mk_action_1_arg test_xdebug_dumpfile;
+  Arg_helpers.mk_action_1_arg test_xdebug_dumpfile;
   "-parse_phpunit_json", " <jsonfile>",
-  Common.mk_action_1_arg test_parse_phpunit_json;
+  Arg_helpers.mk_action_1_arg test_parse_phpunit_json;
 *)
     (*
   "-test_phpdoc", " <dir>",
-  Common.mk_action_1_arg test_phpdoc;
+  Arg_helpers.mk_action_1_arg test_phpdoc;
 *)
     (*
   "-test_php_serialize", " <file>",
-  Common.mk_action_1_arg test_php_serialize;
+  Arg_helpers.mk_action_1_arg test_php_serialize;
 *);
   ]
 

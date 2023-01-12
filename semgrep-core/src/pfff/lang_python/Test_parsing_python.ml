@@ -63,15 +63,20 @@ let test_dump_python file =
 
 let actions () =
   [
-    ("-tokens_python", "   <file>", Common.mk_action_1_arg test_tokens_python);
+    ( "-tokens_python",
+      "   <file>",
+      Arg_helpers.mk_action_1_arg test_tokens_python );
     ( "-parse_python",
       "   <files or dirs>",
-      Common.mk_action_n_arg (test_parse_python_common Parse_python.Python) );
+      Arg_helpers.mk_action_n_arg (test_parse_python_common Parse_python.Python)
+    );
     ( "-parse_python2",
       "   <files or dirs>",
-      Common.mk_action_n_arg (test_parse_python_common Parse_python.Python2) );
+      Arg_helpers.mk_action_n_arg
+        (test_parse_python_common Parse_python.Python2) );
     ( "-parse_python3",
       "   <files or dirs>",
-      Common.mk_action_n_arg (test_parse_python_common Parse_python.Python3) );
-    ("-dump_python", "   <file>", Common.mk_action_1_arg test_dump_python);
+      Arg_helpers.mk_action_n_arg
+        (test_parse_python_common Parse_python.Python3) );
+    ("-dump_python", "   <file>", Arg_helpers.mk_action_1_arg test_dump_python);
   ]

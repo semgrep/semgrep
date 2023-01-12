@@ -133,11 +133,11 @@ let test_visitor_print file =
 
 let actions () =
   [
-    ("-tokens_java", "   <file>", Common.mk_action_1_arg test_lexer);
-    ("-parse_java", "   <file or dir>", Common.mk_action_n_arg test_parse);
-    ("-dump_java", "   <file>", Common.mk_action_1_arg test_dump);
-    ("-visitor_java", "   <file>", Common.mk_action_1_arg test_visitor);
+    ("-tokens_java", "   <file>", Arg_helpers.mk_action_1_arg test_lexer);
+    ("-parse_java", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse);
+    ("-dump_java", "   <file>", Arg_helpers.mk_action_1_arg test_dump);
+    ("-visitor_java", "   <file>", Arg_helpers.mk_action_1_arg test_visitor);
     ( "-visitor_java_print",
       "   <file>",
-      Common.mk_action_1_arg test_visitor_print );
+      Arg_helpers.mk_action_1_arg test_visitor_print );
   ]

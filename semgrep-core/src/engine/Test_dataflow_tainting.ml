@@ -102,5 +102,5 @@ let actions () =
   [
     ( "-dfg_tainting",
       "<rules> <target>",
-      Common.mk_action_2_arg test_dfg_tainting );
+      Arg_helpers.mk_action_2_arg test_dfg_tainting );
   ]

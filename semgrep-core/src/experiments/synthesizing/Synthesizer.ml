@@ -36,7 +36,7 @@ let target_to_string lang target =
 let parse_range_args s =
   let rec read_input xs =
     match xs with
-    | [] -> raise WrongNumberOfArguments
+    | [] -> raise Arg_helpers.WrongNumberOfArguments
     | [ x ] -> ([], x)
     | x :: xs ->
         let ranges, file = read_input xs in

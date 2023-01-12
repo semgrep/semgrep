@@ -13,5 +13,5 @@ let actions ~parse_program =
   [
     ( "-naming_generic",
       " <file>",
-      Common.mk_action_1_arg (test_naming_generic ~parse_program) );
+      Arg_helpers.mk_action_1_arg (test_naming_generic ~parse_program) );
   ]

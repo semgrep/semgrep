@@ -174,29 +174,35 @@ let test_dump_cpp_dyp file =
 
 let actions () =
   [
-    ("-tokens_cpp", "   <file>", Common.mk_action_1_arg test_tokens_cpp);
-    ("-parse_cpp", "   <file or dir>", Common.mk_action_n_arg test_parse_cpp);
+    ("-tokens_cpp", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_cpp);
+    ( "-parse_cpp",
+      "   <file or dir>",
+      Arg_helpers.mk_action_n_arg test_parse_cpp );
     ( "-parse_cpp_c",
       "   <file or dir>",
-      Common.mk_action_n_arg (test_parse_cpp ~lang:Flag_cpp.C) );
+      Arg_helpers.mk_action_n_arg (test_parse_cpp ~lang:Flag_cpp.C) );
     ( "-parse_cpp_cplusplus",
       "   <file or dir>",
-      Common.mk_action_n_arg (test_parse_cpp ~lang:Flag_cpp.Cplusplus) );
+      Arg_helpers.mk_action_n_arg (test_parse_cpp ~lang:Flag_cpp.Cplusplus) );
     (*
   "-parse_cpp_dyp", "   <file or dir>",
-  Common.mk_action_n_arg (test_parse_cpp_dyp);
+  Arg_helpers.mk_action_n_arg (test_parse_cpp_dyp);
 *)
-    ("-dump_cpp", "   <file>", Common.mk_action_1_arg test_dump_cpp);
-    ("-dump_cpp_full", "   <file>", Common.mk_action_1_arg test_dump_cpp_full);
-    ("-dump_cpp_view", "   <file>", Common.mk_action_1_arg test_dump_cpp_view);
+    ("-dump_cpp", "   <file>", Arg_helpers.mk_action_1_arg test_dump_cpp);
+    ( "-dump_cpp_full",
+      "   <file>",
+      Arg_helpers.mk_action_1_arg test_dump_cpp_full );
+    ( "-dump_cpp_view",
+      "   <file>",
+      Arg_helpers.mk_action_1_arg test_dump_cpp_view );
     (*
   "-dump_cpp_dyp", "   <file>",
   Common.mk_action_1_arg test_dump_cpp_dyp;
 *)
     ( "-parse_cpp_fuzzy",
       "   <files or dirs>",
-      Common.mk_action_n_arg test_parse_cpp_fuzzy )
+      Arg_helpers.mk_action_n_arg test_parse_cpp_fuzzy )
     (*
-    ("-dump_cpp_fuzzy", "   <file>", Common.mk_action_1_arg test_dump_cpp_fuzzy);
+    ("-dump_cpp_fuzzy", "   <file>", Arg_helpers.mk_action_1_arg test_dump_cpp_fuzzy);
  *);
   ]

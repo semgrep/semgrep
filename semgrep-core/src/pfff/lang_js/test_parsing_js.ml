@@ -173,16 +173,18 @@ let parse_js_r2c xs =
 
 let actions () =
   [
-    ("-tokens_js", "   <file>", Common.mk_action_1_arg test_tokens_js);
-    ("-parse_js", "   <file or dir>", Common.mk_action_n_arg test_parse_js);
-    ("-parse_ts", "   <file or dir>", Common.mk_action_n_arg test_parse_ts);
-    ("-dump_js", "   <file>", Common.mk_action_1_arg test_dump_js);
-    ("-dump_ts", "   <file>", Common.mk_action_1_arg test_dump_ts);
-    ("-parse_js_r2c", "   <file or dir>", Common.mk_action_n_arg parse_js_r2c)
+    ("-tokens_js", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_js);
+    ("-parse_js", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse_js);
+    ("-parse_ts", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse_ts);
+    ("-dump_js", "   <file>", Arg_helpers.mk_action_1_arg test_dump_js);
+    ("-dump_ts", "   <file>", Arg_helpers.mk_action_1_arg test_dump_ts);
+    ( "-parse_js_r2c",
+      "   <file or dir>",
+      Arg_helpers.mk_action_n_arg parse_js_r2c )
     (* old:
        "-json_js", "   <file> export the AST of file into JSON",
-       Common.mk_action_1_arg test_json_js;
+       Arg_helpers.mk_action_1_arg test_json_js;
        "-parse_esprima_json", " <file> ",
-       Common.mk_action_1_arg test_esprima;
+       Arg_helpers.mk_action_1_arg test_esprima;
     *);
   ]
