@@ -10,21 +10,18 @@
     uucp uutf
 
     ; pfff deps
-    commons commons_core commons_ocollection
-    pfff-config
+    commons
     pfff-h_program-lang
-    pfff-lang_python pfff-lang_python-analyze
-    pfff-lang_js pfff-lang_js-analyze
+    pfff-lang_python
+    pfff-lang_js
     pfff-lang_json
-    pfff-lang_cpp pfff-lang_cpp-analyze
-    pfff-lang_c pfff-lang_c-analyze
-    pfff-lang_ml pfff-lang_ml-analyze
-    pfff-lang_java pfff-lang_java-analyze
-    pfff-lang_go pfff-lang_go-analyze
+    pfff-lang_cpp
+    pfff-lang_c
+    pfff-lang_ml
+    pfff-lang_java
+    pfff-lang_go
     pfff-lang_ruby pfff-lang_ruby-analyze
     pfff-lang_php
-    pfff-lang_lisp
-    pfff-lang_skip
 
     ; tree-sitter deps
     tree-sitter-lang.ruby

@@ -1,0 +1,51 @@
+# -*- org -*-
+
+* TODO dot levels and names
+
+24: shift/reduce conflict (shift 110, reduce 15) on NAME
+state 24
+	import_from : FROM . name_and_level IMPORT MULT  (9)
+	import_from : FROM . name_and_level IMPORT LPAREN import_as_names RPAREN  (10)
+	import_from : FROM . name_and_level IMPORT import_as_names  (11)
+	dot_level : .  (15)
+
+* async def
+
+note that compound_stmt allow async_funcdef and async_stmt
+which contains an 'ASYNC funcdef' which seems to be a conflict.
+To solve the issue, the python grammar actually imposes that
+the async_funcdef be decorated by at least one attribute, hence
+the introduction of the weird decorated rule.
+
+* lambda x : y
+
+We want to allow types on parameters,
+with
+    fpdef : NAME
+          | LPAREN fpdef_list RPAREN
+          | NAME COLON test
+
+and
+  fpkwargs:
+  | POW NAME { Some $2 }
+  | POW NAME COLON test { Some $2 }
+
+in varargslist.
+
+But then lambda varargslist can be also followed by a colon:
+
+	lambdadef : LAMBDA . varargslist COLON test  (232)
+
+which results in some shift/reduce conflicts:
+
+102: shift/reduce conflict (shift 202, reduce 54) on COLON
+state 102
+	fpdef : NAME .  (54)
+	fpdef : NAME . COLON test  (56)
+206: shift/reduce conflict (shift 298, reduce 60) on COLON
+state 206
+	fpkwargs : POW NAME .  (60)
+	fpkwargs : POW NAME . COLON test  (61)
+
+==> have varargslist and typedargslist (as used in recent
+Python grammars)

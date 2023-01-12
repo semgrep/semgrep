@@ -16,23 +16,20 @@ Run parsing stats for all the languages supported by semgrep-core.
 Options:
   --help
      Show this message and exit.
-  --upload
-     Upload the stats to the semgrep dashboard as soon as they're available
-     for each language.
+  [OTHER]
+     All other arguments are forwarded to './run-lang'.
+     See './run-lang --help'.
 EOF
 }
 
 while [[ $# != 0 ]]; do
   case "$1" in
-    --upload)
-      forwarded_option_list+=" --upload"
-      ;;
     --help)
       usage
       exit 0
       ;;
     *)
-      error "Unsupported command-line argument: $1"
+      forwarded_option_list+=" $1"
   esac
   shift
 done

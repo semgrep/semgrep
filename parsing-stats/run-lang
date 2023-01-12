@@ -10,19 +10,20 @@ progname=$(basename "$0")
 
 usage() {
   cat <<EOF
-Usage: $progname [--upload] LANG
+Usage: $progname [--upload] [--semgrep-core CMD_NAME] LANG
 
 Expects:
 - lang/LANG/projects.txt: contains one git URL per line
-- semgrep-core command must be available
+- semgrep-core command must be available unless an alternative is specified
+  with '--semgrep-core'.
 
 Produces lang/LANG/stats.json.
 
-Example: $progname java
+Examples:
+  $progname java
+  $progname apex --semgrep-core semgrep-core-proprietary
 EOF
 }
-
-echo using `which semgrep-core`
 
 error() {
   echo "Error: $*" >&2
@@ -32,12 +33,17 @@ error() {
 projects_file=projects.txt
 lang=""
 with_upload=false
+semgrep_core="semgrep-core"
 
 while [[ $# != 0 ]]; do
   case "$1" in
     --help)
       usage
       exit 0
+      ;;
+    --semgrep-core)
+      semgrep_core=$2
+      shift
       ;;
     --upload)
       with_upload=true
@@ -92,6 +98,11 @@ EOF
 }
 
 main() {
+  if sc=$(which "$semgrep_core"); then
+    echo "semgrep-core is: $sc"
+  else
+    error "failed to locate $semgrep_core"
+  fi
   (
     cd lang/"$lang"
 
@@ -113,7 +124,7 @@ main() {
       # 'Fatal error: out of memory' that even Memory_limit can't intercept.
       # See the long comment in Test_parsing.parsing_common about
       # mem_limit_mb.
-      semgrep-core -lang "$lang" -parsing_stats -json $project_list
+      "$semgrep_core" -lang "$lang" -parsing_stats -json $project_list
     ) > stats.json 2> stats.log
   )
 
@@ -122,7 +133,7 @@ main() {
   fi
   echo "stats available in lang/$lang/stats.json"
   #alt: cat lang/$lang/stats.json | jq .global
-  semgrep-core -lang json -e '"global": { ... }' lang/"$lang"/stats.json
+  "$semgrep_core" -lang json -e '"global": { ... }' lang/"$lang"/stats.json
 }
 
 main

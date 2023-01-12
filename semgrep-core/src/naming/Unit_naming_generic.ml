@@ -4,18 +4,21 @@ open Common
 (* Unit tests *)
 (*****************************************************************************)
 
+(* ran from _build/default/tests/ hence the '..'s below *)
+let tests_path = "../../../tests"
+
 let tests parse_program =
   Testutil.pack_tests "naming generic"
     [
       ( "regression files",
         fun () ->
-          let dir = Config_pfff.tests_path "naming/python" in
+          let dir = Filename.concat tests_path "naming/python" in
           let files1 = Common2.glob (spf "%s/*.py" dir) in
-          let dir = Config_pfff.tests_path "naming/go" in
+          let dir = Filename.concat tests_path "naming/go" in
           let files2 = Common2.glob (spf "%s/*.go" dir) in
-          let dir = Config_pfff.tests_path "naming/js" in
+          let dir = Filename.concat tests_path "naming/js" in
           let files3 = Common2.glob (spf "%s/*.js" dir) in
-          let dir = Config_pfff.tests_path "naming/java" in
+          let dir = Filename.concat tests_path "naming/java" in
           let files4 = Common2.glob (spf "%s/*.java" dir) in
 
           files1 @ files2 @ files3 @ files4

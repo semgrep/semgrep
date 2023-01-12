@@ -31,6 +31,7 @@ https://github.com/swimlane/ngx-datatable
 https://github.com/NativeScript/NativeScript
 https://github.com/ant-design/ant-design-mobile
 https://github.com/basarat/typescript-book
+https://github.com/vuejs/vue.git
 
 # popular and used by R2C
 https://github.com/microsoft/vscode

@@ -4,7 +4,6 @@
  (libraries
    ppx_deriving.runtime
    commons
-   pfff-config
    pfff-h_program-lang
    pfff-lang_GENERIC
 

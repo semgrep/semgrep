@@ -733,6 +733,10 @@ def scan(
     elif vim:
         output_format = OutputFormat.VIM
 
+    # If `deep` is enabled, turn on `dataflow_traces` by default.
+    if deep:
+        dataflow_traces = True
+
     output_settings = OutputSettings(
         output_format=output_format,
         output_destination=output,

@@ -124,7 +124,6 @@ install-deps-for-semgrep-core:
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally).
-	opam install -y --deps-only ./semgrep-core/src/pfff
 	opam install -y --deps-only ./semgrep-core/src/ocaml-tree-sitter-core
 	opam install -y --deps-only ./semgrep-core
 
@@ -199,7 +198,6 @@ homebrew-setup:
 	# because this check was failing on some platform.
 	# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
 	# This workaround may no longer be necessary.
-	opam install -y --deps-only --no-depexts ./semgrep-core/src/pfff
 	opam install -y --deps-only --no-depexts ./semgrep-core/src/ocaml-tree-sitter-core
 	opam install -y --deps-only --no-depexts ./semgrep-core
 
@@ -282,7 +280,7 @@ update_semgrep_rules:
 
 
 #coupling: see also .circleci/config.yml and its 'semgrep' job
-SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
+SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests --exclude pfff
 # you can add --verbose for debugging
 
 DOCKER_IMAGE=returntocorp/semgrep:develop

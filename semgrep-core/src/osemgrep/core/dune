@@ -28,3 +28,13 @@
    )
  )
 )
+
+; this is just used in Metrics.ml
+(rule
+ (targets semgrep_metrics_j.ml semgrep_metrics_j.mli)
+ (deps    semgrep_metrics.atd)
+ (action  (run atdgen -j -j-std %{deps})))
+(rule
+ (targets semgrep_metrics_t.ml semgrep_metrics_t.mli)
+ (deps    semgrep_metrics.atd)
+ (action  (run atdgen -t %{deps})))

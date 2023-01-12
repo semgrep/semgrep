@@ -1,6 +1,3 @@
-[submodule "pfff"]
-	path = semgrep-core/src/pfff
-	url = https://github.com/returntocorp/pfff.git
 [submodule "semgrep-core/tree-sitter-lang/semgrep-c"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-c
 	url = https://github.com/returntocorp/semgrep-c
@@ -97,3 +94,6 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-jsonnet"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-jsonnet
 	url = https://github.com/returntocorp/semgrep-jsonnet.git
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-clojure"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-clojure
+	url = https://github.com/returntocorp/semgrep-clojure.git

@@ -130,6 +130,9 @@ let dump_pfff_ast lang file =
 *)
 let dump_tree_sitter_cst lang file =
   match lang with
+  | Lang.Clojure ->
+      Tree_sitter_clojure.Parse.file file
+      |> dump_and_print_errors Tree_sitter_clojure.Boilerplate.dump_tree
   | Lang.R ->
       Tree_sitter_r.Parse.file file
       |> dump_and_print_errors Tree_sitter_r.CST.dump_tree

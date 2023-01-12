@@ -270,13 +270,6 @@ def main(
     Collection[RuleSeverity],
     Dict[str, int],
 ]:
-    logger.debug(f"semgrep version {__VERSION__}")
-    if include is None:
-        include = []
-
-    if exclude is None:
-        exclude = []
-
     project_url = get_project_url()
     profiler = ProfileManager()
 

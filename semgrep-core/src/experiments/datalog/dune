@@ -3,8 +3,7 @@
  (wrapped false)
  (libraries
    yaml
-   commons commons_ocollection
-   pfff-config
+   commons
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
 

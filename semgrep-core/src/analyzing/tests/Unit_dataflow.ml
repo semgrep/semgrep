@@ -6,13 +6,16 @@ open Common
 
 let timeout_secs = 1.0
 
+(* ran from _build/default/tests/ hence the '..'s below *)
+let tests_path = "../../../tests"
+
 let tests parse_program =
   Testutil.pack_tests "dataflow_python"
     [
       (* Just checking that it terminates without crashing. *)
       ( "regression files",
         fun () ->
-          let dir = Config_pfff.tests_path "dataflow/python" in
+          let dir = Filename.concat tests_path "dataflow/python" in
           let files = Common2.glob (spf "%s/*.py" dir) in
           files
           |> List.iter (fun file ->

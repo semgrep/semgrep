@@ -2,9 +2,6 @@
  * as small as possible (it is already very big).
  *)
 
-(* Provide hash_* and hash_fold_* for the core ocaml types *)
-open Ppx_hash_lib.Std.Hash.Builtin
-
 (*****************************************************************************)
 (* Accessories *)
 (*****************************************************************************)
@@ -28,23 +25,7 @@ end
    Such ID should not be expected to be unique across ASTs,
    since ASTs can be loaded from an external cache, for example.
 *)
-module Node_ID : sig
-  (* TODO: update the ml grammar in pfff to support 'private' type aliases *)
-  type t = (*private*) int [@@deriving show, eq, hash]
-
-  val create : unit -> t
-end = struct
-  type t = int [@@deriving show, eq, hash]
-
-  let create =
-    let counter = ref 0 in
-    fun () ->
-      let id = !counter in
-      if id = -1 then failwith "Node_ID.create: int overflow"
-      else (
-        incr counter;
-        id)
-end
+module Node_ID = Gensym.MkId ()
 
 (*
    Trickery to offer two collections of equality functions:

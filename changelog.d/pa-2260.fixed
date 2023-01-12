@@ -1,1 +1,0 @@
-DeepSemgrep: Fixed a bug where imports which reached type names (among other things) would not resolve properly

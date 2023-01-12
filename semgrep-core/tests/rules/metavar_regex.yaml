@@ -3,7 +3,7 @@ rules:
   languages:
   - python
   match:
-    and:
+    all:
     - foo($ARG)
     where:
     - metavariable: $ARG

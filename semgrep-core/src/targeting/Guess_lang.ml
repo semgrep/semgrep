@@ -240,6 +240,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Apex
     | Bash
     | C
+    | Clojure
     | Cpp
     | Csharp
     | Dart
@@ -252,6 +253,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Jsonnet
     | Julia
     | Kotlin
+    | Lisp
     | Lua
     | Ocaml
     | Python2
@@ -261,6 +263,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Ruby
     | Rust
     | Scala
+    | Scheme
     | Solidity
     | Swift
     | Hcl

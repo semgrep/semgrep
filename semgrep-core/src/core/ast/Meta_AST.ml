@@ -37,7 +37,7 @@ let vof_dotted_ident = vof_dotted_name
 
 let rec vof_resolved_name (v1, v2) =
   let v1 = vof_resolved_name_kind v1 in
-  let v2 = OCaml.vof_int v2 in
+  let v2 = OCaml.vof_int (SId.to_int v2) in
   OCaml.VTuple [ v1; v2 ]
 
 and vof_resolved_name_kind = function
@@ -116,7 +116,7 @@ and vof_id_info
   let arg = OCaml.vof_bool id_hidden in
   let bnd = ("id_hidden", arg) in
   let bnds = bnd :: bnds in
-  let arg = OCaml.vof_int id_info_id in
+  let arg = OCaml.vof_int (IdInfoId.to_int id_info_id) in
   let bnd = ("id_info_id", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
@@ -306,6 +306,9 @@ and vof_expr e =
   | OtherExpr (v1, v2) ->
       let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherExpr", [ v1; v2 ])
+  | RawExpr x ->
+      let x = vof_raw_tree x in
+      OCaml.VSum ("RawExpr", [ x ])
 
 and vof_field_name = function
   | FN v1 ->
@@ -1485,3 +1488,25 @@ and vof_any = function
   | Lbli v1 ->
       let v1 = vof_label_ident v1 in
       OCaml.VSum ("Lbli", [ v1 ])
+
+and vof_raw_tree x =
+  match x with
+  | Token v ->
+      let v = vof_wrap OCaml.vof_string v in
+      OCaml.VSum ("Token", [ v ])
+  | List v ->
+      let v = (OCaml.vof_list vof_raw_tree) v in
+      OCaml.VSum ("List", [ v ])
+  | Tuple v ->
+      let v = (OCaml.vof_list vof_raw_tree) v in
+      OCaml.VSum ("Tuple", [ v ])
+  | Case (v1, v2) ->
+      let v1 = OCaml.vof_string v1 in
+      let v2 = vof_raw_tree v2 in
+      OCaml.VSum ("Case", [ v1; v2 ])
+  | Option v ->
+      let v = (OCaml.vof_option vof_raw_tree) v in
+      OCaml.VSum ("Option", [ v ])
+  | Any v ->
+      let v = vof_any v in
+      OCaml.VSum ("Any", [ v ])

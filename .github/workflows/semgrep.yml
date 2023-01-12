@@ -1,25 +1,29 @@
-# The goal of this workflow is to dogfood Semgrep and Semgrep-app by
-# running returntocorp/semgrep-action@v1 on our own semgrep repo.
+# This workflow dogfoods Semgrep Code and Supply Chain.
 
 name: semgrep
-
 on:
-  workflow_dispatch:
   # This workflow runs on 'pull_request_target' so that PRs from forks are able
   # to run an action that uses the SEMGREP_APP_TOKEN secret
   # Note that any modification of this file in a PR does not reflect on said PR
   # Changes must be merged to develop first
-  pull_request_target:
-
+  pull_request_target: {}
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/workflows/semgrep.yml
+  schedule:
+    # random HH:MM to avoid a load spike on GitHub Actions at 00:00
+    - cron: "50 15 * * *"
 jobs:
-  semgrep-run-r2c-config:
-    name: semgrep with r2c registry
-    runs-on: ubuntu-latest
+  semgrep:
+    name: semgrep ci
+    runs-on: ubuntu-20.04
+    env:
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+    container:
+      image: returntocorp/semgrep
+    if: (github.actor != 'dependabot[bot]')
     steps:
       - uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-      - uses: returntocorp/semgrep-action@v1
-        with:
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: "1"
+      - run: semgrep ci

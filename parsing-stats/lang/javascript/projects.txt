@@ -13,7 +13,6 @@ https://github.com/hakimel/reveal.js.git
 
 # The following projects use Flow, which extends the syntax of
 # javascript but keep the .js extension.
-#https://github.com/vuejs/vue.git
 #https://github.com/facebook/react.git
 #https://github.com/facebook/react-native.git
 #https://github.com/facebook/create-react-app.git

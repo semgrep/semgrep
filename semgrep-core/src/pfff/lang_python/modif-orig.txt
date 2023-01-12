@@ -1,0 +1,4 @@
+pad (mainly adapt to pfff style of parsers/ast/visitors/dumpers):
+ - some file renaming to be more consistent with my other parsers
+ - no polymorphic AST
+ - reorder AST sections, better grouping

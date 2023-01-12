@@ -329,6 +329,10 @@ let rec just_parse_with_lang lang file =
         ]
         Json_to_generic.program
   | Lang.Jsonnet -> failwith "Jsonnet is not supported yet"
+  | Lang.Clojure ->
+      run file [ TreeSitter Parse_clojure_tree_sitter.parse ] (fun x -> x)
+  | Lang.Lisp -> failwith "Lisp is not supported yet"
+  | Lang.Scheme -> failwith "Scheme is not supported yet"
   | Lang.Cpp ->
       run file
         [
@@ -412,7 +416,7 @@ let parse_and_resolve_name lang file =
    * used only for local per-file analysis, so no need to have a unique ID
    * among a set of files in a project like codegraph.
    *)
-  AST_generic_helpers.gensym_counter := 0;
+  AST_generic.SId.unsafe_reset_counter ();
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
   Constant_propagation.propagate_dataflow lang ast;

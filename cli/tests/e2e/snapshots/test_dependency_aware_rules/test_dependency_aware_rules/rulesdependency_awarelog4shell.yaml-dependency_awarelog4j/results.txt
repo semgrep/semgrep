@@ -119,11 +119,12 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "maven",
+              "line_number": 2,
               "package": "log4j-core",
-              "transitivity": "unknown",
-              "version": "0.0.1"
+              "transitivity": "direct",
+              "version": "0.0.2"
             },
-            "lockfile": "targets/dependency_aware/log4j/pom.xml"
+            "lockfile": "targets/dependency_aware/log4j/maven_dep_tree.txt"
           },
           "reachability_rule": true,
           "reachable": true,

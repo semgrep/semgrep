@@ -51,6 +51,12 @@ module PI = Parse_info
 type env = {
   (* when we parse a pattern, the filename is fake ("<pattern_file>") *)
   file : Common.filename;
+  (* This is the literal text of the program.
+     We will use this to help us find the proper content of a metavariable matching
+     a "folded" or "literal" style string.
+     Essentially, a string using "|" or ">".
+  *)
+  text : string;
   (* function *)
   charpos_to_pos : (int -> int * int) option;
   (* From yaml.mli: "[parser] tracks the state of generating {!Event.t}
@@ -99,7 +105,23 @@ let tok (index, line, column) str env =
     Parse_info.transfo = NoTransfo;
   }
 
-let mk_tok { E.start_mark = { M.index; M.line; M.column }; _ } str env =
+let mk_tok ?(style = `Plain)
+    {
+      E.start_mark = { M.index; M.line; M.column };
+      E.end_mark = { M.index = e_index; _ };
+      _;
+    } str env =
+  let str =
+    match style with
+    (* This is for strings that use `|`, `>`, or quotes.
+     *)
+    | `Literal
+    | `Folded
+    | `Double_quoted
+    | `Single_quoted ->
+        String.sub env.text index (e_index - index)
+    | __else__ -> str
+  in
   (* their tokens are 0 indexed for line and column, AST_generic's are 1
    * indexed for line, 0 for column *)
   tok (index, line, column) str env
@@ -185,16 +207,23 @@ let make_alias anchor pos env =
 
 (* Scalars must first be checked for sgrep patterns *)
 (* Then, they may need to be converted from a string to a value *)
-let scalar (_tag, pos, value) env : G.expr * E.pos =
+let scalar (_tag, pos, value, style) env : G.expr * E.pos =
   (* If it's a target, then we don't want to parse it like a metavariable,
      or else matching will mess up when it attempts to match a pattern
      metavariable to target YAML code which looks like a metavariable
      (but ought to be interpreted as a string)
   *)
-  if AST_generic_.is_metavar_name value && not env.is_target then
-    (G.N (mk_id value pos env) |> G.e, pos)
+  let quoted =
+    match style with
+    | `Double_quoted
+    | `Single_quoted ->
+        true
+    | __else__ -> false
+  in
+  if AST_generic_.is_metavar_name value && (not env.is_target) && not quoted
+  then (G.N (mk_id value pos env) |> G.e, pos)
   else
-    let token = mk_tok pos value env in
+    let token = mk_tok ~style pos value env in
     let expr =
       (match value with
       | "__sgrep_ellipses__" -> G.Ellipsis (Parse_info.fake_info token "...")
@@ -303,8 +332,8 @@ let parse (env : env) : G.expr list =
         try make_alias anchor pos env with
         | UnrecognizedAlias _ ->
             (error "Unrecognized alias" (E.Alias { anchor }) pos env, pos))
-    | E.Scalar { anchor; tag; value; _ }, pos ->
-        make_node scalar anchor (tag, pos, value) env
+    | E.Scalar { anchor; tag; value; style; _ }, pos ->
+        make_node scalar anchor (tag, pos, value, style) env
     | E.Sequence_start { anchor; tag; _ }, pos ->
         make_node sequence anchor (tag, pos, read_sequence []) env
     | E.Mapping_start { anchor; tag; _ }, pos ->
@@ -337,8 +366,8 @@ let parse (env : env) : G.expr list =
   and read_mapping first_node : G.expr =
     let key, pos1 =
       match first_node with
-      | E.Scalar { anchor; tag; value; _ }, pos ->
-          make_node scalar anchor (tag, pos, value) env
+      | E.Scalar { anchor; tag; value; style; _ }, pos ->
+          make_node scalar anchor (tag, pos, value, style) env
       | E.Mapping_start _, start_pos ->
           let _mappings, end_pos = read_mappings [] in
           ( G.OtherExpr
@@ -547,6 +576,7 @@ let parse_yaml_file ~is_target file str =
   let env =
     {
       file;
+      text = str;
       charpos_to_pos;
       parser;
       anchors = Hashtbl.create 1;
@@ -566,6 +596,7 @@ let any str =
   let env =
     {
       file;
+      text = str;
       charpos_to_pos = None;
       parser;
       anchors = Hashtbl.create 1;

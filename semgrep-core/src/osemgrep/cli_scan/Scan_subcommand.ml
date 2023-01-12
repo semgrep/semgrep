@@ -98,8 +98,8 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
+  Metrics.configure conf.metrics;
 
-  (* TOPORT: configure metrics *)
   match () with
   (* "alternate modes" where no search is performed.
    * coupling: if you add a new alternate mode, you probably need to modify

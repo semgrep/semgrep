@@ -1,0 +1,137 @@
+# -*- org -*-
+
+* short lambdas
+#(this is similar to lang_php/parsing/conflicts.txt#short_lambdas)
+
+** short body
+
+When we parse 'x => x + 1', it could potentially be parsed as
+'( x => x + 1)' or '(x => x) + 1' but we don't
+want the second one, so we prefer to shift rather than reduce,
+hence the %prec (just like for the dangling else) attached
+to 'expr' below:
+
+arrow_body:
+ | block { }
+ | expr  %prec LOW_PRIORITY_RULE { }
+
+An additional complexity in Javascript compared to PHP is that
+'{' is also used for object literal, so one has to use
+an 'expr' which does not allow object literal, that is
+'assignment_expression_no_statement'
+(but do not forget to extend those mostly-copy-pasted rules
+with extensions such as arrows, or async, otherwise you can not
+even curry and write code like 'x => y => x + y').
+
+** short parameters
+
+The other conflict is that when we see '(x)' in '(x) => ...'
+there is no way to know whether this is an expression (reduce) or
+the parameter specification of a lambda (shift).
+
+*** technique 1
+
+To solve the conflict one can be more general and do:
+
+ | TOPAR expr TCPAR T_ARROW arrow_body
+     { ... }
+
+but you then need to make sure that expr can only be an identifier.
+
+
+A shift-reduce conflict then exists when we see '(x,' and we prefer to
+shift per the following rule, expecting something like '(x,y) => ...'
+
+arrow_function:
+  | T_LPAREN identifier T_COMMA formal_parameter_list T_RPAREN
+    annotation_opt T_ARROW arrow_body
+
+rather than reduce per the following rule, expecting something like '(x,y) + ...'
+
+expression:
+ | expression T_COMMA assignment_expression
+
+This means that something like '(x,y) + ...' does not currently parse;
+fortunately, it is uncommon.
+
+*** technique 2
+
+A better technique is to use a parsing hack and retag the '(' T_LPAREN
+in a T_LPAREN_ARROW when you see '( <xxx> ) =>' while matching
+a fuzzy AST of the JS tokens. Then there is no ambiguity
+and you can simply use formal_parameter_list_opt after this
+special T_LPAREN_ARROW.
+
+The ECMA grammar uses the CoverParenthesizedExpressionAndArrowParameterList
+conflating rule which is ugly. The retag-token technique is far cleaner.
+
+* trailing commas
+
+Introducing trailing commas can introduce some shift/reduce conflicts
+on rules using lists written in a non-left recursive way. Indeed on this:
+
+formal_parameter_list_opt:
+ | /*(*empty*)*/   { }
+ | formal_parameter_list trailing_comma  { }
+
+formal_parameter_list:
+ | formal_parameter T_COMMA formal_parameter_list { }
+ | formal_parameter  { }
+
+Yacc generates this conflict:
+
+238: shift/reduce conflict (shift 517, reduce 139) on T_COMMA
+state 238
+	formal_parameter_list : formal_parameter . T_COMMA formal_parameter_list  (138)
+	formal_parameter_list : formal_parameter .  (139)
+
+	T_COMMA  shift 517
+
+because after one parameter and seeing a comma, it can not decide if this
+comma is introducing a new parameter (shift) or if it's part of the
+trailing comma after the formal_paramater_list (in which case it needs
+to reduce).
+
+You need to rewrite the rule left-recursive like this:
+
+formal_parameter_list:
+ | formal_parameter_list T_COMMA formal_parameter { }
+ | formal_parameter  { }
+
+Then after a comma it must always just reduce.
+
+* ASI and continue, break, ++, --, etc.
+
+The fact that the parser allows ASI (Automatic Semicolon Insertion)
+introduces some ambiguities with the grammar. Indeed, given
+
+ if(true) continue
+ x;
+
+can be parsed either as a 'if (true) continue x;' or
+'if (true) continue; x;' with ASI. To avoid this ambiguity
+the standard allows newline just after a continue but in that
+case it always do an ASI. This means we need to have a fix_tokens
+phase that inserts those semicolons.
+
+* TODO Types and JSX
+
+Flow does not allow '<T>(x:T):T => ...' since the leading '<T>' looks like
+a JSX tag.
+
+But Typescript has some files like that.
+
+* TODO Import
+
+When we start to process 'import *' and we allow
+import as an identifier, then there is an ambiguity
+and we don't know yet if we need to reduce import to an identifier
+which starts a multiplication or to shift to allow an
+import namespace declaration.
+
+How to solve the ambiguity?
+You could use a parsing hack and looking if you are in the
+first column, but this does not always work.
+
+TODO: parsing hack on import() ? retag import
+as an identifier?

@@ -44,15 +44,15 @@ type constness_type = Constant | NotAlwaysConstant [@@deriving show]
 (* Error management *)
 (*****************************************************************************)
 
-let warning tok s =
+let warning _tok s =
   (* TODO: Report these errors as matches of a builtin_div_by_zero rule. *)
-  Error_code.warning tok (Error_code.CFGError s)
+  logger#warning "CFGError: %s" s
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
+let str_of_name name = spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
 
 let str_of_resolved_name name =
   let name = Common.map fst name in

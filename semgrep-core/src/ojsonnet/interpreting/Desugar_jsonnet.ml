@@ -474,6 +474,8 @@ and desugar_import env v : C.expr =
 (* Entry point *)
 (*****************************************************************************)
 
+let desugar_expr_profiled env e = desugar_expr env e [@@profiling]
+
 let desugar_program ?(import_callback = default_callback) ?(use_std = true)
     (file : Common.filename) (e : program) : C.program =
   let env =
@@ -489,5 +491,5 @@ let desugar_program ?(import_callback = default_callback) ?(use_std = true)
       Local (fk, [ B (("std", fk), fk, std) ], fk, e)
     else e
   in
-  let core = desugar_expr env e in
+  let core = desugar_expr_profiled env e in
   core

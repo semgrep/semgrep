@@ -7,10 +7,9 @@
  (name pfff_lang_GENERIC_naming)
  (wrapped false)
  (libraries
-   commons commons_core commons_ocollection
+   commons
 
-   pfff-graph_code ; in pfff
-   pfff-lang_GENERIC ; actually now in semgrep
+pfff-lang_GENERIC ; actually now in semgrep
  )
  (preprocess
     (pps

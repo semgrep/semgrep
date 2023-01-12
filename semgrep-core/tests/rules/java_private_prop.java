@@ -17,4 +17,18 @@ public class Class {
     z = 3;
     return z; 
   }
+
+  public void foo1() {
+    // ruleid: java-private-prop
+    return this.x;
+  }
+
+  public void bar1() {
+    return this.y;
+  }
+
+  public void qux1() {
+    this.z = 3;
+    return this.z;
+  }
 }

@@ -15,7 +15,6 @@
  *)
 open AST_generic
 module V = Visitor_AST
-module Err = Error_code
 module PI = Parse_info
 module MR = Mini_rule
 module Eq = Equivalence
@@ -194,7 +193,9 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
   | Some strs ->
       Set_.subset pattern_strs strs
       |> Common.before_return (fun b ->
-             if not b then logger#debug "skipping pattern on stmt %d" st.s_id)
+             if not b then
+               logger#debug "skipping pattern on stmt %d"
+                 (AST_utils.Node_ID.to_int st.s_id))
 
 (*****************************************************************************)
 (* Main entry point *)

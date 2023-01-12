@@ -323,7 +323,7 @@ and interface_body (env : env) (x : CST.interface_body) : interface_field =
         | Some x -> anon_choice_param_list_29faba4 env x
         | None -> []
       in
-      Method (id, { fparams; fresults })
+      Method (id, { ftok = snd id; fparams; fresults })
   | `Inte_type_name x ->
       let name = interface_type_name env x in
       EmbeddedInterface name
@@ -518,7 +518,9 @@ and struct_type (env : env) ((v1, v2) : CST.struct_type) =
 and anon_choice_param_list_29faba4 (env : env)
     (x : CST.anon_choice_param_list_29faba4) : parameter_binding list =
   match x with
-  | `Param_list x -> parameter_list env x
+  | `Param_list x ->
+      let _l, xs, _r = parameter_list env x in
+      xs
   | `Simple_type x ->
       let x = simple_type env x in
       [ ParamClassic { pname = None; ptype = x; pdots = None } ]
@@ -559,14 +561,14 @@ and simple_type (env : env) (x : CST.simple_type) : type_ =
   | `Map_type x -> map_type env x
   | `Chan_type x -> channel_type env x
   | `Func_type (v1, v2, v3) ->
-      let _v1 = token env v1 (* "func" *) in
+      let ftok = token env v1 (* "func" *) in
       let v2 = parameter_list env v2 in
       let v3 =
         match v3 with
         | Some x -> anon_choice_param_list_29faba4 env x
         | None -> []
       in
-      TFunc { fparams = v2; fresults = v3 }
+      TFunc { ftok; fparams = v2; fresults = v3 }
 
 and generic_type (env : env) ((v1, v2) : CST.generic_type) : type_ =
   let name = interface_type_name env v1 in
@@ -720,7 +722,7 @@ and expression (env : env) (x : CST.expression) : expr =
       let v2 = map_literal_value env v2 in
       CompositeLit (v1, v2)
   | `Func_lit (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "func" *) in
+      let ftok = token env v1 (* "func" *) in
       let v2 = parameter_list env v2 in
       let v3 =
         match v3 with
@@ -728,7 +730,7 @@ and expression (env : env) (x : CST.expression) : expr =
         | None -> []
       in
       let v4 = block env v4 in
-      FuncLit ({ fparams = v2; fresults = v3 }, v4)
+      FuncLit ({ ftok; fparams = v2; fresults = v3 }, v4)
   | `Choice_raw_str_lit x -> BasicLit (String (string_literal env x))
   | `Int_lit tok -> BasicLit (Int (int_literal env tok)) (* int_literal *)
   | `Float_lit tok ->
@@ -1109,9 +1111,9 @@ and channel_type (env : env) (x : CST.channel_type) =
       TChan (v2, TSend, v3)
 
 and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
-    parameter_binding list =
-  let _v1 = token env v1 (* "(" *) in
-  let v2 =
+    parameter_binding list bracket =
+  let lp = token env v1 (* "(" *) in
+  let xs =
     match v2 with
     | Some (v1, v2) ->
         let v1 =
@@ -1133,8 +1135,8 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
         v1
     | None -> []
   in
-  let _v3 = token env v3 (* ")" *) in
-  v2
+  let rp = token env v3 (* ")" *) in
+  (lp, xs, rp)
 
 and literal_element (env : env) (x : CST.literal_element) : init =
   match x with
@@ -1350,10 +1352,10 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration) :
         | Some x -> block env x
         | None -> Empty
       in
-      [ DFunc (tfunc, id, tparams, ({ fparams; fresults }, body)) ]
+      [ DFunc (id, tparams, ({ ftok = tfunc; fparams; fresults }, body)) ]
   | `Meth_decl (v1, v2, v3, v4, v5, v6) ->
-      let v1 = token env v1 (* "func" *) in
-      let v2 = parameter_list env v2 in
+      let ftok = token env v1 (* "func" *) in
+      let _l, v2, _r = parameter_list env v2 in
       let v3 = identifier env v3 (* identifier *) in
       let v4 = parameter_list env v4 in
       let v5 =
@@ -1372,7 +1374,7 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration) :
         | [ ParamClassic x ] -> x
         | _ -> failwith "expected one receiver"
       in
-      [ DMethod (v1, v3, receiver, ({ fparams = v4; fresults = v5 }, v6)) ]
+      [ DMethod (v3, receiver, ({ ftok; fparams = v4; fresults = v5 }, v6)) ]
   | `Import_decl (v1, v2) ->
       let v1 = token env v1 (* "import" *) in
       let v2 =

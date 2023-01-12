@@ -388,6 +388,7 @@ def ci(
                 skip_unknown_extensions=(not scan_unknown_extensions),
                 optimizations=optimizations,
                 baseline_commit=metadata.merge_base_ref,
+                baseline_commit_is_mergebase=True,
             )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])

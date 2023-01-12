@@ -87,9 +87,6 @@ let timeout_function file timeout f =
 (* Printing matches *)
 (*****************************************************************************)
 
-(* for -gen_layer, see Experiments.ml *)
-let _matching_tokens = ref []
-
 let string_of_toks toks =
   String.concat ", " (Common.map (fun tok -> PI.str_of_info tok) toks)
 
@@ -151,8 +148,7 @@ let print_match ?str config match_ ii_of_any =
     in
     pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
     ());
-  Option.iter (print_taint_trace ~format:match_format) taint_trace;
-  toks |> List.iter (fun x -> Common.push x _matching_tokens)
+  Option.iter (print_taint_trace ~format:match_format) taint_trace
 
 (*****************************************************************************)
 (* Parallelism *)
@@ -935,9 +931,7 @@ let semgrep_with_one_pattern config =
              else E.try_with_exn_to_error file (fun () -> process file));
 
       let n = List.length !E.g_errors in
-      if n > 0 then pr2 (spf "error count: %d" n);
-      (* This is for pad's codemap visualizer *)
-      Experiments.gen_layer_maybe _matching_tokens pattern_string files
+      if n > 0 then pr2 (spf "error count: %d" n)
 
 (*****************************************************************************)
 (* Semgrep dispatch *)

@@ -1,0 +1,22 @@
+pad:
+ - some file renaming to be more consistent with my C (and C++) parser
+ - some merge of files into one file (for lexer and test_parsing_java)
+ - some estetic change in ast_java, and grammar, group in big categories
+   ast elements like statement, expression, etc and add cosmetic separators.
+ - more grouping, move stuff in xxx_opt, list_opt, avoid intruduce
+   intermediate rules that are referenced only once (inline instead)
+ - add comments and set of tokens, as done in my other parsers
+ - add parse_info for all tokens
+ - put in lowercase the grammar rule, so better see what is a token and
+   what is a rule, and what is a OCaml constructor,
+   and make the grammer more like my other grammars.
+ - add the wrap for top big categories
+ - estet: align actions in grammar
+ - move parsing helper functions from ast_java to grammar
+ - add the wrap for ident
+ - visitor, comment_annotater
+ - move type and constructors from ast_java to parser.mly as it's used only
+   in intermediate parsing
+
+
+add the wrap2

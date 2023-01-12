@@ -8,6 +8,69 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.3.0](https://github.com/returntocorp/semgrep/releases/tag/v1.3.0) - 2023-01-04
+
+### Changed
+
+- Removed the poor support for reading dependencies from pom.xml files. Instead semgrep will try to read dependencies from a maven_dep_tree.txt file,
+  which can be generated using the command `mvn dependency:tree -DoutputFile=maven_dep_tree.txt` (sc-pom)
+
+### Fixed
+
+- Use the GitHub REST API when possible to compute the merge base for `semgrep ci`, improving performance on shallow clones of large repositories. (gha-mergebase)
+- YAML: Fixed a bug where metavariables matching YAML double-quoted strings would not capture the entire range of the string, and would
+  not contain the double-quotes. Also added the ability to properly use patterns like `"$FOO"`, which will unpack the contents of the matched string. (pa-2332)
+- Fixed a race condition related to the parsing cache that could lead to internal errors (pa-2335)
+- YAML: Fixed a bug where literal or folded blocks would not be parsed properly.
+
+  So for instance, in:
+
+  ```
+  key: |
+    string goes here
+  ```
+
+  A metavariable matching the contents of the string value might not be correct. (pa-2347)
+
+- Julia: Greatly improved parsing support (pa-2362)
+
+## [1.2.1](https://github.com/returntocorp/semgrep/releases/tag/v1.2.1) - 2022-12-16
+
+### Fixed
+
+- Go: fix NoTokenLocation for metavariables matching function type without
+  an argument (e.g. `func()`) (gh-6715)
+- typed-metavariables: handle ternary expressions so we can type correctly
+  expressions like `foo(cond ? new A() : this.a)` (pa-2328)
+- Reverted a change which caused findings with different sources (but the same sink) to be deduplicated. This would cause findings which
+  looked identical in range and data, but had different taint traces. (pa-2336)
+
+## [1.2.0](https://github.com/returntocorp/semgrep/releases/tag/v1.2.0) - 2022-12-15
+
+### Fixed
+
+- Fixed rare crash that could occur due to stale file caches when temp file names overlap (cache-invalidation)
+- PHP: support metavariables in string (as in `foo("$VAR")`) (gh-6311)
+- Java: support static block patterns (gh-6366)
+- Rust: parse correctly scoped identifier in constructor (gh-6594)
+- Java: support `super(...)` patterns (gh-6638)
+- C#: bugfix on bad interaction between -fast and the internal code generated
+  for LINQ queries (gh-6666)
+- Java: support the Java 10 'var' keyword by not using 'var' as a valid type when
+  using typed metavariables. (gh-6672)
+- When matching module specifiers in imports, prevent metavariables from capturing quotes. (gh-6674)
+- Swift: support complex expression in switch case (gh-6704)
+- Constant propagation: Fixed a bug where constant propagation would only run within functions. Now,
+  it runs on the top-level of the program as well. (pa-1656)
+- DeepSemgrep: Fixed a bug where imports which reached type names (among other things) would not resolve properly (pa-2260)
+- DeepSemgrep: Fixed a bug which caused Java functions with interfaces to wipe taint (instead of propagating taint by default) (pa-2265)
+- Fix matching of qualified names. For example, `new $X.Foo()` will now match
+  `new a.b.Foo()`. (pa-2296)
+- DeepSemgrep: Fix regression in taint-mode introduced by Semgrep v1.1 that caused
+  some findings to be missed. Also, DeepSemgrep will assume, for now, that a method
+  call on a tainted object is always tainted. (pa-2304)
+- Improved matching behavior on JS `require` calls (require-match)
+
 ## [1.1.0](https://github.com/returntocorp/semgrep/releases/tag/v1.1.0) - 2022-12-05
 
 ### Added

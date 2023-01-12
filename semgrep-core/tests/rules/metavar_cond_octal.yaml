@@ -3,7 +3,7 @@ rules:
   languages:
   - go
   match:
-    and:
+    all:
     - os.Mkdir($NAME, $PERM)
     where:
     - comparison: $PERM > 0o600

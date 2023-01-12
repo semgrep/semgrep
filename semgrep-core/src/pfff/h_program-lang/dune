@@ -1,0 +1,12 @@
+(library
+ (public_name pfff-h_program-lang)
+ (name pfff_h_program_lang)
+ (wrapped false)
+ (libraries
+   stdcompat
+   yojson uucp uutf alcotest
+
+   commons
+ )
+ (preprocess (pps ppx_deriving.show ppx_deriving.eq))
+)

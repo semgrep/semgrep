@@ -4,14 +4,13 @@
  (libraries
    yaml pcre
 
-   commons commons_core
-   pfff-config
+   commons
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-naming
    pfff-lang_ruby pfff-lang_ruby-analyze
-   pfff-lang_java pfff-lang_java-analyze
-   pfff-lang_go pfff-lang_go-analyze
-   pfff-lang_js pfff-lang_js-analyze
+   pfff-lang_java
+   pfff-lang_go
+   pfff-lang_js
 
    spacegrep
 
