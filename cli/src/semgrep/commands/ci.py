@@ -21,6 +21,7 @@ from semgrep.commands.install import run_install_deep_semgrep
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
+from semgrep.constants import DEFAULT_MAX_MEMORY_DEEP_CI
 from semgrep.constants import OutputFormat
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
@@ -186,7 +187,7 @@ def ci(
     junit_xml: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
-    max_memory: int,
+    max_memory: Optional[int],
     max_target_bytes: int,
     metrics: Optional[MetricsState],
     metrics_legacy: Optional[MetricsState],
@@ -326,6 +327,14 @@ def ci(
             is_full_scan = metadata.merge_base_ref is None
             deep = scan_handler.deepsemgrep if scan_handler and is_full_scan else False
             deep_semgrep_path = determine_deep_semgrep_path()
+
+            # Set a default max_memory for CI runs when DeepSemgrep is on because
+            # DeepSemgrep is likely to run out
+            if not max_memory:
+                if deep:
+                    max_memory = DEFAULT_MAX_MEMORY_DEEP_CI
+                else:
+                    max_memory = 0  # unlimited
             if deep and not deep_semgrep_path.exists():
                 run_install_deep_semgrep()
 
