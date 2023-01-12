@@ -1,11 +1,12 @@
 opam-version: "2.0"
 name: "semgrep"
-version: "0.117.0"
+version: "1.3.0"
 synopsis: "Like grep but for code: fast and syntax-aware semantic code pattern for many languages"
 description: """
 Semgrep is like grep but for searching patterns at the AST level.
 
-For more information see https://semsgrep.dev"""
+For more information see https://semsgrep.dev
+"""
 
 maintainer: "Yoann Padioleau <pad@r2c.dev>"
 authors: [ "Yoann Padioleau <pad@r2c.dev>" ]
@@ -16,8 +17,6 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 
 # These are build dependencies.
 # Development-only dependencies are in 'dev/dev.opam'.
-# A big dependency is pfff, but it's now a submodule so it's not listed here
-#TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
 
 #coupling: for semgrep CI to be fast, we try to pre-install these packages as
 # part of of the base docker image. When you add a new package or change a version
@@ -27,12 +26,26 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 #
 # or ask Martin to do so.
 # You may also need to update the ocaml:alpine-xxx image used in ../Dockerfile.
+#TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
 depends: [
+  "ocaml" {>= "4.12.0"}
   "dune" {>= "2.7.0" }
+  "stdcompat"
+  # deps that cames from pfff
+  "menhir" {= "20211128"} (* Newer versions cause massive build slowdowns *)
+  "grain_dypgen"
+  #
   "base"
+  "alcotest"
+  "ANSITerminal"
+  "easy_logging" { = "0.8.1" }
+  "easy_logging_yojson" { = "0.8.1" }
+  "logs"
   "atdgen"
   "yojson"
   "yaml"
+  "cmdliner"
+  "ppxlib"
   "ppx_deriving"
   "ppx_hash"
   "uucp"
@@ -40,9 +53,6 @@ depends: [
   "re"
   "pcre"
   "parmap"
-  "ppxlib"
-  "cmdliner"
-  "logs"
   "cohttp-lwt-unix" # this brings lots of dependencies. This is for osemgrep.
   "lsp" {= "1.7.0"}
   "comby-kernel" {= "1.4.1"}
