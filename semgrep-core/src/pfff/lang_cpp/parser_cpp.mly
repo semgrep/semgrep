@@ -649,18 +649,18 @@ literal:
 primary_cplusplus_id:
  | id_expression
      { let name = (None, fst $1, snd $1) in
-       N (name, noIdInfo()) }
+       N (name) }
  (* grammar_c++: is in qualified_id inside id_expression instead? *)
  | "::" TIdent
      { let name = Some $1, noQscope, IdIdent $2 in
-       N (name, noIdInfo()) }
+       N (name) }
  | "::" operator_function_id
      { let qop = $2 in
        let name = (Some $1, noQscope, qop) in
-       N (name, noIdInfo()) }
+       N (name) }
  | "::" qualified_id
      { let name = (Some $1, fst $2, snd $2) in
-       N (name, noIdInfo()) }
+       N (name) }
 
 (*could use TInf here *)
 cast_operator_expr:
@@ -1875,7 +1875,7 @@ cpp_directive:
          | _ when filename =~ "^\\(\\<.*\\>\\)$" ->
           IncSystem (Common.matched1 filename, tok)
          | _ ->
-          IncOther (N (name_of_id (filename, tok), noIdInfo()))
+          IncOther (N (name_of_id (filename, tok)))
        in
        Include (tok, inc_kind)
      }

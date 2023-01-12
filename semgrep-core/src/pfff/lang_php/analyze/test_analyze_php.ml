@@ -5,6 +5,9 @@ open Common
 (* Helpers *)
 (*****************************************************************************)
 
+(* TODO: was Error_code.try_with_print_exn_and_reraise *)
+let try_with_print_exn_and_reraise _a b = b ()
+
 (*****************************************************************************)
 (* Simple AST *)
 (*****************************************************************************)
@@ -27,14 +30,14 @@ let test_parse_simple xs =
              in
              Common.push stat stat_list;
              if stat.Parse_info.error_line_count = 0 then
-               Error_code.try_with_print_exn_and_reraise file (fun () ->
+               try_with_print_exn_and_reraise file (fun () ->
                    let _ast = Ast_php_build.program cst in
                    ())));
   Parse_info.print_parsing_stat_list !stat_list;
   ()
 
 let test_dump_simple file =
-  Error_code.try_with_print_exn_and_reraise file (fun () ->
+  try_with_print_exn_and_reraise file (fun () ->
       let ast = Parse_php.parse_program file in
       let ast = Ast_php_build.program ast in
       let s = Ast_php.show_program ast in

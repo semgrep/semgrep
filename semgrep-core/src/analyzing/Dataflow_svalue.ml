@@ -44,9 +44,9 @@ type constness_type = Constant | NotAlwaysConstant [@@deriving show]
 (* Error management *)
 (*****************************************************************************)
 
-let warning tok s =
+let warning _tok s =
   (* TODO: Report these errors as matches of a builtin_div_by_zero rule. *)
-  Error_code.warning tok (Error_code.CFGError s)
+  logger#warning "CFGError: %s" s
 
 (*****************************************************************************)
 (* Helpers *)

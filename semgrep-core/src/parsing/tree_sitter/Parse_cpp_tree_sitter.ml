@@ -1293,7 +1293,7 @@ and map_assignment_left_expression (env : env)
           ParenExpr (l, e, r))
   | `Scoped_name_id x ->
       let x = map_scoped_namespace_identifier env x in
-      N (x, noIdInfo ())
+      N x
 
 and map_attribute (env : env) ((v1, v2, v3, v4) : CST.attribute) : attribute =
   let v1 = token env v1 (* "[[" *) in
@@ -1891,10 +1891,10 @@ and map_expression_bis (env : env) x : expr =
           ParenExpr (l, e, r))
   | `Temp_func x ->
       let x = map_template_function env x in
-      N (x, noIdInfo ())
+      N x
   | `Scoped_id x ->
       let x = map_scoped_identifier env x in
-      N (x, noIdInfo ())
+      N x
   | `New_exp (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         match v1 with

@@ -371,7 +371,7 @@ and cpp_directive env x =
         match inc_kind with
         | IncLocal (path, _) -> "\"" ^ path ^ "\""
         | IncSystem (path, _) -> "<" ^ path ^ ">"
-        | IncOther (N ((None, [], IdIdent (x, _t)), _))
+        | IncOther (N (None, [], IdIdent (x, _t)))
           when AST_generic_.is_metavar_name x ->
             x
         | IncOther _ ->
@@ -555,7 +555,7 @@ and block_declaration env block_decl =
 and expr env e =
   match e with
   | C cst -> constant env cst
-  | N (n, _) -> A.Id (name env n)
+  | N n -> A.Id (name env n)
   | Ellipsis tok -> A.Ellipses tok
   | DeepEllipsis v1 ->
       let v1 = bracket_keep (expr env) v1 in
