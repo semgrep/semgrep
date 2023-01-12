@@ -4,8 +4,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from semdep.parse_lockfile import parse_lockfile_str
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
+from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
@@ -19,7 +18,6 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Npm()): ["package-lock.json", "yarn.lock"],
     Ecosystem(Gem()): ["Gemfile.lock"],
     Ecosystem(Gomod()): ["go.sum"],
-    Ecosystem(Cargo()): ["Cargo.lock"],
     Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
 }
 
@@ -31,9 +29,8 @@ LOCKFILE_TO_MANIFEST = {
     "yarn.lock": "package.json",
     "Gemfile.lock": None,
     "go.sum": None,
-    "Cargo.lock": None,
     "maven_dep_tree.txt": None,
-    "gradle.lockfile": None,
+    "gradle.lockfile": "build.gradle",
 }
 
 
@@ -50,12 +47,9 @@ def find_single_lockfile(
             manifest_pattern = LOCKFILE_TO_MANIFEST[lockfile_pattern]
             manifest_path = path / manifest_pattern if manifest_pattern else None
             if lockfile_path.exists():
-                return lockfile_path, parse_lockfile_str(
-                    lockfile_path.read_text(encoding="utf8"),
+                return lockfile_path, parse_lockfile_path(
                     lockfile_path,
-                    manifest_path.read_text(encoding="utf8")
-                    if manifest_path and manifest_path.exists()
-                    else None,
+                    manifest_path if manifest_path and manifest_path.exists() else None,
                 )
             else:
                 continue
