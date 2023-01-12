@@ -378,34 +378,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "kind": "inSource"
             }
           ]
-        },
-        {
-          "fingerprints": {
-            "matchBasedId/v1": "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "poetry.lock",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "endColumn": 0,
-                  "endLine": 0,
-                  "snippet": {
-                    "text": ""
-                  },
-                  "startColumn": 0,
-                  "startLine": 0
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "found a dependency"
-          },
-          "ruleId": "supply-chain1"
         }
       ],
       "tool": {
@@ -465,23 +437,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             },
             {
               "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
-                "text": "found a dependency"
-              },
-              "id": "supply-chain1",
-              "name": "supply-chain1",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "found a dependency"
-              }
-            },
-            {
-              "defaultConfiguration": {
                 "level": "warning"
               },
               "fullDescription": {
@@ -521,7 +476,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 13 findings (10 blocking) from 6 rules.
+  Found 12 findings (10 blocking) from 6 rules.
   Uploading findings to Semgrep App.
   Has findings for blocking rules so exiting with code 1
 

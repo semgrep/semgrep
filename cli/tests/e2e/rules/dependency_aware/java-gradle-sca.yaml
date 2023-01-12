@@ -3,8 +3,8 @@ rules:
     pattern: bad()
     r2c-internal-project-depends-on:
         namespace: maven
-        package: swagger-ui-dist
-        version: <= 3.35.2
+        package: http
+        version: <= 1.6.0
     message: oh no
     languages: [java]
     severity: WARNING
