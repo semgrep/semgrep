@@ -298,8 +298,8 @@ val string_of_unit : unit -> string
 val string_of_array : ('a -> string) -> 'a array -> string
 val string_of_option : ('a -> string) -> 'a option -> string
 val print_bool : bool -> unit
-val print_option : ('a -> 'b) -> 'a option -> unit
-val print_list : ('a -> 'b) -> 'a list -> unit
+val print_option : ('a -> unit) -> 'a option -> unit
+val print_list : ('a -> unit) -> 'a list -> unit
 val print_between : (unit -> unit) -> ('a -> unit) -> 'a list -> unit
 
 (* use Format internally *)
@@ -1117,7 +1117,7 @@ val index_list : 'a list -> ('a * int) list
 val index_list_0 : 'a list -> ('a * int) list
 val index_list_1 : 'a list -> ('a * int) list
 val index_list_and_total : 'a list -> ('a * int * int) list
-val iter_index : ('a -> int -> 'b) -> 'a list -> unit
+val iter_index : ('a -> int -> unit) -> 'a list -> unit
 val map_index : ('a -> int -> 'b) -> 'a list -> 'b list
 val filter_index : (int -> 'a -> bool) -> 'a list -> 'a list
 val fold_left_with_index : ('a -> 'b -> int -> 'a) -> 'a -> 'b list -> 'a
@@ -1184,8 +1184,8 @@ val sum_int : int list -> int
 val avg_list : int list -> float
 val return_when : ('a -> 'b option) -> 'a list -> 'b
 val grep_with_previous : ('a -> 'a -> bool) -> 'a list -> 'a list
-val iter_with_previous : ('a -> 'a -> 'b) -> 'a list -> unit
-val iter_with_previous_opt : ('a option -> 'a -> 'b) -> 'a list -> unit
+val iter_with_previous : ('a -> 'a -> unit) -> 'a list -> unit
+val iter_with_previous_opt : ('a option -> 'a -> unit) -> 'a list -> unit
 
 val iter_with_before_after :
   ('a list -> 'a -> 'a list -> unit) -> 'a list -> unit

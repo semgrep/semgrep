@@ -1,4 +1,0 @@
-description = "Java parser"
-requires = "unix num"
-archive(byte) = "lib.cma"
-archive(native) = "lib.cmxa"
