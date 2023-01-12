@@ -1,0 +1,12 @@
+(library
+ (public_name pfff-graph_code)
+ (name pfff_graph_code)
+ (wrapped false)
+ (libraries
+   ocamlgraph
+
+   commons
+   pfff-h_program-lang ; store position information in the graph and tokens for stats
+   entity_code
+ )
+)
