@@ -141,6 +141,12 @@ let mk_extract_target dst_lang contents rule_ids =
     rule_nums = List.mapi (fun i _ -> i) rule_ids;
   }
 
+(* Unquote string *)
+(* TODO: This is not yet implemented *)
+let convert_from_unquote_to_string quoted_string =
+  logger#error "unquote_string unimplemented";
+  quoted_string
+
 (* Unescapes JSON array string *)
 let convert_from_json_array_to_string json =
   let json' = "{ \"semgrep_fake_payload\": " ^ json ^ "}" in
@@ -311,9 +317,11 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                 (* Convert from JSON to plaintext, if required *)
                 let contents =
                   let (`Extract { Rule.transform; _ }) = r.Rule.mode in
-                  if transform = ConcatJsonArray then
-                    convert_from_json_array_to_string contents_raw
-                  else contents_raw
+                  match transform with
+                  | ConcatJsonArray ->
+                      convert_from_json_array_to_string contents_raw
+                  | Unquote -> convert_from_unquote_to_string contents_raw
+                  | __else__ -> contents_raw
                 in
                 logger#trace
                   "Extract rule %s extracted the following from %s at bytes \
@@ -357,9 +365,10 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                       (* TODO: Find the reason of this behaviour and fix it properly *)
                       let line =
                         let (`Extract { Rule.transform; _ }) = r.Rule.mode in
-                        if transform = ConcatJsonArray then
-                          loc.line - consumed_loc.start_line - 1
-                        else loc.line - consumed_loc.start_line
+                        match transform with
+                        | ConcatJsonArray ->
+                            loc.line - consumed_loc.start_line - 1
+                        | __else__ -> loc.line - consumed_loc.start_line
                       in
                       map_snippet
                         {
@@ -418,9 +427,11 @@ let extract_as_separate erule_table xtarget rule_ids matches =
              (* Convert from JSON to plaintext, if required *)
              let contents =
                let (`Extract { Rule.transform; _ }) = erule.mode in
-               if transform = ConcatJsonArray then
-                 convert_from_json_array_to_string contents_raw
-               else contents_raw
+               match transform with
+               | ConcatJsonArray ->
+                   convert_from_json_array_to_string contents_raw
+               | Unquote -> convert_from_unquote_to_string contents_raw
+               | __else__ -> contents_raw
              in
              logger#trace
                "Extract rule %s extracted the following from %s at bytes %d-%d\n\
@@ -432,12 +443,13 @@ let extract_as_separate erule_table xtarget rule_ids matches =
              (* For some reason, with the concat_json_string_array option, it needs a fix to point the right line *)
              (* TODO: Find the reason of this behaviour and fix it properly *)
              let map_loc =
-               if transform = ConcatJsonArray then
-                 map_loc start_extract_pos (line_offset - 1) col_offset
-                   xtarget.Xtarget.file
-               else
-                 map_loc start_extract_pos line_offset col_offset
-                   xtarget.Xtarget.file
+               match transform with
+               | ConcatJsonArray ->
+                   map_loc start_extract_pos (line_offset - 1) col_offset
+                     xtarget.Xtarget.file
+               | __else__ ->
+                   map_loc start_extract_pos line_offset col_offset
+                     xtarget.Xtarget.file
              in
              Some (target, map_res map_loc target.path xtarget.file)
          | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)

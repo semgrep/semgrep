@@ -222,7 +222,8 @@ and extract_reduction = Separate | Concat [@@deriving show]
     - either treat them as a raw string; or
     - transform JSON array into a raw string
 *)
-and extract_transform = Unquote | ConcatJsonArray [@@deriving show]
+and extract_transform = NoTransform | Unquote | ConcatJsonArray
+[@@deriving show]
 
 (*****************************************************************************)
 (* The rule *)

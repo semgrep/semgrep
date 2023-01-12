@@ -1163,6 +1163,7 @@ let parse_extract_reduction ~id (s, t) =
 
 let parse_extract_transform ~id (s, t) =
   match s with
+  | "no_transform" -> R.NoTransform
   | "unquote_string" -> R.Unquote
   | "concat_json_string_array" -> R.ConcatJsonArray
   | s ->
