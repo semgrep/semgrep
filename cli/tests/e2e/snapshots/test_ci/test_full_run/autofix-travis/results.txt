@@ -8,7 +8,17 @@ CI="true" TRAVIS="true" TRAVIS_REPO_SLUG="project_name/project_name" TRAVIS_PULL
 
 === stdout - plain
 
-Non-Blocking Findings:
+Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
+
+
+Unreachable Supply Chain Findings:
+
+  poetry.lock 
+     supply-chain1
+        found a dependency
+
+
+First-Party Non-Blocking Findings:
 
   foo.py 
      eqeq-five
@@ -17,7 +27,7 @@ Non-Blocking Findings:
          ▶▶┆ Autofix ▶ (x == 2)
          15┆ (x == 2)
 
-Blocking Findings:
+First-Party Blocking Findings:
 
   foo.py 
      eqeq-bad
@@ -41,7 +51,7 @@ Blocking Findings:
 
          27┆ sink(d2)
 
-Blocking Rules Fired:
+First-Party Blocking Rules Fired:
    eqeq-bad   
    eqeq-four   
    taint-test
@@ -62,7 +72,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 7 findings (6 blocking) from 6 rules.
+  Found 8 findings (6 blocking) from 6 rules.
   Uploading findings to Semgrep App.
   Has findings for blocking rules so exiting with code 1
 
