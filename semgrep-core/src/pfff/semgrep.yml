@@ -8,6 +8,8 @@
 
 # This file is also used in CI, see .circleci/config.yml
 
+# TODO: merge with semgrep/semgrep.yml now that pfff is not anymore a separate project
+
 rules:
   - id: bad-pervasives
     pattern: Pervasives.$X
