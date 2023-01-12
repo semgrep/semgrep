@@ -48,16 +48,6 @@ def parse_package_lock(
             if "dependencies" in manifest_json
             else set()
         )
-    if manifest_path:
-        with open(manifest_path) as f:
-            manifest_json = json_doc.parse(f.read()).as_dict()
-            manifest_deps = (
-                set(manifest_json["dependencies"].as_dict().keys())
-                if "dependencies" in manifest_json
-                else set()
-            )
-    else:
-        manifest_deps = None
 
     def parse_deps(deps: Dict[str, JSON], nested: bool) -> List[FoundDependency]:
         # Dependency dicts in a package-lock.json can be nested:
