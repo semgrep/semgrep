@@ -355,54 +355,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "line": 15,
         "offset": 157
       }
-    },
-    {
-      "check_id": "supply-chain1",
-      "end": {
-        "col": 0,
-        "line": 0,
-        "offset": 0
-      },
-      "extra": {
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "",
-        "message": "found a dependency",
-        "metadata": {
-          "dev.semgrep.actions": [
-            "block"
-          ]
-        },
-        "metavars": {},
-        "sca_info": {
-          "dependency_match": {
-            "dependency_pattern": {
-              "ecosystem": "pypi",
-              "package": "badlib",
-              "semver_range": "== 99.99.99"
-            },
-            "found_dependency": {
-              "allowed_hashes": {},
-              "ecosystem": "pypi",
-              "line_number": 2,
-              "package": "badlib",
-              "transitivity": "unknown",
-              "version": "99.99.99"
-            },
-            "lockfile": "poetry.lock"
-          },
-          "reachability_rule": false,
-          "reachable": false,
-          "sca_finding_schema": 20220913
-        },
-        "severity": "ERROR"
-      },
-      "path": "poetry.lock",
-      "start": {
-        "col": 0,
-        "line": 0,
-        "offset": 0
-      }
     }
   ],
   "version": "0.42"
@@ -423,7 +375,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 7 findings (6 blocking) from 6 rules.
   Uploading findings to Semgrep App.
   Has findings for blocking rules so exiting with code 1
 

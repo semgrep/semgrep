@@ -245,8 +245,8 @@ Sending complete blob: {
         "total_time":<MASKED>
         "unsupported_exts": {},
         "lockfile_scan_info": {
-            "poetry.lock": 1,
-            "yarn.lock": 1
+            "poetry.lock": 0,
+            "yarn.lock": 0
         },
         "parse_rate": {
             "python": {
