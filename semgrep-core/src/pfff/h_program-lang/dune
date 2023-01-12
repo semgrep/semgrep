@@ -7,7 +7,6 @@
    yojson uucp uutf alcotest
 
    commons
-   pfff-config
  )
  (preprocess (pps ppx_deriving.show ppx_deriving.eq))
 )

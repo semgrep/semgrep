@@ -135,7 +135,7 @@ let options () =
     ( "-version",
       Arg.Unit
         (fun () ->
-          pr2 (spf "pfff version: %s" Config_pfff.version);
+          pr2 (spf "pfff version: %s" (*Config_pfff.version*) "DEPRECATED");
           exit 0),
       "  guess what" );
   ]

@@ -5,7 +5,6 @@
    yaml pcre
 
    commons
-   pfff-config
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-naming
    pfff-lang_ruby pfff-lang_ruby-analyze

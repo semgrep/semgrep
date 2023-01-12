@@ -5,7 +5,6 @@
     yojson
 
     commons
-    pfff-config
     pfff-h_program-lang
     pfff-lang_python
     pfff-lang_js
