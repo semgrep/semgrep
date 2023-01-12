@@ -6,7 +6,7 @@
     "total_time": 0.5,
     "unsupported_exts": {},
     "lockfile_scan_info": {
-      "poetry.lock": 0,
+      "poetry.lock": 1,
       "yarn.lock": 0
     },
     "parse_rate": {
