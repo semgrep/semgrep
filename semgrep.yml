@@ -35,7 +35,6 @@ rules:
       exclude:
         - core_cli/*.ml
         - cli/*.ml
-        - scripts/*
         - cli_*/*.ml
         - Test.ml
         - Matching_report.ml
@@ -44,10 +43,14 @@ rules:
         - Test_*.ml
         - runner/*.ml
         - experiments/*
+        - Check_*.ml
+        - commons/*
         - ograph/*
+        - scripts/*
         - profiling/*
         - ppx_profiling/*
-        - Check_*.ml
+        - graph_code/*
+        - lib_parsing/*
 
   - id: use-pytest-mock
     pattern: import unittest.mock
@@ -103,6 +106,9 @@ rules:
       exclude:
         - semgrep-core/src/profiling/*
         - ppx_profiling/*
+        - commons/*
+        - graph_code/*
+        - lib_parsing/*
 
   - id: use-concat-map
     pattern-either:

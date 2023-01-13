@@ -559,6 +559,7 @@ let print_graph_generic ?(launch_gv = true) ?(extra_string = "") ~str_of_key
   (* Ograph_extended.launch_gv_cmd filename; *)
   ()
 
+(* nosemgrep *)
 let tmpfile = "/tmp/graph_ml.dot"
 
 let display_strongly_connected_components ~str_of_key hscc g =

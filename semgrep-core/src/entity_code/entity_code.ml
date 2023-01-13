@@ -147,4 +147,4 @@ let entity_kind_of_string s =
   | "Exception" -> Exception
   | "Constructor" -> Constructor
   | _ when s =~ "Other:\\(.*\\)" -> Other (Common.matched1 s)
-  | _ -> failwith ("entity_of_string: bad string = " ^ s)
+  | _else_ -> failwith ("entity_of_string: bad string = " ^ s)
