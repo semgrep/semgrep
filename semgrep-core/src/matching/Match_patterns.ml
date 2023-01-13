@@ -15,7 +15,6 @@
  *)
 open AST_generic
 module V = Visitor_AST
-module Err = Error_code
 module PI = Parse_info
 module MR = Mini_rule
 module Eq = Equivalence

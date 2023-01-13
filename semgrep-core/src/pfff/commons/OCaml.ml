@@ -55,8 +55,6 @@ open Common
  * reduce the problem by taking the best of camlp4, while still
  * avoiding it.
  *
- *
- *
  * The support is partial. We support only the OCaml constructions
  * we found the most useful for programming stuff like
  * stub generators.
@@ -154,59 +152,14 @@ open Common
  *  - Lisp/Scheme ?
  *  - .Net interoperability
  *
+ * UPDATE: only the 'v' type remains. For the 't' type see metagen/
+ * or prefer to use otarzan and the generic ASC in semgrep.
+ *
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-
-(* src:
- *  - orm-sqlite/value/value.ml
- *  (itself a fork of http://xenbits.xen.org/xapi/xen-api-libs.hg?file/7a17b2ab5cfc/rpc-light/rpc.ml)
- *  - orm-sqlite/type-of/type.ml
- *
- * update: Gazagnaire made a paper about that.
- *
- * modifications:
- *  - slightly renamed the types and rearrange order of constructors.  Could
- *    have use nested modules to allow to reuse Int in different contexts,
- *    but I actually prefer to prefix the values with the V, so when debugging
- *    stuff, it's clearer that what you are looking are values, not types
- *    (even if the ocaml toplevel would prefix the value with a V. or T.,
- *    but sexp would not)
- *  - Changed Int of int option
- *  - Introduced List, Apply, Poly
- *  - debugging support (using sexp :) )
- *)
-
-(* OCaml type definitions *)
-type t =
-  | Unit
-  | Bool
-  | Float
-  | Char
-  | String
-  | Int
-  | Tuple of t list
-  | Dict of (string * [ `RW | `RO ] * t) list
-  | Sum of (string * t list) list
-  | Var of string
-  | Poly of string
-  | Arrow of t * t
-  | Apply of string * t
-  (* special cases of Apply *)
-  | Option of t
-  | List of t
-  (* todo? split in another type, because here it's the left part,
-   * whereas before is the right part of a type definition. Also
-   * have not the polymorphic args to some defs like ('a, 'b) Hashbtbl
-   * | Rec of string * t
-   * | Ext of string * t
-   *
-   * | Enum of t (* ??? *)
-   *)
-  | TTODO of string
-(* with tarzan *)
 
 (* OCaml values (a restricted form of expressions) *)
 type v =
@@ -237,11 +190,6 @@ type v =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-(* the generated code can use that if he wants *)
-let (_htype : (string, t) Hashtbl.t) = Hashtbl.create 101
-let (add_new_type : string -> t -> unit) = fun s t -> Hashtbl.add _htype s t
-let (get_type : string -> t) = fun s -> Hashtbl.find _htype s
 
 (* for generated code that want to transform and in and out of a v or t *)
 let vof_unit () = VUnit

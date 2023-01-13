@@ -1,4 +1,0 @@
-<?php
-
-interface I2 {
-}

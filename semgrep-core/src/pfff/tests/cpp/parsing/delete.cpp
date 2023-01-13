@@ -1,4 +1,0 @@
-void main() {
-  delete[] foo;
-
-}

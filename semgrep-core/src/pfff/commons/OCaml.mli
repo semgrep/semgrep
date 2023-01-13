@@ -7,29 +7,6 @@
  * the deriving ppx technique (e.g., deriving show).
  *)
 
-(* OCaml core type definitions (no objects, no modules) *)
-type t =
-  | Unit
-  | Bool
-  | Float
-  | Char
-  | String
-  | Int
-  | Tuple of t list
-  | Dict of (string * [ `RW | `RO ] * t) list (* aka record *)
-  | Sum of (string * t list) list (* aka variants *)
-  | Var of string
-  | Poly of string
-  | Arrow of t * t
-  | Apply of string * t
-  (* special cases of Apply *)
-  | Option of t
-  | List of t
-  | TTODO of string
-
-val add_new_type : string -> t -> unit
-val get_type : string -> t
-
 (* OCaml values (a restricted form of expressions) *)
 type v =
   | VUnit
@@ -49,6 +26,17 @@ type v =
   | VList of v list
   | VRef of v
   | VTODO of string
+
+(*
+   Regular pretty printer (not via sexp, but using Format).
+
+   Use max_depth=1 to show only the root construct, use max_depth=2 to
+   show two levels deep, etc. The default is to show the whole tree.
+*)
+val string_of_v : ?max_depth:int -> v -> string
+
+(* mapper/visitor *)
+val map_v : f:(k:(v -> v) -> v -> v) -> v -> v
 
 (* building blocks, used by code generated using ocamltarzan *)
 val vof_unit : unit -> v
@@ -71,37 +59,6 @@ val unit_ofv : v -> unit
 val string_ofv : v -> string
 val list_ofv : (v -> 'a) -> v -> 'a list
 val option_ofv : (v -> 'a) -> v -> 'a option
-
-(*
-   Regular pretty printer (not via sexp, but using Format).
-
-   Use max_depth=1 to show only the root construct, use max_depth=2 to
-   show two levels deep, etc. The default is to show the whole tree.
-*)
-val string_of_v : ?max_depth:int -> v -> string
-
-(* sexp converters *)
-(*
-val sexp_of_t: t -> Sexp.t
-val t_of_sexp: Sexp.t -> t
-val sexp_of_v: v -> Sexp.t
-val v_of_sexp: Sexp.t -> v
-val string_sexp_of_t: t -> string
-val t_of_string_sexp: string -> t
-val string_sexp_of_v: v -> string
-val v_of_string_sexp: string -> v
-*)
-
-(* json converters *)
-(*
-val v_of_json: Json_type.json_type -> v
-val json_of_v: v -> Json_type.json_type
-val save_json: Common.filename -> Json_type.json_type -> unit
-val load_json: Common.filename -> Json_type.json_type
-*)
-
-(* mapper/visitor *)
-val map_v : f:(k:(v -> v) -> v -> v) -> v -> v
 
 (* other building blocks, used by code generated using ocamltarzan *)
 val map_of_unit : unit -> unit
@@ -146,3 +103,23 @@ val v_either3 :
   ('c -> unit) ->
   ('a, 'b, 'c) Common.either3 ->
   unit
+
+(* sexp converters *)
+(*
+val sexp_of_t: t -> Sexp.t
+val t_of_sexp: Sexp.t -> t
+val sexp_of_v: v -> Sexp.t
+val v_of_sexp: Sexp.t -> v
+val string_sexp_of_t: t -> string
+val t_of_string_sexp: string -> t
+val string_sexp_of_v: v -> string
+val v_of_string_sexp: string -> v
+*)
+
+(* json converters *)
+(*
+val v_of_json: Json_type.json_type -> v
+val json_of_v: v -> Json_type.json_type
+val save_json: Common.filename -> Json_type.json_type -> unit
+val load_json: Common.filename -> Json_type.json_type
+*)

@@ -1,4 +1,4 @@
-Copyright (C) 1998-2018 Yoann Padioleau
+Copyright (C) 1998-2023 Yoann Padioleau
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public License (LGPL)

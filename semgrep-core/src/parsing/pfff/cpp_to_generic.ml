@@ -362,8 +362,8 @@ and map_qualifier_wrap _env (qu, t) : G.attribute =
 
 and map_expr env x : G.expr =
   match x with
-  | N (v1, v2) ->
-      let v1 = map_name env v1 and _v2 = map_ident_info env v2 in
+  | N v1 ->
+      let v1 = map_name env v1 in
       G.N v1 |> G.e
   | C v1 ->
       let v1 = map_constant env v1 in
@@ -522,8 +522,6 @@ and map_expr env x : G.expr =
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_expr env) v2 in
       G.OtherExpr (v1, v2 |> Common.map (fun e -> G.E e)) |> G.e
-
-and map_ident_info _env { i_scope = _v_i_scope } = ()
 
 and map_special _env = function
   | This -> G.This

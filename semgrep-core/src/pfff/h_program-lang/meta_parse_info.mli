@@ -9,4 +9,4 @@ type dumper_precision = {
 val default_dumper_precision : dumper_precision
 val _current_precision : dumper_precision ref
 val vof_info_adjustable_precision : Parse_info.t -> OCaml.v
-val cmdline_flags_precision : unit -> Common.flag_spec list
+val cmdline_flags_precision : unit -> Arg_helpers.flag_spec list

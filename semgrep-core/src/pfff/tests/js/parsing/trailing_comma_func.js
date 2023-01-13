@@ -1,5 +1,0 @@
-function foo(
-    a,
-    b,
- ) {
-}
