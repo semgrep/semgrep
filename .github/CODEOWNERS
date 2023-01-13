@@ -1,3 +1,5 @@
 
 # Matches all files in the .github/ dir, recursively.
 .github/ @spencerdrak @cgdolan @aryx @bmahe
+semgrep-core/src/analyzing @IagoAbal
+semgrep-core/src/tainting @IagoAbal

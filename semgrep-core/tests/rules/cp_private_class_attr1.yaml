@@ -1,0 +1,9 @@
+rules:
+  - id: hardcoded-conditional-copy
+    patterns:
+      - pattern-either:
+          - pattern: if (false) { ... }
+    message: This if statement always results in the same action and is unnecessary.
+    languages:
+      - java
+    severity: ERROR

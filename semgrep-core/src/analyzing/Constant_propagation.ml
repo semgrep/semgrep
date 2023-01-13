@@ -97,6 +97,18 @@ let is_private attr =
   | KeywordAttr (Private, _) -> true
   | _ -> false
 
+(* TODO: incomplete, e.g. Record is not handled *)
+let rec lvars_in_lhs expr =
+  match expr.e with
+  | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
+  | DotAccess
+      ( { e = IdSpecial (This, _); _ },
+        _,
+        FN (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ })) ) ->
+      [ (id, sid) ]
+  | Container ((Tuple | Array), (_, es, _)) -> List.concat_map lvars_in_lhs es
+  | __else__ -> []
+
 (*****************************************************************************)
 (* Environment Helpers *)
 (*****************************************************************************)
@@ -349,58 +361,17 @@ let var_stats prog : var_stats =
       V.kexpr =
         (fun (k, vout) x ->
           match x.e with
-          (* TODO: very incomplete, what if Assign (Record?) *)
-          | Assign
-              ( {
-                  e =
-                    N
-                      (Id
-                        ( id,
-                          { id_resolved = { contents = Some (_kind, sid) }; _ }
-                        ));
-                  _;
-                },
-                _,
-                e2 )
-          | AssignOp
-              ( {
-                  e =
-                    N
-                      (Id
-                        ( id,
-                          { id_resolved = { contents = Some (_kind, sid) }; _ }
-                        ));
-                  _;
-                },
-                _,
-                e2 ) ->
-              let var = (H.str_of_ident id, sid) in
-              let stat = get_stat_or_create var h in
-              incr stat.lvalue;
-              (match x.e with
-              | AssignOp _ -> incr stat.rvalue
-              | _ -> ());
-              vout (E e2)
-          | Assign ({ e = Container ((Tuple | Array), (_, es, _)); _ }, _, e2)
-            ->
-              List.iter
-                (function
-                  | {
-                      e =
-                        N
-                          (Id
-                            ( id,
-                              {
-                                id_resolved = { contents = Some (_kind, sid) };
-                                _;
-                              } ));
-                      _;
-                    } ->
-                      let var = (H.str_of_ident id, sid) in
-                      let stat = get_stat_or_create var h in
-                      incr stat.lvalue
-                  | _ -> ())
-                es;
+          (* TODO: What if there is an asignment inside the `lhs` ? *)
+          | Assign (* v = ... *) (lhs, _, e2)
+          | AssignOp (* v += ... *) (lhs, _, e2) ->
+              lvars_in_lhs lhs
+              |> List.iter (fun (id, sid) ->
+                     let var = (H.str_of_ident id, sid) in
+                     let stat = get_stat_or_create var h in
+                     incr stat.lvalue;
+                     match x.e with
+                     | AssignOp _ -> incr stat.rvalue
+                     | _ -> ());
               vout (E e2)
           | Call
               ( { e = IdSpecial (IncrDecr _, _); _ },
