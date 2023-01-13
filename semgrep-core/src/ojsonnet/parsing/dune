@@ -1,6 +1,7 @@
 ; This could become independent of semgrep, so try to not use semgrep dependencies here
 (library
- (public_name ojsonnet_parsing)
+ (public_name ojsonnet.parsing)
+ (name ojsonnet_parsing)
  (wrapped false)
  (libraries
    commons
