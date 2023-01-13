@@ -7,6 +7,10 @@
 
 open AST_generic
 
+(* When true, recurse into `Sym` svalues when printing. This is fairly likely to
+ * blow up into large output, and may even lead to a stack overflow. Use only
+ * for debugging, and use caution. *)
+let debug_print_sym = false
 let vof_tok v = Meta_parse_info.vof_info_adjustable_precision v
 
 let vof_wrap _of_a (v1, v2) =
@@ -385,11 +389,19 @@ and vof_svalue = function
   | Cst v1 ->
       let v1 = vof_const_type v1 in
       OCaml.VSum ("Cst", [ v1 ])
-  | Sym _v1 ->
-      (* Do NOT go into symbolic values, see "CAREFUL" note in
-       * AST_generic.svalue. *)
-      OCaml.VSum ("Sym", [])
+  | Sym v1 -> vof_sym v1
   | NotCst -> OCaml.VSum ("NotCst", [])
+
+and vof_sym v1 =
+  (* Do NOT go into symbolic values in production, see "CAREFUL" note in
+   * AST_generic.svalue. *)
+  let lst =
+    if debug_print_sym then
+      let v1 = vof_expr v1 in
+      [ v1 ]
+    else []
+  in
+  OCaml.VSum ("Sym", lst)
 
 and vof_container_operator = function
   | Array -> OCaml.VSum ("Array", [])
