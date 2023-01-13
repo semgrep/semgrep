@@ -56,6 +56,7 @@ depends: [
   "cohttp-lwt-unix" # this brings lots of dependencies. This is for osemgrep.
   "lsp" {= "1.7.0"}
   "comby-kernel" {= "1.4.1"}
+  "ocamlgraph"
 ]
 
 build: [make]
