@@ -315,10 +315,10 @@ _scan_options: List[Callable] = [
     optgroup.option(
         "--max-memory",
         type=int,
-        default=0,
         help="""
-            Maximum system memory to use running a rule on a single file in MB. If set to
-            0 will not have memory limit. Defaults to 0.
+            Maximum system memory to use running a rule on a single file in MiB. If set to
+            0 will not have memory limit. Defaults to 0 unless the DeepSemgrep toggle is
+            on, in which case it defaults to 5000 MiB
         """,
     ),
     optgroup.option(
@@ -622,7 +622,7 @@ def scan(
     lang: Optional[str],
     max_chars_per_line: int,
     max_lines_per_finding: int,
-    max_memory: int,
+    max_memory: Optional[int],
     max_target_bytes: int,
     metrics: Optional[MetricsState],
     metrics_legacy: Optional[MetricsState],
@@ -702,6 +702,10 @@ def scan(
         abort(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
+
+    # People have more flexibility on local scans so --max-memory is set to unlimited
+    if not max_memory:
+        max_memory = 0  # unlimited
 
     output_time = time_flag
 
