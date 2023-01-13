@@ -73,7 +73,7 @@ let hashtbl_find h n =
 (* Building a matrix (given a specific config) *)
 (*****************************************************************************)
 
-let build_with_tree2 tree gopti =
+let build_with_tree tree gopti =
   (* todo? when we expand do we create a line for the expanded? if no
    * then it will have no projection so the test below is not enough.
    * but may make sense to create a line for it which corresponds to
@@ -131,9 +131,7 @@ let build_with_tree2 tree gopti =
                   dm.matrix.(parent_i).(parent_j) <-
                     dm.matrix.(parent_i).(parent_j) + 1));
   dm
-
-let build_with_tree a b =
-  Common.profile_code "DM.build_with_tree" (fun () -> build_with_tree2 a b)
+  [@@profiling]
 
 (*****************************************************************************)
 (* Ordering the rows/columns helpers *)

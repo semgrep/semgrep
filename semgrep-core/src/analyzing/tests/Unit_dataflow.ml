@@ -23,7 +23,8 @@ let tests parse_program =
                  let lang = List.hd (Lang.langs_of_filename file) in
                  Naming_AST.resolve lang ast;
                  match
-                   set_timeout ~name:"cst_prop" timeout_secs (fun () ->
+                   Time_limit.set_timeout ~name:"cst_prop" timeout_secs
+                     (fun () ->
                        Constant_propagation.propagate_basic lang ast;
                        Constant_propagation.propagate_dataflow lang ast)
                  with

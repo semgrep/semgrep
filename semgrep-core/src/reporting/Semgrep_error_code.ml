@@ -137,15 +137,14 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
           Some (mk_error_tok ~rule_id pos s Out.InvalidYaml)
       (* TODO?? *)
       | R.UnparsableYamlException _ -> None)
-  | Common.Timeout timeout_info ->
+  | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
       logger#error "WEIRD Timeout converted to exn, backtrace = %s" s;
       (* This exception should always be reraised. *)
       let loc = Parse_info.first_loc_of_file file in
-      let msg = Common.string_of_timeout_info timeout_info in
+      let msg = Time_limit.string_of_timeout_info timeout_info in
       Some (mk_error ~rule_id loc msg Out.Timeout)
-  (* raised in Memory_limit.ml *)
-  | Common.ExceededMemoryLimit msg ->
+  | Memory_limit.ExceededMemoryLimit msg ->
       let loc = Parse_info.first_loc_of_file file in
       Some (mk_error ~rule_id loc msg Out.OutOfMemory)
   | Out_of_memory ->
@@ -219,14 +218,14 @@ let severity_of_error typ =
 
 let try_with_exn_to_error file f =
   try f () with
-  | Timeout _ as exn -> Exception.catch_and_reraise exn
+  | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
       Common.push (exn_to_error file e) g_errors
 
 let try_with_print_exn_and_reraise file f =
   try f () with
-  | Timeout _ as exn -> Exception.catch_and_reraise exn
+  | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
       let err = exn_to_error file e in

@@ -340,7 +340,7 @@ let fix_tokens_cpp ~macro_defs tokens =
   fix_tokens_fuzzy toks
 
 let fix_tokens ~macro_defs lang a =
-  Common.profile_code "C++ parsing.fix_tokens" (fun () ->
+  Profiling.profile_code "C++ parsing.fix_tokens" (fun () ->
       match lang with
       | Flag_parsing_cpp.C -> fix_tokens_c ~macro_defs a
       | Flag_parsing_cpp.Cplusplus -> fix_tokens_cpp ~macro_defs a)

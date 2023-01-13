@@ -61,17 +61,17 @@ let set_last_matched_rule rule f =
 (*****************************************************************************)
 
 let match_e_e rule a b env =
-  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_expr_root a b env))
   [@@profiling]
 
 let match_st_st rule a b env =
-  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_stmt a b env))
   [@@profiling]
 
 let match_sts_sts rule a b env =
-  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () ->
           (* When matching statements, we need not only to report whether
            * there is match, but also the actual statements that were matched.
@@ -96,37 +96,37 @@ let match_sts_sts rule a b env =
 let match_any_any pattern e env = GG.m_any pattern e env
 
 let match_t_t rule a b env =
-  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_type_ a b env))
   [@@profiling]
 
 let match_p_p rule a b env =
-  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_pattern a b env))
   [@@profiling]
 
 let match_partial_partial rule a b env =
-  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_partial a b env))
   [@@profiling]
 
 let match_at_at rule a b env =
-  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_attribute a b env))
   [@@profiling]
 
 let match_fld_fld rule a b env =
-  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_field a b env))
   [@@profiling]
 
 let match_flds_flds rule a b env =
-  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_fields a b env))
   [@@profiling]
 
 let match_name_name rule a b env =
-  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_name a b env))
   [@@profiling]
 
@@ -434,7 +434,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
              *)
             !stmts_rules
             |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
-                   Common.profile_code "Semgrep_generic.kstmts" (fun () ->
+                   Profiling.profile_code "Semgrep_generic.kstmts" (fun () ->
                        let env = MG.empty_environment cache lang config in
                        let matches_with_env =
                          match_sts_sts rule pattern x env
@@ -538,5 +538,5 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
 (* TODO: cant use [@@profile] because it does not handle yet label params *)
 let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true) config a
     b =
-  Common.profile_code "Match_patterns.check" (fun () ->
+  Profiling.profile_code "Match_patterns.check" (fun () ->
       check2 ~hook mvar_context range_filter config a b)

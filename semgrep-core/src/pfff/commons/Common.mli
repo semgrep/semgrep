@@ -300,40 +300,10 @@ val save_excursion : 'a ref -> 'a -> (unit -> 'b) -> 'b
 val finalize : (unit -> 'a) -> (unit -> unit) -> 'a
 val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 
-exception ExceededMemoryLimit of string
-
 (* You should use this instead of 'exit n' because it allows you
  * to intercept the exn and do something special before exiting.
  *)
 exception UnixExit of int
-
-(* Contains the name given by the user to the timer and the time limit *)
-type timeout_info
-
-(*
-   If ever caught, this exception must be re-raised immediately so as
-   to not interfere with the timeout handler. See function 'set_timeout'.
-*)
-exception Timeout of timeout_info
-
-(* Show name and time limit in a compact format for debugging purposes. *)
-val string_of_timeout_info : timeout_info -> string
-
-(*
-   Launch the specified computation and abort if it takes longer than
-   specified (in seconds).
-
-   This uses a global timer. An Invalid_argument exception will be raised
-   if the timer is already running.
-
-   tl;dr nesting will fail
-*)
-val set_timeout : name:string -> float -> (unit -> 'a) -> 'a option
-
-(*
-   Only set a timer if a time limit is specified. Uses 'set_timeout'.
-*)
-val set_timeout_opt : name:string -> float option -> (unit -> 'a) -> 'a option
 
 (*
    Measure how long it takes for a function to run, returning the result
@@ -347,24 +317,6 @@ val with_time : (unit -> 'a) -> 'a * float
 *)
 val pr_time : string -> (unit -> 'a) -> 'a
 val pr2_time : string -> (unit -> 'a) -> 'a
-
-(* Pad's poor's man profiler. See pfff/Main.ml for example of use
- * and the -profile command-line flag
- *)
-type prof = ProfAll | ProfNone | ProfSome of string list
-
-val profile : prof ref
-val show_trace_profile : bool ref
-val _profile_table : (string, float ref * int ref) Hashtbl.t ref
-val profile_code : string -> (unit -> 'a) -> 'a
-val profile_diagnostic : unit -> string
-val profile_code_exclusif : string -> (unit -> 'a) -> 'a
-val profile_code_inside_exclusif_ok : string -> (unit -> 'a) -> 'a
-val report_if_take_time : int -> string -> (unit -> 'a) -> 'a
-
-(* similar to profile_code but print some information during execution too *)
-(* similar to profile_code but print some information during execution too *)
-val profile_code2 : string -> (unit -> 'a) -> 'a
 
 (* creation of /tmp files, a la gcc
  * ex: new_temp_file "cocci" ".c" will give "/tmp/cocci-3252-434465.c"
@@ -388,6 +340,12 @@ val filename_without_leading_path : string -> filename -> filename
 val readable : root:string -> filename -> filename
 val follow_symlinks : bool ref
 val files_of_dir_or_files_no_vcs_nofilter : string list -> filename list
+
+(* run by main_boilerplate below at its finalize step before exiting.
+ * Can be used for example to display some profiling information
+ * (see Profiling.ml as an example)
+ *)
+val before_exit : (unit -> unit) list ref
 
 (* do some finalize, signal handling, unix exit conversion, etc *)
 val main_boilerplate : (unit -> unit) -> unit

@@ -171,7 +171,4 @@ let define_ident xs =
 (* Entry point *)
 (*****************************************************************************)
 
-let fix_tokens_define2 xs = define_ident (define_line xs)
-
-let fix_tokens_define a =
-  Common.profile_code "Hack.fix_define" (fun () -> fix_tokens_define2 a)
+let fix_tokens_define xs = define_ident (define_line xs) [@@profiling]

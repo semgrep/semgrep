@@ -671,9 +671,7 @@ let propagate_basic lang prog =
   let visitor = V.mk_visitor hooks in
   visitor (Pr prog);
   ()
-
-let propagate_basic a b =
-  Common.profile_code "Constant_propagation.xxx" (fun () -> propagate_basic a b)
+  [@@profiling]
 
 let propagate_dataflow_one_function lang inputs flow =
   (* Exposed to help DeepSemgrep *)

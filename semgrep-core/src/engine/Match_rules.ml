@@ -42,7 +42,7 @@ let timeout_function rule file timeout f =
   let saved_busy_with_equal = !AST_utils.busy_with_equal in
   let timeout = if timeout <= 0. then None else Some timeout in
   match
-    Common.set_timeout_opt ~name:"Match_rules.timeout_function" timeout f
+    Time_limit.set_timeout_opt ~name:"Match_rules.timeout_function" timeout f
   with
   | Some res -> Some res
   | None ->
@@ -76,7 +76,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
     rules xtarget =
   let { Xtarget.file; lazy_content; lazy_ast_and_errors; _ } = xtarget in
   logger#trace "checking %s with %d rules" file (List.length rules);
-  if !Common.profile = Common.ProfAll then (
+  if !Profiling.profile = Profiling.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";
     Lazy.force lazy_ast_and_errors |> ignore);
 
@@ -107,7 +107,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
            else
              let rule_id = fst r.R.id in
              Rule.last_matched_rule := Some rule_id;
-             Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
+             Profiling.profile_code (spf "real_rule:%s" rule_id) (fun () ->
                  let match_result =
                    timeout_function r file timeout (fun () ->
                        (* dispatching *)

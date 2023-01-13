@@ -6,6 +6,7 @@
    dyp
 
    commons
+   process_limits
    pfff-h_program-lang
  )
  (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord))

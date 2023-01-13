@@ -223,23 +223,23 @@ let create () =
   }
 
 let add_node n g =
-  Common.profile_code "Graph_code.add_node" (fun () ->
-      if G.has_node n g.has then (
-        pr2_gen n;
-        raise (Error (NodeAlreadyPresent n)));
-      if G.has_node n g.use then (
-        pr2_gen n;
-        raise (Error (NodeAlreadyPresent n)));
+  if G.has_node n g.has then (
+    pr2_gen n;
+    raise (Error (NodeAlreadyPresent n)));
+  if G.has_node n g.use then (
+    pr2_gen n;
+    raise (Error (NodeAlreadyPresent n)));
 
-      G.add_vertex_if_not_present n g.has;
-      G.add_vertex_if_not_present n g.use;
-      ())
+  G.add_vertex_if_not_present n g.has;
+  G.add_vertex_if_not_present n g.use;
+  ()
+  [@@profiling]
 
 let add_edge (n1, n2) e g =
-  Common.profile_code "Graph_code.add_edge" (fun () ->
-      match e with
-      | Has -> G.add_edge n1 n2 g.has
-      | Use -> G.add_edge n1 n2 g.use)
+  match e with
+  | Has -> G.add_edge n1 n2 g.has
+  | Use -> G.add_edge n1 n2 g.use
+  [@@profiling]
 
 let remove_edge (n1, n2) e g =
   match e with
@@ -303,10 +303,10 @@ let all_nodes g =
 let has_node n g = G.has_node n g.has
 
 let pred n e g =
-  Common.profile_code "Graph_code.pred" (fun () ->
-      match e with
-      | Has -> G.pred n g.has
-      | Use -> G.pred n g.use)
+  match e with
+  | Has -> G.pred n g.has
+  | Use -> G.pred n g.use
+  [@@profiling]
 
 let succ n e g =
   match e with
@@ -329,13 +329,11 @@ let mk_eff_use_pred g =
   fun n -> Hashtbl.find_all h n
 
 let parent n g =
-  Common.profile_code "Graph_code.parent" (fun () ->
-      let xs = G.pred n g.has in
-      Common2.list_to_single_or_exn xs)
+  let xs = G.pred n g.has in
+  Common2.list_to_single_or_exn xs
+  [@@profiling]
 
-let parents n g =
-  Common.profile_code "Graph_code.parents" (fun () -> G.pred n g.has)
-
+let parents n g = G.pred n g.has [@@profiling]
 let children n g = G.succ n g.has
 
 let rec node_and_all_children n g =

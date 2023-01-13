@@ -49,16 +49,6 @@ let jsoo = ref false
 
 let spf = Printf.sprintf
 
-(* A timeout exception with accompanying debug information:
-   - a descriptive name
-   - the time limit
-     The mli interface makes this type private to help prevent unsafe uses of
-     the exception.
-*)
-type timeout_info = { name : string; max_duration : float }
-
-exception Timeout of timeout_info
-exception ExceededMemoryLimit of string
 exception UnixExit of int
 
 (*****************************************************************************)
@@ -104,6 +94,7 @@ let before_return f v =
 (*****************************************************************************)
 (* Profiling *)
 (*****************************************************************************)
+(* see also profiling/Profiling.ml now *)
 
 (* Report the time a function takes. *)
 let with_time f =
@@ -123,116 +114,6 @@ let pr2_time name f =
   Fun.protect f ~finally:(fun () ->
       let t2 = Unix.gettimeofday () in
       pr2 (spf "%s: %.6f s" name (t2 -. t1)))
-
-type prof = ProfAll | ProfNone | ProfSome of string list
-
-let profile = ref ProfNone
-let show_trace_profile = ref false
-
-let check_profile category =
-  match !profile with
-  | ProfAll -> true
-  | ProfNone -> false
-  | ProfSome l -> List.mem category l
-
-let _profile_table = ref (Hashtbl.create 100)
-
-let adjust_profile_entry category difftime =
-  let xtime, xcount =
-    try Hashtbl.find !_profile_table category with
-    | Not_found ->
-        let xtime = ref 0.0 in
-        let xcount = ref 0 in
-        Hashtbl.add !_profile_table category (xtime, xcount);
-        (xtime, xcount)
-  in
-  xtime := !xtime +. difftime;
-  xcount := !xcount + 1;
-  ()
-
-(* subtle: don't forget to give all argumens to f, otherwise partial app
- * and will profile nothing.
- *
- * todo: try also detect when complexity augment each time, so can
- * detect the situation for a function gets worse and worse ?
- *)
-let profile_code category f =
-  if not (check_profile category) then f ()
-  else (
-    if !show_trace_profile then pr2 (spf "> %s" category);
-    let t = Unix.gettimeofday () in
-    let res, prefix =
-      try (Ok (f ()), "") with
-      | Timeout _ as exn ->
-          let e = Exception.catch exn in
-          (Error e, "*")
-    in
-    let category = prefix ^ category in
-    (* add a '*' to indicate timeout func *)
-    let t' = Unix.gettimeofday () in
-
-    if !show_trace_profile then pr2 (spf "< %s" category);
-
-    adjust_profile_entry category (t' -. t);
-    match res with
-    | Ok res -> res
-    | Error e -> Exception.reraise e)
-
-let _is_in_exclusif = ref (None : string option)
-
-let profile_code_exclusif category f =
-  if not (check_profile category) then f ()
-  else
-    match !_is_in_exclusif with
-    | Some s ->
-        failwith (spf "profile_code_exclusif: %s but already in %s " category s)
-    | None ->
-        _is_in_exclusif := Some category;
-        Fun.protect
-          (fun () -> profile_code category f)
-          ~finally:(fun () -> _is_in_exclusif := None)
-
-let profile_code_inside_exclusif_ok _category _f = failwith "Todo"
-
-let (with_open_stringbuf : ((string -> unit) * Buffer.t -> unit) -> string) =
- fun f ->
-  let buf = Buffer.create 1000 in
-  let pr s = Buffer.add_string buf (s ^ "\n") in
-  f (pr, buf);
-  Buffer.contents buf
-
-(* todo: also put  % ? also add % to see if coherent numbers *)
-let profile_diagnostic () =
-  if !profile = ProfNone then ""
-  else
-    let xs =
-      Hashtbl.fold (fun k v acc -> (k, v) :: acc) !_profile_table []
-      |> List.sort (fun (_k1, (t1, _n1)) (_k2, (t2, _n2)) -> compare t2 t1)
-    in
-    with_open_stringbuf (fun (pr, _) ->
-        pr "---------------------";
-        pr "profiling result";
-        pr "---------------------";
-        xs
-        |> List.iter (fun (k, (t, n)) ->
-               pr (Printf.sprintf "%-40s : %10.3f sec %10d count" k !t !n)))
-
-let report_if_take_time timethreshold s f =
-  let t = Unix.gettimeofday () in
-  let res = f () in
-  let t' = Unix.gettimeofday () in
-  if t' -. t > float_of_int timethreshold then
-    pr2 (Printf.sprintf "Note: processing took %7.1fs: %s" (t' -. t) s);
-  res
-
-let profile_code2 category f =
-  profile_code category (fun () ->
-      if !profile = ProfAll then pr2 ("starting: " ^ category);
-      let t = Unix.gettimeofday () in
-      let res = f () in
-      let t' = Unix.gettimeofday () in
-      if !profile = ProfAll then pr2 (spf "ending: %s, %fs" category (t' -. t));
-      res)
 
 (*###########################################################################*)
 (* List functions *)
@@ -451,7 +332,7 @@ let index_list xs =
 
 let index_list_0 xs = index_list xs
 let index_list_1 xs = xs |> index_list |> map (fun (x, i) -> (x, i + 1))
-let sort_prof a b = profile_code "Common.sort_by_xxx" (fun () -> List.sort a b)
+let sort_prof a b = List.sort a b
 
 let sort_by_val_highfirst xs =
   sort_prof (fun (_k1, v1) (_k2, v2) -> compare v2 v1) xs
@@ -761,9 +642,7 @@ let candidate_match_func s re =
   in
   Str.string_match compile_re s 0
 
-let match_func s re =
-  profile_code "Common.=~" (fun () -> candidate_match_func s re)
-
+let match_func s re = candidate_match_func s re
 let ( =~ ) s re = match_func s re
 let split sep s = Str.split (Str.regexp sep) s
 let join sep xs = String.concat sep xs
@@ -955,7 +834,7 @@ let cat file =
    Why such a function is not provided by the ocaml standard library is
    unclear.
 *)
-let read_file2 ?(max_len = max_int) path =
+let read_file ?(max_len = max_int) path =
   let buf_len = 4096 in
   let extbuf = Buffer.create 4096 in
   let buf = Bytes.create buf_len in
@@ -971,9 +850,6 @@ let read_file2 ?(max_len = max_int) path =
   in
   let fd = Unix.openfile path [ Unix.O_RDONLY ] 0 in
   Fun.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
-
-let read_file ?max_len a =
-  profile_code "Common.read_file" (fun () -> read_file2 ?max_len a)
 
 let write_file ~file s =
   let chan = open_out_bin file in
@@ -1040,7 +916,7 @@ let fullpath file =
  * want put the cache_computation funcall in comment, so just easier to
  * pass this extra option.
  *)
-let cache_computation2 ?(use_cache = true) file ext_cache f =
+let cache_computation ?(use_cache = true) file ext_cache f =
   if not use_cache then f ()
   else if not (Sys.file_exists file) then (
     logger#error "WARNING: cache_computation: can't find %s" file;
@@ -1055,10 +931,6 @@ let cache_computation2 ?(use_cache = true) file ext_cache f =
       let res = f () in
       write_value res file_cache;
       res
-
-let cache_computation ?use_cache a b c =
-  profile_code "Common.cache_computation" (fun () ->
-      cache_computation2 ?use_cache a b c)
 
 (* emacs/lisp inspiration (eric cooper and yaron minsky use that too) *)
 let (with_open_outfile :
@@ -1082,78 +954,6 @@ let (with_open_infile : filename -> (in_channel -> 'a) -> 'a) =
       close_in chan;
       res)
     (fun _e -> close_in chan)
-
-let string_of_timeout_info { name; max_duration } =
-  spf "%s:%g" name max_duration
-
-let current_timer = ref None
-
-(* it seems that the toplevel block such signals, even with this explicit
- *  command :(
- *  let _ = Unix.sigprocmask Unix.SIG_UNBLOCK [Sys.sigalrm]
- *)
-
-(* could be in Control section *)
-
-(*
-   This is tricky stuff.
-
-   We have to make sure that timeout is not intercepted before here, so
-   avoid exn handle such as try (...) with _ -> cos timeout will not bubble up
-   enough. In such case, add a case before such as
-   with Timeout -> raise Timeout | _ -> ...
-
-  question: can we have a signal and so exn when in a exn handler ?
-*)
-let set_timeout ~name max_duration f =
-  (match !current_timer with
-  | None -> ()
-  | Some { name = running_name; max_duration = running_val } ->
-      invalid_arg
-        (spf
-           "Common.set_timeout: cannot set a timeout %S of %g seconds. A timer \
-            for %S of %g seconds is still running."
-           name max_duration running_name running_val));
-  let info (* private *) = { name; max_duration } in
-  let raise_timeout () = raise (Timeout info) in
-  let clear_timer () =
-    current_timer := None;
-    Unix.setitimer Unix.ITIMER_REAL { Unix.it_value = 0.; it_interval = 0. }
-    |> ignore
-  in
-  let set_timer () =
-    current_timer := Some info;
-    Unix.setitimer Unix.ITIMER_REAL
-      { Unix.it_value = max_duration; it_interval = 0. }
-    |> ignore
-  in
-  try
-    Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> raise_timeout ()));
-    set_timer ();
-    let x = f () in
-    clear_timer ();
-    Some x
-  with
-  | Timeout { name; max_duration } ->
-      clear_timer ();
-      logger#info "%S timeout at %g s (we abort)" name max_duration;
-      None
-  | exn ->
-      let e = Exception.catch exn in
-      (* It's important to disable the alarm before relaunching the exn,
-         otherwise the alarm is still running.
-
-         robust?: and if alarm launched after the log (...) ?
-         Maybe signals are disabled when process an exception handler ?
-      *)
-      clear_timer ();
-      logger#info "exn while in set_timeout";
-      Exception.reraise e
-
-let set_timeout_opt ~name time_limit f =
-  match time_limit with
-  | None -> Some (f ())
-  | Some x -> set_timeout ~name x f
 
 (* creation of tmp files, a la gcc *)
 
@@ -1239,15 +1039,11 @@ let hkeys h =
   h |> Hashtbl.iter (fun k _v -> Hashtbl.replace hkey k true);
   hashset_to_list hkey
 
-let group_assoc_bykey_eff2 xs =
+let group_assoc_bykey_eff xs =
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun (k, v) -> Hashtbl.add h k v);
   let keys = hkeys h in
   keys |> map (fun k -> (k, Hashtbl.find_all h k))
-
-let group_assoc_bykey_eff xs =
-  profile_code "Common.group_assoc_bykey_eff" (fun () ->
-      group_assoc_bykey_eff2 xs)
 
 (*****************************************************************************)
 (* Stack *)
@@ -1279,8 +1075,6 @@ let rec uniq_by eq xs =
       | Some _ -> uniq_by eq xs
       | None -> x :: uniq_by eq xs)
 
-let uniq_by a b = profile_code "Common.uniq_by" (fun () -> uniq_by a b)
-
 (*###########################################################################*)
 (* Misc functions *)
 (*###########################################################################*)
@@ -1310,6 +1104,8 @@ let pp_do_in_zero_box f =
   Format.open_box 0;
   f ();
   Format.close_box ()
+
+let before_exit = ref []
 
 let main_boilerplate f =
   if not !Sys.interactive then
@@ -1351,9 +1147,7 @@ let main_boilerplate f =
                          fm argm);
                     raise (Unix.Unix_error (e, fm, argm))))
           (fun () ->
-            if !profile <> ProfNone then (
-              pr2 (profile_diagnostic ());
-              Gc.print_stat stderr);
+            !before_exit |> List.iter (fun f -> f ());
             erase_temp_files ()))
 (* let _ = if not !Sys.interactive then (main ()) *)
 

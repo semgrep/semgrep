@@ -25,7 +25,7 @@ let ( let/ ) = Result.bind
 
 let parse_pattern lang pattern =
   try Ok (Parse_pattern.parse_pattern lang pattern) with
-  | Timeout _ as e -> Exception.catch_and_reraise e
+  | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
   | e ->
       let e = Exception.catch e in
       Error e
@@ -34,7 +34,7 @@ let parse_target lang text =
   (* ext shouldn't matter, but could use Lang.ext_of_lang if needed *)
   Common2.with_tmp_file ~str:text ~ext:"check" (fun file ->
       try Ok (Parse_target.just_parse_with_lang lang file) with
-      | Timeout _ as e -> Exception.catch_and_reraise e
+      | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
       | e ->
           let e = Exception.catch e in
           Error e)
@@ -134,7 +134,7 @@ let render_fix pm =
       (* Perform sanity checks for the resulting fix. *)
       validate_fix lang (Lazy.force target_contents) edit
     with
-    | Timeout _ as e -> Exception.catch_and_reraise e
+    | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
     | e ->
         let e = Exception.catch e in
         Error

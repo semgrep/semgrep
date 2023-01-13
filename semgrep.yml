@@ -45,6 +45,8 @@ rules:
         - runner/*.ml
         - experiments/*
         - ograph/*
+        - profiling/*
+        - ppx_profiling/*
         - Check_*.ml
 
   - id: use-pytest-mock
@@ -98,6 +100,9 @@ rules:
     paths:
       include:
         - semgrep-core/src/*
+      exclude:
+        - semgrep-core/src/profiling/*
+        - ppx_profiling/*
 
   - id: use-concat-map
     pattern-either:

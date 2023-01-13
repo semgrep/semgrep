@@ -183,11 +183,9 @@ let safe_run ~debug f : Exit_code.t =
 let before_exit ~profile () : unit =
   (* alt: could be done in Main.ml instead, just before the call to exit() *)
   !Hooks.exit |> List.iter (fun f -> f ());
-  (* mostly a copy of Common.main_boilerplate finalize code *)
-  if profile then (
-    (* alt: could use Logs.debug, but --profile would require then --debug *)
-    Common.pr2 (Common.profile_diagnostic ());
-    Gc.print_stat stderr);
+  (* mostly a copy of Profiling.main_boilerplate finalize code *)
+  if profile then Profiling.print_diagnostics_and_gc_stats ();
+  (* alt: could use Logs.debug, but --profile would require then --debug *)
   Common.erase_temp_files ();
   ()
 
@@ -241,7 +239,7 @@ let main argv : Exit_code.t =
    *)
   Logs_helpers.enable_logging ();
   (* pad poor's man profiler *)
-  if profile then Common.profile := ProfAll;
+  if profile then Profiling.profile := Profiling.ProfAll;
 
   (* TOADAPT
      profile_start := Unix.gettimeofday ();

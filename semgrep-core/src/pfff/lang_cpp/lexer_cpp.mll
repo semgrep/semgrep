@@ -470,7 +470,7 @@ rule token = parse
   | letter (letter | digit) *
       { let info = tokinfo lexbuf in
         let s = tok lexbuf in
-        Common.profile_code "C parsing.lex_ident" (fun () ->
+        Profiling.profile_code "C parsing.lex_ident" (fun () ->
           match Common2.optionise (fun () -> Hashtbl.find keyword_table s) with
           | Some f -> f info
 

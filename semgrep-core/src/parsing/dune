@@ -13,13 +13,13 @@
    pfff-lang_go
    pfff-lang_js
 
+   process_limits
    spacegrep
 
    ojsonnet_parsing
    ojsonnet_interpreting
 
    semgrep_core
-   semgrep_system
    semgrep_optimizing
    semgrep_parsing_tree_sitter
    semgrep_parsing_other

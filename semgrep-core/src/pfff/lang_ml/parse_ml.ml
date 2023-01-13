@@ -37,7 +37,7 @@ let tokens file =
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
-let parse2 filename =
+let parse filename =
   let stat = Parse_info.default_stat filename in
   let toks = tokens filename in
 
@@ -50,7 +50,7 @@ let parse2 filename =
     (* Call parser *)
     (* -------------------------------------------------- *)
     let xs =
-      Common.profile_code "Parser_ml.main" (fun () ->
+      Profiling.profile_code "Parser_ml.main" (fun () ->
           if filename =~ ".*\\.mli" then Parser_ml.interface lexer lexbuf_fake
           else Parser_ml.implementation lexer lexbuf_fake)
     in
@@ -70,8 +70,7 @@ let parse2 filename =
 
       stat.PI.error_line_count <- stat.PI.total_line_count;
       { PI.ast = []; tokens = toks; stat }
-
-let parse a = Common.profile_code "Parse_ml.parse" (fun () -> parse2 a)
+  [@@profiling]
 
 let parse_program file =
   let res = parse file in

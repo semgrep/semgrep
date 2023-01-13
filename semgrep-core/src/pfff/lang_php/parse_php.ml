@@ -72,7 +72,7 @@ let tokens2 ?(init_state = Lexer_php.INITIAL) file =
     TH.is_eof
 
 let tokens ?init_state a =
-  Common.profile_code "Parse_php.tokens" (fun () -> tokens2 ?init_state a)
+  Profiling.profile_code "Parse_php.tokens" (fun () -> tokens2 ?init_state a)
 
 let is_comment v =
   TH.is_comment v
@@ -96,7 +96,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
     match pp with
     | None -> orig_filename
     | Some cmd ->
-        Common.profile_code "Parse_php.pp_maybe" (fun () ->
+        Profiling.profile_code "Parse_php.pp_maybe" (fun () ->
             let pp_flag = if !Flag_php.verbose_pp then "-v" else "" in
 
             (* The following requires the preprocessor command to
@@ -112,7 +112,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
             let ret = Sys.command cmd_need_pp in
             if ret = 0 then orig_filename
             else
-              Common.profile_code "Parse_php.pp" (fun () ->
+              Profiling.profile_code "Parse_php.pp" (fun () ->
                   let tmpfile = Common.new_temp_file "pp" ".pphp" in
                   let fullcmd =
                     spf "%s %s %s > %s" cmd pp_flag filename tmpfile
@@ -149,7 +149,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
       (* Call parser *)
       (* -------------------------------------------------- *)
       Left
-        (Common.profile_code "Parser_php.main" (fun () ->
+        (Profiling.profile_code "Parser_php.main" (fun () ->
              Parser_php.main lexer lexbuf_fake))
     with
     | Parsing.Parse_error ->
@@ -188,7 +188,8 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
         stat;
       }
 
-let parse ?pp a = Common.profile_code "Parse_php.parse" (fun () -> parse2 ?pp a)
+let parse ?pp a =
+  Profiling.profile_code "Parse_php.parse" (fun () -> parse2 ?pp a)
 
 let parse_program ?pp file =
   let res = parse ?pp file in

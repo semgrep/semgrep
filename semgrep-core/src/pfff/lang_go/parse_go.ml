@@ -38,17 +38,16 @@ let error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
 (* Lexing only *)
 (*****************************************************************************)
 
-let tokens2 file =
+let tokens file =
   let token lexbuf = Lexer.token lexbuf in
   Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
     TH.is_eof
-
-let tokens a = Common.profile_code "Parse_go.tokens" (fun () -> tokens2 a)
+  [@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
-let parse2 filename =
+let parse filename =
   (* this can throw Parse_info.Lexical_error *)
   let toks_orig = tokens filename in
   let toks = Common.exclude TH.is_comment_or_space toks_orig in
@@ -63,7 +62,7 @@ let parse2 filename =
     (* Call parser *)
     (* -------------------------------------------------- *)
     let xs =
-      Common.profile_code "Parser_go.file" (fun () ->
+      Profiling.profile_code "Parser_go.file" (fun () ->
           Parser_go.file lexer lexbuf_fake)
     in
     { PI.ast = xs; tokens = toks_orig; stat = PI.correct_stat filename }
@@ -80,8 +79,7 @@ let parse2 filename =
         let line_error = PI.line_of_info (TH.info_of_tok cur) in
         Parse_info.print_bad line_error (0, checkpoint2) filelines);
       { PI.ast = []; tokens = toks_orig; stat = PI.bad_stat filename }
-
-let parse a = Common.profile_code "Parse_go.parse" (fun () -> parse2 a)
+  [@@profiling]
 
 let parse_program file =
   let res = parse file in
