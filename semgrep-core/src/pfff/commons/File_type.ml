@@ -108,7 +108,7 @@ and media_type = Sound of string | Picture of string | Video of string
 (* this function is used by codemap and archi_parse and called for each
  * filenames, so it has to be fast!
  *)
-let file_type_of_file2 file =
+let file_type_of_file file =
   let _d, b, e = Common2.dbe_of_filename_noext_ok file in
   match e with
   | "ml"
@@ -369,9 +369,6 @@ let file_type_of_file2 file =
   | _ when b = ".emacs" -> PL (Lisp Elisp)
   | _ when Common2.filesize file > 300_000 -> Obj e
   | _ -> Other e
-
-let file_type_of_file a =
-  Common.profile_code "file_type_of_file" (fun () -> file_type_of_file2 a)
 
 (*****************************************************************************)
 (* Misc *)

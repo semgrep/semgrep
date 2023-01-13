@@ -75,7 +75,7 @@ let replace_named_pipe_by_regular_file path =
 let timeout_function file timeout f =
   let timeout = if timeout <= 0. then None else Some timeout in
   match
-    Common.set_timeout_opt ~name:"Run_semgrep.timeout_function" timeout f
+    Time_limit.set_timeout_opt ~name:"Run_semgrep.timeout_function" timeout f
   with
   | Some res -> res
   | None ->
@@ -413,7 +413,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                    RP.make_match_result [] errors
                      (RP.empty_partial_profiling file)
                (* those were converted in Main_timeout in timeout_function()*)
-               | Timeout _ -> assert false
+               | Time_limit.Timeout _ -> assert false
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
                    let errors = RP.ErrorSet.singleton (exn_to_error file e) in

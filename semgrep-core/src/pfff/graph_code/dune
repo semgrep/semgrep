@@ -9,4 +9,8 @@
    pfff-h_program-lang ; store position information in the graph and tokens for stats
    entity_code
  )
+ (preprocess
+   (pps
+     ppx_profiling
+  ))
 )

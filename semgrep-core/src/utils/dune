@@ -10,6 +10,7 @@
    pcre
 
    commons
+   profiling
    ;note: you should not depend on any semgrep libraries here
 
  )

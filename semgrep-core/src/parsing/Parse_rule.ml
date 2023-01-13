@@ -403,7 +403,7 @@ let parse_python_expression env key s =
     | AST_generic.E e -> e
     | _ -> error_at_key env key "not a Python expression"
   with
-  | (Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
+  | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_metavar_cond env key s = parse_python_expression env key s
@@ -535,7 +535,7 @@ let parse_xpattern_expr env e =
        (* TODO put in *)
      in *)
   try parse_xpattern env (s, t) with
-  | (Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
+  | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
       raise
@@ -887,7 +887,8 @@ and parse_formula env (value : G.expr) : R.formula =
          in *)
       R.P
         (try parse_xpattern env (s, t) with
-        | (Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
+        | (Time_limit.Timeout _ | UnixExit _) as e ->
+            Exception.catch_and_reraise e
         (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
         | exn ->
             raise

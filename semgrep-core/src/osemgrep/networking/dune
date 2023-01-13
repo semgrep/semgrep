@@ -7,7 +7,7 @@
     ; !!osemgrep_networking should be the only lib in semgrep using cohttp!!
     cohttp cohttp-lwt-unix
 
-    commons ; for ppx_profiling generated code
+    profiling
   )
  (preprocess
    (pps

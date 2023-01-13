@@ -169,7 +169,7 @@ let toplevel_methods g dag =
   htoplevels
 
 (* the inverse of lookup, go down in the children instead of up in the parent *)
-let dispatched_methods2 g dag node =
+let dispatched_methods g dag node =
   let str, kind = node in
   assert (kind =*= E.Method);
 
@@ -188,7 +188,4 @@ let dispatched_methods2 g dag node =
   else failwith (spf "could not find class %s" c);
 
   !res
-
-let dispatched_methods a b c =
-  Common.profile_code "GCCA.dispatched_methods" (fun () ->
-      dispatched_methods2 a b c)
+  [@@profiling]

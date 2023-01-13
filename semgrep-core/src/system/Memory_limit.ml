@@ -1,14 +1,47 @@
-(*
-   Avoid segfaults when the process runs out of memory.
-*)
-
+(* Martin Jambon
+ *
+ * Copyright (C) 2021-2023 r2c
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
 open Common
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(*
+   Avoid segfaults when the process runs out of memory.
+
+   See also https://gitlab.com/gadmm/memprof-limits/.
+*)
+
+(*****************************************************************************)
+(* Types and constants *)
+(*****************************************************************************)
+
+exception ExceededMemoryLimit of string
+
 (* Why those values? *)
 let default_stack_warning_kb = 100
 let default_heap_warning_mb = 400
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
 
 (*
    Fail gracefully if memory becomes insufficient.
@@ -61,7 +94,7 @@ let run_with_memory_limit ?get_context
       logger#info
         "%sexceeded heap+stack memory limit: %d bytes (stack=%d, heap=%d)"
         (context ()) mem_bytes stack_bytes heap_bytes;
-      raise (Common.ExceededMemoryLimit "Exceeded memory limit"))
+      raise (ExceededMemoryLimit "Exceeded memory limit"))
     else if !heap_warning > 0 && heap_bytes > !heap_warning then (
       logger#warning
         "%slarge heap size: %d MiB (memory limit is %d MiB). If a crash \

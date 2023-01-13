@@ -2,6 +2,8 @@
    Avoid segfaults when the process runs out of memory.
 *)
 
+exception ExceededMemoryLimit of string
+
 (*
    Set an approximate limit the combined heap+stack size,
    resulting in a 'Out_of_memory' exception. To help prevent stack overflows,

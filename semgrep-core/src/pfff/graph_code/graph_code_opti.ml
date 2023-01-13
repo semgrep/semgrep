@@ -58,7 +58,7 @@ let nb_nodes g = Array.length g.i_to_name
 (* Converting *)
 (*****************************************************************************)
 
-let (convert2 : Graph_code.t -> graph) =
+let (convert : Graph_code.t -> graph) =
  fun g ->
   let n = G.nb_nodes g in
 
@@ -92,9 +92,7 @@ let (convert2 : Graph_code.t -> graph) =
                     let j = hashtbl_find h.name_to_i node2 in
                     h.use.(i) <- j :: h.use.(i)));
   h
-
-let convert a =
-  Common.profile_code "Graph_code_opti.convert" (fun () -> convert2 a)
+ [@@profiling]
 
 (*****************************************************************************)
 (* Adapters *)

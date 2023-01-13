@@ -33,17 +33,16 @@ let error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
 (* Lexing only *)
 (*****************************************************************************)
 
-let tokens2 file =
+let tokens file =
   let token = Lexer_java.token in
   Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
     TH.is_eof
-
-let tokens a = Common.profile_code "Java parsing.tokens" (fun () -> tokens2 a)
+  [@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
-let parse2 filename =
+let parse filename =
   let stat = Parse_info.default_stat filename in
   let filelines = Common2.cat_array filename in
 
@@ -62,7 +61,7 @@ let parse2 filename =
       (* Call parser *)
       (* -------------------------------------------------- *)
       Left
-        (Common.profile_code "Parser_java.main" (fun () ->
+        (Profiling.profile_code "Parser_java.main" (fun () ->
              Parser_java.goal lexer lexbuf_fake))
     with
     | Parsing.Parse_error ->
@@ -93,8 +92,7 @@ let parse2 filename =
         Parse_info.print_bad line_error (checkpoint, checkpoint2) filelines;
       stat.PI.error_line_count <- stat.PI.total_line_count;
       { PI.ast = []; tokens = toks; stat }
-
-let parse a = Common.profile_code "Parse_java.parse" (fun () -> parse2 a)
+  [@@profiling]
 
 let parse_program file =
   let res = parse file in

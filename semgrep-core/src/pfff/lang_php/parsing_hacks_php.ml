@@ -204,7 +204,7 @@ let find_typehint toks =
 (* Fix tokens *)
 (*****************************************************************************)
 
-let fix_tokens2 xs =
+let fix_tokens xs =
   let rec aux env acc xs =
     match xs with
     (* need an acc, to be tail recursive, otherwise get some stack overflow *)
@@ -306,6 +306,4 @@ let fix_tokens2 xs =
         aux { env with stack } (x :: acc) xs
   in
   aux { stack = [ Toplevel ]; misc = () } [] xs
-
-let fix_tokens a =
-  Common.profile_code "Parse_php.fix_tokens" (fun () -> fix_tokens2 a)
+  [@@profiling]

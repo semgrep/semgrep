@@ -113,7 +113,7 @@ let import_callback base str =
                  m "trying to download from %s" (Uri.to_string url));
              let content =
                try Network.get url with
-               | Timeout _ as exn -> Exception.catch_and_reraise exn
+               | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
                | exn ->
                    (* was raise Semgrep_error, but equivalent to abort now *)
                    Error.abort
@@ -174,7 +174,7 @@ let load_rules_from_url url : rules_and_origin =
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
     try Network.get url with
-    | Timeout _ as exn -> Exception.catch_and_reraise exn
+    | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
     | exn ->
         (* was raise Semgrep_error, but equivalent to abort now *)
         Error.abort

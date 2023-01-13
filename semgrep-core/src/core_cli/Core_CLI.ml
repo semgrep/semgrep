@@ -668,7 +668,7 @@ let options actions =
       ( "-profile",
         Arg.Unit
           (fun () ->
-            Common.profile := Common.ProfAll;
+            Profiling.profile := Profiling.ProfAll;
             profile := true),
         " output profiling information" );
       ( "-keep_tmp_files",
@@ -760,7 +760,7 @@ let main (sys_argv : string array) : unit =
   if config.lsp then LSP_client.init ();
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
-  Common.profile_code "Main total" (fun () ->
+  Profiling.profile_code "Main total" (fun () ->
       match args with
       (* --------------------------------------------------------- *)
       (* actions, useful to debug subpart *)

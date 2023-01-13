@@ -21,7 +21,7 @@ open Ast_helper
 (* A ppx rewriter to automatically transform
  *  let foo frm = ... [@@profiling]
  * into
- *  let foo frm = ... let foo a = Common.profile_code "X.foo" (fun () -> foo a)
+ *  let foo frm = ... let foo a = Profiling.profile_code "X.foo" (fun () -> foo a)
  *
  * Usage to test:
  *   $ ocamlfind ppx_tools/rewriter ./ppx_profiling tests/test_profiling.ml
@@ -74,7 +74,7 @@ open Ast_helper
 let rec nb_parameters body =
   match body with
   | { pexp_desc = Pexp_fun (_, _, _, body); _ } -> 1 + nb_parameters body
-  | _ -> 0
+  | _else_ -> 0
 
 let rec mk_params loc n e =
   if n = 0 then e
@@ -155,12 +155,12 @@ let impl xs =
                 };
                ] ->
                    name
-               | _ ->
+               | _else_ ->
                    Location.raise_errorf ~loc
                      "@@profiling accepts nothing or a string"
              in
 
-             (* let <fname> a b = Common.profile_code <action_name> (fun () ->
+             (* let <fname> a b = Profiling.profile_code <action_name> (fun () ->
               *         <fname> a b)
               *)
              let item2 =
@@ -172,7 +172,7 @@ let impl xs =
                         (Exp.apply
                            (Exp.ident
                               {
-                                txt = Ldot (Lident "Common", "profile_code");
+                                txt = Ldot (Lident "Profiling", "profile_code");
                                 loc;
                               })
                            [

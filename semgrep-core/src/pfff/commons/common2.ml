@@ -564,7 +564,7 @@ let (test_all : unit -> unit) =
       Printf.printf "%s: %s\n" s (if b then "passed" else "failed"))
     !_list_bool
 
-let ( ++ ) a b = Common.profile_code "++" (fun () -> a @ b)
+let ( ++ ) a b = a @ b
 let _ex = example3 "++" ([ 1; 2 ] @ [ 3; 4; 5 ] = [ 1; 2; 3; 4; 5 ])
 
 (*-------------------------------------------------------------------*)
@@ -773,15 +773,8 @@ let write_value valu filename =
 
 let write_back func filename = write_value (func (get_value filename)) filename
 let read_value f = get_value f
-let marshal__to_string2 v flags = Marshal.to_string v flags
-
-let marshal__to_string a b =
-  Common.profile_code "Marshalling" (fun () -> marshal__to_string2 a b)
-
-let marshal__from_string2 v flags = Marshal.from_string v flags
-
-let marshal__from_string a b =
-  Common.profile_code "Marshalling" (fun () -> marshal__from_string2 a b)
+let marshal__to_string v flags = Marshal.to_string v flags
+let marshal__from_string v flags = Marshal.from_string v flags
 
 (*****************************************************************************)
 (* Counter *)
@@ -1652,9 +1645,7 @@ type bool3 = True3 | False3 | TrueFalsePb3 of string
 
 (* let gsubst = global_replace *)
 
-let ( ==~ ) s re =
-  Common.profile_code "Common.==~" (fun () -> Str.string_match re s 0)
-
+let ( ==~ ) s re = Str.string_match re s 0
 let _memo_compiled_regexp = Hashtbl.create 101
 
 let candidate_match_func s re =
@@ -1664,9 +1655,7 @@ let candidate_match_func s re =
   in
   Str.string_match compile_re s 0
 
-let match_func s re =
-  Common.profile_code "Common.=~" (fun () -> candidate_match_func s re)
-
+let match_func s re = candidate_match_func s re
 let ( =~ ) s re = match_func s re
 
 let string_match_substring re s =
@@ -2676,8 +2665,7 @@ let count_newlines s =
   go 0 0
 
 (* Compose the previous two functions to count the lines in a file *)
-let nblines_eff2 file = fold_file (fun x s -> x + count_newlines s) 0 file
-let nblines_eff a = Common.profile_code "Nblines_eff" (fun () -> nblines_eff2 a)
+let nblines_eff file = fold_file (fun x s -> x + count_newlines s) 0 file
 
 (* old: this could generate some Sys_error "Out of memory" in stressful
  * conditions because of the repeated calls to input_line which on
@@ -2830,9 +2818,7 @@ let cmd_to_list ?verbose command =
 
 let process_output_to_list = cmd_to_list
 let cmd_to_list_and_status = process_output_to_list2
-
-let nblines_with_wc a =
-  Common.profile_code "Common.nblines_with_wc" (fun () -> nblines_eff2 a)
+let nblines_with_wc a = nblines_eff a
 
 let unix_diff file1 file2 =
   let xs, _status = cmd_to_list_and_status (spf "diff -u %s %s" file1 file2) in
@@ -2920,7 +2906,8 @@ let write_file ~file s =
   output_string chan s;
   close_out chan
 
-let unix_stat file = Common.profile_code "Unix.stat" (fun () -> Unix.stat file)
+(* TODO: add [@@profiling] but mutual deps :( *)
+let unix_stat file = Unix.stat file
 
 let filesize file =
   if not !Common.jsoo (* this does not work well with jsoo *) then
@@ -2965,20 +2952,18 @@ let _hmemo_unix_lstat_eff = Hashtbl.create 101
 let _hmemo_unix_stat_eff = Hashtbl.create 101
 
 let unix_lstat_eff file =
-  Common.profile_code "Unix.lstat_eff" (fun () ->
-      if is_absolute file then
-        memoized _hmemo_unix_lstat_eff file (fun () -> Unix.lstat file)
-      else
-        (* this is for efficieny reason to be able to memoize the stats *)
-        failwith "must pass absolute path to unix_lstat_eff")
+  if is_absolute file then
+    memoized _hmemo_unix_lstat_eff file (fun () -> Unix.lstat file)
+  else
+    (* this is for efficieny reason to be able to memoize the stats *)
+    failwith "must pass absolute path to unix_lstat_eff"
 
 let unix_stat_eff file =
-  Common.profile_code "Unix.stat_eff" (fun () ->
-      if is_absolute file then
-        memoized _hmemo_unix_stat_eff file (fun () -> Unix.stat file)
-      else
-        (* this is for efficieny reason to be able to memoize the stats *)
-        failwith "must pass absolute path to unix_stat_eff")
+  if is_absolute file then
+    memoized _hmemo_unix_stat_eff file (fun () -> Unix.stat file)
+  else
+    (* this is for efficieny reason to be able to memoize the stats *)
+    failwith "must pass absolute path to unix_stat_eff"
 
 let filesize_eff file = (unix_lstat_eff file).Unix.st_size
 let filemtime_eff file = (unix_lstat_eff file).Unix.st_mtime
@@ -3051,7 +3036,8 @@ let unixname () =
  * want put the cache_computation funcall in comment, so just easier to
  * pass this extra option.
  *)
-let cache_computation2 ?(verbose = false) ?(use_cache = true) file ext_cache f =
+(* TODO: put back [@@profiling] *)
+let cache_computation ?(verbose = false) ?(use_cache = true) file ext_cache f =
   if not use_cache then f ()
   else if not (Sys.file_exists file) then (
     pr2 ("WARNING: cache_computation: can't find file " ^ file);
@@ -3067,11 +3053,8 @@ let cache_computation2 ?(verbose = false) ?(use_cache = true) file ext_cache f =
       write_value res file_cache;
       res
 
-let cache_computation ?verbose ?use_cache a b c =
-  Common.profile_code "Common.cache_computation" (fun () ->
-      cache_computation2 ?verbose ?use_cache a b c)
-
-let cache_computation_robust2 file ext_cache
+(* TODO: put back [@@profiling] *)
+let cache_computation_robust file ext_cache
     (need_no_changed_files, need_no_changed_variables) ext_depend f =
   if not (Sys.file_exists file) then failwith ("can't find: " ^ file);
 
@@ -3094,10 +3077,6 @@ let cache_computation_robust2 file ext_cache
     write_value dependencies dependencies_cache;
     write_value res file_cache;
     res)
-
-let cache_computation_robust a b c d e =
-  Common.profile_code "Common.cache_computation_robust" (fun () ->
-      cache_computation_robust2 a b c d e)
 
 (* dont forget that cmd_to_list call bash and so pattern may contain
  * '*' symbols that will be expanded, so can do  glob "*.c"
@@ -3986,8 +3965,8 @@ let _ =
     (cartesian_product [ 1; 2 ] [ "3"; "4"; "5" ])
     [ (1, "3"); (1, "4"); (1, "5"); (2, "3"); (2, "4"); (2, "5") ]
 
-let sort_prof a b =
-  Common.profile_code "Common.sort_by_xxx" (fun () -> List.sort a b)
+(* TODO: add [@@profiling] *)
+let sort_prof a b = List.sort a b
 
 type order = HighFirst | LowFirst
 
@@ -4242,7 +4221,7 @@ let (include_set_strict : 'a set -> 'a set -> bool) =
 let ( $*$ ) = inter_set
 let ( $+$ ) = union_set
 let ( $-$ ) = minus_set
-let ( $?$ ) a b = Common.profile_code "$?$" (fun () -> member_set a b)
+let ( $?$ ) a b = member_set a b
 let ( $<$ ) = include_set_strict
 let ( $<=$ ) = include_set
 let ( $=$ ) = equal_set
@@ -4539,15 +4518,11 @@ let hkeys h =
 
 let hunion h1 h2 = h2 |> Hashtbl.iter (fun k v -> Hashtbl.add h1 k v)
 
-let group_assoc_bykey_eff2 xs =
+let group_assoc_bykey_eff xs =
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun (k, v) -> Hashtbl.add h k v);
   let keys = hkeys h in
   keys |> List.map (fun k -> (k, Hashtbl.find_all h k))
-
-let group_assoc_bykey_eff xs =
-  Common.profile_code "Common.group_assoc_bykey_eff" (fun () ->
-      group_assoc_bykey_eff2 xs)
 
 let _test_group_assoc () =
   let xs = enum 0 10000 |> List.map (fun i -> (i_to_s i, i)) in
@@ -5534,9 +5509,6 @@ let cmdline_flags_devel () =
     ( "-debugger",
       Arg.Set Common.debugger,
       " option to set if launched inside ocamldebug" );
-    ( "-profile",
-      Arg.Unit (fun () -> Common.profile := Common.ProfAll),
-      " output profiling information" );
     ( "-keep_tmp_files",
       Arg.Set Common.save_tmp_files,
       " keep temporary generated files" );
@@ -5548,7 +5520,6 @@ let cmdline_flags_verbose () =
     ( "-disable_pr2_once",
       Arg.Set Common.disable_pr2_once,
       " to print more messages" );
-    ("-show_trace_profile", Arg.Set Common.show_trace_profile, " show trace");
   ]
 
 let cmdline_flags_other () =
@@ -5796,7 +5767,7 @@ let (tree_of_files : filename list -> (string, string * filename) tree) =
   Node (join "/" root, aux files)
 
 (* finding the common root *)
-let common_prefix_of_files_or_dirs2 xs =
+let common_prefix_of_files_or_dirs xs =
   let xs = xs |> List.map relative_to_absolute in
   match xs with
   | [] -> failwith "common_prefix_of_files_or_dirs: empty list"
@@ -5806,10 +5777,6 @@ let common_prefix_of_files_or_dirs2 xs =
       let xs = xs |> List.map dirs_and_base_of_file in
       let dirs = find_common_root xs in
       "/" ^ join "/" dirs
-
-let common_prefix_of_files_or_dirs xs =
-  Common.profile_code "Common.common_prefix_of" (fun () ->
-      common_prefix_of_files_or_dirs2 xs)
 
 (*
 let _ =

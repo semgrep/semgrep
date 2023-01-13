@@ -109,7 +109,7 @@ let rec parse_basic ?(parsing_mode = Python) filename =
     (* Call parser *)
     (* -------------------------------------------------- *)
     let xs =
-      Common.profile_code "Parser_python.main" (fun () ->
+      Profiling.profile_code "Parser_python.main" (fun () ->
           Parser_python.main lexer lexbuf_fake)
     in
     { Parse_info.ast = xs; tokens = toks; stat }
@@ -160,7 +160,7 @@ let rec parse_basic ?(parsing_mode = Python) filename =
         { Parse_info.ast = []; tokens = toks; stat }
 
 let parse ?parsing_mode a =
-  Common.profile_code "Parse_python.parse" (fun () ->
+  Profiling.profile_code "Parse_python.parse" (fun () ->
       parse_basic ?parsing_mode a)
 
 let parse_program ?parsing_mode file =

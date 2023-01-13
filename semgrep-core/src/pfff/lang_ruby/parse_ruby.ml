@@ -112,7 +112,7 @@ let parse2 opt_timeout file =
         let lst =
           (* GLR parsing can be very time consuming *)
           match
-            Common.set_timeout_opt ~name:"Parse_ruby.parse" opt_timeout
+            Time_limit.set_timeout_opt ~name:"Parse_ruby.parse" opt_timeout
               (fun () -> Parser_ruby.main lexer lexbuf)
           with
           | Some res -> res
@@ -176,7 +176,7 @@ let any_of_string ?timeout str =
                 let lst =
                   (* GLR parsing can be very time consuming *)
                   match
-                    Common.set_timeout_opt ~name:"Parse_ruby.any_of_string"
+                    Time_limit.set_timeout_opt ~name:"Parse_ruby.any_of_string"
                       timeout (fun () ->
                         Parser_ruby.sgrep_spatch_pattern lexer lexbuf)
                   with

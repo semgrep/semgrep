@@ -196,7 +196,7 @@ let parse2 opt_timeout filename =
         (* -------------------------------------------------- *)
         (* Call parser *)
         (* -------------------------------------------------- *)
-        Common.profile_code "Parser_js.module_item" (fun () ->
+        Profiling.profile_code "Parser_js.module_item" (fun () ->
             Parser_js.module_item_or_eof lexer lexbuf_fake)
       in
       (* this seems optional *)
@@ -263,7 +263,7 @@ let parse2 opt_timeout filename =
   in
   let items =
     match
-      Common.set_timeout_opt ~name:"Parse_js.parse" opt_timeout (fun () ->
+      Time_limit.set_timeout_opt ~name:"Parse_js.parse" opt_timeout (fun () ->
           aux tr)
     with
     | Some res -> res
@@ -276,7 +276,7 @@ let parse2 opt_timeout filename =
   { PI.ast = items; tokens = toks; stat }
 
 let parse ?timeout a =
-  Common.profile_code "Parse_js.parse" (fun () -> parse2 timeout a)
+  Profiling.profile_code "Parse_js.parse" (fun () -> parse2 timeout a)
 
 let parse_program file =
   let res = parse file in

@@ -172,15 +172,12 @@ let parse_fuzzy file =
 (* It can be used to to parse the macros defined in a macro.h file. It
  * can also be used to try to extract the macros defined in the file
  * that we try to parse *)
-let extract_macros2 file =
+let extract_macros file =
   Common.save_excursion Flag.verbose_lexing false (fun () ->
       let toks = tokens (* todo: ~profile:false *) file in
       let toks = Parsing_hacks_define.fix_tokens_define toks in
       Pp_token.extract_macros toks)
-
-let extract_macros a =
-  Common.profile_code_exclusif "Parse_cpp.extract_macros" (fun () ->
-      extract_macros2 a)
+  [@@profiling]
 
 (* less: pass it as a parameter to parse_program instead ?
  * old: was a ref, but a hashtbl.t is actually already a kind of ref
@@ -438,7 +435,7 @@ let parse2 file : (Ast.program, T.token) PI.parsing_result =
   | _ -> failwith (spf "not a C/C++ file: %s" file)
 
 let parse file : (Ast.program, T.token) PI.parsing_result =
-  Common.profile_code "Parse_cpp.parse" (fun () ->
+  Profiling.profile_code "Parse_cpp.parse" (fun () ->
       try parse2 file with
       | Stack_overflow ->
           logger#error "PB stack overflow in %s" file;

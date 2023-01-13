@@ -104,7 +104,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
             let res = f file in
             Ok res
           with
-          | Timeout _ as e -> Exception.catch_and_reraise e
+          | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
           | exn ->
               let e = Exception.catch exn in
               (* TODO: print where the exception was raised or reraise *)
@@ -136,7 +136,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
             let locs = x :: xs |> Common.map loc_of_tree_sitter_error in
             Partial (ast, locs, stat)
       with
-      | Timeout _ as e -> Exception.catch_and_reraise e
+      | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
       (* to get correct stack trace on parse error *)
       | exn when !debug_exn -> Exception.catch_and_reraise exn
       | exn ->

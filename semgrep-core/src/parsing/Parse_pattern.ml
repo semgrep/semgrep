@@ -63,7 +63,7 @@ let run_parser ~print_errors p str =
         extract_pattern_from_tree_sitter_result res print_errors
   in
   try Ok (parse ()) with
-  | Timeout _ as e -> Exception.catch_and_reraise e
+  | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
   | exn -> Error (Exception.catch exn)
 
 (* This is a simplified version of run_either in Parse_target.ml. We don't need

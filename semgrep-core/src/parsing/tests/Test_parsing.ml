@@ -343,14 +343,14 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
              try
                match
                  Memory_limit.run_with_memory_limit ~mem_limit_mb (fun () ->
-                     Common.set_timeout ~name:"Test_parsing.parsing_common"
+                     Time_limit.set_timeout ~name:"Test_parsing.parsing_common"
                        timeout_seconds (fun () ->
                          Parse_target.parse_and_resolve_name lang file))
                with
                | Some res -> res.Parse_target.stat
                | None -> { (PI.bad_stat file) with have_timeout = true }
              with
-             | Timeout _ -> assert false
+             | Time_limit.Timeout _ -> assert false
              | exn ->
                  if verbose then print_exn file exn;
                  (* bugfix: bad_stat() could actually triggering some

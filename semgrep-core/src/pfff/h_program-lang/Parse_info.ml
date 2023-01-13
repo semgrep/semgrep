@@ -549,7 +549,7 @@ let split_info_at_pos pos ii =
 (* Adjust file pos *)
 (*****************************************************************************)
 
-let full_charpos_to_pos_large2 file =
+let full_charpos_to_pos_large file =
   let chan = open_in_bin file in
   let size = Common2.filesize file + 2 in
 
@@ -606,10 +606,7 @@ let full_charpos_to_pos_large2 file =
   full_charpos_to_pos_aux ();
   close_in chan;
   fun i -> (arr1.{i}, arr2.{i})
-
-let full_charpos_to_pos_large a =
-  profile_code "Common.full_charpos_to_pos_large" (fun () ->
-      full_charpos_to_pos_large2 a)
+  [@@profiling]
 
 (* Currently, lexing.ml, in the standard OCaml libray, does not handle
  * the line number position.
@@ -749,7 +746,7 @@ let adjust_info_wrt_base base_loc ii =
  * expensive so don't use it to get the line x col from every token in
  * a file. Instead use full_charpos_to_pos.
  *)
-let (info_from_charpos2 : int -> filename -> int * int * string) =
+let (info_from_charpos : int -> filename -> int * int * string) =
  fun charpos filename ->
   (* Currently lexing.ml does not handle the line number position.
    * Even if there is some fields in the lexing structure, they are not
@@ -782,9 +779,7 @@ let (info_from_charpos2 : int -> filename -> int * int * string) =
   let res = charpos_to_pos_aux 0 in
   close_in chan;
   res
-
-let info_from_charpos a b =
-  profile_code "Common.info_from_charpos" (fun () -> info_from_charpos2 a b)
+ [@@profiling]
 
 (* Decalage is here to handle stuff such as cpp which include file and who
  * can make shift.
