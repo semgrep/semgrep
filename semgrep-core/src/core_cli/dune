@@ -20,7 +20,7 @@
     pfff-lang_ml
     pfff-lang_java
     pfff-lang_go
-    pfff-lang_ruby pfff-lang_ruby-analyze
+    pfff-lang_ruby
     pfff-lang_php
 
     ; tree-sitter deps
