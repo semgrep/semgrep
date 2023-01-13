@@ -1,5 +1,6 @@
 (library
- (public_name semgrep_lsp)
+ (public_name semgrep.lsp)
+ (name semgrep_lsp)
  (wrapped false)
  (libraries
    yaml

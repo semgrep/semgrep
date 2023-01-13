@@ -3,7 +3,8 @@
 ;
 
 (library
- (public_name semgrep_system)
+ (public_name process_limits)
+ (name semgrep_system)
  (wrapped false)
  (libraries
    unix

@@ -1,5 +1,6 @@
 (library
- (public_name semgrep_experiments_misc)
+ (public_name semgrep.experiments.misc)
+ (name semgrep_experiments_misc)
  (wrapped false)
  (libraries
    commons

@@ -3,7 +3,8 @@
 ; codemap/efuns) which rely on this pfff-lang_... name and rely on
 ; small dependencies.
 (library
- (public_name semgrep_core_il)
+ (public_name semgrep.il)
+ (name semgrep_core_il)
  (wrapped false)
  (libraries
    commons

@@ -2,7 +2,8 @@
 ; The Rule, the Pattern, the generic AST, etc.
 
 (library
- (public_name semgrep_core)
+ (public_name semgrep.core)
+ (name semgrep_core)
  (wrapped false)
  (libraries
    str
