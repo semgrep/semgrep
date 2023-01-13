@@ -76,6 +76,7 @@ local semgrep_rules = [
         "parsing/other/*",
         "parsing/ast/*",
         "metachecking/*",
+	"commons/*",
         ] + test_code_globs + less_important_code_globs,
     }
   }
@@ -97,7 +98,12 @@ local override_messages = {
   |||,
 };
 
-local all = yml.rules + semgrep_rules + pfff.rules + ocaml.rules;
+# temporary hack to not report p/ocaml findings on pfff libs
+local ocaml_rules =
+  [ r + { paths +: { exclude +: [ "commons/*" ] } }
+    for r in ocaml.rules];
+
+local all = yml.rules + semgrep_rules + pfff.rules + ocaml_rules;
 
   { rules:
       [  if std.objectHas(override_messages, r.id)

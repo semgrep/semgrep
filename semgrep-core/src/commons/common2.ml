@@ -3857,7 +3857,7 @@ let rec (insert_in : 'a -> 'a list -> 'a list list) =
 let rec (permutation : 'a list -> 'a list list) = function
   | [] -> []
   | [ x ] -> [ [ x ] ]
-  | x :: xs -> List.flatten (List.map (insert_in x) (permutation xs))
+  | x :: xs -> List.concat_map (insert_in x) (permutation xs)
 (* permutation [1;2;3] =
  * [[1; 2; 3]; [2; 1; 3]; [2; 3; 1]; [1; 3; 2]; [3; 1; 2]; [3; 2; 1]]
  *)
