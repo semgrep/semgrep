@@ -115,7 +115,7 @@ let verbose = ref false
 let rec final_nodes_of_tree tree =
   match tree with
   | Node (n, xs) ->
-      if null xs then [ n ] else List.map final_nodes_of_tree xs |> List.flatten
+      if null xs then [ n ] else List.concat_map final_nodes_of_tree xs
 
 let hashtbl_find_node h n =
   try Hashtbl.find h n with
