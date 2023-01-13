@@ -2,7 +2,8 @@
 ; Ideally we should remove the semgrep_ prefix to this library.
 
 (library
- (public_name semgrep_utils)
+ (public_name semgrep.utils)
+ (name semgrep_utils)
  (wrapped false)
  (libraries
    re

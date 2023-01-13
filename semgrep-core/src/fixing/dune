@@ -1,5 +1,6 @@
 (library
- (public_name semgrep_fixing)
+ (public_name semgrep.fixing)
+ (name semgrep_fixing)
  (wrapped false)
  (libraries
    commons

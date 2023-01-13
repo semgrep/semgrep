@@ -1,5 +1,6 @@
 (library
- (public_name semgrep_parsing)
+ (public_name semgrep.parsing)
+ (name semgrep_parsing)
  (wrapped false)
  (libraries
    yaml pcre

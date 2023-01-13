@@ -1,5 +1,6 @@
 (library
- (public_name semgrep_targeting)
+ (public_name semgrep.targeting)
+ (name semgrep_targeting)
  (wrapped false)
  (libraries
 

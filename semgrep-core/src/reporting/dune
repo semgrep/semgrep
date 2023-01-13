@@ -1,5 +1,6 @@
 (library
- (public_name semgrep_reporting)
+ (public_name semgrep.reporting)
+ (name semgrep_reporting)
  (wrapped false)
  (libraries
    yaml

@@ -1,5 +1,6 @@
 (library
- (public_name semgrep_core_ast_tests)
+ (public_name semgrep.ast.tests)
+ (name semgrep_core_ast_tests)
  (wrapped false)
  (libraries
    commons

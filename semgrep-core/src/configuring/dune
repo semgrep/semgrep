@@ -3,7 +3,8 @@
 ; most CLI flags), but in the long term we should try to put it here.
 ; This library should not depend on anything. It cannot depend on ../core.
 (library
- (public_name semgrep_configuring)
+ (public_name semgrep.configuring)
+ (name semgrep_configuring)
  (wrapped false)
  (libraries
    atdgen-runtime

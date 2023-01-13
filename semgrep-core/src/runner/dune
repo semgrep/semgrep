@@ -1,5 +1,6 @@
 (library
- (public_name semgrep_running)
+ (public_name semgrep.running)
+ (name semgrep_running)
  (wrapped false)
  (libraries
     parmap

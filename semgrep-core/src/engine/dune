@@ -1,5 +1,6 @@
 (library
- (public_name semgrep_engine)
+ (public_name semgrep.engine)
+ (name semgrep_engine)
  (wrapped false)
  (libraries
    pcre
