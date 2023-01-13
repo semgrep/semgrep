@@ -16,7 +16,7 @@
 
    pfff-lang_GENERIC_base
 
-   pfff-lang_php pfff-lang_php-analyze
+   pfff-lang_php
    pfff-lang_ml
    pfff-lang_java
    pfff-lang_js
@@ -25,7 +25,7 @@
    pfff-lang_cpp
    pfff-lang_c
    pfff-lang_python
-   pfff-lang_ruby pfff-lang_ruby-analyze
+   pfff-lang_ruby
    pfff-lang_scala
  )
  (preprocess (pps ppx_deriving.show))

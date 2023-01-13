@@ -7,7 +7,7 @@
    commons
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-naming
-   pfff-lang_ruby pfff-lang_ruby-analyze
+   pfff-lang_ruby
    pfff-lang_java
    pfff-lang_go
    pfff-lang_js
