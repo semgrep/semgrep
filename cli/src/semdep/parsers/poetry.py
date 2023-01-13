@@ -38,9 +38,9 @@ manifest_deps = string("[tool.poetry.dependencies]\n") >> key_value.map(
     lambda x: x[0]
 ).sep_by(string("\n"))
 
-manifest = (manifest_deps | poetry_sub_dep).sep_by(string("\n\n")).map(
-    lambda xs: {y for x in xs if x for y in x}
-) << string("\n").optional()
+manifest = (manifest_deps | poetry_sub_dep).sep_by(
+    string("\n").times(min=1, max=float("inf"))
+).map(lambda xs: {y for x in xs if x for y in x}) << string("\n").optional()
 
 
 def parse_poetry(
