@@ -947,6 +947,7 @@ let print_regression_information ~ext xs newscore =
     | [ x ] when Common2.is_directory x -> Some (Common.fullpath x)
     | _ -> None
   in
+  (* nosemgrep *)
   let score_path = (* Config_pfff.regression_data_dir *) "/tmp/pfff" in
   dirname_opt
   |> Option.iter (fun dirname ->

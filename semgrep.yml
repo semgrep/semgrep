@@ -50,6 +50,7 @@ rules:
         - profiling/*
         - ppx_profiling/*
         - graph_code/*
+        - lib_parsing/*
 
   - id: use-pytest-mock
     pattern: import unittest.mock
@@ -107,6 +108,7 @@ rules:
         - ppx_profiling/*
         - commons/*
         - graph_code/*
+        - lib_parsing/*
 
   - id: use-concat-map
     pattern-either:

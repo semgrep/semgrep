@@ -78,6 +78,7 @@ local semgrep_rules = [
         "metachecking/*",
 	"commons/*",
 	"graph_code/*",
+	"lib_parsing/*",
         ] + test_code_globs + less_important_code_globs,
     }
   }
@@ -101,7 +102,7 @@ local override_messages = {
 
 # temporary hack to not report p/ocaml findings on pfff libs
 local ocaml_rules =
-  [ r + { paths +: { exclude +: [ "commons/*", "graph_code/*" ] } }
+  [ r + { paths +: { exclude +: [ "commons/*", "graph_code/*", "lib_parsing/*" ] } }
     for r in ocaml.rules];
 
 local all = yml.rules + semgrep_rules + pfff.rules + ocaml_rules;
