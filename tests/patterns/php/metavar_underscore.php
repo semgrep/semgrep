@@ -20,3 +20,4 @@ $foo->getCookie('value');
 # value returned isn't trusted and is forced to be an int.
 $sId = intval( $foo->getCookie( 'UserID' ) );
 ?>
+

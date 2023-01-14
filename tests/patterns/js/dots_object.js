@@ -1,2 +1,2 @@
 // ERROR:
-var X = { hello: true, secure: false, whatever: false };
+var X = {hello: true, secure: false, whatever: false};

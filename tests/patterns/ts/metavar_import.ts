@@ -1,3 +1,3 @@
 //ERROR:
-import bar from "foo";
-let x = bar.func_call("a");
+import bar from 'foo';
+let x = bar.func_call('a');

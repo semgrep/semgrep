@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-    //ERROR: match
+    //ERROR: match	
     client := &http.Client{
     CheckRedirect: redirectPolicyFunc,
     }
@@ -28,3 +28,4 @@ func main() {
     //}
     //fmt.Printf("%s", body)
 }
+

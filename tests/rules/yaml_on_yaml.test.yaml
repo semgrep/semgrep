@@ -2,7 +2,7 @@ rules:
   - id: my_target_id
     patterns:
       - pattern: |
-          pattern:
+          pattern: 
             $X
       - pattern: |
           ABC

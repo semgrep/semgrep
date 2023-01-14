@@ -1,4 +1,5 @@
 //ERROR: match
 class A {
-  foo() {}
+    foo() {
+    }
 }

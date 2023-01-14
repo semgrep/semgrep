@@ -8,7 +8,7 @@ function f() {
             foreach ($arr as $k) {
                 $bad = $source;
                 if ($val == 2) {
-                    break 2;
+                    break 2; 
                     //OK:
                     sink($source);
                 }

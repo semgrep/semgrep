@@ -1,6 +1,6 @@
 rules:
-  - id: test
-    message: Test
-    languages: [js]
-    severity: ERROR
-    pattern: foo
+- id: test
+  message: Test
+  languages: [js]
+  severity: ERROR
+  pattern: foo

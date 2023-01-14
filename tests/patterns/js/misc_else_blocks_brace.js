@@ -5,5 +5,4 @@ if (conditional) {
 }
 
 //ERROR: match
-if (conditional) {
-} else return x;
+if (conditional) {} else return x;

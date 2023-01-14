@@ -1,3 +1,4 @@
+
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
@@ -40,35 +41,39 @@ let any_gen_of_string str =
    explicitly by calling a function. These functions are roughly those
    that call 'Common2.glob'.
 *)
-let tests () =
-  List.flatten
-    [
-      Unit_list_files.tests;
-      Unit_parsing.tests ();
-      Unit_reporting.tests ();
-      Unit_entropy.tests;
-      Unit_ReDoS.tests;
-      Unit_guess_lang.tests;
-      Unit_memory_limit.tests;
-      Unit_SPcre.tests;
-      Unit_regexp_engine.tests;
-      Unit_FPath.tests;
-      Unit_immutable_buffer.tests;
-      Unit_ugly_print_AST.tests;
-      Unit_autofix_printer.tests;
-      Unit_synthesizer.tests;
-      Unit_synthesizer_targets.tests;
-      Unit_dataflow.tests Parse_target.parse_program;
-      Unit_typing_generic.tests Parse_target.parse_program (fun lang file ->
-          Parse_pattern.parse_pattern lang file);
-      Unit_naming_generic.tests Parse_target.parse_program;
-      (* just expression vs expression testing for one language (Python) *)
-      Unit_matcher.tests ~any_gen_of_string;
-      (* TODO Unit_matcher.spatch_unittest ~xxx *)
-      (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
-      Unit_engine.tests ();
-      Unit_metachecking.tests ();
-    ]
+let tests () = List.flatten [
+  Unit_list_files.tests;
+  Unit_parsing.tests ();
+  Unit_reporting.tests ();
+
+  Unit_entropy.tests;
+  Unit_ReDoS.tests;
+
+  Unit_guess_lang.tests;
+  Unit_memory_limit.tests;
+  Unit_SPcre.tests;
+  Unit_regexp_engine.tests;
+  Unit_FPath.tests;
+  Unit_immutable_buffer.tests;
+  Unit_ugly_print_AST.tests;
+  Unit_autofix_printer.tests;
+
+  Unit_synthesizer.tests;
+  Unit_synthesizer_targets.tests;
+
+  Unit_dataflow.tests Parse_target.parse_program;
+  Unit_typing_generic.tests
+    Parse_target.parse_program
+    (fun lang file -> Parse_pattern.parse_pattern lang file);
+  Unit_naming_generic.tests Parse_target.parse_program;
+
+  (* just expression vs expression testing for one language (Python) *)
+  Unit_matcher.tests ~any_gen_of_string;
+  (* TODO Unit_matcher.spatch_unittest ~xxx *)
+  (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
+  Unit_engine.tests ();
+  Unit_metachecking.tests ();
+]
 
 (*****************************************************************************)
 (* Entry point *)
@@ -82,8 +87,9 @@ let tests () =
    to allow what we want without this workaround.
 *)
 let tests_with_delayed_error () =
-  try tests () with
-  | e -> [ ("cannot load test data - not a real test", fun () -> raise e) ]
+  try tests ()
+  with e ->
+     ["cannot load test data - not a real test", (fun () -> raise e)]
 
 let main () =
   let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in

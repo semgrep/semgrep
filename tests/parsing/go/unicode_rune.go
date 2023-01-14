@@ -6,3 +6,4 @@ func main() {
     str := '年'
 	fmt.Println("hello world")
 }
+

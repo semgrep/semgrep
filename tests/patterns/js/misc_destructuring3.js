@@ -1,2 +1,2 @@
 //ERROR: match
-var { one, two } = not_require("foo");
+var { one, two } = not_require('foo');

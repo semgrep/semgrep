@@ -6,3 +6,5 @@ class Foo {
     foo(5);
   }
 }
+
+

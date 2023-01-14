@@ -9,3 +9,4 @@ rules:
           metavariable: $X
           comparison: $X < 256
     severity: WARNING
+

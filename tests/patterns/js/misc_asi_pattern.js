@@ -1,4 +1,2 @@
 //ERROR: match
-foo(function (r) {
-  bar(r);
-});
+foo(function (r) {bar(r)});

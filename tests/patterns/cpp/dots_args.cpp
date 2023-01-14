@@ -4,3 +4,4 @@ void foo() {
   //ERROR:
     foo(5);
 }
+

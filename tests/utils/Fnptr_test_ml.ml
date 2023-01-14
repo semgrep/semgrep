@@ -36,11 +36,12 @@ let main () : unit =
     printf "should have failed!\n";
     exit 2
   with
-  | Invalid_argument _ as e ->
+    Invalid_argument _ as e ->
       printf "as expected: %s\n" (Printexc.to_string e);
 
-      printf "eleven: %d\n" (Fnptr.call add5 6)
+  printf "eleven: %d\n" (Fnptr.call add5 6)
 
-let () = main ()
+let () =
+  main()
 
 (* EOF *)

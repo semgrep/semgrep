@@ -5,10 +5,10 @@ module.exports = {
     dialect: "postgres",
     host: "127.0.0.1",
     dialectOptions: {
-      // ruleid: sequelize-weak-tls-version
+    // ruleid: sequelize-weak-tls-version
       ssl: {
-        minVersion: "TLSv1",
-      },
-    },
-  },
+        minVersion: 'TLSv1'
+      }
+    }
+  }
 };

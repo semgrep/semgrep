@@ -1,35 +1,36 @@
-# ERROR:
-if A & B:
-    foo()
 
-# ERROR:
+#ERROR:
+if A & B:
+  foo()
+
+#ERROR:
 if B & A:
-    foo()
+  foo()
 
 # OK
 if A & C:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if A & B & B:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if A & B & C:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if A & (B & C):
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if C & A & B:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if B & A & C:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if A & C & B:
-    foo()
+  foo()

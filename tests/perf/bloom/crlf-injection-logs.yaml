@@ -1,49 +1,30 @@
 rules:
-  - id: 0..0
-    pattern: |
-      class $CLASS {
+- id: 0..0
+  pattern: |
+    class $CLASS {
+      ...
+      Logger $LOG = ...;
+      ...
+      $X $METHOD(...,HttpServletRequest $REQ,...) {
         ...
-        Logger $LOG = ...;
+        String $VAL = $REQ.getParameter(...);
         ...
-        $X $METHOD(...,HttpServletRequest $REQ,...) {
-          ...
-          String $VAL = $REQ.getParameter(...);
-          ...
-          $LOG.$LEVEL(<... $VAL ...>);
-          ...
-        }
+        $LOG.$LEVEL(<... $VAL ...>);
         ...
       }
-    severity: WARNING
-    languages:
-      - java
-    message: <internalonly>
-  - id: 0..1
-    pattern: |
-      class $CLASS {
-        ...
-        Logger $LOG = ...;
-        ...
-        $X $METHOD(...) {
-          HttpServletRequest $REQ = ...;
-          ...
-          String $VAL = $REQ.getParameter(...);
-          ...
-          $LOG.$LEVEL(<... $VAL ...>);
-          ...
-        }
-        ...
-      }
-    severity: WARNING
-    languages:
-      - java
-    message: <internalonly>
-  - id: 0..2
-    pattern: |
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>
+- id: 0..1
+  pattern: |
+    class $CLASS {
+      ...
+      Logger $LOG = ...;
+      ...
       $X $METHOD(...) {
-        ...
-        Logger $LOG = ...;
-        ...
         HttpServletRequest $REQ = ...;
         ...
         String $VAL = $REQ.getParameter(...);
@@ -51,55 +32,55 @@ rules:
         $LOG.$LEVEL(<... $VAL ...>);
         ...
       }
-    severity: WARNING
-    languages:
-      - java
-    message: <internalonly>
-  - id: 0..3
-    pattern: |
-      class $CLASS {
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>
+- id: 0..2
+  pattern: |
+    $X $METHOD(...) {
+      ...
+      Logger $LOG = ...;
+      ...
+      HttpServletRequest $REQ = ...;
+      ...
+      String $VAL = $REQ.getParameter(...);
+      ...
+      $LOG.$LEVEL(<... $VAL ...>);
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>
+- id: 0..3
+  pattern: |
+    class $CLASS {
+      ...
+      Logger $LOG = ...;
+      ...
+      $X $METHOD(...,HttpServletRequest $REQ,...) {
         ...
-        Logger $LOG = ...;
+        String $VAL = $REQ.getParameter(...);
         ...
-        $X $METHOD(...,HttpServletRequest $REQ,...) {
-          ...
-          String $VAL = $REQ.getParameter(...);
-          ...
-          $LOG.log($LEVEL,<... $VAL ...>);
-          ...
-        }
-        ...
-      }
-    severity: WARNING
-    languages:
-      - java
-    message: <internalonly>
-  - id: 0..4
-    pattern: |
-      class $CLASS {
-        ...
-        Logger $LOG = ...;
-        ...
-        $X $METHOD(...) {
-          HttpServletRequest $REQ = ...;
-          ...
-          String $VAL = $REQ.getParameter(...);
-          ...
-          $LOG.log($LEVEL,<... $VAL ...>);
-          ...
-        }
+        $LOG.log($LEVEL,<... $VAL ...>);
         ...
       }
-    severity: WARNING
-    languages:
-      - java
-    message: <internalonly>
-  - id: 0..5
-    pattern: |
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>
+- id: 0..4
+  pattern: |
+    class $CLASS {
+      ...
+      Logger $LOG = ...;
+      ...
       $X $METHOD(...) {
-        ...
-        Logger $LOG = ...;
-        ...
         HttpServletRequest $REQ = ...;
         ...
         String $VAL = $REQ.getParameter(...);
@@ -107,55 +88,55 @@ rules:
         $LOG.log($LEVEL,<... $VAL ...>);
         ...
       }
-    severity: WARNING
-    languages:
-      - java
-    message: <internalonly>
-  - id: 0..6
-    pattern: |
-      class $CLASS {
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>
+- id: 0..5
+  pattern: |
+    $X $METHOD(...) {
+      ...
+      Logger $LOG = ...;
+      ...
+      HttpServletRequest $REQ = ...;
+      ...
+      String $VAL = $REQ.getParameter(...);
+      ...
+      $LOG.log($LEVEL,<... $VAL ...>);
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>
+- id: 0..6
+  pattern: |
+    class $CLASS {
+      ...
+      Logger $LOG = ...;
+      ...
+      $X $METHOD(...,ServletRequest $REQ,...) {
         ...
-        Logger $LOG = ...;
+        String $VAL = $REQ.getParameter(...);
         ...
-        $X $METHOD(...,ServletRequest $REQ,...) {
-          ...
-          String $VAL = $REQ.getParameter(...);
-          ...
-          $LOG.$LEVEL(<... $VAL ...>);
-          ...
-        }
-        ...
-      }
-    severity: WARNING
-    languages:
-      - java
-    message: <internalonly>
-  - id: 0..7
-    pattern: |
-      class $CLASS {
-        ...
-        Logger $LOG = ...;
-        ...
-        $X $METHOD(...) {
-          ServletRequest $REQ = ...;
-          ...
-          String $VAL = $REQ.getParameter(...);
-          ...
-          $LOG.$LEVEL(<... $VAL ...>);
-          ...
-        }
+        $LOG.$LEVEL(<... $VAL ...>);
         ...
       }
-    severity: WARNING
-    languages:
-      - java
-    message: <internalonly>
-  - id: 0..8
-    pattern: |
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>
+- id: 0..7
+  pattern: |
+    class $CLASS {
+      ...
+      Logger $LOG = ...;
+      ...
       $X $METHOD(...) {
-        ...
-        Logger $LOG = ...;
-        ...
         ServletRequest $REQ = ...;
         ...
         String $VAL = $REQ.getParameter(...);
@@ -163,46 +144,65 @@ rules:
         $LOG.$LEVEL(<... $VAL ...>);
         ...
       }
-    severity: WARNING
-    languages:
-      - java
-    message: <internalonly>
-  - id: 0..9
-    pattern: |
-      class $CLASS {
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>
+- id: 0..8
+  pattern: |
+    $X $METHOD(...) {
+      ...
+      Logger $LOG = ...;
+      ...
+      ServletRequest $REQ = ...;
+      ...
+      String $VAL = $REQ.getParameter(...);
+      ...
+      $LOG.$LEVEL(<... $VAL ...>);
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>
+- id: 0..9
+  pattern: |
+    class $CLASS {
+      ...
+      Logger $LOG = ...;
+      ...
+      $X $METHOD(...,ServletRequest $REQ,...) {
         ...
-        Logger $LOG = ...;
+        String $VAL = $REQ.getParameter(...);
         ...
-        $X $METHOD(...,ServletRequest $REQ,...) {
-          ...
-          String $VAL = $REQ.getParameter(...);
-          ...
-          $LOG.log($LEVEL,<... $VAL ...>);
-          ...
-        }
-        ...
-      }
-    severity: WARNING
-    languages:
-      - java
-    message: <internalonly>
-  - id: 0..10
-    pattern: |
-      class $CLASS {
-        ...
-        Logger $LOG = ...;
-        ...
-        $X $METHOD(...) {
-          ServletRequest $REQ = ...;
-          ...
-          String $VAL = $REQ.getParameter(...);
-          ...
-          $LOG.log($LEVEL,<... $VAL ...>);
-          ...
-        }
+        $LOG.log($LEVEL,<... $VAL ...>);
         ...
       }
-    severity: WARNING
-    languages:
-      - java
-    message: <internalonly>
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>
+- id: 0..10
+  pattern: |
+    class $CLASS {
+      ...
+      Logger $LOG = ...;
+      ...
+      $X $METHOD(...) {
+        ServletRequest $REQ = ...;
+        ...
+        String $VAL = $REQ.getParameter(...);
+        ...
+        $LOG.log($LEVEL,<... $VAL ...>);
+        ...
+      }
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>

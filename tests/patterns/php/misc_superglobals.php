@@ -5,3 +5,4 @@ echo CONSTANT['a'];
 
 //ERROR: match
 echo $_GET['test'];
+

@@ -1,10 +1,10 @@
 def f():
     i = 0
-    while i < 0:
+    while (i < 0):
         if i == 4:
-            # ERROR:
+            #ERROR:
             sink(source)
             break
-            # OK:
+            #OK:
             sink(source)
         i += 1

@@ -1,6 +1,7 @@
 # this used to not through a Timeout exn at some point, even with
 # -timeout 1 because of some bugs in Match_search_rules where Timeout
 # was wrongly intercepted and swallowed by exn_to_error.
+
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect

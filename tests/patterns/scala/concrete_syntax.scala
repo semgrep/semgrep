@@ -1,4 +1,4 @@
-object Foo {
+object Foo { 
 
 def foo() {
  //ERROR:

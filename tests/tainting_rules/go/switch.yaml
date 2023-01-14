@@ -9,3 +9,4 @@ rules:
     pattern-sources:
       - pattern: source
     severity: WARNING
+

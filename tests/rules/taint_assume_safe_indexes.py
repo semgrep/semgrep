@@ -1,5 +1,5 @@
 a = safe()
 i = tainted()
 x = a[i]
-# ok:tainted
+#ok:tainted
 sink(x)

@@ -5,7 +5,7 @@ function foo() {
     foo(5);
 
     $fun = 5;
-    //ERROR:
+    //ERROR: 
     foo($test, $fun);
 
     foo($not_this);

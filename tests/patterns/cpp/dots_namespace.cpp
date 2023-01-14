@@ -12,6 +12,6 @@ namespace A {
 namespace B {
   //ERROR: match
   namespace VM {
-
+    
   }
 }

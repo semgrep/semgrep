@@ -24,3 +24,4 @@ def test():
 
     # this nope
     foo(1)
+

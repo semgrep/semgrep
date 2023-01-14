@@ -7,4 +7,4 @@ export const VegaFusionEnabled = {
   NEVER: "never",
 } as const;
 export type VegaFusionEnabled =
-  typeof VegaFusionEnabled[keyof typeof VegaFusionEnabled];
+    typeof VegaFusionEnabled[keyof typeof VegaFusionEnabled];

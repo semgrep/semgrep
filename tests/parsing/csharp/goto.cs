@@ -8,11 +8,11 @@ public class HelloWorldGoto
         world:
         Console.WriteLine("World");
         goto end;
-
+        
         hello:
         Console.WriteLine("Hello");
         goto world;
-
+        
         end: ;
     }
 }

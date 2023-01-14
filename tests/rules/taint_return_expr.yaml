@@ -11,3 +11,4 @@ rules:
       - scala
     severity: ERROR
     message: Match found
+

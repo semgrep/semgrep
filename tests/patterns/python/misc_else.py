@@ -1,12 +1,12 @@
 def foo():
-    # ERROR: match
-    if True:
-        pass
-    else:
-        pass
+  #ERROR: match
+  if True:
+     x = 1
+  else:
+     x = 2
 
 
 def foo():
-    # this should not match
-    if True:
-        pass
+  # this should not match
+  if True:
+     x = 1

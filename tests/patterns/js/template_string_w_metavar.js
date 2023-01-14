@@ -1,5 +1,6 @@
+
 //OK:
-let a = `str`;
+let a = `str`
 
 //ERROR:
-let b = `str ${x}`;
+let b = `str ${x}`

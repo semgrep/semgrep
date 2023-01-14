@@ -12,3 +12,4 @@ rules:
           }
       - pattern: |
           $K: 123
+

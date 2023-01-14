@@ -3,8 +3,7 @@ rules:
     languages:
       - java
     severity: ERROR
-    message:
-      Detected user input controlling a file path. An attacker could control
+    message: Detected user input controlling a file path. An attacker could control
       the location of this file, to include going backwards in the directory
       with '../'. To address this, ensure that user-controlled variables in file
       paths are sanitized. You may also consider using a utility method such as
@@ -48,3 +47,4 @@ rules:
               - pattern: new File(...)
               - pattern: new java.io.File(...)
               - pattern: $SOMETHING.getResourceAsStream(...)
+

@@ -28,3 +28,4 @@ rules:
           - pattern: return f"...{...}..."
       - pattern-not: return "..."
     severity: WARNING
+

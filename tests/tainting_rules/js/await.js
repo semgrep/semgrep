@@ -14,3 +14,4 @@ app.get('/test1', (req, res) => {
   //ERROR:
   await res.send("SELECT * FROM `users`" + " WHERE id = '" + req.query.message + "'")
 })
+

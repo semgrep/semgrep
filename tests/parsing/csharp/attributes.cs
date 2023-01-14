@@ -23,3 +23,4 @@ public class Foo
     [return: ValidatedContract]
     int Method4() { return 0; }
 }
+

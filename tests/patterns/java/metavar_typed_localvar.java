@@ -7,7 +7,7 @@ public class Foo {
     void f(Bar[] bars) {
         Bar[] bars2;
 	Bar bar;
-
+	
 	//ERROR: match
         if (is_good(bars[0])) return;
 	if (is_good(bar)) return;

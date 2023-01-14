@@ -17,7 +17,7 @@ class HelloWorldLinq
         var textInfo = new CultureInfo("en-US", false).TextInfo;
 
         var words = new string[] {"hello", "world"};
-        var greeting =
+        var greeting = 
             from word in words
             let title = textInfo.ToTitleCase(word)
             select word + title;
@@ -55,7 +55,7 @@ class HelloWorldLinq
             Console.WriteLine(word);
         }
     }
-
+    
     private static void Join()
     {
         var words = new string[] {"hello", "world"};

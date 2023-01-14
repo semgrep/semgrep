@@ -1,7 +1,8 @@
 if (random()) {
   //ERROR:
   sink(source);
-} else {
+}
+else {
   throw "error";
   //OK:
   sink(source); // unreachable

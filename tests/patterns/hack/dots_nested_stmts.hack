@@ -1,7 +1,7 @@
 function foo()
 {
     $var = 10;
-
+    
     if ($var === 42) {
         echo('matched');
     }

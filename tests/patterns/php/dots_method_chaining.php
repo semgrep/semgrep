@@ -13,3 +13,5 @@ function test() {
     //ERROR: match $O can match o.before()
     $f = this->before()->foo()->m()->h()->bar()->z();
 }
+
+

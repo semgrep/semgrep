@@ -1,4 +1,5 @@
-"not fo o";
-"not ba r";
+
+"not fo o"
+"not ba r"
 
 // fo o

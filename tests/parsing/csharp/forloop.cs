@@ -24,7 +24,7 @@ class HelloWorldFor
 
         var length = 0;
         for (_index = 0, length = greeting.Length;
-            _index < greeting.Length;
+            _index < greeting.Length; 
             _index++, length--)
         {
             Console.Write(greeting[_index]);

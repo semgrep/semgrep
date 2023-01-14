@@ -1,6 +1,7 @@
+
 //ERROR: match
 function foo(a, b, c) {
-  bla();
-  bla();
-  return 1;
+    bla();
+    bla();
+    return 1
 }

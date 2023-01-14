@@ -5,3 +5,7 @@ void foo() {
     close(myfile);
 }
 }
+
+
+
+

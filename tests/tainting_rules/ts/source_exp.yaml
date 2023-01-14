@@ -14,3 +14,4 @@ rules:
       - pattern: location.pathname
       - pattern: document.referrer
     severity: ERROR
+

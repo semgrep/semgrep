@@ -7,9 +7,9 @@ for x in foo {}
 // MATCH:
 var x = foo
 // MATCH:
-var foo = x
+var foo = x 
 
 // MATCH:
 let x = foo
 // MATCH:
-let foo = x
+let foo = x 

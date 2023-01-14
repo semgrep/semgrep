@@ -1,5 +1,6 @@
 function x() {
-  foo = "undeclared variable";
-  //ERROR:
-  value = obj[foo];
+    foo = "undeclared variable"
+    //ERROR:
+    value = obj[foo]
 }
+

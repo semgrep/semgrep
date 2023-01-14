@@ -3,7 +3,6 @@ def test():
     stuff()
     bar(1)
 
-
 def test2():
     foo(1)
     stuff()

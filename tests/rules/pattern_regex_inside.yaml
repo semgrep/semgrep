@@ -6,3 +6,4 @@ rules:
     message: "Boto3 connection to internal network"
     languages: [python]
     severity: ERROR
+    

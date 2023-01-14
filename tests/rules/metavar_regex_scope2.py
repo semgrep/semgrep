@@ -1,12 +1,10 @@
 def foo():
-    # ruleid:
+    #ruleid:
     return 1
 
-
 def bar():
-    # ruleid:
+    #ruleid:
     return 2
-
 
 def baz():
     return 3

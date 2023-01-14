@@ -4,6 +4,6 @@ rules:
       - py
     message: Match Found!
     patterns:
-      - pattern: $X
-      - pattern-not: a
+    - pattern: $X
+    - pattern-not: a
     severity: WARNING

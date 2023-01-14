@@ -47,7 +47,7 @@ public class ClientChunkEncodedPost {
             System.out.println("File path not given");
             System.exit(1);
         }
-		// ERROR:
+		// ERROR:  
         try (final CloseableHttpClient httpclient = HttpClients.createDefault()) {
             final HttpPost httppost = new HttpPost("http://httpbin.org/post");
 

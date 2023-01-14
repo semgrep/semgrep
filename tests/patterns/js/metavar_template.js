@@ -1,2 +1,2 @@
 //ERROR: match
-var x = `left${1 + 1}right`;
+var x = `left${1 + 1}right`

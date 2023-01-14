@@ -1,7 +1,6 @@
 <template>
   <p>
-    Hello, <a :[key]="url">{{ name }}</a
-    >!
+    Hello, <a :[key]="url">{{ name }}</a>!
   </p>
 </template>
 
@@ -10,12 +9,12 @@
 module.exports = {
   data: function () {
     return {
-      name: "World",
-      key: "href",
-      url: "https://example.com/",
-    };
-  },
-};
+      name: 'World',
+      key: 'href',
+      url: 'https://example.com/'
+    }
+  }
+}
 </script>
 
 <style scoped>

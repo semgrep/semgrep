@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class GreetingController {
-
+  
   @GetMapping("/greeting")
   public Greeting greeting(@RequestParam(value = "smth") String orderBy, HttpServletResponse response) {
     Page page = new Page("greeting");
@@ -42,3 +42,4 @@ public class GreetingController {
   }
 
 }
+

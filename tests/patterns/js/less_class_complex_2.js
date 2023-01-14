@@ -7,7 +7,7 @@ class A {
   }
 
   foo() {
-    return "foo";
+    return 'foo';
   }
 }
 
@@ -20,6 +20,6 @@ class B {
   }
 
   foo() {
-    return "foo";
+    return 'foo';
   }
 }

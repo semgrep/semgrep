@@ -1,8 +1,7 @@
 from x import some_fetch
 
-# ERROR: match
+#ERROR: match
 GLOBAL_CONST = "SOME_CONST"
-
 
 def fetch_global_const():
     # The semantic of Python is that this below reference

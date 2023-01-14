@@ -1,5 +1,9 @@
 //ERROR: match
-class A implements B {}
+class A implements B {
+      
+}
 
 // no match here
-class A2 {}
+class A2 {
+      
+}

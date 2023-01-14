@@ -12,3 +12,4 @@ rules:
     pattern-sanitizers:
       - pattern: sanitize1(...)
     severity: ERROR
+

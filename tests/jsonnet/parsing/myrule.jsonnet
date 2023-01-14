@@ -6,7 +6,7 @@
   # multilines strings
   pattern: |||
       foo($X)
-      ...
+      ... 
       bar($X)
    |||,
   message: "you should not do that",

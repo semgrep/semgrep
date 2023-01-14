@@ -29,7 +29,7 @@ public class TargetParser
         } catch (RuntimeException e) {
           log.info("Error: ", e);
           throw SneakyThrow.sneak(e);
-        }
+        } 
         catch (IOException e) {
         }
     }

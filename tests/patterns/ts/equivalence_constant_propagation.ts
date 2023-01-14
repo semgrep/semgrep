@@ -1,6 +1,6 @@
 const Bar = "password";
 
 function foo() {
-  //ERROR: match!
-  password(Bar);
+     //ERROR: match!
+     password(Bar);
 }

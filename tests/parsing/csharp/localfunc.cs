@@ -5,7 +5,7 @@ class HelloWorldLocalFunc
     public static void Main()
     {
         void Hello() => SomeMethod();
-
+        
         Hello();
         World();
 

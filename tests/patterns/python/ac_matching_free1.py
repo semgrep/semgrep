@@ -1,19 +1,20 @@
-# OK:
+
+#OK:
 if A | B:
-    foo()
+  foo()
 
 # OK
 if A | C:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if A | B | B:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if A | B | C | B:
-    foo()
+  foo()
 
-# OK:
+#OK:
 if B | (B | C):
-    foo()
+  foo()

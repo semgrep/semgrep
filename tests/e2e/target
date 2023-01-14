@@ -1,4 +1,4 @@
-{ "target_mappings":
+{ "target_mappings": 
   [{"path": "tests/e2e/targets/basic.py",
    "language": "python",
    "rule_nums": [0]

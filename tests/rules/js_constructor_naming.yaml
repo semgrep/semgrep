@@ -1,6 +1,6 @@
 rules:
-  - id: js-constructor-naming
-    message: Naming should work within the body of a JS class using the constructor's args!
+  - id: js-constructor-naming 
+    message: Naming should work within the body of a JS class using the constructor's args! 
     languages:
       - javascript
       - typescript

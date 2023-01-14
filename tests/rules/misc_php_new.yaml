@@ -5,5 +5,5 @@ rules:
     severity: WARNING
     message: Bla
     patterns:
-      - pattern-inside: new $SINK(...)
-      - pattern: $SINK
+     - pattern-inside: new $SINK(...)
+     - pattern: $SINK

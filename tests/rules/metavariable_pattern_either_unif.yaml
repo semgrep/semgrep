@@ -6,19 +6,19 @@ rules:
       - typescript
     severity: WARNING
     patterns:
-      - pattern-either:
-          - pattern-inside: |
-              let $A = $B;
-              ...
-          - pattern-inside: |
-              const $A = $B;
-              ...
-          - pattern-inside: |
-              $A = $B;
-              ...
-      - pattern: $C + 1;
-      - metavariable-pattern:
-          metavariable: $C
-          patterns:
-            - pattern: $FUNC("hello")
-            - pattern-not: $FUNC($B)
+    - pattern-either:
+       - pattern-inside: |
+            let $A = $B;
+            ...
+       - pattern-inside: |
+            const $A = $B;
+            ...
+       - pattern-inside: |
+            $A = $B;
+            ...
+    - pattern: $C + 1;
+    - metavariable-pattern:
+        metavariable: $C
+        patterns:
+           - pattern: $FUNC("hello")
+           - pattern-not: $FUNC($B)

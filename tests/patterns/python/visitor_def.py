@@ -1,17 +1,14 @@
-# ERROR: match
+#ERROR: match
 def __eq__(self, other):
-    pass
-
+  pass
 
 class A:
-    # ERROR: match
-    def __eq__(self, other):
-        pass
-
+  #ERROR: match
+  def __eq__(self, other):
+     pass
 
 def A():
-    # ERROR: match
-    def __eq__(a, b):
-        pass
-
-    return __eq__
+   #ERROR: match
+   def __eq__(a, b):
+      pass
+   return __eq__

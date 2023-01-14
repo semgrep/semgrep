@@ -1,7 +1,7 @@
 rules:
-  - id: "-"
-    pattern: echo ...
-    message: echo ...
-    languages:
-      - bash
-    severity: ERROR
+- id: '-'
+  pattern: echo ...
+  message: echo ...
+  languages:
+  - bash
+  severity: ERROR

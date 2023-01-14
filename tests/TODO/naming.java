@@ -10,3 +10,4 @@ while (true) {
   boolean cond = true;
   boolean match = cond;
 }
+

@@ -10,5 +10,5 @@ rules:
     pattern-sinks:
       - pattern: sink(...)
       - patterns:
-          - pattern: exotic($X.$A)
-          - focus-metavariable: $X
+        - pattern: exotic($X.$A)
+        - focus-metavariable: $X

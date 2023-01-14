@@ -8,7 +8,7 @@ public class Foo {
 	String str = "hello";
         Bar bar;
 	Point p;
-
+	
 	//Todo should be matched
 	bar.x = make(str, p);
 	//Todo should be matched

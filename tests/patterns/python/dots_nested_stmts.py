@@ -1,6 +1,8 @@
 def foo():
-    # ERROR: match
-    if x == some_cond:
-        print("matched")
+    #ERROR: match
+    if (x == some_cond):
+        print('matched')
     else:
-        print("not matched")
+        print('not matched')
+    
+

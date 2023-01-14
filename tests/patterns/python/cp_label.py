@@ -1,16 +1,15 @@
-# OK:
-a = (
-    # ERROR:
+#OK:
+a =(
+    #ERROR:
     "foo"
 )
 
-# OK:
+#OK:
 a[b] = 1
 
-
 def f():
-    # OK:
-    c = (
-        # ERROR:
+    #OK:
+    c =(
+        #ERROR:
         "foo"
     )

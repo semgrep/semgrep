@@ -1,4 +1,4 @@
 //ERROR: match
 function foo(a, b) {
-  return 1;
+    return 1;
 }

@@ -6,7 +6,6 @@ def test1():
     # OK:
     return x
 
-
 def test2():
     while cond():
         y = f(x)
@@ -14,3 +13,4 @@ def test2():
         x = g(y)
     # OK:
     return x
+

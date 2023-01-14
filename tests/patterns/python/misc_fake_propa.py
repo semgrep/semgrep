@@ -9,6 +9,6 @@
 
 NOSCI_LEN = 14 + 6
 
-
 def foo():
-    pass
+    hdrlen = NOSCI_LEN
+

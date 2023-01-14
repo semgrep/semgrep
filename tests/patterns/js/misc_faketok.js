@@ -1,5 +1,5 @@
 //ERROR: match
-var express = require("express");
+var express = require('express');
 
 class Foo extends Bar {
   constructor() {

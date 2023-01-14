@@ -8,16 +8,15 @@ rules:
           - focus-metavariable: $VAR
     pattern-sinks:
       - patterns:
-          - pattern: |
-              $VAR->$ACCESSOR
-          - focus-metavariable: $VAR
+        - pattern: |
+            $VAR->$ACCESSOR
+        - focus-metavariable: $VAR
     pattern-sanitizers:
       - patterns:
           - pattern: |
               $VAR = NULL;
           - focus-metavariable: $VAR
-    message:
-      Variable '$VAR' was used after being freed. This can lead to undefined
+    message: Variable '$VAR' was used after being freed. This can lead to undefined
       behavior.
     metadata:
       cwe: "CWE-416: Use After Free"
@@ -32,3 +31,4 @@ rules:
     languages:
       - c
     severity: WARNING
+

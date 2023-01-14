@@ -20,7 +20,7 @@ export class AppController3 {
     await getConnection()
       .createQueryBuilder("ddd")
       .update()
-      //ERROR: match
+       //ERROR: match
       .set({
         firstName: "Timber",
         lastName: "Saw",
@@ -33,7 +33,7 @@ export class AppController3 {
     await getConnection()
       .createQueryBuilder()
       .update()
-      //ERROR: match
+       //ERROR: match
       .set({
         firstName: "Timber",
         lastName: "Saw",

@@ -2,7 +2,7 @@
 // it is using comments, but our JSON parser accepts that (because
 // we actually (ab)use the Javascript parser)
 {
-  //ERROR: match
-  "foo": 1,
-  "var": ["a", "b"]
+    //ERROR: match
+    "foo": 1,
+    "var": ["a", "b"]
 }

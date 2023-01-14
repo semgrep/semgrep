@@ -1,8 +1,8 @@
 rules:
-  - id: explain
-    patterns:
-      - pattern: bar()
-      - pattern-not-inside: foo(...)
-    message: found it
-    languages: [python]
-    severity: WARNING
+- id: explain
+  patterns:
+    - pattern: bar()
+    - pattern-not-inside: foo(...)
+  message: found it
+  languages: [python]
+  severity: WARNING

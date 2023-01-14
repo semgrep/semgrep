@@ -12,3 +12,4 @@ rules:
     pattern-sources:
       - pattern: $TOKEN
     severity: WARNING
+

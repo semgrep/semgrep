@@ -23,6 +23,6 @@ rules:
               - pattern: $_SERVER
     pattern-sinks:
       - patterns:
-          - pattern-either:
-              - pattern-inside: new $SINK(...)
-          - pattern: $SINK
+        - pattern-either:
+          - pattern-inside: new $SINK(...)
+        - pattern: $SINK

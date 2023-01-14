@@ -43,3 +43,4 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   	// ok: net-http-command-injection-taint
   	syscall.Exec("ls", []string{"-a", "-l", "-h"}, username)
 }
+

@@ -8,3 +8,4 @@ export class LabResultsFerritinData extends LabResultNumberParameterData {
   @Field((): ReturnTypeFuncValue => SubSectionLabParameter)
   override type: SubSectionLabParameter =
 	SubSectionLabParameter.PARAMETER_FERRITIN;
+    

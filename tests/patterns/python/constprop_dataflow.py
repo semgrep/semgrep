@@ -9,7 +9,6 @@ def test1():
     # ERROR:
     foo(t)
 
-
 def test2(c):
     if c:
         a = "a"
@@ -22,14 +21,12 @@ def test2(c):
     # ERROR:
     foo(a)
 
-
 def test3(c):
     if c:
         x = "hi"
     # Must analysis, and `x' is only constant in one path!
     # OK:
     foo(x)
-
 
 def test4(c):
     x = "hi"

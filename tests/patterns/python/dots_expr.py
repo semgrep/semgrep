@@ -1,2 +1,2 @@
-# ERROR: match
+#ERROR: match
 X = 1

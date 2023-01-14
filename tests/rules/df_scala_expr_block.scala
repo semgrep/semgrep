@@ -8,7 +8,7 @@ import models.UserModel
 
 @Singleton
 class AuthController @Inject()(val controllerComponents: ControllerComponents) extends BaseController{
-
+  
   def test1(input: String) = Action { implicit request: Request[AnyContent] =>
     // ruleid: test
     Ok(input)

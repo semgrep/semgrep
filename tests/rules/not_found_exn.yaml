@@ -7,7 +7,7 @@ rules:
     severity: WARNING
     patterns:
       - pattern: |
-          rsa.GenerateKey(..., $KEYLENGTH)
+              rsa.GenerateKey(..., $KEYLENGTH)
       - metavariable-comparison:
           metavariable: $KEYLENGTH
           comparison: $KEYLENGTH < 513

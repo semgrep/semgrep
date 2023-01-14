@@ -1,11 +1,12 @@
-# OK:
+
+#OK:
 if A or B:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if (A or B) or C:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if A or (B or (C or (D or E))):
-    foo()
+  foo()

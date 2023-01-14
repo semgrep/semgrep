@@ -8,7 +8,7 @@ class Foo {
             bar()
             foo()
         }
-
+   
         if (x > 2) {
             foo()
             bar()

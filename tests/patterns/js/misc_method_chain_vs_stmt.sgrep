@@ -1,5 +1,5 @@
 // Argh! this was parsed as $APP = express() ... after 0.35 because
-// of '...' allows to express method chaining.
+// of '...' allows to express method chaining. 
 // Note that you can not use Parsing_hacks.js to solve the problem
 // and insert a semicolon when ... is after a newline and a closing ')'
 // because dots_nested_stmts.sgrep contains 'if($X) ...' where we don't

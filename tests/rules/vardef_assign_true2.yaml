@@ -8,3 +8,4 @@ rules:
     pattern: |
       <... x = 1 ...>
     severity: WARNING
+

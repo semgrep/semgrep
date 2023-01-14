@@ -1,6 +1,6 @@
 rules:
   - id: go-token-labels
-    message: A taint label did not prevent the match coming from a tainted token!
+    message: A taint label did not prevent the match coming from a tainted token! 
     severity: ERROR
     languages:
       - go

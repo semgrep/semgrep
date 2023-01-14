@@ -3,3 +3,7 @@ foo <- function () {
     myfile = open()
     close(myfile)
 }
+
+
+
+

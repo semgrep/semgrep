@@ -3,14 +3,14 @@ rules:
     mode: taint
     pattern-sources:
       - patterns:
-          - pattern-inside: function $FUNC(...) { ... }
-          - pattern: source(...)
+        - pattern-inside: function $FUNC(...) { ... }
+        - pattern: source(...)
     pattern-sinks:
       - patterns:
-          # This $FUNC is independent of the $FUNC used in
-          # pattern-sources!
-          - pattern-inside: $FUNC($TAINT)
-          - pattern: $TAINT
+        # This $FUNC is independent of the $FUNC used in
+        # pattern-sources!
+        - pattern-inside: $FUNC($TAINT)
+        - pattern: $TAINT
     message: Test
     languages:
       - js

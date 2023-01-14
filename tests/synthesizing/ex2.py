@@ -1,5 +1,4 @@
 from execme import dangerous
-
-
 def foo(arg):
-    dangerous(1, arg)
+   dangerous(1, arg)
+

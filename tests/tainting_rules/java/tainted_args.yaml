@@ -13,3 +13,4 @@ rules:
           - pattern: $F()
           - pattern-not: getSafeCommand(...)
     severity: WARNING
+

@@ -3,3 +3,4 @@ s = "print('This is a safe eval')"
 s += argv[1]
 # OK:
 eval(s)
+

@@ -1,2 +1,2 @@
 // ruleid: program-pattern
-import i = require("foo");
+import i = require('foo')

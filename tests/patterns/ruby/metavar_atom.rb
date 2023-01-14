@@ -4,3 +4,4 @@ foo(:atom1)
 foo(:atom2)
 foo(1)
 foo("a string")
+

@@ -1,6 +1,6 @@
 rules:
-  - id: hello
-    pattern-regex: "hello.*"
-    languages: [py]
-    severity: WARNING
-    message: "test"
+- id: hello 
+  pattern-regex: "hello.*"
+  languages: [py]
+  severity: WARNING 
+  message: "test"

@@ -5,3 +5,4 @@ function foo() {
      //ERROR:
      password($bar);
 }
+

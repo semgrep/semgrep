@@ -1,4 +1,4 @@
-if __name__ == "__main__":
-    pass
+if __name__ == '__main__':
+    from forget_mult import ForgetMult
 else:
-    pass
+    from .forget_mult import ForgetMult

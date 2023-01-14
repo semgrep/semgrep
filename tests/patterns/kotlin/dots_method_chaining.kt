@@ -14,3 +14,4 @@ class Foo {
     f = this.before().foo().m().h().bar().z();
   }
 }
+

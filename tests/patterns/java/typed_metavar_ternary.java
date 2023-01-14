@@ -1,11 +1,11 @@
 class Test {
     Properties fld;
-
+    
     void main() {
 	Properties x1;
 
 	// The classic matches
-
+	
 	//ERROR: match
 	foo(x1);
 	//ERROR: match

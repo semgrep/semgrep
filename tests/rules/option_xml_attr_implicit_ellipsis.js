@@ -1,8 +1,8 @@
 //ruleid: match
-x = <View />;
+x = <View />
 
 // nope
-y = <View mt="5" />;
+y = <View mt="5" />
 
 // nope
-z = <View mt="8">I have children</View>;
+z = <View mt="8">I have children</View>

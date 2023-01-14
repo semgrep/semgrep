@@ -1,24 +1,24 @@
 rules:
-  #ruleid: double-id!
-  - id: double-id
-    message: |
-      you use multiple times the same id
-    severity: ERROR
-    languages: [json, yaml]
-    patterns:
-      - pattern-inside: |
-          [{id: $X, ...}, ..., {id: $X, ...}, ...]
-      - pattern: |
-          id: $X
-  #ruleid: double-id!
-  - id: double-id
-    message: inception
-    severity: ERROR
-    languages: [c]
-    pattern: NOTHING
+#ruleid: double-id!
+- id: double-id
+  message: |
+    you use multiple times the same id
+  severity: ERROR
+  languages: [json, yaml]
+  patterns:
+    - pattern-inside: |
+       [{id: $X, ...}, ..., {id: $X, ...}, ...]
+    - pattern: |
+       id: $X
+#ruleid: double-id!
+- id: double-id
+  message: inception
+  severity: ERROR
+  languages: [c]
+  pattern: NOTHING
 
-  - id: another-id
-    message: inception
-    severity: ERROR
-    languages: [c]
-    pattern: NOTHING
+- id: another-id
+  message: inception
+  severity: ERROR
+  languages: [c]
+  pattern: NOTHING

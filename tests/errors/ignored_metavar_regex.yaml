@@ -22,3 +22,4 @@ rules:
   severity: WARNING
   metadata:
     cwe: "CWE-94: Improper Control of Generation of Code ('Code Injection')"
+    

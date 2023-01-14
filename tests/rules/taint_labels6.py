@@ -9,7 +9,6 @@ def foo():
     f = open()
     f.write("baz")
 
-
 def bar():
     f = open()
     f.write("bar")

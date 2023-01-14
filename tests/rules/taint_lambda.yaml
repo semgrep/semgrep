@@ -6,6 +6,6 @@ rules:
     severity: WARNING
     mode: taint
     pattern-sinks:
-      - pattern: sink(...)
+    - pattern: sink(...)
     pattern-sources:
-      - pattern: source
+    - pattern: source

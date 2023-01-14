@@ -3,3 +3,7 @@ def foo() do
     myfile = open()
     close(myfile)
 end
+
+
+
+

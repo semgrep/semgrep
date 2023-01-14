@@ -1,3 +1,4 @@
 function foo() {
-  return (a) => 3;
+    return (a => 3);
+
 }

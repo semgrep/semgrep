@@ -8,7 +8,7 @@ class Foo {
     public static void bar(int bar1, int bar2, int bar3) {
         foo(1,2,3);
         bar(1,2);
-    }
+    } 
 
     // ERROR:
     public void foobar(int bar1) {

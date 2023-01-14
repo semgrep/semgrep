@@ -1,8 +1,9 @@
 function test() {
-  try {
-    return 0;
-  } finally {
+    try {
+        return 0;
+    }
     //ERROR: match
-    return 1;
-  }
+    finally {
+        return 1;
+    }
 }

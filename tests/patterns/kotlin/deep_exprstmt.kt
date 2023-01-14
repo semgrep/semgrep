@@ -12,3 +12,4 @@ fun foo() {
     foo()
     return bar()
 }
+  

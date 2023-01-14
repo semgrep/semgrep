@@ -1,5 +1,5 @@
 void foo () {
-
+  
   TF_ASSIGN_OR_RETURN(
       ScalarIndexedArray* const folded_reshape_without_degenerate_dims,
       FoldReshapeOfGatherNoDegenerateDims(
@@ -14,3 +14,4 @@ void foo () {
   }
 
 }
+

@@ -1,9 +1,9 @@
 // https://github.com/returntocorp/semgrep/issues/5115
 
 const Sources: React.FC<{
-  rule: Rule,
-  references: string[] | undefined,
-  license: string | undefined,
+  rule: Rule;
+  references: string[] | undefined;
+  license: string | undefined;
 }> = ({ rule, references, license }) => {
   return (
     <div>
@@ -22,11 +22,7 @@ const Sources: React.FC<{
         <>
           {references.map((url, index) => (
             <div>
-              <SourceLink
-                target="_blank"
-                rel="noopener noreferrer"
-                href={validateUrl(url)}
-              >
+              <SourceLink target="_blank" rel="noopener noreferrer" href={validateUrl(url)}>
                 {`[${index + 1}] ${url}`}
               </SourceLink>
             </div>
@@ -39,9 +35,9 @@ const Sources: React.FC<{
 };
 
 const Sources: React.FC<{
-  rule: Rule,
-  references: string[] | undefined,
-  license: string | undefined,
+  rule: Rule;
+  references: string[] | undefined;
+  license: string | undefined;
 }> = ({ rule, references, license }) => {
   return (
     <div>

@@ -1,5 +1,5 @@
 struct Ptr(&'static u8);
-// MATCH:
+// MATCH: 
 impl flatbuffers::SafeSliceAccess for Ptr {}
 
 fn main() {

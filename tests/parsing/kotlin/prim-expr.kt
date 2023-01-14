@@ -1,7 +1,7 @@
 fun foo(): Int {
     foo()
     [1,2,3]
-    if (a < b) {
+    if (a < b) { 
        val max= b
     }
     val a = 1

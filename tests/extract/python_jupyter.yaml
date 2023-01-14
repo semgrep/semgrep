@@ -2,7 +2,7 @@ rules:
   - id: extract-jupyter-to-python
     mode: extract
     languages:
-      - json
+    - json
     pattern: |
       {
         "cell_type": "code",

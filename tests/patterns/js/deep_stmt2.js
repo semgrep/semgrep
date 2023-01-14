@@ -1,10 +1,11 @@
-var bar = 1;
+
+var bar = 1
 
 //ERROR: match
-var foo = "bar";
+var foo = "bar"
 
 function check() {
-  if (foo === "bar") {
-    console.log(foo);
-  }
+    if (foo === 'bar') {
+        console.log(foo)
+    }
 }

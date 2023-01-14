@@ -14,3 +14,4 @@ class Foo {
         return bar();
       }
   }
+      

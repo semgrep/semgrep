@@ -16,3 +16,4 @@ private class Bar extends Foo {
 abstract class Foobar {
     public abstract void foobar();
 }
+

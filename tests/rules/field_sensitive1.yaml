@@ -2,9 +2,9 @@ rules:
   - id: test
     mode: taint
     pattern-sources:
-      - pattern: source
+        - pattern: source
     pattern-sinks:
-      - pattern: sink(...)
+        - pattern: sink(...)
     message: test
     languages:
       - typescript

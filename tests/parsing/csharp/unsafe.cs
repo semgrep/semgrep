@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 class Unsafe
 {
@@ -6,7 +6,7 @@ class Unsafe
     {
         *i = *i + 1;
     }
-
+    
     public static void Main()
     {
         unsafe

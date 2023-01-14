@@ -10,7 +10,7 @@ rules:
     pattern-sanitizers:
       - by-side-effect: true
         patterns:
-          - pattern-inside: sanitize($X)
-          - focus-metavariable: $X
+        - pattern-inside: sanitize($X)
+        - focus-metavariable: $X
     pattern-sinks:
       - pattern: sink(...)

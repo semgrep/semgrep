@@ -1,6 +1,8 @@
-# semgrep-core language tests
+semgrep-core language tests
+==
 
-## Running the tests
+Running the tests
+--
 
 All the semgrep-core tests can be run from `/semgrep/semgrep-core`
 with `make test`. This will recompile the test programs if necessary.
@@ -9,7 +11,6 @@ Running just `make` will also rebuild the test programs.
 Only running the main test program can be done with `./test`. Try
 `./test --help` for options. In particular, running just the tests
 that contain the string `semgrep PHP` is done with
-
 ```
 $ ./test test 'semgrep PHP'
 ```
@@ -19,7 +20,8 @@ faster. It is recommended to run `./test` when editing language files
 (`.sgrep` files and targets) because they will be picked up
 automatically without having to rebuild the test program.
 
-## Matching tests
+Matching tests
+--
 
 The `patterns/` folder contains pairs (pattern, target). A pattern must be a file with
 the `.sgrep` extension and a target must be a file in the target
@@ -64,7 +66,8 @@ eval(s)
 eval(read_line())
 ```
 
-## Parsing tests
+Parsing tests
+--
 
 Tests for just parsing are specified by placing source files into the
 language's `parsing/` as follows:
@@ -82,7 +85,8 @@ parsing
 
 The expectation is that each file will be parsed without an error.
 
-## JSON/Web cheatsheet
+JSON/Web cheatsheet
+--
 
 The semgrep.dev live editor displays a cheatsheet for the selected
 language. This cheatsheet reuses some of the examples found in the

@@ -3,3 +3,4 @@ def foo()
     myfile = open()
     close(myfile)
 end
+

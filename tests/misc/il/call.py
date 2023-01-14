@@ -1,2 +1,2 @@
 def foo():
-    bar()
+    a = bar()

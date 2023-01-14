@@ -1,14 +1,14 @@
 @Controller
 @RequestMapping("/api/test")
 public class TestController {
-    // ERROR:
+    // ERROR: 
     @RequestMapping(method = RequestMethod.GET)
     @PreAuthorize(Permissions.ADMIN)
     @ResponseBody
     public ResponseEntity<Map<String, Object>> list() {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
-    // ERROR:
+    // ERROR: 
     @RequestMapping(value = "/{name}", method = RequestMethod.POST)
     @PreAuthorize(Permissions.USER)
     @ResponseBody
@@ -16,3 +16,4 @@ public class TestController {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 }
+

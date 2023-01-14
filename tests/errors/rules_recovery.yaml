@@ -4,14 +4,14 @@
   require: "> 0.84.0"
   pattern: Common.do_option
   fix: Option.iter
-  languages: [ocaml]
+  languages: [ ocaml ]
   message: found one
   severity: ERROR
 - id: rule-with-some-error
   #ERROR: bad pattern, but we should warn and just skip this rule
   pattern: Common.do_option ||
   fix: Option.iter
-  languages: [ocaml]
+  languages: [ ocaml ]
   message: found one
   severity: ERROR
 - id: rule-with-error-in-formula
@@ -22,6 +22,6 @@
     # (the ERROR above in rule-with-some-error)
     - metavariable-unknown: bar
   fix: Option.iter
-  languages: [ocaml]
+  languages: [ ocaml ]
   message: found one
   severity: ERROR

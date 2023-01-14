@@ -1,4 +1,4 @@
 //ERROR: match
-export * from "A";
+export * from 'A';
 
-import { fooBar } from "otherString";
+import { fooBar} from 'otherString';

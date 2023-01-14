@@ -12,3 +12,4 @@ rules:
       - label: FOO
         pattern: source(...)
     severity: ERROR
+

@@ -6,7 +6,7 @@ public class OtherObj {
     }
 
     MyObj obj = new MyObj();
-    //ERROR:match
+    //ERROR:match   
     obj.persistObj(arg0, arg1);
   }
 }

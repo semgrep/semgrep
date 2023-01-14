@@ -1,6 +1,6 @@
 <?php
 function wrap() {
    $tainted = (sanitizer($source) ? $source : 'ok');
-   // ERROR: match
+   // ERROR: match 
    sink($tainted);
 }

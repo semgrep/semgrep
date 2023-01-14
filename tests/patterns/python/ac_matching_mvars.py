@@ -1,19 +1,20 @@
-# ERROR:
+
+#ERROR:
 if A & B:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if B & A:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if A & C:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if A & B & C:
-    foo()
+  foo()
 
-# OK:
+#OK:
 if B & C:
-    foo()
+  foo()

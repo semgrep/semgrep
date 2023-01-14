@@ -9,5 +9,5 @@ object Foo {
     val List(bad,x) = List(1,2)
 
     //ERROR:
-    val List(x,bad,x) = List(1,2,3)
+    val List(x,bad,x) = List(1,2,3) 
 }

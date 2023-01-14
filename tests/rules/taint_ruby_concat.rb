@@ -112,3 +112,4 @@ def ok9()
     # ok: ruby-pg-sqli
     con.exec("SELECT * FROM users WHERE email=hello;" << "hello")
 end
+

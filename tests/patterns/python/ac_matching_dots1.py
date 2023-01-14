@@ -1,11 +1,12 @@
-# ERROR:
+
+#ERROR:
 if A | B:
-    foo()
+  foo()
 
-# ERROR:
+#ERROR:
 if C | B | A:
-    foo()
+  foo()
 
-# OK:
+#OK:
 if A | A:
-    foo()
+  foo()

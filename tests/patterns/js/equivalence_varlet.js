@@ -6,3 +6,4 @@ let x = "hello";
 
 //ERROR: match
 const x = "hello";
+

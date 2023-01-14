@@ -1,5 +1,5 @@
 func foo() {
-
+    
   //ERROR: match
   f = o.foo().m().h().bar().z()
 

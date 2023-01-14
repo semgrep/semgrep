@@ -1,6 +1,7 @@
 rules:
   - id: command-injection
-    message: This test confirms that taint works with multiple focus-metavariables
+    message:
+      This test confirms that taint works with multiple focus-metavariables
     languages:
       - go
     severity: ERROR

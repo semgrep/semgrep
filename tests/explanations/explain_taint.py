@@ -4,13 +4,11 @@ def foo():
     c = b
     sink(c)
 
-
 def foo2():
     a = source()
     b = a
     c = b
     other(c)
-
 
 def foo2():
     a = other()

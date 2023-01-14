@@ -8,6 +8,6 @@ rules:
       - metavariable-pattern:
           metavariable: $P
           patterns:
-            - pattern-not: |
-                ... + ...
+              - pattern-not: |
+                  ... + ...
     severity: WARNING

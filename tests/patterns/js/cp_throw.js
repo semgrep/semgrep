@@ -2,7 +2,8 @@ function foo(input) {
   var x = "hello";
   if (random()) {
     bar();
-  } else {
+  }
+  else {
     throw "error";
     x = input; // unreachable
   }

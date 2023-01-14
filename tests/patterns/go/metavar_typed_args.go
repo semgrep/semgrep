@@ -18,3 +18,5 @@ func bar() {
 
     foo (d, b, c, d)
 }
+
+

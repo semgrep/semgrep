@@ -4,7 +4,7 @@ class Foo {
 
   @Misc
   @Foo.Bar(method="foobar")
-  public int foo(int x) {
+  public int foo(int x) { 
     return x;
   }
 
@@ -14,7 +14,7 @@ class Foo {
   //ERROR: match
   @Misc
   @Bar(method="foobar")
-  public int foo(int x) {
+  public int foo(int x) { 
     return x;
   }
 }

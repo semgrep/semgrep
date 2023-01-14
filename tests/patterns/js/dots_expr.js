@@ -1,3 +1,4 @@
+
 var x;
 //ERROR: match
 x = 2;

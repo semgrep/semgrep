@@ -3,8 +3,7 @@ rules:
     languages:
       - java
     severity: ERROR
-    message:
-      User data flows into this manually-constructed SQL string. User data
+    message: User data flows into this manually-constructed SQL string. User data
       can be safely inserted into SQL strings using prepared statements or an
       object-relational mapper (ORM). Manually-constructed SQL strings is a
       possible indicator of SQL injection, which could let an attacker steal or
@@ -38,19 +37,20 @@ rules:
               regex: (RequestBody|PathVariable|RequestParam|RequestHeader|CookieValue)
           - focus-metavariable: $SOURCE
     pattern-propagators:
-      - patterns:
-          - pattern: (Page $PAGE).$SETTER($DATA)
-          - metavariable-regex:
-              metavariable: $SETTER
-              regex: ^set.*
-        from: $DATA
-        to: $PAGE
-      - pattern: (StringBuilder $BUILDER).append($STR)
-        from: $STR
-        to: $BUILDER
+    - patterns:
+      - pattern: (Page $PAGE).$SETTER($DATA)
+      - metavariable-regex:
+          metavariable: $SETTER
+          regex: ^set.*
+      from: $DATA
+      to: $PAGE
+    - pattern: (StringBuilder $BUILDER).append($STR)
+      from: $STR
+      to: $BUILDER
     pattern-sinks:
-      - patterns:
-          - focus-metavariable: $SQL
-          - pattern-either:
-              - pattern-inside: (javax.persistence.EntityManager $EM).createQuery($SQL,...)
-              - pattern-inside: (javax.persistence.EntityManager $EM).createNativeQuery($SQL,...)
+    - patterns:
+      - focus-metavariable: $SQL
+      - pattern-either:
+        - pattern-inside: (javax.persistence.EntityManager $EM).createQuery($SQL,...)
+        - pattern-inside: (javax.persistence.EntityManager $EM).createNativeQuery($SQL,...)
+

@@ -10,3 +10,4 @@ rules:
     languages:
       - py
     severity: ERROR
+

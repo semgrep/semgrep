@@ -11,3 +11,4 @@ rules:
           language: yaml
           pattern: |
             schemaVersion: '1.0'
+

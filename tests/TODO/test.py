@@ -1,3 +1,6 @@
+import foobar
+
+
 def foo():
     # x = { "fld1": "eval" }
     # x.fld2 = "eval"

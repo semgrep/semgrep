@@ -16,3 +16,4 @@ void good_func(unsigned int (*p)[NUM]) {
       (*p)[i] = CLEAR;
     return;
 }
+

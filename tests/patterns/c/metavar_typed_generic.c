@@ -27,3 +27,4 @@ int test_equal(int a, int *p, char *x) {
     if (NULL == NULL) return 5;
     return 0;
 }
+

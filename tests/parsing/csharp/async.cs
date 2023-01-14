@@ -8,7 +8,7 @@ class HelloWorldAsync
     {
         return "hello world";
     }
-
+    
     public static async Task<string> GetGreetingAsync()
     {
         return "hello world";
@@ -21,7 +21,7 @@ class HelloWorldAsync
             yield return ch;
         }
     }
-
+    
     public static async Task Main()
     {
         var greeting = await Task.Run(() => GetGreeting());

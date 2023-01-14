@@ -4,3 +4,4 @@ class Foo {
 	A<int> x = (A<int>)qux.foo("hello");
     }
 }
+

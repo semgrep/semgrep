@@ -4,3 +4,4 @@ def foo()
     # ERROR:
     foo(5)
 end
+

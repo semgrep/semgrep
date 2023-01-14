@@ -1,6 +1,8 @@
+import django.db.models
+
 from django.db import models
 
-# ERROR: match
+#ERROR: match
 class A(models.Model):
-    def save(self, *args, **kwargs):
-        return self
+      def save(self, *args, **kwargs):
+          return self

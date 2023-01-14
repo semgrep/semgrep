@@ -1,17 +1,17 @@
-const { ok } = require("assert");
-const jwt = require("jsonwebtoken");
+const { ok } = require('assert');
+const jwt = require('jsonwebtoken');
 
 token = getToken();
 // ERROR: jwt-decode-without-verify
 if (jwt.decode(token, true).param === true) {
-  console.log("token is valid");
+  console.log('token is valid');
 }
 
 function ok(token, key) {
   jwt.verify(token, key);
   // ok: jwt-decode-without-verify
   if (jwt.decode(token, true).param === true) {
-    console.log("token is valid");
+    console.log('token is valid');
   }
 }
 
@@ -19,16 +19,16 @@ const ok2 = (token, key) => {
   jwt.verify(token, key);
   // ok: jwt-decode-without-verify
   if (jwt.decode(token, true).param === true) {
-    console.log("token is valid");
+    console.log('token is valid');
   }
 };
 
 function bad_different_token(token, key) {
-  token2 = getToken();
-  jwt.verify(token2, key);
+    token2 = getToken();
+    jwt.verify(token2, key);
 
-  // ERROR: jwt-decode-without-verify
-  if (jwt.decode(token, true).param === true) {
-    console.log("token is valid");
-  }
+    // ERROR: jwt-decode-without-verify
+    if (jwt.decode(token, true).param === true) {
+      console.log('token is valid');
+    }
 }

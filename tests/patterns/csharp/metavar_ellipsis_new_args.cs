@@ -1,4 +1,4 @@
-class C
+class C 
 {
     public C(int a, int b)
     { }

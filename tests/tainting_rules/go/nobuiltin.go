@@ -50,3 +50,4 @@ func proxyFetcher(t *testing.T, withLicenseDetector bool, ctx context.Context, m
     d := licenseDetector(ctx, t, modulePath, got.ResolvedVersion, proxyClient)
     return got, d
 }
+

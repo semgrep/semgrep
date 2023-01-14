@@ -18,7 +18,7 @@ public static void main(String[] args) throws NoSuchAlgorithmException, IOExcept
 		MessageDigest md2 = MessageDigest.getInstance(MD5_1);
 
         //ERROR: match
-		MessageDigest md3 = MessageDigest.getInstance(MD5_2);
+		MessageDigest md3 = MessageDigest.getInstance(MD5_2);	
 
 		int stam1 = 0;
 		if (stam1 == stam1)

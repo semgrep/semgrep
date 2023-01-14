@@ -1,6 +1,6 @@
 match foo:
-    case 1:
-        # ERROR: match
-        print("hi!")
-    case 2:
-        x = 5
+  case 1:
+    # ERROR: match
+    print("hi!")
+  case 2:
+    x = 5

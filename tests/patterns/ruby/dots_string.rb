@@ -6,3 +6,4 @@ def foo()
     # this string is not a constant, and therefore will not be matched.
     foo("string #{var} interpolation")
 end
+

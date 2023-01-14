@@ -2,7 +2,9 @@
   "errors": [],
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": ["targets/dependency_aware/ansi.js"]
+    "scanned": [
+      "targets/dependency_aware/ansi.js"
+    ]
   },
   "results": [
     {
@@ -45,7 +47,10 @@
             "https://github.com/Tjatse/ansi-html/issues/19",
             "https://github.com/mahdyar/ansi-html-community"
           ],
-          "technology": ["js", "ts"]
+          "technology": [
+            "js",
+            "ts"
+          ]
         },
         "severity": "ERROR"
       },

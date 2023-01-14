@@ -1,2 +1,2 @@
 //ERROR: match
-var x = { Location: 1 };
+var x = {"Location": 1};

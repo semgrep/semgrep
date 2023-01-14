@@ -1,6 +1,7 @@
 function foo() {
-  //ERROR:
-  foo(1, 2);
+    //ERROR:
+    foo(1,2);
 
-  return 1;
+    return 1;
 }
+

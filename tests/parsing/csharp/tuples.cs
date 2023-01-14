@@ -17,7 +17,7 @@ public class HelloWorldTuples
 
         (string c, string d) = GetGreeting();
         Console.WriteLine(c + d);
-
+        
         (var e, var f) = GetGreeting();
         Console.WriteLine(e + f);
 

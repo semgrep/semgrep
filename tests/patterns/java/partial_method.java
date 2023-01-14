@@ -8,3 +8,4 @@ void foo(int a) {
     return 1;
 }
 }
+

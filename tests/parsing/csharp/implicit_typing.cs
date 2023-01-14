@@ -8,3 +8,4 @@ public class Foo
     int M2() { return M1(new () { x = 42 }); }
 
 }
+

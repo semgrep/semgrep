@@ -1,7 +1,7 @@
 // this should not match!
 async function should_not_match(
   req: Sails.Request,
-  res: Sails.Response
+  res: Sails.Response,
 ): Promise<void> {
   return;
 }
@@ -9,7 +9,7 @@ async function should_not_match(
 //ERROR: match
 export async function should_match(
   req: Sails.Request,
-  res: Sails.Response
+  res: Sails.Response,
 ): Promise<void> {
   return;
 }

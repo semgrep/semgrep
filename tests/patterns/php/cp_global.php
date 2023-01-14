@@ -4,7 +4,7 @@
 $home="/home"."test";
 $attachment="test";
 $dir="test2";
-$cmd= "sample string". escapeshellarg($dir) . "sample string2" . escapeshellarg($dir);
+$cmd= "sample string". escapeshellarg($dir) . "sample string2" . escapeshellarg($dir); 
 
 //ERROR:
 exec("rm $home");

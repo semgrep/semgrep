@@ -8,10 +8,10 @@ rules:
       - metavariable-pattern:
           metavariable: $P
           patterns:
-            - pattern: |
-                bar($X)
-            - metavariable-pattern:
-                metavariable: $X
-                patterns:
-                  - pattern: ... + ...
+              - pattern: |
+                  bar($X)
+              - metavariable-pattern:
+                  metavariable: $X
+                  patterns:
+                    - pattern: ... + ...
     severity: WARNING

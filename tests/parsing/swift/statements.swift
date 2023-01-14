@@ -15,8 +15,8 @@ import protocol foo;
 import let foo;
 import var foo;
 import func foo;
-infix postfix prefix mutating nonmutating private public open fileprivate
-internal private(set) public(set) open(set) fileprivate(set) internal(set)
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
 import foo;
 
 // Constant
@@ -73,8 +73,8 @@ var x : Int? = 1
 // Typealias
 typealias foo = bar;
 typealias foo<baz> = bar;
-infix postfix prefix mutating nonmutating private public open fileprivate
-internal private(set) public(set) open(set) fileprivate(set) internal(set)
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
 typealias foo<baz: Int> = bar;
 
 // Associated types
@@ -110,9 +110,9 @@ fileprivate(set) func foo() { }
 internal(set) func foo() { }
 @attr func foo ( ) { }
 
-infix postfix prefix mutating nonmutating private public open fileprivate
-internal private(set) public(set) open(set) fileprivate(set) internal(set)
-@attr
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr 
 func foo () { }
 func foo() throws { }
 func foo() throws -> Int { }
@@ -121,7 +121,7 @@ func foo() async { }
 func foo() async -> Int { return 5; }
 func foo() async throws { }
 
-// deinit
+// deinit 
 deinit {}
 
 // Class etc.
@@ -141,7 +141,7 @@ class foo {
     class cla { }
     protocol prot { }
     deinit { }
-    associatedtype foo
+    associatedtype foo 
     // TODO others
 }
 class bar: foo { }
@@ -149,9 +149,9 @@ class bar: foo, baz, asdf { }
 class foo<bar, baz> { }
 class foo<bar: baz> { }
 
-infix postfix prefix mutating nonmutating private public open fileprivate
-internal private(set) public(set) open(set) fileprivate(set) internal(set)
-@attr
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr 
 class foo { }
 class foo<bar> where bar: baz { }
 class foo<bar> where bar: baz, bar: asdf { }
@@ -160,9 +160,9 @@ class foo<bar> where bar: baz, bar: asdf { }
 struct foo { }
 
 // TODO test other varieties
-infix postfix prefix mutating nonmutating private public open fileprivate
-internal private(set) public(set) open(set) fileprivate(set) internal(set)
-@attr
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr 
 extension bar { }
 
 extension bar { }
@@ -204,9 +204,9 @@ indirect enum RecursiveType<T> {
   indirect case Recur(RecursiveType, T, RecursiveType)
 }
 
-infix postfix prefix mutating nonmutating private public open fileprivate
-internal private(set) public(set) open(set) fileprivate(set) internal(set)
-@attr indirect
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr indirect 
 enum bar { }
 
 // For-in loops
@@ -290,14 +290,14 @@ switch foo {
   case true where true, false:
     return 2
   // Type casting patterns
-  case foo as Int:
+  case foo as Int: 
     return 1
   case is Int:
     return 2
 }
 
 // Precedence group
-precedencegroup foo { }
+precedencegroup foo { } 
 precedencegroup foo {
   bar : x
   baz : argh

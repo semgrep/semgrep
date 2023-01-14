@@ -9,7 +9,7 @@ rules:
       - pattern: sink(...)
     pattern-sources:
       - patterns:
-          - pattern: |
-              function $FUNC({$PARAM}) { ... }
-          - focus-metavariable: $PARAM
+        - pattern: |
+            function $FUNC({$PARAM}) { ... }
+        - focus-metavariable: $PARAM
     severity: ERROR

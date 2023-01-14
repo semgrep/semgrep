@@ -12,10 +12,10 @@ rules:
           int16($F)
       #ERROR: deprecated feature
       - pattern-where-python: int(vars['$NUM'].replace('"', '')) > 32767 or int(vars['$NUM'].replace('"', '')) < -32768
-    #      - metavariable-comparison:
-    #          metavariable: $NUM
-    #          comparison: $NUM > 32767 or $NUM < -32768
-    #          strip: true
+#      - metavariable-comparison:
+#          metavariable: $NUM
+#          comparison: $NUM > 32767 or $NUM < -32768
+#          strip: true
     metadata:
       category: correctness
       technology:

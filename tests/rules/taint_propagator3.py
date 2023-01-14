@@ -3,5 +3,5 @@ def test():
     f(x, y)
     x = "safe"
     g(y, z)
-    # ruleid: test
+    #ruleid: test
     sink(z)

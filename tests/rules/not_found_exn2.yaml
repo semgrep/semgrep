@@ -3,7 +3,7 @@ rules:
     patterns:
       - pattern: |
           $VALUE = $KEYLENGTH
-          ...
+          ... 
           cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(..., key_size=$VALUE, ...)
       - metavariable-comparison:
           metavariable: $KEYLENGTH

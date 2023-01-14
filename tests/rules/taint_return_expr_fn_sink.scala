@@ -5,7 +5,7 @@ object Demo {
       // ruleid: simple-function-sink
       return "Returned Value : " + addInt(a, b)
    }
-
+   
    def addInt( a:Int, b:Int ) : Int = {
       var sum:Int = 0
       sum = a + b

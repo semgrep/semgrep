@@ -6,3 +6,4 @@ func foo() {
     //ERROR:
     foo(1, 5);
 }
+

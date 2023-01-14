@@ -1,18 +1,18 @@
 def foo():
-    x = ok
-    y = ok
-    z = ok
+  x = ok
+  y = ok
+  z = ok
+  try:
     try:
-        try:
-            raise Foo()
-            # OK:
-            sink(source)
-        finally:
-            x = source
-        y = x
+      raise Foo()
+      #OK:
+      sink(source)
     finally:
-        # OK:
-        sink(z)
-        z = y
-    # ERROR:
+      x = source
+    y = x
+  finally:
+    #OK:
     sink(z)
+    z = y
+  #ERROR:
+  sink(z)

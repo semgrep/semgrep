@@ -5,6 +5,9 @@ x = 2
 
 foo = 3
 
-
 def foo():
-    pass
+    y = 1
+    y = 2
+
+
+    

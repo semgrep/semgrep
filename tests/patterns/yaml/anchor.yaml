@@ -5,5 +5,6 @@ anchor: &anchor
     - "https://example.com/dangerous"
 production:
   assets:
-    # ERROR:
-    route1: *anchor
+  # ERROR:
+    route1:
+      *anchor

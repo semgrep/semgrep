@@ -1,30 +1,28 @@
+
 def bad():
     x = "password"
     y = x
     z = y
-    # ruleid: secrets
+    #ruleid: secrets
     sink(z)
-
 
 def ok1():
     x = "password"
     y = x
-    z = y + "ok"
-    # ok: secrets
+    z = y+"ok"
+    #ok: secrets
     sink(z)
-
 
 def ok2():
     x = "password"
     y = x
     z = f(y)
-    # ok: secrets
+    #ok: secrets
     sink(z)
-
 
 def ok3():
     x = "password"
     y = x
     z = a[y]
-    # ok: secrets
+    #ok: secrets
     sink(z)

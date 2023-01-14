@@ -1,20 +1,20 @@
 //ERROR:
 class A {
   foo() {
-    return "foo";
+    return 'foo';
   }
 }
 
 // ERROR:
 class A extends B {
   foo() {
-    return "bar";
+    return 'bar';
   }
 }
 
 // OK:
 class C {
   foo() {
-    return "bar";
+    return 'bar';
   }
 }

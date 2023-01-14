@@ -9,3 +9,4 @@ rules:
       - pattern: do_not_match_anything
     pattern-sinks:
       - pattern: $ANYTHING(...)
+

@@ -4,8 +4,8 @@ class Test {
         java.util.zip.ZipFile zf =
             // ERROR:
              new java.util.zip.ZipFile(zipFileName);
-        java.io.BufferedWriter writer =
-            // ERROR:
+        java.io.BufferedWriter writer = 
+            // ERROR: 
             java.nio.file.Files.newBufferedWriter(zipFileName, charset)
     ) {
         // Enumerate each entry

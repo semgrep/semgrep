@@ -17,9 +17,10 @@ rules:
       - python
   - id: succeed
     pattern: |
-      redirect(...)
+        redirect(...)
     message: >-
       This rule will not time out
     severity: ERROR
     languages:
       - python
+      

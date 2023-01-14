@@ -11,3 +11,4 @@ rules:
           $DB.orders.find(..., { $where: <... $ASDF ...> }, ...)
     severity: ERROR
     message: found a match with $ASDF
+    

@@ -1,2 +1,2 @@
 //ERROR: match
-foo(/abc/, "abc");
+foo(/abc/, "abc")

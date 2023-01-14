@@ -12,11 +12,11 @@ foreach ( $results as [ $rkey, $flags, /* length */, $casToken, $data ] ) {
 	}
 	$data = substr( $data, 0, -2 );
 	$ret[$rkey] = $data;
-
+                                                                            
 	if ( $this->_have_zlib && $flags & self::COMPRESSED ) {
 		$ret[$rkey] = gzuncompress( $ret[$rkey] );
 	}
-
+                                                                            
 	/*
 	 * This unserialize is the exact reason that we only want to
 	 * process data after having read until "END" (instead of doing

@@ -7,3 +7,4 @@ rules:
       let_is_var: false
     pattern: var $X = 1;
     severity: WARNING
+

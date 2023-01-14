@@ -1,16 +1,15 @@
 def bad():
-    x = set()
+    x = set([])
     # `x` becomes tainted by side effect
     taint(x)
     y = x
-    # ruleid: test
+    #ruleid: test
     sink(y)
 
-
 def ok():
-    x = set()
+    x = set([])
     taint(x)
     # remotes taint
-    x = set()
-    # ok: test
+    x = set([])
+    #ok: test
     sink(y)

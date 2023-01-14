@@ -13,7 +13,7 @@ public class ExampleController {
     //@ResponseBody
     public ResponseEntity<Map<String, Object>> unauth() {
 	//Java 15 Text Blocks!
-        String var = """
+        String var = """ 
                         JAVA 15 string
                     """;
         return new ResponseEntity<>(result, HttpStatus.OK);

@@ -7,3 +7,4 @@ foo() {
 function foo() {
   echo hello
 }
+

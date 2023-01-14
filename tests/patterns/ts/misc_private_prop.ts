@@ -1,10 +1,10 @@
 //ERROR: match
 export class Test {
   private static test = async () => {
-    console.log("test");
-  };
+    console.log("test")
+  }
 
-  private other = async () => {
-    console.log("other");
-  };
+    private other = async () => {
+    console.log("other")
+  }
 }

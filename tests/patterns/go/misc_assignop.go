@@ -10,13 +10,13 @@ func qux() {
 
     var d bool
     var err nil;
-
-    //ERROR: match
+    
+    //ERROR: match    
     if a, b := bar(); b {
         fmt.Println("hello")
     }
 
-    // shouldn't match this
+    // shouldn't match this    
     if d, err = foo(); d {
         fmt.Println("hello")
     }

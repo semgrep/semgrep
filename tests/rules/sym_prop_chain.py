@@ -1,7 +1,5 @@
 # https://github.com/returntocorp/semgrep/issues/2859
 import pandas as pd
-
-
 def test():
     df = pd.DataFrame(x)
     ix = df.index

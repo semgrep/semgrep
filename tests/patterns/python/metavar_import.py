@@ -1,1 +1,2 @@
-# ERROR: match
+#ERROR: match
+import foo.something

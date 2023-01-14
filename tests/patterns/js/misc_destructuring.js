@@ -1,2 +1,2 @@
 //ERROR: match
-var { one, two } = require("foo");
+var { one, two } = require('foo');

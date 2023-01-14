@@ -3,3 +3,6 @@ void foo() {
     myfile = open();
     close(myfile);
 }
+
+
+

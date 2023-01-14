@@ -9,3 +9,4 @@ class Foo {
         self.foo = true
     }
 }
+

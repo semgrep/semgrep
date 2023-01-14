@@ -1,3 +1,4 @@
 class Foo {
-  public bar() {}
+    public bar() {
+    }
 }

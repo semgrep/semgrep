@@ -1,4 +1,4 @@
 //ERROR: match
-let x: number = 2;
+let x : number = 2
 // no match here
-let y: bool = true;
+let y : bool = true;

@@ -1,5 +1,5 @@
 type A interface {
-    //ERROR: match
+    //ERROR: match	
     Good() bool
     Bad()
 }

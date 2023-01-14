@@ -21,9 +21,9 @@ rules:
       regex: "[Hh][Tt][Tt][Pp]://"
       replacement: https://
       count: 1
-    message:
-      Detected a request using 'http://'. This request will be unencrypted.
+    message: Detected a request using 'http://'. This request will be unencrypted.
       Use 'https://' instead.
     languages:
       - python
     severity: WARNING
+

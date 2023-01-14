@@ -6,3 +6,4 @@ foo 'bar'
 # string made of multiple fragments
 # ERROR:
 foo "${HOME}/bar"
+

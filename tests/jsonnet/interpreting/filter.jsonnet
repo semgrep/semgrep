@@ -5,3 +5,4 @@ std.filter(function(v) v > 1, arr)
 //std.filter(1, 2) // This should generate a runtime error
 
 //std.filter(function() true, arr)
+

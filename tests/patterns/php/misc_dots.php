@@ -7,7 +7,7 @@ $verify = false;
 curl_setopt($ch, CURLOPT_URL, "http://www.example.com/");
 curl_setopt($ch, CURLOPT_HEADER, 0);
 
-// This is caught
+// This is caught 
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
 // ... but can I catch this?

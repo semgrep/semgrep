@@ -4,7 +4,7 @@ resource "aws_ssm_document" "s3_enabled_not_encrypted_yaml" {
   document_type = "Session"
 
   document_format = "YAML"
-
+  
   # ruleid: aws-ssm-document-logging-issues
   content = <<DOC
   schemaVersion: '1.0'

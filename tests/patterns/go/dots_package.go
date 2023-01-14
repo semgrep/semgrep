@@ -1,4 +1,4 @@
-// ERROR:
+// ERROR: 
 package hacknews
 
 func main() {

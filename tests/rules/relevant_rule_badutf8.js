@@ -1,4 +1,4 @@
 // Char below somehow causes PCRE engine to throw a BadUTF8 error.
-// x ï¿½ y : z
+// x — y : z
 //ruleid: test
-foo;
+foo

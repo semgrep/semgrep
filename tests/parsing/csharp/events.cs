@@ -14,7 +14,7 @@ class HelloWorldEvents
         var instance = new HelloWorldEvents();
         instance.Run();
     }
-
+    
     public void Run() {
         StringEvent += PrintString;
         StringEvent.Invoke(this, "Hello world");

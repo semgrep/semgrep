@@ -10,7 +10,7 @@ public class Test {
         name = c.getName();
         if (name == null)
             return nextEntry;
-
+        
         boolean b1 = !name.contains("../");
         boolean b2 = !name.contains("..\\");
         // ruleid: test

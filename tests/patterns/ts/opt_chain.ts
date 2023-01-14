@@ -1,4 +1,4 @@
 // ERROR: match
-let a = x?.y;
+let a = x?.y
 
-let b = x.y;
+let b = x.y

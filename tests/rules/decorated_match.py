@@ -1,6 +1,7 @@
-foo = 5
+
+foo = 5 
 
 # ruleid: decorated_match
 @foo
 def bar():
-    return 0
+  return 0

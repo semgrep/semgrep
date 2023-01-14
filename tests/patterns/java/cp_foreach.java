@@ -22,7 +22,7 @@ public class TestPullReplica extends SolrCloudTestCase {
     //OK:
     if (replicaJetty != null) {
       replicaJetty.stop();
-    }
+    } 
 
     return pullReplicas;
   }

@@ -9,3 +9,4 @@ public class Person {
         check(this.default_age);
     }
 }
+

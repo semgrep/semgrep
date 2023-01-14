@@ -1,5 +1,5 @@
 (* if you want to artificially create some NoTokenLocation error to
- * test some fault-tolerance code, modify parser_ml.mly
+ * test some fault-tolerance code, modify parser_ml.mly 
  * constr_longident rule as is:
  | "(" ")"                             { [], ("()", Parse_info.fake_info "XX") }
  *
@@ -7,3 +7,4 @@
  *)
 (* ERROR: match *)
 ()
+

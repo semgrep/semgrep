@@ -20,3 +20,4 @@ func main() {
     //ERROR:
     fmt.Println(varDecl2)
 }
+

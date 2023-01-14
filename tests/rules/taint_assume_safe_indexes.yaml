@@ -11,3 +11,4 @@ rules:
     pattern-sources:
       - pattern: tainted(...)
     severity: WARNING
+

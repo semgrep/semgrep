@@ -1,4 +1,4 @@
-
+    
 //ERROR: match
 def f = o.foo().m().h().bar().z()
 
@@ -10,3 +10,4 @@ def f = o.foo().m().h().z()
 
   //ERROR: match $O can match o.before()
 def f = o.before().foo().m().h().bar().z()
+

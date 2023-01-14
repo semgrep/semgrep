@@ -7,3 +7,4 @@ void Tesseract::ambigs_classify_and_output() {
 
   const auto **blob_choices = new const BLOB_CHOICE *[dim];
 }
+

@@ -1,4 +1,4 @@
 let foo x =
   (* ERROR: match *)
-  try f x with
-  | Exn -> 1
+  try f x
+  with Exn -> 1

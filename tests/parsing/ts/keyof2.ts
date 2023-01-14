@@ -4,4 +4,4 @@ export const CellCategoryName = {
   INPUT: "Input parameters",
 } as const;
 export type CellCategoryName =
-  typeof CellCategoryName[keyof typeof CellCategoryName];
+    typeof CellCategoryName[keyof typeof CellCategoryName];

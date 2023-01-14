@@ -2,6 +2,7 @@ package main
 
 func main() {
     var value interface{}
-    // ERROR:
+    // ERROR: 
     _ = v.([]interface{})
 }
+

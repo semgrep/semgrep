@@ -2,24 +2,25 @@
 
 //ERROR:
 var foo = {
-  bar: "baz",
-  bar: "qux",
+    bar: "baz",
+    bar: "qux"
 };
 
 //ERROR:
 var foo = {
-  bar: "baz",
-  bar: "qux",
+    "bar": "baz",
+    bar: "qux"
 };
 
 //ERROR:
 var foo = {
-  0x1: "baz",
-  1: "qux",
+    0x1: "baz",
+    1: "qux"
 };
 
 //OK:
 var foo = {
-  bar: "baz",
-  quxx: "qux",
+    bar: "baz",
+    quxx: "qux"
 };
+

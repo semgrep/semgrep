@@ -1,3 +1,3 @@
 a = "foo"
-# ERROR:
+#ERROR:
 b[a] = 1

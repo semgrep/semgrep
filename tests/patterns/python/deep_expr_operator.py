@@ -1,3 +1,3 @@
 bar = 0
-# ERROR: match
+#ERROR: match
 foo(bar + 42)

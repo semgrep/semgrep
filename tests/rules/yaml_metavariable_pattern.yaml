@@ -2,7 +2,7 @@ rules:
   - id: my_pattern_id
     patterns:
       - pattern: |
-          owasp:
+          owasp: 
             $X
       - metavariable-pattern:
           metavariable: $X
@@ -11,3 +11,4 @@ rules:
     languages:
       - yaml
     severity: WARNING
+

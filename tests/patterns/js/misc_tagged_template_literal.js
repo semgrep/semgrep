@@ -3,7 +3,7 @@ async function getUserById(id: number) {
   await prisma.$executeRaw("SELECT * FROM users WHERE id = " + id);
   // Solution 2: safe: properly escapes the value
   await prisma.$executeRaw`SELECT * FROM users WHERE id = ${id}`;
-  // Solution 3: unsafe, allows SQL injection
-  //ERROR: match
+    // Solution 3: unsafe, allows SQL injection
+    //ERROR: match
   await prisma.$executeRaw(`SELECT * FROM users WHERE id = ${id}`);
 }

@@ -9,18 +9,18 @@ rules:
     severity: ERROR
     pattern-sources:
       - patterns:
-          - pattern: $READER.File
-          - pattern-inside: |
-              import "archive/zip"
-              ...
-          - pattern-inside: |
-              $READER, $ERR := zip.OpenReader($ARCHIVE)
-              ...
+        - pattern: $READER.File
+        - pattern-inside: |
+            import "archive/zip"
+            ...
+        - pattern-inside: |
+            $READER, $ERR := zip.OpenReader($ARCHIVE)
+            ...
     pattern-sinks:
       - patterns:
-          - pattern: $PATH
-          - pattern-inside: os.OpenFile($PATH, ...)
-          - pattern-not-inside: |
-              if !strings.HasPrefix($PATH, <... $TARGET ...>, ...) {...}
-              ...
-              <... os.OpenFile($PATH, ...) ...>
+        - pattern: $PATH
+        - pattern-inside: os.OpenFile($PATH, ...)
+        - pattern-not-inside: |
+            if !strings.HasPrefix($PATH, <... $TARGET ...>, ...) {...}
+            ...
+            <... os.OpenFile($PATH, ...) ...>

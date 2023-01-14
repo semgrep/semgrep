@@ -1,13 +1,14 @@
-x = (
-  <div>
+x = <div>
     //ERROR: match
-    <a href="/manage">link to ourselves</a>
-  </div>
-);
+    <a href='/manage'>
+    link to ourselves
+    </a>
+  </div>;
 
-x = (
-  <div>
+x = <div>
     //ERROR: match
-    <a href="/othermanage">link to ourselves</a>
-  </div>
-);
+    <a href='/othermanage'>
+    link to ourselves
+    </a>
+  </div>;
+

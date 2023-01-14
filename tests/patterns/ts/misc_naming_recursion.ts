@@ -2,16 +2,18 @@
 // made -dump_ast to loop forever and some semgrep queries to
 // use all memory
 
-export function foobar(number: number, params?: Record<string, any>) {
+export function foobar(
+  number: number,
+  params?: Record<string, any>
+) {
+
   //ERROR: match
-  return (
-    Array(number)
+  return Array(number)
+    //ERROR: match
+    .fill(true)
+    //ERROR: match
+    .map(() => {
       //ERROR: match
-      .fill(true)
-      //ERROR: match
-      .map(() => {
-        //ERROR: match
-        return bar(params);
-      })
-  );
+      return bar(params);
+    });
 }

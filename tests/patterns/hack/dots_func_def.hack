@@ -2,3 +2,4 @@
 function test() {
     echo 'function';
 }
+

@@ -1,4 +1,4 @@
 # ruleid:
 owasp:
-  - "A8: Insecure Deserialization"
-  - "A1: Injection"
+- 'A8: Insecure Deserialization'
+- 'A1: Injection'

@@ -1,15 +1,15 @@
 rules:
-  - id: bare_metavar
+  - id: bare_metavar 
     message: LANG is $FOO
     pattern-either:
-      - patterns:
+      - patterns: 
           - pattern: |
               bare_double: $FOO
           - metavariable-regex:
               metavariable: $FOO
               regex: ^\".*+
           - focus-metavariable: $FOO
-      - patterns:
+      - patterns: 
           - pattern: |
               bare_single: $FOO
           - metavariable-regex:

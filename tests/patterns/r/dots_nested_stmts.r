@@ -4,3 +4,4 @@ foo <- function () {
         return 2
     end
 }
+

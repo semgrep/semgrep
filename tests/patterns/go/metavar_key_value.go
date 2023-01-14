@@ -1,4 +1,4 @@
-package Foo
+package Foo 
 
 func foo() {
     // ERROR:

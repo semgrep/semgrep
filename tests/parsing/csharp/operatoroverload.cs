@@ -29,7 +29,7 @@ internal class SpaceString
     {
         return s.content;
     }
-
+    
     public static explicit operator int(SpaceString s)
     {
         return s.content.Length;

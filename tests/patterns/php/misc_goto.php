@@ -5,27 +5,27 @@ while (true) {
         case 'y':
             $this->discardChanges($path);
             break 2;
-
+                                                                                                                 
         case 's':
             if (!$update) {
                 //ERROR: match
                 goto help;
             }
-
+                                                                                                                 
             $this->stashChanges($path);
             break 2;
-
+                                                                                                                 
         case 'n':
             throw new \RuntimeException('Update aborted');
-
+                                                                                                                 
         case 'v':
             $this->io->writeError($changes);
             break;
-
+                                                                                                                 
         case 'd':
             $this->viewDiff($path);
             break;
-
+                                                                                                                 
         case '?':
         default:
             help :

@@ -1,8 +1,8 @@
 //ok:test
 a = {};
 //ok:test
-a = { ...x };
+a = {...x};
 //ruleid:test
-a = { x: 1 };
+a = {x:1};
 //ok:test
-a = { x: 1, y: 2 };
+a = {x:1, y:2}

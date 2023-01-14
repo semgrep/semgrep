@@ -12,8 +12,7 @@ rules:
                 - pattern: $_REQUEST
                 - pattern: $_POST
                 - pattern: $_COOKIE
-    message:
-      Detected user input going into a php include command, which can lead to
+    message: Detected user input going into a php include command, which can lead to
       path traversal and sensitive data being exposed. Instead, whitelist files
       that the user can access.
     metadata:

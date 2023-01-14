@@ -6,6 +6,7 @@ rules:
     options:
       vardef_assign: true
     pattern: |
-      ...
-      x = 1;
+        ...
+        x = 1;
     severity: WARNING
+

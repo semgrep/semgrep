@@ -8,7 +8,7 @@ rules:
     pattern-sources:
       - by-side-effect: true
         patterns:
-          - pattern: $X.b
-          - focus-metavariable: $X
+        - pattern: $X.b
+        - focus-metavariable: $X
     pattern-sinks:
       - pattern: sink(...)

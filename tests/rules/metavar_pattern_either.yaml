@@ -1,19 +1,19 @@
 rules:
-  - id: test-mvp-either
-    patterns:
-      - pattern: |
-          $CONST = require($PKG);
-          ...
-          $OPTIONS = ...;
-          ...
-          https.createServer($OPTIONS, ...);
-      - metavariable-pattern:
-          metavariable: $PKG
-          pattern-either:
+- id: test-mvp-either
+  patterns:
+  - pattern: |
+        $CONST = require($PKG);
+        ...
+        $OPTIONS = ...;
+        ...
+        https.createServer($OPTIONS, ...);
+  - metavariable-pattern:
+        metavariable: $PKG
+        pattern-either:
             - pattern: |
-                'crypto'
+                  'crypto'
             - pattern: |
-                'constants'
-    message: Working!
-    severity: WARNING
-    languages: [javascript]
+                  'constants'
+  message: Working!
+  severity: WARNING
+  languages: [javascript]

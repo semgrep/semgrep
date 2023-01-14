@@ -12,3 +12,4 @@ rules:
       - patterns:
           - pattern-inside: $DOMDOCUMENT->load($FILENAME, ...)
           - pattern: $DOMDOCUMENT
+

@@ -1,3 +1,3 @@
 def test(x):
-    # ruleid:test
+    #ruleid:test
     return x

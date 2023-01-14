@@ -7,3 +7,4 @@ class Box<T>(t: T) {
 interface Source<out T> {
     fun nextT(): T
 }
+

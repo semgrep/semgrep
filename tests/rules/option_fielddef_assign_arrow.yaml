@@ -8,3 +8,4 @@ rules:
       arrow_is_function: false
     pattern: $F = (...) => { ... }
     severity: WARNING
+

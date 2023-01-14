@@ -1,3 +1,4 @@
+
 rules:
   - id: test-xml-matching
     languages:
@@ -7,5 +8,5 @@ rules:
       xml_attrs_implicit_ellipsis: false
       xml_singleton_loose_matching: false
     pattern: |
-      <View />
+       <View />      
     severity: WARNING

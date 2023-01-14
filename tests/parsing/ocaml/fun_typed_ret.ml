@@ -1,1 +1,2 @@
-let foo () _path : bool = true
+let foo () =
+  (fun _path : bool -> true)

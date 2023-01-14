@@ -1,4 +1,4 @@
 def foo(request):
-    # ERROR:
+    #ERROR:
     redirect(request.foo)
     return

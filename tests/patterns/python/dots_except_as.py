@@ -1,5 +1,5 @@
-# ERROR:
+#ERROR:
 try:
-    x
-except HTTPError:
-    pass
+  x
+except HTTPError as e:
+  pass

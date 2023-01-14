@@ -4,3 +4,4 @@ def foo()
     # ERROR:
     baz = foo(5) + 1
 end
+

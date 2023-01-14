@@ -1,17 +1,17 @@
 # ERROR:
 try:
-    pass
+  pass
 except ValueError:
-    pass
+  pass
 
 # ERROR:
 try:
-    pass
+  pass
 except (ValueError, TypeError):
-    pass
+  pass
 
 # ERROR:
 try:
-    pass
+  pass
 except (ValueError):
-    pass
+  pass

@@ -15,3 +15,4 @@ def foo()
         foo()
     end
 end
+

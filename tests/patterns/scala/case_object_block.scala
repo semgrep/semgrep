@@ -5,7 +5,7 @@ object Foo {
         val y = 0
         case object F
         x
-    }
+    }    
 
     //OK:
     def g(x : Int) : Int = {

@@ -1,7 +1,7 @@
 <?php
 
 function foo() {
-
+    
 $parts = explode("/", $_SERVER['PATH_INFO']);
 $controllerName = $parts[0];
 

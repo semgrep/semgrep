@@ -1,2 +1,4 @@
-# ERROR:
-x = "pass" "word"
+#ERROR:
+x = ("pass"
+    "word")
+

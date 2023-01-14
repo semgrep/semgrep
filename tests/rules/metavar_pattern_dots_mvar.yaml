@@ -10,8 +10,8 @@ rules:
       - metavariable-pattern:
           metavariable: $...BODY
           patterns:
-            - pattern: |
-                foo(...)
-                ...
-                baz(...)
+              - pattern: |
+                  foo(...)
+                  ...
+                  baz(...)
     severity: WARNING

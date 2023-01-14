@@ -1,6 +1,6 @@
 public class Class {
   private int x = 5;
-  public int y = 5;
+  public int y = 5;  
   private int z = 5;
 
 
@@ -10,12 +10,12 @@ public class Class {
   }
 
   public void bar() {
-    return y;
+    return y; 
   }
 
   public void qux() {
     z = 3;
-    return z;
+    return z; 
   }
 
   public void foo1() {

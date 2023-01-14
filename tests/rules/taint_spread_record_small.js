@@ -1,2 +1,2 @@
 //ruleid: test
-sink({ ...source });
+sink({...source})

@@ -5,3 +5,4 @@ public static void Bar(input) {
     //OK:
     Foo("not a constant string: " + input);
 }
+

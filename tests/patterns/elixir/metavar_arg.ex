@@ -15,3 +15,4 @@ def foo() do
 
     foo(2,1)
 end
+

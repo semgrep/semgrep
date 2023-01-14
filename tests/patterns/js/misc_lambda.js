@@ -1,8 +1,8 @@
 var foo = "bar";
 
 // not a Lambda
-function foo() {
-  console.log(foo);
+function foo () {
+    console.log(foo);
 }
 
 // not allowed by Ast_js_build
@@ -15,13 +15,11 @@ function foo() {
 // we don't this anymore.
 //ERROR: match
 const a = function () {
-  console.log(foo);
+    console.log(foo);
 };
 
 // this is finally parsed as a Lambda
 var b = foo(
-  //ERROR: match
-  function () {
-    console.log("here");
-  }
+   //ERROR: match
+   function () { console.log("here"); }
 );

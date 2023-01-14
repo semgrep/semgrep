@@ -7,3 +7,4 @@ def test_equal()
     end
     return 0
 end
+

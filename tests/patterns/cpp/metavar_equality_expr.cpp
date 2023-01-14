@@ -6,3 +6,4 @@ void test_equal() {
         return 1;
     return 0;
 }
+

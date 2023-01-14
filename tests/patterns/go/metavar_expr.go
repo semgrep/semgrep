@@ -2,20 +2,21 @@ package main
 
 func main() {
     var value interface{}
-    // ERROR:
+    // ERROR: 
     _ = v.([]interface{})
 
 	var a map[string]map[string]uint64
 
-    // ERROR:
+    // ERROR: 
 	if want, have := map[string]map[string]uint64{
-        // ERROR:
+        // ERROR: 
 		"a": {"x": 1},
-        // ERROR:
+        // ERROR: 
 		"b": {"x": 1},
-    // ERROR:
+    // ERROR: 
 	}, a; !cmp.Equal(want, have) {
-        // ERROR:
+        // ERROR: 
 		fmt.Println(cmp.Diff(want, have))
 	}
 }
+

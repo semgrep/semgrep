@@ -1,4 +1,4 @@
 function test() {
-  //ruleid: match
-  bar(foo(2));
+    //ruleid: match
+    bar(foo(2));
 }

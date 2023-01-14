@@ -1,4 +1,7 @@
-let foo x = 2
+let foo x =
+  2
 
 (* ERROR: match *)
-let act y = 3 [@@action]
+let act y =
+  3
+[@@action]

@@ -40,4 +40,4 @@ export class HexVersionSecret extends HexVersionGQLEntity {
 }
 
 export type HexVersionSecretIgnoredDuplicateFields =
-  IgnoredDuplicateFields<HexVersionSecret>;
+    IgnoredDuplicateFields<HexVersionSecret>;

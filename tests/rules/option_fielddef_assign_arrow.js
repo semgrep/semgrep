@@ -1,9 +1,7 @@
 class TestClas {
   test() {
     //ruleid:test
-    const a = () => {
-      return;
-    };
+    const a = () => { return; };
     //ruleid:test
     const b = () => ({});
     //ruleid:test
@@ -15,13 +13,13 @@ class TestClas {
   //ruleid:test
   test1 = () => {
     return;
-  };
+  }
 
   // private arrow function
   //ruleid:test
   #test2 = () => {
     return;
-  };
+  }
 
   // arrow function w/o body
   //ruleid:test
@@ -29,7 +27,5 @@ class TestClas {
 
   // regular function w/o body
   // Not here!
-  test4 = function () {
-    return;
-  };
+  test4 = function () { return; }
 }

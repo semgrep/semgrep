@@ -1,20 +1,19 @@
 # ERROR:
 @anno1
-def bar(foo: "foo"):
-    pass
-
+def bar(foo: 'foo'):
+    x = 2
 
 # ERROR:
 @anno1
 @anno2
 def foobar():
-    pass
+    x = 3
 
-
-@app.route("/foo")
+@app.route('/foo')
 def foo():
-    pass
-
+    x = 1
 
 def no_anno():
-    pass
+    x = 2
+
+

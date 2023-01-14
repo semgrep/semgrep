@@ -4,7 +4,7 @@ def foo():
     bar()
     # ERROR: match
     foo()
-    bar()
+    x = bar()
     # ERROR: match
     foo()
     foo2(bar())

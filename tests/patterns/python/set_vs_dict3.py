@@ -1,6 +1,7 @@
-# ERROR: match
-a = {"x", "foo", "bar"}
 
-a = {"foo": 2, "bar": 3}
+#ERROR: match
+a = { "x", "foo", "bar" }
 
-a = {}
+a = { "foo": 2, "bar": 3 }
+
+a = { }

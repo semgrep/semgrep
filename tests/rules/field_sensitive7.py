@@ -1,9 +1,9 @@
 x = safe
 
 # `x.a` matches a taint source!
-# ruleid: test
+#ruleid: test
 sink(x.a.b)
 
 # `x.a` has been tainted by side-effect...
-# ruleid: test
+#ruleid: test
 sink(x.a)

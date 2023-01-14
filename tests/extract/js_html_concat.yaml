@@ -2,13 +2,13 @@ rules:
   - id: extract-javascript-from-html
     mode: extract
     pattern: |
-      <script>$...BODY</script>
+        <script>$...BODY</script>
     extract: $...BODY
     languages:
       - html
     paths:
       include:
-        - "*.html"
+        - '*.html'
     dest-language: javascript
     reduce: concat
   - id: get-elem-id
@@ -28,3 +28,4 @@ rules:
       - javascript
     message: "Taint match"
     severity: ERROR
+

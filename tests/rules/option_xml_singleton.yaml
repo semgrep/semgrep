@@ -6,5 +6,5 @@ rules:
     options:
       xml_singleton_loose_matching: false
     pattern: |
-      <View .../>
+       <View .../>      
     severity: WARNING

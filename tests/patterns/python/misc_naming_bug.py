@@ -5,7 +5,7 @@ import email.message as message
 # which is parsed as an OtherType (OT_EXpr) contain an Id for message
 # that will gets id_type reference again message.Message.
 def process_message(message: message.Message):
-    # ERROR: match
+    #ERROR: match
     if 1:
         message
     else:

@@ -1,1 +1,3 @@
-type foo = Bar of expr list * expr list
+type foo =
+  | Bar of expr list * expr list
+

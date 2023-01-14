@@ -1,5 +1,5 @@
 def test():
-    # ruleid:
+    #ruleid:
     foo(11)
 
     foo(3)

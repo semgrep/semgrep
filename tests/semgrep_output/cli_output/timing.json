@@ -9,7 +9,9 @@
     }
   ],
   "paths": {
-    "scanned": ["targets/equivalence/open_redirect.py"],
+    "scanned": [
+      "targets/equivalence/open_redirect.py"
+    ],
     "skipped": [
       {
         "path": "targets/equivalence/open_redirect.py",
@@ -33,9 +35,13 @@
     "rules_parse_time": 2.022,
     "targets": [
       {
-        "match_times": [2.022],
+        "match_times": [
+          2.022
+        ],
         "num_bytes": 1763,
-        "parse_times": [2.022],
+        "parse_times": [
+          2.022
+        ],
         "path": "targets/equivalence/open_redirect.py",
         "run_time": 2.022
       }

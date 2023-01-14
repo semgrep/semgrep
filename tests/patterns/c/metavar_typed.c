@@ -18,3 +18,4 @@ int test_equal() {
     if ("lit1" == "lit2") return 4;
     return 0;
 }
+

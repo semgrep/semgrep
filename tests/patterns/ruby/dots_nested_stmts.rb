@@ -16,3 +16,4 @@ def foo
         baz()
     end
 end
+

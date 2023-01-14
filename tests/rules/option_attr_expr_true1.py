@@ -1,10 +1,11 @@
 # https://github.com/returntocorp/semgrep/issues/3489
+
 from foo.bar import baz
 
-# ruleid:test
+#ruleid:test
 baz.func("HAI")
 
-# ruleid:test
+#ruleid:test
 @baz.func("HAI")
 def f():
     pass

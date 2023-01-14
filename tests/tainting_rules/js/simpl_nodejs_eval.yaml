@@ -9,12 +9,12 @@ rules:
     severity: ERROR
     pattern-sources:
       - patterns:
-          - pattern-inside: |
-              require('sandbox');
-              ...
-          - pattern-inside: function ($REQ, ...) {...}
-          - pattern: $REQ.query
+        - pattern-inside: |
+            require('sandbox');
+            ...
+        - pattern-inside: function ($REQ, ...) {...}
+        - pattern: $REQ.query
     pattern-sinks:
       - patterns:
-          - pattern-inside: $S.run($SINK, ...)
-          - pattern: $SINK
+        - pattern-inside: $S.run($SINK, ...)
+        - pattern: $SINK

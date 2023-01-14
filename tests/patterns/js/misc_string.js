@@ -1,2 +1,2 @@
 //ERROR: match
-foo("bar");
+foo("bar")

@@ -1,6 +1,7 @@
-import subprocess as sub
 import subprocess.open
 from subprocess import open as sub_open
+
+import subprocess as sub
 
 
 # TODO
@@ -9,10 +10,10 @@ from subprocess import open as sub_open
 
 def foo():
     # ERROR:
-    subprocess.open("ls")
+    result = subprocess.open("ls")
     # ERROR:
-    sub_open("ls")
+    result = sub_open("ls")
     # ERROR:
-    sub.open("ls")
+    result = sub.open("ls")
 
-    sub.not_open("ls")
+    result = sub.not_open("ls")

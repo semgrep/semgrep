@@ -1,4 +1,4 @@
 //ruleid:test-mvp-regex-2
-let x = 1;
+let x = 1
 //ok:test-mvp-regex-2
-let y = "abc";
+let y = "abc"

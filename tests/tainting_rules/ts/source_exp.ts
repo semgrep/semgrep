@@ -17,6 +17,8 @@ class BadPractice extends Component {
 
     //ERROR:
     React.createElement("a", { href: "aa" + location.href });
+
   }
 }
 export default BadPractice;
+

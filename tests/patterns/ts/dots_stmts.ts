@@ -1,7 +1,10 @@
 function foo() {
-  //ERROR:
-  user_data = get();
-  print("do stuff");
-  foobar();
-  eval(user_data);
+
+    //ERROR:
+    user_data = get();
+    print("do stuff");
+    foobar();
+    eval(user_data);
 }
+
+

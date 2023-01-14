@@ -7,7 +7,7 @@ class SyncOrderPgRouter extends Job
     {
         return $this->data;
     }
-
+   
     public function handle()
     {
         //ERROR: match
@@ -18,7 +18,7 @@ class SyncOrderPgRouter extends Job
             ]
         );
 
-
+    
 
 
         //parsing: 'for', 'global', 'as' keywords used as constants

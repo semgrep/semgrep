@@ -1,10 +1,12 @@
 //ERROR: match
 class foo {
   fld1: int;
-  foo() {}
+  foo() {
+  }
 }
 
 class foo2 {
   fld1: string;
-  foo() {}
+  foo() {
+  }
 }

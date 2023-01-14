@@ -1,8 +1,9 @@
 function test() {
-  try {
-    foo();
-  } catch (e) {
+    try {
+        foo();
+    }
     //ERROR: match
-    return e;
-  }
+    catch (e) {
+        return e;
+    }
 }

@@ -1,3 +1,4 @@
+
 const a = /abc/;
 
 //ERROR: match

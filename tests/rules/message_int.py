@@ -1,3 +1,3 @@
 def foo():
-    # ruleid:test
-    return x
+  #ruleid:test
+  return x

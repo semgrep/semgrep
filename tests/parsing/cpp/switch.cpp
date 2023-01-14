@@ -1,14 +1,14 @@
 // from https://www.tutorialspoint.com/cplusplus/cpp_switch_statement.htm
 #include <iostream>
 using namespace std;
-
+ 
 int main () {
    // local variable declaration:
    char grade = 'D';
 
    switch(grade) {
       case 'A' :
-         cout << "Excellent!" << endl;
+         cout << "Excellent!" << endl; 
          break;
       case 'B' :
       case 'C' :
@@ -24,6 +24,6 @@ int main () {
          cout << "Invalid grade" << endl;
    }
    cout << "Your grade is " << grade << endl;
-
+ 
    return 0;
 }

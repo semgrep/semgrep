@@ -1,5 +1,5 @@
 function bar() {
-  baz = 0;
-  //ERROR: match
-  foo(baz + 42);
+    baz = 0;
+    //ERROR: match
+    foo(baz + 42);
 }

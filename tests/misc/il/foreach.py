@@ -1,3 +1,3 @@
 def foo():
-    for i in eval("[]"):
-        eval(i)
+  for i in eval("[]"):
+    eval(i)

@@ -6,9 +6,9 @@ rules:
       - typescript
     severity: WARNING
     patterns:
-      - pattern: $A + $B
-      - metavariable-pattern:
-          metavariable: $B
-          patterns:
-            - pattern: ...
-            - pattern-not: $A
+    - pattern: $A + $B
+    - metavariable-pattern:
+        metavariable: $B
+        patterns:
+           - pattern: ...
+           - pattern-not: $A

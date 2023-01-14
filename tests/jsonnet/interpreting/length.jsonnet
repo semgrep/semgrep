@@ -4,3 +4,4 @@
   std.length("foo"),
   //std.length(2.3), // this generates a runtime error
 ]
+  

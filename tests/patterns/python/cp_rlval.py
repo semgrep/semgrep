@@ -1,16 +1,15 @@
-# ERROR:
+#ERROR:
 a = "foo"
 
-# ERROR:
+#ERROR:
 b = a
 
-# ERROR:
+#ERROR:
 c[a] = 1
 
-# ERROR:
+#ERROR:
 d = {1: a}
 
-
 def f():
-    # ERROR:
+    #ERROR:
     return a

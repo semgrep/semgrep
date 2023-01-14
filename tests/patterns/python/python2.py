@@ -1,4 +1,4 @@
-# ERROR: match
+#ERROR: match
 blah(async=true)
 
 # in theory you can write $FOO(..., blah=..., ...) in the pattern

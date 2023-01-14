@@ -12,3 +12,4 @@ rules:
       - label: TAINTED
         pattern: source(...)
     severity: ERROR
+

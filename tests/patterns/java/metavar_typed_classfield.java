@@ -10,3 +10,4 @@ public class Person {
         check(default_age);
     }
 }
+

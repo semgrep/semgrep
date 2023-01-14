@@ -1,6 +1,4 @@
 # ruleid: test
-foo(
-    1,
-    # OK: test
-    1,
-)
+foo (1,
+# OK: test
+	1)

@@ -13,4 +13,4 @@ c1.f();
 // MATCH:
 c2.f();
 // MATCH:
-new C().f();
+(new C()).f();

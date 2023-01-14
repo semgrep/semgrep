@@ -2,9 +2,9 @@
 
 for (a = 0; a < 13; a++) {
   (function* n() {
-    with ({}) {
+    with({}) {
       //ERROR: match
-      yield;
+      yield
     }
-  })();
+  } ())
 }

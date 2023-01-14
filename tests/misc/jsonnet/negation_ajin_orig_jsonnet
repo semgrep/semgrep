@@ -5,7 +5,7 @@
       match: {
         and: [
           'os.environ',
-          { not:
+          { not: 
               { or: [
                  'os.environ.get(...)',
                  'os.environ[...]',
