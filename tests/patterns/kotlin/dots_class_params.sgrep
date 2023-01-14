@@ -1,0 +1,3 @@
+class SsoFilter(...) : Filter {
+    ...
+  }

@@ -1,7 +1,0 @@
-{ ...,
-  "dependencies": { 
-    ...,
-    $DEP_NAME: $DEP_VERSION,
-    ...
-  }
-}

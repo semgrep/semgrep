@@ -1,8 +1,0 @@
-rules:
-- id: explain
-  patterns:
-    - pattern: foo($Y, $X, $Z)
-    - focus-metavariable: $X
-  message: found it
-  languages: [python]
-  severity: WARNING

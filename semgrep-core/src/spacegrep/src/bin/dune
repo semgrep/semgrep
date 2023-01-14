@@ -12,4 +12,4 @@
 ; use cli/flags.sh to generate the OS specific build flags
 (rule
  (targets flags.sexp)
- (action (run %{workspace_root}/src/main/flags.sh)))
+ (action (run %{workspace_root}/semgrep-core/src/main/flags.sh)))

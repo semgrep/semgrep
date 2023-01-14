@@ -1,0 +1,11 @@
+rules:
+  - id: test-break
+    languages:
+      - python
+    message: Match Found!
+    mode: taint
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: source
+    severity: WARNING

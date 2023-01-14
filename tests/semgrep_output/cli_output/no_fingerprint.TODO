@@ -1,0 +1,32 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "/tmp/masked/path"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "-",
+      "end": {
+        "col": 2,
+        "line": 1,
+        "offset": 1
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "a",
+        "message": "a",
+        "metadata": {},
+        "metavars": {},
+        "severity": "ERROR"
+      },
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0
+      }
+    }
+  ]
+}

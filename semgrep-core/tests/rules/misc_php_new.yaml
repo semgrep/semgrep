@@ -1,9 +1,0 @@
-rules:
-  - id: tainted-object-instantiation
-    languages:
-      - php
-    severity: WARNING
-    message: Bla
-    patterns:
-     - pattern-inside: new $SINK(...)
-     - pattern: $SINK

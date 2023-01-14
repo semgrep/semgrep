@@ -1,7 +1,0 @@
-resource "..." "..." {
-
-$V = open()
-...
-$RES = close($V)
-
-}

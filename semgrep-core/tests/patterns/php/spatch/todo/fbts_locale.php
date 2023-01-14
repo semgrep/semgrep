@@ -1,1 +1,0 @@
-fbts_locale('blok', $locale, "I love {puppies} with {butter}", $a, $b)

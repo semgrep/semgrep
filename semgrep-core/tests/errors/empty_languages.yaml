@@ -1,9 +1,0 @@
-rules:
-#ERROR: empty languages, TODO, would be better closer to languages field
-- id: test-template
-  patterns:
-  - pattern: |
-        foo($X)
-  message: Working!
-  severity: WARNING
-  languages: []

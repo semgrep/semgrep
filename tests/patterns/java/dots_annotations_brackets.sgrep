@@ -1,0 +1,6 @@
+@ApiResponses(value = {...})
+$T $F(...) {
+  ...
+  throw new ResponseStatusException(HttpStatus.CONFLICT, ...);
+  ...
+}

@@ -1,6 +1,0 @@
-<?php
-
-#ruleid:
-foo();
-bar();
-

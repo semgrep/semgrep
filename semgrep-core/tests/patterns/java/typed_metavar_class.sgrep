@@ -1,1 +1,0 @@
-(MessageDigest $MD).getInstance("MD5");

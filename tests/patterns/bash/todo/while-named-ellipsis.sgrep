@@ -1,0 +1,3 @@
+while $...X; do
+  echo
+done

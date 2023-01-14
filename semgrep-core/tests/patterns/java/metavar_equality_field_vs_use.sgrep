@@ -1,9 +1,0 @@
-class $X {
- ...
- private FooType $FOO;
- ...
- void $F() {
-    this.$FOO.query();
- }
- ...
-}

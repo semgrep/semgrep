@@ -14,4 +14,4 @@ test:
 .PHONY: clean
 clean:
 	rm -rf lang/*/tmp test/lang/*/tmp
-	$(MAKE) -C test clean
+	$(MAKE) -C test-parsing clean

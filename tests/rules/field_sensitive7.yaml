@@ -1,0 +1,14 @@
+rules:
+  - id: test
+    message: Semgrep found a match
+    languages:
+      - python
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - by-side-effect: true
+        patterns:
+          - pattern: $X.b
+          - focus-metavariable: $X
+    pattern-sinks:
+      - pattern: sink(...)

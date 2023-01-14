@@ -1,2 +1,0 @@
-//ruleid: test
-sink({...source})

@@ -1,0 +1,34 @@
+rules:
+  - id: use-after-free-taint
+    mode: taint
+    pattern-sources:
+      - by-side-effect: true
+        patterns:
+          - pattern: free($VAR);
+          - focus-metavariable: $VAR
+    pattern-sinks:
+      - patterns:
+          - pattern: |
+              $VAR->$ACCESSOR
+          - focus-metavariable: $VAR
+    pattern-sanitizers:
+      - patterns:
+          - pattern: |
+              $VAR = NULL;
+          - focus-metavariable: $VAR
+    message:
+      Variable '$VAR' was used after being freed. This can lead to undefined
+      behavior.
+    metadata:
+      cwe: "CWE-416: Use After Free"
+      references:
+        - https://cwe.mitre.org/data/definitions/416.html
+        - https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/use_after_free/
+      category: security
+      technology:
+        - c
+      confidence: MEDIUM
+      license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    languages:
+      - c
+    severity: WARNING

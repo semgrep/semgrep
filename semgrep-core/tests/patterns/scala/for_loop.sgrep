@@ -1,3 +1,0 @@
-for ($X <- $XS if $COND; $Y <- $YS) {
-    ...
-}

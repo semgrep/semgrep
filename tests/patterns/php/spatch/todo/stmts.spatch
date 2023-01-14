@@ -1,0 +1,11 @@
+- $X = null;
+- prep(Ent::createLoader(
+-   V,
+-   I,
+-   X
+  ));
+
+#+ X = prep_gen(Ent::genLoader(
+#+   V,
+#+   I,
+#   ...));

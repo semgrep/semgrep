@@ -1,0 +1,14 @@
+rules:
+  - id: extract-jupyter-to-python
+    mode: extract
+    languages:
+      - json
+    pattern: |
+      {
+        "cell_type": "code",
+        ...,
+        "source": $CODE
+      }
+    extract: $CODE
+    transform: concat_json_string_array
+    dest-language: python

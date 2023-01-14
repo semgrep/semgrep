@@ -1,9 +1,0 @@
-rules:
-- id: test
-  options:
-    symbolic_propagation: true
-  pattern: if (<... (ZipEntry $X).getName().contains("...") ...>) { ... }
-  message: Test
-  languages:
-  - java
-  severity: WARNING

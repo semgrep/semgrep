@@ -1,0 +1,7 @@
+source "https://rubygems.org"
+#ruleid:
+gem "functions_framework", "~> 0.7"
+#ruleid:
+gem "google-cloud-storage", "~> 1.29"
+#ruleid:
+gem "", "~> 1.29"

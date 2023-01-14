@@ -1,2 +1,0 @@
-#ERROR: match
-f"boo"

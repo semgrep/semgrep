@@ -1,4 +1,0 @@
-$V = get_data user
-...
-eval $V
-

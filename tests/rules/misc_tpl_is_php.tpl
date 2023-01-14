@@ -1,0 +1,5 @@
+<?php
+
+#ruleid:
+foo();
+bar();

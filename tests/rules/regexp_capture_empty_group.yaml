@@ -1,0 +1,7 @@
+rules:
+  - id: new-Gemfile-dependency
+    languages:
+      - generic
+    message: New dependency with name $1 and version $3
+    pattern-regex: gem "(.+)?", "(.*)"
+    severity: INFO

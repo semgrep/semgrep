@@ -1,0 +1,16 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: Test
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: source
+    pattern-sanitizers:
+      - by-side-effect: true
+        patterns:
+          - pattern-inside: sanitize($X)
+          - focus-metavariable: $X
+    pattern-sinks:
+      - pattern: sink(...)

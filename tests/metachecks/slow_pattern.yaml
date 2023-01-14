@@ -1,0 +1,29 @@
+rules:
+  - id: slow-pattern-general-func
+    languages:
+      - yaml
+    message: >-
+      Using patterns like `function (...) {...}` is too general it will probably slow down the rule performance.
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              pattern-inside: $X
+          - pattern-inside: |
+              pattern-not-inside: $X
+          - pattern-inside: |
+              pattern: $X
+          - pattern-inside: |
+              pattern-not: $X
+      - pattern-regex: function[^{]*{[\s\n]*\.\.\.[\s\n]*}
+      - pattern-either:
+          - pattern-inside: |
+              languages: [...,"javascript",...]
+              ...
+          - pattern-inside: |
+              languages: [...,"typescript",...]
+              ...
+    severity: WARNING
+    metadata:
+      category: performance
+      technology:
+        - semgrep

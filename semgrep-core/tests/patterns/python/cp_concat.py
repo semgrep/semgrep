@@ -1,4 +1,0 @@
-#ERROR:
-x = ("pass"
-    "word")
-

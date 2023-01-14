@@ -1,0 +1,2 @@
+val $V = open()
+close($V)

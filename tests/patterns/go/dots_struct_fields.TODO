@@ -1,0 +1,4 @@
+// This should match expressions with struct with name A
+type struct A {
+  ...
+}

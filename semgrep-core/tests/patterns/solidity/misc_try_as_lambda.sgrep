@@ -1,6 +1,0 @@
-try d.foo(42) {
-        return 0;
-      } catch {
-        return 1;
-      }
-      
