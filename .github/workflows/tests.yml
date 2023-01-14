@@ -177,16 +177,15 @@ jobs:
       - name: Test semgrep-core
         run: |
           eval $(opam env)
-          cd semgrep-core
           START=`date +%s`
-          make test
-          make e2etest
+          make semgrep-core-test
+          make semgrep-core-e2etest
           END=`date +%s`
           TEST_RUN_TIME=$((END-START))
           curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
       - name: Report Number of Tests Stats
         if: github.ref == 'refs/heads/develop'
-        run: ./semgrep-core/tests/report_test_metrics.sh
+        run: ./tests/report_test_metrics.sh
 
       # TODO: move this to a stable host for more reliable results.
       #

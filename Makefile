@@ -159,7 +159,7 @@ test:
 # I put 'all' as a dependency because sometimes you modify a test file
 # and dune runtest -f does not see this new file, probably because
 # the cached file under _build/.../tests/ is still the old one.
-#
+#coupling: this is run by .github/workflow/tests.yml
 .PHONY: semgrep-core-test
 semgrep-core-test: semgrep-core
 	# The test executable has a few options that can be useful
@@ -170,6 +170,7 @@ semgrep-core-test: semgrep-core
 	$(MAKE) -C semgrep-core/src/spacegrep test
 	dune runtest -f --no-buffer
 
+#coupling: this is run by .github/workflow/tests.yml
 .PHONY: semgrep-core-e2etest
 semgrep-core-e2etest:
 	python3 tests/e2e/test_target_file.py
