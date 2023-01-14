@@ -1,18 +1,3 @@
-###############################################################################
-# Major targets
-###############################################################################
-
-# Build just this executable
-.PHONY: build-otarzan
-build-otarzan:
-	rm -f bin
-	dune build _build/install/default/bin/otarzan
-	test -e bin || ln -s _build/install/default/bin .
-
-###############################################################################
-# Developer targets
-###############################################################################
-
 # Build executables and place them where semgrep expects them.
 # These are normally copied by '/cli/setup.py' but it doesn't happen if we
 # run only 'dune build'.
@@ -40,27 +25,6 @@ dev:
 	ln -s ../../../../semgrep-core/bin/semgrep_bridge_python.so \
 	  ../cli/src/semgrep/bin/semgrep_bridge_python.so
 
-# Run utop with all the semgrep-core libraries loaded.
-.PHONY: utop
-utop:
-	dune utop
-
-.PHONY: e2etest
-e2etest:
-	python3 tests/e2e/test_target_file.py
-
-.PHONY: dump
-dump:
-	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
-
-#coupling: .circleci/config.yml
-#semgrep must be in your PATH (run 'pipenv shell' from cli/src/semgrep/)
-.PHONY: check
-check:
-	@semgrep --version
-	@semgrep-core -version
-	semgrep --config ../semgrep.yml --config p/ocaml --error --strict --verbose --exclude tests ..
-
 # Run matching performance tests
 .PHONY: perf
 perf:
@@ -79,36 +43,3 @@ perf:
 .PHONY: report-perf
 report-perf:
 	cd ./perf && ./run-perf-suite --upload
-
-.PHONY: update_semgrep_rules
-update_semgrep_rules:
-	cd tests/semgrep-rules; git checkout develop; git pull
-
-###############################################################################
-# Pad's targets
-###############################################################################
-
-pr:
-	git push origin `git rev-parse --abbrev-ref HEAD`
-	hub pull-request -b develop -r returntocorp/pa
-
-push:
-	git push origin `git rev-parse --abbrev-ref HEAD`
-
-merge:
-	A=`git rev-parse --abbrev-ref HEAD` && git checkout develop && git pull && git branch -D $$A
-
-
-# see https://github.com/aryx/codegraph for information on codegraph_build
-index:
-	codegraph_build -lang cmt -derived_data .
-
-# see https://github.com/aryx/codecheck for information on codecheck
-check2:
-	codecheck -lang ml -with_graph_code graph_code.marshall -filter 3 .
-
-# see https://github.com/aryx/codemap for information on codemap
-visual:
-	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null .
-visual2:
-	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null src
