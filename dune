@@ -15,9 +15,9 @@
     (flags (:standard -O3))))
 
 (dirs
-  semgrep-core tests)
-
-
+  semgrep-core
+  tests
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Don't build executables for the submodules that we only use as libraries.
@@ -33,11 +33,6 @@
 ; Unfortunately, 'subdir' doesn't expand wildcards.
 ;(subdir
 ;   src/tree-sitter-lang/semgrep-*
-;   (data_only_dirs bin)
-;)
-
-;(subdir
-;   src/tree-sitter-lang/semgrep-bash
 ;   (data_only_dirs bin)
 ;)
 

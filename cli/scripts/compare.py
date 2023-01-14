@@ -45,6 +45,7 @@ def compare(start: str, end: str, snippet: str, use_podman: bool) -> int:
     collection_path = "rulesets" if is_ruleset else "rules"
     url = f"https://semgrep.dev/api/registry/{collection_path}/{snippet}?definition=1&test_cases=1"
     headers = {"Accept": "application/json"}
+    # nosemgrep
     data = requests.get(url, timeout=SEMGREP_DEV_TIMEOUT_S, headers=headers).json()
     data = data["rules"][0] if is_ruleset else data
 
