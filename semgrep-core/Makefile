@@ -2,68 +2,12 @@
 # Major targets
 ###############################################################################
 
-# Set environment variables used by dune files to locate the
-# C headers and libraries of the tree-sitter runtime library.
-# This file is created by ocaml-tree-sitter-core's configure script.
-#
-# Because of these required environment variables, we can't call dune directly
-# to build semgrep-core, unless you manually execute first
-#  `source src/ocaml-tree-sitter-core/tree-sitter-config.sh`
-#
-include src/ocaml-tree-sitter-core/tree-sitter-config.mk
-
-.PHONY: all
-all:
-	rm -f bin
-	$(MAKE) minimal-build
-	dune build ./_build/default/tests/test.exe
-	# make executables easily accessible for manual testing:
-	test -e bin || ln -s _build/install/default/bin .
-
-# Minimal build of the semgrep-core executable. Intended for the docker build.
-# Requires the environment variables set by the included file above.
-.PHONY: minimal-build
-minimal-build:
-	dune build
-
-.PHONY: clean
-clean:
-	dune clean
-	rm -f bin
-
 # Build just this executable
 .PHONY: build-otarzan
 build-otarzan:
 	rm -f bin
 	dune build _build/install/default/bin/otarzan
 	test -e bin || ln -s _build/install/default/bin .
-
-# I put 'all' as a dependency because sometimes you modify a test file
-# and dune runtest -f does not see this new file, probably because
-# the cached file under _build/.../tests/ is still the old one.
-#
-.PHONY: test
-test: all
-	# The test executable has a few options that can be useful
-	# in some contexts.
-	# The following command ensures that we can call 'test.exe --help'
-	# without having to chdir into the test data folder.
-	./_build/default/tests/test.exe --show-errors --help 2>&1 >/dev/null
-	$(MAKE) -C src/spacegrep test
-	dune runtest -f --no-buffer
-
-# This may install more than you want.
-# See the 'dev' target if all you need is access to the semgrep-core
-# executable for testing.
-.PHONY: install
-install:
-	dune install
-	rm -f ../cli/src/semgrep/bin/semgrep-core
-	cp _build/install/default/bin/semgrep-core ../cli/src/semgrep/bin/
-	rm -f ../cli/src/semgrep/bin/semgrep_bridge_core.so
-	cp _build/install/default/bin/semgrep_bridge_core.so ../cli/src/semgrep/bin/
-	rm -f ../cli/src/semgrep/bin/semgrep_bridge_python.so
-	cp _build/install/default/bin/semgrep_bridge_python.so ../cli/src/semgrep/bin/
 
 ###############################################################################
 # Developer targets

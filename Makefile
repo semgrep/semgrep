@@ -58,6 +58,18 @@ endif
 # Build (and clean) targets
 ###############################################################################
 
+# Set environment variables used by dune files to locate the
+# C headers and libraries of the tree-sitter runtime library.
+# This file is created by ocaml-tree-sitter-core's configure script.
+#
+# Because of these required environment variables, we can't call dune directly
+# to build semgrep-core, unless you manually execute first
+#  `source src/ocaml-tree-sitter-core/tree-sitter-config.sh`
+#
+# I use '-include' and not 'include' because before 'make setup' this file does
+# not exist but we still want 'make setup' to succeed
+include semgrep-core/src/ocaml-tree-sitter-core/tree-sitter-config.mk
+
 # First (and default) target. Routine build.
 # It assumes all dependencies and configuration are already in place and correct.
 # It should be fast since it's called often during development.
@@ -69,10 +81,25 @@ build:
 
 .PHONY: build-core
 build-core:
-	$(MAKE) -C semgrep-core
+	$(MAKE) semgrep-core
 	# We run this command because the Python code in cli/ assumes the
 	# presence of a semgrep-core binary in the PATH somewhere.
-	$(MAKE) -C semgrep-core install
+	$(MAKE) semgrep-core-install
+
+# was the 'all' target in in semgrep-core/Makefile before
+.PHONY: semgrep-core
+semgrep-core:
+	rm -f bin
+	$(MAKE) minimal-build
+	dune build ./_build/default/tests/test.exe
+	# make executables easily accessible for manual testing:
+	test -e bin || ln -s _build/install/default/bin .
+
+# Minimal build of the semgrep-core executable. Intended for the docker build.
+# Requires the environment variables set by the included file above.
+.PHONY: minimal-build
+minimal-build:
+	dune build
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
@@ -85,8 +112,14 @@ build-docker:
 # and was not created by 'make setup'.
 .PHONY: clean
 clean:
-	-$(MAKE) -C semgrep-core clean
+	-$(MAKE) semgrep-core-clean
 	-$(MAKE) -C cli clean
+
+# was the 'clean' target in in semgrep-core/Makefile before
+.PHONY: semgrep-core-clean
+semgrep-core-clean:
+	dune clean
+	rm -f bin
 
 ###############################################################################
 # Install targets
@@ -94,8 +127,22 @@ clean:
 
 .PHONY: install
 install:
-	$(MAKE) -C semgrep-core install
+	$(MAKE) semgrep-core-install
 	python3 -m pip install semgrep
+
+# was the 'install' target in in semgrep-core/Makefile before
+# This may install more than you want.
+# See the 'dev' target if all you need is access to the semgrep-core
+# executable for testing.
+.PHONY: semgrep-core-install
+semgrep-core-install:
+	dune install
+	rm -f cli/src/semgrep/bin/semgrep-core
+	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
+	rm -f cli/src/semgrep/bin/semgrep_bridge_core.so
+	cp _build/install/default/bin/semgrep_bridge_core.so cli/src/semgrep/bin/
+	rm -f cli/src/semgrep/bin/semgrep_bridge_python.so
+	cp _build/install/default/bin/semgrep_bridge_python.so cli/src/semgrep/bin/
 
 ###############################################################################
 # Test target
@@ -103,8 +150,22 @@ install:
 
 .PHONY: test
 test:
-	$(MAKE) -C semgrep-core test
+	$(MAKE) semgrep-core-test
 	$(MAKE) -C cli test
+
+# I put 'all' as a dependency because sometimes you modify a test file
+# and dune runtest -f does not see this new file, probably because
+# the cached file under _build/.../tests/ is still the old one.
+#
+.PHONY: semgrep-core-test
+semgrep-core-test: semgrep-core
+	# The test executable has a few options that can be useful
+	# in some contexts.
+	# The following command ensures that we can call 'test.exe --help'
+	# without having to chdir into the test data folder.
+	./_build/default/tests/test.exe --show-errors --help 2>&1 >/dev/null
+	$(MAKE) -C semgrep-core/src/spacegrep test
+	dune runtest -f --no-buffer
 
 ###############################################################################
 # External dependencies installation targets
