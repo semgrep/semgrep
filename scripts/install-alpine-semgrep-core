@@ -43,16 +43,15 @@ make install-deps-for-semgrep-core
 
 echo "Install semgrep-core"
 (
-  cd semgrep-core
-  make all
-  make install
+  make semgrep-core
+  make semgrep-core-install
 )
 
 echo "Copy executables to artifacts archive"
 rm -rf ocaml-build-artifacts
 bin=ocaml-build-artifacts/bin
 mkdir -p "$bin"
-cp ./semgrep-core/_build/install/default/bin/semgrep-core "$bin"
-cp ./semgrep-core/_build/install/default/bin/semgrep_bridge_core.so "$bin"
-cp ./semgrep-core/_build/install/default/bin/semgrep_bridge_python.so "$bin"
+cp ./_build/install/default/bin/semgrep-core "$bin"
+cp ./_build/install/default/bin/semgrep_bridge_core.so "$bin"
+cp ./_build/install/default/bin/semgrep_bridge_python.so "$bin"
 tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts
