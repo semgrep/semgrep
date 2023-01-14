@@ -68,7 +68,7 @@ endif
 #
 # I use '-include' and not 'include' because before 'make setup' this file does
 # not exist but we still want 'make setup' to succeed
-include semgrep-core/src/ocaml-tree-sitter-core/tree-sitter-config.mk
+-include semgrep-core/src/ocaml-tree-sitter-core/tree-sitter-config.mk
 
 # First (and default) target. Routine build.
 # It assumes all dependencies and configuration are already in place and correct.
