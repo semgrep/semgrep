@@ -533,7 +533,12 @@ let propagate_basic lang prog =
                 name =
                   EN
                     (Id
-                      (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
+                      ( id,
+                        {
+                          id_resolved = { contents = Some (_kind, sid) };
+                          id_svalue;
+                          _;
+                        } ));
                 attrs;
                 _;
               },
@@ -550,16 +555,21 @@ let propagate_basic lang prog =
                    || !(stats.lvalue) = 1 && env.lang = Some Lang.Java
                       && List.exists is_private attrs
                   then
-                   match e.e with
-                   | L literal -> add_constant_env id (sid, Lit literal) env
+                   match (!id_svalue, e.e) with
+                   (* When the name already has an svalue computed, just use
+                    * that. DeepSemgrep assigns svalues sometimes in its naming
+                    * phase. *)
+                   | Some svalue, _ -> add_constant_env id (sid, svalue) env
+                   | None, L literal ->
+                       add_constant_env id (sid, Lit literal) env
                    (* For any other symbolic expression, it is OK to propagate it symbolically so long as
                       the lvalue is only assigned to once.
                       Although we may propagate expressions with identifiers in them, those identifiers
                       will simply not have an `svalue` if they are non-propagated as well.
                    *)
-                   | _ when Dataflow_svalue.is_symbolic_expr e ->
+                   | None, _ when Dataflow_svalue.is_symbolic_expr e ->
                        add_constant_env id (sid, Sym e) env
-                   | _ -> ());
+                   | None, _ -> ());
                   k x
               | None ->
                   logger#debug "No stats for (%s,%s)" (H.str_of_ident id)

@@ -83,7 +83,7 @@ repos:
     rev: v0.961
     hooks:
       - id: mypy
-        exclude: ^cli/tests/.+$|^setup.py$|^scripts/.+$|^parsing-stats/.+$|pfff|^perf/.+$$
+        exclude: ^cli/tests/.+$|^setup.py$|^cli/scripts/.*$|^scripts/.+$|^parsing-stats/.+$|pfff|^perf/.+$$
         args: [--config, mypy.ini, --show-error-codes]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:

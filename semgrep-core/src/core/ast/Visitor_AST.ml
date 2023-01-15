@@ -1444,7 +1444,8 @@ let first_info_of_any any =
 (*****************************************************************************)
 
 (*s: function [[Lib_AST.extract_info_visitor]] *)
-let extract_ranges recursor =
+let extract_ranges :
+    AST_generic.any -> (PI.token_location * PI.token_location) option =
   let ranges = ref None in
   let smaller t1 t2 =
     if compare t1.PI.charpos t2.PI.charpos < 0 then t1 else t2
@@ -1494,8 +1495,11 @@ let extract_ranges recursor =
     }
   in
   let vout = mk_visitor hooks in
-  recursor vout;
-  !ranges
+  fun any ->
+    vout any;
+    let res = !ranges in
+    ranges := None;
+    res
 
 let range_of_tokens tokens =
   List.filter PI.is_origintok tokens |> PI.min_max_ii_by_pos
@@ -1515,5 +1519,5 @@ let range_of_any_opt any =
       | Ok tok_loc -> Some (tok_loc, tok_loc)
       | Error _ -> None)
   | G.Anys [] -> None
-  | _ -> extract_ranges (fun visitor -> visitor any)
+  | _ -> extract_ranges any
   [@@profiling]
