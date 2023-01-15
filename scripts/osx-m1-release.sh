@@ -46,8 +46,9 @@ rm -f "$TREESITTER_LIBDIR"/libtree-sitter.0.0.dylib
 rm -f "$TREESITTER_LIBDIR"/libtree-sitter.0.dylib
 rm -f "$TREESITTER_LIBDIR"/libtree-sitter.dylib
 
-make build-core
+make semgrep-core
+make semgrep-core-install
 
 mkdir -p artifacts
-cp ./semgrep-core/_build/install/default/bin/semgrep-core artifacts
+cp ./_build/install/default/bin/semgrep-core artifacts
 zip -r artifacts.zip artifacts
