@@ -61,7 +61,6 @@ local semgrep_rules = [
         "semgrep-core/src/runner/Run_semgrep.ml",
         "semgrep-core/src/tainting/Dataflow_tainting.ml",
         "semgrep-core/src/targeting/Guess_lang.ml",
-        "semgrep-core/src/utils/Regexp_engine.ml",
         #TODO: we should fix those too. They account for 464 findings in total
         "Generic_vs_generic.ml",
         "Visitor_AST.ml",
@@ -76,9 +75,8 @@ local semgrep_rules = [
         "parsing/other/*",
         "parsing/ast/*",
         "metachecking/*",
-	"commons/*",
-	"graph_code/*",
-	"lib_parsing/*",
+	"libs/*",
+	"tools/*",
         ] + test_code_globs + less_important_code_globs,
     }
   }
@@ -102,7 +100,7 @@ local override_messages = {
 
 # temporary hack to not report p/ocaml findings on pfff libs
 local ocaml_rules =
-  [ r + { paths +: { exclude +: [ "commons/*", "graph_code/*", "lib_parsing/*" ] } }
+  [ r + { paths +: { exclude +: [ "libs/*", "tools/*" ] } }
     for r in ocaml.rules];
 
 local all = yml.rules + semgrep_rules + pfff.rules + ocaml_rules;

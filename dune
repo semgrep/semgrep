@@ -15,8 +15,11 @@
     (flags (:standard -O3))))
 
 (dirs
-  semgrep-core
-  tests
+  src
+  libs
+  tools
+  semgrep-core ; TODO: to remove
+  tests ; todo, should move out Test.ml out of the tests/ data dir
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
