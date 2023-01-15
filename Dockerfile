@@ -69,7 +69,7 @@ WORKDIR /src/semgrep
 RUN eval "$(opam env)" &&\
     make minimal-build &&\
     # Sanity check
-    /src/semgrep/_build/_build/default/semgrep-core/src/main/Main.exe -version
+    /src/semgrep/_build/default/semgrep-core/src/main/Main.exe -version
 
 ###############################################################################
 # Step2: Build the final docker image with Python wrapper and semgrep-core bin
