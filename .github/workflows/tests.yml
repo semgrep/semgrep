@@ -199,7 +199,7 @@ jobs:
           # of semgrep-core over time. The results are pushed to the
           # dashboard at https://dashboard.semgrep.dev/
           #
-          opam exec -- make -C semgrep-core report-perf
+          opam exec -- make report-perf-matching
 
   test-cli:
     name: test semgrep-cli

@@ -332,6 +332,25 @@ utop:
 dump:
 	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
 
+# Run matching performance tests
+.PHONY: perf-matching
+perf-matching:
+	@echo "--- default settings ---"
+	cd ./perf-matching && ./run-perf-suite
+	@echo "--- no caching ---"
+	cd ./perf-matching && ./run-perf-suite --no-cache
+	@echo "--- maximum caching ---"
+	cd ./perf-matching && ./run-perf-suite --max-cache
+
+# Run matching performance tests and post them to the semgrep dashboard
+# at https://dashboard.semgrep.dev/
+#
+# This is meant for CI, which hopefully runs on similar machines each time.
+#
+.PHONY: report-perf-matching
+report-perf-matching:
+	cd ./perf-matching && ./run-perf-suite --upload
+
 ###############################################################################
 # Dogfood!
 ###############################################################################
@@ -381,6 +400,36 @@ check_with_docker:
 #TODO: this will be less needed once we run semgrep with semgrep.jsonnet in pre-commit
 check_for_emacs:
 	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS) --emacs --quiet
+
+###############################################################################
+# Martin's targets
+###############################################################################
+# Build executables and place them where semgrep expects them.
+# These are normally copied by '/cli/setup.py' but it doesn't happen if we
+# run only 'dune build'.
+#
+# This is for development purposes only as I'm not sure if a symlink is ok
+# for packaging things up on the Python side.
+#
+# Usage:
+#  $ make dev
+#  $ PIPENV_PIPFILE=~/semgrep/cli/Pipfile pipenv run semgrep ...
+#
+.PHONY: dev
+dev:
+	$(MAKE) all
+	rm -f cli/src/semgrep/bin/semgrep-core
+	ln -s ../../../../semgrep-core/bin/semgrep-core \
+	  cli/src/semgrep/bin/semgrep-core
+	rm -f cli/src/semgrep/bin/osemgrep
+	ln -s ../../../../semgrep-core/bin/osemgrep \
+	  cli/src/semgrep/bin/osemgrep
+	rm -f cli/src/semgrep/bin/semgrep_bridge_core.so
+	ln -s ../../../../semgrep-core/bin/semgrep_bridge_core.so \
+	  cli/src/semgrep/bin/semgrep_bridge_core.so
+	rm -f cli/src/semgrep/bin/semgrep_bridge_python.so
+	ln -s ../../../../semgrep-core/bin/semgrep_bridge_python.so \
+	  cli/src/semgrep/bin/semgrep_bridge_python.so
 
 ###############################################################################
 # Pad's targets
