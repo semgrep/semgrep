@@ -5,8 +5,8 @@
 # Many targets in this Makefile assume some commands have been run before to
 # install the correct build environment supporting the different languages
 # used for Semgrep development:
-#  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
 #  - for OCaml: 'opam' and the right OCaml switch (currently 4.14)
+#  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
 #  - for Python: 'python3', 'pip', 'pipenv', 'python-config'
 #
 # You will also need obviously 'make', but also 'git', and many other
@@ -58,21 +58,44 @@ endif
 # Build (and clean) targets
 ###############################################################################
 
+# Set environment variables used by dune files to locate the
+# C headers and libraries of the tree-sitter runtime library.
+# This file is created by ocaml-tree-sitter-core's configure script.
+#
+# Because of these required environment variables, we can't call dune directly
+# to build semgrep-core, unless you manually execute first
+#  `source src/ocaml-tree-sitter-core/tree-sitter-config.sh`
+#
+# I use '-include' and not 'include' because before 'make setup' this file does
+# not exist but we still want 'make setup' to succeed
+-include semgrep-core/src/ocaml-tree-sitter-core/tree-sitter-config.mk
+
 # First (and default) target. Routine build.
 # It assumes all dependencies and configuration are already in place and correct.
 # It should be fast since it's called often during development.
 .PHONY: build
 build:
-	$(MAKE) build-core
+	$(MAKE) semgrep-core
+	# We run this command because the Python code in cli/ assumes the
+	# presence of a semgrep-core binary in the PATH somewhere.
+	$(MAKE) semgrep-core-install
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
-.PHONY: build-core
-build-core:
-	$(MAKE) -C semgrep-core
-	# We run this command because the Python code in cli/ assumes the
-	# presence of a semgrep-core binary in the PATH somewhere.
-	$(MAKE) -C semgrep-core install
+# was the 'all' target in in semgrep-core/Makefile before
+.PHONY: semgrep-core
+semgrep-core:
+	rm -f bin
+	$(MAKE) minimal-build
+	dune build ./_build/default/tests/test.exe
+	# make executables easily accessible for manual testing:
+	test -e bin || ln -s _build/install/default/bin .
+
+# Minimal build of the semgrep-core executable. Intended for the docker build.
+# Requires the environment variables set by the included file above.
+.PHONY: minimal-build
+minimal-build:
+	dune build
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
@@ -81,12 +104,25 @@ build-core:
 build-docker:
 	docker build -t semgrep .
 
+# Build just this executable
+.PHONY: build-otarzan
+build-otarzan:
+	rm -f bin
+	dune build _build/install/default/bin/otarzan
+	test -e bin || ln -s _build/install/default/bin .
+
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.
 .PHONY: clean
 clean:
-	-$(MAKE) -C semgrep-core clean
+	-$(MAKE) semgrep-core-clean
 	-$(MAKE) -C cli clean
+
+# was the 'clean' target in in semgrep-core/Makefile before
+.PHONY: semgrep-core-clean
+semgrep-core-clean:
+	dune clean
+	rm -f bin
 
 ###############################################################################
 # Install targets
@@ -94,8 +130,22 @@ clean:
 
 .PHONY: install
 install:
-	$(MAKE) -C semgrep-core install
+	$(MAKE) semgrep-core-install
 	python3 -m pip install semgrep
+
+# This may install more than you want.
+# See the 'dev' target if all you need is access to the semgrep-core
+# executable for testing.
+# was the 'install' target in in semgrep-core/Makefile before
+.PHONY: semgrep-core-install
+semgrep-core-install:
+	dune install
+	rm -f cli/src/semgrep/bin/semgrep-core
+	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
+	rm -f cli/src/semgrep/bin/semgrep_bridge_core.so
+	cp _build/install/default/bin/semgrep_bridge_core.so cli/src/semgrep/bin/
+	rm -f cli/src/semgrep/bin/semgrep_bridge_python.so
+	cp _build/install/default/bin/semgrep_bridge_python.so cli/src/semgrep/bin/
 
 ###############################################################################
 # Test target
@@ -103,8 +153,27 @@ install:
 
 .PHONY: test
 test:
-	$(MAKE) -C semgrep-core test
+	$(MAKE) semgrep-core-test
 	$(MAKE) -C cli test
+
+# I put 'all' as a dependency because sometimes you modify a test file
+# and dune runtest -f does not see this new file, probably because
+# the cached file under _build/.../tests/ is still the old one.
+#coupling: this is run by .github/workflow/tests.yml
+.PHONY: semgrep-core-test
+semgrep-core-test: semgrep-core
+	# The test executable has a few options that can be useful
+	# in some contexts.
+	# The following command ensures that we can call 'test.exe --help'
+	# without having to chdir into the test data folder.
+	./_build/default/tests/test.exe --show-errors --help 2>&1 >/dev/null
+	$(MAKE) -C semgrep-core/src/spacegrep test
+	dune runtest -f --no-buffer
+
+#coupling: this is run by .github/workflow/tests.yml
+.PHONY: semgrep-core-e2etest
+semgrep-core-e2etest:
+	python3 tests/e2e/test_target_file.py
 
 ###############################################################################
 # External dependencies installation targets
@@ -125,7 +194,7 @@ install-deps-for-semgrep-core:
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally).
 	opam install -y --deps-only ./semgrep-core/src/ocaml-tree-sitter-core
-	opam install -y --deps-only ./semgrep-core
+	opam install -y --deps-only ./
 
 # We could also add python dependencies at some point
 # and an 'install-deps-for-semgrep-cli' target
@@ -223,7 +292,7 @@ setup:
 .PHONY: dev-setup
 dev-setup:
 	$(MAKE) setup
-	opam install -y --deps-only ./semgrep-core/dev
+	opam install -y --deps-only ./dev
 
 # Update and rebuild everything within the project.
 .PHONY: rebuild
@@ -250,8 +319,18 @@ gitclean:
 release:
 	./scripts/release/bump
 
+.PHONY: update_semgrep_rules
 update_semgrep_rules:
-	cd semgrep-core/tests/semgrep-rules; git checkout origin/develop
+	cd tests/semgrep-rules; git checkout origin/develop
+
+# Run utop with all the semgrep-core libraries loaded.
+.PHONY: utop
+utop:
+	dune utop
+
+.PHONY: dump
+dump:
+	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
 
 ###############################################################################
 # Dogfood!
@@ -302,3 +381,32 @@ check_with_docker:
 #TODO: this will be less needed once we run semgrep with semgrep.jsonnet in pre-commit
 check_for_emacs:
 	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS) --emacs --quiet
+
+###############################################################################
+# Pad's targets
+###############################################################################
+
+pr:
+	git push origin `git rev-parse --abbrev-ref HEAD`
+	hub pull-request -b develop -r returntocorp/pa
+
+push:
+	git push origin `git rev-parse --abbrev-ref HEAD`
+
+merge:
+	A=`git rev-parse --abbrev-ref HEAD` && git checkout develop && git pull && git branch -D $$A
+
+
+# see https://github.com/aryx/codegraph for information on codegraph_build
+index:
+	codegraph_build -lang cmt -derived_data .
+
+# see https://github.com/aryx/codecheck for information on codecheck
+check2:
+	codecheck -lang ml -with_graph_code graph_code.marshall -filter 3 .
+
+# see https://github.com/aryx/codemap for information on codemap
+visual:
+	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null .
+visual2:
+	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null src

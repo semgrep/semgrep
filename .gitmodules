@@ -83,7 +83,7 @@
 	path = cli/src/semgrep/semgrep_interfaces
 	url = https://github.com/returntocorp/semgrep-interfaces.git
 [submodule "semgrep-core/tests/semgrep-rules"]
-	path = semgrep-core/tests/semgrep-rules
+	path = tests/semgrep-rules
 	url = https://github.com/returntocorp/semgrep-rules.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-dart"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-dart
