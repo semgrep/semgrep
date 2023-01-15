@@ -1,4 +1,4 @@
-# Cron to automatically update the semgrep/semgrep-core/tests/semgrep-rules
+# Cron to automatically update the semgrep/tests/semgrep-rules
 # submodule to its latest version. This will allow to detect ASAP (or at
 # least not too late) when semgrep-core can't check all the rules and tests
 # in semgrep-rules (which are updated frequently).
@@ -89,7 +89,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
         #alternative way to do it:
-        #working-directory: ./semgrep-core/tests/semgrep-rules
+        #working-directory: ./tests/semgrep-rules
         #run: |
         #  git checkout develop
         #  git pull
@@ -109,7 +109,7 @@ jobs:
           git push origin $BRANCHNAME
       #TODO: using EndBug/add-and-commit below does not currently work, I get:
       #  Errors during submodule fetch:
-      #    semgrep-core/tests/semgrep-rules
+      #    tests/semgrep-rules
       #    pfff
       # even with the GITHUB_TOKEN passed
       #TODO
@@ -119,7 +119,7 @@ jobs:
       #  # See https://github.com/EndBug/add-and-commit
       #  uses: EndBug/add-and-commit@v9
       #  with:
-      #    add: README.md semgrep-core/tests/semgrep-rules
+      #    add: README.md tests/semgrep-rules
       #    author_name: ${{ github.actor }}
       #    author_email: ${{ github.actor }}@users.noreply.github.com
       #    message: "chore: Bump Semgrep Rules Submodule"
