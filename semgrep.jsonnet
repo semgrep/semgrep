@@ -1,6 +1,6 @@
 # legacy rules written in YAML
 local yml = import "semgrep.yml";
-local pfff = import "semgrep-core/src/pfff/semgrep.yml";
+local pfff = import "pfff.yml";
 # registry rules!
 local ocaml = import "p/ocaml";
 

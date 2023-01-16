@@ -44,13 +44,8 @@ rules:
         - runner/*.ml
         - experiments/*
         - Check_*.ml
-        - commons/*
-        - ograph/*
+        - libs/*
         - scripts/*
-        - profiling/*
-        - ppx_profiling/*
-        - graph_code/*
-        - lib_parsing/*
 
   - id: use-pytest-mock
     pattern: import unittest.mock
