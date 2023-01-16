@@ -1,6 +1,6 @@
+; used to be part of pfff
 (library
- (public_name pfff-graph_code)
- (name pfff_graph_code)
+ (public_name graph_code)
  (wrapped false)
  (libraries
    ocamlgraph
