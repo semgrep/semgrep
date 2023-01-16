@@ -8,6 +8,7 @@
 
    commons
    profiling
+   tree-sitter.run ; Parse_tree_sitter_helpers
  )
  (preprocess (pps ppx_profiling ppx_deriving.show ppx_deriving.eq))
 )
