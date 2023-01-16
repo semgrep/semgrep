@@ -8,7 +8,7 @@ mkdir -p tmp
 cd tmp
 
 project_root=$(git rev-parse --show-toplevel)
-spacegrep_root="$project_root"/semgrep-core/src/spacegrep
+spacegrep_root="$project_root"/libs/spacegrep
 
 spacegrep="$spacegrep_root"/bin/spacegrep
 spacecat="$spacegrep_root"/bin/spacecat

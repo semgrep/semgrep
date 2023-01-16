@@ -56,7 +56,7 @@
 	path = libs/languages/tree-sitter-lang/semgrep-bash
 	url = https://github.com/returntocorp/semgrep-bash
 [submodule "semgrep-core/src/ocaml-tree-sitter-core"]
-	path = semgrep-core/src/ocaml-tree-sitter-core
+	path = libs/ocaml-tree-sitter-core
 	url = https://github.com/returntocorp/ocaml-tree-sitter-core.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-php"]
 	path = libs/languages/tree-sitter-lang/semgrep-php

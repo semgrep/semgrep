@@ -6,7 +6,7 @@
 set -eu
 
 project_root=$(git rev-parse --show-toplevel)
-spacegrep="$project_root"/semgrep-core/src/spacegrep/bin/spacegrep
+spacegrep="$project_root"/libs/spacegrep/bin/spacegrep
 
 for pat in examples/*.pat; do
   doc=${pat%.pat}.doc

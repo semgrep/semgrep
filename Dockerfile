@@ -69,7 +69,7 @@ WORKDIR /src/semgrep
 RUN eval "$(opam env)" &&\
     make minimal-build &&\
     # Sanity check
-    /src/semgrep/_build/default/semgrep-core/src/main/Main.exe -version
+    /src/semgrep/_build/default/src/main/Main.exe -version
 
 ###############################################################################
 # Step2: Build the final docker image with Python wrapper and semgrep-core bin
@@ -138,7 +138,7 @@ RUN chmod +x /entrypoint.sh
 COPY Dockerfile /Dockerfile
 
 # Get semgrep-core from step1
-COPY --from=semgrep-core-container /src/semgrep/_build/default/semgrep-core/src/main/Main.exe /usr/local/bin/semgrep-core
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
 
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
