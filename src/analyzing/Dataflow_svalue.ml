@@ -315,6 +315,20 @@ let rec eval (env : G.svalue Var_env.t) exp : G.svalue =
   match exp.e with
   | Fetch lval -> eval_lval env lval
   | Literal li -> G.Lit li
+  (* Python: cond and <then-exp> or <else-exp> *)
+  | Operator
+      ( ((Or, _) as op),
+        ([
+           Unnamed { e = Operator ((And, _), [ _cond; Unnamed a_then ]); _ };
+           Unnamed a_else;
+         ] as args) ) -> (
+      let c_then = eval env a_then in
+      let c_else = eval env a_else in
+      match (c_then, c_else) with
+      | G.Lit (G.String _), G.Lit (G.String _) -> G.Cst G.Cstr
+      | G.Lit (G.Int _), G.Lit (G.Int _) -> G.Cst G.Cstr
+      (* Fall-back to default evaluation strategy. *)
+      | __else__ -> eval_op env op args)
   | Operator (op, args) -> eval_op env op args
   | Composite _
   | Record _
@@ -341,6 +355,8 @@ and eval_op env wop args =
   | G.Plus, [ c1 ] -> c1
   | op, [ G.Lit (G.Bool (b, _)) ] -> eval_unop_bool op b
   | op, [ G.Lit (G.Int _ as li) ] -> eval_unop_int op (int_of_literal li)
+  | G.And, [ G.Lit (G.Bool (true, _)); c ] -> c (* Python: True and 42 -> 42 *)
+  | G.Or, [ G.Lit (G.Bool (false, _)); c ] -> c (* Python: False or 42 -> 42 *)
   | op, [ G.Lit (G.Bool (b1, _)); G.Lit (G.Bool (b2, _)) ] ->
       eval_binop_bool op b1 b2
   | op, [ G.Lit (G.Int _ as li1); G.Lit (G.Int _ as li2) ] ->
