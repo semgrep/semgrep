@@ -3,19 +3,19 @@
   (target bridge_test.exe)
   (deps
     bridge_test.c
-    ../../semgrep-core/src/cli-bridge/bridge_ml.h
-    ../../semgrep-core/src/cli-bridge/dlhelp.c
-    ../../semgrep-core/src/cli-bridge/dlhelp.h
+    ../../src/cli-bridge/bridge_ml.h
+    ../../src/cli-bridge/dlhelp.c
+    ../../src/cli-bridge/dlhelp.h
   )
   (action
     (run %{cc} -o %{target}
 
       ; Sources to compile.  %{deps} would get the headers too.
       bridge_test.c
-      ../../semgrep-core/src/cli-bridge/dlhelp.c
+      ../../src/cli-bridge/dlhelp.c
 
       ; Directory containing the headers.
-      -I ../../semgrep-core/src/cli-bridge
+      -I ../../src/cli-bridge
 
       -ldl -lm)
   )
@@ -31,7 +31,7 @@
 
       ; Tell bridge_test.exe where to find the library, relative to its
       ; own executable.
-      BRIDGE_TEST_LIBNAME=../../semgrep-core/src/cli-bridge/semgrep_bridge_core.so
+      BRIDGE_TEST_LIBNAME=../../src/cli-bridge/semgrep_bridge_core.so
 
       ./bridge_test.exe -version
     )

@@ -68,7 +68,7 @@ endif
 #
 # I use '-include' and not 'include' because before 'make setup' this file does
 # not exist but we still want 'make setup' to succeed
--include semgrep-core/src/ocaml-tree-sitter-core/tree-sitter-config.mk
+-include libs/ocaml-tree-sitter-core/tree-sitter-config.mk
 
 # First (and default) target. Routine build.
 # It assumes all dependencies and configuration are already in place and correct.
@@ -167,7 +167,7 @@ semgrep-core-test: semgrep-core
 	# The following command ensures that we can call 'test.exe --help'
 	# without having to chdir into the test data folder.
 	./_build/default/tests/test.exe --show-errors --help 2>&1 >/dev/null
-	$(MAKE) -C semgrep-core/src/spacegrep test
+	$(MAKE) -C libs/spacegrep test
 	dune runtest -f --no-buffer
 
 #coupling: this is run by .github/workflow/tests.yml
@@ -189,11 +189,11 @@ semgrep-core-e2etest:
 # run 'opam update' below to not slow down things.
 install-deps-for-semgrep-core:
 	# Fetch, build and install the tree-sitter runtime library locally.
-	cd semgrep-core/src/ocaml-tree-sitter-core \
+	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally).
-	opam install -y --deps-only ./semgrep-core/src/ocaml-tree-sitter-core
+	opam install -y --deps-only ./libs/ocaml-tree-sitter-core
 	opam install -y --deps-only ./
 
 # We could also add python dependencies at some point
@@ -260,15 +260,15 @@ install-deps-and-build-ALPINE-semgrep-core:
 #
 .PHONY: homebrew-setup
 homebrew-setup:
-	cd semgrep-core/src/ocaml-tree-sitter-core \
+	cd libs/ocaml-tree-sitter-core \
 	&& ./configure --prefix "$$(brew --prefix tree-sitter)"
 	# We pass --no-depexts so as to disable the check for pkg-config
 	# (which is present due to brew dependencies)
 	# because this check was failing on some platform.
 	# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
 	# This workaround may no longer be necessary.
-	opam install -y --deps-only --no-depexts ./semgrep-core/src/ocaml-tree-sitter-core
-	opam install -y --deps-only --no-depexts ./semgrep-core
+	opam install -y --deps-only --no-depexts ./libs/ocaml-tree-sitter-core
+	opam install -y --deps-only --no-depexts ./
 
 # -------------------------------------------------
 # Arch Linux
@@ -419,16 +419,16 @@ check_for_emacs:
 dev:
 	$(MAKE) all
 	rm -f cli/src/semgrep/bin/semgrep-core
-	ln -s ../../../../semgrep-core/bin/semgrep-core \
+	ln -s ../../../../bin/semgrep-core \
 	  cli/src/semgrep/bin/semgrep-core
 	rm -f cli/src/semgrep/bin/osemgrep
-	ln -s ../../../../semgrep-core/bin/osemgrep \
+	ln -s ../../../../bin/osemgrep \
 	  cli/src/semgrep/bin/osemgrep
 	rm -f cli/src/semgrep/bin/semgrep_bridge_core.so
-	ln -s ../../../../semgrep-core/bin/semgrep_bridge_core.so \
+	ln -s ../../../../bin/semgrep_bridge_core.so \
 	  cli/src/semgrep/bin/semgrep_bridge_core.so
 	rm -f cli/src/semgrep/bin/semgrep_bridge_python.so
-	ln -s ../../../../semgrep-core/bin/semgrep_bridge_python.so \
+	ln -s ../../../../bin/semgrep_bridge_python.so \
 	  cli/src/semgrep/bin/semgrep_bridge_python.so
 
 ###############################################################################

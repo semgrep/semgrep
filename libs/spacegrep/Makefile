@@ -11,7 +11,7 @@ build:
 .PHONY: symlinks
 symlinks:
 	mkdir -p bin
-	ln -sf ../../../../_build/install/default/bin/spacegrep bin/spacegrep
+	ln -sf ../../../_build/install/default/bin/spacegrep bin/spacegrep
 	ln -sf spacegrep bin/spacecat
 
 .PHONY: test
