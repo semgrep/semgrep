@@ -52,6 +52,15 @@ let pattern_of_ids ids =
       in
       PatTuple (fake_bracket xs) |> G.p
 
+(* val parse_number_literal : string * Parse_info.t -> AST_generic.literal *)
+let parse_number_literal (s, t) =
+  match Common2.int_of_string_c_octal_opt s with
+  | Some i -> G.Int (Some i, t)
+  | None -> (
+      match float_of_string_opt s with
+      | Some f -> G.Float (Some f, t)
+      | None -> G.Int (None, t))
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -77,11 +86,11 @@ let map_numeric_lit (env : env) (x : CST.numeric_lit) : literal =
   | `Pat_e950a1b tok ->
       (* pattern [0-9]+(\.[0-9]+([eE][-+]?[0-9]+)?)? *)
       let x = str env tok in
-      H.parse_number_literal x
+      parse_number_literal x
   | `Pat_b66053b tok ->
       (* pattern 0x[0-9a-zA-Z]+ *)
       let x = str env tok in
-      H.parse_number_literal x
+      parse_number_literal x
 
 (* This is supposed to be a string, but we get a list of non-whitespace
  * characters ('template_literal_chunk's or 'Token.t's), so we need to
@@ -412,7 +421,7 @@ and map_index (env : env) (x : CST.index) =
   | `Legacy_index (v1, v2) ->
       let v1 = (* "." *) token env v1 in
       let v2 = (* pattern [0-9]+ *) str env v2 in
-      let idx = L (H.parse_number_literal v2) |> G.e in
+      let idx = L (parse_number_literal v2) |> G.e in
       fun e -> G.ArrayAccess (e, (v1, idx, v1)) |> G.e
 
 and map_object_ (env : env) ((v1, v2, v3) : CST.object_) =
