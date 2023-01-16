@@ -1,0 +1,8 @@
+rules:
+  - id: test
+    message: Test
+    severity: ERROR
+    languages:
+      - python
+    pattern: foo("...")
+
