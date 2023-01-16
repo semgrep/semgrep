@@ -1,0 +1,18 @@
+(library
+ (public_name ast_generic)
+ (wrapped false)
+ (libraries
+   pcre
+   commons
+   pfff-h_program-lang
+   semgrep.utils ; GenSym
+ )
+ (preprocess
+   (pps
+      ppx_deriving.show
+      ppx_deriving.eq
+      ppx_hash
+      ppx_profiling
+   )
+ )
+)

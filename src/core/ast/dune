@@ -11,6 +11,7 @@
    pcre
    commons
    pfff-h_program-lang
+   ast_generic
 
    semgrep_utils
  )
