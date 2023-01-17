@@ -29,10 +29,10 @@
 	path = libs/languages/tree-sitter-lang/semgrep-rust
 	url = https://github.com/returntocorp/semgrep-rust
 [submodule "semgrep-core/tree-sitter-lang/semgrep-tsx"]
-	path = libs/languages/tree-sitter-lang/semgrep-tsx
+	path = libs/languages/typescript/tree-sitter/semgrep-tsx
 	url = https://github.com/returntocorp/semgrep-tsx
 [submodule "semgrep-core/tree-sitter-lang/semgrep-typescript"]
-	path = libs/languages/tree-sitter-lang/semgrep-typescript
+	path = libs/languages/typescript/tree-sitter/semgrep-typescript
 	url = https://github.com/returntocorp/semgrep-typescript
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-ocaml"]
 	path = libs/languages/ocaml/tree-sitter/semgrep-ocaml

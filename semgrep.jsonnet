@@ -70,10 +70,10 @@ local semgrep_rules = [
         "Eval_generic.ml",
         "AST_to_IL.ml",
         "Parse_rule.ml",
+        "yaml_to_generic.ml",
 	#skipping more stuff
         "parsing/tree_sitter/*",
         "parsing/pfff/*",
-        "parsing/other/*",
         "parsing/ast/*",
         "metachecking/*",
 	# outside src/, not really semgrep code

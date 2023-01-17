@@ -10,7 +10,6 @@
    pfff-lang_GENERIC pfff-lang_GENERIC-naming
 
    pfff-lang_ruby
-   pfff-lang_js
 
    ; xxx.menhir, xxx.tree_sitter, xxx.generic
    parser_go.menhir parser_go.tree_sitter parser_go.ast_generic
@@ -19,6 +18,11 @@
    parser_python.menhir parser_python.tree_sitter parser_python.ast_generic
    parser_c.menhir parser_c.tree_sitter parser_c.ast_generic
    parser_cpp.menhir parser_cpp.tree_sitter parser_cpp.ast_generic
+   ; miss tree_sitter (use the one for typescript)
+   parser_javascript.menhir parser_javascript.ast_generic
+   ; use ast_generic (use the one for javascript)
+   parser_typescript.tree_sitter
+   parser_json.menhir parser_json.ast_generic
 
    ojsonnet
 
@@ -28,7 +32,6 @@
    semgrep_core
    semgrep_optimizing
    semgrep_parsing_tree_sitter
-   semgrep_parsing_other
    semgrep_reporting
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))

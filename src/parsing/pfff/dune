@@ -17,8 +17,6 @@
    pfff-lang_GENERIC_base
 
    pfff-lang_php
-   pfff-lang_js
-   pfff-lang_json
    pfff-lang_ruby
    pfff-lang_scala
  )

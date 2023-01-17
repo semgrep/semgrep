@@ -9,7 +9,8 @@
  (libraries
    commons
 
-pfff-lang_GENERIC ; actually now in semgrep
+   pfff-lang_GENERIC ; actually now in semgrep
+   parser_javascript.ast ; ugly for Ast_js.default_entity
  )
  (preprocess
     (pps
