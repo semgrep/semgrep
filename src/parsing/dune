@@ -10,15 +10,13 @@
    pfff-lang_GENERIC pfff-lang_GENERIC-naming
 
    pfff-lang_ruby
-   pfff-lang_java
    pfff-lang_js
 
-   parser_go.menhir
-   parser_go.tree_sitter
-   parser_go.ast_generic
-   parser_ocaml.menhir
-   parser_ocaml.tree_sitter
-   parser_ocaml.ast_generic
+   ; xxx.menhir, xxx.tree_sitter, xxx.generic
+   parser_go.menhir parser_go.tree_sitter parser_go.ast_generic
+   parser_ocaml.menhir parser_ocaml.tree_sitter parser_ocaml.ast_generic
+   parser_java.menhir parser_java.tree_sitter parser_java.ast_generic
+   parser_python.menhir parser_python.tree_sitter parser_python.ast_generic
 
    ojsonnet
 
