@@ -732,10 +732,14 @@ and id env (s, { id_resolved; _ }) : string =
   | _ -> s
 
 (* TODO: factorize with dotted_access *)
-and canonical_name env = function
-  | [] -> ""
-  | [ x ] -> x
-  | x :: y :: xs -> x ^ "." ^ canonical_name env (y :: xs)
+and canonical_name _env {unqualified; _} = 
+  let rec pp_unqualified unqualified = 
+    match unqualified with 
+    | [] -> ""
+    | [ x ] -> x
+    | x :: y :: xs -> x ^ "." ^ pp_unqualified (y :: xs)
+  in
+  pp_unqualified unqualified
 
 (* TODO: look at name_top too *)
 and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =

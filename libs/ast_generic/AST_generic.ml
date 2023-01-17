@@ -308,9 +308,17 @@ and resolved_name_kind =
    * canonical_name, but we also want to match the pattern `foo.bar` so we will
    * store ['foo', 'bar'] as an alternate name.
    * *)
+
   | GlobalName of canonical_name * alternate_name list
 
-and canonical_name = string list
+(* The enclosed token is not relevant for matching purposes.
+   `canonical_name` is a record of all the information necessary to
+   disambiguate two names from each other.
+   In particular, two canonical names may indicate two overloaded functions in Java,
+   which are named the same. Then, we need to use the function signature information
+   to disambiguate them from each other.
+*)
+and canonical_name = { unqualified : string list; tok : tok option }
 
 and alternate_name = string list
 [@@deriving show { with_path = false }, eq, hash]
@@ -374,7 +382,7 @@ and id_info = {
    * a typed entity, which can be interpreted as a TypedMetavar in semgrep.
    * alt: have an explicity type_ field in entity.
    *)
-  id_type : type_ option ref;
+  id_type : type_ option ref; [@equal fun _a _b -> true]
   (* type checker (typing) *)
   (* sgrep: this is for sgrep constant propagation hack.
    * todo? associate only with Id?
@@ -1978,10 +1986,14 @@ let basic_id_info ?(hidden = false) resolved =
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
-let dotted_to_canonical xs = Common.map fst xs
+let canonical_append {unqualified; _} {unqualified = unqualified2; tok} =
+  { unqualified = unqualified @ unqualified2; tok}
 
-let canonical_to_dotted tid xs =
-  xs |> Common.map (fun s -> (s, Parse_info.fake_info tid s))
+let dotted_to_canonical xs = 
+  (* TODO: Change if used on a function name which needs to be disambiguated *)
+  { unqualified = Common.map fst xs; tok = None }
+let canonical_to_dotted tid { unqualified = xs; _ } = xs |> Common.map (fun s -> (s, tid))
+let alternate_name_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
 
 (* ------------------------------------------------------------------------- *)
 (* Entities *)
