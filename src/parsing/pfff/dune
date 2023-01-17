@@ -19,8 +19,6 @@
    pfff-lang_php
    pfff-lang_js
    pfff-lang_json
-   pfff-lang_cpp
-   pfff-lang_c
    pfff-lang_ruby
    pfff-lang_scala
  )

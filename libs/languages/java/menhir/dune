@@ -3,8 +3,6 @@
  (name parser_hava_menhir)
  (wrapped false)
  (libraries
-   dyp
-
    commons
    pfff-h_program-lang
    parser_java.ast

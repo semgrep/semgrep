@@ -1,10 +1,11 @@
 (library
- (public_name parser_java.ast)
- (name parser_java_ast)
+ (public_name parser_c.ast)
+ (name parser_c_ast)
  (wrapped false)
  (libraries
    commons
    pfff-h_program-lang
+   parser_cpp.ast ; reuse operators
  )
  (preprocess (pps ppx_deriving.show))
 )

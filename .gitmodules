@@ -1,8 +1,8 @@
 [submodule "semgrep-core/tree-sitter-lang/semgrep-c"]
-	path = libs/languages/tree-sitter-lang/semgrep-c
+	path = libs/languages/c/tree-sitter/semgrep-c
 	url = https://github.com/returntocorp/semgrep-c
 [submodule "semgrep-core/tree-sitter-lang/semgrep-cpp"]
-	path = libs/languages/tree-sitter-lang/semgrep-cpp
+	path = libs/languages/cpp/tree-sitter/semgrep-cpp
 	url = https://github.com/returntocorp/semgrep-cpp
 [submodule "semgrep-core/tree-sitter-lang/semgrep-c-sharp"]
 	path = libs/languages/tree-sitter-lang/semgrep-c-sharp
