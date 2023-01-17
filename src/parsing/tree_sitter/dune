@@ -14,7 +14,6 @@
    tree-sitter-lang.dart
    tree-sitter-lang.dockerfile
    tree-sitter-lang.elixir
-   tree-sitter-lang.go
    tree-sitter-lang.hack
    tree-sitter-lang.hcl
    tree-sitter-lang.html

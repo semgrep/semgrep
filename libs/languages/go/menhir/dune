@@ -1,5 +1,5 @@
 (library
- (public_name pfff-lang_go)
+ (public_name parser_go.menhir)
  (name pfff_lang_go)
  (wrapped false)
  (libraries
@@ -7,6 +7,7 @@
 
    commons
    pfff-h_program-lang
+   parser_go.ast
  )
  (preprocess (pps ppx_deriving.show))
 )

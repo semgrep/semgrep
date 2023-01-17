@@ -10,7 +10,9 @@
    pfff-lang_GENERIC pfff-lang_GENERIC-naming
    pfff-lang_ruby
    pfff-lang_java
-   pfff-lang_go
+   parser_go.menhir
+   parser_go.tree_sitter
+   parser_go.ast_generic
    pfff-lang_js
 
    process_limits
