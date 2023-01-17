@@ -92,7 +92,7 @@
 	path = libs/languages/tree-sitter-lang/semgrep-julia
 	url = https://github.com/returntocorp/semgrep-julia.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-jsonnet"]
-	path = libs/languages/tree-sitter-lang/semgrep-jsonnet
+	path = libs/languages/jsonnet/tree-sitter/semgrep-jsonnet
 	url = https://github.com/returntocorp/semgrep-jsonnet.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-clojure"]
 	path = libs/languages/tree-sitter-lang/semgrep-clojure

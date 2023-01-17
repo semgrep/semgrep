@@ -18,7 +18,6 @@
    tree-sitter-lang.hcl
    tree-sitter-lang.html
    tree-sitter-lang.java
-   tree-sitter-lang.jsonnet
    tree-sitter-lang.julia
    tree-sitter-lang.kotlin
    tree-sitter-lang.lua
@@ -37,7 +36,6 @@
    pfff-lang_GENERIC
    semgrep_core; just for Range
    semgrep_parsing_ast
-   ojsonnet_parsing ; CST_jsonnet.ml
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )

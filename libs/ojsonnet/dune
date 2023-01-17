@@ -1,0 +1,10 @@
+; This should be independent of semgrep, so do not use semgrep dependencies here!
+(library
+ (public_name ojsonnet)
+ (wrapped false)
+ (libraries
+   commons
+   parser_jsonnet.tree_sitter
+ )
+ (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
+)

@@ -20,11 +20,10 @@
    parser_ocaml.tree_sitter
    parser_ocaml.ast_generic
 
+   ojsonnet
+
    process_limits
    spacegrep
-
-   ojsonnet.parsing
-   ojsonnet.interpreting
 
    semgrep_core
    semgrep_optimizing
