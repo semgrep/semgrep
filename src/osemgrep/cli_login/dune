@@ -5,9 +5,9 @@
   (wrapped false)
   (libraries
     cmdliner
+    semgrep.utils
 
     osemgrep_core
-    osemgrep_utils
     osemgrep_networking
   )
  (preprocess
