@@ -18,7 +18,7 @@
   src
   libs
   tools
-  semgrep-core ; TODO: to remove
+  languages
   tests ; todo, should move out Test.ml out of the tests/ data dir
 )
 

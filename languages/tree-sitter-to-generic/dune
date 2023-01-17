@@ -1,6 +1,6 @@
 (library
- (public_name semgrep.parsing.tree_sitter)
- (name semgrep_parsing_tree_sitter)
+ (public_name tree-sitter-to-generic)
+ (name tree_sitter_to_generic)
  (wrapped false)
  (libraries
    yaml

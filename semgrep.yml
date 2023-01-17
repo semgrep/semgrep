@@ -45,6 +45,7 @@ rules:
         - experiments/*
         - Check_*.ml
         - libs/*
+        - languages/*
         - scripts/*
 
   - id: use-pytest-mock
