@@ -13,11 +13,11 @@
      vulnerable to ReDoS attacks.
 *)
 val find_vulnerable_subpatterns :
-  ?dialect:Pfff_lang_regexp.Dialect.t -> string -> (string list, unit) result
+  ?dialect:Parser_regexp.Dialect.t -> string -> (string list, unit) result
 
 (*
    Return true iff the regexp could be parsed and it looks vulnerable to
    ReDoS attacks.
 *)
 val regexp_may_be_vulnerable :
-  ?dialect:Pfff_lang_regexp.Dialect.t -> string -> bool
+  ?dialect:Parser_regexp.Dialect.t -> string -> bool

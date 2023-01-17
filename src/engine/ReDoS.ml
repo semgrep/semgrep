@@ -3,7 +3,7 @@
    analysis.
 *)
 
-open Pfff_lang_regexp
+open Parser_regexp
 
 let parse_regexp conf re_str =
   try Some (Parse.string ~conf re_str) with

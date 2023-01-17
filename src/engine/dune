@@ -9,8 +9,8 @@
 
    commons
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
-   pfff-lang_regexp
 
+   parser_regexp
    spacegrep
 
    semgrep_core

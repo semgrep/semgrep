@@ -1,0 +1,12 @@
+(library
+ (public_name parser_scala.ast_generic)
+ (name parser_scala_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_scala.ast
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)
