@@ -13,8 +13,6 @@
     ; pfff deps
     commons
     pfff-h_program-lang
-    pfff-lang_js
-    pfff-lang_json
     pfff-lang_ruby
     pfff-lang_php
 

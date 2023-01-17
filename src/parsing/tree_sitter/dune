@@ -33,5 +33,5 @@
    semgrep_core; just for Range
    semgrep_parsing_ast
  )
- (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
+ (preprocess (pps ppx_profiling ppx_deriving.show))
 )
