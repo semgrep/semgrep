@@ -1,0 +1,14 @@
+(library
+ (public_name parser_dockerfile.ast_generic)
+ (name parser_dockerfile_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_dockerfile.ast
+   tree-sitter-lang.dockerfile
+   parser_bash.ast_generic
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

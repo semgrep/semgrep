@@ -1,0 +1,13 @@
+(library
+ (public_name parser_bash.ast_generic)
+ (name parser_bash_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_bash.ast
+   tree-sitter-lang.bash
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

@@ -6,11 +6,9 @@
    yaml
    sexplib
 
-   tree-sitter-lang.bash
    tree-sitter-lang.c-sharp
    tree-sitter-lang.clojure
    tree-sitter-lang.dart
-   tree-sitter-lang.dockerfile
    tree-sitter-lang.elixir
    tree-sitter-lang.hack
    tree-sitter-lang.hcl
@@ -28,7 +26,6 @@
 
    commons
    semgrep_core; just for Range
-   semgrep_parsing_ast
  )
  (preprocess (pps ppx_profiling ppx_deriving.show))
 )
