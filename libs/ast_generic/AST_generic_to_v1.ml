@@ -96,8 +96,8 @@ let rec map_resolved_name (v1, v2) =
   let v2 = AST_generic.SId.to_int v2 in
   (v1, v2)
 
-and map_canonical_name v1 =
-  map_of_list (fun x -> (map_of_string x, map_tok fk)) v1
+and map_canonical_name {unqualified; _} =
+  map_of_list (fun x -> (map_of_string x, map_tok fk)) unqualified
 
 and map_resolved_name_kind = function
   | LocalVar -> `Local

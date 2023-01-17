@@ -109,7 +109,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v1 = map_resolved_name_kind v1 in
     let v2 = map_sid v2 in
     (v1, v2)
-  and map_canonical_name v1 = map_of_list map_of_string v1
+  and map_canonical_name {unqualified; tok} = 
+    let v1 = map_of_list map_of_string unqualified in
+    let v2 = map_of_option map_tok tok in
+    {unqualified = v1; tok = v2}
+  and map_alternate_name v1 =
+    map_of_list map_of_string v1
   and map_resolved_name_kind = function
     | LocalVar -> LocalVar
     | Parameter -> Parameter
@@ -126,7 +131,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | TypeName -> TypeName
     | GlobalName (v1, v2) ->
         let v1 = map_canonical_name v1 in
-        let v2 = map_of_list map_canonical_name v2 in
+        let v2 = map_of_list map_alternate_name v2 in
         GlobalName (v1, v2)
   and map_name_info
       {

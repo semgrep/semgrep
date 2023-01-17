@@ -840,7 +840,7 @@ let resolve lang prog =
                       let sid = SId.unsafe_default in
                       let rest_of_middle = Common.map fst rest_of_middle in
                       let canonical =
-                        xs @ dotted_to_canonical (rest_of_middle @ [ id ])
+                        canonical_append xs (dotted_to_canonical (rest_of_middle @ [ id ]))
                       in
                       let resolved =
                         untyped_ent (ImportedEntity canonical, sid)

@@ -432,7 +432,7 @@ let rec m_name a b =
     | B.GlobalName (_, alternate_names) ->
         List.fold_left
           (fun acc alternate_name ->
-            let dotted = G.canonical_to_dotted tidb alternate_name in
+            let dotted = G.alternate_name_to_dotted tidb alternate_name in
             acc >||> m_name a (H.name_of_ids dotted))
           (fail ()) alternate_names
     | _ -> fail ()

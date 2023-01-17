@@ -44,7 +44,18 @@ let rec vof_resolved_name (v1, v2) =
   let v2 = OCaml.vof_int (SId.to_int v2) in
   OCaml.VTuple [ v1; v2 ]
 
-and vof_canonical_name v1 = OCaml.vof_list OCaml.vof_string v1
+and vof_canonical_name {unqualified; tok} = 
+  let bnds = [] in
+  let arg = OCaml.vof_option (fun x -> vof_tok x) tok in
+  let bnd = ("tok", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_list OCaml.vof_string unqualified in
+  let bnd = ("unqualified", arg) in
+  let bnds = bnd :: bnds in
+  OCaml.VDict bnds
+
+and vof_alternate_name v1 =
+  OCaml.vof_list OCaml.vof_string v1
 
 and vof_resolved_name_kind = function
   | LocalVar -> OCaml.VSum ("LocalVar", [])
@@ -62,7 +73,7 @@ and vof_resolved_name_kind = function
   | TypeName -> OCaml.VSum ("TypeName", [])
   | GlobalName (v1, v2) ->
       let v1 = vof_canonical_name v1 in
-      let v2 = OCaml.vof_list vof_canonical_name v2 in
+      let v2 = OCaml.vof_list vof_alternate_name v2 in
       OCaml.VSum ("GlobalName", [ v1; v2 ])
 
 let rec vof_qualifier = function

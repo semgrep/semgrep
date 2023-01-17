@@ -55,7 +55,7 @@ let warning _tok s =
 let str_of_name name = spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
 
 (* TODO: depends on the language? sometimes '.', sometimes '->' or '#' *)
-let str_of_canonical_name name = String.concat "." name
+let str_of_canonical_name { G.unqualified; _ } = String.concat "." unqualified 
 
 (*****************************************************************************)
 (* Constness *)
