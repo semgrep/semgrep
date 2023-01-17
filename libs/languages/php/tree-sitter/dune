@@ -1,0 +1,12 @@
+(library
+ (public_name parser_php.tree_sitter)
+ (name parser_php_tree_sitter)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_php.ast
+   tree-sitter-lang.php
+ )
+ (preprocess (pps ppx_deriving.show))
+)

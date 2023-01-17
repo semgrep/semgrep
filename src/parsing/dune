@@ -7,9 +7,7 @@
 
    commons
    pfff-h_program-lang
-   pfff-lang_GENERIC pfff-lang_GENERIC-naming
-
-   pfff-lang_ruby
+   pfff-lang_GENERIC-naming
 
    ; xxx.menhir, xxx.tree_sitter, xxx.generic
    parser_go.menhir parser_go.tree_sitter parser_go.ast_generic
@@ -18,6 +16,9 @@
    parser_python.menhir parser_python.tree_sitter parser_python.ast_generic
    parser_c.menhir parser_c.tree_sitter parser_c.ast_generic
    parser_cpp.menhir parser_cpp.tree_sitter parser_cpp.ast_generic
+   parser_php.menhir parser_php.tree_sitter parser_php.ast_generic
+   ; dyp not menhir this time
+   parser_ruby.dyp parser_ruby.tree_sitter parser_ruby.ast_generic
    ; no tree_sitter (use the one for typescript)
    parser_javascript.menhir parser_javascript.ast_generic
    ; no ast_generic (use the one for javascript)

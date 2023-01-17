@@ -8,8 +8,8 @@
  (wrapped false)
  (libraries
    commons
-
-   pfff-lang_GENERIC ; actually now in semgrep
+   ast_generic
+   pfff-lang_GENERIC_base ; for Lang
    parser_javascript.ast ; ugly for Ast_js.default_entity
  )
  (preprocess

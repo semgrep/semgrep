@@ -23,7 +23,7 @@
 	path = libs/languages/tree-sitter-lang/semgrep-r
 	url = https://github.com/returntocorp/semgrep-r
 [submodule "semgrep-core/tree-sitter-lang/semgrep-ruby"]
-	path = libs/languages/tree-sitter-lang/semgrep-ruby
+	path = libs/languages/ruby/tree-sitter/semgrep-ruby
 	url = https://github.com/returntocorp/semgrep-ruby
 [submodule "semgrep-core/tree-sitter-lang/semgrep-rust"]
 	path = libs/languages/tree-sitter-lang/semgrep-rust
@@ -59,7 +59,7 @@
 	path = libs/ocaml-tree-sitter-core
 	url = https://github.com/returntocorp/ocaml-tree-sitter-core.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-php"]
-	path = libs/languages/tree-sitter-lang/semgrep-php
+	path = libs/languages/php/tree-sitter/semgrep-php
 	url = https://github.com/returntocorp/semgrep-php
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-hcl"]
 	path = libs/languages/tree-sitter-lang/semgrep-hcl

@@ -10,7 +10,6 @@
    dyp
 
    commons
-   pfff-lang_GENERIC
    semgrep_core_il
  )
  (preprocess

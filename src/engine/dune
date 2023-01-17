@@ -8,7 +8,7 @@
    alcotest
 
    commons
-   pfff-lang_GENERIC pfff-lang_GENERIC-analyze
+   pfff-lang_GENERIC-analyze
 
    parser_regexp
    spacegrep

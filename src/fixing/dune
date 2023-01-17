@@ -4,7 +4,6 @@
  (wrapped false)
  (libraries
    commons
-   pfff-lang_GENERIC
    semgrep_parsing
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))

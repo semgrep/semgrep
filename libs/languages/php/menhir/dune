@@ -1,12 +1,11 @@
 (library
- (public_name pfff-lang_php)
- (name pfff_lang_php)
+ (public_name parser_php.menhir)
+ (name parser_php_menhir)
  (wrapped false)
  (libraries
-   dyp
-
    commons
    pfff-h_program-lang
+   parser_php.ast
  )
  (preprocess (pps ppx_deriving.show))
 )

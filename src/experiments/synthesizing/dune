@@ -6,7 +6,6 @@
    ppx_deriving.runtime
    commons
    pfff-h_program-lang
-   pfff-lang_GENERIC
 
    semgrep_core
    semgrep_parsing
