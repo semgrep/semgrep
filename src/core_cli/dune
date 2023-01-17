@@ -13,18 +13,15 @@
     ; pfff deps
     commons
     pfff-h_program-lang
-    pfff-lang_python
     pfff-lang_js
     pfff-lang_json
     pfff-lang_cpp
     pfff-lang_c
-    pfff-lang_java
     pfff-lang_ruby
     pfff-lang_php
 
     ; tree-sitter deps
     tree-sitter-lang.ruby
-    tree-sitter-lang.java
 
     process_limits
     ; we now also depends on spacegrep with full-rule-in-ocaml

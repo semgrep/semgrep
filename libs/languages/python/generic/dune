@@ -1,0 +1,15 @@
+(library
+ (public_name parser_python.ast_generic)
+ (name parser_python_ast_generic)
+ (wrapped false)
+ (libraries
+   dyp
+
+   commons
+   pfff-h_program-lang
+   parser_python.ast
+   tree-sitter-lang.python
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

@@ -1,11 +1,12 @@
 (library
- (public_name pfff-lang_python)
- (name pfff_lang_python)
+ (public_name parser_python.menhir)
+ (name parser_python_menhir)
  (wrapped false)
  (libraries
 
    commons
    pfff-h_program-lang
+   parser_python.ast
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )

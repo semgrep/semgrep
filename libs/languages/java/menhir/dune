@@ -1,12 +1,13 @@
 (library
- (public_name pfff-lang_java)
- (name pfff_lang_java)
+ (public_name parser_java.menhir)
+ (name parser_hava_menhir)
  (wrapped false)
  (libraries
    dyp
 
    commons
    pfff-h_program-lang
+   parser_java.ast
  )
  (preprocess (pps ppx_deriving.show))
 )

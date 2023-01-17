@@ -1,0 +1,15 @@
+(library
+ (public_name parser_java.tree_sitter)
+ (name parser_java_tree_sitter)
+ (wrapped false)
+ (libraries
+   dyp
+
+   commons
+   pfff-h_program-lang
+   parser_java.ast
+   ast_generic; for sc
+   tree-sitter-lang.java
+ )
+ (preprocess (pps ppx_deriving.show))
+)

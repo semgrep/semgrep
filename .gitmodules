@@ -11,7 +11,7 @@
 	path = libs/languages/go/tree-sitter/semgrep-go
 	url = https://github.com/returntocorp/semgrep-go
 [submodule "semgrep-core/tree-sitter-lang/semgrep-java"]
-	path = libs/languages/tree-sitter-lang/semgrep-java
+	path = libs/languages/java/tree-sitter/semgrep-java
 	url = https://github.com/returntocorp/semgrep-java
 [submodule "semgrep-core/tree-sitter-lang/semgrep-kotlin"]
 	path = libs/languages/tree-sitter-lang/semgrep-kotlin
@@ -71,7 +71,7 @@
 	path = libs/languages/tree-sitter-lang/semgrep-solidity
 	url = https://github.com/returntocorp/semgrep-solidity.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-python"]
-	path = libs/languages/tree-sitter-lang/semgrep-python
+	path = libs/languages/python/tree-sitter/semgrep-python
 	url = https://github.com/returntocorp/semgrep-python.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-elixir"]
 	path = libs/languages/tree-sitter-lang/semgrep-elixir
