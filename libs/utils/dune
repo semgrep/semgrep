@@ -8,6 +8,9 @@
  (libraries
    re
    pcre
+   cmdliner
+   logs logs.fmt
+   parmap
 
    commons
    profiling
