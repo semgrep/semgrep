@@ -31,6 +31,9 @@
    parser_bash.tree_sitter parser_bash.ast_generic
    parser_dockerfile.tree_sitter parser_dockerfile.ast_generic
 
+   ; no ast, directoy to generic AST
+   tree-sitter-to-generic
+
    ojsonnet
 
    process_limits
@@ -38,7 +41,6 @@
 
    semgrep_core
    semgrep_optimizing
-   semgrep_parsing_tree_sitter
    semgrep_reporting
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
