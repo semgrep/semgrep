@@ -5,9 +5,8 @@
  (libraries
 
    commons
-   pfff-lang_GENERIC_base ; for Lang
-   semgrep_core
-   semgrep_reporting ; for skipped_target ATD type
+   semgrep.core
+   semgrep.reporting ; for skipped_target ATD type
 
  )
  (preprocess

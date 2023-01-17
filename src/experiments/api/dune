@@ -4,7 +4,7 @@
   (libraries
      atdgen-runtime
      commons
-     pfff-lang_GENERIC_base
+     ast_generic
   )
   (wrapped false)
   (preprocess

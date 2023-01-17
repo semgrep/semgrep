@@ -3,8 +3,8 @@
  (name semgrep_optimizing)
  (wrapped false)
  (libraries
-    pfff_lang_GENERIC_base
-    semgrep_core
+    ast_generic
+    semgrep.core
  )
  (preprocess
    (pps

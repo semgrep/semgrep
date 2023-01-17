@@ -1,28 +1,21 @@
 (executable
  (name test)
  (libraries
-    str
-    dyp
-    ppx_deriving.runtime
-    uutf uucp
-
     commons
+    process_limits
     pfff-h_program-lang
 
-    pfff-lang_GENERIC-analyze-tests ; Unit_dataflow
-
-    process_limits
-
+    semgrep.analyzing.tests ; Unit_dataflow
     semgrep_utils_tests
-    semgrep_core
-    semgrep_core_ast_tests
-    semgrep_fixing_tests
-    semgrep_metachecking
-    semgrep_parsing
-    semgrep_matching
-    semgrep_synthesizing
-    semgrep_reporting
-    semgrep_engine
+    semgrep.core
+    semgrep.printing.tests
+    semgrep.fixing.tests
+    semgrep.metachecking
+    semgrep.parsing
+    semgrep.matching
+    semgrep.synthesizing
+    semgrep.reporting
+    semgrep.engine
   )
  (preprocess
    (pps

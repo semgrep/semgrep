@@ -10,7 +10,9 @@
    dyp
 
    commons
-   semgrep_core_il
+   ast_generic
+   semgrep.core ; Lang
+   semgrep.il
  )
  (preprocess
     (pps
