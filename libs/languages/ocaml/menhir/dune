@@ -1,11 +1,12 @@
 (library
- (public_name pfff-lang_ml)
- (name pfff_lang_ml)
+ (public_name parser_ocaml.menhir)
+ (name parser_ocaml_menhir)
  (wrapped false)
  (libraries
 
    commons
    pfff-h_program-lang
+   parser_ocaml.ast
  )
  (preprocess (pps ppx_deriving.show))
 )

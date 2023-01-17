@@ -22,7 +22,6 @@
    tree-sitter-lang.julia
    tree-sitter-lang.kotlin
    tree-sitter-lang.lua
-   tree-sitter-lang.ocaml
    tree-sitter-lang.php
    tree-sitter-lang.python
    tree-sitter-lang.solidity

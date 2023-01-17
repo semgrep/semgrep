@@ -8,7 +8,7 @@
 	path = libs/languages/tree-sitter-lang/semgrep-c-sharp
 	url = https://github.com/returntocorp/semgrep-c-sharp
 [submodule "semgrep-core/tree-sitter-lang/semgrep-go"]
-	path = libs/languages/tree-sitter-lang/semgrep-go
+	path = libs/languages/go/tree-sitter/semgrep-go
 	url = https://github.com/returntocorp/semgrep-go
 [submodule "semgrep-core/tree-sitter-lang/semgrep-java"]
 	path = libs/languages/tree-sitter-lang/semgrep-java
@@ -35,7 +35,7 @@
 	path = libs/languages/tree-sitter-lang/semgrep-typescript
 	url = https://github.com/returntocorp/semgrep-typescript
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-ocaml"]
-	path = libs/languages/tree-sitter-lang/semgrep-ocaml
+	path = libs/languages/ocaml/tree-sitter/semgrep-ocaml
 	url = https://github.com/returntocorp/semgrep-ocaml.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-hack"]
 	path = libs/languages/tree-sitter-lang/semgrep-hack

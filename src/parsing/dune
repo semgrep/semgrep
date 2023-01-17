@@ -8,18 +8,23 @@
    commons
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-naming
+
    pfff-lang_ruby
    pfff-lang_java
+   pfff-lang_js
+
    parser_go.menhir
    parser_go.tree_sitter
    parser_go.ast_generic
-   pfff-lang_js
+   parser_ocaml.menhir
+   parser_ocaml.tree_sitter
+   parser_ocaml.ast_generic
 
    process_limits
    spacegrep
 
-   ojsonnet_parsing
-   ojsonnet_interpreting
+   ojsonnet.parsing
+   ojsonnet.interpreting
 
    semgrep_core
    semgrep_optimizing
