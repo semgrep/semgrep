@@ -18,11 +18,14 @@
    parser_python.menhir parser_python.tree_sitter parser_python.ast_generic
    parser_c.menhir parser_c.tree_sitter parser_c.ast_generic
    parser_cpp.menhir parser_cpp.tree_sitter parser_cpp.ast_generic
-   ; miss tree_sitter (use the one for typescript)
+   ; no tree_sitter (use the one for typescript)
    parser_javascript.menhir parser_javascript.ast_generic
-   ; use ast_generic (use the one for javascript)
+   ; no ast_generic (use the one for javascript)
    parser_typescript.tree_sitter
+   ; no tree_sitter (use the one for typescript)
    parser_json.menhir parser_json.ast_generic
+   ; no tree_sitter
+   parser_scala.recursive_descent parser_scala.ast_generic
 
    ojsonnet
 
