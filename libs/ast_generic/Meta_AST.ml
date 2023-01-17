@@ -59,9 +59,19 @@ and vof_resolved_name_kind = function
   | EnumConstant -> OCaml.VSum ("EnumConstant", [])
   | TypeName -> OCaml.VSum ("TypeName", [])
   | ResolvedName (v1, v2) ->
-      let v1 = vof_dotted_ident v1 in
-      let v2 = OCaml.vof_list vof_dotted_ident v2 in
+      let v1 = vof_unique_name v1 in
+      let v2 = OCaml.vof_list vof_unique_name v2 in
       OCaml.VSum ("ResolvedName", [ v1; v2 ])
+
+and vof_unique_name { dotted; tok } =
+  let bnds = [] in
+  let arg = OCaml.vof_option (fun x -> vof_tok x) tok in
+  let bnd = ("tok", arg) in
+  let bnds = bnd :: bnds in
+  let arg = vof_dotted_ident dotted in
+  let bnd = ("dotted", arg) in
+  let bnds = bnd :: bnds in
+  OCaml.VDict bnds
 
 let rec vof_qualifier = function
   | QDots v1 ->

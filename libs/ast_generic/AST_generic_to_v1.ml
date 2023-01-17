@@ -110,7 +110,7 @@ and map_resolved_name_kind = function
   | Macro -> `OtherResolvedNameKind "Macro"
   | EnumConstant -> `OtherResolvedNameKind "EnumConstant"
   | TypeName -> `OtherResolvedNameKind "TypeName"
-  | ResolvedName (v1, _v2less) ->
+  | ResolvedName ({ dotted = v1; _ }, _v2less) ->
       let v1 = map_dotted_ident v1 in
       `ImportedEntity v1
 

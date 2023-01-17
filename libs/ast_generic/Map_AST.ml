@@ -98,6 +98,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let e = map_expr e in
         let t = map_tok t in
         QExpr (e, t)
+  and map_unique_name { dotted; tok } =
+    let v_dotted = map_dotted_ident dotted in
+    let v_tok = map_of_option map_tok tok in
+    { dotted = v_dotted; tok = v_tok }
   and map_module_name = function
     | FileName v1 ->
         let v1 = map_wrap map_of_string v1 in
@@ -124,8 +128,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | EnumConstant -> EnumConstant
     | TypeName -> TypeName
     | ResolvedName (v1, v2) ->
-        let v1 = map_dotted_ident v1 in
-        let v2 = map_of_list map_dotted_ident v2 in
+        let v1 = map_unique_name v1 in
+        let v2 = map_of_list map_unique_name v2 in
         ResolvedName (v1, v2)
   and map_name_info
       {

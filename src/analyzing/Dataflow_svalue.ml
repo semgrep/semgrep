@@ -54,7 +54,7 @@ let warning _tok s =
 
 let str_of_name name = spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
 
-let str_of_resolved_name name =
+let str_of_resolved_name { G.dotted = name; _ } =
   let name = Common.map fst name in
   String.concat "." name
 

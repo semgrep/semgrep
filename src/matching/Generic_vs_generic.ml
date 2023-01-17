@@ -458,8 +458,7 @@ let rec m_name a b =
   let try_alternate_names = function
     | B.ResolvedName (_, alternate_names) ->
         List.fold_left
-          (fun acc alternate_name ->
-            acc >||> m_name a (H.name_of_ids alternate_name))
+          (fun acc { B.dotted; _ } -> acc >||> m_name a (H.name_of_ids dotted))
           (fail ()) alternate_names
     | _ -> fail ()
   in
@@ -475,7 +474,7 @@ let rec m_name a b =
                    Some
                      ( (( B.ImportedEntity dotted
                         | B.ImportedModule (B.DottedName dotted)
-                        | B.ResolvedName (dotted, _) ) as resolved),
+                        | B.ResolvedName ({ dotted; _ }, _) ) as resolved),
                        _sid );
                };
              _;
@@ -518,8 +517,8 @@ let rec m_name a b =
                  {
                    contents =
                      Some
-                       ( ((B.ImportedEntity dotted | B.ResolvedName (dotted, _))
-                         as resolved),
+                       ( (( B.ImportedEntity dotted
+                          | B.ResolvedName ({ dotted; _ }, _) ) as resolved),
                          _sid );
                  };
                _;
@@ -572,7 +571,7 @@ let rec m_name a b =
                      Some
                        ( (( B.ImportedEntity dotted
                           | B.ImportedModule (B.DottedName dotted)
-                          | B.ResolvedName (dotted, _) ) as resolved),
+                          | B.ResolvedName ({ dotted; _ }, _) ) as resolved),
                          _sid );
                  };
                _;

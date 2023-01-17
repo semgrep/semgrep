@@ -303,7 +303,16 @@ and resolved_name_kind =
    * resolved_name, but we also want to match the pattern `foo.bar` so we will
    * store ['foo', 'bar'] as an alternate name.
    * *)
-  | ResolvedName of dotted_ident * dotted_ident list
+  | ResolvedName of unique_name * unique_name list
+
+(* This is not relevant for matching purposes.
+   `unique_name` is a record of all the information necessary to
+   disambiguate two `ResolvedName`s from each other.
+   In particular, two `ResolvedName`s may indicate two overloaded functions,
+   which are named the same. Then, we need to use the function signature information
+   to disambiguate them from each other.
+*)
+and unique_name = { dotted : dotted_ident; tok : tok option }
 [@@deriving show { with_path = false }, eq, hash]
 
 (* Start of big mutually recursive types because of the use of 'any'
@@ -365,7 +374,7 @@ and id_info = {
    * a typed entity, which can be interpreted as a TypedMetavar in semgrep.
    * alt: have an explicity type_ field in entity.
    *)
-  id_type : type_ option ref;
+  id_type : type_ option ref; [@equal fun _a _b -> true]
   (* type checker (typing) *)
   (* sgrep: this is for sgrep constant propagation hack.
    * todo? associate only with Id?
