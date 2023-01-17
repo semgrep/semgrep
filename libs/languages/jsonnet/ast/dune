@@ -1,0 +1,12 @@
+(library
+ (public_name parser_jsonnet.ast)
+ (name parser_jsonnet_ast)
+ (wrapped false)
+ (libraries
+   dyp
+
+   commons
+   pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show))
+)

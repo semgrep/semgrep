@@ -40,7 +40,7 @@
     ; experiments
     semgrep_synthesizing
     semgrep_api
-    ojsonnet_testing ; ojsonnet dumper
+    ojsonnet ; ojsonnet dumper
     otarzan
  )
 )
