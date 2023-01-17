@@ -1,0 +1,11 @@
+(library
+ (public_name parser_dockerfile.ast)
+ (name parser_dockerfile_ast)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_bash.ast
+ )
+ (preprocess (pps ppx_deriving.show))
+)
