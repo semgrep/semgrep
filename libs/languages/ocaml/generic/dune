@@ -3,8 +3,6 @@
  (name parser_ocaml_ast_generic)
  (wrapped false)
  (libraries
-   dyp
-
    commons
    pfff-h_program-lang
    parser_ocaml.ast

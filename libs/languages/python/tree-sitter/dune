@@ -3,8 +3,6 @@
  (name parser_python_tree_sitter)
  (wrapped false)
  (libraries
-   dyp
-
    commons
    pfff-h_program-lang
    parser_python.ast

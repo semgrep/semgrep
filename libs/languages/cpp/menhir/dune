@@ -1,12 +1,12 @@
 (library
- (public_name pfff-lang_cpp)
- (name pfff_lang_cpp)
+ (public_name parser_cpp.menhir)
+ (name parser_cpp_menhir)
  (wrapped false)
  (libraries
-   dyp
-
+   dyp; TODO should not need anymore, just for Dyp.syntax_error dead code
    commons
    pfff-h_program-lang
+   parser_cpp.ast
  )
  (preprocess (pps ppx_deriving.show))
 )
@@ -14,6 +14,7 @@
 (menhir (modules parser_cpp)
         (flags --unused-tokens --explain --fixed-exception))
 
+;old: dyp-based parser
 ; tree-sitter-cpp is probably better
 ;(rule
 ; (targets parser_cpp2.ml)

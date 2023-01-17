@@ -1,0 +1,13 @@
+(library
+ (public_name parser_cpp.tree_sitter)
+ (name parser_cpp_tree_sitter)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_cpp.ast
+   tree-sitter-lang.cpp
+   parser_cpp.menhir ; TODO: just for Parser_cpp_mly_helper.fixFunc, should move in ast_cpp_helpers.ml
+ )
+ (preprocess (pps ppx_deriving.show))
+)

@@ -1,6 +1,6 @@
 (library
- (public_name parser_java.ast)
- (name parser_java_ast)
+ (public_name parser_cpp.ast)
+ (name parser_cpp_ast)
  (wrapped false)
  (libraries
    commons
