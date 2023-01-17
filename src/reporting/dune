@@ -6,7 +6,7 @@
    yaml
    commons
    pfff-h_program-lang
-   pfff-lang_GENERIC pfff-lang_GENERIC-analyze
+   pfff-lang_GENERIC-analyze
 
    semgrep_core
 

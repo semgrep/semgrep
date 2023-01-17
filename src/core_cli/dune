@@ -13,11 +13,7 @@
     ; pfff deps
     commons
     pfff-h_program-lang
-    pfff-lang_ruby
-    pfff-lang_php
-
     ; tree-sitter deps
-    tree-sitter-lang.ruby
 
     process_limits
     ; we now also depends on spacegrep with full-rule-in-ocaml

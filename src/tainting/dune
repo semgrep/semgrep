@@ -3,7 +3,6 @@
  (name semgrep_tainting)
  (wrapped false)
  (libraries
-   pfff-lang_GENERIC
    pfff-lang_GENERIC-analyze
    semgrep_core
  )
