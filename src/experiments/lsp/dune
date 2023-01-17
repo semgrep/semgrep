@@ -9,6 +9,8 @@
    commons
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
+   parser_ocaml.menhir ; type_of_string
+   parser_ocaml.ast_generic ; for debugging output
 
    semgrep_core
  )
