@@ -1,0 +1,14 @@
+(library
+ (public_name parser_go.tree_sitter)
+ (name parser_go_tree_sitter)
+ (wrapped false)
+ (libraries
+   dyp
+
+   commons
+   pfff-h_program-lang
+   parser_go.ast
+   tree-sitter-lang.go
+ )
+ (preprocess (pps ppx_deriving.show))
+)
