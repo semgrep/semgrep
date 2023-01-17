@@ -1,6 +1,6 @@
 (library
- (public_name semgrep.fixing)
- (name semgrep_fixing)
+ (public_name semgrep.printing.tests)
+ (name semgrep_printing_tests)
  (wrapped false)
  (libraries
    commons

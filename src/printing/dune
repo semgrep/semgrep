@@ -1,10 +1,11 @@
 (library
- (public_name semgrep.ast.tests)
- (name semgrep_core_ast_tests)
+ (public_name semgrep.printing)
+ (name semgrep_printing)
  (wrapped false)
  (libraries
    commons
-   semgrep_parsing
+   ast_generic
+   semgrep.core ; Lang
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )

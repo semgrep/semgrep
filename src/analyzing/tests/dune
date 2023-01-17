@@ -1,13 +1,14 @@
 (library
- (public_name pfff-lang_GENERIC-analyze-tests)
- (name pfff_lang_GENERIC_analyze_tests)
+ (public_name semgrep.analyzing.tests)
+ (name semgrep_analyzing_tests)
  (wrapped false)
  (libraries
    dyp
 
    commons
    pfff-lang_GENERIC-naming
-   semgrep_core_il
+   semgrep.il
+   semgrep.printing
    pfff_lang_GENERIC_analyze
  )
  (preprocess

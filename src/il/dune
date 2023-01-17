@@ -10,7 +10,7 @@
    commons
    ograph ; TODO: should use ocamlgraph instead!
    pfff-h_program-lang
-   pfff-lang_GENERIC_base
+   ast_generic
  )
  (preprocess
    (pps
