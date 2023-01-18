@@ -539,7 +539,7 @@ rule initial = parse
       push_mode (ST_IN_XHP_TAG tag);
       T_XHP_OPEN_TAG(tag, tokinfo lexbuf)
     | _ ->
-      Parse_info.yyback (String.length tag) lexbuf;
+      Parsing_helpers.yyback (String.length tag) lexbuf;
       T_LESS_THAN(tokinfo lexbuf)
   }
 
@@ -575,7 +575,7 @@ rule initial = parse
       T_XHP_SHORT_FRAGMENT(tokinfo lexbuf)
 
     | _ ->
-      Parse_info.yyback 1 lexbuf;
+      Parsing_helpers.yyback 1 lexbuf;
       T_LESS_THAN(tokinfo lexbuf)
     }
 

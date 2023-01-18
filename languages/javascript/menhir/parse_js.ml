@@ -29,7 +29,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Error diagnostic  *)
 (*****************************************************************************)
-let error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
+let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 (*****************************************************************************)
 (* Helpers  *)
@@ -63,7 +63,7 @@ let put_back_lookahead_token_if_needed tr item_opt =
   | None -> ()
   | Some item ->
       let iis = Lib_parsing_js.ii_of_any (Ast.Program [ item ]) in
-      let current = tr.PI.current in
+      let current = tr.Parsing_helpers.current in
       let info = TH.info_of_tok current in
       (* bugfix: without test on is_origintok, the parser timeout
        * TODO: why?
@@ -77,8 +77,8 @@ let put_back_lookahead_token_if_needed tr item_opt =
          * cst_js.ml)
          *)
         logger#debug "putting back lookahead token %s" (Dumper.dump current);
-        tr.PI.rest <- current :: tr.PI.rest;
-        tr.PI.passed <- List.tl tr.PI.passed)
+        tr.Parsing_helpers.rest <- current :: tr.Parsing_helpers.rest;
+        tr.Parsing_helpers.passed <- List.tl tr.Parsing_helpers.passed)
 
 (*****************************************************************************)
 (* ASI (Automatic Semicolon Insertion) part 2 *)
@@ -107,7 +107,7 @@ let rec line_previous_tok xs =
       if TH.is_comment x then line_previous_tok xs else Some (TH.line_of_tok x)
 
 let asi_opportunity charpos last_charpos_error cur tr =
-  match tr.PI.passed with
+  match tr.Parsing_helpers.passed with
   | _ when charpos <= !last_charpos_error -> None
   | [] -> None
   (* see tests/js/parsing/asi_incr_bis.js *)
@@ -135,12 +135,12 @@ let asi_insert charpos last_charpos_error tr
   let toks =
     List.rev passed_after
     @ [ virtual_semi; passed_offending ]
-    @ passed_before @ tr.PI.rest
+    @ passed_before @ tr.Parsing_helpers.rest
   in
   (* like in Parse_info.mk_tokens_state *)
-  tr.PI.rest <- toks;
-  tr.PI.current <- List.hd toks;
-  tr.PI.passed <- [];
+  tr.Parsing_helpers.rest <- toks;
+  tr.Parsing_helpers.current <- List.hd toks;
+  tr.Parsing_helpers.passed <- [];
   (* try again!
    * This significantly slow-down parsing, especially on minimized
    * files. Indeed, minimizers put all the code inside a giant
@@ -172,7 +172,7 @@ let tokens file =
       Lexer_js._last_non_whitespace_like_token := Some tok;
     tok
   in
-  Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
     TH.is_eof
   [@@profiling]
 
@@ -187,7 +187,9 @@ let parse2 opt_timeout filename =
   let toks = Parsing_hacks_js.fix_tokens toks in
   let toks = Parsing_hacks_js.fix_tokens_ASI toks in
 
-  let tr, lexer, lexbuf_fake = PI.mk_lexer_for_yacc toks TH.is_comment in
+  let tr, lexer, lexbuf_fake =
+    Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
+  in
 
   let last_charpos_error = ref 0 in
 
@@ -207,7 +209,7 @@ let parse2 opt_timeout filename =
     with
     | Parsing.Parse_error -> (
         (* coupling: update also any_of_string if you modify the code below *)
-        let cur = tr.PI.current in
+        let cur = tr.Parsing_helpers.current in
         let info = TH.info_of_tok cur in
         let charpos = Parse_info.pos_of_info info in
 
@@ -223,9 +225,9 @@ let parse2 opt_timeout filename =
             parse_module_item_or_eof tr)
   in
   let rec aux tr =
-    let line_start = TH.line_of_tok tr.PI.current in
+    let line_start = TH.line_of_tok tr.Parsing_helpers.current in
     let res = parse_module_item_or_eof tr in
-    tr.PI.passed <- [];
+    tr.Parsing_helpers.passed <- [];
     (*
     let _passed = tr.PI.passed in
     let lines =
@@ -249,9 +251,9 @@ let parse2 opt_timeout filename =
         let max_line = Common.cat filename |> List.length in
         (if !Flag.show_parsing_error then
          let filelines = Common2.cat_array filename in
-         let cur = tr.PI.current in
+         let cur = tr.Parsing_helpers.current in
          let line_error = TH.line_of_tok cur in
-         PI.print_bad line_error
+         Parsing_helpers.print_bad line_error
            (line_start, min max_line (line_error + 10))
            filelines);
         if !Flag.error_recovery then (
@@ -312,14 +314,14 @@ let any_of_string s =
           let toks = Parsing_hacks_js.fix_tokens_ASI toks in
 
           let tr, lexer, lexbuf_fake =
-            PI.mk_lexer_for_yacc toks TH.is_comment
+            Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
           in
           let last_charpos_error = ref 0 in
 
           let rec parse_pattern tr =
             try Parser_js.sgrep_spatch_pattern lexer lexbuf_fake with
             | Parsing.Parse_error -> (
-                let cur = tr.PI.current in
+                let cur = tr.Parsing_helpers.current in
                 let info = TH.info_of_tok cur in
                 let charpos = Parse_info.pos_of_info info in
                 (* try Automatic Semicolon Insertion *)

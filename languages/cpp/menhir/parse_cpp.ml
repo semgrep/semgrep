@@ -42,7 +42,7 @@ let use_dypgen = false
 (* Error diagnostic *)
 (*****************************************************************************)
 
-let error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
+let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 (*****************************************************************************)
 (* Stats on what was passed/commentized  *)
@@ -100,8 +100,8 @@ let is_same_line_or_close line tok =
 
 (* called by parse below *)
 let tokens file =
-  Parse_info.tokenize_all_and_adjust_pos file Lexer.token TH.visitor_info_of_tok
-    TH.is_eof
+  Parsing_helpers.tokenize_all_and_adjust_pos file Lexer.token
+    TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 
 (*****************************************************************************)
@@ -214,6 +214,7 @@ let init_defs file =
 (*****************************************************************************)
 (* Helper for main entry point *)
 (*****************************************************************************)
+open Parsing_helpers
 
 (* Hacked lex. This function use refs passed by parse.
  * 'tr' means 'token refs'. This is used mostly to enable
@@ -223,14 +224,14 @@ let init_defs file =
  * now done in a fix_tokens style in parsing_hacks_typedef.ml.
  *)
 let rec lexer_function tr lexbuf =
-  match tr.PI.rest with
+  match tr.rest with
   | [] ->
       logger#error "LEXER: ALREADY AT END";
-      tr.PI.current
+      tr.current
   | v :: xs ->
-      tr.PI.rest <- xs;
-      tr.PI.current <- v;
-      tr.PI.passed <- v :: tr.PI.passed;
+      tr.rest <- xs;
+      tr.current <- v;
+      tr.passed <- v :: tr.passed;
 
       if !Flag.debug_lexer then pr2_gen v;
 
@@ -238,7 +239,7 @@ let rec lexer_function tr lexbuf =
 
 (* was a define ? *)
 let passed_a_define tr =
-  let xs = tr.PI.passed |> List.rev |> Common.exclude TH.is_comment in
+  let xs = tr.passed |> List.rev |> Common.exclude TH.is_comment in
   if List.length xs >= 2 then
     match Common2.head_middle_tail xs with
     | T.TDefine _, _, T.TCommentNewline_DefineEndOfMacro _ -> true
@@ -277,11 +278,11 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
         else toks_orig
   in
 
-  let tr = Parse_info.mk_tokens_state toks in
+  let tr = Parsing_helpers.mk_tokens_state toks in
   let lexbuf_fake = Lexing.from_function (fun _buf _n -> raise Impossible) in
 
   let rec loop () =
-    let info = TH.info_of_tok tr.PI.current in
+    let info = TH.info_of_tok tr.Parsing_helpers.current in
     (* todo?: I am not sure that it represents current_line, cos maybe
      * tr.current partipated in the previous parsing phase, so maybe tr.current
      * is not the first token of the next parsing phase. Same with checkpoint2.
@@ -295,7 +296,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
      *)
     let checkpoint_file = PI.file_of_info info in
 
-    tr.PI.passed <- [];
+    tr.passed <- [];
     (* for some statistics *)
     let was_define = ref false in
 
@@ -330,7 +331,9 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
       | exn ->
           let e = Exception.catch exn in
           if not !Flag.error_recovery then
-            raise (Parse_info.Parsing_error (TH.info_of_tok tr.PI.current));
+            raise
+              (Parse_info.Parsing_error
+                 (TH.info_of_tok tr.Parsing_helpers.current));
 
           (if !Flag.show_parsing_error then
            match exn with
@@ -340,15 +343,18 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
            | Dyp.Syntax_error
            (* menhir *)
            | Parser_cpp.Error ->
-               pr2 ("parse error \n = " ^ error_msg_tok tr.PI.current)
+               pr2
+                 ("parse error \n = " ^ error_msg_tok tr.Parsing_helpers.current)
            | Parse_info.Other_error (s, _i) ->
-               pr2 ("semantic error " ^ s ^ "\n =" ^ error_msg_tok tr.PI.current)
+               pr2
+                 ("semantic error " ^ s ^ "\n ="
+                 ^ error_msg_tok tr.Parsing_helpers.current)
            | _ -> Exception.reraise e);
 
-          let line_error = TH.line_of_tok tr.PI.current in
+          let line_error = TH.line_of_tok tr.Parsing_helpers.current in
 
           let pbline =
-            tr.PI.passed
+            tr.Parsing_helpers.passed
             |> List.filter (is_same_line_or_close line_error)
             |> List.filter TH.is_ident_like
           in
@@ -360,15 +366,16 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
 
           (*  error recovery, go to next synchro point *)
           let passed', rest' =
-            Parsing_recovery_cpp.find_next_synchro tr.PI.rest tr.PI.passed
+            Parsing_recovery_cpp.find_next_synchro tr.Parsing_helpers.rest
+              tr.Parsing_helpers.passed
           in
-          tr.PI.rest <- rest';
-          tr.PI.passed <- passed';
+          tr.Parsing_helpers.rest <- rest';
+          tr.Parsing_helpers.passed <- passed';
 
-          tr.PI.current <- List.hd passed';
+          tr.Parsing_helpers.current <- List.hd passed';
 
           (* <> line_error *)
-          let info = TH.info_of_tok tr.PI.current in
+          let info = TH.info_of_tok tr.Parsing_helpers.current in
           let checkpoint2 = PI.line_of_info info in
           let checkpoint2_file = PI.file_of_info info in
 
@@ -377,16 +384,20 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           else if
             (* bugfix: *)
             checkpoint_file = checkpoint2_file && checkpoint_file = file
-          then PI.print_bad line_error (checkpoint, checkpoint2) filelines
+          then
+            Parsing_helpers.print_bad line_error (checkpoint, checkpoint2)
+              filelines
           else pr2 "PB: bad: but on tokens not from original file";
 
-          let info_of_bads = Common2.map_eff_rev TH.info_of_tok tr.PI.passed in
+          let info_of_bads =
+            Common2.map_eff_rev TH.info_of_tok tr.Parsing_helpers.passed
+          in
 
           Some (X (D (Ast.NotParsedCorrectly info_of_bads)))
     in
 
     (* again not sure if checkpoint2 corresponds to end of bad region *)
-    let info = TH.info_of_tok tr.PI.current in
+    let info = TH.info_of_tok tr.Parsing_helpers.current in
     let checkpoint2 = PI.line_of_info info in
     let checkpoint2_file = PI.file_of_info info in
 
@@ -401,7 +412,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
        * the lines in the token from the correct file ?
        *)
     in
-    let info = List.rev tr.PI.passed in
+    let info = List.rev tr.Parsing_helpers.passed in
 
     (* some stat updates *)
     stat.PS.commentized <- stat.PS.commentized + count_lines_commentized info;
@@ -466,7 +477,7 @@ let any_of_string lang s =
                 else toks_orig
           in
 
-          let tr = Parse_info.mk_tokens_state toks in
+          let tr = Parsing_helpers.mk_tokens_state toks in
           let lexbuf_fake =
             Lexing.from_function (fun _buf _n -> raise Impossible)
           in

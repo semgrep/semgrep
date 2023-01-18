@@ -27,7 +27,7 @@ module PS = Parsing_stat
 (*****************************************************************************)
 (* Error diagnostic  *)
 (*****************************************************************************)
-let _error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
+let _error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 (*****************************************************************************)
 (* Lexing only *)
@@ -47,7 +47,7 @@ let tokens file =
     tok
   in
   (* set to false to parse correctly arrows *)
-  Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
     TH.is_eof
   [@@profiling]
 
@@ -76,11 +76,11 @@ let parse filename =
   with
   | PI.Parsing_error cur when !Flag.error_recovery && not !Flag.debug_parser ->
       if !Flag.show_parsing_error then (
-        pr2 ("parse error \n = " ^ Parse_info.error_message_info cur);
+        pr2 ("parse error \n = " ^ Parsing_helpers.error_message_info cur);
         let filelines = Common2.cat_array filename in
         let checkpoint2 = Common.cat filename |> List.length in
         let line_error = PI.line_of_info cur in
-        Parse_info.print_bad line_error (0, checkpoint2) filelines);
+        Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
       stat.PS.error_line_count <- stat.PS.total_line_count;
       { Parsing_result.ast = []; tokens = toks; stat }
   [@@profiling]

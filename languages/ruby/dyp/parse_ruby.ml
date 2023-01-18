@@ -40,7 +40,7 @@ module Utils = Utils_ruby
 (*****************************************************************************)
 (* Error diagnostic  *)
 (*****************************************************************************)
-let error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
+let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 (*****************************************************************************)
 (* Lexing only *)
@@ -54,7 +54,7 @@ let mk_lexer file chan =
   let lexbuf = Lexing.from_channel chan in
   let state = Lexer_parser_ruby.create ("top_lexer", Lexer_ruby.top_lexer) in
 
-  let table = Parse_info.full_charpos_to_pos_large file in
+  let table = Parsing_helpers.full_charpos_to_pos_large file in
 
   let adjust_info ii =
     {
@@ -64,7 +64,8 @@ let mk_lexer file chan =
         (match ii.PI.token with
         | PI.OriginTok pi -> (
             try
-              PI.OriginTok (PI.complete_token_location_large file table pi)
+              PI.OriginTok
+                (Parsing_helpers.complete_token_location_large file table pi)
             with
             | Invalid_argument "index out of bounds" ->
                 (* TODO: fix! *)
@@ -152,7 +153,7 @@ let parse2 opt_timeout file =
             let filelines = Common2.cat_array file in
             let checkpoint2 = Common.cat file |> List.length in
             let line_error = PI.line_of_info (TH.info_of_tok cur) in
-            Parse_info.print_bad line_error (0, checkpoint2) filelines);
+            Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
 
           stat.PS.error_line_count <- stat.PS.total_line_count;
           if exn = Parse_ruby_timeout then stat.PS.have_timeout <- true;

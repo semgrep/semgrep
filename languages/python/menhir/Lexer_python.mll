@@ -609,7 +609,7 @@ and fstring_single state pre = parse
  | ([^ '\\' '\r' '\n' '\'' '{'] | escapeseq2)*
     { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
  (* ugly: for raw-fstring *)
- | "\\{" { if pre =~ ".*[rR]" then Parse_info.yyback 1 lexbuf;
+ | "\\{" { if pre =~ ".*[rR]" then Parsing_helpers.yyback 1 lexbuf;
       FSTRING_STRING (tok lexbuf, tokinfo lexbuf)
     }
 
@@ -627,7 +627,7 @@ and fstring_double state pre = parse
  | ([^ '\\' '\r' '\n' '\"' '{'] | escapeseq2)*
     { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
  (* ugly: for raw-fstring *)
- | "\\{" { if pre =~ ".*[rR]" then Parse_info.yyback 1 lexbuf;
+ | "\\{" { if pre =~ ".*[rR]" then Parsing_helpers.yyback 1 lexbuf;
       FSTRING_STRING (tok lexbuf, tokinfo lexbuf)
     }
 
@@ -647,7 +647,7 @@ and fstring_triple_single state pre = parse
  | ([^ '\\' '{' '\''] | escapeseq2)*
     { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
  (* ugly: for raw-fstring *)
- | "\\{" { if pre =~ ".*[rR]" then Parse_info.yyback 1 lexbuf;
+ | "\\{" { if pre =~ ".*[rR]" then Parsing_helpers.yyback 1 lexbuf;
       FSTRING_STRING (tok lexbuf, tokinfo lexbuf)
     }
 
@@ -667,7 +667,7 @@ and fstring_triple_double state pre = parse
  | ([^ '\\' '{' '"'] | escapeseq2)*
     { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
  (* ugly: for raw-fstring *)
- | "\\{" { if pre =~ ".*[rR]" then Parse_info.yyback 1 lexbuf;
+ | "\\{" { if pre =~ ".*[rR]" then Parsing_helpers.yyback 1 lexbuf;
       FSTRING_STRING (tok lexbuf, tokinfo lexbuf)
     }
 

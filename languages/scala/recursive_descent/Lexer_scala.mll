@@ -475,7 +475,7 @@ rule token = parse
 and string buf = parse
   (* bugfix: you can have 4 or 5 in a row! only last 3 matters *)
   | "\"" "\"\"\"" {
-      Parse_info.yyback 3 lexbuf;
+      Parsing_helpers.yyback 3 lexbuf;
       Buffer.add_string buf (tok lexbuf);
       (* bugfix: this is not the end! We need to recurse with string() again *)
       string buf lexbuf
@@ -517,7 +517,7 @@ and in_interpolated_double = parse
 and in_interpolated_triple = parse
   (* bugfix: you can have 4 or 5 in a row! only last 3 matters *)
   | "\"" "\"\"\"" {
-      Parse_info.yyback 3 lexbuf;
+      Parsing_helpers.yyback 3 lexbuf;
       StringLiteral (tok lexbuf, tokinfo lexbuf)
   }
 

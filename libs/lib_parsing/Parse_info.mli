@@ -1,6 +1,7 @@
-(* TODO: this module should be split in 3 or 4, and especially we should have
- * a separate Tok.ml with all token related types.
+(* TODO: This module should be renamed to Tok.ml and maybe split with a Loc.ml
+ * and maybe a Parsing_error.ml ?
  *)
+
 (*****************************************************************************)
 (* Tokens *)
 (*****************************************************************************)
@@ -113,6 +114,9 @@ val register_exception_printer : unit -> unit
 (* Info accessors and builders *)
 (*****************************************************************************)
 
+val tokinfo : Lexing.lexbuf -> t
+val mk_info_of_loc : token_location -> t
+
 (* Fake tokens: safe vs unsafe
  * ---------------------------
  * "Safe" fake tokens require an existing location to attach to, and so
@@ -139,7 +143,6 @@ val fake_bracket : t -> 'a -> t * 'a * t
 val unbracket : t * 'a * t -> 'a
 val sc_loc : token_location -> t
 val sc : t -> t
-val mk_info_of_loc : token_location -> t
 val is_fake : t -> bool
 val first_loc_of_file : Common.filename -> token_location
 
@@ -163,28 +166,7 @@ val get_original_token_location : token_origin -> token_location
 val compare_pos : t -> t -> int
 val min_max_ii_by_pos : t list -> t * t
 
-(*****************************************************************************)
-(* Parsing stats *)
-(*****************************************************************************)
-(* now in Parsing_stat.ml *)
-
-(*****************************************************************************)
-(* Lexer helpers *)
-(*****************************************************************************)
-(* now in Parsing_helpers.ml *)
-
-(* lexer helpers *)
-type 'tok tokens_state = {
-  mutable rest : 'tok list;
-  mutable current : 'tok;
-  (* it's passed since last "checkpoint", not passed from the beginning *)
-  mutable passed : 'tok list;
-}
-
-val mk_tokens_state : 'tok list -> 'tok tokens_state
-val tokinfo : Lexing.lexbuf -> t
-val yyback : int -> Lexing.lexbuf -> unit
-
+(* TODO? could also be in Lexer helpers section *)
 (* can deprecate? *)
 val tokinfo_str_pos : string -> int -> t
 val rewrap_str : string -> t -> t
@@ -197,59 +179,12 @@ val combine_infos : t -> t list -> t
  * line, otherwise the line/col of the result might be wrong *)
 val split_info_at_pos : int -> t -> t * t
 
-(* to be used by the lexer *)
-val tokenize_all_and_adjust_pos :
-  Common.filename ->
-  (Lexing.lexbuf -> 'tok) ->
-  (* tokenizer *) ((t -> t) -> 'tok -> 'tok) ->
-  (* token visitor *) ('tok -> bool) ->
-  (* is_eof *) 'tok list
+(*****************************************************************************)
+(* Parsing stats *)
+(*****************************************************************************)
+(* now in Parsing_stat.ml *)
 
-val mk_lexer_for_yacc :
-  'tok list ->
-  ('tok -> bool) ->
-  (* is_comment *)
-  'tok tokens_state
-  * ((* token stream for error recovery *)
-     Lexing.lexbuf -> 'tok)
-  * (* the lexer to pass to the ocamlyacc parser *)
-    Lexing.lexbuf
-(* fake lexbuf needed by ocamlyacc API *)
-
-(* can deprecate? just use tokenize_all_and_adjust_pos *)
-(* f(i) will contain the (line x col) of the i char position *)
-val full_charpos_to_pos_large : Common.filename -> int -> int * int
-
-(* fill in the line and column field of token_location that were not set
- * during lexing because of limitations of ocamllex. *)
-(* fill in the line and column field of token_location that were not set
- * during lexing because of limitations of ocamllex. *)
-val complete_token_location_large :
-  Common.filename -> (int -> int * int) -> token_location -> token_location
-
-val fix_token_location :
-  (token_location -> token_location) -> token_mutable -> token_mutable
-(** Fix the location info in a token. *)
-
-val adjust_pinfo_wrt_base : token_location -> token_location -> token_location
-(** See [adjust_info_wrt_base]. *)
-
-(* Token locations are supposed to denote the beginning of a token.
-   Suppose we are interested in instead having line, column, and charpos of
-   the end of a token instead.
-   This is something we can do at relatively low cost by going through and inspecting
-   the contents of the token, plus the start information.
-*)
-val get_token_end_info : token_location -> int * int * int
-
-val adjust_info_wrt_base : token_location -> token_mutable -> token_mutable
-(** [adjust_info_wrt_base base_loc tok], where [tok] represents a location
-  * relative to [base_loc], returns the same [tok] but with an absolute
-  * {! token_location}. This is useful for fixing parse info after
-  * {! Common2.with_tmp_file}. E.g. if [base_loc] points to line 3, and
-  * [tok] points to line 2 (interpreted line 2 starting in line 3), then
-  * the adjusted token will point to line 4. *)
-
-val error_message : Common.filename -> string * int -> string
-val error_message_info : t -> string
-val print_bad : int -> int * int -> string array -> unit
+(*****************************************************************************)
+(* Lexer helpers *)
+(*****************************************************************************)
+(* now in Parsing_helpers.ml *)
