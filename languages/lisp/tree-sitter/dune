@@ -1,0 +1,12 @@
+(library
+ (public_name parser_lisp.tree_sitter)
+ (name parser_lisp_tree_sitter)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   tree-sitter-lang.clojure
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)
