@@ -17,6 +17,7 @@ open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_python
 module PI = Parse_info
+module PS = Parsing_stat
 module Lexer = Lexer_python
 module T = Parser_python
 
@@ -94,7 +95,7 @@ let tokens parsing_mode file =
 (*****************************************************************************)
 
 let rec parse_basic ?(parsing_mode = Python) filename =
-  let stat = Parse_info.default_stat filename in
+  let stat = Parsing_stat.default_stat filename in
 
   (* this can throw Parse_info.Lexical_error *)
   let toks = tokens parsing_mode filename in
@@ -112,7 +113,7 @@ let rec parse_basic ?(parsing_mode = Python) filename =
       Profiling.profile_code "Parser_python.main" (fun () ->
           Parser_python.main lexer lexbuf_fake)
     in
-    { Parse_info.ast = xs; tokens = toks; stat }
+    { Parsing_result.ast = xs; tokens = toks; stat }
   with
   | Parsing.Parse_error ->
       (* There are still lots of python2 code out there, it would be sad to
@@ -156,8 +157,8 @@ let rec parse_basic ?(parsing_mode = Python) filename =
           let checkpoint2 = Common.cat filename |> List.length in
           let line_error = PI.line_of_info (TH.info_of_tok cur) in
           Parse_info.print_bad line_error (0, checkpoint2) filelines);
-        stat.PI.error_line_count <- stat.PI.total_line_count;
-        { Parse_info.ast = []; tokens = toks; stat }
+        stat.PS.error_line_count <- stat.PS.total_line_count;
+        { Parsing_result.ast = []; tokens = toks; stat }
 
 let parse ?parsing_mode a =
   Profiling.profile_code "Parse_python.parse" (fun () ->
@@ -165,7 +166,7 @@ let parse ?parsing_mode a =
 
 let parse_program ?parsing_mode file =
   let res = parse ?parsing_mode file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 (*****************************************************************************)
 (* Sub parsers *)

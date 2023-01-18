@@ -18,6 +18,7 @@ module Flag = Flag_parsing
 module Ast = Ast_js
 module TH = Token_helpers_js
 module PI = Parse_info
+module PS = Parsing_stat
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -180,7 +181,7 @@ let tokens file =
 (*****************************************************************************)
 
 let parse2 opt_timeout filename =
-  let stat = PI.default_stat filename in
+  let stat = Parsing_stat.default_stat filename in
 
   let toks = tokens filename in
   let toks = Parsing_hacks_js.fix_tokens toks in
@@ -256,8 +257,8 @@ let parse2 opt_timeout filename =
         if !Flag.error_recovery then (
           (* todo? try to recover? call 'aux tr'? but then can be really slow*)
           (* TODO: count a bad line twice? use Hashtbl.length tech instead *)
-          stat.PI.error_line_count <-
-            stat.PI.error_line_count + (max_line - line_start);
+          stat.PS.error_line_count <-
+            stat.PS.error_line_count + (max_line - line_start);
           [])
         else raise (PI.Parsing_error (TH.info_of_tok err_tok))
   in
@@ -269,18 +270,18 @@ let parse2 opt_timeout filename =
     | Some res -> res
     | None ->
         if !Flag.show_parsing_error then pr2 (spf "TIMEOUT on %s" filename);
-        stat.PI.error_line_count <- stat.PI.total_line_count;
-        stat.PI.have_timeout <- true;
+        stat.PS.error_line_count <- stat.PS.total_line_count;
+        stat.PS.have_timeout <- true;
         []
   in
-  { PI.ast = items; tokens = toks; stat }
+  { Parsing_result.ast = items; tokens = toks; stat }
 
 let parse ?timeout a =
   Profiling.profile_code "Parse_js.parse" (fun () -> parse2 timeout a)
 
 let parse_program file =
   let res = parse file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 let parse_string (w : string) : Ast.a_program =
   Common2.with_tmp_file ~str:w ~ext:"js" parse_program

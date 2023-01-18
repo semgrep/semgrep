@@ -28,6 +28,7 @@
 open Common
 module Flag = Flag_parsing
 module PI = Parse_info
+module PS = Parsing_stat
 module TH = Token_helpers_ruby
 module HH = Parser_ruby_helpers
 module Utils = Utils_ruby
@@ -101,7 +102,7 @@ exception Parse_ruby_timeout
 (*****************************************************************************)
 
 let parse2 opt_timeout file =
-  let stat = Parse_info.default_stat file in
+  let stat = Parsing_stat.default_stat file in
 
   Common.with_open_infile file (fun chan ->
       let toks, lexbuf, lexer = mk_lexer file chan in
@@ -128,7 +129,7 @@ let parse2 opt_timeout file =
 
         let ast = List.hd l' in
         (*orig-todo? Ast.mod_ast (replace_heredoc state) ast*)
-        { PI.ast; tokens = List.rev !toks; stat }
+        { Parsing_result.ast; tokens = List.rev !toks; stat }
       with
       | (Dyp.Syntax_error | Failure _ | Stack.Empty | Parse_ruby_timeout) as exn
         ->
@@ -153,15 +154,15 @@ let parse2 opt_timeout file =
             let line_error = PI.line_of_info (TH.info_of_tok cur) in
             Parse_info.print_bad line_error (0, checkpoint2) filelines);
 
-          stat.PI.error_line_count <- stat.PI.total_line_count;
-          if exn = Parse_ruby_timeout then stat.PI.have_timeout <- true;
-          { PI.ast = []; tokens = List.rev !toks; stat })
+          stat.PS.error_line_count <- stat.PS.total_line_count;
+          if exn = Parse_ruby_timeout then stat.PS.have_timeout <- true;
+          { Parsing_result.ast = []; tokens = List.rev !toks; stat })
 
 let parse ?timeout file = parse2 timeout file
 
 let parse_program file =
   let res = parse file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 (* for semgrep *)
 let any_of_string ?timeout str =

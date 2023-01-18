@@ -15,10 +15,10 @@ let test_parse_c xs =
   List.iter (fun file ->
       (*k(); *)
       pr (spf "PARSING: %s" file);
-      let { Parse_info.stat; _ } = Parse_c.parse file in
+      let { Parsing_result.stat; _ } = Parse_c.parse file in
       Common.push stat stat_list);
-  Stat.print_recurring_problematic_tokens !stat_list;
-  Stat.print_parsing_stat_list !stat_list;
+  Parsing_stat.print_recurring_problematic_tokens !stat_list;
+  Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 
 let test_dump_c file =

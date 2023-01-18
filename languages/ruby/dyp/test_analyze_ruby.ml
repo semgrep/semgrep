@@ -1,6 +1,7 @@
 open Common
 module Flag = Flag_parsing
 module PI = Parse_info
+module PS = Parsing_stat
 
 (*****************************************************************************)
 (* Subsystem testing *)
@@ -22,7 +23,7 @@ let test_parse xs =
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
-             let stat = Parse_info.default_stat file in
+             let stat = Parsing_stat.default_stat file in
              let () =
                Common.save_excursion Flag.error_recovery true (fun () ->
                    Common.save_excursion Flag.exn_when_lexical_error false
@@ -34,18 +35,18 @@ let test_parse xs =
                        with
                        | exn ->
                            pr2 (Common.exn_to_s exn);
-                           stat.PI.error_line_count <- stat.PI.total_line_count))
+                           stat.PS.error_line_count <- stat.PS.total_line_count))
              in
              Common.push stat stat_list;
-             let s = spf "bad = %d" stat.PI.error_line_count in
-             if stat.PI.error_line_count = 0 then
+             let s = spf "bad = %d" stat.PS.error_line_count in
+             if stat.PS.error_line_count = 0 then
                Hashtbl.add newscore file Common2.Ok
              else Hashtbl.add newscore file (Common2.Pb s)));
   flush stdout;
   flush stderr;
 
-  Parse_info.print_parsing_stat_list !stat_list;
-  Parse_info.print_regression_information ~ext xs newscore;
+  Parsing_stat.print_parsing_stat_list !stat_list;
+  Parsing_stat.print_regression_information ~ext xs newscore;
   ()
 
 let test_dump file =

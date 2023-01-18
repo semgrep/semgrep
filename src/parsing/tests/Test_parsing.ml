@@ -14,6 +14,7 @@
  *)
 open Common
 module PI = Parse_info
+module PS = Parsing_stat
 module G = AST_generic
 module J = JSON
 module FT = File_type
@@ -268,14 +269,14 @@ let test_parse_tree_sitter lang root_paths =
                      failwith
                        (spf "lang %s not supported with tree-sitter"
                           (Lang.to_string lang)));
-                 PI.correct_stat file
+                 Parsing_stat.correct_stat file
                with
                | exn ->
                    print_exn file exn;
-                   PI.bad_stat file
+                   Parsing_stat.bad_stat file
              in
              Common.push stat stat_list));
-  Parse_info.print_parsing_stat_list !stat_list;
+  Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 
 (*****************************************************************************)
@@ -348,7 +349,8 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                          Parse_target.parse_and_resolve_name lang file))
                with
                | Some res -> res.Parse_target.stat
-               | None -> { (PI.bad_stat file) with have_timeout = true }
+               | None ->
+                   { (Parsing_stat.bad_stat file) with have_timeout = true }
              with
              | Time_limit.Timeout _ -> assert false
              | exn ->
@@ -357,10 +359,10 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                     Sys_error "Out of memory" when implemented naively,
                     and this exn in the exn handler was stopping the whole job.
                  *)
-                 PI.bad_stat file
+                 Parsing_stat.bad_stat file
            in
-           if verbose && stat.PI.error_line_count > 0 then
-             pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PI.filename);
+           if verbose && stat.PS.error_line_count > 0 then
+             pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PS.filename);
            stat)
   in
   (stats, skipped)
@@ -390,7 +392,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 let parse_project ~verbose lang name files_or_dirs =
   let stat_list, _skipped = parsing_common ~verbose lang files_or_dirs in
   let stat_list =
-    List.filter (fun stat -> not stat.PI.have_timeout) stat_list
+    List.filter (fun stat -> not stat.PS.have_timeout) stat_list
   in
   pr2
     (spf "%05.1fs: [%s] done parsing %s" (Sys.time ())
@@ -412,7 +414,7 @@ let update_parsing_rate (acc : Parsing_stats_t.project_stats) :
 (*
    Add things up for json reporting: file stats -> project stat
 *)
-let aggregate_file_stats (results : (string * PI.parsing_stat list) list) :
+let aggregate_file_stats (results : (string * Parsing_stat.t list) list) :
     Parsing_stats_t.project_stats list =
   Common.map
     (fun (project_name, file_stats) ->
@@ -428,7 +430,7 @@ let aggregate_file_stats (results : (string * PI.parsing_stat list) list) :
       in
       let acc =
         List.fold_left
-          (fun (acc : Parsing_stats_t.project_stats) (x : PI.parsing_stat) ->
+          (fun (acc : Parsing_stats_t.project_stats) (x : Parsing_stat.t) ->
             let success = x.error_line_count = 0 in
             {
               acc with
@@ -493,7 +495,7 @@ let parsing_stats ?(json = false) ?(verbose = false) lang project_dirs =
   if json then print_json lang stat_list
   else
     let flat_stat = List.concat_map snd stat_list in
-    Parse_info.print_parsing_stat_list flat_stat
+    Parsing_stat.print_parsing_stat_list flat_stat
 
 let parsing_regressions lang files_or_dirs =
   let _stat_list = parsing_common lang files_or_dirs in

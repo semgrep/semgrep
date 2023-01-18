@@ -15,6 +15,7 @@
 open Common
 module Flag = Flag_parsing
 module PI = Parse_info
+module PS = Parsing_stat
 module TH = Token_helpers_java
 
 (*****************************************************************************)
@@ -43,7 +44,7 @@ let tokens file =
 (* Main entry point *)
 (*****************************************************************************)
 let parse filename =
-  let stat = Parse_info.default_stat filename in
+  let stat = Parsing_stat.default_stat filename in
   let filelines = Common2.cat_array filename in
 
   let toks = tokens filename in
@@ -79,7 +80,7 @@ let parse filename =
   in
 
   match elems with
-  | Left xs -> { PI.ast = xs; tokens = toks; stat }
+  | Left xs -> { Parsing_result.ast = xs; tokens = toks; stat }
   | Right (_info_of_bads, line_error, cur) ->
       if not !Flag.error_recovery then
         raise (PI.Parsing_error (TH.info_of_tok cur));
@@ -90,13 +91,13 @@ let parse filename =
 
       if !Flag.show_parsing_error then
         Parse_info.print_bad line_error (checkpoint, checkpoint2) filelines;
-      stat.PI.error_line_count <- stat.PI.total_line_count;
-      { PI.ast = []; tokens = toks; stat }
+      stat.PS.error_line_count <- stat.PS.total_line_count;
+      { Parsing_result.ast = []; tokens = toks; stat }
   [@@profiling]
 
 let parse_program file =
   let res = parse file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 let parse_string (w : string) = Common2.with_tmp_file ~str:w ~ext:"java" parse
 

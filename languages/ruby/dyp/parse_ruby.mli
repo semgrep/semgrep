@@ -5,7 +5,7 @@
 val parse :
   ?timeout:float ->
   Common.filename ->
-  (Ast_ruby.program, Parser_ruby.token) Parse_info.parsing_result
+  (Ast_ruby.program, Parser_ruby.token) Parsing_result.t
 
 val parse_program : Common.filename -> Ast_ruby.program
 

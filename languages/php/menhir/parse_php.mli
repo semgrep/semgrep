@@ -2,7 +2,7 @@
 val parse :
   ?pp:string option ->
   Common.filename ->
-  (Cst_php.program, Parser_php.token) Parse_info.parsing_result
+  (Cst_php.program, Parser_php.token) Parsing_result.t
 
 val parse_program : ?pp:string option -> Common.filename -> Cst_php.program
 

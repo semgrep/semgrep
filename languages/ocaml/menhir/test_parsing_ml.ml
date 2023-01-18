@@ -30,12 +30,12 @@ let test_parse_ml_or_mli xs =
          List.iter (fun file ->
              k ();
 
-             let { Parse_info.stat; _ } =
+             let { Parsing_result.stat; _ } =
                Common.save_excursion Flag.error_recovery true (fun () ->
                    Parse_ml.parse file)
              in
              Common.push stat stat_list));
-  Parse_info.print_parsing_stat_list !stat_list;
+  Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 
 let test_show_ml file =

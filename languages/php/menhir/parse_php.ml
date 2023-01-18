@@ -18,6 +18,7 @@ module Flag = Flag_parsing
 module Flag_php = Flag_parsing_php
 module TH = Token_helpers_php
 module PI = Parse_info
+module PS = Parsing_stat
 
 (*****************************************************************************)
 (* Prelude *)
@@ -124,7 +125,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
                   tmpfile))
   in
 
-  let stat = PI.default_stat filename in
+  let stat = Parsing_stat.default_stat filename in
   let filelines = Common2.cat_array filename in
 
   let toks = tokens filename in
@@ -167,7 +168,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
   in
 
   match elems with
-  | Left xs -> { PI.ast = xs; tokens = toks; stat }
+  | Left xs -> { Parsing_result.ast = xs; tokens = toks; stat }
   | Right (info_of_bads, line_error, cur) ->
       if not !Flag.error_recovery then
         raise (PI.Parsing_error (TH.info_of_tok cur));
@@ -179,11 +180,11 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
       if !Flag.show_parsing_error then
         PI.print_bad line_error (checkpoint, checkpoint2) filelines;
       (* TODO: just count the skipped lines; Use Hashtbl.length strategy *)
-      stat.PI.error_line_count <- stat.PI.total_line_count;
+      stat.PS.error_line_count <- stat.PS.total_line_count;
 
       let info_item = List.rev tr.PI.passed in
       {
-        PI.ast = [ Ast.NotParsedCorrectly info_of_bads ];
+        Parsing_result.ast = [ Ast.NotParsedCorrectly info_of_bads ];
         tokens = info_item;
         stat;
       }
@@ -193,7 +194,7 @@ let parse ?pp a =
 
 let parse_program ?pp file =
   let res = parse ?pp file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 (*****************************************************************************)
 (* Sub parsers *)

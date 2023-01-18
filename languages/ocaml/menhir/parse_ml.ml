@@ -16,6 +16,7 @@ open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_ml
 module PI = Parse_info
+module PS = Parsing_stat
 
 (*****************************************************************************)
 (* Prelude *)
@@ -38,7 +39,7 @@ let tokens file =
 (* Main entry point *)
 (*****************************************************************************)
 let parse filename =
-  let stat = Parse_info.default_stat filename in
+  let stat = Parsing_stat.default_stat filename in
   let toks = tokens filename in
 
   let tr, lexer, lexbuf_fake =
@@ -54,7 +55,7 @@ let parse filename =
           if filename =~ ".*\\.mli" then Parser_ml.interface lexer lexbuf_fake
           else Parser_ml.implementation lexer lexbuf_fake)
     in
-    { PI.ast = xs; tokens = toks; stat }
+    { Parsing_result.ast = xs; tokens = toks; stat }
   with
   | Parsing.Parse_error ->
       let cur = tr.PI.current in
@@ -68,13 +69,13 @@ let parse filename =
         let line_error = TH.line_of_tok cur in
         Parse_info.print_bad line_error (0, checkpoint2) filelines);
 
-      stat.PI.error_line_count <- stat.PI.total_line_count;
-      { PI.ast = []; tokens = toks; stat }
+      stat.PS.error_line_count <- stat.PS.total_line_count;
+      { Parsing_result.ast = []; tokens = toks; stat }
   [@@profiling]
 
 let parse_program file =
   let res = parse file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 (*****************************************************************************)
 (* Sub parsers *)

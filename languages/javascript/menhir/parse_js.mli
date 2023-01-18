@@ -5,7 +5,7 @@
 val parse :
   ?timeout:float ->
   Common.filename ->
-  (Ast_js.a_program, Parser_js.token) Parse_info.parsing_result
+  (Ast_js.a_program, Parser_js.token) Parsing_result.t
 
 val parse_program : Common.filename -> Ast_js.a_program
 val parse_string : string -> Ast_js.a_program

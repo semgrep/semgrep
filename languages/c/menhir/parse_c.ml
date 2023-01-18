@@ -28,7 +28,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 let parse file =
-  let { PI.ast; tokens; stat } =
+  let { Parsing_result.ast; tokens; stat } =
     Parse_cpp.parse_with_lang ~lang:Flag_parsing_cpp.C file
   in
   (* less: merge stat? *)
@@ -41,11 +41,11 @@ let parse file =
         (*None, { stat with Stat.bad = stat.Stat.bad + stat.Stat.correct } *)
         Exception.reraise e
   in
-  { Parse_info.ast; tokens; stat }
+  { Parsing_result.ast; tokens; stat }
 
 let parse_program file =
   let res = parse file in
-  res.Parse_info.ast
+  res.Parsing_result.ast
 
 let any_of_string str =
   let any = Parse_cpp.any_of_string Flag_parsing_cpp.C str in

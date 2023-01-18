@@ -15,7 +15,7 @@
 open Common
 module Flag = Flag_parsing
 module PI = Parse_info
-module Stat = Parse_info
+module PS = Parsing_stat
 module FT = File_type
 module Ast = Ast_cpp
 module Flag_cpp = Flag_parsing_cpp
@@ -259,8 +259,8 @@ let passed_a_define tr =
  * It uses the _defs global defined above!!!!
  *)
 let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
-    (Ast.program, T.token) PI.parsing_result =
-  let stat = Parse_info.default_stat file in
+    (Ast.program, T.token) Parsing_result.t =
+  let stat = Parsing_stat.default_stat file in
   let filelines = Common2.cat_array file in
 
   (* -------------------------------------------------- *)
@@ -356,8 +356,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
             ( pbline |> List.map (fun tok -> PI.str_of_info (TH.info_of_tok tok)),
               line_error )
           in
-          stat.Stat.problematic_lines <-
-            error_info :: stat.Stat.problematic_lines;
+          stat.PS.problematic_lines <- error_info :: stat.PS.problematic_lines;
 
           (*  error recovery, go to next synchro point *)
           let passed', rest' =
@@ -405,16 +404,15 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
     let info = List.rev tr.PI.passed in
 
     (* some stat updates *)
-    stat.Stat.commentized <-
-      stat.Stat.commentized + count_lines_commentized info;
+    stat.PS.commentized <- stat.PS.commentized + count_lines_commentized info;
     (match elem with
     | Some (Ast.X (Ast.D (Ast.NotParsedCorrectly _xs))) ->
         (* todo: could count same line multiple times! use Hashtbl.add
          * and a simple Hashtbl.length at the end to add in error_line_count
          *)
         if !was_define && !Flag_cpp.filter_define_error then
-          stat.Stat.commentized <- stat.Stat.commentized + diffline
-        else stat.Stat.error_line_count <- stat.Stat.error_line_count + diffline
+          stat.PS.commentized <- stat.PS.commentized + diffline
+        else stat.PS.error_line_count <- stat.PS.error_line_count + diffline
     | _ -> ());
 
     match elem with
@@ -424,9 +422,9 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
   let xs = loop () in
   let ast = xs |> List.map fst in
   let tokens = xs |> List.map snd |> List.flatten in
-  { PI.ast; tokens; stat }
+  { Parsing_result.ast; tokens; stat }
 
-let parse2 file : (Ast.program, T.token) PI.parsing_result =
+let parse2 file : (Ast.program, T.token) Parsing_result.t =
   match File_type.file_type_of_file file with
   | FT.PL (FT.C _) -> (
       try parse_with_lang ~lang:Flag_cpp.C file with
@@ -434,20 +432,20 @@ let parse2 file : (Ast.program, T.token) PI.parsing_result =
   | FT.PL (FT.Cplusplus _) -> parse_with_lang ~lang:Flag_cpp.Cplusplus file
   | _ -> failwith (spf "not a C/C++ file: %s" file)
 
-let parse file : (Ast.program, T.token) PI.parsing_result =
+let parse file : (Ast.program, T.token) Parsing_result.t =
   Profiling.profile_code "Parse_cpp.parse" (fun () ->
       try parse2 file with
       | Stack_overflow ->
           logger#error "PB stack overflow in %s" file;
           {
-            PI.ast = [];
+            Parsing_result.ast = [];
             tokens = [];
-            stat = { (Stat.bad_stat file) with Stat.have_timeout = true };
+            stat = { (PS.bad_stat file) with PS.have_timeout = true };
           })
 
 let parse_program file =
   let res = parse file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 (*****************************************************************************)
 (* Sub parsers *)

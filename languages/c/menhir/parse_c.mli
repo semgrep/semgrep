@@ -2,7 +2,7 @@
  * so this function may return a different program given the same input
  *)
 val parse :
-  Common.filename -> (Ast_c.program, Parser_cpp.token) Parse_info.parsing_result
+  Common.filename -> (Ast_c.program, Parser_cpp.token) Parsing_result.t
 
 val parse_program : Common.filename -> Ast_c.program
 

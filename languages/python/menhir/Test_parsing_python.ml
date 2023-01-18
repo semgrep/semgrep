@@ -1,4 +1,5 @@
 open Common
+module PS = Parsing_stat
 module Flag = Flag_parsing
 
 (*****************************************************************************)
@@ -36,18 +37,18 @@ let test_parse_python_common parsing_mode xs =
          List.iter (fun file ->
              k ();
 
-             let { Parse_info.stat; _ } =
+             let { Parsing_result.stat; _ } =
                Common.save_excursion Flag.error_recovery true (fun () ->
                    Common.save_excursion Flag.exn_when_lexical_error false
                      (fun () -> Parse_python.parse ~parsing_mode file))
              in
              Common.push stat stat_list;
-             let s = spf "bad = %d" stat.Parse_info.error_line_count in
-             if stat.Parse_info.error_line_count = 0 then
+             let s = spf "bad = %d" stat.PS.error_line_count in
+             if stat.PS.error_line_count = 0 then
                Hashtbl.add newscore file Common2.Ok
              else Hashtbl.add newscore file (Common2.Pb s)));
-  Parse_info.print_parsing_stat_list !stat_list;
-  Parse_info.print_regression_information ~ext xs newscore;
+  Parsing_stat.print_parsing_stat_list !stat_list;
+  Parsing_stat.print_regression_information ~ext xs newscore;
   ()
 
 let test_dump_python file =

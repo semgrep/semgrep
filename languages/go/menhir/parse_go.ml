@@ -65,7 +65,11 @@ let parse filename =
       Profiling.profile_code "Parser_go.file" (fun () ->
           Parser_go.file lexer lexbuf_fake)
     in
-    { PI.ast = xs; tokens = toks_orig; stat = PI.correct_stat filename }
+    {
+      Parsing_result.ast = xs;
+      tokens = toks_orig;
+      stat = Parsing_stat.correct_stat filename;
+    }
   with
   | Parsing.Parse_error ->
       let cur = tr.PI.current in
@@ -78,12 +82,16 @@ let parse filename =
         let checkpoint2 = Common.cat filename |> List.length in
         let line_error = PI.line_of_info (TH.info_of_tok cur) in
         Parse_info.print_bad line_error (0, checkpoint2) filelines);
-      { PI.ast = []; tokens = toks_orig; stat = PI.bad_stat filename }
+      {
+        Parsing_result.ast = [];
+        tokens = toks_orig;
+        stat = Parsing_stat.bad_stat filename;
+      }
   [@@profiling]
 
 let parse_program file =
   let res = parse file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 (*****************************************************************************)
 (* Sub parsers *)

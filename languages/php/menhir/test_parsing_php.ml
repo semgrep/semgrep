@@ -1,6 +1,7 @@
 (*s: test_parsing_php.ml *)
 open Common
 module Flag = Flag_parsing
+module PS = Parsing_stat
 
 (*****************************************************************************)
 (* Lexing/Parsing *)
@@ -45,21 +46,21 @@ let test_parse_php xs =
          List.iter (fun file ->
              k ();
 
-             let { Parse_info.stat; _ } =
+             let { Parsing_result.stat; _ } =
                Common.save_excursion Flag.error_recovery true (fun () ->
                    Parse_php.parse file)
              in
              Common.push stat stat_list;
              (*s: add stat for regression testing in hash *)
-             let s = spf "bad = %d" stat.Parse_info.error_line_count in
-             if stat.Parse_info.error_line_count = 0 then
+             let s = spf "bad = %d" stat.PS.error_line_count in
+             if stat.PS.error_line_count = 0 then
                Hashtbl.add newscore file Common2.Ok
              else Hashtbl.add newscore file (Common2.Pb s)
              (*e: add stat for regression testing in hash *)));
 
-  Parse_info.print_parsing_stat_list !stat_list;
+  Parsing_stat.print_parsing_stat_list !stat_list;
   (*s: print regression testing results *)
-  Parse_info.print_regression_information ~ext:"php" xs newscore;
+  Parsing_stat.print_regression_information ~ext:"php" xs newscore;
   ()
 (*e: print regression testing results *)
 (*e: test_parse_php *)

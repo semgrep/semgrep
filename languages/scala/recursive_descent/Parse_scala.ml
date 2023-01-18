@@ -16,6 +16,7 @@ open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_scala
 module PI = Parse_info
+module PS = Parsing_stat
 
 (*****************************************************************************)
 (* Prelude *)
@@ -54,7 +55,7 @@ let tokens file =
 (* Main entry point *)
 (*****************************************************************************)
 let parse filename =
-  let stat = Parse_info.default_stat filename in
+  let stat = Parsing_stat.default_stat filename in
   let toks = tokens filename in
 
   (*
@@ -71,7 +72,7 @@ let parse filename =
     in
     *)
     let xs = Parser_scala_recursive_descent.parse toks in
-    { PI.ast = xs; tokens = toks; stat }
+    { Parsing_result.ast = xs; tokens = toks; stat }
   with
   | PI.Parsing_error cur when !Flag.error_recovery && not !Flag.debug_parser ->
       if !Flag.show_parsing_error then (
@@ -80,13 +81,13 @@ let parse filename =
         let checkpoint2 = Common.cat filename |> List.length in
         let line_error = PI.line_of_info cur in
         Parse_info.print_bad line_error (0, checkpoint2) filelines);
-      stat.PI.error_line_count <- stat.PI.total_line_count;
-      { PI.ast = []; tokens = toks; stat }
+      stat.PS.error_line_count <- stat.PS.total_line_count;
+      { Parsing_result.ast = []; tokens = toks; stat }
   [@@profiling]
 
 let parse_program file =
   let res = parse file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 (*****************************************************************************)
 (* Sub parsers *)
