@@ -170,10 +170,9 @@ let should_match_call = function
   | G.Self
   | G.Parent
   (* JS `require("fs")` *)
-  | G.Require ->
+  | G.Require
+  | G.Eval ->
       true
-  (* TODO Eval should probably be allowed to match *)
-  | G.Eval
   | G.Typeof
   | G.Instanceof
   | G.Sizeof
