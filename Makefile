@@ -417,7 +417,7 @@ check_for_emacs:
 #
 .PHONY: dev
 dev:
-	$(MAKE) all
+	$(MAKE) semgrep-core
 	rm -f cli/src/semgrep/bin/semgrep-core
 	ln -s ../../../../bin/semgrep-core \
 	  cli/src/semgrep/bin/semgrep-core
