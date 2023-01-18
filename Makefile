@@ -336,11 +336,11 @@ dump:
 .PHONY: perf-matching
 perf-matching:
 	@echo "--- default settings ---"
-	cd ./perf-matching && ./run-perf-suite
+	cd ./perf/perf-matching && ./run-perf-suite
 	@echo "--- no caching ---"
-	cd ./perf-matching && ./run-perf-suite --no-cache
+	cd ./perf/perf-matching && ./run-perf-suite --no-cache
 	@echo "--- maximum caching ---"
-	cd ./perf-matching && ./run-perf-suite --max-cache
+	cd ./perf/perf-matching && ./run-perf-suite --max-cache
 
 # Run matching performance tests and post them to the semgrep dashboard
 # at https://dashboard.semgrep.dev/
@@ -349,7 +349,7 @@ perf-matching:
 #
 .PHONY: report-perf-matching
 report-perf-matching:
-	cd ./perf-matching && ./run-perf-suite --upload
+	cd ./perf/perf-matching && ./run-perf-suite --upload
 
 ###############################################################################
 # Dogfood!
