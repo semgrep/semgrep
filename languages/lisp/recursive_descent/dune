@@ -1,0 +1,13 @@
+(library
+ (public_name parser_lisp.recursive_descent)
+ (name parser_lisp_recursive_descent)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_lisp.ast
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
+)
+(ocamllex lexer_lisp)
+;(ocamlyacc parser_lisp)

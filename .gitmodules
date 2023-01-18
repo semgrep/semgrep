@@ -95,5 +95,5 @@
 	path = languages/jsonnet/tree-sitter/semgrep-jsonnet
 	url = https://github.com/returntocorp/semgrep-jsonnet.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-clojure"]
-	path = languages/tree-sitter-lang/semgrep-clojure
+	path = languages/lisp/tree-sitter/semgrep-clojure
 	url = https://github.com/returntocorp/semgrep-clojure.git
