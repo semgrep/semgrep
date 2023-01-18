@@ -28,7 +28,6 @@
 
     ; experiments
     semgrep.synthesizing
-    semgrep.api
     ojsonnet ; ojsonnet dumper
     otarzan
  )
