@@ -1,3 +1,6 @@
+"""
+This module provides a series of helpful utilities for writing lockfile parsers
+"""
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
@@ -16,6 +19,7 @@ from typing import Union
 from parsy import alt
 from parsy import fail
 from parsy import line_info
+from parsy import line_info_at
 from parsy import ParseError
 from parsy import Parser
 from parsy import regex
@@ -38,6 +42,10 @@ Pos = Tuple[int, int]
 
 
 def not_any(chars: List[str]) -> "Parser[str]":
+    """
+    [chars] must contain only single character strings.
+    A parser which matches a series of any character that is *not* in [chars] and returns a string
+    """
     return regex(f"[^{escape(''.join(chars))}]+")
 
 
@@ -62,18 +70,35 @@ line_number = line_info.map(lambda t: t[0] + 1)
 
 
 def mark_line(p: "Parser[A]") -> "Parser[Tuple[int,A]]":
+    """
+    Returns a parser which gets the current line number, runs [p] and then produces a pair of the line number and the result of [p]
+    """
     return line_number.bind(lambda line: p.bind(lambda x: success((line, x))))
 
 
-def any_str(strs: List[str]) -> "Parser[str]":
-    return alt(*(string(s) for s in strs))
-
-
 def pair(p1: "Parser[A]", p2: "Parser[B]") -> "Parser[Tuple[A,B]]":
+    """
+    Returns a parser which runs [p1] then [p2] and produces a pair of the results
+    """
     return p1.bind(lambda a: p2.bind(lambda b: success((a, b))))
 
 
 def transitivity(manifest_deps: Optional[Set[A]], dep_sources: List[A]) -> Transitivity:
+    """
+    Computes the transitivity of a package, based on the set of dependencies from a manifest file
+    [manifest_deps] can be None in the case where we did not find a manifest file
+    [dep_sources] is a list to account for yarn lockfiles, where a package comes with a list of
+    all the version constraints that produced it, and it's possible to have one package installed
+    at multiple versions
+    In other cases [dep_sources] should just be a list with one element.
+
+    If dealing with a yarn.lock:
+      [manifest_deps] will be something like {("foo",">=1.0.0),("bar",">2.1.3")}
+      [dep_sources] will be something like [("foo",">=1.0.0"),("foo",">3.1.1")]
+    Otherwise:
+      [manifest_deps] will be something like {"foo","bar"}
+      [dep_sources] will be something like ["foo"]
+    """
     if manifest_deps:
         for dep_source in dep_sources:
             if dep_source in manifest_deps:
@@ -85,17 +110,30 @@ def transitivity(manifest_deps: Optional[Set[A]], dep_sources: List[A]) -> Trans
 
 def become(p1: "Parser[A]", p2: "Parser[A]") -> None:
     """
-    Take on the behavior of the given parser.
+    Gives [p1] the behavior of [p2] by side effect.
+    Typed version of the [become] method on "forward delaration" parsers from Parsy.
+    You can use this if you need to declare a parser for use in some mutual recursion,
+    and then give it an actual definition after delaring other parsers that use it
     """
     p1.__dict__ = p2.__dict__
     p1.__class__ = p2.__class__
 
 
 def delay(p: Callable[[], "Parser[A]"]) -> "Parser[A]":
+    """
+    For use when defining (mutually) recursive functions that return parsers. See yarn.py for an example.
+    Basically if you have some mutually recursive functions that produce parsers, evaluating one of
+    them can cause an infinite loop, even if running the parser would actually not. This lets you
+    write an expression [delay(lambda: p(args))], which will immediately terminate, but will evaluate
+    p(args) by one step when the parser actually runs.
+    """
     return Parser(lambda x, y: p()(x, y))
 
 
 def quoted(p: "Parser[A]") -> "Parser[A]":
+    """
+    Parse [p], surrounded by quotes, ignoring the quotes in the output
+    """
     return string('"') >> p << string('"')
 
 
@@ -109,6 +147,15 @@ consume_line = line >> success(None)
 def upto(
     s: List[str], include_other: bool = False, consume_other: bool = False
 ) -> "Parser[str]":
+    """
+    [s] must be a list of single character strings. These should be all the possible delimiters
+    you wanto to parse "up to"
+    Useful when defining parsers in terms of delimiters
+    Returns a parser which parses anything not in [s], and produces a string of those chars.
+    [include_other] will parse the delimiter and append it to the result
+    [consume_other] will parse the delimiter and throw it out
+    Only one should be used, if you use both behavior is undefined
+    """
     if include_other:
         return not_any(s).bind(
             lambda x: alt(*(string(x) for x in s)).map(lambda y: x + y)
@@ -119,18 +166,41 @@ def upto(
         return not_any(s)
 
 
+def parse_error_to_str(e: ParseError) -> str:
+    """
+    Stolen from the __str__ method of ParseError in Parsy,
+    but without the line information included at the end of the string
+    """
+    expected_list = sorted(e.expected)
+
+    if len(expected_list) == 1:
+        return f"expected {expected_list[0]}"
+    else:
+        return f"expected one of {', '.join(expected_list)}"
+
+
 def safe_path_parse(path: Optional[Path], parser: "Parser[A]") -> Optional[A]:
+    """
+    Run [parser] on the text in [path]
+    If the parsing fails, produces a pretty error message
+    """
     if not path:
         return None
-    with open(path) as f:
-        try:
-            return parser.parse(f.read())
-        except ParseError as e:
-            logger.error(f"Failed to parse {path} with exception {e}")
-            return None
+    text = path.read_text()
+    try:
+        return parser.parse(text)
+    except ParseError as e:
+        line, col = line_info_at(e.stream, e.index)
+        line_prefix = f"{line + 1} | "
+        logger.error(
+            f"Failed to parse {path}: {parse_error_to_str(e)}\n{line_prefix + text.splitlines()[line]}\n{' ' * (col + len(line_prefix))}^"
+        )
+        return None
 
 
-#### JSON Parser, adapted from parsy example ####
+# A parser for JSON, using a line_number annotated JSON type. This is adapted from an example in the Parsy repo.
+# It is almost identical except for the addition of types, line number tracking, and some minor renaming
+# https://github.com/python-parsy/parsy/blob/master/examples/json.py
 
 
 @dataclass
