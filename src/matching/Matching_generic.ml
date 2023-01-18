@@ -81,6 +81,7 @@ type tin = {
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
   config : Config_semgrep.t;
+  deref_sym_vals : int;
 }
 
 (* list of possible outcoming matching environments *)
@@ -357,7 +358,14 @@ let empty_environment ?(mvar_context = None) opt_cache lang config =
     | Some bindings ->
         { full_env = bindings; min_env = []; last_stmt_backrefs = Set_.empty }
   in
-  { mv; stmts_match_span = Empty; cache = opt_cache; lang; config }
+  {
+    mv;
+    stmts_match_span = Empty;
+    cache = opt_cache;
+    lang;
+    config;
+    deref_sym_vals = 0;
+  }
 
 (*****************************************************************************)
 (* Helpers *)

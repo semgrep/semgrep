@@ -386,14 +386,23 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
       in
       b |> sub_fun |> aux)
 
-let m_with_symbolic_propagation ~is_root f b =
-  if_config
+(* In Match_patterns.match_rules_and_recurse we create a new env for each attempt
+ * at matching a "mini-rule" against a sub-AST, so this bound doesn't need to be
+ * large. Our test suite only needs it to be >= 3 to pass! *)
+let max_NESTED_SYMBOLIC_PROPAGATION = 50
+
+let m_with_symbolic_propagation ~is_root f b tin =
+  if
     (* If we are not at the root, then we permit recursing into substituted values. *)
-      (fun x ->
-      x.Config.constant_propagation && x.Config.symbolic_propagation
-      && not is_root)
-    ~then_:
-      (match b.G.e with
+    tin.config.Config.constant_propagation
+    && tin.config.Config.symbolic_propagation && not is_root
+  then
+    (* In the past, naming bugs have introduced circular references causing
+     * infinite loops, and not all are caught by the defensive check `b1 == b`
+     * below. We enforce a bound just to make sure that we never hang due to
+     * one of these bugs. *)
+    if tin.deref_sym_vals < max_NESTED_SYMBOLIC_PROPAGATION then
+      match b.G.e with
       | G.N (G.Id ((id, _), { id_svalue = { contents = Some (G.Sym b1) }; _ }))
         ->
           (* We shouldn't end up with a symbol that resolves to itself, but if
@@ -406,14 +415,19 @@ let m_with_symbolic_propagation ~is_root f b =
            *
            * nosemgrep *)
           if b1 == b then (
-            logger#warning
+            logger#error
               "Aborting symbolic propagation: Circular reference encountered \
                (\"%s\")"
               id;
-            fail ())
-          else f b1
-      | ___else___ -> fail ())
-    ~else_:(fail ())
+            fail () tin)
+          else f b1 { tin with deref_sym_vals = tin.deref_sym_vals + 1 }
+      | ___else___ -> fail () tin
+    else (
+      logger#error
+        "Aborting symbolic propagation: a bug in Semgrep may be causing an \
+         infinite loop";
+      fail () tin)
+  else fail () tin
 
 (* Match regexp matching options such as 'i' in '/a*/i' *)
 let m_regexp_options a_opt b_opt =
