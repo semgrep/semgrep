@@ -78,7 +78,7 @@ let get_printer lang external_printer :
 let original_source_of_ast source any =
   let* start, end_ = Visitor_AST.range_of_any_opt any in
   let starti = start.Parse_info.charpos in
-  let _, _, endi = Parse_info.get_token_end_info end_ in
+  let _, _, endi = Parsing_helpers.get_token_end_info end_ in
   let len = endi - starti in
   let str = String.sub source starti len in
   Some str

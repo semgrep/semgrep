@@ -17,6 +17,7 @@ open Common
 open Parser_lisp
 open Ast_lisp
 module PI = Parse_info
+module PS = Parsing_stat
 
 (* we don't need a full grammar for lisp code, so we put everything,
  * the token type, the helper in parser_ml. No token_helpers_lisp.ml
@@ -49,7 +50,7 @@ type program_and_tokens = Ast_lisp.program option * Parser_lisp.token list
  *)
 let tokens file =
   let token = Lexer_lisp.token in
-  Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
     TH.is_eof
   [@@profiling]
 
@@ -115,7 +116,7 @@ and sexp toks =
 (*****************************************************************************)
 
 let parse filename =
-  let stat = Parse_info.default_stat filename in
+  let stat = Parsing_stat.default_stat filename in
   let toks_orig = tokens filename in
 
   let toks = toks_orig |> Common.exclude TH.is_comment in
@@ -131,7 +132,7 @@ let parse filename =
         pr2
           (spf "Parse error: %s, {%s} at %s" s (PI.str_of_info info)
              (PI.string_of_info info));
-        stat.PI.error_line_count <- stat.PI.total_line_count;
+        stat.PS.error_line_count <- stat.PS.total_line_count;
         None
     | exn -> Exception.catch_and_reraise exn
   in

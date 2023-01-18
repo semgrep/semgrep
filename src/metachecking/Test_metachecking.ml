@@ -111,5 +111,5 @@ let test_rules ?(unit_testing = false) xs =
              total_mismatch := !total_mismatch + num_errors;
              if unit_testing then Alcotest.fail msg);
   if not unit_testing then
-    Parse_info.print_regression_information ~ext xs newscore;
+    Parsing_stat.print_regression_information ~ext xs newscore;
   pr2 (spf "total mismatch: %d" !total_mismatch)

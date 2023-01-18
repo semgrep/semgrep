@@ -15,6 +15,7 @@
 open Common
 module Flag = Flag_parsing
 module PI = Parse_info
+module PS = Parsing_stat
 module TH = Token_helpers_java
 
 (*****************************************************************************)
@@ -27,7 +28,7 @@ module TH = Token_helpers_java
 (*****************************************************************************)
 (* Error diagnostic *)
 (*****************************************************************************)
-let error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
+let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 (*****************************************************************************)
 (* Lexing only *)
@@ -35,7 +36,7 @@ let error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
 
 let tokens file =
   let token = Lexer_java.token in
-  Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
     TH.is_eof
   [@@profiling]
 
@@ -43,17 +44,17 @@ let tokens file =
 (* Main entry point *)
 (*****************************************************************************)
 let parse filename =
-  let stat = Parse_info.default_stat filename in
+  let stat = Parsing_stat.default_stat filename in
   let filelines = Common2.cat_array filename in
 
   let toks = tokens filename in
   let toks = Parsing_hacks_java.fix_tokens toks in
 
   let tr, lexer, lexbuf_fake =
-    Parse_info.mk_lexer_for_yacc toks TH.is_comment
+    Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
   in
 
-  let checkpoint = TH.line_of_tok tr.PI.current in
+  let checkpoint = TH.line_of_tok tr.Parsing_helpers.current in
 
   let elems =
     try
@@ -65,21 +66,23 @@ let parse filename =
              Parser_java.goal lexer lexbuf_fake))
     with
     | Parsing.Parse_error ->
-        let line_error = TH.line_of_tok tr.PI.current in
+        let line_error = TH.line_of_tok tr.Parsing_helpers.current in
 
-        let _passed_before_error = tr.PI.passed in
-        let current = tr.PI.current in
+        let _passed_before_error = tr.Parsing_helpers.passed in
+        let current = tr.Parsing_helpers.current in
 
         (* no error recovery, the whole file is discarded *)
-        tr.PI.passed <- List.rev toks;
+        tr.Parsing_helpers.passed <- List.rev toks;
 
-        let info_of_bads = Common2.map_eff_rev TH.info_of_tok tr.PI.passed in
+        let info_of_bads =
+          Common2.map_eff_rev TH.info_of_tok tr.Parsing_helpers.passed
+        in
 
         Right (info_of_bads, line_error, current)
   in
 
   match elems with
-  | Left xs -> { PI.ast = xs; tokens = toks; stat }
+  | Left xs -> { Parsing_result.ast = xs; tokens = toks; stat }
   | Right (_info_of_bads, line_error, cur) ->
       if not !Flag.error_recovery then
         raise (PI.Parsing_error (TH.info_of_tok cur));
@@ -89,14 +92,14 @@ let parse filename =
       let checkpoint2 = Common.cat filename |> List.length in
 
       if !Flag.show_parsing_error then
-        Parse_info.print_bad line_error (checkpoint, checkpoint2) filelines;
-      stat.PI.error_line_count <- stat.PI.total_line_count;
-      { PI.ast = []; tokens = toks; stat }
+        Parsing_helpers.print_bad line_error (checkpoint, checkpoint2) filelines;
+      stat.PS.error_line_count <- stat.PS.total_line_count;
+      { Parsing_result.ast = []; tokens = toks; stat }
   [@@profiling]
 
 let parse_program file =
   let res = parse file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 let parse_string (w : string) = Common2.with_tmp_file ~str:w ~ext:"java" parse
 
@@ -111,6 +114,6 @@ let any_of_string s =
           let toks = tokens file in
           let toks = Parsing_hacks_java.fix_tokens toks in
           let _tr, lexer, lexbuf_fake =
-            PI.mk_lexer_for_yacc toks TH.is_comment
+            Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
           in
           Parser_java.semgrep_pattern lexer lexbuf_fake))

@@ -1339,5 +1339,5 @@ let mk_fix_token_locations fix =
               s with
               s_range = Option.map (fun (x, y) -> (fix x, fix y)) s.s_range;
             });
-      kinfo = (fun (_, _) t -> Parse_info.fix_token_location fix t);
+      kinfo = (fun (_, _) t -> Parsing_helpers.fix_token_location fix t);
     }

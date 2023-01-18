@@ -17,6 +17,7 @@ open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_python
 module PI = Parse_info
+module PS = Parsing_stat
 module Lexer = Lexer_python
 module T = Parser_python
 
@@ -37,7 +38,7 @@ type parsing_mode =
 (*****************************************************************************)
 (* Error diagnostic  *)
 (*****************************************************************************)
-let error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
+let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 (*****************************************************************************)
 (* Lexing only *)
@@ -85,7 +86,7 @@ let tokens parsing_mode file =
         Parse_info.lexical_error s lexbuf;
         T.EOF (Parse_info.tokinfo lexbuf)
   in
-  Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
     TH.is_eof
   [@@profiling]
 
@@ -94,14 +95,14 @@ let tokens parsing_mode file =
 (*****************************************************************************)
 
 let rec parse_basic ?(parsing_mode = Python) filename =
-  let stat = Parse_info.default_stat filename in
+  let stat = Parsing_stat.default_stat filename in
 
   (* this can throw Parse_info.Lexical_error *)
   let toks = tokens parsing_mode filename in
   let toks = Parsing_hacks_python.fix_tokens toks in
 
   let tr, lexer, lexbuf_fake =
-    Parse_info.mk_lexer_for_yacc toks TH.is_comment
+    Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
   in
 
   try
@@ -112,7 +113,7 @@ let rec parse_basic ?(parsing_mode = Python) filename =
       Profiling.profile_code "Parser_python.main" (fun () ->
           Parser_python.main lexer lexbuf_fake)
     in
-    { Parse_info.ast = xs; tokens = toks; stat }
+    { Parsing_result.ast = xs; tokens = toks; stat }
   with
   | Parsing.Parse_error ->
       (* There are still lots of python2 code out there, it would be sad to
@@ -129,7 +130,7 @@ let rec parse_basic ?(parsing_mode = Python) filename =
        *)
       if
         parsing_mode = Python
-        && tr.PI.passed |> Common.take_safe 10
+        && tr.Parsing_helpers.passed |> Common.take_safe 10
            |> List.exists (function
                 | T.NAME (("print" | "exec"), _)
                 | T.ASYNC _
@@ -145,7 +146,7 @@ let rec parse_basic ?(parsing_mode = Python) filename =
          * transform those tokens here *)
         parse_basic ~parsing_mode:Python2 filename
       else
-        let cur = tr.PI.current in
+        let cur = tr.Parsing_helpers.current in
         if not !Flag.error_recovery then
           raise (PI.Parsing_error (TH.info_of_tok cur));
 
@@ -155,9 +156,9 @@ let rec parse_basic ?(parsing_mode = Python) filename =
           let filelines = Common2.cat_array filename in
           let checkpoint2 = Common.cat filename |> List.length in
           let line_error = PI.line_of_info (TH.info_of_tok cur) in
-          Parse_info.print_bad line_error (0, checkpoint2) filelines);
-        stat.PI.error_line_count <- stat.PI.total_line_count;
-        { Parse_info.ast = []; tokens = toks; stat }
+          Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
+        stat.PS.error_line_count <- stat.PS.total_line_count;
+        { Parsing_result.ast = []; tokens = toks; stat }
 
 let parse ?parsing_mode a =
   Profiling.profile_code "Parse_python.parse" (fun () ->
@@ -165,7 +166,7 @@ let parse ?parsing_mode a =
 
 let parse_program ?parsing_mode file =
   let res = parse ?parsing_mode file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 (*****************************************************************************)
 (* Sub parsers *)
@@ -193,7 +194,7 @@ let any_of_string ?(parsing_mode = Python) s =
           let toks = tokens parsing_mode file in
           let toks = Parsing_hacks_python.fix_tokens toks in
           let _tr, lexer, lexbuf_fake =
-            PI.mk_lexer_for_yacc toks TH.is_comment
+            Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
           in
           (* -------------------------------------------------- *)
           (* Call parser *)

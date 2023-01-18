@@ -1,6 +1,6 @@
 (* This is the main function. See flag_parsing_ml for settings. *)
 val parse :
-  Common.filename -> (Ast_ml.program, Parser_ml.token) Parse_info.parsing_result
+  Common.filename -> (Ast_ml.program, Parser_ml.token) Parsing_result.t
 
 val parse_program : Common.filename -> Ast_ml.program
 

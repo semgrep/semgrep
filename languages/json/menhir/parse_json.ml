@@ -18,16 +18,18 @@ module PI = Parse_info
 module TH = Token_helpers_js
 module Flag = Flag_parsing
 
-let error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
+let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 let parse_program filename =
   let toks = tokens filename in
   (* need need parsing hacks fix I think *)
-  let tr, lexer, lexbuf_fake = PI.mk_lexer_for_yacc toks TH.is_comment in
+  let tr, lexer, lexbuf_fake =
+    Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
+  in
 
   try Parser_js.json lexer lexbuf_fake with
   | Parsing.Parse_error ->
-      let cur = tr.PI.current in
+      let cur = tr.Parsing_helpers.current in
       if !Flag.show_parsing_error then
         pr2 ("parse error \n = " ^ error_msg_tok cur);
       raise (PI.Parsing_error (TH.info_of_tok cur))
@@ -37,7 +39,7 @@ let any_of_string str =
       Common2.with_tmp_file ~str ~ext:"json" (fun file ->
           let toks = tokens file in
           let _tr, lexer, lexbuf_fake =
-            PI.mk_lexer_for_yacc toks TH.is_comment
+            Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
           in
           (* bugfix: currently Parser_js.sgrep_spatch_pattern does not
            * recognize full expression as a start, it uses

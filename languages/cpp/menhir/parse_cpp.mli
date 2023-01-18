@@ -3,15 +3,14 @@
  * Flag_parsing_cpp.error_recovery is set.
  *)
 val parse :
-  Common.filename ->
-  (Ast_cpp.program, Parser_cpp.token) Parse_info.parsing_result
+  Common.filename -> (Ast_cpp.program, Parser_cpp.token) Parsing_result.t
 
 val parse_program : Common.filename -> Ast_cpp.program
 
 val parse_with_lang :
   ?lang:Flag_parsing_cpp.language ->
   Common.filename ->
-  (Ast_cpp.program, Parser_cpp.token) Parse_info.parsing_result
+  (Ast_cpp.program, Parser_cpp.token) Parsing_result.t
 
 (* other parsers *)
 val any_of_string : Flag_parsing_cpp.language -> string -> Ast_cpp.any

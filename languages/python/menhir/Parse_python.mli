@@ -11,7 +11,7 @@ type parsing_mode =
 val parse :
   ?parsing_mode:parsing_mode (* default mode is Python *) ->
   Common.filename ->
-  (AST_python.program, Parser_python.token) Parse_info.parsing_result
+  (AST_python.program, Parser_python.token) Parsing_result.t
 
 val parse_program :
   ?parsing_mode:parsing_mode -> Common.filename -> AST_python.program

@@ -16,6 +16,7 @@ open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_ml
 module PI = Parse_info
+module PS = Parsing_stat
 
 (*****************************************************************************)
 (* Prelude *)
@@ -23,14 +24,14 @@ module PI = Parse_info
 (*****************************************************************************)
 (* Error diagnostic  *)
 (*****************************************************************************)
-let error_msg_tok tok = Parse_info.error_message_info (TH.info_of_tok tok)
+let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 (*****************************************************************************)
 (* Lexing only *)
 (*****************************************************************************)
 let tokens file =
   let token = Lexer_ml.token in
-  Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
     TH.is_eof
   [@@profiling]
 
@@ -38,11 +39,11 @@ let tokens file =
 (* Main entry point *)
 (*****************************************************************************)
 let parse filename =
-  let stat = Parse_info.default_stat filename in
+  let stat = Parsing_stat.default_stat filename in
   let toks = tokens filename in
 
   let tr, lexer, lexbuf_fake =
-    Parse_info.mk_lexer_for_yacc toks TH.is_comment
+    Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
   in
 
   try
@@ -54,10 +55,10 @@ let parse filename =
           if filename =~ ".*\\.mli" then Parser_ml.interface lexer lexbuf_fake
           else Parser_ml.implementation lexer lexbuf_fake)
     in
-    { PI.ast = xs; tokens = toks; stat }
+    { Parsing_result.ast = xs; tokens = toks; stat }
   with
   | Parsing.Parse_error ->
-      let cur = tr.PI.current in
+      let cur = tr.Parsing_helpers.current in
       if not !Flag.error_recovery then
         raise (PI.Parsing_error (TH.info_of_tok cur));
 
@@ -66,15 +67,15 @@ let parse filename =
         let filelines = Common2.cat_array filename in
         let checkpoint2 = Common.cat filename |> List.length in
         let line_error = TH.line_of_tok cur in
-        Parse_info.print_bad line_error (0, checkpoint2) filelines);
+        Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
 
-      stat.PI.error_line_count <- stat.PI.total_line_count;
-      { PI.ast = []; tokens = toks; stat }
+      stat.PS.error_line_count <- stat.PS.total_line_count;
+      { Parsing_result.ast = []; tokens = toks; stat }
   [@@profiling]
 
 let parse_program file =
   let res = parse file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 (*****************************************************************************)
 (* Sub parsers *)
@@ -94,7 +95,7 @@ let any_of_string s =
       Common2.with_tmp_file ~str:s ~ext:"ml" (fun file ->
           let toks = tokens file in
           let _tr, lexer, lexbuf_fake =
-            PI.mk_lexer_for_yacc toks TH.is_comment
+            Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
           in
           (* -------------------------------------------------- *)
           (* Call parser *)

@@ -40,7 +40,7 @@ type parsing_result = {
   ast : AST_generic.program;
   (* partial errors tree-sitter was able to recover from *)
   skipped_tokens : PI.token_location list;
-  stat : Parse_info.parsing_stat;
+  stat : Parsing_stat.t;
 }
 
 (*****************************************************************************)
@@ -48,12 +48,12 @@ type parsing_result = {
 (*****************************************************************************)
 
 type 'ast parser =
-  | Pfff of (Common.filename -> 'ast * Parse_info.parsing_stat)
+  | Pfff of (Common.filename -> 'ast * Parsing_stat.t)
   | TreeSitter of (Common.filename -> 'ast Tree_sitter_run.Parsing_result.t)
 
 type 'ast internal_result =
-  | Ok of ('ast * Parse_info.parsing_stat)
-  | Partial of 'ast * PI.token_location list * Parse_info.parsing_stat
+  | Ok of ('ast * Parsing_stat.t)
+  | Partial of 'ast * PI.token_location list * Parsing_stat.t
   | Error of Exception.t
 
 let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
@@ -86,7 +86,7 @@ let errors_from_skipped_tokens xs =
 
 let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
   {
-    Parse_info.filename = file;
+    Parsing_stat.filename = file;
     total_line_count = stat.total_line_count;
     error_line_count = stat.error_line_count;
     have_timeout = false;
@@ -220,7 +220,7 @@ let run_external_parser file
 
 let throw_tokens f file =
   let res = f file in
-  (res.PI.ast, res.PI.stat)
+  (res.Parsing_result.ast, res.Parsing_result.stat)
 
 let lang_to_python_parsing_mode = function
   | Lang.Python -> Parse_python.Python
@@ -325,7 +325,7 @@ let rec just_parse_with_lang lang file =
         [
           Pfff
             (fun file ->
-              (Parse_json.parse_program file, Parse_info.correct_stat file));
+              (Parse_json.parse_program file, Parsing_stat.correct_stat file));
         ]
         Json_to_generic.program
   | Lang.Jsonnet -> failwith "Jsonnet is not supported yet"
@@ -375,7 +375,7 @@ let rec just_parse_with_lang lang file =
       {
         ast = Yaml_to_generic.program file;
         skipped_tokens = [];
-        stat = Parse_info.default_stat file;
+        stat = Parsing_stat.default_stat file;
       }
   | Lang.Html ->
       (* less: there is an html parser in pfff too we could use as backup *)

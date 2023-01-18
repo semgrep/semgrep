@@ -1,7 +1,7 @@
 open Common
 module PI = Parse_info
+module PS = Parsing_stat
 module Flag = Flag_parsing
-module Stat = Parse_info
 module Flag_cpp = Flag_parsing_cpp
 
 (*****************************************************************************)
@@ -39,23 +39,23 @@ let test_parse_cpp ?lang xs =
                            | None -> Parse_cpp.parse file
                            | Some lang -> Parse_cpp.parse_with_lang ~lang file
                          in
-                         res.PI.stat))
+                         res.Parsing_result.stat))
                with
                | exn ->
                    (* TODO: be more strict, List.hd failure, Stack overflow *)
                    pr2 (spf "PB on %s, exn = %s" file (Common.exn_to_s exn));
-                   PI.bad_stat file
+                   Parsing_stat.bad_stat file
              in
              Common.push stat stat_list;
 
-             let s = spf "bad = %d" stat.Stat.error_line_count in
-             if stat.Stat.error_line_count = 0 then
+             let s = spf "bad = %d" stat.PS.error_line_count in
+             if stat.PS.error_line_count = 0 then
                Hashtbl.add newscore file Common2.Ok
              else Hashtbl.add newscore file (Common2.Pb s)));
 
-  Stat.print_recurring_problematic_tokens !stat_list;
-  Stat.print_parsing_stat_list !stat_list;
-  Stat.print_regression_information ~ext:"cpp" xs newscore;
+  Parsing_stat.print_recurring_problematic_tokens !stat_list;
+  Parsing_stat.print_parsing_stat_list !stat_list;
+  Parsing_stat.print_regression_information ~ext:"cpp" xs newscore;
 
   (* TODO: restore layer generation for errors
      (match xs with

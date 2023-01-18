@@ -71,7 +71,7 @@ let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
   try
     let mini, maxi = PI.min_max_ii_by_pos ii in
     let end_line, _, _ =
-      PI.get_token_end_info (PI.unsafe_token_location_of_info maxi)
+      Parsing_helpers.get_token_end_info (PI.unsafe_token_location_of_info maxi)
     in
     let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
     let prefix = spf "%s:%d" file line in

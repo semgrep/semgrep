@@ -300,7 +300,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
   in
   let print_summary () =
     if not unit_testing then
-      Parse_info.print_regression_information ~ext xs newscore;
+      Parsing_stat.print_regression_information ~ext xs newscore;
     pr2 (spf "total mismatch: %d" !total_mismatch)
   in
   (tests, print_summary)

@@ -33,12 +33,12 @@ let test_parse xs =
              logger#info "processing %s" file;
              k ();
 
-             let { Parse_info.stat; _ } =
+             let { Parsing_result.stat; _ } =
                Common.save_excursion Flag.error_recovery true (fun () ->
                    Parse_scala.parse file)
              in
              Common.push stat stat_list));
-  Parse_info.print_parsing_stat_list !stat_list;
+  Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 
 let test_dump file =

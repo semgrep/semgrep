@@ -18,6 +18,7 @@ module Flag = Flag_parsing
 module Flag_php = Flag_parsing_php
 module TH = Token_helpers_php
 module PI = Parse_info
+module PS = Parsing_stat
 
 (*****************************************************************************)
 (* Prelude *)
@@ -33,7 +34,7 @@ module PI = Parse_info
 (*****************************************************************************)
 (* Error diagnostic  *)
 (*****************************************************************************)
-let error_msg_tok tok = PI.error_message_info (TH.info_of_tok tok)
+let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 (*****************************************************************************)
 (* Lexing only *)
@@ -68,7 +69,7 @@ let tokens2 ?(init_state = Lexer_php.INITIAL) file =
       Lexer_php._last_non_whitespace_like_token := Some tok;
     tok
   in
-  Parse_info.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
     TH.is_eof
 
 let tokens ?init_state a =
@@ -124,7 +125,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
                   tmpfile))
   in
 
-  let stat = PI.default_stat filename in
+  let stat = Parsing_stat.default_stat filename in
   let filelines = Common2.cat_array filename in
 
   let toks = tokens filename in
@@ -139,9 +140,11 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
   in
   let toks = Parsing_hacks_php.fix_tokens toks in
 
-  let tr, lexer, lexbuf_fake = Parse_info.mk_lexer_for_yacc toks is_comment in
+  let tr, lexer, lexbuf_fake =
+    Parsing_helpers.mk_lexer_for_yacc toks is_comment
+  in
 
-  let checkpoint = TH.line_of_tok tr.PI.current in
+  let checkpoint = TH.line_of_tok tr.Parsing_helpers.current in
 
   let elems =
     try
@@ -153,21 +156,23 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
              Parser_php.main lexer lexbuf_fake))
     with
     | Parsing.Parse_error ->
-        let line_error = TH.line_of_tok tr.PI.current in
+        let line_error = TH.line_of_tok tr.Parsing_helpers.current in
 
-        let _passed_before_error = tr.PI.passed in
-        let current = tr.PI.current in
+        let _passed_before_error = tr.Parsing_helpers.passed in
+        let current = tr.Parsing_helpers.current in
 
         (* no error recovery, the whole file is discarded *)
-        tr.PI.passed <- List.rev toks;
+        tr.Parsing_helpers.passed <- List.rev toks;
 
-        let info_of_bads = Common2.map_eff_rev TH.info_of_tok tr.PI.passed in
+        let info_of_bads =
+          Common2.map_eff_rev TH.info_of_tok tr.Parsing_helpers.passed
+        in
 
         Right (info_of_bads, line_error, current)
   in
 
   match elems with
-  | Left xs -> { PI.ast = xs; tokens = toks; stat }
+  | Left xs -> { Parsing_result.ast = xs; tokens = toks; stat }
   | Right (info_of_bads, line_error, cur) ->
       if not !Flag.error_recovery then
         raise (PI.Parsing_error (TH.info_of_tok cur));
@@ -177,13 +182,13 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
       let checkpoint2 = Common.cat filename |> List.length in
 
       if !Flag.show_parsing_error then
-        PI.print_bad line_error (checkpoint, checkpoint2) filelines;
+        Parsing_helpers.print_bad line_error (checkpoint, checkpoint2) filelines;
       (* TODO: just count the skipped lines; Use Hashtbl.length strategy *)
-      stat.PI.error_line_count <- stat.PI.total_line_count;
+      stat.PS.error_line_count <- stat.PS.total_line_count;
 
-      let info_item = List.rev tr.PI.passed in
+      let info_item = List.rev tr.Parsing_helpers.passed in
       {
-        PI.ast = [ Ast.NotParsedCorrectly info_of_bads ];
+        Parsing_result.ast = [ Ast.NotParsedCorrectly info_of_bads ];
         tokens = info_item;
         stat;
       }
@@ -193,7 +198,7 @@ let parse ?pp a =
 
 let parse_program ?pp file =
   let res = parse ?pp file in
-  res.PI.ast
+  res.Parsing_result.ast
 
 (*****************************************************************************)
 (* Sub parsers *)
@@ -204,7 +209,9 @@ let any_of_string s =
       Common2.with_tmp_file ~str:s ~ext:"java" (fun file ->
           let toks = tokens ~init_state:Lexer_php.ST_IN_SCRIPTING file in
           let toks = Parsing_hacks_php.fix_tokens toks in
-          let _tr, lexer, lexbuf_fake = PI.mk_lexer_for_yacc toks is_comment in
+          let _tr, lexer, lexbuf_fake =
+            Parsing_helpers.mk_lexer_for_yacc toks is_comment
+          in
           Parser_php.semgrep_pattern lexer lexbuf_fake))
 
 (*

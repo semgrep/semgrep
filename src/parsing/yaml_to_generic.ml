@@ -571,7 +571,7 @@ let mask_unicode str =
 let parse_yaml_file ~is_target file str =
   (* we do not preprocess the yaml here; ellipsis should be transformed
    * only in the pattern *)
-  let charpos_to_pos = Some (Parse_info.full_charpos_to_pos_large file) in
+  let charpos_to_pos = Some (Parsing_helpers.full_charpos_to_pos_large file) in
   let parser = get_res file (S.parser str) in
   let env =
     {

@@ -1,5 +1,5 @@
-(*s: test_analyze_php.ml *)
 open Common
+module PS = Parsing_stat
 
 (*****************************************************************************)
 (* Helpers *)
@@ -24,16 +24,16 @@ let test_parse_simple xs =
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
-             let { Parse_info.stat; ast = cst; _ } =
+             let { Parsing_result.stat; ast = cst; _ } =
                Common.save_excursion Flag_parsing.error_recovery true (fun () ->
                    Parse_php.parse file)
              in
              Common.push stat stat_list;
-             if stat.Parse_info.error_line_count = 0 then
+             if stat.PS.error_line_count = 0 then
                try_with_print_exn_and_reraise file (fun () ->
                    let _ast = Ast_php_build.program cst in
                    ())));
-  Parse_info.print_parsing_stat_list !stat_list;
+  Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 
 let test_dump_simple file =
@@ -487,5 +487,3 @@ let actions () =
   Arg_helpers.mk_action_1_arg test_php_serialize;
 *);
   ]
-
-(*e: test_analyze_php.ml *)
