@@ -8,7 +8,7 @@ type tin = {
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
   config : Config_semgrep.t;
-  followed_sym_vals : int ref;
+  deref_sym_vals : int;
       (** Counts the number of times that we "follow" symbollically propagated
     * values. This is bound to prevent potential infinite loops. *)
 }

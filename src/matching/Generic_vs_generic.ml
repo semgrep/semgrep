@@ -389,7 +389,7 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
 (* In Match_patterns.match_rules_and_recurse we create a new env for each attempt
  * at matching a "mini-rule" against a sub-AST, so this bound doesn't need to be
  * large. Our test suite only needs it to be >= 3 to pass! *)
-let max_SYMBOLIC_PROPAGATION = 100
+let max_NESTED_SYMBOLIC_PROPAGATION = 50
 
 let m_with_symbolic_propagation ~is_root f b tin =
   if
@@ -401,7 +401,7 @@ let m_with_symbolic_propagation ~is_root f b tin =
      * infinite loops, and not all are caught by the defensive check `b1 == b`
      * below. We enforce a bound just to make sure that we never hang due to
      * one of these bugs. *)
-    if !(tin.followed_sym_vals) < max_SYMBOLIC_PROPAGATION then
+    if tin.deref_sym_vals < max_NESTED_SYMBOLIC_PROPAGATION then
       match b.G.e with
       | G.N (G.Id ((id, _), { id_svalue = { contents = Some (G.Sym b1) }; _ }))
         ->
@@ -420,9 +420,7 @@ let m_with_symbolic_propagation ~is_root f b tin =
                (\"%s\")"
               id;
             fail () tin)
-          else (
-            incr tin.followed_sym_vals;
-            f b1 tin)
+          else f b1 { tin with deref_sym_vals = tin.deref_sym_vals + 1 }
       | ___else___ -> fail () tin
     else (
       logger#error
