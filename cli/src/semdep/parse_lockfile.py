@@ -37,6 +37,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
+from semdep.parsers.poetry import parse_poetry
+
 
 def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
     """
@@ -505,51 +507,6 @@ def parse_gradle(
     yield from (dep for dep in deps if dep)
 
 
-def parse_poetry(
-    lockfile_text: str, manifest_text: Optional[str]
-) -> Generator[FoundDependency, None, None]:
-    # poetry.lock files are not quite valid TOML >:(
-
-    if manifest_text:
-        manifest = tomli.loads(manifest_text)
-        try:
-            manifest_deps = manifest["tool"]["poetry"]["dependencies"]
-        except KeyError:
-            manifest_deps = {}
-    else:
-        manifest_deps = None
-
-    def parse_dep(s: str) -> FoundDependency:
-        lines = s.split("\n")[1:]
-        _, dep, line_number = lines[0].split(" = ")
-        dep = dep.strip(' "')
-        version = lines[1].split("=")[1].strip()[1:-1]
-        if manifest_deps:
-            transitivity = (
-                Transitivity(Direct())
-                if dep in manifest_deps
-                else Transitivity(Transitive())
-            )
-        else:
-            transitivity = Transitivity(Unknown())
-        return FoundDependency(
-            package=dep,
-            version=version,
-            ecosystem=Ecosystem(Pypi()),
-            resolved_url=None,
-            allowed_hashes={},
-            transitivity=transitivity,
-            line_number=int(line_number) + 1,
-        )
-
-    lockfile_text = "\n".join(
-        line + f" = {i}" if line.strip().startswith("name") else line
-        for i, line in enumerate(lockfile_text.split("\n"))
-    )
-    deps = lockfile_text.split("[[package]]")[1:]  # drop the empty string at the start
-    yield from (parse_dep(dep) for dep in deps)
-
-
 def parse_requirements(
     lockfile_text: str, manifest_text: Optional[str]
 ) -> Iterator[FoundDependency]:
@@ -628,7 +585,7 @@ def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]
         )
 
 
-LOCKFILE_PARSERS = {
+OLD_LOCKFILE_PARSERS = {
     "pipfile.lock": parse_pipfile,  # Python
     "yarn.lock": parse_yarn,  # JavaScript
     "package-lock.json": parse_package_lock,  # JavaScript
@@ -637,27 +594,40 @@ LOCKFILE_PARSERS = {
     "cargo.lock": parse_cargo,  # Rust
     "maven_dep_tree.txt": parse_pom_tree,  # Java
     "gradle.lockfile": parse_gradle,  # Java
-    "poetry.lock": parse_poetry,  # Python
     "requirements.txt": parse_requirements,
+}
+
+NEW_LOCKFILE_PARSERS = {
+    "poetry.lock": parse_poetry,  # Python
 }
 
 
 @lru_cache(maxsize=1000)
-def parse_lockfile_str(
-    lockfile_text: str, filepath_for_reference: Path, manifest_text: Optional[str]
+def parse_lockfile_path(
+    lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
     # coupling with the github action, which decides to send files with these names back to us
-    filepath = filepath_for_reference.name.lower()
-    if filepath in LOCKFILE_PARSERS:
+    lockfile_name = lockfile_path.name.lower()
+    if lockfile_name in NEW_LOCKFILE_PARSERS:
+        parse_lockfile = NEW_LOCKFILE_PARSERS[lockfile_name]
+        return parse_lockfile(lockfile_path, manifest_path)
+
+    if lockfile_name in OLD_LOCKFILE_PARSERS:
+        lockfile_text = lockfile_path.read_text()
+        if manifest_path:
+            manifest_text = manifest_path.read_text()
+        else:
+            manifest_text = None
+
         try:
-            return list(LOCKFILE_PARSERS[filepath](lockfile_text, manifest_text))
+            return list(
+                OLD_LOCKFILE_PARSERS[lockfile_name](lockfile_text, manifest_text)
+            )
         # Such a general except clause is suspect, but the parsing error could be any number of
         # python errors, since our parsers are just using stdlib string processing functions
         # This will avoid catching dangerous to catch things like KeyboardInterrupt and SystemExit
         except Exception as e:
-            logger.error(f"Failed to parse {filepath_for_reference} with exception {e}")
+            logger.error(f"Failed to parse {lockfile_path} with exception {e}")
             return []
     else:
-        raise SemgrepError(
-            f"don't know how to parse this filename: {filepath_for_reference}"
-        )
+        raise SemgrepError(f"don't know how to parse this filename: {lockfile_path}")
