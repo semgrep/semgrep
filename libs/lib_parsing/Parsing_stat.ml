@@ -26,6 +26,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 
+type ast_stat = { total_node_count : int; untranslated_node_count : int }
+
 type t = {
   filename : Common.filename;
   total_line_count : int;
@@ -44,6 +46,7 @@ type t = {
   (* for instance to report most problematic macros when parse c/c++ *)
   mutable problematic_lines :
     (string list (* ident in error line *) * int (* line_error *)) list;
+  ast_stat : ast_stat option;
 }
 
 (* deprecated *)
@@ -62,10 +65,11 @@ let default_stat file =
   {
     filename = file;
     total_line_count = n;
-    have_timeout = false;
     error_line_count = 0;
+    have_timeout = false;
     commentized = 0;
     problematic_lines = [];
+    ast_stat = None;
   }
 
 let bad_stat file =

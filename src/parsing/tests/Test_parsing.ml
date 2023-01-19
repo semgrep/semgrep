@@ -348,7 +348,9 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                        timeout_seconds (fun () ->
                          Parse_target.parse_and_resolve_name lang file))
                with
-               | Some res -> res.Parse_target.stat
+               | Some res ->
+                   let ast_stat = AST_stat.stat res.ast in
+                   { res.Parse_target.stat with ast_stat = Some ast_stat }
                | None ->
                    { (Parsing_stat.bad_stat file) with have_timeout = true }
              with
@@ -426,19 +428,28 @@ let aggregate_file_stats (results : (string * Parsing_stat.t list) list) :
           error_line_count = 0;
           file_count = 0;
           error_file_count = 0;
+          total_node_count = 0;
+          untranslated_node_count = 0;
         }
       in
       let acc =
         List.fold_left
-          (fun (acc : Parsing_stats_t.project_stats) (x : Parsing_stat.t) ->
-            let success = x.error_line_count = 0 in
+          (fun (acc : Parsing_stats_t.project_stats) (p : Parsing_stat.t) ->
+            let success = p.error_line_count = 0 in
+            let nodes, todo_nodes =
+              match p.ast_stat with
+              | Some x -> (x.total_node_count, x.untranslated_node_count)
+              | None -> (0, 0)
+            in
             {
               acc with
-              Parsing_stats_t.line_count = acc.line_count + x.total_line_count;
-              error_line_count = acc.error_line_count + x.error_line_count;
+              Parsing_stats_t.line_count = acc.line_count + p.total_line_count;
+              error_line_count = acc.error_line_count + p.error_line_count;
               file_count = acc.file_count + 1;
               error_file_count =
                 (acc.error_file_count + if not success then 1 else 0);
+              total_node_count = acc.total_node_count + nodes;
+              untranslated_node_count = acc.untranslated_node_count + todo_nodes;
             })
           acc file_stats
       in
@@ -459,6 +470,8 @@ let aggregate_project_stats lang
       error_line_count = 0;
       file_count = 0;
       error_file_count = 0;
+      total_node_count = 0;
+      untranslated_node_count = 0;
     }
   in
   let acc =
@@ -470,6 +483,9 @@ let aggregate_project_stats lang
           error_line_count = acc.error_line_count + proj.error_line_count;
           file_count = acc.file_count + proj.file_count;
           error_file_count = acc.error_file_count + proj.error_file_count;
+          total_node_count = acc.total_node_count + proj.total_node_count;
+          untranslated_node_count =
+            acc.untranslated_node_count + proj.untranslated_node_count;
         })
       acc project_stats
   in

@@ -37,4 +37,15 @@ type project_stats = {
   (* Number of files that were parsed with one or more errors.
      It is in the range [0, file_count]. *)
   error_file_count: int;
+
+  (*
+     AST stats for evaluating the fraction of the AST that's made of
+     nodes that need a proper translation. These numbers depend on which
+     types of nodes counted, and of whether shallow todo nodes or
+     raw subtrees are used in the AST. The latter will produce more nodes
+     since they preserve whole sections of the original CST. Interpret
+     with care.
+  *)
+  total_node_count: int;
+  untranslated_node_count: int;
 }

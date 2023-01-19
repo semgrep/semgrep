@@ -54,6 +54,8 @@ type visitor_in = {
   ksvalue : (svalue -> unit) * visitor_out -> svalue -> unit;
   kargument : (argument -> unit) * visitor_out -> argument -> unit;
   klit : (literal -> unit) * visitor_out -> literal -> unit;
+  ktodo : (todo_kind -> unit) * visitor_out -> todo_kind -> unit;
+  kraw : (raw_tree -> unit) * visitor_out -> raw_tree -> unit;
 }
 
 and visitor_out = any -> unit
@@ -98,6 +100,8 @@ let default_visitor =
     ksvalue = (fun (k, _) x -> k x);
     kargument = (fun (k, _) x -> k x);
     klit = (fun (k, _) x -> k x);
+    ktodo = (fun (k, _) x -> k x);
+    kraw = (fun (k, _) x -> k x);
   }
 
 let v_id _ = ()
@@ -643,7 +647,12 @@ let (mk_visitor :
   (* bugfix: do not call v_ident here, otherwise code like
    * Analyze_pattern might consider the string for -filter_irrelevant_rules
    *)
-  and v_todo_kind (_str, tok) = v_tok tok
+  and v_todo_kind x =
+    let k x =
+      let _str, tok = x in
+      v_tok tok
+    in
+    vin.ktodo (k, all_functions) x
   and v_other_type_operator _ = ()
   and v_type_parameter x =
     let k x =
@@ -1386,16 +1395,19 @@ let (mk_visitor :
         let v1 = v_tok v1 in
         ()
     | Lbli v1 -> v_label_ident v1
-  and v_raw_tree v =
-    match v with
-    | Token v -> v_wrap v_string v
-    | List v -> (v_list v_raw_tree) v
-    | Tuple v -> (v_list v_raw_tree) v
-    | Case (v1, v2) ->
-        v_string v1;
-        v_raw_tree v2
-    | Option v -> (v_option v_raw_tree) v
-    | Any v -> v_any v
+  and v_raw_tree x =
+    let k (x : raw_tree) =
+      match x with
+      | Token v -> v_wrap v_string v
+      | List v -> (v_list v_raw_tree) v
+      | Tuple v -> (v_list v_raw_tree) v
+      | Case (v1, v2) ->
+          v_string v1;
+          v_raw_tree v2
+      | Option v -> (v_option v_raw_tree) v
+      | Any v -> v_any v
+    in
+    vin.kraw (k, all_functions) x
   and all_functions x = v_any x in
   all_functions
 
