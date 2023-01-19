@@ -92,6 +92,7 @@ let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
     have_timeout = false;
     commentized = 0;
     problematic_lines = [];
+    ast_stat = None;
   }
 
 let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =

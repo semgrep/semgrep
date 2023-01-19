@@ -31,6 +31,8 @@ type visitor_in = {
   ksvalue : (svalue -> unit) * visitor_out -> svalue -> unit;
   kargument : (argument -> unit) * visitor_out -> argument -> unit;
   klit : (literal -> unit) * visitor_out -> literal -> unit;
+  ktodo : (todo_kind -> unit) * visitor_out -> todo_kind -> unit;
+  kraw : (raw_tree -> unit) * visitor_out -> raw_tree -> unit;
 }
 
 (* note that internally the visitor uses OCaml.v_ref_do_not_visit *)

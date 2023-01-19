@@ -1,3 +1,9 @@
+(*
+   Type holding parsing stats and optionally AST stats.
+*)
+
+type ast_stat = { total_node_count : int; untranslated_node_count : int }
+
 type t = {
   filename : Common.filename;
   total_line_count : int;
@@ -8,23 +14,22 @@ type t = {
    *)
   mutable commentized : int;
   mutable problematic_lines : (string list * int) list;
+  (* AST stats obtained by inspecting the resulting AST, if any. *)
+  ast_stat : ast_stat option;
 }
 
-(* alias, deprecated *)
-type parsing_stat = t
-
-val default_stat : Common.filename -> parsing_stat
-val bad_stat : Common.filename -> parsing_stat
-val correct_stat : Common.filename -> parsing_stat
+val default_stat : Common.filename -> t
+val bad_stat : Common.filename -> t
+val correct_stat : Common.filename -> t
 
 (*
    Print file name and number of lines and error lines in compact format
    suitable for logging.
 *)
-val summary_of_stat : parsing_stat -> string
-val print_parsing_stat_list : ?verbose:bool -> parsing_stat list -> unit
-val print_recurring_problematic_tokens : parsing_stat list -> unit
-val aggregate_stats : parsing_stat list -> int * int (* total * bad *)
+val summary_of_stat : t -> string
+val print_parsing_stat_list : ?verbose:bool -> t list -> unit
+val print_recurring_problematic_tokens : t list -> unit
+val aggregate_stats : t list -> int * int (* total * bad *)
 
 val print_regression_information :
   ext:string -> Common2.path list -> Common2.score -> unit

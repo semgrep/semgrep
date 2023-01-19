@@ -3,7 +3,7 @@ type parsing_result = {
   ast : AST_generic.program;
   (* Partial errors while parsing the file (tree-sitter only) *)
   skipped_tokens : Parse_info.token_location list;
-  stat : Parsing_stat.parsing_stat;
+  stat : Parsing_stat.t;
 }
 
 (* This uses a pfff or tree-sitter parser, or both.
