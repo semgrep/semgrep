@@ -58,8 +58,7 @@ def extract_npm_lockfile_hash(s: Optional[str]) -> Dict[str, List[str]]:
     """
     if s is None:
         return {}
-    algorithm = s.split("-")[0]
-    rest = s[len(algorithm) + 1 :]
+    algorithm, rest = s.split("-")
     decode_base_64 = b64decode(rest)
     return {algorithm: [b16encode(decode_base_64).decode("ascii").lower()]}
 
