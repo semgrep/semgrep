@@ -15,17 +15,27 @@ from enum import Enum
 
 from re import Pattern
 
+# The variance annotation is needed to appease mypy. I don't fully understand why honestly
 T = TypeVar("T", covariant=True)
 A = TypeVar("A")
 B = TypeVar("B")
 
+# Same deal
 I = TypeVar("I", contravariant=True)
 O = TypeVar("O", covariant=True)
 
 class Combiner(Protocol, Generic[I, O]):
+    """
+    Used to describe the type of a function which takes a *args list of Is and produces an O
+    """
+
     def __call__(self, *args: I) -> O: ...
 
 class SupportsAdd(Protocol[A]):
+    """
+    Used to descibe the type of an object that has an __add__ method
+    """
+
     def __add__(self: A, x: A) -> A: ...
 
 Addable = TypeVar("Addable", bound=SupportsAdd)
@@ -37,7 +47,12 @@ class ParseError(RuntimeError):
     index: int
     expected: List[str]
 
-class Result(Generic[T]): ...
+class Result(Generic[T]):
+    """
+    What a parser actually returns. This is internal and shouldn't be touched by users
+    """
+
+    ...
 
 class Parser(Generic[T]):
     """
