@@ -316,7 +316,7 @@ def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> b
             result = result.with_suffix("")
         return result
 
-    rel1 = remove_all_suffixes(child1.relative_to(parent1))
+    rel1 = remove_all_suffixes(Path(child1.relative_to(parent1).parts[0]))
     rel2 = remove_all_suffixes(child2.relative_to(parent2))
     return rel1 == rel2
 
