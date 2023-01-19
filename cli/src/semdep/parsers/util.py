@@ -64,7 +64,7 @@ def extract_npm_lockfile_hash(s: Optional[str]) -> Dict[str, List[str]]:
 
 
 # parsy line and column numbers are zero indexed, but editors are generally 1 indexed
-# so we add one to account for this
+# so we add one to the line number account for this, and discard the column number
 line_number = line_info.map(lambda t: t[0] + 1)
 
 
