@@ -43,8 +43,8 @@ make install-deps-for-semgrep-core
 
 echo "Install semgrep-core"
 (
-  make semgrep-core
-  make semgrep-core-install
+  make core
+  make core-install
 )
 
 echo "Copy executables to artifacts archive"

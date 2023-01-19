@@ -75,16 +75,16 @@ endif
 # It should be fast since it's called often during development.
 .PHONY: build
 build:
-	$(MAKE) semgrep-core
+	$(MAKE) core
 	# We run this command because the Python code in cli/ assumes the
 	# presence of a semgrep-core binary in the PATH somewhere.
-	$(MAKE) semgrep-core-install
+	$(MAKE) core-install
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
 # was the 'all' target in in semgrep-core/Makefile before
-.PHONY: semgrep-core
-semgrep-core:
+.PHONY: core
+core:
 	rm -f bin
 	$(MAKE) minimal-build
 	dune build ./_build/default/tests/test.exe
@@ -115,12 +115,12 @@ build-otarzan:
 # and was not created by 'make setup'.
 .PHONY: clean
 clean:
-	-$(MAKE) semgrep-core-clean
+	-$(MAKE) core-clean
 	-$(MAKE) -C cli clean
 
 # was the 'clean' target in in semgrep-core/Makefile before
-.PHONY: semgrep-core-clean
-semgrep-core-clean:
+.PHONY: core-clean
+core-clean:
 	dune clean
 	rm -f bin
 
@@ -130,15 +130,15 @@ semgrep-core-clean:
 
 .PHONY: install
 install:
-	$(MAKE) semgrep-core-install
+	$(MAKE) core-install
 	python3 -m pip install semgrep
 
 # This may install more than you want.
 # See the 'dev' target if all you need is access to the semgrep-core
 # executable for testing.
 # was the 'install' target in in semgrep-core/Makefile before
-.PHONY: semgrep-core-install
-semgrep-core-install:
+.PHONY: core-install
+core-install:
 	dune install
 	rm -f cli/src/semgrep/bin/semgrep-core
 	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
@@ -153,15 +153,15 @@ semgrep-core-install:
 
 .PHONY: test
 test:
-	$(MAKE) semgrep-core-test
+	$(MAKE) core-test
 	$(MAKE) -C cli test
 
 # I put 'all' as a dependency because sometimes you modify a test file
 # and dune runtest -f does not see this new file, probably because
 # the cached file under _build/.../tests/ is still the old one.
 #coupling: this is run by .github/workflow/tests.yml
-.PHONY: semgrep-core-test
-semgrep-core-test: semgrep-core
+.PHONY: core-test
+core-test: core
 	# The test executable has a few options that can be useful
 	# in some contexts.
 	# The following command ensures that we can call 'test.exe --help'
@@ -171,8 +171,8 @@ semgrep-core-test: semgrep-core
 	dune runtest -f --no-buffer
 
 #coupling: this is run by .github/workflow/tests.yml
-.PHONY: semgrep-core-e2etest
-semgrep-core-e2etest:
+.PHONY: core-e2etest
+core-e2etest:
 	python3 tests/e2e/test_target_file.py
 
 ###############################################################################
@@ -417,7 +417,7 @@ check_for_emacs:
 #
 .PHONY: dev
 dev:
-	$(MAKE) semgrep-core
+	$(MAKE) core
 	rm -f cli/src/semgrep/bin/semgrep-core
 	ln -s ../../../../bin/semgrep-core \
 	  cli/src/semgrep/bin/semgrep-core
