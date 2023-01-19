@@ -44,6 +44,8 @@ def run_install_deep_semgrep() -> None:
         )
 
     if state.app_session.token is None:
+        # TODO This is a temporary solution to help offline users
+        logger.info(f"Trying to install to {deep_semgrep_path}")
         logger.info("run `semgrep login` before using `semgrep install`")
         sys.exit(INVALID_API_KEY_EXIT_CODE)
 
