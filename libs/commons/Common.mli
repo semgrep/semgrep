@@ -249,12 +249,6 @@ exception CmdError of Unix.process_status * string
 (* this may raise CmdError *)
 val cmd_to_list : ?verbose:bool -> string -> string list (* alias *)
 
-(* ignore(Sys.command s).
- * TODO: we should get rid of it because it's bad programming to not
- * check the exit status of Sys.command
- *)
-val command2 : string -> unit
-
 (*****************************************************************************)
 (* Lists *)
 (*****************************************************************************)
@@ -284,7 +278,6 @@ val uniq_by : ('a -> 'a -> bool) -> 'a list -> 'a list
 val map_filter : ('a -> 'b option) -> 'a list -> 'b list
 (** Same as [List.filter_map] but tail recursive. *)
 
-val find_opt : ('a -> bool) -> 'a list -> 'a option
 val find_some : ('a -> 'b option) -> 'a list -> 'b
 val find_some_opt : ('a -> 'b option) -> 'a list -> 'b option
 val filter_some : 'a option list -> 'a list
@@ -377,7 +370,6 @@ val ( let* ) : 'a option -> ('a -> 'b option) -> 'b option
 (* TODO: we should delete this function; let* is better *)
 val ( >>= ) : 'a option -> ('a -> 'b option) -> 'b option
 val ( ||| ) : 'a option -> 'a -> 'a
-val ( <|> ) : 'a option -> 'a option -> 'a option
 
 (*****************************************************************************)
 (* Either *)

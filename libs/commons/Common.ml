@@ -506,11 +506,6 @@ let ( ||| ) a b =
   | Some x -> x
   | None -> b
 
-let ( <|> ) a b =
-  match a with
-  | Some _ -> a
-  | _ -> b
-
 type ('a, 'b) either = Left of 'a | Right of 'b [@@deriving eq, show]
 
 (* with sexp *)
@@ -609,8 +604,6 @@ let find_some p xs =
   match find_some_opt p xs with
   | None -> raise Not_found
   | Some x -> x
-
-let find_opt f xs = find_some_opt (fun x -> if f x then Some x else None) xs
 
 (*****************************************************************************)
 (* Regexp, can also use PCRE *)
@@ -719,8 +712,6 @@ let is_directory file =
 (*****************************************************************************)
 (* Process/Files *)
 (*****************************************************************************)
-
-let command2 s = ignore (Sys.command s)
 
 exception CmdError of Unix.process_status * string
 
