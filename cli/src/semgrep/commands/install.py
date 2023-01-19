@@ -40,6 +40,10 @@ def run_install_semgrep_pro() -> None:
     state.terminal.configure(verbose=False, debug=False, quiet=False, force_color=False)
 
     (semgrep_pro_path, deep_semgrep_path) = determine_semgrep_pro_path()
+
+    # TODO This is a temporary solution to help offline users
+    logger.info(f"Semgrep PRO engine will be installed in {semgrep_pro_path}")
+
     if deep_semgrep_path.exists():
         logger.warning(
             f"""You have an old DeepSemgrep binary installed in {deep_semgrep_path}.
@@ -48,11 +52,9 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
 """
         )
     if semgrep_pro_path.exists():
-        logger.info(f"Overwriting Semgrep PRO already installed in {semgrep_pro_path}")
+        logger.info(f"Overwriting Semgrep PRO engine already installed!")
 
     if state.app_session.token is None:
-        # TODO This is a temporary solution to help offline users
-        logger.info(f"Trying to install to {deep_semgrep_path}")
         logger.info("run `semgrep login` before using `semgrep install`")
         sys.exit(INVALID_API_KEY_EXIT_CODE)
 

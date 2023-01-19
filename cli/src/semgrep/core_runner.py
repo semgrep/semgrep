@@ -844,14 +844,14 @@ class CoreRunner:
                 if pro_path is None:
                     if deep_path is None:
                         raise SemgrepError(
-                            "Could not run deep analysis: Semgrep PRO not installed. Run `semgrep install-semgrep-pro`"
+                            "Could not run deep analysis: Semgrep PRO engine not installed. Run `semgrep install-semgrep-pro`"
                         )
                     else:
                         logger.warning(
                             f"""You have an old DeepSemgrep binary installed in {deep_path}
 DeepSemgrep is now Semgrep PRO, run `semgrep install-semgrep-pro` to install it,
 then please delete {deep_path} manually.
-This time, we will continue running your old DeepSemgrep binary.
+This time, we will continue running your old DeepSemgrep binary anyways.
 """
                         )
 
