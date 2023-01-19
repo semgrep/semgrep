@@ -1,0 +1,27 @@
+(library
+ (public_name semgrep.optimizing)
+ (name semgrep_optimizing)
+ (wrapped false)
+ (libraries
+    ast_generic
+    semgrep.core
+ )
+ (preprocess
+   (pps
+      ppx_deriving.show
+      ppx_deriving.eq
+      ppx_hash
+      ppx_profiling
+   )
+ )
+)
+
+(rule
+ (targets Semgrep_prefilter_j.ml Semgrep_prefilter_j.mli)
+ (deps    Semgrep_prefilter.atd)
+ (action  (run atdgen -j -j-strict-fields -j-std %{deps})))
+
+(rule
+ (targets Semgrep_prefilter_t.ml Semgrep_prefilter_t.mli)
+ (deps    Semgrep_prefilter.atd)
+ (action  (run atdgen -t %{deps})))

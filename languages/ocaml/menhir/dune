@@ -1,0 +1,15 @@
+(library
+ (public_name parser_ocaml.menhir)
+ (name parser_ocaml_menhir)
+ (wrapped false)
+ (libraries
+
+   commons
+   pfff-h_program-lang
+   parser_ocaml.ast
+ )
+ (preprocess (pps ppx_deriving.show))
+)
+(ocamllex lexer_ml)
+(menhir (modules parser_ml)
+        (flags --unused-tokens --explain --fixed-exception))

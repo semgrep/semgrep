@@ -1,0 +1,14 @@
+(library
+ (public_name parser_go.menhir)
+ (name pfff_lang_go)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_go.ast
+ )
+ (preprocess (pps ppx_deriving.show))
+)
+(ocamllex lexer_go)
+(menhir (modules parser_go)
+        (flags --unused-tokens --explain --fixed-exception))

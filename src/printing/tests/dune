@@ -1,0 +1,11 @@
+(library
+ (public_name semgrep.printing.tests)
+ (name semgrep_printing_tests)
+ (wrapped false)
+ (libraries
+   commons
+   semgrep.parsing
+   semgrep.printing
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
+)

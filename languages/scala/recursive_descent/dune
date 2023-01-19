@@ -1,0 +1,16 @@
+(library
+ (public_name parser_scala.recursive_descent)
+ (name parser_scala_recursive_descent)
+ (wrapped false)
+ (libraries
+
+   commons
+   pfff-h_program-lang
+   parser_scala.ast
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
+)
+(ocamllex Lexer_scala)
+; TODO: we don't really use menhir, just to get a list of tokens, could be defined without menhir!
+(menhir (modules Parser_scala)
+        (flags --unused-tokens --explain --fixed-exception --external-tokens Token_scala))

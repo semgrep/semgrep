@@ -1,0 +1,14 @@
+(library
+ (public_name parser_php.menhir)
+ (name parser_php_menhir)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_php.ast
+ )
+ (preprocess (pps ppx_deriving.show))
+)
+(ocamllex lexer_php)
+(menhir (modules parser_php)
+        (flags --unused-tokens --explain --fixed-exception))

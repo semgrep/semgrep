@@ -1,9 +1,0 @@
-(library
- (public_name semgrep_parsing_tests)
- (wrapped false)
- (libraries
-   semgrep_parsing
-   semgrep_targeting ; for Test_parsing.ml
- )
- (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
-)

@@ -64,12 +64,12 @@ RUN make install-deps-ALPINE-for-semgrep-core &&\
     make install-deps-for-semgrep-core
 
 # Let's build just semgrep-core
-WORKDIR /src/semgrep/semgrep-core
+WORKDIR /src/semgrep
 # An alternative to the eval is to use 'opam exec -- ...'
 RUN eval "$(opam env)" &&\
     make minimal-build &&\
     # Sanity check
-    /src/semgrep/semgrep-core/_build/default/src/main/Main.exe -version
+    /src/semgrep/_build/default/src/main/Main.exe -version
 
 ###############################################################################
 # Step2: Build the final docker image with Python wrapper and semgrep-core bin
@@ -138,7 +138,7 @@ RUN chmod +x /entrypoint.sh
 COPY Dockerfile /Dockerfile
 
 # Get semgrep-core from step1
-COPY --from=semgrep-core-container /src/semgrep/semgrep-core/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
 
 # ???
 ENV SEMGREP_IN_DOCKER=1 \

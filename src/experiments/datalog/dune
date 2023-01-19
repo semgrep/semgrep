@@ -1,0 +1,16 @@
+(library
+ (public_name semgrep.datalog)
+ (name semgrep_datalog)
+ (wrapped false)
+ (libraries
+   yaml
+   commons
+   pfff-h_program-lang
+   pfff-lang_GENERIC-analyze
+
+   semgrep_core
+   semgrep_parsing
+   semgrep_matching
+ )
+ (preprocess (pps ppx_profiling))
+)

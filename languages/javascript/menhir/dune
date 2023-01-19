@@ -1,0 +1,16 @@
+(library
+ (public_name parser_javascript.menhir)
+ (name parser_javascript_menhir)
+ (wrapped false)
+ (libraries
+
+   commons
+   process_limits
+   pfff-h_program-lang
+   parser_javascript.ast
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
+)
+(ocamllex lexer_js)
+(menhir (modules parser_js)
+        (flags --unused-tokens --explain --fixed-exception))

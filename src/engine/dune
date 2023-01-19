@@ -1,0 +1,29 @@
+(library
+ (public_name semgrep.engine)
+ (name semgrep_engine)
+ (wrapped false)
+ (libraries
+   pcre
+   comby-kernel
+   alcotest
+
+   commons
+   pfff-lang_GENERIC-analyze
+
+   parser_regexp
+   spacegrep
+
+   semgrep_core
+   semgrep_fixing
+   semgrep_matching
+   semgrep_tainting
+   ; the engine used to not depend on the language-specific parsers
+   ; (only the test code used semgrep_parsing), but with metavariable-pattern
+   ; we now call Parse_target from Match_search_rules (we actually also
+   ; call Parse_pattern from Eval_generic)
+   semgrep_parsing
+   ; TODO: we should get rid of this dependency
+   semgrep_targeting ; for Input_to_core.atd
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
+)

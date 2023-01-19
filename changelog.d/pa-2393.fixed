@@ -1,0 +1,1 @@
+CLI: Made an error message for when two autofix matches overlap have a more helpful message, as well as be displayed as a debug message.

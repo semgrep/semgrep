@@ -1,0 +1,13 @@
+(library
+ (public_name parser_ruby.tree_sitter)
+ (name parser_ruby_tree_sitter)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_ruby.ast
+   tree-sitter-lang.ruby
+   ast_generic ; ugly for unbracket
+ )
+ (preprocess (pps ppx_deriving.show))
+)

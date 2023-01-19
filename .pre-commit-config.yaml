@@ -5,7 +5,7 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
-exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^semgrep-core/src/pfff/tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations|TOPORT"
+exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^tests|^semgrep-core/src/pfff/tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations|^cli/scripts|TOPORT"
 
 # See https://pre-commit.com/#pre-commit-configyaml---repos
 # for more information on the format of the content below
@@ -83,7 +83,7 @@ repos:
     rev: v0.961
     hooks:
       - id: mypy
-        exclude: ^cli/tests/.+$|^setup.py$|^scripts/.+$|^parsing-stats/.+$|pfff|^perf/.+$$
+        exclude: ^cli/tests/.+$|^setup.py$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|pfff|^perf/.+$$
         args: [--config, mypy.ini, --show-error-codes]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:

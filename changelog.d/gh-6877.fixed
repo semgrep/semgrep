@@ -1,0 +1,1 @@
+Make `$F(x)` match `eval(x)`. Previously, `eval` was special-cased and metavariable function call patterns would not match it.

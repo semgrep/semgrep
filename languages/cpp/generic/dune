@@ -1,0 +1,13 @@
+(library
+ (public_name parser_cpp.ast_generic)
+ (name parser_cpp_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_cpp.ast
+   tree-sitter-lang.cpp
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

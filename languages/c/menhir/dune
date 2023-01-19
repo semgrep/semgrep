@@ -1,0 +1,12 @@
+(library
+ (public_name parser_c.menhir)
+ (name parser_c_menhir)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_cpp.menhir
+   parser_c.ast
+ )
+ (preprocess (pps ppx_deriving.show))
+)

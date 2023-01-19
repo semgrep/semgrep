@@ -1,0 +1,11 @@
+(library
+ (public_name parser_json.ast)
+ (name parser_json_ast)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   parser_javascript.ast
+ )
+ (preprocess (pps ppx_deriving.show))
+)

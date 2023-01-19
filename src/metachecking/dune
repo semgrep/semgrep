@@ -1,0 +1,13 @@
+(library
+ (public_name semgrep.metachecking)
+ (name semgrep_metachecking)
+ (wrapped false)
+ (libraries
+   pfff-lang_GENERIC-analyze
+
+   semgrep_core
+   semgrep_running
+   semgrep_optimizing ; for regexp_prefilter stats
+ )
+ (preprocess (pps ppx_profiling))
+)

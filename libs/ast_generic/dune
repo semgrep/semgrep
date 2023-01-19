@@ -1,0 +1,30 @@
+(library
+ (public_name ast_generic)
+ (wrapped false)
+ (libraries
+   pcre
+   atdgen-runtime
+
+   commons
+   pfff-h_program-lang
+   semgrep.utils ; GenSym
+ )
+ (preprocess
+   (pps
+      ppx_deriving.show
+      ppx_deriving.eq
+      ppx_hash
+      ppx_profiling
+   )
+ )
+)
+
+(rule
+ (targets ast_generic_v1_j.ml ast_generic_v1_j.mli)
+ (deps    ast_generic_v1.atd)
+ (action  (run atdgen -j -j-std %{deps})))
+
+(rule
+ (targets ast_generic_v1_t.ml ast_generic_v1_t.mli)
+ (deps    ast_generic_v1.atd)
+ (action  (run atdgen -t %{deps})))

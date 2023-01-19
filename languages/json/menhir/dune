@@ -1,0 +1,14 @@
+(library
+ (public_name parser_json.menhir)
+ (name parser_json_menhir)
+ (wrapped false)
+ (libraries
+
+   commons
+   pfff-h_program-lang
+   parser_javascript.menhir
+   parser_json.ast
+
+ )
+ (preprocess (pps ppx_deriving.show))
+)

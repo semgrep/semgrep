@@ -1,0 +1,28 @@
+(executable
+ (name test)
+ (libraries
+    commons
+    process_limits
+    pfff-h_program-lang
+
+    semgrep.analyzing.tests ; Unit_dataflow
+    semgrep_utils_tests
+    semgrep.core
+    semgrep.printing.tests
+    semgrep.fixing.tests
+    semgrep.metachecking
+    semgrep.parsing
+    semgrep.matching
+    semgrep.synthesizing
+    semgrep.reporting
+    semgrep.engine
+  )
+ (preprocess
+   (pps
+      ppx_deriving.show
+   ))
+)
+
+(rule
+ (alias runtest)
+ (action (run ./test.exe -e)))

@@ -1,0 +1,11 @@
+; This could become independent of semgrep, so try to not use semgrep
+; dependencies here
+(library
+ (public_name otarzan)
+ (libraries
+   cmdliner
+   commons
+   parser_ocaml.tree_sitter
+ )
+ (preprocess (pps ppx_profiling ppx_deriving.show))
+)

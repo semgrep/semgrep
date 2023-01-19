@@ -1,0 +1,11 @@
+(library
+ (public_name semgrep.fixing.tests)
+ (name semgrep_fixing_tests)
+ (wrapped false)
+ (libraries
+   commons
+   semgrep_parsing
+   semgrep_engine
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
+)

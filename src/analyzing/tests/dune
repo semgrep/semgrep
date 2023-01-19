@@ -1,0 +1,20 @@
+(library
+ (public_name semgrep.analyzing.tests)
+ (name semgrep_analyzing_tests)
+ (wrapped false)
+ (libraries
+   dyp
+
+   commons
+   pfff-lang_GENERIC-naming
+   semgrep.il
+   semgrep.printing
+   pfff_lang_GENERIC_analyze
+ )
+ (preprocess
+    (pps
+      ppx_profiling
+      ppx_deriving.show
+    )
+ )
+)

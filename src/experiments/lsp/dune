@@ -1,0 +1,18 @@
+(library
+ (public_name semgrep.lsp)
+ (name semgrep_lsp)
+ (wrapped false)
+ (libraries
+   yaml
+   lsp
+
+   commons
+   pfff-h_program-lang
+   pfff-lang_GENERIC-analyze
+   parser_ocaml.menhir ; type_of_string
+   parser_ocaml.ast_generic ; for debugging output
+
+   semgrep_core
+ )
+ (preprocess (pps ppx_profiling))
+)

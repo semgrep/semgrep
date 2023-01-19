@@ -1,0 +1,11 @@
+(library
+ (public_name parser_regexp)
+ (libraries
+   commons
+   pfff-h_program-lang
+ )
+ (preprocess (pps ppx_deriving.show))
+)
+(ocamllex Lexer)
+(menhir (modules Parser)
+        (flags --unused-tokens --explain --fixed-exception))

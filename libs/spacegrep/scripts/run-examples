@@ -1,0 +1,15 @@
+#! /usr/bin/env bash
+#
+# Run spacegrep on the examples in examples/
+# This is for quick demo purposes mostly.
+#
+set -eu
+
+project_root=$(git rev-parse --show-toplevel)
+spacegrep="$project_root"/libs/spacegrep/bin/spacegrep
+
+for pat in examples/*.pat; do
+  doc=${pat%.pat}.doc
+  echo "# $spacegrep -p $pat -d $doc"
+  "$spacegrep" -p "$pat" -d "$doc"
+done

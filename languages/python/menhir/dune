@@ -1,0 +1,15 @@
+(library
+ (public_name parser_python.menhir)
+ (name parser_python_menhir)
+ (wrapped false)
+ (libraries
+
+   commons
+   pfff-h_program-lang
+   parser_python.ast
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
+)
+(ocamllex Lexer_python)
+(menhir (modules Parser_python)
+        (flags --unused-tokens --explain --fixed-exception))

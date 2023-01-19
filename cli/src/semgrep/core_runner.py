@@ -30,6 +30,7 @@ from tqdm import tqdm
 
 import semgrep.fork_subprocess as fork_subprocess
 import semgrep.output_from_core as core
+from semgrep.app import auth
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -817,8 +818,17 @@ class CoreRunner:
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
             if deep:
-                logger.error("!!!This is a proprietary extension of semgrep.!!!")
-                logger.error("!!!You must be logged in to access this extension!!!")
+                if auth.get_token() is None:
+                    logger.error("!!!This is a proprietary extension of semgrep.!!!")
+                    logger.error("!!!You must be logged in to access this extension!!!")
+                else:
+                    logger.error(
+                        "You are using the Semgrep Pro Engine, our advanced analysis system uniquely designed to refine and enhance your results."
+                    )
+                    logger.error(
+                        "You can expect to see longer scan times - we're taking our time to make sure everything is just right for you. With <3, the Semgrep team."
+                    )
+
                 targets = target_manager.targets
                 if len(targets) == 1 and targets[0].path.is_dir():
                     root = str(targets[0].path)

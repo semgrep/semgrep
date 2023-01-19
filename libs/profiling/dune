@@ -1,0 +1,11 @@
+; used to be in pfff/commons/Common.ml
+
+(library
+ (public_name profiling)
+ (wrapped false)
+ (libraries
+   unix
+   commons
+   process_limits ; for Time_limit.Timeout special handling
+ )
+)

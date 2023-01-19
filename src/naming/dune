@@ -1,0 +1,21 @@
+; Try to not add too many dependencies in this directory. This library
+; used to be in pfff and is still used in projects outside semgrep (e.g.,
+; codegraph/codecheck) which rely on this pfff-lang_... name and rely on
+; small dependencies.
+(library
+ (public_name pfff-lang_GENERIC-naming)
+ (name pfff_lang_GENERIC_naming)
+ (wrapped false)
+ (libraries
+   commons
+   ast_generic
+   semgrep.core ; for Lang
+   parser_javascript.ast ; ugly for Ast_js.default_entity
+ )
+ (preprocess
+    (pps
+      ppx_profiling
+      ppx_deriving.show
+    )
+ )
+)

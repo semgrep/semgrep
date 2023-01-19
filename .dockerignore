@@ -8,8 +8,6 @@
 **/_coverage
 **/*.coverage
 
-**/semgrep_core/sgrep.install
-
 # pad's stuff (but better to put in ~pad/config/commons/gitignore)
 top.ml
 # codegraph serialized database
@@ -158,15 +156,15 @@ site
 
 # semgrep-core build artifacts
 **/TAGS
-semgrep-core/log_config.json
-semgrep-core/.vscode/settings.json
+**/log_config.json
+**/.vscode/settings.json
 scripts/oncall-email/today.json
 scripts/oncall-email/yesterday.json
 
 # Do not check in compiled binaries
 cli/src/semgrep/bin/*
 !cli/src/semgrep/bin/__init__.py
-semgrep-core/bin
+bin
 
 # Ignore bench files
 **/perf/bench

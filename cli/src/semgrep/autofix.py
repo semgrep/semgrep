@@ -186,7 +186,9 @@ def deduplicate_overlapping_matches(
             continue
 
         if matches_overlap(acc, match):
-            logger.warning("Two autofix matches overlap, arbitrarily picking first one")
+            logger.debug(
+                f"Two autofix matches from rules {acc.rule_id} and {match.rule_id} overlap, arbitrarily picking first one"
+            )
             # Don't do anything, keep `acc` the same, and throw `match` out.`
 
         else:

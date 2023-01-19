@@ -1,0 +1,4 @@
+In rare situations, mainly in DeepSemgrep and related to naming bugs, the use of
+symbolic propagation could make Semgrep fall into an infinite loop during matching.
+This has been fixed by bounding the number of times that Semgrep can follow
+symbolically-propagated values.

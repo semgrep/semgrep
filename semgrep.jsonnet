@@ -1,6 +1,6 @@
 # legacy rules written in YAML
 local yml = import "semgrep.yml";
-local pfff = import "semgrep-core/src/pfff/semgrep.yml";
+local pfff = import "pfff.yml";
 # registry rules!
 local ocaml = import "p/ocaml";
 
@@ -49,19 +49,18 @@ local semgrep_rules = [
         #TODO: those files contain less than 100 findings in total, so
         # they should not be too hard to fix
         # a few findings per file
-        "semgrep-core/src/analyzing/Dataflow_svalue.ml",
-        "semgrep-core/src/core/ast/AST_generic_helpers.ml",
-        "semgrep-core/src/engine/Match_search_mode.ml",
-        "semgrep-core/src/fixing/Autofix_metavar_replacement.ml",
-        "semgrep-core/src/matching/Matching_generic.ml",
-        "semgrep-core/src/matching/SubAST_generic.ml",
-        "semgrep-core/src/optimizing/Analyze_pattern.ml",
-        "semgrep-core/src/parsing/Parse_equivalences.ml",
-        "semgrep-core/src/parsing/Parse_target.ml",
-        "semgrep-core/src/runner/Run_semgrep.ml",
-        "semgrep-core/src/tainting/Dataflow_tainting.ml",
-        "semgrep-core/src/targeting/Guess_lang.ml",
-        "semgrep-core/src/utils/Regexp_engine.ml",
+        "Dataflow_svalue.ml",
+        "AST_generic_helpers.ml",
+        "Match_search_mode.ml",
+        "Autofix_metavar_replacement.ml",
+        "Matching_generic.ml",
+        "SubAST_generic.ml",
+        "Analyze_pattern.ml",
+        "Parse_equivalences.ml",
+        "Parse_target.ml",
+        "Run_semgrep.ml",
+        "Dataflow_tainting.ml",
+        "Guess_lang.ml",
         #TODO: we should fix those too. They account for 464 findings in total
         "Generic_vs_generic.ml",
         "Visitor_AST.ml",
@@ -71,11 +70,16 @@ local semgrep_rules = [
         "Eval_generic.ml",
         "AST_to_IL.ml",
         "Parse_rule.ml",
+        "yaml_to_generic.ml",
+	#skipping more stuff
         "parsing/tree_sitter/*",
         "parsing/pfff/*",
-        "parsing/other/*",
         "parsing/ast/*",
         "metachecking/*",
+	# outside src/, not really semgrep code
+	"libs/*",
+	"languages/*",
+	"tools/*",
         ] + test_code_globs + less_important_code_globs,
     }
   }
@@ -97,7 +101,12 @@ local override_messages = {
   |||,
 };
 
-local all = yml.rules + semgrep_rules + pfff.rules + ocaml.rules;
+# temporary hack to not report p/ocaml findings on pfff libs
+local ocaml_rules =
+  [ r + { paths +: { exclude +: [ "libs/*", "tools/*", "languages/*" ] } }
+    for r in ocaml.rules];
+
+local all = yml.rules + semgrep_rules + pfff.rules + ocaml_rules;
 
   { rules:
       [  if std.objectHas(override_messages, r.id)

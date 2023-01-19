@@ -1,0 +1,34 @@
+; This library packages the command line parser for use by either the
+; semgrep-core executable for the semgrep-bridge.so shared library.
+(library
+ (public_name semgrep.core_cli)
+ (name semgrep_core_cli)
+ (wrapped false)
+ (libraries
+    str
+    dyp
+    ppx_deriving.runtime
+    uucp uutf
+
+    ; pfff deps
+    commons
+    pfff-h_program-lang
+    ; tree-sitter deps
+
+    process_limits
+    ; we now also depends on spacegrep with full-rule-in-ocaml
+    spacegrep
+
+    ; internal deps
+    semgrep.core
+    semgrep.running
+    semgrep.metachecking
+    semgrep.parsing.tests ; Test_parsing.parsing_stats
+    semgrep.analyzing.tests ; Test_analyze_generic.actions
+
+    ; experiments
+    semgrep.synthesizing
+    ojsonnet ; ojsonnet dumper
+    otarzan
+ )
+)
