@@ -1,5 +1,13 @@
 """
-This module provides a series of helpful utilities for writing lockfile parsers
+This module provides a series of helpful utilities for writing lockfile parsers.
+Why are all the type annotations strings?
+In Python, type annotations do not do anything,
+but they are still expressions that get evaluated. The runtime class Parser, as implemented
+by parsy, takes no parameters, but our type stubs for parsy give this class a generic type variable
+parameter, so we can enforce staticly that parsers are combined in sensible ways. As a result, the
+expression Parser[int] is perfectly fine for Mypy, but causes a runtime error. Thankfully, "Parser[int]"
+is a perfectly acceptable type annotation for Mypy, and evaluates immediately to string,
+causing no runtime errors.
 """
 from base64 import b16encode
 from base64 import b64decode
