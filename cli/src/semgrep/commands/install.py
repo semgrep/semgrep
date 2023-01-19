@@ -42,7 +42,7 @@ def run_install_semgrep_pro() -> None:
     (semgrep_pro_path, deep_semgrep_path) = determine_semgrep_pro_path()
     if deep_semgrep_path.exists():
         logger.warning(
-            f"""You have an old DeepSemgrep binary installed in {deep_semgrep_path}
+            f"""You have an old DeepSemgrep binary installed in {deep_semgrep_path}.
 DeepSemgrep has been renamed to Semgrep PRO, which we will proceed to install.
 Please delete {deep_semgrep_path} manually to make this warning disappear!
 """
@@ -103,10 +103,10 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
     logger.info(f"Installed Semgrep PRO to {semgrep_pro_path}")
 
     version = sub_check_output(
-        [str(semgrep_pro_path), "--version"],
+        [str(semgrep_pro_path), "-pro_version"],
         timeout=10,
         encoding="utf-8",
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
     ).rstrip()
     logger.info(f"Semgrep PRO Version Info: ({version})")
 
