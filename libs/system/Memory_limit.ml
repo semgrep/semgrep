@@ -80,7 +80,7 @@ let run_with_memory_limit ?get_context
     (* If there is a memory limit, and we reach 80% of that limit, then we
      * also warn. Whatever happens first. *)
     let mem_limit_warning = int_of_float (float_of_int mem_limit *. 0.8) in
-    if mem_limit_mb = 0 || heap_warning_mb < mem_limit_warning then
+    if mem_limit_mb =|= 0 || heap_warning_mb < mem_limit_warning then
       heap_warning_mb * mb
     else mem_limit_warning
   in

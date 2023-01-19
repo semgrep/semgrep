@@ -140,7 +140,7 @@ let run (conf : conf) : Exit_code.t =
   (* was logger.info, but works without --verbose, so Logs.app better *)
   Logs.app (fun m ->
       m "Configuration is %s - found %d configuration error(s), and %d rule(s)."
-        (if num_errors = 0 then "valid" else "invalid")
+        (if num_errors =|= 0 then "valid" else "invalid")
         num_errors (List.length rules));
   (* coupling: with Check_rule.error and use of SemgrepMatchFound *)
   metacheck_errors

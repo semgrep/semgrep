@@ -128,7 +128,7 @@ let insert_virtual_positions l =
 let fix_tokens_for_language lang xs =
   xs
   |> Common.map (fun tok ->
-         if lang = Flag_parsing_cpp.C && TH.is_cpp_keyword tok then
+         if lang =*= Flag_parsing_cpp.C && TH.is_cpp_keyword tok then
            let ii = TH.info_of_tok tok in
            T.TIdent (PI.str_of_info ii, ii)
          else tok)

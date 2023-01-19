@@ -224,7 +224,7 @@ let tests =
                               (* Debugging note: uses pattern_to_string for convenience,
                                * but really should match the code in the given file at
                                * the given range *)
-                              if matches_with_env = [] then (
+                              if matches_with_env =*= [] then (
                                 pr2 str;
                                 pr2 (AST_generic.show_any pattern);
                                 pr2 (AST_generic.show_any code));
@@ -249,5 +249,5 @@ let tests =
                       Alcotest.(check bool)
                         ("Patterns do not match solution, where inferred \
                           patterns are:\n" ^ pats_str)
-                        true (pats = sols))) );
+                        true (pats =*= sols))) );
   ]

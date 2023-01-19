@@ -297,7 +297,7 @@ and expr e =
       let rec mk_array n =
         if n < 1 then raise Impossible;
         (* see parser_java.mly dims | dim_exprs rules *)
-        if n = 1 then G.TyArray (fb None, v1) |> G.t
+        if n =|= 1 then G.TyArray (fb None, v1) |> G.t
         else G.TyArray (fb None, mk_array (n - 1)) |> G.t
       in
       let t = mk_array (v3 + List.length v2) in

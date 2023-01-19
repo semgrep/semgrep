@@ -154,7 +154,7 @@ let toplevel_methods g dag =
               * Only calls like $o->foo() are unresolved and those methods
               * must be public methods.
               *)
-             priv = E.Public
+             priv =*= E.Public
            then Hashtbl.add htoplevels s n2
            else ());
     let children_classes = Graphe.succ n dag in

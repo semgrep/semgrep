@@ -58,7 +58,7 @@ let addStorageD x decl =
   match decl with
   | { storageD = NoSto; _ } -> { decl with storageD = x }
   | { storageD = (StoTypedef ii | Sto (_, ii)) as y; _ } ->
-      if x = y then decl |> warning "duplicate storage classes"
+      if x =*= y then decl |> warning "duplicate storage classes"
       else error "multiple storage classes" ii
 
 let addModifierD x decl =

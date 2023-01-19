@@ -104,7 +104,7 @@ let rec print_taint_call_trace ~format ~spaces = function
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
 
 let print_taint_trace ~format taint_trace =
-  if format = Matching_report.Normal then (
+  if format =*= Matching_report.Normal then (
     let (lazy { Pattern_match.source; tokens; sink }) = taint_trace in
     pr "  * Taint comes from:";
     print_taint_call_trace ~format ~spaces:4 source;
@@ -127,7 +127,8 @@ let print_match ?str config match_ ii_of_any =
     match_
   in
   let toks = tokens_matched_code |> List.filter PI.is_origintok in
-  (if mvars = [] then Matching_report.print_match ?str ~format:match_format toks
+  (if mvars =*= [] then
+   Matching_report.print_match ?str ~format:match_format toks
   else
     (* similar to the code of Lib_matcher.print_match, maybe could
      * factorize code a bit.
@@ -466,7 +467,7 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
     match xlang with
     | Xlang.L (lang, other_langs) ->
         (* xlang from the language field in -target, which should be unique *)
-        assert (other_langs = []);
+        assert (other_langs =*= []);
         lazy
           (Parse_with_caching.parse_and_resolve_name
              ~parsing_cache_dir:config.parsing_cache_dir
@@ -567,7 +568,7 @@ let extracted_targets_of_config (config : Runner_config.t)
   logger#info "extracting nested content from %d files"
     (List.length basic_targets);
   let match_hook str match_ =
-    if !debug_extract_mode && config.output_format = Text then (
+    if !debug_extract_mode && config.output_format =*= Text then (
       pr2 "extracted content from ";
       print_match ~str config match_ Metavariable.ii_of_mval)
   in
@@ -660,7 +661,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
 
            let xtarget = xtarget_of_file config xlang file in
            let match_hook str match_ =
-             if config.output_format = Text then
+             if config.output_format =*= Text then
                print_match ~str config match_ Metavariable.ii_of_mval
            in
            let xconf =
@@ -863,7 +864,7 @@ let pattern_of_config lang config =
    - Print the final results (json or text) using dedicated functions.
 *)
 let semgrep_with_one_pattern config =
-  assert (config.rule_source = None);
+  assert (config.rule_source =*= None);
 
   (* TODO: support generic and regex patterns as well. See code in Deep.
    * Just use Parse_rule.parse_xpattern xlang (str, fk)

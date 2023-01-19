@@ -68,7 +68,7 @@ let whitespace_stat_of_string s =
   done;
   let total = !whitespace + !other in
   let sample_size = String.length s in
-  if total = 0 then { sample_size; ws_freq = 1.; line_freq = 1. }
+  if total =|= 0 then { sample_size; ws_freq = 1.; line_freq = 1. }
   else
     let ws_freq = float !whitespace /. float total in
     let line_freq = float !lines /. float total in

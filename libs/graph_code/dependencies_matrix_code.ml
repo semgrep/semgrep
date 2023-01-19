@@ -155,7 +155,7 @@ let explain_cell_list_use_edges (i, j) dm gopti =
   let rec depth parent igopti =
     let children = gopti.G2.has_children.(igopti) in
     let idm = igopti_to_idm.(igopti) in
-    let project = if idm = -1 then parent else idm in
+    let project = if idm =|= -1 then parent else idm in
     projected_parent_of_igopti.(igopti) <- project;
     children |> List.iter (depth project)
   in
@@ -167,7 +167,7 @@ let explain_cell_list_use_edges (i, j) dm gopti =
          xs
          |> List.iter (fun j2 ->
                 let parent_j2 = projected_parent_of_igopti.(j2) in
-                if parent_i2 = i && parent_j2 = j then
+                if parent_i2 =|= i && parent_j2 =|= j then
                   Common.push
                     (gopti.G2.i_to_name.(i2), gopti.G2.i_to_name.(j2))
                     res));
@@ -242,7 +242,7 @@ let focus_on_node n deps_style tree dm =
     (* we do || i = j because we want the node under focus in too, in the
      * right order
      *)
-    if to_include || i = j then Common.push j deps
+    if to_include || i =|= j then Common.push j deps
   done;
   (* old: this was not keeping the hierarchy (which can be a feature)
    *  Node (G.root, !deps +> List.rev +> List.map (fun i ->
@@ -253,7 +253,7 @@ let focus_on_node n deps_style tree dm =
     match tree with
     | Node (n2, []) ->
         let j = hashtbl_find_node dm.name_to_i n2 in
-        if i = j || List.mem j !deps then Some (Node (n2, [])) else None
+        if i =|= j || List.mem j !deps then Some (Node (n2, [])) else None
     | Node (n2, xs) ->
         let xs = xs |> Common.map_filter aux in
         if null xs then None else Some (Node (n2, xs))

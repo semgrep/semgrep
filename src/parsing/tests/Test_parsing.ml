@@ -435,7 +435,7 @@ let aggregate_file_stats (results : (string * Parsing_stat.t list) list) :
       let acc =
         List.fold_left
           (fun (acc : Parsing_stats_t.project_stats) (p : Parsing_stat.t) ->
-            let success = p.error_line_count = 0 in
+            let success = p.error_line_count =|= 0 in
             let nodes, todo_nodes =
               match p.ast_stat with
               | Some x -> (x.total_node_count, x.untranslated_node_count)

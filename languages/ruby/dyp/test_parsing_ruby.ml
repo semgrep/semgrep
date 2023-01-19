@@ -63,7 +63,7 @@ let test_parse xs =
 
              Common.push stat stat_list;
              let s = spf "bad = %d" stat.PS.error_line_count in
-             if stat.PS.error_line_count = 0 then
+             if stat.PS.error_line_count =|= 0 then
                Hashtbl.add newscore file Common2.Ok
              else Hashtbl.add newscore file (Common2.Pb s)));
   Parsing_stat.print_parsing_stat_list !stat_list;

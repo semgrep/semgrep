@@ -739,7 +739,7 @@ atom_and_trailers:
               (function | Index x -> Some x | Slice _ -> None)
               l
           in
-          if List.length l = List.length index_exprs then
+          if List.length l =|= List.length index_exprs then
             (* If everything in the brackets is a normal expression, return a
              * single tuple *)
             let tuple =

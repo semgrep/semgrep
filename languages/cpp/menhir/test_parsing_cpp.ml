@@ -49,7 +49,7 @@ let test_parse_cpp ?lang xs =
              Common.push stat stat_list;
 
              let s = spf "bad = %d" stat.PS.error_line_count in
-             if stat.PS.error_line_count = 0 then
+             if stat.PS.error_line_count =|= 0 then
                Hashtbl.add newscore file Common2.Ok
              else Hashtbl.add newscore file (Common2.Pb s)));
 

@@ -996,7 +996,7 @@ let parse_dockerfile_pattern str =
 
 let parse_pattern str =
   let dockerfile_res = parse_dockerfile_pattern str in
-  if dockerfile_res.errors = [] then dockerfile_res
+  if dockerfile_res.errors =*= [] then dockerfile_res
   else
     let bash_res = Parse_bash_tree_sitter.parse_pattern str in
-    if bash_res.errors = [] then bash_res else dockerfile_res
+    if bash_res.errors =*= [] then bash_res else dockerfile_res

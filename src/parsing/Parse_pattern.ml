@@ -102,7 +102,7 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
     when Parse_info.is_fake sc || Parse_info.str_of_info sc = "" ->
       normalize_any lang (G.E e)
   (* TODO: generalizing to other languages generate many regressions *)
-  | G.E { e = G.N name; _ } when lang = Lang.Rust ->
+  | G.E { e = G.N name; _ } when lang =*= Lang.Rust ->
       normalize_any lang (G.Name name)
   (* TODO: taken from ml_to_generic.ml:
    * | G.E {e = G.StmtExpr s; _} -> G.S s?

@@ -111,7 +111,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
             let cmd_need_pp = spf "%s -q %s %s" cmd pp_flag filename in
             if !Flag_php.verbose_pp then pr2 (spf "executing %s" cmd_need_pp);
             let ret = Sys.command cmd_need_pp in
-            if ret = 0 then orig_filename
+            if ret =|= 0 then orig_filename
             else
               Profiling.profile_code "Parse_php.pp" (fun () ->
                   let tmpfile = Common.new_temp_file "pp" ".pphp" in

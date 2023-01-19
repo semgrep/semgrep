@@ -76,8 +76,8 @@ let range_of_line_spec str file =
     let end_ = ref (-1) in
     for i = 0 to Common2.filesize file do
       let l, _ = trans i in
-      if l = line1 then start := i;
-      if l = line2 then end_ := i
+      if l =|= line1 then start := i;
+      if l =|= line2 then end_ := i
     done;
     if !start <> -1 && !end_ <> -1 then { start = !start; end_ = !end_ }
     else failwith (spf "could not find range %s in %s" str file))
@@ -95,8 +95,8 @@ let range_of_linecol_spec str file =
     let end_ = ref (-1) in
     for i = 0 to Common2.filesize file do
       let l, c = trans i in
-      if (l, c) = (line1, col1) then start := i;
-      if (l, c) = (line2, col2) then end_ := i
+      if (l, c) =*= (line1, col1) then start := i;
+      if (l, c) =*= (line2, col2) then end_ := i
     done;
     if !start <> -1 && !end_ <> -1 then { start = !start; end_ = !end_ }
     else failwith (spf "could not find range %s in %s" str file))

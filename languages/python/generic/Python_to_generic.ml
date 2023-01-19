@@ -263,7 +263,7 @@ let rec expr env (x : expr) =
                | Key (Ellipsis _) ->
                    true
                | _ -> false)
-          || v = []
+          || v =*= []
         then G.Dict
         else G.Set
       in
@@ -714,7 +714,7 @@ and stmt_aux env x =
            * So, this is disabled in semgrep (and enabled in codegraph).
            *)
           | G.N (G.Id (id, idinfo))
-            when env.context = InSourceToplevel && env.assign_to_vardef ->
+            when env.context =*= InSourceToplevel && env.assign_to_vardef ->
               let s = fst id in
               if not (is_in_scope env s) then (
                 env.current_scope <- s :: env.current_scope;

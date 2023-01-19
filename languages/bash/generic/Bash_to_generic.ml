@@ -201,7 +201,7 @@ let call loc name exprs =
 
 let todo_tokens ((start, end_) : loc) =
   let wrap tok = (Parse_info.str_of_info tok, tok) in
-  if start = end_ then [ G.TodoK (wrap start) ]
+  if start =*= end_ then [ G.TodoK (wrap start) ]
   else [ G.TodoK (wrap start); G.TodoK (wrap end_) ]
 
 let todo_stmt (loc : loc) : G.stmt =
@@ -447,14 +447,14 @@ and stmt_group (env : env) (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
 
 and expression (env : env) (e : expression) : G.expr =
   match e with
-  | Word ("...", tok) when env = Pattern ->
+  | Word ("...", tok) when env =*= Pattern ->
       (* occurs in unquoted concatenations e.g. ...$x or $x... *)
       G.Ellipsis tok |> G.e
   | Word str -> G.L (G.String str) |> G.e
   | String (* "foo" *) (open_, frags, close) -> (
       match frags with
       | [ String_content ((str, _) as wrap) ]
-        when not (env = Pattern && str = "...") ->
+        when not (env =*= Pattern && str = "...") ->
           (* normalization to enable matching of e.g. "foo" against foo *)
           G.L (G.String wrap) |> G.e
       | _ ->
@@ -465,7 +465,7 @@ and expression (env : env) (e : expression) : G.expr =
       (* normalization to enable matching of e.g. 'foo' against foo *)
       let without_quotes =
         let len = String.length str in
-        if len >= 2 && str.[0] = '\'' && str.[len - 1] = '\'' then
+        if len >= 2 && str.[0] =$= '\'' && str.[len - 1] =$= '\'' then
           String.sub str 1 (len - 2)
         else (* it's a bug but let's not fail *)
           str
@@ -490,7 +490,7 @@ and expression (env : env) (e : expression) : G.expr =
 
 and string_fragment (env : env) (frag : string_fragment) : G.expr =
   match frag with
-  | String_content (("...", tok) as wrap) when env = Pattern ->
+  | String_content (("...", tok) as wrap) when env =*= Pattern ->
       (* convert the '...' in '"${foo}...${bar}"' into an ellipsis *)
       G.Ellipsis tok |> G.e
   | String_content ((_, tok) as wrap) -> G.e (G.L (G.String wrap))

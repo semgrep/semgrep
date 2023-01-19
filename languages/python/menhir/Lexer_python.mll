@@ -74,7 +74,7 @@ let unescaped s =
              | 'v' -> Char.chr 11
              | _ -> (Buffer.add_char buf '\\'; c))
         end
-    end else if c = '\\' then
+    end else if c =$= '\\' then
       escape := true
     else
       Buffer.add_char buf c

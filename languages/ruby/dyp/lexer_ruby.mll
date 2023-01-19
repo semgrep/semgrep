@@ -643,11 +643,11 @@ and percent state = parse
        let d_end = close_delim d_start in
        let level = ref 0 in
        let at_end d =
-         if d = d_end then
-           if !level = 0 then true
+         if d =$= d_end then
+           if !level =|= 0 then true
            else (decr level; false)
          else
-           if d = d_start
+           if d =$= d_start
            then (incr level; false)
            else false
        in

@@ -174,7 +174,7 @@ module Top_sinks = struct
   let is_best_match sinks m' =
     match S.find_opt m' sinks with
     | None -> true
-    | Some m -> m.range = m'.range
+    | Some m -> m.range =*= m'.range
 end
 
 (* THINK: Separate read-only enviroment into a new a "cfg" type? *)
@@ -541,7 +541,7 @@ let handle_taint_propagators env thing taints =
     env.config.is_propagator any
   in
   let propagate_froms, propagate_tos =
-    List.partition (fun p -> p.spec.kind = `From) propagators
+    List.partition (fun p -> p.spec.kind =*= `From) propagators
   in
   let lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to

@@ -79,7 +79,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
       `O
         (("all", `A (Common.map translate_formula conjuncts :> Yaml.value list))
         ::
-        (if focus = [] && conditions = [] then []
+        (if focus =*= [] && conditions =*= [] then []
         else
           [
             ( "where",
@@ -116,7 +116,7 @@ let replace_pattern rule_fields translated_formula =
   List.concat_map
     (fun (name, value) ->
       (* Remove all taint fields, except replace sources with translation *)
-      if name = "mode" && value = `String "taint" then []
+      if name = "mode" && value =*= `String "taint" then []
       else if
         List.mem name
           [ "pattern-sinks"; "pattern-sanitizers"; "pattern-propagators" ]

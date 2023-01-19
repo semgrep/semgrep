@@ -136,7 +136,7 @@ let fix_tokens_lbody toks =
         :: F.Parens (_lb2, xs2, _rb2)
         :: F.Braces (lb3, xs3, _rb3)
         :: ys
-        when env = InIfHeader ->
+        when env =*= InIfHeader ->
           Hashtbl.add retag_lbrace lb3 true;
           aux Normal xs1;
           xs2
@@ -150,7 +150,7 @@ let fix_tokens_lbody toks =
         :: F.Braces (_lb2, xs2, _rb2)
         :: F.Braces (lb3, xs3, _rb3)
         :: ys
-        when env = InIfHeader ->
+        when env =*= InIfHeader ->
           Hashtbl.add retag_lbrace lb3 true;
           aux Normal xs1;
           aux Normal xs2;
@@ -159,28 +159,29 @@ let fix_tokens_lbody toks =
           (* must be after previous case *)
           (* skipping: if ok := interface{} ... *)
       | F.Tok (("struct" | "interface"), _) :: F.Braces (_lb1, xs1, _rb1) :: ys
-        when env = InIfHeader ->
+        when env =*= InIfHeader ->
           aux Normal xs1;
           aux env ys
       (* for a := range []int{...} { ... } *)
       | F.Braces (_lb1, xs1, _rb1) :: F.Braces (lb2, xs2, _rb2) :: ys
-        when env = InIfHeader ->
+        when env =*= InIfHeader ->
           Hashtbl.add retag_lbrace lb2 true;
           aux Normal xs1;
           aux Normal xs2;
           aux Normal ys (* False Positive (FP): for ... {}[...] *)
       | F.Braces (_lb, xs, _rb) :: F.Bracket (_, ys, _) :: zs
-        when env = InIfHeader ->
+        when env =*= InIfHeader ->
           aux Normal xs;
           aux Normal ys;
           aux env zs
       (* False Positive (FP): if ... {}; ... { *)
-      | F.Braces (_lb, xs, _rb) :: F.Tok (";", _) :: zs when env = InIfHeader ->
+      | F.Braces (_lb, xs, _rb) :: F.Tok (";", _) :: zs when env =*= InIfHeader
+        ->
           aux Normal xs;
           aux env zs
       | F.Braces (lb, xs, _rb) :: ys ->
           (* for ... { ... } *)
-          if env = InIfHeader then Hashtbl.add retag_lbrace lb true;
+          if env =*= InIfHeader then Hashtbl.add retag_lbrace lb true;
           aux Normal xs;
           aux Normal ys
       | F.Tok (("if" | "for" | "switch" | "select"), _) :: xs ->

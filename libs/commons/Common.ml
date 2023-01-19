@@ -55,10 +55,14 @@ exception UnixExit of int
 (* Equality *)
 (*****************************************************************************)
 let ( =|= ) : int -> int -> bool = ( = )
-let ( =<= ) : char -> char -> bool = ( = )
-let ( =$= ) : string -> string -> bool = ( = )
+let ( =$= ) : char -> char -> bool = ( = )
 let ( =:= ) : bool -> bool -> bool = ( = )
+
+(* dangerous, do not use, see the comment in Common.mli *)
 let ( =*= ) = ( = )
+
+(* to forbid people to use the polymorphic '=' *)
+let ( = ) = String.equal
 
 (*****************************************************************************)
 (* Debugging/logging *)
@@ -248,7 +252,7 @@ let enum x n =
   if not (x <= n) then
     failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
   let rec enum_aux acc x n =
-    if x = n then n :: acc else enum_aux (x :: acc) (x + 1) n
+    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
   in
   List.rev (enum_aux [] x n)
 
@@ -654,7 +658,7 @@ let join sep xs = String.concat sep xs
 (* ruby *)
 let i_to_s = string_of_int
 let s_to_i = int_of_string
-let null_string s = s =$= ""
+let null_string s = s = ""
 
 (*****************************************************************************)
 (* Filenames *)
@@ -680,7 +684,7 @@ let chop_dirsymbol = function
 (* pre: prj_path must not contain regexp symbol *)
 let filename_without_leading_path prj_path s =
   let prj_path = chop_dirsymbol prj_path in
-  if s =$= prj_path then "."
+  if s = prj_path then "."
   else if
     (* Note that we should handle multiple consecutive '/' as in 'path/to//file' *)
     s =~ "^" ^ prj_path ^ "/+\\(.*\\)$"
@@ -801,7 +805,7 @@ let cmd_to_list_and_status = process_output_to_list2
 let input_text_line ic =
   let s = input_line ic in
   let len = String.length s in
-  if len > 0 && s.[len - 1] = '\r' then String.sub s 0 (len - 1) else s
+  if len > 0 && s.[len - 1] =$= '\r' then String.sub s 0 (len - 1) else s
 
 let cat file =
   let acc = ref [] in
@@ -1133,7 +1137,7 @@ let main_boilerplate f =
          *)
         if
           Sys.argv |> Array.to_list
-          |> List.exists (fun x -> x =$= "-debugger" || x =$= "--debugger")
+          |> List.exists (fun x -> x = "-debugger" || x = "--debugger")
         then debugger := true;
 
         finalize
@@ -1172,7 +1176,7 @@ let files_of_dir_or_files_no_vcs_nofilter xs =
            match status with
            | Unix.WEXITED 0 -> xs
            (* bugfix: 'find -type f' does not like empty directories, but it's ok *)
-           | Unix.WEXITED 1 when Array.length (Sys.readdir x) = 0 -> []
+           | Unix.WEXITED 1 when Array.length (Sys.readdir x) =|= 0 -> []
            | _ ->
                raise
                  (CmdError
