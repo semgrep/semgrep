@@ -312,10 +312,18 @@ def create_temporary_copy(path: Path) -> str:
 def relatively_eq(
     parent_target: Path, target: Path, parent_config: Path, config: Path
 ) -> bool:
+    def remove_all_suffixes(p: str) -> str:
+        return p.split(".", 1)[0]
+
     rel1 = target.relative_to(parent_target).parts
     rel2 = config.relative_to(parent_config).parts
-    s = len(rel2) - 1
-    return rel1[:s] == rel2[:s] and rel1[s].split(".")[0] == rel2[s].split(".")[0]
+    s = len(rel2)
+    if len(rel1) < s:
+        return False
+    s -= 1
+    return rel1[:s] == rel2[:s] and remove_all_suffixes(rel1[s]) == remove_all_suffixes(
+        rel2[s]
+    )
 
 
 def get_config_filenames(original_config: Path) -> List[Path]:
