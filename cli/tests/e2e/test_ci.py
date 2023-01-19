@@ -80,7 +80,8 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     lockfile1 = repo_base / "poetry.lock"
     lockfile1.write_text(
         dedent(
-            """[[package]]
+            """\
+    [[package]]
     name = "badlib"
     version = "99.99.99"
     description = "it's bad"
