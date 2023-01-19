@@ -333,7 +333,7 @@ def ci(
 
             # Set a default max_memory for CI runs when DeepSemgrep is on because
             # DeepSemgrep is likely to run out
-            if not max_memory:
+            if max_memory is None:
                 if deep:
                     max_memory = DEFAULT_MAX_MEMORY_DEEP_CI
                 else:
