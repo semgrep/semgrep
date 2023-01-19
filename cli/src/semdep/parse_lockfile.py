@@ -613,8 +613,7 @@ def parse_lockfile_path(
         return parse_lockfile(lockfile_path, manifest_path)
 
     if lockfile_name in OLD_LOCKFILE_PARSERS:
-        with open(lockfile_path) as f:
-            lockfile_text = f.read()
+        lockfile_text = lockfile_path.read_text()
         if manifest_path:
             with open(manifest_path) as f:
                 manifest_text = f.read()
