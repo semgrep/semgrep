@@ -152,7 +152,7 @@ let rec all_suffix_of_list xs =
 
 let _ =
   Common2.example
-    (all_suffix_of_list [ 1; 2; 3 ] = [ [ 1; 2; 3 ]; [ 2; 3 ]; [ 3 ]; [] ])
+    (all_suffix_of_list [ 1; 2; 3 ] =*= [ [ 1; 2; 3 ]; [ 2; 3 ]; [ 3 ]; [] ])
 
 (* copy paste of pfff/lang_ml/analyze/module_ml.ml *)
 let module_name_of_filename file =
@@ -954,7 +954,7 @@ and m_expr ?(is_root = false) a b =
       >||>
       match (b1.e, b2.e) with
       | B.Container (B.Tuple, (_, vars, _)), B.Container (B.Tuple, (_, vals, _))
-        when List.length vars = List.length vals ->
+        when List.length vars =|= List.length vals ->
           let create_assigns expr1 expr2 = B.Assign (expr1, bt, expr2) |> G.e in
           let mult_assigns = List.map2 create_assigns vars vals in
           let rec aux xs =
@@ -1221,7 +1221,7 @@ and m_wrap_m_int_opt (a1, a2) (b1, b2) =
 and m_wrap_m_float_opt (a1, a2) (b1, b2) =
   match (a1, b1) with
   (* iso: semantic equivalence of value! 0x8 can match 8 *)
-  | Some i1, Some i2 when i1 = i2 -> return ()
+  | Some f1, Some f2 when f1 =*= f2 -> return ()
   | _ ->
       let a1 = Parse_info.str_of_info a2 in
       let b1 = Parse_info.str_of_info b2 in
@@ -1431,7 +1431,7 @@ and type_of_expr lang e : G.type_ option * G.ident option =
      so calculate the type in the same way as above
      THINK: should we do this for all languages? Why not? *)
   | B.Call ({ e = N (Id (idb, { B.id_type = tb; _ })); _ }, _args)
-    when lang = Lang.Java -> (
+    when lang =*= Lang.Java -> (
       match !tb with
       | Some { t = TyFun (_params, tret); _ } -> (Some tret, Some idb)
       | Some _
@@ -3247,7 +3247,7 @@ and m_directive_vs_def a b =
        * against JS targets, though, so we enable this behavior for TS as well.
        *
        * TODO incorporate TS's `import x = require('y')` syntax? *)
-      if lang = Lang.Js || lang = Lang.Ts then
+      if lang =*= Lang.Js || lang =*= Lang.Ts then
         match a.d with
         (* JS: `import {x, y as z} from 'a';` *)
         | G.ImportFrom (_, G.FileName filea, importsa) -> f filea importsa

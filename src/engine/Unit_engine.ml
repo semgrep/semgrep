@@ -455,7 +455,7 @@ let eval_regression_tests () =
                Alcotest.(check bool)
                  (spf "%s should evaluate to true" file)
                  true
-                 (Eval_generic.Bool true = res)) );
+                 (Eval_generic.Bool true =*= res)) );
   ]
 
 (*****************************************************************************)
@@ -564,8 +564,8 @@ let tainting_test lang rules_file file =
            | _ -> false)
   in
   let search_rules, taint_rules, extract_rules = Rule.partition_rules rules in
-  assert (search_rules = []);
-  assert (extract_rules = []);
+  assert (search_rules =*= []);
+  assert (extract_rules =*= []);
   let xconf = Match_env.default_xconfig in
 
   let matches =

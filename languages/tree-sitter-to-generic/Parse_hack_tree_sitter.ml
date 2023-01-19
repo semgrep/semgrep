@@ -1874,7 +1874,7 @@ and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
                 pdefault = None;
               }
             in
-            if env.extra = Pattern then [ G.ParamEllipsis (token env tok) ]
+            if env.extra =*= Pattern then [ G.ParamEllipsis (token env tok) ]
               (* Q: TODO: Even though not from Semgrep, can I use ParamEllipsis here? *)
             else [ G.ParamRest (token env tok, empty_param) ]
         | `Param_rep_COMMA_param_opt_COMMA (v1, v2, v3) ->

@@ -381,9 +381,11 @@ let rec inits_and_rest_of_list = function
 let _ =
   Common2.example
     (inits_and_rest_of_list [ 'a'; 'b'; 'c' ]
-    = [
-        ([ 'a' ], [ 'b'; 'c' ]); ([ 'a'; 'b' ], [ 'c' ]); ([ 'a'; 'b'; 'c' ], []);
-      ])
+    =*= [
+          ([ 'a' ], [ 'b'; 'c' ]);
+          ([ 'a'; 'b' ], [ 'c' ]);
+          ([ 'a'; 'b'; 'c' ], []);
+        ])
 
 let inits_and_rest_of_list_empty_ok = function
   | [] -> [ ([], []) ]
@@ -392,12 +394,12 @@ let inits_and_rest_of_list_empty_ok = function
 let _ =
   Common2.example
     (inits_and_rest_of_list_empty_ok [ 'a'; 'b'; 'c' ]
-    = [
-        ([], [ 'a'; 'b'; 'c' ]);
-        ([ 'a' ], [ 'b'; 'c' ]);
-        ([ 'a'; 'b' ], [ 'c' ]);
-        ([ 'a'; 'b'; 'c' ], []);
-      ])
+    =*= [
+          ([], [ 'a'; 'b'; 'c' ]);
+          ([ 'a' ], [ 'b'; 'c' ]);
+          ([ 'a'; 'b' ], [ 'c' ]);
+          ([ 'a'; 'b'; 'c' ], []);
+        ])
 
 (* todo? optimize, probably not the optimal version ... *)
 let all_elem_and_rest_of_list xs =
@@ -645,8 +647,9 @@ let m_comb_1toN m_1toN a bs : _ comb_result =
 (* stdlib: bool/int/string/... *)
 (* ---------------------------------------------------------------------- *)
 
-let m_eq a b = if a = b then return () else fail ()
-let m_bool a b = if a = b then return () else fail ()
+(* try to not use m_eq, you could get bad surprise *)
+let m_eq a b = if a =*= b then return () else fail ()
+let m_bool a b = if a =:= b then return () else fail ()
 let m_int a b = if a =|= b then return () else fail ()
 let m_string a b = if a =$= b then return () else fail ()
 
@@ -657,12 +660,12 @@ let m_string a b = if a =$= b then return () else fail ()
  * path separator. *)
 let filepath_is_prefix s1 s2 =
   (* todo: can we assume that the strings are trimmed? *)
-  let is_sep c = c = '/' || c = '\\' in
+  let is_sep c = c =<= '/' || c =<= '\\' in
   let len1 = String.length s1 and len2 = String.length s2 in
   if len1 < len2 then false
   else
     let sub = Str.first_chars s1 len2 in
-    sub = s2 && (len1 = len2 || is_sep s1.[len2])
+    sub = s2 && (len1 =|= len2 || is_sep s1.[len2])
 
 (* less-is-ok: *)
 let m_filepath_prefix a b =

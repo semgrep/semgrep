@@ -281,11 +281,13 @@ and eval_op op values code =
   | G.Plus, [ Float i1; Float i2 ] -> Float (i1 +. i2)
   | G.Plus, [ Int i1; Float i2 ] -> Float (float_of_int i1 +. i2)
   | G.Plus, [ Float i1; Int i2 ] -> Float (i1 +. float_of_int i2)
-  | G.Eq, [ Int v1; Float v2 ] -> Bool (float_of_int v1 = v2)
-  | G.Eq, [ Float v1; Int v2 ] -> Bool (v1 = float_of_int v2)
-  | G.Eq, [ v1; v2 ] -> Bool (v1 = v2)
+  | G.Eq, [ Int v1; Float v2 ] -> Bool (float_of_int v1 =*= v2)
+  | G.Eq, [ Float v1; Int v2 ] -> Bool (v1 =*= float_of_int v2)
+  (* TODO? dangerous use of polymorphic =*= ? *)
+  | G.Eq, [ v1; v2 ] -> Bool (v1 =*= v2)
   | G.NotEq, [ Int v1; Float v2 ] -> Bool (float_of_int v1 <> v2)
   | G.NotEq, [ Float v1; Int v2 ] -> Bool (v1 <> float_of_int v2)
+  (* TODO? dangerous use of polymorphic <> ? *)
   | G.NotEq, [ v1; v2 ] -> Bool (v1 <> v2)
   | G.In, [ v1; v2 ] -> (
       match v2 with

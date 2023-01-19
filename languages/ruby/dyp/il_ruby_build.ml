@@ -182,15 +182,17 @@ let escape_regexp re =
         match state with
         | `NoEsc ->
             Buffer.add_char buf c;
-            if c = '\\' then `Esc else if c = '[' then `CharClass else `NoEsc
+            if c =<= '\\' then `Esc
+            else if c =<= '[' then `CharClass
+            else `NoEsc
         | `Esc ->
             Buffer.add_char buf c;
             `NoEsc
         | `CharClass ->
             if List.mem c escaped then Buffer.add_char buf '\\';
             Buffer.add_char buf c;
-            if c = '\\' then `EscClass
-            else if c = ']' then `NoEsc
+            if c =<= '\\' then `EscClass
+            else if c =<= ']' then `NoEsc
             else `CharClass
         | `EscClass ->
             Buffer.add_char buf c;
@@ -1771,8 +1773,8 @@ and refactor_method_name (acc : stmt acc) e : stmt acc * def_name =
 
 and refactor_body (acc : stmt acc) b pos : stmt acc =
   if
-    b.Ast.rescue_exprs = [] && b.Ast.ensure_expr = None
-    && b.Ast.else_expr = None
+    b.Ast.rescue_exprs =*= [] && b.Ast.ensure_expr =*= None
+    && b.Ast.else_expr =*= None
   then refactor_stmt_list acc b.Ast.body_exprs
   else
     (* thread the seen set through all parts of the body *)

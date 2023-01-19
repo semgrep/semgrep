@@ -685,7 +685,7 @@ let cmdline_term : conf Term.t =
       match () with
       | _ when dump_ast -> (
           let target_roots =
-            if target_roots = default.target_roots then [] else target_roots
+            if target_roots =*= default.target_roots then [] else target_roots
           in
           match (pattern, lang, target_roots) with
           | Some str, Some lang_str, [] ->
@@ -778,7 +778,7 @@ let cmdline_term : conf Term.t =
     in
 
     (* sanity checks *)
-    if List.mem "auto" config && metrics = Metrics.Off then
+    if List.mem "auto" config && metrics =*= Metrics.Off then
       Error.abort
         "Cannot create auto config when metrics are off. Please allow metrics \
          or run with a specific config.";

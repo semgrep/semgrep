@@ -294,7 +294,7 @@ let find_typedefs xxs =
       :: { t = TMul _; col = c1 }
       :: { t = TIdent _; col = c2 }
       :: xs
-      when c2 = c1 + 1 && c1 >= c0 + String.length s + 1 ->
+      when c2 =|= c1 + 1 && c1 >= c0 + String.length s + 1 ->
         change_tok tok1 (TIdent_Typedef (s, i1));
         aux xs
     (* xx* yy *)
@@ -302,7 +302,7 @@ let find_typedefs xxs =
       :: { t = TMul _; col = c1 }
       :: { t = TIdent _; col = c2 }
       :: xs
-      when c1 = c0 + String.length s && c2 >= c1 + 2 ->
+      when c1 =|= c0 + String.length s && c2 >= c1 + 2 ->
         change_tok tok1 (TIdent_Typedef (s, i1));
         aux xs
     (* xx ** yy

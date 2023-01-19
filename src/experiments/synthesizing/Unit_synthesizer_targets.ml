@@ -42,7 +42,7 @@ let todo_tests =
 
 (* Range.t does not derive eq *)
 let compare_range (r1 : Range.t) (r2 : Range.t) : bool =
-  r1.start = r2.start && r1.end_ = r2.end_
+  r1.start =|= r2.start && r1.end_ =|= r2.end_
 
 let parse_file lang file : AST_generic.program =
   Parse_target.parse_and_resolve_name_fail_if_partial lang file

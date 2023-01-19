@@ -134,7 +134,7 @@ let tests ~any_gen_of_string =
                  else
                    Alcotest.(check bool)
                      (spf "pattern:|%s| should not match |%s" spattern scode)
-                     true (matches_with_env = [])
+                     true (matches_with_env =*= [])
                with
                | Parsing.Parse_error ->
                    failwith (spf "problem parsing %s or %s" spattern scode)) );

@@ -418,7 +418,7 @@ let map_non_special_token (env : env) (x : CST.non_special_token) : G.any =
   | `Pat_a8c54f1 tok ->
       let s, t = str env tok in
       (* sgrep-ext: todo? better extend grammar.js instead? *)
-      if s = "..." && env.extra = Pattern then G.E (G.Ellipsis t |> G.e)
+      if s = "..." && env.extra =*= Pattern then G.E (G.Ellipsis t |> G.e)
       else G.Tk (token env tok)
       (*tok*)
   | `Meta tok -> G.Tk (token env tok) (* pattern \$[a-zA-Z_]\w* *)

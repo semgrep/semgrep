@@ -81,7 +81,7 @@ let eq_inout eq_env io1 io2 =
 (* Debugging support *)
 (*****************************************************************************)
 
-let csv_append s v = if String.length s = 0 then v else s ^ "," ^ v
+let csv_append s v = if String.length s =|= 0 then v else s ^ "," ^ v
 
 let array_fold_left_idx f =
   let idx = ref 0 in

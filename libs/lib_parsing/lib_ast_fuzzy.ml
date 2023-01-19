@@ -70,16 +70,16 @@ let mk_trees h xs =
 
   let rec consume x xs =
     match x with
-    | tok when h.kind tok = PI.LBrace ->
+    | tok when h.kind tok =*= PI.LBrace ->
         let body, closing, rest = look_close PI.RBrace x [] xs in
         (Ast_fuzzy.Braces (h.tokf x, body, h.tokf closing), rest)
-    | tok when h.kind tok = PI.LBracket ->
+    | tok when h.kind tok =*= PI.LBracket ->
         let body, closing, rest = look_close PI.RBracket x [] xs in
         (Ast_fuzzy.Bracket (h.tokf x, body, h.tokf closing), rest)
-    | tok when h.kind tok = PI.LAngle ->
+    | tok when h.kind tok =*= PI.LAngle ->
         let body, closing, rest = look_close PI.RAngle x [] xs in
         (Ast_fuzzy.Angle (h.tokf x, body, h.tokf closing), rest)
-    | tok when h.kind tok = PI.LPar ->
+    | tok when h.kind tok =*= PI.LPar ->
         let body, closing, rest = look_close_paren x [] xs in
         let body' = split_comma body in
         (Ast_fuzzy.Parens (h.tokf x, body', h.tokf closing), rest)
@@ -105,7 +105,7 @@ let mk_trees h xs =
                h.tokf tok_start ))
     | x :: xs -> (
         match x with
-        | tok when h.kind tok = close_kind -> (List.rev accbody, x, xs)
+        | tok when h.kind tok =*= close_kind -> (List.rev accbody, x, xs)
         | _ ->
             let x', xs' = consume x xs in
             look_close close_kind tok_start (x' :: accbody) xs')
@@ -115,7 +115,7 @@ let mk_trees h xs =
     | [] -> raise (Unclosed ("look_close_paren", h.tokf tok_start))
     | x :: xs -> (
         match x with
-        | tok when h.kind tok = PI.RPar -> (List.rev accbody, x, xs)
+        | tok when h.kind tok =*= PI.RPar -> (List.rev accbody, x, xs)
         | _ ->
             let x', xs' = consume x xs in
             look_close_paren tok_start (x' :: accbody) xs')

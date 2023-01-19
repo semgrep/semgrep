@@ -168,7 +168,7 @@ let full_charpos_to_pos_large file =
            * note: we could fix info_from_charpos() too, but it's not
            * used for ASI so simpler to leave it as is.
            *)
-          if i < len - 1 && String.get s i = '\r' then (
+          if i < len - 1 && String.get s i =<= '\r' then (
             incr line;
             col := -1);
           incr col
@@ -287,7 +287,8 @@ let adjust_pinfo_wrt_base base_loc loc =
     loc with
     charpos = base_loc.charpos + loc.charpos;
     line = base_loc.line + loc.line - 1;
-    column = (if loc.line = 1 then base_loc.column + loc.column else loc.column);
+    column =
+      (if loc.line =|= 1 then base_loc.column + loc.column else loc.column);
     file = base_loc.file;
   }
 

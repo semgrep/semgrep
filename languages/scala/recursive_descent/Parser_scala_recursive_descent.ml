@@ -1283,7 +1283,7 @@ let exprSimpleType x : type_ = outPattern simpleType x
 let typeOrInfixType location in_ : type_ =
   in_
   |> with_logging "typeOrInfixType" (fun () ->
-         if location = Local then typ in_ else startInfixType in_)
+         if location =*= Local then typ in_ else startInfixType in_)
 
 (** {{{
  *  TypedOpt ::= [`:` Type]
@@ -2870,7 +2870,7 @@ let funDefRest fkind _attrs name in_ : function_definition * type_parameters =
                (* CHECK: if restype = None then deprecated missing type, use : Unit *)
                (* AST: EmptyTree, newmods |= DEFERRED *)
                None
-           | LBRACE _ when restype = None ->
+           | LBRACE _ when restype =*= None ->
                (* CHECK: missing type *)
                let x = blockExpr in_ in
                Some (FBlock x)

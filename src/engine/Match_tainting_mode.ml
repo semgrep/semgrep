@@ -382,10 +382,10 @@ let taint_config_of_rule xconf file ast_and_errors
              if
                not
                  (List.exists
-                    (fun (range', _) -> range'.RM.r = range.RM.r)
+                    (fun (range', _) -> range'.RM.r =*= range.RM.r)
                     sinks_ranges
                  || List.exists
-                      (fun (range', _) -> range'.RM.r = range.RM.r)
+                      (fun (range', _) -> range'.RM.r =*= range.RM.r)
                       sources_ranges)
              then Some (range, spec)
              else None

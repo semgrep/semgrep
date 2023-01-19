@@ -245,7 +245,7 @@ let pattern_from_args env args : pattern_instrs =
     let substitute_next rest =
       (* If it's the last one, try deleting the ellipses at the end *)
       let funs =
-        if count = max then
+        if count =|= max then
           [
             (ANY (Args rest), replace_rest);
             (ANY (E (Ellipsis fk |> G.e)), remove_end_ellipsis);
@@ -255,7 +255,8 @@ let pattern_from_args env args : pattern_instrs =
       (* Always try replacing the arguments *)
       let funs = (ANY (Args rest), replace_rest) :: funs in
       (* If it's the first one, try deleting the ellipses at the start *)
-      if count = 1 then (ANY (E (Ellipsis fk |> G.e)), remove_ellipsis) :: funs
+      if count =|= 1 then
+        (ANY (E (Ellipsis fk |> G.e)), remove_ellipsis) :: funs
       else funs
     in
     match args with
@@ -449,7 +450,7 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   let included_patterns = get_included_patterns pattern_children in
   let cont =
     List.fold_left
-      (fun prev patterns -> prev && not (patterns = []))
+      (fun prev patterns -> prev && not (patterns =*= []))
       true included_patterns
   in
   (* Call recursively on these patterns *)

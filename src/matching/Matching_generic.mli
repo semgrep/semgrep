@@ -160,7 +160,7 @@ val m_comb_1toN : ('a -> 'a list -> tin -> tout) -> 'a comb_matcher
  * sub-list [ys'] in [ys]. Each succesful match returns
  * [(ys \ ys', m_1toN x ys')]. *)
 
-(* use = *)
+(* use =*= *)
 val m_eq : 'a matcher
 val m_bool : bool matcher
 val m_int : int matcher

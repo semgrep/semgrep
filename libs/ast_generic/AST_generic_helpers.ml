@@ -40,7 +40,7 @@ let name_of_ids_with_opt_typeargs xs =
   | [] -> failwith "name_of_ids_with_opt_typeargs: empty ids"
   | [ (x, None) ] -> Id (x, empty_id_info ())
   | (x, topt) :: xs ->
-      let qualif = if xs = [] then None else Some (QDots (xs |> List.rev)) in
+      let qualif = if xs =*= [] then None else Some (QDots (xs |> List.rev)) in
       IdQualified
         {
           name_last = (x, topt);
@@ -108,7 +108,7 @@ let name_of_ids xs =
   | [ x ] -> Id (x, empty_id_info ())
   | x :: xs ->
       let qualif =
-        if xs = [] then None
+        if xs =*= [] then None
         else Some (QDots (xs |> List.rev |> Common.map (fun id -> (id, None))))
       in
       IdQualified
@@ -375,7 +375,7 @@ let ac_matching_nf op args =
     |> Common.map nf_one |> List.flatten
   and nf_one e =
     match e.e with
-    | Call ({ e = IdSpecial (Op op1, _tok1); _ }, (_, args1, _)) when op = op1
+    | Call ({ e = IdSpecial (Op op1, _tok1); _ }, (_, args1, _)) when op =*= op1
       ->
         nf args1
     | _ -> [ e ]

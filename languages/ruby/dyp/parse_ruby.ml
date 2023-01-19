@@ -143,12 +143,12 @@ let parse2 opt_timeout file =
           let s = Common.exn_to_s exn in
 
           (* pr2 (spf "Exn on %s = %s" file s); *)
-          if (not !Flag.error_recovery) && exn = Dyp.Syntax_error then
+          if (not !Flag.error_recovery) && exn =*= Dyp.Syntax_error then
             raise (PI.Parsing_error (TH.info_of_tok cur));
           if (not !Flag.error_recovery) && exn <> Dyp.Syntax_error then
             raise (PI.Other_error (s, TH.info_of_tok cur));
 
-          if !Flag.show_parsing_error && exn = Dyp.Syntax_error then (
+          if !Flag.show_parsing_error && exn =*= Dyp.Syntax_error then (
             pr2 ("parse error \n = " ^ error_msg_tok cur);
             let filelines = Common2.cat_array file in
             let checkpoint2 = Common.cat file |> List.length in
@@ -156,7 +156,7 @@ let parse2 opt_timeout file =
             Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
 
           stat.PS.error_line_count <- stat.PS.total_line_count;
-          if exn = Parse_ruby_timeout then stat.PS.have_timeout <- true;
+          if exn =*= Parse_ruby_timeout then stat.PS.have_timeout <- true;
           { Parsing_result.ast = []; tokens = List.rev !toks; stat })
 
 let parse ?timeout file = parse2 timeout file

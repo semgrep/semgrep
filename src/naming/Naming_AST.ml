@@ -452,7 +452,8 @@ let declare_var env lang id id_info ~explicit vinit vtype =
   set_resolved env id_info resolved
 
 let assign_implicitly_declares lang =
-  lang = Lang.Python || lang = Lang.Ruby || lang = Lang.Php || Lang.is_js lang
+  lang =*= Lang.Python || lang =*= Lang.Ruby || lang =*= Lang.Php
+  || Lang.is_js lang
 
 (*****************************************************************************)
 (* Entry point *)
@@ -524,7 +525,7 @@ let resolve lang prog =
                       };
                   vtype = _;
                 } )
-            when lang = Lang.Js || lang = Lang.Ts ->
+            when lang =*= Lang.Js || lang =*= Lang.Ts ->
               let sid = SId.mk () in
               let resolved =
                 untyped_ent (ImportedModule (DottedName [ file ]), sid)
@@ -558,7 +559,7 @@ let resolve lang prog =
                   vtype = _;
                 } )
             when id_str = special_multivardef_pattern
-                 && (lang = Lang.Js || lang = Lang.Ts) ->
+                 && (lang =*= Lang.Js || lang =*= Lang.Ts) ->
               List.iter
                 (function
                   | F
@@ -857,7 +858,7 @@ let resolve lang prog =
            * in a multi-variable short declaration".)
            * See: https://golang.org/ref/spec#Short_variable_declarations *)
           | AssignOp ({ e = N (Id (id, id_info)); _ }, (Eq, tok), e2)
-            when lang = Lang.Go
+            when lang =*= Lang.Go
                  && Parse_info.str_of_info tok = ":="
                  && is_resolvable_name_ctx env lang ->
               (* Need to visit the RHS first so that type is populated *)

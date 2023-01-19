@@ -185,7 +185,7 @@ let map_loc pos line col file (loc : Parse_info.token_location) =
     loc with
     charpos = loc.charpos + pos;
     line = loc.line + line;
-    column = (if loc.line = 1 then loc.column + col else loc.column);
+    column = (if loc.line =|= 1 then loc.column + col else loc.column);
     file;
   }
 
@@ -262,8 +262,10 @@ let map_res map_loc tmpfile file
 
 let extract_and_concat erule_table xtarget rule_ids matches =
   matches
-  (* Group the matches within this file by rule id *)
-  |> collect (fun m m' -> m.Pattern_match.rule_id = m'.Pattern_match.rule_id)
+  (* Group the matches within this file by rule id.
+   * TODO? dangerous use of =*= ?
+   *)
+  |> collect (fun m m' -> m.Pattern_match.rule_id =*= m'.Pattern_match.rule_id)
   |> Common.map (fun matches -> nonempty_to_list matches)
   (* Convert matches to the extract metavariable / bound value *)
   |> Common.map
@@ -376,7 +378,7 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                           charpos = loc.charpos - consumed_loc.start_pos;
                           line;
                           column =
-                            (if line = 1 then
+                            (if line =|= 1 then
                              loc.column - consumed_loc.start_col
                             else loc.column);
                         } ))

@@ -69,6 +69,6 @@ let is_special_identifier ?lang str =
   (* ugly: because ast_js_build introduce some extra "!default" ids *)
   || (is_js lang && str = Ast_js.default_entity)
   (* parser_java.mly inserts some implicit this *)
-  || (lang = Some Lang.Java && str = "this")
+  || (lang =*= Some Lang.Java && str = "this")
   || (* TODO: PHP converts some Eval in __builtin *)
-  (lang = Some Lang.Php && str =~ "__builtin__*")
+  (lang =*= Some Lang.Php && str =~ "__builtin__*")

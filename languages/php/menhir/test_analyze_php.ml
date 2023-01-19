@@ -29,7 +29,7 @@ let test_parse_simple xs =
                    Parse_php.parse file)
              in
              Common.push stat stat_list;
-             if stat.PS.error_line_count = 0 then
+             if stat.PS.error_line_count =|= 0 then
                try_with_print_exn_and_reraise file (fun () ->
                    let _ast = Ast_php_build.program cst in
                    ())));

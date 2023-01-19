@@ -61,7 +61,7 @@ let (matches_of_matcher :
       filename ->
       RP.times RP.match_result) =
  fun xpatterns matcher file ->
-  if xpatterns = [] then RP.empty_semgrep_result
+  if xpatterns =*= [] then RP.empty_semgrep_result
   else
     let target_content_opt, parse_time =
       Common.with_time (fun () -> matcher.init file)

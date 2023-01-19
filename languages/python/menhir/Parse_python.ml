@@ -46,7 +46,7 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 let tokens parsing_mode file =
   let state = Lexer.create () in
-  let python2 = parsing_mode = Python2 in
+  let python2 = parsing_mode =*= Python2 in
   let token lexbuf =
     try
       match Lexer.top_mode state with
@@ -129,7 +129,7 @@ let rec parse_basic ?(parsing_mode = Python) filename =
        * strange error messages for python3 code.
        *)
       if
-        parsing_mode = Python
+        parsing_mode =*= Python
         && tr.Parsing_helpers.passed |> Common.take_safe 10
            |> List.exists (function
                 | T.NAME (("print" | "exec"), _)
@@ -178,7 +178,7 @@ let (program_of_string : string -> AST_python.program) =
 
 let type_of_string ?(parsing_mode = Python) s =
   let lexbuf = Lexing.from_string s in
-  let is_python2 = parsing_mode = Python2 in
+  let is_python2 = parsing_mode =*= Python2 in
   let state = Lexer.create () in
   let rec lexer lexbuf =
     let res = Lexer_python.token is_python2 state lexbuf in

@@ -212,7 +212,7 @@ and qualified_ident env xs =
 
 and dname = function
   | DName (s, tok) ->
-      if s.[0] = '$' then
+      if s.[0] =<= '$' then
         if !Flag_parsing.sgrep_mode then (s, wrap tok)
         else failwith "dname: the string has a dollar, weird"
       else

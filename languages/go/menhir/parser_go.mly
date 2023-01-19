@@ -101,7 +101,7 @@ let adjust_signatures params =
   else
     let rec aux acc xs =
       match xs with
-      | [] -> if acc = []
+      | [] -> if acc =*= []
               then []
               else begin
                 failwith ("last parameter should have a type and id" ^

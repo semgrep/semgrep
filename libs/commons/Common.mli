@@ -1,24 +1,35 @@
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 (* This module contains functions (and types) which are very often used.
  * They are so common (hence the name of this file) that lots of modules
  * just 'open Common' to get in scope those functions.
- * This file acts like a second Pervasive/Stdlib.
+ * This file acts like a second Pervasive.ml (now called Stdlib.ml).
  *
  * However, because this module is often open'ed, it should
  * not define too many functions (<100) because we can't impose
  * to other programmers the mental effort to know too many functions.
- * This was actually a big problem with Common.ml originally
+ * This was actually a big problem with the first version of Common.ml
  * (renamed to Common2.ml since).
  *)
 
-(* You should avoid using the polymorphic '='. It is convenient but
+(*****************************************************************************)
+(* Equality *)
+(*****************************************************************************)
+
+(* You should not use the polymorphic '='. It is convenient but
  * its use will eventually backfire. You should use instead 'deriving eq'
  * where the equality function can be customized.
- * If you really need to use '=', at least use the more precise operators
- * below.
+ * To enforce this rule, this module redefines '=' to just operate
+ * on strings, so ocaml can statically detect when you wrongly use '='
+ * on other types.
  *)
+val ( = ) : string -> string -> bool
+
+(* If you need to use '=', at least use the more precise operators below. *)
 val ( =|= ) : int -> int -> bool
-val ( =<= ) : char -> char -> bool
 val ( =$= ) : string -> string -> bool
+val ( =<= ) : char -> char -> bool
 val ( =:= ) : bool -> bool -> bool
 
 (* if you really really need to use the polymorphic '=', at least use
@@ -26,6 +37,11 @@ val ( =:= ) : bool -> bool -> bool
  * the code to use 'deriving eq' instead.
  *)
 val ( =*= ) : 'a -> 'a -> bool
+
+(*****************************************************************************)
+(* Printing/debugging *)
+(*****************************************************************************)
+(* see also Dumper.ml *)
 
 (* Same as print_endline: print the string and a newline, then flush stdout.
  * Just shorter. *)
@@ -35,19 +51,26 @@ val pr : string -> unit
  * is used to refect that it prints on stderr (file descriptor '2' in Unix). *)
 val pr2 : string -> unit
 
-(* forbid pr2_once to do the once "optimisation" *)
-val _already_printed : (string, bool) Hashtbl.t
-val disable_pr2_once : bool ref
+(* Print on stderr any data structure (using Dumper.dump) *)
+val pr2_gen : 'a -> unit
 
 (* Print on stderr but only once (to avoid printing the same error
  * again and again) *)
 val pr2_once : string -> unit
 
-(* Print on stderr any data structure (using Dumper.dump) *)
-val pr2_gen : 'a -> unit
+(* forbid pr2_once to do the once "optimisation" *)
+val _already_printed : (string, bool) Hashtbl.t
+val disable_pr2_once : bool ref
 
 (* to be used in pipes as in foo() |> before_return (fun v -> pr2_gen v)*)
 val before_return : ('a -> unit) -> 'a -> 'a
+
+(*****************************************************************************)
+(* Exceptions *)
+(*****************************************************************************)
+(* see also Exception.ml functions as well as Time_limit.Timeout
+ * in the process_limits library.
+ *)
 
 exception Todo
 
@@ -57,8 +80,32 @@ exception Impossible
 (* similar to Not_found but to use when something returns too many findings *)
 exception Multi_found
 
+(* You should use this instead of 'exit n' because it allows you
+ * to intercept the exn and do something special before exiting.
+ *)
+exception UnixExit of int
+
 (* Convert any exception to a string *)
 val exn_to_s : exn -> string
+
+(* if set then certain functions like unwind_protect will not
+ * do a try and finalize and instead just call the function, which
+ * helps in ocamldebug and also in getting better backtraces.
+ * This is also useful to set in a js_of_ocaml (jsoo) context to
+ * again get better backtraces.
+ *)
+val debugger : bool ref
+
+(* Emacs-inspired finalize-like function. *)
+val unwind_protect : (unit -> 'a) -> (Exception.t -> unit) -> 'a
+val save_excursion : 'a ref -> 'a -> (unit -> 'b) -> 'b
+
+(* Java-inspired combinator *)
+val finalize : (unit -> 'a) -> (unit -> unit) -> 'a
+
+(*****************************************************************************)
+(* Strings and regexps *)
+(*****************************************************************************)
 
 (* shortcuts for string_of_int and int_of_string *)
 val i_to_s : int -> string
@@ -91,6 +138,11 @@ val spf : ('a, unit, string) format -> 'a
 val join : string (* sep *) -> string list -> string
 val split : string (* sep regexp *) -> string -> string list
 
+(*****************************************************************************)
+(* File path *)
+(*****************************************************************************)
+(* Deprecated? Should we start to use FPath.ml from dbunzli? *)
+
 (* Some signatures are arguably clearer when using 'filename' instead of
  * 'string' (see write_file below for an example).
  * Ideally 'filename' should be a different type like in Scala with the
@@ -109,6 +161,29 @@ type filename = string [@@deriving show, eq]
 (* TODO: those are not used very often, maybe we should delete them *)
 type dirname = string
 type path = string
+
+val is_directory : filename -> bool
+
+(* for realpath, see efuns_c library  *)
+(*
+   Check that the file exists and produce a valid absolute path for the file.
+*)
+val fullpath : filename -> filename
+val filename_without_leading_path : string -> filename -> filename
+val readable : root:string -> filename -> filename
+
+(* use the command 'find' internally and tries to skip files in
+ * version control system (vcs) (e.g., .git, _darcs, etc.).
+ * Deprecated?
+ *)
+val files_of_dir_or_files_no_vcs_nofilter : string list -> filename list
+
+(* ugly: internal flag for files_of_dir_or_files_no_vcs_nofilter *)
+val follow_symlinks : bool ref
+
+(*****************************************************************************)
+(* IO *)
+(*****************************************************************************)
 
 (* Inputs a line of text in a platform-agnostic way. Should be preferred over
    `input_line`, especially when dealing with Windows.
@@ -136,7 +211,6 @@ val write_file : file:filename -> string -> unit
    If max_len is specified, at most that many bytes are read from the file.
 *)
 val read_file : ?max_len:int -> filename -> string
-val is_directory : filename -> bool
 
 (* Scheme-inspired combinators that automatically close the file
  * once the function callback is done. Here is an example of use:
@@ -146,6 +220,21 @@ val is_directory : filename -> bool
  *)
 val with_open_outfile : filename -> ((string -> unit) * out_channel -> 'a) -> 'a
 val with_open_infile : filename -> (in_channel -> 'a) -> 'a
+
+(* creation of /tmp files, a la gcc
+ * ex: new_temp_file "cocci" ".c" will give "/tmp/cocci-3252-434465.c"
+ *)
+val new_temp_file : string (* prefix *) -> string (* suffix *) -> filename
+
+(* ??? *)
+val _temp_files_created : (string, unit) Hashtbl.t
+val save_tmp_files : bool ref
+val erase_temp_files : unit -> unit
+val erase_this_temp_file : filename -> unit
+
+(*****************************************************************************)
+(* Subprocess *)
+(*****************************************************************************)
 
 (* This allows to capture the output of an external command.
  * It is more convenient to use than Unix.open_process_in.
@@ -167,8 +256,13 @@ val cmd_to_list : ?verbose:bool -> string -> string list (* alias *)
  *)
 val command2 : string -> unit
 
-(* shortcut for xs = [].
- * TODO: delete, not that shorter actually.
+(*****************************************************************************)
+(* Lists *)
+(*****************************************************************************)
+
+(* Shortcut for xs =*= [].
+ * It is not that shorter, but it avoids to use =*= which helps
+ * to reduce the number of places to look for possible problems with =*=.
  *)
 val null : 'a list -> bool
 
@@ -177,6 +271,9 @@ val map : ('a -> 'b) -> 'a list -> 'b list
     Additionally, we guarantee that the mapping function is applied from
     left to right like for [List.iter].
 *)
+
+val flatten : 'a list list -> 'a list
+(** Same as [List.flatten] but tail recursive. *)
 
 (* opposite of Common.filter *)
 val exclude : ('a -> bool) -> 'a list -> 'a list
@@ -215,23 +312,36 @@ val index_list_0 : 'a list -> ('a * int) list
 (* similar to index_list_0 but start the index at 1 *)
 val index_list_1 : 'a list -> ('a * int) list
 
+(*****************************************************************************)
+(* Assoc *)
+(*****************************************************************************)
+
 type ('a, 'b) assoc = ('a * 'b) list
 
+(* sorts *)
 val sort_by_val_lowfirst : ('a, 'b) assoc -> ('a * 'b) list
 val sort_by_val_highfirst : ('a, 'b) assoc -> ('a * 'b) list
 val sort_by_key_lowfirst : ('a, 'b) assoc -> ('a * 'b) list
 val sort_by_key_highfirst : ('a, 'b) assoc -> ('a * 'b) list
+
+(* group by *)
 val group_by : ('a -> 'b) -> 'a list -> ('b * 'a list) list
 val group_assoc_bykey_eff : ('a * 'b) list -> ('a * 'b list) list
 val group_by_mapped_key : ('a -> 'b) -> 'a list -> ('b * 'a list) list
 val group_by_multi : ('a -> 'b list) -> 'a list -> ('b * 'a list) list
 
-val flatten : 'a list list -> 'a list
-(** Same as [List.flatten] but tail recursive. *)
+(*****************************************************************************)
+(* Stack *)
+(*****************************************************************************)
 
 type 'a stack = 'a list
 
 val push : 'a -> 'a stack ref -> unit
+
+(*****************************************************************************)
+(* Hash *)
+(*****************************************************************************)
+
 val hash_of_list : ('a * 'b) list -> ('a, 'b) Hashtbl.t
 val hash_to_list : ('a, 'b) Hashtbl.t -> ('a * 'b) list
 
@@ -240,6 +350,10 @@ type 'a hashset = ('a, bool) Hashtbl.t
 val hashset_of_list : 'a list -> 'a hashset
 val hashset_to_list : 'a hashset -> 'a list
 val optlist_to_list : 'a list option -> 'a list
+
+(*****************************************************************************)
+(* Option *)
+(*****************************************************************************)
 
 (* Since OCaml 4.08 you can define your own "binding operator"
  * (see https://v2.ocaml.org/manual/bindingops.html)
@@ -266,6 +380,14 @@ val ( >>= ) : 'a option -> ('a -> 'b option) -> 'b option
 val ( ||| ) : 'a option -> 'a -> 'a
 val ( <|> ) : 'a option -> 'a option -> 'a option
 
+(*****************************************************************************)
+(* Either *)
+(*****************************************************************************)
+(* Note that since OCaml 4.12.0, the standard library has an Either module
+ * but it is not recognized by default by ppx_deriving so it's simpler
+ * for now to define our own either.
+ *)
+
 (* Haskell-inspired either type *)
 type ('a, 'b) either = Left of 'a | Right of 'b [@@deriving eq, show]
 
@@ -284,26 +406,19 @@ val partition_either3 :
 val partition_result :
   ('a -> ('ok, 'error) result) -> 'a list -> 'ok list * 'error list
 
-(* if set then certain functions like unwind_protect will not
- * do a try and finalize and instead just call the function, which
- * helps in ocamldebug and also in getting better backtraces.
- * This is also useful to set in a js_of_ocaml (jsoo) context to
- * again get better backtraces.
- *)
-val debugger : bool ref
+(*****************************************************************************)
+(* Optimizations *)
+(*****************************************************************************)
 
-(* Emacs-inspired finalize-like function. *)
-val unwind_protect : (unit -> 'a) -> (Exception.t -> unit) -> 'a
-val save_excursion : 'a ref -> 'a -> (unit -> 'b) -> 'b
-
-(* Java-inspired combinator *)
-val finalize : (unit -> 'a) -> (unit -> unit) -> 'a
 val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 
-(* You should use this instead of 'exit n' because it allows you
- * to intercept the exn and do something special before exiting.
- *)
-exception UnixExit of int
+val cache_computation :
+  ?use_cache:bool -> filename -> string (* extension *) -> (unit -> 'a) -> 'a
+
+(*****************************************************************************)
+(* Profiling *)
+(*****************************************************************************)
+(* see also the profiling library and ppx_profiling [@@profiling] annot *)
 
 (*
    Measure how long it takes for a function to run, returning the result
@@ -318,28 +433,9 @@ val with_time : (unit -> 'a) -> 'a * float
 val pr_time : string -> (unit -> 'a) -> 'a
 val pr2_time : string -> (unit -> 'a) -> 'a
 
-(* creation of /tmp files, a la gcc
- * ex: new_temp_file "cocci" ".c" will give "/tmp/cocci-3252-434465.c"
- *)
-val _temp_files_created : (string, unit) Hashtbl.t
-val save_tmp_files : bool ref
-val new_temp_file : string (* prefix *) -> string (* suffix *) -> filename
-val erase_temp_files : unit -> unit
-val erase_this_temp_file : filename -> unit
-
-(* for realpath, see efuns_c library  *)
-(*
-   Check that the file exists and produce a valid absolute path for the file.
-*)
-val fullpath : filename -> filename
-
-val cache_computation :
-  ?use_cache:bool -> filename -> string (* extension *) -> (unit -> 'a) -> 'a
-
-val filename_without_leading_path : string -> filename -> filename
-val readable : root:string -> filename -> filename
-val follow_symlinks : bool ref
-val files_of_dir_or_files_no_vcs_nofilter : string list -> filename list
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
 
 (* run by main_boilerplate below at its finalize step before exiting.
  * Can be used for example to display some profiling information

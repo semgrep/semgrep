@@ -128,7 +128,7 @@ and define_line_2 acc line lastinfo xs =
             ((* fresh_tok*) TCommentSpace ii :: acc)
             (line + 1) info xs
       | x ->
-          if line' = line then define_line_2 (x :: acc) line info xs
+          if line' =|= line then define_line_2 (x :: acc) line info xs
           else define_line_1 (mark_end_define lastinfo :: acc) (x :: xs))
 
 let define_line xs = define_line_1 [] xs

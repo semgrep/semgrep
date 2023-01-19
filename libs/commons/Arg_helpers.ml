@@ -57,7 +57,7 @@ let (lines : string -> string list) =
  fun s ->
   let rec lines_aux = function
     | [] -> []
-    | [ x ] -> if x = "" then [] else [ x ]
+    | [ x ] -> if x =$= "" then [] else [ x ]
     | x :: xs -> x :: lines_aux xs
   in
   Str.split_delim (Str.regexp "\n") s |> lines_aux

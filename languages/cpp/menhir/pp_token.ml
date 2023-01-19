@@ -133,7 +133,7 @@ let apply_macro_defs defs xs =
             Hack.set_as_comment Token_cpp.CppMacroExpanded id;
             id.new_tokens_before <- bodymacro
         | Right params, bodymacro ->
-            if List.length params = List.length xxs then
+            if List.length params =|= List.length xxs then
               let xxs' =
                 xxs
                 |> List.map (fun x ->

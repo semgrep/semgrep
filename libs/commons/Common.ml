@@ -60,6 +60,9 @@ let ( =$= ) : string -> string -> bool = ( = )
 let ( =:= ) : bool -> bool -> bool = ( = )
 let ( =*= ) = ( = )
 
+(* to forbid people to use the polymorphic '=' *)
+let ( = ) = String.equal
+
 (*****************************************************************************)
 (* Debugging/logging *)
 (*****************************************************************************)
@@ -248,7 +251,7 @@ let enum x n =
   if not (x <= n) then
     failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
   let rec enum_aux acc x n =
-    if x = n then n :: acc else enum_aux (x :: acc) (x + 1) n
+    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
   in
   List.rev (enum_aux [] x n)
 
@@ -801,7 +804,7 @@ let cmd_to_list_and_status = process_output_to_list2
 let input_text_line ic =
   let s = input_line ic in
   let len = String.length s in
-  if len > 0 && s.[len - 1] = '\r' then String.sub s 0 (len - 1) else s
+  if len > 0 && s.[len - 1] =<= '\r' then String.sub s 0 (len - 1) else s
 
 let cat file =
   let acc = ref [] in
@@ -1172,7 +1175,7 @@ let files_of_dir_or_files_no_vcs_nofilter xs =
            match status with
            | Unix.WEXITED 0 -> xs
            (* bugfix: 'find -type f' does not like empty directories, but it's ok *)
-           | Unix.WEXITED 1 when Array.length (Sys.readdir x) = 0 -> []
+           | Unix.WEXITED 1 when Array.length (Sys.readdir x) =|= 0 -> []
            | _ ->
                raise
                  (CmdError

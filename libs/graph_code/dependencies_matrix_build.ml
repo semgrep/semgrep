@@ -110,7 +110,7 @@ let build_with_tree tree gopti =
   let rec depth parent igopti =
     let children = gopti.G2.has_children.(igopti) in
     let idm = igopti_to_idm.(igopti) in
-    let project = if idm = -1 then parent else idm in
+    let project = if idm =|= -1 then parent else idm in
     projected_parent_of_igopti.(igopti) <- project;
     children |> List.iter (depth project)
   in
@@ -151,7 +151,7 @@ let count_column j m =
   !cnt
 
 let is_empty_column n m dm =
-  count_column (hashtbl_find_node dm.name_to_i n) m = 0
+  count_column (hashtbl_find_node dm.name_to_i n) m =|= 0
 
 let count_row i m =
   let n = Array.length m in
@@ -161,7 +161,7 @@ let count_row i m =
   done;
   !cnt
 
-let is_empty_row n m dm = count_row (hashtbl_find_node dm.name_to_i n) m = 0
+let is_empty_row n m dm = count_row (hashtbl_find_node dm.name_to_i n) m =|= 0
 
 let empty_all_cells_relevant_to_node m dm n =
   let i = hashtbl_find_node dm.name_to_i n in
@@ -203,8 +203,8 @@ let switch k1 k2 (a, m) =
 
   let f idx =
     match () with
-    | _ when idx = k1 -> k2
-    | _ when idx = k2 -> k1
+    | _ when idx =|= k1 -> k2
+    | _ when idx =|= k2 -> k1
     | _ -> idx
   in
   for i = 0 to n - 1 do
@@ -228,7 +228,7 @@ let hill_climbing nodes dm =
   let rec aux (a, m) current_score i ~jump =
     let j = i + jump in
     if j >= n then
-      if jump = Array.length m - 1 then (a, m)
+      if jump =|= Array.length m - 1 then (a, m)
       else aux (a, m) current_score 0 ~jump:(jump + 1)
     else
       let a1, m1 = switch i j (a, m) in

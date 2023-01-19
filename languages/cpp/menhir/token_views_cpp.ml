@@ -173,7 +173,7 @@ let rec mk_parameters extras acc_before_sep xs =
   | x :: xs -> (
       match x.t with
       (* synchro *)
-      | xx when TH.is_obrace xx && x.col = 0 ->
+      | xx when TH.is_obrace xx && x.col =|= 0 ->
           pr2 "PB: found synchro point } in paren";
           ([ List.rev acc_before_sep ], List.rev extras, x :: xs)
       | xx when TH.is_cpar xx ->
@@ -270,7 +270,7 @@ let rec mk_ifdef xs =
           Ifdefbool (b, body, extra) :: mk_ifdef xs
       | _ ->
           (* todo? can have some Ifdef in the line ? *)
-          let line, xs = Common.span (fun y -> y.line = x.line) (x :: xs) in
+          let line, xs = Common.span (fun y -> y.line =|= x.line) (x :: xs) in
           NotIfdefLine line :: mk_ifdef xs)
 
 and mk_ifdef_parameters extras acc_before_sep xs =
@@ -313,7 +313,7 @@ and mk_ifdef_parameters extras acc_before_sep xs =
           let body, extras, xs = mk_ifdef_parameters (x :: extras) [] xs in
           (List.rev acc_before_sep :: body, extras, xs)
       | _ ->
-          let line, xs = Common.span (fun y -> y.line = x.line) (x :: xs) in
+          let line, xs = Common.span (fun y -> y.line =|= x.line) (x :: xs) in
           mk_ifdef_parameters extras (NotIfdefLine line :: acc_before_sep) xs)
 
 (* ------------------------------------------------------------------------- *)
@@ -403,7 +403,7 @@ let rec mk_body_function_grouped xs =
               [ NotBodyLine body ]
           | _ -> raise Impossible)
       | _ ->
-          let line, xs = Common.span (fun y -> y.line = x.line) (x :: xs) in
+          let line, xs = Common.span (fun y -> y.line =|= x.line) (x :: xs) in
           NotBodyLine line :: mk_body_function_grouped xs)
 
 (* ------------------------------------------------------------------------- *)

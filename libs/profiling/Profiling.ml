@@ -124,7 +124,7 @@ let profile_code_inside_exclusif_ok _category _f = failwith "Todo"
 
 (* todo: also put  % ? also add % to see if coherent numbers *)
 let profile_diagnostic () =
-  if !profile = ProfNone then ""
+  if !profile =*= ProfNone then ""
   else
     let xs =
       Hashtbl.fold (fun k v acc -> (k, v) :: acc) !_profile_table []
@@ -152,11 +152,12 @@ let report_if_take_time timethreshold s f =
 
 let profile_code2 category f =
   profile_code category (fun () ->
-      if !profile = ProfAll then pr2 ("starting: " ^ category);
+      if !profile =*= ProfAll then pr2 ("starting: " ^ category);
       let t = Unix.gettimeofday () in
       let res = f () in
       let t' = Unix.gettimeofday () in
-      if !profile = ProfAll then pr2 (spf "ending: %s, %fs" category (t' -. t));
+      if !profile =*= ProfAll then
+        pr2 (spf "ending: %s, %fs" category (t' -. t));
       res)
 
 (*****************************************************************************)

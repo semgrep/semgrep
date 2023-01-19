@@ -439,7 +439,7 @@ let remove_empty_nodes g xs =
   let use_pred = mk_eff_use_pred g in
   xs
   |> List.iter (fun n ->
-         if succ n Use g = [] && use_pred n = [] then
+         if succ n Use g =*= [] && use_pred n =*= [] then
            (* less: could also remove the node? but slow? removing the edge
             * should be enough for what we want (avoid clutter in codegraph)
             *)

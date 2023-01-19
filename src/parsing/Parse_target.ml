@@ -407,7 +407,7 @@ let rec just_parse_with_lang lang file =
 (*****************************************************************************)
 
 let parse_and_resolve_name lang file =
-  if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h then
+  if lang =*= Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h then
     Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
 
   let res = just_parse_with_lang lang file in

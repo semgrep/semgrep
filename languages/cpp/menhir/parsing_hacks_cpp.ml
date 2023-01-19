@@ -40,8 +40,8 @@ open Parsing_hacks_lib
 (*****************************************************************************)
 
 let no_space_between i1 i2 =
-  PI.line_of_info i1 = PI.line_of_info i2
-  && PI.col_of_info i1 + String.length (PI.str_of_info i1) = PI.col_of_info i2
+  PI.line_of_info i1 =|= PI.line_of_info i2
+  && PI.col_of_info i1 + String.length (PI.str_of_info i1) =|= PI.col_of_info i2
 
 (*****************************************************************************)
 (* Template inference *)

@@ -1418,7 +1418,7 @@ and stmt env st =
 and function_body env fbody =
   let implicit_return_hack body_stmt =
     match body_stmt with
-    | G.Block (_, ss, _) when env.lang = Lang.Ruby -> (
+    | G.Block (_, ss, _) when env.lang =*= Lang.Ruby -> (
         match List.rev ss with
         | { s = G.ExprStmt (e, tok); _ } :: rev_ss' ->
             Some (List.rev rev_ss', (e, tok))

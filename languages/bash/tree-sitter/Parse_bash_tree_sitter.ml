@@ -217,7 +217,7 @@ let heredoc_body_beginning (env : env) (tok : CST.heredoc_body_beginning) =
 
 let word (env : env) (tok : CST.word) : expression =
   match str env tok with
-  | "...", tok when env.extra = Pattern -> Expr_semgrep_ellipsis tok
+  | "...", tok when env.extra =*= Pattern -> Expr_semgrep_ellipsis tok
   | x -> Word x
 
 (* Function identifier. These can contain some punctuation. '...' is a valid

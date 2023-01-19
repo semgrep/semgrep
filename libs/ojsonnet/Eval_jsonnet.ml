@@ -121,7 +121,7 @@ let std_primivite_equals _env (v : V.value_) (v' : V.value_) : bool =
       | V.Null _, V.Null _ -> true
       | V.Bool (b, _), V.Bool (b', _) -> b =:= b'
       | V.Str (s, _), V.Str (s', _) -> s =$= s'
-      | V.Double (f, _), V.Double (f', _) -> f = f'
+      | V.Double (f, _), V.Double (f', _) -> f =*= f'
       | V.Null _, _
       | V.Bool _, _
       | V.Str _, _

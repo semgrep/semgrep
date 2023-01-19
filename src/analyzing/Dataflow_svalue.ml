@@ -132,7 +132,7 @@ let result_of_function_call_is_constant lang f args =
   | _ -> false
 
 let eq_literal l1 l2 = G.equal_literal l1 l2
-let eq_ctype t1 t2 = t1 = t2
+let eq_ctype t1 t2 = t1 =*= t2
 
 let ctype_of_literal = function
   | G.Bool _ -> G.Cbool
@@ -277,7 +277,8 @@ let eval_binop_int tok op opt_i1 opt_i2 =
   match (op, opt_i1, opt_i2) with
   | G.Plus, Some i1, Some i2 ->
       let r = i1 + i2 in
-      if sign i1 = sign i2 && sign r <> sign i1 then G.Cst G.Cint (* overflow *)
+      if sign i1 =|= sign i2 && sign r <> sign i1 then
+        G.Cst G.Cint (* overflow *)
       else G.Lit (literal_of_int (i1 + i2))
   | G.Minus, Some i1, Some i2 ->
       let r = i1 - i2 in
@@ -287,16 +288,17 @@ let eval_binop_int tok op opt_i1 opt_i2 =
   | G.Mult, Some i1, Some i2 ->
       let overflow =
         i1 <> 0 && i2 <> 0
-        && ((i1 < 0 && i2 = min_int) (* >max_int *)
-           || (i1 = min_int && i2 < 0) (* >max_int *)
+        && ((i1 < 0 && i2 =|= min_int) (* >max_int *)
+           || (i1 =|= min_int && i2 < 0) (* >max_int *)
            ||
-           if sign i1 * sign i2 = 1 then abs i1 > abs (max_int / i2)
+           if sign i1 * sign i2 =|= 1 then abs i1 > abs (max_int / i2)
              (* >max_int *)
            else abs i1 > abs (min_int / i2) (* <min_int *))
       in
       if overflow then G.Cst G.Cint else G.Lit (literal_of_int (i1 * i2))
   | G.Div, Some i1, Some i2 -> (
-      if i1 = min_int && i2 = -1 then G.Cst G.Cint (* = max_int+1, overflow *)
+      if i1 =|= min_int && i2 =|= -1 then
+        G.Cst G.Cint (* = max_int+1, overflow *)
       else
         try G.Lit (literal_of_int (i1 / i2)) with
         | Division_by_zero ->
@@ -551,7 +553,7 @@ let transfer :
             let args = Common.map IL_helpers.exp_of_arg args in
             let cexp =
               (* We try to evaluate the special function, if we know how. *)
-              if special = Concat then
+              if special =*= Concat then
                 (* var = concat(args) *)
                 eval_concat inp' args
               else G.NotCst
@@ -559,7 +561,7 @@ let transfer :
             let cexp =
               (* If we don't know how to evaluate this function, or if the
                * evaluation fails, then we do sym-prop. *)
-              if cexp = G.NotCst then sym_prop instr.iorig else cexp
+              if cexp =*= G.NotCst then sym_prop instr.iorig else cexp
             in
             update_env_with inp' var cexp
         | Call

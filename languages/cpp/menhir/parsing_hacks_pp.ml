@@ -508,13 +508,13 @@ let rec find_macro_lineparen xs =
          Parenthised (_, info_parens);
        ] as _line1)
     :: xs
-    when col1 = 0 ->
+    when col1 =|= 0 ->
       let condition =
         (* to reduce number of false positive *)
         match xs with
         | Line (PToken ({ col = col2 } as other) :: _restline2) :: _ -> (
             TH.is_eof other.t
-            || col2 = 0
+            || col2 =|= 0
                &&
                match other.t with
                | TOBrace _ -> false (* otherwise would match funcdecl *)
@@ -545,7 +545,7 @@ let rec find_macro_lineparen xs =
     :: xs
   (* when s ==~ regexp_macro *) ->
       let condition =
-        (col1 = col2
+        (col1 =|= col2
         &&
         match other.t with
         | TOBrace _ -> false (* otherwise would match funcdecl *)
@@ -558,7 +558,7 @@ let rec find_macro_lineparen xs =
         || col2 <= col1
            &&
            match other.t with
-           | TCBrace _ when List.hd ctx = InFunction -> true
+           | TCBrace _ when List.hd ctx =*= InFunction -> true
            | Treturn _ -> true
            | Tif _ -> true
            | Telse _ -> true
@@ -566,7 +566,7 @@ let rec find_macro_lineparen xs =
       in
 
       if condition then
-        if col1 = 0 then ()
+        if col1 =|= 0 then ()
         else (
           change_tok macro (TIdent_MacroStmt (TH.info_of_tok macro.t));
           [ Parenthised (xxs, info_parens) ]
@@ -585,7 +585,7 @@ let rec find_macro_lineparen xs =
     :: xs ->
       (* when s ==~ regexp_macro *)
       let condition =
-        (col1 = col2 && col1 <> 0
+        (col1 =|= col2 && col1 <> 0
         &&
         (* otherwise can match typedef of fundecl*)
         match other.t with
@@ -597,7 +597,7 @@ let rec find_macro_lineparen xs =
         || col2 <= col1
            &&
            match other.t with
-           | TCBrace _ when List.hd ctx = InFunction -> true
+           | TCBrace _ when List.hd ctx =*= InFunction -> true
            | Treturn _ -> true
            | Tif _ -> true
            | Telse _ -> true
@@ -642,7 +642,7 @@ let find_define_init_brace_paren xs =
       :: PToken tok2
       :: PToken tok3
       :: xs
-      when c2 = c + String.length s ->
+      when c2 =|= c + String.length s ->
         if is_init tok2 tok3 then change_tok tokbrace (TOBrace_DefineInit i1);
 
         aux xs

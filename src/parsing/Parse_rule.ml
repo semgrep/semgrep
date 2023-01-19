@@ -316,7 +316,7 @@ let parse_int env (key : key) x =
       | Failure _ -> error_at_key env key (spf "parse_int for %s" (fst key)))
   | G.L (Float (Some f, _)) ->
       let i = int_of_float f in
-      if float_of_int i = f then i else error_at_key env key "not an int"
+      if float_of_int i =*= f then i else error_at_key env key "not an int"
   | _x -> error_at_key env key (spf "parse_int for %s" (fst key))
 
 let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
@@ -721,7 +721,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
           (parse_listi env key parse_pattern value)
       in
       let pos, _ = R.split_and conjuncts in
-      if pos = [] && not env.in_metavariable_pattern then
+      if pos =*= [] && not env.in_metavariable_pattern then
         raise (R.Err (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t)));
       R.And (t, { conjuncts; focus; conditions })
   | "pattern-regex" ->
@@ -1029,7 +1029,7 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
   | "all" ->
       let conjuncts = parse_listi env key parse_formula value in
       let pos, _ = R.split_and conjuncts in
-      if pos = [] && not env.in_metavariable_pattern then
+      if pos =*= [] && not env.in_metavariable_pattern then
         raise (R.Err (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t)));
       R.And (t, { conjuncts; focus = []; conditions = [] })
   | "any" -> R.Or (t, parse_listi env key parse_formula value)
@@ -1446,7 +1446,7 @@ let parse_file ?error_recovery file =
 
 let parse file =
   let xs, skipped = parse_file ~error_recovery:false file in
-  assert (skipped = []);
+  assert (skipped =*= []);
   xs
 
 let parse_and_filter_invalid_rules file = parse_file ~error_recovery:true file
