@@ -615,8 +615,7 @@ def parse_lockfile_path(
     if lockfile_name in OLD_LOCKFILE_PARSERS:
         lockfile_text = lockfile_path.read_text()
         if manifest_path:
-            with open(manifest_path) as f:
-                manifest_text = f.read()
+            manifest_text = manifest_path.read_text()
         else:
             manifest_text = None
 
