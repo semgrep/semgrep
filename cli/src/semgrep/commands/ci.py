@@ -17,8 +17,8 @@ import click
 import semgrep.semgrep_main
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
-from semgrep.commands.install import determine_deep_semgrep_path
-from semgrep.commands.install import run_install_deep_semgrep
+from semgrep.commands.install import determine_semgrep_pro_path
+from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
@@ -329,7 +329,7 @@ def ci(
             # Run DeepSemgrep when available but only for full scans
             is_full_scan = metadata.merge_base_ref is None
             deep = scan_handler.deepsemgrep if scan_handler and is_full_scan else False
-            deep_semgrep_path = determine_deep_semgrep_path()
+            (semgrep_pro_path, _deep_semgrep_path) = determine_semgrep_pro_path()
 
             # Set a default max_memory for CI runs when DeepSemgrep is on because
             # DeepSemgrep is likely to run out
@@ -338,8 +338,8 @@ def ci(
                     max_memory = DEFAULT_MAX_MEMORY_DEEP_CI
                 else:
                     max_memory = 0  # unlimited
-            if deep and not deep_semgrep_path.exists():
-                run_install_deep_semgrep()
+            if deep and not semgrep_pro_path.exists():
+                run_install_semgrep_pro()
             if deep:
                 # Add the p/deepsemgrep rules
                 # TODO this is a temporary hack!!! In the future,
