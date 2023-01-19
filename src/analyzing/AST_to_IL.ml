@@ -213,8 +213,8 @@ let unique_name_of_entity ent =
       } ->
           Some unique
       | __else__ ->
-          let { ident; id_info; _ } = var_of_id_info i pinfo in
-          Some { dotted = [ ident ]; id = Some id_info.id_info_id })
+          let { ident; _ } = var_of_id_info i pinfo in
+          Some { dotted = [ ident ]; tok = Some (snd ident) })
   | _____else_____ -> None
 
 let composite_of_container : G.container_operator -> IL.composite_kind =
