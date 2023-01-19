@@ -1,14 +1,14 @@
 {
   "exit_code": 1,
   "stats": {
-    "findings": 10,
+    "findings": 9,
     "errors": [],
     "total_time": 0.5,
     "unsupported_exts": {
       ".txt": 1
     },
     "lockfile_scan_info": {
-      "poetry.lock": 1,
+      "poetry.lock": 0,
       "yarn.lock": 1
     },
     "parse_rate": {

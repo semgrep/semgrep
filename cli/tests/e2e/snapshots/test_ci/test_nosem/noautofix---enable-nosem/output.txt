@@ -8,17 +8,7 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 
 === stdout - plain
 
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
-
-
-Unreachable Supply Chain Findings:
-
-  poetry.lock 
-     supply-chain1
-        found a dependency
-
-
-First-Party Non-Blocking Findings:
+Non-Blocking Findings:
 
   foo.py 
      eqeq-five
@@ -27,7 +17,7 @@ First-Party Non-Blocking Findings:
          ▶▶┆ Autofix ▶ (x == 2)
          15┆ x == 5
 
-First-Party Blocking Findings:
+Blocking Findings:
 
   foo.py 
      eqeq-bad
@@ -55,7 +45,7 @@ First-Party Blocking Findings:
 
          27┆ sink(d2)
 
-First-Party Blocking Rules Fired:
+Blocking Rules Fired:
    eqeq-bad   
    eqeq-four   
    taint-test
@@ -76,7 +66,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 10 findings (8 blocking) from 6 rules.
+  Found 9 findings (8 blocking) from 6 rules.
   Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain
