@@ -54,7 +54,7 @@ def extract_npm_lockfile_hash(s: Optional[str]) -> Dict[str, List[str]]:
     Go from:
         sha512-aePbxDmcYW++PaqBsJ+HYUFwCdv4LVvdnhBy78E57PIor8/OVvhMrADFFEDh8DHDFRv/O9i3lPhsENjO7QX0+A==
     To:
-        sha512,
+        sha512,[the hash encoded into base 16]
     """
     if s is None:
         return {}
