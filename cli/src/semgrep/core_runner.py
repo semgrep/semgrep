@@ -866,9 +866,6 @@ This time, we will continue running your old DeepSemgrep binary anyways.
                     logger.info(f"Semgrep PRO Version Info: ({version})")
 
                     cmd_bin = pro_path
-                    cmd_args += [
-                        "-json_time"
-                    ]  # TODO: When do we stop adding this by default?
                     cmd_args += ["-deep_inter_file"]
                     cmd_args += [root]
                 elif (
