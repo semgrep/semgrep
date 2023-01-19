@@ -4,7 +4,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from semdep.parse_lockfile import parse_lockfile_str
+from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -50,12 +50,9 @@ def find_single_lockfile(
             manifest_pattern = LOCKFILE_TO_MANIFEST[lockfile_pattern]
             manifest_path = path / manifest_pattern if manifest_pattern else None
             if lockfile_path.exists():
-                return lockfile_path, parse_lockfile_str(
-                    lockfile_path.read_text(encoding="utf8"),
+                return lockfile_path, parse_lockfile_path(
                     lockfile_path,
-                    manifest_path.read_text(encoding="utf8")
-                    if manifest_path and manifest_path.exists()
-                    else None,
+                    manifest_path if manifest_path and manifest_path.exists() else None,
                 )
             else:
                 continue
