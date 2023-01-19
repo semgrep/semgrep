@@ -651,7 +651,7 @@ let m_comb_1toN m_1toN a bs : _ comb_result =
 let m_eq a b = if a =*= b then return () else fail ()
 let m_bool a b = if a =:= b then return () else fail ()
 let m_int a b = if a =|= b then return () else fail ()
-let m_string a b = if a =$= b then return () else fail ()
+let m_string a b = if a = b then return () else fail ()
 
 (* old: Before we just checked whether `s2` was a prefix of `s1`, e.g.
  * "foo" is a prefix of "foobar". However we use this function to check
@@ -660,7 +660,7 @@ let m_string a b = if a =$= b then return () else fail ()
  * path separator. *)
 let filepath_is_prefix s1 s2 =
   (* todo: can we assume that the strings are trimmed? *)
-  let is_sep c = c =<= '/' || c =<= '\\' in
+  let is_sep c = c =$= '/' || c =$= '\\' in
   let len1 = String.length s1 and len2 = String.length s2 in
   if len1 < len2 then false
   else

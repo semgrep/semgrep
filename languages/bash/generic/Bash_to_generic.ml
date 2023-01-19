@@ -465,7 +465,7 @@ and expression (env : env) (e : expression) : G.expr =
       (* normalization to enable matching of e.g. 'foo' against foo *)
       let without_quotes =
         let len = String.length str in
-        if len >= 2 && str.[0] =<= '\'' && str.[len - 1] =<= '\'' then
+        if len >= 2 && str.[0] =$= '\'' && str.[len - 1] =$= '\'' then
           String.sub str 1 (len - 2)
         else (* it's a bug but let's not fail *)
           str

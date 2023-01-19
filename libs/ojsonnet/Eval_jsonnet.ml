@@ -120,7 +120,7 @@ let std_primivite_equals _env (v : V.value_) (v' : V.value_) : bool =
       (* alt: use deriving and Primitive.eq *)
       | V.Null _, V.Null _ -> true
       | V.Bool (b, _), V.Bool (b', _) -> b =:= b'
-      | V.Str (s, _), V.Str (s', _) -> s =$= s'
+      | V.Str (s, _), V.Str (s', _) -> s = s'
       | V.Double (f, _), V.Double (f', _) -> f =*= f'
       | V.Null _, _
       | V.Bool _, _
@@ -202,8 +202,7 @@ let rec eval_expr (env : env) (v : expr) : V.value_ =
         -> (
           match
             fields
-            |> List.find_opt (fun (field : V.field) ->
-                   fst field.fld_name =$= fld)
+            |> List.find_opt (fun (field : V.field) -> fst field.fld_name = fld)
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
           | Some fld -> Lazy.force fld.fld_value.v)

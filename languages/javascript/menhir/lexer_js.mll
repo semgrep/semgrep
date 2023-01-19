@@ -618,7 +618,7 @@ and string_escape quote buf = parse
 
 and string_quote q buf = parse
   | ("'"|'"') as q' {
-    if q =<= q'
+    if q =$= q'
     then ()
     else (Buffer.add_char buf q'; string_quote q buf lexbuf) }
   | '\\' {

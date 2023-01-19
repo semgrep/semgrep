@@ -28,8 +28,7 @@ val ( = ) : string -> string -> bool
 
 (* If you need to use '=', at least use the more precise operators below. *)
 val ( =|= ) : int -> int -> bool
-val ( =$= ) : string -> string -> bool
-val ( =<= ) : char -> char -> bool
+val ( =$= ) : char -> char -> bool
 val ( =:= ) : bool -> bool -> bool
 
 (* if you really really need to use the polymorphic '=', at least use

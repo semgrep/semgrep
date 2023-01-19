@@ -168,7 +168,7 @@ let full_charpos_to_pos_large file =
            * note: we could fix info_from_charpos() too, but it's not
            * used for ASI so simpler to leave it as is.
            *)
-          if i < len - 1 && String.get s i =<= '\r' then (
+          if i < len - 1 && String.get s i =$= '\r' then (
             incr line;
             col := -1);
           incr col

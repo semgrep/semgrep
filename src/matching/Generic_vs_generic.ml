@@ -88,7 +88,7 @@ let env_add_matched_stmt rightmost_stmt (tin : tin) =
  * todo? work? was copy-pasted from XHP sgrep matcher
  *)
 let m_string_xhp_text sa sb =
-  if sa =$= sb || (sa =~ "^[\n ]+$" && sb =~ "^[\n ]+$") then return ()
+  if sa = sb || (sa =~ "^[\n ]+$" && sb =~ "^[\n ]+$") then return ()
   else fail ()
 
 let has_ellipsis_and_filter_ellipsis_gen f xs =
@@ -1625,7 +1625,7 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
             |> Common2.split_when (function
                  | G.ArgKwd ((s2, _), _)
                  | G.ArgKwdOptional ((s2, _), _)
-                   when s =$= s2 ->
+                   when s = s2 ->
                      true
                  | _ -> false)
           in

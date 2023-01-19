@@ -69,8 +69,8 @@ let raw_string_literal env tok =
   if
     not
       (String.length s >= 2
-      && String.get s 0 =<= '`'
-      && String.get s (String.length s - 1) =<= '`')
+      && String.get s 0 =$= '`'
+      && String.get s (String.length s - 1) =$= '`')
   then
     failwith @@ "Found unexpected raw string literal without delimiters: " ^ s;
   let s = String.sub s 1 (String.length s - 2) in

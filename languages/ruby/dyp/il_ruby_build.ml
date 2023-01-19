@@ -182,8 +182,8 @@ let escape_regexp re =
         match state with
         | `NoEsc ->
             Buffer.add_char buf c;
-            if c =<= '\\' then `Esc
-            else if c =<= '[' then `CharClass
+            if c =$= '\\' then `Esc
+            else if c =$= '[' then `CharClass
             else `NoEsc
         | `Esc ->
             Buffer.add_char buf c;
@@ -191,8 +191,8 @@ let escape_regexp re =
         | `CharClass ->
             if List.mem c escaped then Buffer.add_char buf '\\';
             Buffer.add_char buf c;
-            if c =<= '\\' then `EscClass
-            else if c =<= ']' then `NoEsc
+            if c =$= '\\' then `EscClass
+            else if c =$= ']' then `NoEsc
             else `CharClass
         | `EscClass ->
             Buffer.add_char buf c;

@@ -55,9 +55,10 @@ exception UnixExit of int
 (* Equality *)
 (*****************************************************************************)
 let ( =|= ) : int -> int -> bool = ( = )
-let ( =<= ) : char -> char -> bool = ( = )
-let ( =$= ) : string -> string -> bool = ( = )
+let ( =$= ) : char -> char -> bool = ( = )
 let ( =:= ) : bool -> bool -> bool = ( = )
+
+(* dangerous, do not use, see the comment in Common.mli *)
 let ( =*= ) = ( = )
 
 (* to forbid people to use the polymorphic '=' *)
@@ -657,7 +658,7 @@ let join sep xs = String.concat sep xs
 (* ruby *)
 let i_to_s = string_of_int
 let s_to_i = int_of_string
-let null_string s = s =$= ""
+let null_string s = s = ""
 
 (*****************************************************************************)
 (* Filenames *)
@@ -683,7 +684,7 @@ let chop_dirsymbol = function
 (* pre: prj_path must not contain regexp symbol *)
 let filename_without_leading_path prj_path s =
   let prj_path = chop_dirsymbol prj_path in
-  if s =$= prj_path then "."
+  if s = prj_path then "."
   else if
     (* Note that we should handle multiple consecutive '/' as in 'path/to//file' *)
     s =~ "^" ^ prj_path ^ "/+\\(.*\\)$"
@@ -804,7 +805,7 @@ let cmd_to_list_and_status = process_output_to_list2
 let input_text_line ic =
   let s = input_line ic in
   let len = String.length s in
-  if len > 0 && s.[len - 1] =<= '\r' then String.sub s 0 (len - 1) else s
+  if len > 0 && s.[len - 1] =$= '\r' then String.sub s 0 (len - 1) else s
 
 let cat file =
   let acc = ref [] in
@@ -1136,7 +1137,7 @@ let main_boilerplate f =
          *)
         if
           Sys.argv |> Array.to_list
-          |> List.exists (fun x -> x =$= "-debugger" || x =$= "--debugger")
+          |> List.exists (fun x -> x = "-debugger" || x = "--debugger")
         then debugger := true;
 
         finalize
