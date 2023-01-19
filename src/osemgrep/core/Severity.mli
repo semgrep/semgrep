@@ -1,4 +1,4 @@
-type basic_severity = [ `Error | `Warning ] [@@deriving show]
+type basic_severity = [ `Error | `Warning | `Alert ] [@@deriving show]
 type rule_severity = [ basic_severity | `Info ] [@@deriving show]
 
 type extended_severity = [ rule_severity | `Inventory | `Experiment ]

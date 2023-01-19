@@ -130,6 +130,7 @@ let level_of_severity (severity : Out.core_severity) : Severity.basic_severity =
   match severity with
   | Error -> `Error
   | Warning -> `Warning
+  | Alert -> `Alert
 
 let error_type_string (error_type : Out.core_error_kind) : string =
   match error_type with
@@ -153,6 +154,8 @@ let error_type_string (error_type : Out.core_error_kind) : string =
   | FatalError -> "Fatal error"
   | Timeout -> "Timeout"
   | OutOfMemory -> "Out of memory"
+  | TimeoutDuringPreprocessing -> "Timeout during preprocessing"
+  | OutOfMemoryDuringPreprocessing -> "Out of memory during preprocessing"
 
 (* Generate error message exposed to user *)
 let error_message ~rule_id ~(location : Out.location)

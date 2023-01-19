@@ -16,8 +16,6 @@ type error = {
 }
 [@@deriving show]
 
-type severity = Error | Warning
-
 val g_errors : error list ref
 
 (*****************************************************************************)
@@ -54,7 +52,7 @@ val try_with_print_exn_and_reraise : Common.filename -> (unit -> unit) -> unit
 (*****************************************************************************)
 
 val string_of_error : error -> string
-val severity_of_error : Output_from_core_t.core_error_kind -> severity
+val severity_of_error : Output_from_core_t.core_error_kind -> Output_from_core_t.core_severity
 
 (*****************************************************************************)
 (* Helpers for unit testing *)
