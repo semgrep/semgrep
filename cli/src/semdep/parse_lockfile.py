@@ -609,7 +609,8 @@ def parse_lockfile_path(
     # coupling with the github action, which decides to send files with these names back to us
     lockfile_name = lockfile_path.name.lower()
     if lockfile_name in NEW_LOCKFILE_PARSERS:
-        return NEW_LOCKFILE_PARSERS[lockfile_name](lockfile_path, manifest_path)
+        parse_lockfile = NEW_LOCKFILE_PARSERS[lockfile_name]
+        return parse_lockfile(lockfile_path, manifest_path)
 
     if lockfile_name in OLD_LOCKFILE_PARSERS:
         with open(lockfile_path) as f:
