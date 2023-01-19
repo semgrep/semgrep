@@ -1,11 +1,11 @@
 import itertools
 from itertools import product
+from pathlib import Path
 from typing import Any
 from typing import Iterable
 from typing import Iterator
 from typing import Set
 from typing import Tuple
-from pathlib import Path
 
 import pytest
 
@@ -13,8 +13,8 @@ from semgrep.test import COMMENT_SYNTAXES
 from semgrep.test import line_has_ok
 from semgrep.test import line_has_rule
 from semgrep.test import normalize_rule_ids
-from semgrep.test import relatively_eq
 from semgrep.test import OK
+from semgrep.test import relatively_eq
 from semgrep.test import RULEID
 from semgrep.test import SPACE_OR_NO_SPACE
 from semgrep.test import TODOOK
@@ -83,33 +83,30 @@ def test_line_has_ok(test_case, expected):
 
 @pytest.mark.quick
 def test_relatively_eq():
-    p1 = Path('rules')
-    p2 = Path('tests')
-    assert relatively_eq(
-        p1, p1 / 'my-rule-a.py',
-        p2, p2 / 'my-rule-a.yaml'
-    ) is True
-    assert relatively_eq(
-        p1, p1 / 'my-rule-a.other.py',
-        p2, p2 / 'my-rule-a.yaml'
-    ) is True
-    assert relatively_eq(
-        p1, p1 / 'my-rule-b.py',
-        p2, p2 / 'my-rule-a.yaml'
-    ) is False
-    assert relatively_eq(
-        p1, p1 / 'sub' / 'my-rule-a.py',
-        p2, p2 / 'my-rule-a.yaml'
-    ) is False
-    assert relatively_eq(
-        p1, p1 / 'sub' / 'my-rule-a.py',
-        p2, p2 / 'sub' / 'my-rule-a.yaml'
-    ) is True
-    assert relatively_eq(
-        p1, p1 / 'javascript' / 'my-rule-a.py',
-        p2, p2 / 'python' / 'my-rule-a.yaml'
-    ) is False
-    assert relatively_eq(
-        p1, p1 / 'my-rule-a' / 'views.py',
-        p2, p2 / 'my-rule-a.yaml'
-    ) is True
+    p1 = Path("rules")
+    p2 = Path("tests")
+    assert relatively_eq(p1, p1 / "my-rule-a.py", p2, p2 / "my-rule-a.yaml") is True
+    assert (
+        relatively_eq(p1, p1 / "my-rule-a.other.py", p2, p2 / "my-rule-a.yaml") is True
+    )
+    assert relatively_eq(p1, p1 / "my-rule-b.py", p2, p2 / "my-rule-a.yaml") is False
+    assert (
+        relatively_eq(p1, p1 / "sub" / "my-rule-a.py", p2, p2 / "my-rule-a.yaml")
+        is False
+    )
+    assert (
+        relatively_eq(
+            p1, p1 / "sub" / "my-rule-a.py", p2, p2 / "sub" / "my-rule-a.yaml"
+        )
+        is True
+    )
+    assert (
+        relatively_eq(
+            p1, p1 / "javascript" / "my-rule-a.py", p2, p2 / "python" / "my-rule-a.yaml"
+        )
+        is False
+    )
+    assert (
+        relatively_eq(p1, p1 / "my-rule-a" / "views.py", p2, p2 / "my-rule-a.yaml")
+        is True
+    )
