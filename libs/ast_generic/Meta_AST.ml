@@ -44,23 +44,25 @@ let rec vof_resolved_name (v1, v2) =
   let v2 = OCaml.vof_int (SId.to_int v2) in
   OCaml.VTuple [ v1; v2 ]
 
+and vof_canonical_name v1 = OCaml.vof_list OCaml.vof_string v1
+
 and vof_resolved_name_kind = function
   | LocalVar -> OCaml.VSum ("LocalVar", [])
   | Parameter -> OCaml.VSum ("Parameter", [])
   | EnclosedVar -> OCaml.VSum ("EnclosedVar", [])
   | Global -> OCaml.VSum ("Global", [])
   | ImportedEntity v1 ->
-      let v1 = vof_dotted_ident v1 in
+      let v1 = vof_canonical_name v1 in
       OCaml.VSum ("ImportedEntity", [ v1 ])
   | ImportedModule v1 ->
-      let v1 = vof_dotted_ident v1 in
+      let v1 = vof_canonical_name v1 in
       OCaml.VSum ("ImportedModule", [ v1 ])
   | Macro -> OCaml.VSum ("Macro", [])
   | EnumConstant -> OCaml.VSum ("EnumConstant", [])
   | TypeName -> OCaml.VSum ("TypeName", [])
   | GlobalName (v1, v2) ->
-      let v1 = vof_dotted_ident v1 in
-      let v2 = OCaml.vof_list vof_dotted_ident v2 in
+      let v1 = vof_canonical_name v1 in
+      let v2 = OCaml.vof_list vof_canonical_name v2 in
       OCaml.VSum ("GlobalName", [ v1; v2 ])
 
 let rec vof_qualifier = function

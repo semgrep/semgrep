@@ -54,9 +54,8 @@ let warning _tok s =
 
 let str_of_name name = spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
 
-let str_of_resolved_name name =
-  let name = Common.map fst name in
-  String.concat "." name
+(* TODO: depends on the language? sometimes '.', sometimes '->' or '#' *)
+let str_of_canonical_name name = String.concat "." name
 
 (*****************************************************************************)
 (* Constness *)
@@ -124,7 +123,7 @@ let result_of_function_call_is_constant lang f args =
       _ ) -> (
       match !id_resolved with
       | Some (G.GlobalName (name, _alternate_names), _) ->
-          let f_name = str_of_resolved_name name in
+          let f_name = str_of_canonical_name name in
           check_f f_name
       | _ ->
           logger#info "%s does not have a resolved name" (fst ident);

@@ -235,7 +235,7 @@ module IdInfoId = Gensym.MkId ()
 (* A single unique id: sid (uid would be a better name, but it usually
  * means "user id" for people).
  *
- * This single id simplifies further analysis which need less to care about
+ * This single id simplifies further analysis that need to care less about
  * maintaining scoping information, for example to deal with variable
  * shadowing, or functions using the same parameter names
  * (even though you still need to handle specially recursive functions), etc.
@@ -276,8 +276,9 @@ and resolved_name_kind =
   (* sgrep: those cases allow to match entities/modules even if they were
    * aliased when imported.
    * both dotted_ident must at least contain one element *)
-  | ImportedEntity of dotted_ident
-  | ImportedModule of dotted_ident (* just the DottedName part of module_name*)
+  | ImportedEntity of canonical_name
+  | ImportedModule of
+      canonical_name (* just the DottedName part of module_name*)
   (* used in Go, where you can pass types as arguments and where we
    * need to resolve those cases
    *)
@@ -305,9 +306,9 @@ and resolved_name_kind =
    * *)
   | GlobalName of canonical_name * alternate_name list
 
-and canonical_name = dotted_ident
+and canonical_name = string list
 
-and alternate_name = dotted_ident
+and alternate_name = string list
 [@@deriving show { with_path = false }, eq, hash]
 
 (* Start of big mutually recursive types because of the use of 'any'
@@ -1989,6 +1990,9 @@ let basic_id_info ?(hidden = false) resolved =
   }
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
+
+let dotted_to_canonical xs = Common.map fst xs
+let canonical_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
 
 (* ------------------------------------------------------------------------- *)
 (* Entities *)

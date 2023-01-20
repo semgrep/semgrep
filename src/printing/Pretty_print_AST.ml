@@ -725,11 +725,17 @@ and expr env e =
   | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
   | _x -> todo (E e)
 
-and id env (s, { id_resolved; _ }) =
+and id env (s, { id_resolved; _ }) : string =
   match !id_resolved with
-  | Some (ImportedEntity ents, _) -> dotted_access env ents
-  | Some (ImportedModule ents, _) -> dotted_access env ents
+  | Some (ImportedEntity ents, _) -> canonical_name env ents
+  | Some (ImportedModule ents, _) -> canonical_name env ents
   | _ -> s
+
+(* TODO: factorize with dotted_access *)
+and canonical_name env = function
+  | [] -> ""
+  | [ x ] -> x
+  | x :: y :: xs -> x ^ "." ^ canonical_name env (y :: xs)
 
 (* TODO: look at name_top too *)
 and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
