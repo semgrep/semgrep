@@ -73,6 +73,9 @@ let tests () = List.flatten [
   (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
   Unit_engine.tests ();
   Unit_metachecking.tests ();
+
+  (* Inline tests *)
+  Testutil.get_registered_tests ();
 ]
 
 (*****************************************************************************)
