@@ -37,7 +37,7 @@ make setup
 
 # Remove dynamically linked libraries to force MacOS to use static ones
 # This needs to be done after make setup but before make build-*
-TREESITTER_LIBDIR=semgrep-core/src/ocaml-tree-sitter-core/tree-sitter/lib
+TREESITTER_LIBDIR=libs/ocaml-tree-sitter-core/tree-sitter/lib
 echo "TREESITTER_LIBDIR is $TREESITTER_LIBDIR and contains:"
 ls -l "$TREESITTER_LIBDIR" || true
 
