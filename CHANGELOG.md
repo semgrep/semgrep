@@ -8,6 +8,38 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.5.0](https://github.com/returntocorp/semgrep/releases/tag/v1.5.0) - 2023-01-20
+
+### Added
+
+- Python: Constant propagation will now recognize the idiom `cond and X or Y`,
+  as well as `True and X` and `False or X`. So e.g. `cond and "a" or "b"` will
+  be identified as a constant string. (gh-6079)
+- Julia: Julia is now experimental (pa-2366)
+
+### Changed
+
+- DeepSemgrep is now Semgrep PRO! To install the Semgrep PRO engine run:
+  `semgrep install-semgrep-pro`. This engine is still invoked using the
+  `--deep` flag, but please expect changes to the CLI in the near future.
+  The new Semgrep PRO engine adds support for Apex! (pa-2389)
+
+### Fixed
+
+- New 'transform:' field in extract mode rules, with 'concat_json_string_array'
+  option useful to extract python code from jupyter notebooks.
+  Thanks to Jose Selvi for his contribution! (gh-4477)
+- Java: Fixed regression introduced in 0.123.0 that could cause a private class
+  attribute to be incorrectly regarded as a constant. (gh-6793)
+- Make `$F(x)` match `eval(x)`. Previously, `eval` was special-cased and metavariable function call patterns would not match it. (gh-6877)
+- DeepSemgrep: Enabled `--dataflow-traces` by default when `--deep` is specified (pa-2274)
+- In rare situations, mainly in DeepSemgrep and related to naming bugs, the use of
+  symbolic propagation could make Semgrep fall into an infinite loop during matching.
+  This has been fixed by bounding the number of times that Semgrep can follow
+  symbolically-propagated values. (pa-2324)
+- CLI: Made an error message for when two autofix matches overlap have a more helpful message, as well as be displayed as a debug message. (pa-2393)
+- CLI: Made the warning message when using Semgrep Pro more friendly when logged in (pa-2396)
+
 ## [1.3.0](https://github.com/returntocorp/semgrep/releases/tag/v1.3.0) - 2023-01-04
 
 ### Changed

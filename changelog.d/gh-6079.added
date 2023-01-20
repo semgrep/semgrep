@@ -1,3 +1,0 @@
-Python: Constant propagation will now recognize the idiom `cond and X or Y`,
-as well as `True and X` and `False or X`. So e.g. `cond and "a" or "b"` will
-be identified as a constant string.
