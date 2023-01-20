@@ -181,7 +181,7 @@ let (mk_visitor :
         let v1 = v_dotted_ident v1 in
         ()
     | ImportedModule v1 ->
-        let v1 = v_module_name v1 in
+        let v1 = v_dotted_ident v1 in
         ()
     | Macro -> ()
     | EnumConstant -> ()

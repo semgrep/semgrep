@@ -53,7 +53,7 @@ and vof_resolved_name_kind = function
       let v1 = vof_dotted_ident v1 in
       OCaml.VSum ("ImportedEntity", [ v1 ])
   | ImportedModule v1 ->
-      let v1 = vof_module_name v1 in
+      let v1 = vof_dotted_ident v1 in
       OCaml.VSum ("ImportedModule", [ v1 ])
   | Macro -> OCaml.VSum ("Macro", [])
   | EnumConstant -> OCaml.VSum ("EnumConstant", [])

@@ -728,7 +728,7 @@ and expr env e =
 and id env (s, { id_resolved; _ }) =
   match !id_resolved with
   | Some (ImportedEntity ents, _) -> dotted_access env ents
-  | Some (ImportedModule (DottedName ents), _) -> dotted_access env ents
+  | Some (ImportedModule ents, _) -> dotted_access env ents
   | _ -> s
 
 (* TODO: look at name_top too *)

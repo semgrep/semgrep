@@ -321,7 +321,7 @@ let m_resolved_name_kind a b =
   | G.Parameter, B.Parameter -> return ()
   | G.Global, B.Global -> return ()
   | G.ImportedEntity a1, B.ImportedEntity b1 -> m_dotted_name a1 b1
-  | G.ImportedModule a1, B.ImportedModule b1 -> m_module_name a1 b1
+  | G.ImportedModule a1, B.ImportedModule b1 -> m_dotted_name a1 b1
   | G.Macro, B.Macro -> return ()
   | G.EnumConstant, B.EnumConstant -> return ()
   | G.TypeName, B.TypeName -> return ()
@@ -474,7 +474,7 @@ let rec m_name a b =
                  contents =
                    Some
                      ( (( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted)
+                        | B.ImportedModule dotted
                         | B.GlobalName (dotted, _) ) as resolved),
                        _sid );
                };
@@ -571,7 +571,7 @@ let rec m_name a b =
                    contents =
                      Some
                        ( (( B.ImportedEntity dotted
-                          | B.ImportedModule (B.DottedName dotted)
+                          | B.ImportedModule dotted
                           | B.GlobalName (dotted, _) ) as resolved),
                          _sid );
                  };
@@ -780,9 +780,7 @@ and m_expr ?(is_root = false) a b =
                 {
                   contents =
                     Some
-                      ( ( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted) ),
-                        _sid );
+                      ((B.ImportedEntity dotted | B.ImportedModule dotted), _sid);
                 };
               _;
             } )) ) ->

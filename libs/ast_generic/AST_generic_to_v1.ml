@@ -105,8 +105,8 @@ and map_resolved_name_kind = function
       let v1 = map_dotted_ident v1 in
       `ImportedEntity v1
   | ImportedModule v1 ->
-      let v1 = map_module_name v1 in
-      `ImportedModule v1
+      let v1 = map_dotted_ident v1 in
+      `ImportedModule (`DottedName v1)
   | Macro -> `OtherResolvedNameKind "Macro"
   | EnumConstant -> `OtherResolvedNameKind "EnumConstant"
   | TypeName -> `OtherResolvedNameKind "TypeName"

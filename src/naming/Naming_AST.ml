@@ -527,9 +527,7 @@ let resolve lang prog =
                 } )
             when lang =*= Lang.Js || lang =*= Lang.Ts ->
               let sid = SId.mk () in
-              let resolved =
-                untyped_ent (ImportedModule (DottedName [ file ]), sid)
-              in
+              let resolved = untyped_ent (ImportedModule [ file ], sid) in
               set_resolved env id_info resolved;
               add_ident_current_scope id resolved env.names
           (* `const {x, y} = require('z');` (or var, or let)
@@ -668,9 +666,7 @@ let resolve lang prog =
               ModuleDef { mbody = ModuleAlias xs } ) ->
               (* similar to the ImportAs case *)
               let sid = SId.mk () in
-              let resolved =
-                untyped_ent (ImportedModule (DottedName xs), sid)
-              in
+              let resolved = untyped_ent (ImportedModule xs, sid) in
               set_resolved env id_info resolved;
               (* difference with ImportAs, we add in local scope in OCaml *)
               add_ident_current_scope id resolved env.names;
@@ -732,9 +728,7 @@ let resolve lang prog =
           | ImportAs (_, DottedName xs, Some (alias, id_info)) ->
               (* for python *)
               let sid = SId.mk () in
-              let resolved =
-                untyped_ent (ImportedModule (DottedName xs), sid)
-              in
+              let resolved = untyped_ent (ImportedModule xs, sid) in
               set_resolved env id_info resolved;
               add_ident_imported_scope alias resolved env.names
           | ImportAs (_, FileName (s, tok), Some (alias, id_info)) ->
@@ -754,9 +748,7 @@ let resolve lang prog =
                   pkgbase
               in
               let base = (pkgname, tok) in
-              let resolved =
-                untyped_ent (ImportedModule (DottedName [ base ]), sid)
-              in
+              let resolved = untyped_ent (ImportedModule [ base ], sid) in
               set_resolved env id_info resolved;
               add_ident_imported_scope alias resolved env.names
           | _ -> ());
@@ -827,7 +819,7 @@ let resolve lang prog =
               | Some (QDots ((m, None) :: rest_of_middle)) -> (
                   match lookup_scope_opt m env with
                   (* Resolve modules for OCaml *)
-                  | Some { entname = ImportedModule (DottedName xs), _sidm; _ }
+                  | Some { entname = ImportedModule xs, _sidm; _ }
                   (* Resolve classes for use in typed metavars (Java) *)
                   (* Note that we only need to resolve the first name
                      because that is the only one that could be

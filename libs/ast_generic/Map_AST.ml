@@ -118,7 +118,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_dotted_ident v1 in
         ImportedEntity v1
     | ImportedModule v1 ->
-        let v1 = map_module_name v1 in
+        let v1 = map_dotted_ident v1 in
         ImportedModule v1
     | Macro -> Macro
     | EnumConstant -> EnumConstant

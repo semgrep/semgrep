@@ -140,8 +140,7 @@ let resolved_name = function
   | Parameter -> Some (G.Parameter, G.SId.unsafe_default)
   | GlobalVar -> Some (G.Global, G.SId.unsafe_default)
   | ClassField -> None
-  | ImportedModule xs ->
-      Some (G.ImportedModule (G.DottedName xs), G.SId.unsafe_default)
+  | ImportedModule xs -> Some (G.ImportedModule xs, G.SId.unsafe_default)
   | ImportedEntity xs -> Some (G.ImportedEntity xs, G.SId.unsafe_default)
   | NotResolved -> None
 

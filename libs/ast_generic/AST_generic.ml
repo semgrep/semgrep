@@ -277,7 +277,7 @@ and resolved_name_kind =
    * aliased when imported.
    * both dotted_ident must at least contain one element *)
   | ImportedEntity of dotted_ident
-  | ImportedModule of module_name
+  | ImportedModule of dotted_ident (* just the DottedName part of module_name*)
   (* used in Go, where you can pass types as arguments and where we
    * need to resolve those cases
    *)
