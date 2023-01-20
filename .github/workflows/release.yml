@@ -199,7 +199,7 @@ jobs:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
       - name: Test semgrep-core
-        run: opam exec -- make -C core-test
+        run: opam exec -- make core-test
 
   build-core-osx:
     name: Build the OSX binaries
