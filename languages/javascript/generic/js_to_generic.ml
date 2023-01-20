@@ -487,8 +487,10 @@ and type_ x =
         | Some t -> type_ t
       in
       G.TyFun (params, rett) |> G.t
-  | TyRecordAnon (lt, (), rt) ->
-      G.TyRecordAnon ((G.Class, PI.fake_info lt ""), (lt, [], rt)) |> G.t
+  | TyRecordAnon (lt, properties, rt) ->
+      G.TyRecordAnon
+        ((G.Class, PI.fake_info lt ""), (lt, Common.map property properties, rt))
+      |> G.t
   | TyOr (t1, tk, t2) ->
       let t1 = type_ t1 in
       let t2 = type_ t2 in
