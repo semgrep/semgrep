@@ -348,7 +348,7 @@ and type_ =
   | TyArray of type_ * (tok * unit * tok)
   | TyTuple of (tok * tuple_type_member list * tok)
   | TyFun of parameter list * type_ option
-  | TyRecordAnon of (tok * unit * tok)
+  | TyRecordAnon of (tok * property list * tok)
   | TyOr of type_ * tok * type_
   | TyAnd of type_ * tok * type_
   (* ex: KeyOf, This, *, LitType, LookupType, CondType, IndexKey, Typeof
