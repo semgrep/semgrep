@@ -334,7 +334,7 @@ let m_resolved_name_kind a b =
   | G.TypeName, _
   | G.ImportedEntity _, _
   | G.ImportedModule _, _
-  | G.ResolvedName _, _ ->
+  | G.GlobalName _, _ ->
       fail ()
 
 let _m_resolved_name (a1, a2) (b1, b2) =
@@ -456,7 +456,7 @@ let rec m_name a b =
     aux parents
   in
   let try_alternate_names = function
-    | B.ResolvedName (_, alternate_names) ->
+    | B.GlobalName (_, alternate_names) ->
         List.fold_left
           (fun acc alternate_name ->
             acc >||> m_name a (H.name_of_ids alternate_name))
@@ -475,7 +475,7 @@ let rec m_name a b =
                    Some
                      ( (( B.ImportedEntity dotted
                         | B.ImportedModule (B.DottedName dotted)
-                        | B.ResolvedName (dotted, _) ) as resolved),
+                        | B.GlobalName (dotted, _) ) as resolved),
                        _sid );
                };
              _;
@@ -518,7 +518,7 @@ let rec m_name a b =
                  {
                    contents =
                      Some
-                       ( ((B.ImportedEntity dotted | B.ResolvedName (dotted, _))
+                       ( ((B.ImportedEntity dotted | B.GlobalName (dotted, _))
                          as resolved),
                          _sid );
                  };
@@ -572,7 +572,7 @@ let rec m_name a b =
                      Some
                        ( (( B.ImportedEntity dotted
                           | B.ImportedModule (B.DottedName dotted)
-                          | B.ResolvedName (dotted, _) ) as resolved),
+                          | B.GlobalName (dotted, _) ) as resolved),
                          _sid );
                  };
                _;

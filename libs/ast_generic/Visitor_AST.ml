@@ -186,7 +186,7 @@ let (mk_visitor :
     | Macro -> ()
     | EnumConstant -> ()
     | TypeName -> ()
-    | ResolvedName (v1, v2) ->
+    | GlobalName (v1, v2) ->
         let v1 = v_dotted_ident v1 in
         let v2 = v_list v_dotted_ident v2 in
         ()

@@ -58,10 +58,10 @@ and vof_resolved_name_kind = function
   | Macro -> OCaml.VSum ("Macro", [])
   | EnumConstant -> OCaml.VSum ("EnumConstant", [])
   | TypeName -> OCaml.VSum ("TypeName", [])
-  | ResolvedName (v1, v2) ->
+  | GlobalName (v1, v2) ->
       let v1 = vof_dotted_ident v1 in
       let v2 = OCaml.vof_list vof_dotted_ident v2 in
-      OCaml.VSum ("ResolvedName", [ v1; v2 ])
+      OCaml.VSum ("GlobalName", [ v1; v2 ])
 
 let rec vof_qualifier = function
   | QDots v1 ->

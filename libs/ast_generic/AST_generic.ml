@@ -285,25 +285,29 @@ and resolved_name_kind =
   (* used for C *)
   | Macro
   | EnumConstant
-  (* for deep semgrep
+  (* This is for deep semgrep.
    *
-   * ResolvedName (resolved_name, alternate_names)
+   * GlobalName (canonical_name, alternate_names)
    *
-   * resolved_name: The canonical, global name that the symbol resolves to.
+   * canonical_name: The canonical, global name that the symbol resolves to.
    *
    * alternate_names: Other names that users may write when referring to this
-   * symbol. For example, in JS, the resolved_name may include the file path of
-   * the file where the symbol is defined, but users may want to write patterns
-   * to match based on the module specifier, e.g.:
+   * symbol. For example, in JS, the canonical_name may include the file path
+   * of the file where the symbol is defined, but users may want to write
+   * patterns to match based on the module specifier, e.g.:
    *
    * import {bar} from 'foo';
    * bar;
    *
    * We might store ['/path/to/node_modules/foo/src/x.js', 'bar'] as the
-   * resolved_name, but we also want to match the pattern `foo.bar` so we will
+   * canonical_name, but we also want to match the pattern `foo.bar` so we will
    * store ['foo', 'bar'] as an alternate name.
    * *)
-  | ResolvedName of dotted_ident * dotted_ident list
+  | GlobalName of canonical_name * alternate_name list
+
+and canonical_name = dotted_ident
+
+and alternate_name = dotted_ident
 [@@deriving show { with_path = false }, eq, hash]
 
 (* Start of big mutually recursive types because of the use of 'any'

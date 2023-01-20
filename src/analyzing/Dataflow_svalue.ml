@@ -123,7 +123,7 @@ let result_of_function_call_is_constant lang f args =
       },
       _ ) -> (
       match !id_resolved with
-      | Some (G.ResolvedName (name, _alternate_names), _) ->
+      | Some (G.GlobalName (name, _alternate_names), _) ->
           let f_name = str_of_resolved_name name in
           check_f f_name
       | _ ->
