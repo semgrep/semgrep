@@ -1,4 +1,4 @@
 // ruleid: metavariable-object-type
-export type PayoutsApiToken = string & { match: void };
+export type Foo = string & { match: string };
 
-export type PayoutsApiToken = string & { foo: void };
+export type Bar = string & { foo: string };
