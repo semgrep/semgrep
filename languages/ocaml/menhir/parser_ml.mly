@@ -1260,8 +1260,8 @@ module_expr:
   | Tfunctor "(" TUpperIdent ":" module_type ")" "->" module_expr
      { ModuleTodo (("Functor", $1), [$8]) }
   (* module/functor application *)
-  | module_expr "(" module_expr ")"
-    { ModuleTodo (("FunctorApply", $2), [$1; $3]) }
+  | module_expr "(" module_expr? ")"
+    { ModuleTodo (("FunctorApply", $2), $1::(Option.to_list $3)) }
 
 (*************************************************************************)
 (* Attributes *)

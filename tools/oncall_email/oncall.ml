@@ -173,7 +173,7 @@ let report ~base ~today =
   pr "\nTo Discuss (UNASSIGNED)\n";
   today_board
   |> get_cards_of_column "To discuss"
-  |> List.iter (fun card -> if card.assignees = [] then report_card card);
+  |> List.iter (fun card -> if card.assignees =*= [] then report_card card);
 
   pr "\nUnassigned To do\n";
   today_board

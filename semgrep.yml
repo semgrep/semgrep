@@ -47,6 +47,7 @@ rules:
         - libs/*
         - languages/*
         - scripts/*
+        - tools/*
 
   - id: use-pytest-mock
     pattern: import unittest.mock
