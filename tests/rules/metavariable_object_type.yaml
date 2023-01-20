@@ -4,7 +4,7 @@ rules:
       - ts
     patterns:
       - pattern: |
-          type $TYPENAME = $TYPE & {$REGEX: void};
+          type $TYPENAME = $TYPE & {$REGEX: string};
       - metavariable-regex:
           metavariable: $REGEX
           regex: "match"
