@@ -1758,14 +1758,14 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
   | `Gene_type x -> TyName (generic_type env x)
   | `Obj_type x ->
       let t1, xs, t2 = object_type env x in
-      let _xs =
+      let xs =
         xs
         |> Common.map_filter (function
              (* TODO *)
-             | Left _fld -> None
+             | Left prop -> Some prop
              | Right _sts -> None)
       in
-      TyRecordAnon (t1, (), t2)
+      TyRecordAnon (t1, xs, t2)
   | `Array_type (v1, v2, v3) ->
       let type_ = primary_type env v1 in
       let open_ = token env v2 (* "[" *) in

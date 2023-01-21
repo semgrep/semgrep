@@ -3,7 +3,7 @@ Scanning 3 files.
   Current version has 21 findings.
 
 Switching repository to baseline commit 'foo'.
-  Will report findings introduced by these commits:
+  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * ff8459e commit #9
     * a0592d5 commit #8
     * 4ec8882 commit #7

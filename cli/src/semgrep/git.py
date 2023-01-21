@@ -196,6 +196,16 @@ class BaselineHandler:
 
         return GitStatus(added, modified, removed, unmerged, renamed)
 
+    def _get_git_merge_base(self) -> str:
+        # If we already know that the base commit is the merge base, just return
+        # the base commit. This allows us to operate on shallow checkouts where
+        # we might not have the information locally to compute the merge base.
+        # In this case, calling `git merge-base` may fail.
+        if self._is_mergebase:
+            return self._base_commit
+        else:
+            return git_check_output(["git", "merge-base", self._base_commit, "HEAD"])
+
     def _get_dirty_paths_by_status(self) -> Dict[str, List[Path]]:
         """
         Returns all paths that have a git status, grouped by change type.
@@ -296,10 +306,7 @@ class BaselineHandler:
 
         current_head = git_check_output(["git", "rev-parse", "HEAD"])
         try:
-            merge_base_sha = git_check_output(
-                ["git", "merge-base", self._base_commit, "HEAD"]
-            )
-
+            merge_base_sha = self._get_git_merge_base()
             logger.debug("Running git checkout for baseline context")
             git_check_output(["git", "reset", "--hard", merge_base_sha])
             logger.debug("Finished git checkout for baseline context")
@@ -338,10 +345,10 @@ class BaselineHandler:
 
     def print_git_log(self) -> None:
         base_commit_sha = git_check_output(["git", "rev-parse", self._base_commit])
-        merge_base_sha = git_check_output(
-            ["git", "merge-base", self._base_commit, "HEAD"]
+        merge_base_sha = self._get_git_merge_base()
+        logger.info(
+            "  Will report findings introduced by these commits (may be incomplete for shallow checkouts):"
         )
-        logger.info("  Will report findings introduced by these commits:")
         log = git_check_output(
             ["git", "log", "--oneline", "--graph", f"{merge_base_sha}..HEAD"]
         )
