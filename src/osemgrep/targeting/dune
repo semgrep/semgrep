@@ -1,0 +1,12 @@
+; Various operations having to do with selection of files in Semgrep.
+; What they have in common is:
+; - dependency on utilities to manipulate file paths (e.g. globbing);
+; - no dependency on full-fledged language parsing or the resulting ASTs.
+;
+(library
+  (name osemgrep_targeting)
+  (libraries
+    commons
+    fpath
+  )
+)
