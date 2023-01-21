@@ -472,17 +472,24 @@ let rec m_name a b =
                {
                  contents =
                    Some
-                     ( (( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted)
-                        | B.ResolvedName ({ dotted; _ }, _) ) as resolved),
+                     ( (( B.ImportedEntity _ | B.ImportedModule _
+                        | B.ResolvedName _ ) as resolved),
                        _sid );
                };
              _;
            } as infob) ) ) -> (
+      let unique =
+        match resolved with
+        | B.ImportedEntity dotted
+        | B.ImportedModule (B.DottedName dotted) ->
+            { AST_generic.dotted; tok = None }
+        | B.ResolvedName (unique, _) -> unique
+        | _ -> failwith "impossible"
+      in
       m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
       >||> try_alternate_names resolved
       (* Try the resolved entity *)
-      >||> m_name a (H.name_of_ids dotted)
+      >||> m_name a (H.name_of_ids unique.dotted)
       >||>
       (* Try the resolved entity and parents *)
       match a with
@@ -501,7 +508,7 @@ let rec m_name a b =
       | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
       | _ ->
           (* Try matching against parent classes *)
-          try_parents dotted)
+          try_parents unique)
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
@@ -517,15 +524,20 @@ let rec m_name a b =
                  {
                    contents =
                      Some
-                       ( (( B.ImportedEntity dotted
-                          | B.ResolvedName ({ dotted; _ }, _) ) as resolved),
+                       ( ((B.ImportedEntity _ | B.ResolvedName _) as resolved),
                          _sid );
                  };
                _;
              };
            _;
          } as nameinfo) ) ->
-      try_parents dotted
+      let unique =
+        match resolved with
+        | B.ImportedEntity dotted -> { AST_generic.dotted; tok = None }
+        | B.ResolvedName (unique, _) -> unique
+        | _ -> failwith "impossible"
+      in
+      try_parents unique
       >||> try_alternate_names resolved
       (* try without resolving anything *)
       >||> m_name a
@@ -533,7 +545,7 @@ let rec m_name a b =
       >||>
       (* try this time by replacing the qualifier by the resolved one *)
       let new_qualifier =
-        match List.rev dotted with
+        match List.rev unique.dotted with
         | [] -> raise Impossible
         | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
       in
@@ -569,16 +581,21 @@ let rec m_name a b =
                  {
                    contents =
                      Some
-                       ( (( B.ImportedEntity dotted
-                          | B.ImportedModule (B.DottedName dotted)
-                          | B.ResolvedName ({ dotted; _ }, _) ) as resolved),
+                       ( (( B.ImportedEntity _ | B.ImportedModule _
+                          | B.ResolvedName _ ) as resolved),
                          _sid );
                  };
                _;
              };
            _;
          } as b1) ) -> (
-      try_parents dotted
+      let unique =
+        match resolved with
+        | B.ImportedEntity dotted -> { AST_generic.dotted; tok = None }
+        | B.ResolvedName (unique, _) -> unique
+        | _ -> failwith "impossible"
+      in
+      try_parents unique
       >||> try_alternate_names resolved
       >||>
       match a with
@@ -3038,8 +3055,10 @@ and m_class_parent a b =
   | (a1, None), ({ t = B.TyN (B.Id (id, { id_resolved; _ })); _ }, None) ->
       let xs =
         match !id_resolved with
-        | Some (B.ImportedEntity xs, _sid) -> xs
-        | _ -> [ id ]
+        | Some (B.ImportedEntity xs, _sid) ->
+            { AST_generic.dotted = xs; tok = None }
+        | Some (B.ResolvedName (unique, _), _sid) -> unique
+        | _ -> { dotted = [ id ]; tok = None }
       in
       (* deep: *)
       let candidates =
