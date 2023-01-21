@@ -478,7 +478,7 @@ let rec m_name a b =
       | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
       | _ ->
           (* Try matching against parent classes *)
-          try_parents dotted)
+          try_parents unique)
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
@@ -3107,9 +3107,16 @@ and m_class_parent a b =
   | (a1, None), ({ t = B.TyN (B.Id (id, { id_resolved; _ })); _ }, None) ->
       let xs =
         match !id_resolved with
+<<<<<<< HEAD
         | Some (B.ImportedEntity canonical, _sid) ->
             G.canonical_to_dotted (snd id) canonical
         | _ -> [ id ]
+=======
+        | Some (B.ImportedEntity xs, _sid) ->
+            { AST_generic.dotted = xs; tok = None }
+        | Some (B.ResolvedName (unique, _), _sid) -> unique
+        | _ -> { dotted = [ id ]; tok = None }
+>>>>>>> 7d13ab974 (change possible parents hook, prefer unique names to dotted)
       in
       (* deep: *)
       let candidates =
