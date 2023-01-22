@@ -22,6 +22,7 @@ depends: [
   "easy_logging" { = "0.8.1" }
   "easy_logging_yojson" { = "0.8.1" }
   "yojson"
+  "re"
   "ppxlib"
   "ppx_deriving"
 ]
