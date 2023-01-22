@@ -43,6 +43,9 @@ rules:
             metavariable: $PACKAGE
             comparison: |
               $PACKAGE == $ID
+    - patterns:
+        - pattern: |
+            var res8 = $PACKAGE.$PACKAGE()
   message: | 
     We should be able to decompose on a resolved name with a 
     metavariable in a sensible way.

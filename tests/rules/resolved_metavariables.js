@@ -1,20 +1,26 @@
-// MATCH:
+// ruleid: resolved-metavariables 
 import {bar as baz} from "foo";
 
-// MATCH:
+// ruleid: resolved-metavariables 
 var res1 = baz()
 
-// MATCH:
+// ruleid: resolved-metavariables 
 var res2 = baz()
 
-// MATCH:
+// ruleid: resolved-metavariables 
 var res3 = baz()
 
-// MATCH:
+// ruleid: resolved-metavariables 
 var res4 = baz()
 
+// OK:
 var res5 = baz()
 
+// OK:
 var res6 = baz()
 
+// OK:
 var res7 = baz()
+
+// OK:
+var res8 = baz()
