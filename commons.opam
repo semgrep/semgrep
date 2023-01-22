@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "commons"
-version: "1.5.2"
+version: "1.5.3"
 synopsis: "Yet another set of common utilities"
 description: """
 This is a small library of utilities used by Semgrep and
@@ -9,7 +9,7 @@ a few other projects developed at r2c.
 
 maintainer: "Yoann Padioleau <pad@r2c.dev>"
 authors: [ "Yoann Padioleau <pad@r2c.dev>" ]
-license: "LGPL-2.1"
+license: "LGPL-2.1-only"
 homepage: "https://semgrep.dev"
 dev-repo: "git+https://github.com/returntocorp/semgrep"
 bug-reports: "https://github.com/returntocorp/semgrep/issues"
