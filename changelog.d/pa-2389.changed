@@ -1,4 +1,0 @@
-DeepSemgrep is now Semgrep PRO! To install the Semgrep PRO engine run:
-`semgrep install-semgrep-pro`. This engine is still invoked using the
-`--deep` flag, but please expect changes to the CLI in the near future.
-The new Semgrep PRO engine adds support for Apex!
