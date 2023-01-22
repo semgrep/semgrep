@@ -1,0 +1,30 @@
+opam-version: "2.0"
+name: "commons"
+version: "1.5.2"
+synopsis: "Yet another set of common utilities"
+description: """
+This is a small library of utilities used by Semgrep and
+a few other projects developed at r2c.
+"""
+
+maintainer: "Yoann Padioleau <pad@r2c.dev>"
+authors: [ "Yoann Padioleau <pad@r2c.dev>" ]
+license: "LGPL-2.1"
+homepage: "https://semgrep.dev"
+dev-repo: "git+https://github.com/returntocorp/semgrep"
+bug-reports: "https://github.com/returntocorp/semgrep/issues"
+
+depends: [
+  "ocaml" {>= "4.12.0"}
+  "dune" {>= "2.7.0" }
+  "alcotest"
+  "ANSITerminal"
+  "easy_logging" { = "0.8.1" }
+  "easy_logging_yojson" { = "0.8.1" }
+  "yojson"
+  "ppxlib"
+  "ppx_deriving"
+]
+
+build: ["dune" "build" "./_build/default/commons.install"]
+install: ["dune" "install" "commons"]
