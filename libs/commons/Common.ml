@@ -61,7 +61,9 @@ let ( =:= ) : bool -> bool -> bool = ( = )
 (* dangerous, do not use, see the comment in Common.mli *)
 let ( =*= ) = ( = )
 
-(* to forbid people to use the polymorphic '=' *)
+(* To forbid people to use the polymorphic '='.
+ * See https://blog.janestreet.com/the-perils-of-polymorphic-compare/
+ *)
 let ( = ) = String.equal
 
 (*****************************************************************************)
