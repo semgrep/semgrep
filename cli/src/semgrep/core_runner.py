@@ -789,7 +789,8 @@ class CoreRunner:
             }
 
             # Run semgrep
-            cmd = [SemgrepCore.path()] + [
+            cmd_bin = SemgrepCore.path()
+            cmd_args = [
                 "-json",
                 "-rules",
                 rule_file.name,
@@ -810,10 +811,10 @@ class CoreRunner:
                 logger.info(
                     f"Running with user defined core options: {self._core_opts}"
                 )
-                cmd.extend(self._core_opts)
+                cmd_args.extend(self._core_opts)
 
             if self._optimizations != "none":
-                cmd.append("-fast")
+                cmd_args.append("-fast")
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
@@ -835,45 +836,79 @@ class CoreRunner:
                 else:
                     raise SemgrepError("deep mode needs a single target (root) dir")
 
-                deep_path = SemgrepCore.deep_path()
-                if deep_path is None:
-                    raise SemgrepError(
-                        "Could not run deep analysis: DeepSemgrep not installed. Run `semgrep install-deep-semgrep`"
+                deep_path = (
+                    SemgrepCore.deep_path()
+                )  # DEPRECATED: To be removed by Feb 2023 launch
+                pro_path = SemgrepCore.pro_path()
+
+                if pro_path is None:
+                    if deep_path is None:
+                        raise SemgrepError(
+                            "Could not run deep analysis: Semgrep PRO engine not installed. Run `semgrep install-semgrep-pro`"
+                        )
+                    else:
+                        logger.warning(
+                            f"""You have an old DeepSemgrep binary installed in {deep_path}
+DeepSemgrep is now Semgrep PRO, run `semgrep install-semgrep-pro` to install it,
+then please delete {deep_path} manually.
+This time, we will continue running your old DeepSemgrep binary anyways.
+"""
+                        )
+
+                if pro_path is not None:
+                    logger.info(f"Using Semgrep PRO installed in {pro_path}")
+                    version = sub_check_output(
+                        [pro_path, "-pro_version"],
+                        timeout=10,
+                        encoding="utf-8",
+                        stderr=subprocess.STDOUT,
+                    ).rstrip()
+                    logger.info(f"Semgrep PRO Version Info: ({version})")
+
+                    cmd_bin = pro_path
+                    cmd_args += ["-deep_inter_file"]
+                    cmd_args += [root]
+                elif (
+                    deep_path is not None
+                ):  # DEPRECATED: To be removed by Feb 2023 launch
+                    logger.info(
+                        f"Using old DeepSemgrep installed in {deep_path} - Please upgrade to Semgrep PRO!"
                     )
+                    version = sub_check_output(
+                        [deep_path, "--version"],
+                        timeout=10,
+                        encoding="utf-8",
+                        stderr=subprocess.DEVNULL,
+                    ).rstrip()
+                    logger.info(f"DeepSemgrep Version Info: ({version})")
 
-                logger.info(f"Using DeepSemgrep installed in {deep_path}")
-                version = sub_check_output(
-                    [deep_path, "--version"],
-                    timeout=10,
-                    encoding="utf-8",
-                    stderr=subprocess.DEVNULL,
-                ).rstrip()
-                logger.info(f"DeepSemgrep Version Info: ({version})")
-
-                cmd = [deep_path] + [
-                    "--json",
-                    "--rules",
-                    rule_file.name,
-                    "-j",
-                    str(self._jobs),
-                    "--targets",
-                    target_file.name,
-                    "--root",
-                    root,
-                    "--json_time",
-                    # "--timeout",
-                    # str(self._timeout),
-                    # "--timeout_threshold",
-                    # str(self._timeout_threshold),
-                    "--max_memory",
-                    str(self._max_memory),
-                ]
+                    cmd_bin = deep_path
+                    cmd_args = [
+                        "--json",
+                        "--rules",
+                        rule_file.name,
+                        "-j",
+                        str(self._jobs),
+                        "--targets",
+                        target_file.name,
+                        "--root",
+                        root,
+                        "--json_time",
+                        # "--timeout",
+                        # str(self._timeout),
+                        # "--timeout_threshold",
+                        # str(self._timeout_threshold),
+                        "--max_memory",
+                        str(self._max_memory),
+                    ]
 
             stderr: Optional[int] = subprocess.PIPE
             if state.terminal.is_debug:
-                cmd += ["--debug"]
+                cmd_args += ["--debug"]
 
-            logger.debug("Running semgrep-core with command:")
+            cmd = [cmd_bin] + cmd_args
+
+            logger.debug("Running Semgrep engine with command:")
             logger.debug(" ".join(cmd))
 
             if dump_command_for_core:
@@ -883,7 +918,11 @@ class CoreRunner:
                 # still visible in the log message above.)
                 printed_cmd = cmd.copy()
                 printed_cmd[0] = (
-                    deep_path if deep_path and deep else SemgrepCore.executable_path()
+                    pro_path
+                    if pro_path and deep
+                    else deep_path
+                    if deep_path and deep
+                    else SemgrepCore.executable_path()
                 )
                 print(" ".join(printed_cmd))
                 sys.exit(0)
@@ -975,10 +1014,10 @@ class CoreRunner:
                 logger.error(
                     f"""
 
-DeepSemgrep crashed during execution (unknown reason).
-This can sometimes happen because either DeepSemgrep or Semgrep is out of date.
+Semgrep PRO crashed during execution (unknown reason).
+This can sometimes happen because either Semgrep PRO or Semgrep is out of date.
 
-Try updating your version of DeepSemgrep (`semgrep install-deep-semgrep`) or your version of Semgrep (`pip install semgrep/brew install semgrep`).
+Try updating your version of Semgrep PRO (`semgrep install-semgrep-pro`) or your version of Semgrep (`pip install semgrep/brew install semgrep`).
 If both are up-to-date and the crash persists, please contact support to report an issue!
 
 Exception raised: `{e}`

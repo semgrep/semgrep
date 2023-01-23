@@ -1,0 +1,12 @@
+rules:
+  - id: metavariable-object-type 
+    languages:
+      - ts
+    patterns:
+      - pattern: |
+          type $TYPENAME = $TYPE & {$REGEX: string};
+      - metavariable-regex:
+          metavariable: $REGEX
+          regex: "match"
+    message: $REGEX should match the actual identifier 
+    severity: WARNING

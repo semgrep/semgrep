@@ -63,7 +63,7 @@ Scanning 1 file with 4 python rules.
   Current version has 14 findings.
 
 Switching repository to baseline commit '<MASKED>'.
-  Will report findings introduced by these commits:
+  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * <MASKED> Some other commit/ message
 
 Scanning 1 file with 4 python rules.

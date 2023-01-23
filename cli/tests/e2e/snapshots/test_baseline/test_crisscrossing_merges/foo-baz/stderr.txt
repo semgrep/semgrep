@@ -3,7 +3,7 @@ Scanning 2 files.
   Current version has 12 findings.
 
 Switching repository to baseline commit 'baz'.
-  Will report findings introduced by these commits:
+  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     *   fe51afb merging bar~6
     |\  
     | * 97acb1c commit #3

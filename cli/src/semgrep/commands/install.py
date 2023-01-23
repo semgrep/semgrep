@@ -5,6 +5,7 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
+from typing import Tuple
 
 import click
 from tqdm import tqdm
@@ -20,7 +21,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def determine_deep_semgrep_path() -> Path:
+def determine_semgrep_pro_path() -> Tuple[Path, Path]:
     core_path = SemgrepCore.path()
     if core_path is None:
         logger.info(
@@ -30,18 +31,28 @@ def determine_deep_semgrep_path() -> Path:
         sys.exit(FATAL_EXIT_CODE)
 
     deep_semgrep_path = Path(core_path).parent / "deep-semgrep"
-    return deep_semgrep_path
+    semgrep_pro_path = Path(core_path).parent / "semgrep-core-proprietary"
+    return (semgrep_pro_path, deep_semgrep_path)
 
 
-def run_install_deep_semgrep() -> None:
+def run_install_semgrep_pro() -> None:
     state = get_state()
     state.terminal.configure(verbose=False, debug=False, quiet=False, force_color=False)
 
-    deep_semgrep_path = determine_deep_semgrep_path()
+    (semgrep_pro_path, deep_semgrep_path) = determine_semgrep_pro_path()
+
+    # TODO This is a temporary solution to help offline users
+    logger.info(f"Semgrep PRO engine will be installed in {semgrep_pro_path}")
+
     if deep_semgrep_path.exists():
-        logger.info(
-            f"Overwriting DeepSemgrep binary already installed in {deep_semgrep_path}"
+        logger.warning(
+            f"""You have an old DeepSemgrep binary installed in {deep_semgrep_path}.
+DeepSemgrep has been renamed to Semgrep PRO, which we will proceed to install.
+Please delete {deep_semgrep_path} manually to make this warning disappear!
+"""
         )
+    if semgrep_pro_path.exists():
+        logger.info(f"Overwriting Semgrep PRO engine already installed!")
 
     if state.app_session.token is None:
         logger.info("run `semgrep login` before using `semgrep install`")
@@ -79,7 +90,7 @@ def run_install_deep_semgrep() -> None:
 
         file_size = int(r.headers.get("Content-Length", 0))
 
-        with open(deep_semgrep_path, "wb") as f:
+        with open(semgrep_pro_path, "wb") as f:
             with tqdm.wrapattr(r.raw, "read", total=file_size) as r_raw:
                 shutil.copyfileobj(r_raw, f)
 
@@ -88,30 +99,30 @@ def run_install_deep_semgrep() -> None:
     #        execute it should not be a problem.
     # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions
     os.chmod(
-        deep_semgrep_path,
-        os.stat(deep_semgrep_path).st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH,
+        semgrep_pro_path,
+        os.stat(semgrep_pro_path).st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH,
     )
-    logger.info(f"Installed deepsemgrep to {deep_semgrep_path}")
+    logger.info(f"Installed Semgrep PRO to {semgrep_pro_path}")
 
     version = sub_check_output(
-        [str(deep_semgrep_path), "--version"],
+        [str(semgrep_pro_path), "-pro_version"],
         timeout=10,
         encoding="utf-8",
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
     ).rstrip()
-    logger.info(f"DeepSemgrep Version Info: ({version})")
+    logger.info(f"Semgrep PRO Version Info: ({version})")
 
 
 @click.command(hidden=True)
 @handle_command_errors
-def install_deep_semgrep() -> None:
+def install_semgrep_pro() -> None:
     """
-    Install the DeepSemgrep binary (Experimental)
+    Install the Semgrep PRO binary (Experimental)
 
     The binary is installed in the same directory that semgrep-core
     is installed in.
 
-    Must be logged in and have access to DeepSemgrep beta
+    Must be logged in and have access to Semgrep PRO beta
     Visit https://semgrep.dev/deep-semgrep-beta for more information
     """
-    run_install_deep_semgrep()
+    run_install_semgrep_pro()

@@ -1,0 +1,1 @@
+Fixed a crash that could occur when using the GitHub API to fetch the merge base rather than computing it locally.

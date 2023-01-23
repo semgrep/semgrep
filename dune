@@ -29,7 +29,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (subdir
-   semgrep-core/src/ocaml-tree-sitter-core/src/gen
+   libs/ocaml-tree-sitter-core/src/gen
    (data_only_dirs bin)
 )
 

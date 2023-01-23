@@ -68,7 +68,7 @@ Rules:
 - taint-test
 Passing whole rules directly to semgrep_core
 Scanning 1 file with 4 python rules.
-Running semgrep-core with command:
+Running Semgrep engine with command:
 /<MASKED>/semgrep<MASKED> -json -rules <MASKED>-json_time -fast --debug
 --- semgrep-core stderr ---
 <MASKED>
