@@ -1,2 +1,0 @@
-Java: Fixed regression introduced in 0.123.0 that could cause a private class
-attribute to be incorrectly regarded as a constant.

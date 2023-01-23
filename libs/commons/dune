@@ -3,6 +3,7 @@
  (wrapped false)
  (libraries
    str unix
+   re
    yojson easy_logging_yojson
    alcotest
    ANSITerminal
