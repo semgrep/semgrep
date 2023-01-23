@@ -1,0 +1,1 @@
+CLI: No longer reports the wrong command if you are using the `semgrep-core-proprietary` executable.

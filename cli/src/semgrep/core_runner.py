@@ -918,7 +918,11 @@ This time, we will continue running your old DeepSemgrep binary anyways.
                 # still visible in the log message above.)
                 printed_cmd = cmd.copy()
                 printed_cmd[0] = (
-                    deep_path if deep_path and deep else SemgrepCore.executable_path()
+                    pro_path
+                    if pro_path and deep
+                    else deep_path
+                    if deep_path and deep
+                    else SemgrepCore.executable_path()
                 )
                 print(" ".join(printed_cmd))
                 sys.exit(0)
