@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "commons"
-version: "1.5.3"
+version: "1.5.4"
 synopsis: "Yet another set of common utilities"
 description: """
 This is a small library of utilities used by Semgrep and
@@ -17,14 +17,14 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 depends: [
   "ocaml" {>= "4.12.0"}
   "dune" {>= "2.7.0" }
-  "alcotest"
-  "ANSITerminal"
+  "alcotest" {>= "1.5.0"}
+  "ANSITerminal" {>= "0.8.4"}
   "easy_logging" { = "0.8.1" }
   "easy_logging_yojson" { = "0.8.1" }
-  "yojson"
-  "re"
-  "ppxlib"
-  "ppx_deriving"
+  "yojson" {>= "1.7.0"}
+  "re" {>= "1.10.4"}
+  "ppxlib" {>= "0.25.0"}
+  "ppx_deriving" {>= "5.2.1"}
 ]
 
 build: ["dune" "build" "./_build/default/commons.install"]
