@@ -526,9 +526,14 @@ class CoreRunner:
         optimizations: str,
         core_opts_str: Optional[str],
     ):
-        self._jobs = (
-            jobs if jobs else 1 if engine is EngineType.DEEP_INTER else get_cpu_count()
-        )
+        if jobs is None:
+            if engine is EngineType.DEEP_INTER:
+                # In some cases inter-file analysis consumes too much memory, and
+                # not using multi-core seems to help containing the problem.
+                jobs = 1
+            else:
+                jobs = get_cpu_count()
+        self._jobs = jobs
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
