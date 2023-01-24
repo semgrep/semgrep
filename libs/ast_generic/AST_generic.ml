@@ -378,7 +378,7 @@ and id_info = {
    * a typed entity, which can be interpreted as a TypedMetavar in semgrep.
    * alt: have an explicity type_ field in entity.
    *)
-  id_type : type_ option ref; [@equal fun _a _b -> true]
+  id_type : type_ option ref;
   (* type checker (typing) *)
   (* sgrep: this is for sgrep constant propagation hack.
    * todo? associate only with Id?
