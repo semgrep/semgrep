@@ -32,8 +32,8 @@ UNSUPPORTED_EXT_IGNORE_LANGS = {"generic", "regex"}
 class EngineType(Enum):
     OSS = auto()
     PRO = auto()
-    DEEP_INTRA = auto()
-    DEEP_INTER = auto()
+    INTERPROC = auto()
+    INTERFILE = auto()
 
     @property
     def is_pro(self) -> bool:

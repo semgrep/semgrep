@@ -527,7 +527,7 @@ class CoreRunner:
         core_opts_str: Optional[str],
     ):
         if jobs is None:
-            if engine is EngineType.DEEP_INTER:
+            if engine is EngineType.INTERFILE:
                 # In some cases inter-file analysis consumes too much memory, and
                 # not using multi-core seems to help containing the problem.
                 jobs = 1
@@ -834,7 +834,7 @@ class CoreRunner:
                     logger.error(
                         "You are using the Semgrep Pro Engine, our advanced analysis system uniquely designed to refine and enhance your results."
                     )
-                    if engine is EngineType.DEEP_INTER:
+                    if engine is EngineType.INTERFILE:
                         logger.error(
                             "You can expect to see longer scan times - we're taking our time to make sure everything is just right for you. With <3, the Semgrep team."
                         )
@@ -868,7 +868,7 @@ then please delete {deep_path} manually.
 
                     cmd_bin = pro_path
 
-                    if engine is EngineType.DEEP_INTER:
+                    if engine is EngineType.INTERFILE:
                         targets = target_manager.targets
                         if len(targets) == 1 and targets[0].path.is_dir():
                             root = str(targets[0].path)
@@ -879,7 +879,7 @@ then please delete {deep_path} manually.
                             )
                         cmd_args += ["-deep_inter_file"]
                         cmd_args += [root]
-                    elif engine is EngineType.DEEP_INTRA:
+                    elif engine is EngineType.INTERPROC:
                         cmd_args += ["-deep_intra_file"]
 
             stderr: Optional[int] = subprocess.PIPE

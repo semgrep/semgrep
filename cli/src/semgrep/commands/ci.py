@@ -381,7 +381,7 @@ def ci(
                 lockfile_scan_info,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
-                engine=EngineType.DEEP_INTER if deep else EngineType.OSS,
+                engine=EngineType.INTERFILE if deep else EngineType.OSS,
                 output_handler=output_handler,
                 target=[os.curdir],  # semgrep ci only scans cwd
                 pattern=None,

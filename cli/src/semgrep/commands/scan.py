@@ -310,7 +310,7 @@ _scan_options: List[Callable] = [
         type=int,
         help="""
             Number of subprocesses to use to run checks in parallel. Defaults to the
-            number of cores on the system (1 if using --deep).
+            number of cores on the system (1 if using --interfile).
         """,
     ),
     optgroup.option(
@@ -587,12 +587,7 @@ def scan_options(func: Callable) -> Callable:
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
-@click.option(
-    "--pro",
-    is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
-)
+# DEPRECATED: --deep to be removed by Feb 2023 launch
 @click.option(
     "--deep",
     "-x",
@@ -601,7 +596,19 @@ def scan_options(func: Callable) -> Callable:
     # help="contact support@r2c.dev for more information on this"
 )
 @click.option(
-    "--fast-deep",
+    "--pro",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--interproc",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--interfile",
     is_flag=True,
     hidden=True
     # help="contact support@r2c.dev for more information on this"
@@ -615,9 +622,10 @@ def scan(
     config: Optional[Tuple[str, ...]],
     core_opts: Optional[str],
     debug: bool,
-    pro: bool,
     deep: bool,
-    fast_deep: bool,
+    pro: bool,
+    interproc: bool,
+    interfile: bool,
     dryrun: bool,
     dump_ast: bool,
     dump_command_for_core: bool,
@@ -749,16 +757,19 @@ def scan(
         output_format = OutputFormat.VIM
 
     if deep:
-        engine = EngineType.DEEP_INTER
-    elif fast_deep:
-        engine = EngineType.DEEP_INTRA
+        abort("The experimental flag --deep has been renamed to --interfile.")
+
+    if interfile:
+        engine = EngineType.INTERFILE
+    elif interproc:
+        engine = EngineType.INTERPROC
     elif pro:
         engine = EngineType.PRO
     else:
         engine = EngineType.OSS
 
     # Turn on `dataflow_traces` by default for inter-procedural taint analysis.
-    if engine is EngineType.DEEP_INTRA or engine is EngineType.DEEP_INTER:
+    if engine is EngineType.INTERPROC or engine is EngineType.INTERFILE:
         dataflow_traces = True
 
     output_settings = OutputSettings(
