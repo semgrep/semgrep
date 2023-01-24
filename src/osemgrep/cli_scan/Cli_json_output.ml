@@ -130,7 +130,6 @@ let level_of_severity (severity : Out.core_severity) : Severity.basic_severity =
   match severity with
   | Error -> `Error
   | Warning -> `Warning
-  | Alert -> `Alert
 
 let error_type_string (error_type : Out.core_error_kind) : string =
   match error_type with

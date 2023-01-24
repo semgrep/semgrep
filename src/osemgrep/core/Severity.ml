@@ -18,7 +18,7 @@
 (*****************************************************************************)
 
 (* valid for rules and for findings, but also for semgrep errors *)
-type basic_severity = [ `Error | `Warning | `Alert ] [@@deriving show]
+type basic_severity = [ `Error | `Warning ] [@@deriving show]
 
 (* found in rules, and in semgrep --severity *)
 type rule_severity = [ basic_severity | `Info ] [@@deriving show]
@@ -35,7 +35,6 @@ type extended_severity = [ rule_severity | `Inventory | `Experiment ]
 let string_of_basic_severity = function
   | `Warning -> "warn"
   | `Error -> "error"
-  | `Alert -> "alert"
 
 (* TOPORT?
     def _missing_(cls: Type[Enum], value: object) -> Enum:
