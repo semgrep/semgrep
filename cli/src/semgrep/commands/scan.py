@@ -348,6 +348,15 @@ _scan_options: List[Callable] = [
         """,
     ),
     optgroup.option(
+        "--pro-timeout",
+        type=int,
+        help=f"""
+            Maximum time to spend on preprocessing for pro features. If set to 0
+            will not have time limit. Defaults to 0 s unless the DeepSemgrep toggle
+            is on, in which case it defaults to 3 hours.
+        """,
+    ),
+    optgroup.option(
         "--core-opts",
         hidden=True,
         type=str,
@@ -644,6 +653,7 @@ def scan(
     time_flag: bool,
     timeout: int,
     timeout_threshold: int,
+    pro_timeout: Optional[int],
     use_git_ignore: bool,
     validate: bool,
     verbose: bool,
@@ -703,9 +713,11 @@ def scan(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
-    # People have more flexibility on local scans so --max-memory is set to unlimited
+    # People have more flexibility on local scans so --max-memory and --pro-timeout is set to unlimited
     if not max_memory:
         max_memory = 0  # unlimited
+    if not pro_timeout:
+        pro_timeout = 0  # unlimited
 
     output_time = time_flag
 
@@ -802,6 +814,7 @@ def scan(
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
+                            pro_timeout=pro_timeout,
                             optimizations=optimizations,
                             core_opts_str=core_opts,
                         ).validate_configs(config)
@@ -858,6 +871,7 @@ def scan(
                     timeout=timeout,
                     max_memory=max_memory,
                     timeout_threshold=timeout_threshold,
+                    pro_timeout=pro_timeout,
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     severity=severity,
                     optimizations=optimizations,
