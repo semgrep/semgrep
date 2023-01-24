@@ -1,4 +1,5 @@
-PRO: Add **experimental** flags --pro and --fast-deep. Using --pro you can enable
-Apex support, and with --fast-deep you can enable intra-file inter-procedural
-taint analysis. Note that to use any of the PRO features you must first run
-`semgrep install-semgrep-pro` while being logged in.
+PRO: Add **experimental** flags `--pro` and `--interproc`. Using `--pro` you can
+enable Apex support, and with `--fast-deep` you can enable intra-file inter-procedural
+taint analysis. Also, `--deep` has been renamed to `--interfile`. Note that to use
+any of the PRO features you must first run `semgrep install-semgrep-pro` while being
+logged in.
