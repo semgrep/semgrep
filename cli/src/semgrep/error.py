@@ -136,6 +136,7 @@ class SemgrepCoreError(SemgrepError):
 
         return base
 
+    @property
     def is_special_preprocessing_error(self) -> bool:
         """
         These errors indicate that multifile analysis did not

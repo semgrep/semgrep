@@ -256,7 +256,7 @@ class OutputHandler:
             return
         if isinstance(ex, SemgrepError):
             if ex.level == Level.ERROR and not (
-                isinstance(ex, SemgrepCoreError) and ex.is_special_preprocessing_error()
+                isinstance(ex, SemgrepCoreError) and ex.is_special_preprocessing_error
             ):
                 raise ex
             elif self.settings.strict:
