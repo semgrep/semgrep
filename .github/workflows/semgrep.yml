@@ -26,4 +26,4 @@ jobs:
     if: (github.actor != 'dependabot[bot]')
     steps:
       - uses: actions/checkout@v3
-      - run: semgrep ci
+      - run: semgrep ci --no-suppress-errors
