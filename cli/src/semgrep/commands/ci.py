@@ -24,6 +24,7 @@ from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import Config
 from semgrep.constants import DEFAULT_MAX_MEMORY_DEEP_CI
+from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
@@ -380,7 +381,7 @@ def ci(
                 lockfile_scan_info,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
-                deep=deep,
+                engine=EngineType.DEEP_INTER if deep else EngineType.OSS,
                 output_handler=output_handler,
                 target=[os.curdir],  # semgrep ci only scans cwd
                 pattern=None,

@@ -1,0 +1,3 @@
+PRO: Add **experimental** flags --pro and --fast-deep. Using --pro you can enable
+Apex support, and with --fast-deep you can enable intra-file inter-procedural
+taint analysis.

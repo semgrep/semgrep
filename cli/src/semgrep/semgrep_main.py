@@ -20,6 +20,7 @@ from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
+from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
@@ -143,7 +144,7 @@ def run_rules(
     core_runner: CoreRunner,
     output_handler: OutputHandler,
     dump_command_for_core: bool,
-    deep: bool,
+    engine: EngineType,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -168,7 +169,7 @@ def run_rules(
         parsing_data,
         explanations,
     ) = core_runner.invoke_semgrep(
-        target_manager, rest_of_the_rules, dump_command_for_core, deep
+        target_manager, rest_of_the_rules, dump_command_for_core, engine
     )
 
     if join_rules:
@@ -277,7 +278,7 @@ def main(
     *,
     core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
-    deep: bool = False,
+    engine: EngineType = EngineType.OSS,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -406,7 +407,7 @@ def main(
     core_start_time = time.time()
     core_runner = CoreRunner(
         jobs=jobs,
-        deep=deep,
+        engine=engine,
         timeout=timeout,
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
@@ -440,7 +441,7 @@ def main(
         core_runner,
         output_handler,
         dump_command_for_core,
-        deep,
+        engine,
     )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
@@ -505,7 +506,7 @@ def main(
                         core_runner,
                         output_handler,
                         dump_command_for_core,
-                        deep,
+                        engine,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule,
