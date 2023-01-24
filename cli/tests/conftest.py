@@ -24,10 +24,23 @@ from tests.semgrep_runner import SemgrepRunner
 
 from semgrep import __VERSION__
 from semgrep.cli import cli
+from semgrep.commands.install import determine_semgrep_pro_path
+from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.constants import OutputFormat
 from semgrep.lsp.server import SemgrepLSPServer
 
 TESTS_PATH = Path(__file__).parent
+
+
+def pytest_sessionstart(session):
+    """
+    Called after the Session object has been created and
+        before performing collection and entering the run test loop.
+    """
+
+    semgrep_pro_path, _ = determine_semgrep_pro_path()
+    if not semgrep_pro_path.exists():
+        run_install_semgrep_pro()
 
 
 def make_semgrepconfig_file(dir_path: Path, contents: str) -> None:
@@ -269,6 +282,7 @@ class SemgrepResult:
 def _run_semgrep(
     config: Optional[Union[str, Path, List[str]]] = None,
     *,
+    pro: str = "oss",
     target_name: Optional[str] = "basic",
     options: Optional[List[Union[str, Path]]] = None,
     output_format: Optional[OutputFormat] = OutputFormat.JSON,
@@ -324,6 +338,14 @@ def _run_semgrep(
     if quiet:
         options.append("--quiet")
 
+    # first we need to install the relevant deep binary?
+    if pro == "oss":
+        pass
+    elif pro == "pro":
+        options.append("--deep")
+    else:
+        print("big problem")
+
     if config is not None:
         if isinstance(config, list):
             for conf in config:
@@ -347,6 +369,16 @@ def _run_semgrep(
         targets.append(
             Path("targets") / target_name if assume_targets_dir else Path(target_name)
         )
+    if pro == "pro" and target_name is not None:
+        print(targets)
+        target = (
+            Path("targets") / target_name if assume_targets_dir else Path(target_name)
+        )
+        if target.is_dir():
+            targets = [target]
+        else:
+            targets = [target.parent]
+        print(targets)
     args = " ".join(shlex.quote(str(c)) for c in [*options, *targets])
     env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
 
@@ -383,7 +415,18 @@ def run_semgrep():
     yield partial(_run_semgrep, strict=False, target_name=None, output_format=None)
 
 
-@pytest.fixture
+@pytest.fixture(params=["pro", "oss"])
+def run_semgrep_plus_pro(request):
+    yield partial(
+        _run_semgrep,
+        pro=request.param,
+        strict=False,
+        target_name=None,
+        output_format=None,
+    )
+
+
+@pytest.fixture()
 def run_semgrep_in_tmp(monkeypatch, tmp_path):
     """
     Note that this can cause failures if Semgrep pollutes either the targets or rules path
@@ -393,6 +436,18 @@ def run_semgrep_in_tmp(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
     yield _run_semgrep
+
+
+@pytest.fixture(params=["pro", "oss"])
+def run_semgrep_plus_pro_in_tmp(monkeypatch, tmp_path, request):
+    """
+    Note that this can cause failures if Semgrep pollutes either the targets or rules path
+    """
+    (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
+    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    monkeypatch.chdir(tmp_path)
+
+    yield partial(_run_semgrep, pro=request.param)
 
 
 @pytest.fixture
@@ -406,6 +461,19 @@ def run_semgrep_on_copied_files(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
     yield _run_semgrep
+
+
+@pytest.fixture(params=["pro", "oss"])
+def run_semgrep_plus_pro_on_copied_files(monkeypatch, tmp_path, request):
+    """
+    Like run_semgrep_in_tmp, but fully copies rule and target data to avoid
+    directory pollution, also avoids issues with symlink navigation
+    """
+    copytree(Path(TESTS_PATH / "e2e" / "targets").resolve(), tmp_path / "targets")
+    copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
+    monkeypatch.chdir(tmp_path)
+
+    yield partial(_run_semgrep, pro=request.param)
 
 
 @pytest.fixture

@@ -96,8 +96,8 @@ def test_output_highlighting__force_color_and_no_color(run_semgrep_in_tmp, snaps
 # with metavariables. We don't want to introduce regressions which might
 # mess this up.
 @pytest.mark.quick
-def test_yaml_metavariables(run_semgrep_in_tmp, snapshot):
-    stdout, _ = run_semgrep_in_tmp(
+def test_yaml_metavariables(run_semgrep_plus_pro_in_tmp, snapshot):
+    stdout, _ = run_semgrep_plus_pro_in_tmp(
         "rules/yaml_key.yaml",
         target_name="yaml/target.yaml",
         output_format=OutputFormat.JSON,

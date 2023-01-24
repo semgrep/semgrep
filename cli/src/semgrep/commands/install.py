@@ -35,7 +35,7 @@ def determine_semgrep_pro_path() -> Tuple[Path, Path]:
     return (semgrep_pro_path, deep_semgrep_path)
 
 
-def run_install_semgrep_pro() -> None:
+def run_install_semgrep_pro(is_develop: bool = False) -> None:
     state = get_state()
     state.terminal.configure(verbose=False, debug=False, quiet=False, force_color=False)
 
@@ -72,7 +72,9 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
             "Running on potentially unsupported platform. Installing linux compatible binary"
         )
 
-    url = f"{state.env.semgrep_url}/api/agent/deployments/deepbinary/{platform_kind}"
+    suffix = "-develop" if is_develop else ""
+
+    url = f"{state.env.semgrep_url}/api/agent/deployments/deepbinary/{platform_kind}{suffix}"
 
     with state.app_session.get(url, timeout=60, stream=True) as r:
         if r.status_code == 401:
