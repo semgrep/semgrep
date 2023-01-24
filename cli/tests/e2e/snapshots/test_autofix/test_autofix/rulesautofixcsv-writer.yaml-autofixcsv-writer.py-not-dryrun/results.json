@@ -21,6 +21,7 @@
           "replacement": "\\1, quoting=csv.QUOTE_ALL)"
         },
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "csv.writer(csvfile, delimiter=',', quotechar='\"')",
         "message": "Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.",
         "metadata": {
@@ -54,6 +55,7 @@
           "replacement": "\\1, quoting=csv.QUOTE_ALL)"
         },
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "csv.writer(get_file(), delimiter=',', quotechar='\"')",
         "message": "Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.",
         "metadata": {

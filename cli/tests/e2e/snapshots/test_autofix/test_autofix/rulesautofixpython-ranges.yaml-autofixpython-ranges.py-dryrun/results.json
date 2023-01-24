@@ -21,6 +21,7 @@
           "bar('abc')"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "foo('abc')",
         "message": "change it",
         "metadata": {},
@@ -62,6 +63,7 @@
           "bar(\"abc\")"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "foo(\"abc\")",
         "message": "change it",
         "metadata": {},
@@ -103,6 +105,7 @@
           "bar(\"\"\"abc\"\"\")"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "foo(\"\"\"abc\"\"\")",
         "message": "change it",
         "metadata": {},
@@ -144,6 +147,7 @@
           "bar(r\"abc\")"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "foo(r\"abc\")",
         "message": "change it",
         "metadata": {},
@@ -185,6 +189,7 @@
           "bar(f\"abc\")"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "foo(f\"abc\")",
         "message": "change it",
         "metadata": {},
@@ -226,6 +231,7 @@
           "bar([1])"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "foo([1])",
         "message": "change it",
         "metadata": {},
@@ -267,6 +273,7 @@
           "bar([1, 2])"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "foo([1, 2])",
         "message": "change it",
         "metadata": {},
@@ -308,6 +315,7 @@
           "bar(x[1])"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "foo(x[1])",
         "message": "change it",
         "metadata": {},
@@ -349,6 +357,7 @@
           "bar(x[1, 2])"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "foo(x[1, 2])",
         "message": "change it",
         "metadata": {},

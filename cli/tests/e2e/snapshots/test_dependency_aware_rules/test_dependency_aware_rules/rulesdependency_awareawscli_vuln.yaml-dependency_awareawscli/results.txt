@@ -26,6 +26,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "            s3_client = boto3.client(\"s3\")",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
@@ -75,6 +76,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
@@ -124,6 +126,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
@@ -173,6 +176,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "            s3_client = boto3.client(\"s3\")",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 3",
         "metadata": {},
@@ -222,6 +226,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 3",
         "metadata": {},
@@ -271,6 +276,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "            s3_client = boto3.client(\"s3\")",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
@@ -320,6 +326,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
@@ -369,6 +376,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
         "metadata": {},

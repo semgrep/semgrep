@@ -26,6 +26,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    a == a",
         "message": "useless comparison",
         "metadata": {},
@@ -63,6 +64,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    a == a",
         "message": "useless comparison",
         "metadata": {},
@@ -100,6 +102,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    a == a",
         "message": "useless comparison",
         "metadata": {},
@@ -137,6 +140,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    y == y",
         "message": "useless comparison",
         "metadata": {},
@@ -174,6 +178,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    baz == 4",
         "message": "useless comparison to 4",
         "metadata": {
@@ -273,6 +278,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    sink(d2)",
         "message": "unsafe use of danger",
         "metadata": {},
@@ -327,6 +333,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "    (x == 2)"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    x == 5",
         "message": "useless comparison to 5",
         "metadata": {
@@ -366,6 +373,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "",
         "message": "found a dependency",
         "metadata": {

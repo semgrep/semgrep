@@ -22,6 +22,7 @@
           "replacement": "flask.jsonify"
         },
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    return json.dumps(user_dict)",
         "message": "flask.jsonify() is a Flask helper method which handles the correct settings for returning JSON from Flask routes",
         "metadata": {},
@@ -64,6 +65,7 @@
           "replacement": "flask.jsonify"
         },
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    return dumps(user_dict)",
         "message": "flask.jsonify() is a Flask helper method which handles the correct settings for returning JSON from Flask routes",
         "metadata": {},

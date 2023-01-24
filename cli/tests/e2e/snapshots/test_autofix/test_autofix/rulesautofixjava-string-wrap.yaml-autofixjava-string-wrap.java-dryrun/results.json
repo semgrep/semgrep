@@ -21,6 +21,7 @@
           "        return wrap(\"a\") + \"b\";"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "        return \"a\" + \"b\";",
         "message": "Wrap strings",
         "metadata": {},
@@ -62,6 +63,7 @@
           "        return \"a\" + wrap(\"b\");"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "        return \"a\" + \"b\";",
         "message": "Wrap strings",
         "metadata": {},

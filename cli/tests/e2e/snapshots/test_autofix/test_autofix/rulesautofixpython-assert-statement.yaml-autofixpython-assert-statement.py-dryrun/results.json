@@ -21,6 +21,7 @@
           "assert \"a\""
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "assert_eq(\n    True, \"a\"\n)",
         "message": "Change assert_eq(True, x) to assert x",
         "metadata": {},
@@ -62,6 +63,7 @@
           "assert \"b\""
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "assert_eq(\n    True, \"b\"\n)",
         "message": "Change assert_eq(True, x) to assert x",
         "metadata": {},

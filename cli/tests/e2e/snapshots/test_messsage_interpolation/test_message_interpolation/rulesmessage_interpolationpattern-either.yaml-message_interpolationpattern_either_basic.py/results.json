@@ -17,6 +17,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "def one(x):\n    print(x)",
         "message": "method one detected",
         "metadata": {},
@@ -54,6 +55,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "def two(y):\n    print(y)",
         "message": "method two detected",
         "metadata": {},
@@ -91,6 +93,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "def three(z):\n    print(z)",
         "message": "method three detected",
         "metadata": {},

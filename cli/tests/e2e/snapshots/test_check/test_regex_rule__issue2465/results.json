@@ -17,6 +17,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "Foo==1.1.1",
         "message": "Found $TAG",
         "metadata": {},

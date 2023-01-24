@@ -30,6 +30,7 @@ class JsonFormatter(BaseFormatter):
             lines="".join(rule_match.lines).rstrip(),
             metavars=rule_match.match.extra.metavars,
             dataflow_trace=rule_match.dataflow_trace,
+            is_pro_match=rule_match.match.extra.is_pro_match,
         )
 
         if rule_match.extra.get("sca_info"):

@@ -17,6 +17,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},

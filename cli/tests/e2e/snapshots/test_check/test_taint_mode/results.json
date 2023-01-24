@@ -91,6 +91,7 @@
         },
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    sink1(b)",
         "message": "A user input source() went into a dangerous sink()",
         "metadata": {},

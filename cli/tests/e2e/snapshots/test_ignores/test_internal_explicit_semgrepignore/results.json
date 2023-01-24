@@ -21,6 +21,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",
         "metadata": {},
@@ -58,6 +59,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",
         "metadata": {},
@@ -95,6 +97,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",
         "metadata": {},
@@ -132,6 +135,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",
         "metadata": {},
@@ -169,6 +173,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",
         "metadata": {},

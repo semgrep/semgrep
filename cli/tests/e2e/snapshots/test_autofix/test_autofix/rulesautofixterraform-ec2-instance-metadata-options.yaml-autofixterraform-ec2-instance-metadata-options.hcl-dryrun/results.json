@@ -31,6 +31,7 @@
           "}"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "resource \"aws_instance\" \"example1\" {\n  ami           = \"ami-005e54dee72cc1d01\"\n  instance_type = \"t2.micro\"\n}",
         "message": "EC2 instance does not set metadata options",
         "metadata": {},
@@ -82,6 +83,7 @@
           "}"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "resource \"aws_instance\" \"example2\" {\n  ami           = \"ami-005e54dee72cc1d02\"\n  instance_type = \"t2.micro\"\n}",
         "message": "EC2 instance does not set metadata options",
         "metadata": {},

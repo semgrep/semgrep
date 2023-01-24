@@ -21,6 +21,7 @@
           "replacement": "\\1, timeout=30)"
         },
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "r = requests.get(url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
@@ -48,6 +49,7 @@
           "replacement": "\\1, timeout=30)"
         },
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "r = requests.post(url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
@@ -75,6 +77,7 @@
           "replacement": "\\1, timeout=30)"
         },
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "r = requests.request(\"GET\", url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
@@ -102,6 +105,7 @@
           "replacement": "\\1, timeout=30)"
         },
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "r = requests.request(\"GET\", return_url())",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
@@ -129,6 +133,7 @@
           "replacement": "\\1, timeout=30)"
         },
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    r = post(url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},

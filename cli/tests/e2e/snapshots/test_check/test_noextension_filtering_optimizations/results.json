@@ -17,6 +17,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    return a + b == a + b",
         "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
         "metadata": {

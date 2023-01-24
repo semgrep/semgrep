@@ -18,6 +18,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "b + a",
         "message": "a",
         "metadata": {},
@@ -41,6 +42,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "a",
         "message": "a",
         "metadata": {},

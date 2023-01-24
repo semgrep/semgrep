@@ -685,8 +685,8 @@ class TextFormatter(BaseFormatter):
             )
         if first_party_blocking:
 
-            def generate_output(header: str, matches: Iterator[CoreMatch]):
-                if matches > 0:
+            def generate_output(header: str, matches: List[RuleMatch]) -> None:
+                if len(matches) > 0:
                     output = self._build_text_output(
                         matches,
                         extra.get("color_output", False),
@@ -694,19 +694,21 @@ class TextFormatter(BaseFormatter):
                         extra["per_line_max_chars_limit"],
                         extra["dataflow_traces"],
                     )
-                    findings_output.append(f"\n{header}:\n" + "\n".join)
+                    findings_output.append(f"\n{header}:\n" + "\n".join(output))
 
             if reachable or unreachable:
                 generate_output(
-                    f"\nFirst-Party {blocking_description}:\n", first_party_blocking
+                    f"First-Party {blocking_description}", first_party_blocking
                 )
             else:
                 oss_matches = [
-                    x for x in first_party_blocking if not x.match.is_pro_match
+                    x for x in first_party_blocking if not x.match.extra.is_pro_match
                 ]
-                pro_matches = [x for x in first_party_blocking if x.match.is_pro_match]
-                generate_output(f"\n{blocking_description}:\n", oss_matches)
-                generate_output(f"\nSemgrep PRO Findings:\n", pro_matches)
+                pro_matches = [
+                    x for x in first_party_blocking if x.match.extra.is_pro_match
+                ]
+                generate_output(f"{blocking_description}", oss_matches)
+                generate_output(f"Semgrep PRO Findings", pro_matches)
 
         first_party_blocking_rules_output = []
 

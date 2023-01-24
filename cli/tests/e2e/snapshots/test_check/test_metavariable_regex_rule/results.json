@@ -27,6 +27,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "metavariable_regex_test(\"test\")",
         "message": "Metavariable regex test",
         "metadata": {},
@@ -64,6 +65,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "metavariable_regex_test(\"example\")",
         "message": "Metavariable regex test",
         "metadata": {},
