@@ -760,16 +760,16 @@ def scan(
         abort("The experimental flag --deep has been renamed to --interfile.")
 
     if interfile:
-        engine = EngineType.DEEP_INTER
+        engine = EngineType.INTERFILE
     elif interproc:
-        engine = EngineType.DEEP_INTRA
+        engine = EngineType.INTERPROC
     elif pro:
         engine = EngineType.PRO
     else:
         engine = EngineType.OSS
 
     # Turn on `dataflow_traces` by default for inter-procedural taint analysis.
-    if engine is EngineType.DEEP_INTRA or engine is EngineType.DEEP_INTER:
+    if engine is EngineType.INTERPROC or engine is EngineType.INTERFILE:
         dataflow_traces = True
 
     output_settings = OutputSettings(
