@@ -6,3 +6,43 @@ $X == $X 3
 --- end pattern ---
 Pattern error: Parsing.Parse_error
 
+module 'semgrep.output_from_core' has no attribute 'OutOfMemoryDuringPreprocessing'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 861, in scan
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 438, in main
+    ) = run_rules(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 171, in run_rules
+    ) = core_runner.invoke_semgrep(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1035, in invoke_semgrep
+    ) = self._run_rules_direct_to_semgrep_core(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1005, in _run_rules_direct_to_semgrep_core
+    raise e
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 987, in _run_rules_direct_to_semgrep_core
+    return self._run_rules_direct_to_semgrep_core_helper(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 913, in _run_rules_direct_to_semgrep_core_helper
+    output_json = self._extract_core_output(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 584, in _extract_core_output
+    raise core_error_to_semgrep_error(errors[0])
+semgrep.error.SemgrepCoreError: Pattern parse error in rule rules.syntax.eqeq-is-bad:
+ Invalid pattern for Python:
+--- pattern ---
+$X == $X 3
+--- end pattern ---
+Pattern error: Parsing.Parse_error
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 892, in scan
+    output_handler.output({}, all_targets=set(), filtered_rules=[])
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 394, in output
+    self._final_raise(final_error)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 259, in _final_raise
+    isinstance(ex, SemgrepCoreError) and ex.is_special_preprocessing_error()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/error.py", line 149, in is_special_preprocessing_error
+    self.core.error_type.value, core.OutOfMemoryDuringPreprocessing
+AttributeError: module 'semgrep.output_from_core' has no attribute 'OutOfMemoryDuringPreprocessing'
