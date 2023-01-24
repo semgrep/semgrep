@@ -33,6 +33,7 @@ import semgrep.output_from_core as core
 from semgrep.app import auth
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
+from semgrep.constants import EngineType
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.core_output import core_matches_to_rule_matches
@@ -518,7 +519,7 @@ class CoreRunner:
     def __init__(
         self,
         jobs: Optional[int],
-        deep: bool,
+        engine: EngineType,
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
@@ -526,7 +527,14 @@ class CoreRunner:
         optimizations: str,
         core_opts_str: Optional[str],
     ):
-        self._jobs = jobs if jobs else 1 if deep else get_cpu_count()
+        if jobs is None:
+            if engine is EngineType.INTERFILE:
+                # In some cases inter-file analysis consumes too much memory, and
+                # not using multi-core seems to help containing the problem.
+                jobs = 1
+            else:
+                jobs = get_cpu_count()
+        self._jobs = jobs
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
@@ -729,7 +737,7 @@ class CoreRunner:
         rules: List[Rule],
         target_manager: TargetManager,
         dump_command_for_core: bool,
-        deep: bool,
+        engine: EngineType,
     ) -> Tuple[
         RuleMatchMap,
         List[SemgrepError],
@@ -820,7 +828,7 @@ class CoreRunner:
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
-            if deep:
+            if engine.is_pro:
                 if auth.get_token() is None:
                     logger.error("!!!This is a proprietary extension of semgrep.!!!")
                     logger.error("!!!You must be logged in to access this extension!!!")
@@ -828,15 +836,10 @@ class CoreRunner:
                     logger.error(
                         "You are using the Semgrep Pro Engine, our advanced analysis system uniquely designed to refine and enhance your results."
                     )
-                    logger.error(
-                        "You can expect to see longer scan times - we're taking our time to make sure everything is just right for you. With <3, the Semgrep team."
-                    )
-
-                targets = target_manager.targets
-                if len(targets) == 1 and targets[0].path.is_dir():
-                    root = str(targets[0].path)
-                else:
-                    raise SemgrepError("deep mode needs a single target (root) dir")
+                    if engine is EngineType.INTERFILE:
+                        logger.error(
+                            "You can expect to see longer scan times - we're taking our time to make sure everything is just right for you. With <3, the Semgrep team."
+                        )
 
                 deep_path = (
                     SemgrepCore.deep_path()
@@ -844,18 +847,16 @@ class CoreRunner:
                 pro_path = SemgrepCore.pro_path()
 
                 if pro_path is None:
-                    if deep_path is None:
-                        raise SemgrepError(
-                            "Could not run deep analysis: Semgrep PRO engine not installed. Run `semgrep install-semgrep-pro`"
-                        )
-                    else:
-                        logger.warning(
+                    if deep_path is not None:
+                        logger.error(
                             f"""You have an old DeepSemgrep binary installed in {deep_path}
 DeepSemgrep is now Semgrep PRO, run `semgrep install-semgrep-pro` to install it,
 then please delete {deep_path} manually.
-This time, we will continue running your old DeepSemgrep binary anyways.
 """
                         )
+                    raise SemgrepError(
+                        "Could not run deep analysis: Semgrep PRO engine not installed. Run `semgrep install-semgrep-pro`"
+                    )
 
                 if pro_path is not None:
                     logger.info(f"Using Semgrep PRO installed in {pro_path}")
@@ -868,42 +869,24 @@ This time, we will continue running your old DeepSemgrep binary anyways.
                     logger.info(f"Semgrep PRO Version Info: ({version})")
 
                     cmd_bin = pro_path
-                    cmd_args += ["-deep_inter_file"]
-                    cmd_args += ["-timeout_for_preprocessing", str(self._pro_timeout)]
-                    cmd_args += [root]
-                elif (
-                    deep_path is not None
-                ):  # DEPRECATED: To be removed by Feb 2023 launch
-                    logger.info(
-                        f"Using old DeepSemgrep installed in {deep_path} - Please upgrade to Semgrep PRO!"
-                    )
-                    version = sub_check_output(
-                        [deep_path, "--version"],
-                        timeout=10,
-                        encoding="utf-8",
-                        stderr=subprocess.DEVNULL,
-                    ).rstrip()
-                    logger.info(f"DeepSemgrep Version Info: ({version})")
 
-                    cmd_bin = deep_path
-                    cmd_args = [
-                        "--json",
-                        "--rules",
-                        rule_file.name,
-                        "-j",
-                        str(self._jobs),
-                        "--targets",
-                        target_file.name,
-                        "--root",
-                        root,
-                        "--json_time",
-                        # "--timeout",
-                        # str(self._timeout),
-                        # "--timeout_threshold",
-                        # str(self._timeout_threshold),
-                        "--max_memory",
-                        str(self._max_memory),
-                    ]
+                    if engine is EngineType.INTERFILE:
+                        targets = target_manager.targets
+                        if len(targets) == 1 and targets[0].path.is_dir():
+                            root = str(targets[0].path)
+                        else:
+                            # TODO: This is no longer true...
+                            raise SemgrepError(
+                                "deep mode needs a single target (root) dir"
+                            )
+                        cmd_args += ["-deep_inter_file"]
+                        cmd_args += [
+                            "-timeout_for_preprocessing",
+                            str(self._pro_timeout),
+                        ]
+                        cmd_args += [root]
+                    elif engine is EngineType.INTERPROC:
+                        cmd_args += ["-deep_intra_file"]
 
             stderr: Optional[int] = subprocess.PIPE
             if state.terminal.is_debug:
@@ -922,9 +905,7 @@ This time, we will continue running your old DeepSemgrep binary anyways.
                 printed_cmd = cmd.copy()
                 printed_cmd[0] = (
                     pro_path
-                    if pro_path and deep
-                    else deep_path
-                    if deep_path and deep
+                    if pro_path and engine.is_pro
                     else SemgrepCore.executable_path()
                 )
                 print(" ".join(printed_cmd))
@@ -991,7 +972,7 @@ This time, we will continue running your old DeepSemgrep binary anyways.
         rules: List[Rule],
         target_manager: TargetManager,
         dump_command_for_core: bool,
-        deep: bool,
+        engine: EngineType,
     ) -> Tuple[
         RuleMatchMap,
         List[SemgrepError],
@@ -1010,10 +991,10 @@ This time, we will continue running your old DeepSemgrep binary anyways.
         """
         try:
             return self._run_rules_direct_to_semgrep_core_helper(
-                rules, target_manager, dump_command_for_core, deep
+                rules, target_manager, dump_command_for_core, engine
             )
         except Exception as e:
-            if deep:
+            if engine.is_pro:
                 logger.error(
                     f"""
 
@@ -1036,7 +1017,7 @@ Exception raised: `{e}`
         target_manager: TargetManager,
         rules: List[Rule],
         dump_command_for_core: bool,
-        deep: bool,
+        engine: EngineType,
     ) -> Tuple[
         RuleMatchMap,
         List[SemgrepError],
@@ -1058,7 +1039,7 @@ Exception raised: `{e}`
             parsing_data,
             explanations,
         ) = self._run_rules_direct_to_semgrep_core(
-            rules, target_manager, dump_command_for_core, deep
+            rules, target_manager, dump_command_for_core, engine
         )
 
         logger.debug(

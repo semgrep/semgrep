@@ -29,6 +29,7 @@ from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
+from semgrep.constants import EngineType
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
@@ -309,7 +310,7 @@ _scan_options: List[Callable] = [
         type=int,
         help="""
             Number of subprocesses to use to run checks in parallel. Defaults to the
-            number of cores on the system (1 if using --deep).
+            number of cores on the system (1 if using --interfile).
         """,
     ),
     optgroup.option(
@@ -595,9 +596,28 @@ def scan_options(func: Callable) -> Callable:
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
+# DEPRECATED: --deep to be removed by Feb 2023 launch
 @click.option(
     "--deep",
     "-x",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--pro",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--interproc",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--interfile",
     is_flag=True,
     hidden=True
     # help="contact support@r2c.dev for more information on this"
@@ -612,6 +632,9 @@ def scan(
     core_opts: Optional[str],
     debug: bool,
     deep: bool,
+    pro: bool,
+    interproc: bool,
+    interfile: bool,
     dryrun: bool,
     dump_ast: bool,
     dump_command_for_core: bool,
@@ -745,8 +768,20 @@ def scan(
     elif vim:
         output_format = OutputFormat.VIM
 
-    # If `deep` is enabled, turn on `dataflow_traces` by default.
     if deep:
+        abort("The experimental flag --deep has been renamed to --interfile.")
+
+    if interfile:
+        engine = EngineType.INTERFILE
+    elif interproc:
+        engine = EngineType.INTERPROC
+    elif pro:
+        engine = EngineType.PRO
+    else:
+        engine = EngineType.OSS
+
+    # Turn on `dataflow_traces` by default for inter-procedural taint analysis.
+    if engine is EngineType.INTERPROC or engine is EngineType.INTERFILE:
         dataflow_traces = True
 
     output_settings = OutputSettings(
@@ -772,7 +807,7 @@ def scan(
             strict=strict,
             json=json,
             optimizations=optimizations,
-            deep=deep,
+            engine=engine,
         )
 
     run_has_findings = False
@@ -810,7 +845,7 @@ def scan(
                     try:
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
-                            deep=deep,
+                            engine=engine,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
@@ -850,7 +885,7 @@ def scan(
                 ) = semgrep.semgrep_main.main(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
-                    deep=deep,
+                    engine=engine,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,

@@ -30,6 +30,17 @@ RETURNTOCORP_LEVER_URL = "https://api.lever.co/v0/postings/returntocorp?mode=jso
 UNSUPPORTED_EXT_IGNORE_LANGS = {"generic", "regex"}
 
 
+class EngineType(Enum):
+    OSS = auto()
+    PRO = auto()
+    INTERPROC = auto()
+    INTERFILE = auto()
+
+    @property
+    def is_pro(self) -> bool:
+        return self.value >= EngineType.PRO.value
+
+
 class OutputFormat(Enum):
     TEXT = auto()
     JSON = auto()

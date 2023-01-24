@@ -562,11 +562,17 @@ and expr_aux env ?(void = false) e_gen =
       let args = arguments env args in
       add_call env tok eorig ~void (fun res ->
           CallSpecial (res, special, argument env arg :: args))
-  | G.Call ({ e = G.IdSpecial spec; _ }, args) ->
+  | G.Call ({ e = G.IdSpecial spec; _ }, args) -> (
       let tok = snd spec in
-      let special = call_special env spec in
       let args = arguments env args in
-      add_call env tok eorig ~void (fun res -> CallSpecial (res, special, args))
+      try
+        let special = call_special env spec in
+        add_call env tok eorig ~void (fun res ->
+            CallSpecial (res, special, args))
+      with
+      | Fixme (kind, any_generic) ->
+          let fixme = fixme_exp kind any_generic (related_exp e_gen) in
+          add_call env tok eorig ~void (fun res -> Call (res, fixme, args)))
   | G.Call (e, args) ->
       let tok = G.fake "call" in
       call_generic env ~void tok e args

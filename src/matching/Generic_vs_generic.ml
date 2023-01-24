@@ -1165,7 +1165,45 @@ and m_for_or_if_comp a b =
   | G.CompIf _, _ ->
       fail ()
 
+(* This just does some special coercions for Terraform.
+   If not a Terraform language, skip straight to `m_literal_inner`.
+   https://developer.hashicorp.com/terraform/language/expressions/type-constraints
+*)
 and m_literal a b =
+  Trace_matching.(if on then print_literal_pair a b);
+  with_lang (fun lang ->
+      if Lang.equal lang Lang.Hcl then
+        (* We choose not to use an or-pattern to maintain the
+           sides of the trees.
+        *)
+        match (a, b) with
+        | G.Int (a1, a2), B.String (b1, b2) ->
+            let i = Option.map Int.to_string a1 in
+            m_wrap_m_string_opt (i, a2) (Some b1, b2)
+        | G.String (a1, a2), B.Int (b1, b2) ->
+            let i = Option.map Int.to_string b1 in
+            m_wrap_m_string_opt (Some a1, a2) (i, b2)
+        | G.Bool (a1, a2), B.String (b1, b2) ->
+            let b = Bool.to_string a1 in
+            m_wrap m_string (b, a2) (b1, b2)
+        | G.String (a1, a2), B.Bool (b1, b2) ->
+            let b = Bool.to_string b1 in
+            m_wrap m_string (a1, a2) (b, b2)
+        (* For the float case, we coerce from string to float, rather
+           than float to string.
+           While this is not strictly what Hcl does, this is because we
+           may have inconsistency in how floats are represented, as strings.
+        *)
+        | G.Float (a1, a2), B.String (b1, b2) ->
+            let f = Float.of_string_opt b1 in
+            m_wrap_m_float_opt (a1, a2) (f, b2)
+        | G.String (a1, a2), B.Float (b1, b2) ->
+            let f = Float.of_string_opt a1 in
+            m_wrap_m_float_opt (f, a2) (b1, b2)
+        | __else__ -> m_literal_inner a b
+      else m_literal_inner a b)
+
+and m_literal_inner a b =
   Trace_matching.(if on then print_literal_pair a b);
   match (a, b) with
   (* dots: metavar: '...' and metavars on string/regexps/atoms *)
@@ -1215,6 +1253,14 @@ and m_wrap_m_int_opt (a1, a2) (b1, b2) =
        * a real token associated with them, so b2 may be a FakeTok, but
        * Parse_info.str_of_info does not raise an exn anymore on a FakeTok
        *)
+      let b1 = Parse_info.str_of_info b2 in
+      m_wrap m_string (a1, a2) (b1, b2)
+
+and m_wrap_m_string_opt (a1, a2) (b1, b2) =
+  match (a1, b1) with
+  | Some s1, Some s2 when String.equal s1 s2 -> return ()
+  | _ ->
+      let a1 = Parse_info.str_of_info a2 in
       let b1 = Parse_info.str_of_info b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 

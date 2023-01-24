@@ -1,0 +1,12 @@
+rules:
+- id: terraform-coercions
+  pattern-either:
+  - pattern: |
+      $ID = 150
+  - pattern: |
+      $ID = true
+  - pattern: |
+      $ID = 1.50
+  message: Working!
+  severity: WARNING
+  languages: [hcl]

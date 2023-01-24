@@ -25,6 +25,8 @@ jobs:
         # This is sub-optimal - our workflows shouldn't have to conform to their environment.
         # However, on the runner side, we can't hook into the workflow run to clean up after.
         run: brew uninstall semgrep || true
+      - name: Cleanup semgrep
+        run: brew cleanup --prune=all semgrep
       - name: Brew update
         run: brew update
       - name: Brew Install
