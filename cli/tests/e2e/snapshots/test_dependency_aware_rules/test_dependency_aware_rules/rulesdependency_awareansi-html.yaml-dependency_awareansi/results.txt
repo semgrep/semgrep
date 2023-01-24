@@ -36,6 +36,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "https://github.com/Tjatse/ansi-html/issues/19",
             "https://github.com/mahdyar/ansi-html-community"
           ],
+          "sca-kind": "reachable",
           "technology": [
             "js",
             "ts"

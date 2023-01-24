@@ -26,7 +26,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "is_ignored": false,
         "lines": "",
         "message": "that's a bad lib",
-        "metadata": {},
+        "metadata": {
+          "sca-kind": "legacy"
+        },
         "metavars": {},
         "sca_info": {
           "dependency_match": {
