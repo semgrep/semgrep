@@ -1,0 +1,2 @@
+Python: Taint now propagates via the splat operators `*` and `**`, thus both
+`sink(*tainted)` and `sink(**tainted)` will result in findings.

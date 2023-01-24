@@ -1,0 +1,11 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: taint demo
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: tainted
+    pattern-sinks:
+      - pattern: sink(...)
