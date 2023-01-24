@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import pytest
-from semgrep.constants import OutputFormat
 
 from ..conftest import TESTS_PATH
+from semgrep.constants import OutputFormat
 
 
 @pytest.mark.kinda_slow
@@ -82,6 +82,7 @@ def test_no_lockfiles(run_semgrep, monkeypatch, tmp_path, snapshot):
         "results.txt",
     )
 
+
 @pytest.mark.parametrize(
     "rule,target",
     [
@@ -104,7 +105,9 @@ def test_sarif_sca_output(run_semgrep_on_copied_files, snapshot, rule, target):
     """
     snapshot.assert_match(
         run_semgrep_on_copied_files(
-            rule, target_name=target, output_format=OutputFormat.SARIF,
+            rule,
+            target_name=target,
+            output_format=OutputFormat.SARIF,
         ).as_snapshot(),
         "results.sarif",
     )

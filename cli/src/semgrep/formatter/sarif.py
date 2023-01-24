@@ -233,9 +233,7 @@ class SarifFormatter(BaseFormatter):
                 else:
                     exposure = "unreachable"
 
-            rule_match_sarif["properties"] = {
-                "exposure": exposure
-            }
+            rule_match_sarif["properties"] = {"exposure": exposure}
 
         return rule_match_sarif
 
