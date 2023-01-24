@@ -310,8 +310,15 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
   | {
    rule_id;
    location;
-   extra = { message; metavars; rendered_fix; (* LATER *)
-                                              dataflow_trace = _; is_pro_match};
+   extra =
+     {
+       message;
+       metavars;
+       rendered_fix;
+       (* LATER *)
+       dataflow_trace = _;
+       is_pro_match;
+     };
   } ->
       let rule =
         try Hashtbl.find env.hrules rule_id with

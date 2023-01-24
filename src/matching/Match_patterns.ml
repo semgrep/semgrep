@@ -175,7 +175,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                           taint_trace = None;
                           (* This will be overrided later on by the PRO engine, if this is
                              from a PRO run.
-                           *)
+                          *)
                           is_pro_match = false;
                         }
                       in

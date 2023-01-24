@@ -80,11 +80,10 @@ type t = {
      We now rely on equality of taint traces, which in turn relies on equality of `Parse_info.t`.
   *)
   taint_trace : taint_trace Lazy.t option;
-
   (* This is a flag indicating whether this match was produced during a run of Semgrep PRO.
      This will be overrided later by the PRO engine, on any matches which are produced
      from a PRO run.
-   *)
+  *)
   is_pro_match : bool;
 }
 
