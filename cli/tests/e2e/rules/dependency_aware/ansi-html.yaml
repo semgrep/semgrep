@@ -7,6 +7,7 @@ rules:
     This affects all versions of package ansi-html. If an attacker provides a malicious string, it will get stuck processing the input for an extremely long time. There is no upgrade fix at this time (the package is no longer being maintained), but you can change to use the 'ansi-html-community@0.0.8' package instead.
   metadata:
     category: security
+    sca-kind: reachable
     technology:
     - js
     - ts

@@ -5,5 +5,7 @@ rules:
         package: bad-yarn-lib
         version: "<= 99.99.99"
     message: that's a bad lib
+    metadata:
+      sca-kind: legacy
     languages: [javascript]
     severity: WARNING
