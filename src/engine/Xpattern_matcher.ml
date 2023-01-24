@@ -85,6 +85,7 @@ let (matches_of_matcher :
                               env;
                               taint_trace = None;
                               tokens = lazy [ info_of_token_location loc1 ];
+                              is_pro_match = false;
                             }))
               |> List.flatten)
         in

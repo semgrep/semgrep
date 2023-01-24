@@ -684,19 +684,29 @@ class TextFormatter(BaseFormatter):
                 + "\n".join(first_party_nonblocking_output)
             )
         if first_party_blocking:
-            first_party_blocking_output = self._build_text_output(
-                first_party_blocking,
-                extra.get("color_output", False),
-                extra["per_finding_max_lines_limit"],
-                extra["per_line_max_chars_limit"],
-                extra["dataflow_traces"],
-            )
-            findings_output.append(
-                f"\nFirst-Party {blocking_description}:\n"
-                + "\n".join(first_party_blocking_output)
-            ) if (reachable or unreachable) else findings_output.append(
-                f"\n{blocking_description}:\n" + "\n".join(first_party_blocking_output)
-            )
+
+            def generate_output(header: str, matches: Iterator[CoreMatch]):
+                if matches > 0:
+                    output = self._build_text_output(
+                        matches,
+                        extra.get("color_output", False),
+                        extra["per_finding_max_lines_limit"],
+                        extra["per_line_max_chars_limit"],
+                        extra["dataflow_traces"],
+                    )
+                    findings_output.append(f"\n{header}:\n" + "\n".join)
+
+            if reachable or unreachable:
+                generate_output(
+                    f"\nFirst-Party {blocking_description}:\n", first_party_blocking
+                )
+            else:
+                oss_matches = [
+                    x for x in first_party_blocking if not x.match.is_pro_match
+                ]
+                pro_matches = [x for x in first_party_blocking if x.match.is_pro_match]
+                generate_output(f"\n{blocking_description}:\n", oss_matches)
+                generate_output(f"\nSemgrep PRO Findings:\n", pro_matches)
 
         first_party_blocking_rules_output = []
 

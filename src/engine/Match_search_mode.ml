@@ -376,6 +376,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                PM.tokens = lazy (MV.ii_of_mval mval);
                PM.env = range.mvars;
                PM.taint_trace = None;
+               is_pro_match = false;
              })
     in
     let focused_ranges =

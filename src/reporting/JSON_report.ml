@@ -247,6 +247,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
         rendered_fix;
+        is_pro_match = x.is_pro_match;
       };
   }
 
