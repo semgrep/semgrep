@@ -217,6 +217,26 @@ class SarifFormatter(BaseFormatter):
         if fix is not None:
             rule_match_sarif["fixes"] = [fix]
 
+        if "sca_info" in rule_match.extra:
+            # Mimics the exposure catergories on semgrep.dev for supply chain:
+            # "reachable": dependency is used in the codebase or is vulnerable even without usage
+            # "unreachable": dependency is not used in the codebase
+            # "undetermined": rule for dependency doesn't look for reachability
+            if rule_match.metadata.get("sca-kind") == "upgrade-only":
+                exposure = "reachable"
+            elif rule_match.metadata.get("sca-kind") == "legacy":
+                exposure = "undetermined"
+            else:
+                # rule_match.metadata.get("sca-kind") == "reachable":
+                if rule_match.extra["sca_info"].reachable:
+                    exposure = "reachable"
+                else:
+                    exposure = "unreachable"
+
+            rule_match_sarif["properties"] = {
+                "exposure": exposure
+            }
+
         return rule_match_sarif
 
     @staticmethod

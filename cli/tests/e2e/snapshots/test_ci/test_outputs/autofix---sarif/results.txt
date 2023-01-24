@@ -459,6 +459,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "found a dependency"
           },
+          "properties": {
+            "exposure": "reachable"
+          },
           "ruleId": "supply-chain1"
         }
       ],
