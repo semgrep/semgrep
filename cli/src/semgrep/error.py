@@ -136,6 +136,14 @@ class SemgrepCoreError(SemgrepError):
 
         return base
 
+    def is_special_preprocessing_error(self) -> bool:
+        """
+        TODO remove this when we remove the preprocessing errors
+        """
+        return isinstance(
+            self.core.error_type.value, core.OutOfMemoryDuringPreprocessing
+        ) or isinstance(self.core.error_type.value, core.TimeoutDuringPreprocessing)
+
     def is_timeout(self) -> bool:
         """
         Return if this error is a match timeout
