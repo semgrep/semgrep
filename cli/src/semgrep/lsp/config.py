@@ -18,6 +18,7 @@ import semgrep.output_from_core as core
 import semgrep.semgrep_main
 from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
+from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
@@ -253,7 +254,7 @@ class LSPConfig:
         get_state().metrics.configure(self.metrics, None)
         return partial(
             semgrep.semgrep_main.main,
-            deep=False,
+            engine=EngineType.OSS,
             configs=configs,
             severity=self.severity,
             exclude=self.exclude,

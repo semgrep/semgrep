@@ -34,6 +34,7 @@ from boltons.iterutils import partition
 from ruamel.yaml import YAML
 
 from semgrep.constants import BREAK_LINE
+from semgrep.constants import EngineType
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import final_suffix_matches
 from semgrep.util import is_config_fixtest_suffix
@@ -445,7 +446,7 @@ def generate_test_results(
     config: Path,
     strict: bool,
     json_output: bool,
-    deep: bool,
+    engine: EngineType,
     optimizations: str = "none",
 ) -> None:
     config_filenames = get_config_filenames(config)
@@ -466,7 +467,7 @@ def generate_test_results(
 
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
-        deep=deep,
+        engine=engine,
         no_git_ignore=True,
         no_rewrite_rule_ids=True,
         strict=strict,
@@ -554,7 +555,7 @@ def generate_test_results(
 
     # This is the invocation of semgrep for testing autofix.
     #
-    # TODO: should 'deep' be set to 'deep=deep' or always 'deep=False'?
+    # TODO: should 'engine' be set to 'engine=engine' or always 'engine=EngineType.OSS'?
     invoke_semgrep_with_autofix_fn = functools.partial(
         invoke_semgrep_multi,
         no_git_ignore=True,
@@ -681,7 +682,7 @@ def test_main(
     strict: bool,
     json: bool,
     optimizations: str,
-    deep: bool,
+    engine: EngineType,
 ) -> None:
 
     if len(target) != 1:
@@ -702,6 +703,6 @@ def test_main(
         config=config_path,
         strict=strict,
         json_output=json,
-        deep=deep,
+        engine=engine,
         optimizations=optimizations,
     )

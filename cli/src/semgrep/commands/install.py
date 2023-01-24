@@ -128,6 +128,7 @@ def install_semgrep_pro() -> None:
     run_install_semgrep_pro()
 
 
+# DEPRECATED: To be removed by Feb 2023 launch
 @click.command(hidden=True)
 @handle_command_errors
 def install_deep_semgrep() -> None:

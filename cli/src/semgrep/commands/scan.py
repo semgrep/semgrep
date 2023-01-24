@@ -29,6 +29,7 @@ from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
+from semgrep.constants import EngineType
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
@@ -587,8 +588,20 @@ def scan_options(func: Callable) -> Callable:
 # rely on their existence, or their output being stable
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
 @click.option(
+    "--pro",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
     "--deep",
     "-x",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--fast-deep",
     is_flag=True,
     hidden=True
     # help="contact support@r2c.dev for more information on this"
@@ -602,7 +615,9 @@ def scan(
     config: Optional[Tuple[str, ...]],
     core_opts: Optional[str],
     debug: bool,
+    pro: bool,
     deep: bool,
+    fast_deep: bool,
     dryrun: bool,
     dump_ast: bool,
     dump_command_for_core: bool,
@@ -733,8 +748,17 @@ def scan(
     elif vim:
         output_format = OutputFormat.VIM
 
-    # If `deep` is enabled, turn on `dataflow_traces` by default.
     if deep:
+        engine = EngineType.DEEP_INTER
+    elif fast_deep:
+        engine = EngineType.DEEP_INTRA
+    elif pro:
+        engine = EngineType.PRO
+    else:
+        engine = EngineType.OSS
+
+    # Turn on `dataflow_traces` by default for inter-procedural taint analysis.
+    if engine is EngineType.DEEP_INTRA or engine is EngineType.DEEP_INTER:
         dataflow_traces = True
 
     output_settings = OutputSettings(
@@ -760,7 +784,7 @@ def scan(
             strict=strict,
             json=json,
             optimizations=optimizations,
-            deep=deep,
+            engine=engine,
         )
 
     run_has_findings = False
@@ -798,7 +822,7 @@ def scan(
                     try:
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
-                            deep=deep,
+                            engine=engine,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
@@ -837,7 +861,7 @@ def scan(
                 ) = semgrep.semgrep_main.main(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
-                    deep=deep,
+                    engine=engine,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,
