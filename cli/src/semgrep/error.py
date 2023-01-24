@@ -138,6 +138,11 @@ class SemgrepCoreError(SemgrepError):
 
     def is_special_preprocessing_error(self) -> bool:
         """
+        These errors indicate that multifile analysis did not
+        successfully ran, but we were able to get results anyway.
+        They should not block, but they are still errors so that
+        they display as errors
+
         TODO remove this when we remove the preprocessing errors
         """
         return isinstance(
