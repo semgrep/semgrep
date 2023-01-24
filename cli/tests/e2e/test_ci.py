@@ -207,6 +207,7 @@ def automocks(mocker):
             version: == 99.99.99
           metadata:
             dev.semgrep.actions: [block]
+            sca-kind: upgrade-only
         - id: supply-chain2
           message: "found a dependency"
           languages: [js]
@@ -215,6 +216,7 @@ def automocks(mocker):
             namespace: npm
             package: badlib
             version: == 99.99.99
+            sca-kind: upgrade-only
         """
     ).lstrip()
 

@@ -368,7 +368,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "metadata": {
           "dev.semgrep.actions": [
             "block"
-          ]
+          ],
+          "sca-kind": "upgrade-only"
         },
         "metavars": {},
         "sca_info": {
