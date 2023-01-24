@@ -305,9 +305,10 @@ and resolved_name_kind =
    * *)
   | ResolvedName of unique_name * unique_name list
 
-(* This is not relevant for matching purposes.
+(* The enclosed token is not relevant for matching purposes.
    `unique_name` is a record of all the information necessary to
-   disambiguate two `ResolvedName`s from each other.
+   disambiguate two `ResolvedName`s from each other, from the perspective of
+   the taint engine. In search mode, they should be regarded as the same.
    In particular, two `ResolvedName`s may indicate two overloaded functions,
    which are named the same. Then, we need to use the function signature information
    to disambiguate them from each other.
