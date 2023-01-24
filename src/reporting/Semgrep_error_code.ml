@@ -210,8 +210,8 @@ let severity_of_error typ =
   | Out.FatalError -> Error
   | Out.Timeout -> Warning
   | Out.OutOfMemory -> Warning
-  | Out.TimeoutDuringPreprocessing -> Alert
-  | Out.OutOfMemoryDuringPreprocessing -> Alert
+  | Out.TimeoutDuringPreprocessing -> Error
+  | Out.OutOfMemoryDuringPreprocessing -> Error
 
 (*****************************************************************************)
 (* Try with error *)
