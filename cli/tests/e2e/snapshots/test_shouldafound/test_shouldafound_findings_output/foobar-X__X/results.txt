@@ -17,6 +17,15 @@ Findings:
           ⋮┆----------------------------------------
          12┆ assertTrue(x == x)
 
+Semgrep PRO Findings:
+
+  stupid.py 
+          3┆ return a + b == a + b
+          ⋮┆----------------------------------------
+          8┆ x == x
+          ⋮┆----------------------------------------
+         12┆ assertTrue(x == x)
+
 === end of stdout - plain
 
 === stderr - plain

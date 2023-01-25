@@ -71,6 +71,7 @@
             }
           }
         },
+        "is_pro_match": false,
         "severity": "ERROR"
       },
       "path": "targets/basic/stupid.js",
@@ -116,6 +117,7 @@
             }
           }
         },
+        "is_pro_match": false,
         "severity": "INFO"
       },
       "path": "targets/basic/stupid.py",

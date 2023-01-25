@@ -31,6 +31,7 @@
         "offset": 65
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "    test_nosem_func();",
@@ -54,6 +55,7 @@
         "offset": 88
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "    test_nosem_func(); // nosem: rules.test-nosem",
@@ -77,6 +79,7 @@
         "offset": 138
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    test_nosem_func();",
@@ -100,6 +103,7 @@
         "offset": 46
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "\ttest_nosem_func() // nosem: rules.test-nosem",
@@ -123,6 +127,7 @@
         "offset": 92
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "\ttest_nosem_func()",
@@ -146,6 +151,7 @@
         "offset": 119
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "        test_nosem_func();",
@@ -169,6 +175,7 @@
         "offset": 146
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "        test_nosem_func(); // nosem: rules.test-nosem",
@@ -192,6 +199,7 @@
         "offset": 200
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "        test_nosem_func();",
@@ -215,6 +223,7 @@
         "offset": 17
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func() // nosem",
@@ -238,6 +247,7 @@
         "offset": 44
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func() // nosem: rules.test-nosem",
@@ -261,6 +271,7 @@
         "offset": 89
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func() // NOSEM: rules.test-nosem",
@@ -284,6 +295,7 @@
         "offset": 180
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "test_nosem_func(\n    invalid_line // nosem: rules.test-nosem\n)",
@@ -307,6 +319,7 @@
         "offset": 208
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()",
@@ -330,6 +343,7 @@
         "offset": 254
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()",
@@ -353,6 +367,7 @@
         "offset": 300
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()",
@@ -376,6 +391,7 @@
         "offset": 364
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "test_nosem_func(\n  // nosem: rules.test-nosem\n  invalid_line\n)",
@@ -399,6 +415,7 @@
         "offset": 383
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "test_nosem_func()",
@@ -422,6 +439,7 @@
         "offset": 43
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()",
@@ -445,6 +463,7 @@
         "offset": 88
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()",
@@ -468,6 +487,7 @@
         "offset": 137
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()",
@@ -491,6 +511,7 @@
         "offset": 168
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()",
@@ -514,6 +535,7 @@
         "offset": 217
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()",
@@ -537,6 +559,7 @@
         "offset": 236
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()  # nosem: rules.test-nosem",
@@ -560,6 +583,7 @@
         "offset": 281
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()  # NOSEM: rules.test-nosem",
@@ -583,6 +607,7 @@
         "offset": 326
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()  # nosemgrep: rules.test-nosem",
@@ -606,6 +631,7 @@
         "offset": 375
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()  # NOSEMGREP",
@@ -629,6 +655,7 @@
         "offset": 406
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": true,
         "lines": "test_nosem_func()  # nOseMgREP: rules.test-nosem",
@@ -652,6 +679,7 @@
         "offset": 456
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "test_nosem_func()",

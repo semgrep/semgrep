@@ -15,6 +15,7 @@
         "offset": 66
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "            print(\"blah\")",
@@ -78,6 +79,7 @@
         "offset": 66
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "            print(\"blah\")",
@@ -141,6 +143,7 @@
         "offset": 101
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "        print('ble')",
@@ -204,6 +207,7 @@
         "offset": 144
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "            print(\"asdf\")",
@@ -267,6 +271,7 @@
         "offset": 144
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "            print(\"asdf\")",
@@ -330,6 +335,7 @@
         "offset": 193
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "        print(\"qwerty\")",

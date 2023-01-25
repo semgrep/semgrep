@@ -3,3 +3,8 @@ Findings:
 
   bar.py 
         203┆ y = 23478921
+
+Semgrep PRO Findings:
+
+  bar.py 
+        203┆ y = 23478921
