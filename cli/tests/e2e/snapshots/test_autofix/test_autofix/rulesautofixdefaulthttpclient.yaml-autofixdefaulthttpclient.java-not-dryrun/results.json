@@ -15,13 +15,13 @@
         "offset": 498
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix_regex": {
           "regex": "DefaultHttpClient\\(",
           "replacement": "SystemDefaultHttpClient("
         },
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "\t\tHttpClient client = new DefaultHttpClient();",
         "message": "DefaultHttpClient is deprecated. Further, it does not support connections\nusing TLS1.2, which makes using DefaultHttpClient a security hazard.\nUse SystemDefaultHttpClient instead, which supports TLS1.2.\n",
         "metadata": {

@@ -17,9 +17,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -68,9 +68,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -119,9 +119,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -170,9 +170,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -221,9 +221,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -272,9 +272,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -323,9 +323,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -374,9 +374,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -425,9 +425,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -476,9 +476,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -527,9 +527,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -578,9 +578,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -629,9 +629,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -680,9 +680,9 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},

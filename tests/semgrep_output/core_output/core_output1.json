@@ -49,7 +49,7 @@
             }
           }
         },
-        "is_pro_match": false
+        "engine_kind": "OSSMatch"
       }
     },
     {
@@ -101,7 +101,7 @@
             }
           }
         },
-        "is_pro_match": false
+        "engine_kind": "OSSMatch"
       }
     },
     {
@@ -140,7 +140,7 @@
             }
           }
         },
-        "is_pro_match": false
+        "engine_kind": "OSSMatch"
       }
     },
     {
@@ -179,7 +179,7 @@
             }
           }
         },
-        "is_pro_match": false
+        "engine_kind": "OSSMatch"
       }
     }
   ],

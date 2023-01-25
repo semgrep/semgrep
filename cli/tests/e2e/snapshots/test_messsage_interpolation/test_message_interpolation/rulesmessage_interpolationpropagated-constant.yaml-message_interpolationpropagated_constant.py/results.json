@@ -15,9 +15,9 @@
         "offset": 57
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "       return x == 0",
         "message": "equal comparison of x (0) in A",
         "metadata": {},
@@ -79,9 +79,9 @@
         "offset": 92
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "       return 0 == 0",
         "message": "equal comparison of 0 (0) in A",
         "metadata": {},

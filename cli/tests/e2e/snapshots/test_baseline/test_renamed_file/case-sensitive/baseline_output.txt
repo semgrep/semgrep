@@ -3,3 +3,8 @@ Findings:
 
   Foo.py 
         203┆ y = 23478921
+
+Semgrep PRO Findings:
+
+  Foo.py 
+        203┆ y = 23478921

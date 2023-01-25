@@ -15,9 +15,9 @@
         "offset": 69
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    return a + b == a + b",
         "message": "Found redundant comparison",
         "metadata": {
@@ -77,9 +77,9 @@
         "offset": 174
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    x == x",
         "message": "Found redundant comparison",
         "metadata": {
@@ -139,9 +139,9 @@
         "offset": 266
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "assertTrue(x == x)",
         "message": "Found redundant comparison",
         "metadata": {

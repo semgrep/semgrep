@@ -8,9 +8,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 66, "line": 141, "offset": 4355 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -24,9 +24,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 59, "line": 134, "offset": 4130 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -40,9 +40,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 57, "line": 57, "offset": 2482 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -56,9 +56,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 57, "line": 136, "offset": 4201 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -72,9 +72,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 55, "line": 63, "offset": 2404 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -88,9 +88,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 43, "line": 36, "offset": 1416 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -104,9 +104,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 14, "line": 39, "offset": 1545 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -120,9 +120,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 94, "line": 503, "offset": 20652 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -136,9 +136,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 61, "line": 322, "offset": 12196 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -152,9 +152,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 6, "line": 299, "offset": 10724 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -168,9 +168,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 58, "line": 329, "offset": 12514 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -184,9 +184,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 57, "line": 306, "offset": 11446 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -200,9 +200,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 41, "line": 219, "offset": 8373 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -216,9 +216,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 37, "line": 487, "offset": 18191 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -232,9 +232,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 26, "line": 183, "offset": 7293 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -248,9 +248,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 22, "line": 990, "offset": 37311 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -264,9 +264,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 22, "line": 370, "offset": 14146 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -280,9 +280,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 22, "line": 315, "offset": 11872 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -296,9 +296,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 22, "line": 299, "offset": 11130 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -312,9 +312,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 22, "line": 280, "offset": 10266 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -328,9 +328,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 16, "line": 279, "offset": 10200 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -344,9 +344,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
           "end": { "col": 15, "line": 1088, "offset": 48253 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -409,9 +409,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
           "end": { "col": 44, "line": 100, "offset": 2284 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
             "metadata": {
@@ -429,9 +429,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
           "end": { "col": 4, "line": 65, "offset": 1465 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
             "metadata": {
@@ -449,9 +449,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
           "end": { "col": 4, "line": 65, "offset": 1465 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
             "metadata": {
@@ -469,9 +469,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
           "end": { "col": 38, "line": 63, "offset": 1428 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
             "metadata": {
@@ -489,9 +489,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.database.string-formatted-query.string-formatted-query",
           "end": { "col": 68, "line": 24, "offset": 471 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "String-formatted SQL query detected. This could lead to SQL injection if\nthe string is not sanitized properly. Audit this call to ensure the\nSQL is not manipulatable by external data.\n",
             "metadata": {
@@ -509,9 +509,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5",
           "end": { "col": 21, "line": 62, "offset": 1271 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
             "metadata": {
@@ -529,9 +529,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5",
           "end": { "col": 21, "line": 164, "offset": 3919 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
             "metadata": {
@@ -549,9 +549,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5",
           "end": { "col": 21, "line": 160, "offset": 3760 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
             "metadata": {
@@ -577,9 +577,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.lodash.javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
           "end": { "col": 43, "line": 26, "offset": 714 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected a useless comparison operation `position == position` or `position != position`. This\noperation is always true.\nIf testing for floating point NaN, use `math.isnan`, or\n`cmath.isnan` if the number is complex.\n",
             "metadata": {},
@@ -617,9 +617,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.juice-shop.javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
           "end": { "col": 112, "line": 34, "offset": 2044 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Hardcoded JWT secret or private key is used.\nThis is a Insufficiently Protected Credentials weakness: https://cwe.mitre.org/data/definitions/522.html\nConsider using an appropriate security mechanism to protect the credentials (e.g. keeping secrets in environment variables: process.env.SECRET)\n",
             "metadata": {
@@ -637,9 +637,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.juice-shop.contrib.nodejsscan.eval_yaml_deserialize.yaml_deserialize",
           "end": { "col": 76, "line": 26, "offset": 977 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "User controlled data in 'yaml.load()' function can result in Remote Code Injection.",
             "metadata": {
@@ -664,9 +664,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-md5",
           "end": { "col": 46, "line": 141, "offset": 4329 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
             "metadata": {
@@ -690,9 +690,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.flask.security.insecure-deserialization.insecure-deserialization",
           "end": { "col": 29, "line": 329, "offset": 11793 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected the use of an insecure deserizliation library in a Flask route. These libraries\nare prone to code execution vulnerabilities. Ensure user data does not enter this function.\nTo fix this, try to avoid serializing whole objects. Consider instead using a serializer\nsuch as JSON.\n",
             "metadata": {
@@ -710,9 +710,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.flask.security.dangerous-template-string.dangerous-template-string",
           "end": { "col": 89, "line": 114, "offset": 3391 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a template created with string formatting.\nThis is susceptible to server-side template injection\nand cross-site scripting attacks.\n",
             "metadata": {
@@ -733,9 +733,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.flask.security.dangerous-template-string.dangerous-template-string",
           "end": { "col": 100, "line": 281, "offset": 10412 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a template created with string formatting.\nThis is susceptible to server-side template injection\nand cross-site scripting attacks.\n",
             "metadata": {
@@ -764,9 +764,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.string-concat-in-list.string-concat-in-list",
           "end": { "col": 59, "line": 28, "offset": 1032 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected strings that are implicitly concatenated inside a list.\nPython will implicitly concatenate strings when not explicitly delimited.\nWas this supposed to be individual elements of the list?\n",
             "metadata": {},
@@ -780,9 +780,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.string-concat-in-list.string-concat-in-list",
           "end": { "col": 36, "line": 53, "offset": 1896 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected strings that are implicitly concatenated inside a list.\nPython will implicitly concatenate strings when not explicitly delimited.\nWas this supposed to be individual elements of the list?\n",
             "metadata": {},
@@ -796,9 +796,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.is-comparison-string.identical-is-comparison",
           "end": { "col": 23, "line": 703, "offset": 22926 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found identical comparison using is. Ensure this is what you intended.",
             "metadata": {},
@@ -812,9 +812,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.is-comparison-string.identical-is-comparison",
           "end": { "col": 22, "line": 627, "offset": 20760 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found identical comparison using is. Ensure this is what you intended.",
             "metadata": {},
@@ -894,9 +894,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
           "end": { "col": 52, "line": 214, "offset": 6300 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
             "metadata": {
@@ -915,9 +915,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
           "end": { "col": 50, "line": 216, "offset": 6376 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
             "metadata": {
@@ -936,9 +936,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
           "end": { "col": 25, "line": 217, "offset": 6402 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
             "metadata": {
@@ -957,9 +957,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
           "end": { "col": 24, "line": 215, "offset": 6325 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
             "metadata": {
@@ -986,9 +986,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 59, "offset": 2594 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1007,9 +1007,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 59, "offset": 2179 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1028,9 +1028,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 59, "offset": 2179 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1049,9 +1049,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 54, "offset": 2016 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1070,9 +1070,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 54, "offset": 2016 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1091,9 +1091,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 53, "offset": 2862 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1112,9 +1112,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 51, "offset": 2264 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1133,9 +1133,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 50, "offset": 1896 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1154,9 +1154,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 50, "offset": 1896 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1175,9 +1175,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 49, "offset": 1940 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1196,9 +1196,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 43, "offset": 1809 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1217,9 +1217,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 42, "offset": 1991 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1238,9 +1238,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 40, "offset": 1870 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1259,9 +1259,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 37, "offset": 1756 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1280,9 +1280,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 36, "offset": 1639 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1301,9 +1301,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 35, "offset": 1738 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1322,9 +1322,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 35, "offset": 1720 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1343,9 +1343,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 34, "offset": 1664 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1364,9 +1364,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 34, "offset": 1646 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1385,9 +1385,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 25, "offset": 925 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1406,9 +1406,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 5, "line": 25, "offset": 920 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1427,9 +1427,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 5, "line": 25, "offset": 907 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1448,9 +1448,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 5, "line": 25, "offset": 906 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1469,9 +1469,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 95, "line": 39, "offset": 2231 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1490,9 +1490,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 94, "line": 38, "offset": 2091 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1511,9 +1511,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 93, "line": 40, "offset": 2369 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1532,9 +1532,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 78, "line": 37, "offset": 1955 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1553,9 +1553,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1623 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1574,9 +1574,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1623 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1595,9 +1595,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1623 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1616,9 +1616,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1621 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1637,9 +1637,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1621 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1658,9 +1658,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1618 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1679,9 +1679,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1618 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1700,9 +1700,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1617 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1721,9 +1721,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 74, "line": 34, "offset": 1731 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1742,9 +1742,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 74, "line": 34, "offset": 1713 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1763,9 +1763,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 50, "offset": 2729 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1784,9 +1784,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 41, "offset": 2433 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1805,9 +1805,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 40, "offset": 1921 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1826,9 +1826,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1737 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1847,9 +1847,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1735 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1868,9 +1868,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1731 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1889,9 +1889,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1729 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1910,9 +1910,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1728 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1931,9 +1931,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1726 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1952,9 +1952,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 36, "offset": 1696 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1973,9 +1973,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 34, "offset": 1620 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1994,9 +1994,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 33, "offset": 1590 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2015,9 +2015,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 32, "offset": 1575 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2036,9 +2036,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 32, "offset": 1575 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2057,9 +2057,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 32, "offset": 1567 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2078,9 +2078,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 31, "offset": 1566 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2099,9 +2099,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 31, "offset": 1565 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2120,9 +2120,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 17, "offset": 620 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2141,9 +2141,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 17, "offset": 617 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2162,9 +2162,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 17, "offset": 617 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2183,9 +2183,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 17, "offset": 617 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2204,9 +2204,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 40, "offset": 1921 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2225,9 +2225,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1737 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2246,9 +2246,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1735 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2267,9 +2267,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1731 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2288,9 +2288,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1729 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2309,9 +2309,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1728 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2330,9 +2330,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1726 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2351,9 +2351,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 36, "offset": 1696 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2372,9 +2372,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 34, "offset": 1620 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2393,9 +2393,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 32, "offset": 1575 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2414,9 +2414,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 32, "offset": 1575 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2435,9 +2435,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 31, "offset": 1566 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2456,9 +2456,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.prefer-apt-get.prefer-apt-get",
           "end": { "col": 8, "line": 36, "offset": 1783 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "'apt-get' is preferred as an unattended tool for stability. 'apt' is discouraged.",
             "metadata": {
@@ -2477,9 +2477,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 33, "offset": 1620 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2498,9 +2498,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 33, "offset": 1611 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2519,9 +2519,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 25, "offset": 814 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2540,9 +2540,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 18, "offset": 669 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2561,9 +2561,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 18, "offset": 669 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2582,9 +2582,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 18, "offset": 668 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2603,9 +2603,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 18, "offset": 664 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2624,9 +2624,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 18, "offset": 664 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2645,9 +2645,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 18, "offset": 663 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2666,9 +2666,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 26, "line": 26, "offset": 844 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2687,9 +2687,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 39, "offset": 1814 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2708,9 +2708,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 39, "offset": 1812 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2729,9 +2729,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 34, "offset": 1647 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2750,9 +2750,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 34, "offset": 1638 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2771,9 +2771,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 19, "offset": 696 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2792,9 +2792,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 19, "offset": 696 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2813,9 +2813,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 19, "offset": 695 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2834,9 +2834,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 19, "offset": 691 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2855,9 +2855,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 19, "offset": 691 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2876,9 +2876,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 19, "offset": 690 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2897,9 +2897,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 50, "offset": 2751 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2918,9 +2918,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 41, "offset": 2455 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2939,9 +2939,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 40, "offset": 1943 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2960,9 +2960,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1759 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2981,9 +2981,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1757 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3002,9 +3002,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1753 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3023,9 +3023,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1751 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3044,9 +3044,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1750 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3065,9 +3065,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1748 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3086,9 +3086,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 36, "offset": 1718 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3107,9 +3107,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 32, "offset": 1597 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3128,9 +3128,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 32, "offset": 1597 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3149,9 +3149,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 32, "offset": 1589 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3170,9 +3170,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 31, "offset": 1588 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3191,9 +3191,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 31, "offset": 1587 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3212,9 +3212,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 17, "offset": 642 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3233,9 +3233,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 17, "offset": 639 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3254,9 +3254,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 17, "offset": 639 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3275,9 +3275,9 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 17, "offset": 639 },
           "extra": {
+            "engine_kind": "OSSMatch",
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {

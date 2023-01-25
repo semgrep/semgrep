@@ -15,9 +15,9 @@
         "offset": 24
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "def one(x):\n    print(x)",
         "message": "method one detected",
         "metadata": {},
@@ -53,9 +53,9 @@
         "offset": 50
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "def two(y):\n    print(y)",
         "message": "method two detected",
         "metadata": {},
@@ -91,9 +91,9 @@
         "offset": 78
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "def three(z):\n    print(z)",
         "message": "method three detected",
         "metadata": {},

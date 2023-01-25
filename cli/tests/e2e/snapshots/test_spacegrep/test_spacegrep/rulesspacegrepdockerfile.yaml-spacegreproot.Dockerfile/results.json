@@ -15,9 +15,9 @@
         "offset": 43
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "USER root",
         "message": "'USER' is specified twice\n",
         "metadata": {},
@@ -53,9 +53,9 @@
         "offset": 111
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "USER root",
         "message": "'USER' is specified twice\n",
         "metadata": {},

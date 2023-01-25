@@ -704,12 +704,12 @@ class TextFormatter(BaseFormatter):
                 oss_matches = [
                     x
                     for x in first_party_blocking
-                    if isinstance(x.match.extra.engine_kind, out.OSSMatch)
+                    if isinstance(x.match.extra.engine_kind.value, out.OSSMatch)
                 ]
                 pro_matches = [
                     x
                     for x in first_party_blocking
-                    if isinstance(x.match.extra.engine_kind, out.ProMatch)
+                    if not isinstance(x.match.extra.engine_kind.value, out.ProMatch)
                 ]
                 generate_output(f"{blocking_description}", oss_matches)
                 generate_output(f"Semgrep PRO Findings", pro_matches)

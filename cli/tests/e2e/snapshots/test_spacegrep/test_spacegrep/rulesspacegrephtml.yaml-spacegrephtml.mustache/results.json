@@ -15,9 +15,9 @@
         "offset": 918
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    var message = {{ message }};",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
@@ -39,9 +39,9 @@
         "offset": 1033
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    var message = {{ message }};",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
@@ -63,9 +63,9 @@
         "offset": 1135
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    var message2 = {{ message2 }};",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},

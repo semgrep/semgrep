@@ -15,10 +15,10 @@
         "offset": 7
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "one",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "one\ntwo",
         "message": "This rule changes the line numbers for the other rule's match",
         "metadata": {},
@@ -40,10 +40,10 @@
         "offset": 18
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "four",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "three\nfour",
         "message": "If semgrep is not smart enough, the match of this rule will be out of range",
         "metadata": {},

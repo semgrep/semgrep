@@ -15,10 +15,10 @@
         "offset": 38
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "a_function_call (wrap (the_argument))",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "let one = a_function_call the_argument",
         "message": "Wrap the arguments to `a_function_call` with `wrap` first",
         "metadata": {},
@@ -54,10 +54,10 @@
         "offset": 80
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "a_function_call (wrap ((the_argument)))",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "let two = a_function_call (the_argument)",
         "message": "Wrap the arguments to `a_function_call` with `wrap` first",
         "metadata": {},
@@ -93,10 +93,10 @@
         "offset": 137
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "a_function_call (wrap ((another_func the_argument)))",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "let three = a_function_call (another_func the_argument)",
         "message": "Wrap the arguments to `a_function_call` with `wrap` first",
         "metadata": {},
@@ -132,10 +132,10 @@
         "offset": 198
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "a_function_call (wrap ((tuple_member, threeple_member)))",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "let three = a_function_call (tuple_member, threeple_member)",
         "message": "Wrap the arguments to `a_function_call` with `wrap` first",
         "metadata": {},

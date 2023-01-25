@@ -15,9 +15,9 @@
         "offset": 2591
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "## Getting Started",
         "message": "Detected h2 Markdown header",
         "metadata": {},
@@ -53,9 +53,9 @@
         "offset": 3702
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "## Examples",
         "message": "Detected h2 Markdown header",
         "metadata": {},
@@ -91,9 +91,9 @@
         "offset": 8847
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "## Resources",
         "message": "Detected h2 Markdown header",
         "metadata": {},
@@ -129,9 +129,9 @@
         "offset": 9242
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "## Usage",
         "message": "Detected h2 Markdown header",
         "metadata": {},
@@ -167,9 +167,9 @@
         "offset": 9805
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "## Contributing",
         "message": "Detected h2 Markdown header",
         "metadata": {},
@@ -205,9 +205,9 @@
         "offset": 10946
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "## Commercial Support",
         "message": "Detected h2 Markdown header",
         "metadata": {},

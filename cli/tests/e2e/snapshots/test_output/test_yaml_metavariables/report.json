@@ -15,9 +15,9 @@
         "offset": 12
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "- key: \"one\"",
         "message": "\"one\"\n",
         "metadata": {},
@@ -53,9 +53,9 @@
         "offset": 25
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "- key: 'two'",
         "message": "'two'\n",
         "metadata": {},
@@ -91,9 +91,9 @@
         "offset": 45
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "- key: |\n    three",
         "message": "|\n    three\n\n",
         "metadata": {},
@@ -129,9 +129,9 @@
         "offset": 62
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "- key: |\n   four",
         "message": "|\n   four\n\n",
         "metadata": {},
@@ -167,9 +167,9 @@
         "offset": 93
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "- key: |       \n    fi\n\n    ve",
         "message": "|       \n    fi\n\n    ve\n\n",
         "metadata": {},
@@ -205,9 +205,9 @@
         "offset": 123
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "- key: |\n    si\n\n      x",
         "message": "|\n    si\n\n      x\n    \n\n",
         "metadata": {},
@@ -243,9 +243,9 @@
         "offset": 142
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "- key: >\n    seven",
         "message": ">\n    seven\n\n",
         "metadata": {},
@@ -281,9 +281,9 @@
         "offset": 166
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "- key: >\n    eig\n\n    ht",
         "message": ">\n    eig\n\n    ht\n",
         "metadata": {},

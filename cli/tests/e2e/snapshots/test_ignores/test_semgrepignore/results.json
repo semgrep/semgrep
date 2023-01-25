@@ -16,9 +16,9 @@
         "offset": 14
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",
         "metadata": {},
@@ -54,9 +54,9 @@
         "offset": 14
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",
         "metadata": {},

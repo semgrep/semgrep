@@ -52,7 +52,9 @@ def test_rule_match_attributes(mocker):
                 start=core.Position(3, 1, 24),
                 end=core.Position(3, 15, 38),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
     assert match.lines == ["    5 == 5 # nosem\n"], "wrong line was read from file"
@@ -88,7 +90,9 @@ def test_rule_match_sorting(mocker):
                 start=core.Position(3, 1, 24),
                 end=core.Position(3, 15, 38),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
     line4 = RuleMatch(
@@ -101,7 +105,9 @@ def test_rule_match_sorting(mocker):
                 start=core.Position(4, 1, 36),
                 end=core.Position(4, 15, 50),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
     # fmt: off
@@ -131,7 +137,9 @@ def test_rule_match_hashing(mocker):
                 start=core.Position(3, 1, 24),
                 end=core.Position(3, 15, 38),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
     assert {match, match} == {match}, "matches must deduplicate when added to a set"
@@ -159,7 +167,9 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
                 start=core.Position(3, 1, 28),
                 end=core.Position(5, 2, 48),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
     file_content = dedent(
@@ -182,7 +192,9 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
                 start=core.Position(3, 1, 28),
                 end=core.Position(5, 2, 72),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
     file_content = dedent(
@@ -206,7 +218,9 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
                 start=core.Position(4, 1, 55),
                 end=core.Position(6, 2, 75),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
     assert (
@@ -240,7 +254,9 @@ def test_rule_match_set_indexes(mocker):
                 start=core.Position(3, 1, 24),
                 end=core.Position(3, 15, 38),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
     line4 = RuleMatch(
@@ -253,7 +269,9 @@ def test_rule_match_set_indexes(mocker):
                 start=core.Position(4, 1, 36),
                 end=core.Position(4, 15, 50),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
     line5 = RuleMatch(
@@ -266,7 +284,9 @@ def test_rule_match_set_indexes(mocker):
                 start=core.Position(5, 1, 48),
                 end=core.Position(5, 15, 62),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
     line6 = RuleMatch(
@@ -279,7 +299,9 @@ def test_rule_match_set_indexes(mocker):
                 start=core.Position(6, 1, 60),
                 end=core.Position(6, 15, 74),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
 
@@ -293,7 +315,9 @@ def test_rule_match_set_indexes(mocker):
                 start=core.Position(7, 1, 60),
                 end=core.Position(7, 15, 74),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
     )
     rule = create_rule()
@@ -348,7 +372,9 @@ def test_rule_match_to_app_finding(snapshot, mocker):
                 start=core.Position(0, 0, 0),
                 end=core.Position(0, 0, 0),
             ),
-            extra=core.CoreMatchExtra(metavars=core.Metavars({}), is_pro_match=False),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+            ),
         ),
         extra={
             "sca_info": out.ScaInfo(

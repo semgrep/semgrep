@@ -48,7 +48,7 @@
             }
           }
         },
-        "is_pro_match": false,
+        "engine_kind": "OSSMatch",
         "severity": "ERROR"
       },
       "path": "/tmp/dir/foo.py",
@@ -90,7 +90,7 @@
             }
           }
         },
-        "is_pro_match": false,
+        "engine_kind": "OSSMatch",
         "severity": "ERROR"
       },
       "path": "/tmp/dir/foo.py",

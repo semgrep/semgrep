@@ -15,13 +15,13 @@
         "offset": 10
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar('abc')",
         "fixed_lines": [
           "bar('abc')"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "foo('abc')",
         "message": "change it",
         "metadata": {},
@@ -57,13 +57,13 @@
         "offset": 21
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(\"abc\")",
         "fixed_lines": [
           "bar(\"abc\")"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "foo(\"abc\")",
         "message": "change it",
         "metadata": {},
@@ -99,13 +99,13 @@
         "offset": 36
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(\"\"\"abc\"\"\")",
         "fixed_lines": [
           "bar(\"\"\"abc\"\"\")"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "foo(\"\"\"abc\"\"\")",
         "message": "change it",
         "metadata": {},
@@ -141,13 +141,13 @@
         "offset": 48
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(r\"abc\")",
         "fixed_lines": [
           "bar(r\"abc\")"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "foo(r\"abc\")",
         "message": "change it",
         "metadata": {},
@@ -183,13 +183,13 @@
         "offset": 60
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(f\"abc\")",
         "fixed_lines": [
           "bar(f\"abc\")"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "foo(f\"abc\")",
         "message": "change it",
         "metadata": {},
@@ -225,13 +225,13 @@
         "offset": 69
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar([1])",
         "fixed_lines": [
           "bar([1])"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "foo([1])",
         "message": "change it",
         "metadata": {},
@@ -267,13 +267,13 @@
         "offset": 81
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar([1, 2])",
         "fixed_lines": [
           "bar([1, 2])"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "foo([1, 2])",
         "message": "change it",
         "metadata": {},
@@ -309,13 +309,13 @@
         "offset": 91
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(x[1])",
         "fixed_lines": [
           "bar(x[1])"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "foo(x[1])",
         "message": "change it",
         "metadata": {},
@@ -351,13 +351,13 @@
         "offset": 104
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(x[1, 2])",
         "fixed_lines": [
           "bar(x[1, 2])"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "foo(x[1, 2])",
         "message": "change it",
         "metadata": {},

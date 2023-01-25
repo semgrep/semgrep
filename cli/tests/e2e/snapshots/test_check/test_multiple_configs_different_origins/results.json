@@ -28,9 +28,9 @@
         "offset": 69
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    return a + b == a + b",
         "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
         "metadata": {
@@ -68,9 +68,9 @@
         "offset": 67
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "useless comparison",
         "metadata": {},
@@ -119,9 +119,9 @@
         "offset": 69
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    return a + b == a + b",
         "message": "a + b == a + b is a useless equality check",
         "metadata": {},
@@ -157,9 +157,9 @@
         "offset": 174
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    x == x",
         "message": "x == x is a useless equality check",
         "metadata": {},
@@ -195,9 +195,9 @@
         "offset": 266
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "assertTrue(x == x)",
         "message": "x == x is a useless equality check",
         "metadata": {},

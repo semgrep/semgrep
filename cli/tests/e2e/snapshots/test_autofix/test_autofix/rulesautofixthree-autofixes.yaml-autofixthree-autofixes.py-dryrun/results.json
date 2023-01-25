@@ -15,13 +15,13 @@
         "offset": 147
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "fixed_lines": [
           "    return requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    return requests.post(\n        headers=auth_headers,\n        url=self.url,\n        endpoints=\"endpoint\",\n    )",
         "message": "This rule decreases the file in length and will be applied three times in this test.\n",
         "metadata": {},
@@ -70,13 +70,13 @@
         "offset": 286
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "fixed_lines": [
           "    return requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    return requests.post(\n        headers=auth_headers,\n        url=self.url,\n        endpoints=\"endpoint\",\n    )",
         "message": "This rule decreases the file in length and will be applied three times in this test.\n",
         "metadata": {},
@@ -125,13 +125,13 @@
         "offset": 425
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "fixed_lines": [
           "    return requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    return requests.post(\n        headers=auth_headers,\n        url=self.url,\n        endpoints=\"endpoint\"\n    )",
         "message": "This rule decreases the file in length and will be applied three times in this test.\n",
         "metadata": {},

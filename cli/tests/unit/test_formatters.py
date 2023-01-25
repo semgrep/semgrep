@@ -59,7 +59,7 @@ def create_taint_rule_match():
                         )
                     ),
                 ),
-                is_pro_match=False,
+                engine_kind=core.EngineKind(core.OSSMatch()),
             ),
         ),
     )
