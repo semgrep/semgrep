@@ -15,6 +15,7 @@
         "offset": 109
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix_regex": {
           "regex": "(.*)\\}",
@@ -56,6 +57,7 @@
         "offset": 220
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix_regex": {
           "regex": "(.*)\\}",

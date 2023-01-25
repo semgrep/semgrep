@@ -85,6 +85,7 @@ let (matches_of_matcher :
                               env;
                               taint_trace = None;
                               tokens = lazy [ info_of_token_location loc1 ];
+                              engine_kind = OSS;
                             }))
               |> List.flatten)
         in

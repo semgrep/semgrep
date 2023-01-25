@@ -15,6 +15,7 @@
         "offset": 12
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "\ud83d\ude0a (smiley)",
@@ -38,6 +39,7 @@
         "offset": 35
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "\ud83d\ude80 (rocket)",
@@ -61,6 +63,7 @@
         "offset": 87
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "<\u03b2\u03b3\u03b4> (Greek letters)",

@@ -15,6 +15,7 @@
         "offset": 6
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "once",
         "fixed_lines": [
@@ -42,6 +43,7 @@
         "offset": 6
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "twice",
         "is_ignored": false,
