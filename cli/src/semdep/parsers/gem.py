@@ -43,7 +43,7 @@ manifest_package = string("  ") >> upto(" ", "!").bind(
 # Ignore everything until GEM, indicating locked dependencies
 # Then ignore everything until DEPENDENCIES, indicating manifest dependencies
 gemfile = (
-    (consume_line.result("")).until(string("GEM\n"), consume_other=True)
+    any_char.until(string("GEM\n"), consume_other=True)
     >> string("  remote: ")
     >> any_char.until(string("\n"), consume_other=True)
     >> string("  specs:\n")
@@ -51,7 +51,7 @@ gemfile = (
     .sep_by(string("\n"))
     .bind(
         lambda deps: string("\n\n")
-        >> (consume_line.result("")).until(string("DEPENDENCIES\n"), consume_other=True)
+        >> any_char.until(string("DEPENDENCIES\n"), consume_other=True)
         >> (manifest_package.sep_by(string("\n")) << any_char.many()).bind(
             lambda manifest: success((deps, set(manifest)))
         )

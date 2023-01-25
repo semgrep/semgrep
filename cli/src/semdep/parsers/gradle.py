@@ -63,11 +63,11 @@ manifest_line: "Parser[Optional[str]]" = (
 
 # Ignore everything before and after the dependencies data
 manifest = (
-    (consume_line.result("")).until(string("dependencies {\n"), consume_other=True)
+    any_char.until(string("dependencies {\n"), consume_other=True)
     >> (manifest_line | success(None))
     .sep_by(string("\n"), min=1)
     .map(lambda xs: {x for x in xs if x})
-    << consume_line.many()
+    << any_char.many()
 )
 
 gradle = string(PREFIX) >> (dep | (string("empty=") >> consume_line)).sep_by(
