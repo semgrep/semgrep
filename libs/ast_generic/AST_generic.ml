@@ -302,8 +302,12 @@ and resolved_name_kind =
    * We might store ['/path/to/node_modules/foo/src/x.js', 'bar'] as the
    * resolved_name, but we also want to match the pattern `foo.bar` so we will
    * store ['foo', 'bar'] as an alternate name.
+
+   * The alternate name is kept as a `dotted_ident`, because we only need it around
+   * for matching purposes. The uniqueness of the name (which is useful for semantic
+   * purposes) is only needed once.
    * *)
-  | ResolvedName of unique_name * unique_name list
+  | ResolvedName of unique_name * dotted_ident list
 
 (* The enclosed token is not relevant for matching purposes.
    `unique_name` is a record of all the information necessary to

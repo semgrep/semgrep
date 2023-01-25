@@ -191,7 +191,7 @@ let (mk_visitor :
     | TypeName -> ()
     | ResolvedName (v1, v2) ->
         let v1 = v_unique_name v1 in
-        let v2 = v_list v_unique_name v2 in
+        let v2 = v_list v_dotted_ident v2 in
         ()
   and v_name_info
       { name_middle = v4; name_top = v3; name_last = v1; name_info = v2 } =

@@ -60,7 +60,7 @@ and vof_resolved_name_kind = function
   | TypeName -> OCaml.VSum ("TypeName", [])
   | ResolvedName (v1, v2) ->
       let v1 = vof_unique_name v1 in
-      let v2 = OCaml.vof_list vof_unique_name v2 in
+      let v2 = OCaml.vof_list vof_dotted_ident v2 in
       OCaml.VSum ("ResolvedName", [ v1; v2 ])
 
 and vof_unique_name { dotted; tok } =

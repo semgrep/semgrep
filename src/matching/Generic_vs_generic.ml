@@ -458,7 +458,7 @@ let rec m_name a b =
   let try_alternate_names = function
     | B.ResolvedName (_, alternate_names) ->
         List.fold_left
-          (fun acc { B.dotted; _ } -> acc >||> m_name a (H.name_of_ids dotted))
+          (fun acc dotted -> acc >||> m_name a (H.name_of_ids dotted))
           (fail ()) alternate_names
     | _ -> fail ()
   in

@@ -129,7 +129,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | TypeName -> TypeName
     | ResolvedName (v1, v2) ->
         let v1 = map_unique_name v1 in
-        let v2 = map_of_list map_unique_name v2 in
+        let v2 = map_of_list map_dotted_ident v2 in
         ResolvedName (v1, v2)
   and map_name_info
       {
