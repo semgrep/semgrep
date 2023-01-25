@@ -71,7 +71,7 @@
             }
           }
         },
-        "is_pro_match": false,
+        "engine_kind": "OSSMatch",
         "severity": "ERROR"
       },
       "path": "targets/basic/stupid.js",
@@ -117,7 +117,7 @@
             }
           }
         },
-        "is_pro_match": false,
+        "engine_kind": "OSSMatch",
         "severity": "INFO"
       },
       "path": "targets/basic/stupid.py",
