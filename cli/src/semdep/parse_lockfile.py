@@ -9,7 +9,6 @@ from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 
 import tomli
@@ -38,6 +37,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 from semdep.parsers.poetry import parse_poetry
+from semdep.parsers.requirements import parse_requirements
 
 
 def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
@@ -507,55 +507,6 @@ def parse_gradle(
     yield from (dep for dep in deps if dep)
 
 
-def parse_requirements(
-    lockfile_text: str, manifest_text: Optional[str]
-) -> Iterator[FoundDependency]:
-    for op in ["<", "<=", ">", ">="]:
-        if op in lockfile_text:
-            raise SemgrepError("requirements.txt contains non-pinned versions")
-
-    def remove_comment(line: str) -> str:
-        return (line[: line.index("#")] if "#" in line else line).strip(" ")
-
-    deps = [
-        (i, remove_comment(l).split("=="))
-        for i, l in enumerate(lockfile_text.split("\n"))
-        if "==" in l
-    ]
-
-    def parse_manifest(text: str) -> Set[str]:
-        out = set()
-        lines = text.split("\n")
-        for line in [remove_comment(l) for l in lines]:
-            for op in ["==", "<", "<=", ">", ">="]:
-                if op in line:
-                    # package<=version
-                    out.add(op.split(op)[0])
-                else:
-                    # Either a comment or package with no version specifier at all
-                    if line != "":
-                        # Comments will be empty strings after remove_comment
-                        out.add(line)
-        return out
-
-    manifest_deps = parse_manifest(manifest_text) if manifest_text is not None else None
-
-    for line_number, (package, version) in deps:
-        yield FoundDependency(
-            package=package,
-            version=version,
-            ecosystem=Ecosystem(Pypi()),
-            resolved_url=None,
-            allowed_hashes={},
-            transitivity=Transitivity(
-                (Direct() if package in manifest_deps else Transitive())
-                if manifest_deps is not None
-                else Unknown()
-            ),
-            line_number=line_number,
-        )
-
-
 def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]:
     def package_index(line: str) -> int:
         i = 0
@@ -594,11 +545,11 @@ OLD_LOCKFILE_PARSERS = {
     "cargo.lock": parse_cargo,  # Rust
     "maven_dep_tree.txt": parse_pom_tree,  # Java
     "gradle.lockfile": parse_gradle,  # Java
-    "requirements.txt": parse_requirements,
 }
 
 NEW_LOCKFILE_PARSERS = {
     "poetry.lock": parse_poetry,  # Python
+    "requirements.txt": parse_requirements,  # Python
 }
 
 
