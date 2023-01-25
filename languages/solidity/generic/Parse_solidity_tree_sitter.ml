@@ -1943,15 +1943,15 @@ let map_variable_declaration_statement (env : env)
 
 let rec map_block_statement (env : env) ((v0, v1, v2, v3) : CST.block_statement)
     =
-  let _uncheckedTODO =
-    match v0 with
-    | Some tok -> Some ((* "unchecked" *) token env tok)
-    | None -> None
-  in
   let lb = (* "{" *) token env v1 in
   let xs = Common.map (map_statement env) v2 in
   let rb = (* "}" *) token env v3 in
-  Block (lb, xs, rb) |> G.s
+  let stmt = Block (lb, xs, rb) |> G.s in
+  match v0 with
+  | Some tok ->
+      let t = (* "unchecked" *) token env tok in
+      OtherStmtWithStmt (OSWS_Block ("Unchecked", t), [], stmt) |> G.s
+  | None -> stmt
 
 and map_catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) : catch =
   let tcatch = (* "catch" *) token env v1 in
