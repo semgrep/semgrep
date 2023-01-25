@@ -1,5 +1,8 @@
 """
 Parsers for poetry.lock and pyproject.toml files
+I could not find any comprehensive description of this format online, I just looked at examples
+If you find any sort of spec, please link it here
+Here's the docs for poetry: https://python-poetry.org/docs/
 """
 from pathlib import Path
 from typing import List

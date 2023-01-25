@@ -1,6 +1,6 @@
 """
 Parsers for requirements.txt and requirements.in files
-This is based on the spec described here: https://pip.pypa.io/en/stable/reference/requirements-file-format/
+Based on https://pip.pypa.io/en/stable/reference/requirements-file-format/
 """
 import re
 from pathlib import Path

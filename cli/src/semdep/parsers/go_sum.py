@@ -1,5 +1,6 @@
 """
 Parser for go.sum files
+Based on https://go.dev/ref/mod#go-sum-files
 """
 from pathlib import Path
 from typing import List

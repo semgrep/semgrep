@@ -1,5 +1,11 @@
 """
 Parsers for yarn.lock versions 1 and 2/3
+Version 1 parser based on
+https://www.arahansen.com/the-ultimate-guide-to-yarn-lock-lockfiles/
+https://classic.yarnpkg.com/lang/en/docs/yarn-lock/
+
+Version 2/3 parser based on looking at examples on github, I could not find any documentation
+Here are the Yarn 2/3 docs: https://yarnpkg.com/
 """
 from pathlib import Path
 from typing import List

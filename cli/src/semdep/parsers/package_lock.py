@@ -1,13 +1,11 @@
 """
 Parser for package-lock.json files
+Based on https://docs.npmjs.com/cli/v9/configuring-npm/package-lock-json
 """
 from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Optional
-
-from packaging.version import InvalidVersion
-from packaging.version import Version
 
 from semdep.parsers.util import extract_npm_lockfile_hash
 from semdep.parsers.util import JSON
@@ -63,13 +61,6 @@ def parse_package_lock(
             if not version:
                 logger.info(f"no version for dependency: {package}")
                 continue
-            try:
-                Version(version.as_str())
-            # Version was a github commit
-            except InvalidVersion:
-                logger.info(f"no version for dependency: {package}")
-                continue
-
             resolved_url = fields["resolved"].as_str() if "resolved" in fields else None
             integrity = fields["integrity"].as_str() if "integrity" in fields else None
             output.append(

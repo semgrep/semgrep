@@ -1,5 +1,6 @@
 """
 Parser for pipfile.lock files
+Based on https://pipenv.pypa.io/en/latest/basics/
 """
 from collections import defaultdict
 from pathlib import Path

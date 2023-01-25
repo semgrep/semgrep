@@ -1,12 +1,13 @@
 """
 Parser for gradle.lock and build.gradle files
+Based on
+https://docs.gradle.org/current/userguide/dependency_locking.html
+https://docs.gradle.org/current/userguide/dependency_management_for_java_projects.html
 """
 from pathlib import Path
 from typing import List
 from typing import Optional
 
-from packaging.version import InvalidVersion
-from packaging.version import Version
 from parsy import any_char
 from parsy import Parser
 from parsy import string
@@ -84,11 +85,6 @@ def parse_gradle(
     manifest_deps = safe_path_parse(manifest_path, manifest)
     output = []
     for line_number, (package, version) in deps:
-        try:
-            Version(version)
-        except InvalidVersion:
-            logger.info(f"No valid version found for {package}")
-            continue
         output.append(
             FoundDependency(
                 package=package,

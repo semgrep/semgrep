@@ -1,5 +1,6 @@
 """
 Parser for Gemfile.lock files
+Based on https://stackoverflow.com/questions/7517524/understanding-the-gemfile-lock-file
 """
 from pathlib import Path
 from typing import List
