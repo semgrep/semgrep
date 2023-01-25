@@ -1,7 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
 from typing import Generator
-from typing import Iterator
 from typing import List
 from typing import Optional
 
@@ -17,10 +16,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 from semdep.parsers.poetry import parse_poetry
@@ -30,6 +26,7 @@ from semdep.parsers.gradle import parse_gradle
 from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.package_lock import parse_package_lock
 from semdep.parsers.gem import parse_gemfile
+from semdep.parsers.pom_tree import parse_pom_tree
 
 
 def parse_go_sum(
@@ -95,39 +92,9 @@ def parse_cargo(
     yield from (parse_dep(dep) for dep in deps)
 
 
-def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]:
-    def package_index(line: str) -> int:
-        i = 0
-        while line[i] in ["+", "-", " ", "\\"]:
-            i += 1
-        return i
-
-    def depth(package_index: int) -> int:
-        return package_index // 3 + 1
-
-    lines = tree_str.split("\n")
-    # Drop first line, it's the name of the project itself
-    deps = [l for l in lines[1:] if l]  # Filter any empty lines
-    for i, dep in enumerate(deps):
-        j = package_index(dep)
-        dep = dep[j:]
-        transitivity = Transitivity(Direct() if depth(j) else Transitive())
-        [_, package, _, version, _] = dep.strip().split(":")
-        yield FoundDependency(
-            package=package,
-            version=version,
-            ecosystem=Ecosystem(Maven()),
-            resolved_url=None,
-            allowed_hashes={},
-            transitivity=transitivity,
-            line_number=i + 1,
-        )
-
-
 OLD_LOCKFILE_PARSERS = {
     "go.sum": parse_go_sum,  # Go
     "cargo.lock": parse_cargo,  # Rust
-    "maven_dep_tree.txt": parse_pom_tree,  # Java
 }
 
 NEW_LOCKFILE_PARSERS = {
@@ -138,6 +105,7 @@ NEW_LOCKFILE_PARSERS = {
     "pipfile.lock": parse_pipfile,  # Python
     "package-lock.json": parse_package_lock,  # JavaScript
     "gemfile.lock": parse_gemfile,  # Ruby
+    "maven_dep_tree.txt": parse_pom_tree,  # Java
 }
 
 
