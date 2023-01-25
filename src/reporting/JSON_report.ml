@@ -49,6 +49,11 @@ let first_and_last = function
   | [] -> None
   | hd :: tl -> Some (hd, last hd tl)
 
+let convert_engine_kind ek =
+  match ek with
+  | OSS -> `OSSMatch
+  | Pro -> `ProMatch
+
 (*****************************************************************************)
 (* JSON *)
 (*****************************************************************************)
@@ -247,7 +252,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
         rendered_fix;
-        is_pro_match = x.is_pro_match;
+        engine_kind = convert_engine_kind x.engine_kind;
       };
   }
 

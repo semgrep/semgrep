@@ -176,7 +176,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                           (* This will be overrided later on by the PRO engine, if this is
                              from a PRO run.
                           *)
-                          is_pro_match = false;
+                          engine_kind = OSS;
                         }
                       in
                       Common.push pm matches;
@@ -343,7 +343,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     range_loc;
                                     tokens;
                                     taint_trace = None;
-                                    is_pro_match = false;
+                                    engine_kind = OSS;
                                   }
                                 in
                                 Common.push pm matches;
@@ -397,7 +397,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
-                                      is_pro_match = false;
+                                      engine_kind = OSS;
                                     }
                                   in
                                   Common.push pm matches;
@@ -468,7 +468,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                         range_loc;
                                         tokens;
                                         taint_trace = None;
-                                        is_pro_match = false;
+                                        engine_kind = OSS;
                                       }
                                     in
                                     Common.push pm matches;

@@ -317,7 +317,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
        rendered_fix;
        (* LATER *)
        dataflow_trace = _;
-       is_pro_match;
+       engine_kind;
      };
   } ->
       let rule =
@@ -377,7 +377,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
             sca_info = None;
             fixed_lines = None;
             dataflow_trace = None;
-            is_pro_match;
+            engine_kind;
           };
       }
 

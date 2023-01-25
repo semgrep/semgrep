@@ -61,6 +61,8 @@ type taint_trace = {
 }
 [@@deriving show, eq]
 
+type engine_kind = OSS | Pro [@@deriving show, eq]
+
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
@@ -84,7 +86,7 @@ type t = {
      This will be overrided later by the PRO engine, on any matches which are produced
      from a PRO run.
   *)
-  is_pro_match : bool;
+  engine_kind : engine_kind;
 }
 
 (* This is currently a record, but really only the rule id should matter.

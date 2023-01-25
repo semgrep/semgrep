@@ -430,7 +430,7 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
         # not. This is unsafe, but before it was just implicitly unsafe.
         metavars=cli_match_extra.metavars,  # type: ignore[arg-type]
         dataflow_trace=dataflow_trace,
-        is_pro_match=cli_match_extra.is_pro_match,
+        engine_kind=cli_match_extra.engine_kind,
     )
     return RuleMatch(
         message=join_rule.get(
