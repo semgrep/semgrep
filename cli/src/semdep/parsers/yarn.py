@@ -49,7 +49,11 @@ def source1(quoted: bool) -> "Parser[Tuple[str,str]]":
         .bind(
             lambda at_prefix: upto("@", consume_other=True).bind(
                 lambda package: upto(
-                    *(['"', ","] + ([":"] if not quoted else []))
+                    # If the source is quoted, then we know it ends at a quote
+                    # If it's not, then it must end at either a colon, or a comma
+                    # The colon is the end of the line (see the yarn_dep1 example)
+                    # The comma indicates we have a list of sources (see the multi_source1 example)
+                    *(['"'] + ([":", ","] if not quoted else []))
                 ).bind(lambda version: success((at_prefix + package, version)))
             )
         )
