@@ -3,8 +3,3 @@ Findings:
 
   file_or_dir.py/bar.py 
           1┆ y = 23478921
-
-Semgrep PRO Findings:
-
-  file_or_dir.py/bar.py 
-          1┆ y = 23478921

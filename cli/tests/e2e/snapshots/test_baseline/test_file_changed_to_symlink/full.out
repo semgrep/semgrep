@@ -3,8 +3,3 @@ Findings:
 
   definitely_a_file.py 
           1┆ x = 23478921
-
-Semgrep PRO Findings:
-
-  definitely_a_file.py 
-          1┆ x = 23478921

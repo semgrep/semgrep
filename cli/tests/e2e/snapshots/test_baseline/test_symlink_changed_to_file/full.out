@@ -3,8 +3,3 @@ Findings:
 
   symlink_or_file.py 
           1┆ x = 23478921
-
-Semgrep PRO Findings:
-
-  symlink_or_file.py 
-          1┆ x = 23478921
