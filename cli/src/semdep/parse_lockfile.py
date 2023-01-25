@@ -38,6 +38,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.yarn import parse_yarn
+from semdep.parsers.gradle import parse_gradle
 
 
 def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
@@ -283,37 +284,6 @@ def parse_cargo(
     yield from (parse_dep(dep) for dep in deps)
 
 
-def parse_gradle(
-    lockfile_text: str, manifest_text: Optional[str]
-) -> Generator[FoundDependency, None, None]:
-    def parse_dep(line: str) -> Optional[FoundDependency]:
-        dep = line.split(":")
-        if len(dep) != 3:
-            logger.info("Parse error in gradle lockfile")
-            return None
-        _, name, version = dep
-        version, _ = version.split("=")
-        try:
-            Version(version)
-        except InvalidVersion:
-            logger.info("No valid version found for {name}")
-            return None
-        return FoundDependency(
-            package=name,
-            version=version,
-            ecosystem=Ecosystem(Maven()),
-            resolved_url=None,
-            allowed_hashes={},
-            transitivity=Transitivity(Unknown()),
-        )
-
-    lines = lockfile_text.splitlines()[
-        3:-1
-    ]  # Drop the 3 comment lines at the top and the empty= line from the bottom
-    deps = [parse_dep(line) for line in lines]
-    yield from (dep for dep in deps if dep)
-
-
 def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]:
     def package_index(line: str) -> int:
         i = 0
@@ -350,13 +320,13 @@ OLD_LOCKFILE_PARSERS = {
     "go.sum": parse_go_sum,  # Go
     "cargo.lock": parse_cargo,  # Rust
     "maven_dep_tree.txt": parse_pom_tree,  # Java
-    "gradle.lockfile": parse_gradle,  # Java
 }
 
 NEW_LOCKFILE_PARSERS = {
     "poetry.lock": parse_poetry,  # Python
     "requirements.txt": parse_requirements,  # Python
     "yarn.lock": parse_yarn,  # JavaScript
+    "gradle.lockfile": parse_gradle,  # Java
 }
 
 
