@@ -157,7 +157,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_jsonnet.CST.dump_tree
   | Lang.Solidity ->
       Tree_sitter_solidity.Parse.file file
-      |> dump_and_print_errors Tree_sitter_solidity.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_solidity.Boilerplate.dump_tree
   | Lang.Swift ->
       Tree_sitter_swift.Parse.file file
       |> dump_and_print_errors Tree_sitter_swift.CST.dump_tree

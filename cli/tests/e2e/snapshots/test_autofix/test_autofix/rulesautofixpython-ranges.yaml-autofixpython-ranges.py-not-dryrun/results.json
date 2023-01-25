@@ -15,6 +15,7 @@
         "offset": 10
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar('abc')",
         "is_ignored": false,
@@ -53,6 +54,7 @@
         "offset": 21
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(\"abc\")",
         "is_ignored": false,
@@ -91,6 +93,7 @@
         "offset": 36
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(\"\"\"abc\"\"\")",
         "is_ignored": false,
@@ -129,6 +132,7 @@
         "offset": 48
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(r\"abc\")",
         "is_ignored": false,
@@ -167,6 +171,7 @@
         "offset": 60
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(f\"abc\")",
         "is_ignored": false,
@@ -205,6 +210,7 @@
         "offset": 69
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar([1])",
         "is_ignored": false,
@@ -243,6 +249,7 @@
         "offset": 81
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar([1, 2])",
         "is_ignored": false,
@@ -281,6 +288,7 @@
         "offset": 91
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(x[1])",
         "is_ignored": false,
@@ -319,6 +327,7 @@
         "offset": 104
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "bar(x[1, 2])",
         "is_ignored": false,

@@ -3047,6 +3047,7 @@ and _m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
     (* dots: '...', this is very Python Specific I think *)
       (function
+      | { t = G.TyEllipsis _; _ } -> true
       | { t = G.TyExpr { G.e = G.Ellipsis _i; _ }; _ } -> true
       | _ -> false)
       (* less-is-ok: it's ok to not specify all the parents I think *)
@@ -3064,8 +3065,9 @@ and m_list__m_class_parent (xsa : G.class_parent list)
    * but regressions for python?
    *)
   m_list_with_dots m_class_parent
-    (* dots: '...', this is very Python Specific I think *)
-      (function
+    (function
+      | { G.t = G.TyEllipsis _; _ }, None -> true
+      (* dots: '...', this is very Python Specific I think *)
       | { G.t = G.TyExpr { e = G.Ellipsis _i; _ }; _ }, None -> true
       | _ -> false)
       (* less-is-ok: it's ok to not specify all the parents I think *)

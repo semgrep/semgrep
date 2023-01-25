@@ -15,6 +15,7 @@
         "offset": 64
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "WORKDIR /$WORD",
         "is_ignored": false,
@@ -62,6 +63,7 @@
         "offset": 180
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "WORKDIR /$WORD",
         "is_ignored": false,

@@ -1722,16 +1722,19 @@ let map_struct_member (env : env) (x : CST.struct_member) : field =
       G.basic_field id None (Some ty)
   | `Ellips tok -> G.fieldEllipsis ((* "..." *) token env tok)
 
-let map_inheritance_specifier (env : env) ((v1, v2) : CST.inheritance_specifier)
-    : class_parent =
-  let n = map_user_defined_type env v1 in
-  let ty = TyN n |> G.t in
-  let argsopt =
-    match v2 with
-    | Some x -> Some (map_call_arguments env x)
-    | None -> None
-  in
-  (ty, argsopt)
+let map_inheritance_specifier (env : env) (v1 : CST.inheritance_specifier) :
+    class_parent =
+  match v1 with
+  | `Ellips tok -> (G.TyEllipsis (token env tok) |> G.t, None)
+  | `User_defi_type_opt_call_args (v1, v2) ->
+      let n = map_user_defined_type env v1 in
+      let ty = TyN n |> G.t in
+      let argsopt =
+        match v2 with
+        | Some x -> Some (map_call_arguments env x)
+        | None -> None
+      in
+      (ty, argsopt)
 
 let map_event_paramater (env : env) ((v1, v2, v3) : CST.event_paramater) :
     parameter_classic =
@@ -1940,15 +1943,15 @@ let map_variable_declaration_statement (env : env)
 
 let rec map_block_statement (env : env) ((v0, v1, v2, v3) : CST.block_statement)
     =
-  let _uncheckedTODO =
-    match v0 with
-    | Some tok -> Some ((* "unchecked" *) token env tok)
-    | None -> None
-  in
   let lb = (* "{" *) token env v1 in
   let xs = Common.map (map_statement env) v2 in
   let rb = (* "}" *) token env v3 in
-  Block (lb, xs, rb) |> G.s
+  let stmt = Block (lb, xs, rb) |> G.s in
+  match v0 with
+  | Some tok ->
+      let t = (* "unchecked" *) token env tok in
+      OtherStmtWithStmt (OSWS_Block ("Unchecked", t), [], stmt) |> G.s
+  | None -> stmt
 
 and map_catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) : catch =
   let tcatch = (* "catch" *) token env v1 in

@@ -1,0 +1,90 @@
+=== command
+SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep --strict --config rules/dependency_aware/no-pattern.yaml --sarif targets/dependency_aware/yarn
+=== end of command
+
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "738fc94b546ae2bab7b7a1a361f77c1fcb1af654135442c7a9c5484f6c3a0ebc1dac9040404e8949431beee95ce8b498ab35f2e7bf45834d0054659510447705_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/dependency_aware/yarn/yarn.lock",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 0,
+                  "endLine": 0,
+                  "snippet": {
+                    "text": ""
+                  },
+                  "startColumn": 0,
+                  "startLine": 0
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "that's a bad lib"
+          },
+          "properties": {
+            "exposure": "undetermined"
+          },
+          "ruleId": "rules.dependency_aware.no-pattern"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "semgrep",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "fullDescription": {
+                "text": "that's a bad lib"
+              },
+              "id": "rules.dependency_aware.no-pattern",
+              "name": "rules.dependency_aware.no-pattern",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "that's a bad lib"
+              }
+            }
+          ],
+          "semanticVersion": "placeholder"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}
+=== end of stdout - plain
+
+=== stderr - plain
+Nothing to scan.
+
+
+Ran 1 rule on 0 files: 1 finding.
+
+=== end of stderr - plain

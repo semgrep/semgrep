@@ -1,0 +1,12 @@
+(library
+ (public_name parser_rust.ast_generic)
+ (name parser_rust_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   tree-sitter-lang.rust
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

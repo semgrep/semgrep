@@ -15,6 +15,7 @@
         "offset": 84
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix_regex": {
           "regex": "(.*)\\)",
@@ -42,6 +43,7 @@
         "offset": 130
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix_regex": {
           "regex": "(.*)\\)",
@@ -69,6 +71,7 @@
         "offset": 186
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix_regex": {
           "regex": "(.*)\\)",
@@ -96,6 +99,7 @@
         "offset": 285
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix_regex": {
           "regex": "(.*)\\)",
@@ -123,6 +127,7 @@
         "offset": 471
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix_regex": {
           "regex": "(.*)\\)",

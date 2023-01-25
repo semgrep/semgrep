@@ -1,0 +1,1 @@
+Fixed bug in poetry.lock parser where quoted square brackets could cause failures

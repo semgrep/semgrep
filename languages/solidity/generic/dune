@@ -1,0 +1,12 @@
+(library
+ (public_name parser_solidity.ast_generic)
+ (name parser_solidity_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   tree-sitter-lang.solidity
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

@@ -5,5 +5,7 @@ rules:
         package: sass
         version: "<= 1.43.5"
     message: that's a bad lib
+    metadata:
+      sca-kind: upgrade-only
     languages: [javascript]
     severity: WARNING
