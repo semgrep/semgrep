@@ -15,9 +15,9 @@
         "offset": 77
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    b = 10",
         "message": "Semgrep found a match 2\n",
         "metadata": {},
@@ -53,9 +53,9 @@
         "offset": 123
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    b = 10",
         "message": "Semgrep found a match 3\n",
         "metadata": {},

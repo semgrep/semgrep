@@ -25,9 +25,9 @@
         "offset": 37
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "metavariable_regex_test.method1(arg1)",
         "message": "Metavariable regex test multi regex",
         "metadata": {},

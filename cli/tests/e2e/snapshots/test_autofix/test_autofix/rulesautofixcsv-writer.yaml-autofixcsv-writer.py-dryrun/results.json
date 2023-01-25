@@ -15,6 +15,7 @@
         "offset": 151
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix_regex": {
           "regex": "(.*)\\)",
@@ -24,7 +25,6 @@
           "csv.writer(csvfile, delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "csv.writer(csvfile, delimiter=',', quotechar='\"')",
         "message": "Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.",
         "metadata": {
@@ -52,6 +52,7 @@
         "offset": 234
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix_regex": {
           "regex": "(.*)\\)",
@@ -61,7 +62,6 @@
           "csv.writer(get_file(), delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "csv.writer(get_file(), delimiter=',', quotechar='\"')",
         "message": "Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.",
         "metadata": {

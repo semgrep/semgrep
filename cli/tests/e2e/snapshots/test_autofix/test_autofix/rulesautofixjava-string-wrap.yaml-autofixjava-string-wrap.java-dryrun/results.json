@@ -15,13 +15,13 @@
         "offset": 52
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "wrap(\"a\")",
         "fixed_lines": [
           "        return wrap(\"a\") + \"b\";"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "        return \"a\" + \"b\";",
         "message": "Wrap strings",
         "metadata": {},
@@ -57,13 +57,13 @@
         "offset": 58
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "wrap(\"b\")",
         "fixed_lines": [
           "        return \"a\" + wrap(\"b\");"
         ],
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "        return \"a\" + \"b\";",
         "message": "Wrap strings",
         "metadata": {},

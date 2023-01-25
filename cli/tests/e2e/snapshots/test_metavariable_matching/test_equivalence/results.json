@@ -25,9 +25,9 @@
         "offset": 96
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    open(path)",
         "message": "Unsafe open from request data",
         "metadata": {},
@@ -76,9 +76,9 @@
         "offset": 262
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    open(z)",
         "message": "Unsafe open from request data",
         "metadata": {},

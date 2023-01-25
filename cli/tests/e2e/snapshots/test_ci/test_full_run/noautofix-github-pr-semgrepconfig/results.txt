@@ -20,30 +20,6 @@ Non-Blocking Findings:
          ▶▶┆ Autofix ▶ (x == 2)
          15┆ x == 5
 
-Blocking Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
-
 Blocking Rules Fired:
    eqeq-bad   
    eqeq-four   

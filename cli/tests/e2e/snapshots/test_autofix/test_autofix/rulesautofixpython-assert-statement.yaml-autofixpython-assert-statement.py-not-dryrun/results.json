@@ -15,10 +15,10 @@
         "offset": 26
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "assert \"a\"",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "assert_eq(\n    True, \"a\"\n)",
         "message": "Change assert_eq(True, x) to assert x",
         "metadata": {},
@@ -54,10 +54,10 @@
         "offset": 53
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "assert \"b\"",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "assert_eq(\n    True, \"b\"\n)",
         "message": "Change assert_eq(True, x) to assert x",
         "metadata": {},

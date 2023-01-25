@@ -15,9 +15,9 @@
         "offset": 131
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "    myfile = open();\n    try {\n      foo(myfile);\n    }\n    finally {\n      close(myfile);",
         "message": "found",
         "metadata": {},

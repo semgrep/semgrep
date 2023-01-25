@@ -15,10 +15,10 @@
         "offset": 54
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "inputs.get(x)",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "  inputs[x] = 1",
         "message": "Use `.get()` method to avoid a KeyNotFound error",
         "metadata": {},
@@ -67,10 +67,10 @@
         "offset": 77
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "inputs.get((x + 1))",
         "is_ignored": false,
-        "is_pro_match": false,
         "lines": "  if inputs[x + 1] == True:",
         "message": "Use `.get()` method to avoid a KeyNotFound error",
         "metadata": {},
