@@ -45,7 +45,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                 ]
               },
               "ecosystem": "pypi",
-              "line_number": 35,
+              "line_number": 29,
               "package": "awscli",
               "transitivity": "unknown",
               "version": "1.11.82"
@@ -94,7 +94,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                 ]
               },
               "ecosystem": "pypi",
-              "line_number": 35,
+              "line_number": 29,
               "package": "awscli",
               "transitivity": "unknown",
               "version": "1.11.82"
@@ -143,7 +143,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                 ]
               },
               "ecosystem": "pypi",
-              "line_number": 35,
+              "line_number": 29,
               "package": "awscli",
               "transitivity": "unknown",
               "version": "1.11.82"
@@ -192,7 +192,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                 ]
               },
               "ecosystem": "pypi",
-              "line_number": 35,
+              "line_number": 29,
               "package": "awscli",
               "transitivity": "unknown",
               "version": "1.11.82"
@@ -241,7 +241,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                 ]
               },
               "ecosystem": "pypi",
-              "line_number": 35,
+              "line_number": 29,
               "package": "awscli",
               "transitivity": "unknown",
               "version": "1.11.82"
@@ -290,7 +290,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                 ]
               },
               "ecosystem": "pypi",
-              "line_number": 35,
+              "line_number": 29,
               "package": "awscli",
               "transitivity": "unknown",
               "version": "1.11.82"
@@ -339,7 +339,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                 ]
               },
               "ecosystem": "pypi",
-              "line_number": 35,
+              "line_number": 29,
               "package": "awscli",
               "transitivity": "unknown",
               "version": "1.11.82"
@@ -388,7 +388,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                 ]
               },
               "ecosystem": "pypi",
-              "line_number": 35,
+              "line_number": 29,
               "package": "awscli",
               "transitivity": "unknown",
               "version": "1.11.82"
