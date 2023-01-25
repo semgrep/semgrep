@@ -16,7 +16,6 @@ logger = getLogger(__name__)
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -30,36 +29,7 @@ from semdep.parsers.yarn import parse_yarn
 from semdep.parsers.gradle import parse_gradle
 from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.package_lock import parse_package_lock
-
-
-def parse_gemfile(
-    lockfile_text: str, manifest_text: Optional[str]
-) -> Generator[FoundDependency, None, None]:
-    def parse_dep(s: str) -> FoundDependency:
-        # s == "    $DEP ($VERSION)"
-        dep, paren_version = s.strip().split(" ")
-        version = paren_version[1:-1]
-        return FoundDependency(
-            package=dep,
-            version=version,
-            ecosystem=Ecosystem(Gem()),
-            resolved_url=None,
-            allowed_hashes={},
-            transitivity=Transitivity(Unknown()),
-        )
-
-    lines = lockfile_text.split("\n")
-    # No dependencies specified
-    if "GEM" not in lines:
-        return
-    GEM_idx = lines.index("GEM") + 1
-    GEM_end_idx = lines[GEM_idx:].index(
-        ""
-    )  # A line with a single \n becomes the empty string upon splitting by \n
-    all_deps = lines[GEM_idx:GEM_end_idx]
-    yield from (
-        parse_dep(dep) for dep in all_deps if dep[:4] == " " * 4 and dep[5] != " "
-    )
+from semdep.parsers.gem import parse_gemfile
 
 
 def parse_go_sum(
@@ -155,7 +125,6 @@ def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]
 
 
 OLD_LOCKFILE_PARSERS = {
-    "gemfile.lock": parse_gemfile,  # Ruby
     "go.sum": parse_go_sum,  # Go
     "cargo.lock": parse_cargo,  # Rust
     "maven_dep_tree.txt": parse_pom_tree,  # Java
@@ -168,6 +137,7 @@ NEW_LOCKFILE_PARSERS = {
     "gradle.lockfile": parse_gradle,  # Java
     "pipfile.lock": parse_pipfile,  # Python
     "package-lock.json": parse_package_lock,  # JavaScript
+    "gemfile.lock": parse_gemfile,  # Ruby
 }
 
 
