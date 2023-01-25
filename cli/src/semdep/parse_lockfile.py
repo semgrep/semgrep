@@ -14,7 +14,6 @@ logger = getLogger(__name__)
 
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
@@ -27,45 +26,7 @@ from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.package_lock import parse_package_lock
 from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.pom_tree import parse_pom_tree
-
-
-def parse_go_sum(
-    lockfile_text: str, manifest_text: Optional[str]
-) -> Generator[FoundDependency, None, None]:
-    # We currently ignore the +incompatible flag, pseudo versions, and the difference between a go.mod and a direct download
-    def parse_dep(s: str) -> FoundDependency:
-        dep, version, hash = s.split()
-        # drop 'v'
-        version = version[1:]
-
-        # drop /go.mod
-        if "/" in version:
-            version = version[: version.index("/")]
-        # drop +incompatible
-        if "+" in version:
-            version = version[: version.index("+")]
-
-        # drop pseudo version
-        if "-" in version:
-            version = version[: version.index("-")]
-
-        # drop h1: and =
-        hash = hash[3:-1]
-        return FoundDependency(
-            package=dep,
-            version=version,
-            ecosystem=Ecosystem(Gomod()),
-            # go.sum dep names are already URLs
-            resolved_url=dep,
-            allowed_hashes={"gomod": [hash]},
-            transitivity=Transitivity(Unknown()),
-        )
-
-    lines = lockfile_text.split("\n")
-    if len(lines[-1].split()) != 3:
-        # Sometimes the last line will contain a carriage return character
-        lines = lines[:-1]
-    yield from (parse_dep(dep) for dep in lines)
+from semdep.parsers.go_sum import parse_go_sum
 
 
 def parse_cargo(
@@ -93,7 +54,6 @@ def parse_cargo(
 
 
 OLD_LOCKFILE_PARSERS = {
-    "go.sum": parse_go_sum,  # Go
     "cargo.lock": parse_cargo,  # Rust
 }
 
@@ -106,6 +66,7 @@ NEW_LOCKFILE_PARSERS = {
     "package-lock.json": parse_package_lock,  # JavaScript
     "gemfile.lock": parse_gemfile,  # Ruby
     "maven_dep_tree.txt": parse_pom_tree,  # Java
+    "go.sum": parse_go_sum,  # Go
 }
 
 
