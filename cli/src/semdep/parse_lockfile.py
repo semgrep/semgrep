@@ -1,16 +1,9 @@
-import base64
-import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
-from typing import Dict
 from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Optional
-
-from packaging.version import InvalidVersion
-from packaging.version import Version
 
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
@@ -22,7 +15,6 @@ logger = getLogger(__name__)
 
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
@@ -37,95 +29,7 @@ from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.yarn import parse_yarn
 from semdep.parsers.gradle import parse_gradle
 from semdep.parsers.pipfile import parse_pipfile
-
-
-def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
-    """
-    Go from:
-        sha512-aePbxDmcYW++PaqBsJ+HYUFwCdv4LVvdnhBy78E57PIor8/OVvhMrADFFEDh8DHDFRv/O9i3lPhsENjO7QX0+A==
-    To:
-        sha512,
-    """
-    algorithm = s.split("-")[0]
-    rest = s[len(algorithm) + 1 :]
-    decode_base_64 = base64.b64decode(rest)
-    return {algorithm: [base64.b16encode(decode_base_64).decode("ascii").lower()]}
-
-
-def parse_package_lock(
-    lockfile_text: str, manifest_text: Optional[str]
-) -> Generator[FoundDependency, None, None]:
-    lockfile_text = "\n".join(
-        (
-            line + f'"line_number": {i},'
-            if line.strip().endswith(",")
-            else f'"line_number": {i},' + line
-        )
-        if line.strip().startswith('"version"')
-        else line
-        for i, line in enumerate(lockfile_text.split("\n"))
-    )
-    as_json = json.loads(lockfile_text)
-    # Newer versions of NPM (>= v7) use 'packages'
-    # But 'dependencies' is kept up to date, and 'packages' uses relative, not absolute names
-    # https://docs.npmjs.com/cli/v8/configuring-npm/package-lock-json
-    if "dependencies" in as_json:
-        deps = as_json["dependencies"]
-    else:
-        logger.debug("Found package-lock with no 'dependencies'")
-        return
-    if manifest_text:
-        manifest = json.loads(manifest_text)
-        manifest_deps = manifest["dependencies"] if "dependencies" in manifest else {}
-    else:
-        manifest_deps = None
-
-    def parse_deps(deps: Dict[str, Any], nested: bool) -> Iterator[FoundDependency]:
-        # Dependency dicts in a package-lock.json can be nested:
-        # {"foo" : {stuff, "dependencies": {"bar": stuff, "dependencies": {"baz": stuff}}}}
-        # So we need to handle them recursively
-        for dep, dep_blob in deps.items():
-            version = dep_blob.get("version")
-            if not version:
-                logger.info(f"no version for dependency: {dep}")
-                continue
-            try:
-                Version(version)
-            # Version was a github commit
-            except InvalidVersion:
-                logger.info(f"no version for dependency: {dep}")
-                continue
-            line_number = dep_blob.get("line_number")
-            if nested:
-                # Nested dependencies are always transitive
-                transitivity = Transitivity(Transitive())
-            elif manifest_deps:
-                transitivity = (
-                    Transitivity(Direct())
-                    if dep in manifest_deps
-                    else Transitivity(Transitive())
-                )
-            else:
-                transitivity = Transitivity(Unknown())
-
-            resolved_url = dep_blob.get("resolved")
-            integrity = dep_blob.get("integrity")
-            yield FoundDependency(
-                package=dep,
-                version=version,
-                ecosystem=Ecosystem(Npm()),
-                allowed_hashes=extract_npm_lockfile_hash(integrity)
-                if integrity
-                else {},
-                resolved_url=resolved_url,
-                transitivity=transitivity,
-                line_number=int(line_number) + 1 if line_number else None,
-            )
-            nested_deps = dep_blob.get("dependencies")
-            if nested_deps:
-                yield from parse_deps(nested_deps, True)
-
-    yield from parse_deps(deps, False)
+from semdep.parsers.package_lock import parse_package_lock
 
 
 def parse_gemfile(
@@ -251,7 +155,6 @@ def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]
 
 
 OLD_LOCKFILE_PARSERS = {
-    "package-lock.json": parse_package_lock,  # JavaScript
     "gemfile.lock": parse_gemfile,  # Ruby
     "go.sum": parse_go_sum,  # Go
     "cargo.lock": parse_cargo,  # Rust
@@ -264,6 +167,7 @@ NEW_LOCKFILE_PARSERS = {
     "yarn.lock": parse_yarn,  # JavaScript
     "gradle.lockfile": parse_gradle,  # Java
     "pipfile.lock": parse_pipfile,  # Python
+    "package-lock.json": parse_package_lock,  # JavaScript
 }
 
 
