@@ -1,0 +1,12 @@
+(library
+ (public_name parser_lua.ast_generic)
+ (name parser_lua_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   tree-sitter-lang.lua
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

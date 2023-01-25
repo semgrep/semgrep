@@ -1,0 +1,12 @@
+(library
+ (public_name parser_csharp.ast_generic)
+ (name parser_csharp_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   tree-sitter-lang.c-sharp
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)
