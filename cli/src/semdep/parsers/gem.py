@@ -1,3 +1,6 @@
+"""
+Parser for Gemfile.lock files
+"""
 from pathlib import Path
 from typing import List
 from typing import Optional

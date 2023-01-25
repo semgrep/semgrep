@@ -1,5 +1,5 @@
 """
-Parsers for poetry.lock and pyproject.toml files, and a function to produce FoundDependency objects from them
+Parsers for poetry.lock and pyproject.toml files
 """
 from pathlib import Path
 from typing import List

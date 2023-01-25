@@ -1,3 +1,6 @@
+"""
+Parser for gradle.lock and build.gradle files
+"""
 from pathlib import Path
 from typing import List
 from typing import Optional

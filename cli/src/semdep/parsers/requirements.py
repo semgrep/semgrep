@@ -1,5 +1,5 @@
 """
-A parser for requirements.txt and requirements.in files
+Parsers for requirements.txt and requirements.in files
 This is based on the spec described here: https://pip.pypa.io/en/stable/reference/requirements-file-format/
 """
 import re

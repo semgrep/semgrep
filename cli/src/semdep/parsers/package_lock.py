@@ -1,3 +1,6 @@
+"""
+Parser for package-lock.json files
+"""
 from pathlib import Path
 from typing import Dict
 from typing import List
