@@ -25,8 +25,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 #     bar, baz
 # ]
 # If the value is a list we don't bother reading the content, because they are not useful for our SCA
-value = not_any(["\n", "["]).map(lambda x: x.strip('"')) | (
-    string("[") >> not_any(["]"]) << string("]")
+value = not_any("\n", "[").map(lambda x: x.strip('"')) | (
+    string("[") >> not_any("]") << string("]")
 ).map(lambda _: "")
 
 
@@ -37,7 +37,7 @@ value = not_any(["\n", "["]).map(lambda x: x.strip('"')) | (
 # foo = [
 #     bar, baz
 # ]
-key_value = not_any([" ", "\n"]).bind(
+key_value = not_any(" ", "\n").bind(
     lambda key: string(" = ") >> value.bind(lambda value: success((key, value)))
 )
 
@@ -59,7 +59,7 @@ poetry_dep = mark_line(
 # [package.extras]
 # dev = ["coverage", "django", "flake8", "isort", "pillow", "sqlalchemy", "mongoengine", "wheel (>=0.32.0)", "tox", "zest.releaser"]
 # doc = ["sphinx", "sphinx-rtd-theme", "sphinxcontrib-spelling"]
-poetry_dep_extra = (string("[") >> not_any(["]"]) << string("]\n")) >> key_value.sep_by(
+poetry_dep_extra = (string("[") >> not_any("]") << string("]\n")) >> key_value.sep_by(
     string("\n")
 ).map(lambda _: None)
 
