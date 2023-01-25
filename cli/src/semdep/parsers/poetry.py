@@ -9,6 +9,7 @@ from typing import List
 from typing import Optional
 
 from parsy import any_char
+from parsy import eof
 from parsy import string
 from parsy import success
 
@@ -21,6 +22,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 
 # These use [until] instead of [upto] because [upto] only works on single characters
+# and [upto] works on arbitrary parsers (this makes it slower though)
 # We don't care about the contents of any list or object values right now
 
 # Using ]\n allows us to avoid issues with closing brackets inside strings
@@ -30,11 +32,19 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 #   foo,
 #   bar
 # ]
-list_value = string("[") >> any_char.until(string("]\n")).result("") << string("]")
+list_value = (
+    string("[")
+    >> any_char.until(string("]") << (string("\n") | eof)).result("")
+    << string("]")
+)
 
 # Examples:
 # {version = "*", optional = true, markers = "python_full_version <= \"3.11.0a6\" and extra == \"toml\""}
-object_value = string("{") >> any_char.until(string("}\n")).result("") << string("}")
+object_value = (
+    string("{")
+    >> any_char.until(string("}") << (string("\n") | eof)).result("")
+    << string("}")
+)
 
 # Examples:
 # "foo"
