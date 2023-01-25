@@ -24,6 +24,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 
 
+whitespace = whitespace | string("\\\n")
+
 # We define a package by its possible delimiters instead of trying to define a grammar for package names
 package = upto("=", "<", ">", " ", "[", "\n")
 
@@ -72,15 +74,18 @@ dep_with_at = package >> whitespace >> string("@") >> consume_line
 # -e file:local-file
 flag_line = (string("--") | string("-")) >> consume_line
 
+# We're going to preprocess the comments away
+comment_line = success(None)
+
 # A whole requirements file, can be requirements.txt or requirements.in
 requirements = (
-    mark_line(flag_line | dep_with_at | dep | consume_line)
+    mark_line(flag_line | dep_with_at | dep | consume_line | comment_line)
     .sep_by(string("\n").at_least(1))
     .map(lambda xs: [(l, x) for (l, x) in xs if x])
 )
 
 
-# We preprocess the file to remove comments and backslashes for line breaks
+# We preprocess the file to remove comments
 # It's much easier to just strip them out than to weave them into parsing
 
 
@@ -98,18 +103,7 @@ def strip_comment_from_line(line: str) -> str:
 
 
 def remove_comments(s: str) -> str:
-    stripped_lines = [strip_comment_from_line(line) for line in s.splitlines()]
-    return "\n".join(line for line in stripped_lines if line)
-
-
-# then remove backslashes
-# https://github.com/pypa/pip/blob/e69e265cb7b60fb2dacbbb2ab8fa3baaf24bfe4d/src/pip/_internal/req/req_file.py#L453
-def remove_backslashes(s: str) -> str:
-    return s.replace("\\\n", "")
-
-
-def preprocess(s: str) -> str:
-    return remove_backslashes(remove_comments(s))
+    return "\n".join(strip_comment_from_line(line) for line in s.splitlines())
 
 
 def get_manifest_deps(
@@ -121,7 +115,7 @@ def get_manifest_deps(
 def parse_requirements(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps = safe_path_parse(lockfile_path, requirements, preprocess=preprocess)
+    deps = safe_path_parse(lockfile_path, requirements, preprocess=remove_comments)
     if deps is None:
         return []
     manifest_deps = get_manifest_deps(safe_path_parse(manifest_path, requirements))
