@@ -1,6 +1,4 @@
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
@@ -31,14 +29,10 @@ logger = getLogger(__name__)
 
 A = TypeVar("A")
 
-
-@dataclass
-class YarnDep:
-    line_number: int
-    sources: List[Tuple[str, str]]
-    data: Dict[str, str]
-
-
+# The initial line of a yarn version 1 dependency, lists the constraints that lead to this package
+# Examples:
+# "@ampproject/remapping@^2.0.0"
+# bad-lib@0.0.8
 def source1(quoted: bool) -> "Parser[Tuple[str,str]]":
     return (
         string("@")
@@ -53,8 +47,18 @@ def source1(quoted: bool) -> "Parser[Tuple[str,str]]":
     )
 
 
+# Examples:
+# "@ampproject/remapping@^2.0.0", "@ampproject/remapping@^3.1.0"
+# bad-lib@0.0.8, bad-lib@^0.0.4
 multi_source1 = (quoted(source1(True)) | source1(False)).sep_by(string(", "))
 
+
+# A key value pair. These can be a name followed by a nested list, but the only data we care about is in outermost list
+# This is why we produce None if the line is preceeded by more than 2 spaces, or if it ends in a colon
+# Examples:
+#   version "2.1.1"
+#   integrity sha512-Aolwjd7HSC2PyY0fDj/wA/EimQT4HfEnFYNp5s9CQlrdhyvWTtvZ5YzrUPu6R6/1jKiUlxu8bUhkdSnKHNAHMA==
+#   dependencies:
 key_value1: "Parser[Optional[Tuple[str,str]]]" = (
     string(" ")
     .many()
@@ -73,7 +77,14 @@ key_value1: "Parser[Optional[Tuple[str,str]]]" = (
     )
 )
 
-
+# A full spec of a dependency
+# Examples:
+# "@ampproject/remapping@^2.0.0":
+#   version "2.1.1"
+#   resolved "https://registry.npmjs.org/@ampproject/remapping/-/remapping-2.1.1.tgz"
+#   integrity sha512-Aolwjd7HSC2PyY0fDj/wA/EimQT4HfEnFYNp5s9CQlrdhyvWTtvZ5YzrUPu6R6/1jKiUlxu8bUhkdSnKHNAHMA==
+#   dependencies:
+#     "@jridgewell/trace-mapping" "^0.3.0"
 yarn_dep1 = mark_line(
     pair(
         multi_source1 << string(":\n"),
@@ -93,6 +104,11 @@ yarn1 = (
 )
 
 
+# The yarn version 2/3 parser is set up equivalently, with slight differences in sub-parsers
+
+
+# Examples:
+# @ampproject/remapping@npm:^2.0.0
 source2 = (
     string("@")
     .optional(default="")
@@ -105,9 +121,16 @@ source2 = (
         )
     )
 )
+
+# Examples:
+# "@apidevtools/json-schema-ref-parser@npm:9.0.9"
+# "@babel/generator@npm:^7.12.11, @babel/generator@npm:^7.12.5, @babel/generator@npm:^7.18.10"
 multi_source2 = quoted(source2.sep_by(string(", ")))
 
-
+# Examples:
+#   version: 7.18.10
+#   resolution: "@babel/generator@npm:7.18.10"
+#   dependencies:
 key_value2: "Parser[Optional[Tuple[str,str]]]" = (
     string(" ")
     .many()
@@ -127,6 +150,17 @@ key_value2: "Parser[Optional[Tuple[str,str]]]" = (
     )
 )
 
+# Examples:
+# "@babel/generator@npm:^7.17.0, @babel/generator@npm:^7.7.2":
+#   version: 7.17.0
+#   resolution: "@babel/generator@npm:7.17.0"
+#   dependencies:
+#     "@babel/types": ^7.17.0
+#     jsesc: ^2.5.1
+#     source-map: ^0.5.0
+#   checksum: 2987dbebb484727a227f1ce3db90810320986cfb3ffd23e6d1d87f75bbd8e7871b5bc44252822d4d5f048a2d872a5702b2a9bf7bab7e07f087d7f306f0ea6c0a
+#   languageName: node
+#   linkType: hard
 yarn_dep2 = mark_line(
     pair(
         multi_source2 << string(":\n"),
@@ -149,6 +183,9 @@ yarn2 = (
 
 
 def get_manifest_deps(manifest_path: Optional[Path]) -> Optional[Set[Tuple[str, str]]]:
+    """
+    Extract a set of constraints from a package.json file
+    """
     if not manifest_path:
         return None
     json_opt = safe_path_parse(manifest_path, json_doc)
