@@ -1,3 +1,6 @@
+"""
+Parsers for yarn.lock versions 1 and 2/3
+"""
 from pathlib import Path
 from typing import List
 from typing import Optional

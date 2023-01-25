@@ -1,5 +1,4 @@
 import base64
-import collections
 import json
 from functools import lru_cache
 from pathlib import Path
@@ -10,7 +9,6 @@ from typing import Iterator
 from typing import List
 from typing import Optional
 
-import tomli
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
@@ -25,7 +23,6 @@ logger = getLogger(__name__)
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
@@ -39,6 +36,7 @@ from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.yarn import parse_yarn
 from semdep.parsers.gradle import parse_gradle
+from semdep.parsers.pipfile import parse_pipfile
 
 
 def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
@@ -128,67 +126,6 @@ def parse_package_lock(
                 yield from parse_deps(nested_deps, True)
 
     yield from parse_deps(deps, False)
-
-
-def parse_pipfile(
-    lockfile_text: str, manifest_text: Optional[str]
-) -> Generator[FoundDependency, None, None]:
-    lockfile_text = "\n".join(
-        line + f', "line_number": {i}' if line.strip().startswith('"version"') else line
-        for i, line in enumerate(lockfile_text.split("\n"))
-    )
-    manifest = tomli.loads(manifest_text) if manifest_text else None
-    if manifest:
-        manifest_deps = manifest["packages"] if "packages" in manifest else {}
-    else:
-        manifest_deps = None
-
-    def extract_pipfile_hashes(
-        hashes: List[str],
-    ) -> Dict[str, List[str]]:
-        output = collections.defaultdict(list)
-        for h in hashes:
-            algorithm = h.split(":")[0]
-            rest = h[len(algorithm) + 1 :]  # pipfile is already in base16
-            output[algorithm].append(rest.lower())
-        return output
-
-    def parse_dependency_blob(
-        root_blob: Dict[str, Any]
-    ) -> Generator[FoundDependency, None, None]:
-        for dep in root_blob:
-            dep_blob = root_blob[dep]
-            version = dep_blob.get("version")
-            if not version:
-                logger.info(f"no version for dependency: {dep}")
-            else:
-                version = version.replace("==", "")
-                line_number = dep_blob.get("line_number")
-                if manifest_deps:
-                    transitivity = (
-                        Transitivity(Direct())
-                        if dep in manifest_deps
-                        else Transitivity(Transitive())
-                    )
-                else:
-                    transitivity = Transitivity(Unknown())
-                yield FoundDependency(
-                    package=dep,
-                    version=version,
-                    ecosystem=Ecosystem(Pypi()),
-                    resolved_url=None,
-                    allowed_hashes=extract_pipfile_hashes(dep_blob["hashes"])
-                    if "hashes" in dep_blob
-                    else {},
-                    transitivity=transitivity,
-                    line_number=int(line_number) + 1 if line_number else None,
-                )
-
-    as_json = json.loads(lockfile_text)
-    yield from parse_dependency_blob(as_json["default"])
-    develop_deps = as_json.get("develop")
-    if develop_deps is not None:
-        yield from parse_dependency_blob(develop_deps)
 
 
 def parse_gemfile(
@@ -314,7 +251,6 @@ def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]
 
 
 OLD_LOCKFILE_PARSERS = {
-    "pipfile.lock": parse_pipfile,  # Python
     "package-lock.json": parse_package_lock,  # JavaScript
     "gemfile.lock": parse_gemfile,  # Ruby
     "go.sum": parse_go_sum,  # Go
@@ -327,6 +263,7 @@ NEW_LOCKFILE_PARSERS = {
     "requirements.txt": parse_requirements,  # Python
     "yarn.lock": parse_yarn,  # JavaScript
     "gradle.lockfile": parse_gradle,  # Java
+    "pipfile.lock": parse_pipfile,  # Python
 }
 
 
