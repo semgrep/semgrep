@@ -1,0 +1,55 @@
+rules:
+- id: resolved-metavariables
+  pattern-either:
+    - patterns:
+        - pattern: |
+            var res1 = foo.bar()
+    - patterns: 
+        - pattern: |
+            var res2 = $ID()
+        - metavariable-pattern: 
+            metavariable: $ID
+            pattern: |
+              foo.bar
+    - patterns:
+        - pattern: |
+            var res3 = $PACKAGE.$ID()
+        - metavariable-pattern:
+            metavariable: $PACKAGE
+            pattern: |
+              foo
+    - patterns:
+        - pattern: |
+            var res4 = $PACKAGE.$ID()
+        - metavariable-regex: 
+            metavariable: $PACKAGE
+            regex: "^foo"
+    - patterns:
+        - pattern: |
+            ...
+            var res5 = $PACKAGE.$ID()
+        - focus-metavariable: $PACKAGE 
+    - patterns:
+        - pattern: |
+            var res6 = $PACKAGE.$ID()
+        - metavariable-comparison:
+            metavariable: $PACKAGE
+            comparison: |
+              str($PACKAGE) == str($ID)
+    - patterns:
+        - pattern: |
+            var res7 = $PACKAGE.$ID()
+        - metavariable-comparison:
+            metavariable: $PACKAGE
+            comparison: |
+              $PACKAGE == $ID
+    - patterns:
+        - pattern: |
+            var res8 = $PACKAGE.$PACKAGE()
+  message: | 
+    We should be able to decompose on a resolved name with a 
+    metavariable in a sensible way.
+    Note that $PACKAGE and $ID will both resolve to `baz`,
+    in the interpolated message.
+  severity: WARNING
+  languages: [javascript]
