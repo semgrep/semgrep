@@ -455,8 +455,7 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
   RP.collate_pattern_results
     [
       matches_of_patterns ~mvar_context rule xconf xtarget patterns;
-      (let config = (xconf.config, xconf.equivs) in
-       Xpattern_match_spacegrep.matches_of_spacegrep config spacegreps file);
+      Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps file;
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content file;
       Xpattern_match_comby.matches_of_combys combys lazy_content file;
     ]
@@ -610,7 +609,9 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
 
 and nested_formula_has_matches env formula opt_context =
   let res, final_ranges =
-    matches_of_formula env.xconf env.rule env.xtarget formula opt_context
+    matches_of_formula
+      { env.xconf with nested_formula = true }
+      env.rule env.xtarget formula opt_context
   in
   env.errors := Report.ErrorSet.union res.RP.errors !(env.errors);
   match final_ranges with

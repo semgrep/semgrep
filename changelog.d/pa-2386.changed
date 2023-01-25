@@ -1,0 +1,6 @@
+metavariable-pattern: For performance reasons Generic mode ignores target files
+that look like machine generated. Unfortunately, this also prevented using the
+`metavariable-pattern` operator on text that may look like (or in fact be)
+machine generated, such as an RSA key contained in a legit file. Now, when the
+analysis is requested within a `metavariable-pattern` operator, Generic mode
+will always match any text even if it looks like machine generated.

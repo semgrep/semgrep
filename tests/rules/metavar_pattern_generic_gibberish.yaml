@@ -1,0 +1,19 @@
+rules:
+  - id: find-private-key
+    message: $X
+    severity: WARNING
+    languages:
+      - js
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              '$X'
+      - focus-metavariable: $X
+      - metavariable-pattern:
+          metavariable: $X
+          language: generic
+          patterns:
+            - pattern: -----BEGIN RSA PRIVATE KEY-----$...MIDDLE-----END RSA PRIVATE KEY-----
+            - metavariable-analysis:
+                analyzer: entropy
+                metavariable: $...MIDDLE
