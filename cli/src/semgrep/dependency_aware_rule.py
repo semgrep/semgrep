@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict
 from typing import Iterator
@@ -16,8 +17,12 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaInfo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.target_manager import TargetManager
 
 SCA_FINDING_SCHEMA = 20220913
@@ -51,6 +56,22 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
         yield DependencyPattern(
             ecosystem=ecosystem, package=package, semver_range=semver_range
         )
+
+
+@lru_cache(maxsize=1000)
+def transivite_dep_is_also_direct(
+    dep: FoundDependency, deps: Tuple[FoundDependency, ...]
+) -> bool:
+    """
+    Assumes that [dep] is transitive
+    Checks if there is a direct version of the transitive dependency [dep]
+    """
+    for other_dep in deps:
+        if other_dep.package == dep.package and other_dep.transitivity == Transitivity(
+            Direct()
+        ):
+            return True
+    return False
 
 
 def generate_unreachable_sca_findings(
@@ -138,6 +159,13 @@ def generate_reachable_sca_findings(
                 if dependency_matches:
                     matched_lockfiles.add(lockfile_path)
                 for dep_pat, found_dep in dependency_matches:
+                    if found_dep.transitivity == Transitivity(
+                        Transitive()
+                    ) and transivite_dep_is_also_direct(found_dep, tuple(deps)):
+                        reachable = False
+                    else:
+                        reachable = True
+
                     dep_match = DependencyMatch(
                         dependency_pattern=dep_pat,
                         found_dependency=found_dep,
@@ -145,7 +173,7 @@ def generate_reachable_sca_findings(
                     )
                     match.extra["sca_info"] = ScaInfo(
                         sca_finding_schema=SCA_FINDING_SCHEMA,
-                        reachable=True,
+                        reachable=reachable,
                         reachability_rule=rule.should_run_on_semgrep_core,
                         dependency_match=dep_match,
                     )
