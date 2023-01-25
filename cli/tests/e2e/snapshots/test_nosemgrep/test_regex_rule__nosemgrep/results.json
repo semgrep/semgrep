@@ -17,6 +17,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "aws_account_id:123456789012",
         "message": "AWS Account ID detected",
         "metadata": {

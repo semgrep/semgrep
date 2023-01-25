@@ -18,6 +18,7 @@
         "fingerprint": "0x42",
         "fix": "WORKDIR /$WORD",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "WORKDIR usr/src/app",
         "message": "Detected a relative WORKDIR. Use absolute paths. This prevents issues based on assumptions about the WORKDIR of previous containers.",
         "metadata": {
@@ -65,6 +66,7 @@
         "fingerprint": "0x42",
         "fix": "WORKDIR /$WORD",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "WORKDIR ${dirpath}",
         "message": "Detected a relative WORKDIR. Use absolute paths. This prevents issues based on assumptions about the WORKDIR of previous containers.",
         "metadata": {

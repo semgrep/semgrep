@@ -17,6 +17,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "USER root",
         "message": "'USER' is specified twice\n",
         "metadata": {},
@@ -54,6 +55,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "USER root",
         "message": "'USER' is specified twice\n",
         "metadata": {},

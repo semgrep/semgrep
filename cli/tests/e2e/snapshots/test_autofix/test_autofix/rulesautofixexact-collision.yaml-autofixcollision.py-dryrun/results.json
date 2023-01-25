@@ -21,6 +21,7 @@
           "a = once"
         ],
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "a = 1",
         "message": "Semgrep found a match",
         "metadata": {},
@@ -45,6 +46,7 @@
         "fingerprint": "0x42",
         "fix": "twice",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "a = 1",
         "message": "Semgrep found a match",
         "metadata": {},

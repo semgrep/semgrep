@@ -684,19 +684,35 @@ class TextFormatter(BaseFormatter):
                 + "\n".join(first_party_nonblocking_output)
             )
         if first_party_blocking:
-            first_party_blocking_output = self._build_text_output(
-                first_party_blocking,
-                extra.get("color_output", False),
-                extra["per_finding_max_lines_limit"],
-                extra["per_line_max_chars_limit"],
-                extra["dataflow_traces"],
-            )
-            findings_output.append(
-                f"\nFirst-Party {blocking_description}:\n"
-                + "\n".join(first_party_blocking_output)
-            ) if (reachable or unreachable) else findings_output.append(
-                f"\n{blocking_description}:\n" + "\n".join(first_party_blocking_output)
-            )
+
+            def generate_output(header: str, matches: List[RuleMatch]) -> None:
+                if len(matches) > 0:
+                    output = self._build_text_output(
+                        matches,
+                        extra.get("color_output", False),
+                        extra["per_finding_max_lines_limit"],
+                        extra["per_line_max_chars_limit"],
+                        extra["dataflow_traces"],
+                    )
+                    findings_output.append(f"\n{header}:\n" + "\n".join(output))
+
+            if reachable or unreachable:
+                generate_output(
+                    f"First-Party {blocking_description}", first_party_blocking
+                )
+            else:
+                oss_matches = [
+                    x
+                    for x in first_party_blocking
+                    if isinstance(x.match.extra.engine_kind, out.OSSMatch)
+                ]
+                pro_matches = [
+                    x
+                    for x in first_party_blocking
+                    if isinstance(x.match.extra.engine_kind, out.ProMatch)
+                ]
+                generate_output(f"{blocking_description}", oss_matches)
+                generate_output(f"Semgrep PRO Findings", pro_matches)
 
         first_party_blocking_rules_output = []
 

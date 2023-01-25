@@ -17,6 +17,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    def B():\n        print(\"hey\")",
         "message": "method B is in A",
         "metadata": {},
@@ -67,6 +68,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    def C():\n        print(\"yeh\")",
         "message": "method C is in A",
         "metadata": {},

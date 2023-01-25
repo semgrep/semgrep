@@ -17,6 +17,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "## Getting Started",
         "message": "Detected h2 Markdown header",
         "metadata": {},
@@ -54,6 +55,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "## Examples",
         "message": "Detected h2 Markdown header",
         "metadata": {},
@@ -91,6 +93,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "## Resources",
         "message": "Detected h2 Markdown header",
         "metadata": {},
@@ -128,6 +131,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "## Usage",
         "message": "Detected h2 Markdown header",
         "metadata": {},
@@ -165,6 +169,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "## Contributing",
         "message": "Detected h2 Markdown header",
         "metadata": {},
@@ -202,6 +207,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "## Commercial Support",
         "message": "Detected h2 Markdown header",
         "metadata": {},

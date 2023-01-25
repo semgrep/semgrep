@@ -33,6 +33,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "    test_nosem_func();",
         "message": "test-nosem-message",
         "metadata": {},
@@ -56,6 +57,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "    test_nosem_func(); // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -79,6 +81,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    test_nosem_func();",
         "message": "test-nosem-message",
         "metadata": {},
@@ -102,6 +105,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "\ttest_nosem_func() // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -125,6 +129,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "\ttest_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -148,6 +153,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "        test_nosem_func();",
         "message": "test-nosem-message",
         "metadata": {},
@@ -171,6 +177,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "        test_nosem_func(); // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -194,6 +201,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "        test_nosem_func();",
         "message": "test-nosem-message",
         "metadata": {},
@@ -217,6 +225,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func() // nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -240,6 +249,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func() // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -263,6 +273,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func() // NOSEM: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -286,6 +297,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "test_nosem_func(\n    invalid_line // nosem: rules.test-nosem\n)",
         "message": "test-nosem-message",
         "metadata": {},
@@ -309,6 +321,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -332,6 +345,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -355,6 +369,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -378,6 +393,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "test_nosem_func(\n  // nosem: rules.test-nosem\n  invalid_line\n)",
         "message": "test-nosem-message",
         "metadata": {},
@@ -401,6 +417,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -424,6 +441,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -447,6 +465,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -470,6 +489,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -493,6 +513,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -516,6 +537,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -539,6 +561,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()  # nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -562,6 +585,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()  # NOSEM: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -585,6 +609,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()  # nosemgrep: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -608,6 +633,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()  # NOSEMGREP",
         "message": "test-nosem-message",
         "metadata": {},
@@ -631,6 +657,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": true,
+        "is_pro_match": false,
         "lines": "test_nosem_func()  # nOseMgREP: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -654,6 +681,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},

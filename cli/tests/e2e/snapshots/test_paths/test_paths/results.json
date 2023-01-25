@@ -19,6 +19,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -69,6 +70,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -119,6 +121,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -169,6 +172,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -219,6 +223,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -269,6 +274,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -319,6 +325,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -369,6 +376,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -419,6 +427,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -469,6 +478,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -519,6 +529,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -569,6 +580,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -619,6 +631,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -669,6 +682,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},

@@ -48,6 +48,7 @@
             }
           }
         },
+        "is_pro_match": false,
         "severity": "ERROR"
       },
       "path": "/tmp/dir/foo.py",
@@ -89,6 +90,7 @@
             }
           }
         },
+        "is_pro_match": false,
         "severity": "ERROR"
       },
       "path": "/tmp/dir/foo.py",

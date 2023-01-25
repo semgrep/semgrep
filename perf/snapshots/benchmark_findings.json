@@ -10,6 +10,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -25,6 +26,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -40,6 +42,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -55,6 +58,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -70,6 +74,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -85,6 +90,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -100,6 +106,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
@@ -111,336 +118,11 @@
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 15,
-            "line": 1088,
-            "offset": 48253
-          },
+          "end": { "col": 94, "line": 503, "offset": 20652 },
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/events.py",
-          "start": {
-            "col": 1,
-            "line": 1000,
-            "offset": 45064
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 16,
-            "line": 279,
-            "offset": 10200
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
-          "start": {
-            "col": 1,
-            "line": 226,
-            "offset": 8478
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 22,
-            "line": 280,
-            "offset": 10266
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": {
-            "col": 5,
-            "line": 257,
-            "offset": 9524
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 22,
-            "line": 299,
-            "offset": 11130
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": {
-            "col": 5,
-            "line": 282,
-            "offset": 10272
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 22,
-            "line": 315,
-            "offset": 11872
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": {
-            "col": 5,
-            "line": 308,
-            "offset": 11452
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 22,
-            "line": 370,
-            "offset": 14146
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": {
-            "col": 5,
-            "line": 361,
-            "offset": 13617
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 22,
-            "line": 990,
-            "offset": 37311
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": {
-            "col": 5,
-            "line": 971,
-            "offset": 36524
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 26,
-            "line": 183,
-            "offset": 7293
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/webhooks/librato/view.py",
-          "start": {
-            "col": 1,
-            "line": 159,
-            "offset": 6516
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 37,
-            "line": 487,
-            "offset": 18191
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/views/users.py",
-          "start": {
-            "col": 1,
-            "line": 359,
-            "offset": 13123
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 41,
-            "line": 219,
-            "offset": 8373
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
-          "start": {
-            "col": 1,
-            "line": 192,
-            "offset": 7470
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 57,
-            "line": 306,
-            "offset": 11446
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": {
-            "col": 5,
-            "line": 301,
-            "offset": 11136
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 58,
-            "line": 329,
-            "offset": 12514
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": {
-            "col": 5,
-            "line": 324,
-            "offset": 12202
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 6,
-            "line": 299,
-            "offset": 10724
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
-          "start": {
-            "col": 1,
-            "line": 282,
-            "offset": 10203
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 61,
-            "line": 322,
-            "offset": 12196
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": {
-            "col": 5,
-            "line": 317,
-            "offset": 11878
-          }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": {
-            "col": 94,
-            "line": 503,
-            "offset": 20652
-          },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
@@ -448,11 +130,231 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/views/auth.py",
-          "start": {
-            "col": 1,
-            "line": 462,
-            "offset": 19227
-          }
+          "start": { "col": 1, "line": 462, "offset": 19227 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 61, "line": 322, "offset": 12196 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": { "col": 5, "line": 317, "offset": 11878 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 6, "line": 299, "offset": 10724 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
+          "start": { "col": 1, "line": 282, "offset": 10203 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 58, "line": 329, "offset": 12514 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": { "col": 5, "line": 324, "offset": 12202 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 57, "line": 306, "offset": 11446 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": { "col": 5, "line": 301, "offset": 11136 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 41, "line": 219, "offset": 8373 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
+          "start": { "col": 1, "line": 192, "offset": 7470 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 37, "line": 487, "offset": 18191 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/views/users.py",
+          "start": { "col": 1, "line": 359, "offset": 13123 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 26, "line": 183, "offset": 7293 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/webhooks/librato/view.py",
+          "start": { "col": 1, "line": 159, "offset": 6516 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 22, "line": 990, "offset": 37311 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": { "col": 5, "line": 971, "offset": 36524 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 22, "line": 370, "offset": 14146 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": { "col": 5, "line": 361, "offset": 13617 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 22, "line": 315, "offset": 11872 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": { "col": 5, "line": 308, "offset": 11452 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 22, "line": 299, "offset": 11130 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": { "col": 5, "line": 282, "offset": 10272 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 22, "line": 280, "offset": 10266 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
+          "start": { "col": 5, "line": 257, "offset": 9524 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 16, "line": 279, "offset": 10200 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
+          "start": { "col": 1, "line": 226, "offset": 8478 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
+          "end": { "col": 15, "line": 1088, "offset": 48253 },
+          "extra": {
+            "fingerprint": "<masked in benchmarks>",
+            "is_ignored": false,
+            "is_pro_match": false,
+            "lines": "<masked in benchmarks>",
+            "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
+            "metadata": {},
+            "metavars": "<masked in benchmarks>",
+            "severity": "ERROR"
+          },
+          "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/events.py",
+          "start": { "col": 1, "line": 1000, "offset": 45064 }
         }
       ]
     }
@@ -472,15 +374,22 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "[WARN] Syntax error at line /Users/cooper/dev/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js:1:\n `{% load l10n %}\nOpenLayers.Projection.addTransform(\"EPSG:4326\", \"EPSG:3857\", OpenLayers.Layer.SphericalMercator.projectForward);\n{% block vars %}var {{ module }} = {};\n{{ module }}.map = null; {{ module }}.controls = null; {{ module }}.panel = null; {{ module }}.re = new RegExp(\"^SRID=\\\\d+;(.+)\", \"i\"); {{ module }}.layers = {};\n{{ module }}.modifiable = {{ modifiable|yesno:\"true,false\" }};\n{{ module }}.wkt_f = new OpenLayers.Format.WKT();\n{{ module }}.is_collection = {{ is_collection|yesno:\"true,false\" }};\n{{ module }}.collection_type = '{{ collection_type }}';\n{{ module }}.is_generic = {{ is_generic|yesno:\"true,false\" }};\n{{ module }}.is_linestring = {{ is_linestring|yesno:\"true,false\" }};\n{{ module }}.is_polygon = {{ is_polygon|yesno:\"true,false\" }};\n{{ module }}.is_point = {{ is_point|yesno:\"true,false\" }};\n{% endblock %}\n{{ module }}.get_ewkt = function(feat){\n    return 'SRID={{ srid|unlocalize }};' + {{ module }}.wkt_f.write(feat);\n};\n{{ module }}.read_wkt = function(wkt){\n    // OpenLayers cannot handle EWKT -- we make sure to strip it out.\n    // EWKT is only exposed to OL if there's a validation error in the admin.\n    var match = {{ module }}.re.exec(wkt);\n    if (match){wkt = match[1];}\n    return {{ module }}.wkt_f.read(wkt);\n};\n{{ module }}.write_wkt = function(feat){\n    if ({{ module }}.is_collection){ {{ module }}.num_geom = feat.geometry.components.length;}\n    else { {{ module }}.num_geom = 1;}\n    document.getElementById('{{ id }}').value = {{ module }}.get_ewkt(feat);\n};\n{{ module }}.add_wkt = function(event){\n    // This function will sync the contents of the `vector` layer with the\n    // WKT in the text field.\n    if ({{ module }}.is_collection){\n        var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n        for (var i = 0; i < {{ module }}.layers.vector.features.length; i++){\n            feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n        }\n        {{ module }}.write_wkt(feat);\n    } else {\n        // Make sure to remove any previously added features.\n        if ({{ module }}.layers.vector.features.length > 1){\n            old_feats = [{{ module }}.layers.vector.features[0]];\n            {{ module }}.layers.vector.removeFeatures(old_feats);\n            {{ module }}.layers.vector.destroyFeatures(old_feats);\n        }\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n{{ module }}.modify_wkt = function(event){\n    if ({{ module }}.is_collection){\n        if ({{ module }}.is_point){\n            {{ module }}.add_wkt(event);\n            return;\n        } else {\n            // When modifying the selected components are added to the\n            // vector layer so we only increment to the `num_geom` value.\n            var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n            }\n            {{ module }}.write_wkt(feat);\n        }\n    } else {\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n// Function to clear vector features and purge wkt from div\n{{ module }}.deleteFeatures = function(){\n    {{ module }}.layers.vector.removeFeatures({{ module }}.layers.vector.features);\n    {{ module }}.layers.vector.destroyFeatures();\n};\n{{ module }}.clearFeatures = function (){\n    {{ module }}.deleteFeatures();\n    document.getElementById('{{ id }}').value = '';\n    {% localize off %}\n    {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n    {% endlocalize %}\n};\n// Add Select control\n{{ module }}.addSelectControl = function(){\n    var select = new OpenLayers.Control.SelectFeature({{ module }}.layers.vector, {'toggle' : true, 'clickout' : true});\n    {{ module }}.map.addControl(select);\n    select.activate();\n};\n{{ module }}.enableDrawing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.DrawFeature')[0].activate();\n};\n{{ module }}.enableEditing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.ModifyFeature')[0].activate();\n};\n// Create an array of controls based on geometry type\n{{ module }}.getControls = function(lyr){\n    {{ module }}.panel = new OpenLayers.Control.Panel({'displayClass': 'olControlEditingToolbar'});\n    {{ module }}.controls = [new OpenLayers.Control.Navigation()];\n    if (!{{ module }}.modifiable && lyr.features.length) return;\n    if ({{ module }}.is_linestring || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'}));\n    }\n    if ({{ module }}.is_polygon || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Polygon, {'displayClass': 'olControlDrawFeaturePolygon'}));\n    }\n    if ({{ module }}.is_point || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Point, {'displayClass': 'olControlDrawFeaturePoint'}));\n    }\n    if ({{ module }}.modifiable){\n        {{ module }}.controls.push(new OpenLayers.Control.ModifyFeature(lyr, {'displayClass': 'olControlModifyFeature'}));\n    }\n};\n{{ module }}.init = function(){\n    {% block map_options %}// The options hash, w/ zoom, resolution, and projection settings.\n    var options = {\n{% autoescape off %}{% for item in map_options.items %}      '{{ item.0 }}' : {{ item.1 }}{% if not forloop.last %},{% endif %}\n{% endfor %}{% endautoescape %}    };{% endblock %}\n    // The admin map for this geometry field.\n    {% block map_creation %}\n    {{ module }}.map = new OpenLayers.Map('{{ id }}_map', options);\n    // Base Layer\n    {{ module }}.layers.base = {% block base_layer %}new OpenLayers.Layer.WMS(\"{{ wms_name }}\", \"{{ wms_url }}\", {layers: '{{ wms_layer }}'{{ wms_options|safe }}});{% endblock %}\n    {{ module }}.map.addLayer({{ module }}.layers.base);\n    {% endblock %}\n    {% block extra_layers %}{% endblock %}\n    {% if is_linestring %}OpenLayers.Feature.Vector.style[\"default\"][\"strokeWidth\"] = 3; // Default too thin for linestrings. {% endif %}\n    {{ module }}.layers.vector = new OpenLayers.Layer.Vector(\" {{ field_name }}\");\n    {{ module }}.map.addLayer({{ module }}.layers.vector);\n    // Read WKT from the text field.\n    var wkt = document.getElementById('{{ id }}').value;\n    if (wkt){\n        // After reading into geometry, immediately write back to\n        // WKT <textarea> as EWKT (so that SRID is included).\n        var admin_geom = {{ module }}.read_wkt(wkt);\n        {{ module }}.write_wkt(admin_geom);\n        if ({{ module }}.is_collection){\n            // If geometry collection, add each component individually so they may be\n            // edited individually.\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                {{ module }}.layers.vector.addFeatures([new OpenLayers.Feature.Vector(admin_geom.geometry.components[i].clone())]);\n            }\n        } else {\n            {{ module }}.layers.vector.addFeatures([admin_geom]);\n        }\n        // Zooming to the bounds.\n        {{ module }}.map.zoomToExtent(admin_geom.geometry.getBounds());\n        if ({{ module }}.is_point){\n            {{ module }}.map.zoomTo({{ point_zoom }});\n        }\n    } else {\n        {% localize off %}\n        {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n        {% endlocalize %}\n    }\n    // This allows editing of the geographic fields -- the modified WKT is\n    // written back to the content field (as EWKT, so that the ORM will know\n    // to transform back to original SRID).\n    {{ module }}.layers.vector.events.on({\"featuremodified\" : {{ module }}.modify_wkt});\n    {{ module }}.layers.vector.events.on({\"featureadded\" : {{ module }}.add_wkt});\n    {% block controls %}\n    // Map controls:\n    // Add geometry specific panel of toolbar controls\n    {{ module }}.getControls({{ module }}.layers.vector);\n    {{ module }}.panel.addControls({{ module }}.controls);\n    {{ module }}.map.addControl({{ module }}.panel);\n    {{ module }}.addSelectControl();\n    // Then add optional visual controls\n    {% if mouse_position %}{{ module }}.map.addControl(new OpenLayers.Control.MousePosition());{% endif %}\n    {% if scale_text %}{{ module }}.map.addControl(new OpenLayers.Control.Scale());{% endif %}\n    {% if layerswitcher %}{{ module }}.map.addControl(new OpenLayers.Control.LayerSwitcher());{% endif %}\n    // Then add optional behavior controls\n    {% if not scrollable %}{{ module }}.map.getControlsByClass('OpenLayers.Control.Navigation')[0].disableZoomWheel();{% endif %}\n    {% endblock %}\n    if (wkt){\n        if ({{ module }}.modifiable){\n            {{ module }}.enableEditing();\n        }\n    } else {\n        {{ module }}.enableDrawing();\n    }\n};\n` was unexpected",
-          "path": "/Users/cooper/dev/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
+          "message": "Syntax error at line /Users/brandonspark/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js:1:\n `{% load l10n %}\nOpenLayers.Projection.addTransform(\"EPSG:4326\", \"EPSG:3857\", OpenLayers.Layer.SphericalMercator.projectForward);\n{% block vars %}var {{ module }} = {};\n{{ module }}.map = null; {{ module }}.controls = null; {{ module }}.panel = null; {{ module }}.re = new RegExp(\"^SRID=\\\\d+;(.+)\", \"i\"); {{ module }}.layers = {};\n{{ module }}.modifiable = {{ modifiable|yesno:\"true,false\" }};\n{{ module }}.wkt_f = new OpenLayers.Format.WKT();\n{{ module }}.is_collection = {{ is_collection|yesno:\"true,false\" }};\n{{ module }}.collection_type = '{{ collection_type }}';\n{{ module }}.is_generic = {{ is_generic|yesno:\"true,false\" }};\n{{ module }}.is_linestring = {{ is_linestring|yesno:\"true,false\" }};\n{{ module }}.is_polygon = {{ is_polygon|yesno:\"true,false\" }};\n{{ module }}.is_point = {{ is_point|yesno:\"true,false\" }};\n{% endblock %}\n{{ module }}.get_ewkt = function(feat){\n    return 'SRID={{ srid|unlocalize }};' + {{ module }}.wkt_f.write(feat);\n};\n{{ module }}.read_wkt = function(wkt){\n    // OpenLayers cannot handle EWKT -- we make sure to strip it out.\n    // EWKT is only exposed to OL if there's a validation error in the admin.\n    var match = {{ module }}.re.exec(wkt);\n    if (match){wkt = match[1];}\n    return {{ module }}.wkt_f.read(wkt);\n};\n{{ module }}.write_wkt = function(feat){\n    if ({{ module }}.is_collection){ {{ module }}.num_geom = feat.geometry.components.length;}\n    else { {{ module }}.num_geom = 1;}\n    document.getElementById('{{ id }}').value = {{ module }}.get_ewkt(feat);\n};\n{{ module }}.add_wkt = function(event){\n    // This function will sync the contents of the `vector` layer with the\n    // WKT in the text field.\n    if ({{ module }}.is_collection){\n        var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n        for (var i = 0; i < {{ module }}.layers.vector.features.length; i++){\n            feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n        }\n        {{ module }}.write_wkt(feat);\n    } else {\n        // Make sure to remove any previously added features.\n        if ({{ module }}.layers.vector.features.length > 1){\n            old_feats = [{{ module }}.layers.vector.features[0]];\n            {{ module }}.layers.vector.removeFeatures(old_feats);\n            {{ module }}.layers.vector.destroyFeatures(old_feats);\n        }\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n{{ module }}.modify_wkt = function(event){\n    if ({{ module }}.is_collection){\n        if ({{ module }}.is_point){\n            {{ module }}.add_wkt(event);\n            return;\n        } else {\n            // When modifying the selected components are added to the\n            // vector layer so we only increment to the `num_geom` value.\n            var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n            }\n            {{ module }}.write_wkt(feat);\n        }\n    } else {\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n// Function to clear vector features and purge wkt from div\n{{ module }}.deleteFeatures = function(){\n    {{ module }}.layers.vector.removeFeatures({{ module }}.layers.vector.features);\n    {{ module }}.layers.vector.destroyFeatures();\n};\n{{ module }}.clearFeatures = function (){\n    {{ module }}.deleteFeatures();\n    document.getElementById('{{ id }}').value = '';\n    {% localize off %}\n    {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n    {% endlocalize %}\n};\n// Add Select control\n{{ module }}.addSelectControl = function(){\n    var select = new OpenLayers.Control.SelectFeature({{ module }}.layers.vector, {'toggle' : true, 'clickout' : true});\n    {{ module }}.map.addControl(select);\n    select.activate();\n};\n{{ module }}.enableDrawing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.DrawFeature')[0].activate();\n};\n{{ module }}.enableEditing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.ModifyFeature')[0].activate();\n};\n// Create an array of controls based on geometry type\n{{ module }}.getControls = function(lyr){\n    {{ module }}.panel = new OpenLayers.Control.Panel({'displayClass': 'olControlEditingToolbar'});\n    {{ module }}.controls = [new OpenLayers.Control.Navigation()];\n    if (!{{ module }}.modifiable && lyr.features.length) return;\n    if ({{ module }}.is_linestring || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'}));\n    }\n    if ({{ module }}.is_polygon || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Polygon, {'displayClass': 'olControlDrawFeaturePolygon'}));\n    }\n    if ({{ module }}.is_point || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Point, {'displayClass': 'olControlDrawFeaturePoint'}));\n    }\n    if ({{ module }}.modifiable){\n        {{ module }}.controls.push(new OpenLayers.Control.ModifyFeature(lyr, {'displayClass': 'olControlModifyFeature'}));\n    }\n};\n{{ module }}.init = function(){\n    {% block map_options %}// The options hash, w/ zoom, resolution, and projection settings.\n    var options = {\n{% autoescape off %}{% for item in map_options.items %}      '{{ item.0 }}' : {{ item.1 }}{% if not forloop.last %},{% endif %}\n{% endfor %}{% endautoescape %}    };{% endblock %}\n    // The admin map for this geometry field.\n    {% block map_creation %}\n    {{ module }}.map = new OpenLayers.Map('{{ id }}_map', options);\n    // Base Layer\n    {{ module }}.layers.base = {% block base_layer %}new OpenLayers.Layer.WMS(\"{{ wms_name }}\", \"{{ wms_url }}\", {layers: '{{ wms_layer }}'{{ wms_options|safe }}});{% endblock %}\n    {{ module }}.map.addLayer({{ module }}.layers.base);\n    {% endblock %}\n    {% block extra_layers %}{% endblock %}\n    {% if is_linestring %}OpenLayers.Feature.Vector.style[\"default\"][\"strokeWidth\"] = 3; // Default too thin for linestrings. {% endif %}\n    {{ module }}.layers.vector = new OpenLayers.Layer.Vector(\" {{ field_name }}\");\n    {{ module }}.map.addLayer({{ module }}.layers.vector);\n    // Read WKT from the text field.\n    var wkt = document.getElementById('{{ id }}').value;\n    if (wkt){\n        // After reading into geometry, immediately write back to\n        // WKT <textarea> as EWKT (so that SRID is included).\n        var admin_geom = {{ module }}.read_wkt(wkt);\n        {{ module }}.write_wkt(admin_geom);\n        if ({{ module }}.is_collection){\n            // If geometry collection, add each component individually so they may be\n            // edited individually.\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                {{ module }}.layers.vector.addFeatures([new OpenLayers.Feature.Vector(admin_geom.geometry.components[i].clone())]);\n            }\n        } else {\n            {{ module }}.layers.vector.addFeatures([admin_geom]);\n        }\n        // Zooming to the bounds.\n        {{ module }}.map.zoomToExtent(admin_geom.geometry.getBounds());\n        if ({{ module }}.is_point){\n            {{ module }}.map.zoomTo({{ point_zoom }});\n        }\n    } else {\n        {% localize off %}\n        {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n        {% endlocalize %}\n    }\n    // This allows editing of the geographic fields -- the modified WKT is\n    // written back to the content field (as EWKT, so that the ORM will know\n    // to transform back to original SRID).\n    {{ module }}.layers.vector.events.on({\"featuremodified\" : {{ module }}.modify_wkt});\n    {{ module }}.layers.vector.events.on({\"featureadded\" : {{ module }}.add_wkt});\n    {% block controls %}\n    // Map controls:\n    // Add geometry specific panel of toolbar controls\n    {{ module }}.getControls({{ module }}.layers.vector);\n    {{ module }}.panel.addControls({{ module }}.controls);\n    {{ module }}.map.addControl({{ module }}.panel);\n    {{ module }}.addSelectControl();\n    // Then add optional visual controls\n    {% if mouse_position %}{{ module }}.map.addControl(new OpenLayers.Control.MousePosition());{% endif %}\n    {% if scale_text %}{{ module }}.map.addControl(new OpenLayers.Control.Scale());{% endif %}\n    {% if layerswitcher %}{{ module }}.map.addControl(new OpenLayers.Control.LayerSwitcher());{% endif %}\n    // Then add optional behavior controls\n    {% if not scrollable %}{{ module }}.map.getControlsByClass('OpenLayers.Control.Navigation')[0].disableZoomWheel();{% endif %}\n    {% endblock %}\n    if (wkt){\n        if ({{ module }}.modifiable){\n            {{ module }}.enableEditing();\n        }\n    } else {\n        {{ module }}.enableDrawing();\n    }\n};\n` was unexpected",
+          "path": "/Users/brandonspark/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
           "type": "Syntax error"
         },
         {
           "code": 3,
           "level": "warn",
-          "message": "[WARN] Syntax error at line /Users/cooper/dev/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js:1:\n `{% extends \"gis/admin/openlayers.js\" %}\n{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
-          "path": "/Users/cooper/dev/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
+          "message": "Syntax error at line /Users/brandonspark/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js:1:\n `{% extends \"gis/admin/openlayers.js\" %}\n{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
+          "path": "/Users/brandonspark/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
+          "spans": [
+            {
+              "end": { "col": 88, "line": 2 },
+              "file": "/Users/brandonspark/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
+              "start": { "col": 1, "line": 1 }
+            }
+          ],
           "type": "Syntax error"
         }
       ],
@@ -502,6 +411,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
             "metadata": {
@@ -521,6 +431,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
             "metadata": {
@@ -540,6 +451,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
             "metadata": {
@@ -559,6 +471,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
             "metadata": {
@@ -578,6 +491,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "String-formatted SQL query detected. This could lead to SQL injection if\nthe string is not sanitized properly. Audit this call to ensure the\nSQL is not manipulatable by external data.\n",
             "metadata": {
@@ -597,6 +511,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
             "metadata": {
@@ -616,6 +531,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
             "metadata": {
@@ -635,6 +551,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
             "metadata": {
@@ -662,6 +579,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected a useless comparison operation `position == position` or `position != position`. This\noperation is always true.\nIf testing for floating point NaN, use `math.isnan`, or\n`cmath.isnan` if the number is complex.\n",
             "metadata": {},
@@ -682,8 +600,15 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "[WARN] Syntax error at line /Users/cooper/dev/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14:\n `new?:` was unexpected",
-          "path": "/Users/cooper/dev/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+          "message": "Syntax error at line /Users/brandonspark/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14:\n `new?:` was unexpected",
+          "path": "/Users/brandonspark/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+          "spans": [
+            {
+              "end": { "col": 8, "line": 14 },
+              "file": "/Users/brandonspark/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+              "start": { "col": 3, "line": 14 }
+            }
+          ],
           "type": "Syntax error"
         }
       ],
@@ -694,6 +619,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Hardcoded JWT secret or private key is used.\nThis is a Insufficiently Protected Credentials weakness: https://cwe.mitre.org/data/definitions/522.html\nConsider using an appropriate security mechanism to protect the credentials (e.g. keeping secrets in environment variables: process.env.SECRET)\n",
             "metadata": {
@@ -713,6 +639,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "User controlled data in 'yaml.load()' function can result in Remote Code Injection.",
             "metadata": {
@@ -739,6 +666,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
             "metadata": {
@@ -764,6 +692,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected the use of an insecure deserizliation library in a Flask route. These libraries\nare prone to code execution vulnerabilities. Ensure user data does not enter this function.\nTo fix this, try to avoid serializing whole objects. Consider instead using a serializer\nsuch as JSON.\n",
             "metadata": {
@@ -783,6 +712,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a template created with string formatting.\nThis is susceptible to server-side template injection\nand cross-site scripting attacks.\n",
             "metadata": {
@@ -805,6 +735,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found a template created with string formatting.\nThis is susceptible to server-side template injection\nand cross-site scripting attacks.\n",
             "metadata": {
@@ -835,6 +766,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected strings that are implicitly concatenated inside a list.\nPython will implicitly concatenate strings when not explicitly delimited.\nWas this supposed to be individual elements of the list?\n",
             "metadata": {},
@@ -850,6 +782,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Detected strings that are implicitly concatenated inside a list.\nPython will implicitly concatenate strings when not explicitly delimited.\nWas this supposed to be individual elements of the list?\n",
             "metadata": {},
@@ -865,6 +798,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found identical comparison using is. Ensure this is what you intended.",
             "metadata": {},
@@ -880,6 +814,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Found identical comparison using is. Ensure this is what you intended.",
             "metadata": {},
@@ -903,15 +838,54 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "[WARN] Syntax error at line /Users/cooper/dev/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c:62:\n `#ifndef __WINDOWS__` was unexpected",
-          "path": "/Users/cooper/dev/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+          "message": "Syntax error at line /Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c:62:\n `#ifndef __WINDOWS__` was unexpected",
+          "path": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+          "spans": [
+            {
+              "end": { "col": 20, "line": 62 },
+              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+              "start": { "col": 1, "line": 62 }
+            },
+            {
+              "end": { "col": 7, "line": 64 },
+              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+              "start": { "col": 1, "line": 64 }
+            }
+          ],
           "type": "Syntax error"
         },
         {
           "code": 3,
           "level": "warn",
-          "message": "[WARN] Syntax error at line /Users/cooper/dev/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c:49:\n `__MALLOC_HOOK_VOLATILE` was unexpected",
-          "path": "/Users/cooper/dev/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+          "message": "Syntax error at line /Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c:49:\n `__MALLOC_HOOK_VOLATILE` was unexpected",
+          "path": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+          "spans": [
+            {
+              "end": { "col": 30, "line": 49 },
+              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": { "col": 8, "line": 49 }
+            },
+            {
+              "end": { "col": 63, "line": 102 },
+              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": { "col": 46, "line": 102 }
+            },
+            {
+              "end": { "col": 56, "line": 108 },
+              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": { "col": 39, "line": 108 }
+            },
+            {
+              "end": { "col": 43, "line": 219 },
+              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": { "col": 20, "line": 219 }
+            },
+            {
+              "end": { "col": 44, "line": 238 },
+              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": { "col": 20, "line": 238 }
+            }
+          ],
           "type": "Syntax error"
         }
       ],
@@ -922,6 +896,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
             "metadata": {
@@ -942,6 +917,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
             "metadata": {
@@ -962,6 +938,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
             "metadata": {
@@ -982,6 +959,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
             "metadata": {
@@ -1010,6 +988,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1030,6 +1009,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1050,6 +1030,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1070,6 +1051,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1090,6 +1072,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1110,6 +1093,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1130,6 +1114,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1150,6 +1135,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1170,6 +1156,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1190,6 +1177,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1210,6 +1198,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1230,6 +1219,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1250,6 +1240,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1270,6 +1261,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1290,6 +1282,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1310,6 +1303,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1330,6 +1324,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1350,6 +1345,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1370,6 +1366,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1390,6 +1387,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1410,6 +1408,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1430,6 +1429,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1450,6 +1450,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
             "metadata": {
@@ -1470,6 +1471,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1490,6 +1492,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1510,6 +1513,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1530,6 +1534,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1550,6 +1555,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1570,6 +1576,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1590,6 +1597,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1610,6 +1618,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1630,6 +1639,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1650,6 +1660,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1670,6 +1681,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1690,6 +1702,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1710,6 +1723,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1730,6 +1744,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
             "metadata": {
@@ -1750,6 +1765,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1770,6 +1786,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1790,6 +1807,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1810,6 +1828,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1830,6 +1849,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1850,6 +1870,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1870,6 +1891,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1890,6 +1912,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1910,6 +1933,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1930,6 +1954,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1950,6 +1975,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1970,6 +1996,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -1990,6 +2017,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2010,6 +2038,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2030,6 +2059,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2050,6 +2080,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2070,6 +2101,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2090,6 +2122,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2110,6 +2143,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2130,6 +2164,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2150,6 +2185,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
             "metadata": {
@@ -2170,6 +2206,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2190,6 +2227,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2210,6 +2248,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2230,6 +2269,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2250,6 +2290,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2270,6 +2311,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2290,6 +2332,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2310,6 +2353,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2330,6 +2374,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2350,6 +2395,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2370,6 +2416,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2390,6 +2437,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
             "metadata": {
@@ -2410,6 +2458,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "'apt-get' is preferred as an unattended tool for stability. 'apt' is discouraged.",
             "metadata": {
@@ -2430,6 +2479,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2450,6 +2500,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2470,6 +2521,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2490,6 +2542,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2510,6 +2563,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2530,6 +2584,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2550,6 +2605,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2570,6 +2626,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2590,6 +2647,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2610,6 +2668,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2630,6 +2689,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2650,6 +2710,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2670,6 +2731,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2690,6 +2752,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2710,6 +2773,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2730,6 +2794,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2750,6 +2815,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2770,6 +2836,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2790,6 +2857,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2810,6 +2878,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
             "metadata": {
@@ -2830,6 +2899,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2850,6 +2920,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2870,6 +2941,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2890,6 +2962,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2910,6 +2983,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2930,6 +3004,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2950,6 +3025,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2970,6 +3046,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -2990,6 +3067,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3010,6 +3088,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3030,6 +3109,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3050,6 +3130,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3070,6 +3151,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3090,6 +3172,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3110,6 +3193,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3130,6 +3214,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3150,6 +3235,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3170,6 +3256,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {
@@ -3190,6 +3277,7 @@
           "extra": {
             "fingerprint": "<masked in benchmarks>",
             "is_ignored": false,
+            "is_pro_match": false,
             "lines": "<masked in benchmarks>",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
             "metadata": {

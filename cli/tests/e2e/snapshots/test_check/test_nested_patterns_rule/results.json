@@ -19,6 +19,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    nested_patterns_func('foo', 1)",
         "message": "test",
         "metadata": {},
@@ -56,6 +57,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    nested_patterns_func('bar', 2)",
         "message": "test",
         "metadata": {},

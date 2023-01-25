@@ -21,6 +21,7 @@
           "replacement": "SystemDefaultHttpClient("
         },
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "\t\tHttpClient client = new DefaultHttpClient();",
         "message": "DefaultHttpClient is deprecated. Further, it does not support connections\nusing TLS1.2, which makes using DefaultHttpClient a security hazard.\nUse SystemDefaultHttpClient instead, which supports TLS1.2.\n",
         "metadata": {

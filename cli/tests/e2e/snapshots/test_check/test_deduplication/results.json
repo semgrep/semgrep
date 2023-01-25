@@ -17,6 +17,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    return a + b == a + b",
         "message": "Found redundant comparison",
         "metadata": {
@@ -78,6 +79,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "    x == x",
         "message": "Found redundant comparison",
         "metadata": {
@@ -139,6 +141,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "assertTrue(x == x)",
         "message": "Found redundant comparison",
         "metadata": {

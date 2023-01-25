@@ -18,6 +18,7 @@
         "fingerprint": "0x42",
         "fix": "y: false",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "  y:\n    foo: true",
         "message": "If semgrep is not smart enough, it will match beyond the specified pattern and capture all text until `z`. So the fix will result in `y: falsez: \"z\"`\n",
         "metadata": {

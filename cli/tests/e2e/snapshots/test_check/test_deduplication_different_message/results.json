@@ -17,6 +17,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "foo(1,2)",
         "message": "Error message with both metavars 1 foo",
         "metadata": {},
@@ -67,6 +68,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "foo(1,2)",
         "message": "Error message with both metavars 2 foo",
         "metadata": {},

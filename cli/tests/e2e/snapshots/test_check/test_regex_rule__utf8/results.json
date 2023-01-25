@@ -17,6 +17,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "\ud83d\ude0a (smiley)",
         "message": "check different ways to match UTF-8-encoded Unicode text",
         "metadata": {},
@@ -40,6 +41,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "\ud83d\ude80 (rocket)",
         "message": "check different ways to match UTF-8-encoded Unicode text",
         "metadata": {},
@@ -63,6 +65,7 @@
       "extra": {
         "fingerprint": "0x42",
         "is_ignored": false,
+        "is_pro_match": false,
         "lines": "<\u03b2\u03b3\u03b4> (Greek letters)",
         "message": "check different ways to match UTF-8-encoded Unicode text",
         "metadata": {},
