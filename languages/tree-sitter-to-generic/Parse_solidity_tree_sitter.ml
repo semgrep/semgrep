@@ -1722,16 +1722,19 @@ let map_struct_member (env : env) (x : CST.struct_member) : field =
       G.basic_field id None (Some ty)
   | `Ellips tok -> G.fieldEllipsis ((* "..." *) token env tok)
 
-let map_inheritance_specifier (env : env) ((v1, v2) : CST.inheritance_specifier)
-    : class_parent =
-  let n = map_user_defined_type env v1 in
-  let ty = TyN n |> G.t in
-  let argsopt =
-    match v2 with
-    | Some x -> Some (map_call_arguments env x)
-    | None -> None
-  in
-  (ty, argsopt)
+let map_inheritance_specifier (env : env) (v1 : CST.inheritance_specifier) :
+    class_parent =
+  match v1 with
+  | `Ellips tok -> (G.TyEllipsis (token env tok) |> G.t, None)
+  | `User_defi_type_opt_call_args (v1, v2) ->
+      let n = map_user_defined_type env v1 in
+      let ty = TyN n |> G.t in
+      let argsopt =
+        match v2 with
+        | Some x -> Some (map_call_arguments env x)
+        | None -> None
+      in
+      (ty, argsopt)
 
 let map_event_paramater (env : env) ((v1, v2, v3) : CST.event_paramater) :
     parameter_classic =
