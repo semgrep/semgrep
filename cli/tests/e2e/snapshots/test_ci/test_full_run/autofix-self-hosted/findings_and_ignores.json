@@ -91,7 +91,8 @@
       "metadata": {
         "dev.semgrep.actions": [
           "block"
-        ]
+        ],
+        "sca-kind": "upgrade-only"
       },
       "is_blocking": false,
       "match_based_id": "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0",
