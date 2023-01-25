@@ -147,8 +147,11 @@ Running Semgrep engine with command:
 <MASKED>
 <MASKED>
 <MASKED>
+<MASKED>
+<MASKED>
 --- end semgrep-core stderr ---
 skipped 'bar.py' [rule RuleId(value='taint-test')]: SkipReason(value=IrrelevantRule()): No need to perform deeper matching because target does not contain some elements necessary for the rule to match 'taint-test'
+Using AST-based autofix rendered in semgrep-core: `(bar == 2)`
 Using AST-based autofix rendered in semgrep-core: `(bar == 2)`
 semgrep ran in <MASKED> on 1 files
 findings summary: 1 error, 0 warning
@@ -245,8 +248,7 @@ Sending complete blob: {
         "total_time":<MASKED>
         "unsupported_exts": {},
         "lockfile_scan_info": {
-            "poetry.lock": 1,
-            "yarn.lock": 1
+            "poetry.lock": 1
         },
         "parse_rate": {
             "python": {

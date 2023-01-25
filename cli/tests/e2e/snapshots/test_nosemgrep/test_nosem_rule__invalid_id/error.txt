@@ -1,6 +1,20 @@
 Scanning 1 file.
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-Ran 1 rule on 1 file: 1 finding.
+CliMatchExtra.__init__() missing 1 required positional argument: 'engine_kind'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 906, in scan
+    output_handler.output(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 352, in output
+    output = self._build_output()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 468, in _build_output
+    return self.formatter.output(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/base.py", line 29, in output
+    return self.format(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/json.py", line 67, in format
+    results=[
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/json.py", line 68, in <listcomp>
+    self._rule_match_to_CliMatch(rule_match) for rule_match in rule_matches
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/json.py", line 24, in _rule_match_to_CliMatch
+    extra = out.CliMatchExtra(
+TypeError: CliMatchExtra.__init__() missing 1 required positional argument: 'engine_kind'
