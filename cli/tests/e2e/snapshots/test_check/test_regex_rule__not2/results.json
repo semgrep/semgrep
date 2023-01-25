@@ -15,6 +15,7 @@
         "offset": 4
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "<h4>From: {{ from_email }}</h4>",
@@ -52,6 +53,7 @@
         "offset": 36
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "<h4>To:",
@@ -89,6 +91,7 @@
         "offset": 131
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "<h4>Subject: {{subject}}</h4>",
@@ -126,6 +129,7 @@
         "offset": 342
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    <pre>{{ body }}</pre>",
@@ -163,6 +167,7 @@
         "offset": 370
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "<hr>",

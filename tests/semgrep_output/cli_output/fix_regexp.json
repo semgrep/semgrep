@@ -25,7 +25,8 @@
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "engine_kind": "OSSMatch"
       },
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
@@ -52,7 +53,8 @@
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "engine_kind": "OSSMatch"
       },
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
@@ -79,7 +81,8 @@
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "engine_kind": "OSSMatch"
       },
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
@@ -106,7 +109,8 @@
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "engine_kind": "OSSMatch"
       },
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
@@ -133,7 +137,8 @@
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "engine_kind": "OSSMatch"
       },
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
