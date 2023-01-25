@@ -201,6 +201,13 @@ def get_manifest_deps(manifest_path: Optional[Path]) -> Optional[Set[Tuple[str, 
     return {(x[0], x[1].as_str()) for x in deps.as_dict().items()}
 
 
+def remove_trailing_octothorpe(s: Optional[str]) -> Optional[str]:
+    if s is None:
+        return None
+    else:
+        return "#".join(s.split("#")[:-1]) if "#" in s else s
+
+
 def parse_yarn(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
@@ -230,7 +237,7 @@ def parse_yarn(
                 version=fields["version"],
                 ecosystem=Ecosystem(Npm()),
                 allowed_hashes=allowed_hashes,
-                resolved_url=resolved_url,
+                resolved_url=remove_trailing_octothorpe(resolved_url),
                 transitivity=transitivity(manifest_deps, sources),
                 line_number=line_number,
             )

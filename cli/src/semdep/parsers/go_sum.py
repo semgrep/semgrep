@@ -1,3 +1,6 @@
+"""
+Parser for go.sum files
+"""
 from pathlib import Path
 from typing import List
 from typing import Optional
