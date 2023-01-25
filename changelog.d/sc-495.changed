@@ -1,1 +1,1 @@
-New parser for requirements.txt lockfiles
+New lockfile parsers with better error messages for all supported ecosystems except Rust
