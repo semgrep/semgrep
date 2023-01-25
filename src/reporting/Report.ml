@@ -124,6 +124,7 @@ type final_profiling = {
 
 type final_result = {
   matches : Pattern_match.t list;
+  pro_matches : Pattern_match.t list;
   errors : Semgrep_error_code.error list;
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;
@@ -141,6 +142,7 @@ end)
 
 type 'a match_result = {
   matches : Pattern_match.t list;
+  pro_matches : Pattern_match.t list;
   errors : ErrorSet.t;
       [@printer
         fun fmt errors ->
@@ -176,6 +178,7 @@ let empty_extra profiling =
 let empty_semgrep_result =
   {
     matches = [];
+    pro_matches = [];
     errors = ErrorSet.empty;
     extra = empty_extra empty_times_profiling;
     explanations = [];
@@ -184,6 +187,7 @@ let empty_semgrep_result =
 let empty_final_result =
   {
     matches = [];
+    pro_matches = [];
     errors = [];
     skipped_rules = [];
     extra = No_info;
@@ -202,7 +206,7 @@ let make_match_result matches errors profiling =
     | MTime -> Time { profiling }
     | MNo_info -> No_info
   in
-  { matches; errors; extra; explanations = [] }
+  { matches; pro_matches = []; errors; extra; explanations = [] }
 
 (* Augment reported information with additional info *)
 
@@ -231,26 +235,30 @@ let add_rule : Rule.rule -> times match_result -> rule_profiling match_result =
 (* Helper to aggregate the shared parts of results *)
 let collate_results init_extra unzip_extra base_case_extra final_extra results =
   let unzip_results l =
-    let rec unzip all_matches all_errors (all_skipped_targets, all_profiling)
-        all_explanations = function
-      | { matches; errors; extra; explanations } :: l ->
-          unzip (matches :: all_matches) (errors :: all_errors)
+    let rec unzip all_matches all_pro_matches all_errors
+        (all_skipped_targets, all_profiling) all_explanations = function
+      | { matches; pro_matches; errors; extra; explanations } :: l ->
+          unzip (matches :: all_matches)
+            (pro_matches :: all_pro_matches)
+            (errors :: all_errors)
             (unzip_extra extra all_skipped_targets all_profiling)
             (explanations :: all_explanations)
             l
       | [] ->
           ( List.rev all_matches,
+            List.rev all_pro_matches,
             List.rev all_errors,
             base_case_extra all_skipped_targets all_profiling,
             List.rev all_explanations )
     in
-    unzip [] [] init_extra [] l
+    unzip [] [] [] init_extra [] l
   in
-  let matches, errors, (skipped_targets, profiling), explanations =
+  let matches, pro_matches, errors, (skipped_targets, profiling), explanations =
     unzip_results results
   in
   {
     matches = List.flatten matches;
+    pro_matches = List.flatten pro_matches;
     (* We deduplicate errors here to avoid repeat PartialParsing errors
        which can arise when multiple rules generate the same error. This is
        done for consistency with other parsing errors, like ParseError or
@@ -336,6 +344,9 @@ let collate_rule_results :
 (* Aggregate a list of target results into one final result *)
 let make_final_result results rules ~rules_parse_time =
   let matches = results |> Common.map (fun x -> x.matches) |> List.flatten in
+  let pro_matches =
+    results |> Common.map (fun x -> x.pro_matches) |> List.flatten
+  in
   let errors =
     results
     |> Common.map (fun x -> x.errors |> ErrorSet.elements)
@@ -385,4 +396,4 @@ let make_final_result results rules ~rules_parse_time =
     | MTime -> Time { profiling = mk_profiling () }
     | MNo_info -> No_info
   in
-  { matches; errors; extra; skipped_rules = []; explanations }
+  { matches; pro_matches; errors; extra; skipped_rules = []; explanations }

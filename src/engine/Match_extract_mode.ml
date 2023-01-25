@@ -235,6 +235,20 @@ let map_res map_loc tmpfile file
         })
       mr.matches
   in
+  let pro_matches =
+    Common.map
+      (fun (m : Pattern_match.t) ->
+        {
+          m with
+          file;
+          range_loc = Common2.pair map_loc m.range_loc;
+          taint_trace =
+            Option.map
+              (Stdcompat.Lazy.map_val (map_taint_trace map_loc))
+              m.taint_trace;
+        })
+      mr.pro_matches
+  in
   let errors =
     Report.ErrorSet.map
       (fun (e : Semgrep_error_code.error) -> { e with loc = map_loc e.loc })
@@ -254,7 +268,7 @@ let map_res map_loc tmpfile file
     | Time { profiling } -> Time { profiling = { profiling with Report.file } }
     | No_info -> No_info
   in
-  { Report.matches; errors; extra; explanations = [] }
+  { Report.matches; pro_matches; errors; extra; explanations = [] }
 
 (*****************************************************************************)
 (* Main logic *)

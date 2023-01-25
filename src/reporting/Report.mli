@@ -48,6 +48,7 @@ module ErrorSet : Set.S with type elt = Semgrep_error_code.error
 
 type 'a match_result = {
   matches : Pattern_match.t list;
+  pro_matches : Pattern_match.t list;
   errors : ErrorSet.t;
   extra : 'a debug_info;
   explanations : Matching_explanation.t list;
@@ -66,6 +67,7 @@ type final_profiling = {
 
 type final_result = {
   matches : Pattern_match.t list;
+  pro_matches : Pattern_match.t list;
   errors : Semgrep_error_code.error list;
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;

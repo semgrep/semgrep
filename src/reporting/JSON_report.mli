@@ -4,6 +4,7 @@ type render_fix = Pattern_match.t -> Textedit.t option
  * trying to get the range of a match or metavar.
  *)
 val match_to_match :
+  ?engine_kind:Output_from_core_t.engine_kind ->
   render_fix option ->
   Pattern_match.t ->
   (Output_from_core_t.core_match, Semgrep_error_code.error) Common.either
