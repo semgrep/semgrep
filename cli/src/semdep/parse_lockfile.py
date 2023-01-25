@@ -9,7 +9,6 @@ from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Optional
-from typing import Tuple
 
 import tomli
 from packaging.version import InvalidVersion
@@ -38,6 +37,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.requirements import parse_requirements
+from semdep.parsers.yarn import parse_yarn
 
 
 def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
@@ -51,199 +51,6 @@ def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
     rest = s[len(algorithm) + 1 :]
     decode_base_64 = base64.b64decode(rest)
     return {algorithm: [base64.b16encode(decode_base_64).decode("ascii").lower()]}
-
-
-def parse_yarn1(
-    lockfile_text: str, manifest_text: Optional[str]
-) -> Generator[FoundDependency, None, None]:
-    def get_version(lines: List[str]) -> Tuple[str, str]:
-        """
-        Given list representation of a single package's yarn lock info object
-        (with injected line number next to version), return the version and line number
-
-        Returns the version without the surrounding quotation marks
-
-        Assumes only a single element in line starts with "version" after removing whitespace
-        """
-        for line in lines:
-            if line.strip().startswith("version"):
-                _, version, line_number = line.split()
-                version = version.strip('" ')
-                return version, line_number
-        raise SemgrepError(f"yarn.lock dependency missing version for {lines[0]}")
-
-    def get_resolved(lines: List[str]) -> Optional[str]:
-        """
-        Given list representation of a single package's yarn lock info object
-        (with injected line number next to version), return the resolved url if it exists
-
-        Return None if no resolved url exists. Removes trailing octothorpe and whitespace
-        """
-        for line in lines:
-            if line.strip().startswith("resolved"):
-                _, resolved = line.split()
-                resolved = resolved.strip('" ')
-                resolved = remove_trailing_octothorpe(resolved)
-                return resolved
-        return None
-
-    def get_integrity(lines: List[str]) -> Optional[str]:
-        """
-        Given list representation of a single package's yarn lock info object
-        return integrity hash if exits
-        """
-        for line in lines:
-            if line.strip().startswith("integrity"):
-                _, integrity = line.split()
-                return integrity
-        return None
-
-    def version_sources(line: str) -> Tuple[str, List[Tuple[str, str]]]:
-        # Takes a (multi-)key from the yarn.lock file and turns it into a list
-        # A line might look like this
-        # "foo@^1.0.0", "foo@^1.1.1":
-        # This produces [("foo","^1.0.0"),("foo","^1.1.1")]
-        constraint_strs = line[:-1].split(",")
-        constraints = []
-        for c in constraint_strs:
-            c = c.strip('" ')
-            if c[0] == "@":
-                name, constraint = c[1:].split("@")
-                name = "@" + name
-            else:
-                name, constraint = c.split("@")
-            constraints.append((name, constraint))
-        return constraints[0][0], constraints
-
-    def remove_trailing_octothorpe(s: str) -> str:
-        return "#".join(s.split("#")[:-1]) if "#" in s else s
-
-    if manifest_text:
-        manifest = json.loads(manifest_text)
-        manifest_deps = manifest["dependencies"] if "dependencies" in manifest else {}
-    else:
-        manifest_deps = None
-    lockfile_text = "\n".join(
-        line + f" {i}" if line.strip().startswith("version") else line
-        for i, line in enumerate(lockfile_text.split("\n"))
-    )
-    _comment, all_deps_text = lockfile_text.split("\n\n\n")
-    dep_texts = all_deps_text.split("\n\n")
-    if dep_texts == [""]:  # No dependencies
-        return
-    for dep_text in dep_texts:
-        lines = dep_text.split("\n")
-        package_name, constraints = version_sources(lines[0])
-        version, line_number = get_version(lines)
-        resolved = get_resolved(lines)
-        integrity = get_integrity(lines)
-        if not manifest_deps:
-            transitivity = Transitivity(Unknown())
-        else:
-            if package_name in manifest_deps:
-                transitivity = Transitivity(
-                    Direct()
-                    if (package_name, manifest_deps[package_name]) in constraints
-                    else Transitive()
-                )
-            else:
-                transitivity = Transitivity(Transitive())
-
-        yield FoundDependency(
-            package=package_name,
-            version=version,
-            ecosystem=Ecosystem(Npm()),
-            allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
-            resolved_url=resolved,
-            transitivity=transitivity,
-            line_number=int(line_number) + 1,
-        )
-
-
-def parse_yarn2(
-    lockfile_text: str, manifest_text: Optional[str]
-) -> Iterator[FoundDependency]:
-
-    lockfile_text = "\n".join(
-        line + f" {i}" if line.strip().startswith("version") else line
-        for i, line in enumerate(lockfile_text.split("\n"))
-    )
-
-    if manifest_text:
-        manifest = json.loads(manifest_text)
-        manifest_deps = manifest["dependencies"] if "dependencies" in manifest else {}
-    else:
-        manifest_deps = None
-
-    def version_sources(line: str) -> Tuple[str, List[Tuple[str, str]]]:
-        constraint_strs = line[:-1].strip('"').split(", ")
-        constraints = []
-        for c in constraint_strs:
-            if c[0] == "@":
-                name, constraint = c[1:].split("@", 1)
-                name = "@" + name
-            else:
-                name, constraint = c.split("@", 1)
-
-            if ":" in constraint:
-                constraint = constraint.split(":")[1]  # npm:^1.0.0 --> ^1.0.0
-            constraints.append((name, constraint))
-
-        return constraints[0][0], constraints
-
-    def parse_dep(dep: str) -> FoundDependency:
-        lines = dep.split("\n")
-        lines = [l.strip(" ") for l in lines if len(l) - len(l.lstrip(" ")) < 4]
-        package, constraints = version_sources(lines[0])
-        field_lines = [
-            l.split(":")
-            for l in lines[1:]
-            if not (l.startswith("dependencies") or l.startswith("resolution"))
-            if l
-        ]
-        fields = {f: v.strip(" ") for f, v in field_lines}
-        if "version" not in fields:
-            raise SemgrepError("yarn.lock dependency {package} missing version?")
-        version, line_number = fields["version"].split(" ")
-
-        if not manifest_deps:
-            transitivity = Transitivity(Unknown())
-        else:
-            if package in manifest_deps:
-                transitivity = Transitivity(
-                    Direct()
-                    if (package, manifest_deps[package]) in constraints
-                    else Transitive()
-                )
-            else:
-                transitivity = Transitivity(Transitive())
-
-        return FoundDependency(
-            package=package,
-            version=version,
-            ecosystem=Ecosystem(Npm()),
-            allowed_hashes={"sha512": [fields["checksum"]]}
-            if "checksum" in fields
-            else {},
-            resolved_url=None,
-            transitivity=transitivity,
-            line_number=int(line_number),
-        )
-
-    deps = lockfile_text.split("\n\n")[2:]
-    for dep in deps:
-        if "@patch:" in dep:
-            continue
-        yield parse_dep(dep)
-
-
-def parse_yarn(
-    lockfile_text: str, manifest_text: Optional[str]
-) -> Iterator[FoundDependency]:
-    if lockfile_text.startswith("# This file is"):
-        yield from parse_yarn2(lockfile_text, manifest_text)
-    else:
-        yield from parse_yarn1(lockfile_text, manifest_text)
 
 
 def parse_package_lock(
@@ -538,7 +345,6 @@ def parse_pom_tree(tree_str: str, _: Optional[str]) -> Iterator[FoundDependency]
 
 OLD_LOCKFILE_PARSERS = {
     "pipfile.lock": parse_pipfile,  # Python
-    "yarn.lock": parse_yarn,  # JavaScript
     "package-lock.json": parse_package_lock,  # JavaScript
     "gemfile.lock": parse_gemfile,  # Ruby
     "go.sum": parse_go_sum,  # Go
@@ -550,6 +356,7 @@ OLD_LOCKFILE_PARSERS = {
 NEW_LOCKFILE_PARSERS = {
     "poetry.lock": parse_poetry,  # Python
     "requirements.txt": parse_requirements,  # Python
+    "yarn.lock": parse_yarn,  # JavaScript
 }
 
 
