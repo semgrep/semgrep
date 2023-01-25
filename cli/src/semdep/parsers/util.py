@@ -49,12 +49,12 @@ B = TypeVar("B")
 Pos = Tuple[int, int]
 
 
-def not_any(chars: List[str]) -> "Parser[str]":
+def not_any(*chars: str) -> "Parser[str]":
     """
     [chars] must contain only single character strings.
     A parser which matches a series of any character that is *not* in [chars] and returns a string
     """
-    return regex(f"[^{escape(''.join(chars))}]+")
+    return regex(f"[^{escape(''.join(chars))}]+").desc(f"Any char not in {list(chars)}")
 
 
 def extract_npm_lockfile_hash(s: Optional[str]) -> Dict[str, List[str]]:
@@ -144,15 +144,15 @@ def quoted(p: "Parser[A]") -> "Parser[A]":
     return string('"') >> p << string('"')
 
 
-word = not_any([" "])
+word = not_any(" ")
 consume_word = word >> success(None)
 
-line = not_any(["\n"])
+line = not_any("\n")
 consume_line = line >> success(None)
 
 
 def upto(
-    s: List[str], include_other: bool = False, consume_other: bool = False
+    *s: str, include_other: bool = False, consume_other: bool = False
 ) -> "Parser[str]":
     """
     [s] must be a list of single character strings. These should be all the possible delimiters
@@ -164,13 +164,13 @@ def upto(
     Only one should be used, if you use both behavior is undefined
     """
     if include_other:
-        return not_any(s).bind(
+        return not_any(*s).bind(
             lambda x: alt(*(string(x) for x in s)).map(lambda y: x + y)
         )
     elif consume_other:
-        return not_any(s) << alt(*(string(x) for x in s))
+        return not_any(*s) << alt(*(string(x) for x in s))
     else:
-        return not_any(s)
+        return not_any(*s)
 
 
 def parse_error_to_str(e: ParseError) -> str:
@@ -186,7 +186,11 @@ def parse_error_to_str(e: ParseError) -> str:
         return f"expected one of {', '.join(expected_list)}"
 
 
-def safe_path_parse(path: Optional[Path], parser: "Parser[A]") -> Optional[A]:
+def safe_path_parse(
+    path: Optional[Path],
+    parser: "Parser[A]",
+    preprocess: Optional[Callable[[str], str]] = None,
+) -> Optional[A]:
     """
     Run [parser] on the text in [path]
     If the parsing fails, produces a pretty error message
@@ -194,6 +198,8 @@ def safe_path_parse(path: Optional[Path], parser: "Parser[A]") -> Optional[A]:
     if not path:
         return None
     text = path.read_text()
+    if preprocess:
+        text = preprocess(text)
     try:
         return parser.parse(text)
     except ParseError as e:
