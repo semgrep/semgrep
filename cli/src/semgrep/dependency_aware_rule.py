@@ -60,14 +60,14 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
 
 @lru_cache(maxsize=1000)
 def transivite_dep_is_also_direct(
-    dep: FoundDependency, deps: Tuple[FoundDependency, ...]
+    package: str, deps: Tuple[FoundDependency, ...]
 ) -> bool:
     """
     Assumes that [dep] is transitive
     Checks if there is a direct version of the transitive dependency [dep]
     """
     for other_dep in deps:
-        if other_dep.package == dep.package and other_dep.transitivity == Transitivity(
+        if other_dep.package == package and other_dep.transitivity == Transitivity(
             Direct()
         ):
             return True
@@ -149,6 +149,8 @@ def generate_reachable_sca_findings(
                 if lockfile_data is None:
                     continue
                 lockfile_path, deps = lockfile_data
+                # Needed so we can memoize the transitive_dep_is_also_direct call
+                frozen_deps = tuple(deps)
                 if str(lockfile_path) not in target_manager.lockfile_scan_info:
                     # If the lockfile is not part of the actual targets or we just haven't parsed this lockfile yet
                     target_manager.lockfile_scan_info[str(lockfile_path)] = len(deps)
@@ -161,7 +163,7 @@ def generate_reachable_sca_findings(
                 for dep_pat, found_dep in dependency_matches:
                     if found_dep.transitivity == Transitivity(
                         Transitive()
-                    ) and transivite_dep_is_also_direct(found_dep, tuple(deps)):
+                    ) and transivite_dep_is_also_direct(found_dep.package, frozen_deps):
                         reachable = False
                     else:
                         reachable = True
