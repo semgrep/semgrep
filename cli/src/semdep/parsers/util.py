@@ -177,13 +177,14 @@ def parse_error_to_str(e: ParseError) -> str:
     """
     Stolen from the __str__ method of ParseError in Parsy,
     but without the line information included at the end of the string
+    and simply printing the expected list intead of joining it on commas
+    in order to easily escape special characters
     """
     expected_list = sorted(e.expected)
-
     if len(expected_list) == 1:
         return f"expected {expected_list[0]}"
     else:
-        return f"expected one of {', '.join(expected_list)}"
+        return f"expected one of {expected_list}"
 
 
 def safe_path_parse(
@@ -203,10 +204,11 @@ def safe_path_parse(
     try:
         return parser.parse(text)
     except ParseError as e:
+        # These are zero indexed but most editors are one indexed
         line, col = line_info_at(e.stream, e.index)
         line_prefix = f"{line + 1} | "
         logger.error(
-            f"Failed to parse {path}: {parse_error_to_str(e)}\n{line_prefix + text.splitlines()[line]}\n{' ' * (col + len(line_prefix))}^"
+            f"Failed to parse {path} at {line + 1}:{col + 1} - {parse_error_to_str(e)}\n{line_prefix + text.splitlines()[line]}\n{' ' * (col + len(line_prefix))}^"
         )
         return None
 
