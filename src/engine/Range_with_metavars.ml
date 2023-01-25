@@ -79,6 +79,18 @@ let inside_compatible x y =
    *)
   (not x_inside) || y_inside
 
+let add_mvars_to_range config range mvars =
+  let mvars_are_compatible =
+    range.mvars
+    |> List.for_all (fun (mvar, mval1) ->
+           match List.assoc_opt mvar mvars with
+           | None -> true
+           | Some mval2 ->
+               Matching_generic.equal_ast_bound_code config mval1 mval2)
+  in
+  if mvars_are_compatible then Some { range with mvars = range.mvars @ mvars }
+  else None
+
 (* We now not only check whether a range is included in another,
  * we also merge their metavars. The reason is that with some rules like:
  * - pattern-inside:  { dialect: $DIALECT,  ... }

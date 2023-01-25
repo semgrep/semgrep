@@ -47,7 +47,7 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
            "metavariable-pattern failed because %s is not in scope, please \
             check your rule"
            mvar);
-      false
+      []
   | Some mval -> (
       (* We will create a temporary file with the content of the metavariable,
        * then call evaluate_formula recursively. *)
@@ -58,7 +58,7 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                "metavariable-pattern failed because we lack range info for %s, \
                 please file a bug report"
                mvar);
-          false
+          []
       | Some (mval_file, mval_range) -> (
           let r' =
             (* Fix the range to match the content of the temporary file. *)
@@ -81,7 +81,7 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                        "metavariable-pattern failed because %s does not bind \
                         to a sub-program, please check your rule"
                        mvar);
-                  false
+                  []
               | Some mast ->
                   (* Note that due to symbolic propagation, `mast` may be
                    * outside of the current file/AST, so we must get
@@ -116,8 +116,18 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                           lazy_content = lazy content;
                         }
                       in
-                      nested_formula_has_matches { env with xtarget } formula
-                        (Some r')))
+                      match
+                        nested_formula_has_matches { env with xtarget } formula
+                          (Some r')
+                      with
+                      | None -> []
+                      | Some interior_matches ->
+                          (* take each interior match and add its metavar bindings to
+                             this one? *)
+                          interior_matches
+                          |> List.filter_map (fun r' ->
+                                 RM.add_mvars_to_range env.xconf.config r
+                                   r'.RM.mvars)))
           | Some xlang, MV.Text (content, _tok, _)
           | Some xlang, MV.Xmls [ XmlText (content, _tok) ]
           | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
@@ -156,8 +166,18 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                       lazy_content = lazy content;
                     }
                   in
-                  nested_formula_has_matches { env with xtarget } formula
-                    (Some r'))
+                  match
+                    nested_formula_has_matches { env with xtarget } formula
+                      (Some r')
+                  with
+                  | None -> []
+                  | Some interior_matches ->
+                      (* take each interior match and add its metavar bindings to
+                         this one? *)
+                      interior_matches
+                      |> List.filter_map (fun r' ->
+                             RM.add_mvars_to_range env.xconf.config r
+                               r'.RM.mvars))
           | Some _lang, mval ->
               (* This is not necessarily an error in the rule, e.g. you may be
                * matching `$STRING + ...` and then add a metavariable-pattern on
@@ -167,4 +187,4 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                 "metavariable-pattern failed because the content of %s is not \
                  text: %s"
                 mvar (MV.show_mvalue mval);
-              false))
+              []))
