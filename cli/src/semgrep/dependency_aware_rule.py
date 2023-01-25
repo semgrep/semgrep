@@ -18,6 +18,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaInfo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.target_manager import TargetManager
 
 SCA_FINDING_SCHEMA = 20220913
@@ -111,7 +112,9 @@ def generate_unreachable_sca_findings(
 
 def generate_reachable_sca_findings(
     matches: List[RuleMatch], rule: Rule, target_manager: TargetManager
-) -> Tuple[List[RuleMatch], List[SemgrepError], Set[Path]]:
+) -> Tuple[
+    List[RuleMatch], List[SemgrepError], Set[Tuple[Path, str, str, Transitivity]]
+]:
     depends_on_keys = rule.project_depends_on
     dep_rule_errors: List[SemgrepError] = []
 
@@ -120,7 +123,7 @@ def generate_reachable_sca_findings(
 
     # Reachability rule
     reachable_matches = []
-    matched_lockfiles = set()
+    reachable_deps = set()
     for ecosystem in ecosystems:
         for match in matches:
             try:
@@ -135,9 +138,15 @@ def generate_reachable_sca_findings(
                 dependency_matches = list(
                     dependencies_range_match_any(depends_on_entries, deps)
                 )
-                if dependency_matches:
-                    matched_lockfiles.add(lockfile_path)
                 for dep_pat, found_dep in dependency_matches:
+                    reachable_deps.add(
+                        (
+                            lockfile_path,
+                            found_dep.package,
+                            found_dep.version,
+                            found_dep.transitivity,
+                        )
+                    )
                     dep_match = DependencyMatch(
                         dependency_pattern=dep_pat,
                         found_dependency=found_dep,
@@ -152,4 +161,4 @@ def generate_reachable_sca_findings(
                     reachable_matches.append(match)
             except SemgrepError as e:
                 dep_rule_errors.append(e)
-    return reachable_matches, dep_rule_errors, matched_lockfiles
+    return reachable_matches, dep_rule_errors, reachable_deps
