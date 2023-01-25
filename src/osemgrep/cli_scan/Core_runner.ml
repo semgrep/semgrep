@@ -102,6 +102,7 @@ let merge_results
   let final_result =
     {
       RP.matches = List.concat_map (fun x -> x.RP.matches) results;
+      pro_matches = List.concat_map (fun x -> x.RP.pro_matches) results;
       errors = List.concat_map (fun x -> x.RP.errors) results;
       skipped_rules = List.concat_map (fun x -> x.RP.skipped_rules) results;
       extra = No_info;

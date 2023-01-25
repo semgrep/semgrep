@@ -210,8 +210,8 @@ let taint_trace_to_dataflow_trace { source; tokens; sink } :
     taint_sink = taint_call_trace sink;
   }
 
-let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
-    =
+let unsafe_match_to_match ?(engine_kind = `OSSMatch) render_fix_opt
+    (x : Pattern_match.t) : Out.core_match =
   let min_loc, max_loc = x.range_loc in
   let startp, endp = OutH.position_range min_loc max_loc in
   let dataflow_trace =
@@ -247,13 +247,14 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
         rendered_fix;
+        engine_kind;
       };
   }
 
-let match_to_match render_fix (x : Pattern_match.t) :
+let match_to_match_inner engine_kind render_fix (x : Pattern_match.t) :
     (Out.core_match, Semgrep_error_code.error) Common.either =
   try
-    Left (unsafe_match_to_match render_fix x)
+    Left (unsafe_match_to_match ~engine_kind render_fix x)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
@@ -268,6 +269,10 @@ let match_to_match render_fix (x : Pattern_match.t) :
       in
       Right err
   [@@profiling]
+
+let match_to_match ?(engine_kind = `OSSMatch) render_fix (x : Pattern_match.t) :
+    (Out.core_match, Semgrep_error_code.error) Common.either =
+  match_to_match_inner engine_kind render_fix x
 
 (* less: Semgrep_error_code should be defined fully Output_from_core.atd
  * so we would not need those conversions
@@ -328,7 +333,12 @@ let match_results_of_matches_and_errors render_fix nfiles res =
   let matches, new_errs =
     Common.partition_either (match_to_match render_fix) res.RP.matches
   in
-  let errs = !E.g_errors @ new_errs @ res.RP.errors in
+  let pro_matches, new_pro_errs =
+    Common.partition_either
+      (match_to_match ~engine_kind:`ProMatch render_fix)
+      res.RP.pro_matches
+  in
+  let errs = !E.g_errors @ new_errs @ new_pro_errs @ res.RP.errors in
   let files_with_errors =
     errs
     |> List.fold_left
@@ -345,7 +355,7 @@ let match_results_of_matches_and_errors render_fix nfiles res =
     | RP.No_info -> (None, None)
   in
   {
-    Out.matches;
+    Out.matches = matches @ pro_matches;
     errors = errs |> Common.map error_to_error;
     skipped_targets;
     skipped_rules =
