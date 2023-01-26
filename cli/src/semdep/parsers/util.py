@@ -66,9 +66,19 @@ def extract_npm_lockfile_hash(s: Optional[str]) -> Dict[str, List[str]]:
     """
     if s is None:
         return {}
-    algorithm, rest = s.split("-")
-    decode_base_64 = b64decode(rest)
-    return {algorithm: [b16encode(decode_base_64).decode("ascii").lower()]}
+    if " " in s:
+        hashes = s.split(" ")
+    else:
+        hashes = [s]
+    output = {}
+    for h in hashes:
+        alg_rest = h.split("-")
+        if len(alg_rest) != 2:
+            continue
+        algorithm, rest = alg_rest
+        decode_base_64 = b64decode(rest)
+        output[algorithm] = [b16encode(decode_base_64).decode("ascii").lower()]
+    return output
 
 
 # parsy line and column numbers are zero indexed, but editors are generally 1 indexed
