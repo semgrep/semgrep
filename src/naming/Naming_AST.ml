@@ -527,9 +527,8 @@ let resolve lang prog =
                 } )
             when lang =*= Lang.Js || lang =*= Lang.Ts ->
               let sid = SId.mk () in
-              let resolved =
-                untyped_ent (ImportedModule (DottedName [ file ]), sid)
-              in
+              let canonical = dotted_to_canonical [ file ] in
+              let resolved = untyped_ent (ImportedModule canonical, sid) in
               set_resolved env id_info resolved;
               add_ident_current_scope id resolved env.names
           (* `const {x, y} = require('z');` (or var, or let)
@@ -584,8 +583,11 @@ let resolve lang prog =
                         _;
                       } ->
                       let sid = SId.mk () in
+                      let canonical =
+                        dotted_to_canonical [ file; imported_id ]
+                      in
                       let resolved =
-                        untyped_ent (ImportedEntity [ file; imported_id ], sid)
+                        untyped_ent (ImportedEntity canonical, sid)
                       in
                       set_resolved env local_id_info resolved;
                       add_ident_current_scope local_id resolved env.names
@@ -668,9 +670,8 @@ let resolve lang prog =
               ModuleDef { mbody = ModuleAlias xs } ) ->
               (* similar to the ImportAs case *)
               let sid = SId.mk () in
-              let resolved =
-                untyped_ent (ImportedModule (DottedName xs), sid)
-              in
+              let canonical = dotted_to_canonical xs in
+              let resolved = untyped_ent (ImportedModule canonical, sid) in
               set_resolved env id_info resolved;
               (* difference with ImportAs, we add in local scope in OCaml *)
               add_ident_current_scope id resolved env.names;
@@ -687,16 +688,18 @@ let resolve lang prog =
                   | id, Some (alias, id_info) ->
                       (* for python *)
                       let sid = SId.mk () in
+                      let canonical = dotted_to_canonical (xs @ [ id ]) in
                       let resolved =
-                        untyped_ent (ImportedEntity (xs @ [ id ]), sid)
+                        untyped_ent (ImportedEntity canonical, sid)
                       in
                       set_resolved env id_info resolved;
                       add_ident_imported_scope alias resolved env.names
                   | id, None ->
                       (* for python *)
                       let sid = SId.mk () in
+                      let canonical = dotted_to_canonical (xs @ [ id ]) in
                       let resolved =
-                        untyped_ent (ImportedEntity (xs @ [ id ]), sid)
+                        untyped_ent (ImportedEntity canonical, sid)
                       in
                       add_ident_imported_scope id resolved env.names)
                 imported_names
@@ -712,8 +715,9 @@ let resolve lang prog =
                       let sid = SId.mk () in
                       let _, b, _ = Common2.dbe_of_filename_noext_ok s in
                       let base = (b, tok) in
+                      let canonical = dotted_to_canonical [ base; id ] in
                       let resolved =
-                        untyped_ent (ImportedEntity [ base; id ], sid)
+                        untyped_ent (ImportedEntity canonical, sid)
                       in
                       add_ident_imported_scope id resolved env.names
                   | id, Some (alias, id_info)
@@ -722,8 +726,9 @@ let resolve lang prog =
                       let sid = SId.mk () in
                       let _, b, _ = Common2.dbe_of_filename_noext_ok s in
                       let base = (b, tok) in
+                      let canonical = dotted_to_canonical [ base; id ] in
                       let resolved =
-                        untyped_ent (ImportedEntity [ base; id ], sid)
+                        untyped_ent (ImportedEntity canonical, sid)
                       in
                       set_resolved env id_info resolved;
                       add_ident_imported_scope alias resolved env.names
@@ -732,9 +737,8 @@ let resolve lang prog =
           | ImportAs (_, DottedName xs, Some (alias, id_info)) ->
               (* for python *)
               let sid = SId.mk () in
-              let resolved =
-                untyped_ent (ImportedModule (DottedName xs), sid)
-              in
+              let canonical = dotted_to_canonical xs in
+              let resolved = untyped_ent (ImportedModule canonical, sid) in
               set_resolved env id_info resolved;
               add_ident_imported_scope alias resolved env.names
           | ImportAs (_, FileName (s, tok), Some (alias, id_info)) ->
@@ -754,9 +758,8 @@ let resolve lang prog =
                   pkgbase
               in
               let base = (pkgname, tok) in
-              let resolved =
-                untyped_ent (ImportedModule (DottedName [ base ]), sid)
-              in
+              let canonical = dotted_to_canonical [ base ] in
+              let resolved = untyped_ent (ImportedModule canonical, sid) in
               set_resolved env id_info resolved;
               add_ident_imported_scope alias resolved env.names
           | _ -> ());
@@ -827,7 +830,7 @@ let resolve lang prog =
               | Some (QDots ((m, None) :: rest_of_middle)) -> (
                   match lookup_scope_opt m env with
                   (* Resolve modules for OCaml *)
-                  | Some { entname = ImportedModule (DottedName xs), _sidm; _ }
+                  | Some { entname = ImportedModule xs, _sidm; _ }
                   (* Resolve classes for use in typed metavars (Java) *)
                   (* Note that we only need to resolve the first name
                      because that is the only one that could be
@@ -836,9 +839,11 @@ let resolve lang prog =
                       (* The entity is fully qualified, no need for sid *)
                       let sid = SId.unsafe_default in
                       let rest_of_middle = Common.map fst rest_of_middle in
+                      let canonical =
+                        xs @ dotted_to_canonical (rest_of_middle @ [ id ])
+                      in
                       let resolved =
-                        untyped_ent
-                          (ImportedEntity (xs @ rest_of_middle @ [ id ]), sid)
+                        untyped_ent (ImportedEntity canonical, sid)
                       in
                       set_resolved env id_info resolved
                   | _ -> ())

@@ -109,24 +109,25 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v1 = map_resolved_name_kind v1 in
     let v2 = map_sid v2 in
     (v1, v2)
+  and map_canonical_name v1 = map_of_list map_of_string v1
   and map_resolved_name_kind = function
     | LocalVar -> LocalVar
     | Parameter -> Parameter
     | EnclosedVar -> EnclosedVar
     | Global -> Global
     | ImportedEntity v1 ->
-        let v1 = map_dotted_ident v1 in
+        let v1 = map_canonical_name v1 in
         ImportedEntity v1
     | ImportedModule v1 ->
-        let v1 = map_module_name v1 in
+        let v1 = map_canonical_name v1 in
         ImportedModule v1
     | Macro -> Macro
     | EnumConstant -> EnumConstant
     | TypeName -> TypeName
-    | ResolvedName (v1, v2) ->
-        let v1 = map_dotted_ident v1 in
-        let v2 = map_of_list map_dotted_ident v2 in
-        ResolvedName (v1, v2)
+    | GlobalName (v1, v2) ->
+        let v1 = map_canonical_name v1 in
+        let v2 = map_of_list map_canonical_name v2 in
+        GlobalName (v1, v2)
   and map_name_info
       {
         name_last = v1;
