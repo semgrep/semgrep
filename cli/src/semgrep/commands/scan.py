@@ -624,7 +624,7 @@ def scan_options(func: Callable) -> Callable:
     # help="contact support@r2c.dev for more information on this"
 )
 @click.option(
-    "--engine-path",
+    "--dump-engine-path",
     is_flag=True,
     hidden=True
     # help="contact support@r2c.dev for more information on this"
@@ -639,7 +639,7 @@ def scan(
     core_opts: Optional[str],
     debug: bool,
     deep: bool,
-    engine_path: bool,
+    dump_engine_path: bool,
     pro: bool,
     interproc: bool,
     interfile: bool,
@@ -718,7 +718,7 @@ def scan(
             version_check()
         return None
 
-    if engine_path:
+    if dump_engine_path:
         print(SemgrepCore.path())
         return None
 
