@@ -42,7 +42,7 @@ def run_install_semgrep_pro() -> None:
     (semgrep_pro_path, deep_semgrep_path) = determine_semgrep_pro_path()
 
     # TODO This is a temporary solution to help offline users
-    logger.info(f"Semgrep PRO engine will be installed in {semgrep_pro_path}")
+    logger.info(f"Semgrep Pro Engine will be installed in {semgrep_pro_path}")
 
     if deep_semgrep_path.exists():
         logger.warning(
@@ -52,7 +52,7 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
 """
         )
     if semgrep_pro_path.exists():
-        logger.info(f"Overwriting Semgrep PRO engine already installed!")
+        logger.info(f"Overwriting Semgrep Pro Engine already installed!")
 
     if state.app_session.token is None:
         logger.info("run `semgrep login` before using `semgrep install`")
@@ -81,7 +81,10 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
         if r.status_code == 403:
-            logger.info("Logged in deployment does not have access to DeepSemgrep beta")
+            logger.info(
+                "Logged in deployment does not have access to Semgrep Pro Engine beta"
+            )
+            # FIXME: Needs to be updated before launch Feb 2023
             logger.info(
                 "Visit https://semgrep.dev/deep-semgrep-beta for more information."
             )
@@ -102,7 +105,7 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
         semgrep_pro_path,
         os.stat(semgrep_pro_path).st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH,
     )
-    logger.info(f"Installed Semgrep PRO to {semgrep_pro_path}")
+    logger.info(f"Installed Semgrep Pro to {semgrep_pro_path}")
 
     version = sub_check_output(
         [str(semgrep_pro_path), "-pro_version"],
@@ -110,19 +113,19 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
         encoding="utf-8",
         stderr=subprocess.STDOUT,
     ).rstrip()
-    logger.info(f"Semgrep PRO Version Info: ({version})")
+    logger.info(f"Semgrep Pro Engine Version Info: ({version})")
 
 
 @click.command(hidden=True)
 @handle_command_errors
 def install_semgrep_pro() -> None:
     """
-    Install the Semgrep PRO binary (Experimental)
+    Install the Semgrep Pro Engine binary (Experimental)
 
     The binary is installed in the same directory that semgrep-core
     is installed in.
 
-    Must be logged in and have access to Semgrep PRO beta
+    Must be logged in and have access to Semgrep Pro Engine beta
     Visit https://semgrep.dev/deep-semgrep-beta for more information
     """
     run_install_semgrep_pro()
@@ -138,7 +141,7 @@ def install_deep_semgrep() -> None:
     """
     logger.info(f"This command no longer installs the DeepSemgrep binary.")
     logger.info(
-        f"Instead, try installing the Semgrep PRO engine via `semgrep install-semgrep-pro`."
+        f"Instead, try installing the Semgrep Pro Engine via `semgrep install-semgrep-pro`."
     )
 
     sys.exit(FATAL_EXIT_CODE)
