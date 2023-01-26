@@ -28,5 +28,5 @@ jobs:
           retVal=$?
           if [ $retVal -ne 0 ]; then
             echo "Error: semgrep-core has been linked with a user-specific libary which will not be available on other machines."
+            exit 1;
           fi
-          exit $retVal
