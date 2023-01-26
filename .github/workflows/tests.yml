@@ -92,7 +92,7 @@ jobs:
   #           exit 1;
   #         fi
 
-  #         NON_USR_LIB_DYNAMIC_LIBRARIES=$(echo otool.txt | tail -n +2 | grep -v "^\s*/usr/lib/")
+  #         NON_USR_LIB_DYNAMIC_LIBRARIES=$(cat otool.txt | tail -n +2 | grep -v "^\s*/usr/lib/")
   #         if [ $? -eq 0 ]; then
   #           echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
   #           echo $NON_USR_LIB_DYNAMIC_LIBRARIES
@@ -115,15 +115,13 @@ jobs:
             cat otool.txt;
             exit 1;
           fi
-          cat otool.txt;
 
-          NON_USR_LIB_DYNAMIC_LIBRARIES=$(echo otool.txt | tail -n +2 | grep -v "^\s*/usr/lib/")
+          NON_USR_LIB_DYNAMIC_LIBRARIES=$(cat otool.txt | tail -n +2 | grep -v "^\s*/usr/lib/")
           if [ $? -eq 0 ]; then
             echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
             echo $NON_USR_LIB_DYNAMIC_LIBRARIES
             exit 1;
           fi;
-          echo $NON_USR_LIB_DYNAMIC_LIBRARIES
 
   # test-macos-release:
   #   name: test macOS release
