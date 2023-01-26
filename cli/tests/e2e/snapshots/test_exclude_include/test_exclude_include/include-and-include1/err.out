@@ -1,6 +1,5 @@
-Scanning 4 files.
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-Ran 4 rules on 4 files: 4 findings.
+scan() got an unexpected keyword argument 'interfile_timeout'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+TypeError: scan() got an unexpected keyword argument 'interfile_timeout'

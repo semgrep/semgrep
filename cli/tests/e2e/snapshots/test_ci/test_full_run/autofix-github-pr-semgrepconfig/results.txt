@@ -6,78 +6,18 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
 
-Non-Blocking Findings:
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (x == 2)
-         15┆ (x == 2)
-
-Blocking Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
-
-Blocking Rules Fired:
-   eqeq-bad   
-   eqeq-four   
-   taint-test
-
 === end of stdout - plain
 
 === stderr - plain
-Scan environment:
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment github-actions, triggering event is pull_request
-  server      - https://semgrep.dev
-
-Fixing git state for github action pull request
-Not on head ref: <MASKED>; checking that out now.
-Using <MASKED> as the merge-base of <MASKED> and <MASKED>
-Fetching configuration from semgrep.dev
-Authenticated as org_name
-Scanning 1 file with 4 python rules.
-  Current version has 14 findings.
-
-Switching repository to baseline commit '<MASKED>'.
-  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
-    * <MASKED> Some other commit/ message
-
-Scanning 1 file with 4 python rules.
-Returning to original head revision <MASKED>
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 7 findings (6 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
-  Has findings for blocking rules so exiting with code 1
+ci() got an unexpected keyword argument 'interfile_timeout'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+TypeError: ci() got an unexpected keyword argument 'interfile_timeout'
 
 === end of stderr - plain

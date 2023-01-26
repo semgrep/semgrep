@@ -1,1 +1,5 @@
-Scanning 11 files.
+scan() got an unexpected keyword argument 'interfile_timeout'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+TypeError: scan() got an unexpected keyword argument 'interfile_timeout'
