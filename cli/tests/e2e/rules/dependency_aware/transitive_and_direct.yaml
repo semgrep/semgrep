@@ -1,0 +1,11 @@
+# This produce an *unreachable* finding, because the scanned project has jquery at 3.3.1 transitively, but at different version directly
+rules:
+  - id: transitive_and_direct
+    pattern: foo()
+    r2c-internal-project-depends-on:
+      namespace: npm
+      package: "@types/jquery"
+      version: "<= 3.3.1"
+    message: oh no
+    languages: [js]
+    severity: WARNING

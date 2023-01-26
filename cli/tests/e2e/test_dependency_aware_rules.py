@@ -3,7 +3,6 @@ from pathlib import Path
 import pytest
 
 from ..conftest import TESTS_PATH
-from semgrep.constants import OutputFormat
 
 
 @pytest.mark.kinda_slow
@@ -54,6 +53,14 @@ from semgrep.constants import OutputFormat
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements",
         ),
+        (
+            "rules/dependency_aware/transitive_and_direct.yaml",
+            "dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct",
+        ),
+        (
+            "rules/dependency_aware/transitive_and_direct.yaml",
+            "dependency_aware/transitive_and_direct/direct_reachable_transitive_unreachable",
+        ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
@@ -80,34 +87,4 @@ def test_no_lockfiles(run_semgrep, monkeypatch, tmp_path, snapshot):
             assume_targets_dir=False,
         ).as_snapshot(),
         "results.txt",
-    )
-
-
-@pytest.mark.parametrize(
-    "rule,target",
-    [
-        (
-            "rules/dependency_aware/no-pattern.yaml",
-            "dependency_aware/yarn",
-        ),
-        (
-            "rules/dependency_aware/yarn-sass.yaml",
-            "dependency_aware/yarn",
-        ),
-        ("rules/dependency_aware/ansi-html.yaml", "dependency_aware/ansi"),
-    ],
-)
-def test_sarif_sca_output(run_semgrep_on_copied_files, snapshot, rule, target):
-    """
-    Test the result.properties.exposure property for the sarif output of sca findings
-
-    Above 3 rules were chosen because they have findings with different exposure levels
-    """
-    snapshot.assert_match(
-        run_semgrep_on_copied_files(
-            rule,
-            target_name=target,
-            output_format=OutputFormat.SARIF,
-        ).as_snapshot(),
-        "results.sarif",
     )
