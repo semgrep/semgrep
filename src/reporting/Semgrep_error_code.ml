@@ -67,8 +67,8 @@ let mk_error ?(rule_id = None) loc msg err =
     | SemgrepMatchFound
     | Timeout
     | OutOfMemory
-    | TimeoutDuringPreprocessing
-    | OutOfMemoryDuringPreprocessing
+    | TimeoutDuringInterfile
+    | OutOfMemoryDuringInterfile
     | PatternParseError _
     | PartialParsing _ ->
         msg
@@ -210,8 +210,8 @@ let severity_of_error typ =
   | Out.FatalError -> Error
   | Out.Timeout -> Warning
   | Out.OutOfMemory -> Warning
-  | Out.TimeoutDuringPreprocessing -> Error
-  | Out.OutOfMemoryDuringPreprocessing -> Error
+  | Out.TimeoutDuringInterfile -> Error
+  | Out.OutOfMemoryDuringInterfile -> Error
 
 (*****************************************************************************)
 (* Try with error *)

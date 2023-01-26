@@ -318,8 +318,8 @@ _scan_options: List[Callable] = [
         type=int,
         help="""
             Maximum system memory to use running a rule on a single file in MiB. If set to
-            0 will not have memory limit. Defaults to 0 unless the DeepSemgrep toggle is
-            on, in which case it defaults to 5000 MiB
+            0 will not have memory limit. Defaults to 0 for all cli scans. For app scans
+            that use the pro engine, it defaults to 5000 MiB
         """,
     ),
     optgroup.option(
@@ -352,9 +352,9 @@ _scan_options: List[Callable] = [
         "--pro-timeout",
         type=int,
         help=f"""
-            Maximum time to spend on preprocessing for pro features. If set to 0
-            will not have time limit. Defaults to 0 s unless the DeepSemgrep toggle
-            is on, in which case it defaults to 3 hours.
+            Maximum time to spend on interfile analysis. If set to 0 will not have
+            time limit. Defaults to 0 s for all cli scans. For app scans, it defaults
+            to 3 hours.
         """,
     ),
     optgroup.option(

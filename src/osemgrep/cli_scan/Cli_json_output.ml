@@ -153,8 +153,8 @@ let error_type_string (error_type : Out.core_error_kind) : string =
   | FatalError -> "Fatal error"
   | Timeout -> "Timeout"
   | OutOfMemory -> "Out of memory"
-  | TimeoutDuringPreprocessing -> "Timeout during preprocessing"
-  | OutOfMemoryDuringPreprocessing -> "Out of memory during preprocessing"
+  | TimeoutDuringInterfile -> "Timeout during interfile analysis"
+  | OutOfMemoryDuringInterfile -> "OOM during interfile analysis"
 
 (* Generate error message exposed to user *)
 let error_message ~rule_id ~(location : Out.location)
