@@ -1,1 +1,1 @@
-Fixed bug where Semgrep would fail to generate unreachable findings for a particular dependency if a reachable finding for that dependency had already been found in the same lockfile, even if there are multiple copies of this dependency at different vulnerable versions.
+Fixed bug where Semgrep would fail to generate unreachable findings for a particular library if a reachable finding for that library had already been found in the same lockfile, even if there are multiple copies of this library at different vulnerable versions.
