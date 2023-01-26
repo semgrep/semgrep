@@ -206,7 +206,7 @@ def ci(
     time_flag: bool,
     timeout_threshold: int,
     timeout: int,
-    pro_timeout: Optional[int],
+    interfile_timeout: Optional[int],
     use_git_ignore: bool,
     verbose: bool,
     vim: bool,
@@ -342,11 +342,11 @@ def ci(
                 else:
                     max_memory = 0  # unlimited
             # Same for timeout (Github actions has a 6 hour timeout)
-            if pro_timeout is None:
+            if interfile_timeout is None:
                 if deep:
-                    pro_timeout = DEFAULT_PRO_TIMEOUT_CI
+                    interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
                 else:
-                    pro_timeout = 0  # unlimited
+                    interfile_timeout = 0  # unlimited
             if deep and not semgrep_pro_path.exists():
                 run_install_semgrep_pro()
             if deep:
@@ -409,7 +409,7 @@ def ci(
                 no_git_ignore=(not use_git_ignore),
                 timeout=timeout,
                 max_memory=max_memory,
-                pro_timeout=pro_timeout,
+                interfile_timeout=interfile_timeout,
                 timeout_threshold=timeout_threshold,
                 skip_unknown_extensions=(not scan_unknown_extensions),
                 optimizations=optimizations,

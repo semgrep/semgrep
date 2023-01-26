@@ -676,7 +676,7 @@ def scan(
     time_flag: bool,
     timeout: int,
     timeout_threshold: int,
-    pro_timeout: Optional[int],
+    interfile_timeout: Optional[int],
     use_git_ignore: bool,
     validate: bool,
     verbose: bool,
@@ -739,8 +739,8 @@ def scan(
     # People have more flexibility on local scans so --max-memory and --pro-timeout is set to unlimited
     if not max_memory:
         max_memory = 0  # unlimited
-    if not pro_timeout:
-        pro_timeout = 0  # unlimited
+    if not interfile_timeout:
+        interfile_timeout = 0  # unlimited
 
     output_time = time_flag
 
@@ -849,7 +849,7 @@ def scan(
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
-                            pro_timeout=pro_timeout,
+                            interfile_timeout=interfile_timeout,
                             optimizations=optimizations,
                             core_opts_str=core_opts,
                         ).validate_configs(config)
@@ -906,7 +906,7 @@ def scan(
                     timeout=timeout,
                     max_memory=max_memory,
                     timeout_threshold=timeout_threshold,
-                    pro_timeout=pro_timeout,
+                    interfile_timeout=interfile_timeout,
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     severity=severity,
                     optimizations=optimizations,
