@@ -81,11 +81,11 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
         if r.status_code == 403:
-            logger.info(
+            logger.warning(
                 "Logged in deployment does not have access to Semgrep Pro Engine beta"
             )
             # FIXME: Needs to be updated before launch Feb 2023
-            logger.info(
+            logger.warning(
                 "Visit https://semgrep.dev/deep-semgrep-beta for more information."
             )
             sys.exit(FATAL_EXIT_CODE)
