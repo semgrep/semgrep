@@ -1,0 +1,1 @@
+Fixed bug where SSC would generate reachable findings for transitive dependencies, even if a direct dependency at a safe version exists

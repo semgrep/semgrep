@@ -1,0 +1,1 @@
+Fixed bug where SSC would fail to generate unreachable findings for a particular depencency if a reachable finding for that dependency had already been found in the same lockfile
