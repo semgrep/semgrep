@@ -754,6 +754,8 @@ class CoreRunner:
         all_targets: Set[Path] = set()
         file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
         max_timeout_files: Set[Path] = set()
+        # TODO this is a quick fix, refactor this logic
+        pro_path = None
 
         profiling_data: ProfilingData = ProfilingData()
         parsing_data: ParsingData = ParsingData()
