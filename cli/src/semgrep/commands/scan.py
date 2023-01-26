@@ -318,8 +318,8 @@ _scan_options: List[Callable] = [
         type=int,
         help="""
             Maximum system memory to use running a rule on a single file in MiB. If set to
-            0 will not have memory limit. Defaults to 0 unless the DeepSemgrep toggle is
-            on, in which case it defaults to 5000 MiB
+            0 will not have memory limit. Defaults to 0 for all CLI scans. For CI scans
+            that use the pro engine, it defaults to 5000 MiB
         """,
     ),
     optgroup.option(
@@ -346,6 +346,15 @@ _scan_options: List[Callable] = [
         help="""
             Maximum number of rules that can timeout on a file before the file is
             skipped. If set to 0 will not have limit. Defaults to 3.
+        """,
+    ),
+    optgroup.option(
+        "--interfile-timeout",
+        type=int,
+        help=f"""
+            Maximum time to spend on interfile analysis. If set to 0 will not have
+            time limit. Defaults to 0 s for all CLI scans. For CI scans, it defaults
+            to 3 hours.
         """,
     ),
     optgroup.option(
@@ -667,6 +676,7 @@ def scan(
     time_flag: bool,
     timeout: int,
     timeout_threshold: int,
+    pro_timeout: Optional[int],
     use_git_ignore: bool,
     validate: bool,
     verbose: bool,
@@ -726,9 +736,11 @@ def scan(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
-    # People have more flexibility on local scans so --max-memory is set to unlimited
+    # People have more flexibility on local scans so --max-memory and --pro-timeout is set to unlimited
     if not max_memory:
         max_memory = 0  # unlimited
+    if not pro_timeout:
+        pro_timeout = 0  # unlimited
 
     output_time = time_flag
 
@@ -837,6 +849,7 @@ def scan(
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
+                            pro_timeout=pro_timeout,
                             optimizations=optimizations,
                             core_opts_str=core_opts,
                         ).validate_configs(config)
@@ -893,6 +906,7 @@ def scan(
                     timeout=timeout,
                     max_memory=max_memory,
                     timeout_threshold=timeout_threshold,
+                    pro_timeout=pro_timeout,
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     severity=severity,
                     optimizations=optimizations,
