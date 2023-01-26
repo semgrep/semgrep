@@ -1,5 +1,5 @@
 module In = Input_to_core_t
-module Resp = Output_from_core_t
+module Out = Output_from_core_t
 
 (*************************************************************************)
 (* Prelude *)
@@ -42,6 +42,9 @@ module Resp = Output_from_core_t
 (* Types *)
 (*************************************************************************)
 
+(* TODO? use Fpath library at some point? *)
+type path = string
+
 type conf = {
   exclude : string list;
   include_ : string list;
@@ -56,7 +59,6 @@ type conf = {
 
 type baseline_handler = TODO
 type file_ignore = TODO
-type path = string
 
 (*
    Some rules will use 'include' (required_path_patterns) and 'exclude'
@@ -75,7 +77,18 @@ type target_cache_key = {
 type target_cache = (target_cache_key, bool) Hashtbl.t
 
 (*************************************************************************)
-(* Helpers *)
+(* Finding *)
+(*************************************************************************)
+
+(* python: mostly Target.files() method in target_manager.py *)
+let list_regular_files (conf : conf) (scan_root : path) : path list =
+  ignore conf;
+  (* TODO: if respect_git_ignore then use git-ls-files *)
+  (* python: was called Target.files_from_filesystem () in target_manager.py*)
+  List_files.list_regular_files ~keep_root:true scan_root
+
+(*************************************************************************)
+(* Dedup *)
 (*************************************************************************)
 
 let deduplicate_list l =
@@ -89,7 +102,7 @@ let deduplicate_list l =
     l
 
 (*************************************************************************)
-(* Entry points *)
+(* Sorting *)
 (*************************************************************************)
 
 let sort_targets_by_decreasing_size targets =
@@ -103,6 +116,10 @@ let sort_files_by_decreasing_size files =
   |> Common.map (fun file -> (file, Common2.filesize file))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> Common.map fst
+
+(*************************************************************************)
+(* Filtering *)
+(*************************************************************************)
 
 (*
    Filter files can make suitable targets, independently from specific
@@ -129,35 +146,30 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Resp.skipped_target) b -> String.compare a.path b.path)
+      (fun (a : Out.skipped_target) b -> String.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)
 
-let select_global_targets ?(includes = []) ?(excludes = []) ~max_target_bytes
-    ~respect_git_ignore ?(baseline_handler : baseline_handler option)
-    ?(file_ignore : file_ignore option) paths =
+(*************************************************************************)
+(* Entry point *)
+(*************************************************************************)
+
+let get_targets conf scanning_roots =
+  (* python: =~ Target_manager.get_all_files() *)
   let paths =
-    List.concat_map (List_files.list_regular_files ~keep_root:true) paths
+    scanning_roots
+    |> List.concat_map (fun scan_root -> list_regular_files conf scan_root)
     |> deduplicate_list
   in
   let paths, skipped_paths =
     global_filter ~opt_lang:None ~sort_by_decr_size:true paths
   in
-  (* !!!TODO!!! *)
-  ignore includes;
-  ignore excludes;
-  ignore max_target_bytes (* from the semgrep CLI, not semgrep-core *);
-  ignore respect_git_ignore;
-  ignore baseline_handler;
-  ignore file_ignore;
+  (* !!!TODO!!! use conf.include_, conf.exclude_,
+   * max_target_bytes (* from the semgrep CLI, not semgrep-core *)
+   * respect_git_ignore, baseline_handler, file_ignore?, etc.
+   *)
   (paths, skipped_paths)
-
-(* TODO: can merge with select_global_targets *)
-let get_targets conf target_roots =
-  select_global_targets ~includes:conf.include_ ~excludes:conf.exclude
-    ~max_target_bytes:conf.max_target_bytes
-    ~respect_git_ignore:conf.respect_git_ignore target_roots
 
 (*************************************************************************)
 (* TODO *)
@@ -242,7 +254,7 @@ let files_of_dirs_or_files ?(keep_root_files = true)
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Resp.skipped_target) b -> String.compare a.path b.path)
+      (fun (a : Out.skipped_target) b -> String.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)
