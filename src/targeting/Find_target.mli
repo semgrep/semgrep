@@ -20,17 +20,8 @@ type conf = {
 }
 [@@deriving show]
 
-(* entry point *)
-val get_targets :
-  conf ->
-  string list (* target roots *) ->
-  Common.filename list * Output_from_core_t.skipped_target list
+(* Entry point.
 
-type baseline_handler = TODO
-type file_ignore = TODO
-type path = string
-
-(*
    Take a set of scanning roots which are files or folders and
    expand them into the set of files that could be targets for some
    rules. Return a list of deduplicated file paths.
@@ -39,17 +30,16 @@ type path = string
    at the moment but we could obey some ordering if it makes sense to do it
    here.
 
-   Usage: let global_targets = select_global_targets scanning_roots
+   Usage: let possible_targets = get_files scanning_roots
 *)
-val select_global_targets :
-  ?includes:string list ->
-  ?excludes:string list ->
-  max_target_bytes:int ->
-  respect_git_ignore:bool ->
-  ?baseline_handler:baseline_handler ->
-  ?file_ignore:file_ignore ->
-  path list ->
-  path list * Output_from_core_t.skipped_target list
+val get_targets :
+  conf ->
+  string list (* scanning roots *) ->
+  Common.filename list * Output_from_core_t.skipped_target list
+
+type baseline_handler = TODO
+type file_ignore = TODO
+type path = string
 
 (*
    A cache meant to avoid costly operations of determining whether a target
