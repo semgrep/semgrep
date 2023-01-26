@@ -184,7 +184,6 @@ repos:
       - id: semgrep-jsonnet
         name: semgrep jsonnet
         # Only run this job in CI since it is slow
-        stages: [manual]
         language: docker_image
         # See .pre-commit-hooks.yaml for why we need to set those
         # SEMGREP_XXX variables.  Ideally we would not need this
