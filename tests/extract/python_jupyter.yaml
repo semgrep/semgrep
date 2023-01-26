@@ -12,3 +12,9 @@ rules:
     extract: $CODE
     transform: concat_json_string_array
     dest-language: python
+  - id: forbid-pickle
+    languages: [python]
+    message: found pickle
+    severity: ERROR
+    pattern: |
+      pickle.dump(...)
