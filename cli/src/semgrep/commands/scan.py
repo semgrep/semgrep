@@ -44,6 +44,7 @@ from semgrep.output import OutputSettings
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.state import get_state
 from semgrep.target_manager import write_pipes_to_disk
@@ -622,6 +623,12 @@ def scan_options(func: Callable) -> Callable:
     hidden=True
     # help="contact support@r2c.dev for more information on this"
 )
+@click.option(
+    "--engine-path",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
 @scan_options
 @handle_command_errors
 def scan(
@@ -632,6 +639,7 @@ def scan(
     core_opts: Optional[str],
     debug: bool,
     deep: bool,
+    engine_path: bool,
     pro: bool,
     interproc: bool,
     interfile: bool,
@@ -708,6 +716,10 @@ def scan(
             from semgrep.app.version import version_check
 
             version_check()
+        return None
+
+    if engine_path:
+        print(SemgrepCore.path())
         return None
 
     if show_supported_languages:
