@@ -54,6 +54,10 @@ from semgrep.constants import OutputFormat
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements",
         ),
+        (
+            "rules/dependency_aware/no-pattern.yaml",
+            "dependency_aware/yarn_multi_hash",
+        ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
