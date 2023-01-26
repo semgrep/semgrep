@@ -881,7 +881,7 @@ then please delete {deep_path} manually.
                             )
                         cmd_args += ["-deep_inter_file"]
                         cmd_args += [
-                            "-timeout_for_preprocessing",
+                            "-timeout_for_interfile_analysis",
                             str(self._interfile_timeout),
                         ]
                         cmd_args += [root]
