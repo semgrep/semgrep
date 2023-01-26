@@ -540,6 +540,7 @@ jobs:
       - name: test dynamically linked libraries are in /usr/lib/
         shell: bash {0}
         run: |
+          # TODO(devops): swap this out for --engine-path once implemented
           otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/semgrep/bin/semgrep-core > otool.txt
           if [ $? -ne 0 ]; then
             echo "Failed to list dynamically linked libraries.";
