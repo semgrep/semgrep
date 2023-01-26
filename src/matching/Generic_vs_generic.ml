@@ -413,11 +413,15 @@ let m_regexp_options a_opt b_opt =
  * TODO: remove MV.Id and use always MV.N?
  *)
 let rec m_name a b =
-  let try_parents dotted =
+  (* `try_parents` should take in the canonical name of some identifier.
+     This is because we may want to find the parents of a specific class,
+     which should be disambiguated.
+  *)
+  let try_parents canonical =
     let parents =
       match !hook_find_possible_parents with
       | None -> []
-      | Some f -> f dotted
+      | Some f -> f canonical
     in
     (* less: use a fold *)
     let rec aux xs =

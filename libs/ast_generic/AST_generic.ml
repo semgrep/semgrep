@@ -308,7 +308,6 @@ and resolved_name_kind =
    * canonical_name, but we also want to match the pattern `foo.bar` so we will
    * store ['foo', 'bar'] as an alternate name.
    * *)
-
   | GlobalName of canonical_name * alternate_name list
 
 (* The enclosed token is not relevant for matching purposes.
@@ -1986,13 +1985,20 @@ let basic_id_info ?(hidden = false) resolved =
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
-let canonical_append {unqualified; _} {unqualified = unqualified2; tok} =
-  { unqualified = unqualified @ unqualified2; tok}
+let canonical_append { unqualified; _ } { unqualified = unqualified2; tok } =
+  { unqualified = unqualified @ unqualified2; tok }
 
-let dotted_to_canonical xs = 
-  (* TODO: Change if used on a function name which needs to be disambiguated *)
+let dotted_to_canonical xs =
+  (* WARNING: Do not use this function on a dotted which must be referred to uniquely! *)
   { unqualified = Common.map fst xs; tok = None }
-let canonical_to_dotted tid { unqualified = xs; _ } = xs |> Common.map (fun s -> (s, tid))
+
+(* Here, we ignore the enclosed token.
+   This token is useful for uniqueness purposes, but it is not supposed to be used for
+   matching.
+*)
+let canonical_to_dotted tid { unqualified = xs; _ } =
+  xs |> Common.map (fun s -> (s, tid))
+
 let alternate_name_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
 
 (* ------------------------------------------------------------------------- *)
