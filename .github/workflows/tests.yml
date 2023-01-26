@@ -21,7 +21,7 @@ jobs:
     runs-on: macos-12
     steps:
       - name: install package
-        run: pip install semgrep==1.5.1
+        run: pip3 install semgrep==1.5.1
       - name: test package
         run: semgrep --version
       - name: e2e semgrep-core test
