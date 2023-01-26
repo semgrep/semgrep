@@ -76,24 +76,20 @@ jobs:
         run: unzip ./osx-wheel/dist.zip
       - name: install package
         run: pip3 install dist/*.whl
-      - name: get semgrep-core path
-        run: semgrep --debug --config auto
-      #- name: test package
-        #run: |
-          #MATCHES=$(otool -L /opt/homebrew/lib/python3.10/site-packages/semgrep/bin/semgrep-core | grep /Users/)
-          #echo $MATCHES
-          #if [ -z $MATCHES ]; then
-            #echo "Error: semgrep-core has been linked with a user-specific libary which will not be available on other machines."
-            #exit 1;
-          #fi
-      # - name: test package 
-      #   run: ./semgrep --version
-      # - name: e2e semgrep-core test
-      #   working-directory: /opt/python/cp37-cp37m/bin/
-      #   run: echo '1 == 1' | ./semgrep -l python -e '$X == $X' -
-      # - name: e2e spacegrep test
-      #   working-directory: /opt/python/cp37-cp37m/bin/
-      #   run: echo '1 == 1' | ./semgrep -l generic -e '$X == $X' -
+      - name: test version
+        run: semgrep --version
+      - name: e2e semgrep-core test
+        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
+      - name: e2e spacegrep test
+        run: echo '1 == 1' | semgrep -l generic -e '$X == $X' -
+      - name: test linked libraries
+        run: |
+          MATCHES=$(otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/semgrep/bin/semgrep-core | grep /Users/)
+          echo $MATCHES
+          if [ -z $MATCHES ]; then
+            echo "Error: semgrep-core has been linked with a user-specific libary which will not be available on other machines."
+            exit 1;
+          fi
 
   # test-macos-release:
   #   name: test macOS release
