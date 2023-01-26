@@ -1241,7 +1241,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       let transform =
         take_opt rule_dict env parse_string_wrap "transform"
         |> Option.map (parse_extract_transform ~id:env.id)
-        |> Option.value ~default:R.Unquote
+        |> Option.value ~default:R.NoTransform
       in
       let reduce =
         take_opt rule_dict env parse_string_wrap "reduce"
