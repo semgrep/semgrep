@@ -23,5 +23,10 @@ jobs:
       - name: install package
         run: pip3 install semgrep==1.5.1
       - name: test package
-        run: otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/semgrep/bin/semgrep-core
-
+        run: |
+          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/semgrep/bin/semgrep-core | grep /Users/
+          retVal=$?
+          if [ $retVal -ne 0 ]; then
+            echo "Error: semgrep-core has been linked with a user-specific libary which will not be available on other machines."
+          fi
+          exit $retVal
