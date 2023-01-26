@@ -19,4 +19,4 @@ val m_name : AST_generic.name Matching_generic.matcher
 val m_any : AST_generic.any Matching_generic.matcher
 
 val hook_find_possible_parents :
-  (AST_generic.unique_name -> AST_generic.name list) option ref
+  (AST_generic.canonical_name -> AST_generic.name list) option ref

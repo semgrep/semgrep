@@ -477,7 +477,7 @@ let rec m_name a b =
       | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
       | _ ->
           (* Try matching against parent classes *)
-          try_parents unique)
+          try_parents canonical)
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
@@ -504,7 +504,7 @@ let rec m_name a b =
          } as nameinfo) ) ->
       (* TODO? use all the tokens in b1? not just idb? *)
       let dotted = G.canonical_to_dotted (snd idb) canonical in
-      try_parents dotted
+      try_parents canonical
       >||> try_alternate_names idb resolved
       (* try without resolving anything *)
       >||> m_name a
@@ -559,8 +559,7 @@ let rec m_name a b =
            _;
          } as b1) ) -> (
       (* TODO? use all the tokens in the name? not just idb? *)
-      let dotted = G.canonical_to_dotted (snd idb) canonical in
-      try_parents dotted
+      try_parents canonical
       >||> try_alternate_names idb resolved
       >||>
       match a with
@@ -3071,24 +3070,18 @@ and m_class_parent a b =
   match (a, b) with
   (* less: this could be generalized, but let's go simple first *)
   | (a1, None), ({ t = B.TyN (B.Id (id, { id_resolved; _ })); _ }, None) ->
-      let xs =
+      let canonical =
         match !id_resolved with
-<<<<<<< HEAD
-        | Some (B.ImportedEntity canonical, _sid) ->
-            G.canonical_to_dotted (snd id) canonical
-        | _ -> [ id ]
-=======
-        | Some (B.ImportedEntity xs, _sid) ->
-            { AST_generic.dotted = xs; tok = None }
-        | Some (B.ResolvedName (unique, _), _sid) -> unique
-        | _ -> { dotted = [ id ]; tok = None }
->>>>>>> 7d13ab974 (change possible parents hook, prefer unique names to dotted)
+        | Some (B.ImportedEntity canonical, _sid)
+        | Some (B.GlobalName (canonical, _), _sid) ->
+            canonical
+        | _ -> { unqualified = [ fst id ]; tok = None }
       in
       (* deep: *)
       let candidates =
         match !hook_find_possible_parents with
         | None -> []
-        | Some f -> f xs
+        | Some f -> f canonical
       in
       (* less: use a fold *)
       let rec aux xs =
