@@ -318,7 +318,7 @@ _scan_options: List[Callable] = [
         type=int,
         help="""
             Maximum system memory to use running a rule on a single file in MiB. If set to
-            0 will not have memory limit. Defaults to 0 for all cli scans. For app scans
+            0 will not have memory limit. Defaults to 0 for all CLI scans. For CI scans
             that use the pro engine, it defaults to 5000 MiB
         """,
     ),
@@ -353,7 +353,7 @@ _scan_options: List[Callable] = [
         type=int,
         help=f"""
             Maximum time to spend on interfile analysis. If set to 0 will not have
-            time limit. Defaults to 0 s for all cli scans. For app scans, it defaults
+            time limit. Defaults to 0 s for all CLI scans. For CI scans, it defaults
             to 3 hours.
         """,
     ),
