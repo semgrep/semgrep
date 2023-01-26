@@ -3,6 +3,7 @@
 # - we can build a Docker image as well as Linux and MacOS binaries
 # - all our tests (the one in semgrep-core and the one in semgrep-cli) are passing
 # - we don't have any perf regressions in our benchmarks
+# Noop
 
 name: tests
 
