@@ -84,30 +84,25 @@ jobs:
       #   run: echo '1 == 1' | semgrep -l generic -e '$X == $X' -
       - name: test linked libraries
         run: |
-          EXPECT_MATCH=$(echo foo | grep foo)
-          echo "EXPECT_MATCH:"
-          echo $EXPECT_MATCH
-          if [ -z $EXPECT_MATCH ]; then
-            echo "EXPECT_MATCH empty";
-          else
-            echo "EXPECT_MATCH not empty";
+          echo "/usr/bin/foo"
+          if echo /usr/bin/foo | grep -qv /Users/; then
+            echo "Error: semgrep-core has been linked with a user-specific libary which will not be available on other machines."
+            exit 1
           fi
 
-          EXPECT_NO_MATCH=$(echo foo | grep bar)
-          echo "EXPECT_NO_MATCH:"
-          echo $EXPECT_NO_MATCH
-          if [ -z $EXPECT_NO_MATCH ]; then
-            echo "EXPECT_NO_MATCH empty";
-          else
-            echo "EXPECT_NO_MATCH not empty";
+          echo "/Users/ssm-user"
+          if echo /Users/ssm-user | grep -qv /Users/; then
+            echo "Error: semgrep-core has been linked with a user-specific libary which will not be available on other machines."
+            exit 1
           fi
 
-#          MATCHES=$(otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/semgrep/bin/semgrep-core | grep /Users/)
-#          echo $MATCHES
-#          if [ -z $MATCHES ]; then
-#            echo "Error: semgrep-core has been linked with a user-specific libary which will not be available on other machines."
-#            exit 1;
-#          fi
+          echo "Done"
+
+          # if otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/semgrep/bin/semgrep-core | grep -qv /Users/; then
+          #   echo "Error: semgrep-core has been linked with a user-specific libary which will not be available on other machines."
+          #   exit 1
+          # fi
+
 
   # test-macos-release:
   #   name: test macOS release
