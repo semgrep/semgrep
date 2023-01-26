@@ -30,6 +30,8 @@ jobs:
       - name: Brew update
         run: brew update
       - name: Brew Install
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: 1
         run: brew install semgrep --HEAD
       - name: Check installed correctly
         run: brew test semgrep --HEAD
