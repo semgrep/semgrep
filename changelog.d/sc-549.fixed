@@ -1,1 +1,1 @@
-Fixed bug where SSC would fail to generate unreachable findings for a particular depencency if a reachable finding for that dependency had already been found in the same lockfile
+Fixed bug where Semgrep would fail to generate unreachable findings for a particular dependency if a reachable finding for that dependency had already been found in the same lockfile, even if there are multiple copies of this dependency at different vulnerable versions.
