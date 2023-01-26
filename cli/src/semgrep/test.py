@@ -34,6 +34,7 @@ from boltons.iterutils import partition
 from ruamel.yaml import YAML
 
 from semgrep.constants import BREAK_LINE
+from semgrep.constants import EngineType
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import final_suffix_matches
 from semgrep.util import is_config_fixtest_suffix
@@ -309,16 +310,21 @@ def create_temporary_copy(path: Path) -> str:
     return temp_path
 
 
-def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> bool:
-    def remove_all_suffixes(p: Path) -> Path:
-        result = p.with_suffix("")
-        while result != result.with_suffix(""):
-            result = result.with_suffix("")
-        return result
+def relatively_eq(
+    parent_target: Path, target: Path, parent_config: Path, config: Path
+) -> bool:
+    def remove_all_suffixes(p: str) -> str:
+        return p.split(".", 1)[0]
 
-    rel1 = remove_all_suffixes(child1.relative_to(parent1))
-    rel2 = remove_all_suffixes(child2.relative_to(parent2))
-    return rel1 == rel2
+    rel1 = target.relative_to(parent_target).parts
+    rel2 = config.relative_to(parent_config).parts
+    s = len(rel2)
+    if len(rel1) < s:
+        return False
+    s -= 1
+    return rel1[:s] == rel2[:s] and remove_all_suffixes(rel1[s]) == remove_all_suffixes(
+        rel2[s]
+    )
 
 
 def get_config_filenames(original_config: Path) -> List[Path]:
@@ -445,7 +451,7 @@ def generate_test_results(
     config: Path,
     strict: bool,
     json_output: bool,
-    deep: bool,
+    engine: EngineType,
     optimizations: str = "none",
 ) -> None:
     config_filenames = get_config_filenames(config)
@@ -466,7 +472,7 @@ def generate_test_results(
 
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
-        deep=deep,
+        engine=engine,
         no_git_ignore=True,
         no_rewrite_rule_ids=True,
         strict=strict,
@@ -554,7 +560,7 @@ def generate_test_results(
 
     # This is the invocation of semgrep for testing autofix.
     #
-    # TODO: should 'deep' be set to 'deep=deep' or always 'deep=False'?
+    # TODO: should 'engine' be set to 'engine=engine' or always 'engine=EngineType.OSS'?
     invoke_semgrep_with_autofix_fn = functools.partial(
         invoke_semgrep_multi,
         no_git_ignore=True,
@@ -681,7 +687,7 @@ def test_main(
     strict: bool,
     json: bool,
     optimizations: str,
-    deep: bool,
+    engine: EngineType,
 ) -> None:
 
     if len(target) != 1:
@@ -702,6 +708,6 @@ def test_main(
         config=config_path,
         strict=strict,
         json_output=json,
-        deep=deep,
+        engine=engine,
         optimizations=optimizations,
     )

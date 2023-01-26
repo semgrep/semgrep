@@ -1,0 +1,1 @@
+Terraform: Implicit coercions between strings, bools, ints, and floats are now allowed to match.

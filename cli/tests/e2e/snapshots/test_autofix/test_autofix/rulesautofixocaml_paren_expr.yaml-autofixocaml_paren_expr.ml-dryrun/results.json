@@ -15,6 +15,7 @@
         "offset": 38
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "a_function_call (wrap (the_argument))",
         "fixed_lines": [
@@ -56,6 +57,7 @@
         "offset": 80
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "a_function_call (wrap ((the_argument)))",
         "fixed_lines": [
@@ -97,6 +99,7 @@
         "offset": 137
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "a_function_call (wrap ((another_func the_argument)))",
         "fixed_lines": [
@@ -138,6 +141,7 @@
         "offset": 198
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "a_function_call (wrap ((tuple_member, threeple_member)))",
         "fixed_lines": [

@@ -15,6 +15,7 @@
         "offset": 1372
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "print(\"Hi\")",
@@ -38,6 +39,7 @@
         "offset": 162
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "        <li>person_name_full is <b>{{ person_name_full }}</b></li>",

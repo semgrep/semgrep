@@ -97,6 +97,7 @@ repos:
           - packaging~=21.0
           - requests~=2.22
           - defusedxml~=0.7.1
+          - tomli~=2.0.1
           # other packages have separate typings published
           - types-colorama~=0.4.0
           - types-jsonschema~=4.6.0
@@ -182,6 +183,8 @@ repos:
     hooks:
       - id: semgrep-jsonnet
         name: semgrep jsonnet
+        # Only run this job in CI since it is slow
+        stages: [manual]
         language: docker_image
         # See .pre-commit-hooks.yaml for why we need to set those
         # SEMGREP_XXX variables.  Ideally we would not need this
@@ -218,7 +221,7 @@ repos:
           ]
   # Dogfooding .pre-commit-hooks.yml and setup.py
   - repo: https://github.com/returntocorp/semgrep
-    rev: v0.100.0
+    rev: v1.5.1
     hooks:
       - id: semgrep
         name: Semgrep Python
@@ -241,7 +244,7 @@ repos:
     # the 'language: docker_image', the 'entry:' field will then specify
     # which version to use. In the case below, we're actually running
     # returntocorp/semgrep:develop if you look at .pre-commit-hooks.yaml
-    rev: v0.100.0
+    rev: v1.5.1
     hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python

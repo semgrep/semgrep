@@ -23,7 +23,9 @@ from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import Config
-from semgrep.constants import DEFAULT_MAX_MEMORY_DEEP_CI
+from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
+from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
+from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
@@ -204,6 +206,7 @@ def ci(
     time_flag: bool,
     timeout_threshold: int,
     timeout: int,
+    interfile_timeout: Optional[int],
     use_git_ignore: bool,
     verbose: bool,
     vim: bool,
@@ -335,9 +338,15 @@ def ci(
             # DeepSemgrep is likely to run out
             if max_memory is None:
                 if deep:
-                    max_memory = DEFAULT_MAX_MEMORY_DEEP_CI
+                    max_memory = DEFAULT_MAX_MEMORY_PRO_CI
                 else:
                     max_memory = 0  # unlimited
+            # Same for timeout (Github actions has a 6 hour timeout)
+            if interfile_timeout is None:
+                if deep:
+                    interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
+                else:
+                    interfile_timeout = 0  # unlimited
             if deep and not semgrep_pro_path.exists():
                 run_install_semgrep_pro()
             if deep:
@@ -380,7 +389,7 @@ def ci(
                 lockfile_scan_info,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
-                deep=deep,
+                engine=EngineType.INTERFILE if deep else EngineType.OSS,
                 output_handler=output_handler,
                 target=[os.curdir],  # semgrep ci only scans cwd
                 pattern=None,
@@ -400,6 +409,7 @@ def ci(
                 no_git_ignore=(not use_git_ignore),
                 timeout=timeout,
                 max_memory=max_memory,
+                interfile_timeout=interfile_timeout,
                 timeout_threshold=timeout_threshold,
                 skip_unknown_extensions=(not scan_unknown_extensions),
                 optimizations=optimizations,

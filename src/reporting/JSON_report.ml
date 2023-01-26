@@ -49,6 +49,11 @@ let first_and_last = function
   | [] -> None
   | hd :: tl -> Some (hd, last hd tl)
 
+let convert_engine_kind ek =
+  match ek with
+  | OSS -> `OSSMatch
+  | Pro -> `ProMatch
+
 (*****************************************************************************)
 (* JSON *)
 (*****************************************************************************)
@@ -247,6 +252,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
         rendered_fix;
+        engine_kind = convert_engine_kind x.engine_kind;
       };
   }
 
@@ -273,15 +279,11 @@ let match_to_match render_fix (x : Pattern_match.t) :
  * so we would not need those conversions
  *)
 let error_to_error err =
-  let severity_of_severity = function
-    | E.Error -> SJ.Error
-    | E.Warning -> SJ.Warning
-  in
   let file = err.E.loc.PI.file in
   let startp, endp = OutH.position_range err.E.loc err.E.loc in
   let rule_id = err.E.rule_id in
   let error_type = err.E.typ in
-  let severity = severity_of_severity (E.severity_of_error err.E.typ) in
+  let severity = E.severity_of_error err.E.typ in
   let message = err.E.msg in
   let details = err.E.details in
   {

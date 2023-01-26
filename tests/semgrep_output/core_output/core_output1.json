@@ -48,7 +48,8 @@
               "sid": 1
             }
           }
-        }
+        },
+        "engine_kind": "OSSMatch"
       }
     },
     {
@@ -99,7 +100,8 @@
               "sid": 2
             }
           }
-        }
+        },
+        "engine_kind": "OSSMatch"
       }
     },
     {
@@ -137,7 +139,8 @@
               "md5sum": "95910070194b2a59c2f4defcc8d9e96b"
             }
           }
-        }
+        },
+        "engine_kind": "OSSMatch"
       }
     },
     {
@@ -175,7 +178,8 @@
               "md5sum": "7fe950488534dee15f975d43cbe17c38"
             }
           }
-        }
+        },
+        "engine_kind": "OSSMatch"
       }
     }
   ],

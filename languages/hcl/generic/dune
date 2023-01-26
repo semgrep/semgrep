@@ -1,0 +1,12 @@
+(library
+ (public_name parser_hcl.ast_generic)
+ (name parser_hcl_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-h_program-lang
+   tree-sitter-lang.hcl
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

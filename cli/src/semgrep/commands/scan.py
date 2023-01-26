@@ -29,6 +29,7 @@ from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
+from semgrep.constants import EngineType
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
@@ -309,7 +310,7 @@ _scan_options: List[Callable] = [
         type=int,
         help="""
             Number of subprocesses to use to run checks in parallel. Defaults to the
-            number of cores on the system (1 if using --deep).
+            number of cores on the system (1 if using --interfile).
         """,
     ),
     optgroup.option(
@@ -317,8 +318,8 @@ _scan_options: List[Callable] = [
         type=int,
         help="""
             Maximum system memory to use running a rule on a single file in MiB. If set to
-            0 will not have memory limit. Defaults to 0 unless the DeepSemgrep toggle is
-            on, in which case it defaults to 5000 MiB
+            0 will not have memory limit. Defaults to 0 for all CLI scans. For CI scans
+            that use the pro engine, it defaults to 5000 MiB
         """,
     ),
     optgroup.option(
@@ -345,6 +346,15 @@ _scan_options: List[Callable] = [
         help="""
             Maximum number of rules that can timeout on a file before the file is
             skipped. If set to 0 will not have limit. Defaults to 3.
+        """,
+    ),
+    optgroup.option(
+        "--interfile-timeout",
+        type=int,
+        help=f"""
+            Maximum time to spend on interfile analysis. If set to 0 will not have
+            time limit. Defaults to 0 s for all CLI scans. For CI scans, it defaults
+            to 3 hours.
         """,
     ),
     optgroup.option(
@@ -586,9 +596,28 @@ def scan_options(func: Callable) -> Callable:
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
+# DEPRECATED: --deep to be removed by Feb 2023 launch
 @click.option(
     "--deep",
     "-x",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--pro",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--interproc",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--interfile",
     is_flag=True,
     hidden=True
     # help="contact support@r2c.dev for more information on this"
@@ -603,6 +632,9 @@ def scan(
     core_opts: Optional[str],
     debug: bool,
     deep: bool,
+    pro: bool,
+    interproc: bool,
+    interfile: bool,
     dryrun: bool,
     dump_ast: bool,
     dump_command_for_core: bool,
@@ -644,6 +676,7 @@ def scan(
     time_flag: bool,
     timeout: int,
     timeout_threshold: int,
+    interfile_timeout: Optional[int],
     use_git_ignore: bool,
     validate: bool,
     verbose: bool,
@@ -703,9 +736,11 @@ def scan(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
-    # People have more flexibility on local scans so --max-memory is set to unlimited
+    # People have more flexibility on local scans so --max-memory and --pro-timeout is set to unlimited
     if not max_memory:
         max_memory = 0  # unlimited
+    if not interfile_timeout:
+        interfile_timeout = 0  # unlimited
 
     output_time = time_flag
 
@@ -733,8 +768,20 @@ def scan(
     elif vim:
         output_format = OutputFormat.VIM
 
-    # If `deep` is enabled, turn on `dataflow_traces` by default.
     if deep:
+        abort("The experimental flag --deep has been renamed to --interfile.")
+
+    if interfile:
+        engine = EngineType.INTERFILE
+    elif interproc:
+        engine = EngineType.INTERPROC
+    elif pro:
+        engine = EngineType.PRO
+    else:
+        engine = EngineType.OSS
+
+    # Turn on `dataflow_traces` by default for inter-procedural taint analysis.
+    if engine is EngineType.INTERPROC or engine is EngineType.INTERFILE:
         dataflow_traces = True
 
     output_settings = OutputSettings(
@@ -760,7 +807,7 @@ def scan(
             strict=strict,
             json=json,
             optimizations=optimizations,
-            deep=deep,
+            engine=engine,
         )
 
     run_has_findings = False
@@ -798,10 +845,11 @@ def scan(
                     try:
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
-                            deep=deep,
+                            engine=engine,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
+                            interfile_timeout=interfile_timeout,
                             optimizations=optimizations,
                             core_opts_str=core_opts,
                         ).validate_configs(config)
@@ -837,7 +885,7 @@ def scan(
                 ) = semgrep.semgrep_main.main(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
-                    deep=deep,
+                    engine=engine,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,
@@ -858,6 +906,7 @@ def scan(
                     timeout=timeout,
                     max_memory=max_memory,
                     timeout_threshold=timeout_threshold,
+                    interfile_timeout=interfile_timeout,
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     severity=severity,
                     optimizations=optimizations,

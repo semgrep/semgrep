@@ -278,6 +278,22 @@ class ScanHandler:
             for matches_of_rule in matches_by_rule.values()
             for match in matches_of_rule
         ]
+        # we want date stamps assigned by the app to be assigned such that the
+        # current sort by relevant_since results in findings within a given scan
+        # appear in an intuitive order.  this requires reversed ordering here.
+        all_matches.reverse()
+        sort_order = {  # used only to order rules by severity
+            "EXPERIMENT": 0,
+            "INVENTORY": 1,
+            "INFO": 2,
+            "WARNING": 3,
+            "ERROR": 4,
+        }
+        # NB: sorted guarantees stable sort, so within a given severity level
+        # issues remain sorted as before
+        all_matches = sorted(
+            all_matches, key=lambda match: sort_order[match.severity.value]
+        )
         new_ignored, new_matches = partition(
             all_matches, lambda match: bool(match.is_ignored)
         )

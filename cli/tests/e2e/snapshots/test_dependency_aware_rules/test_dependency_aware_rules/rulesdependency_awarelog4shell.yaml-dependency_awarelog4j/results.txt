@@ -24,6 +24,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "offset": 1037
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "            logger.error(userName);",
@@ -119,7 +120,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "maven",
-              "line_number": 2,
+              "line_number": 3,
               "package": "log4j-core",
               "transitivity": "direct",
               "version": "0.0.2"

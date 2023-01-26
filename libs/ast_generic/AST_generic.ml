@@ -1131,7 +1131,7 @@ and other_stmt_with_stmt_operator =
   | OSWS_With (* newscope: newvar: in OtherStmtWithStmt with LetPattern *)
   (* BEGIN/END in Ruby, Unsafe/Async/Const/Foreign/Impl in Rust,
    * Checked/Unchecked/Lock in C#, Synchronized/Static in Java,
-   * Assembly in Solidity
+   * Assembly/Unchecked in Solidity
    * alt: use a keyword_attribute instead of todo_kind
    *)
   | OSWS_Block of todo_kind

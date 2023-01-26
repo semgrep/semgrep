@@ -24,6 +24,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 43
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    a == a",
@@ -61,6 +62,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 54
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    a == a",
@@ -98,6 +100,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 89
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    a == a",
@@ -135,6 +138,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 126
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    y == y",
@@ -172,6 +176,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 227
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    baz == 4",
@@ -271,6 +276,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             ]
           ]
         },
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    sink(d2)",
@@ -321,6 +327,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 163
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "fix": "(x == 2)",
         "is_ignored": false,
@@ -361,6 +368,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 0
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "",
@@ -368,7 +376,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "metadata": {
           "dev.semgrep.actions": [
             "block"
-          ]
+          ],
+          "sca-kind": "upgrade-only"
         },
         "metavars": {},
         "sca_info": {
