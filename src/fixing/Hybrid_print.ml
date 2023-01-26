@@ -16,23 +16,25 @@
 open Common
 module G = AST_generic
 
-(******************************************************************************)
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 (* Implements hybrid printing of the generic AST. Augments any
  * Ugly_print_AST.printer_t class with the ability to first try a different
  * printing function for any given node.
- *
- * Uses inheritance via a functor so that this is accomplished via dynamic
- * dispatch, so that printer authors do not have to concern themselves with this
- * logic as they fill in cases.
- *
- * Specifically designed for autofix, where we can print some nodes by lifting
- * their original text from the source target or pattern.
  *)
-(******************************************************************************)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
 
 module type Printer = sig
   class printer : Ugly_print_AST.printer_t
 end
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let with_fallback value fallback =
   match value with
@@ -49,9 +51,14 @@ let with_fallback value fallback =
                 %s"
                e1 e2))
 
-(* Classes are not first-class. Functors are the only way to create a class that
- * inherits from some undetermined other class of a particular type. There will
- * be a small amount of boilerplate associated with this per language. *)
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+(* Classes are not first-class. Functors are the only way to create a class
+ * that inherits from some undetermined other class of a particular type.
+ * There will be a small amount of boilerplate associated with this per
+ * language. *)
 module Make (Fallback : Printer) : sig
   class printer :
     (AST_generic.any -> (Immutable_buffer.t, string) result)
