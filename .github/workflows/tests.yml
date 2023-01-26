@@ -85,14 +85,14 @@ jobs:
       - name: test dynamically linked libraries are in /usr/lib/
         shell: bash {0}
         run: |
-          OTOOL_OUTPUT=$(otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/semgrep/bin/semgrep-core)
+          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/semgrep/bin/semgrep-core > otool.txt
           if [ $? -ne 0 ]; then
             echo "Failed to list dynamically linked libraries.";
-            echo $OTOOL_OUTPUT;
-            exit $?;
+            cat otool.txt;
+            exit 1;
           fi
 
-          NON_USR_LIB_DYNAMIC_LIBRARIES=$(echo $OTOOL_OUTPUT | tail -n +2 | grep -v "^\s*/usr/lib/")
+          NON_USR_LIB_DYNAMIC_LIBRARIES=$(echo otool.txt | tail -n +2 | grep -v "^\s*/usr/lib/")
           if [ $? -eq 0 ]; then
             echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
             echo $NON_USR_LIB_DYNAMIC_LIBRARIES
@@ -101,6 +101,7 @@ jobs:
 
   test-wheels-osx-expect-fail:
     runs-on: macos-12
+    needs: [test-wheels-osx-expect-pass]
     steps:
       - name: install package
         run: pip3 install semgrep==1.5.1
@@ -109,14 +110,14 @@ jobs:
       - name: test dynamically linked libraries are in /usr/lib/
         shell: bash {0}
         run: |
-          OTOOL_OUTPUT=$(otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/semgrep/bin/semgrep-core)
+          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/semgrep/bin/semgrep-core > otool.txt
           if [ $? -ne 0 ]; then
             echo "Failed to list dynamically linked libraries.";
-            echo $OTOOL_OUTPUT;
-            exit $?;
+            cat otool.txt;
+            exit 1;
           fi
 
-          NON_USR_LIB_DYNAMIC_LIBRARIES=$(echo $OTOOL_OUTPUT | tail -n +2 | grep -v "^\s*/usr/lib/")
+          NON_USR_LIB_DYNAMIC_LIBRARIES=$(echo otool.txt | tail -n +2 | grep -v "^\s*/usr/lib/")
           if [ $? -eq 0 ]; then
             echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
             echo $NON_USR_LIB_DYNAMIC_LIBRARIES
