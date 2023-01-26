@@ -761,7 +761,12 @@ and m_expr ?(is_root = false) a b =
                 {
                   contents =
                     Some
-                      ( (B.ImportedEntity canonical | B.ImportedModule canonical),
+                      ( ( B.ImportedEntity canonical
+                        | B.ImportedModule canonical
+                        (* TODO: We should uncomment this code, but this introduces
+                         * 52 regressions in DeepSemgrep!
+                         *)
+                        (*| B.GlobalName (canonical, _)*) ),
                         _sid );
                 };
               _;
