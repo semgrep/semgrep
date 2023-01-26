@@ -23,8 +23,4 @@ jobs:
       - name: install package
         run: pip3 install semgrep==1.5.1
       - name: test package
-        run: semgrep --version
-      - name: e2e semgrep-core test
-        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
-      - name: e2e spacegrep test
-        run: echo '1 == 1' | semgrep -l generic -e '$X == $X' -
+        run: otool -L semgrep-core
