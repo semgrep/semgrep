@@ -19,22 +19,14 @@ on:
 jobs:
   brew-build:
     name: Build Semgrep via Brew from `returntocorp/semgrep:develop`
-    runs-on: ["self-hosted", "macOS", "X64"]
+    runs-on: macos-12
     steps:
-      - name: Uninstall semgrep
-        # This is sub-optimal - our workflows shouldn't have to conform to their environment.
-        # However, on the runner side, we can't hook into the workflow run to clean up after.
-        run: brew uninstall semgrep || true
-      - name: Cleanup semgrep
-        run: brew cleanup --prune=all semgrep
       - name: Brew update
         run: brew update
       - name: Brew Install
         run: brew install semgrep --HEAD
       - name: Check installed correctly
         run: brew test semgrep --HEAD
-      - name: Clean up semgrep installation
-        run: brew uninstall semgrep
 
   notify-failure:
     needs: [brew-build]
