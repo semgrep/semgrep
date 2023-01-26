@@ -22,8 +22,6 @@ jobs:
     steps:
       - name: install package
         run: pip3 install semgrep==1.5.1
-      - name: get semgrep-core path
-        run: semgrep --debug --config auto
       - name: test package
         run: otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/semgrep/bin/semgrep-core
 
