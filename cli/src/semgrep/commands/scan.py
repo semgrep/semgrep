@@ -349,7 +349,7 @@ _scan_options: List[Callable] = [
         """,
     ),
     optgroup.option(
-        "--pro-timeout",
+        "--interfile-timeout",
         type=int,
         help=f"""
             Maximum time to spend on interfile analysis. If set to 0 will not have
