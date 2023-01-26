@@ -66,10 +66,7 @@ def extract_npm_lockfile_hash(s: Optional[str]) -> Dict[str, List[str]]:
     """
     if s is None:
         return {}
-    if " " in s:
-        hashes = s.split(" ")
-    else:
-        hashes = [s]
+    hashes = s.split(" ")
     output = {}
     for h in hashes:
         alg_rest = h.split("-")
