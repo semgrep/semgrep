@@ -16,6 +16,7 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "console.log(x == x)",
@@ -66,6 +67,7 @@
         "offset": 30
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "console.log(x == x)",

@@ -523,6 +523,7 @@ class CoreRunner:
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
+        interfile_timeout: int,
         optimizations: str,
         core_opts_str: Optional[str],
     ):
@@ -537,6 +538,7 @@ class CoreRunner:
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
+        self._interfile_timeout = interfile_timeout
         self._optimizations = optimizations
         self._core_opts = shlex.split(core_opts_str) if core_opts_str else []
 
@@ -878,6 +880,10 @@ then please delete {deep_path} manually.
                                 "deep mode needs a single target (root) dir"
                             )
                         cmd_args += ["-deep_inter_file"]
+                        cmd_args += [
+                            "-timeout_for_interfile_analysis",
+                            str(self._interfile_timeout),
+                        ]
                         cmd_args += [root]
                     elif engine is EngineType.INTERPROC:
                         cmd_args += ["-deep_intra_file"]

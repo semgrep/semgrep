@@ -318,14 +318,32 @@ and eval_str _env ~code v =
 (* Env builders *)
 (*****************************************************************************)
 
-(* when called from the new semgrep-full-rule-in-ocaml *)
-
 let text_of_binding mvar mval =
   match mval with
   | MV.Text (text, _, _) ->
       (* Note that `text` may be produced by constant folding, in which
        * case we will not have range info. *)
       Some text
+  (* There are a few places in Generic_vs_generic where we build artificial
+   * code on-the-fly (e.g., a Name from an ImportedEntity), in which case the
+   * tokens in this code should not be used to get the string content
+   * of the code. Unfortunately, a metavariable can be bound to such
+   * code.
+   * In that case, it's better to pretty print the code rather than using
+   * Visitor_AST.range_of_any_opt and Range.contents_at_range below.
+   *
+   * The 'id_hidden = false' guard is to avoid to pretty print
+   * artificial identifiers such as "builtin__include" in PHP that
+   * we generate during parsing.
+   * TODO: get rid of the ugly __builtin__ once we've fixed
+   * ast_php.ml and removed the builtin() function.
+   *
+   * TODO: handle also MV.Name, MV.E of DotAccess; maybe use
+   * Pretty_print/Ugly_print to factorize work.
+   *)
+  | MV.Id ((s, _tok), (None | Some { id_hidden = false; _ }))
+    when not (s =~ "^__builtin.*") ->
+      Some s
   | _ -> (
       let any = MV.mvalue_to_any mval in
       match Visitor_AST.range_of_any_opt any with

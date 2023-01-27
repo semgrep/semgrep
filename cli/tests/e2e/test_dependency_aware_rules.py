@@ -61,6 +61,10 @@ from ..conftest import TESTS_PATH
             "rules/dependency_aware/transitive_and_direct.yaml",
             "dependency_aware/transitive_and_direct/direct_reachable_transitive_unreachable",
         ),
+        (
+            "rules/dependency_aware/no-pattern.yaml",
+            "dependency_aware/yarn_multi_hash",
+        ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):

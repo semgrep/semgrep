@@ -1,6 +1,8 @@
+# -*- jsonnet -*-
+
 # legacy rules written in YAML
 local yml = import "semgrep.yml";
-local pfff = import "pfff.yml";
+
 # registry rules!
 local ocaml = import "p/ocaml";
 
@@ -10,7 +12,6 @@ local less_important_code_globs = ["spacegrep/*", "experiments/*", "scripts/*"];
 
 local semgrep_rules = [
 #TODO: does not parse anymore!!
-#  #TODO: this rule could be moved in pfff/semgrep.yml at some point
 #  { id: "pfff-no-open-in",
 #    match: { or: ["open_in_bin ...", "open_in ..."]},
 #    # Same but using The old syntax:
@@ -101,12 +102,15 @@ local override_messages = {
   |||,
 };
 
-# temporary hack to not report p/ocaml findings on pfff libs
+#Temporary hack to not report p/ocaml findings on pfff libs
+#TODO: we should use +: instead of :, as in
+#  [ r + { paths +: { exclude +: [ "libs/*", "tools/*", "languages/*" ] } }
+# but this is not supported yet by ojsonnet hence the use of :
 local ocaml_rules =
-  [ r + { paths +: { exclude +: [ "libs/*", "tools/*", "languages/*" ] } }
+  [ r + { paths : { exclude : [ "libs/*", "tools/*", "languages/*" ] } }
     for r in ocaml.rules];
 
-local all = yml.rules + semgrep_rules + pfff.rules + ocaml_rules;
+local all = yml.rules + semgrep_rules + ocaml_rules;
 
   { rules:
       [  if std.objectHas(override_messages, r.id)

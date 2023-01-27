@@ -41,9 +41,6 @@ type error = {
 }
 [@@deriving show]
 
-(* TODO: define also in Output_from_core.atd *)
-type severity = Error | Warning
-
 let g_errors = ref []
 
 (****************************************************************************)
@@ -70,6 +67,8 @@ let mk_error ?(rule_id = None) loc msg err =
     | SemgrepMatchFound
     | Timeout
     | OutOfMemory
+    | TimeoutDuringInterfile
+    | OutOfMemoryDuringInterfile
     | PatternParseError _
     | PartialParsing _ ->
         msg
@@ -197,7 +196,7 @@ let string_of_error err =
 
 let severity_of_error typ =
   match typ with
-  | Out.SemgrepMatchFound -> Error
+  | Out.SemgrepMatchFound -> Out.Error
   | Out.MatchingError -> Warning
   | Out.TooManyMatches -> Warning
   | Out.LexicalError -> Warning
@@ -211,6 +210,8 @@ let severity_of_error typ =
   | Out.FatalError -> Error
   | Out.Timeout -> Warning
   | Out.OutOfMemory -> Warning
+  | Out.TimeoutDuringInterfile -> Error
+  | Out.OutOfMemoryDuringInterfile -> Error
 
 (*****************************************************************************)
 (* Try with error *)

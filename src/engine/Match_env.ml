@@ -41,6 +41,8 @@ type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 type xconfig = {
   config : Config_semgrep.t; (* corresponds to rule `options` key *)
   equivs : Equivalence.equivalences;
+  nested_formula : bool;
+  (* ^^^ i.e. we are evaluating a nested formula within `metavariable-pattern`. *)
   (* Fields coming from Runner_config.t used by the engine.
    * We could just include the whole Runner_config.t, but it's
    * cleaner to explicitely state what the engine depends on
@@ -96,6 +98,7 @@ let default_xconfig =
   {
     config = Config_semgrep.default_config;
     equivs = [];
+    nested_formula = false;
     matching_explanations = false;
     (* TODO: set to true by default?
      * Anyway it's set to true in Runner_config.default so it will default to

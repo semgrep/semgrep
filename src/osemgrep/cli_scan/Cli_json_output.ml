@@ -153,6 +153,8 @@ let error_type_string (error_type : Out.core_error_kind) : string =
   | FatalError -> "Fatal error"
   | Timeout -> "Timeout"
   | OutOfMemory -> "Out of memory"
+  | TimeoutDuringInterfile -> "Timeout during interfile analysis"
+  | OutOfMemoryDuringInterfile -> "OOM during interfile analysis"
 
 (* Generate error message exposed to user *)
 let error_message ~rule_id ~(location : Out.location)
@@ -310,8 +312,15 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
   | {
    rule_id;
    location;
-   extra = { message; metavars; rendered_fix; (* LATER *)
-                                              dataflow_trace = _ };
+   extra =
+     {
+       message;
+       metavars;
+       rendered_fix;
+       (* LATER *)
+       dataflow_trace = _;
+       engine_kind;
+     };
   } ->
       let rule =
         try Hashtbl.find env.hrules rule_id with
@@ -370,6 +379,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
             sca_info = None;
             fixed_lines = None;
             dataflow_trace = None;
+            engine_kind;
           };
       }
 

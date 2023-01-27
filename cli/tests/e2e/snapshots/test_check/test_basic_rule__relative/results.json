@@ -28,6 +28,7 @@
         "offset": 69
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    return a + b == a + b",
@@ -67,6 +68,7 @@
         "offset": 67
       },
       "extra": {
+        "engine_kind": "OSSMatch",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "console.log(x == x)",

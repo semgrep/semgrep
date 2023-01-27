@@ -255,7 +255,10 @@ class OutputHandler:
         if ex is None:
             return
         if isinstance(ex, SemgrepError):
-            if ex.level == Level.ERROR:
+            if ex.level == Level.ERROR and not (
+                isinstance(ex, SemgrepCoreError)
+                and ex.is_special_interfile_analysis_error
+            ):
                 raise ex
             elif self.settings.strict:
                 raise ex

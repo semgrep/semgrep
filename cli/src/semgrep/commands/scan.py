@@ -44,6 +44,7 @@ from semgrep.output import OutputSettings
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.state import get_state
 from semgrep.target_manager import write_pipes_to_disk
@@ -318,8 +319,8 @@ _scan_options: List[Callable] = [
         type=int,
         help="""
             Maximum system memory to use running a rule on a single file in MiB. If set to
-            0 will not have memory limit. Defaults to 0 unless the DeepSemgrep toggle is
-            on, in which case it defaults to 5000 MiB
+            0 will not have memory limit. Defaults to 0 for all CLI scans. For CI scans
+            that use the pro engine, it defaults to 5000 MiB
         """,
     ),
     optgroup.option(
@@ -346,6 +347,15 @@ _scan_options: List[Callable] = [
         help="""
             Maximum number of rules that can timeout on a file before the file is
             skipped. If set to 0 will not have limit. Defaults to 3.
+        """,
+    ),
+    optgroup.option(
+        "--interfile-timeout",
+        type=int,
+        help=f"""
+            Maximum time to spend on interfile analysis. If set to 0 will not have
+            time limit. Defaults to 0 s for all CLI scans. For CI scans, it defaults
+            to 3 hours.
         """,
     ),
     optgroup.option(
@@ -613,6 +623,12 @@ def scan_options(func: Callable) -> Callable:
     hidden=True
     # help="contact support@r2c.dev for more information on this"
 )
+@click.option(
+    "--dump-engine-path",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
 @scan_options
 @handle_command_errors
 def scan(
@@ -623,6 +639,7 @@ def scan(
     core_opts: Optional[str],
     debug: bool,
     deep: bool,
+    dump_engine_path: bool,
     pro: bool,
     interproc: bool,
     interfile: bool,
@@ -667,6 +684,7 @@ def scan(
     time_flag: bool,
     timeout: int,
     timeout_threshold: int,
+    interfile_timeout: Optional[int],
     use_git_ignore: bool,
     validate: bool,
     verbose: bool,
@@ -700,6 +718,10 @@ def scan(
             version_check()
         return None
 
+    if dump_engine_path:
+        print(SemgrepCore.path())
+        return None
+
     if show_supported_languages:
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
@@ -726,9 +748,11 @@ def scan(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
-    # People have more flexibility on local scans so --max-memory is set to unlimited
+    # People have more flexibility on local scans so --max-memory and --pro-timeout is set to unlimited
     if not max_memory:
         max_memory = 0  # unlimited
+    if not interfile_timeout:
+        interfile_timeout = 0  # unlimited
 
     output_time = time_flag
 
@@ -837,6 +861,7 @@ def scan(
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
+                            interfile_timeout=interfile_timeout,
                             optimizations=optimizations,
                             core_opts_str=core_opts,
                         ).validate_configs(config)
@@ -893,6 +918,7 @@ def scan(
                     timeout=timeout,
                     max_memory=max_memory,
                     timeout_threshold=timeout_threshold,
+                    interfile_timeout=interfile_timeout,
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     severity=severity,
                     optimizations=optimizations,
