@@ -6,7 +6,7 @@
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
 exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^tests|^semgrep-core/src/pfff/tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations|^cli/scripts|TOPORT"
-
+default_stages: [commit]
 # See https://pre-commit.com/#pre-commit-configyaml---repos
 # for more information on the format of the content below
 repos:
