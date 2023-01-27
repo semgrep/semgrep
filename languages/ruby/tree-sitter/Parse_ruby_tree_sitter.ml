@@ -24,10 +24,10 @@ module H = Parse_tree_sitter_helpers
 (* Prelude *)
 (*****************************************************************************)
 (* Ruby parser using tree-sitter-lang/semgrep-ruby and converting
- * to pfff/lang_ruby/parsing/ast_ruby.ml
+ * to ../ast/ast_ruby.ml
  *
  * The resulting AST can then be converted to the generic AST by using
- * pfff/lang_ruby/analyze/ruby_to_generic.ml
+ * ruby_to_generic.ml
  *)
 
 (*****************************************************************************)

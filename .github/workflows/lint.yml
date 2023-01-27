@@ -69,7 +69,7 @@ jobs:
     # This is not necessary in Circle CI which has sane defaults.
     runs-on: ubuntu-latest
     # This custom image provides 'ocamlformat' with a specific version needed to check
-    # OCaml code (must be the same than the one in semgrep-core/dev/dev.opam)
+    # OCaml code (must be the same than the one in dev/dev.opam)
     # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
     container: returntocorp/ocaml:ubuntu-2022-09-24
     # HOME in the container is tampered by GHA and modified from /root to /home/github
@@ -84,7 +84,7 @@ jobs:
         env:
           HOME: /root
         run: |
-          # coupling: must be the same than in semgrep-core/dev/dev.opam
+          # coupling: must be the same than in dev/dev.opam
           opam install -y ocamlformat.0.21.0
           # Without this 'git config' command below, we would get this error in CI:
           #   fatal: detected dubious ownership in repository at '/__w/semgrep/semgrep'

@@ -170,7 +170,7 @@ let java_tests =
  * which they should match exactly.
  * They will then be matched against the code at the given range to make
  * sure semgrep actually correctly matches the pattern to the code.
- * Place test files in semgrep-core/tests/synthesizing
+ * Place test files in tests/synthesizing
  *)
 
 let tests =

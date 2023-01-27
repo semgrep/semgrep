@@ -24,7 +24,7 @@ module PI = Parse_info
 (* Prelude *)
 (*****************************************************************************)
 (* Csharp parser using tree-sitter-lang/semgrep-charp and converting
- * directly to pfff/h_program-lang/AST_generic.ml
+ * directly to AST_generic.ml
  *
  * TODO:
  *  - lots of TODO in this file ... it parses correctly (no exn raised),

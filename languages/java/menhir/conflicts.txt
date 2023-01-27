@@ -5,7 +5,7 @@
 A great prelimiary writeup to read on conflicts is the official
 LALR grammar comments in the 1st edition of the Java specification, which is
 still accessible at https://www.cs.cornell.edu/andru/javaspec/19.doc.html
-(also cached in pfff/docs/official-grammars/java/).
+(also cached in docs/official-grammars/java/).
 
 ** Different names for different entities
 See the writeup above pb #1.

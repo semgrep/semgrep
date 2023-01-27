@@ -2,7 +2,7 @@
    Set up logging globally and for each module based on what
    we found on the command line or config files.
 
-   TODO? could move setup in pfff/.../Logging.ml
+   TODO? could move setup in commons/Logging.ml
 *)
 
 let logger = Logging.get_logger [ __MODULE__ ]

@@ -5781,8 +5781,8 @@ let common_prefix_of_files_or_dirs xs =
 (*
 let _ =
   example
-    (common_prefix_of_files_or_dirs ["/home/pad/pfff/visual";
-                                     "/home/pad/pfff/commons";]
+    (common_prefix_of_files_or_dirs ["/home/pad/visual";
+                                     "/home/pad/commons";]
      =*= "/home/pad/pfff"
     )
 *)

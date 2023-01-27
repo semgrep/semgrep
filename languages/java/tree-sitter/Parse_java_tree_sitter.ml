@@ -24,10 +24,10 @@ module H = Parse_tree_sitter_helpers
 (* Prelude *)
 (*****************************************************************************)
 (* Java parser using tree-sitter-lang/semgrep-java and converting
- * to pfff/lang_java/parsing/ast_java.ml
+ * to ../ast//ast_java.ml
  *
  * The resulting AST can then be converted to the generic AST by using
- * pfff/lang_java/analyze/java_to_generic.ml
+ * ../generic/java_to_generic.ml
  *
  * TODO:
  *  - look at all the _xxx var in this file; Many of them should really

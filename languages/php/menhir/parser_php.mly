@@ -990,7 +990,7 @@ expr:
 
  (* less: it would be nicer to have "(" TTypename ")"
   * but this would require some parsing tricks to sometimes return
-  * a TIdent and TTypename like in pfff/lang_cpp/parsing/.
+  * a TIdent and TTypename like in cpp/menhir/.
   *)
  | T_BOOL_CAST   expr   { Cast((BoolTy,$1),$2) }
  | T_INT_CAST    expr   { Cast((IntTy,$1),$2) }

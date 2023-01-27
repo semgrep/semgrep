@@ -28,7 +28,7 @@ type autofix_printer_test_case = {
  *
  * This does not test that we lift the correct ranges from the original target
  * or fix pattern, just that we lift the correct number of characters. The tests
- * in `semgrep-core/tests` exercise the system as a whole, and ensure that the
+ * in `tests` exercise the system as a whole, and ensure that the
  * fixes tested there are correct.
  *)
 let check lang { target; pattern; fix_pattern; expected } =

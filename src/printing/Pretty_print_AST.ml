@@ -27,7 +27,7 @@ module PI = Parse_info
  * also for correct autofixing.
  *
  * TODO: Pretty printing library to use:
- *  - OCaml Format lib? see pfff/commons/OCaml.string_of_v for an example
+ *  - OCaml Format lib? see commons/OCaml.string_of_v for an example
  *  - Martin's easy-format?
  *  - Wadler's pretty-printer combinators?
  *)

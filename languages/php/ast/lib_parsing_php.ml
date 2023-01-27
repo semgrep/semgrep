@@ -41,7 +41,7 @@ let is_php_script file =
       | End_of_file -> false)
 
 (* todo: can not include those files for now because
- * they conflict with pfff/data/php_stdlib and generate lots
+ * they conflict with data/php_stdlib and generate lots
  * of DUPE in codegraph
  *
  * (filename =~ ".*\\.hhi") (* hack uses this extension *)

@@ -4,7 +4,7 @@ import re
 
 path = "_build/default/tests"
 
-print("Coverage statistics for files under semgrep-core/matching/")
+print("Coverage statistics for files under matching/")
 
 
 def report_summary_stat() -> str:

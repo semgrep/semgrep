@@ -17,7 +17,7 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Pad's poor's man profiler. See pfff/Main.ml for example of use
+(* Pad's poor's man profiler. See pfff's Main.ml for example of use
  * and the -profile command-line flag.
  *
  * You should probably rely on ocamlprof, perf, memprof, and the
