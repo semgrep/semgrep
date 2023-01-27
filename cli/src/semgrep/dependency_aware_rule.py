@@ -125,10 +125,7 @@ def transivite_dep_is_also_direct(
     Assumes that [dep] is transitive
     Checks if there is a direct version of the transitive dependency [dep]
     """
-    for other_package, transitivity in deps:
-        if other_package == package and transitivity == Transitivity(Direct()):
-            return True
-    return False
+    return (package, Transitivity(Direct())) in deps
 
 
 def generate_reachable_sca_findings(
