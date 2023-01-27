@@ -855,18 +855,18 @@ then please delete {deep_path} manually.
 """
                         )
                     raise SemgrepError(
-                        "Could not run deep analysis: Semgrep PRO engine not installed. Run `semgrep install-semgrep-pro`"
+                        "Could not run deep analysis: Semgrep Pro Engine not installed. Run `semgrep install-semgrep-pro`"
                     )
 
                 if pro_path is not None:
-                    logger.info(f"Using Semgrep PRO installed in {pro_path}")
+                    logger.info(f"Using Semgrep Pro installed in {pro_path}")
                     version = sub_check_output(
                         [pro_path, "-pro_version"],
                         timeout=10,
                         encoding="utf-8",
                         stderr=subprocess.STDOUT,
                     ).rstrip()
-                    logger.info(f"Semgrep PRO Version Info: ({version})")
+                    logger.info(f"Semgrep Pro Version Info: ({version})")
 
                     cmd_bin = pro_path
 
@@ -998,10 +998,10 @@ then please delete {deep_path} manually.
                 logger.error(
                     f"""
 
-Semgrep PRO crashed during execution (unknown reason).
-This can sometimes happen because either Semgrep PRO or Semgrep is out of date.
+Semgrep Pro crashed during execution (unknown reason).
+This can sometimes happen because either Semgrep Pro or Semgrep is out of date.
 
-Try updating your version of Semgrep PRO (`semgrep install-semgrep-pro`) or your version of Semgrep (`pip install semgrep/brew install semgrep`).
+Try updating your version of Semgrep Pro (`semgrep install-semgrep-pro`) or your version of Semgrep (`pip install semgrep/brew install semgrep`).
 If both are up-to-date and the crash persists, please contact support to report an issue!
 
 Exception raised: `{e}`
