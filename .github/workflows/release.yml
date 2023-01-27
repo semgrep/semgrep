@@ -307,7 +307,12 @@ jobs:
   upload-wheels:
     runs-on: ubuntu-latest
     needs:
-      [test-wheels-manylinux, build-test-osx-x86, build-test-osx-m1, check-m1-build]
+      [
+        test-wheels-manylinux,
+        build-test-osx-x86,
+        build-test-osx-m1,
+        check-m1-build,
+      ]
     if: |
       always() &&
       (needs.build-test-osx-m1.result == 'success' || needs.build-test-osx-m1.result == 'skipped')
