@@ -331,25 +331,28 @@ def ci(
             assert config  # Config has to be defined here. Helping mypy out
             # Run DeepSemgrep when available but only for full scans
             is_full_scan = metadata.merge_base_ref is None
-            deep = scan_handler.deepsemgrep if scan_handler and is_full_scan else False
+            engine = EngineType.OSS
+            if scan_handler and scan_handler.deepsemgrep:
+                engine = EngineType.INTERFILE if is_full_scan else EngineType.PRO
+
             (semgrep_pro_path, _deep_semgrep_path) = determine_semgrep_pro_path()
 
             # Set a default max_memory for CI runs when DeepSemgrep is on because
             # DeepSemgrep is likely to run out
             if max_memory is None:
-                if deep:
+                if engine is EngineType.INTERFILE:
                     max_memory = DEFAULT_MAX_MEMORY_PRO_CI
                 else:
                     max_memory = 0  # unlimited
             # Same for timeout (Github actions has a 6 hour timeout)
             if interfile_timeout is None:
-                if deep:
+                if engine is EngineType.INTERFILE:
                     interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
                 else:
                     interfile_timeout = 0  # unlimited
-            if deep and not semgrep_pro_path.exists():
+            if engine.is_pro and not semgrep_pro_path.exists():
                 run_install_semgrep_pro()
-            if deep:
+            if engine is EngineType.INTERFILE:
                 # Add the p/deepsemgrep rules
                 # TODO this is a temporary hack!!! In the future,
                 # we will ensure that deepsemgrep rules are in the
@@ -389,7 +392,7 @@ def ci(
                 lockfile_scan_info,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
-                engine=EngineType.INTERFILE if deep else EngineType.OSS,
+                engine=engine,
                 output_handler=output_handler,
                 target=[os.curdir],  # semgrep ci only scans cwd
                 pattern=None,
