@@ -884,7 +884,7 @@ def scan(
                 (
                     filtered_matches_by_rule,
                     semgrep_errors,
-                    all_targets,
+                    _renamed_targets,
                     ignore_log,
                     filtered_rules,
                     profiler,
@@ -928,7 +928,7 @@ def scan(
 
             output_handler.output(
                 filtered_matches_by_rule,
-                all_targets=all_targets,
+                all_targets=output_extra.all_targets,
                 ignore_log=ignore_log,
                 profiler=profiler,
                 filtered_rules=filtered_rules,
@@ -944,7 +944,7 @@ def scan(
                 filtered_matches_by_rule,
                 semgrep_errors,
                 filtered_rules,
-                all_targets,
+                output_extra.all_targets,
             )
 
     if enable_version_check:

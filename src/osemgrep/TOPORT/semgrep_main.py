@@ -9,7 +9,6 @@ from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
 from semgrep.nosemgrep import process_ignores
-from semgrep.output import OutputExtra
 from semgrep.project import get_project_url
 from semgrep.target_manager import FileTargetingLog
 from semgrep.util import unit_str
