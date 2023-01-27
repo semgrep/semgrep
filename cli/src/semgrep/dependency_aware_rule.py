@@ -117,7 +117,7 @@ def generate_unreachable_sca_findings(
     return non_reachable_matches, dep_rule_errors, targeted_lockfiles
 
 
-@lru_cache(maxsize=1000)
+@lru_cache(maxsize=100_000)
 def transivite_dep_is_also_direct(
     package: str, deps: Tuple[Tuple[str, Transitivity], ...]
 ) -> bool:
