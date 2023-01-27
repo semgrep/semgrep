@@ -1,0 +1,12 @@
+rules:
+- id: resolved-metavariables
+  patterns: 
+    - pattern: |
+       var $X = $ID()
+    - metavariable-pattern: 
+       metavariable: $ID
+       pattern: |
+        foo.bar
+  message: xxx
+  severity: WARNING
+  languages: [javascript]
