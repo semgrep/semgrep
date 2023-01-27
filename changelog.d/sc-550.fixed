@@ -1,1 +1,0 @@
-Fixed bug where npm lockfiles with packages that listed multiples hashes would fail to parse

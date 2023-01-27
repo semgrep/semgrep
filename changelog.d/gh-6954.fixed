@@ -1,1 +1,0 @@
-CLI: No longer fails when running tests against a config file with no rules in it
