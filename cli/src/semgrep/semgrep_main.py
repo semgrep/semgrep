@@ -15,7 +15,6 @@ from typing import Union
 
 from boltons.iterutils import partition
 
-import semgrep.output_from_core as out
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
@@ -36,9 +35,8 @@ from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
-from semgrep.parsing_data import ParsingData
+from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
-from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
@@ -109,12 +107,9 @@ def invoke_semgrep(
         _,
         _,
         _,
-        _,
         filtered_rules,
         profiler,
-        profiling_data,
-        _,
-        explanations,
+        output_extra,
         shown_severities,
         _,
     ) = main(
@@ -131,9 +126,9 @@ def invoke_semgrep(
         m for ms in filtered_matches_by_rule.values() for m in ms
     ]
     output_handler.profiler = profiler
-    output_handler.profiling_data = profiling_data
+    output_handler.profiling_data = output_extra.profiling_data
     output_handler.severities = shown_severities
-    output_handler.explanations = explanations
+    output_handler.explanations = output_extra.explanations
 
     return json.loads(output_handler._build_output())  # type: ignore
 
@@ -145,14 +140,7 @@ def run_rules(
     output_handler: OutputHandler,
     dump_command_for_core: bool,
     engine: EngineType,
-) -> Tuple[
-    RuleMatchMap,
-    List[SemgrepError],
-    Set[Path],
-    ProfilingData,
-    ParsingData,
-    Optional[List[out.MatchingExplanation]],
-]:
+) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra]:
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
@@ -161,14 +149,7 @@ def run_rules(
         rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
     )
 
-    (
-        rule_matches_by_rule,
-        semgrep_errors,
-        all_targets,
-        profiling_data,
-        parsing_data,
-        explanations,
-    ) = core_runner.invoke_semgrep(
+    (rule_matches_by_rule, semgrep_errors, output_extra,) = core_runner.invoke_semgrep(
         target_manager, rest_of_the_rules, dump_command_for_core, engine
     )
 
@@ -221,7 +202,7 @@ def run_rules(
                 )
                 rule_matches_by_rule[rule].extend(dep_rule_matches)
                 output_handler.handle_semgrep_errors(dep_rule_errors)
-                all_targets.union(targeted_lockfiles)
+                output_extra.all_targets.union(targeted_lockfiles)
             else:
                 (
                     dep_rule_matches,
@@ -232,15 +213,12 @@ def run_rules(
                 )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
-                all_targets.union(targeted_lockfiles)
+                output_extra.all_targets.union(targeted_lockfiles)
 
     return (
         rule_matches_by_rule,
         semgrep_errors,
-        all_targets,
-        profiling_data,
-        parsing_data,
-        explanations,
+        output_extra,
     )
 
 
@@ -311,13 +289,10 @@ def main(
     RuleMatchMap,
     List[SemgrepError],
     Set[Path],
-    Set[Path],
     FileTargetingLog,
     List[Rule],
     ProfileManager,
-    ProfilingData,
-    ParsingData,
-    Optional[List[out.MatchingExplanation]],
+    OutputExtra,
     Collection[RuleSeverity],
     Dict[str, int],
 ]:
@@ -432,14 +407,7 @@ def main(
         for ruleid in sorted(rule.id for rule in experimental_rules):
             logger.verbose(f"- {ruleid}")
 
-    (
-        rule_matches_by_rule,
-        semgrep_errors,
-        all_targets,
-        profiling_data,
-        parsing_data,
-        explanations,
-    ) = run_rules(
+    (rule_matches_by_rule, semgrep_errors, output_extra,) = run_rules(
         filtered_rules,
         target_manager,
         core_runner,
@@ -495,10 +463,7 @@ def main(
                     (
                         baseline_rule_matches_by_rule,
                         baseline_semgrep_errors,
-                        baseline_targets,
-                        baseline_profiling_data,
-                        baseline_parsing_data,
-                        _explanations,
+                        baseline_output_extra,
                     ) = run_rules(
                         # only the rules that had a match
                         [
@@ -535,13 +500,13 @@ def main(
     if metrics.is_enabled:
         metrics.add_project_url(project_url)
         metrics.add_configs(configs)
-        metrics.add_rules(filtered_rules, profiling_data)
-        metrics.add_max_memory_bytes(profiling_data)
-        metrics.add_targets(all_targets, profiling_data)
+        metrics.add_rules(filtered_rules, output_extra.profiling_data)
+        metrics.add_max_memory_bytes(output_extra.profiling_data)
+        metrics.add_targets(output_extra.all_targets, output_extra.profiling_data)
         metrics.add_findings(filtered_matches_by_rule)
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
-        metrics.add_parse_rates(parsing_data)
+        metrics.add_parse_rates(output_extra.parsing_data)
 
     if autofix:
         apply_fixes(filtered_matches_by_rule.kept, dryrun)
@@ -552,14 +517,11 @@ def main(
     return (
         filtered_matches_by_rule.kept,
         semgrep_errors,
-        all_targets,
         renamed_targets,
         target_manager.ignore_log,
         filtered_rules,
         profiler,
-        profiling_data,
-        parsing_data,
-        explanations,
+        output_extra,
         shown_severities,
         target_manager.lockfile_scan_info,
     )

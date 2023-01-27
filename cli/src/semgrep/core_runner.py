@@ -41,6 +41,7 @@ from semgrep.core_output import parse_core_output
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import with_color
+from semgrep.output_extra import OutputExtra
 from semgrep.parsing_data import ParsingData
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
@@ -738,14 +739,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
-    ) -> Tuple[
-        RuleMatchMap,
-        List[SemgrepError],
-        Set[Path],
-        ProfilingData,
-        ParsingData,
-        Optional[List[core.MatchingExplanation]],
-    ]:
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
@@ -960,13 +954,14 @@ then please delete {deep_path} manually.
                     parsing_data.add_error(err)
             errors.extend(parsed_errors)
 
+        output_extra = OutputExtra(
+            all_targets, profiling_data, parsing_data, core_output.explanations
+        )
+
         return (
             outputs,
             errors,
-            all_targets,
-            profiling_data,
-            parsing_data,
-            core_output.explanations,
+            output_extra,
         )
 
     def _run_rules_direct_to_semgrep_core(
@@ -975,14 +970,7 @@ then please delete {deep_path} manually.
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
-    ) -> Tuple[
-        RuleMatchMap,
-        List[SemgrepError],
-        Set[Path],
-        ProfilingData,
-        ParsingData,
-        Optional[List[core.MatchingExplanation]],
-    ]:
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
         These issues may possibly cause a failure if a user, for instance, updates their
@@ -1020,14 +1008,7 @@ Exception raised: `{e}`
         rules: List[Rule],
         dump_command_for_core: bool,
         engine: EngineType,
-    ) -> Tuple[
-        RuleMatchMap,
-        List[SemgrepError],
-        Set[Path],
-        ProfilingData,
-        ParsingData,
-        Optional[List[core.MatchingExplanation]],
-    ]:
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and retuns object with findings
         """
@@ -1036,16 +1017,13 @@ Exception raised: `{e}`
         (
             findings_by_rule,
             errors,
-            all_targets,
-            profiling_data,
-            parsing_data,
-            explanations,
+            output_extra,
         ) = self._run_rules_direct_to_semgrep_core(
             rules, target_manager, dump_command_for_core, engine
         )
 
         logger.debug(
-            f"semgrep ran in {datetime.now() - start} on {len(all_targets)} files"
+            f"semgrep ran in {datetime.now() - start} on {len(output_extra.all_targets)} files"
         )
         by_severity = collections.defaultdict(list)
         for rule, findings in findings_by_rule.items():
@@ -1059,10 +1037,7 @@ Exception raised: `{e}`
         return (
             findings_by_rule,
             errors,
-            all_targets,
-            profiling_data,
-            parsing_data,
-            explanations,
+            output_extra,
         )
 
     def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
