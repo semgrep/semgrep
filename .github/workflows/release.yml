@@ -201,26 +201,9 @@ jobs:
       - name: Test semgrep-core
         run: opam exec -- make core-test
 
-  build-core-osx:
-    name: Build the OSX binaries
-    runs-on: ["self-hosted", "macOS", "X64"]
-    steps:
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-      - run: sudo python3 -m pip install pipenv==2022.6.7
-      - name: Run OSX release script
-        run: ./scripts/osx-release.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: semgrep-osx-${{ github.sha }}
-          path: artifacts.zip
+  build-test-osx-x86:
+    uses: ./.github/workflows/build-test-osx-x86.yaml
+    secrets: inherit
 
   check-m1-build:
     name: Check build status for M1
@@ -237,27 +220,10 @@ jobs:
             echo "::set-output name=defined::false"
           fi
 
-  build-core-m1:
-    name: Build the OSX M1 binaries
-    needs: [check-m1-build]
-    runs-on: [self-hosted, macOS, ARM64]
+  build-test-osx-m1:
     if: ${{needs.check-m1-build.outputs.m1_support == 'true'}}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-      - name: Run OSX release script
-        env:
-          # M1 builds failing due to a permissions issue. this cleanup is an optimization,
-          # and we can revisit re-enabling cleanup when we have more time/resources to debug.
-          HOMEBREW_NO_INSTALL_CLEANUP: "true"
-        run: ./scripts/osx-m1-release.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: semgrep-m1-${{ github.sha }}
-          path: artifacts.zip
+    uses: ./.github/workflows/build-test-osx-m1.yaml
+    secrets: inherit
 
   release-ubuntu-16-04:
     runs-on: ubuntu-latest
@@ -284,59 +250,6 @@ jobs:
         with:
           name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz
-
-  build-wheels-osx:
-    runs-on: macos-12
-    needs: [build-core-osx]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: "recursive"
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: semgrep-osx-${{ github.sha }}
-      - name: Install artifacts
-        run: unzip artifacts.zip
-      - uses: actions/setup-python@v4
-        with:
-          # This is just the Python version to build the wheels
-          python-version: 3.7
-      - name: Build the wheels
-        env:
-          # Relative because build-wheels does a 'cd cli'
-          SEMGREP_CORE_BIN: ../artifacts/semgrep-core
-        run: ./scripts/build-wheels.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: osx-wheel
-          path: cli/dist.zip
-
-  build-wheels-m1:
-    runs-on: [self-hosted, macOS, ARM64]
-    needs: [build-core-m1]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: "recursive"
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: semgrep-m1-${{ github.sha }}
-      - name: Install artifacts
-        run: unzip artifacts.zip
-      - name: Build the wheels
-        env:
-          # Relative because build-wheels does a 'cd cli'
-          SEMGREP_CORE_BIN: ../artifacts/semgrep-core
-        run: ./scripts/build-wheels-m1.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: m1-wheel
-          path: cli/dist.zip
 
   build-wheels-manylinux:
     runs-on: ubuntu-latest
@@ -394,10 +307,15 @@ jobs:
   upload-wheels:
     runs-on: ubuntu-latest
     needs:
-      [test-wheels-manylinux, build-wheels-osx, build-wheels-m1, check-m1-build]
+      [
+        test-wheels-manylinux,
+        build-test-osx-x86,
+        build-test-osx-m1,
+        check-m1-build,
+      ]
     if: |
       always() &&
-      (needs.build-wheels-m1.result == 'success' || needs.builds-wheels-m1.result == 'skipped')
+      (needs.build-test-osx-m1.result == 'success' || needs.build-test-osx-m1.result == 'skipped')
     steps:
       - name: Download Artifact
         uses: actions/download-artifact@v3
