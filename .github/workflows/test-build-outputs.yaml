@@ -181,3 +181,4 @@ jobs:
           fi;
       - name: cleanup semgrep
         run: pip3 uninstall -y semgrep
+
