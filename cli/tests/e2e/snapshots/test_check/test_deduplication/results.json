@@ -47,7 +47,7 @@
         },
         "metavars": {
           "$X": {
-            "abstract_content": "a+b",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 17,
               "line": 3,
@@ -109,7 +109,7 @@
         },
         "metavars": {
           "$X": {
-            "abstract_content": "x",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 6,
               "line": 8,
@@ -171,7 +171,7 @@
         },
         "metavars": {
           "$X": {
-            "abstract_content": "x",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 13,
               "line": 12,

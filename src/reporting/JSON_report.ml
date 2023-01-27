@@ -163,7 +163,7 @@ let metavars startp_of_match_range (s, mval) =
         {
           Out.start = startp;
           end_ = endp;
-          abstract_content = metavar_string_of_any any;
+          abstract_content = "DEPRECATED";
           propagated_value = get_propagated_value startp_of_match_range any;
         } )
 

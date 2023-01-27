@@ -9,7 +9,7 @@
         "matchSource": "$X != $X $X == $X def __init__(...):\n    ...\n self.$X == self.$X 1 == 1 assert(...) assertFalse(...) assertTrue(...) def __eq__(...):\n    ...\n",
         "metavars": {
           "$X": {
-            "abstract_content": "a+b",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 17,
               "line": 3,
@@ -50,7 +50,7 @@
             },
             "uri": "file:///tmp/masked/path"
           },
-          "message": "$X: a+b"
+          "message": "$X: DEPRECATED"
         }
       ],
       "severity": 1,

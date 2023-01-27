@@ -23,7 +23,7 @@
         "metadata": {},
         "metavars": {
           "$CLASS": {
-            "abstract_content": "A",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 1,
@@ -36,7 +36,7 @@
             }
           },
           "$FUNC": {
-            "abstract_content": "B",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 10,
               "line": 2,
@@ -49,7 +49,7 @@
             }
           },
           "$MSG": {
-            "abstract_content": "\"blah\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 25,
               "line": 4,
@@ -87,7 +87,7 @@
         "metadata": {},
         "metavars": {
           "$CLASS": {
-            "abstract_content": "A",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 1,
@@ -100,7 +100,7 @@
             }
           },
           "$FUNC": {
-            "abstract_content": "C",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 14,
               "line": 3,
@@ -113,7 +113,7 @@
             }
           },
           "$MSG": {
-            "abstract_content": "\"blah\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 25,
               "line": 4,
@@ -151,7 +151,7 @@
         "metadata": {},
         "metavars": {
           "$CLASS": {
-            "abstract_content": "A",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 1,
@@ -164,7 +164,7 @@
             }
           },
           "$FUNC": {
-            "abstract_content": "D",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 10,
               "line": 6,
@@ -177,7 +177,7 @@
             }
           },
           "$MSG": {
-            "abstract_content": "'ble'",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 20,
               "line": 7,
@@ -215,7 +215,7 @@
         "metadata": {},
         "metavars": {
           "$CLASS": {
-            "abstract_content": "A",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 1,
@@ -228,7 +228,7 @@
             }
           },
           "$FUNC": {
-            "abstract_content": "D",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 10,
               "line": 6,
@@ -241,7 +241,7 @@
             }
           },
           "$MSG": {
-            "abstract_content": "\"asdf\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 25,
               "line": 9,
@@ -279,7 +279,7 @@
         "metadata": {},
         "metavars": {
           "$CLASS": {
-            "abstract_content": "A",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 1,
@@ -292,7 +292,7 @@
             }
           },
           "$FUNC": {
-            "abstract_content": "E",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 14,
               "line": 8,
@@ -305,7 +305,7 @@
             }
           },
           "$MSG": {
-            "abstract_content": "\"asdf\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 25,
               "line": 9,
@@ -343,7 +343,7 @@
         "metadata": {},
         "metavars": {
           "$CLASS": {
-            "abstract_content": "F",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 11,
@@ -356,7 +356,7 @@
             }
           },
           "$FUNC": {
-            "abstract_content": "G",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 10,
               "line": 12,
@@ -369,7 +369,7 @@
             }
           },
           "$MSG": {
-            "abstract_content": "\"qwerty\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 23,
               "line": 13,

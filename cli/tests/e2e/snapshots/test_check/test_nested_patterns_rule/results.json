@@ -25,7 +25,7 @@
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "'foo'",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 31,
               "line": 2,
@@ -63,7 +63,7 @@
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "'bar'",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 31,
               "line": 3,

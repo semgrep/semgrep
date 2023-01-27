@@ -26,7 +26,7 @@
         },
         "metavars": {
           "$2": {
-            "abstract_content": "aws",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 4,
               "line": 3,
@@ -39,7 +39,7 @@
             }
           },
           "$3": {
-            "abstract_content": "account",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 12,
               "line": 3,
@@ -52,7 +52,7 @@
             }
           },
           "$4": {
-            "abstract_content": "id",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 15,
               "line": 3,
@@ -65,7 +65,7 @@
             }
           },
           "$6": {
-            "abstract_content": ":",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 16,
               "line": 3,

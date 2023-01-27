@@ -24,7 +24,7 @@
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "the_argument",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 39,
               "line": 1,
@@ -63,7 +63,7 @@
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "(the_argument)",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 41,
               "line": 3,
@@ -102,7 +102,7 @@
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "(another_func the_argument)",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 56,
               "line": 5,
@@ -141,7 +141,7 @@
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "(tuple_member threeple_member)",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 60,
               "line": 7,

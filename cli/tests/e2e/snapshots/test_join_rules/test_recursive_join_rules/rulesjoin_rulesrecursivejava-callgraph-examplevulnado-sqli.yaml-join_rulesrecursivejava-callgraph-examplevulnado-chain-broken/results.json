@@ -4,6 +4,97 @@
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": []
   },
-  "results": [],
+  "results": [
+    {
+      "check_id": "rules.join_rules.recursive.java-callgraph-example.spring-sql-injection",
+      "end": {
+        "col": 67,
+        "line": 47,
+        "offset": 1351
+      },
+      "extra": {
+        "engine_kind": "OSSMatch",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "      String query = \"select * from users where username = '\" + un + \"' limit 1\";",
+        "message": "SQLi",
+        "metadata": {},
+        "metavars": {
+          "$METHODNAME": {
+            "abstract_content": "DEPRECATED",
+            "end": {
+              "col": 27,
+              "line": 39,
+              "offset": 1071
+            },
+            "start": {
+              "col": 22,
+              "line": 39,
+              "offset": 1066
+            }
+          },
+          "$PARAMETER": {
+            "abstract_content": "DEPRECATED",
+            "end": {
+              "col": 67,
+              "line": 47,
+              "offset": 1351
+            },
+            "start": {
+              "col": 65,
+              "line": 47,
+              "offset": 1349
+            }
+          },
+          "$RETURNTYPE": {
+            "abstract_content": "DEPRECATED",
+            "end": {
+              "col": 21,
+              "line": 39,
+              "offset": 1065
+            },
+            "start": {
+              "col": 17,
+              "line": 39,
+              "offset": 1061
+            }
+          },
+          "$SQLSTATEMENT": {
+            "abstract_content": "DEPRECATED",
+            "end": {
+              "col": 61,
+              "line": 47,
+              "offset": 1345
+            },
+            "start": {
+              "col": 23,
+              "line": 47,
+              "offset": 1307
+            }
+          },
+          "$TYPE": {
+            "abstract_content": "DEPRECATED",
+            "end": {
+              "col": 34,
+              "line": 39,
+              "offset": 1078
+            },
+            "start": {
+              "col": 28,
+              "line": 39,
+              "offset": 1072
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/join_rules/recursive/java-callgraph-example/vulnado-chain-broken/src/main/java/com/scalesec/vulnado/User.java",
+      "start": {
+        "col": 22,
+        "line": 47,
+        "offset": 1306
+      }
+    }
+  ],
   "version": "0.42"
 }

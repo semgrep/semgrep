@@ -20,7 +20,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "results": [
         {
           "fingerprints": {
-            "matchBasedId/v1": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_0"
+            "matchBasedId/v1": "43da9a2fa8a5df82cfe82c79bec988cd6d5cbf616c9afb7c4d666a25f972ab5929c15db2768bd1b4412c248ba5f472db947ad00219c8a8e923c7e3c5fb014baa_0"
           },
           "locations": [
             {
@@ -48,7 +48,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_1"
+            "matchBasedId/v1": "43da9a2fa8a5df82cfe82c79bec988cd6d5cbf616c9afb7c4d666a25f972ab5929c15db2768bd1b4412c248ba5f472db947ad00219c8a8e923c7e3c5fb014baa_1"
           },
           "locations": [
             {
@@ -76,7 +76,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_2"
+            "matchBasedId/v1": "43da9a2fa8a5df82cfe82c79bec988cd6d5cbf616c9afb7c4d666a25f972ab5929c15db2768bd1b4412c248ba5f472db947ad00219c8a8e923c7e3c5fb014baa_2"
           },
           "locations": [
             {
@@ -109,7 +109,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_3"
+            "matchBasedId/v1": "43da9a2fa8a5df82cfe82c79bec988cd6d5cbf616c9afb7c4d666a25f972ab5929c15db2768bd1b4412c248ba5f472db947ad00219c8a8e923c7e3c5fb014baa_3"
           },
           "locations": [
             {
@@ -137,7 +137,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "83fb2cbc6be00fffc142621a1b10702bdd228f97c42ca16ba5f902ec393231e1424bed8472cec7c9213190cb1f576e5a495b3aba5cef09ac2791715d3bf9e983_0"
+            "matchBasedId/v1": "43da9a2fa8a5df82cfe82c79bec988cd6d5cbf616c9afb7c4d666a25f972ab5929c15db2768bd1b4412c248ba5f472db947ad00219c8a8e923c7e3c5fb014baa_4"
           },
           "locations": [
             {
@@ -170,7 +170,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "5efd0945774f190445f7cf2b0b85568a845cc46dddc11e029205b882436dccf78e12a752408c13dfe97b572f8bc795099ca0bddb89b3040afcaf6a6d8c17b570_0"
+            "matchBasedId/v1": "43da9a2fa8a5df82cfe82c79bec988cd6d5cbf616c9afb7c4d666a25f972ab5929c15db2768bd1b4412c248ba5f472db947ad00219c8a8e923c7e3c5fb014baa_5"
           },
           "locations": [
             {
@@ -198,7 +198,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "f33d61e2c4592fb3a295213cb9d829c7d314041cef354f9b4199bf18526d72df596c0ef4c8e56289511e1ea8e2183752f403fd922f382d090846c456744367d2_0"
+            "matchBasedId/v1": "43da9a2fa8a5df82cfe82c79bec988cd6d5cbf616c9afb7c4d666a25f972ab5929c15db2768bd1b4412c248ba5f472db947ad00219c8a8e923c7e3c5fb014baa_6"
           },
           "locations": [
             {
@@ -231,7 +231,35 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0"
+            "matchBasedId/v1": "43da9a2fa8a5df82cfe82c79bec988cd6d5cbf616c9afb7c4d666a25f972ab5929c15db2768bd1b4412c248ba5f472db947ad00219c8a8e923c7e3c5fb014baa_7"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "foo.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 11,
+                  "endLine": 23,
+                  "snippet": {
+                    "text": "    b == b # Triage ignored by syntactic_id"
+                  },
+                  "startColumn": 5,
+                  "startLine": 23
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison"
+          },
+          "ruleId": "eqeq-bad"
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "84efea6528e33f046c2657872c5bf6be1c49626649c3dfba6f6858e6150b4c7d343d7076b17557ef7a3c332fac2ec9e9dbdafab37c6a2c8273dfe087a6fb9e75_0"
           },
           "locations": [
             {
@@ -264,7 +292,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1"
+            "matchBasedId/v1": "84efea6528e33f046c2657872c5bf6be1c49626649c3dfba6f6858e6150b4c7d343d7076b17557ef7a3c332fac2ec9e9dbdafab37c6a2c8273dfe087a6fb9e75_1"
           },
           "locations": [
             {
@@ -292,7 +320,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0"
+            "matchBasedId/v1": "dd9169c466c1354888cf8ba4804ed68fddcf9b7a2a03bec53cab14c419ef4eb06504c61508f7c25b258a5b8bea2953536b608c2b2ad2faf6888367593b7a43dc_0"
           },
           "locations": [
             {
@@ -320,7 +348,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0"
+            "matchBasedId/v1": "3aef708549288c42becf8d3650168985ffa6605b8fcdfc315493e22b7c0dd59302dda449e6d7c391f050288a0b77ecb66274307e86e106ceb1aebdcdfd915d61_0"
           },
           "fixes": [
             {
@@ -375,7 +403,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "d2d0825f113f2fee5f7cbd5fb160772b3f3ab5043120b912101f2f20d4a0cce42df32b8e89f889f945daa1b216f9755eb958b9cb73c4c4ddf2ef5ecd0b4d1ad3_0"
+            "matchBasedId/v1": "3aef708549288c42becf8d3650168985ffa6605b8fcdfc315493e22b7c0dd59302dda449e6d7c391f050288a0b77ecb66274307e86e106ceb1aebdcdfd915d61_1"
           },
           "fixes": [
             {
@@ -578,7 +606,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 13 findings (10 blocking) from 6 rules.
+  Found 14 findings (11 blocking) from 6 rules.
   Uploading findings to Semgrep App.
   Has findings for blocking rules so exiting with code 1
 

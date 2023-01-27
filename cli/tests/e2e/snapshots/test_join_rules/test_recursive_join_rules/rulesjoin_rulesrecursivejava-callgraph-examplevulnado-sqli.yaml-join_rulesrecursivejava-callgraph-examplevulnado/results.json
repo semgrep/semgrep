@@ -21,7 +21,7 @@
         "metadata": {},
         "metavars": {
           "$METHODNAME": {
-            "abstract_content": "fetch",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 27,
               "line": 43,
@@ -34,7 +34,7 @@
             }
           },
           "$PARAMETER": {
-            "abstract_content": "un",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 67,
               "line": 51,
@@ -47,7 +47,7 @@
             }
           },
           "$RETURNTYPE": {
-            "abstract_content": "User",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 21,
               "line": 43,
@@ -60,7 +60,7 @@
             }
           },
           "$SQLSTATEMENT": {
-            "abstract_content": "select * from users where username = '",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 61,
               "line": 51,
@@ -73,7 +73,7 @@
             }
           },
           "$TYPE": {
-            "abstract_content": "String",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 34,
               "line": 43,

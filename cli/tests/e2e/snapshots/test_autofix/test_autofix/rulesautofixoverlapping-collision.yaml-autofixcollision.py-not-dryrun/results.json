@@ -24,7 +24,7 @@
         "metadata": {},
         "metavars": {
           "$BAR": {
-            "abstract_content": "3",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 6,
               "line": 4,
@@ -37,7 +37,7 @@
             }
           },
           "$FOO": {
-            "abstract_content": "1",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 6,
               "line": 2,
@@ -76,7 +76,7 @@
         "metadata": {},
         "metavars": {
           "$FOO": {
-            "abstract_content": "2",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 6,
               "line": 3,
@@ -89,7 +89,7 @@
             }
           },
           "$XD": {
-            "abstract_content": "4",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 6,
               "line": 5,

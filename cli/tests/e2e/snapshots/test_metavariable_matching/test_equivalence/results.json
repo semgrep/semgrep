@@ -33,7 +33,7 @@
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "path",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 14,
               "line": 4,
@@ -84,7 +84,7 @@
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "z",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 11,
               "line": 14,

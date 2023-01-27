@@ -27,7 +27,7 @@
         "metadata": {},
         "metavars": {
           "$RESNAME": {
-            "abstract_content": "example1",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 34,
               "line": 1,
@@ -69,7 +69,7 @@
         "metadata": {},
         "metavars": {
           "$RESNAME": {
-            "abstract_content": "example2",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 34,
               "line": 6,

@@ -24,7 +24,7 @@
         "metadata": {},
         "metavars": {
           "$ACTUAL": {
-            "abstract_content": "\"a\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 14,
               "line": 2,
@@ -63,7 +63,7 @@
         "metadata": {},
         "metavars": {
           "$ACTUAL": {
-            "abstract_content": "\"b\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 14,
               "line": 5,

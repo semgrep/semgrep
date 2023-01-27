@@ -32,7 +32,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "a",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 6,
               "line": 4,
@@ -70,7 +70,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "a",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 6,
               "line": 5,
@@ -108,7 +108,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "a",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 6,
               "line": 7,
@@ -146,7 +146,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "y",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 6,
               "line": 11,
@@ -169,6 +169,44 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       }
     },
     {
+      "check_id": "eqeq-bad",
+      "end": {
+        "col": 11,
+        "line": 23,
+        "offset": 256
+      },
+      "extra": {
+        "engine_kind": "OSSMatch",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    b == b # Triage ignored by syntactic_id",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "DEPRECATED",
+            "end": {
+              "col": 6,
+              "line": 23,
+              "offset": 251
+            },
+            "start": {
+              "col": 5,
+              "line": 23,
+              "offset": 250
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "foo.py",
+      "start": {
+        "col": 5,
+        "line": 23,
+        "offset": 250
+      }
+    },
+    {
       "check_id": "eqeq-four",
       "end": {
         "col": 13,
@@ -188,7 +226,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         "metavars": {
           "$X": {
-            "abstract_content": "baz",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 19,
@@ -284,7 +322,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "d2",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 12,
               "line": 27,
@@ -338,7 +376,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         "metavars": {
           "$X": {
-            "abstract_content": "x",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 6,
               "line": 15,
@@ -429,7 +467,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 9 findings (7 blocking) from 6 rules.
   Uploading findings to Semgrep App.
   Has findings for blocking rules so exiting with code 1
 

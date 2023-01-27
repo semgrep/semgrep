@@ -33,7 +33,7 @@
         },
         "metavars": {
           "$MODEL": {
-            "abstract_content": "user",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 13,
               "line": 62,
@@ -46,7 +46,7 @@
             }
           },
           "$VAR": {
-            "abstract_content": "new_password",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 21,
               "line": 60,
@@ -59,7 +59,7 @@
             }
           },
           "$W": {
-            "abstract_content": "data",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 36,
               "line": 60,
@@ -72,7 +72,7 @@
             }
           },
           "$X": {
-            "abstract_content": "\"password\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 51,
               "line": 60,
@@ -120,7 +120,7 @@
         },
         "metavars": {
           "$F": {
-            "abstract_content": "create_user",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 20,
               "line": 71,
@@ -133,7 +133,7 @@
             }
           },
           "$MODEL": {
-            "abstract_content": "user",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 13,
               "line": 79,
@@ -159,7 +159,7 @@
             }
           },
           "$VAR": {
-            "abstract_content": "password",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 42,
               "line": 71,

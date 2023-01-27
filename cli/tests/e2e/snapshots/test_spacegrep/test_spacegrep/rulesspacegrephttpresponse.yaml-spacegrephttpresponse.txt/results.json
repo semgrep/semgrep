@@ -23,7 +23,7 @@
         "metadata": {},
         "metavars": {
           "$READABLE": {
-            "abstract_content": "OK",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 16,
               "line": 1,
@@ -36,7 +36,7 @@
             }
           },
           "$STATUS": {
-            "abstract_content": "200",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 13,
               "line": 1,

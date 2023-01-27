@@ -23,7 +23,7 @@
         "metadata": {},
         "metavars": {
           "$TEXT": {
-            "abstract_content": "Getting",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 11,
               "line": 62,
@@ -61,7 +61,7 @@
         "metadata": {},
         "metavars": {
           "$TEXT": {
-            "abstract_content": "Examples",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 12,
               "line": 97,
@@ -99,7 +99,7 @@
         "metadata": {},
         "metavars": {
           "$TEXT": {
-            "abstract_content": "Resources",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 13,
               "line": 145,
@@ -137,7 +137,7 @@
         "metadata": {},
         "metavars": {
           "$TEXT": {
-            "abstract_content": "Usage",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 9,
               "line": 159,
@@ -175,7 +175,7 @@
         "metadata": {},
         "metavars": {
           "$TEXT": {
-            "abstract_content": "Contributing",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 16,
               "line": 188,
@@ -213,7 +213,7 @@
         "metadata": {},
         "metavars": {
           "$TEXT": {
-            "abstract_content": "Commercial",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 14,
               "line": 203,

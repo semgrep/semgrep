@@ -97,7 +97,7 @@
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "'baz'",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 31,
               "line": 5,

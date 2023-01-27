@@ -23,7 +23,7 @@
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "\"one\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 13,
               "line": 1,
@@ -61,7 +61,7 @@
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "'two'",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 13,
               "line": 2,
@@ -99,7 +99,7 @@
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "|\n    three\n",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 1,
               "line": 5,
@@ -137,7 +137,7 @@
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "|\n   four\n",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 1,
               "line": 7,
@@ -175,7 +175,7 @@
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "|       \n    fi\n\n    ve\n",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 1,
               "line": 11,
@@ -213,7 +213,7 @@
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "|\n    si\n\n      x\n    \n",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 1,
               "line": 16,
@@ -251,7 +251,7 @@
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": ">\n    seven\n",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 1,
               "line": 18,
@@ -289,7 +289,7 @@
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": ">\n    eig\n\n    ht",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 7,
               "line": 21,

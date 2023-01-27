@@ -17,14 +17,14 @@
       },
       "extra": {
         "engine_kind": "OSSMatch",
-        "fingerprint": "35c3c5253d3c06bda40ad1ba791b92585b9e5de07d9118cc4301f4e8cb955a1d6e510fe59341c04c6a8fb964918e1909590e37bd76511b7705d604438be156ca_0",
+        "fingerprint": "63b9ee35431a6fd247055febce19b159a2f3919dc09298beb2a1afe75591b699d0abde947dab3aac401083b993b92cfb6d69705c83480eb27ece96ac0bbe6f6a_0",
         "is_ignored": false,
         "lines": "if 5 == 5:",
         "message": "useless comparison",
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "5",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 5,
               "line": 1,
@@ -55,14 +55,14 @@
       },
       "extra": {
         "engine_kind": "OSSMatch",
-        "fingerprint": "35c3c5253d3c06bda40ad1ba791b92585b9e5de07d9118cc4301f4e8cb955a1d6e510fe59341c04c6a8fb964918e1909590e37bd76511b7705d604438be156ca_1",
+        "fingerprint": "63b9ee35431a6fd247055febce19b159a2f3919dc09298beb2a1afe75591b699d0abde947dab3aac401083b993b92cfb6d69705c83480eb27ece96ac0bbe6f6a_1",
         "is_ignored": false,
         "lines": "if 5 == 5:",
         "message": "useless comparison",
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "5",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 5,
               "line": 4,
@@ -93,14 +93,14 @@
       },
       "extra": {
         "engine_kind": "OSSMatch",
-        "fingerprint": "d3d094efc363029d2993f4b046b759137f3eb9fd4e950c3bc62256f104919f35ea8e7e07412c9514d682f0d83f84d40cd19fc3aa98c278dff16152a0d851d7fb_0",
+        "fingerprint": "6bac98077027e41e4bf2cb49f800d8bc20d89038e6e878495c58360e7b4fedf32ce6045154336afb4121b7d6092b261d110944cd1a0fc68d1d356a535d2919ef_0",
         "is_ignored": false,
         "lines": "if 5 == 5:",
         "message": "useless comparison",
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "5",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 5,
               "line": 1,
@@ -131,14 +131,14 @@
       },
       "extra": {
         "engine_kind": "OSSMatch",
-        "fingerprint": "d3d094efc363029d2993f4b046b759137f3eb9fd4e950c3bc62256f104919f35ea8e7e07412c9514d682f0d83f84d40cd19fc3aa98c278dff16152a0d851d7fb_1",
+        "fingerprint": "6bac98077027e41e4bf2cb49f800d8bc20d89038e6e878495c58360e7b4fedf32ce6045154336afb4121b7d6092b261d110944cd1a0fc68d1d356a535d2919ef_1",
         "is_ignored": false,
         "lines": "if 5 == 5:",
         "message": "useless comparison",
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "5",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 5,
               "line": 4,
@@ -169,14 +169,14 @@
       },
       "extra": {
         "engine_kind": "OSSMatch",
-        "fingerprint": "f0ff0732807b02ac1b1c69b85f9530b42e70ee5b9dcd8caab9c9238bb0c0768bf0a638f45379b4ce9d37ab209c712ee2ae1585ecf0bc2ea77b5fa55cce7371ec_0",
+        "fingerprint": "3157034e9973ab8de89cccceddfe9c548cbbe1a18aa742cfc1a3484126d7048d36524042308209e672af8a0ef6b200c922829f81b101064dd596265e760bb99b_0",
         "is_ignored": false,
         "lines": "if 5 == 5:",
         "message": "useless comparison",
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "5",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 5,
               "line": 1,
@@ -207,14 +207,14 @@
       },
       "extra": {
         "engine_kind": "OSSMatch",
-        "fingerprint": "f0ff0732807b02ac1b1c69b85f9530b42e70ee5b9dcd8caab9c9238bb0c0768bf0a638f45379b4ce9d37ab209c712ee2ae1585ecf0bc2ea77b5fa55cce7371ec_1",
+        "fingerprint": "3157034e9973ab8de89cccceddfe9c548cbbe1a18aa742cfc1a3484126d7048d36524042308209e672af8a0ef6b200c922829f81b101064dd596265e760bb99b_1",
         "is_ignored": false,
         "lines": "if 5 == 5:",
         "message": "useless comparison",
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "5",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 5,
               "line": 4,
@@ -245,14 +245,14 @@
       },
       "extra": {
         "engine_kind": "OSSMatch",
-        "fingerprint": "76ef6b1c1d5e528a4653a7700d0f8d3c6096fac1e5ae06cae9546f6eb4b3db95a9221562cb7ad517f2d5936284f6bc1439a4e1d4b4831820a946d5a6e618cb2e_0",
+        "fingerprint": "329fba9e81747d976f14237339ddd30f9c257855c3c7ad6c38b195081b8d99d8ae48c00679be3623e1142ae30a53fe5ebb001b58f968f96287f0ac98a3db1c1c_0",
         "is_ignored": false,
         "lines": "if 5 == 5:",
         "message": "useless comparison",
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "5",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 5,
               "line": 1,
@@ -283,14 +283,14 @@
       },
       "extra": {
         "engine_kind": "OSSMatch",
-        "fingerprint": "76ef6b1c1d5e528a4653a7700d0f8d3c6096fac1e5ae06cae9546f6eb4b3db95a9221562cb7ad517f2d5936284f6bc1439a4e1d4b4831820a946d5a6e618cb2e_1",
+        "fingerprint": "329fba9e81747d976f14237339ddd30f9c257855c3c7ad6c38b195081b8d99d8ae48c00679be3623e1142ae30a53fe5ebb001b58f968f96287f0ac98a3db1c1c_1",
         "is_ignored": false,
         "lines": "if 5 == 5:",
         "message": "useless comparison",
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "5",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 5,
               "line": 4,

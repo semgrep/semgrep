@@ -33,7 +33,7 @@
         },
         "metavars": {
           "$DIR": {
-            "abstract_content": "usr/src/app",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 20,
               "line": 4,
@@ -81,7 +81,7 @@
         },
         "metavars": {
           "$DIR": {
-            "abstract_content": "$$dirpath}",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 19,
               "line": 11,

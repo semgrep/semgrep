@@ -24,7 +24,7 @@
         "metadata": {},
         "metavars": {
           "$DICT": {
-            "abstract_content": "inputs",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 9,
               "line": 5,
@@ -37,7 +37,7 @@
             }
           },
           "$KEY": {
-            "abstract_content": "x",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 11,
               "line": 5,
@@ -76,7 +76,7 @@
         "metadata": {},
         "metavars": {
           "$DICT": {
-            "abstract_content": "inputs",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 12,
               "line": 6,
@@ -89,7 +89,7 @@
             }
           },
           "$KEY": {
-            "abstract_content": "x+1",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 18,
               "line": 6,

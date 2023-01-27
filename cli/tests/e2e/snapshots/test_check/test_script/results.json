@@ -25,7 +25,7 @@
         },
         "metavars": {
           "$X": {
-            "abstract_content": "4",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 2,
               "line": 3,

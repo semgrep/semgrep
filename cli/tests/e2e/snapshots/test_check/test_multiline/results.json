@@ -23,7 +23,7 @@
         "metadata": {},
         "metavars": {
           "$MULTILINE": {
-            "abstract_content": "\n    abc\n    def\n",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 1,
               "line": 14,
@@ -36,7 +36,7 @@
             }
           },
           "$X": {
-            "abstract_content": "x",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 2,
               "line": 11,
@@ -76,7 +76,7 @@
         },
         "metavars": {
           "$X": {
-            "abstract_content": "SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 52,
               "line": 7,

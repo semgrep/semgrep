@@ -24,7 +24,7 @@
         "metadata": {},
         "metavars": {
           "$E": {
-            "abstract_content": "'abc'",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 10,
               "line": 1,
@@ -63,7 +63,7 @@
         "metadata": {},
         "metavars": {
           "$E": {
-            "abstract_content": "\"abc\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 10,
               "line": 2,
@@ -102,7 +102,7 @@
         "metadata": {},
         "metavars": {
           "$E": {
-            "abstract_content": "\"\"\"abc\"\"\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 14,
               "line": 3,
@@ -141,7 +141,7 @@
         "metadata": {},
         "metavars": {
           "$E": {
-            "abstract_content": "r\"abc\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 11,
               "line": 4,
@@ -180,7 +180,7 @@
         "metadata": {},
         "metavars": {
           "$E": {
-            "abstract_content": "f\"abc\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 11,
               "line": 5,
@@ -219,7 +219,7 @@
         "metadata": {},
         "metavars": {
           "$E": {
-            "abstract_content": "[1]",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 6,
@@ -258,7 +258,7 @@
         "metadata": {},
         "metavars": {
           "$E": {
-            "abstract_content": "[1 2]",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 11,
               "line": 7,
@@ -297,7 +297,7 @@
         "metadata": {},
         "metavars": {
           "$E": {
-            "abstract_content": "x[1]",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 9,
               "line": 8,
@@ -336,7 +336,7 @@
         "metadata": {},
         "metavars": {
           "$E": {
-            "abstract_content": "x[1 2]",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 12,
               "line": 9,

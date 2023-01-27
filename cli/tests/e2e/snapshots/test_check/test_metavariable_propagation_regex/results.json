@@ -23,7 +23,7 @@
         "metadata": {},
         "metavars": {
           "$FUNC": {
-            "abstract_content": "foo",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 1,
@@ -61,7 +61,7 @@
         "metadata": {},
         "metavars": {
           "$FUNC": {
-            "abstract_content": "bar",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 4,

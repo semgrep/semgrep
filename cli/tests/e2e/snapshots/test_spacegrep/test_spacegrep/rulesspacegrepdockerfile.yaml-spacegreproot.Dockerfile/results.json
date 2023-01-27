@@ -23,7 +23,7 @@
         "metadata": {},
         "metavars": {
           "$ROOT": {
-            "abstract_content": "root",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 10,
               "line": 3,
@@ -61,7 +61,7 @@
         "metadata": {},
         "metavars": {
           "$ROOT": {
-            "abstract_content": "root",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 10,
               "line": 7,

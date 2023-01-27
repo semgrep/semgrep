@@ -23,7 +23,7 @@
         "metadata": {},
         "metavars": {
           "$CLASS": {
-            "abstract_content": "A",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 1,
@@ -36,7 +36,7 @@
             }
           },
           "$X": {
-            "abstract_content": "x",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 16,
               "line": 4,
@@ -87,7 +87,7 @@
         "metadata": {},
         "metavars": {
           "$CLASS": {
-            "abstract_content": "A",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 8,
               "line": 1,
@@ -100,7 +100,7 @@
             }
           },
           "$X": {
-            "abstract_content": "0",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 16,
               "line": 7,

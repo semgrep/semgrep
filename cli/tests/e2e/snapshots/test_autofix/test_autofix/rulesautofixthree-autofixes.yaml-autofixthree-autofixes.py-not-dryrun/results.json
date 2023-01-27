@@ -24,7 +24,7 @@
         "metadata": {},
         "metavars": {
           "$...ARGS": {
-            "abstract_content": "headers auth_headers url self.url endpoints\"endpoint\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 29,
               "line": 7,
@@ -37,7 +37,7 @@
             }
           },
           "$REQUEST_FUNC": {
-            "abstract_content": "requests.post",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 25,
               "line": 4,
@@ -76,7 +76,7 @@
         "metadata": {},
         "metavars": {
           "$...ARGS": {
-            "abstract_content": "headers auth_headers url self.url endpoints\"endpoint\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 29,
               "line": 15,
@@ -89,7 +89,7 @@
             }
           },
           "$REQUEST_FUNC": {
-            "abstract_content": "requests.post",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 25,
               "line": 12,
@@ -128,7 +128,7 @@
         "metadata": {},
         "metavars": {
           "$...ARGS": {
-            "abstract_content": "headers auth_headers url self.url endpoints\"endpoint\"",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 29,
               "line": 23,
@@ -141,7 +141,7 @@
             }
           },
           "$REQUEST_FUNC": {
-            "abstract_content": "requests.post",
+            "abstract_content": "DEPRECATED",
             "end": {
               "col": 25,
               "line": 20,
