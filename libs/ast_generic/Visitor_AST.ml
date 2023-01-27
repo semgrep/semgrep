@@ -172,24 +172,23 @@ let (mk_visitor :
   and v_resolved_name (v1, v2) =
     v_resolved_name_kind v1;
     v_sid v2
-  and v_canonical_name v1 = v_list v_string v1
   and v_resolved_name_kind = function
     | LocalVar -> ()
     | Parameter -> ()
     | EnclosedVar -> ()
     | Global -> ()
     | ImportedEntity v1 ->
-        let v1 = v_canonical_name v1 in
+        let v1 = v_dotted_ident v1 in
         ()
     | ImportedModule v1 ->
-        let v1 = v_canonical_name v1 in
+        let v1 = v_module_name v1 in
         ()
     | Macro -> ()
     | EnumConstant -> ()
     | TypeName -> ()
-    | GlobalName (v1, v2) ->
-        let v1 = v_canonical_name v1 in
-        let v2 = v_list v_canonical_name v2 in
+    | ResolvedName (v1, v2) ->
+        let v1 = v_dotted_ident v1 in
+        let v2 = v_list v_dotted_ident v2 in
         ()
   and v_name_info
       { name_middle = v4; name_top = v3; name_last = v1; name_info = v2 } =

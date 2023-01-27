@@ -235,7 +235,7 @@ module IdInfoId = Gensym.MkId ()
 (* A single unique id: sid (uid would be a better name, but it usually
  * means "user id" for people).
  *
- * This single id simplifies further analysis that need to care less about
+ * This single id simplifies further analysis which need less to care about
  * maintaining scoping information, for example to deal with variable
  * shadowing, or functions using the same parameter names
  * (even though you still need to handle specially recursive functions), etc.
@@ -276,9 +276,8 @@ and resolved_name_kind =
   (* sgrep: those cases allow to match entities/modules even if they were
    * aliased when imported.
    * both dotted_ident must at least contain one element *)
-  | ImportedEntity of canonical_name
-  | ImportedModule of
-      canonical_name (* just the DottedName part of module_name*)
+  | ImportedEntity of dotted_ident
+  | ImportedModule of module_name
   (* used in Go, where you can pass types as arguments and where we
    * need to resolve those cases
    *)
@@ -286,29 +285,25 @@ and resolved_name_kind =
   (* used for C *)
   | Macro
   | EnumConstant
-  (* This is for deep semgrep.
+  (* for deep semgrep
    *
-   * GlobalName (canonical_name, alternate_names)
+   * ResolvedName (resolved_name, alternate_names)
    *
-   * canonical_name: The canonical, global name that the symbol resolves to.
+   * resolved_name: The canonical, global name that the symbol resolves to.
    *
    * alternate_names: Other names that users may write when referring to this
-   * symbol. For example, in JS, the canonical_name may include the file path
-   * of the file where the symbol is defined, but users may want to write
-   * patterns to match based on the module specifier, e.g.:
+   * symbol. For example, in JS, the resolved_name may include the file path of
+   * the file where the symbol is defined, but users may want to write patterns
+   * to match based on the module specifier, e.g.:
    *
    * import {bar} from 'foo';
    * bar;
    *
    * We might store ['/path/to/node_modules/foo/src/x.js', 'bar'] as the
-   * canonical_name, but we also want to match the pattern `foo.bar` so we will
+   * resolved_name, but we also want to match the pattern `foo.bar` so we will
    * store ['foo', 'bar'] as an alternate name.
    * *)
-  | GlobalName of canonical_name * alternate_name list
-
-and canonical_name = string list
-
-and alternate_name = string list
+  | ResolvedName of dotted_ident * dotted_ident list
 [@@deriving show { with_path = false }, eq, hash]
 
 (* Start of big mutually recursive types because of the use of 'any'
@@ -1990,9 +1985,6 @@ let basic_id_info ?(hidden = false) resolved =
   }
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
-
-let dotted_to_canonical xs = Common.map fst xs
-let canonical_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
 
 (* ------------------------------------------------------------------------- *)
 (* Entities *)
