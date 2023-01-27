@@ -331,7 +331,7 @@ jobs:
         env:
           # Relative because build-wheels does a 'cd cli'
           SEMGREP_CORE_BIN: ../artifacts/semgrep-core
-        run: ./scripts/build-wheels.sh
+        run: ./scripts/build-wheels-m1.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
