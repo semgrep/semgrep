@@ -807,6 +807,7 @@ def scan(
         output_per_finding_max_lines_limit=max_lines_per_finding,
         output_per_line_max_chars_limit=max_chars_per_line,
         dataflow_traces=dataflow_traces,
+        uses_pro_engine=interfile or pro or interproc,
     )
 
     if test:
@@ -934,6 +935,7 @@ def scan(
                 filtered_rules=filtered_rules,
                 profiling_data=output_extra.profiling_data,
                 explanations=output_extra.explanations,
+                rules_by_engine=output_extra.rules_by_engine,
                 severities=shown_severities,
                 print_summary=True,
             )

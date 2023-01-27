@@ -967,7 +967,11 @@ then please delete {deep_path} manually.
             errors.extend(parsed_errors)
 
         output_extra = OutputExtra(
-            all_targets, profiling_data, parsing_data, core_output.explanations
+            all_targets,
+            profiling_data,
+            parsing_data,
+            core_output.explanations,
+            core_output.rules,
         )
 
         return (

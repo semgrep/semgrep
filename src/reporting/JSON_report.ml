@@ -54,6 +54,9 @@ let convert_engine_kind ek =
   | OSS -> `OSSMatch
   | Pro -> `ProMatch
 
+let convert_rule (s, ek) =
+  { Out.rule_id = s; engine_kind = convert_engine_kind ek }
+
 (*****************************************************************************)
 (* JSON *)
 (*****************************************************************************)
@@ -370,6 +373,7 @@ let match_results_of_matches_and_errors render_fix nfiles res =
       (match res.RP.explanations with
       | [] -> None
       | xs -> Some (xs |> Common.map explanation_to_explanation));
+    rules = Common.map convert_rule res.rules;
   }
   |> Output_from_core_util.sort_match_results
   [@@profiling]
