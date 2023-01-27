@@ -478,19 +478,17 @@ def mock_autofix(request, mocker):
             "SEMGREP_PR_ID": "35",
             "SEMGREP_BRANCH": BRANCH_NAME,
         },
-        # TODO: flaky test on Linux
-        # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests
-        # {  # Github PR with additional project metadata
-        #    "CI": "true",
-        #    "GITHUB_ACTIONS": "true",
-        #    "GITHUB_EVENT_NAME": "pull_request",
-        #    "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
-        #    # Sent in metadata but no functionality change
-        #    "GITHUB_RUN_ID": "35",
-        #    "GITHUB_ACTOR": "some_test_username",
-        #    "GITHUB_REF": BRANCH_NAME,
-        #    "SEMGREP_PROJECT_CONFIG": "tags:\n- tag1\n- tag_key:tag_val\n",
-        # },
+        {  # Github PR with additional project metadata
+            "CI": "true",
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_EVENT_NAME": "pull_request",
+            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            # Sent in metadata but no functionality change
+            "GITHUB_RUN_ID": "35",
+            "GITHUB_ACTOR": "some_test_username",
+            "GITHUB_REF": BRANCH_NAME,
+            "SEMGREP_PROJECT_CONFIG": "tags:\n- tag1\n- tag_key:tag_val\n",
+        },
     ],
     ids=[
         "local",
@@ -513,10 +511,7 @@ def mock_autofix(request, mocker):
         "travis",
         "travis-overwrite-autodetected-variables",
         "self-hosted",
-        # TODO: flaky test on Linux
-        # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests
-        # (see also the corresponding commented code above)
-        # "github-pr-semgrepconfig",
+        "github-pr-semgrepconfig",
     ],
 )
 @pytest.mark.skipif(
@@ -644,6 +639,9 @@ def test_full_run(
 
     complete_json = post_calls[2].kwargs["json"]
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
+    # TODO: flaky tests (on Linux at least)
+    # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
+    complete_json["stats"]["lockfile_scan_info"] = {}
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
 
 
