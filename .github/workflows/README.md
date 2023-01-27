@@ -49,7 +49,7 @@ Here is a short description of the workflows in this directory:
 - find-old-brew-prs.yml: cron to check whether the HomeBrew PR created by
   release.yml has been accepted or is hanging around unmerged.
 
-- update-semgrep-rules.yml: cron to update semgrep/semgrep-core/tests/semgrep-rules
+- update-semgrep-rules.yml: cron to update semgrep/tests/semgrep-rules
   submodule to its latest version
 
 - revert-semgrep-docker-image.yml: interactive workflow

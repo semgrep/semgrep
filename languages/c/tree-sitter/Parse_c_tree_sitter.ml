@@ -25,10 +25,10 @@ module H = Parse_tree_sitter_helpers
 (* Prelude *)
 (*****************************************************************************)
 (* C parser using tree-sitter-lang/semgrep-c and converting
- * to pfff/lang_c/parsing/ast_c.ml
+ * to ../ast/ast_c.ml
  *
  * The resulting AST can then be converted to the generic AST by using
- * pfff/lang_c/analyze/c_to_generic.ml
+ * ../generic/c_to_generic.ml
  *)
 
 (*****************************************************************************)

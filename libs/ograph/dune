@@ -1,4 +1,4 @@
-; Was in pfff/commons_ocollection before but this now contains
+; Was in pfff in its commons_ocollection folder before but this now contains
 ; just what is needed to get ograph_extended.ml working
 ; This library is deprecated. You should use ocamlgraph instead.
 

@@ -37,7 +37,7 @@
  *    on top of a domain specific language, on top of a programming language
  *    is hard to grasp.
  *    update: maybe with jsonnet it's not too bad
- *  - pfff/lang_GENERIC/analize/normalize_ast.ml but this requires
+ *  - a normalize_ast.ml but this requires
  *    to know OCaml (we go back to the argument of sgrep vs AST visitors)
  *
  * Note that some code equivalences are handled directly in the engine

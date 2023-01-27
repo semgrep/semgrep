@@ -42,7 +42,7 @@ open Ast_helper
  *                [("", {pexp_desc = Pexp_constant (Const_string ("TODO", None))})])})};
  *         pvb_attributes = [({txt = "profiling"}, PStr [])]}])}]
  *   =========
- * (I wish I could use ~/pfff/pfff -dump_ml, but my AST is different).
+ * (I wish I could use pfff -dump_ml, but my AST is different).
  *
  * update: if you use the dune build system, you can also use
  *   $ ocamlc -dsource _build/default/src/foo.pp.ml
@@ -90,7 +90,7 @@ let rec mk_args loc n =
     let arg = "a" ^ string_of_int n in
     (Nolabel, Exp.ident { txt = Lident arg; loc }) :: mk_args loc (n - 1)
 
-(* copy paste of pfff/lang_ml/module_ml.ml *)
+(* copy paste of module_ml.ml *)
 let module_name_of_filename s =
   let _d, b, _e = Common2.dbe_of_filename s in
   String.capitalize_ascii b

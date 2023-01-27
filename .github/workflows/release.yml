@@ -229,7 +229,7 @@ jobs:
 
   build-test-osx-m1:
     if: ${{needs.check-m1-build.outputs.m1_support == 'true'}}
-    uses: ./.github/workflows.build-test-osx-m1.yaml
+    uses: ./.github/workflows/build-test-osx-m1.yaml
     secrets: inherit
 
   release-ubuntu-16-04:

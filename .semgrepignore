@@ -29,10 +29,6 @@ cli/tests/e2e/targets/
 cli/tests/performance/targets/
 cli/tests/e2e/snapshots/
 
-# no need to ignore submodules, this is done by default
-# semgrep-core/src/pfff/
-# semgrep-core/tree-sitter-lang/
-
 # rules being tested for performance
 perf/rules/
 perf/r2c-rules/

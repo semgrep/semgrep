@@ -20,7 +20,7 @@ open AST_generic
 (*****************************************************************************)
 (* Various helper functions to normalize AST elements.
  *
- * TODO: merge with pfff/.../normalize_ast.ml at some point
+ * TODO: merge with normalize_ast.ml from pfff at some point
  *
  *)
 

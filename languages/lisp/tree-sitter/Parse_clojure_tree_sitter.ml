@@ -24,7 +24,7 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 (* Clojure parser using tree-sitter-lang/semgrep-clojure and converting
  * directly to AST_generic.ml
- * (we could convert to pfff/lang_lisp/ast_lisp.ml but seems simpler to
+ * (we could convert to ../ast/ast_lisp.ml but seems simpler to
  * go directly to the generic AST given ast_lisp.ml is really small).
  *
  *)

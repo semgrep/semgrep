@@ -5,25 +5,17 @@ _See also the to-do list: [TODO.md](TODO.md)._
 This is the temporary home of the OCaml CLI that aims at supplanting
 the Python CLI wrapper. This is part of the OCaml code base in the
 semgrep repo. It is a distinct executable from `semgrep-core` but lives
-in the `semgrep-core` folder for now to avoid massive renames and
+in the `src/osemgrep` folder for now to avoid massive renames and
 difficult git conflicts. We can do this renaming in a short-lived
 branch that only handles the renaming.
 
-Proposed renaming:
-
-```
-/semgrep-core -> /ocaml: all the OCaml source code
-/semgrep-core/src/osemgrep -> /ocaml/src/osemgrep: semgrep substitute
-/semgrep-core/src/cli -> /ocaml/src/core-cli
-```
-
 For now, most of the new code translated from our own Python code base
-will be placed under `/semgrep-core/src/osemgrep`.
+will be placed under `src/osemgrep`.
 
 ## Transition period
 
 During the transition period, we'll have the Python wrapper maintained
-in `/cli` and the new OCaml wrapper in `/semgrep-core/src/osemgrep`.
+in `/cli` and the new OCaml wrapper in `/src/osemgrep`.
 
 ### Phase 1: literal translation of essential Python code
 

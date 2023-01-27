@@ -442,7 +442,6 @@ let parse_and_resolve_name_fail_if_partial lang file =
 (*****************************************************************************)
 (* For testing purpose *)
 (*****************************************************************************)
-(* was in pfff/.../Parse_generic.ml before *)
 let parse_program file =
   let lang = List.hd (Lang.langs_of_filename file) in
   let res = just_parse_with_lang lang file in

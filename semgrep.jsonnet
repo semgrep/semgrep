@@ -74,8 +74,6 @@ local semgrep_rules = [
         "yaml_to_generic.ml",
 	#skipping more stuff
         "parsing/tree_sitter/*",
-        "parsing/pfff/*",
-        "parsing/ast/*",
         "metachecking/*",
 	# outside src/, not really semgrep code
 	"libs/*",
@@ -92,10 +90,10 @@ local todo_skipped_for_now = [
 ];
 
 local override_messages = {
-  // pfff/semgrep specific adjustments
+  // semgrep specific adjustments
   "ocaml.lang.best-practice.exception.bad-reraise": |||
     You should not re-raise exceptions using 'raise' because it loses track of where the
-    exception was raised originally. See pfff/commons/Exception.mli for more information.
+    exception was raised originally. See commons/Exception.mli for more information.
     Use `Exception.catch exn` and later `Exception.raise exn` or
     `Exception.catch_and_reraise exn` if there is no code between the moment you
     catch the exn and re-raise it.

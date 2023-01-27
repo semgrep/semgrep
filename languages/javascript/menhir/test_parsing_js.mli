@@ -1,6 +1,6 @@
 (* This runs the JS parser on a set of files or directories and displays
  * any parsing errors. It also stores the current parsing result
- * on those files or directories in pfff/tmp/<filename_based_on_concatenation_
+ * on those files or directories in /tmp/<filename_based_on_concatenation_
  * of_files_and_dirs> and compares it with any previous run, providing some
  * form of regression testing.
  *)

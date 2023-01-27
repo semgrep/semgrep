@@ -26,7 +26,7 @@ module TH = Token_helpers_php
  * regarding generics.
  *
  * This is similar to what we do for C/C++.
- * See pfff/lang_cpp/parsing/parsing_hacks.ml for more information.
+ * See cpp/.../parsing_hacks.ml for more information.
  *
  * In Hack they maintain those different states (InToplevel, InFunction,
  * InBlock, ...) in the lexer itself, I prefer for now to separate

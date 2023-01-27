@@ -407,12 +407,14 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
 module G_ = AST_generic_
 
 (* This AST_generic_ module is ugly, but it was written to allow to move
- * AST_generic.ml out of pfff/ and inside semgrep/. However there are many
+ * AST_generic.ml out of pfff and inside semgrep. However there are many
  * language-specific ASTs that were using AST_generic.ml to factorize
  * the definitions of operators. To break the dependency we had
- * to duplicate that part of AST_generic in pfff/h_program-lang/AST_generic_.ml
+ * to duplicate that part of AST_generic in AST_generic_.ml
  * (note the underscore at the end), but then we need those boilerplate
  * functions below to convert them back to AST_generic.
+ * UPDATE: with the merge of pfff and semgrep we should not need that anymore
+ * and can use directly AST_generic in our parsers.
  *
  * alt: use polymorphic variants (e.g., `Plus)
  *)

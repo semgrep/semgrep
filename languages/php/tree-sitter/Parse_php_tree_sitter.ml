@@ -22,7 +22,7 @@ module G_ = AST_generic_
 (* Prelude *)
 (*****************************************************************************)
 (* PHP parser using tree-sitter-lang/semgrep-php and converting
- * to pfff/lang_php/parsing/ast_php.ml
+ * to ../ast/ast_php.ml
  *
  * The resulting AST can then be converted to the generic AST by using
  * php_to_generic.ml
