@@ -8,7 +8,7 @@
 # or more explicitely:
 #   $ cd cli
 #   $ pipenv run ../scripts/generate_cheatsheet.py --json --directory \
-#     ../semgrep-core/tests --output-file cheatsheet.json
+#     ../tests --output-file cheatsheet.json
 #
 #
 # If you add support for a new language, you may need to update

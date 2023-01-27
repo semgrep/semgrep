@@ -44,9 +44,9 @@ module D = Datalog_fact
  *
  * See also early experiments with Datalog using BDDBDDB instead
  * of DOOP/Souffle in:
- *  - pfff/h_program-lang/datalog_code.ml
- *  - pfff/h_program-lang/datalog_code.dl (and datalog_code.dtl)
- *  - pfff/lang_c/analyze/datalog_c.ml
+ *  - h_program-lang/datalog_code.ml
+ *  - h_program-lang/datalog_code.dl (and datalog_code.dtl)
+ *  - lang_c/analyze/datalog_c.ml
  *  - pfff-mini/datalog_minic.ml
  *
  * References:
@@ -77,7 +77,7 @@ let heap_of_int _env (_, tok) = spf "int %s" (Parse_info.str_of_info tok)
 (*****************************************************************************)
 (* Fact extractor *)
 (*****************************************************************************)
-(* See pfff/lang_c/analyze/datalog_c.ml for inspiration *)
+(* See c/analyze/datalog_c.ml for inspiration *)
 
 let instr env x =
   match x.i with

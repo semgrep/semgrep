@@ -25,10 +25,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Prelude *)
 (*****************************************************************************)
 (* OCaml parser using tree-sitter-lang/semgrep-cpp and converting
- * to pfff/lang_cpp/parsing/ast_cpp.ml
+ * to ../ast/ast_cpp.ml
  *
  * The resulting AST can then be converted to the generic AST by using
- * a future cpp_to_generic.ml
+ * ../generic/cpp_to_generic.ml
  *
  *)
 

@@ -20,7 +20,7 @@ open Common
 (*****************************************************************************)
 (* OCaml types to represent Datalog/DOOP facts.
  *
- * This was started from pfff/h_program-lang/datalog_code.ml.
+ * This was started from h_program-lang/datalog_code.ml.
  * See Datalog.io.ml to read/write those facts on disk.
  *)
 
@@ -39,7 +39,7 @@ type heap = string
 (* _in_xxx_line_xxx_col_xxx *)
 type callsite = string
 
-(* mimics pfff/.../datalog_code.dtl top comment repeated here for convenience:
+(* mimics ../datalog_code.dtl top comment repeated here for convenience:
 
    # Abstract memory locations (also called heap objects), are mostly qualified
    # symbols (e.g 'main__foo', 'ret_main', '_cst_line2_'):

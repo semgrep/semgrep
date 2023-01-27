@@ -20,7 +20,7 @@ set -eu
 
 eval $(opam env)
 
-#coupling: must be the same than in semgrep-core/dev/dev.opam
+#coupling: must be the same than in dev/dev.opam
 required_version=0.21
 
 if version=$(ocamlformat --version); then

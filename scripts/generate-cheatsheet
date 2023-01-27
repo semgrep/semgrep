@@ -5,7 +5,7 @@
 set -euo pipefail
 
 repo_root=$(git rev-parse --show-toplevel)
-input=$repo_root/semgrep-core/tests/patterns
+input=$repo_root/tests/patterns
 output=$(pwd)/cheatsheet.json
 
 if [[ $# -gt 0 ]]; then

@@ -22,7 +22,7 @@ open AST_python
 (* Prelude *)
 (*****************************************************************************)
 (* Python parser using tree-sitter-lang/semgrep-python and converting
- * to pfff/lang_python/parsing/AST_Python.ml
+ * to ../ast/AST_Python.ml
  *
  * The resulting AST can then be converted to the generic AST by using
  * Python_to_generic.ml

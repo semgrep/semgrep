@@ -1,4 +1,4 @@
-# ~/pfff/scheck -dfg_generic reaching.py
+# scheck -dfg_generic reaching.py
 def foo():
   a = 1
   if True:

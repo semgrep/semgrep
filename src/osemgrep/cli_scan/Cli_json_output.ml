@@ -33,8 +33,8 @@ module Out = Semgrep_output_v1_j
 type env = {
   hrules : Rule.hrules;
   (* string to prefix all rule_id with
-   * (e.g., "semgrep-core.tests." if the --config argument
-    * was semgrep-core/tests/osemgrep.yml)
+   * (e.g., "xxx.tests." if the --config argument
+    * was xxx/tests/osemgrep.yml)
    *)
   config_prefix : string;
 }

@@ -52,7 +52,7 @@ open AST_generic
  * can be written as 1000 or 1_000, so we want to do the bloom hasking
  * on the integer final value, not the string.
  *
- * See also semgrep-core/matching/Rules_filter.ml
+ * See also src/matching/Rules_filter.ml
  *)
 
 (*****************************************************************************)

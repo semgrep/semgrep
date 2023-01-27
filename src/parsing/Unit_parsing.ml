@@ -5,10 +5,7 @@ module E = Semgrep_error_code
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* Unit (and integration) tests exercising the parsers.
- *
- * See also the parsing tests in pfff/tests/
- *)
+(* Unit (and integration) tests exercising the parsers *)
 
 (*****************************************************************************)
 (* Constants *)
@@ -46,8 +43,8 @@ let partial_parsing_tests_for_lang files lang =
 (* Tests *)
 (*****************************************************************************)
 
-(* This differs from pfff/tests/<lang>/parsing because here we also use
- * tree-sitter to parse; certain files do not parse with pfff but parses here
+(* Note that here we also use tree-sitter to parse; certain files were not
+ * parsing with pfff but parses here
  *)
 let lang_parsing_tests () =
   (* TODO: infer dir and ext from lang using Lang helper functions *)

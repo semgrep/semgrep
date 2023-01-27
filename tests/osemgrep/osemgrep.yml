@@ -1,5 +1,5 @@
 # tests for osemgrep to run on Semgrep codebase.
-# usage: ./semgrep-core/_build/default/src/osemgrep/main/Main.exe --config semgrep-core/tests/osemgrep/osemgrep.yml --quiet --json cli/ semgrep-core/
+# usage: ./_build/default/src/osemgrep/main/Main.exe --config tests/osemgrep/osemgrep.yml --quiet --json cli/ src/
 rules:
 - id: py1
   pattern: |

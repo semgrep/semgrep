@@ -22,7 +22,7 @@ open Ast_ml
 (* Prelude *)
 (*****************************************************************************)
 (* OCaml parser using tree-sitter-lang/semgrep-ocaml and converting
- * to pfff/lang_ml/parsing/ast_ml.ml
+ * to ../ast/ast_ml.ml
  *
  * The resulting AST can then be converted to the generic AST by using
  * ml_to_generic.ml

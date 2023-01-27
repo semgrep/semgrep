@@ -21,7 +21,7 @@ open Datalog_fact
 (*****************************************************************************)
 (* Writing/reading datalog facts on disk.
  *
- * This was started from pfff/h_program-lang/datalog_code.ml which
+ * This was started from h_program-lang/datalog_code.ml which
  * handled the BDDBDDB and lui-based datalog engines.
  * This file handles DOOP/Souffle.
  *)

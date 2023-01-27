@@ -29,7 +29,6 @@ WORKDIR /home/user
 
 COPY --chown=user .gitmodules /semgrep/.gitmodules
 COPY --chown=user .git/ /semgrep/.git/
-COPY --chown=user semgrep-core/ /semgrep/semgrep-core/
 COPY --chown=user scripts /semgrep/scripts
 
 WORKDIR /semgrep
@@ -45,13 +44,12 @@ RUN git submodule update --init --recursive --depth 1
 #  - scripts/install-alpine-semgrep-core
 #  - the setup target in Makefile
 RUN eval "$(opam env)" && ./scripts/install-tree-sitter-runtime
-RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/src/pfff/
-RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core
-RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/
-RUN eval "$(opam env)" && make -C semgrep-core/ all
+RUN eval "$(opam env)" && opam install --deps-only -y src/ocaml-tree-sitter-core
+RUN eval "$(opam env)" && opam install --deps-only -y .
+RUN eval "$(opam env)" && make -C  all
 
 # Sanity checks
-RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
+RUN ./_build/install/default/bin/semgrep-core -version
 
 #
 # We change container, bringing only the 'semgrep-core' binary with us.
@@ -65,7 +63,7 @@ LABEL maintainer="support@r2c.dev"
 RUN apk add --no-cache git openssh
 
 COPY --from=build-semgrep-core \
-     /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
+     /semgrep/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
 RUN semgrep-core -version
 
 COPY semgrep /semgrep

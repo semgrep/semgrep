@@ -1,4 +1,3 @@
-(*s: pfff/cli/Main.ml *)
 (*
  * Please imagine a long and boring GNU-style copyright notice
  * appearing just here.
@@ -185,10 +184,7 @@ let main () =
       | [] ->
           Arg_helpers.usage usage_msg (options ());
           failwith "too few arguments")
-(*e: function [[Main.main]] *)
 
 (*****************************************************************************)
-(*s: toplevel [[Main._1]] *)
+
 let _ = Common.main_boilerplate (fun () -> main ())
-(*e: toplevel [[Main._1]] *)
-(*e: pfff/cli/Main.ml *)
