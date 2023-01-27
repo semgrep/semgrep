@@ -4,8 +4,9 @@ import pytest
 
 from ..conftest import TESTS_PATH
 
+pytestmark = pytest.mark.kinda_slow
 
-@pytest.mark.kinda_slow
+
 @pytest.mark.parametrize(
     "rule,target",
     [
@@ -78,7 +79,6 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
 # contains no lockfiles for the language in our rule, we need to _not_ pass in
 # a target that begins with "targets", as that dir contains every kind of lockfile
 # So we add the keyword arg to run_semgrep and manually do some cd-ing
-@pytest.mark.kinda_slow
 def test_no_lockfiles(run_semgrep, monkeypatch, tmp_path, snapshot):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
