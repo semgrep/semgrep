@@ -96,7 +96,7 @@ let mvalue_to_any = function
    *)
   | Id (id, Some idinfo) -> G.E (G.N (G.Id (id, idinfo)) |> G.e)
   | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info ())) |> G.e)
-  | N x -> G.Name x
+  | N x -> G.E (G.N x |> G.e)
   | Ss x -> G.Ss x
   | Args x -> G.Args x
   | Params x -> G.Params x
