@@ -1,1 +1,0 @@
-Fixed bug where Semgrep would generate reachable findings for transitive dependencies, even if a direct dependency at a safe version exists
