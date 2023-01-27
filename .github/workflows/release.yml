@@ -137,7 +137,7 @@ jobs:
     if: ${{ !contains(github.ref,'-test-release') }}
     needs:
       [
-        test-wheels-manylinux,
+        build-test-manylinux-x86,
         build-test-osx-x86,
         build-test-osx-m1,
         check-m1-build,
@@ -258,64 +258,15 @@ jobs:
           name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz
 
-  build-wheels-manylinux:
-    runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:ubuntu-16.04
-    needs: [build-core]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: "recursive"
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: tar xf ocaml-build-artifacts.tgz
-      - name: Setup Python
-        run: |
-          rm /usr/bin/python
-          ln `which python3.7` /usr/bin/python
-      - name: Install zip & musl-tools
-        run: apt-get update && apt install -y zip musl-tools
-      - name: Build the wheels
-        env:
-          # Relative because build-wheels does a 'cd semgrep'
-          SEMGREP_CORE_BIN: ../ocaml-build-artifacts/bin/semgrep-core
-        run: ./scripts/build-wheels.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: manylinux-wheel
-          path: cli/dist.zip
-
-  test-wheels-manylinux:
-    runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux1_x86_64
-    needs: [build-wheels-manylinux]
-    steps:
-      - uses: actions/download-artifact@v1
-        with:
-          name: manylinux-wheel
-      - name: unzip dist
-        run: unzip ./manylinux-wheel/dist.zip
-      - name: install package
-        run: /opt/python/cp37-cp37m/bin/pip install dist/*.whl
-      - name: test package
-        working-directory: /opt/python/cp37-cp37m/bin/
-        run: ./semgrep --version
-      - name: e2e semgrep-core test
-        working-directory: /opt/python/cp37-cp37m/bin/
-        run: echo '1 == 1' | ./semgrep -l python -e '$X == $X' -
-      - name: e2e spacegrep test
-        working-directory: /opt/python/cp37-cp37m/bin/
-        run: echo '1 == 1' | ./semgrep -l generic -e '$X == $X' -
+  build-test-manylinux-x86:
+    uses: ./.github/workflows/build-test-manylinux-x86.yaml
+    secrets: inherit
 
   upload-wheels:
     runs-on: ubuntu-latest
     needs:
       [
-        test-wheels-manylinux,
+        build-test-manylinux-x86,
         build-test-osx-x86,
         build-test-osx-m1,
         check-m1-build,
