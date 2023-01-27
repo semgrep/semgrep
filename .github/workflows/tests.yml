@@ -548,6 +548,8 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     needs: [build-wheels-m1]
     steps:
+      - name: cleanup semgrep
+        run: pip3 uninstall -y semgrep
       - uses: actions/download-artifact@v1
         with:
           name: m1-wheel
@@ -576,3 +578,5 @@ jobs:
             echo $NON_USR_LIB_DYNAMIC_LIBRARIES
             exit 1;
           fi;
+      - name: cleanup semgrep
+        run: pip3 uninstall -y semgrep
