@@ -44,7 +44,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ocaml-build-artifacts.tgz
-          key: "${{ runner.os }}-core-binary-${{ hashFiles('libs/**', 'languages/**', 'src/**', 'libs/**', 'tools/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-${{ steps.submodule-status.outputs.versions-hash }}"
+          key: "${{ runner.os }}-core-binary-${{ hashFiles('src/**', 'languages/**', 'libs/**', 'tools/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-${{ steps.submodule-status.outputs.versions-hash }}"
       - uses: actions/checkout@v3
         if: steps.core-cache.outputs.cache-hit != 'true'
         with:
