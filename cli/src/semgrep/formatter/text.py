@@ -736,10 +736,33 @@ class TextFormatter(BaseFormatter):
                     ]
                 )
 
+        rules_by_engine = cli_output_extra.rules if cli_output_extra.rules else []
+        oss_rules = [
+            rule
+            for rule in rules_by_engine
+            if isinstance(rule.engine_kind.value, out.OSSMatch)
+        ]
+        pro_rules = [
+            rule
+            for rule in rules_by_engine
+            if isinstance(rule.engine_kind.value, out.ProMatch)
+        ]
+
+        print(extra["uses_pro_engine"])
+        print(oss_rules, pro_rules)
+        if oss_rules and pro_rules:
+            rules_output = [
+                "\nSome rules were run as OSS rules because `deepsemgrep: true` was not specified.\n"
+            ] + [
+                "\nThese rules were:\n   "
+                + "   \n   ".join(formatted_first_party_blocking_rules)
+            ]
+
         return "\n".join(
             [
                 *findings_output,
                 *first_party_blocking_rules_output,
                 *timing_output,
+                *rules_output,
             ]
         )

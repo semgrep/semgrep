@@ -145,6 +145,7 @@ class OutputSettings(NamedTuple):
     output_time: bool = False
     timeout_threshold: int = 0
     dataflow_traces: bool = False
+    uses_pro_engine: bool = False
 
 
 class OutputHandler:
@@ -181,6 +182,7 @@ class OutputHandler:
         )  # (rule, target) -> duration
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
+        self.rules_by_engine: Optional[List[out.Rule]] = None
 
         self.final_error: Optional[Exception] = None
         formatter_type = FORMATTERS.get(self.settings.output_format)
@@ -294,6 +296,7 @@ class OutputHandler:
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         explanations: Optional[List[out.MatchingExplanation]] = None,
+        rules_by_engine: Optional[List[out.Rule]] = None,
         severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
@@ -321,6 +324,8 @@ class OutputHandler:
             self.profiling_data = profiling_data
         if explanations:
             self.explanations = explanations
+        if rules_by_engine:
+            self.rules_by_engine = rules_by_engine
         if severities:
             self.severities = severities
 
@@ -424,7 +429,10 @@ class OutputHandler:
             skipped=None,
         )
         cli_timing: Optional[out.CliTiming] = None
+
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
+        rules_by_engine: Optional[List[out.Rule]] = self.rules_by_engine
+
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
         # - The text formatter uses it to store settings
@@ -467,13 +475,18 @@ class OutputHandler:
         if self.settings.output_format == OutputFormat.SARIF:
             extra["dataflow_traces"] = self.settings.dataflow_traces
 
+        extra["uses_pro_engine"] = self.settings.uses_pro_engine
+
         # the rules are used only by the SARIF formatter
         return self.formatter.output(
             self.rules,
             self.rule_matches,
             self.semgrep_structured_errors,
             out.CliOutputExtra(
-                paths=cli_paths, time=cli_timing, explanations=explanations
+                paths=cli_paths,
+                time=cli_timing,
+                explanations=explanations,
+                rules=rules_by_engine,
             ),
             extra,
             self.severities,
