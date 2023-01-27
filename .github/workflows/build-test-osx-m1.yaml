@@ -1,6 +1,7 @@
 name: build-test-osx-m1
 
 on:
+  workflow_dispatch:
   workflow_call:
 
 jobs:

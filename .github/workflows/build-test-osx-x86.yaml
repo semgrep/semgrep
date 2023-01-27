@@ -1,6 +1,7 @@
 name: build-test-osx-x86
 
 on:
+  workflow_dispatch:
   workflow_call:
 
 jobs:

@@ -17,5 +17,5 @@ jobs:
     secrets: inherit
 
   build-test-osx-m1:
-    uses: ./.github/workflows.build-test-osx-m1.yaml
+    uses: ./.github/workflows/build-test-osx-m1.yaml
     secrets: inherit
