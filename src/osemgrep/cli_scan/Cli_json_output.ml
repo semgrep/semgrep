@@ -379,7 +379,9 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
             sca_info = None;
             fixed_lines = None;
             dataflow_trace = None;
-            engine_kind;
+            (* It's optional in the CLI output, but not in the core match results!
+             *)
+            engine_kind = Some engine_kind;
           };
       }
 

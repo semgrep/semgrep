@@ -701,16 +701,15 @@ class TextFormatter(BaseFormatter):
                     f"First-Party {blocking_description}", first_party_blocking
                 )
             else:
-                oss_matches = [
-                    x
-                    for x in first_party_blocking
-                    if isinstance(x.match.extra.engine_kind.value, out.OSSMatch)
-                ]
-                pro_matches = [
-                    x
-                    for x in first_party_blocking
-                    if isinstance(x.match.extra.engine_kind.value, out.ProMatch)
-                ]
+                oss_matches = []
+                pro_matches = []
+                for x in first_party_blocking:
+                    if x.match.extra.engine_kind is None or isinstance(
+                        x.match.extra.engine_kind.value, out.OSSMatch
+                    ):
+                        oss_matches.append(x)
+                    elif isinstance(x.match.extra.engine_kind.value, out.ProMatch):
+                        pro_matches.append(x)
                 generate_output(f"{blocking_description}", oss_matches)
                 generate_output(f"Semgrep Pro Engine Findings", pro_matches)
 
