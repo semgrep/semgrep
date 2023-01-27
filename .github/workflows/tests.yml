@@ -35,7 +35,7 @@ jobs:
         run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
       # Without the step below, the core-cache step further below would fail with:
       #	  Error: The template is not valid. .github/workflows/tests.yml (Line: 39, Col: 16):
-      #     hashFiles('semgrep-core/**, .github/workflows/tests.yml, scripts/install-alpine-semgrep-core') failed.
+      #     hashFiles(...) failed.
       # Fail to hash files under directory '/home/runner/work/semgrep/semgrep'
       - name: Remove broken symlinks for hashFiles in core-cache steps
         run: find -L . -type l -exec rm {} \;
@@ -44,7 +44,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ocaml-build-artifacts.tgz
-          key: "${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-${{ steps.submodule-status.outputs.versions-hash }}"
+          key: "${{ runner.os }}-core-binary-${{ hashFiles('libs/**', 'languages/**', 'src/**', 'libs/**', 'tools/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-${{ steps.submodule-status.outputs.versions-hash }}"
       - uses: actions/checkout@v3
         if: steps.core-cache.outputs.cache-hit != 'true'
         with:
