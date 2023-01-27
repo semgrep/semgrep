@@ -204,7 +204,7 @@ def run_rules(
                 (
                     dep_rule_matches,
                     dep_rule_errors,
-                    matched_lockfiles,
+                    already_reachable,
                 ) = generate_reachable_sca_findings(
                     rule_matches_by_rule.get(rule, []),
                     rule,
@@ -217,7 +217,7 @@ def run_rules(
                     dep_rule_errors,
                     targeted_lockfiles,
                 ) = generate_unreachable_sca_findings(
-                    rule, target_manager, matched_lockfiles
+                    rule, target_manager, already_reachable
                 )
                 rule_matches_by_rule[rule].extend(dep_rule_matches)
                 output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -227,7 +227,9 @@ def run_rules(
                     dep_rule_matches,
                     dep_rule_errors,
                     targeted_lockfiles,
-                ) = generate_unreachable_sca_findings(rule, target_manager, set())
+                ) = generate_unreachable_sca_findings(
+                    rule, target_manager, lambda p, d: False
+                )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
                 all_targets.union(targeted_lockfiles)
