@@ -16,6 +16,7 @@ type token_location = {
   column : int; (* 0-based *)
   file : Common.filename;
 }
+[@@deriving show, eq]
 (* see also type filepos = { l: int; c: int; } in Common2.mli *)
 
 (* to deal with expanded tokens, e.g. preprocessor like cpp for C *)
@@ -54,9 +55,6 @@ type t = token_mutable [@@deriving eq]
 (* for ppx_deriving *)
 val pp_full_token_info : bool ref
 val pp : Format.formatter -> t -> unit
-val pp_token_location : Format.formatter -> token_location -> unit
-val equal_token_location : token_location -> token_location -> bool
-val show_token_location : token_location -> string
 
 (* mostly for the fuzzy AST builder *)
 type token_kind =
