@@ -37,7 +37,7 @@ type env = context H.env
 
 let token = H.token
 let str = H.str
-let fb = G.fake_bracket
+let fb = PI.unsafe_fake_bracket
 let sc tok = PI.sc tok
 
 let in_pattern env =

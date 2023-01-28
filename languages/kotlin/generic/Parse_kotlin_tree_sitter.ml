@@ -36,7 +36,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = G.fake_bracket
+let fb = PI.unsafe_fake_bracket
 let sc tok = PI.sc tok
 
 let var_to_pattern (id, ptype) =
@@ -585,7 +585,7 @@ and call_suffix (env : env) ((v1, v2) : CST.call_suffix) : G.arguments =
         let l, args, r =
           match v1 with
           | Some x -> value_arguments env x
-          | None -> fake_bracket []
+          | None -> fb []
         in
         (* https://kotlinlang.org/docs/lambdas.html#passing-trailing-lambdas *)
         let v2 = annotated_lambda env v2 in
@@ -1505,7 +1505,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
       let v8 =
         match v8 with
         | Some x -> control_structure_body env x
-        | None -> Block (fake_bracket []) |> G.s
+        | None -> Block (fb []) |> G.s
       in
       let header = ForEach (pat, v5, v6) in
       For (v1, header, v8) |> G.s
@@ -1527,7 +1527,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
       let v2 =
         match v2 with
         | Some x -> control_structure_body env x
-        | None -> G.Block (G.fake_bracket []) |> G.s
+        | None -> G.Block (fb []) |> G.s
       in
       let _v3 = token env v3 (* "while" *) in
       let _v4 = token env v4 (* "(" *) in
@@ -1747,7 +1747,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
             let v1 =
               match v1 with
               | Some x -> control_structure_body env x
-              | None -> G.Block (G.fake_bracket []) |> G.s
+              | None -> G.Block (fb []) |> G.s
             in
             let _v2 =
               match v2 with

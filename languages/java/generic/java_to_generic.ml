@@ -40,7 +40,7 @@ let fake tok s = Parse_info.fake_info tok s
 let unsafe_fake s = Parse_info.unsafe_fake_info s
 
 (* todo: to remove at some point when Ast_java includes them directly *)
-let fb = G.fake_bracket
+let fb = PI.unsafe_fake_bracket
 
 let id_of_entname = function
   | G.EN (Id (id, idinfo)) -> (id, idinfo)
@@ -425,7 +425,7 @@ and resources (_t1, v, t2) = list (resource t2) v
 
 and stmt st =
   match stmt_aux st with
-  | [] -> G.s (Block (G.fake_bracket []))
+  | [] -> G.s (Block (PI.unsafe_fake_bracket []))
   | [ st ] -> st
   | xs ->
       (* This should never happen in a context where we want

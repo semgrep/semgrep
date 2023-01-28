@@ -36,7 +36,7 @@ module PI = Parse_info
 (*****************************************************************************)
 
 let fake = G.fake
-let fb = G.fake_bracket
+let fb = PI.unsafe_fake_bracket
 let id x = x
 let v_string = id
 let v_int = id
@@ -438,7 +438,7 @@ and v_expr e : G.expr =
       } ->
           let args =
             match args with
-            | None -> G.fake_bracket []
+            | None -> PI.unsafe_fake_bracket []
             | Some args -> args
           in
           G.New (v1, tp, args) |> G.e
