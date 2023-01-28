@@ -16,7 +16,7 @@ type token_location = {
   column : int; (* 0-based *)
   file : Common.filename;
 }
-(* see also type filepos = { l: int; c: int; } in Common.mli *)
+(* see also type filepos = { l: int; c: int; } in Common2.mli *)
 
 (* to deal with expanded tokens, e.g. preprocessor like cpp for C *)
 type token_origin =
@@ -50,9 +50,6 @@ and add = AddStr of string | AddNewlineAndIdent
  * It's just a lexeme, but the word lexeme is not as known as token.
  *)
 type t = token_mutable [@@deriving eq]
-
-(* deprecated *)
-type info_ = t
 
 (* for ppx_deriving *)
 val pp_full_token_info : bool ref
@@ -97,7 +94,6 @@ exception Ast_builder_error of string * t
 
 (* other stuff *)
 exception Other_error of string * t
-exception NoTokenLocation of string
 
 val lexical_error : string -> Lexing.lexbuf -> unit
 
@@ -111,60 +107,12 @@ val lexical_error : string -> Lexing.lexbuf -> unit
 val register_exception_printer : unit -> unit
 
 (*****************************************************************************)
-(* Info accessors and builders *)
+(* Info builders *)
 (*****************************************************************************)
 
 val tokinfo : Lexing.lexbuf -> t
 val mk_info_of_loc : token_location -> t
-
-(* Fake tokens: safe vs unsafe
- * ---------------------------
- * "Safe" fake tokens require an existing location to attach to, and so
- * token_location_of_info will work on these fake tokens. "Unsafe" fake tokens
- * do not carry any location info, so calling token_location_of_info on these
- * will raise a NoTokenLocation exception.
- *
- * Always prefer "safe" functions (no "unsafe_" prefix), which only introduce
- * "safe" fake tokens. The unsafe_* functions introduce "unsafe" fake tokens,
- * please use them only as a last resort. *)
-
-val fake_token_location : token_location
-
-(* NOTE: These functions introduce unsafe fake tokens, prefer safe functions
- * below, use these only as a last resort! *)
-val unsafe_fake_info : string -> t
-val unsafe_fake_bracket : 'a -> t * 'a * t
-val unsafe_sc : t
-val fake_info_loc : token_location -> string -> t
-val fake_info : t -> string -> t
-val abstract_info : t
-val fake_bracket_loc : token_location -> 'a -> t * 'a * t
-val fake_bracket : t -> 'a -> t * 'a * t
-val unbracket : t * 'a * t -> 'a
-val sc_loc : token_location -> t
-val sc : t -> t
-val is_fake : t -> bool
 val first_loc_of_file : Common.filename -> token_location
-
-(* Extract the lexeme (token) as a string *)
-val str_of_info : t -> string
-
-(* Extract position information *)
-val line_of_info : t -> int
-val col_of_info : t -> int
-val pos_of_info : t -> int
-val file_of_info : t -> Common.filename
-
-(* Format the location file/line/column into a string *)
-val string_of_info : t -> string
-val is_origintok : t -> bool
-val token_location_of_info : t -> (token_location, string) result
-
-(* @raise NoTokenLocation if given an unsafe fake token (without location info) *)
-val unsafe_token_location_of_info : t -> token_location
-val get_original_token_location : token_origin -> token_location
-val compare_pos : t -> t -> int
-val min_max_ii_by_pos : t list -> t * t
 
 (* TODO? could also be in Lexer helpers section *)
 (* can deprecate? *)
@@ -178,6 +126,75 @@ val combine_infos : t -> t list -> t
 (* this function assumes the full content of the token is on the same
  * line, otherwise the line/col of the result might be wrong *)
 val split_info_at_pos : int -> t -> t * t
+
+(*****************************************************************************)
+(* Fake tokens: safe vs unsafe *)
+(*****************************************************************************)
+(* "Safe" fake tokens require an existing location to attach to, and so
+ * token_location_of_info will work on these fake tokens. "Unsafe" fake tokens
+ * do not carry any location info, so calling token_location_of_info on these
+ * will raise a NoTokenLocation exception.
+ *
+ * Always prefer "safe" functions (no "unsafe_" prefix), which only introduce
+ * "safe" fake tokens. The unsafe_* functions introduce "unsafe" fake tokens,
+ * please use them only as a last resort. *)
+
+exception NoTokenLocation of string
+
+val fake_token_location : token_location
+val is_fake : t -> bool
+val is_origintok : t -> bool
+
+(* NOTE: These functions introduce unsafe fake tokens, prefer safe functions
+ * below, use these only as a last resort! *)
+val unsafe_fake_info : string -> t
+val unsafe_fake_bracket : 'a -> t * 'a * t
+
+(* sc for semicolon, which are often fake tokens because of
+ * ASI (Automatic Semicolon Insertion) in languages like Javascript.
+ *)
+val unsafe_sc : t
+
+(* "safe" fake versions *)
+
+val fake_info_loc : token_location -> string -> t
+val fake_info : t -> string -> t
+val fake_bracket_loc : token_location -> 'a -> t * 'a * t
+val fake_bracket : t -> 'a -> t * 'a * t
+val sc_loc : token_location -> t
+val sc : t -> t
+
+(* accessor *)
+val unbracket : t * 'a * t -> 'a
+
+(*****************************************************************************)
+(* Info accessors *)
+(*****************************************************************************)
+
+(* Extract the lexeme (token) as a string *)
+val str_of_info : t -> string
+
+(* Extract position information *)
+val line_of_info : t -> int
+val col_of_info : t -> int
+val pos_of_info : t -> int
+val file_of_info : t -> Common.filename
+
+(* Format the location file/line/column into a string *)
+val string_of_info : t -> string
+val token_location_of_info : t -> (token_location, string) result
+
+(* @raise NoTokenLocation if given an unsafe fake token (without location info) *)
+val unsafe_token_location_of_info : t -> token_location
+val get_original_token_location : token_origin -> token_location
+val compare_pos : t -> t -> int
+val min_max_ii_by_pos : t list -> t * t
+
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
+
+val abstract_info : t
 
 (*****************************************************************************)
 (* Parsing stats *)
