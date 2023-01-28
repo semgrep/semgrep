@@ -871,9 +871,6 @@ let fakeInfo ?(next_to = None) str =
 (*****************************************************************************)
 
 let unwrap = fst
-let unparen (_a, b, _c) = b
-let unbrace = unparen
-let unbracket = unparen
 
 let uncomma xs =
   Common.map_filter

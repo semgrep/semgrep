@@ -17,6 +17,7 @@ open AST_generic
 module G = AST_generic
 module H = AST_generic_helpers
 module V = Visitor_AST
+module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -279,7 +280,7 @@ let rec eval env x : svalue option =
       deep_constant_propagation_and_evaluate_literal x
 
 and eval_args env args =
-  args |> unbracket
+  args |> PI.unbracket
   |> Common.map (function
        | Arg e -> eval env e
        | _ -> None)

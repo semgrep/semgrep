@@ -16,6 +16,7 @@ open Common
 open Ast_java
 module G = AST_generic
 module H = AST_generic_helpers
+module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -312,8 +313,8 @@ and expr e =
       and v4 = option (bracket decls) v4 in
       let anys =
         [ G.E v0; G.T v2 ]
-        @ (v3 |> G.unbracket |> Common.map (fun arg -> G.Ar arg))
-        @ (Option.to_list v4 |> Common.map G.unbracket |> List.flatten
+        @ (v3 |> PI.unbracket |> Common.map (fun arg -> G.Ar arg))
+        @ (Option.to_list v4 |> Common.map PI.unbracket |> List.flatten
           |> Common.map (fun st -> G.S st))
       in
       G.OtherExpr (("NewQualifiedClass", tok2), anys)

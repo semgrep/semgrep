@@ -293,7 +293,7 @@ let (mk_visitor :
            * below in Tuple a String|Id
            *)
           | Dict ->
-              v2 |> unbracket
+              v2 |> PI.unbracket
               |> List.iter (fun e ->
                      match e.e with
                      | Container
@@ -306,7 +306,7 @@ let (mk_visitor :
            * TODO? generate Dict in go_to_generic.ml instead directly?
            *)
           | List ->
-              v2 |> unbracket
+              v2 |> PI.unbracket
               |> List.iter (fun e ->
                      match e.e with
                      | Container

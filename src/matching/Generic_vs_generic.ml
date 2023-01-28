@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+module PI = Parse_info
 
 (* G is the pattern, and B the concrete source code. For now
  * we both use the same module but they may differ later
@@ -1777,8 +1778,8 @@ and m_call_op aop toka aargs bop tokb bargs tin =
    * regular non-AC matching. *)
   if tin.config.ac_matching && aop =*= bop && H.is_associative_operator aop then (
     match
-      ( H.ac_matching_nf aop (G.unbracket aargs),
-        H.ac_matching_nf bop (B.unbracket bargs) )
+      ( H.ac_matching_nf aop (PI.unbracket aargs),
+        H.ac_matching_nf bop (PI.unbracket bargs) )
     with
     | Some aargs_ac, Some bargs_ac ->
         if is_commutative_operator aop then

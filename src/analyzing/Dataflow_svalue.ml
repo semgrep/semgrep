@@ -14,6 +14,7 @@
  *)
 open Common
 open IL
+module PI = Parse_info
 module G = AST_generic
 module F = IL
 module D = Dataflow_core
@@ -412,7 +413,7 @@ let rec is_symbolic_expr expr =
   | G.Call (e, (_, args, _)) ->
       is_symbolic_expr e && List.for_all is_symbolic_arg args
   | G.New (_, _, args) ->
-      let args = G.unbracket args in
+      let args = PI.unbracket args in
       List.for_all is_symbolic_arg args
   | _else -> false
 

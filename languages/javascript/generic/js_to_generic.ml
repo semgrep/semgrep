@@ -305,7 +305,7 @@ and expr (x : expr) =
           logger#info "Weird: literal in call position";
           (* apparently there's code like (null)("fs"), no idea what that is *)
           G.Call (G.L l |> G.e, bracket (Common.map G.arg) v2)
-      | SR_NeedArgs f -> f (G.unbracket v2)
+      | SR_NeedArgs f -> f (PI.unbracket v2)
       | SR_Other categ ->
           (* ex: NewTarget *)
           G.Call
