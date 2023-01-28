@@ -301,7 +301,9 @@ let rec just_parse_with_lang lang file =
         [ TreeSitter Parse_bash_tree_sitter.parse ]
         Bash_to_generic.program
   | Lang.Dockerfile ->
-      run file [ TreeSitter Parse_dockerfile_tree_sitter.parse ] (fun x -> x)
+      run file
+        [ TreeSitter Parse_dockerfile_tree_sitter.parse ]
+        Dockerfile_to_generic.program
   | Lang.Rust ->
       run file [ TreeSitter Parse_rust_tree_sitter.parse ] (fun x -> x)
   | Lang.C ->

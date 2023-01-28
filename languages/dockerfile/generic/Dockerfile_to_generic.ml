@@ -318,7 +318,8 @@ let instruction env (x : instruction) : G.stmt =
   | StmtExpr stmt -> stmt
   | _ -> stmt_of_expr (instruction_loc x) expr
 
-let program (env : env) (x : program) : G.stmt list =
+let program_with_env (env : env) (x : program) : G.stmt list =
   Common.map (instruction env) x
 
-let any (env : env) x : G.any = G.Ss (program env x)
+let any (x : program) : G.any = G.Ss (program_with_env AST_bash.Pattern x)
+let program (x : program) : G.program = program_with_env AST_bash.Program x

@@ -962,15 +962,17 @@ let source_file (env : env) (xs : CST.source_file) =
 (*****************************************************************************)
 
 let parse file =
-  let input_kind = AST_bash.Program in
   H.wrap_parser
     (fun () -> Tree_sitter_dockerfile.Parse.file file)
     (fun cst ->
       let env =
-        { H.file; conv = H.line_col_to_pos file; extra = (input_kind, Sh) }
+        {
+          H.file;
+          conv = H.line_col_to_pos file;
+          extra = (AST_bash.Program, Sh);
+        }
       in
-      let dockerfile_ast = source_file env cst in
-      Dockerfile_to_generic.(program Program dockerfile_ast))
+      source_file env cst)
 
 let ensure_trailing_newline str =
   if str <> "" then
@@ -980,7 +982,7 @@ let ensure_trailing_newline str =
     | _ -> str ^ "\n"
   else str
 
-let parse_dockerfile_pattern str =
+let parse_pattern str =
   let input_kind = AST_bash.Pattern in
   H.wrap_parser
     (fun () ->
@@ -991,18 +993,27 @@ let parse_dockerfile_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = (input_kind, Sh) } in
-      let dockerfile_ast = source_file env cst in
-      Dockerfile_to_generic.any input_kind dockerfile_ast)
+      source_file env cst)
 
-let parse_pattern str =
-  let dockerfile_res = parse_dockerfile_pattern str in
+(*
+   The input can be a sequence of dockerfile instructions
+   or a bash snippet.
+*)
+let parse_docker_or_bash_pattern str =
+  let dockerfile_res = parse_pattern str in
+  let any_opt =
+    match dockerfile_res.program with
+    | None -> None
+    | Some program -> Some (Dockerfile_to_generic.any program)
+  in
+  let dockerfile_res = { dockerfile_res with program = any_opt } in
   if dockerfile_res.errors =*= [] then dockerfile_res
   else
     let bash_res = Parse_bash_tree_sitter.parse_pattern str in
     let any_opt =
       match bash_res.program with
       | None -> None
-      | Some program -> Some (Bash_to_generic.pattern program)
+      | Some program -> Some (Bash_to_generic.any program)
     in
     if bash_res.errors =*= [] then { bash_res with program = any_opt }
     else dockerfile_res
