@@ -7,8 +7,7 @@
    May raise AST_generic.Error.
 *)
 val program : AST_bash.program -> AST_generic.program
-val pattern : AST_bash.program -> AST_generic.any
-val any : AST_bash.input_kind -> AST_bash.program -> AST_generic.any
+val any : AST_bash.program -> AST_generic.any
 
 (* internal function used also in Dockerfile_to_generic *)
 val program_with_env :
