@@ -116,7 +116,7 @@ let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
   | Command_semgrep_ellipsis tok -> [ G.Ellipsis tok |> G.e ]
   | Argv (_loc, array) -> [ string_array array ]
   | Sh_command (loc, x) ->
-      let args = Bash_to_generic.program env x |> expr_of_stmts loc in
+      let args = Bash_to_generic.program_with_env env x |> expr_of_stmts loc in
       [ call_shell loc Sh [ args ] ]
   | Other_shell_command (shell_compat, code) ->
       let args = [ string_expr code ] in

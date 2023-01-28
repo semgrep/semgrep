@@ -516,7 +516,7 @@ and expansion (env : env) (x : expansion) : G.expr =
 
 and expand loc (var_expr : G.expr) : G.expr = call loc C.expand [ var_expr ]
 
-let program (env : env) x = blist (env : env) x |> Common.map as_stmt
+let program_with_env (env : env) x = blist (env : env) x |> Common.map as_stmt
 
 (*
    Unwrap the pattern tree as much as possible to maximize matches.
@@ -534,12 +534,16 @@ let pattern (x : blist) =
    * problem with Parse_pattern.normalize_any probably
    *)
   | None -> (
-      match program env x with
+      match program_with_env env x with
       | [ { G.s = G.ExprStmt (e, _semicolon); _ } ] -> G.E e
       | [ stmt ] -> G.S stmt
       | stmts -> G.Ss stmts)
 
 let any (env : env) x : G.any =
   match env with
-  | Program -> G.Ss (program env x)
+  | Program -> G.Ss (program_with_env env x)
   | Pattern -> pattern x
+
+let program x =
+  let env = Program in
+  program_with_env env x
