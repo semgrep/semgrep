@@ -136,7 +136,10 @@ let parse_pattern lang ?(print_errors = false) str =
         extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Bash ->
         let res = Parse_bash_tree_sitter.parse_pattern str in
-        extract_pattern_from_tree_sitter_result res print_errors
+        let program =
+          extract_pattern_from_tree_sitter_result res print_errors
+        in
+        Bash_to_generic.pattern program
     | Lang.Dockerfile ->
         let res = Parse_dockerfile_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors

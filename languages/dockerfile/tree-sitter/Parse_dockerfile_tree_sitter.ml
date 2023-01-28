@@ -999,4 +999,10 @@ let parse_pattern str =
   if dockerfile_res.errors =*= [] then dockerfile_res
   else
     let bash_res = Parse_bash_tree_sitter.parse_pattern str in
-    if bash_res.errors =*= [] then bash_res else dockerfile_res
+    let any_opt =
+      match bash_res.program with
+      | None -> None
+      | Some program -> Some (Bash_to_generic.pattern program)
+    in
+    if bash_res.errors =*= [] then { bash_res with program = any_opt }
+    else dockerfile_res
