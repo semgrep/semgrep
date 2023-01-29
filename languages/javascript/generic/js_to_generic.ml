@@ -146,8 +146,8 @@ let special (x, tok) =
                                rest |> Common.map (fun e -> G.Arg e) |> fb )
                           |> G.e);
                       ] ))
-  | ArithOp op -> SR_Special (G.Op (H.conv_op op), tok)
-  | IncrDecr v -> SR_Special (G.IncrDecr (H.conv_incdec v), tok)
+  | ArithOp op -> SR_Special (G.Op op, tok)
+  | IncrDecr v -> SR_Special (G.IncrDecr v, tok)
 
 (*
    This is used to expose an individual statement as a block of one statement,
@@ -553,12 +553,11 @@ and function_definition x =
   a
 
 and fun_ { f_kind; f_attrs = f_props; f_params; f_body; f_rettype } =
-  let fkind = H.conv_function_kind f_kind in
   let v1 = list attribute f_props in
   let v2 = list parameter_binding f_params in
   let v3 = stmt f_body |> as_block in
   let frettype = option type_ f_rettype in
-  ({ G.fparams = v2; frettype; fbody = G.FBStmt v3; fkind }, v1)
+  ({ G.fparams = v2; frettype; fbody = G.FBStmt v3; fkind = f_kind }, v1)
 
 and parameter_binding = function
   | ParamClassic x -> parameter x
@@ -637,7 +636,7 @@ and class_ { c_extends; c_implements; c_body; c_kind; c_attrs } =
   let attrs = list attribute c_attrs in
   let cimplements = list type_ c_implements in
   ( {
-      G.ckind = H.conv_class_kind c_kind;
+      G.ckind = c_kind;
       cextends;
       cimplements;
       cmixins = [];

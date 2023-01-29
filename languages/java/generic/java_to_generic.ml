@@ -344,12 +344,10 @@ and expr e =
         (G.IdSpecial (G.IncrDecr (v1, G.Prefix), tok) |> G.e, fb [ G.Arg v2 ])
   | Unary (v1, v2) ->
       let v1, tok = v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Op (H.conv_op v1), tok) |> G.e, fb [ G.Arg v2 ])
+      G.Call (G.IdSpecial (G.Op v1, tok) |> G.e, fb [ G.Arg v2 ])
   | Infix (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = v2 and v3 = expr v3 in
-      G.Call
-        ( G.IdSpecial (G.Op (H.conv_op v2), tok) |> G.e,
-          fb [ G.Arg v1; G.Arg v3 ] )
+      G.Call (G.IdSpecial (G.Op v2, tok) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | Cast ((l, v1, _), v2) ->
       let v1 = list typ v1 and v2 = expr v2 in
       let t =
@@ -369,7 +367,7 @@ and expr e =
       G.Assign (v1, v2, v3)
   | AssignOp (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v3 = expr v3 in
-      G.AssignOp (v1, (H.conv_op v2, tok), v3)
+      G.AssignOp (v1, (v2, tok), v3)
   | TypedMetavar (v1, v2) ->
       let v1 = ident v1 in
       let v2 = typ v2 in
@@ -412,7 +410,7 @@ and argument v =
   G.Arg v
 
 and arguments v : G.argument list G.bracket = bracket (list argument) v
-and fix_op v = H.conv_incr v
+and fix_op v = v
 
 and resource t (v : resource) : G.stmt =
   match v with

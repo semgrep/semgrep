@@ -2402,7 +2402,7 @@ let importExpr in_ : import_expr =
              let start = thisDotted None (*ast: empty*) in_ in
              Right (loop start in_)
          (* We should allow single metavariables to be imported. *)
-         | ID_LOWER ((s, _) as id) when AST_generic_.is_metavar_name s -> (
+         | ID_LOWER ((s, _) as id) when AST_generic.is_metavar_name s -> (
              nextToken in_;
              match in_.token with
              | DOT _ ->

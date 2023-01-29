@@ -18,7 +18,7 @@ open Common
 open Parser_go
 module PI = Parse_info
 module Flag = Flag_parsing
-open AST_generic_ (* for LASOP *)
+open AST_generic (* for LASOP *)
 
 (*****************************************************************************)
 (* Prelude *)

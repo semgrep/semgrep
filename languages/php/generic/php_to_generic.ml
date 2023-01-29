@@ -62,13 +62,13 @@ let name_of_qualified_ident xs =
   H.name_of_ids xs
 
 let name v = qualified_ident v
-let fixOp x = H.conv_incr x
+let fixOp x = x
 
 let binaryOp (x, t) =
   match x with
   | BinaryConcat -> Left (G.Concat, t)
   | CombinedComparison -> Left (G.Cmp, t)
-  | ArithOp op -> Left (H.conv_op op, t)
+  | ArithOp op -> Left (op, t)
 
 let unaryOp x = x
 
@@ -374,8 +374,7 @@ and expr e : G.expr =
           G.Call (G.IdSpecial x |> G.e, fb [ G.Arg v1; G.Arg v3 ]) |> G.e)
   | Unop ((v1, t), v2) ->
       let v1 = unaryOp v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Op (H.conv_op v1), t) |> G.e, fb [ G.Arg v2 ])
-      |> G.e
+      G.Call (G.IdSpecial (G.Op v1, t) |> G.e, fb [ G.Arg v2 ]) |> G.e
   | Guil (l, xs, r) -> (
       let xs = list expr xs in
       match xs with
@@ -384,7 +383,7 @@ and expr e : G.expr =
        * interpolation ($VAR is interpreted as a metavar, not a PHP var)
        *)
       | [ ({ e = G.L (G.String (str, _)); _ } as e) ]
-        when AST_generic_.is_metavar_name str ->
+        when AST_generic.is_metavar_name str ->
           e
       | _else_ ->
           let ys = xs |> Common.map (fun x -> Common.Middle3 x) in

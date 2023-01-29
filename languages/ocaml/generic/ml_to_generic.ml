@@ -248,7 +248,7 @@ and expr e =
       let v2 = tok v2 in
       let v3 = type_ v3 in
       match v1.G.e with
-      | G.N (G.Id (id, _idinfo)) when AST_generic_.is_metavar_name (fst id) ->
+      | G.N (G.Id (id, _idinfo)) when AST_generic.is_metavar_name (fst id) ->
           G.TypedMetavar (id, v2, v3)
       | _ -> G.Cast (v3, v2, v1))
   | Ellipsis v1 ->

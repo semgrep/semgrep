@@ -1877,23 +1877,6 @@ and any =
 and raw_tree = any Raw_tree.t [@@deriving show { with_path = false }, eq, hash]
 
 (*****************************************************************************)
-(* Special constants *)
-(*****************************************************************************)
-
-(* In JS one can do 'var {x,y} = foo();'. We used to transpile that
- * in multiple vars, but in sgrep one may want to match over those patterns.
- * However those multivars do not fit well with the (entity * definition_kind)
- * model we currently use, so for now we need this ugly hack of converting
- * the statement above in
- * ({name = "!MultiVarDef"}, VarDef {vinit = Assign (Record {...}, foo())}).
- * This is bit ugly, but at some point we may want to remove completely
- * VarDef by transforming them in Assign (see vardef_to_assign() below)
- * so this temporary hack is not too bad.
- * TODO: use EPattern instead
- *)
-let special_multivardef_pattern = AST_generic_.special_multivardef_pattern
-
-(*****************************************************************************)
 (* Error *)
 (*****************************************************************************)
 
@@ -2148,3 +2131,36 @@ let case_of_pat_and_stmt ?(tok = None) (pat, stmt) =
     | Some tok -> tok
   in
   CasesAndBody ([ Case (tok, pat) ], stmt)
+
+(*****************************************************************************)
+(* Special constants *)
+(*****************************************************************************)
+
+(* In JS one can do 'var {x,y} = foo();'. We used to transpile that
+ * in multiple vars, but in semgrep one may want to match over those patterns.
+ * However those multivars do not fit well with the (entity * definition_kind)
+ * model we currently use, so for now we need this ugly hack of converting
+ * the statement above in
+ * ({name = "!MultiVarDef"}, VarDef {vinit = Assign (Record {...}, foo())}).
+ * This is bit ugly, but at some point we may want to remove completely
+ * VarDef by transforming them in Assign (see vardef_to_assign() below)
+ * so this temporary hack is not too bad.
+ * TODO: use EPattern instead
+ *)
+let special_multivardef_pattern = "!MultiVarDef!"
+
+(*****************************************************************************)
+(* Semgrep hacks *)
+(*****************************************************************************)
+
+(* !!You should not use the function below!! You should use instead
+ * Metavars_generic.is_metavar_name. If you use the function below,
+ * it probably means you have an ugly dependency to semgrep that you
+ * should not have.
+ * coupling: Metavariable.is_metavar_name
+ *)
+let is_metavar_name s = Common.( =~ ) s "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
+
+(* coupling: Metavariable.is_metavar_ellipsis *)
+let is_metavar_ellipsis s =
+  Common.( =~ ) s "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"

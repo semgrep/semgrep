@@ -221,10 +221,10 @@ and expr =
    *)
   | Dot of expr * tok * ident
   | ArrayAccess of expr * expr bracket
-  | Unary of AST_generic_.operator (* +/-/~/! *) wrap * expr
-  | Postfix of expr * AST_generic_.incr_decr wrap
-  | Prefix of AST_generic_.incr_decr wrap * expr
-  | Infix of expr * AST_generic_.operator wrap * expr
+  | Unary of AST_generic.operator (* +/-/~/! *) wrap * expr
+  | Postfix of expr * AST_generic.incr_decr wrap
+  | Prefix of AST_generic.incr_decr wrap * expr
+  | Infix of expr * AST_generic.operator wrap * expr
   | SwitchE of tok * expr * (cases * stmts) list (* TODO bracket *)
   (* usually just a single typ, but can also have intersection type t1 & t2 *)
   | Cast of typ list1 bracket * expr
@@ -232,7 +232,7 @@ and expr =
   | Conditional of expr * expr * expr
   (* ugly java, like in C assignement is an expression not a statement :( *)
   | Assign of expr * tok * expr
-  | AssignOp of expr * AST_generic_.operator wrap * expr
+  | AssignOp of expr * AST_generic.operator wrap * expr
   (* javaext: 1.? *)
   | Lambda of parameters * tok (* -> *) * stmt
   (* sgrep-ext: *)

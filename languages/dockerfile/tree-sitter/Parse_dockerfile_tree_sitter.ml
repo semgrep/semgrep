@@ -94,7 +94,7 @@ let classify_shell ((_open, ar, _close) : string_array) :
 
 let is_metavar (env : env) (x : string wrap) =
   match env.extra with
-  | Pattern, _ when AST_generic_.is_metavar_name (fst x) -> true
+  | Pattern, _ when AST_generic.is_metavar_name (fst x) -> true
   | _ -> false
 
 (*
@@ -149,7 +149,7 @@ let expansion (env : env) ((v1, v2) : CST.expansion) : string_fragment =
       let mv_tok = PI.combine_infos dollar [ snd name ] in
       let mv_s = PI.str_of_info mv_tok in
       match env.extra with
-      | Pattern, _ when AST_generic_.is_metavar_name mv_s ->
+      | Pattern, _ when AST_generic.is_metavar_name mv_s ->
           Frag_semgrep_metavar (mv_s, mv_tok)
       | _ ->
           let loc = (dollar, wrap_tok name) in
@@ -160,7 +160,7 @@ let expansion (env : env) ((v1, v2) : CST.expansion) : string_fragment =
       let name, _tok = var_or_mv in
       let expansion =
         match env.extra with
-        | Pattern, _ when AST_generic_.is_metavar_name name ->
+        | Pattern, _ when AST_generic.is_metavar_name name ->
             Expand_semgrep_metavar var_or_mv
         | _ -> Expand_var var_or_mv
       in

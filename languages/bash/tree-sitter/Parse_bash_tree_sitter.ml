@@ -272,7 +272,7 @@ let simple_expansion (env : env) (x : CST.simple_expansion) : string_fragment =
           (* Interpret $X as either "metavariable $X" or "expand X" *)
           match var_name with
           | Simple_variable_name (name_s, name_tok)
-            when AST_generic_.is_metavar_name ("$" ^ name_s) ->
+            when AST_generic.is_metavar_name ("$" ^ name_s) ->
               let mv_s = "$" ^ name_s in
               let mv_tok = PI.combine_infos dollar_tok [ name_tok ] in
               Frag_semgrep_metavar (mv_s, mv_tok)
