@@ -36,7 +36,7 @@ let option = Option.map
 let either = OCaml.map_of_either
 let arithmetic_operator = id
 let incr_decr = id
-let prefix_postfix x = H.conv_prepost x
+let prefix_postfix x = x
 let error = AST_generic.error
 
 let name_of_qualified_ident x =
@@ -262,13 +262,13 @@ let top_func () =
         G.Ref (v1, v2)
     | Unary (v1, v2) ->
         let v1, tok = wrap arithmetic_operator v1 and v2 = expr v2 in
-        G.Call (G.IdSpecial (G.Op (H.conv_op v1), tok) |> G.e, fb [ G.arg v2 ])
+        G.Call (G.IdSpecial (G.Op v1, tok) |> G.e, fb [ G.arg v2 ])
     | Binary (v1, v2, v3) ->
         let v1 = expr v1
         and v2, tok = wrap arithmetic_operator v2
         and v3 = expr v3 in
         G.Call
-          ( G.IdSpecial (G.Op (H.conv_op v2), tok) |> G.e,
+          ( G.IdSpecial (G.Op v2, tok) |> G.e,
             fb ([ v1; v3 ] |> Common.map G.arg) )
     | CompositeLit (v1, v2) ->
         let v1 = type_ v1
@@ -401,14 +401,12 @@ let top_func () =
         let v1 = expr v1
         and v2, tok = wrap arithmetic_operator v2
         and v3 = expr v3 in
-        G.AssignOp (v1, (H.conv_op v2, tok), v3) |> G.e
+        G.AssignOp (v1, (v2, tok), v3) |> G.e
     | IncDec (v1, v2, v3) ->
         let v1 = expr v1
         and v2, tok = wrap incr_decr v2
         and v3 = prefix_postfix v3 in
-        G.Call
-          ( G.IdSpecial (G.IncrDecr (H.conv_incr v2, v3), tok) |> G.e,
-            fb [ G.Arg v1 ] )
+        G.Call (G.IdSpecial (G.IncrDecr (v2, v3), tok) |> G.e, fb [ G.Arg v1 ])
         |> G.e
   (* invariant: you should not use 'list stmt', but instead always
    * use list stmt_aux ... |> List.flatten

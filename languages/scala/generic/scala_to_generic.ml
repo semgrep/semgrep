@@ -315,7 +315,7 @@ and v_pattern = function
       | Left lit -> G.PatLiteral lit
       | Right e -> todo_pattern "PatLiteralExpr" [ G.E e ])
   | PatName (Id id, [])
-    when AST_generic_.is_metavar_name (fst (v_varid_or_wildcard id)) ->
+    when AST_generic.is_metavar_name (fst (v_varid_or_wildcard id)) ->
       G.PatId (v_varid_or_wildcard id, G.empty_id_info ())
   | PatName v1 ->
       let ids = v_dotted_name_of_stable_id v1 in
@@ -367,7 +367,7 @@ and v_expr e : G.expr =
       let v1 = v_expr v1 in
       G.DotAccessEllipsis (v1, v2) |> G.e
   | TypedExpr (Name (Id id, []), v2, v3)
-    when AST_generic_.is_metavar_name (fst (v_varid_or_wildcard id)) ->
+    when AST_generic.is_metavar_name (fst (v_varid_or_wildcard id)) ->
       let v3 = v_type_ v3 in
       G.TypedMetavar (id, v2, v3) |> G.e
   | L v1 -> (

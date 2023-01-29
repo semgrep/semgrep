@@ -198,8 +198,8 @@ type expr =
   | Call of expr * argument list bracket
   | Throw of tok * expr
   (* todo? transform into Call (builtin ...) ? *)
-  | Infix of AST_generic_.incr_decr wrap * expr
-  | Postfix of AST_generic_.incr_decr wrap * expr
+  | Infix of AST_generic.incr_decr wrap * expr
+  | Postfix of AST_generic.incr_decr wrap * expr
   | Binop of expr * binaryOp wrap * expr
   | Unop of unaryOp wrap * expr
   | Guil of expr list bracket
@@ -239,9 +239,9 @@ and binaryOp =
   (* TODO: now available in AST_generic_ ? *)
   | BinaryConcat
   | CombinedComparison
-  | ArithOp of AST_generic_.operator
+  | ArithOp of AST_generic.operator
 
-and unaryOp = AST_generic_.operator
+and unaryOp = AST_generic.operator
 
 and argument =
   | Arg of expr

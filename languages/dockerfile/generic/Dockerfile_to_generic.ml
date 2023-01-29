@@ -64,7 +64,7 @@ let metavar_expr (x : string wrap) : G.expr = id_expr x
 
 let string_or_metavar_expr (x : string wrap) : G.expr =
   let s, _ = x in
-  if AST_generic_.is_metavar_name s then metavar_expr x else string_expr x
+  if AST_generic.is_metavar_name s then metavar_expr x else string_expr x
 
 let ellipsis_expr (tok : tok) : G.expr = G.Ellipsis tok |> G.e
 

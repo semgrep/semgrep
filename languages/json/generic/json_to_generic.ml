@@ -70,7 +70,7 @@ let expr ?(unescape_strings = false) x =
                              (* we don't want $FLD: 1 to be transformed
                               * in "$FLD" : 1, which currently would not match
                               * anything in Semgrep (this may change though) *)
-                             if AST_generic_.is_metavar_name (fst id) then
+                             if AST_generic.is_metavar_name (fst id) then
                                G.N (G.Id (id, G.empty_id_info ())) |> G.e
                              else G.L (G.String id) |> G.e
                            in
@@ -109,7 +109,7 @@ let any x =
          This is important because metavariables need to be properly translated to
          allow unification. *)
       let key =
-        if AST_generic_.is_metavar_name (fst v1) then
+        if AST_generic.is_metavar_name (fst v1) then
           G.N (G.Id (v1, G.empty_id_info ())) |> G.e
         else G.L (G.String v1) |> G.e
       in

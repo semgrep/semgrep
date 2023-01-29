@@ -535,7 +535,7 @@ and list_stmt1 env xs =
    * hacky ...
    *)
   | [ ({ G.s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _)); _ }, _); _ } as x) ]
-    when AST_generic_.is_metavar_name s ->
+    when AST_generic.is_metavar_name s ->
       x
   | xs -> G.Block (fb xs) |> G.s
 
