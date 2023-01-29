@@ -14,6 +14,7 @@
  *)
 open Common
 open Ast_php
+module PI = Parse_info
 module G = AST_generic
 module H = AST_generic_helpers
 
@@ -39,7 +40,7 @@ let string = id
 (* raise AST_generic.Error *)
 let error = AST_generic.error
 let fake = AST_generic.fake
-let fb = AST_generic.fake_bracket
+let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Entry point *)
@@ -344,7 +345,8 @@ and expr e : G.expr =
   | Unpack v1 ->
       let v1 = expr v1 in
       G.Call
-        (G.IdSpecial (G.Spread, fake "...") |> G.e, G.fake_bracket [ G.Arg v1 ])
+        ( G.IdSpecial (G.Spread, fake "...") |> G.e,
+          PI.unsafe_fake_bracket [ G.Arg v1 ] )
       |> G.e
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in

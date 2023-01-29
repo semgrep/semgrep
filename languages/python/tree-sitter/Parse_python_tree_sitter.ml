@@ -39,7 +39,7 @@ let str = H.str
 
 (* this is not used anyway by Python_to_generic.ml, so I took whatever *)
 let no_ctx = Param
-let fb = AST_generic.fake_bracket
+let fb = Parse_info.unsafe_fake_bracket
 let invalid () = raise (PI.NoTokenLocation "Invalid program")
 
 (* AST builders helpers

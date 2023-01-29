@@ -14,6 +14,7 @@
  *)
 open Common
 open Ast_json
+module PI = Parse_info
 module M = Map_AST
 module G = AST_generic
 
@@ -73,7 +74,8 @@ let expr ?(unescape_strings = false) x =
                                G.N (G.Id (id, G.empty_id_info ())) |> G.e
                              else G.L (G.String id) |> G.e
                            in
-                           G.Container (G.Tuple, G.fake_bracket [ key; e ])
+                           G.Container
+                             (G.Tuple, PI.unsafe_fake_bracket [ key; e ])
                            |> G.e
                        | Right t -> G.Ellipsis t |> G.e)
                 in
@@ -111,4 +113,4 @@ let any x =
           G.N (G.Id (v1, G.empty_id_info ())) |> G.e
         else G.L (G.String v1) |> G.e
       in
-      G.E (G.Container (G.Tuple, G.fake_bracket [ key; expr v3 ]) |> G.e)
+      G.E (G.Container (G.Tuple, PI.unsafe_fake_bracket [ key; expr v3 ]) |> G.e)

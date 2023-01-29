@@ -42,7 +42,7 @@ let bool = id
 let string = id
 let fake tok s = Parse_info.fake_info tok s
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-let fb = G.fake_bracket
+let fb = PI.unsafe_fake_bracket
 let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
 
 (*****************************************************************************)
@@ -89,7 +89,7 @@ let rec expr e =
   | Array (l, xs, r) ->
       let xs = args_to_exprs xs in
       G.Container (G.Array, (l, list expr xs, r))
-  | Tuple xs -> G.Container (G.Tuple, G.fake_bracket (list expr xs))
+  | Tuple xs -> G.Container (G.Tuple, PI.unsafe_fake_bracket (list expr xs))
   | Unary (op, e) ->
       let e = expr e in
       unary op e
@@ -243,7 +243,7 @@ and formal_param = function
       G.Param p
   | Formal_tuple (_t1, xs, _t2) ->
       let xs = list formal_param_pattern xs in
-      let pat = G.PatTuple (G.fake_bracket xs) in
+      let pat = G.PatTuple (PI.unsafe_fake_bracket xs) in
       G.ParamPattern pat
   | ParamEllipsis tok -> G.ParamEllipsis tok
 
@@ -251,7 +251,7 @@ and formal_param_pattern = function
   | Formal_id id -> G.PatId (id, G.empty_id_info ())
   | Formal_tuple (_t1, xs, _t2) ->
       let xs = list formal_param_pattern xs in
-      G.PatTuple (G.fake_bracket xs)
+      G.PatTuple (PI.unsafe_fake_bracket xs)
   | ( Formal_amp _ | Formal_star _ | Formal_rest _ | Formal_default _
     | Formal_hash_splat _ | Formal_kwd _ | ParamEllipsis _ ) as x ->
       let x = formal_param x in
@@ -612,7 +612,7 @@ and exprs_to_label_ident = function
       G.LDynamic x
   | xs ->
       let xs = list expr xs in
-      G.LDynamic (G.Container (G.Tuple, G.fake_bracket xs) |> G.e)
+      G.LDynamic (G.Container (G.Tuple, PI.unsafe_fake_bracket xs) |> G.e)
 
 and args_to_eopt xs = xs |> args_to_exprs |> exprs_to_eopt
 
@@ -621,7 +621,7 @@ and exprs_to_eopt = function
   | [ x ] -> Some (expr x)
   | xs ->
       let xs = list expr xs in
-      Some (G.Container (G.Tuple, G.fake_bracket xs) |> G.e)
+      Some (G.Container (G.Tuple, PI.unsafe_fake_bracket xs) |> G.e)
 
 and pattern pat =
   let e = expr pat in

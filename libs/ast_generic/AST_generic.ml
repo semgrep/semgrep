@@ -1914,7 +1914,6 @@ let error tok msg = raise (Error (msg, tok))
  * and use the Parse_info.fake_info variant, not the unsafe_xxx one.
  *)
 let fake s = Parse_info.unsafe_fake_info s
-let fake_bracket x = (fake "(", x, fake ")")
 
 (* bugfix: I used to put ";" but now Parse_info.str_of_info prints
  * the string of a fake info
@@ -2006,7 +2005,9 @@ let arg e = Arg e
 (* Expressions *)
 (* ------------------------------------------------------------------------- *)
 let special spec es =
-  Call (IdSpecial spec |> e, fake_bracket (es |> Common.map arg)) |> e
+  Call
+    (IdSpecial spec |> e, Parse_info.unsafe_fake_bracket (es |> Common.map arg))
+  |> e
 
 let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
 
@@ -2036,7 +2037,9 @@ let interpolated (lquote, xs, rquote) =
       |> e
 
 (* todo? use a special construct KeyVal valid only inside Dict? *)
-let keyval k _tarrow v = Container (Tuple, fake_bracket [ k; v ]) |> e
+let keyval k _tarrow v =
+  Container (Tuple, Parse_info.unsafe_fake_bracket [ k; v ]) |> e
+
 let raw x = RawExpr x |> e
 
 (* ------------------------------------------------------------------------- *)
@@ -2095,13 +2098,13 @@ let emptystmt t = s (Block (t, [], t))
  * pattern_to_expr, etc.
  *)
 let stmt_to_expr st = e (StmtExpr st)
-let empty_body = fake_bracket []
+let empty_body = Parse_info.unsafe_fake_bracket []
 
 let stmt1 xs =
   match xs with
-  | [] -> s (Block (fake_bracket []))
+  | [] -> s (Block (Parse_info.unsafe_fake_bracket []))
   | [ st ] -> st
-  | xs -> s (Block (fake_bracket xs))
+  | xs -> s (Block (Parse_info.unsafe_fake_bracket xs))
 
 (* ------------------------------------------------------------------------- *)
 (* Fields *)
@@ -2124,17 +2127,11 @@ let attr kwd tok = KeywordAttr (kwd, tok)
 
 let unhandled_keywordattr (s, t) =
   (* TODO? or use OtherAttribue? *)
-  NamedAttr (t, Id ((s, t), empty_id_info ()), fake_bracket [])
+  NamedAttr (t, Id ((s, t), empty_id_info ()), Parse_info.unsafe_fake_bracket [])
 
-(*****************************************************************************)
-(* AST accessors *)
-(*****************************************************************************)
-
-let unbracket (_, x, _) = x
-
-(*****************************************************************************)
+(* ------------------------------------------------------------------------- *)
 (* Patterns *)
-(*****************************************************************************)
+(* ------------------------------------------------------------------------- *)
 
 let case_of_pat_and_expr ?(tok = None) (pat, expr) =
   let tok =

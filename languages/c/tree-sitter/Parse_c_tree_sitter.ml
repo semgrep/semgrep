@@ -616,7 +616,7 @@ and anon_choice_type_id_opt_field_decl_list_9aebd83 (env : env)
       let v2 =
         match v2 with
         | Some x -> field_declaration_list env x
-        | None -> G.fake_bracket []
+        | None -> PI.unsafe_fake_bracket []
       in
       (Some v1, v2)
   | `Field_decl_list x -> (None, field_declaration_list env x)

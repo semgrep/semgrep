@@ -231,7 +231,7 @@ and method_rest (env : env) ((v1, v2, v3) : CST.method_rest) =
   let v2 =
     match v2 with
     | `Params_opt_term (v1, v2) ->
-        let v1 = parameters env v1 |> G.unbracket in
+        let v1 = parameters env v1 |> PI.unbracket in
         let _v2 =
           match v2 with
           | Some x -> terminator env x
@@ -802,7 +802,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
         | Some x ->
             Some
               (match x with
-              | `Params x -> parameters env x |> G.unbracket
+              | `Params x -> parameters env x |> PI.unbracket
               | `Bare_params x -> bare_parameters env x)
         | None -> None
       in
@@ -975,7 +975,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> G.unbracket
+        | Some x -> argument_list env x |> PI.unbracket
         | None -> []
       in
       S (Return (v1, v2))
@@ -983,7 +983,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> G.unbracket
+        | Some x -> argument_list env x |> PI.unbracket
         | None -> []
       in
       S (Yield (v1, v2))
@@ -991,7 +991,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> G.unbracket
+        | Some x -> argument_list env x |> PI.unbracket
         | None -> []
       in
       S (Break (v1, v2))
@@ -999,7 +999,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> G.unbracket
+        | Some x -> argument_list env x |> PI.unbracket
         | None -> []
       in
       S (Next (v1, v2))
@@ -1007,7 +1007,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> G.unbracket
+        | Some x -> argument_list env x |> PI.unbracket
         | None -> []
       in
       S (Redo (v1, v2))
@@ -1015,7 +1015,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> G.unbracket
+        | Some x -> argument_list env x |> PI.unbracket
         | None -> []
       in
       S (Retry (v1, v2))
@@ -1237,7 +1237,7 @@ and do_block (env : env) ((v1, v2, v3, v4) : CST.do_block) : AST.expr =
   let params_opt =
     match v3 with
     | Some (v1, v2) ->
-        let v1 = block_parameters env v1 |> G.unbracket in
+        let v1 = block_parameters env v1 |> PI.unbracket in
         let _v2 =
           match v2 with
           | Some x -> terminator env x
@@ -1254,7 +1254,7 @@ and block (env : env) ((v1, v2, v3, v4) : CST.block) =
   let lb = token2 env v1 in
   let params_opt =
     match v2 with
-    | Some x -> Some (block_parameters env x |> G.unbracket)
+    | Some x -> Some (block_parameters env x |> PI.unbracket)
     | None -> None
   in
   let v3 =

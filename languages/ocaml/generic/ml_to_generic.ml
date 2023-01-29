@@ -42,7 +42,7 @@ let _error = G.error
 (* TODO: each use of this is usually the sign of a todo to improve
  * AST_generic.ml or ast_ml.ml *)
 let fake = G.fake
-let fb = G.fake_bracket
+let fb = Parse_info.unsafe_fake_bracket
 let add_attrs ent attrs = { ent with G.attrs }
 
 let mk_var_or_func tlet params tret body =

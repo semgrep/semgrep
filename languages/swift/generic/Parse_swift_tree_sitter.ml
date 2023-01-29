@@ -477,7 +477,8 @@ let map_prefix_unary_operator (env : env) (x : CST.prefix_unary_operator)
       G.DotAccess (receiver, dot, field_name) |> G.e
   | `Custom_op x ->
       let op = map_custom_operator env x in
-      G.Call (G.N (H2.name_of_id op) |> G.e, G.fake_bracket [ G.Arg e ]) |> G.e
+      G.Call (G.N (H2.name_of_id op) |> G.e, PI.unsafe_fake_bracket [ G.Arg e ])
+      |> G.e
 
 let map_as_operator (env : env) (x : CST.as_operator) =
   match x with
@@ -608,7 +609,7 @@ let map_precedence_group_attribute (env : env)
         G.NamedAttr
           ( v2,
             name,
-            G.fake_bracket
+            PI.unsafe_fake_bracket
               [
                 G.Arg (G.N (map_simple_identifier env x |> H2.name_of_id) |> G.e);
               ] )
@@ -616,7 +617,8 @@ let map_precedence_group_attribute (env : env)
         G.NamedAttr
           ( v2,
             name,
-            G.fake_bracket [ G.Arg (G.L (map_boolean_literal env x) |> G.e) ] )
+            PI.unsafe_fake_bracket
+              [ G.Arg (G.L (map_boolean_literal env x) |> G.e) ] )
   in
   G.At v3
 
@@ -772,7 +774,10 @@ and map_enum_entry_suffix (env : env) (ent : G.entity)
       let ty = G.TyRecordAnon ((G.Class, v1), (v1, fields, v3)) |> G.t in
       let defkind =
         G.EnumEntryDef
-          { ee_args = Some (G.fake_bracket [ G.ArgType ty ]); ee_body = None }
+          {
+            ee_args = Some (PI.unsafe_fake_bracket [ G.ArgType ty ]);
+            ee_body = None;
+          }
       in
       G.DefStmt (ent, defkind) |> G.s
   | `Equal_sign_exp (v1, v2) ->
@@ -780,7 +785,10 @@ and map_enum_entry_suffix (env : env) (ent : G.entity)
       let exp = map_expression env v2 in
       let defkind =
         G.EnumEntryDef
-          { ee_args = Some (G.fake_bracket [ G.arg exp ]); ee_body = None }
+          {
+            ee_args = Some (PI.unsafe_fake_bracket [ G.arg exp ]);
+            ee_body = None;
+          }
       in
       G.DefStmt (ent, defkind) |> G.s
 
@@ -993,7 +1001,7 @@ and map_attribute (env : env) ((v1, v2, v3) : CST.attribute) =
         in
         let v4 = (* ")" *) token env v4 in
         (v1, v2 :: v3, v4)
-    | None -> G.fake_bracket []
+    | None -> PI.unsafe_fake_bracket []
   in
   G.NamedAttr (at_tok, attr_name, args)
 
@@ -1036,7 +1044,8 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
       let v2 = map_custom_operator env v2 in
       let v3 = map_expr_hack_at_ternary_binary_suffix env v3 in
       G.Call
-        (G.N (H2.name_of_id v2) |> G.e, G.fake_bracket [ G.Arg v1; G.Arg v3 ])
+        ( G.N (H2.name_of_id v2) |> G.e,
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Nil_coal_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -1049,7 +1058,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
       let ty = map_type_ env v3 in
       G.Call
         ( G.IdSpecial (G.Instanceof, tis) |> G.e,
-          G.fake_bracket [ G.Arg e; G.ArgType ty ] )
+          PI.unsafe_fake_bracket [ G.Arg e; G.ArgType ty ] )
       |> G.e
   | `Equa_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -1128,11 +1137,11 @@ and map_call_suffix (env : env) (v1 : CST.call_suffix) : G.arguments =
   match v1 with
   | `Value_args x -> map_expr_hack_at_ternary_binary_call_suffix env x
   | `Fn_call_lambda_args x ->
-      map_fn_call_lambda_arguments env x |> G.fake_bracket
+      map_fn_call_lambda_arguments env x |> PI.unsafe_fake_bracket
   | `Value_args_fn_call_lambda_args (v1, v2) ->
       let _b1, v1, _b2 = map_expr_hack_at_ternary_binary_call_suffix env v1 in
       let v2 = map_fn_call_lambda_arguments env v2 in
-      v1 @ v2 |> G.fake_bracket
+      v1 @ v2 |> PI.unsafe_fake_bracket
 
 and map_fn_call_lambda_arguments (env : env)
     ((v1, v2) : CST.fn_call_lambda_arguments) : G.argument list =
@@ -1250,11 +1259,11 @@ and map_constructor_suffix (env : env) (v1 : CST.constructor_suffix) =
   match v1 with
   | `Cons_value_args x -> map_constructor_value_arguments env x
   | `Fn_call_lambda_args x ->
-      map_fn_call_lambda_arguments env x |> G.fake_bracket
+      map_fn_call_lambda_arguments env x |> PI.unsafe_fake_bracket
   | `Cons_value_args_fn_call_lambda_args (v1, v2) ->
       let _b1, v1, _b2 = map_constructor_value_arguments env v1 in
       let v2 = map_fn_call_lambda_arguments env v2 in
-      v1 @ v2 |> G.fake_bracket
+      v1 @ v2 |> PI.unsafe_fake_bracket
 
 and map_constructor_value_arguments (env : env)
     ((v1, v2, v3) : CST.constructor_value_arguments) : G.arguments =
@@ -1292,7 +1301,7 @@ and map_dictionary_literal_item (env : env)
   let v1 = map_expression env v1 in
   let _v2 = (* ":" *) token env v2 in
   let v3 = map_expression env v3 in
-  G.Container (G.Tuple, G.fake_bracket [ v1; v3 ]) |> G.e
+  G.Container (G.Tuple, PI.unsafe_fake_bracket [ v1; v3 ]) |> G.e
 
 and map_dictionary_type (env : env) ((v1, v2, v3, v4, v5) : CST.dictionary_type)
     =
@@ -1585,7 +1594,7 @@ and combine_conds cond conds =
     (fun acc x ->
       G.Call
         ( G.IdSpecial (G.Op G.And, G.fake "&&") |> G.e,
-          G.fake_bracket [ G.Arg acc; G.Arg x ] )
+          PI.unsafe_fake_bracket [ G.Arg acc; G.Arg x ] )
       |> G.e)
     cond conds
 
@@ -1844,7 +1853,7 @@ and map_lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) :
       (G.OtherStmtWithStmt
          ( G.OSWS_Closure,
            Common.map (fun x -> G.Pa x) captures,
-           G.Block (G.fake_bracket stmts) |> G.s )
+           G.Block (PI.unsafe_fake_bracket stmts) |> G.s )
       |> G.s)
   in
   let _rb = (* "}" *) token env v4 in
@@ -2691,7 +2700,7 @@ and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =
     | `Defa_kw tok -> (* default_keyword *) G.Default (token env tok)
   in
   let _tcolon = (* ":" *) token env v3 in
-  let stmt = G.Block (G.fake_bracket (map_statements env v4)) in
+  let stmt = G.Block (PI.unsafe_fake_bracket (map_statements env v4)) in
   (* For now, don't deal with fallthrough. *)
   let _TODO = Option.map (* "fallthrough" *) (token env) v5 in
   G.CasesAndBody ([ case ], stmt |> G.s)
@@ -2859,7 +2868,7 @@ and map_type_constraint (env : env) (x : CST.type_constraint) =
       G.NamedAttr
         ( token env v3,
           H2.name_of_id (str env v3),
-          G.fake_bracket [ base_type; conformed_protocol ] )
+          PI.unsafe_fake_bracket [ base_type; conformed_protocol ] )
   | `Equa_cons (v1, v2, v3, v4) ->
       let _v1TODO = Common.map (map_attribute env) v1 in
       let v2 = map_identifier env v2 in
@@ -2873,7 +2882,7 @@ and map_type_constraint (env : env) (x : CST.type_constraint) =
       G.NamedAttr
         ( v3_tok,
           H2.name_of_id v3_str,
-          G.fake_bracket [ first_type; G.ArgType v4 ] )
+          PI.unsafe_fake_bracket [ first_type; G.ArgType v4 ] )
 
 and map_type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
   let _v1TODO = (* where_keyword *) token env v1 in
