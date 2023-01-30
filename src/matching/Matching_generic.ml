@@ -435,9 +435,6 @@ let lazy_rest_of_list v =
 let return () = return
 let fail () = fail
 
-(* TODO: deprecate *)
-type regexp = Re.re (* old: Str.regexp *)
-
 let regexp_matcher_of_regexp_string s =
   if s =~ Pattern.regexp_regexp_string then (
     let x, flags = Common.matched2 s in
@@ -450,9 +447,9 @@ let regexp_matcher_of_regexp_string s =
     in
     (* old: let re = Str.regexp x in (fun s -> Str.string_match re s 0) *)
     (* TODO: add `ANCHORED to be consistent with Python re.match (!re.search)*)
-    let re = Re.Pcre.regexp ~flags x in
+    let re = SPcre.regexp ~flags x in
     fun s2 ->
-      Re.Pcre.pmatch ~rex:re s2 |> fun b ->
+      SPcre.pmatch_noerr ~rex:re s2 |> fun b ->
       logger#debug "regexp match: %s on %s, result = %b" s s2 b;
       b)
   else failwith (spf "This is not a PCRE-compatible regexp: " ^ s)

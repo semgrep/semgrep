@@ -89,9 +89,6 @@ val all_elem_and_rest_of_list : 'a list -> ('a * 'a list Lazy.t) list
    *     all_splits [1; 2] = [ ([1;2], []); ([2], [1]); ([1], [2]); ([], [1;2]) ] *)
 val all_splits : 'a list -> ('a list * 'a list) list
 val lazy_rest_of_list : 'a Lazy.t -> 'a
-
-type regexp = Re.re
-
 val regexp_matcher_of_regexp_string : string -> string -> bool
 
 val equal_ast_bound_code :
