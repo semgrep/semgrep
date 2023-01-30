@@ -732,9 +732,9 @@ and id env (s, { id_resolved; _ }) : string =
   | _ -> s
 
 (* TODO: factorize with dotted_access *)
-and canonical_name _env {unqualified; _} = 
-  let rec pp_unqualified unqualified = 
-    match unqualified with 
+and canonical_name _env { unqualified; _ } =
+  let rec pp_unqualified unqualified =
+    match unqualified with
     | [] -> ""
     | [ x ] -> x
     | x :: y :: xs -> x ^ "." ^ pp_unqualified (y :: xs)

@@ -172,11 +172,10 @@ let (mk_visitor :
   and v_resolved_name (v1, v2) =
     v_resolved_name_kind v1;
     v_sid v2
-  and v_canonical_name {unqualified; tok} = 
+  and v_canonical_name { unqualified; tok } =
     v_list v_string unqualified;
     v_option v_tok tok
-  and v_alternate_name v1 = 
-    v_list v_string v1 
+  and v_alternate_name v1 = v_list v_string v1
   and v_resolved_name_kind = function
     | LocalVar -> ()
     | Parameter -> ()
