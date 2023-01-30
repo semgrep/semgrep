@@ -5,14 +5,9 @@ on:
   workflow_call:
 
 jobs:
-  build-test-core-x86:
-    uses: ./.github/workflows/build-test-core-x86.yaml
-    secrets: inherit
-
   build-wheels-manylinux:
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-16.04
-    needs: [build-test-core-x86]
     steps:
       - uses: actions/checkout@v3
         with:
