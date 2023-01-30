@@ -15,10 +15,24 @@ on:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
+  wait-for-build-test:
+    name: Wait for Build/Test All Platforms
+    runs-on: ubuntu-22.04
+    needs:
+      [
+        build-test-osx-x86,
+        build-test-osx-m1,
+        build-test-manylinux-x86,
+        build-test-ubuntu-16-04,
+      ]
+    steps:
+      - name: Continue
+        run: echo "All Platforms have been built and tested - proceeding!"
+
   create_release:
     name: Create the Github Release
     runs-on: ubuntu-latest
-    needs: [upload-wheels, release-ubuntu-16-04]
+    needs: [wait-for-build-test]
     outputs:
       VERSION: ${{ steps.get_version.outputs.VERSION }}
     if: ${{ !contains(github.ref, '-test-release') }}
@@ -93,7 +107,7 @@ jobs:
   create-release-interfaces:
     name: Create the Github Release on Semgrep Interfaces
     runs-on: ubuntu-latest
-    needs: [create_release]
+    needs: [create_release, wait-for-build-test]
     if: ${{ !contains(github.ref, '-test-release') }}
     steps:
       - name: Get JWT for semgrep-ci GitHub App
@@ -135,7 +149,7 @@ jobs:
     name: Build and push Semgrep Docker image
     runs-on: ubuntu-latest
     if: ${{ !contains(github.ref,'-test-release') }}
-    needs: [build-test-manylinux-x86, build-test-osx-x86, build-test-osx-m1]
+    needs: [wait-for-build-test]
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -179,29 +193,6 @@ jobs:
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
 
-  build-core:
-    name: semgrep-core make test and semgrep make test/qa-test
-    runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2022-09-24
-    # We need this hack because GHA tampers with the HOME in container
-    # and this does not play well with 'opam' installed in /root
-    env:
-      HOME: /root
-    steps:
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ocaml-build-artifacts
-          path: ocaml-build-artifacts.tgz
-      - name: Test semgrep-core
-        run: opam exec -- make core-test
-
   build-test-osx-x86:
     uses: ./.github/workflows/build-test-osx-x86.yaml
     secrets: inherit
@@ -210,31 +201,9 @@ jobs:
     uses: ./.github/workflows/build-test-osx-m1.yaml
     secrets: inherit
 
-  release-ubuntu-16-04:
-    runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:ubuntu-16.04
-    needs: [build-core]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: "recursive"
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts.tgz
-          mkdir -p semgrep-files
-          cp ocaml-build-artifacts/bin/* semgrep-files
-      - name: Run Ubuntu build script
-        run: ./scripts/ubuntu-release.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: semgrep-ubuntu-16.04-${{ github.sha }}
-          path: artifacts.tar.gz
+  build-test-ubuntu-16-04:
+    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
+    secrets: inherit
 
   build-test-manylinux-x86:
     uses: ./.github/workflows/build-test-manylinux-x86.yaml
@@ -242,7 +211,7 @@ jobs:
 
   upload-wheels:
     runs-on: ubuntu-latest
-    needs: [build-test-manylinux-x86, build-test-osx-x86, build-test-osx-m1]
+    needs: [wait-for-build-test]
     if: |
       always() &&
       (needs.build-test-osx-m1.result == 'success' || needs.build-test-osx-m1.result == 'skipped')
@@ -335,7 +304,7 @@ jobs:
 
   homebrew-core-pr:
     name: Update on Homebrew-Core
-    needs: [create_release, sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
+    needs: [sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
     runs-on: macos-12
     if: ${{ !contains(github.ref,'-test-release') }}
     steps:
