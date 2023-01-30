@@ -578,14 +578,14 @@ and expr_kind =
    *)
   | StmtExpr of stmt
   (* e.g., TypeId in C++, MethodRef/ClassLiteral in Java, Send/Receive in Go,
-   * Checked/Unchecked in C#, Repr in Python, RecordWith in OCaml/C#,
+   * Checked/Unchecked in C#, Repr in Python, RecordWith in OCaml/C#/Jsonnet,
    * Subshell in Ruby, Delete/Unset in JS/Hack/Solidity/C++,
    * Unpack/ArrayAppend in PHP (the AST for $x[] = 1 used to be
    * handled as an AssignOp with special Append).
    * Define/Arguments/NewTarget/YieldStar/Exports/Module/Require/UseStrict JS,
    * UnitLiteral/HexString/UnicodeString/TupleHole/StructExpr in Solidity,
    * AtomExpr/AnonDotField/ContainerBits/When/Join/OpSlashInt/Sigil/Shortcut
-   * AttrExpr in Elixir, Error/ImportStr in Jsonnet
+   * AttrExpr in Elixir, Error/ImportStr/ObjComprehension in Jsonnet
    * TODO? lift up to program attribute/directive UseStrict, Require in Import?
    * TODO? replace 'any list' by 'expr list'? any way there's still
    * StmtExpr above to wrap stmt if it's not an expr but a stmt

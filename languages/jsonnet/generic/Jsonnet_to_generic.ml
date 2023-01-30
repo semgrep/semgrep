@@ -35,7 +35,6 @@ let map_string _env x = x
 let map_bool _env x = x
 let map_list f env xs = Common.map (f env) xs
 let map_option f env x = Option.map (f env) x
-let todo _env _v = failwith "TODO"
 
 (*****************************************************************************)
 (* Boilerplate *)
@@ -127,9 +126,10 @@ let rec map_expr env v : G.expr =
       let st = G.If (tif, G.Cond cond, then_, else_opt) |> G.s in
       G.stmt_to_expr st
   | AdjustObj (v1, v2) ->
-      let v1 = map_expr env v1 in
-      let _l, f, _r = (map_bracket map_obj_inside) env v2 in
-      todo env (v1, f)
+      let e1 = map_expr env v1 in
+      let l, f, r = (map_bracket map_obj_inside) env v2 in
+      let e2 = f (l, r) in
+      G.OtherExpr (("RecordWith", l), [ G.E e1; G.E e2 ]) |> G.e
   | Lambda v ->
       let def = map_function_definition env v in
       G.Lambda def |> G.e
@@ -265,10 +265,10 @@ and map_comprehension ofa env (v1, v2, v3) : G.comprehension =
   (e, for1 :: other)
 
 and map_comprehension2 ofa env (v1, v2, v3) =
-  let v1 = ofa env v1 in
-  let v2 = map_for_comp env v2 in
-  let v3 = (map_list map_for_or_if_comp) env v3 in
-  todo env (v1, v2, v3)
+  let x = ofa env v1 in
+  let for1 = map_for_comp env v2 in
+  let other = (map_list map_for_or_if_comp) env v3 in
+  (x, for1 :: other)
 
 and map_for_or_if_comp env v : G.for_or_if_comp =
   match v with
@@ -334,8 +334,8 @@ and map_obj_inside env v =
       let flds = (map_list map_obj_member) env v in
       fun (l, r) -> G.Record (l, flds, r) |> G.e
   | ObjectComp v ->
-      let v = map_obj_comprehension env v in
-      fun (_l, _r) -> todo env v
+      let f = map_obj_comprehension env v in
+      fun (l, r) -> f (l, r)
 
 and map_obj_member env v : G.field =
   match v with
@@ -395,16 +395,27 @@ and map_obj_local env (v1, v2) =
 
 and map_obj_comprehension env v =
   let { oc_locals1; oc_comp; oc_locals2 } = v in
-  let oc_locals1 = (map_list map_obj_local) env oc_locals1 in
+  let defs1 = (map_list map_obj_local) env oc_locals1 in
   let map_tuple env (v1, v2, v3) =
-    let v1 = (map_bracket map_expr) env v1 in
-    let v2 = map_tok env v2 in
-    let v3 = map_expr env v3 in
-    todo env (v1, v2, v3)
+    let l, e1, r = (map_bracket map_expr) env v1 in
+    let _tcolon = map_tok env v2 in
+    let e = map_expr env v3 in
+    let entname = G.EDynamic (G.ParenExpr (l, e1, r) |> G.e) in
+    let ent = { G.name = entname; tparams = []; attrs = [] } in
+    let def = G.VarDef { G.vinit = Some e; vtype = None } in
+    (ent, def)
   in
-  let oc_comp = (map_comprehension2 map_tuple) env oc_comp in
-  let oc_locals2 = (map_list map_obj_local) env oc_locals2 in
-  todo env (oc_locals1, oc_comp, oc_locals2)
+  let def, for_if_comps = (map_comprehension2 map_tuple) env oc_comp in
+  let defs2 = (map_list map_obj_local) env oc_locals2 in
+  fun (l, r) ->
+    let any =
+      (defs1 |> Common.map (fun (_tlocal, def) -> G.Def def))
+      @ [ G.Def def ]
+      @ (for_if_comps |> Common.map (fun for_if -> G.ForOrIfComp for_if))
+      @ (defs2 |> Common.map (fun (_tlocal, def) -> G.Def def))
+      @ [ G.Tk r ]
+    in
+    G.OtherExpr (("ObjComprehension", l), any) |> G.e
 
 (* TODO? alt: return directive, but part of expr so difficult *)
 and map_import env v : G.expr =
