@@ -1,11 +1,11 @@
 (library
- (public_name parser_ocaml.ast_generic)
- (name parser_ocaml_ast_generic)
+ (public_name parser_jsonnet.ast_generic)
+ (name parser_jsonnet_ast_generic)
  (wrapped false)
  (libraries
    commons
    pfff-h_program-lang
-   parser_ocaml.ast
+   parser_jsonnet.ast
    ast_generic
  )
  (preprocess (pps ppx_deriving.show))
