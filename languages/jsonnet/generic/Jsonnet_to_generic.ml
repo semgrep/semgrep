@@ -61,11 +61,11 @@ let rec map_expr env v : G.expr =
       let lit = map_literal env v in
       G.L lit |> G.e
   | O v ->
-      let v = (map_bracket map_obj_inside) env v in
-      todo env v
+      let l, f, r = (map_bracket map_obj_inside) env v in
+      f (l, r)
   | A v ->
-      let v = (map_bracket map_arr_inside) env v in
-      todo env v
+      let l, f, r = (map_bracket map_arr_inside) env v in
+      f (l, r)
   | Id v ->
       let id = map_ident env v in
       G.N (G.Id (id, G.empty_id_info ())) |> G.e
@@ -123,8 +123,8 @@ let rec map_expr env v : G.expr =
       todo env (v1, v2, v3, v4)
   | AdjustObj (v1, v2) ->
       let v1 = map_expr env v1 in
-      let v2 = (map_bracket map_obj_inside) env v2 in
-      todo env (v1, v2)
+      let _l, f, _r = (map_bracket map_obj_inside) env v2 in
+      todo env (v1, f)
   | Lambda v ->
       let def = map_function_definition env v in
       G.Lambda def |> G.e
@@ -143,6 +143,12 @@ let rec map_expr env v : G.expr =
   | ParenExpr v ->
       let v = (map_bracket map_expr) env v in
       G.ParenExpr v |> G.e
+  | Ellipsis v ->
+      let tdots = map_tok env v in
+      G.Ellipsis tdots |> G.e
+  | DeepEllipsis v ->
+      let v = (map_bracket map_expr) env v in
+      G.DeepEllipsis v |> G.e
 
 and map_literal env v : G.literal =
   match v with
@@ -235,19 +241,18 @@ and map_assert_ env (v1, v2, v3) =
 and map_arr_inside env v =
   match v with
   | Array v ->
-      let v = (map_list map_expr) env v in
-      todo env v
+      let elts = (map_list map_expr) env v in
+      fun (l, r) -> G.Container (G.Array, (l, elts, r)) |> G.e
   | ArrayComp v ->
-      let v = (map_comprehension map_expr) env v in
-      todo env v
+      let comp = (map_comprehension map_expr) env v in
+      fun (l, r) -> G.Comprehension (G.Array, (l, comp, r)) |> G.e
 
-and map_comprehension ofa env (v1, v2, v3) =
-  let v1 = ofa env v1 in
-  let v2 = map_for_comp env v2 in
-  let v3 = (map_list map_for_or_if_comp) env v3 in
-  todo env (v1, v2, v3)
+and map_comprehension ofa env (v1, v2, v3) : G.comprehension =
+  let e = ofa env v1 in
+  let for1 = map_for_comp env v2 in
+  let other = (map_list map_for_or_if_comp) env v3 in
+  (e, for1 :: other)
 
-(* TODO: use forall type 'a. *)
 and map_comprehension2 ofa env (v1, v2, v3) =
   let v1 = ofa env v1 in
   let v2 = map_for_comp env v2 in
@@ -306,29 +311,35 @@ and map_parameter env v : G.parameter =
       in
       let pdefault = (map_option map_tuple) env v2 in
       G.Param { (G.param_of_id id) with pdefault }
+  | ParamEllipsis v ->
+      let tdots = map_tok env v in
+      G.ParamEllipsis tdots
 
 and map_obj_inside env v =
   match v with
   | Object v ->
-      let v = (map_list map_obj_member) env v in
-      todo env v
+      let flds = (map_list map_obj_member) env v in
+      fun (l, r) -> G.Record (l, flds, r) |> G.e
   | ObjectComp v ->
       let v = map_obj_comprehension env v in
-      todo env v
+      fun (_l, _r) -> todo env v
 
-and map_obj_member env v =
+and map_obj_member env v : G.field =
   match v with
   | OLocal v ->
       let v = map_obj_local env v in
       todo env v
   | OField v ->
-      let v = map_field env v in
-      todo env v
+      let fld = map_field env v in
+      fld
   | OAssert v ->
       let v = map_assert_ env v in
       todo env v
+  | OEllipsis v ->
+      let tdots = map_tok env v in
+      G.fieldEllipsis tdots
 
-and map_field env v =
+and map_field env v : G.field =
   let { fld_name; fld_attr; fld_hidden; fld_value } = v in
   let fld_name = map_field_name env fld_name in
   let fld_attr = (map_option map_attribute) env fld_attr in

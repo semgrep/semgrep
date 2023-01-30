@@ -218,6 +218,9 @@ and desugar_expr_aux env v =
   | ParenExpr v ->
       let _, e, _ = (desugar_bracket desugar_expr) env v in
       e
+  | Ellipsis tk
+  | DeepEllipsis (tk, _, _) ->
+      error tk "Ellipsis can appear only in semgrep patterns"
 
 and desugar_special _env v =
   match v with
@@ -363,6 +366,8 @@ and desugar_parameter env v =
             ( id,
               fk,
               C.Error (fk, C.L (mk_str_literal ("Parameter not bound", fk))) ))
+  | ParamEllipsis tk ->
+      error tk "ParamEllipsis can appear only in semgrep patterns"
 
 and desugar_obj_inside env (l, v, r) : C.expr =
   let l = desugar_tok env l in
@@ -373,6 +378,8 @@ and desugar_obj_inside env (l, v, r) : C.expr =
         v
         |> Common.partition_either3 (function
              | OLocal (_tlocal, x) -> Left3 x
+             | OEllipsis tk ->
+                 error tk "OEllipsis can appear only in semgrep patterns"
              | OAssert x -> Middle3 x
              | OField x -> Right3 x)
       in
