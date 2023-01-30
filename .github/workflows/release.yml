@@ -59,7 +59,6 @@ jobs:
           cp ./semgrep-osx/artifacts.zip.sha256 semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip.sha256
           gh release --repo returntocorp/semgrep upload ${{ steps.get_version.outputs.VERSION }} semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip.sha256
           rm semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip.sha256
-
           ## UBUNTU
       - uses: actions/download-artifact@v3
         with:
@@ -172,29 +171,6 @@ jobs:
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
 
-  build-core:
-    name: semgrep-core make test and semgrep make test/qa-test
-    runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2022-09-24
-    # We need this hack because GHA tampers with the HOME in container
-    # and this does not play well with 'opam' installed in /root
-    env:
-      HOME: /root
-    steps:
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ocaml-build-artifacts
-          path: ocaml-build-artifacts.tgz
-      - name: Test semgrep-core
-        run: opam exec -- make core-test
-
   build-test-osx-x86:
     uses: ./.github/workflows/build-test-osx-x86.yaml
     secrets: inherit
@@ -203,37 +179,22 @@ jobs:
     uses: ./.github/workflows/build-test-osx-m1.yaml
     secrets: inherit
 
-  release-ubuntu-16-04:
-    runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:ubuntu-16.04
-    needs: [build-core]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: "recursive"
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts.tgz
-          mkdir -p semgrep-files
-          cp ocaml-build-artifacts/bin/* semgrep-files
-      - name: Run Ubuntu build script
-        run: ./scripts/ubuntu-release.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: semgrep-ubuntu-16.04-${{ github.sha }}
-          path: artifacts.tar.gz
+  build-test-core-x86:
+    uses: ./.github/workflows/build-test-core-x86.yaml
+    secrets: inherit
+
+  build-test-ubuntu-16-04:
+    needs: [build-test-core-x86]
+    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
+    secrets: inherit
 
   build-test-manylinux-x86:
+    needs: [build-test-core-x86]
     uses: ./.github/workflows/build-test-manylinux-x86.yaml
     secrets: inherit
 
   upload-wheels:
+    name: Upload Wheels to PyPI
     runs-on: ubuntu-latest
     needs: [build-test-manylinux-x86, build-test-osx-x86, build-test-osx-m1]
     if: |
