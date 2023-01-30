@@ -467,3 +467,47 @@ jobs:
         run: |
           chmod +x ./test-artifacts/semgrep-core
           ./test-artifacts/semgrep-core -help
+
+  build-ubuntu-release:
+    needs: [build-semgrep-core]
+    runs-on: ubuntu-22.04
+    container: returntocorp/sgrep-build:ubuntu-16.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+      - name: Fetch semgrep-cli submodules
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ocaml-build-artifacts
+      - name: Install artifacts
+        run: |
+          tar xf ocaml-build-artifacts.tgz
+          mkdir -p semgrep-files
+          cp ocaml-build-artifacts/bin/* semgrep-files
+      - name: Run Ubuntu build script
+        run: ./scripts/ubuntu-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-ubuntu-16.04-${{ github.sha }}
+          path: artifacts.tar.gz
+
+  build-test-docker:
+    uses: ./.github/workflows/build-test-docker.yaml
+    secrets: inherit
+
+  build-test-manylinux-x86:
+    uses: ./.github/workflows/build-test-manylinux-x86.yaml
+    secrets: inherit
+
+  build-test-osx-x86:
+    uses: ./.github/workflows/build-test-osx-x86.yaml
+    secrets: inherit
+
+  build-test-osx-m1:
+    uses: ./.github/workflows/build-test-osx-m1.yaml
+    secrets: inherit
