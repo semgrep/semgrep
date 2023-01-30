@@ -127,7 +127,7 @@ def check_rule_id_mismatch(
     if reported_lines:
         for file_path, test_ids in test_lines.items():
             reported_ids = set(reported_lines[file_path].keys())
-            if test_ids.symmetric_difference(reported_ids):
+            if reported_ids != set() and test_ids.symmetric_difference(reported_ids):
                 test_id_no_reported_ids = test_ids - reported_ids
                 logger.error(
                     f"Found rule id mismatch - file={file_path} 'ruleid' annotation with no YAML rule={test_id_no_reported_ids}"
