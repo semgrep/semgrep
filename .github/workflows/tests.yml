@@ -511,3 +511,7 @@ jobs:
   build-test-osx-m1:
     uses: ./.github/workflows/build-test-osx-m1.yaml
     secrets: inherit
+
+  build-test-ubuntu-16-04:
+    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
+    secrets: inherit
