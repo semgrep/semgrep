@@ -45,21 +45,21 @@ let map_tok _env v = v
 let map_wrap ofa env (v1, v2) =
   let v1 = ofa env v1 in
   let v2 = map_tok env v2 in
-  todo env (v1, v2)
+  (v1, v2)
 
 let map_bracket ofa env (v1, v2, v3) =
   let v1 = map_tok env v1 in
   let v2 = ofa env v2 in
   let v3 = map_tok env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 let map_ident env v = (map_wrap map_string) env v
 
 let rec map_expr env v : G.expr =
   match v with
   | L v ->
-      let v = map_literal env v in
-      todo env v
+      let lit = map_literal env v in
+      G.L lit |> G.e
   | O v ->
       let v = (map_bracket map_obj_inside) env v in
       todo env v
@@ -67,11 +67,11 @@ let rec map_expr env v : G.expr =
       let v = (map_bracket map_arr_inside) env v in
       todo env v
   | Id v ->
-      let v = (map_wrap map_string) env v in
-      todo env v
+      let id = map_ident env v in
+      G.N (G.Id (id, G.empty_id_info ())) |> G.e
   | IdSpecial v ->
-      let v = (map_wrap map_special) env v in
-      todo env v
+      let f, tk = (map_wrap map_special) env v in
+      f tk
   | Local (v1, v2, v3, v4) ->
       let v1 = map_tok env v1 in
       let v2 = (map_list map_bind) env v2 in
@@ -79,37 +79,37 @@ let rec map_expr env v : G.expr =
       let v4 = map_expr env v4 in
       todo env (v1, v2, v3, v4)
   | DotAccess (v1, v2, v3) ->
-      let v1 = map_expr env v1 in
-      let v2 = map_tok env v2 in
-      let v3 = map_ident env v3 in
-      todo env (v1, v2, v3)
+      let e = map_expr env v1 in
+      let tdot = map_tok env v2 in
+      let fld = map_ident env v3 in
+      G.DotAccess (e, tdot, G.FN (G.Id (fld, G.empty_id_info ()))) |> G.e
   | ArrayAccess (v1, v2) ->
-      let v1 = map_expr env v1 in
-      let v2 = (map_bracket map_expr) env v2 in
-      todo env (v1, v2)
+      let e = map_expr env v1 in
+      let idx = (map_bracket map_expr) env v2 in
+      G.ArrayAccess (e, idx) |> G.e
   | SliceAccess (v1, v2) ->
-      let v1 = map_expr env v1 in
+      let e = map_expr env v1 in
       let map_tuple env (v1, v2, v3) =
         let v1 = (map_option map_expr) env v1 in
         let v2 = (map_option map_expr) env v2 in
         let v3 = (map_option map_expr) env v3 in
-        todo env (v1, v2, v3)
+        (v1, v2, v3)
       in
-      let v2 = (map_bracket map_tuple) env v2 in
-      todo env (v1, v2)
+      let indices = (map_bracket map_tuple) env v2 in
+      G.SliceAccess (e, indices) |> G.e
   | Call (v1, v2) ->
-      let v1 = map_expr env v1 in
-      let v2 = (map_bracket (map_list map_argument)) env v2 in
-      todo env (v1, v2)
+      let e = map_expr env v1 in
+      let args = (map_bracket (map_list map_argument)) env v2 in
+      G.Call (e, args) |> G.e
   | UnaryOp (v1, v2) ->
       let v1 = (map_wrap map_unary_op) env v1 in
       let v2 = map_expr env v2 in
-      todo env (v1, v2)
+      G.opcall v1 [ v2 ]
   | BinaryOp (v1, v2, v3) ->
       let v1 = map_expr env v1 in
       let v2 = (map_wrap map_binary_op) env v2 in
       let v3 = map_expr env v3 in
-      todo env (v1, v2, v3)
+      G.opcall v2 [ v1; v3 ]
   | If (v1, v2, v3, v4) ->
       let v1 = map_tok env v1 in
       let v2 = map_expr env v2 in
@@ -126,8 +126,8 @@ let rec map_expr env v : G.expr =
       let v2 = (map_bracket map_obj_inside) env v2 in
       todo env (v1, v2)
   | Lambda v ->
-      let v = map_function_definition env v in
-      todo env v
+      let def = map_function_definition env v in
+      G.Lambda def |> G.e
   | I v ->
       let v = map_import env v in
       todo env v
@@ -142,24 +142,24 @@ let rec map_expr env v : G.expr =
       todo env (v1, v2)
   | ParenExpr v ->
       let v = (map_bracket map_expr) env v in
-      todo env v
+      G.ParenExpr v |> G.e
 
-and map_literal env v =
+and map_literal env v : G.literal =
   match v with
   | Null v ->
       let v = map_tok env v in
-      todo env v
+      G.Null v
   | Bool v ->
       let v = (map_wrap map_bool) env v in
-      todo env v
+      G.Bool v
   | Number v ->
       let v = (map_wrap map_string) env v in
       todo env v
   | Str v ->
       let v = map_string_ env v in
-      todo env v
+      G.String v
 
-and map_string_ env (v1, v2, v3) =
+and map_string_ env (v1, v2, v3) : string G.wrap =
   let v1 = (map_option map_verbatim) env v1 in
   let v2 = map_string_kind env v2 in
   let v3 = (map_bracket map_string_content) env v3 in
@@ -167,59 +167,59 @@ and map_string_ env (v1, v2, v3) =
 
 and map_verbatim env v = map_tok env v
 
-and map_string_kind env v =
+and map_string_kind _env v =
   match v with
-  | SingleQuote -> todo env ()
-  | DoubleQuote -> todo env ()
-  | TripleBar -> todo env ()
+  | SingleQuote -> ()
+  | DoubleQuote -> ()
+  | TripleBar -> ()
 
 and map_string_content env v = (map_list (map_wrap map_string)) env v
 
-and map_special env v =
+and map_special _env v =
   match v with
-  | Self -> todo env ()
-  | Super -> todo env ()
-  | Dollar -> todo env ()
+  | Self -> fun tk -> G.IdSpecial (G.Self, tk) |> G.e
+  | Super -> fun tk -> G.IdSpecial (G.Super, tk) |> G.e
+  | Dollar -> fun tk -> G.N (G.Id (("$", tk), G.empty_id_info ())) |> G.e
 
 and map_argument env v : G.argument =
   match v with
   | Arg v ->
-      let v = map_expr env v in
-      todo env v
+      let e = map_expr env v in
+      G.Arg e
   | NamedArg (v1, v2, v3) ->
-      let v1 = map_ident env v1 in
-      let v2 = map_tok env v2 in
-      let v3 = map_expr env v3 in
-      todo env (v1, v2, v3)
+      let id = map_ident env v1 in
+      let _teq = map_tok env v2 in
+      let e = map_expr env v3 in
+      G.ArgKwd (id, e)
 
-and map_unary_op env v =
+and map_unary_op _env v =
   match v with
-  | UPlus -> todo env ()
-  | UMinus -> todo env ()
-  | UBang -> todo env ()
-  | UTilde -> todo env ()
+  | UPlus -> G.Plus
+  | UMinus -> G.Minus
+  | UBang -> G.Not
+  | UTilde -> G.BitNot (* actually lognot? *)
 
-and map_binary_op env v =
+and map_binary_op _env v =
   match v with
-  | Plus -> todo env ()
-  | Minus -> todo env ()
-  | Mult -> todo env ()
-  | Div -> todo env ()
-  | Mod -> todo env ()
-  | LSL -> todo env ()
-  | LSR -> todo env ()
-  | Lt -> todo env ()
-  | LtE -> todo env ()
-  | Gt -> todo env ()
-  | GtE -> todo env ()
-  | Eq -> todo env ()
-  | NotEq -> todo env ()
-  | In -> todo env ()
-  | And -> todo env ()
-  | Or -> todo env ()
-  | BitAnd -> todo env ()
-  | BitOr -> todo env ()
-  | BitXor -> todo env ()
+  | Plus -> G.Plus
+  | Minus -> G.Minus
+  | Mult -> G.Mult
+  | Div -> G.Div
+  | Mod -> G.Mod
+  | LSL -> G.LSL
+  | LSR -> G.LSR
+  | Lt -> G.Lt
+  | LtE -> G.LtE
+  | Gt -> G.Gt
+  | GtE -> G.GtE
+  | Eq -> G.Eq
+  | NotEq -> G.NotEq
+  | In -> G.In
+  | And -> G.And
+  | Or -> G.Or
+  | BitAnd -> G.BitAnd
+  | BitOr -> G.BitOr
+  | BitXor -> G.BitXor
 
 and map_assert_ env (v1, v2, v3) =
   let v1 = map_tok env v1 in
@@ -254,26 +254,26 @@ and map_comprehension2 ofa env (v1, v2, v3) =
   let v3 = (map_list map_for_or_if_comp) env v3 in
   todo env (v1, v2, v3)
 
-and map_for_or_if_comp env v =
+and map_for_or_if_comp env v : G.for_or_if_comp =
   match v with
   | CompFor v ->
       let v = map_for_comp env v in
-      todo env v
+      v
   | CompIf v ->
       let v = map_if_comp env v in
-      todo env v
+      v
 
 and map_for_comp env (v1, v2, v3, v4) =
-  let v1 = map_tok env v1 in
-  let v2 = map_ident env v2 in
-  let v3 = map_tok env v3 in
-  let v4 = map_expr env v4 in
-  todo env (v1, v2, v3, v4)
+  let tfor = map_tok env v1 in
+  let id = map_ident env v2 in
+  let tin = map_tok env v3 in
+  let e = map_expr env v4 in
+  G.CompFor (tfor, G.PatId (id, G.empty_id_info ()), tin, e)
 
 and map_if_comp env (v1, v2) =
-  let v1 = map_tok env v1 in
-  let v2 = map_expr env v2 in
-  todo env (v1, v2)
+  let tif = map_tok env v1 in
+  let e = map_expr env v2 in
+  G.CompIf (tif, e)
 
 and map_bind env v =
   match v with
@@ -281,26 +281,31 @@ and map_bind env v =
       let v1 = map_ident env v1 in
       let v2 = map_tok env v2 in
       let v3 = map_expr env v3 in
-      todo env (v1, v2, v3)
+      (v1, v2, v3)
 
-and map_function_definition env v =
+and map_function_definition env v : G.function_definition =
   let { f_tok; f_params; f_body } = v in
   let f_tok = map_tok env f_tok in
-  let f_params = (map_bracket (map_list map_parameter)) env f_params in
+  let _l, fparams, _r = (map_bracket (map_list map_parameter)) env f_params in
   let f_body = map_expr env f_body in
-  todo env (f_tok, f_params, f_body)
+  {
+    fkind = (G.LambdaKind, f_tok);
+    fparams;
+    fbody = G.FBExpr f_body;
+    frettype = None;
+  }
 
-and map_parameter env v =
+and map_parameter env v : G.parameter =
   match v with
   | P (v1, v2) ->
-      let v1 = map_ident env v1 in
+      let id = map_ident env v1 in
       let map_tuple env (v1, v2) =
-        let v1 = map_tok env v1 in
-        let v2 = map_expr env v2 in
-        todo env (v1, v2)
+        let _teq = map_tok env v1 in
+        let e = map_expr env v2 in
+        e
       in
-      let v2 = (map_option map_tuple) env v2 in
-      todo env (v1, v2)
+      let pdefault = (map_option map_tuple) env v2 in
+      G.Param { (G.param_of_id id) with pdefault }
 
 and map_obj_inside env v =
   match v with
@@ -334,26 +339,26 @@ and map_field env v =
 and map_field_name env v =
   match v with
   | FId v ->
-      let v = map_ident env v in
-      todo env v
+      let id = map_ident env v in
+      G.FN (G.Id (id, G.empty_id_info ()))
   | FStr v ->
-      let v = map_string_ env v in
-      todo env v
+      let s, tk = map_string_ env v in
+      G.FN (G.Id ((s, tk), G.empty_id_info ()))
   | FDynamic v ->
-      let v = (map_bracket map_expr) env v in
-      todo env v
+      let l, e, r = (map_bracket map_expr) env v in
+      G.FDynamic (G.ParenExpr (l, e, r) |> G.e)
 
-and map_hidden env v =
+and map_hidden _env v =
   match v with
-  | Visible -> todo env ()
-  | Hidden -> todo env ()
-  | ForcedVisible -> todo env ()
+  | Visible -> ()
+  | Hidden -> ()
+  | ForcedVisible -> ()
 
 and map_attribute env v =
   match v with
   | PlusField v ->
       let v = map_tok env v in
-      todo env v
+      v
 
 and map_obj_local env (v1, v2) =
   let v1 = map_tok env v1 in
@@ -371,28 +376,28 @@ and map_obj_comprehension env v =
   in
   let oc_comp = (map_comprehension2 map_tuple) env oc_comp in
   let oc_locals2 = (map_list map_obj_local) env oc_locals2 in
-  { oc_locals1; oc_comp; oc_locals2 }
+  todo env (oc_locals1, oc_comp, oc_locals2)
 
 and map_import env v =
   match v with
   | Import (v1, v2) ->
-      let v1 = map_tok env v1 in
-      let v2 = map_string_ env v2 in
-      todo env (v1, v2)
+      let timport = map_tok env v1 in
+      let str = map_string_ env v2 in
+      todo env (timport, str)
   | ImportStr (v1, v2) ->
-      let v1 = map_tok env v1 in
-      let v2 = map_string_ env v2 in
-      todo env (v1, v2)
+      let timportstr = map_tok env v1 in
+      let str = map_string_ env v2 in
+      todo env (timportstr, str)
 
 let map_program env v : G.program =
   let e = map_expr env v in
-  todo env e
+  [ G.exprstmt e ]
 
 let map_any env v : G.any =
   match v with
   | E v ->
-      let v = map_expr env v in
-      todo env v
+      let e = map_expr env v in
+      G.E e
 
 (*****************************************************************************)
 (* Entry point *)
