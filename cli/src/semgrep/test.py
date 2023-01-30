@@ -119,10 +119,9 @@ def _add_line_to_dict_of_ruleids(
 
 def check_rule_id_mismatch(
     reported_lines: Dict[str, Dict[str, List[int]]], test_lines: Dict[str, Set]
-) -> None:
+) -> bool:
     """
     checks whether there exists a #ruleid: <rule name> annotation where a rule matching <rule name> doesn't exist.
-    leads to exit of 1 if there does exist such an occurence.
     """
     rule_id_mismatch = False
     if reported_lines:
@@ -135,11 +134,7 @@ def check_rule_id_mismatch(
                 )
                 rule_id_mismatch = True
 
-    if rule_id_mismatch:
-        logger.error(
-            "Failing due to rule id mismatch. There is a test denoted with 'ruleid: <rule name>' where the rule name does not exist or is not expected in the test file."
-        )
-        sys.exit(EXIT_FAILURE)
+    return rule_id_mismatch
 
 
 def get_expected_and_reported_lines(
@@ -228,7 +223,11 @@ def get_expected_and_reported_lines(
         for file_path, test_annotations in lines.items():
             test_lines[file_path].update(test_annotations.keys())
 
-    check_rule_id_mismatch(reported_lines, test_lines)
+    if check_rule_id_mismatch(reported_lines, test_lines):
+        logger.error(
+            "Failing due to rule id mismatch. There is a test denoted with 'ruleid: <rule name>' where the rule name does not exist or is not expected in the test file."
+        )
+        sys.exit(EXIT_FAILURE)
 
     def join_keys(a: Dict[str, Any], b: Dict[str, Any]) -> Set[str]:
         return set(a.keys()).union(set(b.keys()))

@@ -10,6 +10,7 @@ from typing import Tuple
 import pytest
 
 from semgrep.test import COMMENT_SYNTAXES
+from semgrep.test import check_rule_id_mismatch
 from semgrep.test import line_has_ok
 from semgrep.test import line_has_rule
 from semgrep.test import normalize_rule_ids
@@ -80,7 +81,6 @@ def test_line_has_rule(test_case, expected):
 def test_line_has_ok(test_case, expected):
     assert line_has_ok(test_case) == expected
 
-
 @pytest.mark.quick
 def test_relatively_eq():
     p1 = Path("rules")
@@ -110,3 +110,12 @@ def test_relatively_eq():
         relatively_eq(p1, p1 / "my-rule-a" / "views.py", p2, p2 / "my-rule-a.yaml")
         is True
     )
+
+@pytest.mark.quick
+def test_file_with_match_and_file_with_only_ok():
+    # example.1.yaml contains a `ruleid: rule-id` matching line 1
+    # example.2.yaml only contains a `ok: rule-id`, and no matches
+    reported_lines = {'example.1.yaml': {'rule-id': [1]}, 'example.2.yaml': {}}
+    test_lines = {'example.1.yaml': {'rule-id'}, 'example.2.yaml': {'rule-id'}}
+
+    assert check_rule_id_mismatch(reported_lines, test_lines) == False
