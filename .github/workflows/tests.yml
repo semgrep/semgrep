@@ -495,3 +495,19 @@ jobs:
         with:
           name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz
+
+  build-test-docker:
+    uses: ./.github/workflows/build-test-docker.yaml
+    secrets: inherit
+
+  build-test-manylinux-x86:
+    uses: ./.github/workflows/build-test-manylinux-x86.yaml
+    secrets: inherit
+
+  build-test-osx-x86:
+    uses: ./.github/workflows/build-test-osx-x86.yaml
+    secrets: inherit
+
+  build-test-osx-m1:
+    uses: ./.github/workflows/build-test-osx-m1.yaml
+    secrets: inherit
