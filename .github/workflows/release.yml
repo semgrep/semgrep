@@ -34,8 +34,6 @@ jobs:
     name: Create the Github Release
     runs-on: ubuntu-latest
     needs: [wait-for-build-test]
-    outputs:
-      VERSION: ${{ steps.get-version.outputs.VERSION }}
     if: ${{ !contains(github.ref, '-test-release') }}
     steps:
       - name: Get the version
