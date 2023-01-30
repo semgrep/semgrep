@@ -3,3 +3,4 @@
  * specific to a language.
  *)
 val resolve : Lang.t -> AST_generic.program -> unit
+val is_js_angular_decorator : string -> bool
