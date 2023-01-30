@@ -75,7 +75,7 @@ type expr =
   | O of obj_inside bracket
   | A of arr_inside bracket
   (* entities *)
-  | Id of string wrap
+  | Id of ident
   | IdSpecial of special wrap
   (* =~ Let. Note that a series of 'local x = 1; local y = 2; x+y'
    * will be interpreted as nested Local. There is no real
