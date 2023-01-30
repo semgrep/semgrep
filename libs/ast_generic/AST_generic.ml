@@ -585,7 +585,7 @@ and expr_kind =
    * Define/Arguments/NewTarget/YieldStar/Exports/Module/Require/UseStrict JS,
    * UnitLiteral/HexString/UnicodeString/TupleHole/StructExpr in Solidity,
    * AtomExpr/AnonDotField/ContainerBits/When/Join/OpSlashInt/Sigil/Shortcut
-   * AttrExpr in Elixir,
+   * AttrExpr in Elixir, Error/ImportStr in Jsonnet
    * TODO? lift up to program attribute/directive UseStrict, Require in Import?
    * TODO? replace 'any list' by 'expr list'? any way there's still
    * StmtExpr above to wrap stmt if it's not an expr but a stmt
