@@ -440,7 +440,7 @@ and map_expr env x : G.expr =
       in
       let arg = arg_of_either_expr_type v2 in
       let special = G.IdSpecial (G.Sizeof, v1) |> G.e in
-      G.Call (special, G.fake_bracket [ arg ]) |> G.e
+      G.Call (special, PI.unsafe_fake_bracket [ arg ]) |> G.e
   | Cast (v1, v2) ->
       let l, t, _r = map_paren env (map_type_ env) v1
       and v2 = map_expr env v2 in
@@ -480,7 +480,7 @@ and map_expr env x : G.expr =
       and v5 = map_of_option (map_obj_init env) v5 in
       let l, args, r =
         match v5 with
-        | None -> G.fake_bracket []
+        | None -> PI.unsafe_fake_bracket []
         | Some (l, args, r) -> (l, args, r)
       in
       G.New (v2, v4, (l, args, r)) |> G.e
@@ -759,7 +759,7 @@ and map_stmt env x : G.stmt =
   | StmtTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_stmt env) v2 in
-      let st = G.Block (G.fake_bracket v2) |> G.s in
+      let st = G.Block (PI.unsafe_fake_bracket v2) |> G.s in
       G.OtherStmtWithStmt (OSWS_Todo, [ G.TodoK v1 ], st) |> G.s
 
 (* similar to Ast_c_build.cases()

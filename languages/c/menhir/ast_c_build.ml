@@ -372,7 +372,7 @@ and cpp_directive env x =
         | IncLocal (path, _) -> "\"" ^ path ^ "\""
         | IncSystem (path, _) -> "<" ^ path ^ ">"
         | IncOther (N (None, [], IdIdent (x, _t)))
-          when AST_generic_.is_metavar_name x ->
+          when AST_generic.is_metavar_name x ->
             x
         | IncOther _ ->
             debug (Cpp x);

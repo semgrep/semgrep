@@ -220,8 +220,8 @@ let scalar (_tag, pos, value, style) env : G.expr * E.pos =
         true
     | __else__ -> false
   in
-  if AST_generic_.is_metavar_name value && (not env.is_target) && not quoted
-  then (G.N (mk_id value pos env) |> G.e, pos)
+  if AST_generic.is_metavar_name value && (not env.is_target) && not quoted then
+    (G.N (mk_id value pos env) |> G.e, pos)
   else
     let token = mk_tok ~style pos value env in
     let expr =

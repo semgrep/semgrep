@@ -14,6 +14,7 @@
  *)
 open Common
 open AST_python
+module PI = Parse_info
 module G = AST_generic
 module H = AST_generic_helpers
 
@@ -97,7 +98,7 @@ let string = id
 let bool = id
 let fake tok s = Parse_info.fake_info tok s
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-let fb = AST_generic.fake_bracket
+let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Entry point *)
@@ -141,8 +142,11 @@ let resolved_name = function
   | GlobalVar -> Some (G.Global, G.SId.unsafe_default)
   | ClassField -> None
   | ImportedModule xs ->
-      Some (G.ImportedModule (G.DottedName xs), G.SId.unsafe_default)
-  | ImportedEntity xs -> Some (G.ImportedEntity xs, G.SId.unsafe_default)
+      let xs = G.dotted_to_canonical xs in
+      Some (G.ImportedModule xs, G.SId.unsafe_default)
+  | ImportedEntity xs ->
+      let xs = G.dotted_to_canonical xs in
+      Some (G.ImportedEntity xs, G.SId.unsafe_default)
   | NotResolved -> None
 
 let expr_context = function
@@ -344,7 +348,8 @@ and argument env = function
   | ArgComp (e, xs) ->
       let e = expr env e in
       G.Arg
-        (G.Comprehension (G.List, G.fake_bracket (e, list (for_if env) xs))
+        (G.Comprehension
+           (G.List, PI.unsafe_fake_bracket (e, list (for_if env) xs))
         |> G.e)
 
 and for_if env = function
@@ -459,7 +464,7 @@ and param_pattern env = function
   | PatternName n -> G.PatId (name env n, G.empty_id_info ())
   | PatternTuple t ->
       let t = list (param_pattern env) t in
-      G.PatTuple (G.fake_bracket t)
+      G.PatTuple (PI.unsafe_fake_bracket t)
 
 and parameters env xs =
   xs
@@ -474,7 +479,7 @@ and parameters env xs =
            G.Param { (G.param_of_id n) with G.ptype = topt }
        | ParamPattern (PatternTuple pat, _) ->
            let pat = list (param_pattern env) pat in
-           G.ParamPattern (G.PatTuple (G.fake_bracket pat))
+           G.ParamPattern (G.PatTuple (PI.unsafe_fake_bracket pat))
        | ParamStar (t, (n, topt)) ->
            let n = name env n in
            let topt = option (type_ env) topt in
@@ -533,7 +538,7 @@ and list_stmt1 env xs =
    * hacky ...
    *)
   | [ ({ G.s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _)); _ }, _); _ } as x) ]
-    when AST_generic_.is_metavar_name s ->
+    when AST_generic.is_metavar_name s ->
       x
   | xs -> G.Block (fb xs) |> G.s
 
@@ -731,7 +736,10 @@ and stmt_aux env x =
       | xs ->
           [
             G.exprstmt
-              (G.Assign (G.Container (G.Tuple, G.fake_bracket xs) |> G.e, v2, v3)
+              (G.Assign
+                 ( G.Container (G.Tuple, PI.unsafe_fake_bracket xs) |> G.e,
+                   v2,
+                   v3 )
               |> G.e);
           ])
   | AugAssign (v1, (v2, tok), v3) ->
@@ -889,7 +897,8 @@ and excepthandler env = function
                 G.CatchParam
                   (G.param_of_type
                      (H.expr_to_type
-                        (G.Container (G.Tuple, G.fake_bracket [ e ]) |> G.e))))
+                        (G.Container (G.Tuple, PI.unsafe_fake_bracket [ e ])
+                        |> G.e))))
         | None, None -> G.CatchPattern (G.PatUnderscore (fake t "_"))
         | None, Some _ -> raise Impossible (* see the grammar *)
         | Some e, Some n ->
@@ -903,7 +912,7 @@ and decorator env (t, v1, v2) =
   let args =
     match v2 with
     | Some (t1, x, t2) -> (t1, x, t2)
-    | None -> G.fake_bracket []
+    | None -> PI.unsafe_fake_bracket []
   in
   let name = H.name_of_ids v1 in
   G.NamedAttr (t, name, args)

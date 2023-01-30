@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+module PI = Parse_info
 
 (* G is the pattern, and B the concrete source code. For now
  * we both use the same module but they may differ later
@@ -312,35 +313,6 @@ let m_module_name a b =
   | G.DottedName _, _ ->
       fail ()
 
-let m_sid a b = if a =|= b then return () else fail ()
-
-let m_resolved_name_kind a b =
-  match (a, b) with
-  | G.LocalVar, B.LocalVar -> return ()
-  | G.EnclosedVar, B.EnclosedVar -> return ()
-  | G.Parameter, B.Parameter -> return ()
-  | G.Global, B.Global -> return ()
-  | G.ImportedEntity a1, B.ImportedEntity b1 -> m_dotted_name a1 b1
-  | G.ImportedModule a1, B.ImportedModule b1 -> m_module_name a1 b1
-  | G.Macro, B.Macro -> return ()
-  | G.EnumConstant, B.EnumConstant -> return ()
-  | G.TypeName, B.TypeName -> return ()
-  | G.LocalVar, _
-  | G.Parameter, _
-  | G.Global, _
-  | G.EnclosedVar, _
-  | G.Macro, _
-  | G.EnumConstant, _
-  | G.TypeName, _
-  | G.ImportedEntity _, _
-  | G.ImportedModule _, _
-  | G.ResolvedName _, _ ->
-      fail ()
-
-let _m_resolved_name (a1, a2) (b1, b2) =
-  let* () = m_resolved_name_kind a1 b1 in
-  m_sid a2 b2
-
 (* Supports deep expression matching, either when done explicitly
  * (e.g. with deep ellipsis) or implicitly.
  *
@@ -455,11 +427,14 @@ let rec m_name a b =
     in
     aux parents
   in
-  let try_alternate_names = function
-    | B.ResolvedName (_, alternate_names) ->
+  let try_alternate_names idb resolved =
+    let _, tidb = idb in
+    match resolved with
+    | B.GlobalName (_, alternate_names) ->
         List.fold_left
           (fun acc alternate_name ->
-            acc >||> m_name a (H.name_of_ids alternate_name))
+            let dotted = G.canonical_to_dotted tidb alternate_name in
+            acc >||> m_name a (H.name_of_ids dotted))
           (fail ()) alternate_names
     | _ -> fail ()
   in
@@ -473,15 +448,16 @@ let rec m_name a b =
                {
                  contents =
                    Some
-                     ( (( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted)
-                        | B.ResolvedName (dotted, _) ) as resolved),
+                     ( (( B.ImportedEntity canonical
+                        | B.ImportedModule canonical
+                        | B.GlobalName (canonical, _) ) as resolved),
                        _sid );
                };
              _;
            } as infob) ) ) -> (
+      let dotted = G.canonical_to_dotted (snd idb) canonical in
       m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
-      >||> try_alternate_names resolved
+      >||> try_alternate_names idb resolved
       (* Try the resolved entity *)
       >||> m_name a (H.name_of_ids dotted)
       >||>
@@ -512,22 +488,25 @@ let rec m_name a b =
   | ( G.IdQualified _a1,
       B.IdQualified
         ({
+           name_last = idb, _;
            name_info =
              {
                B.id_resolved =
                  {
                    contents =
                      Some
-                       ( ((B.ImportedEntity dotted | B.ResolvedName (dotted, _))
-                         as resolved),
+                       ( (( B.ImportedEntity canonical
+                          | B.GlobalName (canonical, _) ) as resolved),
                          _sid );
                  };
                _;
              };
            _;
          } as nameinfo) ) ->
+      (* TODO? use all the tokens in b1? not just idb? *)
+      let dotted = G.canonical_to_dotted (snd idb) canonical in
       try_parents dotted
-      >||> try_alternate_names resolved
+      >||> try_alternate_names idb resolved
       (* try without resolving anything *)
       >||> m_name a
              (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
@@ -561,26 +540,29 @@ let rec m_name a b =
           (* m_name a n *)
           return ())
   (* boilerplate *)
-  | ( _,
+  | ( _a1,
       G.IdQualified
         ({
+           name_last = idb, _;
            name_info =
              {
                B.id_resolved =
                  {
                    contents =
                      Some
-                       ( (( B.ImportedEntity dotted
-                          | B.ImportedModule (B.DottedName dotted)
-                          | B.ResolvedName (dotted, _) ) as resolved),
+                       ( (( B.ImportedEntity canonical
+                          | B.ImportedModule canonical
+                          | B.GlobalName (canonical, _) ) as resolved),
                          _sid );
                  };
                _;
              };
            _;
          } as b1) ) -> (
+      (* TODO? use all the tokens in the name? not just idb? *)
+      let dotted = G.canonical_to_dotted (snd idb) canonical in
       try_parents dotted
-      >||> try_alternate_names resolved
+      >||> try_alternate_names idb resolved
       >||>
       match a with
       | IdQualified a1 -> m_name_info a1 b1
@@ -780,12 +762,17 @@ and m_expr ?(is_root = false) a b =
                 {
                   contents =
                     Some
-                      ( ( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted) ),
+                      ( ( B.ImportedEntity canonical
+                        | B.ImportedModule canonical
+                        (* TODO: We should uncomment this code, but this introduces
+                         * 52 regressions in DeepSemgrep!
+                         *)
+                        (*| B.GlobalName (canonical, _)*) ),
                         _sid );
                 };
               _;
             } )) ) ->
+      let dotted = G.canonical_to_dotted (snd idb) canonical in
       (* We used to force to fully qualify entities in the pattern
        * (e.g., with org.foo(...)) but this is confusing for users.
        * We now allow an unqualified pattern like 'foo' to match resolved
@@ -1777,8 +1764,8 @@ and m_call_op aop toka aargs bop tokb bargs tin =
    * regular non-AC matching. *)
   if tin.config.ac_matching && aop =*= bop && H.is_associative_operator aop then (
     match
-      ( H.ac_matching_nf aop (G.unbracket aargs),
-        H.ac_matching_nf bop (B.unbracket bargs) )
+      ( H.ac_matching_nf aop (PI.unbracket aargs),
+        H.ac_matching_nf bop (PI.unbracket bargs) )
     with
     | Some aargs_ac, Some bargs_ac ->
         if is_commutative_operator aop then
@@ -3087,7 +3074,8 @@ and m_class_parent a b =
   | (a1, None), ({ t = B.TyN (B.Id (id, { id_resolved; _ })); _ }, None) ->
       let xs =
         match !id_resolved with
-        | Some (B.ImportedEntity xs, _sid) -> xs
+        | Some (B.ImportedEntity canonical, _sid) ->
+            G.canonical_to_dotted (snd id) canonical
         | _ -> [ id ]
       in
       (* deep: *)

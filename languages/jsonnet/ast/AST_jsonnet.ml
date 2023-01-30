@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2022 r2c
+ * Copyright (C) 2022-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -75,7 +75,7 @@ type expr =
   | O of obj_inside bracket
   | A of arr_inside bracket
   (* entities *)
-  | Id of string wrap
+  | Id of ident
   | IdSpecial of special wrap
   (* =~ Let. Note that a series of 'local x = 1; local y = 2; x+y'
    * will be interpreted as nested Local. There is no real
@@ -103,6 +103,9 @@ type expr =
   | Error of tok (* 'error' *) * expr
   (* for the CST *)
   | ParenExpr of expr bracket
+  (* semgrep: *)
+  | Ellipsis of tok
+  | DeepEllipsis of expr bracket
 
 (* ------------------------------------------------------------------------- *)
 (* literals *)
@@ -196,14 +199,22 @@ and function_definition = {
   f_body : expr;
 }
 
-(* semgrep: LATER can have ParamEllipsis *)
-and parameter = P of ident * (tok (* '=' *) * expr) option
+and parameter =
+  | P of ident * (tok (* '=' *) * expr) option
+  (* semgrep: *)
+  | ParamEllipsis of tok
 
 (* ------------------------------------------------------------------------- *)
 (* Objects  *)
 (* ------------------------------------------------------------------------- *)
 and obj_inside = Object of obj_member list | ObjectComp of obj_comprehension
-and obj_member = OLocal of obj_local | OField of field | OAssert of assert_
+
+and obj_member =
+  | OLocal of obj_local
+  | OField of field
+  | OAssert of assert_
+  (* semgrep: *)
+  | OEllipsis of tok
 
 and field = {
   fld_name : field_name;

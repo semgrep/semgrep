@@ -17,7 +17,7 @@ module AST = Ast_java
 module CST = Tree_sitter_java.CST
 module PI = Parse_info
 open Ast_java
-module G = AST_generic_
+module G = AST_generic
 module H = Parse_tree_sitter_helpers
 
 (*****************************************************************************)

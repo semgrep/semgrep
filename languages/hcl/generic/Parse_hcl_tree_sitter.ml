@@ -39,6 +39,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
+let fb = Parse_info.unsafe_fake_bracket
 
 (* for list/dict comprehensions *)
 let pattern_of_ids ids =
@@ -50,7 +51,7 @@ let pattern_of_ids ids =
       let xs =
         ids |> Common.map (fun id -> PatId (id, empty_id_info ()) |> G.p)
       in
-      PatTuple (fake_bracket xs) |> G.p
+      PatTuple (fb xs) |> G.p
 
 (* val parse_number_literal : string * Parse_info.t -> AST_generic.literal *)
 let parse_number_literal (s, t) =
@@ -491,10 +492,10 @@ and map_operation (env : env) (x : CST.operation) : expr =
         | `BANG tok -> (* "!" *) (Not, token env tok)
       in
       let v2 = map_expr_term env v2 in
-      Call (IdSpecial (Op op, t) |> G.e, fake_bracket [ Arg v2 ]) |> G.e
+      Call (IdSpecial (Op op, t) |> G.e, fb [ Arg v2 ]) |> G.e
   | `Bin_oper x ->
       let a, (op, t), c = map_binary_operation env x in
-      Call (IdSpecial (Op op, t) |> G.e, fake_bracket [ Arg a; Arg c ]) |> G.e
+      Call (IdSpecial (Op op, t) |> G.e, fb [ Arg a; Arg c ]) |> G.e
 
 and map_splat (env : env) (x : CST.splat) =
   match x with
@@ -608,7 +609,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
    * TODO: should we use something else than Call since it's already used
    * for expressions in map_expr_term() above?
    *)
-  G.Call (N n |> G.e, fake_bracket args) |> G.e
+  G.Call (N n |> G.e, fb args) |> G.e
 
 (* We convert to a field, to be similar to map_object_, so some
  * patterns like 'a=1 ... b=2' can match block body as well as objects.

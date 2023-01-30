@@ -14,6 +14,7 @@
  *)
 open Common
 open Ast_json
+module PI = Parse_info
 module M = Map_AST
 module G = AST_generic
 
@@ -69,11 +70,12 @@ let expr ?(unescape_strings = false) x =
                              (* we don't want $FLD: 1 to be transformed
                               * in "$FLD" : 1, which currently would not match
                               * anything in Semgrep (this may change though) *)
-                             if AST_generic_.is_metavar_name (fst id) then
+                             if AST_generic.is_metavar_name (fst id) then
                                G.N (G.Id (id, G.empty_id_info ())) |> G.e
                              else G.L (G.String id) |> G.e
                            in
-                           G.Container (G.Tuple, G.fake_bracket [ key; e ])
+                           G.Container
+                             (G.Tuple, PI.unsafe_fake_bracket [ key; e ])
                            |> G.e
                        | Right t -> G.Ellipsis t |> G.e)
                 in
@@ -107,8 +109,8 @@ let any x =
          This is important because metavariables need to be properly translated to
          allow unification. *)
       let key =
-        if AST_generic_.is_metavar_name (fst v1) then
+        if AST_generic.is_metavar_name (fst v1) then
           G.N (G.Id (v1, G.empty_id_info ())) |> G.e
         else G.L (G.String v1) |> G.e
       in
-      G.E (G.Container (G.Tuple, G.fake_bracket [ key; expr v3 ]) |> G.e)
+      G.E (G.Container (G.Tuple, PI.unsafe_fake_bracket [ key; expr v3 ]) |> G.e)

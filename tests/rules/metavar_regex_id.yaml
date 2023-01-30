@@ -1,0 +1,11 @@
+rules:
+- id: resolved-metavariables
+  patterns:
+      - pattern: |
+          var $X = $PACKAGE.$ID()
+      - metavariable-regex: 
+          metavariable: $PACKAGE
+          regex: ^foo
+  message: xxx
+  severity: WARNING
+  languages: [javascript]

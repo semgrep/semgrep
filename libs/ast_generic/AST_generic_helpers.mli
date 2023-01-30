@@ -106,21 +106,3 @@ val undo_ac_matching_nf :
  * E.g.
  *    undo_ac_matching_nf tok And [a; b; c] = Call(Op And, [Call(Op And, [a; b]); c])
  *)
-
-(* AST_generic_ conversions *)
-
-val conv_op : AST_generic_.operator -> AST_generic.operator
-val conv_incr : AST_generic_.incr_decr -> AST_generic.incr_decr
-val conv_prepost : AST_generic_.prefix_postfix -> AST_generic.prefix_postfix
-
-val conv_incdec :
-  AST_generic_.incr_decr * AST_generic_.prefix_postfix ->
-  AST_generic.incr_decr * AST_generic.prefix_postfix
-
-val conv_class_kind :
-  AST_generic_.class_kind * Parse_info.t ->
-  AST_generic.class_kind * Parse_info.t
-
-val conv_function_kind :
-  AST_generic_.function_kind * Parse_info.t ->
-  AST_generic.function_kind * Parse_info.t

@@ -94,7 +94,7 @@ let classify_shell ((_open, ar, _close) : string_array) :
 
 let is_metavar (env : env) (x : string wrap) =
   match env.extra with
-  | Pattern, _ when AST_generic_.is_metavar_name (fst x) -> true
+  | Pattern, _ when AST_generic.is_metavar_name (fst x) -> true
   | _ -> false
 
 (*
@@ -149,7 +149,7 @@ let expansion (env : env) ((v1, v2) : CST.expansion) : string_fragment =
       let mv_tok = PI.combine_infos dollar [ snd name ] in
       let mv_s = PI.str_of_info mv_tok in
       match env.extra with
-      | Pattern, _ when AST_generic_.is_metavar_name mv_s ->
+      | Pattern, _ when AST_generic.is_metavar_name mv_s ->
           Frag_semgrep_metavar (mv_s, mv_tok)
       | _ ->
           let loc = (dollar, wrap_tok name) in
@@ -160,7 +160,7 @@ let expansion (env : env) ((v1, v2) : CST.expansion) : string_fragment =
       let name, _tok = var_or_mv in
       let expansion =
         match env.extra with
-        | Pattern, _ when AST_generic_.is_metavar_name name ->
+        | Pattern, _ when AST_generic.is_metavar_name name ->
             Expand_semgrep_metavar var_or_mv
         | _ -> Expand_var var_or_mv
       in
@@ -962,15 +962,17 @@ let source_file (env : env) (xs : CST.source_file) =
 (*****************************************************************************)
 
 let parse file =
-  let input_kind = AST_bash.Program in
   H.wrap_parser
     (fun () -> Tree_sitter_dockerfile.Parse.file file)
     (fun cst ->
       let env =
-        { H.file; conv = H.line_col_to_pos file; extra = (input_kind, Sh) }
+        {
+          H.file;
+          conv = H.line_col_to_pos file;
+          extra = (AST_bash.Program, Sh);
+        }
       in
-      let dockerfile_ast = source_file env cst in
-      Dockerfile_to_generic.(program Program dockerfile_ast))
+      source_file env cst)
 
 let ensure_trailing_newline str =
   if str <> "" then
@@ -980,7 +982,7 @@ let ensure_trailing_newline str =
     | _ -> str ^ "\n"
   else str
 
-let parse_dockerfile_pattern str =
+let parse_pattern str =
   let input_kind = AST_bash.Pattern in
   H.wrap_parser
     (fun () ->
@@ -991,12 +993,27 @@ let parse_dockerfile_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = (input_kind, Sh) } in
-      let dockerfile_ast = source_file env cst in
-      Dockerfile_to_generic.any input_kind dockerfile_ast)
+      source_file env cst)
 
-let parse_pattern str =
-  let dockerfile_res = parse_dockerfile_pattern str in
+(*
+   The input can be a sequence of dockerfile instructions
+   or a bash snippet.
+*)
+let parse_docker_or_bash_pattern str =
+  let dockerfile_res = parse_pattern str in
+  let any_opt =
+    match dockerfile_res.program with
+    | None -> None
+    | Some program -> Some (Dockerfile_to_generic.any program)
+  in
+  let dockerfile_res = { dockerfile_res with program = any_opt } in
   if dockerfile_res.errors =*= [] then dockerfile_res
   else
     let bash_res = Parse_bash_tree_sitter.parse_pattern str in
-    if bash_res.errors =*= [] then bash_res else dockerfile_res
+    let any_opt =
+      match bash_res.program with
+      | None -> None
+      | Some program -> Some (Bash_to_generic.any program)
+    in
+    if bash_res.errors =*= [] then { bash_res with program = any_opt }
+    else dockerfile_res

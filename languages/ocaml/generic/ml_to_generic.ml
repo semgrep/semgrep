@@ -42,7 +42,7 @@ let _error = G.error
 (* TODO: each use of this is usually the sign of a todo to improve
  * AST_generic.ml or ast_ml.ml *)
 let fake = G.fake
-let fb = G.fake_bracket
+let fb = Parse_info.unsafe_fake_bracket
 let add_attrs ent attrs = { ent with G.attrs }
 
 let mk_var_or_func tlet params tret body =
@@ -248,7 +248,7 @@ and expr e =
       let v2 = tok v2 in
       let v3 = type_ v3 in
       match v1.G.e with
-      | G.N (G.Id (id, _idinfo)) when AST_generic_.is_metavar_name (fst id) ->
+      | G.N (G.Id (id, _idinfo)) when AST_generic.is_metavar_name (fst id) ->
           G.TypedMetavar (id, v2, v3)
       | _ -> G.Cast (v3, v2, v1))
   | Ellipsis v1 ->

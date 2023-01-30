@@ -6,7 +6,6 @@
    commons
    pfff-h_program-lang
    parser_ocaml.ast
-   tree-sitter-lang.ocaml
    ast_generic
  )
  (preprocess (pps ppx_deriving.show))

@@ -8,7 +8,7 @@
 open Common
 module AST = Ast_js
 module H = Parse_tree_sitter_helpers
-module G = AST_generic_
+module G = AST_generic
 module PI = Parse_info
 module H2 = AST_generic_helpers
 open Ast_js

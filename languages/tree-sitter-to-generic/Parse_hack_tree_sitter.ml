@@ -52,7 +52,7 @@ let empty_stmt env t =
   let t = token env t (* ";" *) in
   G.Block (t, [], t) |> G.s
 
-let todo_deprecation_stmt = G.Block (G.fake_bracket [])
+let todo_deprecation_stmt = G.Block (PI.unsafe_fake_bracket [])
 
 let basic_typed_entity id attrs tparams : G.entity =
   G.basic_entity id ~attrs ~tparams
@@ -645,7 +645,7 @@ and attribute_modifier (env : env)
   let v3 =
     match v3 with
     | Some x -> arguments env x
-    | None -> G.fake_bracket []
+    | None -> PI.unsafe_fake_bracket []
   in
   let n = H2.name_of_ids v2 in
   let attr1 = G.NamedAttr (v1, n, v3) in
@@ -657,7 +657,7 @@ and attribute_modifier (env : env)
         let v3 =
           match v3 with
           | Some x -> arguments env x
-          | None -> G.fake_bracket []
+          | None -> PI.unsafe_fake_bracket []
         in
         let n = H2.name_of_ids v2 in
         G.NamedAttr (v1, n, v3))
@@ -679,7 +679,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Pipe, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_QMARKQMARK_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -687,7 +687,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Nullish, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_BARBAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -695,7 +695,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Or, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_AMPAMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -703,7 +703,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.And, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_BAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -711,7 +711,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.BitOr, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_HAT_exp (v1, v2, v3) ->
       (* Q: Comment in generic file says PHP has a xor shortcut operator as G.Xor? *)
@@ -720,7 +720,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.BitXor, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_AMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -728,7 +728,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.BitAnd, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_EQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -736,7 +736,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Eq, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_BANGEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -744,7 +744,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.NotEq, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_EQEQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -752,7 +752,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.PhysEq, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_BANGEQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -760,7 +760,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.NotPhysEq, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_LT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -768,7 +768,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Lt, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_GT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -776,7 +776,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Gt, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_LTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -784,7 +784,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.LtE, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_GTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -792,7 +792,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.GtE, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_LTEQGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -800,7 +800,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Cmp, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -808,7 +808,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.LSL, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_GTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -816,7 +816,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.LSR, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_PLUS_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -824,7 +824,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Plus, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_DASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -832,7 +832,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Minus, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_DOT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -840,7 +840,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Concat, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_STAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -848,7 +848,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Mult, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_SLASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -856,7 +856,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Div, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_PERC_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -864,7 +864,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Mod, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_STARSTAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -872,7 +872,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Pow, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_QMARKCOLON_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -880,7 +880,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call
         ( G.IdSpecial (G.Op G.Elvis, v2) |> G.e,
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   (* These are all assignment below.
      TODO: Consider splitting out in grammar.
@@ -1077,7 +1077,9 @@ and declaration (env : env) (x : CST.declaration) =
             let ((_, tok) as ident) = str env tok in
             [
               G.NamedAttr
-                (fk tok, Id (ident, G.empty_id_info ()), G.fake_bracket []);
+                ( fk tok,
+                  Id (ident, G.empty_id_info ()),
+                  PI.unsafe_fake_bracket [] );
             ]
         | None -> []
       in
@@ -1294,7 +1296,7 @@ and declaration (env : env) (x : CST.declaration) =
       in
       let _v5 = (* ";" *) token env v5 in
       (* TODO: Refactor parent to allow flattening *)
-      G.Block (G.fake_bracket (v3 :: v4))
+      G.Block (PI.unsafe_fake_bracket (v3 :: v4))
 
 and embedded_brace_expression (env : env)
     ((v1, v2) : CST.embedded_brace_expression) =
@@ -1481,7 +1483,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
           (* Q: This feels weird with the fst and snd *)
           G.Call
             ( G.IdSpecial (EncodedString (fst v1), snd v1) |> G.e,
-              G.fake_bracket
+              PI.unsafe_fake_bracket
                 [ G.Arg (G.L (stringify_without_quotes v2) |> G.e) ] )
           |> G.e
       | `Paren_exp x -> parenthesized_expression env x
@@ -1496,7 +1498,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
           in
           G.Call
             ( G.IdSpecial (IncrDecr (op, Postfix), v2) |> G.e,
-              G.fake_bracket [ G.Arg v1 ] )
+              PI.unsafe_fake_bracket [ G.Arg v1 ] )
           |> G.e
       | `Is_exp (v1, v2, v3) ->
           let v1 = expression env v1 in
@@ -1504,7 +1506,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
           let v3 = type_ env v3 in
           G.Call
             ( G.IdSpecial (Op Is, v2) |> G.e,
-              G.fake_bracket [ G.Arg v1; G.ArgType v3 ] )
+              PI.unsafe_fake_bracket [ G.Arg v1; G.ArgType v3 ] )
           |> G.e
       | `As_exp x -> as_expression env x
       | `Awai_exp (v1, v2) ->
@@ -1911,48 +1913,54 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   | `BANG_exp (v1, v2) ->
       let v1 = (* "!" *) token env v1 in
       let v2 = expression env v2 in
-      G.Call (G.IdSpecial (G.Op Not, v1) |> G.e, G.fake_bracket [ G.Arg v2 ])
+      G.Call
+        (G.IdSpecial (G.Op Not, v1) |> G.e, PI.unsafe_fake_bracket [ G.Arg v2 ])
       |> G.e
   | `TILDE_exp (v1, v2) ->
       let v1 = (* "~" *) token env v1 in
       let v2 = expression env v2 in
-      G.Call (G.IdSpecial (G.Op BitNot, v1) |> G.e, G.fake_bracket [ G.Arg v2 ])
+      G.Call
+        ( G.IdSpecial (G.Op BitNot, v1) |> G.e,
+          PI.unsafe_fake_bracket [ G.Arg v2 ] )
       |> G.e
   | `DASH_exp (v1, v2) ->
       let v1 = (* "-" *) token env v1 in
       let v2 = expression env v2 in
-      G.Call (G.IdSpecial (G.Op Minus, v1) |> G.e, G.fake_bracket [ G.Arg v2 ])
+      G.Call
+        ( G.IdSpecial (G.Op Minus, v1) |> G.e,
+          PI.unsafe_fake_bracket [ G.Arg v2 ] )
       |> G.e
   | `PLUS_exp (v1, v2) ->
       let v1 = (* "+" *) token env v1 in
       let v2 = expression env v2 in
-      G.Call (G.IdSpecial (G.Op Plus, v1) |> G.e, G.fake_bracket [ G.Arg v2 ])
+      G.Call
+        (G.IdSpecial (G.Op Plus, v1) |> G.e, PI.unsafe_fake_bracket [ G.Arg v2 ])
       |> G.e
   | `PLUSPLUS_exp (v1, v2) ->
       let v1 = (* "++" *) token env v1 in
       let v2 = expression env v2 in
       G.Call
         ( G.IdSpecial (IncrDecr (Incr, Prefix), v1) |> G.e,
-          G.fake_bracket [ G.Arg v2 ] )
+          PI.unsafe_fake_bracket [ G.Arg v2 ] )
       |> G.e
   | `DASHDASH_exp (v1, v2) ->
       let v1 = (* "--" *) token env v1 in
       let v2 = expression env v2 in
       G.Call
         ( G.IdSpecial (IncrDecr (Decr, Prefix), v1) |> G.e,
-          G.fake_bracket [ G.Arg v2 ] )
+          PI.unsafe_fake_bracket [ G.Arg v2 ] )
       |> G.e
   | `Print_exp (v1, v2) ->
       let v1 = (* "print" *) str env v1 in
       let v2 = expression env v2 in
       let id = G.N (G.Id (v1, G.empty_id_info ())) |> G.e in
       (* Q: Is this the right way to handle? Same for clone *)
-      G.Call (id, G.fake_bracket [ G.Arg v2 ]) |> G.e
+      G.Call (id, PI.unsafe_fake_bracket [ G.Arg v2 ]) |> G.e
   | `Clone_exp (v1, v2) ->
       let v1 = (* "clone" *) str env v1 in
       let v2 = expression env v2 in
       let id = G.N (G.Id (v1, G.empty_id_info ())) |> G.e in
-      G.Call (id, G.fake_bracket [ G.Arg v2 ]) |> G.e
+      G.Call (id, PI.unsafe_fake_bracket [ G.Arg v2 ]) |> G.e
   | `Await_exp (v1, v2) ->
       let v1 = (* "await" *) token env v1 in
       let v2 = expression env v2 in
@@ -2047,7 +2055,7 @@ and selection_expression (env : env) ((v1, v2, v3) : CST.selection_expression) =
   let v3 =
     match v3 with
     | `Choice_var x -> variablish env x
-    | `Braced_exp x -> G.unbracket (braced_expression env x)
+    | `Braced_exp x -> PI.unbracket (braced_expression env x)
     | `Choice_type x -> G.N (G.Id (keyword env x, G.empty_id_info ())) |> G.e
   in
   match v3.e with
@@ -2110,7 +2118,8 @@ and statement (env : env) (x : CST.statement) =
       let v4 = (* ";" *) token env v4 in
       let exprs = v2 :: v3 in
       let iden = G.Id (v1, G.empty_id_info ()) in
-      G.ExprStmt (G.Call (G.N iden |> G.e, G.fake_bracket exprs) |> G.e, v4)
+      G.ExprStmt
+        (G.Call (G.N iden |> G.e, PI.unsafe_fake_bracket exprs) |> G.e, v4)
       |> G.s
   | `Unset_stmt (v1, v2, v3, v4, v5) ->
       let v1 = (* "unset" *) token env v1 in
@@ -2169,7 +2178,7 @@ and statement (env : env) (x : CST.statement) =
             in
             (* Q: Is it improper to use blocks to represent directive groups? *)
             (* Lua seems to get around this by return statement lists here and flattening way up *)
-            G.Block (G.fake_bracket (v1 :: v2))
+            G.Block (PI.unsafe_fake_bracket (v1 :: v2))
         | `Opt_use_type_name_id_LCURL_use_clause_rep_COMMA_use_clause_opt_COMMA_RCURL
             (v1, v2, v3, v4, v5, v6, v7) ->
             (* Q: How to represent `use` type? We are also possibly passed it up from use_clause. *)
@@ -2200,7 +2209,7 @@ and statement (env : env) (x : CST.statement) =
               | None -> None
             in
             let _v7 = (* "}" *) token env v7 in
-            G.Block (G.fake_bracket (v4 :: v5))
+            G.Block (PI.unsafe_fake_bracket (v4 :: v5))
       in
       let _v3 = (* ";" *) token env v3 in
       v2 |> G.s
@@ -2234,7 +2243,11 @@ and statement (env : env) (x : CST.statement) =
         | None -> []
       in
       (* TODO: Figure out if this is even a proper representation *)
-      G.If (v1, G.Cond v2, v3, Some (G.Block (G.fake_bracket (v4 @ v5)) |> G.s))
+      G.If
+        ( v1,
+          G.Cond v2,
+          v3,
+          Some (G.Block (PI.unsafe_fake_bracket (v4 @ v5)) |> G.s) )
       |> G.s
   | `While_stmt (v1, v2, v3) ->
       let v1 = (* "while" *) token env v1 in
@@ -2354,7 +2367,7 @@ and statement (env : env) (x : CST.statement) =
             G.WithUsingResource
               ( using_stmt,
                 [ expression_statement env x |> G.s ],
-                G.Block (G.fake_bracket []) |> G.s )
+                G.Block (PI.unsafe_fake_bracket []) |> G.s )
         | `LPAR_exp_rep_COMMA_exp_RPAR_choice_comp_stmt (v1, v2, v3, v4, v5) ->
             let v1 = (* "(" *) token env v1 in
             let v2 = G.ExprStmt (expression env v2, fk v1) |> G.s in
@@ -2383,14 +2396,15 @@ and switch_case (env : env) ((v1, v2, v3, v4) : CST.switch_case) =
   (* Well can also do this... *)
   (* Q: Why is the case a list? To handle multiple cases with the same body?
      We don't support this in the grammar. We just don't have a break... *)
-  G.CasesAndBody ([ CaseEqualExpr (v1, v2) ], G.Block (G.fake_bracket v4) |> G.s)
+  G.CasesAndBody
+    ([ CaseEqualExpr (v1, v2) ], G.Block (PI.unsafe_fake_bracket v4) |> G.s)
 
 and switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
   let v1 = (* "default" *) token env v1 in
   let _v2 = (* ":" *) token env v2 in
   let v3 = Common.map (statement env) v3 in
   (* Q: Again. Is it appropriate to use Block here? *)
-  G.CasesAndBody ([ G.Default v1 ], G.Block (G.fake_bracket v3) |> G.s)
+  G.CasesAndBody ([ G.Default v1 ], G.Block (PI.unsafe_fake_bracket v3) |> G.s)
 
 and _trait_use_clause (env : env) ((v1, v2, v3, v4) : CST.trait_use_clause) =
   let v1 = (* "use" *) token env v1 in
@@ -2784,7 +2798,7 @@ and xhp_attribute (env : env) (x : CST.xhp_attribute) =
         match v3 with
         | `Str tok ->
             (* string *) G.L (stringify_without_quotes (str env tok)) |> G.e
-        | `Braced_exp x -> G.unbracket (braced_expression env x)
+        | `Braced_exp x -> PI.unbracket (braced_expression env x)
       in
       G.XmlAttr (v1, v2, v3)
   | `Choice_braced_exp x ->
@@ -2800,7 +2814,8 @@ and xhp_attribute_declaration (env : env)
   let ((_, tok) as ident) = str env v1 in
   let attr_tok =
     (* "attribute" *)
-    G.NamedAttr (fk tok, G.Id (ident, G.empty_id_info ()), G.fake_bracket [])
+    G.NamedAttr
+      (fk tok, G.Id (ident, G.empty_id_info ()), PI.unsafe_fake_bracket [])
   in
   (* Q: Is this what we want to do with the keyword? *)
   let v2 = xhp_class_attribute env v2 attr_tok in
@@ -2848,14 +2863,18 @@ and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute)
             let ((_, tok) as ident) = str env tok in
             [
               G.NamedAttr
-                (fk tok, Id (ident, G.empty_id_info ()), G.fake_bracket []);
+                ( fk tok,
+                  Id (ident, G.empty_id_info ()),
+                  PI.unsafe_fake_bracket [] );
             ]
         | `ATla tok ->
             (* "@lateinit" *)
             let ((_, tok) as ident) = str env tok in
             [
               G.NamedAttr
-                (fk tok, Id (ident, G.empty_id_info ()), G.fake_bracket []);
+                ( fk tok,
+                  Id (ident, G.empty_id_info ()),
+                  PI.unsafe_fake_bracket [] );
             ])
     | None -> []
   in
@@ -2885,7 +2904,7 @@ and xhp_expression (env : env) (x : CST.xhp_expression) : G.xml =
             | `Xhp_comm tok ->
                 (* xhp_comment *)
                 let _x = token env tok in
-                G.XmlExpr (G.fake_bracket None)
+                G.XmlExpr (PI.unsafe_fake_bracket None)
             | `Braced_exp x ->
                 let v1, v2, v3 = braced_expression env x in
                 G.XmlExpr (v1, Some v2, v3)

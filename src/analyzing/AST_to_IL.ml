@@ -14,6 +14,7 @@
  *)
 open Common
 open IL
+module PI = Parse_info
 module G = AST_generic
 module H = AST_generic_helpers
 
@@ -482,7 +483,7 @@ and expr_aux env ?(void = false) e_gen =
        * we dont. Anyway, for our static analysis purpose it should not matter.
        * We don't do fancy path-sensitive-evaluation-order-sensitive analysis.
        *)
-      match G.unbracket args with
+      match PI.unbracket args with
       | [ G.Arg e ] ->
           let lval = lval env e in
           (* TODO: This `lval` should have a new svalue ref given that we
@@ -810,7 +811,7 @@ and composite_kind = function
   | G.Tuple -> CTuple
 
 (* TODO: dependency of order between arguments for instr? *)
-and arguments env xs = xs |> G.unbracket |> Common.map (argument env)
+and arguments env xs = xs |> PI.unbracket |> Common.map (argument env)
 
 and argument env arg =
   match arg with
@@ -1088,7 +1089,7 @@ and stmt_aux env st =
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
-  | G.Block xs -> xs |> G.unbracket |> Common.map (stmt env) |> List.flatten
+  | G.Block xs -> xs |> PI.unbracket |> Common.map (stmt env) |> List.flatten
   | G.If (tok, cond, st1, st2) ->
       let ss, e' = cond_with_pre_stmts env cond in
       let st1 = stmt env st1 in
