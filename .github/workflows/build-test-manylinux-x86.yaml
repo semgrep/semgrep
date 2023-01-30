@@ -5,8 +5,8 @@ on:
   workflow_call:
 
 jobs:
-  build-test-manylinux-x86:
-    uses: ./.github/workflows/build-manylinux-x86.yaml
+  build-test-core-x86:
+    uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
 
   build-wheels-manylinux:

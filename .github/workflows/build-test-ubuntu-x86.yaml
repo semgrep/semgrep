@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-test-ubuntu-x86:
-    uses: ./.github/workflows/build-manylinux-x86.yaml
+    uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
 
   build-ubuntu-16-04:
@@ -34,15 +34,3 @@ jobs:
         with:
           name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz
-
-  test-binary-ubuntu:
-    runs-on: ubuntu-22.04
-    needs: [build-ubuntu-16-04]
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: semgrep-ubuntu-16.04-${{ github.sha }}
-      - name: untar artifacts
-        run: tar xzvf artifacts.tar.gz
-      - name: test package
-        run: ./semgrep-files/semgrep-core -version
