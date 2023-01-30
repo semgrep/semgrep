@@ -142,8 +142,11 @@ let resolved_name = function
   | GlobalVar -> Some (G.Global, G.SId.unsafe_default)
   | ClassField -> None
   | ImportedModule xs ->
-      Some (G.ImportedModule (G.DottedName xs), G.SId.unsafe_default)
-  | ImportedEntity xs -> Some (G.ImportedEntity xs, G.SId.unsafe_default)
+      let xs = G.dotted_to_canonical xs in
+      Some (G.ImportedModule xs, G.SId.unsafe_default)
+  | ImportedEntity xs ->
+      let xs = G.dotted_to_canonical xs in
+      Some (G.ImportedEntity xs, G.SId.unsafe_default)
   | NotResolved -> None
 
 let expr_context = function

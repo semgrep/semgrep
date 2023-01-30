@@ -1,0 +1,10 @@
+rules:
+  - id: xxx
+    message: yyy
+    languages: [php]
+    severity: ERROR
+    patterns:
+    - pattern: $FUNC(...);
+    - metavariable-regex:
+        metavariable: $FUNC
+        regex: \b(include|include_once|require|require_once)\b
