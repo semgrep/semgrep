@@ -68,7 +68,7 @@ jobs:
           echo ::set-output name=latest-version::${LATEST_TAG}
       - name: Bump release version
         id: next-version
-        uses: christian-draeger/increment-semantic-version@68f14f806a9800fe17433287c35226fd8fd60201
+        uses: christian-draeger/increment-semantic-version@4ac542a8ebf91f4edc224cbe3a19cc086826ae77
         with:
           current-version: "${{ steps.latest-version.outputs.latest-version }}"
           version-fragment: "${{ github.event.inputs.bumpVersionFragment }}"
