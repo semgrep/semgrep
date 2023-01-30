@@ -5,7 +5,7 @@ on:
   workflow_call:
 
 jobs:
-  build-test-ubuntu-x86:
+  build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
 
