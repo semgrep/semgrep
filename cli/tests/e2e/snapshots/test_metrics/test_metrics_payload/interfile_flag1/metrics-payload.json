@@ -3,7 +3,6 @@
   "environment": {
     "ci": null,
     "configNamesHash": "d3e03c9938537c0a0668cec7204f37f1e9da87d03e18e8cc444dd7454b36c4d5",
-    "engineType": "OSS",
     "isAuthenticated": false,
     "projectHash": null,
     "rulesHash": "e9641bba77ccfc7908dd80437de848365e2508233b7b42ca197d17fcc0eb0402",
@@ -69,6 +68,7 @@
   "sent_at": "2017-03-03T00:00:00+09:00",
   "started_at": "2017-03-03T00:00:00+09:00",
   "value": {
+    "engineRequested": "OSS",
     "features": [
       "cli-flag/config",
       "cli-flag/metrics",

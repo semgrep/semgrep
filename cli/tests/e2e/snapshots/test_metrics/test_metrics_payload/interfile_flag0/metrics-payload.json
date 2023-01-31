@@ -3,7 +3,6 @@
   "environment": {
     "ci": null,
     "configNamesHash": "d3e03c9938537c0a0668cec7204f37f1e9da87d03e18e8cc444dd7454b36c4d5",
-    "engineType": "INTERFILE",
     "isAuthenticated": false,
     "projectHash": null,
     "version": "x.x.x"
@@ -18,6 +17,7 @@
   "sent_at": "2017-03-03T00:00:00+09:00",
   "started_at": "2017-03-03T00:00:00+09:00",
   "value": {
+    "engineRequested": "INTERFILE",
     "features": [
       "cli-flag/config",
       "cli-flag/interfile",

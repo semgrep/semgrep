@@ -78,7 +78,6 @@ class EnvironmentSchema(TypedDict, total=False):
     configNamesHash: Sha256Hash
     rulesHash: Sha256Hash
     ci: Optional[str]
-    engineType: str
     isAuthenticated: bool
 
 
@@ -102,6 +101,7 @@ class ValueRequiredSchema(TypedDict):
 
 
 class ValueSchema(ValueRequiredSchema, total=False):
+    engineRequested: str
     numFindings: int
     numIgnored: int
     ruleHashesWithFindings: Dict[str, int]
@@ -218,6 +218,13 @@ class Metrics:
             )
         self.metrics_state = metrics_state or legacy_state or MetricsState.AUTO
 
+    @suppress_errors
+    def add_engine_type(self, engineType: EngineType) -> None:
+        """
+        Assumes configs is list of arguments passed to semgrep using --config
+        """
+        self.payload["value"]["engineRequested"] = engineType.name
+
     @property
     def is_using_registry(self) -> bool:
         return self._is_using_registry
@@ -254,13 +261,6 @@ class Metrics:
 
         m = hashlib.sha256(sanitized_url.encode())
         self.payload["environment"]["projectHash"] = cast(Sha256Hash, m.hexdigest())
-
-    @suppress_errors
-    def add_engine_type(self, engineType: EngineType) -> None:
-        """
-        Assumes configs is list of arguments passed to semgrep using --config
-        """
-        self.payload["environment"]["engineType"] = engineType.name
 
     @suppress_errors
     def add_configs(self, configs: Sequence[str]) -> None:
