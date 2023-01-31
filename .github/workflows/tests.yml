@@ -379,6 +379,7 @@ jobs:
     secrets: inherit
     with:
       artifact-name: image-test
+      repository-name: ${{ github.repository }}
 
   build-test-dev-docker:
     uses: ./.github/workflows/build-test-docker.yaml
@@ -402,6 +403,7 @@ jobs:
     secrets: inherit
     with:
       artifact-name: image-dev
+      repository-name: ${{ github.repository }}-dev
 
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yaml

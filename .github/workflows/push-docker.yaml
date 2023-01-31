@@ -7,12 +7,20 @@ on:
         required: true
         type: string
         description: Name (key) to use when uploading the docker image tarball as a artifact
+      repository-name:
+        required: true
+        type: string
+        description: The repository/name of the docker image to push, e.g., returntocorp/semgrep
   workflow_call:
     inputs:
       artifact-name:
         required: true
         type: string
         description: Name (key) to use when uploading the docker image tarball as a artifact
+      repository-name:
+        required: true
+        type: string
+        description: The repository/name of the docker image to push, e.g., returntocorp/semgrep
 
 jobs:
   push-docker:
@@ -35,4 +43,4 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Push Image
         run: |
-          docker push --all-tags "${{ github.repository }}"
+          docker push --all-tags "${{ inputs.repository-name }}"
