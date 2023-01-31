@@ -59,6 +59,7 @@ jobs:
         id: build-image
         uses: docker/build-push-action@v3
         with:
+          load: true
           outputs: type=docker,dest=/tmp/image.tar
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
