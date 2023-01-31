@@ -1179,6 +1179,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_case_and_body v1 in
         PartialSwitchCase v1
   and map_any = function
+    | Raw v1 ->
+        let v1 = map_raw_tree v1 in
+        Raw v1
     | Name v1 ->
         let v1 = map_name v1 in
         Name v1

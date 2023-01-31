@@ -1854,6 +1854,7 @@ and any =
   | Xmls of xml_body list
   | Partial of partial
   | Name of name
+  | Raw of raw_tree
   (* misc *)
   | I of ident
   | Str of string wrap

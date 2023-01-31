@@ -130,6 +130,11 @@ let match_name_name rule a b env =
       set_last_matched_rule rule (fun () -> GG.m_name a b env))
   [@@profiling]
 
+let match_raw_raw rule a b env =
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+      set_last_matched_rule rule (fun () -> GG.m_raw_tree a b env))
+  [@@profiling]
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -251,6 +256,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
     let flds_rules = ref [] in
     let partial_rules = ref [] in
     let name_rules = ref [] in
+    let raw_rules = ref [] in
     rules
     |> List.iter (fun rule ->
            (* less: normalize the pattern? *)
@@ -280,6 +286,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            | Flds pattern -> Common.push (pattern, rule, cache) flds_rules
            | Partial pattern -> Common.push (pattern, rule, cache) partial_rules
            | Name pattern -> Common.push (pattern, rule, cache) name_rules
+           | Raw pattern -> Common.push (pattern, rule, cache) raw_rules
            | Args _
            | Params _
            | Xmls _
@@ -515,6 +522,12 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
             match_rules_and_recurse lang config (file, hook, matches)
               !name_rules match_name_name k
               (fun x -> Name x)
+              x);
+        V.kraw =
+          (fun (k, _) x ->
+            match_rules_and_recurse lang config (file, hook, matches) !raw_rules
+              match_raw_raw k
+              (fun x -> Raw x)
               x);
       }
     in
