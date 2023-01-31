@@ -26,6 +26,7 @@ from typing_extensions import LiteralString
 from typing_extensions import TypedDict
 
 from semgrep import __VERSION__
+from semgrep.constants import EngineType
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
@@ -77,6 +78,7 @@ class EnvironmentSchema(TypedDict, total=False):
     configNamesHash: Sha256Hash
     rulesHash: Sha256Hash
     ci: Optional[str]
+    engineType: str
     isAuthenticated: bool
 
 
@@ -252,6 +254,13 @@ class Metrics:
 
         m = hashlib.sha256(sanitized_url.encode())
         self.payload["environment"]["projectHash"] = cast(Sha256Hash, m.hexdigest())
+
+    @suppress_errors
+    def add_engine_type(self, engineType: EngineType) -> None:
+        """
+        Assumes configs is list of arguments passed to semgrep using --config
+        """
+        self.payload["environment"]["engineType"] = engineType.name
 
     @suppress_errors
     def add_configs(self, configs: Sequence[str]) -> None:

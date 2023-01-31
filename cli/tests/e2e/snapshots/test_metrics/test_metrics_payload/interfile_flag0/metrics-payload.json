@@ -1,0 +1,30 @@
+{
+  "anonymous_user_id": "11111111-1111-1111-1111-111111111111",
+  "environment": {
+    "ci": null,
+    "configNamesHash": "d3e03c9938537c0a0668cec7204f37f1e9da87d03e18e8cc444dd7454b36c4d5",
+    "engineType": "INTERFILE",
+    "isAuthenticated": false,
+    "projectHash": null,
+    "version": "x.x.x"
+  },
+  "errors": {
+    "returnCode": 2
+  },
+  "event_id": "00000000-0000-0000-0000-000000000000",
+  "fix_rate": {},
+  "parse_rate": {},
+  "performance": {},
+  "sent_at": "2017-03-03T00:00:00+09:00",
+  "started_at": "2017-03-03T00:00:00+09:00",
+  "value": {
+    "features": [
+      "cli-flag/config",
+      "cli-flag/interfile",
+      "cli-flag/metrics",
+      "cli-flag/targets",
+      "config/local",
+      "subcommand/scan"
+    ]
+  }
+}
