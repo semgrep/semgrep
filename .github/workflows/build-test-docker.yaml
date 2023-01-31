@@ -66,6 +66,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
 
+      - name: List images
+        run: |
+          docker image list --digests
+
       - name: Checkout
         uses: actions/checkout@v3
 
