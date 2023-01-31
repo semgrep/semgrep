@@ -16,10 +16,9 @@ on:
         type: string
         description: The repository/name of the docker image to push, e.g., returntocorp/semgrep
       file:
-        required: false
+        required: true
         type: string
         description: Dockerfile to build
-        default: Dockerfile
 
   workflow_call:
     inputs:
@@ -36,10 +35,9 @@ on:
         type: string
         description: The repository/name of the docker image to push, e.g., returntocorp/semgrep
       file:
-        required: false
+        required: true
         type: string
         description: Dockerfile to build
-        default: Dockerfile
 
 jobs:
   build-test-docker:

@@ -371,6 +371,7 @@ jobs:
         type=edge
       artifact-name: image-test
       repository-name: ${{ github.repository }}
+      file: Dockerfile
 
   push-docker:
     needs: [build-test-docker]
