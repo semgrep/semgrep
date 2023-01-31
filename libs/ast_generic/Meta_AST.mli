@@ -19,6 +19,7 @@ val vof_definition : AST_generic.definition -> OCaml.v
 val vof_directive : AST_generic.directive -> OCaml.v
 val vof_expr : AST_generic.expr -> OCaml.v
 val vof_stmt : AST_generic.stmt -> OCaml.v
+val vof_raw_tree : AST_generic.raw_tree -> OCaml.v
 
 (* reused in other dumpers *)
 val vof_incr_decr : AST_generic.incr_decr -> OCaml.v

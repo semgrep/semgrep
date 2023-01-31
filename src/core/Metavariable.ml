@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -58,6 +58,7 @@ type mvalue =
   | S of AST_generic.stmt
   | T of AST_generic.type_
   | P of AST_generic.pattern
+  | Raw of AST_generic.raw_tree
   (* Those can be now empty with $...XXX metavariables.
    * coupling: if you add more constructors that allow an empty content,
    * you may need to modify JSON_report.range_of_any to not get
@@ -97,6 +98,7 @@ let mvalue_to_any = function
   | Id (id, Some idinfo) -> G.E (G.N (G.Id (id, idinfo)) |> G.e)
   | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info ())) |> G.e)
   | N x -> G.Name x
+  | Raw x -> G.E (G.RawExpr x |> G.e)
   | Ss x -> G.Ss x
   | Args x -> G.Args x
   | Params x -> G.Params x
@@ -116,6 +118,7 @@ let program_of_mvalue : mvalue -> G.program option =
   | Id (id, None) ->
       Some [ G.exprstmt (G.N (G.Id (id, G.empty_id_info ())) |> G.e) ]
   | N x -> Some [ G.exprstmt (G.N x |> G.e) ]
+  | Raw x -> Some [ G.exprstmt (G.RawExpr x |> G.e) ]
   | Ss stmts -> Some stmts
   | Params _
   | Args _

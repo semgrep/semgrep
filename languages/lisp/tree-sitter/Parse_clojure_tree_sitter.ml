@@ -69,26 +69,26 @@ and map_bare_list_lit (env : env) ((v1, v2, v3) : CST.bare_list_lit) =
   let v1 = (* "(" *) token env v1 in
   let v2 = map_source env v2 in
   let v3 = (* ")" *) token env v3 in
-  R.Tuple [ v1; R.Any (G.Ss v2); v3 ]
+  R.Tuple [ v1; v2; v3 ]
 
 and map_bare_map_lit (env : env) ((v1, v2, v3) : CST.bare_map_lit) =
   let v1 = (* "{" *) token env v1 in
   let v2 = map_source env v2 in
   let v3 = (* "}" *) token env v3 in
-  R.Tuple [ v1; R.Any (G.Ss v2); v3 ]
+  R.Tuple [ v1; v2; v3 ]
 
 and map_bare_set_lit (env : env) ((v1, v2, v3, v4) : CST.bare_set_lit) =
   let v1 = (* "#" *) token env v1 in
   let v2 = (* "{" *) token env v2 in
   let v3 = map_source env v3 in
   let v4 = (* "}" *) token env v4 in
-  R.Tuple [ v1; v2; R.Any (G.Ss v3); v4 ]
+  R.Tuple [ v1; v2; v3; v4 ]
 
 and map_bare_vec_lit (env : env) ((v1, v2, v3) : CST.bare_vec_lit) =
   let v1 = (* "[" *) token env v1 in
   let v2 = map_source env v2 in
   let v3 = (* "]" *) token env v3 in
-  R.Tuple [ v1; R.Any (G.Ss v2); v3 ]
+  R.Tuple [ v1; v2; v3 ]
 
 and map_form (env : env) (x : CST.form) =
   match x with
@@ -104,22 +104,22 @@ and map_form (env : env) (x : CST.form) =
   | `Vec_lit (v1, v2) ->
       R.Case
         ( "Vec_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1TODO = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = map_bare_vec_lit env v2 in
-          R.Tuple [ v1; v2 ] )
+          v2 )
   | `Set_lit (v1, v2) ->
       R.Case
         ( "Set_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1TODO = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = map_bare_set_lit env v2 in
-          R.Tuple [ v1; v2 ] )
+          v2 )
   | `Anon_fn_lit (v1, v2, v3) ->
       R.Case
         ( "Anon_fn_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1TODO = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = (* "#" *) token env v2 in
           let v3 = map_bare_list_lit env v3 in
-          R.Tuple [ v1; v2; v3 ] )
+          R.Tuple [ v2; v3 ] )
   | `Regex_lit (v1, v2) ->
       R.Case
         ( "Regex_lit",
@@ -133,15 +133,15 @@ and map_form (env : env) (x : CST.form) =
   | `Spli_read_cond_lit (v1, v2, v3, v4) ->
       R.Case
         ( "Spli_read_cond_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1TODO = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = (* "#?@" *) token env v2 in
           let v3 = R.List (Common.map (token env (* ws *)) v3) in
           let v4 = map_bare_list_lit env v4 in
-          R.Tuple [ v1; v2; v3; v4 ] )
+          R.Tuple [ v2; v3; v4 ] )
   | `Ns_map_lit (v1, v2, v3, v4, v5) ->
       R.Case
         ( "Ns_map_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1TODO = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = (* "#" *) token env v2 in
           let v3 =
             match v3 with
@@ -151,15 +151,15 @@ and map_form (env : env) (x : CST.form) =
           in
           let _v4 = Common.map (map_gap env) v4 in
           let v5 = map_bare_map_lit env v5 in
-          R.Tuple [ v1; v2; v3; v5 ] )
+          R.Tuple [ v2; v3; v5 ] )
   | `Var_quot_lit (v1, v2, v3, v4) ->
       R.Case
         ( "Var_quot_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1TODO = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = (* "#'" *) token env v2 in
           let _v3 = Common.map (map_gap env) v3 in
           let v4 = map_form env v4 in
-          R.Tuple [ v1; v2; v4 ] )
+          R.Tuple [ v2; v4 ] )
   | `Sym_val_lit (v1, v2, v3) ->
       R.Case
         ( "Sym_val_lit",
@@ -170,7 +170,7 @@ and map_form (env : env) (x : CST.form) =
   | `Eval_lit (v1, v2, v3, v4) ->
       R.Case
         ( "Eval_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1TODO = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = (* "#=" *) token env v2 in
           let _v3 = Common.map (map_gap env) v3 in
           let v4 =
@@ -180,57 +180,57 @@ and map_form (env : env) (x : CST.form) =
                 R.Case ("Read_cond_lit", map_read_cond_lit env x)
             | `Sym_lit x -> R.Case ("Sym_lit", map_sym_lit env x)
           in
-          R.Tuple [ v1; v2; v4 ] )
+          R.Tuple [ v2; v4 ] )
   | `Tagged_or_ctor_lit (v1, v2, v3, v4, v5, v6) ->
       R.Case
         ( "Tagged_or_ctor_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1TODO = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = (* "#" *) token env v2 in
           let _v3 = Common.map (map_gap env) v3 in
           let v4 = map_sym_lit env v4 in
           let _v5 = Common.map (map_gap env) v5 in
           let v6 = map_form env v6 in
-          R.Tuple [ v1; v2; v4; v6 ] )
+          R.Tuple [ v2; v4; v6 ] )
   | `Dere_lit (v1, v2, v3, v4) ->
       R.Case
         ( "Dere_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1TODO = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = (* "@" *) token env v2 in
           let _v3 = Common.map (map_gap env) v3 in
           let v4 = map_form env v4 in
-          R.Tuple [ v1; v2; v4 ] )
+          R.Tuple [ v2; v4 ] )
   | `Quot_lit (v1, v2, v3, v4) ->
       R.Case
         ( "Quot_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1TODO = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = (* "'" *) token env v2 in
           let _v3 = Common.map (map_gap env) v3 in
           let v4 = map_form env v4 in
-          R.Tuple [ v1; v2; v4 ] )
+          R.Tuple [ v2; v4 ] )
   | `Syn_quot_lit (v1, v2, v3, v4) ->
       R.Case
         ( "Syn_quot_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1TODO = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = (* "`" *) token env v2 in
           let _v3 = Common.map (map_gap env) v3 in
           let v4 = map_form env v4 in
-          R.Tuple [ v1; v2; v4 ] )
+          R.Tuple [ v2; v4 ] )
   | `Unqu_spli_lit (v1, v2, v3, v4) ->
       R.Case
         ( "Unqu_spli_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1 = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = (* "~@" *) token env v2 in
           let _v3 = Common.map (map_gap env) v3 in
           let v4 = map_form env v4 in
-          R.Tuple [ v1; v2; v4 ] )
+          R.Tuple [ v2; v4 ] )
   | `Unqu_lit (v1, v2, v3, v4) ->
       R.Case
         ( "Unqu_lit",
-          let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+          let _v1 = R.List (Common.map (map_metadata_lit env) v1) in
           let v2 = (* "~" *) token env v2 in
           let _v3 = Common.map (map_gap env) v3 in
           let v4 = map_form env v4 in
-          R.Tuple [ v1; v2; v4 ] )
+          R.Tuple [ v2; v4 ] )
 
 (* whitespace/comment *)
 and map_gap (_env : env) (x : CST.gap) : unit =
@@ -241,14 +241,14 @@ and map_gap (_env : env) (x : CST.gap) : unit =
   | `Dis_expr (_v1, _v2, _v3formTODO) -> ()
 
 and map_list_lit (env : env) ((v1, v2) : CST.list_lit) =
-  let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+  let _v1 = R.List (Common.map (map_metadata_lit env) v1) in
   let v2 = map_bare_list_lit env v2 in
-  R.Tuple [ v1; v2 ]
+  v2
 
 and map_map_lit (env : env) ((v1, v2) : CST.map_lit) =
-  let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+  let _v1 = R.List (Common.map (map_metadata_lit env) v1) in
   let v2 = map_bare_map_lit env v2 in
-  R.Tuple [ v1; v2 ]
+  v2
 
 and map_meta_lit (env : env) ((v1, v2, v3) : CST.meta_lit) =
   let v1 = (* "^" *) token env v1 in
@@ -278,26 +278,27 @@ and map_old_meta_lit (env : env) ((v1, v2, v3) : CST.old_meta_lit) =
   R.Tuple [ v1; v3 ]
 
 and map_read_cond_lit (env : env) ((v1, v2, v3, v4) : CST.read_cond_lit) =
-  let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+  let _v1 = R.List (Common.map (map_metadata_lit env) v1) in
   let v2 = (* "#?" *) token env v2 in
   let v3 = R.List (Common.map (token env (* ws *)) v3) in
   let v4 = map_bare_list_lit env v4 in
-  R.Tuple [ v1; v2; v3; v4 ]
+  R.Tuple [ v2; v3; v4 ]
 
-and map_source (env : env) (xs : CST.source) : program =
-  List.filter_map
-    (fun x ->
-      match x with
-      | `Form x ->
-          let x = map_form env x in
-          Some (x |> G.raw |> G.exprstmt)
-      | `Gap _x -> None)
-    xs
+and map_source (env : env) (xs : CST.source) =
+  R.List
+    (List.filter_map
+       (fun x ->
+         match x with
+         | `Form x ->
+             let x = map_form env x in
+             Some (R.Case ("Form", x))
+         | `Gap _x -> None)
+       xs)
 
 and map_sym_lit (env : env) ((v1, v2) : CST.sym_lit) =
-  let v1 = R.List (Common.map (map_metadata_lit env) v1) in
+  let _v1 = R.List (Common.map (map_metadata_lit env) v1) in
   let v2 = map_tok_pat_0a702c4_rep_choice_pat_0a702c4 env v2 in
-  R.Tuple [ v1; v2 ]
+  v2
 
 (*****************************************************************************)
 (* Entry point *)
@@ -309,4 +310,14 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       let x = map_source env cst in
-      x)
+      [ x |> G.raw |> G.exprstmt ])
+
+let parse_pattern str =
+  H.wrap_parser
+    (fun () -> Tree_sitter_clojure.Parse.string str)
+    (fun cst ->
+      let file = "<pattern>" in
+      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let e = map_source env cst in
+      (* this will be simplified if needed in Parse_pattern.normalize_any *)
+      Raw e)

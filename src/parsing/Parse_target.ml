@@ -337,10 +337,10 @@ let rec just_parse_with_lang lang file =
       run file
         [ TreeSitter Parse_jsonnet_tree_sitter.parse ]
         Jsonnet_to_generic.program
+  | Lang.Lisp
+  | Lang.Scheme
   | Lang.Clojure ->
       run file [ TreeSitter Parse_clojure_tree_sitter.parse ] (fun x -> x)
-  | Lang.Lisp -> failwith "Lisp is not supported yet"
-  | Lang.Scheme -> failwith "Scheme is not supported yet"
   | Lang.Cpp ->
       run file
         [
