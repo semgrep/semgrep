@@ -403,11 +403,13 @@ jobs:
   push-dev-docker:
     needs: [build-test-dev-docker]
     uses: ./.github/workflows/push-docker.yaml
-    if: github.ref == 'refs/heads/develop'
+    # TODO: remove before flight
+    # if: github.ref == 'refs/heads/develop'
     secrets: inherit
     with:
       artifact-name: image-dev
       repository-name: ${{ github.repository }}-dev
+      # TODO: remove before flight
       dry-run: true
 
   build-test-core-x86:
