@@ -475,14 +475,13 @@ def parse_gradle(
     def parse_dep(line: str) -> Optional[FoundDependency]:
         dep = line.split(":")
         if len(dep) != 3:
-            logger.info("Parse error in gradle lockfile")
             return None
         _, name, version = dep
         version, _ = version.split("=")
         try:
             Version(version)
         except InvalidVersion:
-            logger.info("No valid version found for {name}")
+            logger.info(f"No valid version found for {name}")
             return None
         return FoundDependency(
             package=name,
