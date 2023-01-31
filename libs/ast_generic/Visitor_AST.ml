@@ -1473,7 +1473,7 @@ let extract_ranges :
         ranges := Some (smaller orig_left left, larger orig_right right)
   in
   let incorporate_token tok =
-    if PI.is_origintok tok then
+    if PI.has_origin_loc tok then
       let tok_loc = PI.unsafe_token_location_of_info tok in
       incorporate_tokens (tok_loc, tok_loc)
   in
@@ -1515,7 +1515,7 @@ let extract_ranges :
     res
 
 let range_of_tokens tokens =
-  List.filter PI.is_origintok tokens |> PI.min_max_ii_by_pos
+  List.filter PI.has_origin_loc tokens |> PI.min_max_ii_by_pos
   [@@profiling]
 
 let range_of_any_opt any =

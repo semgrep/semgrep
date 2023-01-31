@@ -49,10 +49,10 @@ def test_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
         # TODO: regression because of
         # https://github.com/returntocorp/semgrep/pull/6900
         # commented for now
-        # (
-        #    "rules/join_rules/recursive/flask-deep-stored-xss-example/flask-stored-xss.yaml",
-        #    "join_rules/recursive/flask-deep-stored-xss-example",
-        # ),
+        (
+            "rules/join_rules/recursive/flask-deep-stored-xss-example/flask-stored-xss.yaml",
+            "join_rules/recursive/flask-deep-stored-xss-example",
+        ),
     ],
 )
 def test_recursive_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
