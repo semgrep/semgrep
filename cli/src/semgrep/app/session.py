@@ -145,7 +145,6 @@ class AppSession(requests.Session):
             max_retries=urllib3.Retry(
                 total=3,
                 backoff_factor=4,
-                other=0,
                 allowed_methods=["GET", "POST"],
                 status_forcelist=(413, 429, 500, 502, 503),
             ),
