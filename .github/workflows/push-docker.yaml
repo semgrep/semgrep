@@ -1,0 +1,38 @@
+name: push-docker
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact-name:
+        required: true
+        type: string
+        description: Name (key) to use when uploading the docker image tarball as a artifact
+  workflow_call:
+    inputs:
+      artifact-name:
+        required: true
+        type: string
+        description: Name (key) to use when uploading the docker image tarball as a artifact
+
+jobs:
+  push-docker:
+    name: Push Semgrep Docker Image
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: /tmp
+      - name: Load image
+        run: |
+          docker load --input /tmp/image.tar
+      - uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Push Image
+        run: |
+          docker push --all-tags "${{ github.repository }}"

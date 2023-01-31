@@ -182,6 +182,16 @@ jobs:
   build-test-docker:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
+    with:
+      docker-tags: |
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=ref,event=pr
+        type=ref,event=branch
+        type=sha,event=branch
+        type=edge
+      repository-name: ${{ github.repository }}
+      artifact-name: image-release
 
   push-docker:
     name: Push Semgrep Docker image
