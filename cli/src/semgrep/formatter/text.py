@@ -336,6 +336,7 @@ class TextFormatter(BaseFormatter):
                     per_finding_max_lines_limit,
                     per_line_max_chars_limit,
                 )
+                yield ""
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
@@ -573,7 +574,10 @@ class TextFormatter(BaseFormatter):
                 color_output,
                 per_finding_max_lines_limit,
                 per_line_max_chars_limit,
-                is_same_file,
+                # if we have dataflow traces on, then we should print the separator,
+                # because otherwise it is easy to mistake taint traces as belonging
+                # to a different finding
+                is_same_file or dataflow_traces,
             )
 
             if dataflow_traces:
