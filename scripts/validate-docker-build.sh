@@ -39,12 +39,15 @@ if [[ $# -gt 0 ]]; then
 fi
 
 # Running just the image should print help without error.
+echo "Attempting docker run"
 docker run "$image"
 
+echo "Attempting docker run with echo"
 # Random valid shell commands should run ok
 docker run "$image" echo -l -a -t -r -v -e -f
 
 # Semgrep should run when a config is passed
+echo "Attempting docker run with config p/ci"
 docker run "$image" --config=p/ci --help
 
 # Semgrep should run when just help is requested
