@@ -1985,6 +1985,18 @@ let basic_id_info ?(hidden = false) resolved =
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
+(* `canonical_append` is needed in one spot in the code, but it helps in that we can
+   just look here if we ever need to change something about the way that we deal with
+   canonical names.
+   Right now, we just throw away tokens, but if this is ever needed in the future,
+   we can easily change that.
+
+   I don't believe we should need the tokens right now in the canonical names, however,
+   as our default behavior for the time being will be to just use the `unqualified`
+   parts of the canonical names in the OSS engine.
+
+   The token will be used and passed back by the Pro engine, however.
+*)
 let canonical_append { unqualified; _ } { unqualified = unqualified2; tok } =
   { unqualified = unqualified @ unqualified2; tok }
 
