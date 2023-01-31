@@ -41,6 +41,7 @@ from semgrep.core_output import parse_core_output
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import with_color
+from semgrep.output_extra import OutputExtra
 from semgrep.parsing_data import ParsingData
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
@@ -738,14 +739,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
-    ) -> Tuple[
-        RuleMatchMap,
-        List[SemgrepError],
-        Set[Path],
-        ProfilingData,
-        ParsingData,
-        Optional[List[core.MatchingExplanation]],
-    ]:
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
@@ -754,6 +748,8 @@ class CoreRunner:
         all_targets: Set[Path] = set()
         file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
         max_timeout_files: Set[Path] = set()
+        # TODO this is a quick fix, refactor this logic
+        pro_path = None
 
         profiling_data: ProfilingData = ProfilingData()
         parsing_data: ParsingData = ParsingData()
@@ -855,18 +851,18 @@ then please delete {deep_path} manually.
 """
                         )
                     raise SemgrepError(
-                        "Could not run deep analysis: Semgrep PRO engine not installed. Run `semgrep install-semgrep-pro`"
+                        "Could not run deep analysis: Semgrep Pro Engine not installed. Run `semgrep install-semgrep-pro`"
                     )
 
                 if pro_path is not None:
-                    logger.info(f"Using Semgrep PRO installed in {pro_path}")
+                    logger.info(f"Using Semgrep Pro installed in {pro_path}")
                     version = sub_check_output(
                         [pro_path, "-pro_version"],
                         timeout=10,
                         encoding="utf-8",
                         stderr=subprocess.STDOUT,
                     ).rstrip()
-                    logger.info(f"Semgrep PRO Version Info: ({version})")
+                    logger.info(f"Semgrep Pro Version Info: ({version})")
 
                     cmd_bin = pro_path
 
@@ -958,13 +954,14 @@ then please delete {deep_path} manually.
                     parsing_data.add_error(err)
             errors.extend(parsed_errors)
 
+        output_extra = OutputExtra(
+            all_targets, profiling_data, parsing_data, core_output.explanations
+        )
+
         return (
             outputs,
             errors,
-            all_targets,
-            profiling_data,
-            parsing_data,
-            core_output.explanations,
+            output_extra,
         )
 
     def _run_rules_direct_to_semgrep_core(
@@ -973,14 +970,7 @@ then please delete {deep_path} manually.
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
-    ) -> Tuple[
-        RuleMatchMap,
-        List[SemgrepError],
-        Set[Path],
-        ProfilingData,
-        ParsingData,
-        Optional[List[core.MatchingExplanation]],
-    ]:
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
         These issues may possibly cause a failure if a user, for instance, updates their
@@ -998,10 +988,10 @@ then please delete {deep_path} manually.
                 logger.error(
                     f"""
 
-Semgrep PRO crashed during execution (unknown reason).
-This can sometimes happen because either Semgrep PRO or Semgrep is out of date.
+Semgrep Pro crashed during execution (unknown reason).
+This can sometimes happen because either Semgrep Pro or Semgrep is out of date.
 
-Try updating your version of Semgrep PRO (`semgrep install-semgrep-pro`) or your version of Semgrep (`pip install semgrep/brew install semgrep`).
+Try updating your version of Semgrep Pro (`semgrep install-semgrep-pro`) or your version of Semgrep (`pip install semgrep/brew install semgrep`).
 If both are up-to-date and the crash persists, please contact support to report an issue!
 
 Exception raised: `{e}`
@@ -1018,14 +1008,7 @@ Exception raised: `{e}`
         rules: List[Rule],
         dump_command_for_core: bool,
         engine: EngineType,
-    ) -> Tuple[
-        RuleMatchMap,
-        List[SemgrepError],
-        Set[Path],
-        ProfilingData,
-        ParsingData,
-        Optional[List[core.MatchingExplanation]],
-    ]:
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and retuns object with findings
         """
@@ -1034,16 +1017,13 @@ Exception raised: `{e}`
         (
             findings_by_rule,
             errors,
-            all_targets,
-            profiling_data,
-            parsing_data,
-            explanations,
+            output_extra,
         ) = self._run_rules_direct_to_semgrep_core(
             rules, target_manager, dump_command_for_core, engine
         )
 
         logger.debug(
-            f"semgrep ran in {datetime.now() - start} on {len(all_targets)} files"
+            f"semgrep ran in {datetime.now() - start} on {len(output_extra.all_targets)} files"
         )
         by_severity = collections.defaultdict(list)
         for rule, findings in findings_by_rule.items():
@@ -1057,10 +1037,7 @@ Exception raised: `{e}`
         return (
             findings_by_rule,
             errors,
-            all_targets,
-            profiling_data,
-            parsing_data,
-            explanations,
+            output_extra,
         )
 
     def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:

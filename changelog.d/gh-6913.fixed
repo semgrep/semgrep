@@ -1,0 +1,3 @@
+Regexps within string patterns such as `"=~/hello/"` now support the
+full PCRE syntax, including backreferences and other advanced features
+not supported by ocaml-re.

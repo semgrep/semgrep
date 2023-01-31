@@ -33,8 +33,8 @@ module Out = Semgrep_output_v1_j
 type env = {
   hrules : Rule.hrules;
   (* string to prefix all rule_id with
-   * (e.g., "semgrep-core.tests." if the --config argument
-    * was semgrep-core/tests/osemgrep.yml)
+   * (e.g., "xxx.tests." if the --config argument
+    * was xxx/tests/osemgrep.yml)
    *)
   config_prefix : string;
 }
@@ -379,7 +379,9 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
             sca_info = None;
             fixed_lines = None;
             dataflow_trace = None;
-            engine_kind;
+            (* It's optional in the CLI output, but not in the core match results!
+             *)
+            engine_kind = Some engine_kind;
           };
       }
 

@@ -16,6 +16,7 @@ open Common
 open Ast_java
 module G = AST_generic
 module H = AST_generic_helpers
+module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -39,7 +40,7 @@ let fake tok s = Parse_info.fake_info tok s
 let unsafe_fake s = Parse_info.unsafe_fake_info s
 
 (* todo: to remove at some point when Ast_java includes them directly *)
-let fb = G.fake_bracket
+let fb = PI.unsafe_fake_bracket
 
 let id_of_entname = function
   | G.EN (Id (id, idinfo)) -> (id, idinfo)
@@ -312,8 +313,8 @@ and expr e =
       and v4 = option (bracket decls) v4 in
       let anys =
         [ G.E v0; G.T v2 ]
-        @ (v3 |> G.unbracket |> Common.map (fun arg -> G.Ar arg))
-        @ (Option.to_list v4 |> Common.map G.unbracket |> List.flatten
+        @ (v3 |> PI.unbracket |> Common.map (fun arg -> G.Ar arg))
+        @ (Option.to_list v4 |> Common.map PI.unbracket |> List.flatten
           |> Common.map (fun st -> G.S st))
       in
       G.OtherExpr (("NewQualifiedClass", tok2), anys)
@@ -343,12 +344,10 @@ and expr e =
         (G.IdSpecial (G.IncrDecr (v1, G.Prefix), tok) |> G.e, fb [ G.Arg v2 ])
   | Unary (v1, v2) ->
       let v1, tok = v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Op (H.conv_op v1), tok) |> G.e, fb [ G.Arg v2 ])
+      G.Call (G.IdSpecial (G.Op v1, tok) |> G.e, fb [ G.Arg v2 ])
   | Infix (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = v2 and v3 = expr v3 in
-      G.Call
-        ( G.IdSpecial (G.Op (H.conv_op v2), tok) |> G.e,
-          fb [ G.Arg v1; G.Arg v3 ] )
+      G.Call (G.IdSpecial (G.Op v2, tok) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | Cast ((l, v1, _), v2) ->
       let v1 = list typ v1 and v2 = expr v2 in
       let t =
@@ -368,7 +367,7 @@ and expr e =
       G.Assign (v1, v2, v3)
   | AssignOp (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v3 = expr v3 in
-      G.AssignOp (v1, (H.conv_op v2, tok), v3)
+      G.AssignOp (v1, (v2, tok), v3)
   | TypedMetavar (v1, v2) ->
       let v1 = ident v1 in
       let v2 = typ v2 in
@@ -411,7 +410,7 @@ and argument v =
   G.Arg v
 
 and arguments v : G.argument list G.bracket = bracket (list argument) v
-and fix_op v = H.conv_incr v
+and fix_op v = v
 
 and resource t (v : resource) : G.stmt =
   match v with
@@ -424,7 +423,7 @@ and resources (_t1, v, t2) = list (resource t2) v
 
 and stmt st =
   match stmt_aux st with
-  | [] -> G.s (Block (G.fake_bracket []))
+  | [] -> G.s (Block (PI.unsafe_fake_bracket []))
   | [ st ] -> st
   | xs ->
       (* This should never happen in a context where we want

@@ -37,7 +37,7 @@
  *)
 %{
 open Common
-open AST_generic_ (* for the arithmetic operator *)
+open AST_generic (* for the arithmetic operator *)
 open Ast_java
 module PI = Parse_info
 
@@ -231,7 +231,7 @@ let mk_stmt_or_stmts = function
 %token <Parse_info.t> COLONCOLON "::"		(* :: *)
 
 
-%token <(AST_generic_.operator * Parse_info.t)> OPERATOR_EQ
+%token <(AST_generic.operator * Parse_info.t)> OPERATOR_EQ
 	(* += -= *= /= &= |= ^= %= <<= >>= >>>= *)
 
 (* keywords tokens *)

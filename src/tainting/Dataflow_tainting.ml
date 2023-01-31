@@ -44,8 +44,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *   Taint_lval_env and check_tainted_lval for more details. Very coarse grained
  *   otherwise, e.g. `x[i] = tainted` will taint the whole array,
  *
- * old: This was originally in semgrep-core/src/analyze, but it now depends on
- *      Pattern_match, so it was moved to semgrep-core/src/engine.
+ * old: This was originally in src/analyze, but it now depends on
+ *      Pattern_match, so it was moved to src/engine.
  *)
 
 module DataflowX = Dataflow_core.Make (struct

@@ -149,9 +149,9 @@ type special =
   (* CommonJS part2 *)
   | Require
   | UseStrict
-  | ArithOp of AST_generic_.operator
+  | ArithOp of AST_generic.operator
   (* less: should be in statement and unsugared in x+=1 or even x = x + 1 *)
-  | IncrDecr of (AST_generic_.incr_decr * AST_generic_.prefix_postfix)
+  | IncrDecr of (AST_generic.incr_decr * AST_generic.prefix_postfix)
 [@@deriving show { with_path = false }]
 (* with tarzan *)
 
@@ -434,7 +434,7 @@ and var_kind = Var | Let | Const
 and var = entity * variable_definition
 
 and function_definition = {
-  f_kind : AST_generic_.function_kind wrap;
+  f_kind : AST_generic.function_kind wrap;
   (* less: move that in entity? but some anon func have attributes too *)
   f_attrs : attribute list;
   f_params : parameter list;
@@ -471,7 +471,7 @@ and parent = (expr, type_) Common.either
 
 and class_definition = {
   (* typescript-ext: Interface is now possible *)
-  c_kind : AST_generic_.class_kind wrap;
+  c_kind : AST_generic.class_kind wrap;
   (* typescript-ext: can have multiple parents *)
   c_extends : parent list;
   (* typescript-ext: interfaces *)
@@ -658,7 +658,7 @@ let var_pattern_to_var v_kind pat tok init_opt =
   (* no need special_multivardef_pattern trick here *)
   | Id id, None -> (basic_entity id, { v_kind; v_init = None; v_type = None })
   | _ ->
-      let s = AST_generic_.special_multivardef_pattern in
+      let s = AST_generic.special_multivardef_pattern in
       let id = (s, tok) in
       let init =
         match init_opt with

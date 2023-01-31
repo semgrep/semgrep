@@ -1,6 +1,6 @@
 #
 # Top scala projects from GitHub, sorted by stars.
-# Created by ../../../semgrep-core/src/ocaml-tree-sitter-core/scripts/most-starred-for-language.
+# Created src/ocaml-tree-sitter-core/scripts/most-starred-for-language.
 #
 https://github.com/prisma/prisma1
 https://github.com/apache/predictionio

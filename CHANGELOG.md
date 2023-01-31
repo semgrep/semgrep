@@ -8,6 +8,46 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.6.0](https://github.com/returntocorp/semgrep/releases/tag/v1.6.0) - 2023-01-27
+
+### Added
+
+- Added exposure property to sarif output for sca findings (sarif)
+
+### Changed
+
+- Tests: Allow `--test` to process entire file trees rather than single files (gh-5487)
+- metavariable-pattern: For performance reasons Generic mode ignores target files
+  that look like machine generated. Unfortunately, this also prevented using the
+  `metavariable-pattern` operator on text that may look like (or in fact be)
+  machine generated, such as an RSA key contained in a legit file. Now, when the
+  analysis is requested within a `metavariable-pattern` operator, Generic mode
+  will always match any text even if it looks like machine generated. (pa-2386)
+- Pro: Add **experimental** flags `--pro` and `--interproc`. Using `--pro` you can
+  enable Apex support, and with `--fast-deep` you can enable intra-file inter-procedural
+  taint analysis. Also, `--deep` has been renamed to `--interfile`. Note that to use
+  any of the Pro features you must first run `semgrep install-semgrep-pro` while being
+  logged in. (pa-2440)
+- New lockfile parsers with better error messages for all supported ecosystems except Rust (sc-495)
+
+### Fixed
+
+- Solidity: parse correctly 'unchecked' blocks (gh-6055)
+- Terraform: Implicit coercions between strings, bools, ints, and floats are now allowed to match. (gh-6898)
+- Python: Taint now propagates via the splat operators `*` and `**`, thus both
+  `sink(*tainted)` and `sink(**tainted)` will result in findings. (gh-6920)
+- Solidity: support ellipsis in contract inheritance
+  Thanks to Raz0r for his contribution! (gh-6935)
+- CLI: No longer fails when running tests against a config file with no rules in it (gh-6954)
+- Fixed a crash that could occur when using the GitHub API to fetch the merge base rather than computing it locally. (merge-base)
+- JS/TS: Object types now support metavariables properly (pa-2414)
+- CLI: No longer reports the wrong command if you are using the `semgrep-core-proprietary` executable. (pa-2417)
+- Pro: Findings that occur due to rules run with the Semgrep Pro Engine are now displayed separately in the CLI. (pa-2432)
+- Fixed bug where Semgrep would generate reachable findings for transitive dependencies, even if a direct dependency at a safe version exists (sc-547)
+- Fixed bug in poetry.lock parser where quoted square brackets could cause failures (sc-548)
+- Fixed bug where Semgrep would fail to generate unreachable findings for a particular library if a reachable finding for that library had already been found in the same lockfile, even if there are multiple copies of this library at different vulnerable versions. (sc-549)
+- Fixed bug where npm lockfiles with packages that listed multiples hashes would fail to parse (sc-550)
+
 ## [1.5.1](https://github.com/returntocorp/semgrep/releases/tag/v1.5.1) - 2023-01-20
 
 ### Added

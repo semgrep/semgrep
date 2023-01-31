@@ -12,6 +12,8 @@
   (_
     (flags (:standard  -w -52-6))))
 
+; coupling: if you modify this, you probably need to modify the core-cache
+; regexps in .github/workflow/tests.yml passed to the hashFiles function
 (dirs
   src
   libs
@@ -33,111 +35,149 @@
 
 ; Unfortunately, 'subdir' doesn't expand wildcards.
 ;(subdir
-;   src/tree-sitter-lang/semgrep-*
+;   src/parser_*/tree-sitter/semgrep-*
 ;   (data_only_dirs bin)
 ;)
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-c
+   languages/bash/tree-sitter/semgrep-bash
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-cpp
+   languages/c/tree-sitter/semgrep-c
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-c-sharp
+   languages/cpp/tree-sitter/semgrep-cpp
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-dockerfile
+   languages/csharp/tree-sitter/semgrep-c-sharp
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-go
+   languages/tree-sitter-lang/semgrep-dart
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-hack
+   languages/dockerfile/tree-sitter/semgrep-dockerfile
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-hcl
+   languages/elixir/tree-sitter/semgrep-elixir
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-html
+   languages/go/tree-sitter/semgrep-go
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-java
+   languages/tree-sitter-lang/semgrep-hack
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-javascript
+   languages/hcl/tree-sitter/semgrep-hcl
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-kotlin
+   languages/tree-sitter-lang/semgrep-html
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-lua
+   languages/java/tree-sitter/semgrep-java
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-ocaml
+   languages/javascript/tree-sitter/semgrep-javascript
+   (data_only_dirs bin)
+)
+; no json, reusing javascript
+
+(subdir
+   languages/kotlin/tree-sitter/semgrep-kotlin
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-php
+   languages/lisp/tree-sitter/semgrep-clojure
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-r
+   languages/tree-sitter/semgrep-lua
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-ruby
+   languages/ocaml/tree-sitter/semgrep-ocaml
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-rust
+   languages/php/tree-sitter/semgrep-php
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-sqlite
+   languages/python/tree-sitter/semgrep-python
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-tsx
+   languages/r/tree-sitter/semgrep-r
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-typescript
+   languages/ruby/tree-sitter/semgrep-ruby
    (data_only_dirs bin)
 )
 
 (subdir
-   semgrep-core/src/tree-sitter-lang/semgrep-vue
+   languages/rust/tree-sitter/semgrep-rust
+   (data_only_dirs bin)
+)
+
+; no tree-sitter yet for scala
+
+(subdir
+   languages/solidity/tree-sitter/semgrep-solidity
+   (data_only_dirs bin)
+)
+
+(subdir
+   languages/tree-sitter-lang/semgrep-sqlite
+   (data_only_dirs bin)
+)
+
+(subdir
+   languages/swift/tree-sitter/semgrep-swift
+   (data_only_dirs bin)
+)
+
+(subdir
+   languages/typescript/tree-sitter/semgrep-tsx
+   (data_only_dirs bin)
+)
+
+(subdir
+   languages/typescript/tree-sitter/semgrep-typescript
+   (data_only_dirs bin)
+)
+
+(subdir
+   languages/tree-sitter-lang/semgrep-vue
    (data_only_dirs bin)
 )

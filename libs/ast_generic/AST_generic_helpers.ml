@@ -302,7 +302,7 @@ let funcbody_to_stmt = function
   | FBStmt st -> st
   | FBExpr e -> G.exprstmt e
   | FBDecl sc -> Block (sc, [], sc) |> G.s
-  | FBNothing -> Block (G.fake_bracket []) |> G.s
+  | FBNothing -> Block (Parse_info.unsafe_fake_bracket []) |> G.s
 
 let has_keyword_attr kwd attrs =
   attrs
@@ -386,7 +386,7 @@ let ac_matching_nf op args =
         logger#error
           "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
           (show_operator op)
-          (show_arguments (fake_bracket args));
+          (show_arguments (Parse_info.unsafe_fake_bracket args));
         None)
   else None
 
@@ -395,104 +395,9 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
   | [ arg ] -> Some arg
   | a1 :: a2 :: args ->
       let mk_op x y =
-        Call (IdSpecial (Op op, tok) |> G.e, fake_bracket [ Arg x; Arg y ])
+        Call
+          ( IdSpecial (Op op, tok) |> G.e,
+            Parse_info.unsafe_fake_bracket [ Arg x; Arg y ] )
         |> G.e
       in
       Some (List.fold_left mk_op (mk_op a1 a2) args)
-
-(*****************************************************************************)
-(* AST_generic_ conversions *)
-(*****************************************************************************)
-
-module G_ = AST_generic_
-
-(* This AST_generic_ module is ugly, but it was written to allow to move
- * AST_generic.ml out of pfff/ and inside semgrep/. However there are many
- * language-specific ASTs that were using AST_generic.ml to factorize
- * the definitions of operators. To break the dependency we had
- * to duplicate that part of AST_generic in pfff/h_program-lang/AST_generic_.ml
- * (note the underscore at the end), but then we need those boilerplate
- * functions below to convert them back to AST_generic.
- *
- * alt: use polymorphic variants (e.g., `Plus)
- *)
-
-let (conv_op : AST_generic_.operator -> AST_generic.operator) = function
-  | G_.Plus -> G.Plus
-  | G_.Minus -> G.Minus
-  | G_.Mult -> G.Mult
-  | G_.Div -> G.Div
-  | G_.Mod -> G.Mod
-  | G_.Pow -> G.Pow
-  | G_.FloorDiv -> G.FloorDiv
-  | G_.MatMult -> G.MatMult
-  | G_.LSL -> G.LSL
-  | G_.LSR -> G.LSR
-  | G_.ASR -> G.ASR
-  | G_.BitOr -> G.BitOr
-  | G_.BitXor -> G.BitXor
-  | G_.BitAnd -> G.BitAnd
-  | G_.BitNot -> G.BitNot
-  | G_.BitClear -> G.BitClear
-  | G_.And -> G.And
-  | G_.Or -> G.Or
-  | G_.Xor -> G.Xor
-  | G_.Not -> G.Not
-  | G_.Eq -> G.Eq
-  | G_.NotEq -> G.NotEq
-  | G_.PhysEq -> G.PhysEq
-  | G_.NotPhysEq -> G.NotPhysEq
-  | G_.Lt -> G.Lt
-  | G_.LtE -> G.LtE
-  | G_.Gt -> G.Gt
-  | G_.GtE -> G.GtE
-  | G_.Cmp -> G.Cmp
-  | G_.Concat -> G.Concat
-  | G_.Append -> G.Append
-  | G_.RegexpMatch -> G.RegexpMatch
-  | G_.NotMatch -> G.NotMatch
-  | G_.Range -> G.Range
-  | G_.RangeInclusive -> G.RangeInclusive
-  | G_.NotNullPostfix -> G.NotNullPostfix
-  | G_.Length -> G.Length
-  | G_.Elvis -> G.Elvis
-  | G_.Nullish -> G.Nullish
-  | G_.In -> G.In
-  | G_.NotIn -> G.NotIn
-  | G_.Is -> G.Is
-  | G_.NotIs -> G.NotIs
-
-let (conv_incr : AST_generic_.incr_decr -> AST_generic.incr_decr) = function
-  | G_.Incr -> G.Incr
-  | G_.Decr -> G.Decr
-
-let (conv_prepost : AST_generic_.prefix_postfix -> AST_generic.prefix_postfix) =
-  function
-  | G_.Prefix -> G.Prefix
-  | G_.Postfix -> G.Postfix
-
-let (conv_incdec :
-      AST_generic_.incr_decr * AST_generic_.prefix_postfix ->
-      AST_generic.incr_decr * AST_generic.prefix_postfix) =
- fun (x, y) -> (conv_incr x, conv_prepost y)
-
-let (conv_class_kind :
-      AST_generic_.class_kind * Parse_info.t ->
-      AST_generic.class_kind * Parse_info.t) =
- fun (c, t) ->
-  ( (match c with
-    | G_.Class -> G.Class
-    | G_.Interface -> G.Interface
-    | G_.Trait -> G.Trait),
-    t )
-
-let (conv_function_kind :
-      AST_generic_.function_kind * Parse_info.t ->
-      AST_generic.function_kind * Parse_info.t) =
- fun (c, t) ->
-  ( (match c with
-    | G_.Function -> G.Function
-    | G_.Method -> G.Method
-    | G_.LambdaKind -> G.LambdaKind
-    | G_.Arrow -> G.Arrow),
-    t )

@@ -12,8 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
 open AST_generic
+module PI = Parse_info
 module H = AST_generic_helpers
 module V = Visitor_AST
 
@@ -99,7 +99,7 @@ let subexprs_of_stmt_kind = function
 let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 
 let subexprs_of_args args =
-  args |> unbracket
+  args |> PI.unbracket
   |> Common.map_filter (function
        | Arg e
        | ArgKwd (_, e)
@@ -138,7 +138,7 @@ let subexprs_of_expr with_symbolic_propagation e =
   | Seq xs -> xs
   | Record (_, flds, _) ->
       flds |> Common2.map_flatten (function F st -> subexprs_of_stmt st)
-  | Container (_, xs) -> unbracket xs
+  | Container (_, xs) -> PI.unbracket xs
   | Comprehension (_, (_, (e, xs), _)) ->
       e
       :: (xs
@@ -151,7 +151,7 @@ let subexprs_of_expr with_symbolic_propagation e =
       e :: subexprs_of_args args
   | SliceAccess (e1, e2) ->
       e1
-      :: (e2 |> unbracket
+      :: (e2 |> PI.unbracket
          |> (fun (a, b, c) -> [ a; b; c ])
          |> Common.map Option.to_list |> List.flatten)
   | Yield (_, eopt, _) -> Option.to_list eopt
@@ -233,7 +233,7 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
    * '$F.name' that is matching cmd = [stuff, fout.name, otherstuff].
    * They should rewrite the rule and use '... <... $F.name ...>' there.
    *)
-  | Container (_, xs) -> unbracket xs
+  | Container (_, xs) -> PI.unbracket xs
   (* TODO: ugly but in semgrep-rules/terraform/.../missing-athena...yaml
    * we look for '{ ... encryption_configuration {...} ...}' and
    * the encryption_configuration can actually be nested deeper.
@@ -335,7 +335,7 @@ let substmts_of_stmt st =
         (* this will add lots of substatements *)
         | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->
-            def.cbody |> unbracket |> Common.map (function F st -> st))
+            def.cbody |> PI.unbracket |> Common.map (function F st -> st))
 
 (*****************************************************************************)
 (* Visitors  *)

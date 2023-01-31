@@ -44,6 +44,7 @@ from semgrep.output import OutputSettings
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.state import get_state
 from semgrep.target_manager import write_pipes_to_disk
@@ -622,6 +623,12 @@ def scan_options(func: Callable) -> Callable:
     hidden=True
     # help="contact support@r2c.dev for more information on this"
 )
+@click.option(
+    "--dump-engine-path",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
 @scan_options
 @handle_command_errors
 def scan(
@@ -632,6 +639,7 @@ def scan(
     core_opts: Optional[str],
     debug: bool,
     deep: bool,
+    dump_engine_path: bool,
     pro: bool,
     interproc: bool,
     interfile: bool,
@@ -708,6 +716,10 @@ def scan(
             from semgrep.app.version import version_check
 
             version_check()
+        return None
+
+    if dump_engine_path:
+        print(SemgrepCore.path())
         return None
 
     if show_supported_languages:
@@ -872,14 +884,11 @@ def scan(
                 (
                     filtered_matches_by_rule,
                     semgrep_errors,
-                    all_targets,
-                    _,
+                    _renamed_targets,
                     ignore_log,
                     filtered_rules,
                     profiler,
-                    profiling_data,
-                    _,
-                    explanations,
+                    output_extra,
                     shown_severities,
                     _,
                 ) = semgrep.semgrep_main.main(
@@ -919,12 +928,12 @@ def scan(
 
             output_handler.output(
                 filtered_matches_by_rule,
-                all_targets=all_targets,
+                all_targets=output_extra.all_targets,
                 ignore_log=ignore_log,
                 profiler=profiler,
                 filtered_rules=filtered_rules,
-                profiling_data=profiling_data,
-                explanations=explanations,
+                profiling_data=output_extra.profiling_data,
+                explanations=output_extra.explanations,
                 severities=shown_severities,
                 print_summary=True,
             )
@@ -935,7 +944,7 @@ def scan(
                 filtered_matches_by_rule,
                 semgrep_errors,
                 filtered_rules,
-                all_targets,
+                output_extra.all_targets,
             )
 
     if enable_version_check:

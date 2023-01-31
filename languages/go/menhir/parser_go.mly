@@ -22,7 +22,7 @@
  *  at https://github.com/golang/go
  *)
 open Common
-open AST_generic_ (* for the arithmetic operator *)
+open AST_generic (* for the arithmetic operator *)
 open Ast_go
 module PI = Parse_info
 
@@ -167,7 +167,7 @@ let rev_and_fix_items xs =
 %token  <int option * Ast_go.tok> LINT
 %token  <float option * Ast_go.tok>  LFLOAT
 %token  <string * Ast_go.tok>  LIMAG  LRUNE LSTR
-%token  <AST_generic_.operator * Ast_go.tok> LASOP
+%token  <AST_generic.operator * Ast_go.tok> LASOP
 %token  <string * Ast_go.tok> LNAME
 
 (*-----------------------------------------*)

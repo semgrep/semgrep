@@ -5,7 +5,7 @@
  * external tools (e.g., the Semgrep query console) to avoid parsing
  * certain files.
  *
- * For more information, see semgrep-core/src/optimizing/Analyze_rule.ml
+ * For more information, see src/optimizing/Analyze_rule.ml
  *)
 
 (* less: we could make this polymorphic and in a separate formula.atd that

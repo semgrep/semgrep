@@ -297,9 +297,13 @@ let rec just_parse_with_lang lang file =
       run file [ TreeSitter Parse_julia_tree_sitter.parse ] (fun x -> x)
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
   | Lang.Bash ->
-      run file [ TreeSitter Parse_bash_tree_sitter.parse ] (fun x -> x)
+      run file
+        [ TreeSitter Parse_bash_tree_sitter.parse ]
+        Bash_to_generic.program
   | Lang.Dockerfile ->
-      run file [ TreeSitter Parse_dockerfile_tree_sitter.parse ] (fun x -> x)
+      run file
+        [ TreeSitter Parse_dockerfile_tree_sitter.parse ]
+        Dockerfile_to_generic.program
   | Lang.Rust ->
       run file [ TreeSitter Parse_rust_tree_sitter.parse ] (fun x -> x)
   | Lang.C ->
@@ -329,7 +333,10 @@ let rec just_parse_with_lang lang file =
               (Parse_json.parse_program file, Parsing_stat.correct_stat file));
         ]
         Json_to_generic.program
-  | Lang.Jsonnet -> failwith "Jsonnet is not supported yet"
+  | Lang.Jsonnet ->
+      run file
+        [ TreeSitter Parse_jsonnet_tree_sitter.parse ]
+        Jsonnet_to_generic.program
   | Lang.Clojure ->
       run file [ TreeSitter Parse_clojure_tree_sitter.parse ] (fun x -> x)
   | Lang.Lisp -> failwith "Lisp is not supported yet"
@@ -442,7 +449,6 @@ let parse_and_resolve_name_fail_if_partial lang file =
 (*****************************************************************************)
 (* For testing purpose *)
 (*****************************************************************************)
-(* was in pfff/.../Parse_generic.ml before *)
 let parse_program file =
   let lang = List.hd (Lang.langs_of_filename file) in
   let res = just_parse_with_lang lang file in

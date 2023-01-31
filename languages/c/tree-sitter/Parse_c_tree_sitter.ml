@@ -25,10 +25,10 @@ module H = Parse_tree_sitter_helpers
 (* Prelude *)
 (*****************************************************************************)
 (* C parser using tree-sitter-lang/semgrep-c and converting
- * to pfff/lang_c/parsing/ast_c.ml
+ * to ../ast/ast_c.ml
  *
  * The resulting AST can then be converted to the generic AST by using
- * pfff/lang_c/analyze/c_to_generic.ml
+ * ../generic/c_to_generic.ml
  *)
 
 (*****************************************************************************)
@@ -616,7 +616,7 @@ and anon_choice_type_id_opt_field_decl_list_9aebd83 (env : env)
       let v2 =
         match v2 with
         | Some x -> field_declaration_list env x
-        | None -> G.fake_bracket []
+        | None -> PI.unsafe_fake_bracket []
       in
       (Some v1, v2)
   | `Field_decl_list x -> (None, field_declaration_list env x)

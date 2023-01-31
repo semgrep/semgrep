@@ -5,8 +5,8 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
-exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^tests|^semgrep-core/src/pfff/tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations|^cli/scripts|TOPORT"
-
+exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations|^cli/scripts|TOPORT"
+default_stages: [commit]
 # See https://pre-commit.com/#pre-commit-configyaml---repos
 # for more information on the format of the content below
 repos:
@@ -173,8 +173,6 @@ repos:
         entry: ./scripts/lint-ocaml
         language: script
         files: "\\.mli?$"
-        # weird ocamlformat bug, can't process this file
-        exclude: "^semgrep-core/src/pfff/lang_js/analyze/graph_code_js.ml"
 
   # ----------------------------------------------------------
   # Dogfood! running semgrep in pre-commit!
@@ -184,7 +182,6 @@ repos:
       - id: semgrep-jsonnet
         name: semgrep jsonnet
         # Only run this job in CI since it is slow
-        stages: [manual]
         language: docker_image
         # See .pre-commit-hooks.yaml for why we need to set those
         # SEMGREP_XXX variables.  Ideally we would not need this
@@ -193,10 +190,8 @@ repos:
         # is not available via setup.py and only (unofficially)
         # available in docker.
         entry: -e SEMGREP_LOG_FILE=/tmp/out.log -e SEMGREP_VERSION_CACHE_PATH=/tmp/cache returntocorp/semgrep:develop semgrep
-        exclude: "^semgrep-core/src/pfff"
         #note that the --exclude below are useless because pre-commit pass
         # a list of files explicitely which prevents --exclude to work
-        # hence the separate exclude: above.
         #coupling: 'make check' and the SEMGREP_ARGS variable
         args: [
             "--config",

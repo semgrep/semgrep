@@ -155,7 +155,7 @@ let stab_clauses_to_function_definition tk (xs : stab_clause list) :
 (* following Elixir semantic (unsugaring pairs) *)
 let list_container_of_kwds xs =
   let es = xs |> Common.map keyval_of_kwd in
-  Container (List, G.fake_bracket es) |> G.e
+  Container (List, PI.unsafe_fake_bracket es) |> G.e
 
 let args_of_exprs_and_keywords (es : expr list) (kwds : pair list) :
     argument list =
@@ -177,7 +177,7 @@ let expr_of_body_or_clauses tk (x : body_or_clauses) : expr =
       let stmts = body_to_stmts xs in
       (* less: use G.stmt1 instead? or get rid of fake_bracket here
        * passed down from caller? *)
-      let block = Block (G.fake_bracket stmts) |> G.s in
+      let block = Block (PI.unsafe_fake_bracket stmts) |> G.s in
       G.stmt_to_expr block
   | Right clauses ->
       let fdef = stab_clauses_to_function_definition tk clauses in
@@ -214,7 +214,7 @@ let args_of_do_block_opt (blopt : do_block option) : argument list =
 
 let mk_call_no_parens (e : expr) (args : argument list)
     (blopt : do_block option) : call =
-  Call (e, G.fake_bracket (args @ args_of_do_block_opt blopt)) |> G.e
+  Call (e, PI.unsafe_fake_bracket (args @ args_of_do_block_opt blopt)) |> G.e
 
 let mk_call_parens (e : expr) (args : argument list bracket)
     (blopt : do_block option) : call =
@@ -225,7 +225,7 @@ let binary_call (e1 : expr) op_either (e2 : expr) : expr =
   match op_either with
   | Left id ->
       let n = N (H2.name_of_id id) |> G.e in
-      Call (n, G.fake_bracket ([ e1; e2 ] |> Common.map G.arg)) |> G.e
+      Call (n, PI.unsafe_fake_bracket ([ e1; e2 ] |> Common.map G.arg)) |> G.e
   | Right op -> G.opcall op [ e1; e2 ]
 
 let expr_of_e_or_kwds (x : (expr, pair list) either) : expr =

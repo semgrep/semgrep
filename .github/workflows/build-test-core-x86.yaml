@@ -1,0 +1,29 @@
+name: build-test-ubuntu-x86
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-test-core-x86:
+    name: Build Test Semgrep Core
+    runs-on: ubuntu-latest
+    container: returntocorp/ocaml:alpine-2022-09-24
+    # We need this hack because GHA tampers with the HOME in container
+    # and this does not play well with 'opam' installed in /root
+    env:
+      HOME: /root
+    steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Build semgrep-core
+        run: ./scripts/install-alpine-semgrep-core
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ocaml-build-artifacts-release
+          path: ocaml-build-artifacts.tgz
+      - name: Test semgrep-core
+        run: opam exec -- make core-test

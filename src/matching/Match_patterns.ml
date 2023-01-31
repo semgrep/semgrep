@@ -173,8 +173,8 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                           range_loc;
                           tokens;
                           taint_trace = None;
-                          (* This will be overrided later on by the PRO engine, if this is
-                             from a PRO run.
+                          (* This will be overrided later on by the Pro engine, if this is
+                             from a Pro run.
                           *)
                           engine_kind = OSS;
                         }

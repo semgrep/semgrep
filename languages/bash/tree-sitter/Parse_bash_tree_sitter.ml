@@ -272,7 +272,7 @@ let simple_expansion (env : env) (x : CST.simple_expansion) : string_fragment =
           (* Interpret $X as either "metavariable $X" or "expand X" *)
           match var_name with
           | Simple_variable_name (name_s, name_tok)
-            when AST_generic_.is_metavar_name ("$" ^ name_s) ->
+            when AST_generic.is_metavar_name ("$" ^ name_s) ->
               let mv_s = "$" ^ name_s in
               let mv_tok = PI.combine_infos dollar_tok [ name_tok ] in
               Frag_semgrep_metavar (mv_s, mv_tok)
@@ -1447,22 +1447,20 @@ and right_hand_side (env : env) (x : CST.anon_choice_lit_bbf16c7) : expression =
 (*****************************************************************************)
 
 let parse file =
-  let input_kind = AST_bash.Program in
   H.wrap_parser
     (fun () -> Tree_sitter_bash.Parse.file file)
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = input_kind } in
+      let env =
+        { H.file; conv = H.line_col_to_pos file; extra = AST_bash.Program }
+      in
       let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
-      let bash_ast = program env ~tok cst in
-      Bash_to_generic.(program input_kind bash_ast))
+      program env ~tok cst)
 
 let parse_pattern str =
-  let input_kind = AST_bash.Pattern in
   H.wrap_parser
     (fun () -> Tree_sitter_bash.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = input_kind } in
+      let env = { H.file; conv = Hashtbl.create 0; extra = AST_bash.Pattern } in
       let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
-      let bash_ast = program env ~tok cst in
-      Bash_to_generic.any input_kind bash_ast)
+      program env ~tok cst)

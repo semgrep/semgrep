@@ -198,7 +198,6 @@ and esthet = Comment | Newline | Space
 
 (* shortcut *)
 type t = token_mutable [@@deriving eq]
-type info_ = t
 
 (* see -full_token_info in meta_parse_info.ml *)
 let pp_full_token_info = ref false

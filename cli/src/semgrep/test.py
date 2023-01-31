@@ -414,7 +414,7 @@ def config_contains_fix_key(config: Path) -> bool:
     with open(config) as file:
         yaml = YAML(typ="safe")  # default, if not specfied, is 'rt' (round-trip)
         rule = yaml.load(file)
-        if "rules" in rule:
+        if rule.get("rules"):
             return "fix" in rule["rules"][0]
         else:
             return False

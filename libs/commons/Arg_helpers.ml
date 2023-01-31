@@ -17,7 +17,7 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Pad's extensions to Arg for actions. See pfff/Main.ml for
+(* Pad's extensions to Arg for actions. See pfff's Main.ml for
  * an example of use.
  *
  * DEPRECATED: this module is deprecated, you should use the

@@ -17,14 +17,14 @@ module AST = Ast_go
 module CST = Tree_sitter_go.CST
 module PI = Parse_info
 open Ast_go
-module G = AST_generic_
+module G = AST_generic
 module H = Parse_tree_sitter_helpers
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* Go parser using tree-sitter-lang/semgrep-go and converting
- * to pfff/lang_go/parsing/ast_go.ml
+ * to ../ast/ast_go.ml
  *
  * The resulting AST can then be converted to the generic AST by using
  * go_to_generic.ml

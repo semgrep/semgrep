@@ -1,0 +1,10 @@
+rules:
+  - id: transitive_and_direct
+    pattern: foo()
+    r2c-internal-project-depends-on:
+      namespace: npm
+      package: "@types/jquery"
+      version: "<= 3.3.1"
+    message: oh no
+    languages: [js]
+    severity: WARNING

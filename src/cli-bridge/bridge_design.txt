@@ -335,13 +335,13 @@ In semgrep-core:
   Modified Makefile: dev: Symlink semgrep_bridge_python.so and
   semgrep_bridge_core.so like semgrep-core.
 
-In semgrep-core/src/cli:
+In src/cli:
 
   Modified dune: Defines executable Main.exe (as before).
 
   Modified Main.ml: Mostly empty file that calls into cli_lib.
 
-In semgrep-core/src/cli-lib:
+In src/cli-lib:
 
   Added dune: Defines library 'cli_lib', which is shared between the
   stand-alone executable and the semgrep_bridge_core.so shared library.
@@ -352,7 +352,7 @@ In semgrep-core/src/cli-lib:
 
   Moved version.ml: Moved from cli to cli-lib so it can be shared.
 
-Added semgrep-core/src/cli-bridge:
+Added src/cli-bridge:
 
   dune: Defines executables semgrep_bridge_python.so and
   semgrep_bridge_core.so.
@@ -376,7 +376,7 @@ Added semgrep-core/src/cli-bridge:
   bridge_design.ded{,.png}: Module interaction diagram, editable with
   https://github.com/smcpeak/ded.
 
-In semgrep-core/src/utils:
+In src/utils:
 
   Modified dune: Include fnptr_impl.c in the library.
 
@@ -386,14 +386,14 @@ In semgrep-core/src/utils:
   code dynamically create objects consisting of a 'void *extra' pointer
   and a function pointer that can be called, approximating closures.
 
-Added semgrep-core/tests/cli-bridge:
+Added tests/cli-bridge:
 
   dune: Build and run the tests.
 
   bridge_test.c: Wrapper to invoke semgrep_bridge_core.so from C rather
   than Python.
 
-In semgrep-core/tests/utils:
+In tests/utils:
 
   Added dune: Build and run the tests.
 

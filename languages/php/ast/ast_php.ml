@@ -198,8 +198,8 @@ type expr =
   | Call of expr * argument list bracket
   | Throw of tok * expr
   (* todo? transform into Call (builtin ...) ? *)
-  | Infix of AST_generic_.incr_decr wrap * expr
-  | Postfix of AST_generic_.incr_decr wrap * expr
+  | Infix of AST_generic.incr_decr wrap * expr
+  | Postfix of AST_generic.incr_decr wrap * expr
   | Binop of expr * binaryOp wrap * expr
   | Unop of unaryOp wrap * expr
   | Guil of expr list bracket
@@ -239,9 +239,9 @@ and binaryOp =
   (* TODO: now available in AST_generic_ ? *)
   | BinaryConcat
   | CombinedComparison
-  | ArithOp of AST_generic_.operator
+  | ArithOp of AST_generic.operator
 
-and unaryOp = AST_generic_.operator
+and unaryOp = AST_generic.operator
 
 and argument =
   | Arg of expr
@@ -468,7 +468,7 @@ let wrap_fake s = (s, Parse_info.fake_info s)
  *  - 'include', 'require', 'include_once', 'require_once'.
  *  -  __LINE__/__FILE/__DIR/__CLASS/__TRAIT/__FUNCTION/__METHOD/
  *
- * See also pfff/data/php_stdlib/pfff.php which declares those builtins.
+ * See also data/php_stdlib/pfff.php which declares those builtins.
  * See also tests/php/semantic/ for example of uses of those builtins.
  *
  * coupling: if modify the string, git grep it because it's probably

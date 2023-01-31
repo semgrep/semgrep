@@ -88,8 +88,6 @@ open! Common
 open AST_bash
 module G = AST_generic
 
-(*module H = AST_generic_helpers*)
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -516,7 +514,7 @@ and expansion (env : env) (x : expansion) : G.expr =
 
 and expand loc (var_expr : G.expr) : G.expr = call loc C.expand [ var_expr ]
 
-let program (env : env) x = blist (env : env) x |> Common.map as_stmt
+let program_with_env (env : env) x = blist (env : env) x |> Common.map as_stmt
 
 (*
    Unwrap the pattern tree as much as possible to maximize matches.
@@ -526,7 +524,7 @@ let program (env : env) x = blist (env : env) x |> Common.map as_stmt
    ('If' condition). Unwrapping into an expr allows the expr to match those
    cases.
 *)
-let pattern (x : blist) =
+let any (x : blist) =
   let env = Pattern in
   match blist_as_expression x with
   | Some e -> G.E (expression env e)
@@ -534,12 +532,11 @@ let pattern (x : blist) =
    * problem with Parse_pattern.normalize_any probably
    *)
   | None -> (
-      match program env x with
+      match program_with_env env x with
       | [ { G.s = G.ExprStmt (e, _semicolon); _ } ] -> G.E e
       | [ stmt ] -> G.S stmt
       | stmts -> G.Ss stmts)
 
-let any (env : env) x : G.any =
-  match env with
-  | Program -> G.Ss (program env x)
-  | Pattern -> pattern x
+let program x =
+  let env = Program in
+  program_with_env env x

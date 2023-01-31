@@ -10,6 +10,6 @@
     "cli/tests/e2e/snapshots/**",
     "cli/tests/e2e/rules/syntax/**",
     "cli/src/semgrep/external/**",
-    "semgrep-core/**/tests/**"
+    "tests/**"
   ]
 }

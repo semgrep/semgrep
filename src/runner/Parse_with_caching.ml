@@ -69,7 +69,7 @@ let get_value_and_run_checks ?(filecheck = None) version_cur file_cache =
  * This function is slightly more flexible because we can put the cache file
  * anywhere thanks to the argument 'cache_file_of_file'.
  * We also try to be a bit more type-safe by using the version tag above.
- * TODO: merge in pfff/commons/Common.ml at some point
+ * TODO: merge in commons/Common.ml at some point
  *)
 let cache_computation use_parsing_cache version_cur file cache_file_of_file f =
   if not use_parsing_cache then f ()

@@ -64,7 +64,7 @@ let metavar_expr (x : string wrap) : G.expr = id_expr x
 
 let string_or_metavar_expr (x : string wrap) : G.expr =
   let s, _ = x in
-  if AST_generic_.is_metavar_name s then metavar_expr x else string_expr x
+  if AST_generic.is_metavar_name s then metavar_expr x else string_expr x
 
 let ellipsis_expr (tok : tok) : G.expr = G.Ellipsis tok |> G.e
 
@@ -116,7 +116,7 @@ let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
   | Command_semgrep_ellipsis tok -> [ G.Ellipsis tok |> G.e ]
   | Argv (_loc, array) -> [ string_array array ]
   | Sh_command (loc, x) ->
-      let args = Bash_to_generic.program env x |> expr_of_stmts loc in
+      let args = Bash_to_generic.program_with_env env x |> expr_of_stmts loc in
       [ call_shell loc Sh [ args ] ]
   | Other_shell_command (shell_compat, code) ->
       let args = [ string_expr code ] in
@@ -318,7 +318,8 @@ let instruction env (x : instruction) : G.stmt =
   | StmtExpr stmt -> stmt
   | _ -> stmt_of_expr (instruction_loc x) expr
 
-let program (env : env) (x : program) : G.stmt list =
+let program_with_env (env : env) (x : program) : G.stmt list =
   Common.map (instruction env) x
 
-let any (env : env) x : G.any = G.Ss (program env x)
+let any (x : program) : G.any = G.Ss (program_with_env AST_bash.Pattern x)
+let program (x : program) : G.program = program_with_env AST_bash.Program x

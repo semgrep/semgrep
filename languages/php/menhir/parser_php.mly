@@ -939,10 +939,10 @@ expr:
 
  | simple_expr T_CONCAT_EQUAL expr { AssignOp($1,(AssignConcat,$2),$3) }
 
- | expr T_INC { Postfix($1, (AST_generic_.Incr, $2)) }
- | expr T_DEC { Postfix($1, (AST_generic_.Decr, $2)) }
- | T_INC expr { Infix((AST_generic_.Incr, $1), $2) }
- | T_DEC expr { Infix((AST_generic_.Decr, $1), $2) }
+ | expr T_INC { Postfix($1, (AST_generic.Incr, $2)) }
+ | expr T_DEC { Postfix($1, (AST_generic.Decr, $2)) }
+ | T_INC expr { Infix((AST_generic.Incr, $1), $2) }
+ | T_DEC expr { Infix((AST_generic.Decr, $1), $2) }
 
  | expr T_BOOLEAN_OR   expr { Binary($1,(Logical OrBool ,$2),$3) }
  | expr T_BOOLEAN_AND  expr { Binary($1,(Logical AndBool,$2),$3) }
@@ -990,7 +990,7 @@ expr:
 
  (* less: it would be nicer to have "(" TTypename ")"
   * but this would require some parsing tricks to sometimes return
-  * a TIdent and TTypename like in pfff/lang_cpp/parsing/.
+  * a TIdent and TTypename like in cpp/menhir/.
   *)
  | T_BOOL_CAST   expr   { Cast((BoolTy,$1),$2) }
  | T_INT_CAST    expr   { Cast((IntTy,$1),$2) }

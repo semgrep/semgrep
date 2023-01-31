@@ -221,7 +221,7 @@ let dump_ast ?(naming = false) lang file =
           |> String.concat "\n");
         Runner_exit.(exit_semgrep False)))
 
-(* mostly a copy paste of pfff/lang_GENERIC/analyze/Test_analyze_generic.ml *)
+(* mostly a copy paste of Test_analyze_generic.ml *)
 let dump_il_all file =
   let lang = List.hd (Lang.langs_of_filename file) in
   let ast = Parse_target.parse_program file in

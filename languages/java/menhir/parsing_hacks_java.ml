@@ -31,7 +31,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * Java grammar.
  *
  * This is similar to what we do for C/C++.
- * See pfff/lang_cpp/parsing/parsing_hacks.ml for more information.
+ * See cpp/.../parsing_hacks.ml for more information.
  *)
 
 (*****************************************************************************)
