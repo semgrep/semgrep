@@ -222,8 +222,12 @@ and map_expr_opt env v =
 
 and map_expr (env : env) (x : CST.expr) : expr =
   match x with
-  | `Semg_ellips _v1 -> failwith "TODO"
-  | `Deep_ellips (_v1, _v2, _v3) -> failwith "TODO"
+  | `Semg_ellips v1 -> Ellipsis (token env v1)
+  | `Deep_ellips (v1, v2, v3) ->
+      let l = token env v1 in
+      let e = map_expr env v2 in
+      let r = token env v3 in
+      DeepEllipsis (l, e, r)
   | `Choice_null x -> map_expr_origin env x
 
 and map_expr_origin (env : env) x : expr =
@@ -504,9 +508,11 @@ and map_binary_expr (env : env) (x : CST.binary_expr) : expr =
       let v3 = map_document env v3 in
       BinaryOp (v1, v2, v3)
 
-and map_field (env : env) (x : CST.field) : field =
+and map_field (env : env) (x : CST.field) : obj_member =
   match x with
-  | `Semg_ellips _v1 -> failwith "TODO"
+  | `Semg_ellips v1 ->
+      let tdots = token env v1 in
+      OEllipsis tdots
   | `Choice_fiel_opt_PLUS_choice_COLON_expr y -> (
       match y with
       | `Fiel_opt_PLUS_choice_COLON_expr (v1, v2, v3, v4) ->
@@ -518,7 +524,13 @@ and map_field (env : env) (x : CST.field) : field =
           in
           let h = map_h env v3 in
           let e = map_document env v4 in
-          { fld_name = fld; fld_attr = plusopt; fld_hidden = h; fld_value = e }
+          OField
+            {
+              fld_name = fld;
+              fld_attr = plusopt;
+              fld_hidden = h;
+              fld_value = e;
+            }
       | `Fiel_LPAR_opt_params_RPAR_choice_COLON_expr (v1, v2, v3, v4, v5, v6) ->
           let fld = map_fieldname env v1 in
           let lp = (* "(" *) token env v2 in
@@ -531,12 +543,13 @@ and map_field (env : env) (x : CST.field) : field =
           let h = map_h env v5 in
           let e = map_document env v6 in
           let fdef = { f_tok = lp; f_params = (lp, params, rp); f_body = e } in
-          {
-            fld_name = fld;
-            fld_attr = None;
-            fld_hidden = h;
-            fld_value = Lambda fdef;
-          })
+          OField
+            {
+              fld_name = fld;
+              fld_attr = None;
+              fld_hidden = h;
+              fld_value = Lambda fdef;
+            })
 
 and map_fieldname (env : env) (x : CST.fieldname) : field_name =
   match x with
@@ -574,7 +587,7 @@ and map_member (env : env) (x : CST.member) : obj_member =
       OAssert x
   | `Field x ->
       let x = map_field env x in
-      OField x
+      x
 
 and map_named_argument (env : env) ((v1, v2, v3) : CST.named_argument) :
     argument =
@@ -645,7 +658,7 @@ and map_objlocal (env : env) ((v1, v2) : CST.objlocal) =
 
 and map_param (env : env) (x : CST.param) : parameter =
   match x with
-  | `Semg_ellips _v1 -> failwith "TODO"
+  | `Semg_ellips v1 -> ParamEllipsis (token env v1)
   | `Id_opt_EQ_expr (v1, v2) ->
       let id = map_id env v1 in
       let default_opt =

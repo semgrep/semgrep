@@ -192,7 +192,12 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Json ->
         let any = Parse_json.any_of_string str in
         Json_to_generic.any any
-    | Lang.Jsonnet -> failwith "Jsonnet is not supported yet"
+    | Lang.Jsonnet ->
+        let res = Parse_jsonnet_tree_sitter.parse_pattern str in
+        let pattern =
+          extract_pattern_from_tree_sitter_result res print_errors
+        in
+        Jsonnet_to_generic.any pattern
     | Lang.Clojure -> failwith "clojure is not supported yet"
     | Lang.Lisp -> failwith "Lisp is not supported yet"
     | Lang.Scheme -> failwith "Scheme is not supported yet"
