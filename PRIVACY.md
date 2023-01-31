@@ -79,6 +79,7 @@ Environmental data provide contextual data about Semgrep’s runtime environment
 - An [anonymous user ID](#anonymous-user-id) that identifies the machine
 - IP address that triggers a run
 - Value of the CI environment variable, if set
+- Engine type requested (e.g. OSS, Pro, Interfile-only)
 - Pseudoanonymized hash of the scanned project’s name
 - Pseudoanonymized hash of the rule definitions run
 - Pseduoanonymized hash of the config option.
