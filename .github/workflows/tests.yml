@@ -393,6 +393,7 @@ jobs:
         type=edge
       repository-name: ${{ github.repository }}-dev
       artifact-name: image-dev
+      file: dockerfiles/semgrep-dev.Dockerfile
 
   push-dev-docker:
     needs: [build-test-dev-docker]

@@ -65,6 +65,7 @@ jobs:
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          file: ${{ inputs.file }}
 
       - name: Checkout
         uses: actions/checkout@v3
