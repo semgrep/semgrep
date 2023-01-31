@@ -87,7 +87,7 @@ def parse_yarn1(
         """
         for line in lines:
             if line.strip().startswith("integrity"):
-                _, integrity = line.split()
+                _, integrity = line.split(" ", 1)
                 return integrity
         return None
 
