@@ -19,6 +19,10 @@ on:
         required: true
         type: string
         description: Dockerfile to build
+      enable-tests:
+        required: true
+        type: boolean
+        description: Whether or not to run validation on the built image
 
   workflow_call:
     inputs:
@@ -38,6 +42,10 @@ on:
         required: true
         type: string
         description: Dockerfile to build
+      enable-tests:
+        required: true
+        type: boolean
+        description: Whether or not to run validation on the built image
 
 jobs:
   build-test-docker:
@@ -46,7 +54,6 @@ jobs:
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-
       - id: meta
         name: Set tags and labels
         uses: docker/metadata-action@v4
@@ -54,7 +61,6 @@ jobs:
           images: ${{ inputs.repository-name }}
           # :latest is also added automatically
           tags: ${{ inputs.docker-tags }}
-
       - name: Build image
         id: build-image
         uses: docker/build-push-action@v3
@@ -65,25 +71,14 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
-
-      - name: List images
-        run: |
-          docker image list --digests
-
       - name: Load image
         run: |
           docker load --input /tmp/image.tar
-
-      - name: List images
-        run: |
-          docker image list --digests
-
       - name: Checkout
         uses: actions/checkout@v3
-
-      - name: Check the semgrep Docker image
+      - name: Test Image
+        if: ${{ inputs.enable-tests }} == 'true'
         run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}
-
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:

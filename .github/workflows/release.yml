@@ -189,6 +189,7 @@ jobs:
       repository-name: ${{ github.repository }}
       artifact-name: image-release
       file: Dockerfile
+      enable-tests: true
 
   push-docker:
     name: Push Semgrep Docker image

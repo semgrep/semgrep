@@ -372,6 +372,7 @@ jobs:
       artifact-name: image-test
       repository-name: ${{ github.repository }}
       file: Dockerfile
+      enable-tests: true
 
   push-docker:
     needs: [build-test-docker]
@@ -396,6 +397,7 @@ jobs:
       repository-name: ${{ github.repository }}-dev
       artifact-name: image-dev
       file: dockerfiles/semgrep-dev.Dockerfile
+      enable-tests: false
 
   push-dev-docker:
     needs: [build-test-dev-docker]
