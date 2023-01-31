@@ -88,7 +88,7 @@ def parse_yarn1(
         for line in lines:
             if line.strip().startswith("integrity"):
                 _, integrity = line.split(" ", 1)
-                return integrity
+                return integrity.strip('"')
         return None
 
     def version_sources(line: str) -> Tuple[str, List[Tuple[str, str]]]:
