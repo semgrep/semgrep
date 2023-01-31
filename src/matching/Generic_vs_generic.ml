@@ -1080,8 +1080,8 @@ and m_raw_tree (a : G.raw_tree) (b : G.raw_tree) =
   (* metavar:
    * We add those extra (Case (_)) or-pattern below because the metavar
    * could be nested but we want to match at the toplevel.
-   * For instamce, Case("Sym_lit", Token("$X")) should also matches
-   * a Case("Num_lit", Token(("2"))).
+   * For instance, Case("Sym_lit", Token("$X")) should also match
+   * Case("Num_lit", Token(("2"))).
    * TODO? When should we stop? use >||> and try at each level?
    *)
   | ( ( Token (str, tok)
@@ -1098,6 +1098,10 @@ and m_raw_tree (a : G.raw_tree) (b : G.raw_tree) =
   | Token a, Token b -> m_wrap m_string a b
   (* dots:
    * TODO? restrict it to just List?
+   * TODO? we should also accept Any (Expr (Ellipsis)) below. Indeed,
+   * once you start to migrate out of the raw_tree to the real generic AST,
+   * you could get a mix of Raw_tree and generic AST that we need to match
+   * together.
    *)
   | List a, List b
   | Tuple a, Tuple b ->
