@@ -59,13 +59,20 @@ jobs:
         id: build-image
         uses: docker/build-push-action@v3
         with:
-          load: true
           outputs: type=docker,dest=/tmp/image.tar
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
+
+      - name: List images
+        run: |
+          docker image list --digests
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/image.tar
 
       - name: List images
         run: |
