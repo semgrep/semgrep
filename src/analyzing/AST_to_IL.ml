@@ -890,7 +890,9 @@ and record env ((_tok, origfields, _) as record_def) =
                 we just want it in there at all so that we can use it as a sink.
              *)
              let field_expr = record env fields in
-             (* it is not clear to me if the prior_expr is necessary here. *)
+             (* We need to use the entire `prior_expr` here, or the range won't be quite
+                right (we'll leave out the identifier)
+             *)
              Some (Field (id, { field_expr with eorig = SameAs prior_expr }))
          | _ when is_hcl env.lang ->
              (* For HCL constructs such as `lifecycle` blocks within a module call, the
