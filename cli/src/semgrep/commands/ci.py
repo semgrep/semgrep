@@ -377,14 +377,11 @@ def ci(
             (
                 filtered_matches_by_rule,
                 semgrep_errors,
-                all_targets,
                 renamed_targets,
                 ignore_log,
                 filtered_rules,
                 profiler,
-                profiling_data,
-                parsing_data,
-                _explanations,
+                output_extra,
                 shown_severities,
                 lockfile_scan_info,
             ) = semgrep.semgrep_main.main(
@@ -480,11 +477,11 @@ def ci(
 
     output_handler.output(
         {**blocking_matches_by_rule, **nonblocking_matches_by_rule},
-        all_targets=all_targets,
+        all_targets=output_extra.all_targets,
         ignore_log=ignore_log,
         profiler=profiler,
         filtered_rules=filtered_rules,
-        profiling_data=profiling_data,
+        profiling_data=output_extra.profiling_data,
         severities=shown_severities,
         is_ci_invocation=True,
     )
@@ -499,10 +496,10 @@ def ci(
             filtered_matches_by_rule,
             semgrep_errors,
             filtered_rules,
-            all_targets,
+            output_extra.all_targets,
             renamed_targets,
             ignore_log.unsupported_lang_paths,
-            parsing_data,
+            output_extra.parsing_data,
             total_time,
             metadata.commit_datetime,
             lockfile_scan_info,

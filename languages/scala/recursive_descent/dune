@@ -6,6 +6,7 @@
 
    commons
    pfff-h_program-lang
+   ast_generic ; some use of is_metavar_name
    parser_scala.ast
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))

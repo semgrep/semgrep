@@ -884,14 +884,11 @@ def scan(
                 (
                     filtered_matches_by_rule,
                     semgrep_errors,
-                    all_targets,
-                    _,
+                    _renamed_targets,
                     ignore_log,
                     filtered_rules,
                     profiler,
-                    profiling_data,
-                    _,
-                    explanations,
+                    output_extra,
                     shown_severities,
                     _,
                 ) = semgrep.semgrep_main.main(
@@ -931,12 +928,12 @@ def scan(
 
             output_handler.output(
                 filtered_matches_by_rule,
-                all_targets=all_targets,
+                all_targets=output_extra.all_targets,
                 ignore_log=ignore_log,
                 profiler=profiler,
                 filtered_rules=filtered_rules,
-                profiling_data=profiling_data,
-                explanations=explanations,
+                profiling_data=output_extra.profiling_data,
+                explanations=output_extra.explanations,
                 severities=shown_severities,
                 print_summary=True,
             )
@@ -947,7 +944,7 @@ def scan(
                 filtered_matches_by_rule,
                 semgrep_errors,
                 filtered_rules,
-                all_targets,
+                output_extra.all_targets,
             )
 
     if enable_version_check:

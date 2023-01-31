@@ -235,7 +235,7 @@ module IdInfoId = Gensym.MkId ()
 (* A single unique id: sid (uid would be a better name, but it usually
  * means "user id" for people).
  *
- * This single id simplifies further analysis which need less to care about
+ * This single id simplifies further analysis that need to care less about
  * maintaining scoping information, for example to deal with variable
  * shadowing, or functions using the same parameter names
  * (even though you still need to handle specially recursive functions), etc.
@@ -276,8 +276,9 @@ and resolved_name_kind =
   (* sgrep: those cases allow to match entities/modules even if they were
    * aliased when imported.
    * both dotted_ident must at least contain one element *)
-  | ImportedEntity of dotted_ident
-  | ImportedModule of module_name
+  | ImportedEntity of canonical_name
+  | ImportedModule of
+      canonical_name (* just the DottedName part of module_name*)
   (* used in Go, where you can pass types as arguments and where we
    * need to resolve those cases
    *)
@@ -285,25 +286,29 @@ and resolved_name_kind =
   (* used for C *)
   | Macro
   | EnumConstant
-  (* for deep semgrep
+  (* This is for deep semgrep.
    *
-   * ResolvedName (resolved_name, alternate_names)
+   * GlobalName (canonical_name, alternate_names)
    *
-   * resolved_name: The canonical, global name that the symbol resolves to.
+   * canonical_name: The canonical, global name that the symbol resolves to.
    *
    * alternate_names: Other names that users may write when referring to this
-   * symbol. For example, in JS, the resolved_name may include the file path of
-   * the file where the symbol is defined, but users may want to write patterns
-   * to match based on the module specifier, e.g.:
+   * symbol. For example, in JS, the canonical_name may include the file path
+   * of the file where the symbol is defined, but users may want to write
+   * patterns to match based on the module specifier, e.g.:
    *
    * import {bar} from 'foo';
    * bar;
    *
    * We might store ['/path/to/node_modules/foo/src/x.js', 'bar'] as the
-   * resolved_name, but we also want to match the pattern `foo.bar` so we will
+   * canonical_name, but we also want to match the pattern `foo.bar` so we will
    * store ['foo', 'bar'] as an alternate name.
    * *)
-  | ResolvedName of dotted_ident * dotted_ident list
+  | GlobalName of canonical_name * alternate_name list
+
+and canonical_name = string list
+
+and alternate_name = string list
 [@@deriving show { with_path = false }, eq, hash]
 
 (* Start of big mutually recursive types because of the use of 'any'
@@ -573,14 +578,14 @@ and expr_kind =
    *)
   | StmtExpr of stmt
   (* e.g., TypeId in C++, MethodRef/ClassLiteral in Java, Send/Receive in Go,
-   * Checked/Unchecked in C#, Repr in Python, RecordWith in OCaml/C#,
+   * Checked/Unchecked in C#, Repr in Python, RecordWith in OCaml/C#/Jsonnet,
    * Subshell in Ruby, Delete/Unset in JS/Hack/Solidity/C++,
    * Unpack/ArrayAppend in PHP (the AST for $x[] = 1 used to be
    * handled as an AssignOp with special Append).
    * Define/Arguments/NewTarget/YieldStar/Exports/Module/Require/UseStrict JS,
    * UnitLiteral/HexString/UnicodeString/TupleHole/StructExpr in Solidity,
    * AtomExpr/AnonDotField/ContainerBits/When/Join/OpSlashInt/Sigil/Shortcut
-   * AttrExpr in Elixir,
+   * AttrExpr in Elixir, Error/ImportStr/ObjComprehension in Jsonnet
    * TODO? lift up to program attribute/directive UseStrict, Require in Import?
    * TODO? replace 'any list' by 'expr list'? any way there's still
    * StmtExpr above to wrap stmt if it's not an expr but a stmt
@@ -1877,23 +1882,6 @@ and any =
 and raw_tree = any Raw_tree.t [@@deriving show { with_path = false }, eq, hash]
 
 (*****************************************************************************)
-(* Special constants *)
-(*****************************************************************************)
-
-(* In JS one can do 'var {x,y} = foo();'. We used to transpile that
- * in multiple vars, but in sgrep one may want to match over those patterns.
- * However those multivars do not fit well with the (entity * definition_kind)
- * model we currently use, so for now we need this ugly hack of converting
- * the statement above in
- * ({name = "!MultiVarDef"}, VarDef {vinit = Assign (Record {...}, foo())}).
- * This is bit ugly, but at some point we may want to remove completely
- * VarDef by transforming them in Assign (see vardef_to_assign() below)
- * so this temporary hack is not too bad.
- * TODO: use EPattern instead
- *)
-let special_multivardef_pattern = AST_generic_.special_multivardef_pattern
-
-(*****************************************************************************)
 (* Error *)
 (*****************************************************************************)
 
@@ -1984,6 +1972,9 @@ let basic_id_info ?(hidden = false) resolved =
   }
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
+
+let dotted_to_canonical xs = Common.map fst xs
+let canonical_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
 
 (* ------------------------------------------------------------------------- *)
 (* Entities *)
@@ -2148,3 +2139,36 @@ let case_of_pat_and_stmt ?(tok = None) (pat, stmt) =
     | Some tok -> tok
   in
   CasesAndBody ([ Case (tok, pat) ], stmt)
+
+(*****************************************************************************)
+(* Special constants *)
+(*****************************************************************************)
+
+(* In JS one can do 'var {x,y} = foo();'. We used to transpile that
+ * in multiple vars, but in semgrep one may want to match over those patterns.
+ * However those multivars do not fit well with the (entity * definition_kind)
+ * model we currently use, so for now we need this ugly hack of converting
+ * the statement above in
+ * ({name = "!MultiVarDef"}, VarDef {vinit = Assign (Record {...}, foo())}).
+ * This is bit ugly, but at some point we may want to remove completely
+ * VarDef by transforming them in Assign (see vardef_to_assign() below)
+ * so this temporary hack is not too bad.
+ * TODO: use EPattern instead
+ *)
+let special_multivardef_pattern = "!MultiVarDef!"
+
+(*****************************************************************************)
+(* Semgrep hacks *)
+(*****************************************************************************)
+
+(* !!You should not use the function below!! You should use instead
+ * Metavars_generic.is_metavar_name. If you use the function below,
+ * it probably means you have an ugly dependency to semgrep that you
+ * should not have.
+ * coupling: Metavariable.is_metavar_name
+ *)
+let is_metavar_name s = Common.( =~ ) s "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
+
+(* coupling: Metavariable.is_metavar_ellipsis *)
+let is_metavar_ellipsis s =
+  Common.( =~ ) s "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"

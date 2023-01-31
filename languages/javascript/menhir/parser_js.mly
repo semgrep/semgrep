@@ -16,10 +16,10 @@
  *)
 open Common
 
-open AST_generic_
+open AST_generic
 open Ast_js
 module PI = Parse_info
-module H = AST_generic_
+module G = AST_generic
 
 (*************************************************************************)
 (* Prelude *)
@@ -95,12 +95,12 @@ let mk_FuncDef props f_kind (_generics,(_,f_params,_),f_rettype) (lc,xs,rc) =
 
 let mk_Class ?(props=[]) tok idopt _generics (c_extends, c_implements) c_body =
   let c_attrs = props |> List.map attr in
-  Class ({c_kind = H.Class, tok; c_extends; c_implements; c_attrs; c_body},
+  Class ({c_kind = G.Class, tok; c_extends; c_implements; c_attrs; c_body},
          idopt)
 
 let mk_ClassDef ?(attrs=[]) ?(props=[]) tok _generics (c_extends, c_implements) c_body =
   let c_attrs = (props |> List.map attr) @ attrs in
-  ClassDef ({c_kind = H.Class, tok; c_extends; c_implements; c_attrs; c_body})
+  ClassDef ({c_kind = G.Class, tok; c_extends; c_implements; c_attrs; c_body})
 
 let mk_Field ?(fld_type=None) ?(props=[]) fld_name eopt =
   let fld_attrs = props |> List.map attr in
@@ -880,7 +880,7 @@ method_get_set_star:
 interface_decl: T_INTERFACE binding_id generics? optl(interface_extends)
   object_type
    { let (t1, _xsTODO, t2) = $5 in
-      Some $2, ClassDef { c_kind = H.Interface, $1;
+      Some $2, ClassDef { c_kind = G.Interface, $1;
       c_extends = $4; c_implements = []; c_attrs = [];
       c_body = (t1, [], t2) } }
 

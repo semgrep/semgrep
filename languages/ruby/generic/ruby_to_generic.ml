@@ -511,7 +511,7 @@ and expr_as_stmt = function
          * unless it's a metavariable
       *)
       | G.N (G.Id ((s, _), _)) ->
-          if AST_generic_.is_metavar_name s then G.exprstmt e
+          if AST_generic.is_metavar_name s then G.exprstmt e
           else
             let call = G.Call (e, fb []) |> G.e in
             G.exprstmt call
@@ -817,7 +817,7 @@ and list_stmt1 xs =
    * hacky ...
    *)
   | [ ({ G.s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _)); _ }, _); _ } as x) ]
-    when AST_generic_.is_metavar_name s ->
+    when AST_generic.is_metavar_name s ->
       x
   | xs -> G.Block (fb xs) |> G.s
 

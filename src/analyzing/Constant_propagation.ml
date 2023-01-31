@@ -119,7 +119,7 @@ let is_global = function
   | _ -> false
 
 let is_resolved_name = function
-  | ResolvedName _ -> true
+  | GlobalName _ -> true
   | _ -> false
 
 let is_lang env l2 =

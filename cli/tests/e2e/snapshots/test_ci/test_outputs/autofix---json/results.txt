@@ -393,7 +393,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "pypi",
-              "line_number": 1,
+              "line_number": 2,
               "package": "badlib",
               "transitivity": "unknown",
               "version": "99.99.99"

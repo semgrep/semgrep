@@ -14,7 +14,6 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.commands.ci
-import semgrep.output_from_core as core
 import semgrep.semgrep_main
 from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
@@ -26,9 +25,8 @@ from semgrep.meta import generate_meta_from_environment
 from semgrep.metrics import MetricsState
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
-from semgrep.parsing_data import ParsingData
+from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
-from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
@@ -237,13 +235,10 @@ class LSPConfig:
             RuleMatchMap,
             List[SemgrepError],
             Set[Path],
-            Set[Path],
             FileTargetingLog,
             List[Rule],
             ProfileManager,
-            ProfilingData,
-            ParsingData,
-            Optional[List[core.MatchingExplanation]],
+            OutputExtra,
             Collection[RuleSeverity],
             Dict[str, int],
         ],
@@ -282,13 +277,10 @@ class LSPConfig:
             RuleMatchMap,
             List[SemgrepError],
             Set[Path],
-            Set[Path],
             FileTargetingLog,
             List[Rule],
             ProfileManager,
-            ProfilingData,
-            ParsingData,
-            Optional[List[core.MatchingExplanation]],
+            OutputExtra,
             Collection[RuleSeverity],
             Dict[str, int],
         ],
@@ -304,13 +296,10 @@ class LSPConfig:
             RuleMatchMap,
             List[SemgrepError],
             Set[Path],
-            Set[Path],
             FileTargetingLog,
             List[Rule],
             ProfileManager,
-            ProfilingData,
-            ParsingData,
-            Optional[List[core.MatchingExplanation]],
+            OutputExtra,
             Collection[RuleSeverity],
             Dict[str, int],
         ],

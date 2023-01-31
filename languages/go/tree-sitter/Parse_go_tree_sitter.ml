@@ -17,7 +17,7 @@ module AST = Ast_go
 module CST = Tree_sitter_go.CST
 module PI = Parse_info
 open Ast_go
-module G = AST_generic_
+module G = AST_generic
 module H = Parse_tree_sitter_helpers
 
 (*****************************************************************************)

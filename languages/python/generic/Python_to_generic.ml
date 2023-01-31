@@ -142,8 +142,11 @@ let resolved_name = function
   | GlobalVar -> Some (G.Global, G.SId.unsafe_default)
   | ClassField -> None
   | ImportedModule xs ->
-      Some (G.ImportedModule (G.DottedName xs), G.SId.unsafe_default)
-  | ImportedEntity xs -> Some (G.ImportedEntity xs, G.SId.unsafe_default)
+      let xs = G.dotted_to_canonical xs in
+      Some (G.ImportedModule xs, G.SId.unsafe_default)
+  | ImportedEntity xs ->
+      let xs = G.dotted_to_canonical xs in
+      Some (G.ImportedEntity xs, G.SId.unsafe_default)
   | NotResolved -> None
 
 let expr_context = function
@@ -535,7 +538,7 @@ and list_stmt1 env xs =
    * hacky ...
    *)
   | [ ({ G.s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _)); _ }, _); _ } as x) ]
-    when AST_generic_.is_metavar_name s ->
+    when AST_generic.is_metavar_name s ->
       x
   | xs -> G.Block (fb xs) |> G.s
 

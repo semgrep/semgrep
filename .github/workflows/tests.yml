@@ -430,44 +430,6 @@ jobs:
           perf/compare-perf cli/baseline_timing1.json cli/baseline_timing2.json cli/timing1.json cli/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
           perf/compare-bench-findings cli/findings.json
 
-  build-macos-release:
-    runs-on: ["self-hosted", "macOS", "X64"]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-      - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-      # TODO why not the specific 2022.6.7 version here?
-      - run: sudo python3 -m pip install pipenv
-      - name: Run OSX build
-        run: ./scripts/osx-release.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: semgrep-osx
-          path: artifacts
-
-  test-macos-release:
-    name: test macOS release
-    runs-on: ["self-hosted", "macOS", "X64"]
-    needs: [build-macos-release]
-    steps:
-      - name: download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: semgrep-osx
-          path: test-artifacts
-      - name: Remove pcre dynamic lib
-        run: rm /usr/local/opt/pcre/lib/libpcre.1.dylib || true
-      - name: test build artifacts
-        run: |
-          chmod +x ./test-artifacts/semgrep-core
-          ./test-artifacts/semgrep-core -help
-
   build-ubuntu-release:
     needs: [build-semgrep-core]
     runs-on: ubuntu-22.04
@@ -495,3 +457,29 @@ jobs:
         with:
           name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz
+
+  build-test-docker:
+    uses: ./.github/workflows/build-test-docker.yaml
+    secrets: inherit
+
+  build-test-core-x86:
+    uses: ./.github/workflows/build-test-core-x86.yaml
+    secrets: inherit
+
+  build-test-manylinux-x86:
+    needs: [build-test-core-x86]
+    uses: ./.github/workflows/build-test-manylinux-x86.yaml
+    secrets: inherit
+
+  build-test-osx-x86:
+    uses: ./.github/workflows/build-test-osx-x86.yaml
+    secrets: inherit
+
+  build-test-osx-m1:
+    uses: ./.github/workflows/build-test-osx-m1.yaml
+    secrets: inherit
+
+  build-test-ubuntu-16-04:
+    needs: [build-test-core-x86]
+    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
+    secrets: inherit
