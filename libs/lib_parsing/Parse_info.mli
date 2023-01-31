@@ -142,6 +142,7 @@ exception NoTokenLocation of string
 val fake_token_location : token_location
 val is_fake : t -> bool
 val is_origintok : t -> bool
+val has_origin_loc : t -> bool
 
 (* NOTE: These functions introduce unsafe fake tokens, prefer safe functions
  * below, use these only as a last resort! *)
