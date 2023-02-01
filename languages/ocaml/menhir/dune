@@ -5,7 +5,7 @@
  (libraries
 
    commons
-   pfff-h_program-lang
+   lib_parsing
    parser_ocaml.ast
  )
  (preprocess (pps ppx_deriving.show))

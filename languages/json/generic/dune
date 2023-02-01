@@ -4,7 +4,7 @@
  (wrapped false)
  (libraries
    commons
-   pfff-h_program-lang
+   lib_parsing
    ast_generic
    parser_javascript.ast
    parser_javascript.ast_generic

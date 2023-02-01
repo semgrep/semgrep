@@ -5,7 +5,7 @@
     yojson
 
     commons
-    pfff-h_program-lang
+    lib_parsing
 
     parser_python.menhir
     parser_javascript.menhir

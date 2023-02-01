@@ -4,7 +4,7 @@
  (wrapped false)
  (libraries
    commons
-   pfff-h_program-lang
+   lib_parsing
    ast_generic ; just to factorize the operator
  )
  (preprocess (pps ppx_deriving.show))

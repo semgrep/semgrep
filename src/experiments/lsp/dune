@@ -7,7 +7,7 @@
    lsp
 
    commons
-   pfff-h_program-lang
+   lib_parsing
    pfff-lang_GENERIC-analyze
    parser_ocaml.menhir ; type_of_string
    parser_ocaml.ast_generic ; for debugging output

@@ -6,7 +6,7 @@
    ocamlgraph
 
    commons
-   pfff-h_program-lang ; store position information in the graph and tokens for stats
+   lib_parsing ; store position information in the graph and tokens for stats
  )
  (preprocess
    (pps
