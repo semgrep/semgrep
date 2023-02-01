@@ -1,0 +1,2 @@
+Copied from packaging 21.3 since we need to unpin to 23.0 but
+SpecifierSet functionality we rely on was removed (non python semver compliant compatibility)

@@ -7,8 +7,8 @@ from typing import List
 from typing import Set
 from typing import Tuple
 
-from packaging.specifiers import InvalidSpecifier
-from packaging.specifiers import SpecifierSet
+from semdep.external.packaging.specifiers import InvalidSpecifier
+from semdep.external.packaging.specifiers import SpecifierSet
 
 import semgrep.output_from_core as core
 from semdep.find_lockfiles import find_single_lockfile

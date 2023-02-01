@@ -2,9 +2,7 @@ from typing import Iterator
 from typing import List
 from typing import Tuple
 
-import packaging.version
-from packaging.specifiers import SpecifierSet
-
+from semdep.external.packaging.specifiers import SpecifierSet, InvalidSpecifier
 from semgrep.error import SemgrepError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -17,7 +15,7 @@ def semver_matches(expression: str, actual_version: str) -> bool:
         matched = len(list(ss.filter([actual_version]))) > 0
         # print(f'does {expression} match {actual_version}?: {matched}')
         return matched
-    except packaging.specifiers.InvalidSpecifier:
+    except InvalidSpecifier:
         raise SemgrepError(
             f"unknown package version comparison expression: {expression}"
         )
