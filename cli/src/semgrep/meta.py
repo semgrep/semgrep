@@ -763,6 +763,8 @@ class BitbucketMeta(GitMeta):
         if repo_url:
             return repo_url
 
+        # Bitbucket Cloud URLs should be in the format: http://bitbucket.org/<workspace>/<repo>
+        # Bitbucker Server URLs should be in the format: https://bitbucket<company>.com/projects/<PROJECT>/repos/<REPO_NAME>
         url = os.getenv("BITBUCKET_GIT_HTTP_ORIGIN")
         return url if url else super().repo_url
 
