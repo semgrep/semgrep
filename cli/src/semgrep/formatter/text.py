@@ -18,6 +18,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
+from semgrep.constants import EngineType
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.error import SemgrepCoreError
@@ -737,26 +738,19 @@ class TextFormatter(BaseFormatter):
                 )
 
         rules_by_engine = cli_output_extra.rules if cli_output_extra.rules else []
+
         oss_rules = [
-            rule
+            with_color(Colors.foreground, rule.rule_id.value, bold=True)
             for rule in rules_by_engine
             if isinstance(rule.engine_kind.value, out.OSSMatch)
         ]
-        pro_rules = [
-            rule
-            for rule in rules_by_engine
-            if isinstance(rule.engine_kind.value, out.ProMatch)
-        ]
 
-        print(extra["uses_pro_engine"])
-        print(oss_rules, pro_rules)
-        if oss_rules and pro_rules:
-            rules_output = [
-                "\nSome rules were run as OSS rules because `deepsemgrep: true` was not specified.\n"
-            ] + [
-                "\nThese rules were:\n   "
-                + "   \n   ".join(formatted_first_party_blocking_rules)
-            ]
+        rules_output = []
+        if extra["engine_requested"] != EngineType.OSS:
+            if oss_rules:
+                rules_output = [
+                    "\nSome rules were run as OSS rules because `deepsemgrep: true` was not specified.\n"
+                ] + ["These rules were:\n   " + "   \n   ".join(oss_rules)]
 
         return "\n".join(
             [
