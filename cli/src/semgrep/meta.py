@@ -763,7 +763,7 @@ class BitbucketMeta(GitMeta):
         if repo_url:
             return repo_url
 
-        url = get_url_from_sstp_url(os.getenv("BITBUCKET_GIT_HTTP_ORIGIN"))
+        url = os.getenv("BITBUCKET_GIT_HTTP_ORIGIN")
         return url if url else super().repo_url
 
     @property
