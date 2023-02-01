@@ -67,8 +67,8 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
               r = { start = 0; end_ = mval_range.end_ - mval_range.start };
             }
           in
-          match (opt_xlang, mval) with
-          | None, __any_mval__ -> (
+          match opt_xlang with
+          | None -> (
               (* We match wrt the same language as the rule.
                * NOTE: A generic pattern nested inside a generic won't work because
                *   generic mode binds metavariables to `MV.Text`, and
@@ -118,53 +118,65 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                       in
                       nested_formula_has_matches { env with xtarget } formula
                         (Some r')))
-          | Some xlang, MV.Text (content, _tok, _)
-          | Some xlang, MV.Xmls [ XmlText (content, _tok) ]
-          | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
-              let content = adjust_content_for_language xlang content in
-              logger#debug "nested analysis of |||%s||| with lang '%s'" content
-                (Xlang.to_string xlang);
-              (* We re-parse the matched text as `xlang`. *)
-              Xpattern_matcher.with_tmp_file ~str:content ~ext:"mvar-pattern"
-                (fun file ->
-                  let lazy_ast_and_errors =
-                    lazy
-                      (match xlang with
-                      | L (lang, _) ->
-                          let { Parse_target.ast; skipped_tokens; _ } =
-                            Parse_target.parse_and_resolve_name lang file
-                          in
-                          (* TODO: If we wanted to report the parse errors
-                           * then we should fix the parse info with
-                           * Parse_info.adjust_info_wrt_base! *)
-                          if skipped_tokens <> [] then
-                            pr2
-                              (spf
-                                 "rule %s: metavariable-pattern: failed to \
-                                  fully parse the content of %s"
-                                 (fst env.rule.Rule.id) mvar);
-                          (ast, skipped_tokens)
-                      | LRegex
-                      | LGeneric ->
-                          failwith "requesting generic AST for LRegex|LGeneric")
-                  in
-                  let xtarget =
-                    {
-                      Xtarget.file;
-                      xlang;
-                      lazy_ast_and_errors;
-                      lazy_content = lazy content;
-                    }
-                  in
-                  nested_formula_has_matches { env with xtarget } formula
-                    (Some r'))
-          | Some _lang, mval ->
-              (* This is not necessarily an error in the rule, e.g. you may be
-               * matching `$STRING + ...` and then add a metavariable-pattern on
-               * `$STRING`. This will only work when `$STRING` binds to some text
-               * but it can naturally bind to other string expressions. *)
-              logger#debug
-                "metavariable-pattern failed because the content of %s is not \
-                 text: %s"
-                mvar (MV.show_mvalue mval);
-              false))
+          | Some xlang -> (
+              let content =
+                (* TODO add comment explaining *)
+                match (xlang, mval) with
+                | _, MV.Text (content, _tok, _)
+                | _, MV.Xmls [ XmlText (content, _tok) ]
+                | _, MV.E { e = G.L (G.String (content, _tok)); _ } ->
+                    Some content
+                | Xlang.LGeneric, _else_ ->
+                    Some (Range.content_at_range mval_file mval_range)
+                | _else_ -> None
+              in
+              match content with
+              | None ->
+                  (* This is not necessarily an error in the rule, e.g. you may be
+                   * matching `$STRING + ...` and then add a metavariable-pattern on
+                   * `$STRING`. This will only work when `$STRING` binds to some text
+                   * but it can naturally bind to other string expressions. *)
+                  logger#debug
+                    "metavariable-pattern failed because the content of %s is \
+                     not text: %s"
+                    mvar (MV.show_mvalue mval);
+                  false
+              | Some content ->
+                  let content = adjust_content_for_language xlang content in
+                  logger#debug "nested analysis of |||%s||| with lang '%s'"
+                    content (Xlang.to_string xlang);
+                  (* We re-parse the matched text as `xlang`. *)
+                  Xpattern_matcher.with_tmp_file ~str:content
+                    ~ext:"mvar-pattern" (fun file ->
+                      let lazy_ast_and_errors =
+                        lazy
+                          (match xlang with
+                          | L (lang, _) ->
+                              let { Parse_target.ast; skipped_tokens; _ } =
+                                Parse_target.parse_and_resolve_name lang file
+                              in
+                              (* TODO: If we wanted to report the parse errors
+                               * then we should fix the parse info with
+                               * Parse_info.adjust_info_wrt_base! *)
+                              if skipped_tokens <> [] then
+                                pr2
+                                  (spf
+                                     "rule %s: metavariable-pattern: failed to \
+                                      fully parse the content of %s"
+                                     (fst env.rule.Rule.id) mvar);
+                              (ast, skipped_tokens)
+                          | LRegex
+                          | LGeneric ->
+                              failwith
+                                "requesting generic AST for LRegex|LGeneric")
+                      in
+                      let xtarget =
+                        {
+                          Xtarget.file;
+                          xlang;
+                          lazy_ast_and_errors;
+                          lazy_content = lazy content;
+                        }
+                      in
+                      nested_formula_has_matches { env with xtarget } formula
+                        (Some r')))))
