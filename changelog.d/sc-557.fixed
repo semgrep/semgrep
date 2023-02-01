@@ -1,1 +1,0 @@
-Removed new lockfile parsers for all lockfiles except requirements.txt and maven_dep_tree.txt, for performance reasons
