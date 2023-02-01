@@ -10,9 +10,8 @@
     cmdliner
     uri
 
-    commons        ; pfff
+    commons
 
-    semgrep_utils  ; semgrep-core
     semgrep_core
     semgrep_reporting ; atd spec of semgrep_output
   )
