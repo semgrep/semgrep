@@ -1724,32 +1724,30 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
  * call to Normalize_generic below.
  *)
 and m_arguments_concat a b =
-  match (a, b) with
-  | [], [] -> return ()
-  (* dots '...' for string literal, can match any number of arguments *)
-  | [ G.Arg { e = G.L (G.String ("...", _)); _ } ], _xsb -> return ()
-  (* specific case: f"...{$X}..." will properly extract $X from f"foo {bar} baz" *)
-  | G.Arg { e = G.L (G.String ("...", a)); _ } :: xsa, B.Arg bexpr :: xsb ->
-      (* can match nothing *)
-      m_arguments_concat xsa (B.Arg bexpr :: xsb)
-      >||> (* can match more *)
-      m_arguments_concat (G.Arg (G.L (G.String ("...", a)) |> G.e) :: xsa) xsb
-  (* the general case *)
-  | xa :: aas, xb :: bbs -> (
-      (* exception: for concat strings, don't have ellipsis/metavars match   *)
-      (* string literals since string literals are implicitly not   *)
-      (* interpolated, and ellipsis/metavars implicitly are                  *)
-      match (xa, xb) with
-      | G.Arg { e = G.Ellipsis _; _ }, G.Arg { e = G.L (G.String _); _ } ->
-          fail ()
-      | ( G.Arg { e = G.N (G.Id ((s, _tok), _idinfo)); _ },
-          G.Arg { e = G.L (G.String _); _ } )
-        when MV.is_metavar_name s ->
-          fail ()
-      | _ -> m_argument xa xb >>= fun () -> m_arguments_concat aas bbs)
-  | [], _
-  | _ :: _, _ ->
-      fail ()
+  let matcher xa xb =
+    (* exception: for concat strings, don't have ellipsis/metavars match   *)
+    (* string literals since string literals are implicitly not   *)
+    (* interpolated, and ellipsis/metavars implicitly are                  *)
+    match (xa, xb) with
+    | G.Arg { e = G.Ellipsis _; _ }, G.Arg { e = G.L (G.String _); _ } ->
+        fail ()
+    | ( G.Arg { e = G.N (G.Id ((s, _tok), _idinfo)); _ },
+        G.Arg { e = G.L (G.String _); _ } )
+      when MV.is_metavar_name s ->
+        fail ()
+    | _ -> m_argument xa xb
+  in
+  let is_dots = function
+    | G.Arg { e = G.L (G.String ("...", _)); _ } -> true
+    | _else_ -> false
+  in
+  let is_metavar_ellipsis = function
+    | G.Arg { e = G.L (G.String (s, tok)); _ } when MV.is_metavar_ellipsis s ->
+        Some ((s, tok), fun xs -> MV.Args xs)
+    | _else_ -> None
+  in
+  m_list_with_dots_and_metavar_ellipsis ~less_is_ok:false ~f:matcher ~is_dots
+    ~is_metavar_ellipsis a b
 
 and m_argument a b =
   Trace_matching.(if on then print_argument_pair a b);
