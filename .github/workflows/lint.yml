@@ -100,3 +100,9 @@ jobs:
           opam exec -- pre-commit run --verbose --all lint-ocaml
           # to debug errors in pre-commit, use instead:
           # opam exec -- pre-commit run --verbose --all lint-ocaml || cat /root/.cache/pre-commit/pre-commit.log
+
+  github-actions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: reviewdog/action-actionlint@v1
