@@ -5,7 +5,7 @@
  (libraries
    dyp; TODO should not need anymore, just for Dyp.syntax_error dead code
    commons
-   pfff-h_program-lang
+   lib_parsing
    parser_cpp.ast
  )
  (preprocess (pps ppx_deriving.show))

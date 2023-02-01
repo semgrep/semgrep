@@ -6,26 +6,14 @@
    yaml
    sexplib
 
-   tree-sitter-lang.c-sharp
-   tree-sitter-lang.clojure
-   tree-sitter-lang.dart
-   tree-sitter-lang.elixir
-   tree-sitter-lang.hack
-   tree-sitter-lang.hcl
-   tree-sitter-lang.html
-   tree-sitter-lang.julia
-   tree-sitter-lang.kotlin
-   tree-sitter-lang.lua
-   tree-sitter-lang.solidity
-   tree-sitter-lang.swift
-   tree-sitter-lang.r
-   tree-sitter-lang.rust
-   tree-sitter-lang.tsx
-   tree-sitter-lang.typescript
-   tree-sitter-lang.vue
-
    commons
    semgrep_core; just for Range
+
+   lib_parsing_tree_sitter
+   tree-sitter-lang.dart
+   tree-sitter-lang.hack
+   tree-sitter-lang.html
+   tree-sitter-lang.vue
  )
  (preprocess (pps ppx_profiling ppx_deriving.show))
 )

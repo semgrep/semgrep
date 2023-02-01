@@ -12,7 +12,7 @@
 
     ; pfff deps
     commons
-    pfff-h_program-lang
+    lib_parsing
     ; tree-sitter deps
 
     process_limits
