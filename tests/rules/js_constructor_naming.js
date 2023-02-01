@@ -14,7 +14,7 @@ class ClassName {
   }
 
 @Component
-class ClassName {
+class ClassName2 {
     foo () {
         // ruleid: js-constructor-naming
         return this.http.thing
@@ -30,7 +30,7 @@ class ClassName {
   
 
 // not injectable
-class ClassName {
+class ClassName3 {
     foo () {
         return this.http.thing
     }
