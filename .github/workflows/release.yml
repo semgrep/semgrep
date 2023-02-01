@@ -199,7 +199,7 @@ jobs:
     with:
       artifact-name: image-release
       repository-name: ${{ github.repository }}
-      dry-run: false
+      dry-run: ${{ inputs.dry-run }}
 
   build-test-osx-x86:
     uses: ./.github/workflows/build-test-osx-x86.yaml
