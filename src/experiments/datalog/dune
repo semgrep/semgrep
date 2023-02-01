@@ -5,7 +5,7 @@
  (libraries
    yaml
    commons
-   pfff-h_program-lang
+   lib_parsing
    pfff-lang_GENERIC-analyze
 
    semgrep_core

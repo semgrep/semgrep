@@ -8,6 +8,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.8.0](https://github.com/returntocorp/semgrep/releases/tag/v1.8.0) - 2023-02-01
+
+### Added
+
+- Experimental support for Clojure, Lisp, and Scheme. (gh-3328)
+- Experimental support for Jsonnet (writing semgrep rules to find
+  bugs/security-isses/... in jsonnet files). (pa-1849)
+
+### Fixed
+
+- Regexps within string patterns such as `"=~/hello/"` now support the
+  full PCRE syntax, including backreferences and other advanced features
+  not supported by ocaml-re. (gh-6913)
+- Removed new lockfile parsers for all lockfiles except requirements.txt and maven_dep_tree.txt, for performance reasons (sc-557)
+
 ## [1.6.0](https://github.com/returntocorp/semgrep/releases/tag/v1.6.0) - 2023-01-27
 
 ### Added

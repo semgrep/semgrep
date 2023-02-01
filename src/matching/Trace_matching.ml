@@ -40,3 +40,4 @@ let print_expr_pair = print_pair "expr" Meta_AST.vof_expr
 let print_stmt_pair = print_pair "stmt" Meta_AST.vof_stmt
 let print_argument_pair = print_pair "arguments" Meta_AST.vof_argument
 let print_arguments_pair = print_pair "arguments" Meta_AST.vof_arguments
+let print_raw_pair = print_pair "raw" Meta_AST.vof_raw_tree

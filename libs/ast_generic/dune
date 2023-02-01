@@ -6,8 +6,7 @@
    atdgen-runtime
 
    commons
-   pfff-h_program-lang
-   semgrep.utils ; GenSym
+   lib_parsing
  )
  (preprocess
    (pps

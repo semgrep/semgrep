@@ -1322,6 +1322,7 @@ let (mk_visitor :
     v_id_info v2
   and v_program v = v_stmts v
   and v_any = function
+    | Raw v1 -> v_raw_tree v1
     | Name v1 -> v_name v1
     | Xmls v1 -> v_list v_xml_body v1
     | ForOrIfComp v1 -> v_for_or_if_comp v1

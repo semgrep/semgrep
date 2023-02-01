@@ -2,7 +2,7 @@
  (public_name parser_regexp)
  (libraries
    commons
-   pfff-h_program-lang
+   lib_parsing
  )
  (preprocess (pps ppx_deriving.show))
 )

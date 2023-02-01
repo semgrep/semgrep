@@ -104,6 +104,8 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
   (* TODO: generalizing to other languages generate many regressions *)
   | G.E { e = G.N name; _ } when lang =*= Lang.Rust ->
       normalize_any lang (G.Name name)
+  | G.E { e = G.RawExpr x; _ } -> normalize_any lang (G.Raw x)
+  | G.Raw (List [ x ]) -> normalize_any lang (G.Raw x)
   (* TODO: taken from ml_to_generic.ml:
    * | G.E {e = G.StmtExpr s; _} -> G.S s?
    *)
@@ -192,10 +194,17 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Json ->
         let any = Parse_json.any_of_string str in
         Json_to_generic.any any
-    | Lang.Jsonnet -> failwith "Jsonnet is not supported yet"
-    | Lang.Clojure -> failwith "clojure is not supported yet"
-    | Lang.Lisp -> failwith "Lisp is not supported yet"
-    | Lang.Scheme -> failwith "Scheme is not supported yet"
+    | Lang.Jsonnet ->
+        let res = Parse_jsonnet_tree_sitter.parse_pattern str in
+        let pattern =
+          extract_pattern_from_tree_sitter_result res print_errors
+        in
+        Jsonnet_to_generic.any pattern
+    | Lang.Lisp
+    | Lang.Scheme
+    | Lang.Clojure ->
+        let res = Parse_clojure_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
     | Lang.C ->
         let any = Parse_c.any_of_string str in
         C_to_generic.any any

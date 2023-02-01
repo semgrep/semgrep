@@ -271,6 +271,7 @@ let rec equal_ast_bound_code (config : Config_semgrep.t) (a : MV.mvalue)
     | MV.S _, MV.S _
     | MV.P _, MV.P _
     | MV.T _, MV.T _
+    | MV.Raw _, MV.Raw _
     | MV.Text _, MV.Text _
     | MV.Params _, MV.Params _
     | MV.Args _, MV.Args _

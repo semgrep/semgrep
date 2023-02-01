@@ -8,7 +8,7 @@
 #  - verifies that our changes don't break Brew
 #  - gives us time before release to fix these issues and adjust our homebrew formula if needed.
 
-name: Homebrew Nightly Verification
+name: Nightly Verification
 
 on:
   workflow_dispatch:
@@ -38,8 +38,14 @@ jobs:
       - name: Clean up semgrep installation
         run: brew uninstall semgrep
 
+  release-dry-run:
+    uses: ./.github/workflows/release.yml
+    secrets: inherit
+    with:
+      dry-run: true
+
   notify-failure:
-    needs: [brew-build]
+    needs: [brew-build, release-dry-run]
     name: Notify of Failure
     runs-on: ubuntu-20.04
     if: failure()

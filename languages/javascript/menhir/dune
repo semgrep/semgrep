@@ -6,7 +6,7 @@
 
    commons
    process_limits
-   pfff-h_program-lang
+   lib_parsing
    parser_javascript.ast
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))

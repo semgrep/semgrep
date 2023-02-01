@@ -48,8 +48,6 @@ depends: [
   "ppxlib"
   "ppx_deriving"
   "ppx_hash"
-  "uucp"
-  "uutf"
   "re"
   "pcre"
   "parmap"

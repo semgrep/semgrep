@@ -143,6 +143,10 @@ let language_exceptions =
     (* Experimental languages *)
     (Lang.R, [ "deep_exprstmt" ]);
     (Lang.Elixir, [ "dots_nested_stmts" ]);
+    (* xxx_stmts is NA *)
+    (Lang.Jsonnet, [ "dots_stmts"; "deep_exprstmt"; "dots_nested_stmts" ]);
+    (* TODO *)
+    (Lang.Clojure, [ "deep_exprstmt"; "dots_nested_stmts" ]);
   ]
 
 let maturity_tests () =
@@ -214,7 +218,9 @@ let maturity_tests () =
       check_maturity Lang.Swift "swift" ".swift" Experimental;
       check_maturity Lang.Julia "julia" ".jl" Experimental;
       (* YAML has too many NA, not worth it *)
-      check_maturity Lang.R "r" ".r" Experimental
+      check_maturity Lang.R "r" ".r" Experimental;
+      check_maturity Lang.Jsonnet "jsonnet" ".jsonnet" Experimental;
+      check_maturity Lang.Clojure "clojure" ".clj" Experimental
       (* Not even experimental *)
       (* HTML, Vue *);
     ]
@@ -414,6 +420,12 @@ let lang_regression_tests ~polyglot_pattern_path ~with_caching =
         (Lang.Solidity, "solidity", ".sol");
         (Lang.Elixir, "elixir", ".ex");
         (Lang.R, "r", ".r");
+        (* TODO: weird because the tests work in check_maturity above
+         * but note here
+         * (Lang.Julia, "julia", ".jl");
+         *)
+        (Lang.Jsonnet, "jsonnet", ".jsonnet");
+        (Lang.Clojure, "clojure", ".clj");
       ]
   in
   let irregular_tests =

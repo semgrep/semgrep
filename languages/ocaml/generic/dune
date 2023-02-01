@@ -4,7 +4,7 @@
  (wrapped false)
  (libraries
    commons
-   pfff-h_program-lang
+   lib_parsing
    parser_ocaml.ast
    ast_generic
  )

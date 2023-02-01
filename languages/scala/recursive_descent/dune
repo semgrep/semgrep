@@ -5,7 +5,7 @@
  (libraries
 
    commons
-   pfff-h_program-lang
+   lib_parsing
    ast_generic ; some use of is_metavar_name
    parser_scala.ast
  )

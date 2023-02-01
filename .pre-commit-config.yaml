@@ -214,42 +214,42 @@ repos:
             # want an OCaml rule to be applied on a script.
             "--skip-unknown-extensions",
           ]
-  # Dogfooding .pre-commit-hooks.yml and setup.py
-  - repo: https://github.com/returntocorp/semgrep
-    rev: v1.5.1
-    hooks:
-      - id: semgrep
-        name: Semgrep Python
-        types: [python]
-        exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
-        args: ["--config", "https://semgrep.dev/p/python", "--error"]
-      - id: semgrep
-        name: Semgrep Bandit
-        types: [python]
-        exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
-        args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
+  #! # Dogfooding .pre-commit-hooks.yml and setup.py
+  #! - repo: https://github.com/returntocorp/semgrep
+  #!   rev: v1.5.1
+  #!   hooks:
+  #!     - id: semgrep
+  #!       name: Semgrep Python
+  #!       types: [python]
+  #!       exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
+  #!       args: ["--config", "https://semgrep.dev/p/python", "--error"]
+  #!     - id: semgrep
+  #!       name: Semgrep Bandit
+  #!       types: [python]
+  #!       exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
+  #!       args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
 
-  # Run Semgrep Docker images. Only used in CI since it's slower for local developmemt.
-  # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
-  - repo: https://github.com/returntocorp/semgrep
-    # Note that the 'rev:' below is the revision to use to clone the URL
-    # above and to fetch its .pre-commit-hooks.yaml file. It does not always
-    # mean which version of semgrep to use for the hook itself.
-    # For example in .pre-commit-hooks.yaml if you use an entry with
-    # the 'language: docker_image', the 'entry:' field will then specify
-    # which version to use. In the case below, we're actually running
-    # returntocorp/semgrep:develop if you look at .pre-commit-hooks.yaml
-    rev: v1.5.1
-    hooks:
-      - id: semgrep-docker-develop
-        name: Semgrep Develop Python
-        types: [python]
-        exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
-        args: ["--config", "p/python", "--error"]
-        stages: [manual]
-      - id: semgrep-docker-develop
-        name: Semgrep Develop Bandit
-        types: [python]
-        exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
-        args: ["--config", "p/bandit", "--error"]
-        stages: [manual]
+  #! # Run Semgrep Docker images. Only used in CI since it's slower for local developmemt.
+  #! # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
+  #! - repo: https://github.com/returntocorp/semgrep
+  #!   # Note that the 'rev:' below is the revision to use to clone the URL
+  #!   # above and to fetch its .pre-commit-hooks.yaml file. It does not always
+  #!   # mean which version of semgrep to use for the hook itself.
+  #!   # For example in .pre-commit-hooks.yaml if you use an entry with
+  #!   # the 'language: docker_image', the 'entry:' field will then specify
+  #!   # which version to use. In the case below, we're actually running
+  #!   # returntocorp/semgrep:develop if you look at .pre-commit-hooks.yaml
+  #!   rev: v1.5.1
+  #!   hooks:
+  #!     - id: semgrep-docker-develop
+  #!       name: Semgrep Develop Python
+  #!       types: [python]
+  #!       exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
+  #!       args: ["--config", "p/python", "--error"]
+  #!       stages: [manual]
+  #!     - id: semgrep-docker-develop
+  #!       name: Semgrep Develop Bandit
+  #!       types: [python]
+  #!       exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
+  #!       args: ["--config", "p/bandit", "--error"]
+  #!       stages: [manual]
