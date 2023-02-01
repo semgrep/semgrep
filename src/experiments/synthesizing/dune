@@ -5,7 +5,7 @@
  (libraries
    ppx_deriving.runtime
    commons
-   pfff-h_program-lang
+   lib_parsing
 
    semgrep_core
    semgrep_parsing

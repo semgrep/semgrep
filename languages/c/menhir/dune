@@ -4,7 +4,7 @@
  (wrapped false)
  (libraries
    commons
-   pfff-h_program-lang
+   lib_parsing
    ast_generic ; is_metavar_name
    parser_cpp.menhir
    parser_c.ast

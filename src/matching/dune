@@ -6,7 +6,7 @@
    yaml ppx_deriving.runtime re
 
    commons
-   pfff-h_program-lang
+   lib_parsing
    pfff-lang_GENERIC-analyze
    parser_javascript.ast ; for Ast_js.default_entity
 

@@ -2,7 +2,7 @@
 (executable
   (name fnptr_test_ml)
   (libraries
-    semgrep_utils
+    commons
   )
   (modules
     Fnptr_test_ml

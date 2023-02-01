@@ -6,7 +6,7 @@
    yaml pcre
 
    commons
-   pfff-h_program-lang
+   lib_parsing
    pfff-lang_GENERIC-naming
 
    ; has an xxx.ast, xxx.menhir, xxx.tree_sitter, xxx.generic

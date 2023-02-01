@@ -90,15 +90,14 @@ jobs:
   build-test-docker:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
-
-  build-test-core-x86:
-    uses: ./.github/workflows/build-test-core-x86.yaml
-    secrets: inherit
-
-  build-test-manylinux-x86:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-manylinux-x86.yaml
-    secrets: inherit
+    with:
+      docker-tags: |
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+      repository-name: ${{ github.repository }}
+      artifact-name: image-release
+      file: Dockerfile
+      enable-tests: true
 
   build-test-osx-x86:
     uses: ./.github/workflows/build-test-osx-x86.yaml
@@ -108,9 +107,18 @@ jobs:
     uses: ./.github/workflows/build-test-osx-m1.yaml
     secrets: inherit
 
+  build-test-core-x86:
+    uses: ./.github/workflows/build-test-core-x86.yaml
+    secrets: inherit
+
   build-test-ubuntu-16-04:
     needs: [build-test-core-x86]
     uses: ./.github/workflows/build-test-ubuntu-x86.yaml
+    secrets: inherit
+
+  build-test-manylinux-x86:
+    needs: [build-test-core-x86]
+    uses: ./.github/workflows/build-test-manylinux-x86.yaml
     secrets: inherit
 
   wait-for-build-test:
@@ -129,35 +137,13 @@ jobs:
         run: echo "All Platforms have been built and tested - proceeding!"
 
   push-docker:
-    name: Push Semgrep Docker image
-    runs-on: ubuntu-latest
     needs: [wait-for-build-test, dry-run]
-    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
-    steps:
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - id: meta
-        name: Set tags and labels
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ github.repository }}
-          # :latest is also added automatically
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-
-      - name: Push image
-        uses: docker/build-push-action@v3
-        with:
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+    uses: ./.github/workflows/push-docker.yaml
+    secrets: inherit
+    with:
+      artifact-name: image-release
+      repository-name: ${{ github.repository }}
+      dry-run: ${{ needs.dry-run.outputs.dry-run == 'true' }}
 
   upload-wheels:
     name: Upload Wheels to PyPI

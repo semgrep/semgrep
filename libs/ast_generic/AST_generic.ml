@@ -20,15 +20,19 @@
  * languages (e.g., naming, semantic code highlighting, semgrep matching).
  *
  * Right now this generic AST is mostly the factorized union of:
- *  - Python, Ruby, Lua
- *  - Javascript, Typescript
+ *  - Python, Ruby, Lua, Julia, Elixir
+ *  - Javascript, Typescript, Vue
  *  - PHP, Hack
  *  - Java, CSharp, Kotlin
  *  - C, C++
  *  - Go
- *  - JSON, YAML, HCL
+ *  - Swift
  *  - OCaml, Scala, Rust
+ *  - Clojure, Lisp, Scheme
+ *  - R
+ *  - Solidity
  *  - Bash, Docker
+ *  - JSON, YAML, HCL, Jsonnet
  *  - TODO SQL
  *
  * See Lang.ml for the list of supported languages.
@@ -1854,6 +1858,7 @@ and any =
   | Xmls of xml_body list
   | Partial of partial
   | Name of name
+  | Raw of raw_tree
   (* misc *)
   | I of ident
   | Str of string wrap
@@ -1974,7 +1979,9 @@ let basic_id_info ?(hidden = false) resolved =
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
 let dotted_to_canonical xs = Common.map fst xs
-let canonical_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
+
+let canonical_to_dotted tid xs =
+  xs |> Common.map (fun s -> (s, Parse_info.fake_info tid s))
 
 (* ------------------------------------------------------------------------- *)
 (* Entities *)

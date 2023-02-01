@@ -1400,6 +1400,9 @@ and vof_partial = function
       OCaml.VSum ("PartialSwitchCase", [ v1 ])
 
 and vof_any = function
+  | Raw v1 ->
+      let v1 = vof_raw_tree v1 in
+      OCaml.VSum ("Raw", [ v1 ])
   | Name v1 ->
       let v1 = vof_name v1 in
       OCaml.VSum ("Name", [ v1 ])

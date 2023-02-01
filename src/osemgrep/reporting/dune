@@ -5,8 +5,6 @@
  (libraries
    commons
 
-   semgrep_utils ; spcre
-
  )
  (preprocess
    (pps

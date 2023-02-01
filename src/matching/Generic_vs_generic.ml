@@ -1075,10 +1075,43 @@ and m_expr ?(is_root = false) a b =
 (* Require an exact match between raw trees except for Any nodes which
    are matched normally. *)
 and m_raw_tree (a : G.raw_tree) (b : G.raw_tree) =
+  Trace_matching.(if on then print_raw_pair a b);
   match (a, b) with
+  (* metavar:
+   * We add those extra (Case (_)) or-pattern below because the metavar
+   * could be nested but we want to match at the toplevel.
+   * For instance, Case("Sym_lit", Token("$X")) should also match
+   * Case("Num_lit", Token(("2"))).
+   * TODO? When should we stop? use >||> and try at each level?
+   *)
+  | ( ( Token (str, tok)
+      | Case (_, Token (str, tok))
+      | Case (_, Case (_, Token (str, tok))) ),
+      b )
+    when MV.is_metavar_name str ->
+      envf (str, tok) (MV.Raw b)
+  (* dots: on string.
+   * TODO: we should use m_string_ellipsis_or_metavar_or_default,
+   * but this would require to remove the enclosing quotes first
+   *)
+  | Token ("\"...\"", _), Token (sb, _) when sb =~ "^\".*\"$" -> return ()
   | Token a, Token b -> m_wrap m_string a b
-  | List a, List b -> m_list m_raw_tree a b
-  | Tuple a, Tuple b -> m_list m_raw_tree a b
+  (* dots:
+   * TODO? restrict it to just List?
+   * TODO? we should also accept Any (Expr (Ellipsis)) below. Indeed,
+   * once you start to migrate out of the raw_tree to the real generic AST,
+   * you could get a mix of Raw_tree and generic AST that we need to match
+   * together.
+   *)
+  | List a, List b
+  | Tuple a, Tuple b ->
+      m_list_with_dots m_raw_tree
+        (function
+          | Token ("...", _) -> true
+          | Case (_, Token ("...", _)) -> true
+          | Case (_, Case (_, Token ("...", _))) -> true
+          | _ -> false)
+        ~less_is_ok:false (* empty list can not match non-empty list *) a b
   | Case (a_cons, a), Case (b_cons, b) ->
       m_string a_cons b_cons >>= fun () -> m_raw_tree a b
   | Option a, Option b -> m_option m_raw_tree a b
@@ -3417,6 +3450,7 @@ and m_partial a b =
 
 and m_any a b =
   match (a, b) with
+  | G.Raw a1, B.Raw b1 -> m_raw_tree a1 b1
   | G.Str a1, B.Str b1 -> m_string_ellipsis_or_metavar_or_default a1 b1
   | G.Ss a1, B.Ss b1 -> m_stmts_deep ~inside:false ~less_is_ok:true a1 b1
   | G.Flds a1, B.Flds b1 -> m_fields a1 b1
@@ -3452,6 +3486,7 @@ and m_any a b =
   | G.I a1, B.I b1 -> m_ident a1 b1
   | G.Lbli a1, B.Lbli b1 -> m_label_ident a1 b1
   | G.ForOrIfComp a1, B.ForOrIfComp b1 -> m_for_or_if_comp a1 b1
+  | G.Raw _, _
   | G.I _, _
   | G.Modn _, _
   | G.Di _, _

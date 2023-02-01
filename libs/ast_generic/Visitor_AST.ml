@@ -1322,6 +1322,7 @@ let (mk_visitor :
     v_id_info v2
   and v_program v = v_stmts v
   and v_any = function
+    | Raw v1 -> v_raw_tree v1
     | Name v1 -> v_name v1
     | Xmls v1 -> v_list v_xml_body v1
     | ForOrIfComp v1 -> v_for_or_if_comp v1
@@ -1473,7 +1474,7 @@ let extract_ranges :
         ranges := Some (smaller orig_left left, larger orig_right right)
   in
   let incorporate_token tok =
-    if PI.is_origintok tok then
+    if PI.has_origin_loc tok then
       let tok_loc = PI.unsafe_token_location_of_info tok in
       incorporate_tokens (tok_loc, tok_loc)
   in
@@ -1515,7 +1516,7 @@ let extract_ranges :
     res
 
 let range_of_tokens tokens =
-  List.filter PI.is_origintok tokens |> PI.min_max_ii_by_pos
+  List.filter PI.has_origin_loc tokens |> PI.min_max_ii_by_pos
   [@@profiling]
 
 let range_of_any_opt any =

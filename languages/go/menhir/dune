@@ -4,7 +4,7 @@
  (wrapped false)
  (libraries
    commons
-   pfff-h_program-lang
+   lib_parsing
    parser_go.ast
  )
  (preprocess (pps ppx_deriving.show))

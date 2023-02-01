@@ -4,7 +4,7 @@
  (wrapped false)
  (libraries
    commons
-   pfff-h_program-lang
+   lib_parsing
    parser_dockerfile.ast
    tree-sitter-lang.dockerfile
    parser_bash.ast_generic

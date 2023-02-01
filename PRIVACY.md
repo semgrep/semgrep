@@ -118,6 +118,7 @@ Semgrep reports data that indicate how useful a run is for the end user; e.g.
 - Number of ignored findings
 - Pseudoanonymized hashes of the rule definitions that yield findings
 - The [Semgrep features used](#feature-usage) during the scan
+- The engine type requested for the scan
 
 ### Pseudoanonymization
 
@@ -181,6 +182,7 @@ r2c will:
 |             | Warnings                                | Array of Warning Classes (compile-time-constant)                       | Understand most common warnings users encounter                                            | `["TimeoutExceeded"]`                                                                                                                                                                 | WarningClass[] |
 |             |                                         |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
 | Value       |                                         |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
+|             | Engine requested                        | The engine requested by the user                                       | Understand which engines are being used; debug engine-specific problems                    | `"Interfile"`                                                                                                                                                                         | str            |
 |             | [Features used](#feature-usage)         | List of strings that identify Semgrep features used                    | Understand what features users find valuable, and what we could deprecate                  | `["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"]`                                                                                           | Object         |
 |             | Rule hashes with findings               | Map of rule hashes to number of findings                               | Understand which rules are providing value to the user; diagnose high false-positive rates | `{"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4}`                                                                                                             | Object         |
 |             | Total Findings                          | Count of all findings                                                  | Understand if rules are super noisy for the user                                           | 7                                                                                                                                                                                     | Number         |
@@ -235,6 +237,12 @@ The Semgrep team uses this to answer the following questions:
 
   We use this to evaluate experimental features
   and understand their production-readiness.
+
+> Engine requested (OSS, Pro, Interfile)
+
+The engine requested is stored separately from the other features. This is the
+engine indicated by the user through app toggles or CLI flags. We use this for
+debugging as well as to understand which engines people are using.
 
 ### Sample metrics
 
@@ -297,7 +305,8 @@ This is a sample blob of the aggregate metrics described above:
         "ruleHashesWithFindings": {"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4},
         "numFindings": 7,
         "numIgnored": 3,
-        "features": ["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"]
+        "features": ["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"],
+        "engineRequested": "OSS"
     }
 }
 ```

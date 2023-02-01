@@ -9,7 +9,7 @@
  (libraries
    commons
    ograph ; TODO: should use ocamlgraph instead!
-   pfff-h_program-lang
+   lib_parsing
    ast_generic
  )
  (preprocess

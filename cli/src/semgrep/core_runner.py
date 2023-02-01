@@ -219,9 +219,21 @@ class StreamingSemgrepCore:
             [asyncio.StreamReader], Coroutine[Any, Any, bytes]
         ] = lambda s: s.readexactly(2)
         reading_json = False
+        # Read ".\n" repeatedly until we reach the JSON output.
+        # TODO: read progress from one channel and JSON data from another.
+        # or at least write/read progress as a stream of JSON objects so that
+        # we don't have to hack a parser together.
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
-            line_bytes = await get_input(stream)
+            try:
+                line_bytes = await get_input(stream)
+            except asyncio.IncompleteReadError:
+                # happens if the data that follows a sequence of zero
+                # or more ".\n" has fewer than two bytes, such as:
+                # "", "3", ".\n.\n3", ".\n.\n.\n.", etc.
+                raise SemgrepError(
+                    "semgrep-core exited successfully but produced unexpected output"
+                )
 
             # read returns empty when EOF
             if not line_bytes:
@@ -993,6 +1005,8 @@ This can sometimes happen because either Semgrep Pro or Semgrep is out of date.
 
 Try updating your version of Semgrep Pro (`semgrep install-semgrep-pro`) or your version of Semgrep (`pip install semgrep/brew install semgrep`).
 If both are up-to-date and the crash persists, please contact support to report an issue!
+When reporting the issue, please re-run the semgrep command with the
+`--debug` flag so as to print more details about what happened, if you can.
 
 Exception raised: `{e}`
                     """

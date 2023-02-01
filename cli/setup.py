@@ -124,7 +124,7 @@ install_requires = [
     "requests~=2.22",
     "ruamel.yaml>=0.16.0,<0.18",
     "tqdm~=4.46",
-    "packaging~=21.0",
+    "packaging>=21.0",
     "jsonschema~=4.6",
     "wcmatch~=8.3",
     "peewee~=3.14",
@@ -140,7 +140,7 @@ extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
-    version="1.6.0",
+    version="1.8.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",

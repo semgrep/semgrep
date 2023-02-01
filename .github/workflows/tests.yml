@@ -18,134 +18,6 @@ on:
       - "**.md"
 
 jobs:
-  build-semgrep-core:
-    runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine-2022-09-24
-    # We need this hack because GHA tampers with the HOME in container
-    # and this does not play well with 'opam' installed in /root
-    env:
-      HOME: /root
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-      # This is needed later for caching, to generate the cache key
-      - id: submodule-status
-        name: Get submodule version
-        run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
-      # Without the step below, the core-cache step further below would fail with:
-      #	  Error: The template is not valid. .github/workflows/tests.yml (Line: 39, Col: 16):
-      #     hashFiles(...) failed.
-      # Fail to hash files under directory '/home/runner/work/semgrep/semgrep'
-      - name: Remove broken symlinks for hashFiles in core-cache steps
-        run: find -L . -type l -exec rm {} \;
-      - id: core-cache
-        name: Check if this semgrep-core binary is cached
-        uses: actions/cache@v3
-        with:
-          path: ocaml-build-artifacts.tgz
-          key: "${{ runner.os }}-core-binary-${{ hashFiles('src/**', 'languages/**', 'libs/**', 'tools/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-${{ steps.submodule-status.outputs.versions-hash }}"
-      - uses: actions/checkout@v3
-        if: steps.core-cache.outputs.cache-hit != 'true'
-        with:
-          submodules: recursive
-          persist-credentials: false
-      - name: Cache OCaml build files
-        if: steps.core-cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v3
-        with:
-          path: |
-            /root/.dune
-            /root/.opam/download-cache
-            /root/.opam/*/.opam-switch/packages
-            /root/.opam/*/.opam-switch/sources
-          key: ${{ runner.os }}-ocamlbuild
-      #TODO: use just 'make install-deps-and-build-ALPINE-semgrep-core' instead
-      - name: Build semgrep-core
-        if: steps.core-cache.outputs.cache-hit != 'true'
-        env:
-          DUNE_CACHE: enabled
-          DUNE_CACHE_STORAGE_MODE: copy
-          DUNE_CACHE_ROOT: /root/.dune
-          DUNE_CACHE_TRANSPORT: direct
-        run: ./scripts/install-alpine-semgrep-core
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ocaml-build-artifacts
-          path: ocaml-build-artifacts.tgz
-
-  build-docker:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
-        with:
-          load: true
-          tags: candidate-image
-          cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
-      - uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-      - run: ./scripts/validate-docker-build.sh candidate-image
-      - uses: docker/login-action@v2
-        if: github.actor != 'dependabot[bot]' && (github.event.pull_request.head.repo.full_name == github.repository || github.ref == 'refs/heads/develop')
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - id: meta
-        name: Set tags and labels
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ github.repository }}
-          # :latest is also added automatically
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=ref,event=pr
-            type=ref,event=branch
-            type=sha,event=branch
-            type=edge
-
-      - name: Push image
-        uses: docker/build-push-action@v3
-        if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
-        with:
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
-
-      - id: dev-meta
-        name: Set tags and labels
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ github.repository }}-dev
-          # :latest is also added automatically
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=ref,event=pr
-            type=ref,event=branch
-            type=sha,event=branch
-            type=edge
-
-      # Extend the semgrep image, changing the entry point to bash and
-      # adding some utilities. This image is meant for internal uses
-      # such as benchmarks.
-      - name: Push dev image
-        uses: docker/build-push-action@v3
-        if: github.ref == 'refs/heads/develop'
-        with:
-          push: true
-          file: dockerfiles/semgrep-dev.Dockerfile
-          platforms: ${{ matrix.platform }}
-          tags: ${{ steps.dev-meta.outputs.tags }}
-          labels: ${{ steps.dev-meta.outputs.labels }}
-          cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
-
   test-core:
     # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
@@ -204,7 +76,7 @@ jobs:
   test-cli:
     name: test semgrep-cli
     runs-on: ubuntu-22.04
-    needs: [build-semgrep-core]
+    needs: [build-test-core-x86]
     permissions:
       contents: write
       pull-requests: write
@@ -225,7 +97,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts
+          name: ocaml-build-artifacts-release
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts.tgz
@@ -298,7 +170,7 @@ jobs:
   test-qa:
     name: quality assurance on semgrep
     runs-on: ubuntu-22.04
-    needs: [build-semgrep-core]
+    needs: [build-test-core-x86]
     strategy:
       fail-fast: false
       matrix:
@@ -317,7 +189,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts
+          name: ocaml-build-artifacts-release
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts.tgz
@@ -345,7 +217,7 @@ jobs:
   # Run abbreviated version of benchmarks to check that they work
   benchmarks-lite:
     runs-on: ubuntu-22.04
-    needs: [build-semgrep-core]
+    needs: [build-test-core-x86]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -360,7 +232,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts
+          name: ocaml-build-artifacts-release
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts.tgz
@@ -379,7 +251,7 @@ jobs:
   # Run each benchmark twice to decrease effect of natural variance
   benchmarks-full:
     runs-on: ubuntu-22.04
-    needs: [build-semgrep-core]
+    needs: [build-test-core-x86]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -406,7 +278,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts
+          name: ocaml-build-artifacts-release
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts.tgz
@@ -430,37 +302,57 @@ jobs:
           perf/compare-perf cli/baseline_timing1.json cli/baseline_timing2.json cli/timing1.json cli/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
           perf/compare-bench-findings cli/findings.json
 
-  build-ubuntu-release:
-    needs: [build-semgrep-core]
-    runs-on: ubuntu-22.04
-    container: returntocorp/sgrep-build:ubuntu-16.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-      - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts.tgz
-          mkdir -p semgrep-files
-          cp ocaml-build-artifacts/bin/* semgrep-files
-      - name: Run Ubuntu build script
-        run: ./scripts/ubuntu-release.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: semgrep-ubuntu-16.04-${{ github.sha }}
-          path: artifacts.tar.gz
-
   build-test-docker:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
+    with:
+      docker-tags: |
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=ref,event=pr
+        type=ref,event=branch
+        type=sha,event=branch
+        type=edge
+      artifact-name: image-test
+      repository-name: ${{ github.repository }}
+      file: Dockerfile
+      enable-tests: true
+
+  push-docker:
+    needs: [build-test-docker]
+    uses: ./.github/workflows/push-docker.yaml
+    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
+    secrets: inherit
+    with:
+      artifact-name: image-test
+      repository-name: ${{ github.repository }}
+      dry-run: false
+
+  build-test-dev-docker:
+    uses: ./.github/workflows/build-test-docker.yaml
+    secrets: inherit
+    with:
+      docker-tags: |
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=ref,event=pr
+        type=ref,event=branch
+        type=sha,event=branch
+        type=edge
+      repository-name: ${{ github.repository }}-dev
+      artifact-name: image-dev
+      file: dockerfiles/semgrep-dev.Dockerfile
+      enable-tests: false
+
+  push-dev-docker:
+    needs: [build-test-dev-docker]
+    uses: ./.github/workflows/push-docker.yaml
+    if: github.ref == 'refs/heads/develop'
+    secrets: inherit
+    with:
+      artifact-name: image-dev
+      repository-name: ${{ github.repository }}-dev
+      dry-run: false
 
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yaml

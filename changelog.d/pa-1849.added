@@ -1,2 +1,0 @@
-Experimental support for Jsonnet (writing semgrep rules to find
-bugs/security-isses/... in jsonnet files).

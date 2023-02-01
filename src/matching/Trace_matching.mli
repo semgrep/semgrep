@@ -38,3 +38,5 @@ val print_arguments_pair :
   AST_generic.argument list AST_generic.bracket ->
   AST_generic.argument list AST_generic.bracket ->
   unit
+
+val print_raw_pair : AST_generic.raw_tree -> AST_generic.raw_tree -> unit
