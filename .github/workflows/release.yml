@@ -193,7 +193,6 @@ jobs:
 
   push-docker:
     name: Push Semgrep Docker image
-    runs-on: ubuntu-latest
     needs: [wait-for-build-test, dry-run]
     if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
     uses: ./.github/workflows/push-docker.yaml
