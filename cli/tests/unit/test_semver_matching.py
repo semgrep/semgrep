@@ -23,6 +23,7 @@ from semdep.package_restrictions import semver_matches
         pytest.param("==5.0.1", "5.0.0", False),
         pytest.param("==5.0.1", "5", False),
         pytest.param("==5.0.1", "5.0.1-release", False),
+        pytest.param("==some-string", "some-string", True),
     ],
 )
 def test_matches(expression, candidate, match):
