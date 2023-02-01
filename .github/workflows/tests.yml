@@ -352,6 +352,15 @@ jobs:
       artifact-name: image-dev
       repository-name: ${{ github.repository }}-dev
 
+  test-semgrep-pro:
+    needs: [build-test-dev-docker]
+    uses: ./.github/workflows/test-semgrep-pro.yaml
+    if: github.ref == 'refs/heads/develop'
+    secrets: inherit
+    with:
+      artifact-name: image-dev
+      repository-name: ${{ github.repository }}-dev
+
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
