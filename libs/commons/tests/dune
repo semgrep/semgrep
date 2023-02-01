@@ -6,10 +6,4 @@
    alcotest
    commons
  )
- (preprocess
-   (pps
-     ppx_profiling
-     ppx_deriving.show
-   )
- )
 )
