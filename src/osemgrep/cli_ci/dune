@@ -5,7 +5,7 @@
   (wrapped false)
   (libraries
     cmdliner
-    semgrep.utils
+    commons
 
     osemgrep_core
     osemgrep_networking

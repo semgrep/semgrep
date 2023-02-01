@@ -7,7 +7,6 @@
 
    commons
    lib_parsing
-   semgrep.utils ; GenSym
  )
  (preprocess
    (pps

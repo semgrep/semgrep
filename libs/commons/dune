@@ -2,11 +2,33 @@
  (public_name commons)
  (wrapped false)
  (libraries
-   str unix
-   re
-   yojson easy_logging_yojson
-   alcotest
+   str
+   unix
+   yojson
    ANSITerminal
+   logs logs.fmt
+   easy_logging easy_logging_yojson
+   alcotest
+   cmdliner
+   re
+   pcre
+   parmap
  )
- (preprocess (pps ppx_deriving.show ppx_deriving.eq))
+ (preprocess
+   (pps
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_deriving.ord
+     ppx_hash
+   )
+ )
+ (foreign_stubs
+   (language c)
+   (include_dirs
+     %{ocaml_where}
+   )
+   (names
+     fnptr_impl
+   )
+ )
 )
