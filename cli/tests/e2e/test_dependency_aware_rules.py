@@ -75,6 +75,36 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
     )
 
 
+# @pytest.mark.parametrize(
+#     "file_size,target,max_time",
+#     [
+#         (file_size, target, max_time)
+#         for file_size, max_time in [("10k", 1)]  # , ("50k", 2), ("100k", 5)]
+#         for target in [
+#             # "Gemfile.lock",
+#             # "go.sum",
+#             # "gradle.lockfile",
+#             # "maven_dep_tree.txt",
+#             "package-lock.json",
+#             # "poetry.lock",
+#             # "requirements.txt",
+#             # "yarn.lock",
+#         ]
+#     ],
+# )
+# def test_dependency_aware_timing(
+#     parse_lockfile_path_in_tmp, file_size, target, max_time
+# ):
+#     start = time()
+#     parse_lockfile_path_in_tmp(
+#         Path(f"targets/dependency_aware/perf/{file_size}/{target}"), None
+#     )
+#     end = time()
+#     exec_time = end - start
+#     print(exec_time)
+#     assert exec_time < max_time
+
+
 # Quite awkward. To test that we can handle a target whose toplevel parent
 # contains no lockfiles for the language in our rule, we need to _not_ pass in
 # a target that begins with "targets", as that dir contains every kind of lockfile

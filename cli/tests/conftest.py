@@ -22,10 +22,12 @@ import colorama
 import pytest
 from tests.semgrep_runner import SemgrepRunner
 
+from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
 from semgrep.cli import cli
 from semgrep.constants import OutputFormat
 from semgrep.lsp.server import SemgrepLSPServer
+
 
 TESTS_PATH = Path(__file__).parent
 
@@ -440,3 +442,11 @@ def lsp(monkeypatch, tmp_path):
     ls = SemgrepLSPServer(StringIO, StringIO)
     monkeypatch.chdir(tmp_path)
     return ls
+
+
+@pytest.fixture
+def parse_lockfile_path_in_tmp(monkeypatch, tmp_path):
+    (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
+    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    monkeypatch.chdir(tmp_path)
+    return parse_lockfile_path
