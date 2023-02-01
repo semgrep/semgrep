@@ -2,8 +2,8 @@ from typing import Iterator
 from typing import List
 from typing import Tuple
 
-from semdep.external.packaging.specifiers import InvalidSpecifier
-from semdep.external.packaging.specifiers import SpecifierSet
+from semdep.external.packaging.specifiers import InvalidSpecifier # type: ignore
+from semdep.external.packaging.specifiers import SpecifierSet # type: ignore
 from semgrep.error import SemgrepError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency

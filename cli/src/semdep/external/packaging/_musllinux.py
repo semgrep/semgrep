@@ -1,3 +1,4 @@
+# type: ignore
 """PEP 656 support.
 
 This module implements logic to detect if the currently running Python is
