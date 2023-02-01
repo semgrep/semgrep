@@ -488,6 +488,7 @@ def ci(
         severities=shown_severities,
         is_ci_invocation=True,
         rules_by_engine=output_extra.rules_by_engine,
+        engine=engine,
     )
 
     logger.info("CI scan completed successfully.")
