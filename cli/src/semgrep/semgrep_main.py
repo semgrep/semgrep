@@ -309,6 +309,13 @@ def main(
     project_url = get_project_url()
     profiler = ProfileManager()
 
+    # Metrics send part 1: add environment information
+    metrics = get_state().metrics
+    if metrics.is_enabled:
+        metrics.add_project_url(project_url)
+        metrics.add_configs(configs)
+        metrics.add_engine_type(engine)
+
     rule_start_time = time.time()
     configs_obj, config_errors = get_config(
         pattern, lang, configs, replacement=replacement, project_url=project_url
@@ -496,10 +503,8 @@ def main(
 
     profiler.save("total_time", rule_start_time)
 
-    metrics = get_state().metrics
+    # Metrics send part 2: send results
     if metrics.is_enabled:
-        metrics.add_project_url(project_url)
-        metrics.add_configs(configs)
         metrics.add_rules(filtered_rules, output_extra.profiling_data)
         metrics.add_max_memory_bytes(output_extra.profiling_data)
         metrics.add_targets(output_extra.all_targets, output_extra.profiling_data)

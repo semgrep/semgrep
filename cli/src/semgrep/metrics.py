@@ -26,6 +26,7 @@ from typing_extensions import LiteralString
 from typing_extensions import TypedDict
 
 from semgrep import __VERSION__
+from semgrep.constants import EngineType
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
@@ -100,6 +101,7 @@ class ValueRequiredSchema(TypedDict):
 
 
 class ValueSchema(ValueRequiredSchema, total=False):
+    engineRequested: str
     numFindings: int
     numIgnored: int
     ruleHashesWithFindings: Dict[str, int]
@@ -215,6 +217,13 @@ class Metrics:
                 "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
             )
         self.metrics_state = metrics_state or legacy_state or MetricsState.AUTO
+
+    @suppress_errors
+    def add_engine_type(self, engineType: EngineType) -> None:
+        """
+        Assumes configs is list of arguments passed to semgrep using --config
+        """
+        self.payload["value"]["engineRequested"] = engineType.name
 
     @property
     def is_using_registry(self) -> bool:
