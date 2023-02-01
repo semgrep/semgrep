@@ -8,8 +8,8 @@ from typing import Set
 from typing import Tuple
 
 import semgrep.output_from_core as core
-from semdep.external.packaging.specifiers import InvalidSpecifier # type: ignore
-from semdep.external.packaging.specifiers import SpecifierSet # type: ignore
+from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
+from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 from semdep.find_lockfiles import find_single_lockfile
 from semdep.package_restrictions import dependencies_range_match_any
 from semgrep.error import SemgrepError
