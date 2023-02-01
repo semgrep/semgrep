@@ -1,5 +1,7 @@
 import pytest
+
 from semdep.package_restrictions import semver_matches
+
 
 @pytest.mark.quick
 @pytest.mark.parametrize(

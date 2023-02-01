@@ -11,9 +11,9 @@ from typing import Optional
 from typing import Tuple
 
 import tomli
+
 from semdep.external.packaging.version import InvalidVersion
 from semdep.external.packaging.version import Version
-
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 
