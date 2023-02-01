@@ -110,7 +110,7 @@ let range_of_token_locations (start_loc : PI.token_location)
 
 let range_of_tokens xs =
   try
-    let xs = List.filter PI.is_origintok xs in
+    let xs = List.filter PI.has_origin_loc xs in
     let mini, maxi = PI.min_max_ii_by_pos xs in
     let start = PI.pos_of_info mini in
     let end_ =
