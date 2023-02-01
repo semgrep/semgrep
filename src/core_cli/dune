@@ -8,18 +8,15 @@
     str
     dyp
     ppx_deriving.runtime
-    uucp uutf
 
-    ; pfff deps
+    ; in libs/
     commons
     lib_parsing
-    ; tree-sitter deps
-
     process_limits
     ; we now also depends on spacegrep with full-rule-in-ocaml
     spacegrep
 
-    ; internal deps
+    ; internal deps in src/
     semgrep.core
     semgrep.running
     semgrep.metachecking
