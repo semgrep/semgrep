@@ -1,0 +1,16 @@
+rules:
+- id: test-3120
+  patterns:
+    - pattern: |
+        def $FUNC(...):
+          ...
+          foo($A)
+          ...
+    - metavariable-pattern:
+        metavariable: $A
+        pattern: |
+          bar($B)
+    - focus-metavariable: $B
+  message: Test
+  languages: [python]
+  severity: ERROR

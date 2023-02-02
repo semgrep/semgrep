@@ -107,6 +107,48 @@ let mvalue_to_any = function
   | P x -> G.P x
   | Text (s, info, _) -> G.E (G.L (G.String (s, info)) |> G.e)
 
+let mvalue_of_any = function
+  | G.E { e = G.N (Id (id, idinfo)); _ } -> Some (Id (id, Some idinfo))
+  | E { e = RawExpr x; _ }
+  | Raw x ->
+      Some (Raw x)
+  | E { e = L (String (s, info)); _ } -> Some (Text (s, info, G.fake ""))
+  | E e -> Some (E e)
+  | S s -> Some (S s)
+  | Name x -> Some (N x)
+  | Ss x -> Some (Ss x)
+  | Args x -> Some (Args x)
+  | Params x -> Some (Params x)
+  | Xmls x -> Some (Xmls x)
+  | T x -> Some (T x)
+  | P x -> Some (P x)
+  | At _
+  | Fld _
+  | Flds _
+  | Partial _
+  | I _
+  | Str _
+  | Def _
+  | Dir _
+  | Pr _
+  | Tk _
+  | TodoK _
+  | Ar _
+  | Pa _
+  | Tp _
+  | Ta _
+  | Modn _
+  | Ce _
+  | Cs _
+  | ForOrIfComp _
+  | ModDk _
+  | En _
+  | Dk _
+  | Di _
+  | Lbli _
+  | Anys _ ->
+      None
+
 (* This is used for metavariable-pattern: where we need to transform the content
  * of a metavariable into a program so we can use evaluate_formula on it *)
 let program_of_mvalue : mvalue -> G.program option =

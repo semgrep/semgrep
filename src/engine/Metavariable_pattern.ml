@@ -56,31 +56,50 @@ let adjust_content_for_language (xlang : Xlang.t) (content : string) : string =
     can only match `bar($B)` such that `$B` unifies with the outer `$B`.
 
     So we add the non-inherited metavariables into this range.
+
+    This may also produce duplicate ranges, depending on how many metavariables
+    are in the file.
 *)
 let add_new_mvars_to_range range mvars =
+  (* These bindings are from the original, adjusted text.
+     We need to change it back.
+  *)
   let new_mvars =
     mvars
     |> List.filter (fun (mvar, _) ->
-           not (Option.is_some (List.assoc_opt mvar mvars)))
+           not (Option.is_some (List.assoc_opt mvar range.RM.mvars)))
   in
-  match new_mvars with
-  | [] -> None
-  | __else__ -> Some { range with RM.mvars = new_mvars @ range.RM.mvars }
+  { range with RM.mvars = new_mvars @ range.RM.mvars }
 
-let augment_range_with_nested_matches r nested_matches =
-  match nested_matches with
-  | [] -> []
-  (* Premature optimization:
-     If this nested match introduces no new metavariables, we
-     decline to produce a new range for it, and keep the original around
-     always.
-     This saves us from possibly producing duplicates of the original range.
-  *)
-  | __else__ ->
-      r
-      :: (nested_matches
-         |> List.filter_map (fun nested_match ->
-                add_new_mvars_to_range r nested_match.RM.mvars))
+(* We take the bindings from the nested matches, and produce a new match where we add
+   the enclosed metavariables to the original range.
+
+   Care that these bindings were produced in a temp file, with possibly-different location
+   information, so we need to construct a visitor so we can convert the mvalues to have
+   tokens with the correct information.
+*)
+let augment_range_with_nested_matches revert_loc r nested_matches =
+  let reverting_visitor = Map_AST.mk_fix_token_locations revert_loc in
+  nested_matches
+  |> Common.map (fun nested_match ->
+         (* The bindings in this match were produced from a target whose location
+             data was all adjusted, to avoid re-parsing.
+         *)
+         let readjusted_mvars =
+           nested_match.RM.mvars
+           |> List.filter_map (fun (mvar, mval) ->
+                  match
+                    mval |> MV.mvalue_to_any |> reverting_visitor.Map_AST.vany
+                    |> MV.mvalue_of_any
+                  with
+                  | None ->
+                      logger#error "Failed to convert mvar %s to and from any"
+                        mvar;
+                      None
+                  | Some mval -> Some (mvar, mval))
+         in
+         { nested_match with RM.mvars = readjusted_mvars })
+  |> Common.map (fun r' -> add_new_mvars_to_range r r'.RM.mvars)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -153,6 +172,19 @@ let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
                           file;
                         }
                       in
+                      (* We need to undo the changes made to the file location,
+                         for when we preserve this binding and re-localize it to
+                         the original file.
+                      *)
+                      let revert_loc loc =
+                        {
+                          loc with
+                          PI.charpos = loc.PI.charpos + mast_start_loc.charpos;
+                          line = loc.line + mast_start_loc.line - 1;
+                          column = loc.column + mast_start_loc.column;
+                          file = mval_file;
+                        }
+                      in
                       let fixing_visitor =
                         Map_AST.mk_fix_token_locations fix_loc
                       in
@@ -169,7 +201,7 @@ let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
                          matches
                       *)
                       get_nested_formula_matches { env with xtarget } formula r'
-                      |> augment_range_with_nested_matches r))
+                      |> augment_range_with_nested_matches revert_loc r))
           | Some xlang, MV.Text (content, _tok, _)
           | Some xlang, MV.Xmls [ XmlText (content, _tok) ]
           | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
@@ -208,11 +240,15 @@ let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
                       lazy_content = lazy content;
                     }
                   in
+                  (* The bindings found in this temp file need to be re-localized
+                     to the originating file.
+                  *)
+                  let revert_loc loc = { loc with PI.file = mval_file } in
                   (* Persist the bindings from inside the `metavariable-pattern`
                      matches
                   *)
                   get_nested_formula_matches { env with xtarget } formula r'
-                  |> augment_range_with_nested_matches r)
+                  |> augment_range_with_nested_matches revert_loc r)
           | Some _lang, mval ->
               (* This is not necessarily an error in the rule, e.g. you may be
                * matching `$STRING + ...` and then add a metavariable-pattern on

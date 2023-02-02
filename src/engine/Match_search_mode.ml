@@ -626,8 +626,6 @@ and get_nested_formula_matches env formula range =
 
 and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
     RM.ranges * Matching_explanation.t option =
-  (*Common.(pr2 (spf "evaling formula %s" ([%show: R.formula] e)));
-  *)
   match e with
   | R.P ({ XP.pid = id; pstr = pstr, tok; _ } as xpat) ->
       let match_results =
