@@ -80,13 +80,23 @@ type target_cache = (target_cache_key, bool) Hashtbl.t
 (* Finding *)
 (*************************************************************************)
 
+(* Check if file is a readable regular file.
+
+   This eliminates files that should never be semgrep targets. Among
+   others, this takes care of excluding symbolic links (because we don't
+   want to scan the target twice), directories (which may be returned by
+   globbing or by 'git ls-files' e.g. submodules), and
+   TODO files missing the read permission.
+*)
+let is_valid_file file =
+  (* TOPORT: return self._is_valid_file_or_dir(path) and path.is_file() *)
+  Common2.is_file file
+
 (* 'git ls-files' is significantly faster than os.walk when performed on
  * a git project, so identify the git files first, then filter those later.
  *)
 let files_from_git_ls ~cwd:scan_root =
   (* TOPORT:
-      # Tracked files
-      tracked_output = run_git_command(["git", "ls-files"])
       # Untracked but not ignored files
       untracked_output = run_git_command([
               "git",
@@ -103,41 +113,50 @@ let files_from_git_ls ~cwd:scan_root =
   (* tracked files *)
   let tracked_output = Git.files_from_git_ls ~cwd:scan_root in
   tracked_output
+  |> Common.map (fun x -> Filename.concat scan_root x)
+  |> List.filter is_valid_file
 
 (* python: mostly Target.files() method in target_manager.py *)
 let list_regular_files (conf : conf) (scan_root : path) : path list =
-  (* this may raise Unix.Unix_error *)
-  match (Unix.lstat scan_root).st_kind with
+  (* This may raise Unix.Unix_error.
+   * osemgrep-new: Note that I use Unix.stat below, not Unix.lstat, so we can
+   * actually analyze symlink to dirs!
+   * TODO? improve Unix.Unix_error in Find_target specific exn?
+   *)
+  match (Unix.stat scan_root).st_kind with
   (* TOPORT? make sure has right permissions (readable) *)
   | S_REG -> [ scan_root ]
   | S_DIR ->
       (* LATER: maybe we should first check whether scan_root is inside
        * a git repository because respect_git_ignore is set to true by default
-       * and so it does not really mean the user want to use git and
-       * a .gitignore to list files.
+       * and so it does not really mean the user want to use git (and
+       * a possible .gitignore) to list files.
        *)
       if conf.respect_git_ignore then (
         try files_from_git_ls ~cwd:scan_root with
-        | Git.Error _
-        | Unix.Unix_error _ ->
+        | (Git.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn ->
             Logs.info (fun m ->
                 m
                   "Unable to ignore files ignored by git (%s is not a git \
                    directory or git is not installed). Running on all files \
                    instead..."
                   scan_root);
+            Logs.debug (fun m -> m "exn = %s" (Common.exn_to_s exn));
             List_files.list_regular_files ~keep_root:true scan_root)
       else
         (* python: was called Target.files_from_filesystem () *)
         List_files.list_regular_files ~keep_root:true scan_root
-  (* TODO? handle symlink? python does not I think and may raise exn here*)
+  (* TODO? handle symlink? python does not I think and may raise exn here
+   * but I think we should, at least symlink to dirs.
+   * assert false because of use of Unix.stat above now?
+   *)
   | S_LNK -> []
+  (* TODO? use write_pipe_to_disk? *)
+  | S_FIFO -> []
   | S_CHR
   | S_BLK
-  | S_FIFO
   | S_SOCK ->
       []
-(* TODO? improve Unix.Unix_error in Find_target specific exn? *)
 
 (*************************************************************************)
 (* Dedup *)

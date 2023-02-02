@@ -314,33 +314,6 @@ class Target:
         """Check this is a valid file or directory for semgrep scanning."""
         return path_has_permissions(path, stat.S_IRUSR) and not path.is_symlink()
 
-    def _is_valid_file(self, path: Path) -> bool:
-        """Check if file is a readable regular file.
-
-        This eliminates files that should never be semgrep targets. Among
-        others, this takes care of excluding symbolic links (because we don't
-        want to scan the target twice), directories (which may be returned by
-        globbing or by 'git ls-files' e.g. submodules), and files missing
-        the read permission.
-        """
-        return self._is_valid_file_or_dir(path) and path.is_file()
-
-    def _parse_git_output(self, output: str) -> FrozenSet[Path]:
-        """
-        Convert a newline delimited list of files to a set of path objects
-        prepends curr_dir to all paths in said list
-
-        If list is empty then returns an empty set
-        """
-        files: FrozenSet[Path] = frozenset()
-
-        if output:
-            files = frozenset(
-                p
-                for p in (self.path / elem for elem in output.strip().split("\n"))
-                if self._is_valid_file(p)
-            )
-        return files
 
     def files_from_git_diff(self) -> FrozenSet[Path]:
         """
