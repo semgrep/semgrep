@@ -15,7 +15,7 @@
         "offset": 24
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "def one(x):\n    print(x)",
@@ -53,7 +53,7 @@
         "offset": 50
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "def two(y):\n    print(y)",
@@ -91,7 +91,7 @@
         "offset": 78
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "def three(z):\n    print(z)",

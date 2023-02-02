@@ -15,7 +15,7 @@
         "offset": 6
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "once",
         "is_ignored": false,
@@ -40,7 +40,7 @@
         "offset": 6
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "twice",
         "is_ignored": false,

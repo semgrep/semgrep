@@ -15,7 +15,7 @@
         "offset": 10
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "bar('abc')",
         "fixed_lines": [
@@ -57,7 +57,7 @@
         "offset": 21
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "bar(\"abc\")",
         "fixed_lines": [
@@ -99,7 +99,7 @@
         "offset": 36
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "bar(\"\"\"abc\"\"\")",
         "fixed_lines": [
@@ -141,7 +141,7 @@
         "offset": 48
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "bar(r\"abc\")",
         "fixed_lines": [
@@ -183,7 +183,7 @@
         "offset": 60
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "bar(f\"abc\")",
         "fixed_lines": [
@@ -225,7 +225,7 @@
         "offset": 69
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "bar([1])",
         "fixed_lines": [
@@ -267,7 +267,7 @@
         "offset": 81
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "bar([1, 2])",
         "fixed_lines": [
@@ -309,7 +309,7 @@
         "offset": 91
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "bar(x[1])",
         "fixed_lines": [
@@ -351,7 +351,7 @@
         "offset": 104
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "bar(x[1, 2])",
         "fixed_lines": [
