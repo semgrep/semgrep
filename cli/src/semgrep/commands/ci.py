@@ -1,4 +1,3 @@
-import json as jsonlib
 import os
 import sys
 import time
@@ -22,7 +21,6 @@ from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.config_resolver import Config
 from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
 from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
 from semgrep.constants import EngineType
@@ -328,7 +326,6 @@ def ci(
                 logger.info(f"Could not start scan {e}")
                 sys.exit(FATAL_EXIT_CODE)
 
-            assert config  # Config has to be defined here. Helping mypy out
             # Run DeepSemgrep when available but only for full scans
             is_full_scan = metadata.merge_base_ref is None
             engine = EngineType.OSS
@@ -352,20 +349,6 @@ def ci(
                     interfile_timeout = 0  # unlimited
             if engine.is_pro and not semgrep_pro_path.exists():
                 run_install_semgrep_pro()
-            if engine is EngineType.INTERFILE:
-                # Add the p/deepsemgrep rules
-                # TODO this is a temporary hack!!! In the future,
-                # we will ensure that deepsemgrep rules are in the
-                # default-v1 ruleset. This code should be removed
-                # by Feburary 2023
-                deep_semgrep_rules = Config.from_config_list(["p/deepsemgrep"], None)[
-                    0
-                ].get_rules(True)
-                deep_semgrep_rules_json = [r.raw for r in deep_semgrep_rules]
-                rules = jsonlib.loads(config[0])
-                if "rules" in rules:
-                    rules["rules"].extend(deep_semgrep_rules_json)
-                config = (jsonlib.dumps(rules),)
 
             # Append ignores configured on semgrep.dev
             requested_excludes = scan_handler.ignore_patterns if scan_handler else []
@@ -376,6 +359,7 @@ def ci(
 
             assert exclude is not None  # exclude is default empty tuple
             exclude = (*exclude, *yield_exclude_paths(requested_excludes))
+            assert config  # Config has to be defined here. Helping mypy out
             start = time.time()
             (
                 filtered_matches_by_rule,
