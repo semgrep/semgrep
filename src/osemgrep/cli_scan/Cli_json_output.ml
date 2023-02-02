@@ -450,6 +450,7 @@ let cli_output_of_core_results ~logging_level ~rules_source
    errors;
    skipped_targets;
    rules;
+   engine_requested;
    (* LATER *)
    skipped_rules = _;
    explanations = _;
@@ -498,4 +499,5 @@ let cli_output_of_core_results ~logging_level ~rules_source
         time = None;
         explanations = None;
         rules = Some rules;
+        engine_requested = Some engine_requested;
       }

@@ -432,7 +432,7 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
         dataflow_trace=dataflow_trace,
         engine_kind=cli_match_extra.engine_kind
         if cli_match_extra.engine_kind
-        else core.EngineKind(core.OSSMatch()),
+        else core.EngineKind(core.OSS()),
     )
     return RuleMatch(
         message=join_rule.get(

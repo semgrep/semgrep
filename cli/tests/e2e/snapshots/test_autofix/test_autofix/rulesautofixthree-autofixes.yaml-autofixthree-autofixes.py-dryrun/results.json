@@ -15,7 +15,7 @@
         "offset": 147
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "fixed_lines": [
@@ -70,7 +70,7 @@
         "offset": 286
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "fixed_lines": [
@@ -125,7 +125,7 @@
         "offset": 425
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "requests.post(headers=auth_headers, url=self.url, endpoints=\"endpoint\", _injected=True)",
         "fixed_lines": [

@@ -15,7 +15,7 @@
         "offset": 26
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "assert \"a\"",
         "is_ignored": false,
@@ -54,7 +54,7 @@
         "offset": 53
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "assert \"b\"",
         "is_ignored": false,

@@ -217,6 +217,7 @@ let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
           time = None;
           stats = { okfiles = 0; errorfiles = 0 };
           rules = [];
+          engine_requested = `OSS;
         }
       in
       { core; hrules = Rule.hrules_of_rules all_rules; scanned = Set_.empty }

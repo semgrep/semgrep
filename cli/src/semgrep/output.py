@@ -146,7 +146,6 @@ class OutputSettings(NamedTuple):
     output_time: bool = False
     timeout_threshold: int = 0
     dataflow_traces: bool = False
-    engine_requested: EngineType = EngineType.OSS
 
 
 class OutputHandler:
@@ -184,6 +183,7 @@ class OutputHandler:
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.rules_by_engine: Optional[List[out.Rule]] = None
+        self.engine_requested: EngineType = EngineType.OSS
 
         self.final_error: Optional[Exception] = None
         formatter_type = FORMATTERS.get(self.settings.output_format)
@@ -479,8 +479,6 @@ class OutputHandler:
         if self.settings.output_format == OutputFormat.SARIF:
             extra["dataflow_traces"] = self.settings.dataflow_traces
 
-        extra["engine_requested"] = self.engine_requested
-
         # the rules are used only by the SARIF formatter
         return self.formatter.output(
             self.rules,
@@ -491,6 +489,7 @@ class OutputHandler:
                 time=cli_timing,
                 explanations=explanations,
                 rules=rules_by_engine,
+                engine_requested=self.engine_requested.to_engine_kind(),
             ),
             extra,
             self.severities,
