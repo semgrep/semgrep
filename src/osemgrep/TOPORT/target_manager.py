@@ -351,37 +351,6 @@ class Target:
         git_status = self.baseline_handler.status
         return frozenset(git_status.added + git_status.modified)
 
-    def files_from_git_ls(self) -> FrozenSet[Path]:
-        """
-        git ls-files is significantly faster than os.walk when performed on a git project,
-        so identify the git files first, then filter those
-        """
-        run_git_command = partial(
-            sub_check_output,
-            cwd=self.path.resolve(),
-            encoding="utf-8",
-            stderr=subprocess.DEVNULL,
-        )
-
-        # Tracked files
-        tracked_output = run_git_command(["git", "ls-files"])
-
-        # Untracked but not ignored files
-        untracked_output = run_git_command(
-            [
-                "git",
-                "ls-files",
-                "--other",
-                "--exclude-standard",
-            ]
-        )
-
-        deleted_output = run_git_command(["git", "ls-files", "--deleted"])
-        tracked = self._parse_git_output(tracked_output)
-        untracked_unignored = self._parse_git_output(untracked_output)
-        deleted = self._parse_git_output(deleted_output)
-        return frozenset(tracked | untracked_unignored - deleted)
-
     def files(self) -> FrozenSet[Path]:
         ...
         if self.baseline_handler is not None:

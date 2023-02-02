@@ -80,6 +80,30 @@ type target_cache = (target_cache_key, bool) Hashtbl.t
 (* Finding *)
 (*************************************************************************)
 
+(* 'git ls-files' is significantly faster than os.walk when performed on
+ * a git project, so identify the git files first, then filter those later.
+ *)
+let files_from_git_ls ~cwd:scan_root =
+  (* TOPORT:
+      # Tracked files
+      tracked_output = run_git_command(["git", "ls-files"])
+      # Untracked but not ignored files
+      untracked_output = run_git_command([
+              "git",
+              "ls-files",
+              "--other",
+              "--exclude-standard",
+          ])
+      deleted_output = run_git_command(["git", "ls-files", "--deleted"])
+      tracked = self._parse_git_output(tracked_output)
+      untracked_unignored = self._parse_git_output(untracked_output)
+      deleted = self._parse_git_output(deleted_output)
+      return frozenset(tracked | untracked_unignored - deleted)
+  *)
+  (* tracked files *)
+  let tracked_output = Git.files_from_git_ls ~cwd:scan_root in
+  tracked_output
+
 (* python: mostly Target.files() method in target_manager.py *)
 let list_regular_files (conf : conf) (scan_root : path) : path list =
   (* this may raise Unix.Unix_error *)
@@ -93,7 +117,7 @@ let list_regular_files (conf : conf) (scan_root : path) : path list =
        * a .gitignore to list files.
        *)
       if conf.respect_git_ignore then (
-        try Git.files_from_git_ls ~cwd:scan_root with
+        try files_from_git_ls ~cwd:scan_root with
         | Git.Error _
         | Unix.Unix_error _ ->
             Logs.info (fun m ->
