@@ -33,10 +33,23 @@ let adjust_content_for_language (xlang : Xlang.t) (content : string) : string =
   | Xlang.L (Lang.Php, _) -> "<?php " ^ content
   | __else__ -> content
 
+(* This function adds mvars to a range, but only the mvars which are not already
+   inside of that range.
+   Precondition: You should maek sure that `range` has been vetted such that all
+   of its mvars unify with those in `mvars`!
+*)
+let add_new_mvars_to_range _config range mvars =
+  let new_mvars =
+    mvars
+    |> List.filter (fun (mvar, _) ->
+           not (Option.is_some (List.assoc_opt mvar mvars)))
+  in
+  { range with RM.mvars = new_mvars @ range.RM.mvars }
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
+let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
     opt_xlang formula =
   let bindings = r.RM.mvars in
   (* If anything goes wrong the default is to filter out! *)
@@ -116,18 +129,13 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                           lazy_content = lazy content;
                         }
                       in
-                      match
-                        nested_formula_has_matches { env with xtarget } formula
-                          (Some r')
-                      with
-                      | None -> []
-                      | Some interior_matches ->
-                          (* take each interior match and add its metavar bindings to
-                             this one? *)
-                          interior_matches
-                          |> List.filter_map (fun r' ->
-                                 RM.add_mvars_to_range env.xconf.config r
-                                   r'.RM.mvars)))
+                      (* Persist the bindings from inside the `metavariable-pattern`
+                         matches
+                      *)
+                      get_nested_formula_matches { env with xtarget } formula r'
+                      |> Common.map (fun r' ->
+                             add_new_mvars_to_range env.xconf.config r
+                               r'.RM.mvars)))
           | Some xlang, MV.Text (content, _tok, _)
           | Some xlang, MV.Xmls [ XmlText (content, _tok) ]
           | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
@@ -166,18 +174,12 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                       lazy_content = lazy content;
                     }
                   in
-                  match
-                    nested_formula_has_matches { env with xtarget } formula
-                      (Some r')
-                  with
-                  | None -> []
-                  | Some interior_matches ->
-                      (* take each interior match and add its metavar bindings to
-                         this one? *)
-                      interior_matches
-                      |> List.filter_map (fun r' ->
-                             RM.add_mvars_to_range env.xconf.config r
-                               r'.RM.mvars))
+                  (* Persist the bindings from inside the `metavariable-pattern`
+                     matches
+                  *)
+                  get_nested_formula_matches { env with xtarget } formula r'
+                  |> Common.map (fun r' ->
+                         add_new_mvars_to_range env.xconf.config r r'.RM.mvars))
           | Some _lang, mval ->
               (* This is not necessarily an error in the rule, e.g. you may be
                * matching `$STRING + ...` and then add a metavariable-pattern on

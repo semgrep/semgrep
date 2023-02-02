@@ -6,8 +6,8 @@
 val satisfies_metavar_pattern_condition :
   (Match_env.env ->
   Rule.formula ->
-  Range_with_metavars.t option ->
-  Range_with_metavars.t list option) ->
+  Range_with_metavars.t ->
+  Range_with_metavars.t list) ->
   Match_env.env ->
   Range_with_metavars.t ->
   (* The arguments in CondNestedFormula *)

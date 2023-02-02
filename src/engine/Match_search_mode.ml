@@ -534,7 +534,7 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
          | R.CondNestedFormula (mvar, opt_lang, formula) ->
              (* TODO: could return expl for nested matching! *)
              Metavariable_pattern.satisfies_metavar_pattern_condition
-               nested_formula_has_matches env r mvar opt_lang formula
+               get_nested_formula_matches env r mvar opt_lang formula
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really
@@ -611,16 +611,14 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
                analyze
              |> map_bool r)
 
-and nested_formula_has_matches env formula opt_context =
+and get_nested_formula_matches env formula range =
   let res, final_ranges =
     matches_of_formula
       { env.xconf with nested_formula = true }
-      env.rule env.xtarget formula opt_context
+      env.rule env.xtarget formula (Some range)
   in
   env.errors := Report.ErrorSet.union res.RP.errors !(env.errors);
-  match final_ranges with
-  | [] -> None
-  | _ :: _ -> Some final_ranges
+  final_ranges
 
 (*****************************************************************************)
 (* Formula evaluation *)
@@ -628,6 +626,8 @@ and nested_formula_has_matches env formula opt_context =
 
 and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
     RM.ranges * Matching_explanation.t option =
+  (*Common.(pr2 (spf "evaling formula %s" ([%show: R.formula] e)));
+  *)
   match e with
   | R.P ({ XP.pid = id; pstr = pstr, tok; _ } as xpat) ->
       let match_results =
@@ -782,6 +782,10 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
 and matches_of_formula xconf rule xtarget formula opt_context :
     RP.rule_profiling RP.match_result * RM.ranges =
   let xpatterns = xpatterns_in_formula formula in
+  (* this is the problem *)
+  (* nvm we kinda need this here to let outer mvars express
+     constraints on matches inside of the pattern
+  *)
   let mvar_context : Metavariable.bindings option =
     Option.map (fun s -> s.RM.mvars) opt_context
   in
