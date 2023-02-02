@@ -88,6 +88,7 @@ type mvalue =
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
  *)
+(* coupling: this function should be an inverse to the function below! *)
 let mvalue_to_any = function
   | E e -> G.E e
   | S s -> G.S s
@@ -107,6 +108,7 @@ let mvalue_to_any = function
   | P x -> G.P x
   | Text (s, info, _) -> G.E (G.L (G.String (s, info)) |> G.e)
 
+(* coupling: this function should be an inverse to the function above! *)
 let mvalue_of_any = function
   | G.E { e = G.N (Id (id, idinfo)); _ } -> Some (Id (id, Some idinfo))
   | E { e = RawExpr x; _ }
