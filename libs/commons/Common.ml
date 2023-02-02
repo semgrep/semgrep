@@ -699,10 +699,6 @@ let readable ~root s =
       | _ -> s)
   | _ -> filename_without_leading_path root s
 
-let is_directory file =
-  (* old: (Unix.stat file).Unix.st_kind =*= Unix.S_DIR *)
-  Sys.is_directory file
-
 (*****************************************************************************)
 (* Dates *)
 (*****************************************************************************)
@@ -1158,7 +1154,7 @@ let grep_dash_v_str =
 let files_of_dir_or_files_no_vcs_nofilter xs =
   xs
   |> map (fun x ->
-         if is_directory x then
+         if Sys.is_directory x then
            (* todo: should escape x *)
            let cmd =
              spf "find %s '%s' -type f %s"

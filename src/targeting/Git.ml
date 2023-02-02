@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -52,5 +53,8 @@ exception Error of string
 (*****************************************************************************)
 
 let files_from_git_ls ~cwd =
-  ignore cwd;
-  raise (Error "TODO")
+  assert (Sys.is_directory cwd);
+  (* TODO: use Unix.chdir in forked process instead of Common.cmd_to_list
+   * and also redirect stderr to null
+   *)
+  Common.cmd_to_list (spf "cd %s; git ls-files" cwd)

@@ -2,4 +2,5 @@
 
 exception Error of string
 
-val files_from_git_ls : cwd:string -> Common.filename list
+(* precondition: cwd must be a directory *)
+val files_from_git_ls : cwd:Common.dirname -> Common.filename list

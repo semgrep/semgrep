@@ -161,8 +161,6 @@ type filename = string [@@deriving show, eq]
 type dirname = string
 type path = string
 
-val is_directory : filename -> bool
-
 (* for realpath, see efuns_c library  *)
 (*
    Check that the file exists and produce a valid absolute path for the file.
