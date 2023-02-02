@@ -14,7 +14,7 @@
     and enforcing that we sanitize before saving, not before sending.
     """
 
-   Translated from metrics.py
+   Translated from metrics.py (with some parts in scan.py)
 *)
 
 (*****************************************************************************)
@@ -33,10 +33,11 @@ let _metrics_endpoint = "https://metrics.semgrep.dev"
 *)
 type config = On | Off | Auto [@@deriving show]
 
-(* For Cmdliner *)
-(* TOPORT? use lowercase_ascii before? accept ON/OFF/AUTO?
-   TOPORT? Support setting via old environment variable values 0/1/true/false
-*)
+(* For Cmdliner
+ * TOPORT? use lowercase_ascii before? accept ON/OFF/AUTO?
+ * TOPORT? Support setting via old environment variable values 0/1/true/false
+ * was in scan.py before.
+ *)
 let converter = Cmdliner.Arg.enum [ ("on", On); ("off", Off); ("auto", Auto) ]
 
 type t = {
