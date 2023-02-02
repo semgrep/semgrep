@@ -1,5 +1,5 @@
 rules:
-- id: test-3120
+- id: persistent-metavariable-pattern 
   patterns:
     - pattern: |
         def $FUNC(...):
