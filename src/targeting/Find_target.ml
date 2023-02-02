@@ -155,6 +155,8 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
 (* Entry point *)
 (*************************************************************************)
 
+(* python: mix of Target_manager(), target_manager.get_files_for_rule()
+ * and target_manager.get_all_files() *)
 let get_targets conf scanning_roots =
   (* python: =~ Target_manager.get_all_files() *)
   let paths =
