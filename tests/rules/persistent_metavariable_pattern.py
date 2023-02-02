@@ -3,8 +3,10 @@ def foo():
   x = 1
 
   foo(
-    # ruleid: persistent-metavariable-pattern
-    bar(5),
+    bar(
+      # ruleid: persistent-metavariable-pattern
+      5
+    ),
   )
 
   y = 23
