@@ -100,7 +100,7 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
     # THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
     #        The binary should not have setuid or setgid rights, so letting others
     #        execute it should not be a problem.
-    # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions
+    # nosemgrep: tests.precommit_dogfooding.python.lang.security.audit.insecure-file-permissions.insecure-file-permissions
     os.chmod(
         semgrep_pro_path,
         os.stat(semgrep_pro_path).st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH,
