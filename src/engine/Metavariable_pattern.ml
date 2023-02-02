@@ -35,7 +35,7 @@ let adjust_content_for_language (xlang : Xlang.t) (content : string) : string =
 
 (* This function adds mvars to a range, but only the mvars which are not already
    inside of that range.
-   Precondition: You should maek sure that `range` has been vetted such that all
+   Precondition: You should make sure that `range` has been vetted such that all
    of its mvars unify with those in `mvars`!
 
    In this file, it's OK to call this function because we know that, due to
