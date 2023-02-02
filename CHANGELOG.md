@@ -8,6 +8,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.9.0](https://github.com/returntocorp/semgrep/releases/tag/v1.9.0) - 2023-02-01
+
+### Added
+
+- Pro: If the "Semgrep Pro Engine" toggle is enabled in App, `semgrep ci` will add
+  support for Apex in all scans (including diff scans). (pa-2462)
+
+### Fixed
+
+- Fix incorrectly reformatted Bitbucket repository URLs (app-3279)
+
 ## [1.8.0](https://github.com/returntocorp/semgrep/releases/tag/v1.8.0) - 2023-02-01
 
 ### Added
