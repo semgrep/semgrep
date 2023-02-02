@@ -355,7 +355,6 @@ jobs:
   test-semgrep-pro:
     needs: [build-test-dev-docker]
     uses: ./.github/workflows/test-semgrep-pro.yaml
-    if: github.ref == 'refs/heads/develop'
     secrets: inherit
     with:
       artifact-name: image-dev
