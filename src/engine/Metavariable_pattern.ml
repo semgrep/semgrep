@@ -37,14 +37,50 @@ let adjust_content_for_language (xlang : Xlang.t) (content : string) : string =
    inside of that range.
    Precondition: You should maek sure that `range` has been vetted such that all
    of its mvars unify with those in `mvars`!
+
+   In this file, it's OK to call this function because we know that, due to
+   `opt_context` being passed down into `get_nested_formula_matches`, we have
+   already ensured that all produced ranges from that function are such that
+   they are consistent with the metavariables in `range`.
+
+   This means that if we had:
+   patterns:
+     - pattern: |
+         foo($A, $B)
+     - metavariable-pattern:
+         metavariable: $A
+         pattern: |
+           bar($B)
+
+    we are ensured that any produced matches from the `metavariable-pattern`
+    can only match `bar($B)` such that `$B` unifies with the outer `$B`.
+
+    So we add the non-inherited metavariables into this range.
 *)
-let add_new_mvars_to_range _config range mvars =
+let add_new_mvars_to_range range mvars =
   let new_mvars =
     mvars
     |> List.filter (fun (mvar, _) ->
            not (Option.is_some (List.assoc_opt mvar mvars)))
   in
-  { range with RM.mvars = new_mvars @ range.RM.mvars }
+  match new_mvars with
+  | [] -> None
+  | __else__ -> Some { range with RM.mvars = new_mvars @ range.RM.mvars }
+
+let augment_range_with_nested_matches r nested_matches =
+  match nested_matches with
+  | [] -> []
+  (* Premature optimization:
+     If this nested match introduces no new metavariables, we
+     decline to produce a new range for it, and keep the original around
+     always.
+     This saves us from possibly producing duplicates of the original range.
+  *)
+  | __else__ ->
+      r
+      :: (nested_matches
+         |> List.filter_map (fun nested_match ->
+                add_new_mvars_to_range r nested_match.RM.mvars))
 
 (*****************************************************************************)
 (* Entry point *)
@@ -133,9 +169,7 @@ let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
                          matches
                       *)
                       get_nested_formula_matches { env with xtarget } formula r'
-                      |> Common.map (fun r' ->
-                             add_new_mvars_to_range env.xconf.config r
-                               r'.RM.mvars)))
+                      |> augment_range_with_nested_matches r))
           | Some xlang, MV.Text (content, _tok, _)
           | Some xlang, MV.Xmls [ XmlText (content, _tok) ]
           | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
@@ -178,8 +212,7 @@ let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
                      matches
                   *)
                   get_nested_formula_matches { env with xtarget } formula r'
-                  |> Common.map (fun r' ->
-                         add_new_mvars_to_range env.xconf.config r r'.RM.mvars))
+                  |> augment_range_with_nested_matches r)
           | Some _lang, mval ->
               (* This is not necessarily an error in the rule, e.g. you may be
                * matching `$STRING + ...` and then add a metavariable-pattern on

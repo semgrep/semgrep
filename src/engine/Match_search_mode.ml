@@ -782,10 +782,6 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
 and matches_of_formula xconf rule xtarget formula opt_context :
     RP.rule_profiling RP.match_result * RM.ranges =
   let xpatterns = xpatterns_in_formula formula in
-  (* this is the problem *)
-  (* nvm we kinda need this here to let outer mvars express
-     constraints on matches inside of the pattern
-  *)
   let mvar_context : Metavariable.bindings option =
     Option.map (fun s -> s.RM.mvars) opt_context
   in
