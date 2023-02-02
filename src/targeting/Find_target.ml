@@ -82,10 +82,38 @@ type target_cache = (target_cache_key, bool) Hashtbl.t
 
 (* python: mostly Target.files() method in target_manager.py *)
 let list_regular_files (conf : conf) (scan_root : path) : path list =
-  ignore conf;
-  (* TODO: if respect_git_ignore then use git-ls-files *)
-  (* python: was called Target.files_from_filesystem () in target_manager.py*)
-  List_files.list_regular_files ~keep_root:true scan_root
+  (* this may raise Unix.Unix_error *)
+  match (Unix.lstat scan_root).st_kind with
+  (* TOPORT? make sure has right permissions (readable) *)
+  | S_REG -> [ scan_root ]
+  | S_DIR ->
+      (* LATER: maybe we should first check whether scan_root is inside
+       * a git repository because respect_git_ignore is set to true by default
+       * and so it does not really mean the user want to use git and
+       * a .gitignore to list files.
+       *)
+      if conf.respect_git_ignore then (
+        try Git.files_from_git_ls ~cwd:scan_root with
+        | Git.Error _
+        | Unix.Unix_error _ ->
+            Logs.info (fun m ->
+                m
+                  "Unable to ignore files ignored by git (%s is not a git \
+                   directory or git is not installed). Running on all files \
+                   instead..."
+                  scan_root);
+            List_files.list_regular_files ~keep_root:true scan_root)
+      else
+        (* python: was called Target.files_from_filesystem () *)
+        List_files.list_regular_files ~keep_root:true scan_root
+  (* TODO? handle symlink? python does not I think and may raise exn here*)
+  | S_LNK -> []
+  | S_CHR
+  | S_BLK
+  | S_FIFO
+  | S_SOCK ->
+      []
+(* TODO? improve Unix.Unix_error in Find_target specific exn? *)
 
 (*************************************************************************)
 (* Dedup *)
@@ -155,8 +183,8 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
 (* Entry point *)
 (*************************************************************************)
 
-(* python: mix of Target_manager(), target_manager.get_files_for_rule()
- * and target_manager.get_all_files() *)
+(* python: mix of Target_manager(), target_manager.get_files_for_rule(),
+ * target_manager.get_all_files(), Target(), and Target.files() *)
 let get_targets conf scanning_roots =
   (* python: =~ Target_manager.get_all_files() *)
   let paths =

@@ -31,6 +31,8 @@ type conf = {
    here.
 
    Usage: let possible_targets = get_files scanning_roots
+
+   This may raise Unix.Unix_error if the scanning root do not exist.
 *)
 val get_targets :
   conf ->

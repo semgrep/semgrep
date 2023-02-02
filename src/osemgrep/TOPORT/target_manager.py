@@ -382,22 +382,8 @@ class Target:
         deleted = self._parse_git_output(deleted_output)
         return frozenset(tracked | untracked_unignored - deleted)
 
-    def files_from_filesystem(self) -> FrozenSet[Path]:
-        return frozenset(
-            match
-            for match in self.path.glob("**/*")
-            if match.is_file() and not match.is_symlink()
-        )
-
-    @lru_cache(maxsize=None)
     def files(self) -> FrozenSet[Path]:
-        """
-        Recursively go through a directory and return list of all files with
-        default file extension of language
-        """
-        if not self.path.is_dir() and self.path.is_file():
-            return frozenset([self.path])
-
+        ...
         if self.baseline_handler is not None:
             try:
                 return self.files_from_git_diff()
@@ -405,17 +391,7 @@ class Target:
                 logger.verbose(
                     f"Unable to target only the changed files since baseline commit. Running on all git tracked files instead..."
                 )
-
-        if self.git_tracked_only:
-            try:
-                return self.files_from_git_ls()
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                logger.verbose(
-                    f"Unable to ignore files ignored by git ({self.path} is not a git directory or git is not installed). Running on all files instead..."
-                )
-
-        return self.files_from_filesystem()
-
+        ...
 
 @define(eq=False)
 class TargetManager:
@@ -436,17 +412,6 @@ class TargetManager:
     file_ignore: Optional[FileIgnore] = None
     lockfile_scan_info: Dict[str, int] = {}
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
-
-    def __attrs_post_init__(self) -> None:
-        self.targets = [
-            Target(
-                target,
-                git_tracked_only=self.respect_git_ignore,
-                baseline_handler=self.baseline_handler,
-            )
-            for target in self.target_strings
-        ]
-        return None
 
     @staticmethod
     def preprocess_path_patterns(patterns: Sequence[str]) -> List[str]:
@@ -589,10 +554,6 @@ class TargetManager:
         )
 
         return FilteredFiles(frozenset(kept), frozenset(removed))
-
-    @lru_cache(maxsize=None)
-    def get_all_files(self) -> FrozenSet[Path]:
-        return frozenset(f for target in self.targets for f in target.files())
 
     @lru_cache(maxsize=None)
     def get_files_for_language(self, lang: Union[Language, Ecosystem]) -> FilteredFiles:
