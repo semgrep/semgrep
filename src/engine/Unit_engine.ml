@@ -426,6 +426,7 @@ let lang_regression_tests ~polyglot_pattern_path ~with_caching =
          *)
         (Lang.Jsonnet, "jsonnet", ".jsonnet");
         (Lang.Clojure, "clojure", ".clj");
+        (Lang.Xml, "xml", ".xml");
       ]
   in
   let irregular_tests =
