@@ -42,7 +42,6 @@ jobs:
           fi
   test-semgrep-pro:
     name: Test Semgrep Pro Engine
-    if: ${{ github.event.pull_request.number != null }}
     runs-on: ubuntu-22.04
     needs: setup-docker-tag
     env:
@@ -60,4 +59,4 @@ jobs:
           docker load --input /tmp/image.tar
       - name: Run Semgrep Pro Engine!
         run: |
-          docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ steps.setup-docker-tag.outputs.docker-tag }}" /root/test-pro.sh
+          docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/test-pro.sh
