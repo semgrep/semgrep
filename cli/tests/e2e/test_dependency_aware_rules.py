@@ -1,4 +1,5 @@
 from pathlib import Path
+from time import time
 
 import pytest
 
@@ -73,6 +74,39 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
         run_semgrep_on_copied_files(rule, target_name=target).as_snapshot(),
         "results.txt",
     )
+
+
+@pytest.mark.parametrize(
+    "file_size,target,max_time",
+    [
+        pytest.param(file_size, target, max_time, marks=pytest.mark.xfail)
+        if target in ["maven_dep_tree.txt", "requirements.txt"]
+        else (file_size, target, max_time)
+        for file_size, max_time in [("10k", 2), ("50k", 6), ("100k", 12)]
+        for target in [
+            "Gemfile.lock",
+            "go.sum",
+            "gradle.lockfile",
+            "maven_dep_tree.txt",
+            "package-lock.json",
+            "poetry.lock",
+            "requirements.txt",
+            "yarn.lock",
+            "Pipfile.lock",
+        ]
+    ],
+)
+def test_dependency_aware_timing(
+    parse_lockfile_path_in_tmp, file_size, target, max_time
+):
+    start = time()
+    parse_lockfile_path_in_tmp(
+        Path(f"targets/dependency_aware/perf/{file_size}/{target}"), None
+    )
+    end = time()
+    exec_time = end - start
+    print(exec_time)
+    assert exec_time < max_time
 
 
 # Quite awkward. To test that we can handle a target whose toplevel parent
