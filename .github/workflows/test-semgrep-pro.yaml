@@ -27,12 +27,12 @@ jobs:
     name: Set up Docker tag based on if this is a pull request
     runs-on: ubuntu-22.04
     outputs:
-      dry-run: ${{steps.setup-docker-tag.outputs.docker-tag}}
+      docker-tag: ${{steps.setup-docker-tag.outputs.docker-tag}}
     steps:
       - name:
         id: setup-docker-tag
         run: |
-          if [ ${{ github.event_name }} = 'pull_request' ]; then
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "docker-tag=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
             echo "Setting docker tag to current pull request number"
           else
@@ -59,4 +59,4 @@ jobs:
           docker load --input /tmp/image.tar
       - name: Run Semgrep Pro Engine!
         run: |
-          docker run --rm -v $(pwd):/root -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ steps.setup-docker-tag.outputs.docker-tag }}" /root/test-pro.sh
+          docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ steps.setup-docker-tag.outputs.docker-tag }}" /root/test-pro.sh
