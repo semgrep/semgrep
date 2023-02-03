@@ -15,16 +15,15 @@ type loc = {
 }
 
 (* Path selector. *)
-type pattern = {
+type path_selector = {
   loc : loc;
   (* The matcher tells whether a given path matches the pattern.
      For example, the pattern /foo matches the path / *)
   matcher : Fpath.t -> bool;
 }
 
-type t = pattern list
+type t = path_selector list
 
 (* Parsing functions. They will raise exceptions if the input is malformed. *)
 val from_string : string -> t
-val from_channel : in_channel -> t
 val from_file : string -> t
