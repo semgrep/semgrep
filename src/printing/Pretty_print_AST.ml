@@ -109,11 +109,13 @@ let print_bool env = function
       | Lang.Solidity
       | Lang.Swift
       | Lang.Html
+      | Lang.Xml
       | Lang.Hcl ->
           "true"
       | Lang.R -> "TRUE")
   | false -> (
       match env.lang with
+      | Lang.Xml
       | Lang.Dart
       | Lang.Clojure
       | Lang.Lisp
@@ -246,6 +248,7 @@ and if_stmt env level (tok, e, s, sopt) =
   let bracket_body = F.sprintf "%s %s" (* (if cond) body *) in
   let format_cond, elseif_str, format_block =
     match env.lang with
+    | Lang.Xml
     | Lang.Dart
     | Lang.Clojure
     | Lang.Lisp
@@ -316,6 +319,7 @@ and while_stmt env level (tok, e, s) =
   let ruby_while = F.sprintf "%s %s\n %s\nend" in
   let while_format =
     match env.lang with
+    | Lang.Xml
     | Lang.Dart
     | Lang.Clojure
     | Lang.Lisp
@@ -362,6 +366,7 @@ and do_while stmt env level (s, e) =
   let c_do_while = F.sprintf "do %s\nwhile(%s)" in
   let do_while_format =
     match env.lang with
+    | Lang.Xml
     | Lang.Dart
     | Lang.Clojure
     | Lang.Lisp
@@ -407,6 +412,7 @@ and do_while stmt env level (s, e) =
 and for_stmt env level (for_tok, hdr, s) =
   let for_format =
     match env.lang with
+    | Lang.Xml
     | Lang.Dart
     | Lang.Clojure
     | Lang.Lisp
@@ -489,6 +495,7 @@ and def_stmt env (entity, def_kind) =
   let var_def (ent, def) =
     let no_val, with_val =
       match env.lang with
+      | Lang.Xml
       | Lang.Dart
       | Lang.Clojure
       | Lang.Lisp
@@ -563,6 +570,7 @@ and return env (tok, eopt) _sc =
     | Some e -> expr env e
   in
   match env.lang with
+  | Lang.Xml
   | Lang.Dart
   | Lang.Clojure
   | Lang.Lisp
@@ -612,6 +620,7 @@ and break env (tok, lbl) _sc =
     | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
+  | Lang.Xml
   | Lang.Dart
   | Lang.Clojure
   | Lang.Lisp
@@ -661,6 +670,7 @@ and continue env (tok, lbl) _sc =
     | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
+  | Lang.Xml
   | Lang.Dart
   | Lang.Clojure
   | Lang.Lisp
@@ -788,6 +798,7 @@ and literal env l =
   | Char (s, _) -> F.sprintf "'%s'" s
   | String (s, _) -> (
       match env.lang with
+      | Lang.Xml
       | Lang.Dart
       | Lang.Clojure
       | Lang.Lisp

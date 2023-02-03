@@ -26,7 +26,8 @@ let lang_has_no_dollar_ids =
     | Elixir
     | R
     | Swift
-    | Html ->
+    | Html
+    | Xml ->
         true
     | Js
     | Ts

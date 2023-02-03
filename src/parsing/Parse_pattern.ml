@@ -165,7 +165,8 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Swift ->
         let res = Parse_swift_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
-    | Lang.Html ->
+    | Lang.Html
+    | Lang.Xml ->
         let res = Parse_html_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Hcl ->

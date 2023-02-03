@@ -385,7 +385,8 @@ let rec just_parse_with_lang lang file =
         skipped_tokens = [];
         stat = Parsing_stat.default_stat file;
       }
-  | Lang.Html ->
+  | Lang.Html
+  | Lang.Xml ->
       (* less: there is an html parser in pfff too we could use as backup *)
       run file [ TreeSitter Parse_html_tree_sitter.parse ] (fun x -> x)
   | Lang.Vue ->
