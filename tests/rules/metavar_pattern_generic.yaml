@@ -1,0 +1,12 @@
+rules:
+- id: rule_template_id
+  languages:
+  - javascript
+  patterns:
+    - pattern: foo($...ARGS)
+    - metavariable-pattern:
+        metavariable: $...ARGS
+        language: generic
+        pattern: 2
+  message: rule_template_message
+  severity: ERROR
