@@ -66,14 +66,18 @@ let lang_parsing_tests () =
       pack_parsing_tests_for_lang Lang.Swift "swift" ".swift";
       pack_parsing_tests_for_lang Lang.Kotlin "kotlin" ".kt";
       pack_parsing_tests_for_lang Lang.Hack "hack" ".hack";
+      pack_parsing_tests_for_lang Lang.Html "html" ".html";
+      pack_parsing_tests_for_lang Lang.Xml "xml" ".xml";
+      pack_parsing_tests_for_lang Lang.Vue "vue" ".vue";
+      pack_parsing_tests_for_lang Lang.R "r" ".r";
+      pack_parsing_tests_for_lang Lang.Solidity "solidity" ".sol";
+      pack_parsing_tests_for_lang Lang.Julia "julia" ".jl";
+      pack_parsing_tests_for_lang Lang.Jsonnet "jsonnet" ".jsonnet";
       (* here we have both a Pfff and tree-sitter parser *)
       pack_parsing_tests_for_lang Lang.Java "java" ".java";
       pack_parsing_tests_for_lang Lang.Go "go" ".go";
       pack_parsing_tests_for_lang Lang.Ruby "ruby" ".rb";
       pack_parsing_tests_for_lang Lang.Js "js" ".js";
-      pack_parsing_tests_for_lang Lang.Scala "scala" ".scala";
-      pack_parsing_tests_for_lang Lang.Html "html" ".html";
-      pack_parsing_tests_for_lang Lang.Vue "vue" ".vue";
       pack_parsing_tests_for_lang Lang.Cpp "cpp" ".cpp";
       (* a few parsing tests where we expect some partials
        * See cpp/parsing_partial/
@@ -84,13 +88,9 @@ let lang_parsing_tests () =
          let lang = Lang.Cpp in
          partial_parsing_tests_for_lang files lang);
       pack_parsing_tests_for_lang Lang.Php "php" ".php";
-      pack_parsing_tests_for_lang Lang.R "r" ".r";
-      pack_parsing_tests_for_lang Lang.Solidity "solidity" ".sol";
       pack_parsing_tests_for_lang Lang.Ocaml "ocaml" ".ml";
-      pack_parsing_tests_for_lang Lang.Julia "julia" ".jl"
-      (* TODO: once jsonnet_to_generic.ml is finished
-         pack_parsing_tests_for_lang Lang.Jsonnet "jsonnet" ".jsonnet";
-      *);
+      (* recursive descent parser *)
+      pack_parsing_tests_for_lang Lang.Scala "scala" ".scala";
     ]
 
 (* It's important that our parsers generate classic parsing errors
