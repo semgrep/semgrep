@@ -73,6 +73,7 @@ let lang_parsing_tests () =
       pack_parsing_tests_for_lang Lang.Solidity "solidity" ".sol";
       pack_parsing_tests_for_lang Lang.Julia "julia" ".jl";
       pack_parsing_tests_for_lang Lang.Jsonnet "jsonnet" ".jsonnet";
+      pack_parsing_tests_for_lang Lang.Dart "dart" ".dart";
       (* here we have both a Pfff and tree-sitter parser *)
       pack_parsing_tests_for_lang Lang.Java "java" ".java";
       pack_parsing_tests_for_lang Lang.Go "go" ".go";

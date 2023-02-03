@@ -204,7 +204,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_julia.CST.dump_tree
   | Lang.Dart ->
       Tree_sitter_dart.Parse.file file
-      |> dump_and_print_errors Tree_sitter_dart.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_dart.Boilerplate.dump_tree
   | Lang.Python2
   | Lang.Python3
   | Lang.Python ->
