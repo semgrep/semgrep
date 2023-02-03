@@ -33,10 +33,10 @@ jobs:
         id: setup-docker-tag
         run: |
           if [ ${{ github.event_name }} = 'pull_request' ]; then
-            echo ::set-output name=docker-tag::${{ github.event.pull_request.number}}
+            echo "docker-tag=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
             echo "Setting docker tag to current pull request number"
           else
-            echo ::set-output name=docker-tag::develop
+            echo "docker-tag=develop" >> $GITHUB_OUTPUT
             echo "Setting dry-run to develop"
           fi
   test-semgrep-pro:
@@ -59,4 +59,4 @@ jobs:
           docker load --input /tmp/image.tar
       - name: Run Semgrep Pro Engine!
         run: |
-          docker run --rm -v (pwd):/root -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository_name }}:${{ steps.setup-docker-tag.outputs.docker-tag }}" /root/test-pro.sh
+          docker run --rm -v $(pwd):/root -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ steps.setup-docker-tag.outputs.docker-tag }}" /root/test-pro.sh
