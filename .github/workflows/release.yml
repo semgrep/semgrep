@@ -110,6 +110,8 @@ jobs:
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
+    with:
+      upload-test-statistics: false
 
   build-test-ubuntu-16-04:
     needs: [build-test-core-x86]

@@ -2,7 +2,19 @@ name: build-test-ubuntu-x86
 
 on:
   workflow_dispatch:
+    inputs:
+      upload-test-statistics:
+        description: "Whether or not to upload test suite metrics"
+        required: true
+        type: boolean
+        default: true
   workflow_call:
+    inputs:
+      upload-test-statistics:
+        description: "Whether or not to upload test suite metrics"
+        required: true
+        type: boolean
+        default: true
 
 jobs:
   build-test-core-x86:
@@ -26,4 +38,23 @@ jobs:
           name: ocaml-build-artifacts-release
           path: ocaml-build-artifacts.tgz
       - name: Test semgrep-core
-        run: opam exec -- make core-test
+        run: |
+          eval $(opam env)
+          START=`date +%s`
+          make core-test
+          make core-e2etest
+          END=`date +%s`
+          echo "TEST_RUN_TIME=$((END-START))" >> $GITHUB_ENV
+      - name: Report test run duration
+        if: ${{ inputs.upload-test-statistics }}
+        run: curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "${{ env.TEST_RUN_TIME }}"
+      - name: Report test run count
+        if: ${{ inputs.upload-test-statistics }}
+        run: ./tests/report_test_metrics.sh
+      - name: Report match performance
+        if: ${{ inputs.upload-test-statistics }}
+        run: |
+          # This runs a short test suite to track the match performance
+          # of semgrep-core over time. The results are pushed to the
+          # dashboard at https://dashboard.semgrep.dev/
+          opam exec -- make report-perf-matching

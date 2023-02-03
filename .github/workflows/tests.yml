@@ -18,61 +18,6 @@ on:
       - "**.md"
 
 jobs:
-  test-core:
-    # TODO: why not use the artifact of build-semgrep-core in this job instead?
-    name: test semgrep-core
-    runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine-2022-09-24
-    env:
-      HOME: /root
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-          persist-credentials: false
-      - name: Cache OCaml build files
-        uses: actions/cache@v3
-        with:
-          path: |
-            /root/.dune
-            /root/.opam/download-cache
-            /root/.opam/*/.opam-switch/packages
-            /root/.opam/*/.opam-switch/sources
-          key: ${{ runner.os }}-ocamlbuild
-      - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
-        env:
-          DUNE_CACHE: enabled
-          DUNE_CACHE_STORAGE_MODE: copy
-          DUNE_CACHE_ROOT: /root/.dune
-          DUNE_CACHE_TRANSPORT: direct
-      - name: Test semgrep-core
-        run: |
-          eval $(opam env)
-          START=`date +%s`
-          make core-test
-          make core-e2etest
-          END=`date +%s`
-          TEST_RUN_TIME=$((END-START))
-          curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
-      - name: Report Number of Tests Stats
-        if: github.ref == 'refs/heads/develop'
-        run: ./tests/report_test_metrics.sh
-
-      # TODO: move this to a stable host for more reliable results.
-      #
-      # It's not clear how to push the stats only when "on the main
-      # branch". The GitHub Actions documentation is unhelpful. So we
-      # keep things simple and publish the results every time.
-      #
-      - name: Publish match performance
-        run: |
-          # This runs a short test suite to track the match performance
-          # of semgrep-core over time. The results are pushed to the
-          # dashboard at https://dashboard.semgrep.dev/
-          #
-          opam exec -- make report-perf-matching
-
   test-cli:
     name: test semgrep-cli
     runs-on: ubuntu-22.04
@@ -357,6 +302,8 @@ jobs:
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
+    with:
+      upload-test-statistics: github.ref == 'refs/heads/develop'
 
   build-test-manylinux-x86:
     needs: [build-test-core-x86]
