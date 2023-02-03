@@ -3,6 +3,7 @@
  (name semgrep_targeting)
  (wrapped false)
  (libraries
+   fpath
 
    commons
    semgrep.core
