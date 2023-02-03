@@ -24,7 +24,8 @@
    can enforce this invariant at the type level.
 
    This file was originally called `Path.ml`, but this conflicts with
-   the OCaml compiler libraries.
+   the OCaml compiler libraries. Then it was called FPath.ml but this
+   was too close to the Fpath library by Daniel Buenzli.
 *)
 
 (*****************************************************************************)

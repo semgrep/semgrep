@@ -36,7 +36,7 @@ type conf = {
 *)
 val get_targets :
   conf ->
-  string list (* scanning roots *) ->
+  Fpath.t list (* scanning roots *) ->
   Common.filename list * Output_from_core_t.skipped_target list
 
 type baseline_handler = TODO

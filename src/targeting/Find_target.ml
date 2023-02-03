@@ -232,7 +232,8 @@ let get_targets conf scanning_roots =
   (* python: =~ Target_manager.get_all_files() *)
   let paths =
     scanning_roots
-    |> List.concat_map (fun scan_root -> list_regular_files conf scan_root)
+    |> List.concat_map (fun scan_root ->
+           list_regular_files conf (Fpath.to_string scan_root))
     |> deduplicate_list
   in
   let paths, skipped_paths =
