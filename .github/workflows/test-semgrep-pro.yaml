@@ -57,6 +57,9 @@ jobs:
       - name: Load image
         run: |
           docker load --input /tmp/image.tar
+      - name: See images
+        run: |
+          docker images
       - name: Run Semgrep Pro Engine!
         run: |
           docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/test-pro.sh
