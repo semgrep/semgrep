@@ -47,6 +47,10 @@ jobs:
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Download artifact
@@ -57,6 +61,16 @@ jobs:
       - name: Load image
         run: |
           docker load --input /tmp/image.tar
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::338683922796:role/returntocorp-semgrep-deploy-role
+          role-duration-seconds: 900
+          role-session-name: "semgrep-deploy"
+          aws-region: us-west-2
+      - name: Download Semgrep Pro binary
+        run: |
+          aws s3 cp s3://web-assets.r2c.dev/assets/semgrep-core-proprietary-manylinux-develop ./semgrep-core-proprietary
       - name: See images
         run: |
           docker images
