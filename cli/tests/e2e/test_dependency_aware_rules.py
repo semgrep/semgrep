@@ -67,6 +67,11 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/no-pattern.yaml",
             "dependency_aware/yarn_multi_hash",
         ),
+        pytest.param(
+            "rules/dependency_aware/yarn-sass.yaml",
+            "dependency_aware/yarn_at_in_version",
+            marks=pytest.mark.xfail,
+        ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
