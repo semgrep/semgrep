@@ -135,6 +135,37 @@ let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
               r = { start = 0; end_ = mval_range.end_ - mval_range.start };
             }
           in
+          (* We don't want having to re-parse `content', but then we
+           * need to fix the token locations in `mast`. *)
+          let mast_start_loc =
+            mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens |> fst
+            |> PI.unsafe_token_location_of_info
+          in
+          let fix_loc file loc =
+            {
+              loc with
+              PI.charpos = loc.PI.charpos - mast_start_loc.charpos;
+              line = loc.line - mast_start_loc.line + 1;
+              (* TODO Is column wrong if loc.line does not equal
+               * mast_start_loc.line? *)
+              column = loc.column - mast_start_loc.column;
+              file;
+            }
+          in
+          (* We need to undo the changes made to the file location,
+             for when we preserve this binding and re-localize it to
+             the original file.
+          *)
+          let revert_loc loc =
+            {
+              loc with
+              PI.charpos = loc.PI.charpos + mast_start_loc.charpos;
+              line = loc.line + mast_start_loc.line - 1;
+              (* TODO Is column wrong if loc.line is not 1? *)
+              column = loc.column + mast_start_loc.column;
+              file = mval_file;
+            }
+          in
           match opt_xlang with
           | None -> (
               (* We match wrt the same language as the rule.
@@ -157,36 +188,8 @@ let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
                   let content = Range.content_at_range mval_file mval_range in
                   Xpattern_matcher.with_tmp_file ~str:content
                     ~ext:"mvar-pattern" (fun file ->
-                      (* We don't want having to re-parse `content', but then we
-                       * need to fix the token locations in `mast`. *)
-                      let mast_start_loc =
-                        mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens
-                        |> fst |> PI.unsafe_token_location_of_info
-                      in
-                      let fix_loc loc =
-                        {
-                          loc with
-                          PI.charpos = loc.PI.charpos - mast_start_loc.charpos;
-                          line = loc.line - mast_start_loc.line + 1;
-                          column = loc.column - mast_start_loc.column;
-                          file;
-                        }
-                      in
-                      (* We need to undo the changes made to the file location,
-                         for when we preserve this binding and re-localize it to
-                         the original file.
-                      *)
-                      let revert_loc loc =
-                        {
-                          loc with
-                          PI.charpos = loc.PI.charpos + mast_start_loc.charpos;
-                          line = loc.line + mast_start_loc.line - 1;
-                          column = loc.column + mast_start_loc.column;
-                          file = mval_file;
-                        }
-                      in
                       let fixing_visitor =
-                        Map_AST.mk_fix_token_locations fix_loc
+                        Map_AST.mk_fix_token_locations (fix_loc file)
                       in
                       let mast' = fixing_visitor.Map_AST.vprogram mast in
                       let xtarget =
@@ -278,10 +281,6 @@ let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
                           lazy_content = lazy content;
                         }
                       in
-                      (* The bindings found in this temp file need to be re-localized
-                         to the originating file.
-                      *)
-                      let revert_loc loc = { loc with PI.file = mval_file } in
                       (* Persist the bindings from inside the `metavariable-pattern`
                          matches
                       *)
