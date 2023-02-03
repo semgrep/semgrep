@@ -68,4 +68,4 @@ jobs:
           pwd
       - name: Run Semgrep Pro Engine!
         run: |
-          docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:pr-${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/test-pro.sh
+          docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:pr-${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/scripts/test-pro.sh
