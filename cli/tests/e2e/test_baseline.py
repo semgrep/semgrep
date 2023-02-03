@@ -3,6 +3,7 @@ import tempfile
 from collections import defaultdict
 from itertools import permutations
 from pathlib import Path
+from typing import List
 from typing import Optional
 
 import pytest
@@ -88,22 +89,16 @@ def _git_merge(ref: str) -> str:
     ).strip()
 
 
-def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
+def run_semgrep_scan(
+    args: List[str], check: bool = True, base_commit: Optional[str] = None
+):
     env = {"LANG": "en_US.UTF-8"}
     env["SEMGREP_USER_AGENT_APPEND"] = "testing"
     unique_settings_file = tempfile.NamedTemporaryFile().name
     Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
     env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
 
-    cmd = SEMGREP_BASE_COMMAND + [
-        "--disable-version-check",
-        "--metrics",
-        "off",
-        "-e",
-        f"$X = {SENTINEL_1}",
-        "-l",
-        "python",
-    ]
+    cmd = SEMGREP_BASE_COMMAND + args
     if base_commit:
         cmd.extend(["--baseline-commit", base_commit])
 
@@ -121,6 +116,32 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
         print("STDERR from sentinel scan subprocess:")
         print(e.stderr)
         raise e
+
+
+def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
+    args = [
+        "--disable-version-check",
+        "--metrics",
+        "off",
+        "-e",
+        f"$X = {SENTINEL_1}",
+        "-l",
+        "python",
+    ]
+    return run_semgrep_scan(args, check, base_commit)
+
+
+def run_match_based_scan(check: bool = True, base_commit: Optional[str] = None):
+    args = [
+        "--disable-version-check",
+        "--metrics",
+        "off",
+        "-e",
+        "logger.log(...)",
+        "-l",
+        "python",
+    ]
+    return run_semgrep_scan(args, check, base_commit)
 
 
 def test_one_commit_with_baseline(git_tmp_path, snapshot):
@@ -619,6 +640,40 @@ def test_renamed_file(git_tmp_path, snapshot, new_name):
     assert set(git_tmp_path.glob("*.py")) == {
         new_path
     }, "the old path should be gone now"
+
+
+def test_match_based_key(git_tmp_path, snapshot):
+    # Test that no findings in head reports no findings even if
+    # findings in baseline
+    foo = git_tmp_path / "foo.py"
+    foo.write_text(f"logger.log('foo')\n")
+
+    # Add baseline finding
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    _git_commit(1)
+    base_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    # Add head finding
+    foo.write_text(f"logger.log('changed text')\n")  # Change just the content of foo
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    _git_commit(2)
+
+    # Non-baseline scan should report 1 finding
+    output = run_match_based_scan()
+    assert output.stdout != ""
+    snapshot.assert_match(
+        output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
+    )
+
+    # Baseline scan should report no findings
+    baseline_output = run_match_based_scan(base_commit=base_commit)
+    assert baseline_output.stdout != output.stdout
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
+    )
 
 
 @pytest.mark.todo
