@@ -523,17 +523,18 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
 
 let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
     RM.ranges =
+  let map_bool r b = if b then [ r ] else [] in
   xs
-  |> List.filter (fun r ->
+  |> List.concat_map (fun r ->
          let bindings = r.RM.mvars in
          match cond with
          | R.CondEval e ->
              let env = Eval_generic.bindings_to_env env.xconf.config bindings in
-             Eval_generic.eval_bool env e
+             Eval_generic.eval_bool env e |> map_bool r
          | R.CondNestedFormula (mvar, opt_lang, formula) ->
              (* TODO: could return expl for nested matching! *)
              Metavariable_pattern.satisfies_metavar_pattern_condition
-               nested_formula_has_matches env r mvar opt_lang formula
+               get_nested_formula_matches env r mvar opt_lang formula
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really
@@ -578,11 +579,12 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
                  Eval_generic.bindings_to_env config bindings
                else Eval_generic.bindings_to_env_just_strings config bindings
              in
-             Eval_generic.eval_bool env e
+             Eval_generic.eval_bool env e |> map_bool r
          | R.CondAnalysis (mvar, CondEntropy) ->
              let bindings = r.mvars in
              Metavariable_analysis.analyze_string_metavar env bindings mvar
                Entropy.has_high_score
+             |> map_bool r
          | R.CondAnalysis (mvar, CondReDoS) ->
              let bindings = r.mvars in
              let analyze re_str =
@@ -606,18 +608,17 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
                    false
              in
              Metavariable_analysis.analyze_string_metavar env bindings mvar
-               analyze)
+               analyze
+             |> map_bool r)
 
-and nested_formula_has_matches env formula opt_context =
+and get_nested_formula_matches env formula range =
   let res, final_ranges =
     matches_of_formula
       { env.xconf with nested_formula = true }
-      env.rule env.xtarget formula opt_context
+      env.rule env.xtarget formula (Some range)
   in
   env.errors := Report.ErrorSet.union res.RP.errors !(env.errors);
-  match final_ranges with
-  | [] -> false
-  | _ :: _ -> true
+  final_ranges
 
 (*****************************************************************************)
 (* Formula evaluation *)

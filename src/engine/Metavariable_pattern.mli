@@ -4,11 +4,14 @@
  * as handling metavariable-pattern: requires nested search.
  *)
 val satisfies_metavar_pattern_condition :
-  (Match_env.env -> Rule.formula -> Range_with_metavars.t option -> bool) ->
+  (Match_env.env ->
+  Rule.formula ->
+  Range_with_metavars.t ->
+  Range_with_metavars.t list) ->
   Match_env.env ->
   Range_with_metavars.t ->
   (* The arguments in CondNestedFormula *)
   Metavariable.mvar ->
   Xlang.t option ->
   Rule.formula ->
-  bool
+  Range_with_metavars.t list
