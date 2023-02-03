@@ -353,12 +353,12 @@ jobs:
       repository-name: ${{ github.repository }}-dev
 
   test-semgrep-pro:
-    needs: [build-test-dev-docker, push-dev-docker]
+    needs: [build-test-docker, push-docker]
     uses: ./.github/workflows/test-semgrep-pro.yaml
     secrets: inherit
     with:
-      artifact-name: image-dev
-      repository-name: ${{ github.repository }}-dev
+      artifact-name: image-test
+      repository-name: ${{ github.repository }}
 
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yaml
