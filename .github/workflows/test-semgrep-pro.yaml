@@ -27,16 +27,17 @@ jobs:
     name: Set up Docker tag based on if this is a pull request
     runs-on: ubuntu-22.04
     outputs:
-      docker-tag: ${{steps.setup-docker-tag.outputs.docker-tag}}
+      docker-tag: ${{ steps.setup-docker-tag.outputs.docker-tag }}
     steps:
       - name:
         id: setup-docker-tag
         run: |
+          echo "Github event is ${{ github.event_name }}"
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "docker-tag=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo ::set-output name=docker-tag::${{ github.event.pull_request.number }}
             echo "Setting docker tag to current pull request number"
           else
-            echo "docker-tag=develop" >> $GITHUB_OUTPUT
+            echo ::set-output name=docker-tag::develop
             echo "Setting dry-run to develop"
           fi
   test-semgrep-pro:
