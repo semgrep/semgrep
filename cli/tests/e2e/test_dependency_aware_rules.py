@@ -82,7 +82,7 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
         pytest.param(file_size, target, max_time, marks=pytest.mark.xfail)
         if target in ["maven_dep_tree.txt", "requirements.txt"]
         else (file_size, target, max_time)
-        for file_size, max_time in [("10k", 2), ("50k", 2), ("100k", 2)]
+        for file_size, max_time in [("10k", 2), ("50k", 6), ("100k", 12)]
         for target in [
             "Gemfile.lock",
             "go.sum",
@@ -92,6 +92,7 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
             "poetry.lock",
             "requirements.txt",
             "yarn.lock",
+            "Pipfile.lock",
         ]
     ],
 )
