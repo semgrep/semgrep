@@ -94,6 +94,7 @@ class RuleMatch:
     lines: List[str] = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
     syntactic_context: str = field(init=False, repr=False)
+    match_based_unique_key: str = field(init=False, repr=False)
     cli_unique_key: Tuple = field(init=False, repr=False)
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
@@ -211,7 +212,23 @@ class RuleMatch:
             path = self.path
         return (self.rule_id, str(path), self.syntactic_context, self.index)
 
-    def get_path_changed_ci_unique_key(self, rename_dict: Dict[str, Path]) -> Tuple:
+    @match_based_unique_key.default
+    def get_match_based_unique_key(self) -> Tuple:
+        """
+        Replaces get_ci_unique_key for deduping between branches on diff scans
+        TODO it may be better to just replace `get_match_based_key()` with this.
+        Leaving it like this to make minimal changes to solve the immediate issue
+
+        Results in even fewer unique findings than ci_unique_key
+        """
+        try:
+            path = self.path.relative_to(Path.cwd())
+        except (ValueError, FileNotFoundError):
+            path = self.path
+        (formula, _path, rule_id) = self.get_match_based_key()
+        return (rule_id, str(path), formula, self.index)
+
+    def get_path_changed_match_based_key(self, rename_dict: Dict[str, Path]) -> Tuple:
         """
         A unique key that accounts for filepath renames.
 
@@ -222,7 +239,8 @@ class RuleMatch:
         except (ValueError, FileNotFoundError):
             path = str(self.path)
         renamed_path = str(rename_dict[path]) if path in rename_dict else path
-        return (self.rule_id, renamed_path, self.syntactic_context, self.index)
+        (formula, _path, rule_id) = self.get_match_based_key()
+        return (rule_id, renamed_path, formula, self.index)
 
     @ordering_key.default
     def get_ordering_key(self) -> Tuple:

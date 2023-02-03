@@ -238,12 +238,13 @@ def remove_matches_in_baseline(
         if len(matches) == 0:
             continue
         baseline_matches = {
-            match.ci_unique_key for match in baseline_matches_by_rule.get(rule, [])
+            match.match_based_unique_key
+            for match in baseline_matches_by_rule.get(rule, [])
         }
         kept_matches_by_rule[rule] = [
             match
             for match in matches
-            if match.get_path_changed_ci_unique_key(file_renames)
+            if match.get_path_changed_match_based_key(file_renames)
             not in baseline_matches
         ]
         num_removed += len(matches) - len(kept_matches_by_rule[rule])

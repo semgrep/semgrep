@@ -1,0 +1,3 @@
+fix: deduplicate based on the match based key rather than syntactic content for diff scans.
+This means that if `logger.error("log 1")` is a finding on develop, and your diff changes
+the line to `logger.error("log 2")`, a new finding will not be reported.
