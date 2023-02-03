@@ -7,14 +7,12 @@ on:
         description: "Whether or not to upload test suite metrics"
         required: true
         type: boolean
-        default: true
   workflow_call:
     inputs:
       upload-test-statistics:
         description: "Whether or not to upload test suite metrics"
         required: true
         type: boolean
-        default: true
 
 jobs:
   build-test-core-x86:
