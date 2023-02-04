@@ -1,0 +1,1 @@
+CLI: Added a warning when rules are run with the OSS engine when trying to run with a non-OSS engine (such as interfile).
