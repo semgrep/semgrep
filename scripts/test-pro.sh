@@ -1,5 +1,5 @@
 #! /usr/bin/env bash
 
-semgrep install-semgrep-pro
+cp ./semgrep-core-proprietary /usr/local/bin/semgrep-core-proprietary
 
-semgrep --config "p/deepsemgrep" . --interfile
+semgrep --config "p/deepsemgrep" src --interfile
