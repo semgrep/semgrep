@@ -246,5 +246,7 @@
   "stats": {
     "okfiles": 158,
     "errorfiles": 2
-  }
+  },
+  "rules": [],
+  "engine_requested": "OSS"
 }
