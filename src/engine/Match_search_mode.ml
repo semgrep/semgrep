@@ -534,7 +534,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
          | R.CondNestedFormula (mvar, opt_lang, formula) -> (
              (* TODO: could return expl for nested matching! *)
              match
-               Metavariable_pattern.satisfies_metavar_pattern_condition
+               Metavariable_pattern.get_nested_metavar_pattern_bindings
                  get_nested_formula_matches env r mvar opt_lang formula
              with
              | [] -> None
