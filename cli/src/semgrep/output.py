@@ -22,6 +22,7 @@ from boltons.iterutils import partition
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import Colors
+from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.error import FINDINGS_EXIT_CODE
@@ -181,6 +182,8 @@ class OutputHandler:
         )  # (rule, target) -> duration
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
+        self.rules_by_engine: Optional[List[out.Rule]] = None
+        self.engine_requested: EngineType = EngineType.OSS
 
         self.final_error: Optional[Exception] = None
         formatter_type = FORMATTERS.get(self.settings.output_format)
@@ -294,9 +297,11 @@ class OutputHandler:
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         explanations: Optional[List[out.MatchingExplanation]] = None,
+        rules_by_engine: Optional[List[out.Rule]] = None,
         severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
+        engine: EngineType = EngineType.OSS,
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -310,6 +315,8 @@ class OutputHandler:
         self.all_targets = all_targets
         self.filtered_rules = filtered_rules
 
+        self.engine_requested = engine
+
         if ignore_log:
             self.ignore_log = ignore_log
         else:
@@ -321,6 +328,8 @@ class OutputHandler:
             self.profiling_data = profiling_data
         if explanations:
             self.explanations = explanations
+        if rules_by_engine:
+            self.rules_by_engine = rules_by_engine
         if severities:
             self.severities = severities
 
@@ -424,7 +433,10 @@ class OutputHandler:
             skipped=None,
         )
         cli_timing: Optional[out.CliTiming] = None
+
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
+        rules_by_engine: Optional[List[out.Rule]] = self.rules_by_engine
+
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
         # - The text formatter uses it to store settings
@@ -473,7 +485,11 @@ class OutputHandler:
             self.rule_matches,
             self.semgrep_structured_errors,
             out.CliOutputExtra(
-                paths=cli_paths, time=cli_timing, explanations=explanations
+                paths=cli_paths,
+                time=cli_timing,
+                explanations=explanations,
+                rules=rules_by_engine,
+                engine_requested=self.engine_requested.to_engine_kind(),
             ),
             extra,
             self.severities,

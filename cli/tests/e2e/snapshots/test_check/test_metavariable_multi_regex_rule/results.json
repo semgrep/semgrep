@@ -25,7 +25,7 @@
         "offset": 37
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "metavariable_regex_test.method1(arg1)",

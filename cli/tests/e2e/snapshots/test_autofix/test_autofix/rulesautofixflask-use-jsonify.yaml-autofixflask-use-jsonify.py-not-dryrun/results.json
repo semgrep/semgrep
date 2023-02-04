@@ -15,7 +15,7 @@
         "offset": 209
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix_regex": {
           "count": 1,
@@ -58,7 +58,7 @@
         "offset": 368
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix_regex": {
           "count": 1,

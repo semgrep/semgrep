@@ -705,10 +705,10 @@ class TextFormatter(BaseFormatter):
                 pro_matches = []
                 for x in first_party_blocking:
                     if x.match.extra.engine_kind is None or isinstance(
-                        x.match.extra.engine_kind.value, out.OSSMatch
+                        x.match.extra.engine_kind.value, out.OSS
                     ):
                         oss_matches.append(x)
-                    elif isinstance(x.match.extra.engine_kind.value, out.ProMatch):
+                    elif isinstance(x.match.extra.engine_kind.value, out.PRO):
                         pro_matches.append(x)
                 generate_output(f"{blocking_description}", oss_matches)
                 generate_output(f"Semgrep Pro Engine Findings", pro_matches)
@@ -736,10 +736,28 @@ class TextFormatter(BaseFormatter):
                     ]
                 )
 
+        rules_by_engine = cli_output_extra.rules if cli_output_extra.rules else []
+
+        oss_rules = [
+            with_color(Colors.foreground, rule.rule_id.value, bold=True)
+            for rule in rules_by_engine
+            if isinstance(rule.engine_kind.value, out.OSS)
+        ]
+
+        rules_output = []
+        if cli_output_extra.engine_requested is None or not isinstance(
+            cli_output_extra.engine_requested.value, out.OSS
+        ):
+            if oss_rules:
+                rules_output = [
+                    "\nSome rules were run as OSS rules because `deepsemgrep: true` was not specified.\n"
+                ] + ["These rules were:\n   " + "   \n   ".join(oss_rules)]
+
         return "\n".join(
             [
                 *findings_output,
                 *first_party_blocking_rules_output,
                 *timing_output,
+                *rules_output,
             ]
         )

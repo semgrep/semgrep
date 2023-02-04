@@ -129,6 +129,7 @@ def invoke_semgrep(
     output_handler.profiling_data = output_extra.profiling_data
     output_handler.severities = shown_severities
     output_handler.explanations = output_extra.explanations
+    output_handler.rules_by_engine = output_extra.rules_by_engine
 
     return json.loads(output_handler._build_output())  # type: ignore
 

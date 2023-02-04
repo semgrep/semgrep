@@ -19,7 +19,7 @@
         "offset": 14
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "var x = 0 == 0",
@@ -57,7 +57,7 @@
         "offset": 14
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "var x = 0 == 0",
@@ -95,7 +95,7 @@
         "offset": 14
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "var x = 0 == 0",
@@ -133,7 +133,7 @@
         "offset": 14
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "var x = 0 == 0",
@@ -171,7 +171,7 @@
         "offset": 14
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "var x = 0 == 0",

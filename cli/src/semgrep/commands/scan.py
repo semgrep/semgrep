@@ -936,6 +936,8 @@ def scan(
                 explanations=output_extra.explanations,
                 severities=shown_severities,
                 print_summary=True,
+                rules_by_engine=output_extra.rules_by_engine,
+                engine=engine,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())
