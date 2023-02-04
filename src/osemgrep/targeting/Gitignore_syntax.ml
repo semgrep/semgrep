@@ -13,7 +13,8 @@ type loc = {
   line_contents : string;
 }
 
-type path_selector = { loc : loc; matcher : Fpath.t -> bool }
+type selection_event = Selected of loc | Deselected of loc
+type path_selector = { loc : loc; matcher : Fpath.t -> selection_event option }
 type t = path_selector list
 
 let read_lines_from_string =
@@ -22,39 +23,12 @@ let read_lines_from_string =
      - support Windows line endings regardless of current platform
   *)
   let sep = SPcre.regexp " *\r?\n" in
-  fun str -> SPcre.split ~rex:sep str
-
-(*
-   How to interpret backslash escapes?
-
-   The spec isn't clear about it. We assume the following, based on
-   experimentation:
-   - A backslash preceding any character causes the following character
-     to be interpreted "literally". What this means depends on the context.
-   - Backslashes are used in the glob syntax to protect special characters,
-     so we don't eliminate them here.
-   - end-of-line (lone) backslashes are ignored.
-*)
-let unescape_pattern str =
-  let len = String.length str in
-  let buf = Buffer.create 200 in
-  let rec loop pos =
-    if pos >= len then ()
-    else if pos = len - 1 then Buffer.add_char buf str.[pos]
-    else
-      let next_pos =
-        match str.[pos] with
-        | '\\' ->
-            Buffer.add_char buf str.[pos + 1];
-            pos + 2
-        | c ->
-            Buffer.add_char buf c;
-            pos + 1
-      in
-      loop next_pos
-  in
-  loop 0;
-  Buffer.contents buf
+  fun str ->
+    match SPcre.split ~rex:sep str with
+    | Ok res -> res
+    | Error err ->
+        (* not sure why it would happen so we let it fail *)
+        raise (Pcre.Error err)
 
 let is_ignored_line =
   let rex = SPcre.regexp "^(?:[ \t]$|#.*)$" in
@@ -64,7 +38,7 @@ let remove_negator str =
   if String.length str >= 1 && str.[0] = '!' then Some (Str.string_after str 1)
   else None
 
-let parse_pattern _str =
+let parse_pattern _str : Glob_matcher.compiled_pattern =
   (* use Glob_parser + Glob_matcher + some tweaks for gitignore *)
   failwith "todo: parse_pattern"
 
@@ -77,10 +51,12 @@ let parse_line source_name line_number line_contents =
       | None -> (false, line_contents)
       | Some s -> (true, s)
     in
-    let pattern = unescape_pattern pattern_str |> parse_pattern in
-    let matcher str =
-      let b = Glob_matcher.run pattern str in
-      if is_negated then not b else b
+    let pattern = parse_pattern pattern_str in
+    let matcher path =
+      match Glob_matcher.run pattern path with
+      | true ->
+          if is_negated then Some (Deselected loc) else Some (Selected loc)
+      | false -> None
     in
     Some { loc; matcher }
 

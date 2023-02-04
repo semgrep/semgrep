@@ -19,8 +19,7 @@ type component_fragment =
 
 type component = Component of component_fragment list | Ellipsis
 type pattern = component list
-type path = FPath.t
-type matcher = { source : string; re : Re.t }
+type compiled_pattern = { source : string; re : Re.t }
 
 let compile ~source:_ _pat = failwith "todo"
 let run _matcher _path = failwith "todo"

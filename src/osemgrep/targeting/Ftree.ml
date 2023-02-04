@@ -26,6 +26,8 @@ type t = {
   file_cache : (string, file option) Hashtbl.t;
 }
 
+let cwd x = x.cwd
+
 (* Use this only on validated paths *)
 let internal_path_of_string str =
   match Fpath.of_string str with
@@ -89,7 +91,7 @@ let read_dir_entries dir_path =
         with
         | End_of_file ->
             List.sort String.compare acc
-            |> List.map (fun basename -> dir_path / basename)
+            |> Common.map (fun basename -> dir_path / basename)
       in
       loop [])
 

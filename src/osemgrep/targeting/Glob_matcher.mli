@@ -22,10 +22,20 @@ type component =
 *)
 type pattern = component list
 
-(*
-   An absolute or relative path.
+(* A compiled pattern matcher. *)
+type compiled_pattern
 
-   If a pattern is absolute, then both the beginning and the end of the
+(*
+   Compile the pattern into something efficient. The source should be
+   the original glob pattern before parsing. It's used only for debugging
+   purposes.
+*)
+val compile : source:string -> pattern -> compiled_pattern
+
+(*
+   Match an absolute or relative path against a pattern.
+
+   If the pattern is absolute, then both the beginning and the end of the
    path must match. Otherwise if the pattern is relative, only the end
    of the path must match.
 
@@ -39,16 +49,5 @@ type pattern = component list
    matching paths: bar.c /bar.c foo/bar.c
    non-matching paths: foo.c/bar
 *)
-type path = FPath.t
-
-(* A compiled pattern matcher. *)
-type matcher
-
-(*
-   Compile the pattern into something efficient. The source should be
-   the original glob pattern before parsing. It's used only for debugging
-   purposes.
-*)
-val compile : source:string -> pattern -> matcher
-val run : matcher -> path -> bool
-val source : matcher -> string
+val run : compiled_pattern -> Fpath.t -> bool
+val source : compiled_pattern -> string

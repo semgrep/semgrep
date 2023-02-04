@@ -11,7 +11,7 @@
 *)
 
 (*
-   A precedence level is a source of gitignore patterns, such as a
+   A precedence level is a source of compiled gitignore patterns, such as a
    .gitignore file or the command line. Git has rules defining these
    precedence levels.
 *)
@@ -21,19 +21,23 @@ type level = {
   (* Informational text indicating where the gitignore patterns came from *)
   source_name : string;
   (* Sequence of path selectors derived from gitignore patterns *)
-  patterns : Gitignore_syntax.pattern list;
+  patterns : Gitignore_syntax.path_selector list;
 }
 
 (* Any number of groups of path selectors. *)
 type t = level list
 
 (*
-   A ternary state indicating whether a path is selected or deselected at
-   the end of a level:
-   - Selected: select the file (= ignore it for git purposes)
-   - Deselected: deselect the file (= don't ignore it for git purposes)
-   - Unmatched: move on to the next level to determine the fate of the path.
-*)
-type selection_result = Selected | Deselected | Unmatched
+   Examine a single absolute* path and determine whether it is selected by the
+   gitignore mechanism, i.e. ignored for git purposes.
 
-val select : t -> path -> selection_result
+   *The path must be absolute within the git project. For example,
+   if the git project root is at /home/bob/fooproj, then
+   the path to the file /home/bob/fooproj/bar
+   must be given as /bar.
+
+   Return whether the list of selection/deselection events that the path
+   went through, in reverse order. The first element of the list, if any,
+   determines whether the file is selected.
+*)
+val select : t -> Fpath.t -> bool * Gitignore_syntax.selection_event list
