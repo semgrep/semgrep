@@ -309,19 +309,21 @@ def main(
     project_url = get_project_url()
     profiler = ProfileManager()
 
-    # Metrics send part 1: add environment information
-    metrics = get_state().metrics
-    if metrics.is_enabled:
-        metrics.add_project_url(project_url)
-        metrics.add_configs(configs)
-        metrics.add_engine_type(engine)
-
     rule_start_time = time.time()
     configs_obj, config_errors = get_config(
         pattern, lang, configs, replacement=replacement, project_url=project_url
     )
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
+
+    # Metrics send part 1: add environment information
+    # Must happen after configs are resolved because it is determined
+    # then whether metrics are sent or not
+    metrics = get_state().metrics
+    if metrics.is_enabled:
+        metrics.add_project_url(project_url)
+        metrics.add_configs(configs)
+        metrics.add_engine_type(engine)
 
     if not severity:
         shown_severities = DEFAULT_SHOWN_SEVERITIES
