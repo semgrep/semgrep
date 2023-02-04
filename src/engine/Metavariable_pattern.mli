@@ -14,4 +14,4 @@ val satisfies_metavar_pattern_condition :
   Metavariable.mvar ->
   Xlang.t option ->
   Rule.formula ->
-  Range_with_metavars.t list
+  Metavariable.bindings list
