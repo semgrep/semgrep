@@ -1,4 +1,6 @@
-#! /usr/bin/env bash -e
+#! /usr/bin/env bash
+
+set e
 
 cp /root/semgrep-core-proprietary /usr/local/bin/semgrep-core-proprietary
 
