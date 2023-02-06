@@ -14,11 +14,11 @@ from typing import Set
 from typing import Tuple
 from typing import TypeVar
 
-from parsy import any_char
-from parsy import Parser
-from parsy import peek
-from parsy import string
-from parsy import success
+from semdep.external.parsy import any_char
+from semdep.external.parsy import Parser
+from semdep.external.parsy import peek
+from semdep.external.parsy import string
+from semdep.external.parsy import success
 
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import extract_npm_lockfile_hash

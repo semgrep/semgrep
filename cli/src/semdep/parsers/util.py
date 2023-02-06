@@ -24,15 +24,14 @@ from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
-from parsy import alt
-from parsy import fail
-from parsy import line_info
-from parsy import line_info_at
-from parsy import ParseError
-from parsy import Parser
-from parsy import regex
-from parsy import string
-from parsy import success
+from semdep.external.parsy import alt
+from semdep.external.parsy import fail
+from semdep.external.parsy import line_info
+from semdep.external.parsy import ParseError
+from semdep.external.parsy import Parser
+from semdep.external.parsy import regex
+from semdep.external.parsy import string
+from semdep.external.parsy import success
 
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
@@ -125,7 +124,7 @@ def transitivity(manifest_deps: Optional[Set[A]], dep_sources: List[A]) -> Trans
 def become(p1: "Parser[A]", p2: "Parser[A]") -> None:
     """
     Gives [p1] the behavior of [p2] by side effect.
-    Typed version of the [become] method on "forward delaration" parsers from Parsy.
+    Typed version of the [become] method on "forward delaration" parsers from semdep.external.parsy.
     You can use this if you need to declare a parser for use in some mutual recursion,
     and then give it an actual definition after delaring other parsers that use it
     """
@@ -212,7 +211,7 @@ def safe_path_parse(
         return parser.parse(text)
     except ParseError as e:
         # These are zero indexed but most editors are one indexed
-        line, col = line_info_at(e.stream, e.index)
+        line, col = e.index.line, e.index.column
         line_prefix = f"{line + 1} | "
         logger.error(
             f"Failed to parse {path} at {line + 1}:{col + 1} - {parse_error_to_str(e)}\n{line_prefix + text.splitlines()[line]}\n{' ' * (col + len(line_prefix))}^"

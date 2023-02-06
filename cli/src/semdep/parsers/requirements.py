@@ -9,10 +9,10 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
-from parsy import string
-from parsy import string_from
-from parsy import success
-from parsy import whitespace
+from semdep.external.parsy import string
+from semdep.external.parsy import string_from
+from semdep.external.parsy import success
+from semdep.external.parsy import whitespace
 
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
