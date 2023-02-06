@@ -53,7 +53,7 @@
           ]
         },
         "severity": "ERROR",
-        "engine_kind": "OSSMatch"
+        "engine_kind": "OSS"
       },
       "path": "targets/dependency_aware/yarn.lock",
       "start": {

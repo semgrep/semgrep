@@ -26,7 +26,7 @@
         "metadata": {},
         "metavars": {},
         "severity": "WARNING",
-        "engine_kind": "OSSMatch"
+        "engine_kind": "OSS"
       },
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
@@ -54,7 +54,7 @@
         "metadata": {},
         "metavars": {},
         "severity": "WARNING",
-        "engine_kind": "OSSMatch"
+        "engine_kind": "OSS"
       },
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
@@ -82,7 +82,7 @@
         "metadata": {},
         "metavars": {},
         "severity": "WARNING",
-        "engine_kind": "OSSMatch"
+        "engine_kind": "OSS"
       },
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
@@ -110,7 +110,7 @@
         "metadata": {},
         "metavars": {},
         "severity": "WARNING",
-        "engine_kind": "OSSMatch"
+        "engine_kind": "OSS"
       },
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
@@ -138,7 +138,7 @@
         "metadata": {},
         "metavars": {},
         "severity": "WARNING",
-        "engine_kind": "OSSMatch"
+        "engine_kind": "OSS"
       },
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
