@@ -266,7 +266,7 @@ class TextFormatter(BaseFormatter):
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
                         False,
-                        True,
+                        False,
                     )
 
             if isinstance(call_trace.value, out.CliCall):
@@ -324,7 +324,7 @@ class TextFormatter(BaseFormatter):
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
                         False,
-                        True,
+                        False,
                     )
 
             if sink:
