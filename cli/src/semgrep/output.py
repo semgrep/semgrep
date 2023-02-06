@@ -461,6 +461,7 @@ class OutputHandler:
                     for x in skipped
                 ],
             )
+            extra["verbose_errors"] = True
         else:
             cli_paths = dataclasses.replace(
                 cli_paths, _comment="<add --verbose for a list of skipped paths>"

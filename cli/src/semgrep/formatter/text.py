@@ -749,13 +749,21 @@ class TextFormatter(BaseFormatter):
         ]
 
         rules_output = []
-        if cli_output_extra.engine_requested is None or not isinstance(
-            cli_output_extra.engine_requested.value, out.OSS
-        ):
-            if oss_rules:
-                rules_output = [
-                    "\nSome rules were run as OSS rules because `deepsemgrep: true` was not specified.\n"
-                ] + ["These rules were:\n   " + "   \n   ".join(oss_rules)]
+        if (
+            cli_output_extra.engine_requested is None
+            or not isinstance(cli_output_extra.engine_requested.value, out.OSS)
+        ) and oss_rules:
+            rules_output = [
+                "\nSome rules were run as OSS rules because `deepsemgrep: true` was not specified.\n"
+            ]
+            if extra.get("verbose_errors", False):
+                rules_output.append(
+                    "These rules were:\n   " + "   \n   ".join(oss_rules)
+                )
+            else:
+                rules_output.append(
+                    f"{with_color(Colors.foreground, str(len(oss_rules)), bold=True)} rule(s) run with OSS engine (--verbose to see which)"
+                )
 
         return "\n".join(
             [
