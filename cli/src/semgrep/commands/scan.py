@@ -606,12 +606,6 @@ def scan_options(func: Callable) -> Callable:
     # help="contact support@r2c.dev for more information on this"
 )
 @click.option(
-    "--pro",
-    is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
-)
-@click.option(
     "--interproc",
     is_flag=True,
     hidden=True
@@ -619,6 +613,24 @@ def scan_options(func: Callable) -> Callable:
 )
 @click.option(
     "--interfile",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--pro-languages",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--pro-intrafile",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
+@click.option(
+    "--pro",
     is_flag=True,
     hidden=True
     # help="contact support@r2c.dev for more information on this"
@@ -640,9 +652,11 @@ def scan(
     debug: bool,
     deep: bool,
     dump_engine_path: bool,
-    pro: bool,
     interproc: bool,
     interfile: bool,
+    pro_languages: bool,
+    pro_intrafile: bool,
+    pro: bool,
     dryrun: bool,
     dump_ast: bool,
     dump_command_for_core: bool,
@@ -783,17 +797,17 @@ def scan(
     if deep:
         abort("The experimental flag --deep has been renamed to --interfile.")
 
-    if interfile:
-        engine = EngineType.INTERFILE
-    elif interproc:
-        engine = EngineType.INTERPROC
-    elif pro:
-        engine = EngineType.PRO
+    if pro or interfile:
+        engine = EngineType.PRO_DEEP
+    elif pro_intrafile or interproc:
+        engine = EngineType.PRO_INTRAFILE
+    elif pro_languages:
+        engine = EngineType.PRO_LANG
     else:
         engine = EngineType.OSS
 
     # Turn on `dataflow_traces` by default for inter-procedural taint analysis.
-    if engine is EngineType.INTERPROC or engine is EngineType.INTERFILE:
+    if engine is EngineType.PRO_INTRAFILE or engine is EngineType.PRO_DEEP:
         dataflow_traces = True
 
     output_settings = OutputSettings(
