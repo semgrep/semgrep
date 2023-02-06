@@ -957,16 +957,16 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : G.expr_kind
 and map_block (env : env) ((v1, v2, v3, v4) : CST.block) : G.stmt =
   let lbrace = token env v1 (* "{" *) in
   let stmts = List.concat_map (map_statement env) v2 in
-  let _stmts_and_exprTODO =
+  let final_expr =
     match v3 with
     | Some x ->
         let expr = map_expression env x in
         let stmt = G.ExprStmt (expr, sc) |> G.s in
-        List.concat [ stmts; [ stmt ] ]
-    | None -> stmts
+        [ stmt ]
+    | None -> []
   in
   let rbrace = token env v4 (* "}" *) in
-  G.Block (lbrace, stmts, rbrace) |> G.s
+  G.Block (lbrace, stmts @ final_expr, rbrace) |> G.s
 
 and map_block_expr (env : env) ((v1, v2, v3, v4) : CST.block) : G.expr =
   let block = map_block env (v1, v2, v3, v4) in
