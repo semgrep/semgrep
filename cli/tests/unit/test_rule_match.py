@@ -53,7 +53,7 @@ def test_rule_match_attributes(mocker):
                 end=core.Position(3, 15, 38),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -91,7 +91,7 @@ def test_rule_match_sorting(mocker):
                 end=core.Position(3, 15, 38),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -106,7 +106,7 @@ def test_rule_match_sorting(mocker):
                 end=core.Position(4, 15, 50),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -138,7 +138,7 @@ def test_rule_match_hashing(mocker):
                 end=core.Position(3, 15, 38),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -168,7 +168,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
                 end=core.Position(5, 2, 48),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -193,7 +193,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
                 end=core.Position(5, 2, 72),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -219,7 +219,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
                 end=core.Position(6, 2, 75),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -255,7 +255,7 @@ def test_rule_match_set_indexes(mocker):
                 end=core.Position(3, 15, 38),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -270,7 +270,7 @@ def test_rule_match_set_indexes(mocker):
                 end=core.Position(4, 15, 50),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -285,7 +285,7 @@ def test_rule_match_set_indexes(mocker):
                 end=core.Position(5, 15, 62),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -300,7 +300,7 @@ def test_rule_match_set_indexes(mocker):
                 end=core.Position(6, 15, 74),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -316,7 +316,7 @@ def test_rule_match_set_indexes(mocker):
                 end=core.Position(7, 15, 74),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
     )
@@ -373,7 +373,7 @@ def test_rule_match_to_app_finding(snapshot, mocker):
                 end=core.Position(0, 0, 0),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSSMatch())
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
         ),
         extra={

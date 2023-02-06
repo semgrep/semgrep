@@ -934,8 +934,10 @@ def scan(
                 filtered_rules=filtered_rules,
                 profiling_data=output_extra.profiling_data,
                 explanations=output_extra.explanations,
+                rules_by_engine=output_extra.rules_by_engine,
                 severities=shown_severities,
                 print_summary=True,
+                engine=engine,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())

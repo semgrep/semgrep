@@ -49,7 +49,7 @@
             }
           }
         },
-        "engine_kind": "OSSMatch"
+        "engine_kind": "OSS"
       }
     },
     {
@@ -101,7 +101,7 @@
             }
           }
         },
-        "engine_kind": "OSSMatch"
+        "engine_kind": "OSS"
       }
     },
     {
@@ -140,7 +140,7 @@
             }
           }
         },
-        "engine_kind": "OSSMatch"
+        "engine_kind": "OSS"
       }
     },
     {
@@ -179,7 +179,7 @@
             }
           }
         },
-        "engine_kind": "OSSMatch"
+        "engine_kind": "OSS"
       }
     }
   ],
@@ -246,5 +246,7 @@
   "stats": {
     "okfiles": 158,
     "errorfiles": 2
-  }
+  },
+  "engine_requested": "OSS",
+  "rules": []
 }
