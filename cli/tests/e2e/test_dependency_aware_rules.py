@@ -67,10 +67,9 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/no-pattern.yaml",
             "dependency_aware/yarn_multi_hash",
         ),
-        pytest.param(
+        (
             "rules/dependency_aware/yarn-sass.yaml",
             "dependency_aware/yarn_at_in_version",
-            marks=pytest.mark.xfail,
         ),
     ],
 )
@@ -84,10 +83,8 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
 @pytest.mark.parametrize(
     "file_size,target,max_time",
     [
-        pytest.param(file_size, target, max_time, marks=pytest.mark.xfail)
-        if target in ["maven_dep_tree.txt", "requirements.txt"]
-        else (file_size, target, max_time)
-        for file_size, max_time in [("10k", 2), ("50k", 6), ("100k", 12)]
+        (file_size, target, max_time)
+        for file_size, max_time in [("10k", 1.5), ("50k", 7.5), ("100k", 15)]
         for target in [
             "Gemfile.lock",
             "go.sum",
@@ -110,7 +107,6 @@ def test_dependency_aware_timing(
     )
     end = time()
     exec_time = end - start
-    print(exec_time)
     assert exec_time < max_time
 
 
