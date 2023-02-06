@@ -79,7 +79,7 @@ jobs:
           docker images
       - name: ls
         run: |
-          ls
+          ls -a
       - name: pwd
         run: |
           pwd
