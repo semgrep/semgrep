@@ -2,6 +2,10 @@ import argparse
 import json
 from pprint import pprint
 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !!!! TODO refactor this to use `semgrep_output_v1.py` !!!!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 parser = argparse.ArgumentParser(description="Read JSON output.")
 parser.add_argument("file", type=str, help="semgrep output object")
 
@@ -22,10 +26,7 @@ file_parse_time = 0
 run_time = 0
 match_time = 0
 
-rule_parse_times = result_times["rule_parse_info"]
-for parse_time in rule_parse_times:
-    summed_time += parse_time
-    rule_parse_time += parse_time
+rules_parse_time = result_times["rules_parse_time"]
 
 target_times = result_times["targets"]
 
@@ -34,19 +35,12 @@ parse_errors = 0
 match_errors = 0
 
 for target in target_times:
+    r_time = target["run_time"]
     for i in range(num_rules):
         path = target["path"]
 
-        r_time = target["run_times"][i]
         p_time = target["parse_times"][i]
         m_time = target["match_times"][i]
-
-        # Add timing info
-        if r_time >= 0:
-            summed_time += r_time
-            run_time += r_time
-        else:
-            run_errors += 1
 
         if m_time >= 0:
             match_time += m_time
@@ -58,6 +52,13 @@ for target in target_times:
         else:
             parse_errors += 1
 
+    # Add timing info
+    if r_time >= 0:
+        summed_time += r_time
+        run_time += r_time
+    else:
+        run_errors += 1
+
 if run_errors > 0 or parse_errors > 0 or match_errors > 0:
     print(
         f"There were { run_errors } run errors, { parse_errors } parse errors, and { match_errors } match errors"
@@ -66,7 +67,7 @@ if run_errors > 0 or parse_errors > 0 or match_errors > 0:
 num_files = len(target_times)
 
 print(f"Files included { num_files } ")
-print(f"Summed rule parse time { rule_parse_time } ")
+print(f"Rule parse time { rules_parse_time } ")
 print(f"Summed file parse time { file_parse_time } ")
 print(f"Summed run time { run_time } ")
 print(f"Summed match time { match_time } ")
