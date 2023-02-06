@@ -71,18 +71,13 @@ jobs:
           role-duration-seconds: 900
           role-session-name: "semgrep-deploy"
           aws-region: us-west-2
-      - name: Download Semgrep Pro binary
+      # This is the `develop` binary, so this is truly the most recent version of
+      # `semgrep-proprietary` from that repository's `develop` branch.
+      # We test with this so that we know whether any changes we make on this PR are breaking with
+      # the `develop` branch of `pro`.
+      - name: Download Semgrep Pro `develop` binary
         run: |
           aws s3 cp s3://web-assets.r2c.dev/assets/semgrep-core-proprietary-manylinux-develop ./semgrep-core-proprietary
-      - name: See images
-        run: |
-          docker images
-      - name: ls
-        run: |
-          ls -a
-      - name: pwd
-        run: |
-          pwd
       - name: Run Semgrep Pro Engine!
         run: |
           docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:pr-${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/scripts/test-pro.sh
