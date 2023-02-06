@@ -478,7 +478,7 @@ def ci(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(blocking_rules) + len(nonblocking_rules), 'rule')}."
     )
     if scan_handler:
-        logger.info("  Uploading findings to Semgrep App.")
+        logger.info("  Uploading findings.")
         scan_handler.report_findings(
             filtered_matches_by_rule,
             semgrep_errors,
@@ -491,6 +491,14 @@ def ci(
             metadata.commit_datetime,
             lockfile_scan_info,
         )
+        logger.info("  View results in Semgrep App:")
+        logger.info(
+            f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
+        )
+        if "r2c-internal-project-depends-on" in scan_handler.rules:
+            logger.info(
+                f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/supply-chain"
+            )
 
     audit_mode = metadata.event_name in audit_on
     if num_blocking_findings > 0:
