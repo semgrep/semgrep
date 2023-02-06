@@ -84,7 +84,9 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
     "file_size,target,max_time",
     [
         (file_size, target, max_time)
-        for file_size, max_time in [("10k", 1.5), ("50k", 7.5), ("100k", 15)]
+        # These times are set relative to Github Actions, they should be lower when running locally
+        # Local time expectation is more like 1, 5, 10
+        for file_size, max_time in [("10k", 3), ("50k", 15), ("100k", 30)]
         for target in [
             "Gemfile.lock",
             "go.sum",

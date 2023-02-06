@@ -52,20 +52,19 @@ version_specifier = string_from("===", "==", ">=", "<=", ">", "<", "~=", "!=").b
 # space-eqeq == 0.6.1
 # eqeq-star [security] == 2.8.*, <= 2.8.1 ; python_version < "2.7"
 # extras-and-two-conditions[security] == 2.8.3 ; python_version < "2.7" or sys_platform == 'darwin'
+# at-url-with-hash @ https://github.com/urllib3/urllib3/archive/refs/tags/1.26.8.zip#look-this-is-not-a-comment
 dep = package.bind(
     lambda package: whitespace.optional()
-    >> extras_specifier.optional()
-    >> whitespace.optional()
-    >> version_specifier.sep_by(string(",") >> whitespace.optional()).bind(
-        lambda version_specifiers: upto("\n").optional()
-        >> success((package, [x for x in version_specifiers if x]))
+    >> (
+        (string("@") >> consume_line)
+        | extras_specifier.optional()
+        >> whitespace.optional()
+        >> version_specifier.sep_by(string(",") >> whitespace.optional()).bind(
+            lambda version_specifiers: upto("\n").optional()
+            >> success((package, [x for x in version_specifiers if x]))
+        )
     )
 )
-
-# A dependency set to some specific URL
-# Examples:
-# at-url-with-hash @ https://github.com/urllib3/urllib3/archive/refs/tags/1.26.8.zip#look-this-is-not-a-comment
-dep_with_at = package >> whitespace >> string("@") >> consume_line
 
 # Lines can be pip flags, we ignore them
 # Examples:
@@ -78,7 +77,7 @@ comment_line = success(None)
 
 # A whole requirements file, can be requirements.txt or requirements.in
 requirements = (
-    mark_line(flag_line | dep_with_at | dep | consume_line | comment_line)
+    mark_line(flag_line | dep | consume_line | comment_line)
     .sep_by(string("\n").at_least(1))
     .map(lambda xs: [(l, x) for (l, x) in xs if x])
 )
