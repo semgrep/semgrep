@@ -31,7 +31,7 @@ def login() -> NoReturn:
     """
     Obtain and save credentials for semgrep.dev
 
-    Looks for an semgrep.dev API token in the environment variable SEMGREP_API_TOKEN_SETTINGS_KEY.
+    Looks for an semgrep.dev API token in the environment variable SEMGREP_APP_TOKEN.
     If not defined and running in a TTY, prompts interactively.
     Once token is found, saves it to global settings file
     """
