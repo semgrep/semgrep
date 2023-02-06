@@ -1,19 +1,9 @@
-import collections
-import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
-from typing import Dict
 from typing import Generator
-from typing import Iterator
 from typing import List
 from typing import Optional
-from typing import Tuple
 
-import tomli
-
-from semdep.external.packaging.version import InvalidVersion  # type: ignore
-from semdep.external.packaging.version import Version  # type: ignore
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 

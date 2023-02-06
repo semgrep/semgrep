@@ -9,7 +9,6 @@ from typing import Optional
 from semdep.external.parsy import any_char
 from semdep.external.parsy import string
 from semdep.external.parsy import success
-
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import upto

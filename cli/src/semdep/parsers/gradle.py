@@ -12,7 +12,6 @@ from semdep.external.parsy import any_char
 from semdep.external.parsy import Parser
 from semdep.external.parsy import string
 from semdep.external.parsy import success
-
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import consume_word
 from semdep.parsers.util import mark_line

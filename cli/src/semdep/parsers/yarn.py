@@ -19,7 +19,6 @@ from semdep.external.parsy import Parser
 from semdep.external.parsy import peek
 from semdep.external.parsy import string
 from semdep.external.parsy import success
-
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import extract_npm_lockfile_hash
 from semdep.parsers.util import json_doc

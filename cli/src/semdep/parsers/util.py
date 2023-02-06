@@ -32,7 +32,6 @@ from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
-
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity

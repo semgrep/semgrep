@@ -13,7 +13,6 @@ from semdep.external.parsy import string
 from semdep.external.parsy import string_from
 from semdep.external.parsy import success
 from semdep.external.parsy import whitespace
-
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_path_parse
