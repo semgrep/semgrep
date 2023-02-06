@@ -2,6 +2,10 @@ import argparse
 import json
 from pprint import pprint
 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !!!! TODO refactor this to use `semgrep_output_v1.py` !!!!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 parser = argparse.ArgumentParser(description="Read JSON output.")
 parser.add_argument("file", type=str, help="semgrep output object")
 
