@@ -1,0 +1,29 @@
+rules:
+  - id: defer-persistent-binding 
+    languages:
+      - python 
+    message: Match Found!
+    pattern-either: 
+      - patterns:
+        - pattern: |
+            foo($A)
+        - metavariable-pattern: 
+            metavariable: $A
+            pattern: |
+              bar($B)
+        - metavariable-pattern:
+            metavariable: $A
+            pattern: |
+              qux($B)
+      - patterns:
+        - pattern: |
+            foo($A) 
+        - metavariable-pattern:
+            metavariable: $A
+            pattern: |
+              qux($B)
+        - metavariable-pattern: 
+            metavariable: $A
+            pattern: |
+              bar($B)
+    severity: WARNING

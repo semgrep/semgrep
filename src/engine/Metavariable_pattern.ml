@@ -60,16 +60,10 @@ let adjust_content_for_language (xlang : Xlang.t) (content : string) : string =
     This may also produce duplicate ranges, depending on how many metavariables
     are in the file.
 *)
-let add_new_mvars_to_range range mvars =
-  (* These bindings are from the original, adjusted text.
-     We need to change it back.
-  *)
-  let new_mvars =
-    mvars
-    |> List.filter (fun (mvar, _) ->
-           not (Option.is_some (List.assoc_opt mvar range.RM.mvars)))
-  in
-  { range with RM.mvars = new_mvars @ range.RM.mvars }
+let filter_new_mvars_by_range range mvars =
+  mvars
+  |> List.filter (fun (mvar, _) ->
+         not (Option.is_some (List.assoc_opt mvar range.RM.mvars)))
 
 (* We take the bindings from the nested matches, and produce a new match where we add
    the enclosed metavariables to the original range.
@@ -78,7 +72,7 @@ let add_new_mvars_to_range range mvars =
    information, so we need to construct a visitor so we can convert the mvalues to have
    tokens with the correct information.
 *)
-let augment_range_with_nested_matches revert_loc r nested_matches =
+let get_persistent_bindings revert_loc r nested_matches =
   let reverting_visitor = Map_AST.mk_fix_token_locations revert_loc in
   nested_matches
   |> Common.map (fun nested_match ->
@@ -99,12 +93,12 @@ let augment_range_with_nested_matches revert_loc r nested_matches =
                   | Some mval -> Some (mvar, mval))
          in
          { nested_match with RM.mvars = readjusted_mvars })
-  |> Common.map (fun r' -> add_new_mvars_to_range r r'.RM.mvars)
+  |> Common.map (fun r' -> filter_new_mvars_by_range r r'.RM.mvars)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
+let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
     opt_xlang formula =
   let bindings = r.RM.mvars in
   (* If anything goes wrong the default is to filter out! *)
@@ -201,7 +195,7 @@ let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
                          matches
                       *)
                       get_nested_formula_matches { env with xtarget } formula r'
-                      |> augment_range_with_nested_matches revert_loc r))
+                      |> get_persistent_bindings revert_loc r))
           | Some xlang -> (
               let content =
                 (* Previously we only allowed metavariable-pattern with a
@@ -286,4 +280,4 @@ let satisfies_metavar_pattern_condition get_nested_formula_matches env r mvar
                          matches
                       *)
                       get_nested_formula_matches { env with xtarget } formula r'
-                      |> augment_range_with_nested_matches revert_loc r))))
+                      |> get_persistent_bindings revert_loc r))))
