@@ -1,9 +1,9 @@
 # Handle communication of findings / errors to semgrep.app
 import json
-import logging
 import os
 from collections import Counter
 from copy import deepcopy
+from logging import DEBUG
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -156,11 +156,11 @@ class ScanHandler:
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
         self.ignore_patterns = body.get("ignored_files") or []
 
-        if logger.isEnabledFor(logging.DEBUG):
+        if logger.isEnabledFor(DEBUG):
             config = deepcopy(body)
             try:
                 config["rule_config"] = json.loads(config["rule_config"])
-            except json.JSONDecodeError:
+            except Exception:
                 pass
             logger.debug(f"Got configuration {json.dumps(config, indent=4)}")
 
