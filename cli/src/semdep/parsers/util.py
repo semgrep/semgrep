@@ -213,7 +213,7 @@ def safe_path_parse(
         line, col = e.index.line, e.index.column
         line_prefix = f"{line + 1} | "
         text_lines = text.splitlines() + (
-            [""] if text.endswith("\n") else []
+            ["<trailing newline>"] if text.endswith("\n") else []
         )  # Error on trailing newline shouldn't blow us up
         if line < len(text_lines):
             logger.error(
