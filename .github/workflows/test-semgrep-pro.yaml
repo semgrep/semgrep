@@ -34,7 +34,7 @@ jobs:
         run: |
           echo "Github event is ${{ github.event_name }}"
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "docker-tag=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "docker-tag=pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
             echo "Setting docker tag to current pull request number"
           else
             echo "docker-tag=develop" >> "$GITHUB_OUTPUT"
@@ -80,4 +80,4 @@ jobs:
           aws s3 cp s3://web-assets.r2c.dev/assets/semgrep-core-proprietary-manylinux-develop ./semgrep-core-proprietary
       - name: Run Semgrep Pro Engine!
         run: |
-          docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:pr-${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/scripts/test-pro.sh
+          docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/scripts/test-pro.sh
