@@ -32,13 +32,13 @@ UNSUPPORTED_EXT_IGNORE_LANGS = {"generic", "regex"}
 
 class EngineType(Enum):
     OSS = auto()
-    PRO = auto()
-    INTERPROC = auto()
-    INTERFILE = auto()
+    PRO_LANG = auto()
+    PRO_INTRAFILE = auto()
+    PRO_INTERFILE = auto()
 
     @property
     def is_pro(self) -> bool:
-        return self.value >= EngineType.PRO.value
+        return self.value >= EngineType.PRO_LANG.value
 
 
 class OutputFormat(Enum):

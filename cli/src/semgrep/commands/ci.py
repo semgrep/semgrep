@@ -323,20 +323,22 @@ def ci(
             is_full_scan = metadata.merge_base_ref is None
             engine = EngineType.OSS
             if scan_handler and scan_handler.deepsemgrep:
-                engine = EngineType.INTERFILE if is_full_scan else EngineType.PRO
+                engine = (
+                    EngineType.PRO_INTERFILE if is_full_scan else EngineType.PRO_LANG
+                )
 
             (semgrep_pro_path, _deep_semgrep_path) = determine_semgrep_pro_path()
 
             # Set a default max_memory for CI runs when DeepSemgrep is on because
             # DeepSemgrep is likely to run out
             if max_memory is None:
-                if engine is EngineType.INTERFILE:
+                if engine is EngineType.PRO_INTERFILE:
                     max_memory = DEFAULT_MAX_MEMORY_PRO_CI
                 else:
                     max_memory = 0  # unlimited
             # Same for timeout (Github actions has a 6 hour timeout)
             if interfile_timeout is None:
-                if engine is EngineType.INTERFILE:
+                if engine is EngineType.PRO_INTERFILE:
                     interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
                 else:
                     interfile_timeout = 0  # unlimited
