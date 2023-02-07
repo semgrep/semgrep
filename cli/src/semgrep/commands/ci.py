@@ -490,6 +490,7 @@ def ci(
             total_time,
             metadata.commit_datetime,
             lockfile_scan_info,
+            engine,
         )
         logger.info("  View results in Semgrep App:")
         logger.info(
