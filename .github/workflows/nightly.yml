@@ -34,6 +34,8 @@ jobs:
           HOMEBREW_NO_INSTALL_FROM_API: 1
         run: brew install semgrep --HEAD
       - name: Check installed correctly
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: 1
         run: brew test semgrep --HEAD
       - name: Clean up semgrep installation
         run: brew uninstall semgrep
