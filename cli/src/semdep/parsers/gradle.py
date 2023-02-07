@@ -28,7 +28,7 @@ logger = getLogger(__name__)
 
 # Examples:
 # ch.qos.logback.contrib:logback-json-classic:0.1.5=productionRuntimeClasspath,runtimeClasspath,testRuntimeClasspath
-dep = mark_line(regex("[^:]+:([^:]+):([^:]+):[\n]+", flags=0, group=(1, 2)))
+dep = mark_line(regex("[^:]+:([^:]+):([^=]+)=[^\n]+", flags=0, group=(1, 2)))
 
 PREFIX = """\
 # This is a Gradle generated file for dependency locking.
