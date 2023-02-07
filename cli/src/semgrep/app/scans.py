@@ -158,7 +158,7 @@ class ScanHandler:
 
         if logger.isEnabledFor(logging.DEBUG):
             config = deepcopy(body)
-            config["rule_config"] = json.loads(config["rule_config"])  # parse json for debug log
+            config["rule_config"] = json.loads(config["rule_config"])
             logger.debug(f"Got configuration {json.dumps(config, indent=4)}")
 
     def start_scan(self, meta: Dict[str, Any]) -> None:
