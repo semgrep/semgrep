@@ -25,7 +25,7 @@
         "offset": 41
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "metavariable_comparison_test_strip('100')",

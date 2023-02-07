@@ -106,6 +106,8 @@ let merge_results
       skipped_rules = List.concat_map (fun x -> x.RP.skipped_rules) results;
       extra = No_info;
       explanations = List.concat_map (fun x -> x.RP.explanations) results;
+      rules_by_engine =
+        List.concat_map (fun x -> x.Report.rules_by_engine) results;
     }
   in
   (final_result, files)
@@ -215,6 +217,8 @@ let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
           explanations = None;
           time = None;
           stats = { okfiles = 0; errorfiles = 0 };
+          rules_by_engine = [];
+          engine_requested = `OSS;
         }
       in
       { core; hrules = Rule.hrules_of_rules all_rules; scanned = Set_.empty }

@@ -51,8 +51,11 @@ let first_and_last = function
 
 let convert_engine_kind ek =
   match ek with
-  | OSS -> `OSSMatch
-  | Pro -> `ProMatch
+  | OSS -> `OSS
+  | Pro -> `PRO
+
+let convert_rule (s, ek) =
+  { Out.rule_id = s; engine_kind = convert_engine_kind ek }
 
 (*****************************************************************************)
 (* JSON *)
@@ -370,6 +373,8 @@ let match_results_of_matches_and_errors render_fix nfiles res =
       (match res.RP.explanations with
       | [] -> None
       | xs -> Some (xs |> Common.map explanation_to_explanation));
+    rules_by_engine = Common.map convert_rule res.rules_by_engine;
+    engine_requested = `OSS;
   }
   |> Output_from_core_util.sort_match_results
   [@@profiling]

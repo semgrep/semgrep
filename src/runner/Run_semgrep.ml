@@ -686,7 +686,11 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
            | Some f -> f matches
            | None -> matches)
   in
-  let res = RP.make_final_result file_results rules ~rules_parse_time in
+  let res =
+    RP.make_final_result file_results
+      (Common.map (fun r -> (r, Pattern_match.OSS)) rules)
+      ~rules_parse_time
+  in
   logger#info "found %d matches, %d errors" (List.length res.matches)
     (List.length res.errors);
 
@@ -718,6 +722,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
       skipped_rules = invalid_rules;
       extra;
       explanations = res.explanations;
+      rules_by_engine =
+        Common.map (fun x -> (fst x.R.id, Pattern_match.OSS)) rules;
     },
     (* TODO not all_targets here, because ?? *)
     targets |> Common.map (fun x -> x.In.path) )

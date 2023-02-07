@@ -42,6 +42,9 @@ type file_profiling = {
 }
 [@@deriving show]
 
+type rule_id_and_engine_kind = string * Pattern_match.engine_kind
+[@@deriving show]
+
 (* Substitute in the profiling type we have *)
 
 module ErrorSet : Set.S with type elt = Semgrep_error_code.error
@@ -70,6 +73,7 @@ type final_result = {
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;
   explanations : Matching_explanation.t list;
+  rules_by_engine : rule_id_and_engine_kind list;
 }
 [@@deriving show]
 
@@ -93,7 +97,7 @@ val collate_pattern_results : times match_result list -> times match_result
 
 val make_final_result :
   file_profiling match_result list ->
-  Rule.rule list ->
+  (Rule.rule * Pattern_match.engine_kind) list ->
   rules_parse_time:float ->
   final_result
 

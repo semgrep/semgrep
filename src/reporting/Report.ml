@@ -122,12 +122,16 @@ type final_profiling = {
 }
 [@@deriving show]
 
+type rule_id_and_engine_kind = string * Pattern_match.engine_kind
+[@@deriving show]
+
 type final_result = {
   matches : Pattern_match.t list;
   errors : Semgrep_error_code.error list;
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;
   explanations : Matching_explanation.t list;
+  rules_by_engine : rule_id_and_engine_kind list;
 }
 [@@deriving show]
 
@@ -188,6 +192,7 @@ let empty_final_result =
     skipped_rules = [];
     extra = No_info;
     explanations = [];
+    rules_by_engine = [];
   }
 
 (*****************************************************************************)
@@ -334,7 +339,9 @@ let collate_rule_results :
   collate_results init_extra unzip_extra base_case_extra final_extra results
 
 (* Aggregate a list of target results into one final result *)
-let make_final_result results rules ~rules_parse_time =
+let make_final_result results
+    (rules_with_engine : (Rule.t * Pattern_match.engine_kind) list)
+    ~rules_parse_time =
   let matches = results |> Common.map (fun x -> x.matches) |> List.flatten in
   let errors =
     results
@@ -343,6 +350,9 @@ let make_final_result results rules ~rules_parse_time =
   in
   let explanations =
     results |> Common.map (fun x -> x.explanations) |> List.flatten
+  in
+  let final_rules =
+    Common.map (fun (r, ek) -> (fst r.Rule.id, ek)) rules_with_engine
   in
 
   (* Create extra *)
@@ -365,7 +375,7 @@ let make_final_result results rules ~rules_parse_time =
     let mk_profiling () =
       let file_times = results |> Common.map get_profiling in
       {
-        rules;
+        rules = Common.map fst rules_with_engine;
         rules_parse_time;
         file_times;
         (* Notably, using the `top_heap_words` does not measure cumulative
@@ -385,4 +395,11 @@ let make_final_result results rules ~rules_parse_time =
     | MTime -> Time { profiling = mk_profiling () }
     | MNo_info -> No_info
   in
-  { matches; errors; extra; skipped_rules = []; explanations }
+  {
+    matches;
+    errors;
+    extra;
+    skipped_rules = [];
+    explanations;
+    rules_by_engine = final_rules;
+  }

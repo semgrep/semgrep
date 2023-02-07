@@ -25,7 +25,7 @@
         "offset": 69
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    return a + b == a + b",
@@ -63,7 +63,7 @@
         "offset": 174
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    x == x",
@@ -101,7 +101,7 @@
         "offset": 266
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "assertTrue(x == x)",
