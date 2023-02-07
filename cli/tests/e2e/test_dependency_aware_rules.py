@@ -39,6 +39,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/gradle",
         ),
         (
+            "rules/dependency_aware/java-gradle-sca.yaml",
+            "dependency_aware/gradle_trailing_newline",
+        ),
+        (
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/poetry",
         ),
