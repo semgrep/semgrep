@@ -111,10 +111,18 @@ install_requires = [
     # - cli/Pipfile lists type hint packages for dev env
     # - .pre-commit-config.yaml's mypy hooks also list type hint packages
     #
-    # These version are flexible so semgrep can coexist with other tools.
+    # These specifiers are flexible so semgrep can coexist with other tools.
+    # Even though we recommend giving semgrep its own virtualenv
+    # (or using the official returntocorp/semgrep Docker image),
+    # many users will first try to install it in their project's virtualenv.
+    #
     # Flexibility is achieved by, in order of preference:
-    # 1. x.0~= operator pinning to x major version
-    # 2. >=x,<y operator pinning to multiple major versions
+    # 1. >=x if you know the earliest version that works with Semgrep
+    # 2. >=x,<y if you know the earliest version that works with Semgrep,
+    #    and know that a later version breaks Semgrep.
+    # 3. ~=x.0 if you don't know the earliest version that works with Semgrep
+    #
+    # Try to go from option 3 to 1 over time as you learn more about the codebase.
     "attrs>=21.3",
     "boltons~=21.0",
     "colorama~=0.4.0",
@@ -163,6 +171,8 @@ setuptools.setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Security",
         "Topic :: Software Development :: Quality Assurance",
     ],
