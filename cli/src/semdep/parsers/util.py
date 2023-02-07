@@ -212,9 +212,17 @@ def safe_path_parse(
         # These are zero indexed but most editors are one indexed
         line, col = e.index.line, e.index.column
         line_prefix = f"{line + 1} | "
-        logger.error(
-            f"Failed to parse {path} at {line + 1}:{col + 1} - {parse_error_to_str(e)}\n{line_prefix + text.splitlines()[line]}\n{' ' * (col + len(line_prefix))}^"
-        )
+        text_lines = text.splitlines() + (
+            ["<trailing newline>"] if text.endswith("\n") else []
+        )  # Error on trailing newline shouldn't blow us up
+        if line < len(text_lines):
+            logger.error(
+                f"Failed to parse {path} at {line + 1}:{col + 1} - {parse_error_to_str(e)}\n{line_prefix + text.splitlines()[line]}\n{' ' * (col + len(line_prefix))}^"
+            )
+        else:
+            logger.error(
+                f"Failed to parse {path} at {line + 1}:{col + 1} - {parse_error_to_str(e)}\nInternal Error - line {line + 1} is past the end of {path}?"
+            )
         return None
 
 
