@@ -639,6 +639,9 @@ def test_full_run(
 
     complete_json = post_calls[2].kwargs["json"]
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
+    complete_json["stats"][
+        "event_id"
+    ] = "xxxxxxxxxx"  # Sanitize event_id for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
     complete_json["stats"]["lockfile_scan_info"] = {}
