@@ -478,6 +478,14 @@ def mock_autofix(request, mocker):
             "SEMGREP_PR_ID": "35",
             "SEMGREP_BRANCH": BRANCH_NAME,
         },
+        {  # URL that doesn't parse correctly
+            "CI": "true",
+            "SEMGREP_REPO_NAME": f"{REPO_ORG_NAME}/{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "SEMGREP_REPO_URL": "https://gitlab.net/foo.bar/a-b/a-b-c-d",
+            # Sent in metadata but no functionality change
+            "SEMGREP_PR_ID": "35",
+            "SEMGREP_BRANCH": BRANCH_NAME,
+        },
         {  # Github PR with additional project metadata
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -511,6 +519,7 @@ def mock_autofix(request, mocker):
         "travis",
         "travis-overwrite-autodetected-variables",
         "self-hosted",
+        "unparsable_url",
         "github-pr-semgrepconfig",
     ],
 )
