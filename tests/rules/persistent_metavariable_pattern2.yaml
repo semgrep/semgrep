@@ -1,0 +1,13 @@
+rules:
+- id: persistent-metavariable-pattern2
+  patterns:
+    - pattern: |
+        '$STR'
+    - metavariable-pattern:
+        metavariable: $STR
+        language: generic
+        pattern: $B
+    - focus-metavariable: $B
+  message: Test
+  languages: [python]
+  severity: ERROR

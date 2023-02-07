@@ -70,7 +70,10 @@ Some files were skipped or only partially analyzed.
 
 CI scan completed successfully.
   Found 7 findings (6 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
+  Uploading findings.
+  View results in Semgrep App:
+    https://semgrep.dev/orgs/org_name/findings
+    https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain

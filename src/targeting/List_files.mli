@@ -23,6 +23,10 @@ val list : path -> path list
    via process substitution (e.g. /dev/fd/63 created by 'echo <(echo hello)'
    or symbolic links which are acceptable only when specified directly
    by the user.
+
+   This does not raise exceptions if path does not exist.
+   Moreover while traversing dirs, list_regular_files ignores all
+   Unix.Unix_error exceptions raised by Unix.lstat.
 *)
 val list_regular_files : ?keep_root:bool -> path -> path list
 

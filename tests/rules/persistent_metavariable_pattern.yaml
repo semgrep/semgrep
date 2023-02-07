@@ -1,0 +1,16 @@
+rules:
+- id: persistent-metavariable-pattern 
+  patterns:
+    - pattern: |
+        def $FUNC(...):
+          ...
+          foo($A)
+          ...
+    - metavariable-pattern:
+        metavariable: $A
+        pattern: |
+          bar($B)
+    - focus-metavariable: $B
+  message: Test
+  languages: [python]
+  severity: ERROR

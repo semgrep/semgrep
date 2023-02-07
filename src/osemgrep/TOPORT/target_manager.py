@@ -314,33 +314,6 @@ class Target:
         """Check this is a valid file or directory for semgrep scanning."""
         return path_has_permissions(path, stat.S_IRUSR) and not path.is_symlink()
 
-    def _is_valid_file(self, path: Path) -> bool:
-        """Check if file is a readable regular file.
-
-        This eliminates files that should never be semgrep targets. Among
-        others, this takes care of excluding symbolic links (because we don't
-        want to scan the target twice), directories (which may be returned by
-        globbing or by 'git ls-files' e.g. submodules), and files missing
-        the read permission.
-        """
-        return self._is_valid_file_or_dir(path) and path.is_file()
-
-    def _parse_git_output(self, output: str) -> FrozenSet[Path]:
-        """
-        Convert a newline delimited list of files to a set of path objects
-        prepends curr_dir to all paths in said list
-
-        If list is empty then returns an empty set
-        """
-        files: FrozenSet[Path] = frozenset()
-
-        if output:
-            files = frozenset(
-                p
-                for p in (self.path / elem for elem in output.strip().split("\n"))
-                if self._is_valid_file(p)
-            )
-        return files
 
     def files_from_git_diff(self) -> FrozenSet[Path]:
         """
@@ -351,53 +324,8 @@ class Target:
         git_status = self.baseline_handler.status
         return frozenset(git_status.added + git_status.modified)
 
-    def files_from_git_ls(self) -> FrozenSet[Path]:
-        """
-        git ls-files is significantly faster than os.walk when performed on a git project,
-        so identify the git files first, then filter those
-        """
-        run_git_command = partial(
-            sub_check_output,
-            cwd=self.path.resolve(),
-            encoding="utf-8",
-            stderr=subprocess.DEVNULL,
-        )
-
-        # Tracked files
-        tracked_output = run_git_command(["git", "ls-files"])
-
-        # Untracked but not ignored files
-        untracked_output = run_git_command(
-            [
-                "git",
-                "ls-files",
-                "--other",
-                "--exclude-standard",
-            ]
-        )
-
-        deleted_output = run_git_command(["git", "ls-files", "--deleted"])
-        tracked = self._parse_git_output(tracked_output)
-        untracked_unignored = self._parse_git_output(untracked_output)
-        deleted = self._parse_git_output(deleted_output)
-        return frozenset(tracked | untracked_unignored - deleted)
-
-    def files_from_filesystem(self) -> FrozenSet[Path]:
-        return frozenset(
-            match
-            for match in self.path.glob("**/*")
-            if match.is_file() and not match.is_symlink()
-        )
-
-    @lru_cache(maxsize=None)
     def files(self) -> FrozenSet[Path]:
-        """
-        Recursively go through a directory and return list of all files with
-        default file extension of language
-        """
-        if not self.path.is_dir() and self.path.is_file():
-            return frozenset([self.path])
-
+        ...
         if self.baseline_handler is not None:
             try:
                 return self.files_from_git_diff()
@@ -405,17 +333,7 @@ class Target:
                 logger.verbose(
                     f"Unable to target only the changed files since baseline commit. Running on all git tracked files instead..."
                 )
-
-        if self.git_tracked_only:
-            try:
-                return self.files_from_git_ls()
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                logger.verbose(
-                    f"Unable to ignore files ignored by git ({self.path} is not a git directory or git is not installed). Running on all files instead..."
-                )
-
-        return self.files_from_filesystem()
-
+        ...
 
 @define(eq=False)
 class TargetManager:
@@ -436,17 +354,6 @@ class TargetManager:
     file_ignore: Optional[FileIgnore] = None
     lockfile_scan_info: Dict[str, int] = {}
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
-
-    def __attrs_post_init__(self) -> None:
-        self.targets = [
-            Target(
-                target,
-                git_tracked_only=self.respect_git_ignore,
-                baseline_handler=self.baseline_handler,
-            )
-            for target in self.target_strings
-        ]
-        return None
 
     @staticmethod
     def preprocess_path_patterns(patterns: Sequence[str]) -> List[str]:
@@ -589,10 +496,6 @@ class TargetManager:
         )
 
         return FilteredFiles(frozenset(kept), frozenset(removed))
-
-    @lru_cache(maxsize=None)
-    def get_all_files(self) -> FrozenSet[Path]:
-        return frozenset(f for target in self.targets for f in target.files())
 
     @lru_cache(maxsize=None)
     def get_files_for_language(self, lang: Union[Language, Ecosystem]) -> FilteredFiles:

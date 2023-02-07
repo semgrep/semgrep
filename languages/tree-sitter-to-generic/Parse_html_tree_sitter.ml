@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (c) 2021 R2C
+ * Copyright (c) 2021, 2023 R2C
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -22,8 +22,9 @@ module PI = Parse_info
 (* Prelude *)
 (*****************************************************************************)
 (* HTML parser using tree-sitter-lang/semgrep-html and converting
- * directly to AST_generic.ml
+ * directly to AST_generic.ml.
  *
+ * This is also now used to parse XML!
  *)
 
 (*****************************************************************************)
@@ -154,68 +155,81 @@ and map_fragment (env : env) (xs : CST.fragment) : xml_body list =
 
 and map_node (env : env) (x : CST.node) : xml_body =
   match x with
-  | `Doct_ (v1, v2, v3, v4) ->
-      let l = token env v1 (* "<!" *) in
-      let id = str env v2 (* pattern [Dd][Oo][Cc][Tt][Yy][Pp][Ee] *) in
-      let _misc = token env v3 (* pattern [^>]+ *) in
-      let r = token env v4 (* ">" *) in
+  | `Xmld (v1, v2, v3) ->
+      let l = (* "<?xml" *) token env v1 in
+      let xml_attrs = Common.map (map_attribute env) v2 in
+      let r = (* "?>" *) token env v3 in
       let xml =
-        {
-          xml_kind = XmlSingleton (l, id, r);
-          xml_attrs = [];
-          (* less: use misc? *)
-          xml_body = [];
-        }
+        { xml_kind = XmlSingleton (l, ("xml", l), r); xml_attrs; xml_body = [] }
       in
       XmlXml xml
-  | `Text tok ->
-      let v1 = str env tok (* pattern [^<>]+ *) in
-      XmlText v1
-  | `Elem x ->
-      let v1 = map_element env x in
-      XmlXml v1
-  | `Script_elem (v1, v2, v3) ->
-      let l, id, attrs, r = map_script_start_tag env v1 in
-      let v2 =
-        match v2 with
-        | Some tok -> [ XmlText (str env tok) ] (* raw_text *)
-        | None -> []
-      in
-      let v3 = map_end_tag env v3 in
-      let xml =
-        {
-          xml_kind = XmlClassic (l, id, r, v3);
-          xml_attrs = attrs;
-          xml_body = v2;
-        }
-      in
-      XmlXml xml
-  | `Style_elem (v1, v2, v3) ->
-      let l, id, attrs, r = map_style_start_tag env v1 in
-      let v2 =
-        match v2 with
-        | Some tok -> [ XmlText (str env tok) ] (* raw_text *)
-        | None -> []
-      in
-      let v3 = map_end_tag env v3 in
-      let xml =
-        {
-          xml_kind = XmlClassic (l, id, r, v3);
-          xml_attrs = attrs;
-          xml_body = v2;
-        }
-      in
-      XmlXml xml
-  | `Errons_end_tag (v1, v2, v3) ->
-      let l = token env v1 (* "</" *) in
-      let id = str env v2 (* erroneous_end_tag_name *) in
-      let r = token env v3 (* ">" *) in
-      (* todo? raise an exception instead? *)
-      let xml =
-        { xml_kind = XmlSingleton (l, id, r); xml_attrs = []; xml_body = [] }
-      in
-      XmlXml xml
-
+  | `Choice_doct_ x -> (
+      match x with
+      | `Doct_ (v1, v2, v3, v4) ->
+          let l = token env v1 (* "<!" *) in
+          let id = str env v2 (* pattern [Dd][Oo][Cc][Tt][Yy][Pp][Ee] *) in
+          let _misc = token env v3 (* pattern [^>]+ *) in
+          let r = token env v4 (* ">" *) in
+          let xml =
+            {
+              xml_kind = XmlSingleton (l, id, r);
+              xml_attrs = [];
+              (* less: use misc? *)
+              xml_body = [];
+            }
+          in
+          XmlXml xml
+      | `Text tok ->
+          let v1 = str env tok (* pattern [^<>]+ *) in
+          XmlText v1
+      | `Elem x ->
+          let v1 = map_element env x in
+          XmlXml v1
+      | `Script_elem (v1, v2, v3) ->
+          let l, id, attrs, r = map_script_start_tag env v1 in
+          let v2 =
+            match v2 with
+            | Some tok -> [ XmlText (str env tok) ] (* raw_text *)
+            | None -> []
+          in
+          let v3 = map_end_tag env v3 in
+          let xml =
+            {
+              xml_kind = XmlClassic (l, id, r, v3);
+              xml_attrs = attrs;
+              xml_body = v2;
+            }
+          in
+          XmlXml xml
+      | `Style_elem (v1, v2, v3) ->
+          let l, id, attrs, r = map_style_start_tag env v1 in
+          let v2 =
+            match v2 with
+            | Some tok -> [ XmlText (str env tok) ] (* raw_text *)
+            | None -> []
+          in
+          let v3 = map_end_tag env v3 in
+          let xml =
+            {
+              xml_kind = XmlClassic (l, id, r, v3);
+              xml_attrs = attrs;
+              xml_body = v2;
+            }
+          in
+          XmlXml xml
+      | `Errons_end_tag (v1, v2, v3) ->
+          let l = token env v1 (* "</" *) in
+          let id = str env v2 (* erroneous_end_tag_name *) in
+          let r = token env v3 (* ">" *) in
+          (* todo? raise an exception instead? *)
+          let xml =
+            {
+              xml_kind = XmlSingleton (l, id, r);
+              xml_attrs = [];
+              xml_body = [];
+            }
+          in
+          XmlXml xml)
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)

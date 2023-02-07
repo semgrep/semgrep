@@ -1,4 +1,3 @@
-import json as jsonlib
 import os
 import sys
 import time
@@ -22,7 +21,6 @@ from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.config_resolver import Config
 from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
 from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
 from semgrep.constants import EngineType
@@ -328,41 +326,29 @@ def ci(
                 logger.info(f"Could not start scan {e}")
                 sys.exit(FATAL_EXIT_CODE)
 
-            assert config  # Config has to be defined here. Helping mypy out
             # Run DeepSemgrep when available but only for full scans
             is_full_scan = metadata.merge_base_ref is None
-            deep = scan_handler.deepsemgrep if scan_handler and is_full_scan else False
+            engine = EngineType.OSS
+            if scan_handler and scan_handler.deepsemgrep:
+                engine = EngineType.INTERFILE if is_full_scan else EngineType.PRO
+
             (semgrep_pro_path, _deep_semgrep_path) = determine_semgrep_pro_path()
 
             # Set a default max_memory for CI runs when DeepSemgrep is on because
             # DeepSemgrep is likely to run out
             if max_memory is None:
-                if deep:
+                if engine is EngineType.INTERFILE:
                     max_memory = DEFAULT_MAX_MEMORY_PRO_CI
                 else:
                     max_memory = 0  # unlimited
             # Same for timeout (Github actions has a 6 hour timeout)
             if interfile_timeout is None:
-                if deep:
+                if engine is EngineType.INTERFILE:
                     interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
                 else:
                     interfile_timeout = 0  # unlimited
-            if deep and not semgrep_pro_path.exists():
+            if engine.is_pro and not semgrep_pro_path.exists():
                 run_install_semgrep_pro()
-            if deep:
-                # Add the p/deepsemgrep rules
-                # TODO this is a temporary hack!!! In the future,
-                # we will ensure that deepsemgrep rules are in the
-                # default-v1 ruleset. This code should be removed
-                # by Feburary 2023
-                deep_semgrep_rules = Config.from_config_list(["p/deepsemgrep"], None)[
-                    0
-                ].get_rules(True)
-                deep_semgrep_rules_json = [r.raw for r in deep_semgrep_rules]
-                rules = jsonlib.loads(config[0])
-                if "rules" in rules:
-                    rules["rules"].extend(deep_semgrep_rules_json)
-                config = (jsonlib.dumps(rules),)
 
             # Append ignores configured on semgrep.dev
             requested_excludes = scan_handler.ignore_patterns if scan_handler else []
@@ -373,6 +359,7 @@ def ci(
 
             assert exclude is not None  # exclude is default empty tuple
             exclude = (*exclude, *yield_exclude_paths(requested_excludes))
+            assert config  # Config has to be defined here. Helping mypy out
             start = time.time()
             (
                 filtered_matches_by_rule,
@@ -386,7 +373,7 @@ def ci(
                 lockfile_scan_info,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
-                engine=EngineType.INTERFILE if deep else EngineType.OSS,
+                engine=engine,
                 output_handler=output_handler,
                 target=[os.curdir],  # semgrep ci only scans cwd
                 pattern=None,
@@ -491,7 +478,7 @@ def ci(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(blocking_rules) + len(nonblocking_rules), 'rule')}."
     )
     if scan_handler:
-        logger.info("  Uploading findings to Semgrep App.")
+        logger.info("  Uploading findings.")
         scan_handler.report_findings(
             filtered_matches_by_rule,
             semgrep_errors,
@@ -504,6 +491,14 @@ def ci(
             metadata.commit_datetime,
             lockfile_scan_info,
         )
+        logger.info("  View results in Semgrep App:")
+        logger.info(
+            f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
+        )
+        if "r2c-internal-project-depends-on" in scan_handler.rules:
+            logger.info(
+                f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/supply-chain"
+            )
 
     audit_mode = metadata.event_name in audit_on
     if num_blocking_findings > 0:

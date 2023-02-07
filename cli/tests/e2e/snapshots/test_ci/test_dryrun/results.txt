@@ -74,7 +74,7 @@ Some files were skipped or only partially analyzed.
 
 CI scan completed successfully.
   Found 8 findings (6 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
+  Uploading findings.
 Would have sent findings and ignores blob: {
     "token": null,
     "gitlab_token": null,
@@ -189,7 +189,7 @@ Would have sent findings and ignores blob: {
                         "ecosystem": "pypi",
                         "allowed_hashes": {},
                         "transitivity": "unknown",
-                        "line_number": 2
+                        "line_number": 1
                     },
                     "lockfile": "poetry.lock"
                 }
@@ -455,6 +455,9 @@ Would have sent complete blob: {
         }
     }
 }
+  View results in Semgrep App:
+    https://semgrep.dev/orgs/org_name/findings
+    https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain

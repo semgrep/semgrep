@@ -23,7 +23,7 @@ type conf = { target : target_kind; json : bool }
  *)
 and target_kind =
   | Pattern of string * Lang.t
-  | File of Common.filename * Lang.t
+  | File of Fpath.t * Lang.t
   | Config of Semgrep_dashdash_config.config_str
 [@@deriving show]
 
@@ -81,7 +81,7 @@ let run (conf : conf) : Exit_code.t =
   | File (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
       let { Parse_target.ast; skipped_tokens = _; _ } =
-        Parse_target.just_parse_with_lang lang file
+        Parse_target.just_parse_with_lang lang (Fpath.to_string file)
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in
       (* 80 columns is too little *)

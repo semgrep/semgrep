@@ -165,7 +165,8 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Swift ->
         let res = Parse_swift_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
-    | Lang.Html ->
+    | Lang.Html
+    | Lang.Xml ->
         let res = Parse_html_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Hcl ->
@@ -254,9 +255,11 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.R ->
         let res = Parse_r_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
-        (* not yet handled ?? *)
-        (* Lang.Xxx failwith "No Xxx generic parser yet" *)
-    | Lang.Dart -> failwith "Dart patterns not supported yet"
+    | Lang.Dart ->
+        let res = Parse_dart_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
+    (* not yet handled ?? *)
+    (* | Lang.Xxx -> failwith "No Xxx generic parser yet" *)
   in
   let any = normalize_any lang any in
 

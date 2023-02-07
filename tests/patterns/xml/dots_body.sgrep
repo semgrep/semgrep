@@ -1,0 +1,6 @@
+<plugin>
+    <configuration>
+        <somethingInvalid/>
+    </configuration>
+    ...
+</plugin>

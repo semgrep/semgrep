@@ -5,12 +5,16 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*************************************************************************)
 (*
    List files recursively in a safe, efficient, and portable manner.
+
+   Replaces the functions in libs/commons/ that use external UNIX commands
+   such as 'find'.
 *)
 
 (*************************************************************************)
 (* Types *)
 (*************************************************************************)
 
+(* TODO? use Fpath.t at some point? *)
 type path = string
 
 (*************************************************************************)
@@ -77,6 +81,7 @@ let list_with_stat path =
 
 let list path = list_with_stat path |> Common.map fst
 
+(* python: Target.files_from_filesystem *)
 let list_regular_files ?(keep_root = false) root_path =
   list_with_stat root_path
   |> List.filter_map (fun (path, (stat : Unix.stats)) ->

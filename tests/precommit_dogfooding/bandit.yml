@@ -1,0 +1,403 @@
+rules:
+- id: python.jinja2.security.audit.autoescape-disabled.autoescape-disabled
+  patterns:
+  - pattern-not: jinja2.Environment(..., autoescape=True, ...)
+  - pattern-not: jinja2.Environment(..., autoescape=jinja2.select_autoescape(...),
+      ...)
+  - pattern: jinja2.Environment(...)
+  fix-regex:
+    regex: (.*)\)
+    replacement: \1, autoescape=True)
+  message: Detected a Jinja2 environment without autoescaping. Jinja2 does not autoescape
+    by default. This is dangerous if you are rendering to a browser because this allows
+    for cross-site scripting (XSS) attacks. If you are in a web context, enable autoescaping
+    by setting 'autoescape=True.' You may also consider using 'jinja2.select_autoescape()'
+    to only enable automatic escaping for certain file extensions.
+  metadata:
+    source-rule-url: https://bandit.readthedocs.io/en/latest/plugins/b701_jinja2_autoescape_false.html
+    cwe: 'CWE-116: Improper Encoding or Escaping of Output'
+    owasp: 'A6: Security Misconfiguration'
+    references:
+    - https://jinja.palletsprojects.com/en/2.11.x/api/#basics
+    category: security
+    technology:
+    - jinja2
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    source: https://semgrep.dev/r/python.jinja2.security.audit.autoescape-disabled.autoescape-disabled
+    shortlink: https://sg.run/KlGX
+    semgrep.dev:
+      rule:
+        rule_id: pKUOrp
+        version_id: yeTDg8
+        url: https://semgrep.dev/playground/r/yeTDg8/python.jinja2.security.audit.autoescape-disabled.autoescape-disabled
+  languages:
+  - python
+  severity: WARNING
+- id: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1
+  pattern: hashlib.sha1(...)
+  fix-regex:
+    regex: sha1
+    replacement: sha256
+  message: Detected SHA1 hash algorithm which is considered insecure. SHA1 is not
+    collision resistant and is therefore not suitable as a cryptographic signature.
+    Use SHA256 or SHA3 instead.
+  metadata:
+    source-rule-url: https://github.com/PyCQA/bandit/blob/d5f8fa0d89d7b11442fc6ec80ca42953974354c8/bandit/blacklists/calls.py#L59
+    cwe:
+    - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    owasp:
+    - A03:2017 - Sensitive Data Exposure
+    - A02:2021 - Cryptographic Failures
+    bandit-code: B303
+    asvs:
+      section: V6 Stored Cryptography Verification Requirements
+      control_id: 6.2.2 Insecure Custom Algorithm
+      control_url: https://github.com/OWASP/ASVS/blob/master/4.0/en/0x14-V6-Cryptography.md#v62-algorithms
+      version: '4'
+    references:
+    - https://www.schneier.com/blog/archives/2012/10/when_will_we_se.html
+    - https://www.trendmicro.com/vinfo/us/security/news/vulnerabilities-and-exploits/sha-1-collision-signals-the-end-of-the-algorithm-s-viability
+    - http://2012.sharcs.org/slides/stevens.pdf
+    - https://pycryptodome.readthedocs.io/en/latest/src/hash/sha3_256.html
+    category: security
+    technology:
+    - python
+    subcategory:
+    - vuln
+    likelihood: LOW
+    impact: MEDIUM
+    confidence: MEDIUM
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    source: https://semgrep.dev/r/python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1
+    shortlink: https://sg.run/ydYx
+    semgrep.dev:
+      rule:
+        rule_id: x8UnBk
+        version_id: e1TA7A
+        url: https://semgrep.dev/playground/r/e1TA7A/python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1
+  severity: WARNING
+  languages:
+  - python
+- id: python.lang.security.deserialization.pickle.avoid-pickle
+  metadata:
+    owasp:
+    - A08:2017 - Insecure Deserialization
+    - A08:2021 - Software and Data Integrity Failures
+    cwe:
+    - 'CWE-502: Deserialization of Untrusted Data'
+    references:
+    - https://docs.python.org/3/library/pickle.html
+    category: security
+    technology:
+    - python
+    cwe2022-top25: true
+    cwe2021-top25: true
+    subcategory:
+    - audit
+    likelihood: LOW
+    impact: MEDIUM
+    confidence: LOW
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    source: https://semgrep.dev/r/python.lang.security.deserialization.pickle.avoid-pickle
+    shortlink: https://sg.run/OPwB
+    semgrep.dev:
+      rule:
+        rule_id: EwU2BJ
+        version_id: jQTeDJ
+        url: https://semgrep.dev/playground/r/jQTeDJ/python.lang.security.deserialization.pickle.avoid-pickle
+  languages:
+  - python
+  message: Avoid using `pickle`, which is known to lead to code execution vulnerabilities.
+    When unpickling, the serialized data could be manipulated to run arbitrary code.
+    Instead, consider serializing the relevant data as JSON or a similar text-based
+    serialization format.
+  severity: WARNING
+  patterns:
+  - pattern-either:
+    - pattern: pickle.$FUNC(...)
+    - pattern: _pickle.$FUNC(...)
+  - pattern-not: pickle.$FUNC("...")
+  - pattern-not: _pickle.$FUNC("...")
+- id: contrib.dlint.dlint-equivalent.insecure-xml-use
+  message: Insecure XML parsing functionality, prefer 'defusedxml'
+  languages:
+  - python
+  severity: WARNING
+  metadata:
+    source_rule_url: https://github.com/dlint-py/dlint/blob/master/docs/linters/DUO107.md
+    category: security
+    technology:
+    - python
+    references:
+    - https://github.com/dlint-py/dlint/blob/master/docs/linters/DUO107.md
+    owasp:
+    - A09:2017 - Using Components with Known Vulnerabilities
+    - A06:2021 - Vulnerable and Outdated Components
+    cwe:
+    - 'CWE-611: Improper Restriction of XML External Entity Reference'
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    source: https://semgrep.dev/r/contrib.dlint.dlint-equivalent.insecure-xml-use
+    shortlink: https://sg.run/5QOW
+    semgrep.dev:
+      rule:
+        rule_id: zdUkvA
+        version_id: 0bToER
+        url: https://semgrep.dev/playground/r/0bToER/contrib.dlint.dlint-equivalent.insecure-xml-use
+  pattern-either:
+  - patterns:
+    - pattern: xml.$ANYTHING
+    - pattern-not: xml.sax.saxutils
+    - pattern-not: xml.etree.ElementTree.Element
+    - pattern-not: xml.etree.ElementTree.SubElement
+  - pattern: xmlrpclib.$ANYTHING
+- id: python.lang.security.use-defused-xml.use-defused-xml
+  metadata:
+    owasp:
+    - A04:2017 - XML External Entities (XXE)
+    - A05:2021 - Security Misconfiguration
+    cwe:
+    - 'CWE-611: Improper Restriction of XML External Entity Reference'
+    references:
+    - https://docs.python.org/3/library/xml.html
+    - https://github.com/tiran/defusedxml
+    - https://owasp.org/www-community/vulnerabilities/XML_External_Entity_(XXE)_Processing
+    category: security
+    technology:
+    - python
+    cwe2022-top25: true
+    cwe2021-top25: true
+    subcategory:
+    - vuln
+    likelihood: LOW
+    impact: MEDIUM
+    confidence: MEDIUM
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    source: https://semgrep.dev/r/python.lang.security.use-defused-xml.use-defused-xml
+    shortlink: https://sg.run/kX47
+    semgrep.dev:
+      rule:
+        rule_id: d8UjRx
+        version_id: nWTwqD
+        url: https://semgrep.dev/playground/r/nWTwqD/python.lang.security.use-defused-xml.use-defused-xml
+  message: The Python documentation recommends using `defusedxml` instead of `xml`
+    because the native Python `xml` library is vulnerable to XML External Entity (XXE)
+    attacks. These attacks can leak confidential data and "XML bombs" can cause denial
+    of service.
+  languages:
+  - python
+  severity: ERROR
+  pattern: import xml
+- id: python.requests.security.disabled-cert-validation.disabled-cert-validation
+  message: Certificate verification has been explicitly disabled. This permits insecure
+    connections to insecure servers. Re-enable certification validation.
+  metadata:
+    cwe:
+    - 'CWE-295: Improper Certificate Validation'
+    owasp:
+    - A03:2017 - Sensitive Data Exposure
+    - A07:2021 - Identification and Authentication Failures
+    references:
+    - https://stackoverflow.com/questions/41740361/is-it-safe-to-disable-ssl-certificate-verification-in-pythonss-requests-lib
+    category: security
+    technology:
+    - requests
+    subcategory:
+    - audit
+    likelihood: LOW
+    impact: LOW
+    confidence: LOW
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    source: https://semgrep.dev/r/python.requests.security.disabled-cert-validation.disabled-cert-validation
+    shortlink: https://sg.run/AlYp
+    semgrep.dev:
+      rule:
+        rule_id: qNUoYR
+        version_id: rxTbO4
+        url: https://semgrep.dev/playground/r/rxTbO4/python.requests.security.disabled-cert-validation.disabled-cert-validation
+  languages:
+  - python
+  severity: ERROR
+  pattern-either:
+  - pattern: requests.put(..., verify=False, ...)
+  - pattern: requests.patch(..., verify=False, ...)
+  - pattern: requests.delete(..., verify=False, ...)
+  - pattern: requests.head(..., verify=False, ...)
+  - pattern: requests.options(..., verify=False, ...)
+  - pattern: requests.request(..., verify=False, ...)
+  - pattern: requests.get(..., verify=False, ...)
+  - pattern: requests.post(..., verify=False, ...)
+  fix-regex:
+    regex: verify(\s)*=(\s)*False
+    replacement: verify=True
+- id: python.lang.security.audit.subprocess-shell-true.subprocess-shell-true
+  patterns:
+  - pattern: subprocess.$FUNC(..., shell=True, ...)
+  - pattern-not: subprocess.$FUNC("...", shell=True, ...)
+  message: Found 'subprocess' function '$FUNC' with 'shell=True'. This is dangerous
+    because this call will spawn the command using a shell process. Doing so propagates
+    current shell settings and variables, which makes it much easier for a malicious
+    actor to execute commands. Use 'shell=False' instead.
+  fix-regex:
+    regex: (shell\s*=\s*)True
+    replacement: \1False
+  metadata:
+    source-rule-url: https://bandit.readthedocs.io/en/latest/plugins/b602_subprocess_popen_with_shell_equals_true.html
+    owasp:
+    - A01:2017 - Injection
+    - A03:2021 - Injection
+    cwe:
+    - 'CWE-78: Improper Neutralization of Special Elements used in an OS Command (''OS
+      Command Injection'')'
+    references:
+    - https://stackoverflow.com/questions/3172470/actual-meaning-of-shell-true-in-subprocess
+    - https://docs.python.org/3/library/subprocess.html
+    category: security
+    technology:
+    - python
+    cwe2022-top25: true
+    cwe2021-top25: true
+    subcategory:
+    - vuln
+    likelihood: HIGH
+    impact: LOW
+    confidence: MEDIUM
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    source: https://semgrep.dev/r/python.lang.security.audit.subprocess-shell-true.subprocess-shell-true
+    shortlink: https://sg.run/J92w
+    semgrep.dev:
+      rule:
+        rule_id: DbUpz2
+        version_id: 6xT0p5
+        url: https://semgrep.dev/playground/r/6xT0p5/python.lang.security.audit.subprocess-shell-true.subprocess-shell-true
+  languages:
+  - python
+  severity: ERROR
+- id: python.lang.security.audit.formatted-sql-query.formatted-sql-query
+  message: Detected possible formatted SQL query. Use parameterized queries instead.
+  metadata:
+    owasp:
+    - A01:2017 - Injection
+    - A03:2021 - Injection
+    cwe:
+    - 'CWE-89: Improper Neutralization of Special Elements used in an SQL Command
+      (''SQL Injection'')'
+    references:
+    - https://stackoverflow.com/questions/775296/mysql-parameterized-queries
+    category: security
+    technology:
+    - python
+    cwe2022-top25: true
+    cwe2021-top25: true
+    subcategory:
+    - audit
+    likelihood: LOW
+    impact: HIGH
+    confidence: LOW
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    source: https://semgrep.dev/r/python.lang.security.audit.formatted-sql-query.formatted-sql-query
+    shortlink: https://sg.run/EkWw
+    semgrep.dev:
+      rule:
+        rule_id: 3qUP9k
+        version_id: vdT3k4
+        url: https://semgrep.dev/playground/r/vdT3k4/python.lang.security.audit.formatted-sql-query.formatted-sql-query
+  severity: WARNING
+  languages:
+  - python
+  pattern-either:
+  - pattern: $DB.execute("..." % ...)
+  - pattern: $DB.execute("...".format(...))
+  - pattern: $DB.execute(f"...")
+  - patterns:
+    - pattern-either:
+      - pattern-inside: |
+          $SQL = "..." % ...
+          ...
+      - pattern-inside: |
+          $SQL = "...".format(...)
+          ...
+      - pattern-inside: |
+          $SQL = f"...{$X}..."
+          ...
+    - pattern: $DB.execute($SQL)
+- id: python.django.security.audit.avoid-mark-safe.avoid-mark-safe
+  patterns:
+  - pattern-not-inside: django.utils.html.format_html(...)
+  - pattern-not: django.utils.safestring.mark_safe("...")
+  - pattern: django.utils.safestring.mark_safe(...)
+  message: '''mark_safe()'' is used to mark a string as "safe" for HTML output. This
+    disables escaping and could therefore subject the content to XSS attacks. Use
+    ''django.utils.html.format_html()'' to build HTML for rendering instead.'
+  metadata:
+    source-rule-url: https://bandit.readthedocs.io/en/latest/plugins/b703_django_mark_safe.html
+    cwe:
+    - 'CWE-79: Improper Neutralization of Input During Web Page Generation (''Cross-site
+      Scripting'')'
+    owasp:
+    - A07:2017 - Cross-Site Scripting (XSS)
+    - A03:2021 - Injection
+    references:
+    - https://docs.djangoproject.com/en/3.0/ref/utils/#django.utils.safestring.mark_safe
+    - https://docs.djangoproject.com/en/3.0/ref/utils/#django.utils.html.format_html
+    category: security
+    technology:
+    - django
+    cwe2022-top25: true
+    cwe2021-top25: true
+    subcategory:
+    - audit
+    likelihood: LOW
+    impact: MEDIUM
+    confidence: LOW
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    source: https://semgrep.dev/r/python.django.security.audit.avoid-mark-safe.avoid-mark-safe
+    shortlink: https://sg.run/yd0P
+    semgrep.dev:
+      rule:
+        rule_id: eqU8Wr
+        version_id: DkTeDR
+        url: https://semgrep.dev/playground/r/DkTeDR/python.django.security.audit.avoid-mark-safe.avoid-mark-safe
+  languages:
+  - python
+  severity: WARNING
+- id: python.lang.security.audit.eval-detected.eval-detected
+  patterns:
+  - pattern-not: eval("...")
+  - pattern: eval(...)
+  message: Detected the use of eval(). eval() can be dangerous if used to evaluate
+    dynamic content. If this content can be input from outside the program, this may
+    be a code injection vulnerability. Ensure evaluated content is not definable by
+    external sources.
+  metadata:
+    source-rule-url: https://bandit.readthedocs.io/en/latest/blacklists/blacklist_calls.html#b307-eval
+    cwe:
+    - 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code
+      (''Eval Injection'')'
+    owasp:
+    - A03:2021 - Injection
+    asvs:
+      section: 'V5: Validation, Sanitization and Encoding Verification Requirements'
+      control_id: 5.2.4 Dyanmic Code Execution Features
+      control_url: https://github.com/OWASP/ASVS/blob/master/4.0/en/0x13-V5-Validation-Sanitization-Encoding.md#v52-sanitization-and-sandboxing-requirements
+      version: '4'
+    category: security
+    technology:
+    - python
+    references:
+    - https://owasp.org/Top10/A03_2021-Injection
+    subcategory:
+    - audit
+    likelihood: LOW
+    impact: HIGH
+    confidence: LOW
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    source: https://semgrep.dev/r/python.lang.security.audit.eval-detected.eval-detected
+    shortlink: https://sg.run/ZvrD
+    semgrep.dev:
+      rule:
+        rule_id: gxU149
+        version_id: O9TZ0D
+        url: https://semgrep.dev/playground/r/O9TZ0D/python.lang.security.audit.eval-detected.eval-detected
+  languages:
+  - python
+  severity: WARNING

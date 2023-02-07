@@ -4,7 +4,8 @@
 (*
    Parse a semgrep-scan command, execute it and exit.
 
-   Translated from scan.py and semgrep_main.py
+   Translated mainly from scan.py, with parts translated also
+   from semgrep_main.py and core_runner.py.
 *)
 
 (*****************************************************************************)

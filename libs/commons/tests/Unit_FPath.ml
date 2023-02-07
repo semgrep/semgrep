@@ -1,3 +1,5 @@
+module FPath = FilePath
+
 (* TODO: copy paste of Unit_commons.with_file, but should be in Common.ml *)
 let with_file contents f =
   let file, oc = Filename.open_temp_file "test_pfff_read_file_" ".dat" in
