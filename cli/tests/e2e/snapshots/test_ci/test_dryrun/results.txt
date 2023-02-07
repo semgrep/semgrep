@@ -452,7 +452,9 @@ Would have sent complete blob: {
                 "bytes_parsed": 366,
                 "num_bytes": 366
             }
-        }
+        },
+        "event_id": "3605bf5b-0210-49c7-9f27-05ac56f6e224",
+        "engine_requested": "OSS"
     }
 }
   View results in Semgrep App:
