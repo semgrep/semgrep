@@ -971,7 +971,7 @@ then please delete {deep_path} manually.
             profiling_data,
             parsing_data,
             core_output.explanations,
-            core_output.rules,
+            core_output.rules_by_engine,
         )
 
         return (

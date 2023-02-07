@@ -42,7 +42,8 @@ type file_profiling = {
 }
 [@@deriving show]
 
-type rule = string * Pattern_match.engine_kind
+type rule_id_and_engine_kind = string * Pattern_match.engine_kind
+[@@deriving show]
 
 (* Substitute in the profiling type we have *)
 
@@ -72,7 +73,7 @@ type final_result = {
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;
   explanations : Matching_explanation.t list;
-  rules : rule list;
+  rules_by_engine : rule_id_and_engine_kind list;
 }
 [@@deriving show]
 

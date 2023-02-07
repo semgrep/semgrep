@@ -248,5 +248,5 @@
     "errorfiles": 2
   },
   "engine_requested": "OSS",
-  "rules": []
+  "rules_by_engine": []
 }

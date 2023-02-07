@@ -91,6 +91,7 @@
           }
         },
         "engine_kind": "OSS",
+        "rules_by_engine": [],
         "severity": "ERROR"
       },
       "path": "/tmp/dir/foo.py",

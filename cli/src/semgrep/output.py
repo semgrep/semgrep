@@ -182,7 +182,7 @@ class OutputHandler:
         )  # (rule, target) -> duration
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
-        self.rules_by_engine: Optional[List[out.Rule]] = None
+        self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
         self.engine_requested: EngineType = EngineType.OSS
 
         self.final_error: Optional[Exception] = None
@@ -297,7 +297,7 @@ class OutputHandler:
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         explanations: Optional[List[out.MatchingExplanation]] = None,
-        rules_by_engine: Optional[List[out.Rule]] = None,
+        rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None,
         severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
@@ -435,7 +435,7 @@ class OutputHandler:
         cli_timing: Optional[out.CliTiming] = None
 
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
-        rules_by_engine: Optional[List[out.Rule]] = self.rules_by_engine
+        rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = self.rules_by_engine
 
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
@@ -489,7 +489,7 @@ class OutputHandler:
                 paths=cli_paths,
                 time=cli_timing,
                 explanations=explanations,
-                rules=rules_by_engine,
+                rules_by_engine=rules_by_engine,
                 engine_requested=self.engine_requested.to_engine_kind(),
             ),
             extra,

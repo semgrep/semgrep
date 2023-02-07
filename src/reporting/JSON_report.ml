@@ -373,7 +373,7 @@ let match_results_of_matches_and_errors render_fix nfiles res =
       (match res.RP.explanations with
       | [] -> None
       | xs -> Some (xs |> Common.map explanation_to_explanation));
-    rules = Common.map convert_rule res.rules;
+    rules_by_engine = Common.map convert_rule res.rules_by_engine;
     engine_requested = `OSS;
   }
   |> Output_from_core_util.sort_match_results

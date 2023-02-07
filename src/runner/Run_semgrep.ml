@@ -722,7 +722,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
       skipped_rules = invalid_rules;
       extra;
       explanations = res.explanations;
-      rules = Common.map (fun x -> (fst x.R.id, Pattern_match.OSS)) rules;
+      rules_by_engine =
+        Common.map (fun x -> (fst x.R.id, Pattern_match.OSS)) rules;
     },
     (* TODO not all_targets here, because ?? *)
     targets |> Common.map (fun x -> x.In.path) )

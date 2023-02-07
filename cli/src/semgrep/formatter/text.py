@@ -740,7 +740,9 @@ class TextFormatter(BaseFormatter):
                     ]
                 )
 
-        rules_by_engine = cli_output_extra.rules if cli_output_extra.rules else []
+        rules_by_engine = (
+            cli_output_extra.rules_by_engine if cli_output_extra.rules_by_engine else []
+        )
 
         oss_rules = [
             with_color(Colors.foreground, rule.rule_id.value, bold=True)
