@@ -6,12 +6,11 @@ from pathlib import Path
 from typing import List
 from typing import Optional
 
+from semdep.external.parsy import regex
 from semdep.external.parsy import string
-from semdep.external.parsy import success
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_path_parse
-from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -21,12 +20,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 # Examples:
 # org.apache.logging.log4j:log4j-api:jar:0.0.2:compile
-dep = upto(":", consume_other=True) >> upto(":", consume_other=True).bind(
-    lambda package: upto(":", consume_other=True)
-    >> upto(":", consume_other=True).bind(
-        lambda version: success((package, version)) << consume_line
-    )
-)
+dep = regex("[^:]+:([^:]+):[^:]+:([^:]+):[^: \n]+", flags=0, group=(1, 2))
+
 
 # Examples (these would not appear in this order in a file, they're seperate):
 # |  +- org.apache.maven:maven-model:jar:3.8.6:provided
@@ -39,11 +34,11 @@ dep = upto(":", consume_other=True) >> upto(":", consume_other=True).bind(
 
 # |     +- org.springframework:spring-aop:jar:5.3.9:compile
 tree_line = mark_line(
-    ((string("|  ") | string("   ")).at_least(1) | success([])).bind(
-        lambda depth: (string("+- ") | string(r"\- "))
+    regex(r"((\|  )|(   ))*").bind(
+        lambda depth: (regex("(\\+- )|(\\\\- )"))
         >> dep.map(
             lambda d: (
-                Transitivity(Transitive() if len(depth) > 0 else Direct()),
+                Transitivity(Transitive() if len(depth) // 3 > 0 else Direct()),
                 d[0],
                 d[1],
             )
