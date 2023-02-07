@@ -40,7 +40,12 @@ def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
         # let's just pick https
         protocol = "https"
 
-    # if we know that this URL is going to be unclickable, return the original URL
+    # We need to parse the URL into a clickable format, a la these supported formats:
+    # https://stackoverflow.com/questions/31801271/what-are-the-supported-git-url-formats
+    # We only support a few, though, so we may get `None` if we run into a format we do
+    # not support.
+    # So if we know that this URL is going to be unclickable, we should return
+    # the original URL
     if None in [protocol, result.resource, result.owner, result.name]:
         return sstp_url
 
