@@ -16,6 +16,7 @@ import requests
 from boltons.iterutils import partition
 
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
+from semgrep.constants import EngineType
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
@@ -266,6 +267,7 @@ class ScanHandler:
         total_time: float,
         commit_date: str,
         lockfile_scan_info: Dict[str, int],
+        engine_requested: EngineType,
     ) -> None:
         """
         commit_date here for legacy reasons. epoch time of latest commit
@@ -342,6 +344,8 @@ class ScanHandler:
                     }
                     for (lang, data) in parse_rate.get_errors_by_lang().items()
                 },
+                "event_id": str(state.metrics.payload["event_id"]),
+                "engine_requested": engine_requested.name,
             },
         }
 
