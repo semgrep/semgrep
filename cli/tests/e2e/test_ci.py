@@ -1027,6 +1027,7 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep):
                 base_commit,
                 re.compile(r'"commit_date": (.*),?'),
                 re.compile(r'"total_time": (.*),?'),
+                re.compile(r'"event_id": (.*),?'),
             ]
         ),
         "results.txt",
