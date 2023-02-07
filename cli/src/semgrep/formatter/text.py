@@ -756,7 +756,7 @@ class TextFormatter(BaseFormatter):
             or not isinstance(cli_output_extra.engine_requested.value, out.OSS)
         ) and oss_rules:
             rules_output = [
-                "\nSome rules were run as OSS rules because `deepsemgrep: true` was not specified.\n"
+                "\nSome rules were run as OSS rules because `interfile: true` was not specified.\n"
             ]
             if extra.get("verbose_errors", False):
                 rules_output.append(
