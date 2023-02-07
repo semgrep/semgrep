@@ -147,6 +147,8 @@ let language_exceptions =
     (Lang.Jsonnet, [ "dots_stmts"; "deep_exprstmt"; "dots_nested_stmts" ]);
     (* TODO *)
     (Lang.Clojure, [ "deep_exprstmt"; "dots_nested_stmts" ]);
+    (* TODO *)
+    (Lang.Rust, [ "dots_nested_stmts" ]);
   ]
 
 let maturity_tests () =
@@ -210,9 +212,7 @@ let maturity_tests () =
       check_maturity Lang.Lua "lua" ".lua" Experimental;
       check_maturity Lang.Ocaml "ocaml" ".ml" Experimental;
       (* TODO we say we support R, but not really actually *)
-      (* TODO: too many exns, we need to write tests!
-         check_maturity Lang.Rust "rust" ".rust" Experimental;
-      *)
+      check_maturity Lang.Rust "rust" ".rs" Experimental;
       check_maturity Lang.Solidity "solidity" ".sol" Experimental;
       check_maturity Lang.Elixir "elixir" ".ex" Experimental;
       check_maturity Lang.Swift "swift" ".swift" Experimental;
