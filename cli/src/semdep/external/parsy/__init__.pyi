@@ -42,9 +42,14 @@ Addable = TypeVar("Addable", bound=SupportsAdd)
 
 Pos = Tuple[int, int]
 
+class Position:
+    offset: int
+    line: int
+    column: int
+
 class ParseError(RuntimeError):
     stream: str
-    index: int
+    index: Position
     expected: List[str]
 
 class Result(Generic[T]):

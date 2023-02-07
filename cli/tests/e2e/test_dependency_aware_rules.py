@@ -39,6 +39,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/gradle",
         ),
         (
+            "rules/dependency_aware/java-gradle-sca.yaml",
+            "dependency_aware/gradle_trailing_newline",
+        ),
+        (
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/poetry",
         ),
@@ -67,10 +71,9 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/no-pattern.yaml",
             "dependency_aware/yarn_multi_hash",
         ),
-        pytest.param(
+        (
             "rules/dependency_aware/yarn-sass.yaml",
             "dependency_aware/yarn_at_in_version",
-            marks=pytest.mark.xfail,
         ),
     ],
 )
@@ -84,10 +87,10 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
 @pytest.mark.parametrize(
     "file_size,target,max_time",
     [
-        pytest.param(file_size, target, max_time, marks=pytest.mark.xfail)
-        if target in ["maven_dep_tree.txt", "requirements.txt"]
-        else (file_size, target, max_time)
-        for file_size, max_time in [("10k", 2), ("50k", 6), ("100k", 12)]
+        (file_size, target, max_time)
+        # These times are set relative to Github Actions, they should be lower when running locally
+        # Local time expectation is more like 1, 5, 10
+        for file_size, max_time in [("10k", 3), ("50k", 15), ("100k", 30)]
         for target in [
             "Gemfile.lock",
             "go.sum",
@@ -110,7 +113,6 @@ def test_dependency_aware_timing(
     )
     end = time()
     exec_time = end - start
-    print(exec_time)
     assert exec_time < max_time
 
 

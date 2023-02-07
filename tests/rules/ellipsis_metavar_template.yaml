@@ -1,0 +1,8 @@
+rules:
+- id: rule_template_id
+  languages:
+  - javascript
+  pattern: |
+    `$...X`
+  message: rule_template_message
+  severity: ERROR

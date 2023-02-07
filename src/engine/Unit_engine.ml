@@ -131,6 +131,8 @@ let language_exceptions =
 
     (* TODO: to fix *)
     (Lang.Kotlin, [ "dots_stmts"; "metavar_equality_var" ]);
+    (* good boy *)
+    (Lang.Rust, []);
     (* Experimental languages *)
 
     (* TODO: dots_nested_stmts to fix for C and C++ *)
@@ -198,31 +200,28 @@ let maturity_tests () =
       (* Beta *)
       check_maturity Lang.Hack "hack" ".hack" Beta;
       check_maturity Lang.Kotlin "kotlin" ".kt" Beta;
+      check_maturity Lang.Rust "rust" ".rs" Beta;
       (* Terraform/HCL has too many NA, not worth it *)
 
       (* Experimental *)
       check_maturity Lang.Bash "bash" ".bash" Experimental;
       check_maturity Lang.C "c" ".c" Experimental;
       check_maturity Lang.Cpp "cpp" ".cpp" Experimental;
-      (* TODO dockerfile
-          check_maturity Lang.Dockerfile "dockerfile" ".dockerfile" Experimental;
+      (* TODO
+         check_maturity Lang.Dockerfile "dockerfile" ".dockerfile" Experimental;
       *)
       check_maturity Lang.Lua "lua" ".lua" Experimental;
       check_maturity Lang.Ocaml "ocaml" ".ml" Experimental;
-      (* TODO we say we support R, but not really actually *)
-      (* TODO: too many exns, we need to write tests!
-         check_maturity Lang.Rust "rust" ".rust" Experimental;
-      *)
+      check_maturity Lang.R "r" ".r" Experimental;
       check_maturity Lang.Solidity "solidity" ".sol" Experimental;
       check_maturity Lang.Elixir "elixir" ".ex" Experimental;
       check_maturity Lang.Swift "swift" ".swift" Experimental;
       check_maturity Lang.Julia "julia" ".jl" Experimental;
       (* YAML has too many NA, not worth it *)
-      check_maturity Lang.R "r" ".r" Experimental;
       check_maturity Lang.Jsonnet "jsonnet" ".jsonnet" Experimental;
       check_maturity Lang.Clojure "clojure" ".clj" Experimental
-      (* Not even experimental *)
-      (* HTML, Vue *);
+      (* Not even experimental yet *)
+      (* HTML, XML, Vue, Dart *);
     ]
 
 (*****************************************************************************)
