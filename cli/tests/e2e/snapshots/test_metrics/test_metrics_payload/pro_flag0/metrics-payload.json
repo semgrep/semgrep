@@ -20,8 +20,8 @@
     "engineRequested": "PRO_INTERFILE",
     "features": [
       "cli-flag/config",
-      "cli-flag/interfile",
       "cli-flag/metrics",
+      "cli-flag/pro",
       "cli-flag/targets",
       "config/local",
       "subcommand/scan"
