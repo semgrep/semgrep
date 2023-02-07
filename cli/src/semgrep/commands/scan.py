@@ -605,35 +605,35 @@ def scan_options(func: Callable) -> Callable:
     hidden=True
     # help="contact support@r2c.dev for more information on this"
 )
+# DEPRECATED: --interproc to be removed by Feb 2023 launch
 @click.option(
     "--interproc",
     is_flag=True,
     hidden=True
     # help="contact support@r2c.dev for more information on this"
 )
+# DEPRECATED: --interfile to be removed by Feb 2023 launch
 @click.option(
     "--interfile",
     is_flag=True,
     hidden=True
     # help="contact support@r2c.dev for more information on this"
 )
-@click.option(
+@optgroup.group("Semgrep Pro Engine options")
+@optgroup.option(
     "--pro-languages",
     is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
+    help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
 )
-@click.option(
+@optgroup.option(
     "--pro-intrafile",
     is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
+    help="Intra-file inter-procedural taint analysis. Implies --pro-languages. Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
 )
-@click.option(
+@optgroup.option(
     "--pro",
     is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
+    help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
 )
 @click.option(
     "--dump-engine-path",
@@ -796,12 +796,19 @@ def scan(
 
     if deep:
         abort("The experimental flag --deep has been renamed to --interfile.")
+    if interproc:
+        abort("The experimental flag --interproc has been renamed to --pro-intrafile.")
+    if interfile:
+        abort("The experimental flag --interfile has been renamed to --pro.")
 
-    if pro or interfile:
+    if pro:
+        # Inter-file + Pro languages
         engine = EngineType.PRO_INTERFILE
-    elif pro_intrafile or interproc:
+    elif pro_intrafile:
+        # Intra-file (inter-proc) + Pro languages
         engine = EngineType.PRO_INTRAFILE
     elif pro_languages:
+        # Just Pro languages
         engine = EngineType.PRO_LANG
     else:
         engine = EngineType.OSS
