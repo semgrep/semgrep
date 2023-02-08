@@ -8,6 +8,34 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.10.0](https://github.com/returntocorp/semgrep/releases/tag/v1.10.0) - 2023-02-08
+
+### Added
+
+- Experimental support for XML (gh-5939)
+- Rust: Beta support for Rust. (gh-6545)
+- Rule syntax: Metavariable bindings bound within `metavariable-pattern` now persist to outside of the `metavariable-pattern` (pa-2490)
+- Updated all lockfile parsers (except Cargo.lock) to produce better error messages, at the cost of a couple seconds of lowdown on large (>10k lines) lockfiles (sc-better-parsers)
+
+### Changed
+
+- Pro: `--pro` will now enable _all_ Pro features, including Apex, inter-procedural taint
+  analysis, and also inter-file analysis for supported languages. For Apex support only
+  (and more languages in the future) now use `--pro-languages`. For intra-file analysis
+  only now use `--pro-intrafile`. Flags `--interproc` and `--interfile` are now
+  deprecated. (pa-2488)
+- The output formatting of semgrep ci is getting revamped in the coming weeks.
+  This release includes the first couple changes to the output. (sc-590)
+- Packages from the maven ecosystem are now parsed to include their org slug. This means a log4j rule must now use `org.apache.logging.log4j:log4j-core` instead of just `log4j-core`. This change is backwards incompatible, in that any Java Supply Chain rules not taking into account will stop producing any findings, since the packages parsed from lockfiles will include the org, but the old rules will not. (sc-maven-org)
+
+### Fixed
+
+- Rust: correctly parse the last expression in blocks (gh-7071)
+- Dataflow traces: Findings now always display the separating line with `--dataflow-traces` in the CLI, to reduce
+  confusion over where the findings fall between the dataflow traces. (pa-2471)
+- CLI: Added `install-semgrep-pro` to the list of commands in the `semgrep --help` help text. (pa-2505)
+- Fixed bug where gradle.lockfile files would fail to parse if they contained a trailing newline, and bug where an error on a trailing newline would cause our lockfile parse error pretty printing to fail (sc-trailing-newline)
+
 ## [1.9.0](https://github.com/returntocorp/semgrep/releases/tag/v1.9.0) - 2023-02-01
 
 ### Added
