@@ -40,6 +40,10 @@ class EngineType(Enum):
     def is_pro(self) -> bool:
         return self.value >= EngineType.PRO_LANG.value
 
+    @property
+    def is_interfile(self) -> bool:
+        return self.value == EngineType.PRO_INTERFILE.value
+
 
 class OutputFormat(Enum):
     TEXT = auto()

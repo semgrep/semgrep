@@ -913,7 +913,12 @@ class CoreRunner:
                 sys.exit(0)
 
             runner = StreamingSemgrepCore(
-                cmd, plan.num_targets * 3 if engine.is_pro else plan.num_targets
+                # We expect to see 3 dots for each target, when running interfile analysis:
+                # - once when finishing phase 4, name resolution, on that target
+                # - once when finishing phase 5, taint configs, on that target
+                # - once when finishing analysis on that target as usual
+                cmd,
+                plan.num_targets * 3 if engine.is_interfile else plan.num_targets,
             )
             runner.vfs_map = vfs_map
             returncode = runner.execute()
