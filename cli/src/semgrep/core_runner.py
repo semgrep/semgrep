@@ -231,8 +231,19 @@ class StreamingSemgrepCore:
                 # happens if the data that follows a sequence of zero
                 # or more ".\n" has fewer than two bytes, such as:
                 # "", "3", ".\n.\n3", ".\n.\n.\n.", etc.
+
+                # Hack: the exact wording of parts this message may be used in metrics queries
+                # that are looking for it. Make sure `semgrep-core exited with unexpected output`
+                # and `interfile analysis` are both in the message, or talk to Emma.
                 raise SemgrepError(
-                    "semgrep-core exited successfully but produced unexpected output"
+                    "semgrep-core exited with unexpected output. This can happen because \
+                    it overflowed the stack or used too much memory. Try changing the stack \
+                    limit with `ulimit -s <limit>` or adding `--max-memory <memory>` to the \
+                    semgrep command. For CI runs with interfile analysis, the default max-memory \
+                    is 5000MB. Depending on the memory available in your runner, you may need \
+                    to lower it. We recommend choosing a limit 70% of the available memory to \
+                    allow for some overhead. If you have tried these steps and still are seeing \
+                    this error, please contact us."
                 )
 
             # read returns empty when EOF
