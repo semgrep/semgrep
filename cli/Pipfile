@@ -16,18 +16,18 @@ tox = "*"
 # - cli/Pipfile lists type hint packages for dev env
 # - .pre-commit-config.yaml's mypy hooks also list type hint packages
 # type hints
-types-setuptools = "*"
-types-colorama = "~=0.4.0"
-types-jsonschema = "==4.6.0"
-pytest-mock = "*"
-pytest-freezegun = "*"
-types-requests = "*"
-types-jinja2 = "*"
-types-python-dateutil = "*"
-types-freezegun = "*"
-pytest-split = "*"
 pypi-parker = "*"
+pytest-freezegun = "*"
+pytest-mock = "*"
 pytest-rerunfailures = "*"
+pytest-split = "*"
+types-colorama = "~=0.4.0"
+types-freezegun = "*"
+types-jinja2 = "*"
+types-jsonschema = "==4.6.0"
+types-python-dateutil = "*"
+types-requests = "*"
+types-setuptools = "*"
 # pipenv does not support multiple python versions, but the
 # dependencies of jsonschema differ from < 3.8 to >= 3.8. Therefore we just
 # rely on these directly for the dev environment so that an entry for these is
@@ -40,8 +40,8 @@ pytest-rerunfailures = "*"
 #
 # These _should not_ be added to setup.py
 importlib_metadata = "*"
-typing_extensions = "*"
 importlib_resources = ">=1.4.0"
+typing_extensions = "*"
 
 [packages]
 jsonschema = "==4.6.1"
