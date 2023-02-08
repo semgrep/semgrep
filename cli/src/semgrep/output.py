@@ -360,6 +360,7 @@ class OutputHandler:
             else:
                 if output:
                     try:
+                        console.print(Title("Results"))
                         print(output)
                     except UnicodeEncodeError as ex:
                         raise Exception(
@@ -393,6 +394,7 @@ class OutputHandler:
                 stats_line = f"\nRan {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
+
             output_text = ignores_line + suggestion_line + stats_line
             logger.info(output_text)
 

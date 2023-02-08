@@ -414,7 +414,6 @@ def ci(
             )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])
-        console.print(Title("Results"))
         output_handler.output({}, all_targets=set(), filtered_rules=[])
         logger.info(f"Encountered error when running rules: {e}")
         if isinstance(e, SemgrepError):
@@ -474,8 +473,6 @@ def ci(
 
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
     num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
-
-    console.print(Title("Results"))
 
     output_handler.output(
         {**blocking_matches_by_rule, **nonblocking_matches_by_rule},
