@@ -93,7 +93,6 @@ let is_in_scope env s =
 let id x = x
 let option = Option.map
 let list = Common.map
-let vref f x = ref (f !x)
 let string = id
 let bool = id
 let fake tok s = Parse_info.fake_info tok s
@@ -135,19 +134,6 @@ let module_name env (v1, dots) =
       in
       let s = String.concat "/" (prefixes @ elems) in
       G.FileName (s, tok)
-
-let resolved_name = function
-  | LocalVar -> Some (G.LocalVar, G.SId.unsafe_default)
-  | Parameter -> Some (G.Parameter, G.SId.unsafe_default)
-  | GlobalVar -> Some (G.Global, G.SId.unsafe_default)
-  | ClassField -> None
-  | ImportedModule xs ->
-      let xs = G.dotted_to_canonical xs in
-      Some (G.ImportedModule xs, G.SId.unsafe_default)
-  | ImportedEntity xs ->
-      let xs = G.dotted_to_canonical xs in
-      Some (G.ImportedEntity xs, G.SId.unsafe_default)
-  | NotResolved -> None
 
 let expr_context = function
   | Load -> ()
@@ -223,11 +209,9 @@ let rec expr env (x : expr) =
       G.Call
         (G.IdSpecial (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
       |> G.e
-  | Name (v1, v2, v3) ->
-      let v1 = name env v1
-      and _v2TODO = expr_context v2
-      and v3 = vref resolved_name v3 in
-      G.N (G.Id (v1, { (G.empty_id_info ()) with G.id_resolved = v3 })) |> G.e
+  | Name (v1, v2) ->
+      let v1 = name env v1 and _v2TODO = expr_context v2 in
+      G.N (G.Id (v1, G.empty_id_info ())) |> G.e
   | Tuple (CompList v1, v2) ->
       let v1 = bracket (list (expr env)) v1 and _v2TODO = expr_context v2 in
       G.Container (G.Tuple, v1) |> G.e
@@ -745,7 +729,7 @@ and stmt_aux env x =
   | AugAssign (v1, (v2, tok), v3) ->
       let v1 = expr env v1 and v2 = operator v2 and v3 = expr env v3 in
       [ G.exprstmt (G.AssignOp (v1, (v2, tok), v3) |> G.e) ]
-  | Cast (Name (id, _kind, _ref), _tok, ty) ->
+  | Cast (Name (id, _kind), _tok, ty) ->
       (* In the following example, `x : int` is not a type cast but a variable
        * declaration:
        *
@@ -848,11 +832,11 @@ and stmt_aux env x =
   | Continue t -> [ G.Continue (t, G.LNone, G.sc) |> G.s ]
   (* python2: *)
   | Print (tok, _dest, vals, _nl) ->
-      let id = Name (("print", tok), Load, ref NotResolved) in
+      let id = Name (("print", tok), Load) in
       stmt_aux env
         (ExprStmt (Call (id, fb (vals |> Common.map (fun e -> Arg e)))))
   | Exec (tok, e, _eopt, _eopt2) ->
-      let id = Name (("exec", tok), Load, ref NotResolved) in
+      let id = Name (("exec", tok), Load) in
       stmt_aux env (ExprStmt (Call (id, fb [ Arg e ])))
 
 and cases_and_body env = function
