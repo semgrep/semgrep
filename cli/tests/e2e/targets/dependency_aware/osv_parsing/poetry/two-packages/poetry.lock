@@ -1,0 +1,30 @@
+[[package]]
+name = "proto-plus"
+version = "1.22.0"
+description = "Beautiful, Pythonic protocol buffers."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+protobuf = ">=3.19.0,<5.0.0dev"
+
+[package.extras]
+testing = ["google-api-core[grpc] (>=1.31.5)"]
+
+[[package]]
+name = "protobuf"
+version = "4.21.5"
+description = ""
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[metadata]
+lock-version = "1.1"
+python-versions = "^3.7"
+content-hash = "1e6f29ae514d3dd64bd2a40ee33215bec7a7853fee7a469c9c9445f5e27bc3a3"
+
+[metadata.files]
+proto-plus = []
+protobuf = []

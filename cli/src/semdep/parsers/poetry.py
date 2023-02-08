@@ -104,7 +104,7 @@ PREFIX = """\
 # A whole poetry file
 poetry = (
     string(PREFIX).optional()
-    >> (poetry_dep | poetry_dep_extra)
+    >> (poetry_dep | poetry_dep_extra | (string("package = []").result(None)))
     .sep_by(string("\n\n"))
     .map(lambda xs: [x for x in xs if x])
     << string("\n").optional()

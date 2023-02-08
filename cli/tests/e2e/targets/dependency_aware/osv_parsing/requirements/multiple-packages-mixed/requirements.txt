@@ -1,0 +1,8 @@
+flask
+flask-cors
+pandas==0.23.4
+numpy==1.16.0
+scikit-learn==0.20.1
+sklearn
+requests
+gevent
