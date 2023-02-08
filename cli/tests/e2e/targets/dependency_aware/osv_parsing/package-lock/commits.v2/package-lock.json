@@ -1,0 +1,272 @@
+{
+  "lockfileVersion": 2,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "bump-test",
+      "version": "0.0.1",
+      "license": "ISC",
+      "dependencies": {
+        "chalk": "0.4.0",
+        "lodash": "^1.2.1",
+        "stopwords": "0.0.1"
+      },
+      "devDependencies": {
+        "@segment/analytics.js-integration-facebook-pixel": "github:segmentio/analytics.js-integrations#2.4.1",
+        "babel-preset-php": "gitlab:kornelski/babel-preset-php#main",
+        "is-number-1": "https://github.com/jonschlinkert/is-number.git",
+        "is-number-2": "https://github.com/jonschlinkert/is-number.git#d5ac058",
+        "is-number-3": "https://github.com/jonschlinkert/is-number.git#2.0.0",
+        "is-number-4": "git+ssh://git@github.com:jonschlinkert/is-number.git",
+        "is-number-5": "https://dummy-token@github.com/jonschlinkert/is-number.git#main",
+        "raven-js": "getsentry/raven-js#3.23.1",
+        "slick-carousel": "git://github.com/brianfryer/slick"
+      }
+    },
+    "node_modules/@segment/analytics.js-integration-facebook-pixel": {
+      "version": "2.4.1",
+      "resolved": "git+ssh://git@github.com/segmentio/analytics.js-integrations.git#3b1bb80b302c2e552685dc8a029797ec832ea7c9",
+      "integrity": "sha512-1YAMDYJHS/owJXgqD8/JoT/V0qqGwh4Ca+7uUBeXZ4zhWviqZbdjgU6FZJdstgclkxkfcoJ0dQhFlS4k0lLBCw==",
+      "license": "SEE LICENSE IN LICENSE",
+      "dependencies": {
+        "@ndhoule/each": "^2.0.1",
+        "@ndhoule/foldl": "^2.0.1",
+        "@segment/analytics.js-integration": "^3.1.0",
+        "dateformat": "^1.0.12",
+        "is": "^3.2.1",
+        "reject": "0.0.1",
+        "segmentio-facade": "^3.1.0",
+        "to-camel-case": "^1.0.0"
+      }
+    },
+    "node_modules/ansi-styles": {
+      "version": "1.0.0",
+      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-1.0.0.tgz",
+      "integrity": "sha1-yxAt8cVvUSPquLZ817mAJ6AnkXg=",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "node_modules/babel-preset-php": {
+      "version": "1.1.1",
+      "resolved": "git+ssh://git@gitlab.com/kornelski/babel-preset-php.git#c5a7ba5e0ad98b8db1cb8ce105403dd4b768cced",
+      "integrity": "sha512-PhaHzhRj5Qr2+XH6DmO/e0iki/h7nZGUR+DCaSnDxEjFpWLZoWJ40wTr7hSQ3s04cKSyFXUW6GF5l9M0rNUiqA==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "php-parser": "^2.0.6"
+      }
+    },
+    "node_modules/is-number-1": {
+      "version": "3.0.0",
+      "resolved": "git+ssh://git@github.com/jonschlinkert/is-number.git#af885e2e890b9ef0875edd2b117305119ee5bdc5",
+      "integrity": "sha512-xjDEFh9GXVljB+6/Q3eYsNoFShbxGGq7YKqz8sCBSvl7uEy7Gr5NzM2WMNdsarDLLOsbzrIul425XhH3g84FxQ==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "kind-of": "^3.0.2"
+      },
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/is-number-2": {
+      "version": "2.0.0",
+      "resolved": "git+ssh://git@github.com/jonschlinkert/is-number.git#d5ac0584ee9ae7bd9288220a39780f155b9ad4c8",
+      "integrity": "sha512-h1VffkXxrWWHTUM5up3BDE7BmcHOg/6BkU7Ic1OZWgIRzySUKHtQ/mP9LSkpu8mJaRpJE1PDQSgO8D+dQz4s1g==",
+      "dev": true,
+      "license": "MIT",
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/is-number-3": {
+      "version": "2.0.0",
+      "resolved": "git+ssh://git@github.com/jonschlinkert/is-number.git#d5ac0584ee9ae7bd9288220a39780f155b9ad4c8",
+      "integrity": "sha512-h1VffkXxrWWHTUM5up3BDE7BmcHOg/6BkU7Ic1OZWgIRzySUKHtQ/mP9LSkpu8mJaRpJE1PDQSgO8D+dQz4s1g==",
+      "dev": true,
+      "license": "MIT",
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/is-number-4": {
+      "version": "3.0.0",
+      "resolved": "git+ssh://git@github.com/jonschlinkert/is-number.git#af885e2e890b9ef0875edd2b117305119ee5bdc5",
+      "integrity": "sha512-xjDEFh9GXVljB+6/Q3eYsNoFShbxGGq7YKqz8sCBSvl7uEy7Gr5NzM2WMNdsarDLLOsbzrIul425XhH3g84FxQ==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "kind-of": "^3.0.2"
+      },
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/is-number-5": {
+      "version": "3.0.0",
+      "resolved": "git+https://dummy-token@github.com/jonschlinkert/is-number.git#af885e2e890b9ef0875edd2b117305119ee5bdc5",
+      "integrity": "sha512-xjDEFh9GXVljB+6/Q3eYsNoFShbxGGq7YKqz8sCBSvl7uEy7Gr5NzM2WMNdsarDLLOsbzrIul425XhH3g84FxQ==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "kind-of": "^3.0.2"
+      },
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/postcss-calc": {
+      "version": "7.0.1",
+      "resolved": "https://registry.npmjs.org/postcss-calc/-/postcss-calc-7.0.1.tgz",
+      "integrity": "sha512-oXqx0m6tb4N3JGdmeMSc/i91KppbYsFZKdH0xMOqK8V1rJlzrKlTdokz8ozUXLVejydRN6u2IddxpcijRj2FqQ==",
+      "dependencies": {
+        "css-unit-converter": "^1.1.1",
+        "postcss": "^7.0.5",
+        "postcss-selector-parser": "^5.0.0-rc.4",
+        "postcss-value-parser": "^3.3.1"
+      }
+    },
+    "node_modules/postcss-calc/node_modules/is-number-1": {
+      "version": "3.0.0",
+      "resolved": "git+ssh://git@github.com/jonschlinkert/is-number.git#be5935f8d2595bcd97b05718ef1eeae08d812e10",
+      "integrity": "sha512-xjDEFh9GXVljB+6/Q3eYsNoFShbxGGq7YKqz8sCBSvl7uEy7Gr5NzM2WMNdsarDLLOsbzrIul425XhH3g84FxQ==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "kind-of": "^3.0.2"
+      },
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/postcss-calc/node_modules/is-number-2": {
+      "version": "2.0.0",
+      "resolved": "git+ssh://git@github.com/jonschlinkert/is-number.git#82dcc8e914dabd9305ab9ae580709a7825e824f5",
+      "integrity": "sha512-xjDEFh9GXVljB+6/Q3eYsNoFShbxGGq7YKqz8sCBSvl7uEy7Gr5NzM2WMNdsarDLLOsbzrIul425XhH3g84FxQ==",
+      "dev": true,
+      "license": "MIT",
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/postcss-calc/node_modules/is-number-3": {
+      "version": "3.0.0",
+      "resolved": "git+ssh://git@github.com/jonschlinkert/is-number.git#82ae8802978da40d7f1be5ad5943c9e550ab2c89",
+      "integrity": "sha512-xjDEFh9GXVljB+6/Q3eYsNoFShbxGGq7YKqz8sCBSvl7uEy7Gr5NzM2WMNdsarDLLOsbzrIul425XhH3g84FxQ==",
+      "dev": true,
+      "license": "MIT",
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/raven-js": {
+      "resolved": "git+ssh://git@github.com/getsentry/raven-js.git#c2b377e7a254264fd4a1fe328e4e3cfc9e245570"
+    },
+    "node_modules/slick-carousel": {
+      "version": "1.7.1",
+      "resolved": "git+ssh://git@github.com/brianfryer/slick.git#280b560161b751ba226d50c7db1e0a14a78c2de0",
+      "integrity": "sha512-oraDlz7tkdtzSOgofC3ZpuCsz6Xf1sIu+bdTrE5qasqQayr5m30bO+DJUxLM+5GyolBDCvmcsg8wltozYdO/XQ==",
+      "dev": true,
+      "license": "MIT",
+      "peerDependencies": {
+        "jquery": ">=1.7.2"
+      }
+    }
+  },
+  "dependencies": {
+    "@segment/analytics.js-integration-facebook-pixel": {
+      "version": "git+ssh://git@github.com/segmentio/analytics.js-integrations.git#3b1bb80b302c2e552685dc8a029797ec832ea7c9",
+      "from": "@segment/analytics.js-integration-facebook-pixel@github:segmentio/analytics.js-integrations#2.4.1",
+      "requires": {
+        "@ndhoule/each": "^2.0.1",
+        "@ndhoule/foldl": "^2.0.1",
+        "@segment/analytics.js-integration": "^3.1.0",
+        "dateformat": "^1.0.12",
+        "is": "^3.2.1",
+        "reject": "0.0.1",
+        "segmentio-facade": "^3.1.0",
+        "to-camel-case": "^1.0.0"
+      }
+    },
+    "ansi-styles": {
+      "version": "1.0.0",
+      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-1.0.0.tgz",
+      "integrity": "sha1-yxAt8cVvUSPquLZ817mAJ6AnkXg="
+    },
+    "babel-preset-php": {
+      "version": "git+ssh://git@gitlab.com/kornelski/babel-preset-php.git#c5a7ba5e0ad98b8db1cb8ce105403dd4b768cced",
+      "dev": true,
+      "from": "babel-preset-php@gitlab:kornelski/babel-preset-php#main",
+      "requires": {
+        "php-parser": "^2.0.6"
+      }
+    },
+    "is-number-1": {
+      "version": "git+ssh://git@github.com/jonschlinkert/is-number.git#af885e2e890b9ef0875edd2b117305119ee5bdc5",
+      "dev": true,
+      "from": "is-number@https://github.com/jonschlinkert/is-number.git",
+      "requires": {
+        "kind-of": "^3.0.2"
+      }
+    },
+    "is-number-2": {
+      "version": "git+ssh://git@github.com/jonschlinkert/is-number.git#d5ac0584ee9ae7bd9288220a39780f155b9ad4c8",
+      "dev": true,
+      "from": "is-number@https://github.com/jonschlinkert/is-number.git#d5ac058"
+    },
+    "is-number-3": {
+      "version": "git+ssh://git@github.com/jonschlinkert/is-number.git#d5ac0584ee9ae7bd9288220a39780f155b9ad4c8",
+      "dev": true,
+      "from": "is-number@https://github.com/jonschlinkert/is-number.git#2.0.0"
+    },
+    "is-number-4": {
+      "version": "git+ssh://git@github.com/jonschlinkert/is-number.git#af885e2e890b9ef0875edd2b117305119ee5bdc5",
+      "dev": true,
+      "from": "is-number@git+ssh://git@github.com:jonschlinkert/is-number.git",
+      "requires": {
+        "kind-of": "^3.0.2"
+      }
+    },
+    "is-number-5": {
+      "version": "git+https://dummy-token@github.com/jonschlinkert/is-number.git#af885e2e890b9ef0875edd2b117305119ee5bdc5",
+      "dev": true,
+      "from": "is-number@https://dummy-token@github.com/jonschlinkert/is-number.git#main",
+      "requires": {
+        "kind-of": "^3.0.2"
+      }
+    },
+    "postcss-calc": {
+      "version": "7.0.1",
+      "resolved": "https://registry.npmjs.org/postcss-calc/-/postcss-calc-7.0.1.tgz",
+      "integrity": "sha512-oXqx0m6tb4N3JGdmeMSc/i91KppbYsFZKdH0xMOqK8V1rJlzrKlTdokz8ozUXLVejydRN6u2IddxpcijRj2FqQ==",
+      "dependencies": {
+        "is-number-1": {
+          "version": "git+ssh://git@github.com/jonschlinkert/is-number.git#be5935f8d2595bcd97b05718ef1eeae08d812e10",
+          "dev": true,
+          "requires": {
+            "kind-of": "^3.0.2"
+          }
+        },
+        "is-number-2": {
+          "version": "github:jonschlinkert/is-number#82dcc8e914dabd9305ab9ae580709a7825e824f5",
+          "from": "github:jonschlinkert/is-number#main"
+        },
+        "is-number-3": {
+          "version": "git+ssh://git@github.com/jonschlinkert/is-number.git#82ae8802978da40d7f1be5ad5943c9e550ab2c89",
+          "dev": true,
+          "from": "is-number@https://github.com/jonschlinkert/is-number.git#2.0.0"
+        }
+      }
+    },
+    "raven-js": {
+      "version": "git+ssh://git@github.com/getsentry/raven-js.git#c2b377e7a254264fd4a1fe328e4e3cfc9e245570",
+      "from": "raven-js@getsentry/raven-js#3.23.1"
+    },
+    "slick-carousel": {
+      "version": "git+ssh://git@github.com/brianfryer/slick.git#280b560161b751ba226d50c7db1e0a14a78c2de0",
+      "dev": true,
+      "from": "slick-carousel@git://github.com/brianfryer/slick"
+    }
+  }
+}
