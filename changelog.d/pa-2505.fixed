@@ -1,1 +1,0 @@
-CLI: Added `install-semgrep-pro` to the list of commands in the `semgrep --help` help text.
