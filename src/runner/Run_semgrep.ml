@@ -684,7 +684,16 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
               * This can't really be done any later, because we need the language that
               * we're running on.
               *)
-             if config.pro || Xlang.is_proprietary xtarget.xlang then
+             (* If these hooks are set, it's probably a pretty good indication that we're
+                using Pro features.
+             *)
+             if
+               Option.is_some
+                 !Match_tainting_mode.hook_setup_hook_function_taint_signature
+               || Option.is_some
+                    !Dataflow_tainting.hook_function_taint_signature
+               || Xlang.is_proprietary xtarget.xlang
+             then
                {
                  matches with
                  RP.matches = Common.map PM.to_proprietary matches.RP.matches;

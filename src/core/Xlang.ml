@@ -79,4 +79,6 @@ let to_string = function
 
 let is_proprietary = function
   | L (lang, _) -> Lang.is_proprietary lang
-  | __else__ -> false
+  | LRegex
+  | LGeneric ->
+      false

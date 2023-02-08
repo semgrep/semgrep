@@ -48,7 +48,6 @@ type t = {
   (* Main flags *)
   pattern_string : string;
   pattern_file : filename;
-  pro : bool;
   rule_source : rule_source option;
   lang_job : lang_job option;
   equivalences_file : string;
@@ -102,7 +101,6 @@ let default =
     (* Main flags *)
     pattern_string = "";
     pattern_file = "";
-    pro = false;
     rule_source = None;
     lang_job = None;
     equivalences_file = "";
