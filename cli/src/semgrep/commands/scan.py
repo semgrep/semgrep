@@ -480,6 +480,22 @@ _scan_options: List[Callable] = [
         is_flag=True,
         help="Output results in vim single-line format.",
     ),
+    optgroup.group("Semgrep Pro Engine options"),
+    optgroup.option(
+        "--pro-languages",
+        is_flag=True,
+        help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+    ),
+    optgroup.option(
+        "--pro-intrafile",
+        is_flag=True,
+        help="Intra-file inter-procedural taint analysis. Implies --pro-languages. Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+    ),
+    optgroup.option(
+        "--pro",
+        is_flag=True,
+        help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+    ),
 ]
 
 
@@ -619,22 +635,6 @@ def scan_options(func: Callable) -> Callable:
     is_flag=True,
     hidden=True
     # help="contact support@r2c.dev for more information on this"
-)
-@optgroup.group("Semgrep Pro Engine options")
-@optgroup.option(
-    "--pro-languages",
-    is_flag=True,
-    help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
-)
-@optgroup.option(
-    "--pro-intrafile",
-    is_flag=True,
-    help="Intra-file inter-procedural taint analysis. Implies --pro-languages. Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
-)
-@optgroup.option(
-    "--pro",
-    is_flag=True,
-    help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
 )
 @click.option(
     "--dump-engine-path",

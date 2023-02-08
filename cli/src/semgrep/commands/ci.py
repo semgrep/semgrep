@@ -196,6 +196,9 @@ def ci(
     optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
+    pro_languages: bool,
+    pro_intrafile: bool,
+    pro: bool,
     sarif: bool,
     quiet: bool,
     rewrite_rule_ids: bool,
@@ -323,9 +326,18 @@ def ci(
             is_full_scan = metadata.merge_base_ref is None
             engine = EngineType.OSS
             if scan_handler and scan_handler.deepsemgrep:
-                engine = (
-                    EngineType.PRO_INTERFILE if is_full_scan else EngineType.PRO_LANG
-                )
+                if is_full_scan:
+                    if pro_intrafile:
+                        # Intra-file (inter-proc) + Pro languages
+                        engine = EngineType.PRO_INTRAFILE
+                    elif pro_languages:
+                        # Just Pro languages
+                        engine = EngineType.PRO_LANG
+                    else:
+                        # Inter-file + Pro languages
+                        engine = EngineType.PRO_INTERFILE
+                else:
+                    EngineType.PRO_LANG
 
             (semgrep_pro_path, _deep_semgrep_path) = determine_semgrep_pro_path()
 
