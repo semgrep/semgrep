@@ -179,6 +179,9 @@ def test_dependency_aware_timing(
         "targets/dependency_aware/osv_parsing/poetry/source-git/poetry.lock",
     ],
 )
+# These tests are taken from https://github.com/google/osv-scanner/tree/main/pkg/lockfile/fixtures
+# With some minor edits, namely removing the "this isn't even a lockfile" tests
+# And removing some human written comments that would never appear in a real lockfile from some tests
 def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
     parse_lockfile_path_in_tmp(Path(target), None)
