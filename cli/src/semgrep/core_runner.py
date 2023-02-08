@@ -912,7 +912,9 @@ class CoreRunner:
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(cmd, plan.num_targets)
+            runner = StreamingSemgrepCore(
+                cmd, plan.num_targets * 3 if engine.is_pro else plan.num_targets
+            )
             runner.vfs_map = vfs_map
             returncode = runner.execute()
 
