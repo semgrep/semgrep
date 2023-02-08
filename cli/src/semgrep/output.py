@@ -19,9 +19,10 @@ from typing import Type
 
 import requests
 from boltons.iterutils import partition
-from semgrep.console import Title, console
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.console import console
+from semgrep.console import Title
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity

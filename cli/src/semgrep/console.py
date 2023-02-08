@@ -7,7 +7,6 @@ https://rich.readthedocs.io/en/stable/console.html#console-api
 See also the semgrep.terminal module which is an earlier attempt to standardize some output configuration,
 but is more low level and doesn't really offload logic to other libraries.
 """
-from typing import Literal
 from attrs import frozen
 from rich.console import Console
 from rich.padding import Padding
@@ -21,7 +20,7 @@ console.width = min(console.width, 120)
 @frozen
 class Title:
     text: str
-    order: Literal[1, 2, 3] = 1
+    order: int = 1
 
     def __rich__(self):
         if self.order == 1:
@@ -30,6 +29,8 @@ class Title:
             return Padding(Text(self.text.upper(), style="underline"), (0, 2))
         elif self.order == 3:
             return Text("⮕ " + self.text.upper())
+        else:
+            raise ValueError(f"Title order must be 1, 2, or 3, not {self.order}")
 
 
 if __name__ == "__main__":

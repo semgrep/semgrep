@@ -12,10 +12,9 @@ from typing import Sequence
 from typing import Tuple
 
 import click
-from semgrep.console import Title, console
-from rich.table import Table
 from rich.padding import Padding
-from rich import box
+from rich.table import Table
+
 import semgrep.semgrep_main
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
@@ -24,6 +23,8 @@ from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
+from semgrep.console import console
+from semgrep.console import Title
 from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
 from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
 from semgrep.constants import EngineType
