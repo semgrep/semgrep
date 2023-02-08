@@ -82,7 +82,12 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 
 === stderr - plain
 Scanning 1 file.
-
+                                                                                
+                                                                                
+╭──────────────╮                                                                
+│ Scan Summary │                                                                
+╰──────────────╯                                                                
+                                                                                
 
 Ran 1 rule on 1 file: 1 finding.
 

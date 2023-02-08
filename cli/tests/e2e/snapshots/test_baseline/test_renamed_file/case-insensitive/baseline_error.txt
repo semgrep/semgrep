@@ -6,7 +6,12 @@ Switching repository to baseline commit 'baseline-commit'.
     * ac0f5a0 commit #2
 
 Scanning 1 file.
-
+                                                                                
+                                                                                
+╭──────────────╮                                                                
+│ Scan Summary │                                                                
+╰──────────────╯                                                                
+                                                                                
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 

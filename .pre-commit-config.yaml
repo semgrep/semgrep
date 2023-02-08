@@ -98,6 +98,7 @@ repos:
           - requests~=2.22
           - defusedxml~=0.7.1
           - tomli~=2.0.1
+          - rich>=12.6.0
           # other packages have separate typings published
           - types-colorama~=0.4.0
           - types-jsonschema~=4.6.0

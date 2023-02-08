@@ -19,6 +19,7 @@ from typing import Type
 
 import requests
 from boltons.iterutils import partition
+from semgrep.console import Title, console
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import Colors
@@ -374,6 +375,8 @@ class OutputHandler:
             num_targets = len(self.all_targets)
             num_rules = len(self.filtered_rules)
 
+            console.print(Title("Scan Summary"))
+
             ignores_line = str(ignore_log or "No ignore information available")
             suggestion_line = ""
             if (
@@ -389,7 +392,7 @@ class OutputHandler:
                 stats_line = f"\nRan {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
-            output_text = "\n" + ignores_line + suggestion_line + stats_line
+            output_text = ignores_line + suggestion_line + stats_line
             logger.info(output_text)
 
         self._final_raise(final_error)

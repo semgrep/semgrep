@@ -44,7 +44,12 @@ Switching repository to baseline commit 'foo'.
     --baseline-commit=$(git merge-base foo HEAD)
 
 Scanning 1 file.
-
+                                                                                
+                                                                                
+╭──────────────╮                                                                
+│ Scan Summary │                                                                
+╰──────────────╯                                                                
+                                                                                
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 

@@ -7,7 +7,6 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 === end of exit code
 
 === stdout - plain
-
 Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
 
 
@@ -75,14 +74,36 @@ First-Party Blocking Rules Fired:
 
 === stderr - plain
 Running `semgrep ci` without API token but with configs ('p/something',)
-Scan environment:
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment git, triggering event is unknown
-
+                                                                                
+                                                                                
+╭────────────────╮                                                              
+│ Debugging Info │                                                              
+╰────────────────╯                                                              
+                                                                                
+  SCAN ENVIRONMENT                                                              
+  versions    - semgrep <MASKED> on python <MASKED>                                  
+  environment - running in environment git, triggering event is unknown         
+                                                                                
+                                                                                
+╭─────────────╮                                                                 
+│ Scan Status │                                                                 
+╰─────────────╯                                                                 
+                                                                                
 Fetching configuration from semgrep.dev
 Semgrep rule registry URL is https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
-
+                                                                                
+                                                                                
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
+╭──────────────╮                                                                
+│ Scan Summary │                                                                
+╰──────────────╯                                                                
+                                                                                
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 

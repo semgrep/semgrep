@@ -66,6 +66,12 @@ Running Semgrep engine with command:
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
+                                                                                
+                                                                                
+╭──────────────╮                                                                
+│ Scan Summary │                                                                
+╰──────────────╯                                                                
+                                                                                
 
 ========================================
 Files skipped:
@@ -101,7 +107,6 @@ Files skipped:
   Skipped by analysis failure due to parsing or internal Semgrep error
 
    • <none>
-
 
 
 Ran 1 rule on 1 file: 0 findings.

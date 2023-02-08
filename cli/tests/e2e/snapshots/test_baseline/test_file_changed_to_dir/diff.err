@@ -6,7 +6,12 @@ Switching repository to baseline commit 'HEAD^'.
     * 998446a commit #2
 
 Scanning 1 file.
-
+                                                                                
+                                                                                
+╭──────────────╮                                                                
+│ Scan Summary │                                                                
+╰──────────────╯                                                                
+                                                                                
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 

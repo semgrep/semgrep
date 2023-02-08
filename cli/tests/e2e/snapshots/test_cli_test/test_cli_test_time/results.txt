@@ -1,4 +1,3 @@
-
 Findings:
 
 [36m[22m[24m  targets/cli_test/basic/basic.py [0m
@@ -19,4 +18,3 @@ Slowest 5 rules to match
 
 Analyzed: 1 python files ( 35B in x.xxx seconds)
 Errors:   0 files with errors
-

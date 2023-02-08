@@ -12,7 +12,10 @@ from typing import Sequence
 from typing import Tuple
 
 import click
-
+from semgrep.console import Title, console
+from rich.table import Table
+from rich.padding import Padding
+from rich import box
 import semgrep.semgrep_main
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
@@ -281,24 +284,32 @@ def ci(
     output_handler = OutputHandler(output_settings)
     metadata = generate_meta_from_environment(baseline_commit)
 
-    logger.info("Scan environment:")
-    logger.info(
-        f"  versions    - semgrep {semgrep.__VERSION__} on python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    console.print(Title("Debugging Info"))
+
+    scan_env = Table.grid(padding=(0, 1))
+    scan_env.add_row(
+        "versions",
+        "-",
+        f"semgrep [bold]{semgrep.__VERSION__}[/bold] on python [bold]{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}[/bold]",
     )
-    logger.info(
-        f"  environment - running in environment {metadata.environment}, triggering event is {metadata.event_name}"
+    scan_env.add_row(
+        "environment",
+        "-",
+        f"running in environment [bold]{metadata.environment}[/bold], triggering event is [bold]{metadata.event_name}[/bold]",
     )
     if scan_handler:
-        logger.info(f"  server      - {state.env.semgrep_url}")
-    if supply_chain:
-        logger.info("  running a supply chain scan")
-    logger.info("")
+        scan_env.add_row("server", "-", state.env.semgrep_url)
+
+    console.print(Title("Scan Environment", order=2))
+    console.print(Padding(scan_env, (0, 2)))
 
     try:
         with fix_head_if_github_action(metadata):
             if scan_handler:
                 metadata_dict = metadata.to_dict()
                 metadata_dict["is_sca_scan"] = supply_chain
+
+            console.print(Title("Scan Status"))
 
             try:
                 logger.info("Fetching configuration from semgrep.dev")
@@ -402,6 +413,7 @@ def ci(
             )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])
+        console.print(Title("Results"))
         output_handler.output({}, all_targets=set(), filtered_rules=[])
         logger.info(f"Encountered error when running rules: {e}")
         if isinstance(e, SemgrepError):
@@ -461,6 +473,8 @@ def ci(
 
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
     num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
+
+    console.print(Title("Results"))
 
     output_handler.output(
         {**blocking_matches_by_rule, **nonblocking_matches_by_rule},
