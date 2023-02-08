@@ -117,7 +117,11 @@ type expr =
   (* python3: true/false are now officially reserved keywords *)
   | Bool of bool wrap
   | None_ of tok
-  (* introduce new vars when expr_context = Store *)
+  (* Introduce new vars when expr_context = Store.
+   * Note that the ident can be "self".
+   * alt: we could use an IdSpecial for it but self is actually not a
+   * Python keyword; you can use a different name for it.
+   *)
   | Name of name (* id *) * expr_context (* ctx *)
   (* TODO: in some context the tuple does not have the enclosing brackets
    * (in which case they are represented by fake tokens)

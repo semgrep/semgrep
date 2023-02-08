@@ -135,14 +135,6 @@ let module_name env (v1, dots) =
       let s = String.concat "/" (prefixes @ elems) in
       G.FileName (s, tok)
 
-let expr_context = function
-  | Load -> ()
-  | Store -> ()
-  | Del -> ()
-  | AugLoad -> ()
-  | AugStore -> ()
-  | Param -> ()
-
 let rec expr env (x : expr) =
   match x with
   | DotAccessEllipsis (v1, v2) ->
@@ -209,36 +201,39 @@ let rec expr env (x : expr) =
       G.Call
         (G.IdSpecial (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
       |> G.e
-  | Name (v1, v2) ->
-      let v1 = name env v1 and _v2TODO = expr_context v2 in
+  (* In theory one can use any name for "self" in Python; it just has
+   * to be the first parameter of a method. In practice, it's
+   * always "self" and it's useful to convert it to 'This' here
+   * to simplify further analysis (e.g., naming).
+   * TODO? we could use 'env' to store that we are in a method
+   * and what is the first parameter of a method?
+   *)
+  | Name (("self", t), _expr_ctx) -> G.IdSpecial (G.Self, t) |> G.e
+  | Name (v1, _expr_ctx) ->
+      let v1 = name env v1 in
       G.N (G.Id (v1, G.empty_id_info ())) |> G.e
-  | Tuple (CompList v1, v2) ->
-      let v1 = bracket (list (expr env)) v1 and _v2TODO = expr_context v2 in
+  | Tuple (CompList v1, _expr_ctx) ->
+      let v1 = bracket (list (expr env)) v1 in
       G.Container (G.Tuple, v1) |> G.e
-  | Tuple (CompForIf (l, (v1, v2), r), v3) ->
+  | Tuple (CompForIf (l, (v1, v2), r), _expr_ctx) ->
       let e1 = comprehension env expr v1 v2 in
-      let _v4TODO = expr_context v3 in
       G.Comprehension (G.Tuple, (l, e1, r)) |> G.e
-  | List (CompList v1, v2) ->
-      let v1 = bracket (list (expr env)) v1 and _v2TODO = expr_context v2 in
+  | List (CompList v1, _expr_ctx) ->
+      let v1 = bracket (list (expr env)) v1 in
       G.Container (G.List, v1) |> G.e
-  | List (CompForIf (l, (v1, v2), r), v3) ->
+  | List (CompForIf (l, (v1, v2), r), _expr_ctx) ->
       let e1 = comprehension env expr v1 v2 in
-      let _v3TODO = expr_context v3 in
       G.Comprehension (G.List, (l, e1, r)) |> G.e
-  | Subscript (v1, v2, v3) ->
-      (let e = expr env v1 and _v3TODO = expr_context v3 in
+  | Subscript (v1, v2, _expr_ctx) ->
+      (let e = expr env v1 in
        match v2 with
        | l1, [ x ], l2 -> slice1 env e (l1, x, l2)
        | l1, xs, _ ->
            let xs = list (slice env e) xs in
            G.OtherExpr (("Slices", l1), xs |> Common.map (fun x -> G.E x)))
       |> G.e
-  | Attribute (v1, t, v2, v3) ->
-      let v1 = expr env v1
-      and t = info t
-      and v2 = name env v2
-      and _v3TODO = expr_context v3 in
+  | Attribute (v1, t, v2, _expr_ctx) ->
+      let v1 = expr env v1 and t = info t and v2 = name env v2 in
       G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ()))) |> G.e
   | DictOrSet (CompList (t1, v, t2)) ->
       let v' = list (dictorset_elt env) v in
