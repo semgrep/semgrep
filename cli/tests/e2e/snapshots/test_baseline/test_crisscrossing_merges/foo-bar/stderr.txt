@@ -24,7 +24,18 @@ Switching repository to baseline commit 'bar'.
     --baseline-commit=$(git merge-base bar HEAD)
 
 Scanning 1 file.
-
+                                                                                
+                                                                                
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
+╭──────────────╮                                                                
+│ Scan Summary │                                                                
+╰──────────────╯                                                                
+                                                                                
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
