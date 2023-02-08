@@ -572,7 +572,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 ╰────────────────╯                                                              
                                                                                 
   SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>                                  
+  versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown         
   server      - https://semgrep.dev                                             
                                                                                 

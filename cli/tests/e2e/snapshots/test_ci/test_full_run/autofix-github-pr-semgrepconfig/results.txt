@@ -58,7 +58,7 @@ Blocking Rules Fired:
 ╰────────────────╯                                                              
                                                                                 
   SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>                                  
+  versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment github-actions, triggering event is      
                 pull_request                                                    
   server      - https://semgrep.dev                                             
