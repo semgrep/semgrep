@@ -28,6 +28,12 @@ Findings:
 === stderr - plain
                                                                                 
                                                                                 
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
 ╭──────────────╮                                                                
 │ Scan Summary │                                                                
 ╰──────────────╯                                                                
@@ -55,6 +61,12 @@ Findings:
 === end of stdout - color
 
 === stderr - color
+                                                                                
+                                                                                
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
                                                                                 
                                                                                 
 ╭──────────────╮                                                                

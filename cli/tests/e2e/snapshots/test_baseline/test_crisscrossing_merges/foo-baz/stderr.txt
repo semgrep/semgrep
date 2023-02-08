@@ -46,6 +46,12 @@ Switching repository to baseline commit 'baz'.
 Scanning 1 file.
                                                                                 
                                                                                 
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
 ╭──────────────╮                                                                
 │ Scan Summary │                                                                
 ╰──────────────╯                                                                

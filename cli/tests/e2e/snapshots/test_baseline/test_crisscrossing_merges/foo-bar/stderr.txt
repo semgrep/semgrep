@@ -26,6 +26,12 @@ Switching repository to baseline commit 'bar'.
 Scanning 1 file.
                                                                                 
                                                                                 
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
 ╭──────────────╮                                                                
 │ Scan Summary │                                                                
 ╰──────────────╯                                                                

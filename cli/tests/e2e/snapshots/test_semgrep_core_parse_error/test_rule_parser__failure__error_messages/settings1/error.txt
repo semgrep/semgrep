@@ -6,6 +6,12 @@ Rules:
 Scanning 1 file with 2 python rules.
                                                                                 
                                                                                 
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
 ╭──────────────╮                                                                
 │ Scan Summary │                                                                
 ╰──────────────╯                                                                

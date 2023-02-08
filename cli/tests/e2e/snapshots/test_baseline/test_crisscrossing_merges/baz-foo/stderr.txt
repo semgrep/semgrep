@@ -46,6 +46,12 @@ Switching repository to baseline commit 'foo'.
 Scanning 1 file.
                                                                                 
                                                                                 
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
 ╭──────────────╮                                                                
 │ Scan Summary │                                                                
 ╰──────────────╯                                                                

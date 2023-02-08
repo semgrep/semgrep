@@ -39,6 +39,12 @@ Scanning across multiple languages:
 
                                                                                 
                                                                                 
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
 ╭──────────────╮                                                                
 │ Scan Summary │                                                                
 ╰──────────────╯                                                                
@@ -81,6 +87,12 @@ Scanning across multiple languages:
     python | 3 rules × 11 files
         js | 1 rule  ×  3 files
 
+                                                                                
+                                                                                
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
                                                                                 
                                                                                 
 ╭──────────────╮                                                                

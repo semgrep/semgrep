@@ -4,6 +4,12 @@ Scanning 2 files.
 Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
                                                                                 
                                                                                 
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
 ╭──────────────╮                                                                
 │ Scan Summary │                                                                
 ╰──────────────╯                                                                
