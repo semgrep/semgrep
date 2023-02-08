@@ -237,8 +237,8 @@ def _mask_version(value: str) -> str:
     sys.version_info < (3, 8),
     reason="snapshotting mock call kwargs doesn't work on py3.7",
 )
-@mark.parametrize("interfile_flag", [["--interfile"], []])
-def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, interfile_flag):
+@mark.parametrize("pro_flag", [["--pro"], []])
+def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     # make the formatted timestamp strings deterministic
     mocker.patch.object(
         freezegun.api, "tzlocal", return_value=dateutil.tz.gettz("Asia/Tokyo")
@@ -268,7 +268,7 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, interfile_flag
         env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")}
     )
     runner.invoke(
-        cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"] + interfile_flag
+        cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"] + pro_flag
     )
 
     payload = json.loads(mock_post.call_args.kwargs["data"])

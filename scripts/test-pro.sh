@@ -11,4 +11,4 @@ chmod +x /usr/local/bin/semgrep-core-proprietary
 # we run with all the rules, taking ~30 minutes.
 cd /root || exit
 
-semgrep --config "p/default-v2" . --interfile
+semgrep --config "p/default-v2" . --pro
