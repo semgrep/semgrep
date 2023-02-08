@@ -347,6 +347,7 @@ let mk_config () =
     matching_explanations = !matching_explanations;
     pattern_string = !pattern_string;
     pattern_file = !pattern_file;
+    pro = false;
     rule_source = !rule_source;
     lang_job = None;
     filter_irrelevant_rules = !filter_irrelevant_rules;

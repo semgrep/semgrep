@@ -51,3 +51,4 @@ val supported_xlangs : string
 *)
 val of_string : ?id:string option -> string -> t
 val to_string : t -> string
+val is_proprietary : t -> bool

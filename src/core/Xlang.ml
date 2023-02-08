@@ -76,3 +76,7 @@ let to_string = function
   | L (l, _) -> Lang.to_string l
   | LRegex -> "regex"
   | LGeneric -> "generic"
+
+let is_proprietary = function
+  | L (lang, _) -> Lang.is_proprietary lang
+  | __else__ -> false

@@ -15,6 +15,7 @@
 open Common
 open Runner_config
 module PI = Parse_info
+module PM = Pattern_match
 module E = Semgrep_error_code
 module MR = Mini_rule
 module R = Rule
@@ -674,9 +675,23 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
              }
            in
            let matches =
-             Match_rules.check ~match_hook ~timeout:config.timeout
-               ~timeout_threshold:config.timeout_threshold xconf rules xtarget
+             let matches =
+               Match_rules.check ~match_hook ~timeout:config.timeout
+                 ~timeout_threshold:config.timeout_threshold xconf rules xtarget
+             in
+             (* If our target is a proprietary language, or we've been using the proprietary
+              * engine, then label all the resulting matches with the Pro engine kind.
+              * This can't really be done any later, because we need the language that
+              * we're running on.
+              *)
+             if config.pro || Xlang.is_proprietary xtarget.xlang then
+               {
+                 matches with
+                 RP.matches = Common.map PM.to_proprietary matches.RP.matches;
+               }
+             else matches
            in
+
            (* Print when each file is done so Python knows *)
            (match config.output_format with
            | Json true -> pr "."
