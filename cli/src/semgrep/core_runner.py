@@ -541,7 +541,7 @@ class CoreRunner:
         core_opts_str: Optional[str],
     ):
         if jobs is None:
-            if engine is EngineType.INTERFILE:
+            if engine is EngineType.PRO_INTERFILE:
                 # In some cases inter-file analysis consumes too much memory, and
                 # not using multi-core seems to help containing the problem.
                 jobs = 1
@@ -572,7 +572,7 @@ class CoreRunner:
   """
                     )
                 raise SemgrepError(
-                    "Could not use deep features: Semgrep Pro Engine not installed. Run `semgrep install-semgrep-pro`"
+                    "Could not use Pro features: Semgrep Pro Engine not installed. Run `semgrep install-semgrep-pro`"
                 )
 
             self._binary_path = pro_path
@@ -865,7 +865,7 @@ class CoreRunner:
                     logger.error(
                         "You are using the Semgrep Pro Engine, our advanced analysis system uniquely designed to refine and enhance your results."
                     )
-                    if engine is EngineType.INTERFILE:
+                    if engine is EngineType.PRO_INTERFILE:
                         logger.error(
                             "You can expect to see longer scan times - we're taking our time to make sure everything is just right for you. With <3, the Semgrep team."
                         )
@@ -879,7 +879,7 @@ class CoreRunner:
                 ).rstrip()
                 logger.info(f"Semgrep Pro Version Info: ({version})")
 
-                if engine is EngineType.INTERFILE:
+                if engine is EngineType.PRO_INTERFILE:
                     targets = target_manager.targets
                     if len(targets) == 1 and targets[0].path.is_dir():
                         root = str(targets[0].path)
@@ -892,7 +892,7 @@ class CoreRunner:
                         str(self._interfile_timeout),
                     ]
                     cmd += [root]
-                elif engine is EngineType.INTERPROC:
+                elif engine is EngineType.PRO_INTRAFILE:
                     cmd += ["-deep_intra_file"]
 
             stderr: Optional[int] = subprocess.PIPE
