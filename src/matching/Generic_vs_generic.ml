@@ -760,7 +760,6 @@ and m_expr ?(is_root = false) ?(is_first_invocation = true) a b =
   *)
   | _, G.Cast (_, _, b1) when is_first_invocation ->
       m_expr a b1 >||> m_expr ~is_first_invocation:false a b
-  (* I want to make sure this second call does not re-enter the Cast case... *)
   (* equivalence: name resolving! *)
   (* todo: it would be nice to factorize the aliasing code by just calling
    * m_name, but below we use make_dotted, which is different from what

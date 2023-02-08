@@ -4,7 +4,7 @@ function foo(x: number) {
   return x;
 }
 
-// TODO: those are parsed as TodoK "TypeAssert" for now
+// ERROR: 
 function foo(x: number) {
   let y = x + 1;
   return <string>x;
