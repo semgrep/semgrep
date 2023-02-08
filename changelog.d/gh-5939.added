@@ -1,1 +1,2 @@
-Experimental support for XML
+Experimental support for XML and allow to match XML elements
+in any order.
