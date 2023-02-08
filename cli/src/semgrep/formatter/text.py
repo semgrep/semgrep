@@ -266,7 +266,7 @@ class TextFormatter(BaseFormatter):
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
                         False,
-                        True,
+                        False,
                     )
 
             if isinstance(call_trace.value, out.CliCall):
@@ -324,7 +324,7 @@ class TextFormatter(BaseFormatter):
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
                         False,
-                        True,
+                        False,
                     )
 
             if sink:
@@ -336,6 +336,7 @@ class TextFormatter(BaseFormatter):
                     per_finding_max_lines_limit,
                     per_line_max_chars_limit,
                 )
+                yield ""
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
@@ -571,7 +572,10 @@ class TextFormatter(BaseFormatter):
                 color_output,
                 per_finding_max_lines_limit,
                 per_line_max_chars_limit,
-                is_same_file,
+                # if we have dataflow traces on, then we should print the separator,
+                # because otherwise it is easy to mistake taint traces as belonging
+                # to a different finding
+                is_same_file or dataflow_traces,
             )
 
             if dataflow_traces:
@@ -709,7 +713,7 @@ class TextFormatter(BaseFormatter):
                     elif isinstance(x.match.extra.engine_kind.value, out.ProMatch):
                         pro_matches.append(x)
                 generate_output(f"{blocking_description}", oss_matches)
-                generate_output(f"Semgrep Pro Engine Findings", pro_matches)
+                generate_output(f"Inter-File Analysis Findings", pro_matches)
 
         first_party_blocking_rules_output = []
 

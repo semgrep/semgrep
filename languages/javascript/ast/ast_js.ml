@@ -99,10 +99,6 @@ type sc = Parse_info.t [@@deriving show] (* with tarzan *)
 
 type a_ident = string wrap [@@deriving show]
 
-(* old: there used to be 'resolved_name' and 'qualified_name' types, but
- * the name resolution is now done on the generic AST instead.
- *)
-
 type special =
   (* Special values *)
   | Null

@@ -50,7 +50,7 @@ jobs:
           ref: "v${{ inputs.version }}"
       # Although this action can do the checkout step for us, it is more explicit and maintainable to pass context in this manner.
       - name: build tester image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           push: false
           context: "scripts"

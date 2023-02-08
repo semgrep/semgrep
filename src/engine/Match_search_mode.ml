@@ -521,20 +521,24 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
 (* Metavariable condition evaluation *)
 (*****************************************************************************)
 
-let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
-    RM.ranges =
-  let map_bool r b = if b then [ r ] else [] in
+let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
+    (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
   xs
-  |> List.concat_map (fun r ->
+  |> List.filter_map (fun (r, new_bindings) ->
+         let map_bool r b = if b then Some (r, new_bindings) else None in
          let bindings = r.RM.mvars in
          match cond with
          | R.CondEval e ->
              let env = Eval_generic.bindings_to_env env.xconf.config bindings in
              Eval_generic.eval_bool env e |> map_bool r
-         | R.CondNestedFormula (mvar, opt_lang, formula) ->
+         | R.CondNestedFormula (mvar, opt_lang, formula) -> (
              (* TODO: could return expl for nested matching! *)
-             Metavariable_pattern.satisfies_metavar_pattern_condition
-               get_nested_formula_matches env r mvar opt_lang formula
+             match
+               Metavariable_pattern.get_nested_metavar_pattern_bindings
+                 get_nested_formula_matches env r mvar opt_lang formula
+             with
+             | [] -> None
+             | bindings -> Some (r, bindings @ new_bindings))
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really
@@ -749,16 +753,42 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
           let ranges, filter_expls =
             conds
             |> List.fold_left
-                 (fun (ranges, acc_expls) (tok, cond) ->
-                   let ranges = filter_ranges env ranges cond in
+                 (fun (ranges_with_bindings, acc_expls) (tok, cond) ->
+                   let ranges_with_bindings =
+                     filter_ranges env ranges_with_bindings cond
+                   in
                    let expl =
-                     if_explanations env ranges []
+                     if_explanations env
+                       (Common.map fst ranges_with_bindings)
+                       []
                        (Out.Filter (PI.str_of_info tok), tok)
                    in
-                   (ranges, expl :: acc_expls))
-                 (ranges, [])
+                   (ranges_with_bindings, expl :: acc_expls))
+                 (Common.map (fun x -> (x, [])) ranges, [])
           in
-          let ranges = apply_focus_on_ranges env focus ranges in
+
+          (* Here, we unpack all the persistent bindings for each instance of the inner
+             `metavariable-pattern`s that succeeded.
+
+             We just take those persistent bindings and add them to the original range,
+             now that we're done with the filtering step.
+          *)
+          let ranges_with_persistent_bindings =
+            ranges
+            |> List.concat_map (fun (r, new_bindings_list) ->
+                   (* At a prior step, we ensured that all these new bindings were nonempty.
+                      We should keep around a copy of the original range, because otherwise
+                      if we have no new bindings to add, we'll kill the range.
+                   *)
+                   r
+                   :: (new_bindings_list
+                      |> Common.map (fun new_bindings ->
+                             { r with RM.mvars = new_bindings @ r.RM.mvars })))
+          in
+
+          let ranges =
+            apply_focus_on_ranges env focus ranges_with_persistent_bindings
+          in
           let focus_expls =
             match focus with
             | [] -> []

@@ -317,18 +317,11 @@ def ci(
                 # Note this needs to happen within fix_head_if_github_action
                 # so that metadata of current commit is correct
                 if scan_handler:
-                    try:
-                        proj_config = ProjectConfig.load_all()
-                        metadata_dict = {**metadata_dict, **proj_config.to_dict()}
-                        scan_handler.fetch_and_init_scan_config(metadata_dict)
-                        scan_handler.start_scan(metadata_dict)
-                    except Exception as e:
-                        if (
-                            state.env.semgrep_url != "https://semgrep.dev"
-                        ):  # support old on-prem apps
-                            scan_handler.fetch_config_and_start_scan_old(metadata_dict)
-                        else:
-                            raise e
+                    proj_config = ProjectConfig.load_all()
+                    metadata_dict = {**metadata_dict, **proj_config.to_dict()}
+                    scan_handler.fetch_and_init_scan_config(metadata_dict)
+                    scan_handler.start_scan(metadata_dict)
+
                     logger.info(f"Authenticated as {scan_handler.deployment_name}")
                     config = (scan_handler.rules,)
             except Exception as e:
@@ -342,20 +335,22 @@ def ci(
             is_full_scan = metadata.merge_base_ref is None
             engine = EngineType.OSS
             if scan_handler and scan_handler.deepsemgrep:
-                engine = EngineType.INTERFILE if is_full_scan else EngineType.PRO
+                engine = (
+                    EngineType.PRO_INTERFILE if is_full_scan else EngineType.PRO_LANG
+                )
 
             (semgrep_pro_path, _deep_semgrep_path) = determine_semgrep_pro_path()
 
             # Set a default max_memory for CI runs when DeepSemgrep is on because
             # DeepSemgrep is likely to run out
             if max_memory is None:
-                if engine is EngineType.INTERFILE:
+                if engine is EngineType.PRO_INTERFILE:
                     max_memory = DEFAULT_MAX_MEMORY_PRO_CI
                 else:
                     max_memory = 0  # unlimited
             # Same for timeout (Github actions has a 6 hour timeout)
             if interfile_timeout is None:
-                if engine is EngineType.INTERFILE:
+                if engine is EngineType.PRO_INTERFILE:
                     interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
                 else:
                     interfile_timeout = 0  # unlimited
@@ -490,7 +485,7 @@ def ci(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(blocking_rules) + len(nonblocking_rules), 'rule')}."
     )
     if scan_handler:
-        logger.info("  Uploading findings to Semgrep App.")
+        logger.info("  Uploading findings.")
         scan_handler.report_findings(
             filtered_matches_by_rule,
             semgrep_errors,
@@ -502,7 +497,16 @@ def ci(
             total_time,
             metadata.commit_datetime,
             lockfile_scan_info,
+            engine,
         )
+        logger.info("  View results in Semgrep App:")
+        logger.info(
+            f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
+        )
+        if "r2c-internal-project-depends-on" in scan_handler.rules:
+            logger.info(
+                f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/supply-chain"
+            )
 
     audit_mode = metadata.event_name in audit_on
     if num_blocking_findings > 0:

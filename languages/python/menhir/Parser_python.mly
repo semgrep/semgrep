@@ -62,8 +62,8 @@ let rewrap_paren_if_tuple l e r =
  * CompForIf though is not an lvalue.
 *)
 let rec set_expr_ctx ctx = function
-  | Name (id, _, x) ->
-      Name (id, ctx, x)
+  | Name (id, _) ->
+      Name (id, ctx)
   | Attribute (value, t, attr, _) ->
       Attribute (value, t, attr, ctx)
   | Subscript (value, slice, _) ->
@@ -776,7 +776,7 @@ type_for_lsif:
 (*----------------------------*)
 
 atom:
-  | NAME        { Name ($1, Load, ref NotResolved) }
+  | NAME        { Name ($1, Load) }
 
   | INT         { Num (Int ($1)) }
   | LONGINT     { Num (LongInt ($1)) }
@@ -1064,6 +1064,6 @@ argument:
 
   | test "=" test
       { match $1 with
-        | Name (id, _, _) -> ArgKwd (id, $3)
+        | Name (id, _) -> ArgKwd (id, $3)
         | _ -> raise Parsing.Parse_error
       }

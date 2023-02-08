@@ -141,7 +141,6 @@ install_requires = [
     "typing-extensions~=4.2",
     "python-lsp-jsonrpc~=1.0.0",
     "tomli~=2.0.1",
-    "parsy~=2.0",
     "rich>=12.6.0",
 ]
 

@@ -287,19 +287,19 @@ semgrep_pattern:
      { I { i = $1; iattrs = $2 } }
  | just_in_structure post_item_attribute*  EOF
      { I { i = $1; iattrs = $2 } }
- | ":" core_type                       EOF { T $2 }
+ | ":" core_type_no_attr               EOF { T $2 }
  | "|" pattern                         EOF { P $2 }
  | "|" pattern match_action            EOF { MC ($2, $3) }
  (* partial *)
  | partial EOF { Partial $1 }
 
 (* this is used by semgrep -lsp to parse the types returned by ocamllsp *)
-type_for_lsp: core_type EOF { $1 }
+type_for_lsp: core_type_no_attr EOF { $1 }
 
 signature_or_structure_common:
  | Ttype list_and(type_declaration)
      { Type ($1, $2) }
- | Texternal val_ident ":" core_type "=" primitive_declaration
+ | Texternal val_ident ":" core_type_no_attr "=" primitive_declaration
      { External ($1, $2, $4, $6) }
  | Texception TUpperIdent generalized_constructor_arguments
      { Exception ($1, $2, $3) }
@@ -344,7 +344,7 @@ signature_item_noattr:
  | just_in_signature { $1 }
 
 just_in_signature:
- | Tval val_ident ":" core_type                { Val ($1, $2, $4) }
+ | Tval val_ident ":" core_type_no_attr                { Val ($1, $2, $4) }
  (* modules *)
  | Tmodule TUpperIdent module_declaration
     { ItemTodo (("ModuleDecl", $1), [$3]) }
@@ -792,7 +792,7 @@ simple_pattern:
     { PatTodo (("ArrayLiteral",$1), optlist_to_list $2) }
 
  (* note that let (x:...) a =  will trigger this rule *)
- | "(" pattern ":" core_type ")"               { PatTyped ($2, $3, $4)}
+ | "(" pattern ":" core_type_no_attr ")"               { PatTyped ($2, $3, $4)}
 
  (* extensions *)
  (* name tag extension *)
@@ -847,9 +847,9 @@ signed_constant:
 (*************************************************************************)
 
 type_constraint:
- | ":" poly_type     { $1, $2 }
+ | ":" poly_type_no_attr     { $1, $2 }
  (* object cast extension *)
- | ":>" core_type    { $1, $2 }
+ | ":>" core_type_no_attr    { $1, $2 }
 
 (*----------------------------*)
 (* Types definitions *)
@@ -900,7 +900,7 @@ label_declarations:
  | label_declaration ";" attribute* { [$1] }
  | label_declaration ";" attribute* label_declarations { $1 :: $4 }
 
-label_declaration: Tmutable? label ":" poly_type attribute*
+label_declaration: Tmutable? label ":" poly_type_no_attr attribute*
    { $2, $4, $1 }
 
 (*----------------------------*)
@@ -919,19 +919,21 @@ label_declaration: Tmutable? label ":" poly_type attribute*
  *)
 atomic_type: simple_core_type_or_tuple { $1 }
 
-core_type:
+core_type: core_type_no_attr attribute* { $1 }
+
+core_type_no_attr:
  | simple_core_type_or_tuple
      { $1 }
- | core_type "->" core_type
+ | core_type_no_attr "->" core_type_no_attr
      { TyFunction ($1, $3) }
 
  (* ext: olabl *)
- | TLowerIdent     ":" core_type "->" core_type
+ | TLowerIdent     ":" core_type_no_attr "->" core_type_no_attr
      { TyFunction ($3, $5) (* TODOAST $1 $2 *)  }
- | "?" TLowerIdent ":" core_type "->" core_type
+ | "?" TLowerIdent ":" core_type_no_attr "->" core_type_no_attr
      { TyFunction ($4, $6) (* TODOAST $1 $2 *)  }
  (* pad: only because of lexer hack around labels *)
- | TOptLabelDecl    core_type "->" core_type
+ | TOptLabelDecl    core_type_no_attr "->" core_type_no_attr
      { TyFunction ($2, $4) (* TODOAST $1 $2 *)  }
 
 
@@ -944,13 +946,13 @@ simple_core_type_or_tuple:
 simple_core_type:
  | simple_core_type2   { $1 }
  (* weird diff between 'Foo of a * b' and 'Foo of (a * b)' *)
- | "(" list_sep(core_type, ",") ")" { TyTuple ($2) }
+ | "(" list_sep(core_type_no_attr, ",") ")" { TyTuple ($2) }
 
 simple_core_type2:
  | type_variable                                 { $1 }
  | type_longident                                { TyName ($1) }
  | simple_core_type2 type_longident              { TyApp ([$1], $2) }
- | "(" list_sep(core_type, ",") ")" type_longident
+ | "(" list_sep(core_type_no_attr, ",") ")" type_longident
       { TyApp (($2), $4) }
 
  (* name tag extension *)
@@ -984,10 +986,13 @@ polymorphic_variant_type:
 (* Advanced types *)
 (*----------------------------*)
 
-poly_type:
- | type_parameter+ "." core_type { TyTodo(("Poly",$2), [$3]) }
- | abstract_type "." core_type   { TyTodo(("Poly", $2), [$3]) }
- | core_type { $1 }
+(* TODO: same as poly_type_no_attr but use core_type in body *)
+poly_type: poly_type_no_attr { $1 }
+
+poly_type_no_attr:
+ | type_parameter+ "." core_type_no_attr { TyTodo(("Poly",$2), [$3]) }
+ | abstract_type "." core_type_no_attr   { TyTodo(("Poly", $2), [$3]) }
+ | core_type_no_attr { $1 }
 
 (* TODOAST *)
 abstract_type: Ttype TLowerIdent+ { }
@@ -997,7 +1002,7 @@ row_field:
  | simple_core_type2                           { $1 }
 
 tag_field:
- | name_tag Tof TAnd? list_and(core_type)   { TyTodo (("Tag",fst $1),$4)}
+ | name_tag Tof TAnd? list_and(core_type_no_attr)   { TyTodo (("Tag",fst $1),$4)}
  | name_tag                                  { TyTodo (("Tag",fst $1),[]) }
 
 meth_list:
@@ -1005,7 +1010,7 @@ meth_list:
   | field ";"?                              { [$1] }
   | ".."                                    { [TyTodo(("..",$1), [])] }
 
-field: label ":" poly_type attribute*       { TyTodo(("Field",$2), [$3]) }
+field: label ":" poly_type_no_attr attribute*       { TyTodo(("Field",$2), [$3]) }
 
 type_variance:
   | "+" { }
@@ -1066,7 +1071,7 @@ label_pattern:
 
 label_let_pattern:
  | label_var                { }
- | label_var ":" core_type  { }
+ | label_var ":" core_type_no_attr  { }
 
 (*************************************************************************)
 (* Classes *)
@@ -1094,7 +1099,7 @@ class_sig_body: class_self_type class_sig_fields { }
 
 class_self_type:
   | (*empty*) {  }
-  | "(" core_type ")"  { }
+  | "(" core_type_no_attr ")"  { }
 
 class_sig_fields: class_sig_field* { }
 
@@ -1111,9 +1116,9 @@ virtual_method_type:
   | Tmethod Tvirtual Tprivate? label ":" poly_type   {  }
 
 value_type:
-  | Tvirtual Tmutable? label ":" core_type     { }
-  | Tmutable Tvirtual? label ":" core_type  {  }
-  | label ":" core_type     {  }
+  | Tvirtual Tmutable? label ":" core_type_no_attr     { }
+  | Tmutable Tvirtual? label ":" core_type_no_attr  {  }
+  | label ":" core_type_no_attr     {  }
 
 (*----------------------------*)
 (* Class expressions *)
@@ -1147,7 +1152,7 @@ class_expr:
 
 %inline
 actual_class_parameters:
- | "[" list_sep(core_type, ",") "]"  { }
+ | "[" list_sep(core_type_no_attr, ",") "]"  { }
  | (* empty *) { }
 
 class_simple_expr:
@@ -1167,7 +1172,7 @@ class_structure: class_self_pattern class_fields { }
 
 class_self_pattern:
   | "(" pattern ")"                { }
-  | "(" pattern ":" core_type ")"  { }
+  | "(" pattern ":" core_type_no_attr ")"  { }
   | (*empty*)                      { }
 
 
@@ -1186,8 +1191,8 @@ parent_binder:
   | (* empty *) { }
 
 virtual_value:
-  | "!"? Tmutable Tvirtual label ":" core_type  { }
-  |      Tvirtual Tmutable label ":" core_type                { }
+  | "!"? Tmutable Tvirtual label ":" core_type_no_attr  { }
+  |      Tvirtual Tmutable label ":" core_type_no_attr                { }
 
 value:
   | "!"? ioption(Tmutable) label "=" seq_expr      { }
@@ -1238,7 +1243,7 @@ module_type_noattr:
 
 
 with_constraint:
- | Ttype type_parameters label_longident with_type_binder core_type
+ | Ttype type_parameters label_longident with_type_binder core_type_no_attr
     (*constraints*)
    { }
 

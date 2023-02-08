@@ -2,8 +2,11 @@
  * Match_search_mode.nested_formula_has_matches which is passed to break
  * mutual recursivity between Metavariable_pattern and Match_search_mode
  * as handling metavariable-pattern: requires nested search.
+ *
+ * This function returns a list of all the nonempty new bindings introduced
+ * by  the `metavariable-pattern`, for each instance of the match.
  *)
-val satisfies_metavar_pattern_condition :
+val get_nested_metavar_pattern_bindings :
   (Match_env.env ->
   Rule.formula ->
   Range_with_metavars.t ->
@@ -14,4 +17,4 @@ val satisfies_metavar_pattern_condition :
   Metavariable.mvar ->
   Xlang.t option ->
   Rule.formula ->
-  Range_with_metavars.t list
+  Metavariable.bindings list

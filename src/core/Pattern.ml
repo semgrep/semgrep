@@ -45,6 +45,7 @@ let is_regexp_string s = s =~ regexp_regexp_string
 let is_special_string_literal str =
   str = "..."
   || Metavariable.is_metavar_name str
+  || Metavariable.is_metavar_ellipsis str
   (* TODO: deprecate this *)
   || is_regexp_string str
 
