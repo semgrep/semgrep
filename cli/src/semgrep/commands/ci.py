@@ -167,6 +167,15 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     """,
     envvar="SEMGREP_SUPPRESS_ERRORS",
 )
+@click.option(
+    "--oss-only",
+    "oss_only",
+    default=False,
+    help="""
+        Run `semgrep ci` on this repo using only OSS features. Equivalent to a
+        ci run without the Semgrep Pro toggle on.
+    """,
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -200,6 +209,10 @@ def ci(
     optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
+    pro_languages: bool,
+    pro_intrafile: bool,
+    pro: bool,
+    oss_only: bool,
     sarif: bool,
     quiet: bool,
     rewrite_rule_ids: bool,
@@ -331,13 +344,32 @@ def ci(
                 logger.info(f"Could not start scan {e}")
                 sys.exit(FATAL_EXIT_CODE)
 
-            # Run DeepSemgrep when available but only for full scans
+            # Run Semgrep Pro when available
+            # By default, this is controlled by the toggle. When it is off, run
+            # the OSS engine. When it is on, for full scans run using interfile
+            # analysis and diff scans run using the pro languages
             is_full_scan = metadata.merge_base_ref is None
             engine = EngineType.OSS
             if scan_handler and scan_handler.deepsemgrep:
                 engine = (
                     EngineType.PRO_INTERFILE if is_full_scan else EngineType.PRO_LANG
                 )
+
+            # If the user explicitly requests an engine via a flag, the flag
+            # should override the toggle
+            if pro and is_full_scan:
+                # Inter-file + Pro languages
+                # This behaves slightly differently from semgrep scan, because
+                # in CI we currently do not allow interfile analysis
+                engine = EngineType.PRO_INTERFILE
+            elif pro_intrafile:
+                # Intra-file (inter-proc) + Pro languages
+                engine = EngineType.PRO_INTRAFILE
+            elif pro_languages:
+                # Just Pro languages
+                engine = EngineType.PRO_LANG
+            elif oss_only:
+                engine = EngineType.OSS
 
             (semgrep_pro_path, _deep_semgrep_path) = determine_semgrep_pro_path()
 
