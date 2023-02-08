@@ -43,8 +43,7 @@ A = TypeVar("A")
 # "@ampproject/remapping@^2.0.0"
 # bad-lib@0.0.8
 # "filedep@file:../../correct/path/filedep":
-
-
+# "bats@https://github.com/bats-core/bats-core#master":
 def source1(quoted: bool) -> "Parser[Tuple[str,str]]":
 
     return pair(
