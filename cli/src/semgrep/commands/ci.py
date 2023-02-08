@@ -332,7 +332,10 @@ def ci(
                 logger.info(f"Could not start scan {e}")
                 sys.exit(FATAL_EXIT_CODE)
 
-            # Run DeepSemgrep when available but only for full scans
+            # Run Semgrep Pro when available
+            # By default, this is controlled by the toggle. When it is off, run
+            # the OSS engine. When it is on, for full scans run using interfile
+            # analysis and diff scans run using the pro languages
             is_full_scan = metadata.merge_base_ref is None
             engine = EngineType.OSS
             if scan_handler and scan_handler.deepsemgrep:
@@ -340,7 +343,8 @@ def ci(
                     EngineType.PRO_INTERFILE if is_full_scan else EngineType.PRO_LANG
                 )
 
-            # Flags override the toggle
+            # If the user explicitly requests an engine via a flag, the flag
+            # should override the toggle
             if pro and is_full_scan:
                 # Inter-file + Pro languages
                 # This behaves slightly differently from semgrep scan, because
