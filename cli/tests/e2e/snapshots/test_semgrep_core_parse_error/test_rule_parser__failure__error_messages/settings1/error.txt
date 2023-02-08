@@ -4,6 +4,18 @@ Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
 Scanning 1 file with 2 python rules.
+                                                                                
+                                                                                
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
+╭──────────────╮                                                                
+│ Scan Summary │                                                                
+╰──────────────╯                                                                
+                                                                                
 
 ========================================
 Files skipped:
@@ -40,7 +52,6 @@ Files skipped:
   [1m[24mSkipped by analysis failure due to parsing or internal Semgrep error[0m
 
    • [36m[22m[24mtargets/bad/invalid_python.py (2 lines skipped)[0m
-
 
 Some files were skipped or only partially analyzed.
   Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error

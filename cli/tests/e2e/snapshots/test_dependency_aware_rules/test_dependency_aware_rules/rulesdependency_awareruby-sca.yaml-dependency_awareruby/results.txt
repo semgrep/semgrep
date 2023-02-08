@@ -41,8 +41,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "gem",
+              "line_number": 19,
               "package": "parallel",
-              "transitivity": "unknown",
+              "transitivity": "transitive",
               "version": "1.21.0"
             },
             "lockfile": "targets/dependency_aware/ruby/Gemfile.lock"
@@ -67,7 +68,18 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 
 === stderr - plain
 Scanning 1 file.
-
+                                                                                
+                                                                                
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
+╭──────────────╮                                                                
+│ Scan Summary │                                                                
+╰──────────────╯                                                                
+                                                                                
 
 Ran 1 rule on 1 file: 1 finding.
 

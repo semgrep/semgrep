@@ -47,7 +47,7 @@ let invalid () = raise (PI.NoTokenLocation "Invalid program")
  * parser_python.mly
  *)
 
-let name_of_id id = Name (id, no_ctx, ref NotResolved)
+let name_of_id id = Name (id, no_ctx)
 
 let single_or_tuple e xs =
   match xs with

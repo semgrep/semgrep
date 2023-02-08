@@ -8,11 +8,10 @@ from pathlib import Path
 from typing import List
 from typing import Optional
 
-from parsy import any_char
-from parsy import eof
-from parsy import string
-from parsy import success
-
+from semdep.external.parsy import any_char
+from semdep.external.parsy import eof
+from semdep.external.parsy import string
+from semdep.external.parsy import success
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
@@ -105,7 +104,7 @@ PREFIX = """\
 # A whole poetry file
 poetry = (
     string(PREFIX).optional()
-    >> (poetry_dep | poetry_dep_extra)
+    >> (poetry_dep | poetry_dep_extra | (string("package = []").result(None)))
     .sep_by(string("\n\n"))
     .map(lambda xs: [x for x in xs if x])
     << string("\n").optional()

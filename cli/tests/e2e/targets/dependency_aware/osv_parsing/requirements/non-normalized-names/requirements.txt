@@ -1,0 +1,9 @@
+zope.interface==5.4.0
+    # via
+    #   scrapy
+    #   twisted
+
+Pillow==1.0.0
+
+Twisted[http2]==20.3.0
+    # via scrapy

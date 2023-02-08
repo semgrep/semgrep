@@ -8,11 +8,11 @@ from pathlib import Path
 from typing import List
 from typing import Optional
 
-from parsy import any_char
-from parsy import Parser
-from parsy import string
-from parsy import success
-
+from semdep.external.parsy import any_char
+from semdep.external.parsy import Parser
+from semdep.external.parsy import regex
+from semdep.external.parsy import string
+from semdep.external.parsy import success
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import consume_word
 from semdep.parsers.util import mark_line
@@ -28,14 +28,7 @@ logger = getLogger(__name__)
 
 # Examples:
 # ch.qos.logback.contrib:logback-json-classic:0.1.5=productionRuntimeClasspath,runtimeClasspath,testRuntimeClasspath
-dep = mark_line(
-    upto(":", consume_other=True)
-    >> upto(":", consume_other=True).bind(
-        lambda package: upto("=").bind(
-            lambda version: consume_line >> success((package, version))
-        )
-    )
-)
+dep = mark_line(regex("([^:]+:[^:]+):([^=]+)=[^\n]+", flags=0, group=(1, 2)))
 
 PREFIX = """\
 # This is a Gradle generated file for dependency locking.
@@ -71,9 +64,13 @@ manifest = (
     << any_char.many()
 )
 
-gradle = string(PREFIX) >> (dep | (string("empty=") >> consume_line)).sep_by(
-    string("\n")
-).map(lambda xs: [x for x in xs if x])
+gradle = (
+    string(PREFIX)
+    >> (dep | (string("empty=") >> consume_line))
+    .sep_by(string("\n"))
+    .map(lambda xs: [x for x in xs if x])
+    << string("\n").optional()
+)
 
 
 def parse_gradle(

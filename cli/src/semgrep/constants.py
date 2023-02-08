@@ -15,7 +15,7 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 DEFAULT_SEMGREP_APP_CONFIG_URL = "api/agent/deployments/scans/config"
 
 DEFAULT_TIMEOUT = 30  # seconds
-DEFAULT_PRO_TIMEOUT_CI = 108000  # seconds
+DEFAULT_PRO_TIMEOUT_CI = 10800  # seconds
 DEFAULT_MAX_MEMORY_PRO_CI = 5000  # MiB
 
 SETTINGS_FILENAME = "settings.yml"
@@ -32,13 +32,13 @@ UNSUPPORTED_EXT_IGNORE_LANGS = {"generic", "regex"}
 
 class EngineType(Enum):
     OSS = auto()
-    PRO = auto()
-    INTERPROC = auto()
-    INTERFILE = auto()
+    PRO_LANG = auto()
+    PRO_INTRAFILE = auto()
+    PRO_INTERFILE = auto()
 
     @property
     def is_pro(self) -> bool:
-        return self.value >= EngineType.PRO.value
+        return self.value >= EngineType.PRO_LANG.value
 
 
 class OutputFormat(Enum):

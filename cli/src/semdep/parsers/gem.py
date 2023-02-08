@@ -6,10 +6,9 @@ from pathlib import Path
 from typing import List
 from typing import Optional
 
-from parsy import any_char
-from parsy import string
-from parsy import success
-
+from semdep.external.parsy import any_char
+from semdep.external.parsy import string
+from semdep.external.parsy import success
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_path_parse

@@ -311,7 +311,7 @@ _scan_options: List[Callable] = [
         type=int,
         help="""
             Number of subprocesses to use to run checks in parallel. Defaults to the
-            number of cores on the system (1 if using --interfile).
+            number of cores on the system (1 if using --pro).
         """,
     ),
     optgroup.option(
@@ -349,6 +349,7 @@ _scan_options: List[Callable] = [
             skipped. If set to 0 will not have limit. Defaults to 3.
         """,
     ),
+    # TODO: Move to Semgrep Pro Engine group ?
     optgroup.option(
         "--interfile-timeout",
         type=int,
@@ -479,6 +480,22 @@ _scan_options: List[Callable] = [
         is_flag=True,
         help="Output results in vim single-line format.",
     ),
+    optgroup.group("Semgrep Pro Engine options"),
+    optgroup.option(
+        "--pro-languages",
+        is_flag=True,
+        help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+    ),
+    optgroup.option(
+        "--pro-intrafile",
+        is_flag=True,
+        help="Intra-file inter-procedural taint analysis. Implies --pro-languages. Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+    ),
+    optgroup.option(
+        "--pro",
+        is_flag=True,
+        help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+    ),
 ]
 
 
@@ -605,18 +622,14 @@ def scan_options(func: Callable) -> Callable:
     hidden=True
     # help="contact support@r2c.dev for more information on this"
 )
-@click.option(
-    "--pro",
-    is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
-)
+# DEPRECATED: --interproc to be removed by Feb 2023 launch
 @click.option(
     "--interproc",
     is_flag=True,
     hidden=True
     # help="contact support@r2c.dev for more information on this"
 )
+# DEPRECATED: --interfile to be removed by Feb 2023 launch
 @click.option(
     "--interfile",
     is_flag=True,
@@ -640,9 +653,11 @@ def scan(
     debug: bool,
     deep: bool,
     dump_engine_path: bool,
-    pro: bool,
     interproc: bool,
     interfile: bool,
+    pro_languages: bool,
+    pro_intrafile: bool,
+    pro: bool,
     dryrun: bool,
     dump_ast: bool,
     dump_command_for_core: bool,
@@ -782,18 +797,25 @@ def scan(
 
     if deep:
         abort("The experimental flag --deep has been renamed to --interfile.")
-
+    if interproc:
+        abort("The experimental flag --interproc has been renamed to --pro-intrafile.")
     if interfile:
-        engine = EngineType.INTERFILE
-    elif interproc:
-        engine = EngineType.INTERPROC
-    elif pro:
-        engine = EngineType.PRO
+        abort("The experimental flag --interfile has been renamed to --pro.")
+
+    if pro:
+        # Inter-file + Pro languages
+        engine = EngineType.PRO_INTERFILE
+    elif pro_intrafile:
+        # Intra-file (inter-proc) + Pro languages
+        engine = EngineType.PRO_INTRAFILE
+    elif pro_languages:
+        # Just Pro languages
+        engine = EngineType.PRO_LANG
     else:
         engine = EngineType.OSS
 
     # Turn on `dataflow_traces` by default for inter-procedural taint analysis.
-    if engine is EngineType.INTERPROC or engine is EngineType.INTERFILE:
+    if engine is EngineType.PRO_INTRAFILE or engine is EngineType.PRO_INTERFILE:
         dataflow_traces = True
 
     output_settings = OutputSettings(

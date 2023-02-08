@@ -12,6 +12,8 @@ from typing import Sequence
 from typing import Tuple
 
 import click
+from rich.padding import Padding
+from rich.table import Table
 
 import semgrep.semgrep_main
 from semgrep.app import auth
@@ -21,6 +23,8 @@ from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
+from semgrep.console import console
+from semgrep.console import Title
 from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
 from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
 from semgrep.constants import EngineType
@@ -163,6 +167,15 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     """,
     envvar="SEMGREP_SUPPRESS_ERRORS",
 )
+@click.option(
+    "--oss-only",
+    "oss_only",
+    default=False,
+    help="""
+        Run `semgrep ci` on this repo using only OSS features. Equivalent to a
+        ci run without the Semgrep Pro toggle on.
+    """,
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -196,6 +209,10 @@ def ci(
     optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
+    pro_languages: bool,
+    pro_intrafile: bool,
+    pro: bool,
+    oss_only: bool,
     sarif: bool,
     quiet: bool,
     rewrite_rule_ids: bool,
@@ -281,18 +298,24 @@ def ci(
     output_handler = OutputHandler(output_settings)
     metadata = generate_meta_from_environment(baseline_commit)
 
-    logger.info("Scan environment:")
-    logger.info(
-        f"  versions    - semgrep {semgrep.__VERSION__} on python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    console.print(Title("Debugging Info"))
+
+    scan_env = Table.grid(padding=(0, 1))
+    scan_env.add_row(
+        "versions",
+        "-",
+        f"semgrep [bold]{semgrep.__VERSION__}[/bold] on python [bold]{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}[/bold]",
     )
-    logger.info(
-        f"  environment - running in environment {metadata.environment}, triggering event is {metadata.event_name}"
+    scan_env.add_row(
+        "environment",
+        "-",
+        f"running in environment [bold]{metadata.environment}[/bold], triggering event is [bold]{metadata.event_name}[/bold]",
     )
     if scan_handler:
-        logger.info(f"  server      - {state.env.semgrep_url}")
-    if supply_chain:
-        logger.info("  running a supply chain scan")
-    logger.info("")
+        scan_env.add_row("server", "-", state.env.semgrep_url)
+
+    console.print(Title("Scan Environment", order=2))
+    console.print(Padding(scan_env, (0, 2)))
 
     try:
         with fix_head_if_github_action(metadata):
@@ -300,23 +323,18 @@ def ci(
                 metadata_dict = metadata.to_dict()
                 metadata_dict["is_sca_scan"] = supply_chain
 
+            console.print(Title("Scan Status"))
+
             try:
                 logger.info("Fetching configuration from semgrep.dev")
                 # Note this needs to happen within fix_head_if_github_action
                 # so that metadata of current commit is correct
                 if scan_handler:
-                    try:
-                        proj_config = ProjectConfig.load_all()
-                        metadata_dict = {**metadata_dict, **proj_config.to_dict()}
-                        scan_handler.fetch_and_init_scan_config(metadata_dict)
-                        scan_handler.start_scan(metadata_dict)
-                    except Exception as e:
-                        if (
-                            state.env.semgrep_url != "https://semgrep.dev"
-                        ):  # support old on-prem apps
-                            scan_handler.fetch_config_and_start_scan_old(metadata_dict)
-                        else:
-                            raise e
+                    proj_config = ProjectConfig.load_all()
+                    metadata_dict = {**metadata_dict, **proj_config.to_dict()}
+                    scan_handler.fetch_and_init_scan_config(metadata_dict)
+                    scan_handler.start_scan(metadata_dict)
+
                     logger.info(f"Authenticated as {scan_handler.deployment_name}")
                     config = (scan_handler.rules,)
             except Exception as e:
@@ -326,24 +344,45 @@ def ci(
                 logger.info(f"Could not start scan {e}")
                 sys.exit(FATAL_EXIT_CODE)
 
-            # Run DeepSemgrep when available but only for full scans
+            # Run Semgrep Pro when available
+            # By default, this is controlled by the toggle. When it is off, run
+            # the OSS engine. When it is on, for full scans run using interfile
+            # analysis and diff scans run using the pro languages
             is_full_scan = metadata.merge_base_ref is None
             engine = EngineType.OSS
             if scan_handler and scan_handler.deepsemgrep:
-                engine = EngineType.INTERFILE if is_full_scan else EngineType.PRO
+                engine = (
+                    EngineType.PRO_INTERFILE if is_full_scan else EngineType.PRO_LANG
+                )
+
+            # If the user explicitly requests an engine via a flag, the flag
+            # should override the toggle
+            if pro and is_full_scan:
+                # Inter-file + Pro languages
+                # This behaves slightly differently from semgrep scan, because
+                # in CI we currently do not allow interfile analysis
+                engine = EngineType.PRO_INTERFILE
+            elif pro_intrafile:
+                # Intra-file (inter-proc) + Pro languages
+                engine = EngineType.PRO_INTRAFILE
+            elif pro_languages:
+                # Just Pro languages
+                engine = EngineType.PRO_LANG
+            elif oss_only:
+                engine = EngineType.OSS
 
             (semgrep_pro_path, _deep_semgrep_path) = determine_semgrep_pro_path()
 
             # Set a default max_memory for CI runs when DeepSemgrep is on because
             # DeepSemgrep is likely to run out
             if max_memory is None:
-                if engine is EngineType.INTERFILE:
+                if engine is EngineType.PRO_INTERFILE:
                     max_memory = DEFAULT_MAX_MEMORY_PRO_CI
                 else:
                     max_memory = 0  # unlimited
             # Same for timeout (Github actions has a 6 hour timeout)
             if interfile_timeout is None:
-                if engine is EngineType.INTERFILE:
+                if engine is EngineType.PRO_INTERFILE:
                     interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
                 else:
                     interfile_timeout = 0  # unlimited
@@ -490,6 +529,7 @@ def ci(
             total_time,
             metadata.commit_datetime,
             lockfile_scan_info,
+            engine,
         )
         logger.info("  View results in Semgrep App:")
         logger.info(

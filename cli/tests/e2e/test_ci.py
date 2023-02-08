@@ -478,6 +478,14 @@ def mock_autofix(request, mocker):
             "SEMGREP_PR_ID": "35",
             "SEMGREP_BRANCH": BRANCH_NAME,
         },
+        {  # URL that doesn't parse correctly
+            "CI": "true",
+            "SEMGREP_REPO_NAME": f"{REPO_ORG_NAME}/{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "SEMGREP_REPO_URL": "https://gitlab.net/foo.bar/a-b/a-b-c-d",
+            # Sent in metadata but no functionality change
+            "SEMGREP_PR_ID": "35",
+            "SEMGREP_BRANCH": BRANCH_NAME,
+        },
         {  # Github PR with additional project metadata
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -511,6 +519,7 @@ def mock_autofix(request, mocker):
         "travis",
         "travis-overwrite-autodetected-variables",
         "self-hosted",
+        "unparsable_url",
         "github-pr-semgrepconfig",
     ],
 )
@@ -639,6 +648,9 @@ def test_full_run(
 
     complete_json = post_calls[2].kwargs["json"]
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
+    complete_json["stats"][
+        "event_id"
+    ] = "xxxxxxxxxx"  # Sanitize event_id for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
     complete_json["stats"]["lockfile_scan_info"] = {}
@@ -1024,6 +1036,7 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep):
                 base_commit,
                 re.compile(r'"commit_date": (.*),?'),
                 re.compile(r'"total_time": (.*),?'),
+                re.compile(r'"event_id": (.*),?'),
             ]
         ),
         "results.txt",

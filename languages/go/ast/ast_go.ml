@@ -139,7 +139,7 @@ and expr =
    * To disambiguate requires semantic information.
    * Selector (Name,'.', ident) can be many things.
    *)
-  | Id of ident (* * AST_generic.resolved_name option ref *)
+  | Id of ident
   (* A Selector can be a
    *  - a field access of a struct
    *  - a top decl access of a package

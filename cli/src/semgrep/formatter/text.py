@@ -507,12 +507,10 @@ class TextFormatter(BaseFormatter):
         per_line_max_chars_limit: Optional[int],
         dataflow_traces: bool,
     ) -> Iterator[str]:
-
         last_file = None
         last_message = None
         sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
         for rule_index, rule_match in enumerate(sorted_rule_matches):
-
             current_file = rule_match.path
             rule_id = rule_match.rule_id
             message = rule_match.message
@@ -715,7 +713,7 @@ class TextFormatter(BaseFormatter):
                     elif isinstance(x.match.extra.engine_kind.value, out.ProMatch):
                         pro_matches.append(x)
                 generate_output(f"{blocking_description}", oss_matches)
-                generate_output(f"Semgrep Pro Engine Findings", pro_matches)
+                generate_output(f"Inter-File Analysis Findings", pro_matches)
 
         first_party_blocking_rules_output = []
 
@@ -746,4 +744,4 @@ class TextFormatter(BaseFormatter):
                 *first_party_blocking_rules_output,
                 *timing_output,
             ]
-        )
+        ).strip()

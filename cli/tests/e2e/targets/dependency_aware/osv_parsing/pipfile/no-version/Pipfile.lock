@@ -1,0 +1,26 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "6689fbb19241c5123bd89c9a39c1289cfb133a8298b57731af508066a9622ec7"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_version": "3.8"
+        },
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "markupsafe": {
+            "editable": true,
+            "git": "https://github.com/pallets/markupsafe",
+            "ref": "b36054111bc1e8bbadb5d0d60158feb72926f467"
+        }
+    },
+    "develop": {}
+}

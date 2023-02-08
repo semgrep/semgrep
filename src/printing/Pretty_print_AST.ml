@@ -762,6 +762,7 @@ and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
 
 and special env = function
   | This, _ -> "this"
+  | Self, _ -> "self"
   | Op op, tok -> arithop env (op, tok)
   | IncrDecr _, _ -> "" (* should be captured in the call *)
   | sp, tok -> todo (E (IdSpecial (sp, tok) |> G.e))

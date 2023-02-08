@@ -116,11 +116,11 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
     logger.info(f"Semgrep Pro Engine Version Info: ({version})")
 
 
-@click.command(hidden=True)
+@click.command()
 @handle_command_errors
 def install_semgrep_pro() -> None:
     """
-    Install the Semgrep Pro Engine binary (Experimental)
+    Install the Semgrep Pro Engine
 
     The binary is installed in the same directory that semgrep-core
     is installed in.
