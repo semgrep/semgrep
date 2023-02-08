@@ -26,7 +26,7 @@ poetry.lock:0:0:error(supply-chain1)::found a dependency
 ╰────────────────╯                                                              
                                                                                 
   SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>                                  
+  versions    - semgrep <MASKED> on python <MASKED>                                 
   environment - running in environment git, triggering event is unknown         
   server      - https://semgrep.dev                                             
                                                                                 

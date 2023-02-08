@@ -65,7 +65,7 @@ First-Party Blocking Rules Fired:
 ╰────────────────╯                                                              
                                                                                 
   SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>                                  
+  versions    - semgrep <MASKED> on python <MASKED>                                 
   environment - running in environment git, triggering event is unknown         
   server      - https://semgrep.dev                                             
                                                                                 
