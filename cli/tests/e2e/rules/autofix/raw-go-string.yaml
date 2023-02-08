@@ -1,0 +1,9 @@
+rules:
+- id: raw-string-autofix
+  pattern: |
+    foo($A, $B, $C)
+  fix: |
+    foo($B, $C, $A)
+  message: Test
+  languages: [go]
+  severity: ERROR

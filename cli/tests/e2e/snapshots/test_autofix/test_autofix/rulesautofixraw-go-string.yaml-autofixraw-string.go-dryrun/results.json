@@ -1,0 +1,80 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/autofix/raw-string.go"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.autofix.raw-string-autofix",
+      "end": {
+        "col": 30,
+        "line": 2,
+        "offset": 30
+      },
+      "extra": {
+        "engine_kind": "OSSMatch",
+        "fingerprint": "0x42",
+        "fix": "foo(bar(B), `this is C`, `A`)",
+        "fixed_lines": [
+          "foo(bar(B), `this is C`, `A`)"
+        ],
+        "is_ignored": false,
+        "lines": "foo(`A`, bar(B), `this is C`)",
+        "message": "Test",
+        "metadata": {},
+        "metavars": {
+          "$A": {
+            "abstract_content": "`A`",
+            "end": {
+              "col": 8,
+              "line": 2,
+              "offset": 8
+            },
+            "start": {
+              "col": 5,
+              "line": 2,
+              "offset": 5
+            }
+          },
+          "$B": {
+            "abstract_content": "bar(B)",
+            "end": {
+              "col": 16,
+              "line": 2,
+              "offset": 16
+            },
+            "start": {
+              "col": 10,
+              "line": 2,
+              "offset": 10
+            }
+          },
+          "$C": {
+            "abstract_content": "`this is C`",
+            "end": {
+              "col": 29,
+              "line": 2,
+              "offset": 29
+            },
+            "start": {
+              "col": 18,
+              "line": 2,
+              "offset": 18
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/autofix/raw-string.go",
+      "start": {
+        "col": 1,
+        "line": 2,
+        "offset": 1
+      }
+    }
+  ],
+  "version": "0.42"
+}
