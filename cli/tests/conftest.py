@@ -183,7 +183,7 @@ def mask_capture_group(match: re.Match) -> str:
 ALWAYS_MASK: Maskers = (
     _clean_output_sarif,
     __VERSION__,
-    re.compile(r"python (\d+[.]\d+[.]\d+)"),
+    re.compile(r"python (\d+[.]\d+[.]\d+[ ]+)"),
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
     re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
 )

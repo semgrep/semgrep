@@ -70,7 +70,7 @@ Running `semgrep ci` without API token but with configs ('p/something',)
 ╰────────────────╯                                                              
                                                                                 
   SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>                                  
+  versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown         
                                                                                 
                                                                                 
