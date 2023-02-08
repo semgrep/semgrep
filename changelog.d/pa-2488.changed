@@ -1,5 +1,0 @@
-Pro: `--pro` will now enable _all_ Pro features, including Apex, inter-procedural taint
-analysis, and also inter-file analysis for supported languages. For Apex support only
-(and more languages in the future) now use `--pro-languages`. For intra-file analysis
-only now use `--pro-intrafile`. Flags `--interproc` and `--interfile` are now
-deprecated.
