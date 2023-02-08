@@ -349,7 +349,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = v_stmt v1 in
         ()
   and v_dot_operator _ = ()
-  and v_resolved_name _ = ()
   and v_def (ent, defkind) =
     v_entity ent;
     v_definition_kind defkind
