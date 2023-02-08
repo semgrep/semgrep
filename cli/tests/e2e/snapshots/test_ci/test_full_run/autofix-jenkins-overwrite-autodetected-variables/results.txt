@@ -7,7 +7,6 @@ JENKINS_URL="some_url" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:/
 === end of exit code
 
 === stdout - plain
-
 Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
 
 
@@ -59,15 +58,37 @@ First-Party Blocking Rules Fired:
 === end of stdout - plain
 
 === stderr - plain
-Scan environment:
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment jenkins, triggering event is unknown
-  server      - https://semgrep.dev
-
+                                                                                
+                                                                                
+╭────────────────╮                                                              
+│ Debugging Info │                                                              
+╰────────────────╯                                                              
+                                                                                
+  SCAN ENVIRONMENT                                                              
+  versions    - semgrep <MASKED> on python <MASKED>                                  
+  environment - running in environment jenkins, triggering event is unknown     
+  server      - https://semgrep.dev                                             
+                                                                                
+                                                                                
+╭─────────────╮                                                                 
+│ Scan Status │                                                                 
+╰─────────────╯                                                                 
+                                                                                
 Fetching configuration from semgrep.dev
 Authenticated as org_name
 Scanning 1 file with 4 python rules.
-
+                                                                                
+                                                                                
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
+                                                                                
+                                                                                
+╭──────────────╮                                                                
+│ Scan Summary │                                                                
+╰──────────────╯                                                                
+                                                                                
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 

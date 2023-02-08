@@ -1,4 +1,3 @@
-
 Findings:
 
 [36m[22m[24m  targets/cli_test/basic/basic.py [0m
