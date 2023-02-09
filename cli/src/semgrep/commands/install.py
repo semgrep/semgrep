@@ -99,20 +99,16 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
 
         file_size = int(r.headers.get("Content-Length", 0))
 
-        with (
-            Progress(
-                TextColumn("{task.description}"),
-                BarColumn(),
-                DownloadColumn(),
-                TransferSpeedColumn(),
-                TimeRemainingColumn(),
-                console=console,
-            ) as progress,
-            open(semgrep_pro_path, "wb") as f,
-            progress.wrap_file(
-                r.raw, total=file_size, description="Downloading..."
-            ) as r_raw,
-        ):
+        with Progress(
+            TextColumn("{task.description}"),
+            BarColumn(),
+            DownloadColumn(),
+            TransferSpeedColumn(),
+            TimeRemainingColumn(),
+            console=console,
+        ) as progress, semgrep_pro_path.open("wb") as f, progress.wrap_file(
+            r.raw, total=file_size, description="Downloading..."
+        ) as r_raw:
             shutil.copyfileobj(r_raw, f)
 
     # THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
