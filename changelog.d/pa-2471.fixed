@@ -1,2 +1,0 @@
-Dataflow traces: Findings now always display the separating line with `--dataflow-traces` in the CLI, to reduce
-confusion over where the findings fall between the dataflow traces.
