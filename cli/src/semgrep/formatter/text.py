@@ -745,9 +745,9 @@ class TextFormatter(BaseFormatter):
         )
 
         oss_rules = [
-            with_color(Colors.foreground, rule.rule_id.value, bold=True)
+            with_color(Colors.foreground, rule.value[0].value, bold=True)
             for rule in rules_by_engine
-            if isinstance(rule.engine_kind.value, out.OSS)
+            if isinstance(rule.value[1], out.OSS)
         ]
 
         rules_output = []

@@ -54,8 +54,7 @@ let convert_engine_kind ek =
   | OSS -> `OSS
   | Pro -> `PRO
 
-let convert_rule (s, ek) =
-  { Out.rule_id = s; engine_kind = convert_engine_kind ek }
+let convert_rule (s, ek) = (s, convert_engine_kind ek)
 
 (*****************************************************************************)
 (* JSON *)
