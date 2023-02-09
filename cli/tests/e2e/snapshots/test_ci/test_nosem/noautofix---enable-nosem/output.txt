@@ -81,6 +81,7 @@ Running `semgrep ci` without API token but with configs ('p/something',)
 Fetching configuration from semgrep.dev
 Semgrep rule registry URL is https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
+
                                                                                 
                                                                                 
 ╭─────────╮                                                                     

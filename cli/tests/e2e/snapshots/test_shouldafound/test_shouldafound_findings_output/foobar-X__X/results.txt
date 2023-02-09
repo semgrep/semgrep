@@ -20,6 +20,7 @@ Findings:
 
 === stderr - plain
 Scanning 1 file.
+
                                                                                 
                                                                                 
 ╭─────────╮                                                                     

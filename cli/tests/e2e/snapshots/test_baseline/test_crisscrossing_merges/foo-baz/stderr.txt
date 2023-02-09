@@ -1,5 +1,6 @@
 git could not find a single branch-off point, so we will compare the baseline commit directly
 Scanning 2 files.
+
   Current version has 12 findings.
 
 Switching repository to baseline commit 'baz'.
@@ -44,6 +45,7 @@ Switching repository to baseline commit 'baz'.
     --baseline-commit=$(git merge-base baz HEAD)
 
 Scanning 1 file.
+
                                                                                 
                                                                                 
 ╭─────────╮                                                                     
