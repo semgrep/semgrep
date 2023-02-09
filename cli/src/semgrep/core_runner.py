@@ -558,19 +558,9 @@ class CoreRunner:
         self._binary_path = SemgrepCore.path()
 
         if engine.is_pro:
-            deep_path = (
-                SemgrepCore.deep_path()
-            )  # DEPRECATED: To be removed by Feb 2023 launch
             pro_path = SemgrepCore.pro_path()
 
             if pro_path is None:
-                if deep_path is not None:
-                    logger.error(
-                        f"""You have an old DeepSemgrep binary installed in {deep_path}
-  DeepSemgrep is now Semgrep Pro, run `semgrep install-semgrep-pro` to install it,
-  then please delete {deep_path} manually.
-  """
-                    )
                 raise SemgrepError(
                     "Could not use Pro features: Semgrep Pro Engine not installed. Run `semgrep install-semgrep-pro`"
                 )
