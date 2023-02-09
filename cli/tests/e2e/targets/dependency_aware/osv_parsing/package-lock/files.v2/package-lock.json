@@ -1,0 +1,66 @@
+{
+  "lockfileVersion": 2,
+  "requires": true,
+  "packages": {
+    "": {
+      "license": "ISC",
+      "dependencies": {
+        "chalk": "0.4.0",
+        "lodash": "^1.2.1",
+        "stopwords": "0.0.1"
+      },
+      "devDependencies": {
+        "etag": "file:./deps/etag"
+      }
+    },
+    "deps/etag": {
+      "version": "1.8.0",
+      "integrity": "sha1-b2Ma7zNtbEY2K1F2QETOIWvjwFE=",
+      "dev": true,
+      "devDependencies": {
+        "beautify-benchmark": "0.2.4",
+        "benchmark": "2.1.3",
+        "eslint": "3.15.0",
+        "eslint-config-standard": "6.2.1",
+        "eslint-plugin-markdown": "1.0.0-beta.3",
+        "eslint-plugin-promise": "3.4.2",
+        "eslint-plugin-standard": "2.0.1",
+        "istanbul": "0.4.5",
+        "mocha": "1.21.5",
+        "seedrandom": "2.4.2"
+      },
+      "engines": {
+        "node": ">= 0.6"
+      }
+    },
+    "node_modules/abbrev": {
+      "version": "1.0.9",
+      "resolved": "https://registry.npmjs.org/abbrev/-/abbrev-1.0.9.tgz",
+      "integrity": "sha1-kbR5JYinc4wl813W9jdSovh3YTU=",
+      "dev": true
+    },
+    "deps/etag/node_modules/abbrev": {
+      "version": "2.3.4",
+      "resolved": "https://registry.npmjs.org/abbrev/-/abbrev-1.0.9.tgz",
+      "integrity": "sha1-kbR5JYinc4wl813W9jdSovh3YTU=",
+      "dev": true
+    }
+  },
+  "dependencies": {
+    "etag": {
+      "version": "file:deps/etag",
+      "requires": {
+        "beautify-benchmark": "0.2.4",
+        "benchmark": "2.1.3",
+        "eslint": "3.15.0",
+        "eslint-config-standard": "6.2.1",
+        "eslint-plugin-markdown": "1.0.0-beta.3",
+        "eslint-plugin-promise": "3.4.2",
+        "eslint-plugin-standard": "2.0.1",
+        "istanbul": "0.4.5",
+        "mocha": "1.21.5",
+        "seedrandom": "2.4.2"
+      }
+    }
+  }
+}

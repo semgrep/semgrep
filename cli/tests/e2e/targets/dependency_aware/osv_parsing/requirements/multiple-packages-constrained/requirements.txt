@@ -1,0 +1,33 @@
+astroid==2.5.1
+    # via pylint
+beautifulsoup4==4.9.3
+    # via metadata-parser
+boto3==1.17.19
+    # via -r requirements.in
+botocore==1.20.19
+    # via
+    #   boto3
+    #   s3transfer
+certifi==2020.12.5
+    # via requests
+chardet==4.0.0
+    # via requests
+circus==0.17.1
+    # via -r requirements.in
+click==7.1.2
+    # via pip-tools
+django-debug-toolbar==3.2.1
+    # via -r requirements.in
+django-filter==2.4.0
+    # via -r requirements.in
+django-nose==1.4.7
+    # via -r requirements.in
+django-storages==1.11.1
+    # via -r requirements.in
+django==2.2.24
+    # via
+    #   -r requirements.in
+    #   django-debug-toolbar
+    #   django-filter
+    #   django-storages
+    #   easy-thumbnails

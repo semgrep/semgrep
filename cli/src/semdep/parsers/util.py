@@ -157,7 +157,10 @@ consume_line = line >> success(None)
 
 
 def upto(
-    *s: str, include_other: bool = False, consume_other: bool = False
+    *s: str,
+    include_other: bool = False,
+    consume_other: bool = False,
+    allow_newline: bool = False,
 ) -> "Parser[str]":
     """
     [s] must be a list of single character strings. These should be all the possible delimiters
@@ -167,7 +170,11 @@ def upto(
     [include_other] will parse the delimiter and append it to the result
     [consume_other] will parse the delimiter and throw it out
     Only one should be used, if you use both behavior is undefined
+    [allow_newline] allows newlines to be consumed. Generally this happening is undesireable,
+    and indicates that something has gone wrong, but sometimes it may be what you want
     """
+    if not allow_newline:
+        s = (*s, "\n")
     if include_other:
         return not_any(*s).bind(
             lambda x: alt(*(string(x) for x in s)).map(lambda y: x + y)
@@ -187,7 +194,9 @@ def parse_error_to_str(e: ParseError) -> str:
     """
     expected_list = sorted(e.expected)
     if len(expected_list) == 1:
-        return f"expected {expected_list[0]}"
+        # Awful awful hack, we want to print special chars as escaped, but the one custom
+        # message we use already has escaped chars in it, so they get double escaped :spiral_eyes:
+        return f"expected {expected_list[0] if expected_list[0].startswith('Any char not in') else repr(expected_list[0])}"
     else:
         return f"expected one of {expected_list}"
 
@@ -215,13 +224,14 @@ def safe_path_parse(
         text_lines = text.splitlines() + (
             ["<trailing newline>"] if text.endswith("\n") else []
         )  # Error on trailing newline shouldn't blow us up
+        error_str = parse_error_to_str(e)
         if line < len(text_lines):
             logger.error(
-                f"Failed to parse {path} at {line + 1}:{col + 1} - {parse_error_to_str(e)}\n{line_prefix + text.splitlines()[line]}\n{' ' * (col + len(line_prefix))}^"
+                f"Failed to parse {path} at {line + 1}:{col + 1} - {error_str}\n{line_prefix + text.splitlines()[line]}\n{' ' * (col + len(line_prefix))}^"
             )
         else:
             logger.error(
-                f"Failed to parse {path} at {line + 1}:{col + 1} - {parse_error_to_str(e)}\nInternal Error - line {line + 1} is past the end of {path}?"
+                f"Failed to parse {path} at {line + 1}:{col + 1} - {error_str}\nInternal Error - line {line + 1} is past the end of {path}?"
             )
         return None
 

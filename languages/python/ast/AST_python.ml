@@ -101,21 +101,6 @@ type module_name =
   tok (* . or ... toks *) list option (* levels, for relative imports *)
 [@@deriving show]
 
-(* TODO: reuse AST_generic one? or just get rid of it? *)
-type resolved_name =
-  (* this can be computed by a visitor *)
-  | LocalVar
-  | Parameter
-  | GlobalVar
-  | ClassField
-  (* both dotted_name should contain at least one element! *)
-  | ImportedModule of dotted_name
-  | ImportedEntity of dotted_name
-  (* default case *)
-  | NotResolved
-[@@deriving show { with_path = false }]
-(* with tarzan *)
-
 (*****************************************************************************)
 (* Expression *)
 (*****************************************************************************)
@@ -132,8 +117,12 @@ type expr =
   (* python3: true/false are now officially reserved keywords *)
   | Bool of bool wrap
   | None_ of tok
-  (* introduce new vars when expr_context = Store *)
-  | Name of name (* id *) * expr_context (* ctx *) * resolved_name ref
+  (* Introduce new vars when expr_context = Store.
+   * Note that the ident can be "self".
+   * alt: we could use an IdSpecial for it but self is actually not a
+   * Python keyword; you can use a different name for it.
+   *)
+  | Name of name (* id *) * expr_context (* ctx *)
   (* TODO: in some context the tuple does not have the enclosing brackets
    * (in which case they are represented by fake tokens)
    *)
@@ -492,7 +481,7 @@ let str_of_name = fst
 let context_of_expr = function
   | Attribute (_, _, _, ctx) -> Some ctx
   | Subscript (_, _, ctx) -> Some ctx
-  | Name (_, ctx, _) -> Some ctx
+  | Name (_, ctx) -> Some ctx
   | List (_, ctx) -> Some ctx
   | Tuple (_, ctx) -> Some ctx
   | _ -> None

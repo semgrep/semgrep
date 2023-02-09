@@ -20,7 +20,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 # Examples:
 # org.apache.logging.log4j:log4j-api:jar:0.0.2:compile
-dep = regex("[^:]+:([^:]+):[^:]+:([^:]+):[^: \n]+", flags=0, group=(1, 2))
+dep = regex("([^:]+:[^:]+):[^:]+:([^:]+):[^: \n]+", flags=0, group=(1, 2))
 
 
 # Examples (these would not appear in this order in a file, they're seperate):

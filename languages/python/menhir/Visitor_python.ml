@@ -78,18 +78,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v1 = v_dotted_name v1 in
     let v2 = v_option (v_list v_tok) v2 in
     ()
-  and v_resolved_name = function
-    | LocalVar -> ()
-    | Parameter -> ()
-    | GlobalVar -> ()
-    | ClassField -> ()
-    | ImportedModule v ->
-        let _ = v_dotted_name v in
-        ()
-    | ImportedEntity v ->
-        let _ = v_dotted_name v in
-        ()
-    | NotResolved -> ()
   and v_expr (x : expr) =
     (* tweak *)
     let k x =
@@ -127,10 +115,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | ConcatenatedString v1 ->
           let v1 = v_list v_expr v1 in
           ()
-      | Name (v1, v2, v3) ->
-          let v1 = v_name v1
-          and v2 = v_expr_context v2
-          and v3 = v_ref_do_not_visit v_resolved_name v3 in
+      | Name (v1, v2) ->
+          let v1 = v_name v1 and v2 = v_expr_context v2 in
           ()
       | TypedMetavar (v1, v2, v3) ->
           let v1 = v_name v1 in

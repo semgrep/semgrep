@@ -21,6 +21,8 @@ import requests
 from boltons.iterutils import partition
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.console import console
+from semgrep.console import Title
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -358,6 +360,7 @@ class OutputHandler:
             else:
                 if output:
                     try:
+                        console.print(Title("Results"))
                         print(output)
                     except UnicodeEncodeError as ex:
                         raise Exception(
@@ -374,6 +377,8 @@ class OutputHandler:
             num_targets = len(self.all_targets)
             num_rules = len(self.filtered_rules)
 
+            console.print(Title("Scan Summary"))
+
             ignores_line = str(ignore_log or "No ignore information available")
             suggestion_line = ""
             if (
@@ -389,7 +394,8 @@ class OutputHandler:
                 stats_line = f"\nRan {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
-            output_text = "\n" + ignores_line + suggestion_line + stats_line
+
+            output_text = ignores_line + suggestion_line + stats_line
             logger.info(output_text)
 
         self._final_raise(final_error)
