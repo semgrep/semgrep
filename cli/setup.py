@@ -138,7 +138,6 @@ install_requires = [
     "rich>=12.6.0",
     "ruamel.yaml>=0.16.0,<0.18",
     "tomli~=2.0.1",
-    "tqdm~=4.46",
     "typing-extensions~=4.2",
     "urllib3~=1.26",
     "wcmatch~=8.3",
