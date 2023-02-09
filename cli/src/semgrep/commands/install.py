@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Tuple
 
 import click
-from tqdm import tqdm
 from rich.progress import (
     Progress,
     BarColumn,
