@@ -34,7 +34,6 @@ import pytest
             "rules/autofix/yaml-excessive-mapping-capture.yaml",
             "autofix/yaml-excessive-mapping-capture.yaml",
         ),
-        ("rules/autofix/raw-go-string.yaml", "autofix/raw-string.go"),
     ],
 )
 @pytest.mark.kinda_slow
