@@ -64,10 +64,13 @@ type t = {
   (* TODO: eventually the default should be 'false'. *)
   ~implicit_ellipsis <ocaml default="true"> : bool;
 
+  (* let `<foo />` singleton also match `<foo></foo>` *)
   ~xml_singleton_loose_matching <ocaml default="true"> : bool;
   (* implicitly assume ellipsis in xml attributes *)
   (* TODO: eventually the default should be 'false'. *)
   ~xml_attrs_implicit_ellipsis <ocaml default="true"> : bool;
+  (* if false, xml children are matched in any order *)
+  ~xml_children_ordered <ocaml default="true"> : bool;
 
   (* maximum number of newlines that an ellipsis can match.
      Use 0 to contain the match within a single line. *)
