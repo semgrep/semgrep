@@ -78,6 +78,7 @@ Fetching configuration from semgrep.dev
 Would have sent POST request to create scan
 Authenticated as org_name
 Scanning 1 file with 4 python rules.
+
                                                                                 
                                                                                 
 ╭─────────╮                                                                     

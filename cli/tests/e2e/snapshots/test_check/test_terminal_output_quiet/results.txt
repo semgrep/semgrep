@@ -26,6 +26,7 @@ Findings:
 === end of stdout - plain
 
 === stderr - plain
+
                                                                                 
                                                                                 
 ╭─────────╮                                                                     
@@ -61,6 +62,7 @@ Findings:
 === end of stdout - color
 
 === stderr - color
+
                                                                                 
                                                                                 
 ╭─────────╮                                                                     

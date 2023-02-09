@@ -38,6 +38,7 @@ poetry.lock:0:0:E:supply-chain1:found a dependency
 Fetching configuration from semgrep.dev
 Authenticated as org_name
 Scanning 1 file with 4 python rules.
+
                                                                                 
                                                                                 
 ╭─────────╮                                                                     
