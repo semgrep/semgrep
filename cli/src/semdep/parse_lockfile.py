@@ -4,6 +4,7 @@ from typing import Generator
 from typing import List
 from typing import Optional
 
+from semdep.find_lockfiles import lockfile_path_to_manfiest_path
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 
@@ -78,9 +79,8 @@ NEW_LOCKFILE_PARSERS = {
 
 
 @lru_cache(maxsize=1000)
-def parse_lockfile_path(
-    lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
+def parse_lockfile_path(lockfile_path: Path) -> List[FoundDependency]:
+    manifest_path = lockfile_path_to_manfiest_path(lockfile_path)
     # coupling with the github action, which decides to send files with these names back to us
     lockfile_name = lockfile_path.name.lower()
     if lockfile_name in NEW_LOCKFILE_PARSERS:

@@ -23,7 +23,6 @@ from typing import Tuple
 from typing import Union
 
 from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
-from semdep.find_lockfiles import LOCKFILE_TO_MANIFEST
 from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.git import BaselineHandler
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -738,16 +737,11 @@ class TargetManager:
     def get_lockfile_dependencies(
         self, ecosystem: Ecosystem
     ) -> Dict[Path, List[FoundDependency]]:
+        """ """
         lockfiles = self.get_files_for_language(ecosystem).kept
         parsed: Dict[Path, List[FoundDependency]] = {}
         for lockfile in lockfiles:
-            path, lockfile_pattern = lockfile.parent, lockfile.parts[-1]
-            manifest_pattern = LOCKFILE_TO_MANIFEST[lockfile_pattern]
-            manifest_path = path / manifest_pattern if manifest_pattern else None
-            deps = parse_lockfile_path(
-                lockfile,
-                manifest_path if manifest_path and manifest_path.exists() else None,
-            )
+            deps = parse_lockfile_path(lockfile)
             if lockfile not in self.lockfile_scan_info:
                 # We haven't seen this file during reachable finding generation
                 self.lockfile_scan_info[str(lockfile)] = len(deps)
