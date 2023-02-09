@@ -25,15 +25,13 @@ from typing import TYPE_CHECKING
 from attr import asdict
 from attr import field
 from attr import frozen
+from rich.progress import BarColumn
+from rich.progress import MofNCompleteColumn
+from rich.progress import Progress
+from rich.progress import TaskID
+from rich.progress import TextColumn
+from rich.progress import TimeElapsedColumn
 from ruamel.yaml import YAML
-from rich.progress import (
-    Progress,
-    BarColumn,
-    TaskID,
-    MofNCompleteColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
 
 import semgrep.fork_subprocess as fork_subprocess
 import semgrep.output_from_core as core

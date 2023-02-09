@@ -8,17 +8,15 @@ from pathlib import Path
 from typing import Tuple
 
 import click
-from rich.progress import (
-    Progress,
-    BarColumn,
-    DownloadColumn,
-    TextColumn,
-    TransferSpeedColumn,
-    TimeRemainingColumn,
-)
+from rich.progress import BarColumn
+from rich.progress import DownloadColumn
+from rich.progress import Progress
+from rich.progress import TextColumn
+from rich.progress import TimeRemainingColumn
+from rich.progress import TransferSpeedColumn
 
-from semgrep.console import console
 from semgrep.commands.wrapper import handle_command_errors
+from semgrep.console import console
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.semgrep_core import SemgrepCore
