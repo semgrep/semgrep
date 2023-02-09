@@ -6,7 +6,6 @@ from typing import Dict
 import click
 
 from semgrep.commands.ci import ci
-from semgrep.commands.install import install_deep_semgrep
 from semgrep.commands.install import install_semgrep_pro
 from semgrep.commands.login import login
 from semgrep.commands.login import logout
@@ -93,6 +92,5 @@ cli.add_command(logout)
 cli.add_command(publish)
 cli.add_command(scan)
 cli.add_command(install_semgrep_pro)
-cli.add_command(install_deep_semgrep)  # Just for backwards compat
 cli.add_command(shouldafound)
 cli.add_command(lsp)

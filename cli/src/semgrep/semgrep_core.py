@@ -48,9 +48,6 @@ class SemgrepCore:
     # yet.
     _SEMGREP_PATH_: Optional[str] = None
 
-    # DEPRECATED: To be removed by Feb 2023 launch
-    _DEEP_PATH_: Optional[str] = None
-
     _PRO_PATH_: Optional[str] = None
 
     # Reference to the bridge module if we are using it.
@@ -137,13 +134,6 @@ class SemgrepCore:
         the module.
         """
         return cls._bridge_module is not None
-
-    # DEPRECATED: To be removed by Feb 2023 launch
-    @classmethod
-    def deep_path(cls) -> Optional[str]:
-        if cls._DEEP_PATH_ is None:
-            cls._DEEP_PATH_ = compute_executable_path("deep-semgrep")
-        return cls._DEEP_PATH_
 
     @classmethod
     def pro_path(cls) -> Optional[str]:

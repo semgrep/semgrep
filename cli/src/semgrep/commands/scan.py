@@ -614,28 +614,6 @@ def scan_options(func: Callable) -> Callable:
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
-# DEPRECATED: --deep to be removed by Feb 2023 launch
-@click.option(
-    "--deep",
-    "-x",
-    is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
-)
-# DEPRECATED: --interproc to be removed by Feb 2023 launch
-@click.option(
-    "--interproc",
-    is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
-)
-# DEPRECATED: --interfile to be removed by Feb 2023 launch
-@click.option(
-    "--interfile",
-    is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
-)
 @click.option(
     "--dump-engine-path",
     is_flag=True,
@@ -651,10 +629,7 @@ def scan(
     config: Optional[Tuple[str, ...]],
     core_opts: Optional[str],
     debug: bool,
-    deep: bool,
     dump_engine_path: bool,
-    interproc: bool,
-    interfile: bool,
     pro_languages: bool,
     pro_intrafile: bool,
     pro: bool,
@@ -794,13 +769,6 @@ def scan(
         output_format = OutputFormat.EMACS
     elif vim:
         output_format = OutputFormat.VIM
-
-    if deep:
-        abort("The experimental flag --deep has been renamed to --interfile.")
-    if interproc:
-        abort("The experimental flag --interproc has been renamed to --pro-intrafile.")
-    if interfile:
-        abort("The experimental flag --interfile has been renamed to --pro.")
 
     if pro:
         # Inter-file + Pro languages

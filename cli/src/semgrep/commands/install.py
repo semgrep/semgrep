@@ -129,19 +129,3 @@ def install_semgrep_pro() -> None:
     Visit https://semgrep.dev/deep-semgrep-beta for more information
     """
     run_install_semgrep_pro()
-
-
-# DEPRECATED: To be removed by Feb 2023 launch
-@click.command(hidden=True)
-@handle_command_errors
-def install_deep_semgrep() -> None:
-    """
-    This no longer installs the DeepSemgrep binary, but it will suggest
-    to you the real command that does.
-    """
-    logger.info(f"This command no longer installs the DeepSemgrep binary.")
-    logger.info(
-        f"Instead, try installing the Semgrep Pro Engine via `semgrep install-semgrep-pro`."
-    )
-
-    sys.exit(FATAL_EXIT_CODE)
