@@ -1582,32 +1582,30 @@ and m_xml_bodies a b =
   | [ XmlText (s, tok) ], _ when MV.is_metavar_ellipsis s ->
       envf (s, tok) (MV.Xmls b)
   | _else_ ->
-      (* alt: we could guard this with an option: xml_unordered_children: true?
-       * instead on relying on lang?
-       *)
-      with_lang (fun lang ->
-          match lang with
-          | Xml ->
-              let has_ellipsis, a =
-                has_ellipsis_and_filter_ellipsis_gen
-                  (function
-                    | G.XmlText (s, _) -> String.trim s = "..."
-                    | _ -> false)
-                  a
-              in
-              m_list_in_any_order ~less_is_ok:has_ellipsis m_xml_body a b
-          | _else_ ->
-              m_list_with_dots_and_metavar_ellipsis ~f:m_xml_body
-                ~is_dots:(function
-                  | G.XmlText (s, _) -> String.trim s = "..."
-                  | _ -> false)
-                  (* less-is-ok: it's ok to have an empty body in the pattern *)
-                ~less_is_ok:true
-                ~is_metavar_ellipsis:(function
-                  | G.XmlText (s, tok) when MV.is_metavar_ellipsis s ->
-                      Some ((s, tok), fun xs -> MV.Xmls xs)
-                  | _ -> None)
-                a b)
+      (* alt: use with_lang and enabled it by default for Lang.Xml *)
+      if_config
+        (fun x -> x.xml_children_ordered)
+        ~then_:
+          (m_list_with_dots_and_metavar_ellipsis ~f:m_xml_body
+             ~is_dots:(function
+               | G.XmlText (s, _) -> String.trim s = "..."
+               | _ -> false)
+               (* less-is-ok: it's ok to have an empty body in the pattern *)
+             ~less_is_ok:true
+             ~is_metavar_ellipsis:(function
+               | G.XmlText (s, tok) when MV.is_metavar_ellipsis s ->
+                   Some ((s, tok), fun xs -> MV.Xmls xs)
+               | _ -> None)
+             a b)
+        ~else_:
+          (let has_ellipsis, a =
+             has_ellipsis_and_filter_ellipsis_gen
+               (function
+                 | G.XmlText (s, _) -> String.trim s = "..."
+                 | _ -> false)
+               a
+           in
+           m_list_in_any_order ~less_is_ok:has_ellipsis m_xml_body a b)
 
 and m_xml_attr a b =
   match (a, b) with
