@@ -1,0 +1,2 @@
+Fixed a bug where sometimes metavariables from regex capture groups could not be
+`focus-metavariable`d, `metavariable-regex`d, or would otherwise disappear.

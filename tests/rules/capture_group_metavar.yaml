@@ -1,0 +1,10 @@
+rules:
+  - id: capture-group-metavar 
+    patterns: 
+      - pattern-regex: "x = (.*)"
+      - metavariable-regex:
+          metavariable: $1
+          regex: ".*"
+    message: Semgrep found a match $1
+    languages: [python] 
+    severity: WARNING
