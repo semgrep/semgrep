@@ -1,0 +1,2 @@
+Go: Fixed a bug where the location of Go raw string literals were not being reported correctly.
+This could cause issues with Playground range highlighting and autofix
