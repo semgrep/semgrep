@@ -1,1 +1,0 @@
-Rule syntax: Metavariable bindings bound within `metavariable-pattern` now persist to outside of the `metavariable-pattern`

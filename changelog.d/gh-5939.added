@@ -1,3 +1,0 @@
-Experimental support for XML and allow to match XML elements in any order
-with a new matching option `xml_children_ordered` to set to false
-to match in any order.
