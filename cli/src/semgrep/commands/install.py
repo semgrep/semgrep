@@ -9,7 +9,16 @@ from typing import Tuple
 
 import click
 from tqdm import tqdm
+from rich.progress import (
+    Progress,
+    BarColumn,
+    DownloadColumn,
+    TextColumn,
+    TransferSpeedColumn,
+    TimeRemainingColumn,
+)
 
+from semgrep.console import console
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
@@ -93,9 +102,21 @@ Please delete {deep_semgrep_path} manually to make this warning disappear!
 
         file_size = int(r.headers.get("Content-Length", 0))
 
-        with open(semgrep_pro_path, "wb") as f:
-            with tqdm.wrapattr(r.raw, "read", total=file_size) as r_raw:
-                shutil.copyfileobj(r_raw, f)
+        with (
+            Progress(
+                TextColumn("{task.description}"),
+                BarColumn(),
+                DownloadColumn(),
+                TransferSpeedColumn(),
+                TimeRemainingColumn(),
+                console=console,
+            ) as progress,
+            open(semgrep_pro_path, "wb") as f,
+            progress.wrap_file(
+                r.raw, total=file_size, description="Downloading..."
+            ) as r_raw,
+        ):
+            shutil.copyfileobj(r_raw, f)
 
     # THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
     #        The binary should not have setuid or setgid rights, so letting others
