@@ -207,7 +207,7 @@ type bindings = (mvar * mvalue) list (* = Common.assoc *)
  * cases below in is_metavar_name.
  * coupling: AST_generic.is_metavar_name
  *)
-let metavar_regexp_string = "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
+let metavar_regexp_string = "^\\(\\$[A-Z_0-9]+\\)$"
 
 (*
  * Hacks abusing existing constructs to encode extra constructions.
@@ -237,7 +237,7 @@ let is_metavar_name s =
 (* $...XXX multivariadic metavariables. Note that I initially chose
  * $X... but this leads to parsing conflicts in Javascript.
  *)
-let metavar_ellipsis_regexp_string = "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
+let metavar_ellipsis_regexp_string = "^\\(\\$\\.\\.\\.[A-Z_0-9]+\\)$"
 let is_metavar_ellipsis s = s =~ metavar_ellipsis_regexp_string
 
 module Structural = struct
