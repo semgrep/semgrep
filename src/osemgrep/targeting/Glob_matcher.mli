@@ -3,6 +3,16 @@
    This is purely syntaxic: the file system is not accessed.
 *)
 
+(* The location of a pattern, for logging and troubleshooting. *)
+type loc = {
+  (* File name or other source location name useful to a human reader
+     in error messages. *)
+  source_name : string;
+  (* Line number, starting from 1. *)
+  line_number : int;
+  line_contents : string;
+}
+
 type char_class_range = Class_char of char | Range of char * char
 type char_class = { complement : bool; ranges : char_class_range list }
 
@@ -30,24 +40,34 @@ type compiled_pattern
    the original glob pattern before parsing. It's used only for debugging
    purposes.
 *)
-val compile : source:string -> pattern -> compiled_pattern
+val compile : source:loc -> pattern -> compiled_pattern
 
 (*
-   Match an absolute or relative path against a pattern.
+   Match a path against a pattern:
+   - The path must be slash-separated (not backslash-separated like on
+     Windows).
+   - If the pattern starts with a slash, the path must start with a slash
+     as well. In both cases, the matching starts from the beginning.
+   - Matching is purely syntactic. No file system lookup will be attempted.
 
-   If the pattern is absolute, then both the beginning and the end of the
-   path must match. Otherwise if the pattern is relative, only the end
-   of the path must match.
-
-   Example:
+   Examples:
 
    absolute pattern: /*.c
    matching paths: /foo.c /bar.c
    non-matching paths: foo.c bar.c /tmp/foo.c /tmp/bar.c
 
    relative pattern: *.c
-   matching paths: bar.c /bar.c foo/bar.c
+   matching paths: bar.c
+   non-matching paths: /bar.c foo.c/bar bar/foo.c
+
+   sliding pattern: **/.c
+   matching paths: foo.c bar/foo.c /foo.c
    non-matching paths: foo.c/bar
+
+   folder pattern: foo/
+   matching paths: foo/
+   non-matching paths: foo bar/foo/ /foo/ /foo
 *)
-val run : compiled_pattern -> Fpath.t -> bool
-val source : compiled_pattern -> string
+val run : compiled_pattern -> string -> bool
+
+val source : compiled_pattern -> loc

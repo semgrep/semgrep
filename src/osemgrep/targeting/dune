@@ -10,3 +10,5 @@
     fpath
   )
 )
+
+(ocamllex Glob_parser)

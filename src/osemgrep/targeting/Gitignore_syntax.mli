@@ -4,16 +4,6 @@
    https://git-scm.com/docs/gitignore
 *)
 
-(* The location of a pattern, for logging and troubleshooting. *)
-type loc = {
-  (* File name or other source location name useful to a human reader
-     in error messages. *)
-  source_name : string;
-  (* Line number, starting from 1. *)
-  line_number : int;
-  line_contents : string;
-}
-
 (*
    A ternary state indicating whether a path is selected or deselected at
    the end of a level:
@@ -21,11 +11,13 @@ type loc = {
    - Deselected: deselect the file (= don't ignore it for git purposes)
    - Unmatched: move on to the next level to determine the fate of the path.
 *)
-type selection_event = Selected of loc | Deselected of loc
+type selection_event =
+  | Selected of Glob_matcher.loc
+  | Deselected of Glob_matcher.loc
 
 (* Path selector. *)
 type path_selector = {
-  loc : loc;
+  loc : Glob_matcher.loc;
   (* The matcher tells whether a given path matches the pattern.
      For example, the pattern /foo matches the path /
 
@@ -37,6 +29,10 @@ type path_selector = {
 
 type t = path_selector list
 
-(* Parsing functions. They will raise exceptions if the input is malformed. *)
-val from_string : ?name:string -> string -> t
-val from_file : string -> t
+(* Parsing functions. They will raise exceptions if the input is malformed.
+
+   The anchor is the pattern that matches the path from the git project
+   root to the work folder, typically the one containing the gitignore file.
+*)
+val from_string : anchor:Glob_matcher.pattern -> ?name:string -> string -> t
+val from_file : anchor:Glob_matcher.pattern -> string -> t
