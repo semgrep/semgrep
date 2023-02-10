@@ -1,3 +1,0 @@
-Pro: Removed already deprecated flags `--deep` (now `--pro`), `--interfile` (now `--pro`),
-and `--interproc` (now `--pro-intrafile`). Also removed already deprecated command
-`install-deep-semgrep` (now `install-semgrep-pro`).
