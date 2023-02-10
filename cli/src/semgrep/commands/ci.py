@@ -371,7 +371,7 @@ def ci(
             elif oss_only:
                 engine = EngineType.OSS
 
-            (semgrep_pro_path, _deep_semgrep_path) = determine_semgrep_pro_path()
+            semgrep_pro_path = determine_semgrep_pro_path()
 
             # Set a default max_memory for CI runs when DeepSemgrep is on because
             # DeepSemgrep is likely to run out
