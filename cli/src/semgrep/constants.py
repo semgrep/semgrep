@@ -3,6 +3,8 @@ from enum import auto
 from enum import Enum
 from typing import Type
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+
 
 RULES_KEY = "rules"
 ID_KEY = "id"
@@ -43,6 +45,12 @@ class EngineType(Enum):
     @property
     def is_interfile(self) -> bool:
         return self.value == EngineType.PRO_INTERFILE.value
+
+    def to_engine_kind(self) -> out.EngineKind:
+        if self.value == EngineType.OSS.value:
+            return out.EngineKind(out.OSS())
+        else:
+            return out.EngineKind(out.PRO())
 
 
 class OutputFormat(Enum):

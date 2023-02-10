@@ -103,7 +103,7 @@ def generate_unreachable_sca_findings(
                         # Output_from_core.atd so we can reuse core.MatchExtra
                         extra=core.CoreMatchExtra(
                             metavars=core.Metavars({}),
-                            engine_kind=core.EngineKind(core.OSSMatch()),
+                            engine_kind=core.EngineKind(core.OSS()),
                         ),
                     ),
                     extra={

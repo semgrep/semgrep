@@ -957,7 +957,11 @@ class CoreRunner:
             errors.extend(parsed_errors)
 
         output_extra = OutputExtra(
-            all_targets, profiling_data, parsing_data, core_output.explanations
+            all_targets,
+            profiling_data,
+            parsing_data,
+            core_output.explanations,
+            core_output.rules_by_engine,
         )
 
         return (

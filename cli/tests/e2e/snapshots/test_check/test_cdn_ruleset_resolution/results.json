@@ -71,7 +71,7 @@
             }
           }
         },
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "severity": "ERROR"
       },
       "path": "targets/basic/stupid.js",
@@ -117,7 +117,7 @@
             }
           }
         },
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "severity": "INFO"
       },
       "path": "targets/basic/stupid.py",

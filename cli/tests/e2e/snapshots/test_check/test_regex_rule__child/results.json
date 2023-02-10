@@ -25,7 +25,7 @@
         "offset": 47
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "boto3.client(host=\"123.123.123.123\")",

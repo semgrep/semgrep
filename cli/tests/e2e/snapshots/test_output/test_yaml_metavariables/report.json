@@ -15,7 +15,7 @@
         "offset": 12
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: \"one\"",
@@ -53,7 +53,7 @@
         "offset": 25
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: 'two'",
@@ -91,7 +91,7 @@
         "offset": 45
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: |\n    three",
@@ -129,7 +129,7 @@
         "offset": 62
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: |\n   four",
@@ -167,7 +167,7 @@
         "offset": 93
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: |       \n    fi\n\n    ve",
@@ -205,7 +205,7 @@
         "offset": 123
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: |\n    si\n\n      x",
@@ -243,7 +243,7 @@
         "offset": 142
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: >\n    seven",
@@ -281,7 +281,7 @@
         "offset": 166
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: >\n    eig\n\n    ht",
