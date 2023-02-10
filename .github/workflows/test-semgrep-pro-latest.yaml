@@ -1,3 +1,10 @@
+# The goal of this workflow is to offer a validation step before releasing
+# Semgrep, to ensure that the to-be-released version of Semgrep is not 
+# incompatible with the currently released version of Semgrep Pro.
+#
+# If this workflow succeeds, then it should be safe to release Semgrep and
+# not immediately be incompatible with Semgrep Pro. 
+
 name: test-semgrep-pro-latest
 
 on:
