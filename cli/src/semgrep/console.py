@@ -7,15 +7,16 @@ https://rich.readthedocs.io/en/stable/console.html#console-api
 See also the semgrep.terminal module which is an earlier attempt to standardize some output configuration,
 but is more low level and doesn't really offload logic to other libraries.
 """
+from typing import Optional
+
 from attrs import frozen
 from rich import box
 from rich.console import Console
+from rich.console import Group
 from rich.console import RenderableType
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.text import Text
-
-console = Console()
 
 
 @frozen
@@ -29,14 +30,68 @@ class Title:
         elif self.order == 2:
             return Padding(Text(self.text.upper(), style="underline"), (0, 2))
         elif self.order == 3:
-            return Text("⮕ " + self.text.upper())
+            return Text("  ⮕ " + self.text.upper())
         else:
             raise ValueError(f"Title order must be 1, 2, or 3, not {self.order}")
 
 
+class AutoIndentingConsole(Console):
+    """This custom console keeps track of the last title printed and automatically indents the next line according to what level title we're under."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        self.active_title: Optional[Title] = None
+        super().__init__(*args, **kwargs)
+
+    @property
+    def auto_indent_size(self) -> int:
+        if self.active_title is None:
+            return 0
+
+        if self.active_title.order == 1:
+            return 2
+        elif self.active_title.order == 2:
+            return 2
+        elif self.active_title.order == 3:
+            return 5
+        else:
+            return 0
+
+    def reset_title(self) -> None:
+        self.active_title = None
+
+    @staticmethod
+    def extract_title(current: RenderableType) -> Optional[Title]:
+        while isinstance(current, Title) or hasattr(current, "renderable"):
+            if isinstance(current, Title):
+                return current
+            current = getattr(current, "renderable")
+
+    def print(self, *args, auto_indent: bool = True, **kwargs) -> None:
+        indent = 0
+
+        for arg in args:
+            title = self.extract_title(arg)
+            if title is not None:
+                self.active_title = title
+                break
+        else:
+            indent = self.auto_indent_size
+
+        super().print(Padding.indent(Group(*args), indent), **kwargs)
+
+
+console = AutoIndentingConsole()
+console.width = min(console.width, 120)
+
+
 if __name__ == "__main__":
     """Print samples of the above components."""
-    console.print("Semgrep output formatting samples:")
+    console.print("[bold]Semgrep output formatting samples:[/bold]")
     console.print(Title("Level 1"))
+    console.print("auto-indented text")
     console.print(Title("Level 2", order=2))
+    console.print("auto-indented text")
     console.print(Title("Level 3", order=3))
+    console.print("auto-indented text")
+    console.reset_title()
+    console.print("auto-indented text after title reset")
