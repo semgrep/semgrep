@@ -2,6 +2,7 @@ name: test-semgrep-pro-latest
 
 on:
   workflow_dispatch:
+  pull_request:
 jobs:
   test-semgrep-pro-latest:
     name: Test Semgrep Pro Engine (latest release)
