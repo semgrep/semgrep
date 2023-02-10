@@ -1,0 +1,2 @@
+Pro: We now check the downloaded binary before installing it, this should prevent
+installation of corrupted binaries due to errors during the download.
