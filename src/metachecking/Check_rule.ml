@@ -81,6 +81,12 @@ let error env t s =
 (*****************************************************************************)
 
 let unknown_metavar_in_comparison env f =
+  let mvar_is_ok mv mvs =
+    (* $1 may be present in the metavariable-pattern but will not
+       appear in the pattern, because it is bound by capture groups
+       in regex patterns rather than an explicit metavar *)
+    Metavariable.is_metavar_for_capture_group mv || Set.mem mv mvs
+  in
   let rec collect_metavars f : MV.mvar Set.t =
     match f with
     | P { pat = _pat; pstr = pstr, _; pid = _pid } ->
@@ -134,16 +140,16 @@ let unknown_metavar_in_comparison env f =
                match metavar_cond with
                | CondEval _ -> ()
                | CondRegexp (mv, _, _) ->
-                   if not (Set.mem mv mvs) then mv_error mv t
+                   if not (mvar_is_ok mv mvs) then mv_error mv t
                | CondNestedFormula (mv, _, _) ->
-                   if not (Set.mem mv mvs) then mv_error mv t
+                   if not (mvar_is_ok mv mvs) then mv_error mv t
                | CondAnalysis (mv, _) ->
-                   if not (Set.mem mv mvs) then mv_error mv t);
+                   if not (mvar_is_ok mv mvs) then mv_error mv t);
         focus
         |> List.iter (fun (t, mv_list) ->
                mv_list
                |> List.iter (fun mv ->
-                      if not (Set.mem mv mvs) then mv_error mv t));
+                      if not (mvar_is_ok mv mvs) then mv_error mv t));
         mvs
   in
   let _ = collect_metavars f in
