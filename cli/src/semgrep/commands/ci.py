@@ -229,7 +229,7 @@ def ci(
         sys.exit(INVALID_API_KEY_EXIT_CODE)
     elif not token and config:
         # Not logged in but has explicit config
-        logger.info(f"Running `semgrep ci` without API token but with configs {config}")
+        pass
     elif token and config:
         # Logged in but has explicit config
         logger.info(
@@ -259,7 +259,6 @@ def ci(
     metadata = generate_meta_from_environment(baseline_commit)
 
     console.print(Title("Debugging Info"))
-
     scan_env = Table.grid(padding=(0, 1))
     scan_env.add_row(
         "versions",
@@ -292,13 +291,15 @@ def ci(
                 "-",
                 f"logged in as [bold]{scan_handler.deployment_name}[/bold] on [bold]{state.env.semgrep_url}[/bold]",
             )
-
     except Exception as e:
         import traceback
 
         traceback.print_exc()
         logger.info(f"Could not start scan {e}")
         sys.exit(FATAL_EXIT_CODE)
+
+    console.print(Title("Scan Environment", order=2))
+    console.print(scan_env)
 
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
@@ -514,3 +515,28 @@ def ci(
         version_check()
 
     sys.exit(exit_code)
+
+
+def print_debugging_info(metadata, *, is_connected: bool) -> None:
+    env = get_state().env
+    console.print(Title("Debugging Info"))
+    scan_env = Table.grid(padding=(0, 1))
+    scan_env.add_row(
+        "versions",
+        "-",
+        f"semgrep [bold]{semgrep.__VERSION__}[/bold] on python [bold]{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}[/bold]",
+    )
+    scan_env.add_row(
+        "environment",
+        "-",
+        f"running in environment [bold]{metadata.environment}[/bold], triggering event is [bold]{metadata.event_name}[/bold]",
+    )
+
+    if is_connected:
+        scan_env.add_row("server", "-", env.semgrep_url)
+
+    console.print(Title("Scan Environment", order=2))
+    console.print(scan_env)
+    console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
+    console.print(f"Using Semgrep Pro Version: [bold]{'something'}[/bold]")
+    console.print(f"Installed in [bold]{'/arst/arst/qwfp'}[/bold]")
