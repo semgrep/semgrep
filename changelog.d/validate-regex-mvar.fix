@@ -1,2 +1,2 @@
-CLI: Fixed bug with `semgrep --validate` for metavariables like $1, $2. 
+CLI: Fixed bug with `semgrep --validate` for metavariables like $1, $2.
 Previously, it blocked rules that it shouldn't.
