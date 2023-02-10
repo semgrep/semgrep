@@ -236,14 +236,14 @@ class StreamingSemgrepCore:
                 # that are looking for it. Make sure `semgrep-core exited with unexpected output`
                 # and `interfile analysis` are both in the message, or talk to Emma.
                 raise SemgrepError(
-                    "semgrep-core exited with unexpected output. This can happen because \
-                    it overflowed the stack or used too much memory. Try changing the stack \
-                    limit with `ulimit -s <limit>` or adding `--max-memory <memory>` to the \
-                    semgrep command. For CI runs with interfile analysis, the default max-memory \
-                    is 5000MB. Depending on the memory available in your runner, you may need \
-                    to lower it. We recommend choosing a limit 70% of the available memory to \
-                    allow for some overhead. If you have tried these steps and still are seeing \
-                    this error, please contact us."
+                    "semgrep-core exited with unexpected output.\n\n"
+                    "\tThis can happen because it overflowed the stack or used too much memory.\n"
+                    "\tTry changing the stack limit with `ulimit -s <limit>` or adding\n"
+                    "\t`--max-memory <memory>` to the semgrep command. For CI runs with interfile\n"
+                    "\tanalysis, the default max-memory is 5000MB. Depending on the memory\n"
+                    "\tavailable in your runner, you may need to lower it. We recommend choosing\n"
+                    "\ta limit 70% of the available memory to allow for some overhead. If you have\n"
+                    "\ttried these steps and still are seeing this error, please contact us."
                 )
 
             # read returns empty when EOF
