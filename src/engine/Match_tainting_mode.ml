@@ -249,7 +249,7 @@ let range_of_any any =
        * first place? *)
       | G.Anys []
       (* An enormous amount of logspew with Semgrep Pro Engine happens with this
-       * case. TODO Figure out why avoid it? *)
+       * case. TODO Figure out why and avoid it? *)
       | G.Tk _ ->
           ()
       | _else_ ->
