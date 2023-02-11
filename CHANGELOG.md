@@ -8,6 +8,22 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.11.0](https://github.com/returntocorp/semgrep/releases/tag/v1.11.0) - 2023-02-10
+
+### Changed
+
+- Pro: Removed already deprecated flags `--deep` (now `--pro`), `--interfile` (now `--pro`),
+  and `--interproc` (now `--pro-intrafile`). Also removed already deprecated command
+  `install-deep-semgrep` (now `install-semgrep-pro`). (pa-2518)
+
+### Fixed
+
+- Go: Fixed a bug where the location of Go raw string literals were not being reported correctly.
+  This could cause issues with Playground range highlighting and autofix (pa-2206)
+- CLI: Progress bar for Semgrep Pro Engine interfile scans now reflects actual progress more faithfully (pa-2313)
+- Pro: We now check the downloaded binary before installing it, this should prevent
+  installation of corrupted binaries due to errors during the download. (pa-2492)
+
 ## [1.10.0](https://github.com/returntocorp/semgrep/releases/tag/v1.10.0) - 2023-02-08
 
 ### Added
