@@ -10,9 +10,11 @@ type selection_event =
   | Selected of M.loc
   | Deselected of M.loc
 
+type git_path = string
+
 type path_selector = {
   loc : M.loc;
-  matcher : Fpath.t -> selection_event option
+  matcher : string -> selection_event option
 }
 
 type t = path_selector list

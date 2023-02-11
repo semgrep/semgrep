@@ -40,4 +40,7 @@ type t = level list
    went through, in reverse order. The first element of the list, if any,
    determines whether the file is selected.
 *)
-val select : t -> Fpath.t -> bool * Gitignore_syntax.selection_event list
+val select :
+  t ->
+  Gitignore_syntax.git_path ->
+  bool * Gitignore_syntax.selection_event list

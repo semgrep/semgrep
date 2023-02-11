@@ -15,6 +15,12 @@ type selection_event =
   | Selected of Glob_matcher.loc
   | Deselected of Glob_matcher.loc
 
+(*
+   An absolute slash-separated path relative to the root of the git project.
+   TODO: use private or abstract type?
+*)
+type git_path = string
+
 (* Path selector. *)
 type path_selector = {
   loc : Glob_matcher.loc;
@@ -24,7 +30,7 @@ type path_selector = {
      The result is the list of selection events, most recent first.
      The head of the list alone determines whether the path is selected.
      An empty list indicates that the path was not selected. *)
-  matcher : Fpath.t -> selection_event option;
+  matcher : git_path -> selection_event option;
 }
 
 type t = path_selector list

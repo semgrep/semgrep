@@ -2,8 +2,6 @@
    Support for file tree filtering using the gitignore specification.
 *)
 
-let ( / ) = Fpath.( / )
-
 module S = Gitignore_syntax
 
 type level = {
@@ -35,11 +33,13 @@ let select_one acc levels path : S.selection_event list =
         acc level.patterns)
     acc levels
 
+let ( / ) a b = a ^ "/" ^ b
+
 (*
    Filter a path according to gitignore rules, requiring all the parent paths
    to be deselected (not gitignored).
 *)
-let select levels path =
+let select levels git_path =
   let rec loop sel_events path components =
     (* add a component to the path and check if it's gitignored *)
     match components with
@@ -52,13 +52,13 @@ let select levels path =
           sel_events
         else loop sel_events path components
   in
-  let root_path, components =
-    match Fpath.segs path with
-    | "" :: xs -> (Fpath.(v dir_sep), xs)
-    | __else__ ->
+  let components =
+    match String.split_on_char '/' git_path with
+    | "" :: xs -> xs
+    | __else_ ->
         invalid_arg
           ("Gitignore_filter.select: not an absolute path: "
-         ^ Fpath.to_string path)
+           ^ git_path)
   in
-  let sel_events = loop [] root_path components in
+  let sel_events = loop [] "/" components in
   (is_selected sel_events, sel_events)
