@@ -242,20 +242,14 @@ let range_of_any any =
    * the AST at some point. *)
   match Visitor_AST.range_of_any_opt any with
   | None ->
-      (match any with
       (* IL.any_of_orig will return `G.Anys []` for `NoOrig`, and there is
        * no point in issuing this warning in that case.
        * TODO: Perhaps we should avoid the call to `any_in_ranges` in the
        * first place? *)
-      | G.Anys []
-      (* An enormous amount of logspew with Semgrep Pro Engine happens with this
-       * case. TODO Figure out why and avoid it? *)
-      | G.Tk _ ->
-          ()
-      | _else_ ->
-          logger#warning
-            "Cannot compute range, there are no real tokens in this AST: %s"
-            (G.show_any any));
+      if any <> G.Anys [] then
+        logger#trace
+          "Cannot compute range, there are no real tokens in this AST: %s"
+          (G.show_any any);
       None
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
