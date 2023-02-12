@@ -10,7 +10,26 @@ type level = {
   patterns : S.path_selector list;
 }
 
-type t = level list
+type t = {
+  project_root: Fpath.t;
+  higher_priority_levels: level list;
+  gitignore_file_cache: Gitignore_files.t;
+  lower_priority_levels: level list;
+}
+
+let create
+    ?gitignore_filenames
+    ?(higher_priority_levels = [])
+    ?(lower_priority_levels = [])
+    ~project_root
+    () =
+  {
+    project_root;
+    higher_priority_levels;
+    gitignore_file_cache =
+      Gitignore_files.create ?gitignore_filenames ~project_root ();
+    lower_priority_levels;
+  }
 
 let is_selected (sel_events : S.selection_event list) =
   match sel_events with
@@ -39,13 +58,14 @@ let ( / ) a b = a ^ "/" ^ b
    Filter a path according to gitignore rules, requiring all the parent paths
    to be deselected (not gitignored).
 *)
-let select levels git_path =
-  let rec loop sel_events path components =
+let select t ~git_path =
+  let rec loop sel_events parent_path components =
     (* add a component to the path and check if it's gitignored *)
     match components with
     | [] -> sel_events
     | component :: components ->
-        let path = path / component in
+        let additional_level = Gitignore_files.load parent_path in
+        let path = parent_path / component in
         let sel_events = select_one sel_events levels path in
         if is_selected sel_events then
           (* stop here, don't go deeper as per gitignore spec *)

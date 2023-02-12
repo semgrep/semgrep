@@ -25,7 +25,14 @@ type level = {
 }
 
 (* Any number of groups of path selectors. *)
-type t = level list
+type t
+
+val create :
+  ?gitignore_filenames:string list ->
+  ?higher_priority_levels:level list ->
+  ?lower_priority_levels:level list ->
+  project_root:Fpath.t ->
+  unit -> t
 
 (*
    Examine a single absolute* path and determine whether it is selected by the

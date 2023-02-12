@@ -35,6 +35,9 @@ type pattern = component list
 (* A compiled pattern matcher. *)
 type compiled_pattern
 
+(* The pattern that matches '/' *)
+val root_pattern : pattern
+
 (*
    Compile the pattern into something efficient. The source should be
    the original glob pattern before parsing. It's used only for debugging

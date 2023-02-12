@@ -31,6 +31,9 @@ type compiled_pattern = {
   re : Re.re
 }
 
+(* / *)
+let root_pattern = [Component []; Component []]
+
 let slash = Re.char '/'
 let not_slash = Re.compl [slash]
 
