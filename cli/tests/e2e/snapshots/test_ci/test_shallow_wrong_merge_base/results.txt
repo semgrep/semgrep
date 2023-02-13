@@ -7,18 +7,6 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of exit code
 
 === stdout - plain
-Non-Blocking Findings:
-
-  bar.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (bar == 2)
-          1┆ bar == 5
-
-=== end of stdout - plain
-
-=== stderr - plain
                                                                                 
                                                                                 
 ╭────────────────╮                                                              
@@ -52,6 +40,14 @@ Returning to original head revision 7b5cda417c780f1f96c888e1d7bd062f46df236e
 │ Results │                                                                     
 ╰─────────╯                                                                     
                                                                                 
+Non-Blocking Findings:
+
+  bar.py 
+     eqeq-five
+        useless comparison to 5
+
+         ▶▶┆ Autofix ▶ (bar == 2)
+          1┆ bar == 5
                                                                                 
                                                                                 
 ╭──────────────╮                                                                
@@ -68,5 +64,9 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   No blocking findings so exiting with code 0
+
+=== end of stdout - plain
+
+=== stderr - plain
 
 === end of stderr - plain

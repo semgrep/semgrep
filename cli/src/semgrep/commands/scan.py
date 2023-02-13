@@ -454,30 +454,60 @@ _scan_options: List[Callable] = [
         help="Uses ASCII output if no format specified.",
     ),
     optgroup.option(
-        "--emacs",
-        is_flag=True,
+        "--text",
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.TEXT,
+        default=True,
         help="Output results in Emacs single-line format.",
     ),
     optgroup.option(
-        "--json", is_flag=True, help="Output results in Semgrep's JSON format."
+        "--emacs",
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.EMACS,
+        help="Output results in Emacs single-line format.",
+    ),
+    optgroup.option(
+        "--json",
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.JSON,
+        help="Output results in Semgrep's JSON format.",
     ),
     optgroup.option(
         "--gitlab-sast",
-        is_flag=True,
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.GITLAB_SAST,
         help="Output results in GitLab SAST format.",
     ),
     optgroup.option(
         "--gitlab-secrets",
-        is_flag=True,
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.GITLAB_SECRETS,
         help="Output results in GitLab Secrets format.",
     ),
     optgroup.option(
-        "--junit-xml", is_flag=True, help="Output results in JUnit XML format."
+        "--junit-xml",
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.JUNIT_XML,
+        help="Output results in JUnit XML format.",
     ),
-    optgroup.option("--sarif", is_flag=True, help="Output results in SARIF format."),
+    optgroup.option(
+        "--sarif",
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.SARIF,
+        help="Output results in SARIF format.",
+    ),
     optgroup.option(
         "--vim",
-        is_flag=True,
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.VIM,
         help="Output results in vim single-line format.",
     ),
     optgroup.group("Semgrep Pro Engine options"),
@@ -636,19 +666,14 @@ def scan(
     dryrun: bool,
     dump_ast: bool,
     dump_command_for_core: bool,
-    emacs: bool,
     enable_nosem: bool,
     enable_version_check: bool,
     error_on_findings: bool,
     exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
     force_color: bool,
-    gitlab_sast: bool,
-    gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
     jobs: Optional[int],
-    json: bool,
-    junit_xml: bool,
     lang: Optional[str],
     max_chars_per_line: int,
     max_lines_per_finding: int,
@@ -659,11 +684,11 @@ def scan(
     optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
+    output_format: OutputFormat,
     pattern: Optional[str],
     quiet: bool,
     replacement: Optional[str],
     rewrite_rule_ids: bool,
-    sarif: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     show_supported_languages: bool,
@@ -679,7 +704,6 @@ def scan(
     validate: bool,
     verbose: bool,
     version: bool,
-    vim: bool,
 ) -> ScanReturn:
     """
     Run semgrep rules on files
@@ -719,7 +743,11 @@ def scan(
     state = get_state()
     state.metrics.configure(metrics, metrics_legacy)
     state.terminal.configure(
-        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
+        verbose=verbose,
+        debug=debug,
+        quiet=quiet,
+        force_color=force_color,
+        output_format=output_format,
     )
 
     if include and exclude:
@@ -753,22 +781,6 @@ def scan(
     if not targets:
         semgrep.config_resolver.adjust_for_docker()
         targets = (os.curdir,)
-
-    output_format = OutputFormat.TEXT
-    if json:
-        output_format = OutputFormat.JSON
-    elif gitlab_sast:
-        output_format = OutputFormat.GITLAB_SAST
-    elif gitlab_secrets:
-        output_format = OutputFormat.GITLAB_SECRETS
-    elif junit_xml:
-        output_format = OutputFormat.JUNIT_XML
-    elif sarif:
-        output_format = OutputFormat.SARIF
-    elif emacs:
-        output_format = OutputFormat.EMACS
-    elif vim:
-        output_format = OutputFormat.VIM
 
     if pro:
         # Inter-file + Pro languages
@@ -807,7 +819,7 @@ def scan(
             config=config,
             test_ignore_todo=test_ignore_todo,
             strict=strict,
-            json=json,
+            json=output_format == OutputFormat.JSON,
             optimizations=optimizations,
             engine=engine,
         )
@@ -831,7 +843,12 @@ def scan(
         return_data: ScanReturn = None
 
         if dump_ast:
-            dump_parsed_ast(json, __validate_lang("--dump-ast", lang), pattern, targets)
+            dump_parsed_ast(
+                output_format == OutputFormat.JSON,
+                __validate_lang("--dump-ast", lang),
+                pattern,
+                targets,
+            )
         elif validate:
             if not (pattern or lang or config):
                 logger.error(

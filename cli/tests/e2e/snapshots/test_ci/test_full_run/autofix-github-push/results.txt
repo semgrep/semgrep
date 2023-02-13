@@ -7,6 +7,32 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
 === end of exit code
 
 === stdout - plain
+                                                                                
+                                                                                
+╭────────────────╮                                                              
+│ Debugging Info │                                                              
+╰────────────────╯                                                              
+                                                                                
+  SCAN ENVIRONMENT                                                              
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment github-actions, triggering event is      
+                push                                                            
+  server      - https://semgrep.dev                                             
+                                                                                
+                                                                                
+╭─────────────╮                                                                 
+│ Scan Status │                                                                 
+╰─────────────╯                                                                 
+                                                                                
+Fetching configuration from semgrep.dev
+Authenticated as org_name
+Scanning 1 file with 4 python rules.
+                                                                                
+                                                                                
+╭─────────╮                                                                     
+│ Results │                                                                     
+╰─────────╯                                                                     
+                                                                                
 Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
 
 
@@ -54,36 +80,6 @@ First-Party Blocking Rules Fired:
    eqeq-bad   
    eqeq-four   
    taint-test
-
-=== end of stdout - plain
-
-=== stderr - plain
-                                                                                
-                                                                                
-╭────────────────╮                                                              
-│ Debugging Info │                                                              
-╰────────────────╯                                                              
-                                                                                
-  SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment github-actions, triggering event is      
-                push                                                            
-  server      - https://semgrep.dev                                             
-                                                                                
-                                                                                
-╭─────────────╮                                                                 
-│ Scan Status │                                                                 
-╰─────────────╯                                                                 
-                                                                                
-Fetching configuration from semgrep.dev
-Authenticated as org_name
-Scanning 1 file with 4 python rules.
-                                                                                
-                                                                                
-╭─────────╮                                                                     
-│ Results │                                                                     
-╰─────────╯                                                                     
-                                                                                
                                                                                 
                                                                                 
 ╭──────────────╮                                                                
@@ -100,5 +96,9 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
+
+=== end of stdout - plain
+
+=== stderr - plain
 
 === end of stderr - plain

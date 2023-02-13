@@ -10,47 +10,6 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of exit code
 
 === stdout - plain
-Non-Blocking Findings:
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (x == 2)
-         15┆ x == 5
-
-Blocking Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
-
-Blocking Rules Fired:
-   eqeq-bad   
-   eqeq-four   
-   taint-test
-
-=== end of stdout - plain
-
-=== stderr - plain
                                                                                 
                                                                                 
 ╭────────────────╮                                                              
@@ -88,6 +47,43 @@ Returning to original head revision <MASKED>
 │ Results │                                                                     
 ╰─────────╯                                                                     
                                                                                 
+Non-Blocking Findings:
+
+  foo.py 
+     eqeq-five
+        useless comparison to 5
+
+         ▶▶┆ Autofix ▶ (x == 2)
+         15┆ x == 5
+
+Blocking Findings:
+
+  foo.py 
+     eqeq-bad
+        useless comparison
+
+          4┆ a == a
+          ⋮┆----------------------------------------
+          5┆ a == a
+          ⋮┆----------------------------------------
+          7┆ a == a
+          ⋮┆----------------------------------------
+         11┆ y == y
+          ⋮┆----------------------------------------
+     eqeq-four
+        useless comparison to 4
+
+         19┆ baz == 4
+          ⋮┆----------------------------------------
+     taint-test
+        unsafe use of danger
+
+         27┆ sink(d2)
+
+Blocking Rules Fired:
+   eqeq-bad   
+   eqeq-four   
+   taint-test
                                                                                 
                                                                                 
 ╭──────────────╮                                                                
@@ -104,5 +100,9 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
+
+=== end of stdout - plain
+
+=== stderr - plain
 
 === end of stderr - plain

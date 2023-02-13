@@ -92,9 +92,16 @@ def setrlimits_preexec_fn() -> None:
     Note this is intended to run as a preexec_fn before semgrep-core in a subprocess
     so all code here runs in a child fork before os switches to semgrep-core binary
     """
+    # since this logging is inside the child core processes,
+    # which have their own output requirements so that CLI can parse its stdout,
+    # we use a different logger than the usual "semgrep" one
+    core_logger = getLogger("semgrep_core")
+
     # Get current soft and hard stack limits
     old_soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
-    logger.info(f"Existing stack limits: Soft: {old_soft_limit}, Hard: {hard_limit}")
+    core_logger.info(
+        f"Existing stack limits: Soft: {old_soft_limit}, Hard: {hard_limit}"
+    )
 
     # Have candidates in case os unable to set certain limit
     potential_soft_limits = [
@@ -116,17 +123,19 @@ def setrlimits_preexec_fn() -> None:
     potential_soft_limits.sort(reverse=True)
     for soft_limit in potential_soft_limits:
         try:
-            logger.info(f"Trying to set soft limit to {soft_limit}")
+            core_logger.info(f"Trying to set soft limit to {soft_limit}")
             resource.setrlimit(resource.RLIMIT_STACK, (soft_limit, hard_limit))
-            logger.info(f"Successfully set stack limit to {soft_limit}, {hard_limit}")
+            core_logger.info(
+                f"Successfully set stack limit to {soft_limit}, {hard_limit}"
+            )
             return
         except Exception as e:
-            logger.info(
+            core_logger.info(
                 f"Failed to set stack limit to {soft_limit}, {hard_limit}. Trying again."
             )
-            logger.verbose(str(e))
+            core_logger.verbose(str(e))
 
-    logger.info("Failed to change stack limits")
+    core_logger.info("Failed to change stack limits")
 
 
 # This is used only to dedup errors from validate_configs(). For dedupping errors
@@ -807,7 +816,6 @@ class CoreRunner:
         )
 
         with exit_stack:
-
             plan = self._plan_core_run(rules, target_manager, all_targets)
             plan.log()
             parsing_data.add_targets(plan)
@@ -1065,7 +1073,6 @@ Exception raised: `{e}`
         parsed_errors = []
 
         with tempfile.NamedTemporaryFile("w", suffix=".yaml") as rule_file:
-
             yaml = YAML()
             yaml.dump(
                 {"rules": [metacheck._raw for metacheck in metachecks]}, rule_file
