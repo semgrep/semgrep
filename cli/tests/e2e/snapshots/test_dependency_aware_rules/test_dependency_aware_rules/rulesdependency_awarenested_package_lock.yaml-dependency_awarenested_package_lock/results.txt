@@ -11,7 +11,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   "errors": [],
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": []
+    "scanned": [
+      "targets/dependency_aware/nested_package_lock/package-lock.json"
+    ]
   },
   "results": [
     {
@@ -84,6 +86,6 @@ Nothing to scan.
 └──────────────┘                                                                
                                                                                 
 
-Ran 1 rule on 0 files: 1 finding.
+Ran 1 rule on 1 file: 1 finding.
 
 === end of stderr - plain
