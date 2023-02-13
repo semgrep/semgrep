@@ -4,9 +4,9 @@ Nothing to scan.
 Skipping baseline scan, because there are no current findings.
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.

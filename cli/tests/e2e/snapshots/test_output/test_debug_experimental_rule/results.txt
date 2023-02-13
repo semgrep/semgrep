@@ -68,9 +68,9 @@ semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 
 ========================================
