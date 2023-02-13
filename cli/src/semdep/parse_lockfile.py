@@ -4,6 +4,7 @@ from typing import Generator
 from typing import List
 from typing import Optional
 
+from semdep.find_lockfiles import lockfile_path_to_manifest_path
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 
@@ -28,12 +29,6 @@ from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.yarn import parse_yarn
 from semdep.parsers.package_lock import parse_package_lock
-
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 
 def parse_cargo(
@@ -78,10 +73,11 @@ NEW_LOCKFILE_PARSERS = {
 
 
 @lru_cache(maxsize=1000)
-def parse_lockfile_path(
-    lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
-    # coupling with the github action, which decides to send files with these names back to us
+def parse_lockfile_path(lockfile_path: Path) -> List[FoundDependency]:
+    """
+    Parse a lockfile and return it as a list of dependency objects
+    """
+    manifest_path = lockfile_path_to_manifest_path(lockfile_path)
     lockfile_name = lockfile_path.name.lower()
     if lockfile_name in NEW_LOCKFILE_PARSERS:
         parse_lockfile = NEW_LOCKFILE_PARSERS[lockfile_name]
