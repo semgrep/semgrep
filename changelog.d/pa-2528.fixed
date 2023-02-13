@@ -1,0 +1,2 @@
+CLI: No longer reports rules as being run with a lack of `interfile: true` when interfile
+analysis was not requested.
