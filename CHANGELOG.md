@@ -8,6 +8,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.12.0](https://github.com/returntocorp/semgrep/releases/tag/v1.12.0) - 2023-02-13
+
+### Fixed
+
+- CLI: No longer reports rules as being run with a lack of `interfile: true` when interfile
+  analysis was not requested. (pa-2528)
+
 ## [1.11.0](https://github.com/returntocorp/semgrep/releases/tag/v1.11.0) - 2023-02-10
 
 ### Changed
