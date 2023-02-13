@@ -977,6 +977,7 @@ class CoreRunner:
             all_targets,
             profiling_data,
             parsing_data,
+            {},
             core_output.explanations,
             core_output.rules_by_engine,
         )

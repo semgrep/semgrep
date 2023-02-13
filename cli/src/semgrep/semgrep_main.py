@@ -15,6 +15,8 @@ from typing import Union
 
 from boltons.iterutils import partition
 
+from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
+from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
@@ -111,7 +113,6 @@ def invoke_semgrep(
         profiler,
         output_extra,
         shown_severities,
-        _,
     ) = main(
         output_handler=output_handler,
         target=[str(t) for t in targets],
@@ -197,24 +198,27 @@ def run_rules(
                 (
                     dep_rule_matches,
                     dep_rule_errors,
-                    targeted_lockfiles,
                 ) = generate_unreachable_sca_findings(
                     rule, target_manager, already_reachable
                 )
                 rule_matches_by_rule[rule].extend(dep_rule_matches)
                 output_handler.handle_semgrep_errors(dep_rule_errors)
-                output_extra.all_targets.union(targeted_lockfiles)
             else:
                 (
                     dep_rule_matches,
                     dep_rule_errors,
-                    targeted_lockfiles,
                 ) = generate_unreachable_sca_findings(
                     rule, target_manager, lambda p, d: False
                 )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
-                output_extra.all_targets.union(targeted_lockfiles)
+
+        # Generate stats per lockfile:
+        for ecosystem in ECOSYSTEM_TO_LOCKFILES.keys():
+            for lockfile in target_manager.get_lockfiles(ecosystem):
+                # Add lockfiles as a target that was scanned
+                output_extra.all_targets.add(lockfile)
+                output_extra.dependencies[str(lockfile)] = parse_lockfile_path(lockfile)
 
     return (
         rule_matches_by_rule,
@@ -295,7 +299,6 @@ def main(
     ProfileManager,
     OutputExtra,
     Collection[RuleSeverity],
-    Dict[str, int],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
     if include is None:
@@ -531,5 +534,4 @@ def main(
         profiler,
         output_extra,
         shown_severities,
-        target_manager.lockfile_scan_info,
     )
