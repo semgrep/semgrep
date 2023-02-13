@@ -4,6 +4,8 @@ import sys
 
 from attr import define
 
+from semgrep.console import console
+from semgrep.constants import OutputFormat
 from semgrep.env import Env
 
 
@@ -34,6 +36,7 @@ class Terminal:
         debug: bool = False,
         quiet: bool = True,
         force_color: bool = False,
+        output_format: OutputFormat = OutputFormat.TEXT,
     ) -> None:
         """Set the relevant logging levels"""
         # Assumes only one of verbose, debug, quiet is True
@@ -81,6 +84,21 @@ class Terminal:
             or os.environ.get("SEMGREP_FORCE_NO_COLOR") is not None
         ):
             self.force_color_off = True
+
+        self.configure_rich_console()
+
+    def configure_rich_console(
+        self, output_format: OutputFormat = OutputFormat.TEXT
+    ) -> None:
+        console.stderr = True
+        console.width = min(console.width, 120)
+
+        if os.getenv("GITHUB_ACTIONS") == "true" and output_format == OutputFormat.TEXT:
+            # GitHub Actions mixes stdout and stderr: https://github.com/isaacs/github/issues/1981
+            # As a workaround, we use a single stream which guarantees lines are shown in the intended order.
+            # We don't apply the workaround if output format is not text,
+            # because mixed output is better than maybe breaking custom integrations relying on JSON output.
+            console.stderr = False
 
     @property
     def is_quiet(self) -> bool:

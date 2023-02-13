@@ -187,19 +187,14 @@ def ci(
     config: Optional[Tuple[str, ...]],
     debug: bool,
     dry_run: bool,
-    emacs: bool,
     enable_nosem: bool,
     enable_version_check: bool,
     exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
     suppress_errors: bool,
     force_color: bool,
-    gitlab_sast: bool,
-    gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
     jobs: int,
-    json: bool,
-    junit_xml: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
     max_memory: Optional[int],
@@ -209,11 +204,11 @@ def ci(
     optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
+    output_format: OutputFormat,
     pro_languages: bool,
     pro_intrafile: bool,
     pro: bool,
     oss_only: bool,
-    sarif: bool,
     quiet: bool,
     rewrite_rule_ids: bool,
     supply_chain: bool,
@@ -224,7 +219,6 @@ def ci(
     interfile_timeout: Optional[int],
     use_git_ignore: bool,
     verbose: bool,
-    vim: bool,
 ) -> None:
     """
     The recommended way to run semgrep in CI
@@ -239,7 +233,11 @@ def ci(
     """
     state = get_state()
     state.terminal.configure(
-        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
+        verbose=verbose,
+        debug=debug,
+        quiet=quiet,
+        force_color=force_color,
+        output_format=output_format,
     )
 
     state.metrics.configure(metrics, metrics_legacy)
@@ -269,22 +267,6 @@ def ci(
         scan_handler = ScanHandler(dry_run)
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
-
-    output_format = OutputFormat.TEXT
-    if json:
-        output_format = OutputFormat.JSON
-    elif gitlab_sast:
-        output_format = OutputFormat.GITLAB_SAST
-    elif gitlab_secrets:
-        output_format = OutputFormat.GITLAB_SECRETS
-    elif junit_xml:
-        output_format = OutputFormat.JUNIT_XML
-    elif sarif:
-        output_format = OutputFormat.SARIF
-    elif emacs:
-        output_format = OutputFormat.EMACS
-    elif vim:
-        output_format = OutputFormat.VIM
 
     output_settings = OutputSettings(
         output_format=output_format,

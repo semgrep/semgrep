@@ -14,8 +14,7 @@ from rich.padding import Padding
 from rich.panel import Panel
 from rich.text import Text
 
-console = Console(stderr=True)
-console.width = min(console.width, 120)
+console = Console()
 
 
 @frozen
