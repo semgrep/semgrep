@@ -76,7 +76,7 @@ RUN eval "$(opam env)" &&\
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
-FROM python:3.11.1-alpine AS semgrep-cli
+FROM python:3.11.2-alpine AS semgrep-cli
 
 WORKDIR /semgrep
 
