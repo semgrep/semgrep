@@ -39,6 +39,16 @@ class Terminal:
         output_format: OutputFormat = OutputFormat.TEXT,
     ) -> None:
         """Set the relevant logging levels"""
+
+        # GitHub Actions mixes stdout and stderr: https://github.com/isaacs/github/issues/1981
+        # As a workaround, we limit output in GHA to a single stream
+        # which guarantees lines are shown in the intended order.
+        # We don't apply the workaround if output format is not text,
+        # because mixed output is better than maybe breaking custom integrations relying on JSON output.
+        multiple_streams_available = not (
+            os.getenv("GITHUB_ACTIONS") == "true" and output_format == OutputFormat.TEXT
+        )
+
         # Assumes only one of verbose, debug, quiet is True
         logger = logging.getLogger("semgrep")
         logger.handlers = []  # Reset to no handlers
@@ -51,8 +61,10 @@ class Terminal:
         elif quiet:
             stdout_level = logging.CRITICAL
 
-        # Setup stdout logging
-        stdout_handler = logging.StreamHandler()
+        # Setup output stream logging
+        stdout_handler = logging.StreamHandler(
+            stream=sys.stderr if multiple_streams_available else sys.stdout
+        )
         stdout_formatter = logging.Formatter("%(message)s")
         stdout_handler.setFormatter(stdout_formatter)
         stdout_handler.setLevel(stdout_level)
@@ -85,20 +97,11 @@ class Terminal:
         ):
             self.force_color_off = True
 
-        self.configure_rich_console()
+        self.configure_rich_console(multiple_streams_available)
 
-    def configure_rich_console(
-        self, output_format: OutputFormat = OutputFormat.TEXT
-    ) -> None:
-        console.stderr = True
+    def configure_rich_console(self, multiple_streams_available: bool) -> None:
+        console.stderr = multiple_streams_available
         console.width = min(console.width, 120)
-
-        if os.getenv("GITHUB_ACTIONS") == "true" and output_format == OutputFormat.TEXT:
-            # GitHub Actions mixes stdout and stderr: https://github.com/isaacs/github/issues/1981
-            # As a workaround, we use a single stream which guarantees lines are shown in the intended order.
-            # We don't apply the workaround if output format is not text,
-            # because mixed output is better than maybe breaking custom integrations relying on JSON output.
-            console.stderr = False
 
     @property
     def is_quiet(self) -> bool:

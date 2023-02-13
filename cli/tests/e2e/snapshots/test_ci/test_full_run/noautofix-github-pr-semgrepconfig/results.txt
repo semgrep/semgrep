@@ -21,12 +21,26 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
   environment - running in environment github-actions, triggering event is      
                 pull_request                                                    
   server      - https://semgrep.dev                                             
+Fixing git state for github action pull request
+Not on head ref: <MASKED>; checking that out now.
+Using <MASKED> as the merge-base of <MASKED> and <MASKED>
                                                                                 
                                                                                 
 ╭─────────────╮                                                                 
 │ Scan Status │                                                                 
 ╰─────────────╯                                                                 
                                                                                 
+Fetching configuration from semgrep.dev
+Authenticated as org_name
+Scanning 1 file with 4 python rules.
+  Current version has 14 findings.
+
+Switching repository to baseline commit '<MASKED>'.
+  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
+    * <MASKED> Some other commit/ message
+
+Scanning 1 file with 4 python rules.
+Returning to original head revision <MASKED>
                                                                                 
                                                                                 
 ╭─────────╮                                                                     
@@ -76,24 +90,6 @@ Blocking Rules Fired:
 │ Scan Summary │                                                                
 ╰──────────────╯                                                                
                                                                                 
-
-=== end of stdout - plain
-
-=== stderr - plain
-Fixing git state for github action pull request
-Not on head ref: <MASKED>; checking that out now.
-Using <MASKED> as the merge-base of <MASKED> and <MASKED>
-Fetching configuration from semgrep.dev
-Authenticated as org_name
-Scanning 1 file with 4 python rules.
-  Current version has 14 findings.
-
-Switching repository to baseline commit '<MASKED>'.
-  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
-    * <MASKED> Some other commit/ message
-
-Scanning 1 file with 4 python rules.
-Returning to original head revision <MASKED>
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
@@ -104,5 +100,9 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
+
+=== end of stdout - plain
+
+=== stderr - plain
 
 === end of stderr - plain
