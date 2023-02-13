@@ -863,12 +863,10 @@ class CoreRunner:
                     logger.error("!!!This is a proprietary extension of semgrep.!!!")
                     logger.error("!!!You must be logged in to access this extension!!!")
                 else:
-                    logger.error(
-                        "You are using the Semgrep Pro Engine, our advanced analysis system uniquely designed to refine and enhance your results."
-                    )
+                    logger.error("Running with Semgrep Pro Engine (beta).")
                     if engine is EngineType.PRO_INTERFILE:
                         logger.error(
-                            "You can expect to see longer scan times - we're taking our time to make sure everything is just right for you. With <3, the Semgrep team."
+                            "Semgrep Pro Engine may be slower and show different results than Semgrep OSS."
                         )
 
                 logger.info(f"Using Semgrep Pro installed in {self._binary_path}")
