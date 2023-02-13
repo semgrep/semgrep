@@ -1,0 +1,3 @@
+The 1.11.0 release started printing log lines to stderr even when --quiet was on,
+making it impossible to get well-formed JSON output when mixing stdout and stderr.
+These lines are now gone, and output is again restricted to just scan results.
