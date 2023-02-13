@@ -474,7 +474,6 @@ Would have sent complete blob: {
                 "num_bytes": 366
             }
         },
-        "event_id": <MASKED>
         "engine_requested": "OSS"
     }
 }
