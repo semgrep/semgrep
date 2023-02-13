@@ -48,7 +48,7 @@ if IS_WINDOWS and not SEMGREP_FORCE_INSTALL:
     raise Exception(
         "Semgrep does not support Windows yet, please try again with WSL "
         "or visit the following for more information: "
-        "https://github.com/returntocorp/semgrep/issues/1330"
+        "https://github.com/bridgecrewio/semgrep/issues/1330"
     )
 
 try:
@@ -139,7 +139,7 @@ install_requires = [
 extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
-    name="semgrep",
+    name="bc-semgrep",
     version="1.6.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
@@ -149,7 +149,7 @@ setuptools.setup(
     extras_require=extras_require,
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/returntocorp/semgrep",
+    url="https://github.com/bridgecrewio/semgrep",
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(where="src"),
     package_dir={"": "src"},

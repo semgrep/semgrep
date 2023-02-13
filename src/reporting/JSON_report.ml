@@ -322,7 +322,7 @@ let json_time_of_profiling_data profiling_data =
                run_time;
              });
     rules = Common.map (fun rule -> fst rule.Rule.id) profiling_data.RP.rules;
-    rules_parse_time_3 = Some profiling_data.RP.rules_parse_time;
+    rules_parse_time = Some profiling_data.RP.rules_parse_time;
     max_memory_bytes = profiling_data.max_memory_bytes;
   }
 
