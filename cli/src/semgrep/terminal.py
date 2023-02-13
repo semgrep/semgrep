@@ -38,7 +38,9 @@ class Terminal:
         force_color: bool = False,
         output_format: OutputFormat = OutputFormat.TEXT,
     ) -> None:
-        """Set the relevant logging levels"""
+        """Set the relevant logging levels
+
+        Affects also the configuration of the rich console."""
 
         # GitHub Actions mixes stdout and stderr: https://github.com/isaacs/github/issues/1981
         # As a workaround, we limit output in GHA to a single stream
@@ -97,9 +99,12 @@ class Terminal:
         ):
             self.force_color_off = True
 
-        self.configure_rich_console(multiple_streams_available)
+        self.configure_rich_console(quiet, multiple_streams_available)
 
-    def configure_rich_console(self, multiple_streams_available: bool) -> None:
+    def configure_rich_console(
+        self, quiet: bool, multiple_streams_available: bool
+    ) -> None:
+        console.quiet = quiet
         console.stderr = multiple_streams_available
         console.width = min(console.width, 120)
 
