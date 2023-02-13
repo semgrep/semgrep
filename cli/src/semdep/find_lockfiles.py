@@ -33,7 +33,7 @@ LOCKFILE_TO_MANIFEST = {
 }
 
 
-def lockfile_path_to_manfiest_path(lockfile_path: Path) -> Optional[Path]:
+def lockfile_path_to_manifest_path(lockfile_path: Path) -> Optional[Path]:
     """
     Given full lockfile path, return the path to the manifest file if it exists
     """

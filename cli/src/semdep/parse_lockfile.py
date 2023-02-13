@@ -4,7 +4,7 @@ from typing import Generator
 from typing import List
 from typing import Optional
 
-from semdep.find_lockfiles import lockfile_path_to_manfiest_path
+from semdep.find_lockfiles import lockfile_path_to_manifest_path
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 
@@ -77,7 +77,7 @@ def parse_lockfile_path(lockfile_path: Path) -> List[FoundDependency]:
     """
     Parse a lockfile and return it as a list of dependency objects
     """
-    manifest_path = lockfile_path_to_manfiest_path(lockfile_path)
+    manifest_path = lockfile_path_to_manifest_path(lockfile_path)
     lockfile_name = lockfile_path.name.lower()
     if lockfile_name in NEW_LOCKFILE_PARSERS:
         parse_lockfile = NEW_LOCKFILE_PARSERS[lockfile_name]
