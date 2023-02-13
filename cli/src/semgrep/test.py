@@ -472,7 +472,7 @@ def generate_test_results(
 
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
-        engine=requested_engine,
+        requested_engine=requested_engine,
         no_git_ignore=True,
         no_rewrite_rule_ids=True,
         strict=strict,

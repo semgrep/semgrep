@@ -249,7 +249,7 @@ class LSPConfig:
         get_state().metrics.configure(self.metrics, None)
         return partial(
             semgrep.semgrep_main.main,
-            engine=EngineType.OSS,
+            requested_engine=EngineType.OSS,
             configs=configs,
             severity=self.severity,
             exclude=self.exclude,

@@ -185,7 +185,7 @@ class OutputHandler:
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
-        self.engine_requested: EngineType = EngineType.OSS
+        self.requested_engine: EngineType = EngineType.OSS
 
         self.final_error: Optional[Exception] = None
         formatter_type = FORMATTERS.get(self.settings.output_format)

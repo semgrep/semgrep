@@ -475,7 +475,6 @@ Would have sent complete blob: {
             }
         },
         "event_id": <MASKED>
-        "engine_requested": "OSS"
     }
 }
   View results in Semgrep App:
