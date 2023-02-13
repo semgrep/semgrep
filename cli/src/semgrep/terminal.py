@@ -45,9 +45,9 @@ class Terminal:
         # which guarantees lines are shown in the intended order.
         # We don't apply the workaround if output format is not text,
         # because mixed output is better than maybe breaking custom integrations relying on JSON output.
-        multiple_streams_available = not (
-            os.getenv("GITHUB_ACTIONS") == "true" and output_format == OutputFormat.TEXT
-        )
+        multiple_streams_available = True
+        if os.getenv("GITHUB_ACTIONS") == "true" and output_format == OutputFormat.TEXT:
+            multiple_streams_available = False
 
         # Assumes only one of verbose, debug, quiet is True
         logger = logging.getLogger("semgrep")

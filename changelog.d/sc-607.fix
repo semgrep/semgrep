@@ -1,0 +1,6 @@
+Output lines in GitHub Actions logs could appear scrambled,
+due to GitHub Actions mixing together the stdout and stderr streams
+in non-deterministic order.
+Semgrep will now log everything only to one stream in GitHub Actions
+when using text output mode,
+which ensures lines no longer appear scrambled.
