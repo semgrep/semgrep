@@ -24,9 +24,9 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import Colors
-from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
+from semgrep.engine import EngineType
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
@@ -303,7 +303,7 @@ class OutputHandler:
         severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
-        engine: EngineType = EngineType.OSS,
+        requested_engine: EngineType = EngineType.OSS,
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -317,7 +317,7 @@ class OutputHandler:
         self.all_targets = all_targets
         self.filtered_rules = filtered_rules
 
-        self.engine_requested = engine
+        self.requested_engine = requested_engine
 
         if ignore_log:
             self.ignore_log = ignore_log
@@ -496,7 +496,7 @@ class OutputHandler:
                 time=cli_timing,
                 explanations=explanations,
                 rules_by_engine=rules_by_engine,
-                engine_requested=self.engine_requested.to_engine_kind(),
+                engine_requested=self.requested_engine.to_engine_kind(),
             ),
             extra,
             self.severities,

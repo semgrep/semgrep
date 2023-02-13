@@ -34,7 +34,7 @@ from boltons.iterutils import partition
 from ruamel.yaml import YAML
 
 from semgrep.constants import BREAK_LINE
-from semgrep.constants import EngineType
+from semgrep.engine import EngineType
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import final_suffix_matches
 from semgrep.util import is_config_fixtest_suffix
@@ -211,7 +211,9 @@ def get_expected_and_reported_lines(
                         effective_line_num,
                         test_file_resolved,
                     )
-            except ValueError:  # comment looked like a test annotation but couldn't parse
+            except (
+                ValueError
+            ):  # comment looked like a test annotation but couldn't parse
                 logger.warning(
                     f"Could not parse {line} as a test annotation in file {test_file_resolved}. Skipping this line"
                 )
@@ -377,7 +379,6 @@ def get_config_test_filenames(
 def get_config_fixtest_filenames(
     original_target: Path, targets: Dict[Path, List[Path]]
 ) -> Dict[Path, List[Tuple[Path, Path]]]:
-
     original_target_is_file_not_directory = original_target.is_file()
 
     if original_target_is_file_not_directory:
@@ -433,7 +434,6 @@ def checkid_passed(matches_for_checkid: Dict[str, Any]) -> bool:
 def fixed_file_comparison(
     fixed_testfile: Path, expected_fixed_testfile: str
 ) -> List[str]:
-
     diff = []
     with open(fixed_testfile) as file1, open(expected_fixed_testfile) as file2:
         lines1 = file1.readlines()
@@ -451,7 +451,7 @@ def generate_test_results(
     config: Path,
     strict: bool,
     json_output: bool,
-    engine: EngineType,
+    requested_engine: EngineType,
     optimizations: str = "none",
 ) -> None:
     config_filenames = get_config_filenames(config)
@@ -472,7 +472,7 @@ def generate_test_results(
 
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
-        engine=engine,
+        engine=requested_engine,
         no_git_ignore=True,
         no_rewrite_rule_ids=True,
         strict=strict,
@@ -687,9 +687,8 @@ def test_main(
     strict: bool,
     json: bool,
     optimizations: str,
-    engine: EngineType,
+    requested_engine: EngineType,
 ) -> None:
-
     if len(target) != 1:
         raise Exception("only one target directory allowed for tests")
     target_path = Path(target[0])
@@ -708,6 +707,6 @@ def test_main(
         config=config_path,
         strict=strict,
         json_output=json,
-        engine=engine,
+        requested_engine=requested_engine,
         optimizations=optimizations,
     )

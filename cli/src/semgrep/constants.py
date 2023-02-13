@@ -3,9 +3,6 @@ from enum import auto
 from enum import Enum
 from typing import Type
 
-import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-
-
 RULES_KEY = "rules"
 ID_KEY = "id"
 CLI_RULE_ID = "-"
@@ -30,27 +27,6 @@ FIXTEST_SUFFIX = ".fixed"
 RETURNTOCORP_LEVER_URL = "https://api.lever.co/v0/postings/returntocorp?mode=json"
 
 UNSUPPORTED_EXT_IGNORE_LANGS = {"generic", "regex"}
-
-
-class EngineType(Enum):
-    OSS = auto()
-    PRO_LANG = auto()
-    PRO_INTRAFILE = auto()
-    PRO_INTERFILE = auto()
-
-    @property
-    def is_pro(self) -> bool:
-        return self.value >= EngineType.PRO_LANG.value
-
-    @property
-    def is_interfile(self) -> bool:
-        return self.value == EngineType.PRO_INTERFILE.value
-
-    def to_engine_kind(self) -> out.EngineKind:
-        if self.value == EngineType.OSS.value:
-            return out.EngineKind(out.OSS())
-        else:
-            return out.EngineKind(out.PRO())
 
 
 class OutputFormat(Enum):

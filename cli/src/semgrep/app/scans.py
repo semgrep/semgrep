@@ -11,6 +11,7 @@ from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
 import click
@@ -18,7 +19,6 @@ import requests
 from boltons.iterutils import partition
 
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
-from semgrep.constants import EngineType
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
@@ -27,6 +27,9 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
+
+if TYPE_CHECKING:
+    from semgrep.engine import EngineType
 
 logger = getLogger(__name__)
 
@@ -234,7 +237,7 @@ class ScanHandler:
         total_time: float,
         commit_date: str,
         lockfile_scan_info: Dict[str, int],
-        engine_requested: EngineType,
+        engine_requested: "EngineType",
     ) -> None:
         """
         commit_date here for legacy reasons. epoch time of latest commit
@@ -312,7 +315,6 @@ class ScanHandler:
                     for (lang, data) in parse_rate.get_errors_by_lang().items()
                 },
                 "event_id": str(state.metrics.payload["event_id"]),
-                "engine_requested": engine_requested.name,
             },
         }
 

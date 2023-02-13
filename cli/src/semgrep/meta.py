@@ -147,6 +147,10 @@ class GitMeta:
         """
         return git_check_output(["git", "show", "-s", "--format=%ct"])
 
+    @property
+    def is_full_scan(self) -> bool:
+        return self.merge_base_ref is None
+
     def to_dict(self) -> Dict[str, Any]:
         commit_title = git_check_output(["git", "show", "-s", "--format=%B"])
         commit_author_email = git_check_output(["git", "show", "-s", "--format=%ae"])
@@ -156,7 +160,7 @@ class GitMeta:
             "semgrep_version": __VERSION__,
             # REQUIRED for semgrep-app backend
             "repository": self.repo_name,
-            #  OPTIONAL for semgrep-app backend
+            # OPTIONAL for semgrep-app backend
             "repo_url": self.repo_url,
             "branch": self.branch,
             "ci_job_url": self.ci_job_url,
@@ -172,7 +176,7 @@ class GitMeta:
             "pull_request_id": self.pr_id,
             "pull_request_title": self.pr_title,
             "scan_environment": self.environment,
-            "is_full_scan": self.merge_base_ref is None,
+            "is_full_scan": self.is_full_scan,
         }
 
 
