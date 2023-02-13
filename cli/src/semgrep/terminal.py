@@ -36,7 +36,8 @@ class Terminal:
         debug: bool = False,
         quiet: bool = True,
         force_color: bool = False,
-        output_format: OutputFormat = OutputFormat.TEXT,
+        # our conservative default is JSON, as it is the most restrictive
+        output_format: OutputFormat = OutputFormat.JSON,
     ) -> None:
         """Set the relevant logging levels
 
