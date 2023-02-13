@@ -315,6 +315,7 @@ class ScanHandler:
                     for (lang, data) in parse_rate.get_errors_by_lang().items()
                 },
                 "event_id": str(state.metrics.payload["event_id"]),
+                "engine_requested": engine_requested.name,
             },
         }
 
