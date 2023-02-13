@@ -4,6 +4,7 @@ import sys
 
 from attr import define
 
+from semgrep.console import console
 from semgrep.env import Env
 
 
@@ -35,7 +36,12 @@ class Terminal:
         quiet: bool = True,
         force_color: bool = False,
     ) -> None:
-        """Set the relevant logging levels"""
+        """Set the relevant logging levels.
+
+        Affects also the configuration of the rich console."""
+
+        console.quiet = quiet
+
         # Assumes only one of verbose, debug, quiet is True
         logger = logging.getLogger("semgrep")
         logger.handlers = []  # Reset to no handlers
