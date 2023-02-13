@@ -23,10 +23,8 @@ from typing import Tuple
 from typing import Union
 
 from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
-from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.git import BaselineHandler
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 
 # usually this would be a try...except ImportError
 # but mypy understands only this
@@ -491,7 +489,6 @@ class TargetManager:
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
     file_ignore: Optional[FileIgnore] = None
-    lockfile_scan_info: Dict[str, int] = {}
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
@@ -734,16 +731,8 @@ class TargetManager:
         return paths.kept
 
     @lru_cache(maxsize=None)
-    def get_lockfile_dependencies(
-        self, ecosystem: Ecosystem
-    ) -> Dict[Path, List[FoundDependency]]:
-        """ """
-        lockfiles = self.get_files_for_language(ecosystem).kept
-        parsed: Dict[Path, List[FoundDependency]] = {}
-        for lockfile in lockfiles:
-            deps = parse_lockfile_path(lockfile)
-            if lockfile not in self.lockfile_scan_info:
-                # We haven't seen this file during reachable finding generation
-                self.lockfile_scan_info[str(lockfile)] = len(deps)
-            parsed[lockfile] = deps
-        return parsed
+    def get_lockfiles(self, ecosystem: Ecosystem) -> FrozenSet[Path]:
+        """
+        Return set of paths to lockfiles for a given ecosystem
+        """
+        return self.get_files_for_language(ecosystem).kept

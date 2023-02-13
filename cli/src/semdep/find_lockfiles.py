@@ -1,13 +1,9 @@
 # find lockfiles
 from pathlib import Path
-from typing import List
 from typing import Optional
-from typing import Tuple
 
-from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
@@ -55,9 +51,7 @@ def lockfile_path_to_manfiest_path(lockfile_path: Path) -> Optional[Path]:
     return manifest_path
 
 
-def find_single_lockfile(
-    p: Path, ecosystem: Ecosystem
-) -> Optional[Tuple[Path, List[FoundDependency]]]:
+def find_single_lockfile(p: Path, ecosystem: Ecosystem) -> Optional[Path]:
     """
     Find the nearest lockfile in a given ecosystem to P
     Searches only up the directory tree
@@ -66,7 +60,7 @@ def find_single_lockfile(
         for lockfile_pattern in ECOSYSTEM_TO_LOCKFILES[ecosystem]:
             lockfile_path = path / lockfile_pattern
             if lockfile_path.exists():
-                return lockfile_path, parse_lockfile_path(lockfile_path)
+                return lockfile_path
             else:
                 continue
     return None
