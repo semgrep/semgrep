@@ -2,7 +2,7 @@
   "meta": {
     "semgrep_version": "<sanitized version>",
     "repository": "org_name/project_name/project_name",
-    "repo_url": "https://gitlab.net/foo.bar/a-b/a-b-c-d",
+    "repo_url": "git@github.com:example/fake.git",
     "branch": "some/branch-name",
     "ci_job_url": null,
     "commit": "sanitized",
