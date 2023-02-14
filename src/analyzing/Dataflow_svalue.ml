@@ -39,7 +39,7 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
-type constness_type = Constant | NotAlwaysConstant [@@deriving show]
+type constness = Constant | NotConstant [@@deriving show]
 
 (*****************************************************************************)
 (* Error management *)
@@ -55,33 +55,13 @@ let warning _tok s =
 
 let str_of_name name = spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
 
-(* TODO: depends on the language? sometimes '.', sometimes '->' or '#' *)
-let str_of_canonical_name name = String.concat "." name
-
 (*****************************************************************************)
 (* Constness *)
 (*****************************************************************************)
 
-let hook_constness_table_of_functions = ref None
+let hook_constness_of_function = ref None
 
 let result_of_function_call_is_constant lang f args =
-  let check_f f_name =
-    match !hook_constness_table_of_functions with
-    | Some constness_f -> (
-        match constness_f f_name with
-        | Some Constant ->
-            logger#trace "%s is always constant" f_name;
-            true
-        | Some NotAlwaysConstant ->
-            logger#trace "%s is not always constant" f_name;
-            false
-        | None ->
-            logger#trace "we have no information about the constness of %s"
-              f_name;
-            false)
-    | _ -> false
-  in
-
   match (lang, f, args) with
   (* Built-in knowledge, we know these functions return constants when
      * given constant arguments. *)
@@ -102,34 +82,17 @@ let result_of_function_call_is_constant lang f args =
       },
       [ (G.Lit (G.String _) | G.Cst G.Cstr) ] ) ->
       true
-  (* DeepSemgrep: Look up inferred constness of the function *)
-  | ( _,
-      {
-        (* If there is an offset, the full resolved name will be found
-           there. Otherwise, it will be found in the base *)
-        e =
-          ( Fetch
-              {
-                rev_offset =
-                  { o = Dot { ident; id_info = { id_resolved; _ }; _ }; _ } :: _;
-                _;
-              }
-          | Fetch
-              {
-                base = Var { ident; id_info = { id_resolved; _ }; _ };
-                rev_offset = [] | { o = Index _; _ } :: _;
-              } );
-        _;
-      },
-      _ ) -> (
-      match !id_resolved with
-      | Some (G.GlobalName (name, _alternate_names), _) ->
-          let f_name = str_of_canonical_name name in
-          check_f f_name
-      | _ ->
-          logger#info "%s does not have a resolved name" (fst ident);
-          false)
-  | _ -> false
+  (* Pro/Interfile: Look up inferred constness of the function *)
+  | _lang, { e = Fetch _; eorig = SameAs eorig }, _args -> (
+      match !hook_constness_of_function with
+      | Some constness_of_func -> (
+          match constness_of_func eorig with
+          | Some Constant -> true
+          | Some NotConstant
+          | None ->
+              false)
+      | None -> false)
+  | __else__ -> false
 
 let eq_literal l1 l2 = G.equal_literal l1 l2
 let eq_ctype t1 t2 = t1 =*= t2
