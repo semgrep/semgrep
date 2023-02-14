@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (c) 2021 R2C
+ * Copyright (c) 2021, 2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -137,13 +137,13 @@ let map_identifier (env : env) (x : CST.identifier) : ident =
       (* tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc *) str env tok
   | `Semg_meta tok -> (* semgrep_metavariable *) str env tok
 
-let map_string_lit (env : env) ((v1, v2, v3) : CST.string_lit) =
+let map_string_lit (env : env) ((v1, v2, v3) : CST.string_lit) : string wrap =
   let v1 = (* quoted_template_start *) token env v1 in
   let v2 = map_template_literal env v2 in
   let v3 = (* quoted_template_end *) token env v3 in
   match v2 with
-  | Some (s, t) -> G.String (s, PI.combine_infos v1 [ t; v3 ])
-  | None -> G.String ("", PI.combine_infos v1 [ v3 ])
+  | Some (s, t) -> (s, PI.combine_infos v1 [ t; v3 ])
+  | None -> ("", PI.combine_infos v1 [ v3 ])
 
 let map_variable_expr (env : env) (x : CST.variable_expr) = map_identifier env x
 
@@ -157,9 +157,9 @@ let map_get_attr (env : env) ((v1, v2) : CST.get_attr) =
 let map_literal_value (env : env) (x : CST.literal_value) : G.literal =
   match x with
   | `Nume_lit x -> map_numeric_lit env x
-  | `Bool_lit x -> Bool (map_bool_lit env x)
-  | `Null_lit tok -> (* "null" *) Null (token env tok)
-  | `Str_lit x -> map_string_lit env x
+  | `Bool_lit x -> G.Bool (map_bool_lit env x)
+  | `Null_lit tok -> (* "null" *) G.Null (token env tok)
+  | `Str_lit x -> G.String (map_string_lit env x)
 
 let rec map_anon_choice_get_attr_7bbf24f (env : env)
     (x : CST.anon_choice_get_attr_7bbf24f) =
@@ -556,33 +556,28 @@ and map_tuple_elems (env : env) ((v1, v2, v3) : CST.tuple_elems) : expr list =
   in
   v1 :: v2
 
-(* XXX: return a 'argument' *)
-let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : G.definition =
-  let v1 = (* identifier *) map_identifier env v1 in
-  let _teq = (* "=" *) token env v2 in
+let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : argument =
+  let v1 = map_identifier env v1 in
+  let teq = (* "=" *) token env v2 in
   let v3 = map_expression env v3 in
-  let ent = G.basic_entity v1 in
-  let def = { G.vinit = Some v3; vtype = None } in
-  (ent, VarDef def)
+  (v1, teq, v3)
 
-(* TODO? convert to a definition? a class_def?
- * coupling: Constant_propagation.terraform_stmt_to_vardefs
- * XXX: return a block
- *)
-let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
-  (* TODO? usually 'resource', 'locals', 'variable', other? *)
-  let id = (* identifier *) map_identifier env v1 in
-  let args_id =
+let map_block_type env v1 : block_type wrap =
+  let s, t = map_identifier env v1 in
+  (block_type_of_string s, t)
+
+let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : block =
+  let btype = (* identifier *) map_block_type env v1 in
+  let blabels =
     Common.map
       (fun x ->
         match x with
         | `Str_lit x ->
             let x = map_string_lit env x in
-            L x |> G.e
+            LblStr x
         | `Id tok ->
             let id = (* identifier *) map_identifier env tok in
-            let n = H2.name_of_id id in
-            N n |> G.e)
+            LblId id)
       v2
   in
   let lb = (* "{" *) token env v3 in
@@ -592,82 +587,44 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
     | None -> []
   in
   let rb = (* "}" *) token env v5 in
+  { btype; blabels; bbody = (lb, body, rb) }
 
-  let n = H2.name_of_id id in
-  (* convert in a Record like map_object *)
-  let flds = body in
-  let body = Record (lb, flds, rb) |> G.e in
-  let es = args_id @ [ body ] in
-  let args = es |> Common.map G.arg in
-  (* coupling: if you modify this code, you should adjust
-   * Constant_propagation.terraform_stmt_to_vardefs.
-   * bugfix: I used to transform that in a New (..., TyN n, ...) but
-   * lots of terraform rules are using some
-   *   pattern-inside: resource ... {}
-   *   pattern: resource
-   * and the second pattern is parsed as an expression which would not
-   * match the TyN.
-   * TODO? convert in something else?
-   * TODO: should we use something else than Call since it's already used
-   * for expressions in map_expr_term() above?
-   *)
-  G.Call (N n |> G.e, fb args) |> G.e
-
-(* We convert to a field, to be similar to map_object_, so some
- * patterns like 'a=1 ... b=2' can match block body as well as objects.
- *)
-and map_body (env : env) (xs : CST.body) : G.field list =
+and map_body (env : env) (xs : CST.body) : block_body_element list =
   Common.map
     (fun x ->
       match x with
       | `Attr x ->
-          let def = map_attribute env x in
-          def |> G.fld
+          let arg = map_attribute env x in
+          Argument arg
       | `Blk x ->
           let blk = map_block env x in
-          F (G.exprstmt blk)
+          Block blk
       | `Semg_ellips tok ->
           let t = (* "..." *) token env tok in
-          G.fieldEllipsis t)
+          BlockEllipsis t)
     xs
 
-(* almost copy-paste of map_body above, but returning statements
- * TODO? we could transform the 'locals' and 'variable' blocks
- * in regular VarDefs instead of doing it later in
- * Constant_propagation.terraform_stmt_to_vardefs?
- *)
-and map_body_top (env : env) (xs : CST.body) : G.stmt list =
-  Common.map
-    (fun x ->
-      match x with
-      | `Attr x ->
-          let def = map_attribute env x in
-          DefStmt def |> G.s
-      | `Blk x ->
-          let blk = map_block env x in
-          G.exprstmt blk
-      | `Semg_ellips tok ->
-          let t = (* "..." *) token env tok in
-          G.exprstmt (G.Ellipsis t |> G.e))
-    xs
+and map_body_top (env : env) (xs : CST.body) : config =
+  (* in theory we should forbid the case for `Attr here *)
+  map_body env xs
 
-let map_config_file (env : env) (x : CST.config_file) : G.any =
+let map_config_file (env : env) (x : CST.config_file) : any =
   match x with
   | `Opt_choice_body opt -> (
       match opt with
       | Some x -> (
           match x with
           | `Body x ->
-              let bd = map_body_top env x in
-              G.Pr bd
+              let top = map_body_top env x in
+              Pr top
           | `Obj x ->
               let x = map_object_ env x in
-              G.Pr [ G.exprstmt x ])
-      | None -> G.Pr [])
+              E x)
+      | None -> Pr [])
   | `Semg_exp (v1, v2) ->
       let _v1 = (* "__SEMGREP_EXPRESSION" *) token env v1 in
       let v2 = map_expression env v2 in
-      G.E v2
+      E v2
 
 (*****************************************************************************)
 (* Entry point *)
