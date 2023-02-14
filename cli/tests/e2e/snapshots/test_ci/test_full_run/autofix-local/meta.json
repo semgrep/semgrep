@@ -2,7 +2,7 @@
   "meta": {
     "semgrep_version": "<sanitized version>",
     "repository": "checkout_project_name",
-    "repo_url": null,
+    "repo_url": "https://github.com/example/fake",
     "branch": "some/branch-name",
     "ci_job_url": null,
     "commit": "sanitized",
