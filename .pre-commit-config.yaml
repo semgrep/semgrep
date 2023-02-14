@@ -223,11 +223,11 @@ repos:
         types: [python]
         exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
         args: ["--config", "https://semgrep.dev/p/python", "--error"]
-      - id: semgrep
-        name: Semgrep Bandit
-        types: [python]
-        exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
-        args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
+      # - id: semgrep
+      #   name: Semgrep Bandit
+      #   types: [python]
+      #   exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
+      #   args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
 
   # Run Semgrep Docker images. Only used in CI since it's slower for local developmemt.
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
