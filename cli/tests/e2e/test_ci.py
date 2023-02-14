@@ -151,7 +151,7 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     monkeypatch.chdir(repo_copy_base)
     subprocess.run(["git", "init"], check=True, capture_output=True)
     subprocess.run(
-        ["git", "remote", "add", "origin", REMOTE_REPO_URL],
+        ["git", "remote", "add", "origin", repo_base],
         check=True,
         capture_output=True,
     )
@@ -252,6 +252,7 @@ def automocks(mocker):
 
 @pytest.fixture(params=[True, False], ids=["autofix", "noautofix"])
 def mock_autofix(request, mocker):
+    mocker.patch.object(GitMeta, "repo_url", REMOTE_REPO_URL)
     mocker.patch.object(ScanHandler, "autofix", request.param)
 
 
