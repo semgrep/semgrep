@@ -2,7 +2,7 @@
   "meta": {
     "semgrep_version": "<sanitized version>",
     "repository": "checkout_project_name",
-    "repo_url": "https://pytest-0/popen-gw1/test_full_run_noautofix_local_0/project_name",
+    "repo_url": "git@github.com:example/fake.git",
     "branch": "some/branch-name",
     "ci_job_url": null,
     "commit": "sanitized",

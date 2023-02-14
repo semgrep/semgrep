@@ -31,6 +31,7 @@ BRANCH_NAME = "some/branch-name"
 MAIN_BRANCH_NAME = "main"
 COMMIT_MESSAGE = "some: commit message! foo"
 COMMIT_MESSAGE_2 = "Some other commit/ message"
+REMOTE_REPO_URL = 'git@github.com:example/fake.git'
 DEPLOYMENT_ID = 33
 BAD_CONFIG = dedent(
     """
@@ -150,7 +151,7 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     monkeypatch.chdir(repo_copy_base)
     subprocess.run(["git", "init"], check=True, capture_output=True)
     subprocess.run(
-        ["git", "remote", "add", "origin", repo_base],
+        ["git", "remote", "add", "origin", REMOTE_REPO_URL],
         check=True,
         capture_output=True,
     )
