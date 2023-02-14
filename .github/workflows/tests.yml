@@ -471,9 +471,9 @@ jobs:
     uses: ./.github/workflows/build-test-manylinux-x86.yaml
     secrets: inherit
 
-  # build-test-osx-x86:
-  #   uses: ./.github/workflows/build-test-osx-x86.yaml
-  #   secrets: inherit
+  build-test-osx-x86:
+    uses: ./.github/workflows/build-test-osx-x86.yaml
+    secrets: inherit
 
   # build-test-osx-m1:
   #   uses: ./.github/workflows/build-test-osx-m1.yaml
