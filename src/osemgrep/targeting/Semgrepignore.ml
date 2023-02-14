@@ -46,7 +46,7 @@ type t = Gitignore_filter.t
 *)
 
 let create ?includes ?(excludes = []) ~project_root () =
-  if Fpath.is_relative project_root then
+  if Fpath.is_rel project_root then
     invalid_arg ("Semgrepignore.create needs an absolute path: "
                  ^ Fpath.to_string project_root);
   let root_anchor = Glob_matcher.root_pattern in
@@ -59,18 +59,19 @@ let create ?includes ?(excludes = []) ~project_root () =
           let exclude_any =
             Gitignore_syntax.from_string ~anchor:root_anchor "**" in
           let deexclude =
-            Common.map (fun str ->
+            List.concat_map (fun str ->
               Gitignore_syntax.from_string ~anchor:root_anchor ("!" ^ str)
-            ) string_patterns
+            ) deexclude_patterns
           in
-          exclude_any :: deexclude
+          exclude_any @ deexclude
     in
     let exclude_selectors =
-      Common.map (Gitignore_syntax.from_string ~anchor:root_anchor) excludes
+      List.concat_map
+        (Gitignore_syntax.from_string ~anchor:root_anchor) excludes
     in
     include_selectors @ exclude_selectors
   in
-  let cli_level = {
+  let cli_level : Gitignore_level.t = {
     level_kind = "command-line includes/excludes";
     source_name = "<command line>";
     patterns;
@@ -81,16 +82,20 @@ let create ?includes ?(excludes = []) ~project_root () =
     ~gitignore_filenames:[".gitignore"; ".semgrepignore"]
     ~project_root
     ()
-(*
-(* How should we determine whether a relative path doesn't point outside
-   the git project? *)
-let normalize_path project_root path =
-  ...
 
 let select t path =
-  match Fpath.(v path |> segs) with
-  | [""] :: _ -> ()
-  |
-
-  Gitignore_filter.select t git_path
-*)
+  (*
+     Syntactic path normalization: 'foo/../bar' becomes 'bar' even if 'foo'
+     doesn't exist. This isn't what we want: ideally, 'foo/..' should result
+     in an error if 'foo' doesn't exist or isn't a readable directory.
+  *)
+  let git_path =
+    match Git_path.of_fpath path |> Git_path.normalize with
+    | Ok x -> x
+    | Error msg -> failwith msg
+  in
+  if Git_path.is_absolute git_path then
+    failwith ("Semgrepignore.select: not a relative path: "
+              ^ Fpath.to_string path)
+  else
+    Gitignore_filter.select t git_path

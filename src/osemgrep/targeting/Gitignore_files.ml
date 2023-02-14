@@ -5,5 +5,5 @@
 type t = {
   project_root: Fpath.t;
   gitignore_filenames: string list;
-  cache: (Fpath.t, level list) Hashtbl.t;
+  cache: (Fpath.t, Gitignore_level.t list) Hashtbl.t;
 }

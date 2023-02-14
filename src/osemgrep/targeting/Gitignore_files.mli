@@ -25,6 +25,6 @@ val create :
    folder.
 *)
 val load :
-  Fpath.t ->
   t ->
-  level
+  Git_path.t ->
+  Gitignore_level.t

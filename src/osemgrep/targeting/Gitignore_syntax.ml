@@ -10,11 +10,9 @@ type selection_event =
   | Selected of M.loc
   | Deselected of M.loc
 
-type git_path = string
-
 type path_selector = {
   loc : M.loc;
-  matcher : string -> selection_event option
+  matcher : Git_path.t -> selection_event option
 }
 
 type t = path_selector list
@@ -90,8 +88,8 @@ let parse_line ~anchor source_name line_number line_contents =
       | Some s -> (true, s)
     in
     let pattern = parse_pattern ~source:loc ~anchor pattern_str in
-    let matcher path =
-      match M.run pattern path with
+    let matcher (path : Git_path.t) =
+      match M.run pattern path.string with
       | true ->
           if is_negated then Some (Deselected loc) else Some (Selected loc)
       | false -> None

@@ -3,18 +3,13 @@
 *)
 
 module S = Gitignore_syntax
-
-type level = {
-  level_kind : string;
-  source_name : string;
-  patterns : S.path_selector list;
-}
+open Git_path.Ops
 
 type t = {
   project_root: Fpath.t;
-  higher_priority_levels: level list;
+  higher_priority_levels: Gitignore_level.t list;
   gitignore_file_cache: Gitignore_files.t;
-  lower_priority_levels: level list;
+  lower_priority_levels: Gitignore_level.t list;
 }
 
 let create
@@ -43,7 +38,7 @@ let is_selected (sel_events : S.selection_event list) =
 *)
 let select_one acc levels path : S.selection_event list =
   List.fold_left
-    (fun acc level ->
+    (fun acc (level : Gitignore_level.t) ->
       List.fold_left
         (fun acc (path_selector : S.path_selector) ->
           match path_selector.matcher path with
@@ -52,33 +47,65 @@ let select_one acc levels path : S.selection_event list =
         acc level.patterns)
     acc levels
 
-let ( / ) a b = a ^ "/" ^ b
-
 (*
    Filter a path according to gitignore rules, requiring all the parent paths
    to be deselected (not gitignored).
+
+   For a given path, we check the acceptability of all its ancestor folders.
+   Each time we descend into a folder, we read the .gitignore files in
+   that folder which add filters to the existing filters found earlier.
 *)
-let select t ~git_path =
-  let rec loop sel_events parent_path components =
+let select t (full_git_path : Git_path.t) =
+  (* Middle-priority levels: in-project .gitignore files *)
+  let rec loop sel_events levels parent_path components =
     (* add a component to the path and check if it's gitignored *)
     match components with
     | [] -> sel_events
     | component :: components ->
-        let additional_level = Gitignore_files.load parent_path in
-        let path = parent_path / component in
-        let sel_events = select_one sel_events levels path in
+        (* load local gitignore file *)
+        let additional_level =
+          Gitignore_files.load t.gitignore_file_cache parent_path
+        in
+        let levels = levels @ [additional_level] in
+        (* check whether partial path should be gitignored *)
+        let file_path = parent_path / component in
+        let sel_events = select_one sel_events levels file_path in
         if is_selected sel_events then
           (* stop here, don't go deeper as per gitignore spec *)
           sel_events
-        else loop sel_events path components
+        else
+          match components with
+          | []
+          | [""] ->
+              loop sel_events levels file_path components
+          | _ :: _ ->
+              (* add trailing slash to match directory-only patterns *)
+              let dir_path = file_path / "" in
+              let sel_events = select_one sel_events levels dir_path in
+              if is_selected sel_events then
+                sel_events
+              else
+                loop sel_events levels file_path components
   in
   let components =
-    match String.split_on_char '/' git_path with
+    match full_git_path.components with
     | "" :: xs -> xs
     | __else_ ->
         invalid_arg
           ("Gitignore_filter.select: not an absolute path: "
-           ^ git_path)
+           ^ full_git_path.string)
   in
-  let sel_events = loop [] "/" components in
-  (is_selected sel_events, sel_events)
+  let sel_events = [] in
+  let sel_events =
+    select_one sel_events t.higher_priority_levels full_git_path in
+  if is_selected sel_events then
+    true, sel_events
+  else
+    let sel_events =
+      loop [] [] Git_path.root components in
+    if is_selected sel_events then
+      true, sel_events
+    else
+      let sel_events =
+        select_one sel_events t.lower_priority_levels full_git_path in
+      (is_selected sel_events, sel_events)
