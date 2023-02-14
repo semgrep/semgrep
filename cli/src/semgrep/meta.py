@@ -105,7 +105,7 @@ class GitMeta:
             # if the repo URL was not explicitly provided, try getting it from git
             # nosem: use-git-check-output-helper
             rev_parse = subprocess.run(
-                ["git", "config", "--get", "remote.origin.url"],
+                ["git", "remote", "get-url", "origin"],
                 capture_output=True,
                 encoding="utf-8",
                 timeout=env.git_command_timeout,
