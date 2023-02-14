@@ -621,7 +621,23 @@ and get_nested_formula_matches env formula range =
       { env.xconf with nested_formula = true }
       env.rule env.xtarget formula (Some range)
   in
-  env.errors := Report.ErrorSet.union res.RP.errors !(env.errors);
+  (* Update the error messages with some more context. Otherwise it will appear
+   * as if, for example, we encountered a parse error while parsing the original
+   * file as the original language. *)
+  let nested_errors =
+    let lang = env.xtarget.xlang |> Xlang.to_string in
+    let rule = fst env.rule.id in
+    res.RP.errors
+    |> RP.ErrorSet.map (fun err ->
+           let msg =
+             spf
+               "When parsing a snippet as %s for metavariable-pattern in rule \
+                '%s', %s"
+               lang rule err.msg
+           in
+           { err with msg })
+  in
+  env.errors := Report.ErrorSet.union nested_errors !(env.errors);
   final_ranges
 
 (*****************************************************************************)
