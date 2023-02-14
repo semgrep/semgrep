@@ -47,7 +47,6 @@ type 'a wrap = 'a * tok [@@deriving show]
 
 (* round(), square[], curly{}, angle<> brackets *)
 type 'a bracket = tok * 'a * tok [@@deriving show]
-type todo_kind = string wrap
 
 (* ------------------------------------------------------------------------- *)
 (* Names  *)
