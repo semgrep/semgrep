@@ -1,0 +1,23 @@
+rules:
+  - id: match
+    message: Semgrep found a match
+    languages:
+      - php
+    severity: WARNING
+    mode: taint
+    options:
+      taint_assume_safe_functions: true
+    pattern-sources:
+      - pattern: $_GET
+    pattern-propagators:
+      - by-side-effect: false
+        patterns:
+          - pattern-inside: $F(..., $X, ...)
+          - focus-metavariable: $F
+          - pattern-either:
+              - pattern: foo
+        from: $X
+        to: $F
+    pattern-sinks:
+      - pattern: echo ...;
+

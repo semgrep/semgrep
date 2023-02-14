@@ -1115,10 +1115,14 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
   let parse_from_dict dict f =
+    let propagator_by_side_effect =
+      take_opt dict env parse_bool "by-side-effect"
+      |> Option.value ~default:true
+    in
     let from = take dict env parse_string_wrap "from" in
     let to_ = take dict env parse_string_wrap "to" in
     let propagator_formula = f env dict in
-    { R.propagator_formula; from; to_ }
+    { R.propagator_formula; propagator_by_side_effect; from; to_ }
   in
   let dict = yaml_to_dict env key value in
   parse_from_dict dict f
