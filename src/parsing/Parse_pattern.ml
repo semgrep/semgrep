@@ -169,8 +169,8 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Xml ->
         let res = Parse_html_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
-    | Lang.Hcl ->
-        let res = Parse_hcl_tree_sitter.parse_pattern str in
+    | Lang.Terraform ->
+        let res = Parse_terraform_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
     (* use pfff *)
     | Lang.Python

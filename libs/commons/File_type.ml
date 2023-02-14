@@ -83,7 +83,7 @@ and config_type =
   | Jsonnet
   (* kinda pl_type *)
   | Yaml
-  | HCL
+  | Terraform
 
 and lisp_type = CommonLisp | Elisp | Scheme | Clojure
 
@@ -242,7 +242,7 @@ let file_type_of_file file =
   | "yml"
   | "yaml" ->
       Config Yaml
-  | "tf" -> Config HCL
+  | "tf" -> Config Terraform
   | "sql" -> PL (Web Sql)
   | "sqlite" -> PL (Web Sql)
   (* apple stuff ? *)

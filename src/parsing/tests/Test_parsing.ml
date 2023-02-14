@@ -193,7 +193,7 @@ let dump_tree_sitter_cst lang file =
   | Lang.Php ->
       Tree_sitter_php.Parse.file file
       |> dump_and_print_errors Tree_sitter_php.CST.dump_tree
-  | Lang.Hcl ->
+  | Lang.Terraform ->
       Tree_sitter_hcl.Parse.file file
       |> dump_and_print_errors Tree_sitter_hcl.CST.dump_tree
   | Lang.Elixir ->
@@ -261,7 +261,7 @@ let test_parse_tree_sitter lang root_paths =
                      Tree_sitter_vue.Parse.file file |> fail_on_error |> ignore
                  | Lang.Php ->
                      Tree_sitter_php.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Hcl ->
+                 | Lang.Terraform ->
                      Tree_sitter_hcl.Parse.file file |> fail_on_error |> ignore
                  | Lang.Dart ->
                      Tree_sitter_dart.Parse.file file |> fail_on_error |> ignore

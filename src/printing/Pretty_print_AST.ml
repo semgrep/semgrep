@@ -110,7 +110,7 @@ let print_bool env = function
       | Lang.Swift
       | Lang.Html
       | Lang.Xml
-      | Lang.Hcl ->
+      | Lang.Terraform ->
           "true"
       | Lang.R -> "TRUE")
   | false -> (
@@ -152,7 +152,7 @@ let print_bool env = function
       | Lang.Solidity
       | Lang.Swift
       | Lang.Html
-      | Lang.Hcl ->
+      | Lang.Terraform ->
           "false"
       | Lang.R -> "FALSE")
 
@@ -265,7 +265,7 @@ and if_stmt env level (tok, e, s, sopt) =
     | Lang.Hack
     | Lang.Yaml
     | Lang.Html
-    | Lang.Hcl ->
+    | Lang.Terraform ->
         raise Todo
     | Lang.Python
     | Lang.Python2
@@ -336,7 +336,7 @@ and while_stmt env level (tok, e, s) =
     | Lang.Solidity
     | Lang.Swift
     | Lang.Html
-    | Lang.Hcl ->
+    | Lang.Terraform ->
         raise Todo
     | Lang.Python
     | Lang.Python2
@@ -383,7 +383,7 @@ and do_while stmt env level (s, e) =
     | Lang.Solidity
     | Lang.Swift
     | Lang.Html
-    | Lang.Hcl ->
+    | Lang.Terraform ->
         raise Todo
     | Lang.Apex
     | Lang.Java
@@ -428,7 +428,7 @@ and for_stmt env level (for_tok, hdr, s) =
     | Lang.Yaml
     | Lang.Scala
     | Lang.Solidity
-    | Lang.Hcl ->
+    | Lang.Terraform ->
         raise Todo
     | Lang.Apex
     | Lang.Java
@@ -512,7 +512,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Solidity
       | Lang.Swift
       | Lang.Html
-      | Lang.Hcl ->
+      | Lang.Terraform ->
           raise Todo
       | Lang.Apex
       | Lang.Java
@@ -585,7 +585,7 @@ and return env (tok, eopt) _sc =
   | Lang.Scala
   | Lang.Solidity
   | Lang.Html
-  | Lang.Hcl ->
+  | Lang.Terraform ->
       raise Todo
   | Lang.Apex
   | Lang.Java
@@ -635,7 +635,7 @@ and break env (tok, lbl) _sc =
   | Lang.Scala
   | Lang.Solidity
   | Lang.Html
-  | Lang.Hcl ->
+  | Lang.Terraform ->
       raise Todo
   | Lang.Apex
   | Lang.Java
@@ -685,7 +685,7 @@ and continue env (tok, lbl) _sc =
   | Lang.Scala
   | Lang.Solidity
   | Lang.Html
-  | Lang.Hcl ->
+  | Lang.Terraform ->
       raise Todo
   | Lang.Apex
   | Lang.Java
@@ -814,7 +814,7 @@ and literal env l =
       | Lang.Scala
       | Lang.Solidity
       | Lang.Html
-      | Lang.Hcl ->
+      | Lang.Terraform ->
           raise Todo
       | Lang.Python
       | Lang.Python2

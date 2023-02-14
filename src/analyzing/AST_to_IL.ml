@@ -223,7 +223,7 @@ let mk_unnamed_args (exps : IL.exp list) = Common.map (fun x -> Unnamed x) exps
 
 let is_hcl lang =
   match lang with
-  | Lang.Hcl -> true
+  | Lang.Terraform -> true
   | _ -> false
 
 (*****************************************************************************)
