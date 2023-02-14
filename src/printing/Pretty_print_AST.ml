@@ -24,9 +24,9 @@ module F = Format
  *
  * This module was started to help the pattern-from-code synthesizing project
  * (which is now in src/experiments/). It is also used for debugging
- * purpose in the code to handle semgrep-core -dfg_value.
+ * purpose in the code to handle 'semgrep-core -dfg_value'.
  * TODO? It could also be used for correct autofixing (even though we probably
- * should use instead Ugly_print_AST.ml).
+ * should use instead Ugly_print_AST.ml now).
  * TODO? It could also be used in Eval_generic.ml to pretty print code
  * stored in metavariable that needs to be dumped (for example for
  * 'metavariable-pattern:').
@@ -37,10 +37,10 @@ module F = Format
  * The only "pretty" thing we do is to indent statements in nested blocks.
  *
  * Moreover, we rely on the fact that the generic AST is actually almost a
- * concrete syntax tree with most of the tokens stored in the tree.
+ * Concrete Syntax Tree (CST) with most of the tokens stored in the tree.
  * This is why for example we don't need to handle the many different ways
  * languages represented True and False ("true" in most languages, but
- * sometimes "True", or even "TRUE"). We can expect the token associated
+ * sometimes "True", or even "TRUE"); we can expect the token associated
  * with the boolean in the AST/CST to contain the actually string used
  * for the boolean (via Parse_info.str_of_info).
  *
@@ -55,7 +55,7 @@ module F = Format
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* TODO? we could also make this module more flexibly by allowing to
+(* TODO? we could also make this module more flexible by allowing to
  * also pass some metavariable bindings? 'mvars : Metavariable.bindings;'?
  *)
 type env = { lang : Lang.t; (* indentation level *) level : int }
@@ -71,8 +71,6 @@ let rec indent = function
   | 0 -> ""
   | n -> "    " ^ indent (n - 1)
 
-let ident (s, _) = s
-
 let opt f = function
   | None -> ""
   | Some x -> f x
@@ -84,6 +82,24 @@ let opt f = function
 let token ?(d = "TODO") tok =
   try Parse_info.str_of_info tok with
   | Parse_info.NoTokenLocation _ -> d
+
+type lang_kind = CLikeSemiColon | Other
+
+let _lang_kind = function
+  | Lang.C
+  | Lang.Cpp
+  | Lang.Java
+  | Lang.Apex
+  | Lang.Csharp
+  | Lang.Rust ->
+      CLikeSemiColon
+  | _other_ -> Other
+
+(*****************************************************************************)
+(* Ident and operators *)
+(*****************************************************************************)
+
+let ident (s, _) = s
 
 let arithop _env (op, tok) =
   match op with
@@ -101,18 +117,6 @@ let arithop _env (op, tok) =
   | NotEq -> token ~d:"!=" tok
   | _else_ -> token tok
 
-type lang_kind = CLikeSemiColon | Other
-
-let _lang_kind = function
-  | Lang.C
-  | Lang.Cpp
-  | Lang.Java
-  | Lang.Apex
-  | Lang.Csharp
-  | Lang.Rust ->
-      CLikeSemiColon
-  | _other_ -> Other
-
 (*****************************************************************************)
 (* Statements *)
 (*****************************************************************************)
@@ -125,14 +129,19 @@ let rec stmt env st =
   | While (tok, e, s) -> while_stmt env (tok, e, s)
   | DoWhile (_tok, s, e) -> do_while stmt env (s, e)
   | For (tok, hdr, s) -> for_stmt env (tok, hdr, s)
-  | Return (tok, eopt, sc) -> return env (tok, eopt) sc
-  | DefStmt def -> def_stmt env def
+  | Return (tok, eopt, sc) ->
+      (* TODO:
+         | Lang.R -> F.sprintf "%s(%s)" (token ~d:"return" tok) to_return
+      *)
+      let to_return = expr_opt env eopt in
+      F.sprintf "%s %s%s" (token ~d:"return" tok) to_return (token ~d:"" sc)
   | Break (tok, lbl, sc) ->
       let lbl_str = label_ident env lbl in
       F.sprintf "%s%s%s" (token ~d:"break" tok) lbl_str (token ~d:"" sc)
   | Continue (tok, lbl, sc) ->
       let lbl_str = label_ident env lbl in
       F.sprintf "%s%s%s" (token ~d:"continue" tok) lbl_str (token ~d:"" sc)
+  | DefStmt def -> def_stmt env def
   | Switch (_, _, _)
   | Label (_, _)
   | Goto (_, _, _)
@@ -430,50 +439,6 @@ and for_stmt env (for_tok, hdr, s) =
   let body_str = stmt { env with level = env.level + 1 } s in
   for_format (token ~d:"for" for_tok) hdr_str body_str
 
-and return env (tok, eopt) _sc =
-  let to_return = expr_opt env eopt in
-  match env.lang with
-  | Lang.Xml
-  | Lang.Dart
-  | Lang.Clojure
-  | Lang.Lisp
-  | Lang.Scheme
-  | Lang.Julia
-  | Lang.Elixir
-  | Lang.Bash
-  | Lang.Php
-  | Lang.Dockerfile
-  | Lang.Hack
-  | Lang.Yaml
-  | Lang.Scala
-  | Lang.Solidity
-  | Lang.Html
-  | Lang.Terraform ->
-      raise Todo
-  | Lang.Apex
-  | Lang.Java
-  | Lang.C
-  | Lang.Cpp
-  | Lang.Csharp
-  | Lang.Kotlin
-  | Lang.Rust ->
-      F.sprintf "%s %s;" (token ~d:"return" tok) to_return
-  | Lang.Python
-  | Lang.Python2
-  | Lang.Python3
-  | Lang.Go
-  | Lang.Ruby
-  | Lang.Ocaml
-  | Lang.Json
-  | Lang.Jsonnet
-  | Lang.Js
-  | Lang.Swift
-  | Lang.Ts
-  | Lang.Vue
-  | Lang.Lua ->
-      F.sprintf "%s %s" (token ~d:"return" tok) to_return
-  | Lang.R -> F.sprintf "%s(%s)" (token ~d:"return" tok) to_return
-
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -567,6 +532,7 @@ and ident_or_dynamic = function
   | EPattern _
   | OtherEntity _ ->
       raise Todo
+
 (*****************************************************************************)
 (* Expressions *)
 (*****************************************************************************)
@@ -652,55 +618,18 @@ and call env (e, (_, es, _)) =
       | Postfix -> F.sprintf "%s%s" (argument env x) op_str)
   | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
-and literal env l =
+and literal _env l =
   match l with
   | Bool (true, t) -> token ~d:"true" t
   | Bool (false, t) -> token ~d:"false" t
   | Int (_, t) -> token t
   | Float (_, t) -> token t
   | Char (s, _) -> F.sprintf "'%s'" s
-  | String (s, _) -> (
-      match env.lang with
-      | Lang.Xml
-      | Lang.Dart
-      | Lang.Clojure
-      | Lang.Lisp
-      | Lang.Scheme
-      | Lang.Julia
-      | Lang.Elixir
-      | Lang.Bash
-      | Lang.Php
-      | Lang.Dockerfile
-      | Lang.Hack
-      | Lang.Yaml
-      | Lang.Scala
-      | Lang.Solidity
-      | Lang.Html
-      | Lang.Terraform ->
-          raise Todo
-      | Lang.Python
-      | Lang.Python2
-      | Lang.Python3 ->
-          "'" ^ s ^ "'"
-      | Lang.Apex
-      | Lang.Java
-      | Lang.Go
-      | Lang.C
-      | Lang.Cpp
-      | Lang.Csharp
-      | Lang.Kotlin
-      | Lang.Json
-      | Lang.Jsonnet
-      | Lang.Js
-      | Lang.Vue
-      | Lang.Ocaml
-      | Lang.Ruby
-      | Lang.Ts
-      | Lang.Lua
-      | Lang.Rust
-      | Lang.R
-      | Lang.Swift ->
-          "\"" ^ s ^ "\"")
+  (* TODO: once we will have string wrap bracket in AST_generic,
+   * we will be able to print correctly whether '' or "" was used
+   * to contain the string
+   *)
+  | String (s, _) -> "\"" ^ s ^ "\""
   | Regexp ((_, (s, _), _), rmod) -> (
       "/" ^ s ^ "/"
       ^
@@ -740,10 +669,6 @@ and slice_access env e (o1, o2) = function
       F.sprintf "%s[%s:%s:%s]" (expr env e) (expr_opt env o1) (expr_opt env o2)
         (expr env e1)
 
-and other _env (op, anys) =
-  match (op, anys) with
-  | _ -> todo (E (OtherExpr (op, anys) |> G.e))
-
 and dot_access env (e, _tok, fi) =
   F.sprintf "%s.%s" (expr env e) (field_ident env fi)
 
@@ -769,6 +694,10 @@ and cond env (e1, e2, e3) =
   | Lang.Java -> F.sprintf "%s ? %s : %s" s1 s2 s3
   | _ -> todo (E (Conditional (e1, e2, e3) |> G.e))
 
+and other _env (op, anys) =
+  match (op, anys) with
+  | _ -> todo (E (OtherExpr (op, anys) |> G.e))
+
 (*****************************************************************************)
 (* patterns *)
 (*****************************************************************************)
@@ -781,6 +710,7 @@ and pattern env = function
 (* Misc *)
 (*****************************************************************************)
 
+(* this is mostly used for 'semgrep-core -dfg_value' *)
 let ctype = function
   | G.Cbool -> "bool"
   | G.Cint -> "int"
