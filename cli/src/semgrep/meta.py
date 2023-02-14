@@ -104,17 +104,17 @@ class GitMeta:
         if not repo_url:
             # if the repo URL was not explicitly provided, try getting it from git
             # nosem: use-git-check-output-helper
-            rev_parse = subprocess.run(
+            git_parse = subprocess.run(
                 ["git", "remote", "get-url", "origin"],
                 capture_output=True,
                 encoding="utf-8",
                 timeout=env.git_command_timeout,
             )
-            if rev_parse.returncode != 0:
-                raise Exception(
-                    "Unable to infer repo_url. Set SEMGREP_REPO_URL environment variable or run in a valid git project"
+            if git_parse.returncode != 0:
+                logger.warn(
+                    f"Unable to infer repo_url. Set SEMGREP_REPO_URL environment variable or run in a valid git project with remote origin defined"
                 )
-            repo_url = rev_parse.stdout.strip()
+            repo_url = git_parse.stdout.strip()
 
         return get_url_from_sstp_url(repo_url)
 
