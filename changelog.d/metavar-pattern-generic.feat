@@ -1,1 +1,0 @@
-Allow metavariable-pattern clauses that use `language: generic` to run (and potentially match) on any metavariable binding kind, not just strings. For example, with the pattern `foo($...ARGS)`, it is now possible to use a `metavariable-pattern` on `$...ARGS` with `language: generic`, and match using generic mode against whatever text `$...ARGS` is bound to.

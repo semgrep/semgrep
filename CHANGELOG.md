@@ -14,6 +14,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - CLI: No longer reports rules as being run with a lack of `interfile: true` when interfile
   analysis was not requested. (pa-2528)
+- The 1.11.0 release started printing log lines to stderr even when --quiet was
+  on, making it impossible to get well-formed JSON output when mixing stdout and
+  stderr. These lines are now gone, and output is again restricted to just scan
+  results. (quiet-please)
+- Output lines in GitHub Actions logs could appear scrambled, due to GitHub
+  Actions mixing together the stdout and stderr streams in non-deterministic
+  order. Semgrep will now log everything only to one stream in GitHub Actions
+  when using text output mode, which ensures lines no longer appear scrambled.
+  (sc-607)
 
 ## [1.11.0](https://github.com/returntocorp/semgrep/releases/tag/v1.11.0) - 2023-02-10
 
@@ -30,6 +39,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - CLI: Progress bar for Semgrep Pro Engine interfile scans now reflects actual progress more faithfully (pa-2313)
 - Pro: We now check the downloaded binary before installing it, this should prevent
   installation of corrupted binaries due to errors during the download. (pa-2492)
+- Fix the location associated with metavariables bound inside of
+  `metavariable-pattern` clauses, which could lead to matches being incorrectly
+  displayed. (extracted-metavar-loc)
+- CLI: Fixed bug with `semgrep --validate` for metavariables like $1, $2.
+  Previously, it blocked rules that it shouldn't. (validate-regex-mvar)
 
 ## [1.10.0](https://github.com/returntocorp/semgrep/releases/tag/v1.10.0) - 2023-02-08
 
@@ -39,6 +53,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Rust: Beta support for Rust. (gh-6545)
 - Rule syntax: Metavariable bindings bound within `metavariable-pattern` now persist to outside of the `metavariable-pattern` (pa-2490)
 - Updated all lockfile parsers (except Cargo.lock) to produce better error messages, at the cost of a couple seconds of lowdown on large (>10k lines) lockfiles (sc-better-parsers)
+- Allow metavariable-pattern clauses that use `language: generic` to run (and
+  potentially match) on any metavariable binding kind, not just strings. For
+  example, with the pattern `foo($...ARGS)`, it is now possible to use a
+  `metavariable-pattern` on `$...ARGS` with `language: generic`, and match using
+  generic mode against whatever text `$...ARGS` is bound to.
+  (metavar-pattern-generic)
+- Print handy links to review results on Semgrep App when a CI scan uploads
+  findings. (sc-564)
+- Allow metavariable ellipsis in template literals, e.g. `$...X${1 + 2}`
+  (template-metavar-ellipsis)
 
 ### Changed
 
@@ -50,6 +74,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - The output formatting of semgrep ci is getting revamped in the coming weeks.
   This release includes the first couple changes to the output. (sc-590)
 - Packages from the maven ecosystem are now parsed to include their org slug. This means a log4j rule must now use `org.apache.logging.log4j:log4j-core` instead of just `log4j-core`. This change is backwards incompatible, in that any Java Supply Chain rules not taking into account will stop producing any findings, since the packages parsed from lockfiles will include the org, but the old rules will not. (sc-maven-org)
+- Add the engine requested by the user to the metrics (pa-2427)
 
 ### Fixed
 
