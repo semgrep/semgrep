@@ -99,7 +99,21 @@ class GitMeta:
 
     @property
     def repo_url(self) -> Optional[str]:
-        return get_url_from_sstp_url(os.getenv("SEMGREP_REPO_URL"))
+        repo_url = os.getenv("SEMGREP_REPO_URL")
+        if not repo_url:
+            # if the repo URL was not explicitly provided, try getting it from git
+            rev_parse = subprocess.run(
+                ["git", "config", "--get", "remote.origin.url"],
+                capture_output=True,
+                encoding="utf-8",
+                timeout=env.git_command_timeout,
+            )
+            if rev_parse.returncode != 0:
+                raise Exception(
+                    "Unable to infer repo_url. Set SEMGREP_REPO_URL environment variable or run in a valid git project"
+                )
+
+        return get_url_from_sstp_url(repo_url)
 
     @property
     def commit_sha(self) -> Optional[str]:
@@ -294,14 +308,7 @@ class GithubMeta(GitMeta):
             f"head branch ({head_branch_name}) has latest commit {commit}, fetching that commit now."
         )
         git_check_output(
-            [
-                "git",
-                "fetch",
-                "origin",
-                "--force",
-                "--depth=1",
-                commit,
-            ]
+            ["git", "fetch", "origin", "--force", "--depth=1", commit,]
         )
         return str(commit)
 
@@ -342,10 +349,10 @@ class GithubMeta(GitMeta):
         env = get_state().env
 
         # fetch 0, 4, 16, 64, 256, 1024, ...
-        fetch_depth = 4**attempt_count if attempt_count else 0
+        fetch_depth = 4 ** attempt_count if attempt_count else 0
         fetch_depth += get_state().env.min_fetch_depth
         if attempt_count > self.MAX_FETCH_ATTEMPT_COUNT:  # get all commits on last try
-            fetch_depth = 2**31 - 1  # git expects a signed 32-bit integer
+            fetch_depth = 2 ** 31 - 1  # git expects a signed 32-bit integer
 
         logger.debug(
             f"Attempting to find merge base, attempt_count={attempt_count}, fetch_depth={fetch_depth}"
