@@ -65,6 +65,10 @@ let todo any =
   pr2 (show_any any);
   "*TODO*"
 
+let rec indent = function
+  | 0 -> ""
+  | n -> "    " ^ indent (n - 1)
+
 let ident (s, _) = s
 
 let opt f = function
@@ -101,7 +105,7 @@ let arithop _env (op, tok) =
 
 let rec stmt env st =
   match st.s with
-  | ExprStmt (e, tok) -> F.sprintf "%s%s" (expr env e) (token ~d:"" tok)
+  | ExprStmt (e, tok) -> F.sprintf "%s%s" (expr env e) (token ~d:";" tok)
   | Block x -> block env x
   | If (tok, e, s, sopt) -> if_stmt env (token ~d:"if" tok, e, s, sopt)
   | While (tok, e, s) -> while_stmt env (tok, e, s)
@@ -114,10 +118,6 @@ let rec stmt env st =
   | _ -> todo (S st)
 
 and block env (t1, ss, t2) =
-  let rec indent = function
-    | 0 -> ""
-    | n -> "    " ^ indent (n - 1)
-  in
   let rec show_statements env = function
     | [] -> ""
     | [ x ] -> F.sprintf "%s%s" (indent env.level) (stmt env x)
@@ -139,10 +139,6 @@ and block env (t1, ss, t2) =
   else show_statements env ss
 
 and if_stmt env (tok, e, s, sopt) =
-  let rec indent = function
-    | 0 -> ""
-    | n -> "    " ^ indent (n - 1)
-  in
   let no_paren_cond = F.sprintf "%s %s" in
   (* if cond *)
   let paren_cond = F.sprintf "%s (%s)" in
@@ -364,7 +360,7 @@ and for_stmt env (for_tok, hdr, s) =
   let show_init = function
     | ForInitVar (ent, var_def) ->
         F.sprintf "%s%s%s"
-          (opt (fun x -> print_type x ^ " ") var_def.vtype)
+          (opt (fun x -> type_ x ^ " ") var_def.vtype)
           (ident_or_dynamic ent.name)
           (opt (fun x -> " = " ^ expr env x) var_def.vinit)
     | ForInitExpr e_init -> expr env e_init
@@ -399,11 +395,7 @@ and for_stmt env (for_tok, hdr, s) =
   for_format (token ~d:"for" for_tok) hdr_str body_str
 
 and return env (tok, eopt) _sc =
-  let to_return =
-    match eopt with
-    | None -> ""
-    | Some e -> expr env e
-  in
+  let to_return = expr_opt env eopt in
   match env.lang with
   | Lang.Xml
   | Lang.Dart
@@ -550,7 +542,7 @@ and continue env (tok, lbl) _sc =
 (* Types *)
 (*****************************************************************************)
 
-and print_type t =
+and type_ t =
   match t.t with
   | TyN (Id (id, _)) -> ident id
   | _ -> todo (T t)
@@ -620,7 +612,7 @@ and def_stmt env (entity, def_kind) =
     let typ, id =
       match ent.name with
       | EN (Id (_, { id_type = { contents = Some t }; _ })) ->
-          (print_type t, ident_or_dynamic ent.name)
+          (type_ t, ident_or_dynamic ent.name)
       | _ -> ("", ident_or_dynamic ent.name)
     in
     match def.vinit with
@@ -666,6 +658,8 @@ and expr env e =
   | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
   | _x -> todo (E e)
 
+and expr_opt env eopt = opt (expr env) eopt
+
 and id env (s, { id_resolved; _ }) : string =
   match !id_resolved with
   | Some (ImportedEntity ents, _) -> canonical_name env ents
@@ -692,14 +686,14 @@ and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
   | None -> ident id
 
 and special env = function
-  | This, _ -> "this"
-  | Self, _ -> "self"
+  | This, tok -> token ~d:"this" tok
+  | Self, tok -> token ~d:"self" tok
   | Op op, tok -> arithop env (op, tok)
   | IncrDecr _, _ -> "" (* should be captured in the call *)
   | sp, tok -> todo (E (IdSpecial (sp, tok) |> G.e))
 
 and new_call env (t, (_, es, _)) =
-  let s1 = print_type t in
+  let s1 = type_ t in
   F.sprintf "new %s(%s)" s1 (arguments env es)
 
 and call env (e, (_, es, _)) =
@@ -788,7 +782,7 @@ and arguments env xs =
 
 and argument env = function
   | Arg e -> expr env e
-  | ArgType t -> print_type t
+  | ArgType t -> type_ t
   | ArgKwd (id, e) -> F.sprintf "%s=%s" (ident id) (expr env e)
   | ArgKwdOptional (id, e) -> F.sprintf "%s=?%s" (ident id) (expr env e)
   | x -> todo (Ar x)
@@ -804,14 +798,11 @@ and dotted_access env = function
   | x :: y :: xs -> ident x ^ "." ^ dotted_access env (y :: xs)
 
 and slice_access env e (o1, o2) = function
-  | None -> F.sprintf "%s[%s:%s]" (expr env e) (option env o1) (option env o2)
+  | None ->
+      F.sprintf "%s[%s:%s]" (expr env e) (expr_opt env o1) (expr_opt env o2)
   | Some e1 ->
-      F.sprintf "%s[%s:%s:%s]" (expr env e) (option env o1) (option env o2)
+      F.sprintf "%s[%s:%s:%s]" (expr env e) (expr_opt env o1) (expr_opt env o2)
         (expr env e1)
-
-and option env = function
-  | None -> ""
-  | Some e -> expr env e
 
 and other _env (op, anys) =
   match (op, anys) with
@@ -828,8 +819,8 @@ and field_ident env fi =
 
 and tyvar env (id, typ) =
   match env.lang with
-  | Lang.Java -> F.sprintf "(%s %s)" (print_type typ) (ident id)
-  | Lang.Go -> F.sprintf "(%s : %s)" (ident id) (print_type typ)
+  | Lang.Java -> F.sprintf "(%s %s)" (type_ typ) (ident id)
+  | Lang.Go -> F.sprintf "(%s : %s)" (ident id) (type_ typ)
   | _ -> failwith "Not implemented for this language"
 
 and cond env (e1, e2, e3) =
@@ -842,11 +833,17 @@ and cond env (e1, e2, e3) =
   | Lang.Java -> F.sprintf "%s ? %s : %s" s1 s2 s3
   | _ -> todo (E (Conditional (e1, e2, e3) |> G.e))
 
+(*****************************************************************************)
 (* patterns *)
+(*****************************************************************************)
 and pattern env = function
   | PatLiteral l -> literal env l
   | PatId (id, _id_info) -> ident id
   | x -> todo (P x)
+
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
 
 let ctype = function
   | G.Cbool -> "bool"
