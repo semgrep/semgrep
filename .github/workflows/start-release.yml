@@ -30,30 +30,30 @@ jobs:
       pr-number: ${{ steps.open-pr.outputs.pr-number }}
       release-branch: ${{ steps.release-branch.outputs.release-branch }}
     steps:
-      - name: Get JWT for semgrep-ci GitHub App
-        id: jwt
-        uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
-        env:
-          EXPIRATION: 600 # seconds
-          ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }} # semgrep-ci GitHub App id
-          PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
-      - name: Get token for semgrep-ci GitHub App
-        id: token
-        run: |
-          TOKEN="$(curl -X POST \
-          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
-          jq -r .token)"
-          echo "::add-mask::$TOKEN"
-          echo "::set-output name=token::$TOKEN"
+      # - name: Get JWT for semgrep-ci GitHub App
+      #   id: jwt
+      #   uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+      #   env:
+      #     EXPIRATION: 600 # seconds
+      #     ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }} # semgrep-ci GitHub App id
+      #     PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+      # - name: Get token for semgrep-ci GitHub App
+      #   id: token
+      #   run: |
+      #     TOKEN="$(curl -X POST \
+      #     -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+      #     -H "Accept: application/vnd.github.v3+json" \
+      #     "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+      #     jq -r .token)"
+      #     echo "::add-mask::$TOKEN"
+      #     echo "::set-output name=token::$TOKEN"
       - name: Check out code
         uses: actions/checkout@v3
         id: checkout
         with:
           submodules: "recursive"
           ref: "${{ github.event.repository.default_branch }}"
-          token: "${{ steps.token.outputs.token }}"
+          token: "${{ secrets.GH_TOKEN  }}"
       # Note that checkout@v3 does not get the tags by default. It does if you do
       # "full" checkout, which is too heavyweight. We don't want all branches and
       # everything that ever existed on the repo, so we just do a lightweight checkout
@@ -70,7 +70,7 @@ jobs:
         id: next-version
         uses: christian-draeger/increment-semantic-version@68f14f806a9800fe17433287c35226fd8fd60201
         with:
-          current-version: "${{ steps.latest-version.outputs.latest-version }}"
+          current-version: "1.6.0"
           version-fragment: "${{ github.event.inputs.bumpVersionFragment }}"
       - name: Create release branch
         id: release-branch
@@ -103,14 +103,14 @@ jobs:
         with:
           name: release_body_${{ steps.next-version.outputs.next-version }}
           path: scripts/release/release_body.txt
-      - name: Update Changelog
-        working-directory: scripts/release
-        run: |
-          pip3 install pipenv==2022.6.7
-          pipenv install --dev
-          pipenv run towncrier build --yes --version ${{ steps.next-version.outputs.next-version }}
-          # use || true since modifications mean exit code != 0
-          pipenv run pre-commit run --files ../../CHANGELOG.md --config ../../.pre-commit-config.yaml || true
+      # - name: Update Changelog
+      #   working-directory: scripts/release
+      #   run: |
+      #     pip3 install pipenv==2022.6.7
+      #     pipenv install --dev
+      #     pipenv run towncrier build --yes --version ${{ steps.next-version.outputs.next-version }}
+      #     # use || true since modifications mean exit code != 0
+      #     pipenv run pre-commit run --files ../../CHANGELOG.md --config ../../.pre-commit-config.yaml || true
       - name: Push release branch
         id: push-release-branch
         env:
@@ -127,7 +127,7 @@ jobs:
           SOURCE: "${{ steps.release-branch.outputs.release-branch }}"
           TARGET: "${{ github.event.repository.default_branch }}"
           TITLE: "Release Version ${{ steps.next-version.outputs.next-version }}"
-          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           # check if the branch already has a pull request open
 
@@ -159,22 +159,22 @@ jobs:
       - name: Wait for checks to register
         id: register-checks
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+          LEN_CHECKS=$(gh pr -R bridgecrewio/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
 
           # Immediately after creation, the PR doesn't have any checks attached yet, wait until this is not the case
           # If you immediately start waiting for checks, then it just fails saying there's no checks.
           while [ ${LEN_CHECKS} = "0" ]; do
             echo "No checks available yet"
             sleep 1
-            LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+            LEN_CHECKS=$(gh pr -R bridgecrewio/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
           done
           echo "checks are valid"
 
           echo ${LEN_CHECKS}
 
-          gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
+          gh pr -R bridgecrewio/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
       - name: Wait for checks to complete
         id: wait-checks
         env:
@@ -190,7 +190,7 @@ jobs:
           # Once all checks are complete on the PR, find the number of checks so that we can wait for the new checks to register.
           # We can't do this above because sometimes all checks aren't yet ready by the time the first one is, so we end up in a case where
           # we aren't getting waiting for all checks.
-          LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+          LEN_CHECKS=$(gh pr -R bridgecrewio/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
           echo "::set-output name=num-checks::${LEN_CHECKS}"
 
   create-tag:
@@ -298,26 +298,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+          LEN_CHECKS=$(gh pr -R bridgecrewio/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
 
           # We need to wait for the new checks to register when the release tag is pushed
           while [ ${LEN_CHECKS} = ${{ needs.wait-for-pr-checks.outputs.num-checks }} ]; do
             echo "No checks available yet"
             sleep 1
-            LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+            LEN_CHECKS=$(gh pr -R bridgecrewio/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
           done
           echo "checks are valid"
 
           echo ${LEN_CHECKS}
 
-          gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
+          gh pr -R bridgecrewio/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
       - name: Wait for release checks
         id: wait-release-checks
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Wait for PR checks to finish
-          gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch
+          gh pr -R bridgecrewio/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch
 
   validate-release-trigger:
     needs: [wait-for-release-checks, release-setup]
@@ -327,76 +327,76 @@ jobs:
     with:
       version: ${{needs.release-setup.outputs.version}}
 
-  bump-semgrep-app:
-    needs: [validate-release-trigger, release-setup]
-    name: Bump Semgrep App Semgrep Version
-    uses: ./.github/workflows/call-bump-pr-workflow.yml
-    secrets: inherit
-    with:
-      version: ${{needs.release-setup.outputs.version}}
-      repository: "returntocorp/semgrep-app"
+  # bump-semgrep-app:
+  #   needs: [validate-release-trigger, release-setup]
+  #   name: Bump Semgrep App Semgrep Version
+  #   uses: ./.github/workflows/call-bump-pr-workflow.yml
+  #   secrets: inherit
+  #   with:
+  #     version: ${{needs.release-setup.outputs.version}}
+  #     repository: "returntocorp/semgrep-app"
 
-  bump-semgrep-action:
-    needs: [validate-release-trigger, release-setup]
-    name: Bump Semgrep Action Semgrep Version
-    uses: ./.github/workflows/call-bump-pr-workflow.yml
-    secrets: inherit
-    with:
-      version: ${{needs.release-setup.outputs.version}}
-      repository: "returntocorp/semgrep-action"
+  # bump-semgrep-action:
+  #   needs: [validate-release-trigger, release-setup]
+  #   name: Bump Semgrep Action Semgrep Version
+  #   uses: ./.github/workflows/call-bump-pr-workflow.yml
+  #   secrets: inherit
+  #   with:
+  #     version: ${{needs.release-setup.outputs.version}}
+  #     repository: "returntocorp/semgrep-action"
 
-  bump-semgrep-rpc:
-    needs: [validate-release-trigger, release-setup]
-    name: Bump Semgrep RPC Semgrep Version
-    uses: ./.github/workflows/call-bump-pr-workflow.yml
-    secrets: inherit
-    with:
-      version: ${{needs.release-setup.outputs.version}}
-      repository: "returntocorp/semgrep-rpc"
+  # bump-semgrep-rpc:
+  #   needs: [validate-release-trigger, release-setup]
+  #   name: Bump Semgrep RPC Semgrep Version
+  #   uses: ./.github/workflows/call-bump-pr-workflow.yml
+  #   secrets: inherit
+  #   with:
+  #     version: ${{needs.release-setup.outputs.version}}
+  #     repository: "returntocorp/semgrep-rpc"
 
-  notify-success:
-    needs:
-      [
-        release-setup,
-        validate-release-trigger,
-        bump-semgrep-action,
-        bump-semgrep-rpc,
-        bump-semgrep-app,
-      ]
-    name: Notify of Success
-    runs-on: ubuntu-20.04
-    if: success()
-    steps:
-      - run: echo "${{needs.release-setup.outputs.version}}"
-      - name: Notify Success
-        run: |
-          curl --request POST \
-          --url  ${{ secrets.NOTIFICATIONS_URL }} \
-          --header 'content-type: application/json' \
-          --data '{
-            "version": "${{needs.release-setup.outputs.version}}",
-            "message": "Release Validation has succeeded! Please review the following PRs that bump versions in other repos: ${{ needs.bump-semgrep-action.outputs.pr-url }} , ${{ needs.bump-semgrep-rpc.outputs.pr-url }} , ${{ needs.bump-semgrep-app.outputs.pr-url }}"
-          }'
+  # notify-success:
+  #   needs:
+  #     [
+  #       release-setup,
+  #       validate-release-trigger,
+  #       bump-semgrep-action,
+  #       bump-semgrep-rpc,
+  #       bump-semgrep-app,
+  #     ]
+  #   name: Notify of Success
+  #   runs-on: ubuntu-20.04
+  #   if: success()
+  #   steps:
+  #     - run: echo "${{needs.release-setup.outputs.version}}"
+  #     - name: Notify Success
+  #       run: |
+  #         curl --request POST \
+  #         --url  ${{ secrets.NOTIFICATIONS_URL }} \
+  #         --header 'content-type: application/json' \
+  #         --data '{
+  #           "version": "${{needs.release-setup.outputs.version}}",
+  #           "message": "Release Validation has succeeded! Please review the following PRs that bump versions in other repos: ${{ needs.bump-semgrep-action.outputs.pr-url }} , ${{ needs.bump-semgrep-rpc.outputs.pr-url }} , ${{ needs.bump-semgrep-app.outputs.pr-url }}"
+  #         }'
 
-  notify-failure:
-    needs:
-      [
-        release-setup,
-        validate-release-trigger,
-        bump-semgrep-action,
-        bump-semgrep-rpc,
-        bump-semgrep-app,
-      ]
-    name: Notify of Failure
-    runs-on: ubuntu-20.04
-    if: failure()
-    steps:
-      - name: Notify Failure
-        run: |
-          curl --request POST \
-          --url  ${{ secrets.NOTIFICATIONS_URL }} \
-          --header 'content-type: application/json' \
-          --data '{
-            "version": "${{needs.release-setup.outputs.version}}",
-            "message": "Release Validation has failed. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!"
-          }'
+  # notify-failure:
+  #   needs:
+  #     [
+  #       release-setup,
+  #       validate-release-trigger,
+  #       bump-semgrep-action,
+  #       bump-semgrep-rpc,
+  #       bump-semgrep-app,
+  #     ]
+  #   name: Notify of Failure
+  #   runs-on: ubuntu-20.04
+  #   if: failure()
+  #   steps:
+  #     - name: Notify Failure
+  #       run: |
+  #         curl --request POST \
+  #         --url  ${{ secrets.NOTIFICATIONS_URL }} \
+  #         --header 'content-type: application/json' \
+  #         --data '{
+  #           "version": "${{needs.release-setup.outputs.version}}",
+  #           "message": "Release Validation has failed. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!"
+  #         }'
