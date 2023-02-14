@@ -31,7 +31,7 @@ BRANCH_NAME = "some/branch-name"
 MAIN_BRANCH_NAME = "main"
 COMMIT_MESSAGE = "some: commit message! foo"
 COMMIT_MESSAGE_2 = "Some other commit/ message"
-REMOTE_REPO_URL = 'git@github.com:example/fake.git'
+REMOTE_REPO_URL = "git@github.com:example/fake.git"
 DEPLOYMENT_ID = 33
 BAD_CONFIG = dedent(
     """
