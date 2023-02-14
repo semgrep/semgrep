@@ -99,7 +99,24 @@ class GitMeta:
 
     @property
     def repo_url(self) -> Optional[str]:
-        return get_url_from_sstp_url(os.getenv("SEMGREP_REPO_URL"))
+        env = get_state().env
+        repo_url = os.getenv("SEMGREP_REPO_URL")
+        if not repo_url:
+            # if the repo URL was not explicitly provided, try getting it from git
+            # nosem: use-git-check-output-helper
+            rev_parse = subprocess.run(
+                ["git", "config", "--get", "remote.origin.url"],
+                capture_output=True,
+                encoding="utf-8",
+                timeout=env.git_command_timeout,
+            )
+            if rev_parse.returncode != 0:
+                raise Exception(
+                    "Unable to infer repo_url. Set SEMGREP_REPO_URL environment variable or run in a valid git project"
+                )
+            repo_url = rev_parse.stdout.strip()
+
+        return get_url_from_sstp_url(repo_url)
 
     @property
     def commit_sha(self) -> Optional[str]:
