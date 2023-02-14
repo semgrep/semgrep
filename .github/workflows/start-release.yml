@@ -74,7 +74,7 @@ jobs:
         id: next-version
         uses: christian-draeger/increment-semantic-version@68f14f806a9800fe17433287c35226fd8fd60201
         with:
-          current-version: "${{ ithub.event.inputs.latestTag }}"
+          current-version: "${{ github.event.inputs.latestTag }}"
           version-fragment: "${{ github.event.inputs.bumpVersionFragment }}"
       - name: Create release branch
         id: release-branch
