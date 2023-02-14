@@ -31,6 +31,7 @@ BRANCH_NAME = "some/branch-name"
 MAIN_BRANCH_NAME = "main"
 COMMIT_MESSAGE = "some: commit message! foo"
 COMMIT_MESSAGE_2 = "Some other commit/ message"
+REMOTE_REPO_URL = "git@github.com:example/fake.git"
 DEPLOYMENT_ID = 33
 BAD_CONFIG = dedent(
     """
@@ -251,6 +252,7 @@ def automocks(mocker):
 
 @pytest.fixture(params=[True, False], ids=["autofix", "noautofix"])
 def mock_autofix(request, mocker):
+    mocker.patch.object(GitMeta, "repo_url", REMOTE_REPO_URL)
     mocker.patch.object(ScanHandler, "autofix", request.param)
 
 
