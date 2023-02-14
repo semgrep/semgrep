@@ -48,6 +48,8 @@ module F = Format
  *  - OCaml Format lib? see commons/OCaml.string_of_v for an example
  *  - Martin's easy-format?
  *  - Wadler's pretty-printer combinators?
+ *
+ * See also http://rigaux.org/language-study/syntax-across-languages.html
  *)
 
 (*****************************************************************************)
@@ -99,6 +101,18 @@ let arithop _env (op, tok) =
   | NotEq -> token ~d:"!=" tok
   | _else_ -> token tok
 
+type lang_kind = CLikeSemiColon | Other
+
+let _lang_kind = function
+  | Lang.C
+  | Lang.Cpp
+  | Lang.Java
+  | Lang.Apex
+  | Lang.Csharp
+  | Lang.Rust ->
+      CLikeSemiColon
+  | _other_ -> Other
+
 (*****************************************************************************)
 (* Statements *)
 (*****************************************************************************)
@@ -113,9 +127,31 @@ let rec stmt env st =
   | For (tok, hdr, s) -> for_stmt env (tok, hdr, s)
   | Return (tok, eopt, sc) -> return env (tok, eopt) sc
   | DefStmt def -> def_stmt env def
-  | Break (tok, lbl, sc) -> break env (tok, lbl) sc
-  | Continue (tok, lbl, sc) -> continue env (tok, lbl) sc
-  | _ -> todo (S st)
+  | Break (tok, lbl, sc) ->
+      let lbl_str = label_ident env lbl in
+      F.sprintf "%s%s%s" (token ~d:"break" tok) lbl_str (token ~d:"" sc)
+  | Continue (tok, lbl, sc) ->
+      let lbl_str = label_ident env lbl in
+      F.sprintf "%s%s%s" (token ~d:"continue" tok) lbl_str (token ~d:"" sc)
+  | Switch (_, _, _)
+  | Label (_, _)
+  | Goto (_, _, _)
+  | Throw (_, _, _)
+  | Try (_, _, _, _)
+  | WithUsingResource (_, _, _)
+  | Assert (_, _, _)
+  | DirectiveStmt _
+  | DisjStmt (_, _)
+  | OtherStmtWithStmt (_, _, _)
+  | OtherStmt (_, _) ->
+      todo (S st)
+
+and label_ident env lbl =
+  match lbl with
+  | LNone -> ""
+  | LId l -> F.sprintf " %s" (ident l)
+  | LInt (n, _) -> F.sprintf " %d" n
+  | LDynamic e -> F.sprintf " %s" (expr env e)
 
 and block env (t1, ss, t2) =
   let rec show_statements env = function
@@ -437,106 +473,6 @@ and return env (tok, eopt) _sc =
   | Lang.Lua ->
       F.sprintf "%s %s" (token ~d:"return" tok) to_return
   | Lang.R -> F.sprintf "%s(%s)" (token ~d:"return" tok) to_return
-
-and break env (tok, lbl) _sc =
-  let lbl_str =
-    match lbl with
-    | LNone -> ""
-    | LId l -> F.sprintf " %s" (ident l)
-    | LInt (n, _) -> F.sprintf " %d" n
-    | LDynamic e -> F.sprintf " %s" (expr env e)
-  in
-  match env.lang with
-  | Lang.Xml
-  | Lang.Dart
-  | Lang.Clojure
-  | Lang.Lisp
-  | Lang.Scheme
-  | Lang.Julia
-  | Lang.Elixir
-  | Lang.Bash
-  | Lang.Php
-  | Lang.Dockerfile
-  | Lang.Hack
-  | Lang.Yaml
-  | Lang.Scala
-  | Lang.Solidity
-  | Lang.Html
-  | Lang.Terraform ->
-      raise Todo
-  | Lang.Apex
-  | Lang.Java
-  | Lang.C
-  | Lang.Cpp
-  | Lang.Csharp
-  | Lang.Kotlin
-  | Lang.Rust ->
-      F.sprintf "%s%s;" (token ~d:"break" tok) lbl_str
-  | Lang.Python
-  | Lang.Python2
-  | Lang.Python3
-  | Lang.Go
-  | Lang.Ruby
-  | Lang.Ocaml
-  | Lang.Json
-  | Lang.Jsonnet
-  | Lang.Js
-  | Lang.Ts
-  | Lang.Vue
-  | Lang.Lua
-  | Lang.R
-  | Lang.Swift ->
-      F.sprintf "%s%s" (token ~d:"break" tok) lbl_str
-
-and continue env (tok, lbl) _sc =
-  let lbl_str =
-    match lbl with
-    | LNone -> ""
-    | LId l -> F.sprintf " %s" (ident l)
-    | LInt (n, _) -> F.sprintf " %d" n
-    | LDynamic e -> F.sprintf " %s" (expr env e)
-  in
-  match env.lang with
-  | Lang.Xml
-  | Lang.Dart
-  | Lang.Clojure
-  | Lang.Lisp
-  | Lang.Scheme
-  | Lang.Julia
-  | Lang.Elixir
-  | Lang.Bash
-  | Lang.Php
-  | Lang.Dockerfile
-  | Lang.Hack
-  | Lang.Yaml
-  | Lang.Scala
-  | Lang.Solidity
-  | Lang.Html
-  | Lang.Terraform ->
-      raise Todo
-  | Lang.Apex
-  | Lang.Java
-  | Lang.C
-  | Lang.Cpp
-  | Lang.Csharp
-  | Lang.Kotlin
-  | Lang.Lua
-  | Lang.Rust ->
-      F.sprintf "%s%s;" (token ~d:"continue" tok) lbl_str
-  | Lang.Python
-  | Lang.Python2
-  | Lang.Python3
-  | Lang.Go
-  | Lang.Ruby
-  | Lang.Ocaml
-  | Lang.Json
-  | Lang.Jsonnet
-  | Lang.Js
-  | Lang.Swift
-  | Lang.Ts
-  | Lang.Vue ->
-      F.sprintf "%s%s" (token ~d:"continue" tok) lbl_str
-  | Lang.R -> F.sprintf "%s%s" (token ~d:"next" tok) lbl_str
 
 (*****************************************************************************)
 (* Types *)
