@@ -20,6 +20,10 @@ on:
           - "major"
           - "feature"
           - "bug"
+      latestTag:
+        description: "Latest tag"
+        required: true
+        default: ""
 
 jobs:
   release-setup:
@@ -70,7 +74,7 @@ jobs:
         id: next-version
         uses: christian-draeger/increment-semantic-version@68f14f806a9800fe17433287c35226fd8fd60201
         with:
-          current-version: "${{ steps.latest-version.outputs.latest-version }}"
+          current-version: "${{ ithub.event.inputs.latestTag }}"
           version-fragment: "${{ github.event.inputs.bumpVersionFragment }}"
       - name: Create release branch
         id: release-branch
