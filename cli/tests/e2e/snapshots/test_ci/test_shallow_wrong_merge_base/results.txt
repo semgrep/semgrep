@@ -7,26 +7,14 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of exit code
 
 === stdout - plain
-Non-Blocking Findings:
-
-  bar.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (bar == 2)
-          1┆ bar == 5
-
-=== end of stdout - plain
-
-=== stderr - plain
                                                                                 
                                                                                 
-╭────────────────╮                                                              
+┌────────────────┐                                                              
 │ Debugging Info │                                                              
-╰────────────────╯                                                              
+└────────────────┘                                                              
                                                                                 
   SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>                                  
+  versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment github-actions, triggering event is      
                 pull_request                                                    
   server      - https://semgrep.dev                                             
@@ -35,9 +23,9 @@ Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now
 Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
                                                                                 
                                                                                 
-╭─────────────╮                                                                 
+┌─────────────┐                                                                 
 │ Scan Status │                                                                 
-╰─────────────╯                                                                 
+└─────────────┘                                                                 
                                                                                 
 Fetching configuration from semgrep.dev
 Authenticated as org_name
@@ -49,15 +37,23 @@ Skipping baseline scan, because all current findings are in files that didn't ex
 Returning to original head revision 7b5cda417c780f1f96c888e1d7bd062f46df236e
                                                                                 
                                                                                 
-╭─────────╮                                                                     
+┌─────────┐                                                                     
 │ Results │                                                                     
-╰─────────╯                                                                     
+└─────────┘                                                                     
+                                                                                
+Non-Blocking Findings:
+
+  bar.py 
+     eqeq-five
+        useless comparison to 5
+
+         ▶▶┆ Autofix ▶ (bar == 2)
+          1┆ bar == 5
                                                                                 
                                                                                 
-                                                                                
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
@@ -69,5 +65,9 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   No blocking findings so exiting with code 0
+
+=== end of stdout - plain
+
+=== stderr - plain
 
 === end of stderr - plain

@@ -110,20 +110,6 @@ let has_ellipsis_and_filter_ellipsis xs =
       | _ -> false)
     xs
 
-let has_xml_ellipsis_and_filter_ellipsis xs =
-  has_ellipsis_and_filter_ellipsis_gen
-    (function
-      | G.XmlEllipsis _ -> true
-      | _ -> false)
-    xs
-
-let has_case_ellipsis_and_filter_ellipsis xs =
-  has_ellipsis_and_filter_ellipsis_gen
-    (function
-      | G.CaseEllipsis _ -> true
-      | _ -> false)
-    xs
-
 let rec obj_and_dot_accesses_of_expr e =
   match e.G.e with
   | B.Call ({ e = B.DotAccess (e, tok, fld); _ }, args) ->
@@ -1192,7 +1178,7 @@ and m_for_or_if_comp a b =
 and m_literal a b =
   Trace_matching.(if on then print_literal_pair a b);
   with_lang (fun lang ->
-      if Lang.equal lang Lang.Hcl then
+      if Lang.equal lang Lang.Terraform then
         (* We choose not to use an or-pattern to maintain the
            sides of the trees.
         *)
@@ -1574,7 +1560,13 @@ and m_xml_kind a b =
       fail ()
 
 and m_attrs a b =
-  let has_ellipsis, a = has_xml_ellipsis_and_filter_ellipsis a in
+  let has_ellipsis, a =
+    has_ellipsis_and_filter_ellipsis_gen
+      (function
+        | G.XmlEllipsis _ -> true
+        | _ -> false)
+      a
+  in
   if_config
     (fun x -> x.xml_attrs_implicit_ellipsis)
     ~then_:(m_list_in_any_order ~less_is_ok:true m_xml_attr a b)
@@ -1582,26 +1574,38 @@ and m_attrs a b =
 
 and m_xml_bodies a b =
   match (a, b) with
-  (* dots: *)
-  | [ XmlText (s, _) ], _ when String.trim s = "..." -> return ()
-  (* dots: metavars:
-   * less: we should be more general and use
-   * m_list_with_dots_and_metavar_ellipsis() at some point
+  (* ugly: special case to avoid some regressions in
+   * tests/rules/metavar_ellipsis_xmls.html which avoids
+   * to bind $...JS to an empty list.
+   * TODO: remove this special case
    *)
   | [ XmlText (s, tok) ], _ when MV.is_metavar_ellipsis s ->
       envf (s, tok) (MV.Xmls b)
-  | [ (XmlText _ as a1) ], [ (XmlText _ as b1) ] -> m_xml_body a1 b1
-  (* TODO: handle metavar matching a complex Xml elt or even list of elts *)
-  | [ XmlText (s, _) ], [ _b ] when MV.is_metavar_name s -> fail ()
-  (* TODO: should we impose $...X here to match a list of children? *)
-  | [ XmlText (s, _) ], _b when MV.is_metavar_name s -> fail ()
-  | _ -> m_list__m_body a b
-
-and m_list__m_body a b =
-  match a with
-  (* less-is-ok: it's ok to have an empty body in the pattern *)
-  | [] -> return ()
-  | _ -> m_list m_xml_body a b
+  | _else_ ->
+      (* alt: use with_lang and enabled it by default for Lang.Xml *)
+      if_config
+        (fun x -> x.xml_children_ordered)
+        ~then_:
+          (m_list_with_dots_and_metavar_ellipsis ~f:m_xml_body
+             ~is_dots:(function
+               | G.XmlText (s, _) -> String.trim s = "..."
+               | _ -> false)
+               (* less-is-ok: it's ok to have an empty body in the pattern *)
+             ~less_is_ok:true
+             ~is_metavar_ellipsis:(function
+               | G.XmlText (s, tok) when MV.is_metavar_ellipsis s ->
+                   Some ((s, tok), fun xs -> MV.Xmls xs)
+               | _ -> None)
+             a b)
+        ~else_:
+          (let has_ellipsis, a =
+             has_ellipsis_and_filter_ellipsis_gen
+               (function
+                 | G.XmlText (s, _) -> String.trim s = "..."
+                 | _ -> false)
+               a
+           in
+           m_list_in_any_order ~less_is_ok:has_ellipsis m_xml_body a b)
 
 and m_xml_attr a b =
   match (a, b) with
@@ -2481,7 +2485,13 @@ and m_condition a b =
       fail ()
 
 and m_case_clauses a b =
-  let _has_ellipsis, a = has_case_ellipsis_and_filter_ellipsis a in
+  let _has_ellipsis, a =
+    has_ellipsis_and_filter_ellipsis_gen
+      (function
+        | G.CaseEllipsis _ -> true
+        | _ -> false)
+      a
+  in
   (* todo? always implicit ...?
    * todo? do in any order? In theory the order of the cases matter, but
    * in a semgrep context, people probably don't want to find

@@ -136,13 +136,18 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
             |> PI.unsafe_token_location_of_info
           in
           let fix_loc file loc =
+            (* The column is only perturbed if this loc is on the first line of
+             * the original metavariable match *)
+            let column =
+              if loc.PI.line =|= mast_start_loc.PI.line then
+                loc.column - mast_start_loc.column
+              else loc.column
+            in
             {
               loc with
               PI.charpos = loc.PI.charpos - mast_start_loc.charpos;
               line = loc.line - mast_start_loc.line + 1;
-              (* TODO Is column wrong if loc.line does not equal
-               * mast_start_loc.line? *)
-              column = loc.column - mast_start_loc.column;
+              column;
               file;
             }
           in
@@ -151,12 +156,16 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
              the original file.
           *)
           let revert_loc loc =
+            (* See fix_loc *)
+            let column =
+              if loc.PI.line =|= 1 then loc.column + mast_start_loc.column
+              else loc.column
+            in
             {
               loc with
               PI.charpos = loc.PI.charpos + mast_start_loc.charpos;
               line = loc.line + mast_start_loc.line - 1;
-              (* TODO Is column wrong if loc.line is not 1? *)
-              column = loc.column + mast_start_loc.column;
+              column;
               file = mval_file;
             }
           in
@@ -252,9 +261,14 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                               let { Parse_target.ast; skipped_tokens; _ } =
                                 Parse_target.parse_and_resolve_name lang file
                               in
-                              (* TODO: If we wanted to report the parse errors
-                               * then we should fix the parse info with
-                               * Parse_info.adjust_info_wrt_base! *)
+                              (* Reposition the errors to the original source
+                               * text, so that we don't report them to the end
+                               * user as being from the temp file that we
+                               * created. *)
+                              let skipped_tokens =
+                                skipped_tokens
+                                |> Common.map (fun tok -> revert_loc tok)
+                              in
                               if skipped_tokens <> [] then
                                 pr2
                                   (spf

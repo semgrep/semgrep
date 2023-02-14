@@ -15,7 +15,7 @@
         "offset": 4
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "<h4>From: {{ from_email }}</h4>",
@@ -39,7 +39,7 @@
         "offset": 31
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "<h4>From: {{ from_email }}</h4>",
@@ -63,7 +63,7 @@
         "offset": 36
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "<h4>To:",
@@ -87,7 +87,7 @@
         "offset": 126
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "</h4>",
@@ -111,7 +111,7 @@
         "offset": 131
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "<h4>Subject: {{subject}}</h4>",
@@ -135,7 +135,7 @@
         "offset": 156
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "<h4>Subject: {{subject}}</h4>",
@@ -159,7 +159,7 @@
         "offset": 342
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    <pre>{{ body }}</pre>",
@@ -183,7 +183,7 @@
         "offset": 358
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    <pre>{{ body }}</pre>",
@@ -207,7 +207,7 @@
         "offset": 370
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "<hr>",

@@ -1,0 +1,7 @@
+django==2.2.24
+    # via
+    #   -r requirements.in
+    #   django-debug-toolbar
+    #   django-filter
+    #   django-storages
+    #   easy-thumbnails

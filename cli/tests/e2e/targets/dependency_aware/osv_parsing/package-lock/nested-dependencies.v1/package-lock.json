@@ -1,0 +1,55 @@
+{
+  "requires": true,
+  "lockfileVersion": 1,
+  "dependencies": {
+    "postcss": {
+      "version": "6.0.23",
+      "resolved": "https://registry.npmjs.org/postcss/-/postcss-6.0.23.tgz",
+      "integrity": "sha512-soOk1h6J3VMTZtVeVpv15/Hpdl2cBLX3CAw4TAbkpTJiNPk9YP/zWcD1ND+xEtvyuuvKzbxliTOIyvkSeSJ6ag==",
+      "requires": {
+        "chalk": "^2.4.1",
+        "source-map": "^0.6.1",
+        "supports-color": "^5.4.0"
+      }
+    },
+    "postcss-calc": {
+      "version": "7.0.1",
+      "resolved": "https://registry.npmjs.org/postcss-calc/-/postcss-calc-7.0.1.tgz",
+      "integrity": "sha512-oXqx0m6tb4N3JGdmeMSc/i91KppbYsFZKdH0xMOqK8V1rJlzrKlTdokz8ozUXLVejydRN6u2IddxpcijRj2FqQ==",
+      "requires": {
+        "css-unit-converter": "^1.1.1",
+        "postcss": "^7.0.5",
+        "postcss-selector-parser": "^5.0.0-rc.4",
+        "postcss-value-parser": "^3.3.1"
+      },
+      "dependencies": {
+        "postcss": {
+          "version": "7.0.16",
+          "resolved": "https://registry.npmjs.org/postcss/-/postcss-7.0.16.tgz",
+          "integrity": "sha512-MOo8zNSlIqh22Uaa3drkdIAgUGEL+AD1ESiSdmElLUmE2uVDo1QloiT/IfW9qRw8Gw+Y/w69UVMGwbufMSftxA==",
+          "requires": {
+            "chalk": "^2.4.2",
+            "source-map": "^0.6.1",
+            "supports-color": "^6.1.0"
+          }
+        },
+        "supports-color": {
+          "version": "6.1.0",
+          "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+          "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+          "requires": {
+            "has-flag": "^3.0.0"
+          }
+        }
+      }
+    },
+    "supports-color": {
+      "version": "5.5.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-5.5.0.tgz",
+      "integrity": "sha512-QjVjwdXIt408MIiAqCX4oUKsgU2EqAGzs2Ppkm4aQYbjm+ZEWEcW4SfFNTr4uMNZma0ey4f5lgLrkB0aX0QMow==",
+      "requires": {
+        "has-flag": "^3.0.0"
+      }
+    }
+  }
+}

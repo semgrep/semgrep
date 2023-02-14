@@ -60,19 +60,19 @@ First-Party Blocking Rules Fired:
 === stderr - plain
                                                                                 
                                                                                 
-╭────────────────╮                                                              
+┌────────────────┐                                                              
 │ Debugging Info │                                                              
-╰────────────────╯                                                              
+└────────────────┘                                                              
                                                                                 
   SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>                                  
+  versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown         
   server      - https://semgrep.dev                                             
                                                                                 
                                                                                 
-╭─────────────╮                                                                 
+┌─────────────┐                                                                 
 │ Scan Status │                                                                 
-╰─────────────╯                                                                 
+└─────────────┘                                                                 
                                                                                 
 Fetching configuration from semgrep.dev
 Would have sent POST request to create scan
@@ -81,15 +81,15 @@ Scanning 1 file with 4 python rules.
 
                                                                                 
                                                                                 
-╭─────────╮                                                                     
+┌─────────┐                                                                     
 │ Results │                                                                     
-╰─────────╯                                                                     
+└─────────┘                                                                     
                                                                                 
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
@@ -475,7 +475,6 @@ Would have sent complete blob: {
                 "num_bytes": 366
             }
         },
-        "event_id": <MASKED>
         "engine_requested": "OSS"
     }
 }

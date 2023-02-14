@@ -167,6 +167,15 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     """,
     envvar="SEMGREP_SUPPRESS_ERRORS",
 )
+@click.option(
+    "--oss-only",
+    "oss_only",
+    default=False,
+    help="""
+        Run `semgrep ci` on this repo using only OSS features. Equivalent to a
+        ci run without the Semgrep Pro toggle on.
+    """,
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -178,19 +187,14 @@ def ci(
     config: Optional[Tuple[str, ...]],
     debug: bool,
     dry_run: bool,
-    emacs: bool,
     enable_nosem: bool,
     enable_version_check: bool,
     exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
     suppress_errors: bool,
     force_color: bool,
-    gitlab_sast: bool,
-    gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
     jobs: int,
-    json: bool,
-    junit_xml: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
     max_memory: Optional[int],
@@ -200,7 +204,11 @@ def ci(
     optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
-    sarif: bool,
+    output_format: OutputFormat,
+    pro_languages: bool,
+    pro_intrafile: bool,
+    pro: bool,
+    oss_only: bool,
     quiet: bool,
     rewrite_rule_ids: bool,
     supply_chain: bool,
@@ -211,7 +219,6 @@ def ci(
     interfile_timeout: Optional[int],
     use_git_ignore: bool,
     verbose: bool,
-    vim: bool,
 ) -> None:
     """
     The recommended way to run semgrep in CI
@@ -226,7 +233,11 @@ def ci(
     """
     state = get_state()
     state.terminal.configure(
-        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
+        verbose=verbose,
+        debug=debug,
+        quiet=quiet,
+        force_color=force_color,
+        output_format=output_format,
     )
 
     state.metrics.configure(metrics, metrics_legacy)
@@ -256,22 +267,6 @@ def ci(
         scan_handler = ScanHandler(dry_run)
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
-
-    output_format = OutputFormat.TEXT
-    if json:
-        output_format = OutputFormat.JSON
-    elif gitlab_sast:
-        output_format = OutputFormat.GITLAB_SAST
-    elif gitlab_secrets:
-        output_format = OutputFormat.GITLAB_SECRETS
-    elif junit_xml:
-        output_format = OutputFormat.JUNIT_XML
-    elif sarif:
-        output_format = OutputFormat.SARIF
-    elif emacs:
-        output_format = OutputFormat.EMACS
-    elif vim:
-        output_format = OutputFormat.VIM
 
     output_settings = OutputSettings(
         output_format=output_format,
@@ -331,7 +326,10 @@ def ci(
                 logger.info(f"Could not start scan {e}")
                 sys.exit(FATAL_EXIT_CODE)
 
-            # Run DeepSemgrep when available but only for full scans
+            # Run Semgrep Pro when available
+            # By default, this is controlled by the toggle. When it is off, run
+            # the OSS engine. When it is on, for full scans run using interfile
+            # analysis and diff scans run using the pro languages
             is_full_scan = metadata.merge_base_ref is None
             engine = EngineType.OSS
             if scan_handler and scan_handler.deepsemgrep:
@@ -339,7 +337,23 @@ def ci(
                     EngineType.PRO_INTERFILE if is_full_scan else EngineType.PRO_LANG
                 )
 
-            (semgrep_pro_path, _deep_semgrep_path) = determine_semgrep_pro_path()
+            # If the user explicitly requests an engine via a flag, the flag
+            # should override the toggle
+            if pro and is_full_scan:
+                # Inter-file + Pro languages
+                # This behaves slightly differently from semgrep scan, because
+                # in CI we currently do not allow interfile analysis
+                engine = EngineType.PRO_INTERFILE
+            elif pro_intrafile:
+                # Intra-file (inter-proc) + Pro languages
+                engine = EngineType.PRO_INTRAFILE
+            elif pro_languages:
+                # Just Pro languages
+                engine = EngineType.PRO_LANG
+            elif oss_only:
+                engine = EngineType.OSS
+
+            semgrep_pro_path = determine_semgrep_pro_path()
 
             # Set a default max_memory for CI runs when DeepSemgrep is on because
             # DeepSemgrep is likely to run out
@@ -478,6 +492,8 @@ def ci(
         profiling_data=output_extra.profiling_data,
         severities=shown_severities,
         is_ci_invocation=True,
+        rules_by_engine=output_extra.rules_by_engine,
+        engine=engine,
     )
 
     logger.info("CI scan completed successfully.")

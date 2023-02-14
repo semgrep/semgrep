@@ -247,7 +247,7 @@ let range_of_any any =
        * TODO: Perhaps we should avoid the call to `any_in_ranges` in the
        * first place? *)
       if any <> G.Anys [] then
-        logger#warning
+        logger#trace
           "Cannot compute range, there are no real tokens in this AST: %s"
           (G.show_any any);
       None

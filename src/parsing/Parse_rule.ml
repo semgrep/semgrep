@@ -984,6 +984,7 @@ and produce_constraint env dict tok indicator =
             (env', Some xlang)
         | ___else___ -> (env, None)
       in
+      let env' = { env' with in_metavariable_pattern = true } in
       let formula = parse_pair env' (find_formula env dict) in
       match formula with
       | R.P { pat = Xpattern.Regexp regexp; _ } ->

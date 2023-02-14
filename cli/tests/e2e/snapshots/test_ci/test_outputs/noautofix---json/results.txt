@@ -24,7 +24,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 43
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    a == a",
@@ -62,7 +62,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 54
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    a == a",
@@ -100,7 +100,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 89
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    a == a",
@@ -138,7 +138,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 126
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    y == y",
@@ -176,7 +176,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 227
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    baz == 4",
@@ -276,7 +276,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             ]
           ]
         },
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    sink(d2)",
@@ -327,7 +327,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 163
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "(x == 2)",
         "is_ignored": false,
@@ -368,7 +368,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 0
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "",
@@ -418,19 +418,19 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === stderr - plain
                                                                                 
                                                                                 
-╭────────────────╮                                                              
+┌────────────────┐                                                              
 │ Debugging Info │                                                              
-╰────────────────╯                                                              
+└────────────────┘                                                              
                                                                                 
   SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>                                  
+  versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown         
   server      - https://semgrep.dev                                             
                                                                                 
                                                                                 
-╭─────────────╮                                                                 
+┌─────────────┐                                                                 
 │ Scan Status │                                                                 
-╰─────────────╯                                                                 
+└─────────────┘                                                                 
                                                                                 
 Fetching configuration from semgrep.dev
 Authenticated as org_name
@@ -438,15 +438,15 @@ Scanning 1 file with 4 python rules.
 
                                                                                 
                                                                                 
-╭─────────╮                                                                     
+┌─────────┐                                                                     
 │ Results │                                                                     
-╰─────────╯                                                                     
+└─────────┘                                                                     
                                                                                 
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.

@@ -241,7 +241,7 @@ let rec eval env x : svalue option =
       ( { e = N (Id ((("local" | "var"), _), _)); _ },
         _,
         FN (Id (_, { id_svalue = { contents = Some x }; _ })) )
-    when is_lang env Lang.Hcl ->
+    when is_lang env Lang.Terraform ->
       Some x
   (* ugly: dockerfile specific *)
   | Call
@@ -498,7 +498,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
 let terraform_sid = SId.unsafe_default
 
 let add_special_constants env lang prog =
-  if lang = Lang.Hcl then
+  if lang = Lang.Terraform then
     let vars = prog |> Common.map terraform_stmt_to_vardefs |> List.flatten in
     vars
     |> List.iter (fun (id, v) ->
@@ -607,7 +607,7 @@ let propagate_basic lang prog =
               ( { e = N (Id (((("local" | "var") as prefix), _), _)); _ },
                 _,
                 FN (Id ((str, _tk), id_info)) )
-            when lang = Lang.Hcl && not !(env.in_lvalue) ->
+            when lang = Lang.Terraform && not !(env.in_lvalue) ->
               let var = (prefix ^ "." ^ str, terraform_sid) in
               let/ svalue = Hashtbl.find_opt env.constants var in
               id_info.id_svalue := Some svalue

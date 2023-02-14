@@ -98,9 +98,16 @@ def setrlimits_preexec_fn() -> None:
     Note this is intended to run as a preexec_fn before semgrep-core in a subprocess
     so all code here runs in a child fork before os switches to semgrep-core binary
     """
+    # since this logging is inside the child core processes,
+    # which have their own output requirements so that CLI can parse its stdout,
+    # we use a different logger than the usual "semgrep" one
+    core_logger = getLogger("semgrep_core")
+
     # Get current soft and hard stack limits
     old_soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
-    logger.info(f"Existing stack limits: Soft: {old_soft_limit}, Hard: {hard_limit}")
+    core_logger.info(
+        f"Existing stack limits: Soft: {old_soft_limit}, Hard: {hard_limit}"
+    )
 
     # Have candidates in case os unable to set certain limit
     potential_soft_limits = [
@@ -122,17 +129,19 @@ def setrlimits_preexec_fn() -> None:
     potential_soft_limits.sort(reverse=True)
     for soft_limit in potential_soft_limits:
         try:
-            logger.info(f"Trying to set soft limit to {soft_limit}")
+            core_logger.info(f"Trying to set soft limit to {soft_limit}")
             resource.setrlimit(resource.RLIMIT_STACK, (soft_limit, hard_limit))
-            logger.info(f"Successfully set stack limit to {soft_limit}, {hard_limit}")
+            core_logger.info(
+                f"Successfully set stack limit to {soft_limit}, {hard_limit}"
+            )
             return
         except Exception as e:
-            logger.info(
+            core_logger.info(
                 f"Failed to set stack limit to {soft_limit}, {hard_limit}. Trying again."
             )
-            logger.verbose(str(e))
+            core_logger.verbose(str(e))
 
-    logger.info("Failed to change stack limits")
+    core_logger.info("Failed to change stack limits")
 
 
 # This is used only to dedup errors from validate_configs(). For dedupping errors
@@ -240,8 +249,19 @@ class StreamingSemgrepCore:
                 # happens if the data that follows a sequence of zero
                 # or more ".\n" has fewer than two bytes, such as:
                 # "", "3", ".\n.\n3", ".\n.\n.\n.", etc.
+
+                # Hack: the exact wording of parts this message may be used in metrics queries
+                # that are looking for it. Make sure `semgrep-core exited with unexpected output`
+                # and `interfile analysis` are both in the message, or talk to Emma.
                 raise SemgrepError(
-                    "semgrep-core exited successfully but produced unexpected output"
+                    "semgrep-core exited with unexpected output.\n\n"
+                    "\tThis can happen because it overflowed the stack or used too much memory.\n"
+                    "\tTry changing the stack limit with `ulimit -s <limit>` or adding\n"
+                    "\t`--max-memory <memory>` to the semgrep command. For CI runs with interfile\n"
+                    "\tanalysis, the default max-memory is 5000MB. Depending on the memory\n"
+                    "\tavailable in your runner, you may need to lower it. We recommend choosing\n"
+                    "\ta limit 70% of the available memory to allow for some overhead. If you have\n"
+                    "\ttried these steps and still are seeing this error, please contact us."
                 )
 
             if (
@@ -581,19 +601,9 @@ class CoreRunner:
         self._binary_path = SemgrepCore.path()
 
         if engine.is_pro:
-            deep_path = (
-                SemgrepCore.deep_path()
-            )  # DEPRECATED: To be removed by Feb 2023 launch
             pro_path = SemgrepCore.pro_path()
 
             if pro_path is None:
-                if deep_path is not None:
-                    logger.error(
-                        f"""You have an old DeepSemgrep binary installed in {deep_path}
-  DeepSemgrep is now Semgrep Pro, run `semgrep install-semgrep-pro` to install it,
-  then please delete {deep_path} manually.
-  """
-                    )
                 raise SemgrepError(
                     "Could not use Pro features: Semgrep Pro Engine not installed. Run `semgrep install-semgrep-pro`"
                 )
@@ -884,12 +894,10 @@ class CoreRunner:
                     logger.error("!!!This is a proprietary extension of semgrep.!!!")
                     logger.error("!!!You must be logged in to access this extension!!!")
                 else:
-                    logger.error(
-                        "You are using the Semgrep Pro Engine, our advanced analysis system uniquely designed to refine and enhance your results."
-                    )
+                    logger.error("Running with Semgrep Pro Engine (beta).")
                     if engine is EngineType.PRO_INTERFILE:
                         logger.error(
-                            "You can expect to see longer scan times - we're taking our time to make sure everything is just right for you. With <3, the Semgrep team."
+                            "Semgrep Pro Engine may be slower and show different results than Semgrep OSS."
                         )
 
                 logger.info(f"Using Semgrep Pro installed in {self._binary_path}")
@@ -934,7 +942,14 @@ class CoreRunner:
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(cmd, plan.num_targets)
+            runner = StreamingSemgrepCore(
+                # We expect to see 3 dots for each target, when running interfile analysis:
+                # - once when finishing phase 4, name resolution, on that target
+                # - once when finishing phase 5, taint configs, on that target
+                # - once when finishing analysis on that target as usual
+                cmd,
+                plan.num_targets * 3 if engine.is_interfile else plan.num_targets,
+            )
             runner.vfs_map = vfs_map
             returncode = runner.execute()
 
@@ -982,7 +997,11 @@ class CoreRunner:
             errors.extend(parsed_errors)
 
         output_extra = OutputExtra(
-            all_targets, profiling_data, parsing_data, core_output.explanations
+            all_targets,
+            profiling_data,
+            parsing_data,
+            core_output.explanations,
+            core_output.rules_by_engine,
         )
 
         return (

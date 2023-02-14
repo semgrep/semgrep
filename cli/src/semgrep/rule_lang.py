@@ -439,6 +439,7 @@ class RuleValidation:
     REQUIRE_REGEX = re.compile(r"'(.*)' is a required property")
     PATTERN_KEYS = {
         "match",
+        "taint",  # for new-syntax taint mode rules
         "pattern",
         "pattern-either",
         "pattern-regex",

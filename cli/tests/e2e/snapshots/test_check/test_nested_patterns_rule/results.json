@@ -17,7 +17,7 @@
         "offset": 52
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    nested_patterns_func('foo', 1)",
@@ -55,7 +55,7 @@
         "offset": 87
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    nested_patterns_func('bar', 2)",

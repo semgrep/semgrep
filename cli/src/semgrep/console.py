@@ -8,14 +8,14 @@ See also the semgrep.terminal module which is an earlier attempt to standardize 
 but is more low level and doesn't really offload logic to other libraries.
 """
 from attrs import frozen
+from rich import box
 from rich.console import Console
 from rich.console import RenderableType
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.text import Text
 
-console = Console(stderr=True)
-console.width = min(console.width, 120)
+console = Console()
 
 
 @frozen
@@ -25,7 +25,7 @@ class Title:
 
     def __rich__(self) -> RenderableType:
         if self.order == 1:
-            return Padding(Panel(self.text, expand=False), (2, 0, 1, 0))
+            return Padding(Panel(self.text, expand=False, box=box.SQUARE), (2, 0, 1, 0))
         elif self.order == 2:
             return Padding(Text(self.text.upper(), style="underline"), (0, 2))
         elif self.order == 3:

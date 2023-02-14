@@ -15,9 +15,9 @@ Scanning 1 file.
 
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 
 Ran 1 rule on 1 file: 0 findings.

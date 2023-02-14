@@ -266,7 +266,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Scheme
     | Solidity
     | Swift
-    | Hcl
+    | Terraform
     | Ts
     | Vue
     | Xml

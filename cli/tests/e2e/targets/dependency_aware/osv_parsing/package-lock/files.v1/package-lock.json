@@ -1,0 +1,17 @@
+{
+  "lockfileVersion": 1,
+  "requires": true,
+  "dependencies": {
+    "lodash": {
+      "version": "1.3.1",
+      "resolved": "https://registry.npmjs.org/lodash/-/lodash-1.3.1.tgz",
+      "integrity": "sha1-pGY7U2hriV/wdOK6UE37dqjit3A="
+    },
+    "other_package": {
+      "version": "file:deps/other_package",
+      "requires": {
+        "lodash": "^1.3.1"
+      }
+    }
+  }
+}

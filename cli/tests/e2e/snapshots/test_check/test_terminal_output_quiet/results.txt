@@ -27,19 +27,6 @@ Findings:
 
 === stderr - plain
 
-                                                                                
-                                                                                
-╭─────────╮                                                                     
-│ Results │                                                                     
-╰─────────╯                                                                     
-                                                                                
-                                                                                
-                                                                                
-╭──────────────╮                                                                
-│ Scan Summary │                                                                
-╰──────────────╯                                                                
-                                                                                
-
 === end of stderr - plain
 
 === stdout - color
@@ -62,18 +49,5 @@ Findings:
 === end of stdout - color
 
 === stderr - color
-
-                                                                                
-                                                                                
-╭─────────╮                                                                     
-│ Results │                                                                     
-╰─────────╯                                                                     
-                                                                                
-                                                                                
-                                                                                
-╭──────────────╮                                                                
-│ Scan Summary │                                                                
-╰──────────────╯                                                                
-                                                                                
 
 === end of stderr - color
