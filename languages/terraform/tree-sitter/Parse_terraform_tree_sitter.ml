@@ -16,7 +16,7 @@ open Common
 module PI = Parse_info
 module CST = Tree_sitter_hcl.CST
 module H = Parse_tree_sitter_helpers
-open AST_generic
+open AST_terraform
 module G = AST_generic
 module H2 = AST_generic_helpers
 module Loc = Tree_sitter_run.Loc
@@ -46,12 +46,12 @@ let pattern_of_ids ids =
   match ids with
   (* actually in HCL there are either 1 or 2 elts *)
   | [] -> raise Impossible
-  | [ id ] -> PatId (id, empty_id_info ()) |> G.p
+  | [ id ] -> G.PatId (id, G.empty_id_info ()) |> G.p
   | _ ->
       let xs =
-        ids |> Common.map (fun id -> PatId (id, empty_id_info ()) |> G.p)
+        ids |> Common.map (fun id -> G.PatId (id, G.empty_id_info ()) |> G.p)
       in
-      PatTuple (fb xs) |> G.p
+      G.PatTuple (fb xs) |> G.p
 
 (* val parse_number_literal : string * Parse_info.t -> AST_generic.literal *)
 let parse_number_literal (s, t) =
@@ -82,7 +82,7 @@ let map_heredoc_start (env : env) (x : CST.heredoc_start) =
   | `LTLT tok -> (* "<<" *) token env tok
   | `LTLTDASH tok -> (* "<<-" *) token env tok
 
-let map_numeric_lit (env : env) (x : CST.numeric_lit) : literal =
+let map_numeric_lit (env : env) (x : CST.numeric_lit) : G.literal =
   match x with
   | `Pat_e950a1b tok ->
       (* pattern [0-9]+(\.[0-9]+([eE][-+]?[0-9]+)?)? *)
@@ -154,7 +154,7 @@ let map_get_attr (env : env) ((v1, v2) : CST.get_attr) =
     let n = H2.name_of_id v2 in
     G.DotAccess (e, v1, FN n) |> G.e
 
-let map_literal_value (env : env) (x : CST.literal_value) : literal =
+let map_literal_value (env : env) (x : CST.literal_value) : G.literal =
   match x with
   | `Nume_lit x -> map_numeric_lit env x
   | `Bool_lit x -> Bool (map_bool_lit env x)
@@ -200,9 +200,9 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
       let v1 = map_expr_term env v1 in
       let v2 =
         match v2 with
-        | `STAR tok -> (* "*" *) (Mult, token env tok)
-        | `SLASH tok -> (* "/" *) (Div, token env tok)
-        | `PERC tok -> (* "%" *) (Mod, token env tok)
+        | `STAR tok -> (* "*" *) (G.Mult, token env tok)
+        | `SLASH tok -> (* "/" *) (G.Div, token env tok)
+        | `PERC tok -> (* "%" *) (G.Mod, token env tok)
       in
       let v3 = map_expr_term env v3 in
       (v1, v2, v3)
@@ -210,8 +210,8 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
       let v1 = map_expr_term env v1 in
       let v2 =
         match v2 with
-        | `PLUS tok -> (* "+" *) (Plus, token env tok)
-        | `DASH tok -> (* "-" *) (Minus, token env tok)
+        | `PLUS tok -> (* "+" *) (G.Plus, token env tok)
+        | `DASH tok -> (* "-" *) (G.Minus, token env tok)
       in
       let v3 = map_expr_term env v3 in
       (v1, v2, v3)
@@ -219,10 +219,10 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
       let v1 = map_expr_term env v1 in
       let v2 =
         match v2 with
-        | `GT tok -> (* ">" *) (Gt, token env tok)
-        | `GTEQ tok -> (* ">=" *) (GtE, token env tok)
-        | `LT tok -> (* "<" *) (Lt, token env tok)
-        | `LTEQ tok -> (* "<=" *) (LtE, token env tok)
+        | `GT tok -> (* ">" *) (G.Gt, token env tok)
+        | `GTEQ tok -> (* ">=" *) (G.GtE, token env tok)
+        | `LT tok -> (* "<" *) (G.Lt, token env tok)
+        | `LTEQ tok -> (* "<=" *) (G.LtE, token env tok)
       in
       let v3 = map_expr_term env v3 in
       (v1, v2, v3)
@@ -230,8 +230,8 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
       let v1 = map_expr_term env v1 in
       let v2 =
         match v2 with
-        | `EQEQ tok -> (* "==" *) (Eq, token env tok)
-        | `BANGEQ tok -> (* "!=" *) (NotEq, token env tok)
+        | `EQEQ tok -> (* "==" *) (G.Eq, token env tok)
+        | `BANGEQ tok -> (* "!=" *) (G.NotEq, token env tok)
       in
       let v3 = map_expr_term env v3 in
       (v1, v2, v3)
@@ -239,7 +239,7 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
       let v1 = map_expr_term env v1 in
       let v2 =
         match v2 with
-        | `AMPAMP tok -> (* "&&" *) (And, token env tok)
+        | `AMPAMP tok -> (* "&&" *) (G.And, token env tok)
       in
       let v3 = map_expr_term env v3 in
       (v1, v2, v3)
@@ -247,7 +247,7 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
       let v1 = map_expr_term env v1 in
       let v2 =
         match v2 with
-        | `BARBAR tok -> (* "||" *) (Or, token env tok)
+        | `BARBAR tok -> (* "||" *) (G.Or, token env tok)
       in
       let v3 = map_expr_term env v3 in
       (v1, v2, v3)
@@ -324,7 +324,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v5 = map_expression env v5 in
       Conditional (v1, v3, v5) |> G.e
 
-and map_for_cond (env : env) ((v1, v2) : CST.for_cond) : for_or_if_comp =
+and map_for_cond (env : env) ((v1, v2) : CST.for_cond) : G.for_or_if_comp =
   let v1 = (* "if" *) token env v1 in
   let v2 = map_expression env v2 in
   CompIf (v1, v2)
@@ -342,9 +342,9 @@ and map_for_expr (env : env) (x : CST.for_expr) =
       in
       let v5 = (* "]" *) token env v5 in
       let pat = pattern_of_ids ids in
-      let compfor = CompFor (tfor, pat, tin, e) in
+      let compfor = G.CompFor (tfor, pat, tin, e) in
       let xs = compfor :: v4 in
-      Comprehension (Tuple, (v1, (v3, xs), v5)) |> G.e
+      G.Comprehension (G.Tuple, (v1, (v3, xs), v5)) |> G.e
   | `For_obj_expr (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 = (* "{" *) token env v1 in
       let tfor, ids, tin, e, _tcolon = map_for_intro env v2 in
@@ -364,10 +364,10 @@ and map_for_expr (env : env) (x : CST.for_expr) =
       in
       let v8 = (* "}" *) token env v8 in
       let pat = pattern_of_ids ids in
-      let compfor = CompFor (tfor, pat, tin, e) in
+      let compfor = G.CompFor (tfor, pat, tin, e) in
       let xs = compfor :: v7 in
       let ekeyval = G.keyval v3 v4 v5 in
-      Comprehension (Dict, (v1, (ekeyval, xs), v8)) |> G.e
+      G.Comprehension (G.Dict, (v1, (ekeyval, xs), v8)) |> G.e
 
 and map_for_intro (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_intro) =
   let v1 = (* "for" *) token env v1 in
@@ -386,14 +386,14 @@ and map_for_intro (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_intro) =
   (v1, v2 :: v3, v4, v5, v6)
 
 and map_function_arguments (env : env) ((v1, v2, v3) : CST.function_arguments) :
-    argument list =
+    G.argument list =
   let v1 = map_expression env v1 in
   let v2 =
     Common.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_expression env v2 in
-        Arg v2)
+        G.Arg v2)
       v2
   in
   let v3 =
@@ -407,10 +407,10 @@ and map_function_arguments (env : env) ((v1, v2, v3) : CST.function_arguments) :
         | `Ellips tok ->
             (* ellipsis *)
             let t = token env tok in
-            [ Arg (Ellipsis t |> G.e) ])
+            [ G.Arg (G.Ellipsis t |> G.e) ])
     | None -> []
   in
-  [ Arg v1 ] @ v2 @ v3
+  [ G.Arg v1 ] @ v2 @ v3
 
 and map_index (env : env) (x : CST.index) =
   match x with
@@ -422,7 +422,7 @@ and map_index (env : env) (x : CST.index) =
   | `Legacy_index (v1, v2) ->
       let v1 = (* "." *) token env v1 in
       let v2 = (* pattern [0-9]+ *) str env v2 in
-      let idx = L (parse_number_literal v2) |> G.e in
+      let idx = G.L (parse_number_literal v2) |> G.e in
       fun e -> G.ArrayAccess (e, (v1, idx, v1)) |> G.e
 
 and map_object_ (env : env) ((v1, v2, v3) : CST.object_) =
@@ -435,7 +435,7 @@ and map_object_ (env : env) ((v1, v2, v3) : CST.object_) =
   let v3 = (* "}" *) token env v3 in
   Record (v1, v2, v3) |> G.e
 
-and map_object_elem (env : env) (x : CST.object_elem) : field =
+and map_object_elem (env : env) (x : CST.object_elem) : G.field =
   match x with
   | `Exp_choice_EQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -447,15 +447,15 @@ and map_object_elem (env : env) (x : CST.object_elem) : field =
       let v3 = map_expression env v3 in
       let n_or_dyn =
         match v1.e with
-        | N n -> EN n
-        | _ -> EDynamic v1
+        | N n -> G.EN n
+        | _ -> G.EDynamic v1
       in
-      let ent = { name = n_or_dyn; attrs = []; tparams = [] } in
-      let vdef = { vinit = Some v3; vtype = None } in
+      let ent = { G.name = n_or_dyn; attrs = []; tparams = [] } in
+      let vdef = { G.vinit = Some v3; vtype = None } in
       let def =
         match v2 with
-        | Left _teq -> VarDef vdef
-        | Right _tcolon -> FieldDefColon vdef
+        | Left _teq -> G.VarDef vdef
+        | Right _tcolon -> G.FieldDefColon vdef
       in
       (ent, def) |> G.fld
   | `Semg_ellips v1 ->
@@ -488,30 +488,30 @@ and map_operation (env : env) (x : CST.operation) : expr =
   | `Un_oper (v1, v2) ->
       let op, t =
         match v1 with
-        | `DASH tok -> (* "-" *) (Minus, token env tok)
-        | `BANG tok -> (* "!" *) (Not, token env tok)
+        | `DASH tok -> (* "-" *) (G.Minus, token env tok)
+        | `BANG tok -> (* "!" *) (G.Not, token env tok)
       in
       let v2 = map_expr_term env v2 in
-      Call (IdSpecial (Op op, t) |> G.e, fb [ Arg v2 ]) |> G.e
+      G.opcall (op, t) [ v2 ]
   | `Bin_oper x ->
       let a, (op, t), c = map_binary_operation env x in
-      Call (IdSpecial (Op op, t) |> G.e, fb [ Arg a; Arg c ]) |> G.e
+      G.opcall (op, t) [ a; c ]
 
 and map_splat (env : env) (x : CST.splat) =
   match x with
   | `Attr_splat (v1, v2) ->
       let v1 = (* ".*" *) token env v1 in
       let f1 e =
-        let access = FDynamic (IdSpecial (HashSplat, v1) |> G.e) in
-        DotAccess (e, v1, access) |> G.e
+        let access = G.FDynamic (G.IdSpecial (G.HashSplat, v1) |> G.e) in
+        G.DotAccess (e, v1, access) |> G.e
       in
       let v2 = Common.map (map_anon_choice_get_attr_7bbf24f env) v2 in
       fun e -> v2 |> List.fold_left (fun acc f -> f acc) (f1 e)
   | `Full_splat (v1, v2) ->
       let v1 = (* "[*]" *) token env v1 in
       let f1 e =
-        let access = IdSpecial (HashSplat, v1) |> G.e in
-        ArrayAccess (e, (v1, access, v1)) |> G.e
+        let access = G.IdSpecial (G.HashSplat, v1) |> G.e in
+        G.ArrayAccess (e, (v1, access, v1)) |> G.e
       in
       let v2 = Common.map (map_anon_choice_get_attr_7bbf24f env) v2 in
       fun e -> v2 |> List.fold_left (fun acc f -> f acc) (f1 e)
@@ -556,16 +556,18 @@ and map_tuple_elems (env : env) ((v1, v2, v3) : CST.tuple_elems) : expr list =
   in
   v1 :: v2
 
-let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : definition =
+(* XXX: return a 'argument' *)
+let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : G.definition =
   let v1 = (* identifier *) map_identifier env v1 in
-  let _v2 = (* "=" *) token env v2 in
+  let _teq = (* "=" *) token env v2 in
   let v3 = map_expression env v3 in
   let ent = G.basic_entity v1 in
-  let def = { vinit = Some v3; vtype = None } in
+  let def = { G.vinit = Some v3; vtype = None } in
   (ent, VarDef def)
 
 (* TODO? convert to a definition? a class_def?
  * coupling: Constant_propagation.terraform_stmt_to_vardefs
+ * XXX: return a block
  *)
 let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
   (* TODO? usually 'resource', 'locals', 'variable', other? *)
@@ -614,7 +616,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
 (* We convert to a field, to be similar to map_object_, so some
  * patterns like 'a=1 ... b=2' can match block body as well as objects.
  *)
-and map_body (env : env) (xs : CST.body) : field list =
+and map_body (env : env) (xs : CST.body) : G.field list =
   Common.map
     (fun x ->
       match x with
@@ -634,7 +636,7 @@ and map_body (env : env) (xs : CST.body) : field list =
  * in regular VarDefs instead of doing it later in
  * Constant_propagation.terraform_stmt_to_vardefs?
  *)
-and map_body_top (env : env) (xs : CST.body) : stmt list =
+and map_body_top (env : env) (xs : CST.body) : G.stmt list =
   Common.map
     (fun x ->
       match x with
@@ -649,7 +651,7 @@ and map_body_top (env : env) (xs : CST.body) : stmt list =
           G.exprstmt (G.Ellipsis t |> G.e))
     xs
 
-let map_config_file (env : env) (x : CST.config_file) : any =
+let map_config_file (env : env) (x : CST.config_file) : G.any =
   match x with
   | `Opt_choice_body opt -> (
       match opt with
@@ -657,15 +659,15 @@ let map_config_file (env : env) (x : CST.config_file) : any =
           match x with
           | `Body x ->
               let bd = map_body_top env x in
-              Pr bd
+              G.Pr bd
           | `Obj x ->
               let x = map_object_ env x in
-              Pr [ G.exprstmt x ])
-      | None -> Pr [])
+              G.Pr [ G.exprstmt x ])
+      | None -> G.Pr [])
   | `Semg_exp (v1, v2) ->
       let _v1 = (* "__SEMGREP_EXPRESSION" *) token env v1 in
       let v2 = map_expression env v2 in
-      E v2
+      G.E v2
 
 (*****************************************************************************)
 (* Entry point *)
