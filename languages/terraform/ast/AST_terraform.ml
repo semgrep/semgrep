@@ -109,7 +109,7 @@ and block_type =
 
 and block_label = LblStr of string wrap | LblId of ident
 and block_body = block_body_elememt list bracket
-and block_body_elememt = Arg of argument | Block of block
+and block_body_elememt = Argument of argument | NestedBlock of block
 
 (*****************************************************************************)
 (* Toplevel elements *)
