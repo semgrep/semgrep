@@ -27,6 +27,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
 Fetching configuration from semgrep.dev
 Authenticated as org_name
 Scanning 1 file with 4 python rules.
+
                                                                                 
                                                                                 
 ┌─────────┐                                                                     
