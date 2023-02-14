@@ -29,8 +29,8 @@
 
  * See https://developer.hashicorp.com/terraform/language for more information
  * on Terraform.
- * See https://github.com/hashicorp/hcl/blob/main/hclsyntax/spec.md
- * For more information on HCL itself.
+ * See https://github.com/hashicorp/hcl/blob/main/hclsyntax/spec.md for more
+ * information on HCL itself.
  *)
 
 (*****************************************************************************)
@@ -47,6 +47,7 @@ type 'a wrap = 'a * tok [@@deriving show]
 
 (* round(), square[], curly{}, angle<> brackets *)
 type 'a bracket = tok * 'a * tok [@@deriving show]
+type todo_kind = string wrap
 
 (* ------------------------------------------------------------------------- *)
 (* Names  *)
@@ -105,17 +106,23 @@ and block_type =
   | Locals
   | Module
   | Terraform
-  | OtherBlock of string
+  | OtherBlockType of string
 
 and block_label = LblStr of string wrap | LblId of ident
-and block_body = block_body_elememt list bracket
-and block_body_elememt = Argument of argument | NestedBlock of block
+and block_body = block_body_element list bracket
+
+and block_body_element =
+  | Argument of argument
+  | Block of block
+  (* semgrep-ext: *)
+  | BlockEllipsis of tok
 
 (*****************************************************************************)
 (* Toplevel elements *)
 (*****************************************************************************)
-(* toplevel blocks *)
-type config = block list
+(* like block_body_element but Argument should not appear at the toplevel *)
+type toplevel_block = block_body_element
+type config = toplevel_block list
 
 (* Note that a "module" is a set of terraform files in the same directory *)
 
@@ -127,3 +134,14 @@ type any = E of expr | Pr of config
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+let block_type_of_string s =
+  match s with
+  | "resource" -> Resource
+  | "data" -> Data
+  | "provider" -> Provider
+  | "variable" -> Variable
+  | "output" -> Output
+  | "locals" -> Locals
+  | "module" -> Module
+  | "terraform" -> Terraform
+  | _else_ -> OtherBlockType s
