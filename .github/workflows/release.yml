@@ -183,7 +183,7 @@ jobs:
   #     - name: Publish Release Semgrep Interfaces
   #       id: publish_release_semgrep_interfaces
   #       env:
-  #         GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
+#         GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
   #       run: |
   #         gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false
 
@@ -192,7 +192,7 @@ jobs:
     secrets: inherit
 
   # build-test-osx-m1:
-  #   uses: ./.github/workflows/build-test-osx-m1.yaml
+  #   uses: ./.github/workflows/uild-test-osx-m1.yaml
   #   secrets: inherit
 
   # build-test-docker:
@@ -255,11 +255,11 @@ jobs:
         with:
           name: manylinux-wheel
           path: manylinux-wheel
-      # - name: Download Osx Artifact
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: osx-wheel
-      #     path: osx-wheel
+      - name: Download Osx Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: osx-wheel
+          path: osx-wheel
       # - name: Download Artifact
       #   uses: actions/download-artifact@v3
       #   with:
@@ -267,9 +267,9 @@ jobs:
       #     path: m1-wheel
       - name: Unzip
         run: unzip ./manylinux-wheel/dist.zip
-      # - name: Unzip OSX Wheel
-      #   # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
-      #   run: unzip ./osx-wheel/dist.zip "*.whl"
+      - name: Unzip OSX Wheel
+        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
+        run: unzip ./osx-wheel/dist.zip "*.whl"
       # - name: Unzip M1 Wheel
       #   # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
       #   run: unzip ./m1-wheel/dist.zip "*.whl"

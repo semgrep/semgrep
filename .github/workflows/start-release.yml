@@ -13,7 +13,7 @@ on:
       bumpVersionFragment:
         description: "Version fragment to bump"
         required: true
-        default: "feature"
+        default: "bug"
         type: "choice"
         # These options are passed directly into christian-draeger/increment-semantic-version in the `next-vesion` step to decide which of X.Y.Z to increment
         options:
