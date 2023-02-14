@@ -252,14 +252,16 @@ def automocks(mocker):
 
 @pytest.fixture(params=[True, False], ids=["autofix", "noautofix"])
 def mock_autofix(request, mocker):
-    mocker.patch.object(GitMeta, "repo_url", REMOTE_REPO_URL)
     mocker.patch.object(ScanHandler, "autofix", request.param)
 
 
 @pytest.mark.parametrize(
     "env",
     [
-        {"SEMGREP_APP_TOKEN": "dummy"},  # Local run with no CI env vars
+        {  # Local run with no CI env vars
+            "SEMGREP_APP_TOKEN": "dummy",
+            "SEMGREP_REPO_URL": REMOTE_REPO_URL,
+        },
         {  # Github full scan
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -535,6 +537,7 @@ def test_full_run(
     snapshot,
     env,
     run_semgrep,
+    mocker,
     mock_autofix,
 ):
     repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
