@@ -240,3 +240,21 @@ rules:
         - lang_php/analyze/foundation/unit_prolog_php.ml
         - main_db.ml
         - tests/Test.ml
+  - id: bad-changelog-extension
+    pattern-regex: .*
+    message: |
+      This file has an invalid extension. Please choose from one of the allowed
+      extensions: .added, .changed, .fixed, or .infra
+    languages: [generic]
+    severity: WARNING
+    paths:
+      include:
+        - changelog.d/*
+      exclude:
+        - changelog.d/.gitignore
+        - changelog.d/README
+        - changelog.d/gh-1234.example
+        - changelog.d/*.added
+        - changelog.d/*.changed
+        - changelog.d/*.fixed
+        - changelog.d/*.infra
