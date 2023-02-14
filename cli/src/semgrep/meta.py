@@ -112,6 +112,7 @@ class GitMeta:
                 raise Exception(
                     "Unable to infer repo_url. Set SEMGREP_REPO_URL environment variable or run in a valid git project"
                 )
+            repo_url = rev_parse.stdout.strip()
 
         return get_url_from_sstp_url(repo_url)
 
