@@ -171,7 +171,10 @@ let parse_pattern lang ?(print_errors = false) str =
         extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Terraform ->
         let res = Parse_terraform_tree_sitter.parse_pattern str in
-        extract_pattern_from_tree_sitter_result res print_errors
+        let pattern =
+          extract_pattern_from_tree_sitter_result res print_errors
+        in
+        Terraform_to_generic.any pattern
     (* use pfff *)
     | Lang.Python
     | Lang.Python2
