@@ -1,1 +1,0 @@
-Fix the location associated with metavariables bound inside of `metavariable-pattern` clauses, which could lead to matches being incorrectly displayed.
