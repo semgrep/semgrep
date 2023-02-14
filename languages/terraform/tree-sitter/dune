@@ -1,12 +1,12 @@
 (library
- (public_name parser_hcl.ast_generic)
- (name parser_hcl_ast_generic)
+ (public_name parser_terraform.tree_sitter)
+ (name parser_terraform_tree_sitter)
  (wrapped false)
  (libraries
    commons
    lib_parsing lib_parsing_tree_sitter
    tree-sitter-lang.hcl
-   ast_generic
+   parser_terraform.ast
  )
  (preprocess (pps ppx_deriving.show))
 )

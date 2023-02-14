@@ -414,7 +414,7 @@ let lang_regression_tests ~polyglot_pattern_path ~with_caching =
         (Lang.Swift, "swift", ".swift");
         (Lang.Html, "html", ".html");
         (Lang.Vue, "vue", ".vue");
-        (Lang.Hcl, "hcl", ".tf");
+        (Lang.Terraform, "terraform", ".tf");
         (Lang.Kotlin, "kotlin", ".kt");
         (Lang.Solidity, "solidity", ".sol");
         (Lang.Elixir, "elixir", ".ex");

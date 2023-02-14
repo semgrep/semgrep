@@ -62,7 +62,7 @@
 	path = languages/php/tree-sitter/semgrep-php
 	url = https://github.com/returntocorp/semgrep-php
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-hcl"]
-	path = languages/hcl/tree-sitter/semgrep-hcl
+	path = languages/terraform/tree-sitter/semgrep-hcl
 	url = https://github.com/returntocorp/semgrep-hcl
 [submodule "semgrep/lang"]
 	path = cli/src/semgrep/lang

@@ -1178,7 +1178,7 @@ and m_for_or_if_comp a b =
 and m_literal a b =
   Trace_matching.(if on then print_literal_pair a b);
   with_lang (fun lang ->
-      if Lang.equal lang Lang.Hcl then
+      if Lang.equal lang Lang.Terraform then
         (* We choose not to use an or-pattern to maintain the
            sides of the trees.
         *)
