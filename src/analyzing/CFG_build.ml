@@ -31,33 +31,7 @@ module F = IL (* to be even more similar to controlflow_build.ml *)
  *)
 
 let logger = Logging.get_logger [ __MODULE__ ]
-let binary_suffix = ".cfg.binary"
-let cfg_cache_dir = "/tmp/semgrep/cfgs"
-
-let cache_file_of_file filename =
-  let dir = cfg_cache_dir in
-  (if not (Sys.file_exists dir) then
-   try
-     Unix.mkdir dir 0o700
-     (* bugfix: Despite the check above, we may race with another thread to
-      * create the directory, leading to a crash if this exception is unhandled.
-      * *)
-   with
-   | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
-  (* hopefully there will be no collision *)
-  let md5 = Digest.string filename in
-  Filename.concat dir (spf "%s%s" (Digest.to_hex md5) binary_suffix)
-
-let filemtime file = (Unix.stat file).Unix.st_mtime
-
-let get_value_and_run_checks file file_cache =
-  let file2, res = Common2.get_value file_cache in
-  if file <> file2 then
-    failwith
-      (spf "Not the same file! Md5sum collision! Clean the cache file %s"
-         file_cache)
-  else ();
-  res
+let cfg_cache = Hashtbl.create 128
 
 (* The function below is mostly a copy-paste of Common.cache_computation.
  * This function is slightly more flexible because we can put the cache file
@@ -65,29 +39,13 @@ let get_value_and_run_checks file file_cache =
  * We also try to be a bit more type-safe by using the version tag above.
  * TODO: merge in commons/Common.ml at some point
  *)
-let cache_computation file f =
-  if not (Sys.file_exists file) then (
-    logger#warning "cache_computation: can't find file %s " file;
-    logger#warning "defaulting to calling the function";
-    f ())
-  else
-    let file_cache = cache_file_of_file file in
-    if Sys.file_exists file_cache && filemtime file_cache >= filemtime file then (
-      logger#trace "using cache: %s" file_cache;
-      get_value_and_run_checks file file_cache)
-    else
-      let res = f () in
-      let final = (file, res) in
-      (try Common2.write_value final file_cache with
-      | Sys_error err ->
-          (* We must ignore SIGXFSZ to get this exception, see
-           * note "SIGXFSZ (file size limit exceeded)". *)
-          logger#error "Could not write cache file for %s (%s): %s" file
-            file_cache err;
-          (* Make sure we don't leave corrupt cache files behind us. *)
-          if Sys.file_exists file_cache then Sys.remove file_cache);
-      res
-  [@@profiling]
+let _cache_computation file f =
+  match Hashtbl.find_opt cfg_cache file with
+  | None ->
+      let cfg = f () in
+      Hashtbl.add cfg_cache file cfg;
+      cfg
+  | Some cfg -> cfg
 
 (*****************************************************************************)
 (* Types *)
@@ -480,4 +438,4 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
   CFG.make g enteri
 
 let (cached_cfg_of_stmts : string -> stmt list -> F.cfg) =
- fun filename xs -> cache_computation filename (fun () -> cfg_of_stmts xs)
+ fun _filename xs -> cfg_of_stmts xs
