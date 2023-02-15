@@ -66,7 +66,7 @@ jobs:
   wait-for-build-test:
     name: Wait for Build/Test All Platforms
     runs-on: ubuntu-22.04
-    needs: [build-test-manylinux-x86, build-test-ubuntu-16-04]
+    needs: [build-test-manylinux-x86, build-test-ubuntu-16-04, build-test-osx-x86]
     steps:
       - name: Continue
         run: echo "All Platforms have been built and tested - proceeding!"
@@ -187,9 +187,9 @@ jobs:
   #       run: |
   #         gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false
 
-  # build-test-osx-x86:
-  #   uses: ./.github/workflows/build-test-osx-x86.yaml
-  #   secrets: inherit
+  build-test-osx-x86:
+    uses: ./.github/workflows/build-test-osx-x86.yaml
+    secrets: inherit
 
   # build-test-osx-m1:
   #   uses: ./.github/workflows/uild-test-osx-m1.yaml
