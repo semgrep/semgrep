@@ -30,6 +30,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
@@ -240,7 +241,7 @@ class LSPConfig:
             ProfileManager,
             OutputExtra,
             Collection[RuleSeverity],
-            Dict[str, int],
+            Dict[str, List[FoundDependency]],
         ],
     ]:
         """Generate a scanner according to the config"""
@@ -282,7 +283,7 @@ class LSPConfig:
             ProfileManager,
             OutputExtra,
             Collection[RuleSeverity],
-            Dict[str, int],
+            Dict[str, List[FoundDependency]],
         ],
     ]:
         return self._scanner(configs=self.configs)
@@ -301,7 +302,7 @@ class LSPConfig:
             ProfileManager,
             OutputExtra,
             Collection[RuleSeverity],
-            Dict[str, int],
+            Dict[str, List[FoundDependency]],
         ],
     ]:
         return self._scanner(configs=[self.scan_url])
