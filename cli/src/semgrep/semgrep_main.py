@@ -43,6 +43,7 @@ from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
@@ -113,6 +114,7 @@ def invoke_semgrep(
         profiler,
         output_extra,
         shown_severities,
+        _,
     ) = main(
         output_handler=output_handler,
         target=[str(t) for t in targets],
@@ -142,7 +144,9 @@ def run_rules(
     output_handler: OutputHandler,
     dump_command_for_core: bool,
     engine: EngineType,
-) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra]:
+) -> Tuple[
+    RuleMatchMap, List[SemgrepError], OutputExtra, Dict[str, List[FoundDependency]]
+]:
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
@@ -171,6 +175,7 @@ def run_rules(
             rule_matches_by_rule.update(join_rule_matches_by_rule)
             output_handler.handle_semgrep_errors(join_rule_errors)
 
+    dependencies = {}
     if len(dependency_aware_rules) > 0:
         from semgrep.dependency_aware_rule import (
             generate_unreachable_sca_findings,
@@ -191,7 +196,6 @@ def run_rules(
                 ) = generate_reachable_sca_findings(
                     rule_matches_by_rule.get(rule, []),
                     rule,
-                    target_manager,
                 )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -218,12 +222,13 @@ def run_rules(
             for lockfile in target_manager.get_lockfiles(ecosystem):
                 # Add lockfiles as a target that was scanned
                 output_extra.all_targets.add(lockfile)
-                output_extra.dependencies[str(lockfile)] = parse_lockfile_path(lockfile)
+                dependencies[str(lockfile)] = parse_lockfile_path(lockfile)
 
     return (
         rule_matches_by_rule,
         semgrep_errors,
         output_extra,
+        dependencies,
     )
 
 
@@ -299,6 +304,7 @@ def main(
     ProfileManager,
     OutputExtra,
     Collection[RuleSeverity],
+    Dict[str, List[FoundDependency]],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
     if include is None:
@@ -420,7 +426,7 @@ def main(
         for ruleid in sorted(rule.id for rule in experimental_rules):
             logger.verbose(f"- {ruleid}")
 
-    (rule_matches_by_rule, semgrep_errors, output_extra,) = run_rules(
+    (rule_matches_by_rule, semgrep_errors, output_extra, dependencies) = run_rules(
         filtered_rules,
         target_manager,
         core_runner,
@@ -476,7 +482,8 @@ def main(
                     (
                         baseline_rule_matches_by_rule,
                         baseline_semgrep_errors,
-                        baseline_output_extra,
+                        _,
+                        _,
                     ) = run_rules(
                         # only the rules that had a match
                         [
@@ -534,4 +541,5 @@ def main(
         profiler,
         output_extra,
         shown_severities,
+        dependencies,
     )

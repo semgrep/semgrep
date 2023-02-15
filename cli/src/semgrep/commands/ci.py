@@ -391,6 +391,7 @@ def ci(
                 profiler,
                 output_extra,
                 shown_severities,
+                dependencies,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
                 engine=engine,
@@ -511,7 +512,7 @@ def ci(
             output_extra.parsing_data,
             total_time,
             metadata.commit_datetime,
-            output_extra.dependencies,
+            dependencies,
             engine,
         )
         logger.info("  View results in Semgrep App:")
