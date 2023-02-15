@@ -132,6 +132,9 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
   let res_rules =
     relevant_rules
     |> Common.map (fun r ->
+           let xconf =
+             Match_env.adjust_xconfig_with_rule_options xconf r.R.options
+           in
            let rule_id = fst r.R.id in
            Rule.last_matched_rule := Some rule_id;
            let match_result =
