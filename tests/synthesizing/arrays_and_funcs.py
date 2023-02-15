@@ -1,7 +1,7 @@
 from metrics import send
 def foo():
    a.bar(f(x), y==f(x))
-   bar + send('my-report-id') + bar()
+   bar + send("my-report-id") + bar()
    (hi, my)
    (hi, my, bye)
    A[1]
