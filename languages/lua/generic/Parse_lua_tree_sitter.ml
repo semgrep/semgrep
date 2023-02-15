@@ -116,8 +116,8 @@ let map_field_sep (env : env) (x : CST.field_sep) =
  *   token env tok (\* string *\) *)
 
 let map_parameters (env : env) ((v1, v2, v3) : CST.parameters) : G.parameters =
-  let _v1 = token env v1 (* "(" *) in
-  let v2 =
+  let lp = token env v1 (* "(" *) in
+  let params =
     match v2 with
     | Some (v1, v2, v3) ->
         let v1 =
@@ -147,8 +147,8 @@ let map_parameters (env : env) ((v1, v2, v3) : CST.parameters) : G.parameters =
         deoptionalize (List.concat [ [ Some v1 ]; v2; [ v3 ] ])
     | None -> []
   in
-  let _v3 = token env v3 (* ")" *) in
-  v2
+  let rp = token env v3 (* ")" *) in
+  (lp, params, rp)
 
 let map_local_variable_declarator (env : env)
     ((v1, v2) : CST.local_variable_declarator) local : G.entity list =

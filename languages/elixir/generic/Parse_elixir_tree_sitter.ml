@@ -146,7 +146,7 @@ let stab_clauses_to_function_definition tk (xs : stab_clause list) :
     G.Switch (tk, Some (G.Cond (G.N (H2.name_of_id id) |> G.e)), xs) |> G.s
   in
   {
-    G.fparams = params;
+    G.fparams = PI.unsafe_fake_bracket params;
     frettype = None;
     fkind = (G.Function, tk);
     fbody = G.FBStmt body_stmt;

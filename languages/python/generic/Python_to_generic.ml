@@ -290,7 +290,7 @@ let rec expr env (x : expr) =
       let v1 = parameters env v1 and v2 = expr env v2 in
       G.Lambda
         {
-          G.fparams = v1;
+          G.fparams = fb v1;
           fbody = G.FBExpr v2;
           frettype = None;
           fkind = (G.LambdaKind, t0);
@@ -445,7 +445,7 @@ and param_pattern env = function
       let t = list (param_pattern env) t in
       G.PatTuple (PI.unsafe_fake_bracket t)
 
-and parameters env xs =
+and parameters env xs : G.parameter list =
   xs
   |> Common.map (function
        | ParamDefault ((n, topt), e) ->
@@ -562,7 +562,7 @@ and stmt_aux env x =
       let ent = G.basic_entity v1 ~attrs:v5 in
       let def =
         {
-          G.fparams = v2;
+          G.fparams = fb v2;
           frettype = v3;
           fbody = G.FBStmt v4;
           fkind = (G.Function, t);
@@ -582,7 +582,7 @@ and stmt_aux env x =
           cextends = v2;
           cimplements = [];
           cmixins = [];
-          cparams = [];
+          cparams = fb [];
           cbody = fb (v3 |> Common.map (fun x -> fieldstmt x));
         }
       in

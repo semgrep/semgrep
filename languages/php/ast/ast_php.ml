@@ -336,7 +336,7 @@ and func_def = {
   (* TODO: "_lambda" when used for lambda, see also AnonLambda for f_kind below *)
   f_name : ident;
   f_kind : function_kind wrap;
-  f_params : parameter list;
+  f_params : parameter list; (* TODO bracket *)
   f_return_type : hint_type option;
   (* functions returning a ref are rare *)
   f_ref : bool;

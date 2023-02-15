@@ -141,7 +141,7 @@ let rec expr e =
       let st = G.Block (t1, list_stmts xs, t2) |> G.s in
       let def =
         {
-          G.fparams = params;
+          G.fparams = fb params;
           frettype = None;
           fbody = G.FBStmt st;
           fkind = (G.LambdaKind, t1);
@@ -158,7 +158,7 @@ let rec expr e =
       let st = G.Block (tok, list_stmts xs, tok) |> G.s in
       let def =
         {
-          G.fparams = params;
+          G.fparams = fb params;
           frettype = None;
           fbody = G.FBStmt st;
           fkind = (G.LambdaKind, tok);
@@ -643,7 +643,7 @@ and definition def =
       let body = body_exn body in
       let funcdef =
         {
-          G.fparams = params;
+          G.fparams = fb params;
           frettype = None;
           fbody = G.FBStmt body;
           fkind = (G.Method, t);
@@ -689,7 +689,7 @@ and definition def =
               (* TODO: this is done by special include/require builtins *)
               cimplements = [];
               cmixins = [];
-              cparams = [];
+              cparams = fb [];
               cbody = fb [ G.F body ];
             }
           in

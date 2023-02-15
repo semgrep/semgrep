@@ -159,6 +159,12 @@ let is_fake tok =
   | FakeTokStr _ -> true
   | _ -> false
 
+(* TODO: the use of unsafe_fake_xxx is usually because the token
+ * does not exist in the original file. It's better than to generate
+ * an empty string in the FakeTokStr so that pretty printer will
+ * not generate those brackets or semicolons.
+ *)
+
 (* used to be in AST_generic.ml *)
 let unsafe_fake_bracket x = (unsafe_fake_info "(", x, unsafe_fake_info ")")
 
