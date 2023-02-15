@@ -660,7 +660,7 @@ let propagate_dataflow_one_function lang inputs flow =
   let mapping = Dataflow_svalue.fixpoint lang inputs flow in
   Dataflow_svalue.update_svalue flow mapping
 
-let propagate_dataflow lang ast =
+let propagate_dataflow lang filename ast =
   logger#trace "Constant_propagation.propagate_dataflow program";
   match lang with
   | Lang.Dockerfile ->
@@ -684,5 +684,5 @@ let propagate_dataflow lang ast =
          duplicate any work.
       *)
       let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
-      let flow = CFG_build.cfg_of_stmts xs in
+      let flow = CFG_build.cached_cfg_of_stmts filename xs in
       propagate_dataflow_one_function lang [] flow

@@ -22,4 +22,4 @@ val propagate_dataflow_one_function :
   IL.cfg (* function body *) ->
   unit
 
-val propagate_dataflow : Lang.t -> AST_generic.program -> unit
+val propagate_dataflow : Lang.t -> string -> AST_generic.program -> unit
