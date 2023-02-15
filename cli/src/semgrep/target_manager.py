@@ -55,6 +55,14 @@ from semgrep.util import path_has_permissions, sub_check_output
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+
 logger = getLogger(__name__)
 
 MAX_CHARS_TO_READ_FOR_SHEBANG = 255
@@ -65,6 +73,15 @@ ALL_EXTENSIONS: Collection[FileExtension] = {
     for definition in LANGUAGE.definition_by_id.values()
     for ext in definition.exts
     if ext != FileExtension("")
+}
+
+ECOSYSTEM_TO_LOCKFILES = {
+    Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt"],
+    Ecosystem(Npm()): ["package-lock.json", "yarn.lock"],
+    Ecosystem(Gem()): ["Gemfile.lock"],
+    Ecosystem(Gomod()): ["go.sum"],
+    Ecosystem(Cargo()): ["Cargo.lock"],
+    Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
 }
 
 
@@ -734,5 +751,26 @@ class TargetManager:
     def get_lockfiles(self, ecosystem: Ecosystem) -> FrozenSet[Path]:
         """
         Return set of paths to lockfiles for a given ecosystem
+
+        Respects semgrepignore/exclude flag
         """
         return self.get_files_for_language(ecosystem).kept
+
+    def find_single_lockfile(self, p: Path, ecosystem: Ecosystem) -> Optional[Path]:
+        """
+        Find the nearest lockfile in a given ecosystem to P
+        Searches only up the directory tree
+
+        If lockfile not in self.get_lockfiles(ecosystem) then return None
+        this would happen if the lockfile is ignored by a .semgrepignore or --exclude
+        """
+        candidates = self.get_lockfiles(ecosystem)
+
+        for path in p.parents:
+            for lockfile_pattern in ECOSYSTEM_TO_LOCKFILES[ecosystem]:
+                lockfile_path = path / lockfile_pattern
+                if lockfile_path in candidates and lockfile_path.exists():
+                    return lockfile_path
+                else:
+                    continue
+        return None

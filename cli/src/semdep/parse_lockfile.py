@@ -4,7 +4,6 @@ from typing import Generator
 from typing import List
 from typing import Optional
 
-from semdep.find_lockfiles import lockfile_path_to_manifest_path
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 
@@ -70,6 +69,39 @@ NEW_LOCKFILE_PARSERS = {
     "poetry.lock": parse_poetry,  # Python
     "go.sum": parse_go_sum,  # Go
 }
+
+LOCKFILE_TO_MANIFEST = {
+    "Pipfile.lock": "Pipfile",
+    "poetry.lock": "pyproject.toml",
+    "requirements.txt": "requirements.in",
+    "package-lock.json": "package.json",
+    "yarn.lock": "package.json",
+    "Gemfile.lock": None,
+    "go.sum": None,
+    "Cargo.lock": None,
+    "maven_dep_tree.txt": None,
+    "gradle.lockfile": None,
+}
+
+
+def lockfile_path_to_manifest_path(lockfile_path: Path) -> Optional[Path]:
+    """
+    Given full lockfile path, return the path to the manifest file if it exists
+
+    Return None if file doesnt exist
+    """
+    path, lockfile_pattern = lockfile_path.parent, lockfile_path.parts[-1]
+    manifest_pattern = LOCKFILE_TO_MANIFEST[lockfile_pattern]
+
+    # some lockfiles don't have a manifest
+    if not manifest_pattern:
+        return None
+
+    manifest_path = path / manifest_pattern
+    if not manifest_path.exists():
+        return None
+
+    return manifest_path
 
 
 @lru_cache(maxsize=1000)

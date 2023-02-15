@@ -15,7 +15,6 @@ from typing import Union
 
 from boltons.iterutils import partition
 
-from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
 from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
@@ -46,6 +45,7 @@ from semgrep.rule_match import RuleMatchSet
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
+from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import unit_str
@@ -196,6 +196,7 @@ def run_rules(
                 ) = generate_reachable_sca_findings(
                     rule_matches_by_rule.get(rule, []),
                     rule,
+                    target_manager,
                 )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
