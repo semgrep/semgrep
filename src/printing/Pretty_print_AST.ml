@@ -75,12 +75,17 @@ let opt f = function
   | None -> ""
   | Some x -> f x
 
-(* pad: note that Parse_info.str_of_info does not raise an exn anymore
- * on fake tokens. It instead returns the fake token string.
- * d is for default
+(* 'd' stands for default below (shorter to type at the call site).
+ * Note that Parse_info.str_of_info() does not raise an exn anymore
+ * on fake tokens (safe on unsafe). It instead returns the fake token string.
+ * TODO? maybe get rid of the default then, since in practice NoTokenLocation
+ * should never happen anymore.
  *)
 let token ?(d = "TODO") tok =
   try Parse_info.str_of_info tok with
+  (* this exn can trigger now only for Parse_info.Ab (abstracted token),
+   * which should never happen. We don't use Parse_info.Ab anymore.
+   *)
   | Parse_info.NoTokenLocation _ -> d
 
 type lang_kind = CLikeSemiColon | Other
@@ -123,7 +128,15 @@ let arithop _env (op, tok) =
 
 let rec stmt env st =
   match st.s with
-  | ExprStmt (e, tok) -> F.sprintf "%s%s" (expr env e) (token ~d:";" tok)
+  | ExprStmt (e, tok) ->
+      (* note that it is frequent for tok above to be a fake token.
+       * Indeed, many languages do not use semicolons (e.g., Python),
+       * or they are automatically inserted (e.g., via ASI in Javascript).
+       * Note that in those cases, we generate a fake token in
+       * AST_generic.sc with an empty string in it and 'token()' below
+       * should use that, so in practice this ~d:";" should never be used.
+       *)
+      F.sprintf "%s%s" (expr env e) (token ~d:";" tok)
   | Block x -> block env x
   | If (tok, e, s, sopt) -> if_stmt env (token ~d:"if" tok, e, s, sopt)
   | While (tok, e, s) -> while_stmt env (tok, e, s)

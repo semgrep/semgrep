@@ -60,6 +60,8 @@ type token_origin =
          * origin tokens. This can be useful when have to give an error
          * message that involves a fakeToken. The int is a kind of
          * virtual position, an offset. See compare_pos below.
+         * Those are called "safe" fake tokens (in contrast to the
+         * regular/unsafe one which have no position information at all).
          *)
       (token_location * int) option
   (* In the case of a XHP file, we could preprocess it and incorporate
@@ -140,6 +142,7 @@ let unsafe_token_location_of_info ii =
 let unsafe_fake_info str : token_mutable =
   { token = FakeTokStr (str, None); transfo = NoTransfo }
 
+(* "safe" fake token *)
 let fake_info_loc next_to_loc str : token_mutable =
   (* TODO: offset seems to have no use right now (?) *)
   { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
