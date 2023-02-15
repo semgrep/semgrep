@@ -183,7 +183,7 @@ jobs:
   #     - name: Publish Release Semgrep Interfaces
   #       id: publish_release_semgrep_interfaces
   #       env:
-#         GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
+  #         GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
   #       run: |
   #         gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false
 
