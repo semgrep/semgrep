@@ -9,7 +9,6 @@ from typing import Tuple
 import semgrep.output_from_core as core
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
-from semdep.find_lockfiles import find_single_lockfile
 from semdep.package_restrictions import dependencies_range_match_any
 from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.error import SemgrepError
@@ -134,7 +133,7 @@ def transivite_dep_is_also_direct(
 
 
 def generate_reachable_sca_findings(
-    matches: List[RuleMatch], rule: Rule
+    matches: List[RuleMatch], rule: Rule, target_manager: TargetManager
 ) -> Tuple[
     List[RuleMatch], List[SemgrepError], Callable[[Path, FoundDependency], bool]
 ]:
@@ -150,7 +149,9 @@ def generate_reachable_sca_findings(
     for ecosystem in ecosystems:
         for match in matches:
             try:
-                lockfile_path = find_single_lockfile(match.path, ecosystem)
+                lockfile_path = target_manager.find_single_lockfile(
+                    match.path, ecosystem
+                )
                 if lockfile_path is None:
                     continue
                 deps = parse_lockfile_path(lockfile_path)
