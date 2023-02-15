@@ -244,13 +244,13 @@ and expr =
 and literal =
   | Int of int option wrap
   | Float of float option wrap
-  | String of string wrap
+  | String of string wrap (* TODO: bracket *)
   | Char of string wrap
   | Bool of bool wrap
   | Null of tok
   (* alt: merge with String? Java 15 *)
   (* TODO? the string contains the enclosing triple quotes for now *)
-  | TextBlock of string wrap
+  | TextBlock of string wrap (* TODO bracket *)
 
 and arguments = expr list bracket
 and expr_or_type = (expr, typ) Common.either

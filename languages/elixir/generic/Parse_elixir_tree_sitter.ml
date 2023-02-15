@@ -108,6 +108,8 @@ type block = body_or_clauses bracket
 (*****************************************************************************)
 (* Intermediate AST constructs to AST_generic *)
 (*****************************************************************************)
+
+let fb = PI.unsafe_fake_bracket
 let keyval_of_kwd (k, v) = G.keyval k (G.fake "=>") v
 let kwd_of_id (id : ident) : keyword = N (H2.name_of_id id) |> G.e
 let body_to_stmts es = es |> Common.map G.exprstmt
@@ -146,7 +148,7 @@ let stab_clauses_to_function_definition tk (xs : stab_clause list) :
     G.Switch (tk, Some (G.Cond (G.N (H2.name_of_id id) |> G.e)), xs) |> G.s
   in
   {
-    G.fparams = PI.unsafe_fake_bracket params;
+    G.fparams = fb params;
     frettype = None;
     fkind = (G.Function, tk);
     fbody = G.FBStmt body_stmt;
@@ -155,7 +157,7 @@ let stab_clauses_to_function_definition tk (xs : stab_clause list) :
 (* following Elixir semantic (unsugaring pairs) *)
 let list_container_of_kwds xs =
   let es = xs |> Common.map keyval_of_kwd in
-  Container (List, PI.unsafe_fake_bracket es) |> G.e
+  Container (List, fb es) |> G.e
 
 let args_of_exprs_and_keywords (es : expr list) (kwds : pair list) :
     argument list =
@@ -177,7 +179,7 @@ let expr_of_body_or_clauses tk (x : body_or_clauses) : expr =
       let stmts = body_to_stmts xs in
       (* less: use G.stmt1 instead? or get rid of fake_bracket here
        * passed down from caller? *)
-      let block = Block (PI.unsafe_fake_bracket stmts) |> G.s in
+      let block = Block (fb stmts) |> G.s in
       G.stmt_to_expr block
   | Right clauses ->
       let fdef = stab_clauses_to_function_definition tk clauses in
@@ -214,7 +216,7 @@ let args_of_do_block_opt (blopt : do_block option) : argument list =
 
 let mk_call_no_parens (e : expr) (args : argument list)
     (blopt : do_block option) : call =
-  Call (e, PI.unsafe_fake_bracket (args @ args_of_do_block_opt blopt)) |> G.e
+  Call (e, fb (args @ args_of_do_block_opt blopt)) |> G.e
 
 let mk_call_parens (e : expr) (args : argument list bracket)
     (blopt : do_block option) : call =
@@ -225,7 +227,7 @@ let binary_call (e1 : expr) op_either (e2 : expr) : expr =
   match op_either with
   | Left id ->
       let n = N (H2.name_of_id id) |> G.e in
-      Call (n, PI.unsafe_fake_bracket ([ e1; e2 ] |> Common.map G.arg)) |> G.e
+      Call (n, fb ([ e1; e2 ] |> Common.map G.arg)) |> G.e
   | Right op -> G.opcall op [ e1; e2 ]
 
 let expr_of_e_or_kwds (x : (expr, pair list) either) : expr =
@@ -316,9 +318,9 @@ let map_identifier_or_ellipsis (env : env) (x : CST.identifier) : expr =
       let id = str env tok in
       N (H2.name_of_id id) |> G.e
 
-let map_quoted_xxx (env : env) (v1, v2, v3) : string wrap =
-  let v1 = (* "/" or another one *) token env v1 in
-  let v2 =
+let map_quoted_xxx (env : env) (v1, v2, v3) : string wrap bracket =
+  let l = (* "/" or another one *) token env v1 in
+  let xs =
     Common.map
       (fun x ->
         match x with
@@ -336,10 +338,8 @@ let map_quoted_xxx (env : env) (v1, v2, v3) : string wrap =
         | `Esc_seq tok -> (* escape_sequence *) str env tok)
       v2
   in
-  let v3 = (* "/" or another one *) token env v3 in
-  let str = v2 |> Common.map fst |> String.concat "" in
-  let toks = (v2 |> Common.map snd) @ [ v3 ] in
-  (str, PI.combine_infos v1 toks)
+  let r = (* "/" or another one *) token env v3 in
+  G.string_ (l, xs, r)
 
 let map_quoted_i_xxx map_interpolation (env : env) (v1, v2, v3) : expr =
   let v1 = (* "<" or another one *) token env v1 in
@@ -1138,7 +1138,7 @@ and map_keyword (env : env) (x : CST.keyword) : keyword =
   | `Kw_ tok ->
       (* todo: remove suffix ':' *)
       let x = (* keyword_ *) str env tok in
-      L (String x) |> G.e
+      L (String (fb x)) |> G.e
   | `Quoted_kw (v1, v2) ->
       let v1 = map_anon_choice_quoted_i_double_d7d5f65 env v1 in
       let _v2TODO = (* pattern :\s *) token env v2 in

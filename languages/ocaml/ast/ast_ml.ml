@@ -163,7 +163,7 @@ and literal =
   | Int of int option wrap
   | Float of float option wrap
   | Char of string wrap
-  | String of string wrap
+  | String of string wrap (* TODO bracket *)
   | Bool of bool wrap
   | Unit of tok * tok (* () or begin/end *)
 

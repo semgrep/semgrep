@@ -301,7 +301,7 @@ let _TODOparameter_modifier (env : env) (x : CST.parameter_modifier) =
 let escape_sequence (env : env) (tok : CST.escape_sequence) =
   let s = str env tok in
   (* escape_sequence *)
-  String s
+  String (fb s)
 
 let assignment_operator (env : env) (x : CST.assignment_operator) :
     operator wrap =
@@ -332,7 +332,7 @@ let predefined_type (env : env) (tok : CST.predefined_type) =
   G.ty_builtin (str env tok)
 
 let verbatim_string_literal (env : env) (tok : CST.verbatim_string_literal) =
-  G.String (str env tok)
+  G.String (fb (str env tok))
 
 (* verbatim_string_literal *)
 
@@ -436,7 +436,7 @@ let interpolated_verbatim_string_text (env : env)
     | `DQUOTDQUOT tok -> str env tok
     (* "\"\"" *)
   in
-  String x
+  String (fb x)
 
 let real_literal (env : env) (tok : CST.real_literal) =
   let s, t = str env tok (* real_literal *) in
@@ -487,9 +487,9 @@ let _preproc_directive_end (env : env) (tok : CST.preproc_directive_end) =
 
 let interpolated_string_text (env : env) (x : CST.interpolated_string_text) =
   match x with
-  | `LCURLLCURL tok -> String (str env tok) (* "{{" *)
+  | `LCURLLCURL tok -> String (fb (str env tok)) (* "{{" *)
   | `Inte_str_text_frag tok ->
-      String (str env tok) (* pattern "[^{\"\\\\\\n]+" *)
+      String (fb (str env tok)) (* pattern "[^{\"\\\\\\n]+" *)
   | `Esc_seq tok -> escape_sequence env tok
 
 (* escape_sequence *)
@@ -592,8 +592,8 @@ let literal (env : env) (x : CST.literal) : literal =
   | `Real_lit tok -> real_literal env tok (* real_literal *)
   | `Int_lit tok -> integer_literal env tok (* integer_literal *)
   | `Str_lit (v1, v2, v3) ->
-      let v1 = token env v1 (* "\"" *) in
-      let v2 =
+      let l = token env v1 (* "\"" *) in
+      let xs =
         Common.map
           (fun x ->
             match x with
@@ -602,16 +602,13 @@ let literal (env : env) (x : CST.literal) : literal =
             (* escape_sequence *))
           v2
       in
-      let v3 =
+      let r =
         match v3 with
         | `DQUOT tok -> (* "\"" *) token env tok
         | `DQUOTU8 tok -> (* "\"U8" *) token env tok
         | `DQUOTu8 tok -> (* "\"u8" *) token env tok
       in
-      let str = v2 |> Common.map fst |> String.concat "" in
-      let toks = v2 |> Common.map snd in
-      let toks = PI.combine_infos v1 (toks @ [ v3 ]) in
-      G.String (str, toks)
+      G.String (G.string_ (l, xs, r))
   | `Verb_str_lit tok -> verbatim_string_literal env tok
 
 (* verbatim_string_literal *)

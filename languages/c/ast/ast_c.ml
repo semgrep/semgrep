@@ -129,12 +129,12 @@ and struct_kind = Struct | Union
 and expr =
   | Int of int option wrap
   | Float of float option wrap
-  | String of string wrap
+  | String of string wrap (* TODO: bracket *)
   | Char of string wrap
   (* c-ext:? *)
   | Null of tok
   | Bool of bool wrap
-  | ConcatString of string wrap list
+  | ConcatString of string wrap list (* TODO: bracket *)
   (* can be a cpp or enum constant (e.g. FOO), or a local/global/parameter
    * variable, or a function name.
    *)

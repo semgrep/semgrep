@@ -402,7 +402,7 @@ and literal = function
       G.Char v1
   | String v1 ->
       let v1 = wrap string v1 in
-      G.String v1
+      G.String (fb v1)
   | Bool v1 ->
       let v1 = wrap bool v1 in
       G.Bool v1

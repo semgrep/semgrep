@@ -137,13 +137,12 @@ let map_identifier (env : env) (x : CST.identifier) : ident =
       (* tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc *) str env tok
   | `Semg_meta tok -> (* semgrep_metavariable *) str env tok
 
-let map_string_lit (env : env) ((v1, v2, v3) : CST.string_lit) : string wrap =
-  let v1 = (* quoted_template_start *) token env v1 in
-  let v2 = map_template_literal env v2 in
-  let v3 = (* quoted_template_end *) token env v3 in
-  match v2 with
-  | Some (s, t) -> (s, PI.combine_infos v1 [ t; v3 ])
-  | None -> ("", PI.combine_infos v1 [ v3 ])
+let map_string_lit (env : env) ((v1, v2, v3) : CST.string_lit) :
+    string wrap bracket =
+  let l = (* quoted_template_start *) token env v1 in
+  let xs = map_template_literal env v2 |> Option.to_list in
+  let r = (* quoted_template_end *) token env v3 in
+  G.string_ (l, xs, r)
 
 let map_variable_expr (env : env) (x : CST.variable_expr) = map_identifier env x
 
@@ -573,7 +572,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : block =
       (fun x ->
         match x with
         | `Str_lit x ->
-            let x = map_string_lit env x in
+            let _, x, _ = map_string_lit env x in
             LblStr x
         | `Id tok ->
             let id = (* identifier *) map_identifier env tok in

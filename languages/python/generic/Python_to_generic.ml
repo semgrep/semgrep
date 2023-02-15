@@ -157,7 +157,7 @@ let rec expr env (x : expr) =
       G.L v1 |> G.e
   | Str v1 ->
       let v1 = wrap string v1 in
-      G.L (G.String v1) |> G.e
+      G.L (G.String (fb v1)) |> G.e
   | EncodedStr (v1, pre) ->
       let v1 = wrap string v1 in
       (* bugfix: do not reuse the same tok! otherwise in semgrep
@@ -168,7 +168,7 @@ let rec expr env (x : expr) =
        *)
       G.Call
         ( G.IdSpecial (G.EncodedString pre, fake (snd v1) "") |> G.e,
-          fb [ G.Arg (G.L (G.String v1) |> G.e) ] )
+          fb [ G.Arg (G.L (G.String (fb v1)) |> G.e) ] )
       |> G.e
   | InterpolatedString (v1, xs, v3) ->
       G.Call

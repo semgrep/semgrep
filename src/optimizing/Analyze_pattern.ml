@@ -101,7 +101,7 @@ let extract_strings_and_mvars ?lang any =
              * We do now semantic equivance on integers between values so
              * 1000 is now equivalent to 1_000 so we can't "regexpize" it.
              *)
-            | L (String (str, _tok)) ->
+            | L (String (_, (str, _tok), _)) ->
                 if not (Pattern.is_special_string_literal str) then
                   Common.push str strings
             | IdSpecial (Eval, t) ->

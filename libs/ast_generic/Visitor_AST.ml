@@ -298,7 +298,9 @@ let (mk_visitor :
               |> List.iter (fun e ->
                      match e.e with
                      | Container
-                         (Tuple, (tok, [ { e = L (String id); _ }; e ], _)) ->
+                         ( Tuple,
+                           (tok, [ { e = L (String (_, id, _)); _ }; e ], _) )
+                       ->
                          let t = PI.fake_info tok ":" in
                          v_partial ~recurse:false
                            (PartialSingleField (id, t, e))
@@ -461,7 +463,7 @@ let (mk_visitor :
           let v1 = v_wrap v_string v1 in
           ()
       | String v1 ->
-          let v1 = v_wrap v_string v1 in
+          let v1 = v_bracket (v_wrap v_string) v1 in
           ()
       | Regexp (v1, v2) ->
           let v1 = v_bracket (v_wrap v_string) v1 in
@@ -1329,7 +1331,7 @@ let (mk_visitor :
     | Tp v1 -> v_type_parameter v1
     | Ta v1 -> v_type_argument v1
     | Cs v1 -> v_case v1
-    | Str v1 -> v_wrap v_string v1
+    | Str v1 -> v_bracket (v_wrap v_string) v1
     | Args v1 -> v_list v_argument v1
     | Params v1 -> v_list v_parameter v1
     | Flds v1 -> v_fields v1

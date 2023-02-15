@@ -42,6 +42,7 @@ type env = extra H.env
 let fake = AST_generic.fake
 let token = H.token
 let str = H.str
+let fb = Parse_info.unsafe_fake_bracket
 
 (* val str_if_wrong_content_temporary_fix :
    'a env -> Tree_sitter_run.Token.t -> string * Parse_info.t
@@ -106,30 +107,26 @@ let map_text (env : env) (x : CST.text) =
 (* "{{" *)
 
 let map_quoted_attribute_value (env : env) (x : CST.quoted_attribute_value) :
-    string wrap =
+    string wrap bracket =
   match x with
   | `SQUOT_opt_pat_58fbb2e_SQUOT (v1, v2, v3) ->
-      let v1 = token env v1 (* "'" *) in
-      let s, ts =
+      let l = token env v1 (* "'" *) in
+      let xs =
         match v2 with
-        | Some tok ->
-            let s, t = str env tok (* pattern "[^']+" *) in
-            (s, [ t ])
-        | None -> ("", [])
+        | Some tok -> [ str env tok ] (* pattern "[^']+" *)
+        | None -> []
       in
-      let v3 = token env v3 (* "'" *) in
-      (s, PI.combine_infos v1 (ts @ [ v3 ]))
+      let r = token env v3 (* "'" *) in
+      G.string_ (l, xs, r)
   | `DQUOT_opt_pat_98d585a_DQUOT (v1, v2, v3) ->
-      let v1 = token env v1 (* "\"" *) in
-      let s, ts =
+      let l = token env v1 (* "\"" *) in
+      let xs =
         match v2 with
-        | Some tok ->
-            let s, t = str env tok (* pattern "[^\"]+" *) in
-            (s, [ t ])
-        | None -> ("", [])
+        | Some tok -> [ str env tok ] (* pattern "[^\"]+" *)
+        | None -> []
       in
-      let v3 = token env v3 (* "\"" *) in
-      (s, PI.combine_infos v1 (ts @ [ v3 ]))
+      let r = token env v3 (* "\"" *) in
+      G.string_ (l, xs, r)
 
 let map_directive_modifiers (env : env) (xs : CST.directive_modifiers) =
   Common.map
@@ -311,7 +308,7 @@ and map_node (env : env) (x : CST.node) : xml_body list =
         | Some tok ->
             let x = str env tok (* interpolation_text *) in
             (* TODO: parse as JS *)
-            Some (L (String x) |> G.e)
+            Some (L (String (fb x)) |> G.e)
         | None -> None
       in
       let v3 = token env v3 (* "}}" *) in

@@ -562,7 +562,7 @@ and map_constant env x : G.literal =
       G.Char v1
   | String v1 ->
       let v1 = map_wrap env map_of_string v1 in
-      G.String v1
+      G.String (fb v1)
   | MultiString v1 ->
       let v1 = map_of_list (map_wrap env map_of_string) v1 in
       let s = v1 |> Common.map fst |> String.concat "" in
@@ -571,7 +571,7 @@ and map_constant env x : G.literal =
         | [] -> raise Impossible
         | x :: xs -> PI.combine_infos x xs
       in
-      G.String (s, t)
+      G.String (fb (s, t))
   | Bool v1 ->
       let v1 = map_wrap env map_of_bool v1 in
       G.Bool v1

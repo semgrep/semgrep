@@ -145,6 +145,7 @@ let error_with_rule_id rule_id (error : E.error) =
   | _ -> { error with rule_id = Some rule_id }
 
 let lazy_force x = Lazy.force x [@@profiling]
+let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Adapters *)
@@ -554,7 +555,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                 * but too many possible escaping problems, so easier to build
                 * an expression manually.
                 *)
-               let re_exp = G.L (G.String (re_str, fk)) |> G.e in
+               let re_exp = G.L (G.String (fb (re_str, fk))) |> G.e in
                let mvar_exp = G.N (G.Id ((mvar, fk), fki)) |> G.e in
                let call_re_match re_exp str_exp =
                  G.Call

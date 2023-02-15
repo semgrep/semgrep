@@ -388,7 +388,7 @@ and declaration_attribute =
 
 (* 'unsetenv' *)
 and expression =
-  | Word of (* unquoted string *) string wrap
+  | Word of (* unquoted string *) string wrap (* TODO: bracket *)
   | Special_character of (* unquoted string *) string wrap
   | String of (* "..." *) string_fragment list bracket
   | String_fragment of (* $x ${...} $(...) `...` ... *) loc * string_fragment

@@ -97,7 +97,7 @@ let string_literal (env : env) (tok : CST.identifier) =
         logger#warning "weird string literal: %s" s;
         s
   in
-  G.L (G.String (s, t)) |> G.e
+  G.L (G.String (fb (s, t))) |> G.e
 
 let map_field_sep (env : env) (x : CST.field_sep) =
   match x with
