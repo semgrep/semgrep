@@ -61,7 +61,11 @@ def parse_package_lock(
             if not version:
                 logger.info(f"no version for dependency: {package}")
                 continue
-            resolved_url = fields["resolved"].as_str() if "resolved" in fields else None
+            resolved_url_json = fields.get("resolved")
+            if resolved_url_json and not isinstance(resolved_url_json.value, str):
+                resolved_url = None
+            resolved_url = resolved_url_json.as_str() if resolved_url_json else None
+
             integrity = fields["integrity"].as_str() if "integrity" in fields else None
             output.append(
                 FoundDependency(
