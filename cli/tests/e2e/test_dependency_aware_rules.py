@@ -76,6 +76,10 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/yarn-sass.yaml",
             "dependency_aware/yarn_at_in_version",
         ),
+        (
+            "rules/dependency_aware/js-sca.yaml",
+            "dependency_aware/package-lock_resolved_false",
+        ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
