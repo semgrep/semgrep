@@ -393,6 +393,9 @@ let compare_pos ii1 ii2 =
       | 1 -> 1
       | _ -> raise Impossible)
 
+(* TODO: we should filter with is_origintok() first, to avoid having
+ * the caller to do it.
+ *)
 let min_max_ii_by_pos xs =
   match xs with
   | [] ->

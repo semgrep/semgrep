@@ -1452,6 +1452,7 @@ let ii_of_any any = extract_info_visitor (fun visitor -> visitor any)
 
 let first_info_of_any any =
   let xs = ii_of_any any in
+  let xs = List.filter Parse_info.is_origintok xs in
   let min, _max = Parse_info.min_max_ii_by_pos xs in
   min
 
