@@ -21,7 +21,7 @@ val create :
   unit -> t
 
 (*
-   Load the .gitignore files applicable to a given target file in the given
+   Load the .gitignore files applicable to target files in the given
    folder.
 *)
 val load :

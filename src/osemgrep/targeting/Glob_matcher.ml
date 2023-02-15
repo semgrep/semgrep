@@ -34,6 +34,12 @@ type compiled_pattern = {
 (* / *)
 let root_pattern = [Component []; Component []]
 
+let of_path_components components =
+  Common.map (fun s ->
+    let chars = String.fold_right (fun c acc -> Char c :: acc) s [] in
+    Component chars
+  ) components
+
 let slash = Re.char '/'
 let not_slash = Re.compl [slash]
 

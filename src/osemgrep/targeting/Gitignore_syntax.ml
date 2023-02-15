@@ -105,5 +105,7 @@ let from_string ~anchor ?(name = "<string>") str =
     lines
   |> List.filter_map (fun x -> x)
 
-let from_file ~anchor fname =
-  Common.read_file fname |> from_string ~anchor ~name:fname
+let from_file ~anchor path =
+  Fpath.to_string path
+  |> Common.read_file
+  |> from_string ~anchor ~name:(Fpath.to_string path)

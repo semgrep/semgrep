@@ -35,4 +35,4 @@ type t = path_selector list
    root to the work folder, typically the one containing the gitignore file.
 *)
 val from_string : anchor:Glob_matcher.pattern -> ?name:string -> string -> t
-val from_file : anchor:Glob_matcher.pattern -> string -> t
+val from_file : anchor:Glob_matcher.pattern -> Fpath.t -> t

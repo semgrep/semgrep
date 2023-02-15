@@ -74,3 +74,5 @@ val compile : source:loc -> pattern -> compiled_pattern
 val run : compiled_pattern -> string -> bool
 
 val source : compiled_pattern -> loc
+
+val of_path_components : string list -> pattern
