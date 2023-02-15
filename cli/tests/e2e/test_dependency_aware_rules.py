@@ -76,6 +76,14 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/yarn-sass.yaml",
             "dependency_aware/yarn_at_in_version",
         ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_extra_field",
+        ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_optional",
+        ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
