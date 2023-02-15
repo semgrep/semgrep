@@ -1032,7 +1032,7 @@ arg_type:
 
      * When we see a metavariable ellipsis, it's a little silly to consider that
      * as a type. If someone writes func foo ($...ARGS), they probably just meant to
-     * capture all of the args of the function, and an anonymous argument of type $...ARGS.
+     * capture all of the args of the function, and not an anonymous argument of type $...ARGS.
 
      * So we parse it as such here.
      *)

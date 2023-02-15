@@ -24,6 +24,7 @@ func qux() { }
 
 func qux(int) { }
 
+// ERROR: match
 func qux(x int) { }
 
 // ERROR: match
