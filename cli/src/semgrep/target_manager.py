@@ -22,7 +22,6 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
-from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
 from semgrep.git import BaselineHandler
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 
