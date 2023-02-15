@@ -66,7 +66,7 @@ jobs:
   wait-for-build-test:
     name: Wait for Build/Test All Platforms
     runs-on: ubuntu-22.04
-    needs: [build-test-manylinux-x86, build-test-ubuntu-16-04, build-test-osx-x86,]
+    needs: [build-test-manylinux-x86, build-test-ubuntu-16-04]
     steps:
       - name: Continue
         run: echo "All Platforms have been built and tested - proceeding!"
@@ -187,9 +187,9 @@ jobs:
   #       run: |
   #         gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false
 
-  build-test-osx-x86:
-    uses: ./.github/workflows/build-test-osx-x86.yaml
-    secrets: inherit
+  # build-test-osx-x86:
+  #   uses: ./.github/workflows/build-test-osx-x86.yaml
+  #   secrets: inherit
 
   # build-test-osx-m1:
   #   uses: ./.github/workflows/uild-test-osx-m1.yaml
@@ -255,11 +255,11 @@ jobs:
         with:
           name: manylinux-wheel
           path: manylinux-wheel
-      - name: Download Osx Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: osx-wheel
-          path: osx-wheel
+      # - name: Download Osx Artifact
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: osx-wheel
+      #     path: osx-wheel
       # - name: Download Artifact
       #   uses: actions/download-artifact@v3
       #   with:
@@ -267,9 +267,9 @@ jobs:
       #     path: m1-wheel
       - name: Unzip
         run: unzip ./manylinux-wheel/dist.zip
-      - name: Unzip OSX Wheel
-        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
-        run: unzip ./osx-wheel/dist.zip "*.whl"
+      # - name: Unzip OSX Wheel
+      #   # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
+      #   run: unzip ./osx-wheel/dist.zip "*.whl"
       # - name: Unzip M1 Wheel
       #   # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
       #   run: unzip ./m1-wheel/dist.zip "*.whl"

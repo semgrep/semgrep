@@ -7,7 +7,7 @@ on:
 jobs:
   build-core-osx:
     name: Build the OSX binaries
-    runs-on: macos-12
+    runs-on: ["self-hosted", "macOS", "X64"]
     steps:
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50

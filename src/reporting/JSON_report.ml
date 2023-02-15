@@ -363,7 +363,7 @@ let match_results_of_matches_and_errors render_fix nfiles res =
                      details = Rule.string_of_invalid_rule_error_kind kind;
                      position = OutH.position_of_token_location loc;
                    })));
-    stats = { okfiles = count_ok; errorfiles = 555555 };
+    stats = { okfiles = count_ok; errorfiles = count_errors };
     time = profiling |> Option.map json_time_of_profiling_data;
     explanations =
       (match res.RP.explanations with
