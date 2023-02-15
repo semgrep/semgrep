@@ -118,6 +118,7 @@ let adjust_signatures params =
             let id = type_to_id id_typ in
             aux (id::acc) xs
           | ParamEllipsis t -> (ParamEllipsis t):: aux [] xs
+          | ParamMetavarEllipsis id -> (ParamMetavarEllipsis id) :: aux [] xs
         )
     in
     aux [] params
@@ -1007,6 +1008,7 @@ fndcl:
             DMethod ($4, x, ({ ftok; fparams = ($5, $6, $7); fresults = $8 }, body))
         | [] -> error $1 "method has no receiver"
         | [ParamEllipsis _] -> error $1 "method has ... for receiver"
+        | [ParamMetavarEllipsis _] -> error $1 "method has metavar ellipsis for receiver"
         | _::_::_ -> error $1 "method has multiple receivers"
     }
 
@@ -1021,7 +1023,14 @@ fnliteral: fnlitdcl lbrace listsc(stmt) "}"
 fnlitdcl: fntype { $1 }
 
 arg_type:
-|       name_or_type { ParamClassic { pname= None; ptype = $1; pdots = None } }
+|       name_or_type {
+    (match $1 with
+    | TName [ (s, _) as id ] when AST_generic.is_metavar_ellipsis s ->
+        ParamMetavarEllipsis id
+    | __else__ ->
+     ParamClassic { pname= None; ptype = $1; pdots = None }
+     )
+    }
 |   sym name_or_type { ParamClassic { pname= Some $1; ptype = $2; pdots = None } }
 |   sym dotdotdot    { ParamClassic { pname= Some $1; ptype = snd $2; pdots = Some (fst $2)}}
 |       dotdotdot    { ParamClassic { pname= None; ptype = snd $1; pdots = Some (fst $1)} }

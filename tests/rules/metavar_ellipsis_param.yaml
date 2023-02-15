@@ -1,0 +1,13 @@
+rules:
+  - id: test
+    languages:
+      - go
+    message: javascript inside html working!
+    patterns:
+      - pattern: |
+          func foo($...ARG) { ... }
+      - pattern: |
+          func bar(int, $...ARG) { ... }
+      - pattern: |
+          func qux($...ARG, x int) { ... }
+    severity: WARNING
