@@ -92,8 +92,8 @@ and func_type = {
 
 and parameter_binding =
   | ParamClassic of parameter
-  | ParamMetavarEllipsis of ident
   (* sgrep-ext: *)
+  | ParamMetavarEllipsis of ident
   | ParamEllipsis of tok
 
 and parameter = {

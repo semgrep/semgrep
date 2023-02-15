@@ -2,7 +2,8 @@ rules:
   - id: test
     languages:
       - go
-    message: javascript inside html working!
+    message: |
+      Metavariable ellipses should be able to match arguments in Go! 
     patterns:
       - pattern: |
           func foo($...ARG) { ... }
