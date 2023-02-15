@@ -168,19 +168,19 @@ jobs:
           # Wait for PR checks to finish
           gh pr -R returntocorp/e2e checks "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --interval 30 --watch
 
-  notify-failure:
-    needs: [semgrep-ci, semgrep-ci-on-pr, wait-for-checks, semgrep-ci-fail-open]
-    name: Notify of Failure
-    runs-on: ubuntu-20.04
-    if: failure()
-    steps:
-      - name: Notify Failure
-        run: |
-          curl --request POST \
-          --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
-          --header 'content-type: application/json' \
-          --data '{
-            "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
-            "docker_tag": "${{ needs.get-inputs.outputs.docker_tag }}",
-            "message": "The PR in `returntocorp/e2e` that had the failure was ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}"
-          }'
+  # notify-failure:
+  #   needs: [semgrep-ci, semgrep-ci-on-pr, wait-for-checks, semgrep-ci-fail-open]
+  #   name: Notify of Failure
+  #   runs-on: ubuntu-20.04
+  #   if: failure()
+  #   steps:
+  #     - name: Notify Failure
+  #       run: |
+  #         curl --request POST \
+  #         --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
+  #         --header 'content-type: application/json' \
+  #         --data '{
+  #           "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
+  #           "docker_tag": "${{ needs.get-inputs.outputs.docker_tag }}",
+  #           "message": "The PR in `returntocorp/e2e` that had the failure was ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}"
+  #         }'
