@@ -431,7 +431,7 @@ let parse_and_resolve_name lang file =
   AST_generic.SId.unsafe_reset_counter ();
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
-  Constant_propagation.propagate_dataflow lang file ast;
+  Constant_propagation.propagate_dataflow lang ast;
   if !Flag.use_bloom_filter then Bloom_annotation.annotate_program ast;
 
   logger#info "Parse_target.parse_and_resolve_name_use_pfff_or_treesitter done";

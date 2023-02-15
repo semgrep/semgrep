@@ -16,6 +16,7 @@
 open Common
 open IL
 module F = IL (* to be even more similar to controlflow_build.ml *)
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -39,11 +40,11 @@ let cfg_cache = Hashtbl.create 128
  * We also try to be a bit more type-safe by using the version tag above.
  * TODO: merge in commons/Common.ml at some point
  *)
-let cache_computation file f =
-  match Hashtbl.find_opt cfg_cache file with
+let cache_computation tok f =
+  match Hashtbl.find_opt cfg_cache tok with
   | None ->
       let cfg = f () in
-      Hashtbl.add cfg_cache file cfg;
+      Hashtbl.add cfg_cache tok cfg;
       cfg
   | Some cfg -> cfg
 
@@ -437,5 +438,13 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
   g |> add_arc_from_opt (last_node_opt, exiti);
   CFG.make g enteri
 
-let (cached_cfg_of_stmts : string -> stmt list -> F.cfg) =
- fun filename xs -> cache_computation filename (fun () -> cfg_of_stmts xs)
+let cfg_of_fdef fdef xs =
+  try
+    let first_info_of_any =
+      Visitor_AST.first_info_of_any (G.E (G.Lambda fdef |> G.e))
+    in
+    cache_computation first_info_of_any (fun () -> cfg_of_stmts xs)
+  with
+  | Parse_info.NoTokenLocation _ ->
+      Common.(pr2 (spf "no tok loc for fdef"));
+      cfg_of_stmts xs
