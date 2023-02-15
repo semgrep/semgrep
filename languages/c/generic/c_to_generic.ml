@@ -391,7 +391,7 @@ and func_def { f_name; f_type; f_body; f_static } =
   ( entity,
     G.FuncDef
       {
-        G.fparams = params;
+        G.fparams = fb params;
         frettype = Some ret;
         fbody = G.FBStmt (G.s (G.Block v3));
         fkind = (G.Function, G.fake "");

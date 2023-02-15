@@ -393,8 +393,8 @@ let resolved_name_kind env lang =
       | _ -> raise Impossible)
 
 (* !also set the id_info of the parameter as a side effect! *)
-let params_of_parameters env xs =
-  xs
+let params_of_parameters env params : scope =
+  params |> Parse_info.unbracket
   |> Common.map_filter (function
        | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
            let sid = SId.mk () in

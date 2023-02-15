@@ -478,8 +478,8 @@ and map_formal_parameter (env : env) (x : CST.formal_parameter) : G.parameter =
       G.ParamEllipsis t
 
 and map_formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) :
-    G.parameter list =
-  let _l = (* "(" *) token env v1 in
+    G.parameters =
+  let l = (* "(" *) token env v1 in
   let xs =
     match v2 with
     | Some (v1, v2, v3) ->
@@ -500,20 +500,15 @@ and map_formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) :
         e :: xs
     | None -> []
   in
-  let _r = (* ")" *) token env v3 in
-  xs
+  let r = (* ")" *) token env v3 in
+  (l, xs, r)
 
 and map_function_definition (env : env) ((v1, v2, v3) : CST.function_definition)
     : G.function_definition =
   let tk = (* "function" *) token env v1 in
-  let params = map_formal_parameters env v2 in
+  let fparams = map_formal_parameters env v2 in
   let body = map_expression env v3 in
-  {
-    G.fkind = (LambdaKind, tk);
-    fparams = params;
-    frettype = None;
-    fbody = FBExpr body;
-  }
+  { G.fkind = (LambdaKind, tk); fparams; frettype = None; fbody = FBExpr body }
 
 and map_lambda_function (env : env) ((v1, v2, v3) : CST.lambda_function) :
     G.function_definition =

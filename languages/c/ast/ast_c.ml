@@ -108,7 +108,7 @@ type type_ =
   (* tree-sitter-c: kind of poor's man generic via cpp *)
   | TMacroApply of name * type_ bracket
 
-and function_type = type_ * parameter list
+and function_type = type_ * parameter list (* TODO bracket *)
 
 and parameter =
   | ParamClassic of parameter_classic

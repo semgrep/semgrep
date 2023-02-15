@@ -38,6 +38,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let token = H.token
 let str = H.str
 let fk tok = Parse_info.fake_info tok ""
+let fb = Parse_info.unsafe_fake_bracket
 
 (* Remove this function when everything is done *)
 let todo (_env : env) _ = failwith "not implemented"
@@ -1117,7 +1118,7 @@ and declaration (env : env) (x : CST.declaration) =
           cextends = v8;
           cimplements = v9;
           cmixins = v10;
-          cparams = [];
+          cparams = fb [];
           cbody = v11;
         }
       in
@@ -1153,7 +1154,7 @@ and declaration (env : env) (x : CST.declaration) =
           cextends = v5;
           cimplements = [];
           cmixins = v6;
-          cparams = [];
+          cparams = fb [];
           cbody = v7;
         }
       in
@@ -1189,7 +1190,7 @@ and declaration (env : env) (x : CST.declaration) =
           cextends = [];
           cimplements = v5;
           cmixins = v6;
-          cparams = [];
+          cparams = fb [];
           cbody = v7;
         }
       in
@@ -1554,11 +1555,11 @@ and expression (env : env) (x : CST.expression) : G.expr =
                 (* "async" *) [ G.KeywordAttr (G.Async, token env tok) ]
             | None -> []
           in
-          let v3, return_type =
+          let fparams, return_type =
             match v3 with
             | `Single_param_params tok ->
                 (* variable *)
-                ([ G.Param (G.param_of_id (str env tok)) ], None)
+                (fb [ G.Param (G.param_of_id (str env tok)) ], None)
             | `Params_opt_COLON_choice_type_spec (v1, v2) ->
                 let v1 = parameters env v1 in
                 let v2 =
@@ -1581,7 +1582,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
             {
               fkind = (G.LambdaKind, v4);
               (* Q: Is the arrow the token here? Arrow vs LambdaKind? *)
-              fparams = v3;
+              fparams;
               frettype = return_type;
               fbody = v5;
             }
@@ -1859,8 +1860,8 @@ and parameter (env : env) (x : CST.parameter) : G.parameter =
       | None -> G.Param param)
   | `Ellips tok -> (* "..." *) G.ParamEllipsis (token env tok)
 
-and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
-  let _v1 = (* "(" *) token env v1 in
+and parameters (env : env) ((v1, v2, v3) : CST.parameters) : G.parameters =
+  let lp = (* "(" *) token env v1 in
   let v2 =
     match v2 with
     | Some x -> (
@@ -1897,8 +1898,8 @@ and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
             v1 :: v2)
     | None -> []
   in
-  let _v3 = (* ")" *) token env v3 in
-  v2
+  let rp = (* ")" *) token env v3 in
+  (lp, v2, rp)
 
 and parenthesized_expression (env : env)
     ((v1, v2, v3) : CST.parenthesized_expression) =

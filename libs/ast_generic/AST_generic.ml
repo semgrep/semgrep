@@ -1536,8 +1536,7 @@ and function_kind =
   (* for Scala *)
   | BlockCases
 
-(* TODO bracket *)
-and parameters = parameter list
+and parameters = parameter list bracket
 
 (* newvar: *)
 and parameter =

@@ -977,7 +977,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_frettype = map_of_option map_type_ v_frettype in
     let v_fparams = map_parameters v_fparams in
     { fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody }
-  and map_parameters v = map_of_list map_parameter v
+  and map_parameters v = map_bracket (map_of_list map_parameter) v
   and map_parameter = function
     | Param v1 ->
         let v1 = map_parameter_classic v1 in

@@ -159,7 +159,7 @@ let top_func () =
     | TBidirectional ->
         G.TyN (G.Id (unsafe_fake_id "bidirectional", G.empty_id_info ())) |> G.t
   and func_type { ftok; fparams = l, params, r; fresults } :
-      G.tok * G.parameters bracket * G.type_ option =
+      G.tok * G.parameters * G.type_ option =
     let fparams = list parameter_binding params in
     let fresults = list parameter_binding fresults in
     (ftok, (l, fparams, r), return_type_of_results fresults)
@@ -204,7 +204,7 @@ let top_func () =
   and interface_field = function
     | Method (v1, v2) ->
         let v1 = ident v1 in
-        let ftok, (_l, params, _r), ret = func_type v2 in
+        let ftok, params, ret = func_type v2 in
         let ent = G.basic_entity v1 in
         let fdef =
           G.FuncDef (mk_func_def (G.Method, ftok) params ret (G.FBDecl G.sc))
@@ -297,7 +297,7 @@ let top_func () =
         let v3 = type_ v3 in
         G.TypedMetavar (v1, v2, v3)
     | FuncLit (v1, v2) ->
-        let ftok, (_l, params, _r), ret = func_type v1 and v2 = stmt v2 in
+        let ftok, params, ret = func_type v1 and v2 = stmt v2 in
         G.Lambda (mk_func_def (G.LambdaKind, ftok) params ret (G.FBStmt v2))
     | Receive (v1, v2) ->
         let v1 = tok v1 and v2 = expr v2 in
@@ -607,7 +607,7 @@ let top_func () =
     | DFunc (v1, v2, (v3, v4)) ->
         let v1 = ident v1 in
         let tparams = option type_parameters v2 |> Common.optlist_to_list in
-        let ftok, (_l, params, _r), ret = func_type v3 in
+        let ftok, params, ret = func_type v3 in
         let body = stmt v4 in
         let ent = G.basic_entity v1 ~tparams in
         G.DefStmt
@@ -618,14 +618,14 @@ let top_func () =
     | DMethod (v1, v2, (v3, v4)) ->
         let v1 = ident v1
         and v2 = parameter v2
-        and ftok, (_l, params, _r), ret = func_type v3
+        and ftok, params, ret = func_type v3
         and v4 = stmt v4 in
         let ent = G.basic_entity v1 in
         let def = mk_func_def (G.Method, ftok) params ret (G.FBStmt v4) in
         let receiver = G.OtherParam (("Receiver", snd v1), [ G.Pa v2 ]) in
-        G.DefStmt
-          (ent, G.FuncDef { def with G.fparams = receiver :: def.G.fparams })
-        |> G.s
+        let l, params, r = def.G.fparams in
+        let fparams = (l, receiver :: params, r) in
+        G.DefStmt (ent, G.FuncDef { def with G.fparams }) |> G.s
     | DTop v1 ->
         let v1 = decl v1 in
         v1

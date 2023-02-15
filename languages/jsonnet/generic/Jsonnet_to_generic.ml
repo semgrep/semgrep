@@ -304,7 +304,7 @@ and map_bind env v : G.definition =
 and map_function_definition env v : G.function_definition =
   let { f_tok; f_params; f_body } = v in
   let f_tok = map_tok env f_tok in
-  let _l, fparams, _r = (map_bracket (map_list map_parameter)) env f_params in
+  let fparams = (map_bracket (map_list map_parameter)) env f_params in
   let f_body = map_expr env f_body in
   {
     fkind = (G.LambdaKind, f_tok);

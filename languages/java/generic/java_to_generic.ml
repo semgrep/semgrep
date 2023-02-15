@@ -284,7 +284,7 @@ and expr e =
                 cextends = [ (v1, None) ];
                 cimplements = [];
                 cmixins = [];
-                cparams = [];
+                cparams = fb [];
                 cbody = decls |> bracket (Common.map (fun x -> G.F x));
               }
             |> G.e
@@ -373,11 +373,11 @@ and expr e =
       let v2 = typ v2 in
       G.TypedMetavar (v1, Parse_info.fake_info (snd v1) " ", v2)
   | Lambda (v1, t, v2) ->
-      let v1 = parameters v1 in
+      let fparams = parameters v1 in
       let v2 = stmt v2 in
       G.Lambda
         {
-          G.fparams = v1;
+          G.fparams = fb fparams;
           frettype = None;
           fbody = G.FBStmt v2;
           fkind = (G.Arrow, t);
@@ -589,7 +589,7 @@ and init = function
       let v1 = bracket (list init) v1 in
       G.Container (G.Array, v1) |> G.e
 
-and parameters v = Common.map parameter_binding v
+and parameters v : G.parameter list = Common.map parameter_binding v
 
 and parameter_binding = function
   | ParamClassic v
@@ -604,7 +604,7 @@ and parameter_binding = function
 
 and method_decl ?(cl_kind = None) { m_var; m_formals; m_throws; m_body } =
   let ent, rett = var m_var in
-  let v2 = parameters m_formals in
+  let fparams = parameters m_formals in
   let v3 = list typ m_throws in
   let v4 = stmt m_body in
   (* TODO: use fthrow field instead *)
@@ -618,7 +618,12 @@ and method_decl ?(cl_kind = None) { m_var; m_formals; m_throws; m_body } =
     | _ -> FBStmt v4
   in
   ( { ent with G.attrs = ent.G.attrs @ throws },
-    { G.fparams = v2; frettype = rett; fbody; fkind = (G.Method, G.fake "") } )
+    {
+      G.fparams = fb fparams;
+      frettype = rett;
+      fbody;
+      fkind = (G.Method, G.fake "");
+    } )
 
 and field v = var_with_init v
 
@@ -637,7 +642,7 @@ and enum_decl { en_name; en_mods; en_impls; en_body } =
       cextends = v3;
       cmixins = [];
       cimplements = [];
-      cparams = [];
+      cparams = fb [];
       cbody;
     }
   in
@@ -681,7 +686,7 @@ and class_decl
       cextends = Option.to_list v5;
       cimplements = v6;
       cmixins = [];
-      cparams;
+      cparams = fb cparams;
       cbody = fields;
     }
   in

@@ -1296,7 +1296,7 @@ and map_parameter (env : env) (x : CST.parameter) : parameter =
 
 and map_parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
     parameters =
-  let _lp = (* "(" *) token env v1 in
+  let lp = (* "(" *) token env v1 in
   let params =
     match v2 with
     | Some (v1, v2, v3) ->
@@ -1313,8 +1313,8 @@ and map_parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
         v1 :: v2
     | None -> []
   in
-  let _rp = (* ")" *) token env v3 in
-  params
+  let rp = (* ")" *) token env v3 in
+  (lp, params, rp)
 
 and map_parenthesized_expression (env : env)
     ((v1, v2, v3) : CST.parenthesized_expression) : expr =
@@ -1477,7 +1477,7 @@ and map_type_name (env : env) (x : CST.type_name) : type_ =
       TyArray ((lb, eopt, rb), t) |> G.t
   | `Func_type (v1, v2, v3, v4) ->
       let tfunc = (* "function" *) token env v1 in
-      let params = map_parameter_list env v2 in
+      let _, params, _ = map_parameter_list env v2 in
       let _v3TODO =
         Common.map
           (fun x ->
@@ -1642,7 +1642,7 @@ and map_yul_statement (env : env) (x : CST.yul_statement) : stmt =
       let def =
         {
           fkind = (Function, tfunc);
-          fparams = params;
+          fparams = fb params;
           frettype = tret;
           fbody = FBStmt body;
         }
@@ -1800,7 +1800,7 @@ let map_struct_declaration (env : env)
       cextends = [];
       cimplements = [];
       cmixins = [];
-      cparams = [];
+      cparams = fb [];
       cbody = (lb, flds, rb);
     }
   in
@@ -1964,7 +1964,7 @@ and map_catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) : catch =
               (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) [ I (str env tok) ]
           | None -> []
         in
-        let params = map_parameter_list env v2 in
+        let _l, params, _r = map_parameter_list env v2 in
         let anys = idopt @ (params |> Common.map (fun p -> Pa p)) in
         OtherCatch (("CatchParams", tcatch), anys)
     | None -> OtherCatch (("CatchEmpty", tcatch), [])
@@ -2037,7 +2037,7 @@ and map_statement (env : env) (x : CST.statement) : stmt =
         | Some x ->
             let _treturn, params = map_return_type_definition env x in
             params
-        | None -> []
+        | None -> fb []
       in
       let st = map_block_statement env v4 in
       let fun_ =
@@ -2251,7 +2251,7 @@ let map_modifier_definition (env : env)
   let params =
     match v3 with
     | Some x -> map_parameter_list env x
-    | None -> []
+    | None -> fb []
   in
   let attrs =
     Common.map
@@ -2369,7 +2369,7 @@ let map_declaration (env : env) (x : CST.declaration) : definition =
           cextends = parents;
           cmixins = [];
           cimplements = [];
-          cparams = [];
+          cparams = fb [];
           cbody = (l, flds, r);
         }
       in
@@ -2393,7 +2393,7 @@ let map_declaration (env : env) (x : CST.declaration) : definition =
           cextends = parents;
           cmixins = [];
           cimplements = [];
-          cparams = [];
+          cparams = fb [];
           cbody = (l, flds, r);
         }
       in
