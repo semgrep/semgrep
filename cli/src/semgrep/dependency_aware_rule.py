@@ -134,7 +134,7 @@ def transivite_dep_is_also_direct(
 
 
 def generate_reachable_sca_findings(
-    matches: List[RuleMatch], rule: Rule, target_manager: TargetManager
+    matches: List[RuleMatch], rule: Rule
 ) -> Tuple[
     List[RuleMatch], List[SemgrepError], Callable[[Path, FoundDependency], bool]
 ]:
