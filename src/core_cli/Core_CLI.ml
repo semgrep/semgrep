@@ -111,6 +111,7 @@ let use_parsing_cache = ref Runner_config.default.parsing_cache_dir
 (* similar to filter_irrelevant_patterns, but use the whole rule to extract
  * the regexp *)
 let filter_irrelevant_rules = ref Runner_config.default.filter_irrelevant_rules
+let simultaneous_taint = ref Runner_config.default.simultaneous_taint
 
 (* ------------------------------------------------------------------------- *)
 (* flags used by the semgrep-python wrapper *)
@@ -350,6 +351,7 @@ let mk_config () =
     rule_source = !rule_source;
     lang_job = None;
     filter_irrelevant_rules = !filter_irrelevant_rules;
+    simultaneous_taint = !simultaneous_taint;
     (* not part of CLI *)
     equivalences_file = !equivalences_file;
     lang = !lang;
@@ -615,6 +617,9 @@ let options actions =
     ( "-fast",
       Arg.Set filter_irrelevant_rules,
       " filter rules not containing any strings in target file" );
+    ( "-simultaneous_taint",
+      Arg.Set simultaneous_taint,
+      " run taint rules at the same time (calling dataflow once)" );
     ( "-bloom_filter",
       Arg.Set Flag.use_bloom_filter,
       " use a bloom filter to only attempt matches when strings in the pattern \

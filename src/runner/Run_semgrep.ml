@@ -672,6 +672,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                nested_formula = false;
                matching_explanations = config.matching_explanations;
                filter_irrelevant_rules = config.filter_irrelevant_rules;
+               simultaneous_taint = config.simultaneous_taint;
              }
            in
            let matches =

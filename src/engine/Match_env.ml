@@ -50,6 +50,7 @@ type xconfig = {
    *)
   matching_explanations : bool;
   filter_irrelevant_rules : bool;
+  simultaneous_taint : bool;
 }
 
 type env = {
@@ -105,4 +106,5 @@ let default_xconfig =
      * true when running as part of the regular code path (not testing code)
      *)
     filter_irrelevant_rules = false;
+    simultaneous_taint = false;
   }

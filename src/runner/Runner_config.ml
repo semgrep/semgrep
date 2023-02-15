@@ -67,6 +67,7 @@ type t = {
   ncores : int;
   parsing_cache_dir : Common.dirname; (* "" means no cache *)
   filter_irrelevant_rules : bool;
+  simultaneous_taint : bool;
   (* Flag used by the semgrep-python wrapper *)
   target_source : target_source option;
   (* Common.ml action for the -dump_xxx *)
@@ -120,6 +121,7 @@ let default =
     ncores = 1;
     parsing_cache_dir = "";
     filter_irrelevant_rules = true;
+    simultaneous_taint = false;
     (* -fast by default *)
     (* "" means no cache *)
     (* Flag used by the semgrep-python wrapper *)

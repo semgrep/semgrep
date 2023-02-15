@@ -82,9 +82,9 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
 
   let cnt_timeout = ref 0 in
 
-  let res_rules, skipped_rules =
+  let relevant_rules, skipped_rules =
     rules
-    |> Common.partition_either (fun r ->
+    |> List.partition (fun r ->
            let xconf =
              Match_env.adjust_xconfig_with_rule_options xconf r.R.options
            in
@@ -101,53 +101,79 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                    func content)
              else true
            in
-           if not relevant_rule then (
+           if not relevant_rule then
              logger#trace "skipping rule %s for %s" (fst r.R.id) file;
-             Right r)
-           else
-             let rule_id = fst r.R.id in
-             Rule.last_matched_rule := Some rule_id;
-             Profiling.profile_code (spf "real_rule:%s" rule_id) (fun () ->
-                 let match_result =
-                   timeout_function r file timeout (fun () ->
-                       (* dispatching *)
-                       match r.R.mode with
-                       | `Search _ as mode ->
-                           Match_search_mode.check_rule { r with mode }
-                             match_hook xconf xtarget
-                       | `Taint _ as mode ->
-                           (* TODO: 'debug_taint' should just be part of 'res'
-                            * (i.e., add a "debugging" field to 'Report.match_result'). *)
-                           let res, _TODO_debug_taint =
-                             Match_tainting_mode.check_rule { r with mode }
-                               match_hook xconf xtarget
-                           in
-                           res
-                       | `Extract extract_spec ->
-                           Match_search_mode.check_rule
-                             { r with mode = `Search extract_spec.formula }
-                             match_hook xconf xtarget)
-                 in
-                 match match_result with
-                 | Some res -> Left res
-                 (* Note that because we now parse lazily a file, this rule timeout
-                  * can actually correspond to a parsing file timeout. *)
-                 | None ->
-                     incr cnt_timeout;
-                     if
-                       timeout_threshold > 0
-                       && !cnt_timeout >= timeout_threshold
-                     then raise File_timeout;
-                     let loc = Parse_info.first_loc_of_file file in
-                     let error =
-                       E.mk_error ~rule_id:(Some rule_id) loc "" Out.Timeout
-                     in
-                     Left
-                       (RP.make_match_result []
-                          (Report.ErrorSet.singleton error)
-                          (RP.empty_rule_profiling r))))
+           relevant_rule)
   in
-  let res = RP.collate_rule_results xtarget.Xtarget.file res_rules in
+  (* if we have simultaneous tainting turned on, separate out the non-tainting rules as
+     relevant, and allow it to enter the normal flow. we will use the results from simultaneous
+     tainting later on, if they exist
+
+     if simultaneous tainting is not specified, this code does nothing, and everything goes into
+     relevant_rules
+  *)
+  let relevant_rules, res_simultaneous_tainting =
+    if xconf.simultaneous_taint then
+      let tainting_rules, non_tainting_rules =
+        Common.partition_either
+          (fun r ->
+            match r.R.mode with
+            | `Taint _ as mode -> Left { r with mode }
+            | __else__ -> Right r)
+          relevant_rules
+      in
+      let _TODO =
+        Simultaneous_tainting.run_simultaneous_taint ~match_hook tainting_rules
+          xconf xtarget
+      in
+      (non_tainting_rules, [])
+    else (relevant_rules, [])
+  in
+  let res_rules =
+    relevant_rules
+    |> Common.map (fun r ->
+           let rule_id = fst r.R.id in
+           Rule.last_matched_rule := Some rule_id;
+           let match_result =
+             timeout_function r file timeout (fun () ->
+                 (* dispatching *)
+                 match r.R.mode with
+                 | `Search _ as mode ->
+                     Match_search_mode.check_rule { r with mode } match_hook
+                       xconf xtarget
+                 | `Taint _ as mode ->
+                     (* TODO: 'debug_taint' should just be part of 'res'
+                      * (i.e., add a "debugging" field to 'Report.match_result'). *)
+                     let res, _TODO_debug_taint =
+                       Match_tainting_mode.check_rule { r with mode } match_hook
+                         xconf xtarget
+                     in
+                     res
+                 | `Extract extract_spec ->
+                     Match_search_mode.check_rule
+                       { r with mode = `Search extract_spec.R.formula }
+                       match_hook xconf xtarget)
+           in
+           match match_result with
+           | Some res -> res
+           (* Note that because we now parse lazily a file, this rule timeout
+            * can actually correspond to a parsing file timeout. *)
+           | None ->
+               incr cnt_timeout;
+               if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold
+               then raise File_timeout;
+               let loc = Parse_info.first_loc_of_file file in
+               let error =
+                 E.mk_error ~rule_id:(Some rule_id) loc "" Out.Timeout
+               in
+               RP.make_match_result []
+                 (Report.ErrorSet.singleton error)
+                 (RP.empty_rule_profiling r))
+  in
+  let res =
+    RP.collate_rule_results xtarget.Xtarget.file
+      (res_simultaneous_tainting @ res_rules)
+  in
   let extra =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->
