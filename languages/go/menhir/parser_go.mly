@@ -1025,6 +1025,17 @@ fnlitdcl: fntype { $1 }
 arg_type:
 |       name_or_type {
     (match $1 with
+    (* This means a param of the form $...<ID>.
+     * Ordinarily, in Golang, a singular identifier is interpreted as an
+     * anonymous argument of the type of that identifier.
+     * So func foo(int) is allowed.
+
+     * When we see a metavariable ellipsis, it's a little silly to consider that
+     * as a type. If someone writes func foo ($...ARGS), they probably just meant to
+     * capture all of the args of the function, and an anonymous argument of type $...ARGS.
+
+     * So we parse it as such here.
+     *)
     | TName [ (s, _) as id ] when AST_generic.is_metavar_ellipsis s ->
         ParamMetavarEllipsis id
     | __else__ ->
