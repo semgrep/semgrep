@@ -39,7 +39,7 @@ let cfg_cache = Hashtbl.create 128
  * We also try to be a bit more type-safe by using the version tag above.
  * TODO: merge in commons/Common.ml at some point
  *)
-let _cache_computation file f =
+let cache_computation file f =
   match Hashtbl.find_opt cfg_cache file with
   | None ->
       let cfg = f () in
@@ -438,4 +438,4 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
   CFG.make g enteri
 
 let (cached_cfg_of_stmts : string -> stmt list -> F.cfg) =
- fun _filename xs -> cfg_of_stmts xs
+ fun filename xs -> cache_computation filename (fun () -> cfg_of_stmts xs)
