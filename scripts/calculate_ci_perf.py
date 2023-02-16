@@ -20,9 +20,7 @@ def chdir(dirname: Path = None) -> Generator:  # type: ignore
         os.chdir(curdir)
 
 
-def clone_github_repo(
-    repo_url: str, sha: str | None = None, retries: int = 3
-) -> Path:
+def clone_github_repo(repo_url: str, sha: str | None = None, retries: int = 3) -> Path:
     """
     Wraps `_github_repo` function with retries. If the `_github_repo` throws an exception,
     it will delete `repo_destination` and retry up to `retries` times.

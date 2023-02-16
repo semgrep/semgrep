@@ -433,7 +433,9 @@ def run_benchmarks(
     if std_only or output_time_per_rule_json:
         variants = STD_VARIANTS
     if filter_variant:
-        variants = [x for x in variants if re.search(filter_variant, x.name) is not None]
+        variants = [
+            x for x in variants if re.search(filter_variant, x.name) is not None
+        ]
     # TODO: make benchmarking time-per-rule data work with all variants.
     if output_time_per_rule_json:
         logger.info("Running only the standard variants.")
