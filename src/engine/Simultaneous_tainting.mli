@@ -3,4 +3,5 @@ val run_simultaneous_taint :
   Rule.taint_mode Rule.rule_info list ->
   Match_env.xconfig ->
   Xtarget.t ->
-  unit
+  (* in reality, only ever returns taint rules... *)
+  Rule.mode Rule.rule_info list

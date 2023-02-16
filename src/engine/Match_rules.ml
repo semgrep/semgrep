@@ -112,7 +112,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
      if simultaneous tainting is not specified, this code does nothing, and everything goes into
      relevant_rules
   *)
-  let relevant_rules, res_simultaneous_tainting =
+  let relevant_rules =
     if xconf.simultaneous_taint then
       let tainting_rules, non_tainting_rules =
         Common.partition_either
@@ -122,12 +122,12 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
             | __else__ -> Right r)
           relevant_rules
       in
-      let _TODO =
+      let combined_rules =
         Simultaneous_tainting.run_simultaneous_taint ~match_hook tainting_rules
           xconf xtarget
       in
-      (non_tainting_rules, [])
-    else (relevant_rules, [])
+      combined_rules @ non_tainting_rules
+    else relevant_rules
   in
   let res_rules =
     relevant_rules
@@ -173,10 +173,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                  (Report.ErrorSet.singleton error)
                  (RP.empty_rule_profiling r))
   in
-  let res =
-    RP.collate_rule_results xtarget.Xtarget.file
-      (res_simultaneous_tainting @ res_rules)
-  in
+  let res = RP.collate_rule_results xtarget.Xtarget.file res_rules in
   let extra =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->
