@@ -1035,8 +1035,8 @@ and for_var_or_expr_list env xs =
 (*****************************************************************************)
 (* Parameters *)
 (*****************************************************************************)
-and parameters _env params : name list =
-  params |> Parse_info.unbracket
+and parameters _env params =
+  params
   |> List.filter_map (function
        | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
        | ___else___ -> None (* TODO *))

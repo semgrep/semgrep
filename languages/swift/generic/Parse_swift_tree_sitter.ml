@@ -34,7 +34,6 @@ type env = context H.env
 
 let token = H.token
 let str = H.str
-let fb = Parse_info.unsafe_fake_bracket
 let todo (_env : env) _ = failwith "not implemented"
 
 (* Semicolons are associated in the CST with the following statement rather
@@ -822,7 +821,7 @@ and map_computed_getter (env : env) ((v1, v2, v3) : CST.computed_getter) =
       G.FuncDef
         {
           G.fkind = (G.Method, v2 |> snd);
-          G.fparams = fb [];
+          G.fparams = [];
           G.frettype = None;
           G.fbody = v3;
         } )
@@ -844,7 +843,7 @@ and map_computed_modify (env : env) ((v1, v2, v3) : CST.computed_modify) =
       G.FuncDef
         {
           G.fkind = (G.Method, v2 |> snd);
-          G.fparams = fb [];
+          G.fparams = [];
           G.frettype = None;
           G.fbody;
         } )
@@ -886,11 +885,11 @@ and map_computed_setter (env : env) ((v1, v2, v3, v4) : CST.computed_setter) =
   let fparams =
     match v3 with
     | Some (v1, v2, v3) ->
-        let l = (* "(" *) token env v1 in
+        let _l = (* "(" *) token env v1 in
         let v2 = map_simple_identifier env v2 in
-        let r = (* ")" *) token env v3 in
-        (l, [ G.Param (G.param_of_id v2) ], r)
-    | None -> fb []
+        let _r = (* ")" *) token env v3 in
+        [ G.Param (G.param_of_id v2) ]
+    | None -> []
   in
   let fbody =
     match v4 with
@@ -1290,7 +1289,7 @@ and map_deinit_declaration (env : env) ((v1, v2, v3) : CST.deinit_declaration) =
     G.FuncDef
       {
         fkind = (G.Method, snd v2);
-        fparams = fb [];
+        fparams = [];
         frettype = None;
         fbody = G.FBStmt v3;
       }
@@ -1539,7 +1538,7 @@ and map_function_value_parameter (env : env)
   map_parameter env v2 v3 ~attrs:modifiers
 
 and map_function_value_parameters (env : env)
-    (xs : CST.function_value_parameters) : G.parameter list =
+    (xs : CST.function_value_parameters) : G.parameters =
   (* Normally there is only one parameter list, but evidently Swift used to
    * allow multiple, and the tree-sitter grammar handles that. This is unlikely
    * to come up with any frequency, but when it does we'll just combine into one
@@ -1788,19 +1787,18 @@ and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
 *)
 and map_lambda_function_type (env : env)
     ((v1, v2, v3, v4) : CST.lambda_function_type) :
-    G.parameters * G.type_ option =
+    G.parameter list * G.type_ option =
   let params =
     match v1 with
-    | `Lambda_func_type_params x ->
-        fb (map_lambda_function_type_parameters env x)
+    | `Lambda_func_type_params x -> map_lambda_function_type_parameters env x
     | `LPAR_opt_lambda_func_type_params_RPAR (v1, v2, v3) ->
-        let lp = (* "(" *) token env v1 in
+        let _lp = (* "(" *) token env v1 in
         let v2 =
           Option.map (map_lambda_function_type_parameters env) v2
           |> Common.optlist_to_list
         in
-        let rp = (* ")" *) token env v3 in
-        (lp, v2, rp)
+        let _rp = (* ")" *) token env v3 in
+        v2
   in
   let attrs =
     let v2 = map_async_keyword_opt env v2 in
@@ -1839,7 +1837,7 @@ and map_lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) :
   let captures, params, rettype =
     match v2 with
     | Some x -> map_lambda_type_declaration env x
-    | None -> ([], fb [], None)
+    | None -> ([], [], None)
   in
   let body =
     (* TODO model implicit return for single-statement closures *)
@@ -1878,7 +1876,7 @@ and map_lambda_type_declaration (env : env)
   let params, rettype =
     match v3 with
     | Some x -> map_lambda_function_type env x
-    | None -> (fb [], None)
+    | None -> ([], None)
   in
   let _tin = (* "in" *) token env v4 in
   (captures, params, rettype)
@@ -2010,7 +2008,7 @@ and construct_class_def :
       cextends = extends;
       cimplements = [];
       cmixins = [];
-      cparams = fb [];
+      cparams = [];
       cbody = body;
     }
   in
@@ -2102,7 +2100,7 @@ and map_modifierless_function_declaration_no_body (env : env) ~in_class
     | `Non_cons_func_decl x -> (false, map_non_constructor_function_decl env x)
   in
   let v2 = Option.map (map_type_parameters env) v2 |> Common.optlist_to_list in
-  let fparams = map_function_value_parameters env v3 in
+  let v3 = map_function_value_parameters env v3 in
   let rettype_attrs =
     let v4 = map_async_keyword_opt env v4 in
     let v5 = map_throws_opt env v5 in
@@ -2127,8 +2125,7 @@ and map_modifierless_function_declaration_no_body (env : env) ~in_class
   let entity = G.basic_entity ~tparams:v2 ~attrs v1 in
   let kind = if in_class then G.Method else G.Function in
   let definition_kind =
-    G.FuncDef
-      { fkind = (kind, snd v1); fparams = fb fparams; frettype; fbody = body }
+    G.FuncDef { fkind = (kind, snd v1); fparams = v3; frettype; fbody = body }
   in
   G.DefStmt (entity, definition_kind) |> G.s
 
@@ -2663,12 +2660,7 @@ and map_subscript_declaration (env : env)
   G.DefStmt
     ( ent,
       G.FuncDef
-        {
-          fkind = (G.Method, v2);
-          fparams = fb fparams;
-          frettype;
-          fbody = G.FBStmt v7;
-        } )
+        { fkind = (G.Method, v2); fparams; frettype; fbody = G.FBStmt v7 } )
   |> G.s
 
 and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =

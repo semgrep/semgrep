@@ -457,8 +457,7 @@ let find_args_taints args_taints fdef =
                 (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
             | None -> param :: acc (* Same as above. *))
         | __else__ -> param :: acc)
-      (Parse_info.unbracket fdef.G.fparams)
-      []
+      fdef.G.fparams []
   in
   let _ =
     (* We then process all of the positional arguments in order of the remaining parameters.

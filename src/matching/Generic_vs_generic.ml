@@ -2003,7 +2003,7 @@ and m_type_ a b =
   | G.TyEllipsis _, _ -> return ()
   (* boilerplate *)
   | G.TyFun (a1, a2), B.TyFun (b1, b2) ->
-      m_parameter_list a1 b1 >>= fun () -> m_type_ a2 b2
+      m_parameters a1 b1 >>= fun () -> m_type_ a2 b2
   | G.TyArray (a1, a2), B.TyArray (b1, b2) ->
       m_bracket (m_option m_expr) a1 b1 >>= fun () -> m_type_ a2 b2
   | G.TyTuple a1, B.TyTuple b1 ->
@@ -2854,9 +2854,7 @@ and m_function_body a b =
   | G.FBNothing, _ ->
       fail ()
 
-and m_parameters a b = m_bracket m_parameter_list a b
-
-and m_parameter_list a b =
+and m_parameters a b =
   m_list_with_dots_and_metavar_ellipsis ~f:m_parameter
     ~is_dots:(function
       | G.ParamEllipsis _ -> true

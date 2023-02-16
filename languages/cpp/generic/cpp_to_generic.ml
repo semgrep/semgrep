@@ -52,7 +52,6 @@ let error_unless_partial_error _env t s =
 
 let empty_stmt tk = Compound (tk, [], tk)
 let _id x = x
-let fb = Parse_info.unsafe_fake_bracket
 
 let map_either _env f g x =
   match x with
@@ -245,7 +244,7 @@ and map_typeC env x : G.type_ =
       and v2 = map_type_ env v2 in
       G.TyArray (v1, v2) |> G.t
   | TFunction v1 ->
-      let (_, ps, _), tret = map_functionType env v1 in
+      let ps, tret = map_functionType env v1 in
       G.TyFun (ps, tret) |> G.t
   | TypeName v1 ->
       let v1 = map_a_ident_name env v1 in
@@ -1297,7 +1296,7 @@ and map_function_definition env
   let fparams, fret = map_functionType env v_f_type in
   { G.fkind = (G.Function, G.fake ""); fparams; frettype = Some fret; fbody }
 
-and map_functionType env x : G.parameters * G.type_ =
+and map_functionType env x : G.parameter list * G.type_ =
   match x with
   | {
    ft_ret = v_ft_ret;
@@ -1309,7 +1308,7 @@ and map_functionType env x : G.parameters * G.type_ =
       let _v_ft_throwTODO = map_of_list (map_exn_spec env) v_ft_throw in
       let _v_ft_constTODO = map_of_option (map_tok env) v_ft_const in
       let _v_ft_specsTODO = map_of_list (map_specifier env) v_ft_specs in
-      let params =
+      let _, params, _ =
         map_paren env (map_of_list (map_parameter env)) v_ft_params
       in
       let tret = map_type_ env v_ft_ret in
@@ -1454,7 +1453,7 @@ and map_class_definition_bis env
     cextends = v_c_inherit;
     cimplements = [];
     cmixins = [];
-    cparams = fb [];
+    cparams = [];
     cbody = (l, fields, r);
   }
 

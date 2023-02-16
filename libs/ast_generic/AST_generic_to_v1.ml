@@ -1117,7 +1117,7 @@ and map_function_body = function
       `FBDecl v1
   | FBNothing -> `FBNothing
 
-and map_parameters (_, v, _) = map_of_list map_parameter v
+and map_parameters v = map_of_list map_parameter v
 
 and map_parameter = function
   | Param v1 ->

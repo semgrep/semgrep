@@ -1152,7 +1152,7 @@ and vof_function_definition
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
-and vof_parameters v = vof_bracket (OCaml.vof_list vof_parameter) v
+and vof_parameters v = OCaml.vof_list vof_parameter v
 
 and vof_parameter = function
   | Param v1 ->

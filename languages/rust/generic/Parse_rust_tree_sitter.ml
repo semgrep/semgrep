@@ -57,7 +57,7 @@ let deoptionalize l =
 type function_declaration_rs = {
   name : G.entity_name;
   type_params : G.type_parameter list;
-  params : G.parameters;
+  params : G.parameter list;
   retval : G.type_ option;
 }
 
@@ -1005,8 +1005,8 @@ and map_bracketed_type (env : env) ((v1, v2, v3) : CST.bracketed_type) =
   (lthan, ty, gthan)
 
 and map_closure_parameters (env : env) ((v1, v2, v3) : CST.closure_parameters) :
-    G.parameters =
-  let lpipe = token env v1 (* "|" *) in
+    G.parameter list =
+  let _lpipe = token env v1 (* "|" *) in
   let params =
     match v2 with
     | Some (v1, v2) ->
@@ -1022,8 +1022,8 @@ and map_closure_parameters (env : env) ((v1, v2, v3) : CST.closure_parameters) :
         param_first :: param_rest
     | None -> []
   in
-  let rpipe = token env v3 (* "|" *) in
-  (lpipe, params, rpipe)
+  let _rpipe = token env v3 (* "|" *) in
+  params
 
 and map_const_block (env : env) ((v1, v2) : CST.const_block) : G.expr =
   let tconst = token env v1 (* "const" *) in
@@ -1843,7 +1843,7 @@ and map_function_type (env : env) ((v1, v2, v3, v4) : CST.function_type) :
         let _fnTODO = token env v2 (* "fn" *) in
         (None, modifiers)
   in
-  let _, params, _ = map_parameters env v3 in
+  let params = map_parameters env v3 in
   let ret_type =
     match v4 with
     | Some (v1, v2) ->
@@ -2243,8 +2243,8 @@ and map_parameter (env : env) ((v1, v2, v3, v4) : CST.parameter) : G.parameter =
       G.Param param
 
 and map_parameters (env : env) ((v1, v2, v3, v4) : CST.parameters) :
-    G.parameters =
-  let lparen = token env v1 (* "(" *) in
+    G.parameter list =
+  let _lparen = token env v1 (* "(" *) in
   let params =
     match v2 with
     | Some (v1, v2, v3) ->
@@ -2266,8 +2266,8 @@ and map_parameters (env : env) ((v1, v2, v3, v4) : CST.parameters) :
     | None -> []
   in
   let _comma = Option.map (fun tok -> token env tok) v3 in
-  let rparen = token env v4 (* ")" *) in
-  (lparen, params, rparen)
+  let _rparen = token env v4 (* ")" *) in
+  params
 
 and map_path_name (env : env) (x : CST.path) : G.name =
   match x with
@@ -3106,7 +3106,7 @@ and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :
           G.cextends = [];
           G.cimplements = [];
           G.cmixins = [];
-          G.cparams = fb [];
+          G.cparams = [];
           G.cbody = fields;
         }
       in
@@ -3282,7 +3282,7 @@ and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :
           G.cextends = [];
           G.cimplements = [];
           G.cmixins = [];
-          G.cparams = fb [];
+          G.cparams = [];
           G.cbody = (l, fields |> Common.map (fun x -> G.F x), r);
         }
       in

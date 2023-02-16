@@ -1109,7 +1109,7 @@ let (mk_visitor :
       ()
     in
     vin.kfunction_definition (k, all_functions) x
-  and v_parameters v = v_bracket (v_list v_parameter) v
+  and v_parameters v = v_list v_parameter v
   and v_parameter x =
     let k x =
       match x with

@@ -1135,7 +1135,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
               in
               DefStmt (ent, FuncDef fun_def) |> G.s
           | `Param_list_rep_where_clause (v1, v2) ->
-              let fparams = map_parameter_list env v1 in
+              let _, fparams, _ = map_parameter_list env v1 in
               let v2 = Common.map (map_where_clause env) v2 in
               (* I don't really have anywhere else to put this "where" in a lambda, so let's just
                   add it as a return type (which otherwise is not specified).
@@ -1180,7 +1180,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
               FuncDef
                 {
                   fkind = (Function, func_tok);
-                  fparams = fb [];
+                  fparams = [];
                   frettype = None;
                   fbody = FBNothing;
                 } )
@@ -1237,12 +1237,7 @@ and map_do_clause (env : env) ((v1, v2, v3, v4) : CST.do_clause) =
   let body = map_source_file_stmt env v3 in
   let _v4 = (* "end" *) token env v4 in
   Lambda
-    {
-      fkind = (LambdaKind, v1);
-      fparams = fb fparams;
-      frettype = None;
-      fbody = FBStmt body;
-    }
+    { fkind = (LambdaKind, v1); fparams; frettype = None; fbody = FBStmt body }
   |> G.e
 
 and map_do_parameter_list (env : env) ((v1, v2) : CST.do_parameter_list) :
@@ -1337,11 +1332,13 @@ and map_expression (env : env) (x : CST.expression) : expr =
       | `Func_exp (v1, v2, v3) ->
           let fparams =
             match v1 with
-            | `Id tok -> fb [ map_id_parameter env tok ]
-            | `Param_list x -> map_parameter_list env x
+            | `Id tok -> [ map_id_parameter env tok ]
+            | `Param_list x ->
+                let _, xs, _ = map_parameter_list env x in
+                xs
             | `Typed_exp x ->
                 let exp, _tok, ty = map_typed_expression env x in
-                fb [ OtherParam (("typed", fake "typed"), [ G.E exp; G.T ty ]) ]
+                [ OtherParam (("typed", fake "typed"), [ G.E exp; G.T ty ]) ]
           in
           let _v2 = (* "->" *) token env v2 in
           let v3 = map_anon_choice_exp_3c18676 env v3 in
@@ -1511,7 +1508,7 @@ and map_function_signature ~body ~func_tok (env : env)
     | Some tok -> tok
   in
   let _v3 = (* immediate_paren *) token env v3 in
-  let fparams = map_parameter_list env v4 in
+  let _, fparams, _ = map_parameter_list env v4 in
   let frettype =
     match v5 with
     | Some (v1, v2) ->
@@ -1752,8 +1749,8 @@ and map_optional_parameter (env : env) ((v1, v2, v3) : CST.optional_parameter) =
   | __else__ -> OtherParam (("optional", fake "optional"), [ G.Pa v1; G.E v3 ])
 
 and map_parameter_list (env : env) ((v1, v2, v3, v4, v5) : CST.parameter_list) :
-    parameters =
-  let l = (* "(" *) token env v1 in
+    parameter list bracket =
+  let v1 = (* "(" *) token env v1 in
   let v2 =
     match v2 with
     | Some (v1, v2) ->
@@ -1779,8 +1776,8 @@ and map_parameter_list (env : env) ((v1, v2, v3, v4, v5) : CST.parameter_list) :
     | Some x -> map_keyword_parameters env x
     | None -> []
   in
-  let r = (* ")" *) token env v5 in
-  (l, v2 @ v4, r)
+  let v5 = (* ")" *) token env v5 in
+  (v1, v2 @ v4, v5)
 
 and map_parametrized_type_expression (env : env)
     ((v1, v2, v3) : CST.parametrized_type_expression) =

@@ -550,8 +550,7 @@ let check_fundef lang options taint_config opt_ent fdef =
         | G.ParamEllipsis _
         | G.OtherParam (_, _) ->
             env)
-      Lval_env.empty
-      (Parse_info.unbracket fdef.G.fparams)
+      Lval_env.empty fdef.G.fparams
   in
   let _, xs = AST_to_IL.function_definition lang fdef in
   let flow = CFG_build.cfg_of_stmts xs in

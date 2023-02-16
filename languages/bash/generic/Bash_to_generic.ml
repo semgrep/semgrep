@@ -414,7 +414,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
         G.FuncDef
           {
             G.fkind = (G.Function, first_tok);
-            fparams = Parse_info.unsafe_fake_bracket [];
+            fparams = [];
             frettype = None;
             fbody = G.FBStmt (command env def.body |> as_stmt);
           }
