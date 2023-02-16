@@ -160,9 +160,11 @@ let is_fake tok =
   | _ -> false
 
 (* TODO: the use of unsafe_fake_xxx is usually because the token
- * does not exist in the original file. It's better than to generate
+ * does not exist in the original file. It's better then to generate
  * an empty string in the FakeTokStr so that pretty printer will
- * not generate those brackets or semicolons.
+ * not generate those brackets or semicolons. Moreover
+ * we use unsafe_fake_bracket not only for () but also for [], {}, and
+ * now even for "", so better again to put an empty string in it.
  *)
 
 (* used to be in AST_generic.ml *)
@@ -391,6 +393,9 @@ let compare_pos ii1 ii2 =
       | 1 -> 1
       | _ -> raise Impossible)
 
+(* TODO: we should filter with is_origintok() first, to avoid having
+ * the caller to do it.
+ *)
 let min_max_ii_by_pos xs =
   match xs with
   | [] ->

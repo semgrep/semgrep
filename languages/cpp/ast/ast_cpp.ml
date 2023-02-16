@@ -316,8 +316,10 @@ and constant =
   | Float of float option wrap
   | Char of string wrap (* normally it is equivalent to Int *)
   (* the wrap can contain the L/u/U/u8 prefix *)
-  | String of string wrap
-  | MultiString of string wrap list (* can contain MacroString *)
+  | String of string wrap (* TODO: bracket *)
+  | MultiString of string wrap list
+  (* can contain MacroString *)
+  (* TODO: bracket *)
   (* c++ext: *)
   | Bool of bool wrap
   | Nullptr of tok

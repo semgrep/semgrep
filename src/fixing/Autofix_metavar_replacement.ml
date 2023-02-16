@@ -18,11 +18,18 @@ open Common
 module MV = Metavariable
 module G = AST_generic
 
-(******************************************************************************)
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 (* Module responsible for traversing a fix pattern AST and replacing
  * metavariables within it with the AST nodes from the target file to which the
- * metavariables are bound. *)
-(******************************************************************************)
+ * metavariables are bound.
+ *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+let fb = Parse_info.unsafe_fake_bracket
 
 let replace metavar_tbl pattern_ast =
   (* Use a mapper to traverse the AST. For each metavar, look up what it is
@@ -106,14 +113,15 @@ let replace metavar_tbl pattern_ast =
           klit =
             (fun (k, _) lit ->
               match lit with
-              | String (str, _) -> (
+              | String (_l, (str, _), _r) -> (
                   (* TODO handle the case where the metavar appears within the
                    * string but is not the entire contents of the string *)
                   match Hashtbl.find_opt metavar_tbl str with
                   | Some (MV.Text (str, _info, originfo)) ->
                       (* Don't use `Metavariable.mvalue_to_any` here. It uses
                        * the modified token info, which drops the quotes. *)
-                      String (str, originfo)
+                      (* TODO? reuse l and r from String above? *)
+                      String (fb (str, originfo))
                   | _ -> k lit)
               | _ -> k lit);
           kname =
@@ -175,7 +183,7 @@ let find_remaining_metavars metavar_tbl ast =
           klit =
             (fun (k, _) lit ->
               (match lit with
-              | String (str, _) ->
+              | String (_, (str, _), _) ->
                   (* Textual autofix allows metavars to appear anywhere within
                    * string literals. This is useful when the pattern is
                    * something like `foo("$X")` and you'd like the fix to modify

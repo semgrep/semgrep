@@ -190,7 +190,9 @@ and literal =
   | Float of float option wrap
   | Imag of string wrap
   | Rune of string wrap (* unicode char *)
-  | String of string wrap (* unicode string *)
+  | String of string wrap
+(* unicode string *)
+(* TODO: bracket *)
 
 and index = expr
 and arguments = argument list

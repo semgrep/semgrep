@@ -147,7 +147,7 @@ type expr =
    * 'Id name' sometimes. Some magic functions like param_post() also
    * introduce entities (variables) via strings.
    *)
-  | String of string wrap
+  | String of string wrap (* TODO: bracket *)
   (* Id is valid for "entities" (functions, classes, constants). Id is also
    * used for class methods/fields/constants. It can also contain
    * "self/parent" or "static", "class". It can be "true", "false", "null"

@@ -418,7 +418,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
           let v1 = map_wrap map_of_string v1 in
           Char v1
       | String v1 ->
-          let v1 = map_wrap map_of_string v1 in
+          let v1 = map_bracket (map_wrap map_of_string) v1 in
           String v1
       | Regexp (v1, v2) ->
           let v1 = map_bracket (map_wrap map_of_string) v1 in
@@ -1204,7 +1204,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_of_list map_any v1 in
         Anys v1
     | Str v1 ->
-        let v1 = map_wrap map_of_string v1 in
+        let v1 = map_bracket (map_wrap map_of_string) v1 in
         Str v1
     | Args v1 ->
         let v1 = map_of_list map_argument v1 in

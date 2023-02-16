@@ -642,7 +642,7 @@ and literal _env l =
    * we will be able to print correctly whether '' or "" was used
    * to contain the string
    *)
-  | String (s, _) -> "\"" ^ s ^ "\""
+  | String (_l, (s, _), _r) -> "\"" ^ s ^ "\""
   | Regexp ((_, (s, _), _), rmod) -> (
       "/" ^ s ^ "/"
       ^

@@ -68,7 +68,7 @@ let stringify_without_quotes str =
         logger#warning "weird string literal: %s" s;
         s
   in
-  G.String (s, t)
+  G.String (fb (s, t))
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -1365,7 +1365,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
                 G.Arg
                   (match x with
                   | `Here_body tok ->
-                      (* heredoc_body *) G.L (G.String (str env tok)) |> G.e
+                      (* heredoc_body *)
+                      G.L (G.String (fb (str env tok))) |> G.e
                   | `Var tok ->
                       (* variable *)
                       G.N (Id (str env tok, G.empty_id_info ())) |> G.e

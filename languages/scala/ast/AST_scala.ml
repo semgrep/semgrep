@@ -137,14 +137,13 @@ type literal =
   | Int of int option wrap
   | Float of float option wrap
   | Char of string wrap
-  | String of string wrap
+  | String of string wrap (* TODO: bracket *)
   | Bool of bool wrap
   | Symbol of tok (* "'" *) * string wrap
   (* scala3: not in simple_literal *)
   | Null of tok
   (* this forces to define type_ and pattern and expr as mutually recursive*)
-  | Interpolated of
-      ident (* e.g., s"..." *) * encaps list * tok (* '"' or '""""' *)
+  | Interpolated of ident (* e.g., s"..." *) * encaps list * tok (* " or """ *)
 
 and encaps =
   | EncapsStr of string wrap

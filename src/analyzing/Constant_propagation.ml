@@ -90,6 +90,7 @@ type var_stats = (var, lr_stats) Hashtbl.t
 (* Helpers *)
 (*****************************************************************************)
 
+let fb = Parse_info.unsafe_fake_bracket
 let ( let* ) o f = Option.bind o f
 let ( let/ ) o f = Option.iter f o
 
@@ -219,8 +220,8 @@ let binop_bool_cst op b1 b2 =
 
 let concat_string_cst s1 s2 =
   match (s1, s2) with
-  | Some (Lit (String (s1, t1))), Some (Lit (String (s2, _))) ->
-      Some (Lit (String (s1 ^ s2, t1)))
+  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (String (_, (s2, _), _))) ->
+      Some (Lit (String (l, (s1 ^ s2, t1), r)))
   | Some (Lit (String _)), Some (Cst Cstr)
   | Some (Cst Cstr), Some (Lit (String _))
   | Some (Cst Cstr), Some (Cst Cstr) ->
@@ -259,11 +260,15 @@ let rec eval env x : svalue option =
       Some (Dataflow_svalue.union v2 v3)
   | Call
       ( { e = IdSpecial (EncodedString str_kind, _); _ },
-        (_, [ Arg { e = L (String (str, str_tok) as str_lit); _ } ], _) ) -> (
+        (_, [ Arg { e = L (String (_, (str, str_tok), _) as str_lit); _ } ], _)
+      ) -> (
       match str_kind with
       | "r" ->
           let str = String.escaped str in
-          Some (Lit (String (str, str_tok)))
+          (* TODO? reuse l/r from the Call instead of using fb below? or
+           * from the String above?
+           *)
+          Some (Lit (String (fb (str, str_tok))))
       | _else ->
           (* THINK: is this good enough for "b" and "u"? *)
           Some (Lit str_lit))
@@ -465,7 +470,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
               ( { e = N (Id (("variable", _), _)); _ },
                 ( _,
                   [
-                    Arg { e = L (String id); _ };
+                    Arg { e = L (String (_, id, _)); _ };
                     Arg { e = Record (_, xs, _); _ };
                   ],
                   _ ) );

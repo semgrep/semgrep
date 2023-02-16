@@ -272,7 +272,7 @@ and atom_kind =
   | AtomFromString of interp list bracket (* '' or "" or %i() *)
 
 and string_kind =
-  | Single of string wrap
+  | Single of string wrap (* TODO: bracket *)
   | Double of interp list bracket
   | Tick of interp list bracket
 

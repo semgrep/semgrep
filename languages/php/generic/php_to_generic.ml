@@ -255,7 +255,7 @@ and expr e : G.expr =
       G.L (G.Float v1) |> G.e
   | String v1 ->
       let v1 = wrap string v1 in
-      G.L (G.String v1) |> G.e
+      G.L (G.String (fb v1)) |> G.e
   | Id v1 ->
       let v1 = name_of_qualified_ident v1 in
       G.N v1 |> G.e
@@ -382,7 +382,7 @@ and expr e : G.expr =
        * generate an InterpolatedConcat because it's actually not an
        * interpolation ($VAR is interpreted as a metavar, not a PHP var)
        *)
-      | [ ({ e = G.L (G.String (str, _)); _ } as e) ]
+      | [ ({ e = G.L (G.String (_, (str, _), _)); _ } as e) ]
         when AST_generic.is_metavar_name str ->
           e
       | _else_ ->
