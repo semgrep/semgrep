@@ -31,7 +31,7 @@ setenv =
 
 [tool.ruff]
 target-version = "py37"
-src = ["src"]
+src = ["src", "cli/src"]
 extend-exclude = ["external", "tests/e2e/targets"]
 select = [
   "B",
