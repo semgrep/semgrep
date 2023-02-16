@@ -420,8 +420,7 @@ def config_contains_fix_key(config: Path) -> bool:
 def checkid_passed(matches_for_checkid: dict[str, Any]) -> bool:
     for _filename, expected_and_reported_lines in matches_for_checkid.items():
         if (
-            not expected_and_reported_lines["expected_lines"]
-            == expected_and_reported_lines["reported_lines"]
+            expected_and_reported_lines["expected_lines"] != expected_and_reported_lines["reported_lines"]
         ):
             return False
     return True

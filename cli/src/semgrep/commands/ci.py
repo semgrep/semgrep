@@ -424,10 +424,7 @@ def ci(
         output_handler.handle_semgrep_errors([e])
         output_handler.output({}, all_targets=set(), filtered_rules=[])
         logger.info(f"Encountered error when running rules: {e}")
-        if isinstance(e, SemgrepError):
-            exit_code = e.code
-        else:
-            exit_code = FATAL_EXIT_CODE
+        exit_code = e.code if isinstance(e, SemgrepError) else FATAL_EXIT_CODE
         if scan_handler:
             scan_handler.report_failure(exit_code)
         sys.exit(exit_code)

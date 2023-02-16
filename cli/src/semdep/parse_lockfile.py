@@ -82,10 +82,7 @@ def parse_lockfile_path(
 
     if lockfile_name in OLD_LOCKFILE_PARSERS:
         lockfile_text = lockfile_path.read_text()
-        if manifest_path:
-            manifest_text = manifest_path.read_text()
-        else:
-            manifest_text = None
+        manifest_text = manifest_path.read_text() if manifest_path else None
 
         try:
             return list(

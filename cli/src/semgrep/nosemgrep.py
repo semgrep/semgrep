@@ -122,7 +122,7 @@ def _rule_match_nosem(
             logger.verbose(
                 f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.rule_id}' on line {rule_match.start.line}"
             )
-            result = result or True
+            result = True
         else:
             message = f"found 'nosem' comment with id '{pattern_id}', but no corresponding rule trying '{rule_match.rule_id}'"
             if strict:

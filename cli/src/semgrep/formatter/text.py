@@ -41,10 +41,7 @@ terminal_size = get_terminal_size((MAX_TEXT_WIDTH, 1))[0]
 if terminal_size <= 0:
     terminal_size = MAX_TEXT_WIDTH
 width = min(MAX_TEXT_WIDTH, terminal_size)
-if width <= 110:
-    width = width - 5
-else:
-    width = width - (width - 100)
+width = width - 5 if width <= 110 else width - (width - 100)
 
 FINDINGS_INDENT_DEPTH = 10
 

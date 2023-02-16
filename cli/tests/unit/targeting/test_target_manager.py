@@ -380,7 +380,7 @@ def test_unsupported_lang_paths(tmp_path, monkeypatch):
 
     for dir_name in paths:
         dir = tmp_path
-        if not dir_name == ".":
+        if dir_name != ".":
             dir = tmp_path / dir_name
             dir.mkdir()
         for file_name in paths[dir_name]:
@@ -417,7 +417,7 @@ def test_unsupported_lang_paths_2(tmp_path, monkeypatch):
 
     for dir_name in paths:
         dir = tmp_path
-        if not dir_name == ".":
+        if dir_name != ".":
             dir = tmp_path / dir_name
             dir.mkdir()
         for file_name in paths[dir_name]:

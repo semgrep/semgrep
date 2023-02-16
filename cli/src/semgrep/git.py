@@ -114,10 +114,7 @@ class BaselineHandler:
             self._base_commit,
         ]
         try:
-            if self._is_mergebase:
-                cmd = status_cmd
-            else:
-                cmd = [*status_cmd, "--merge-base"]
+            cmd = status_cmd if self._is_mergebase else [*status_cmd, "--merge-base"]
             # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
             raw_output = subprocess.run(
                 cmd,

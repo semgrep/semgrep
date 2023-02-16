@@ -388,10 +388,7 @@ class ErrorWithSpan(SemgrepError):
             help_str = ""
 
         # TODO remove this when temp files are no longer in error messages
-        if snippet_str == "":
-            snippet_str_with_newline = ""
-        else:
-            snippet_str_with_newline = f"{snippet_str}\n"
+        snippet_str_with_newline = "" if snippet_str == "" else f"{snippet_str}\n"
         return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color(Colors.red, self.long_msg or '')}\n"
 
 

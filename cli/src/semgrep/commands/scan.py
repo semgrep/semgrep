@@ -88,7 +88,7 @@ def __get_size_options(
     context: click.Context, _param: str, incomplete: str
 ) -> list[Any]:
     if incomplete.isnumeric():
-        sizes = [f"{incomplete}{u}" for u in bytesize.UNITS.keys()]
+        sizes = [f"{incomplete}{u}" for u in bytesize.UNITS]
         return [CompletionItem(s) for s in sizes if s.startswith(incomplete)]
     else:
         return []

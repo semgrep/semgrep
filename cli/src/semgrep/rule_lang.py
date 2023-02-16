@@ -475,7 +475,7 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
             ]
             props = []
             for property in mutex_properties:
-                if property and property in context.instance.keys():
+                if property and property in context.instance:
                     props.append(property)
             redundant_keys.add(tuple(props))
         if context.message.startswith(RuleValidation.INVALID_FOR_MODE_SENTINEL):
@@ -490,7 +490,7 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
                     if "required" in k and k["required"]
                 ]
                 for r in required_keys:
-                    if r and r in context.instance.keys():
+                    if r and r in context.instance:
                         any_of_invalid_keys.add(r)
             except (json.JSONDecodeError, AttributeError):
                 invalid_keys.add(context.message)

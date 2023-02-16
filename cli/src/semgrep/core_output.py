@@ -86,10 +86,7 @@ def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
     match_results = core.CoreMatchResults.from_json(raw_json)
     if match_results.skipped_targets:
         for skip in match_results.skipped_targets:
-            if skip.rule_id:
-                rule_info = f"rule {skip.rule_id}"
-            else:
-                rule_info = "all rules"
+            rule_info = f"rule {skip.rule_id}" if skip.rule_id else "all rules"
             logger.verbose(
                 f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
             )

@@ -220,7 +220,7 @@ class OutputHandler:
         self.has_output = True
         separator = ", "
         print_threshold_hint = False
-        for path in errors.keys():
+        for path in errors:
             num_errs = len(errors[path])
             errors[path].sort()
             error_msg = f"Warning: {num_errs} timeout error(s) in {path} when running the following rules: [{separator.join(errors[path])}]"

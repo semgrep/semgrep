@@ -138,8 +138,5 @@ class SemgrepRunner:
         else:
             # TODO: do we need to support 'input' i.e. passing a string
             # to the program's stdin?
-            if env:
-                extra_env = dict(self._env, **env)
-            else:
-                extra_env = dict(self._env)
+            extra_env = dict(self._env, **env) if env else dict(self._env)
             return invoke_osemgrep(args, env=extra_env)
