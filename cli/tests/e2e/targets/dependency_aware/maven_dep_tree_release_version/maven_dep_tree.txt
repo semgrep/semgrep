@@ -1,0 +1,2 @@
+com.example.log4j:log4j-examples:jar:1.0-SNAPSHOT
++- com.google.inject:guice:jar:no_aop:4.2.2.RELEASE:test (optional)
