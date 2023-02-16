@@ -23,6 +23,8 @@ MavenVersion = Union[ParsedMavenVersion, str]
 
 def parse_maven_version(version: str) -> MavenVersion:
     m = re.compile(r"(\d)\.(\d)(?:\.(\d))?(.*)").match(version)
+    # "If you do not follow Maven versioning standards in your project versioning scheme,
+    # then for version comparison, Maven interprets the entire version as a simple string."
     if not m:
         return version
     if "." in m.group(4):
@@ -63,6 +65,10 @@ def cmp_maven_versions(first: MavenVersion, second: MavenVersion) -> int:
             return 1
         elif second.qualifer == "" and first.qualifer != "":
             return -1
+
+        # "Maven treats the SNAPSHOT qualifier differently from all others.
+        # If a version number is followed by -SNAPSHOT, then Maven considers it
+        # the "as-yet-unreleased" version of the associated MajorVersion, MinorVersion, or IncrementalVersion."
         elif first.qualifer == "-SNAPSHOT" and second.qualifer != "-SNAPSHOT":
             return 1
         elif second.qualifer == "-SNAPSHOT" and first.qualifer != "-SNAPSHOT":
