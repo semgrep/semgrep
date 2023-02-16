@@ -366,6 +366,7 @@ let is_resolvable_name_ctx env lang =
       match lang with
       (* true for Java so that we can type class fields *)
       | Lang.Java
+      | Lang.Apex
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Js
       | Lang.Ts
@@ -384,6 +385,7 @@ let resolved_name_kind env lang =
        * alt: use a different scope.class?
        *)
       | Lang.Java
+      | Lang.Apex
       (* true for JS/TS to resolve class methods. *)
       | Lang.Js
       | Lang.Ts
