@@ -84,6 +84,10 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/maven-guice.yaml",
             "dependency_aware/maven_dep_tree_optional",
         ),
+        (
+            "rules/dependency_aware/js-sca.yaml",
+            "dependency_aware/package-lock_resolved_false",
+        ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
