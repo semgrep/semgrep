@@ -3,12 +3,13 @@
 # Run semgrep-core on a series of pairs (target, pattern) and report the
 # time it takes. Optionally upload the results to the semgrep dashboard.
 #
+from __future__ import annotations
+
 import argparse
 import os
 import subprocess
 import time
 import urllib.request
-from typing import List
 
 HOST = "https://dashboard.semgrep.dev"
 
@@ -79,8 +80,8 @@ class Result:
 
 
 def run_tests(
-    dirname: str, tests: List[Test], no_cache: bool, max_cache: bool
-) -> List[Result]:
+    dirname: str, tests: list[Test], no_cache: bool, max_cache: bool
+) -> list[Result]:
     results = []
     for test in tests:
         ext = ".sgrep"
@@ -119,7 +120,7 @@ def run_tests(
     return results
 
 
-def upload_results(results: List[Result]) -> None:
+def upload_results(results: list[Result]) -> None:
     for res in results:
         url = f"{HOST}/api/metric/semgrep.core.perf.{res.name}.seconds"
         r = urllib.request.urlopen(  # nosem: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected

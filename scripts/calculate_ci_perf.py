@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import os
 import shutil
@@ -5,7 +7,6 @@ import subprocess
 import time
 from pathlib import Path
 from typing import Generator
-from typing import Optional
 
 
 @contextlib.contextmanager
@@ -20,7 +21,7 @@ def chdir(dirname: Path = None) -> Generator:  # type: ignore
 
 
 def clone_github_repo(
-    repo_url: str, sha: Optional[str] = None, retries: int = 3
+    repo_url: str, sha: str | None = None, retries: int = 3
 ) -> Path:
     """
     Wraps `_github_repo` function with retries. If the `_github_repo` throws an exception,
@@ -45,7 +46,7 @@ class GitError(BaseException):
     pass
 
 
-def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path) -> Path:
+def _github_repo(repo_url: str, sha: str | None, repo_destination: Path) -> Path:
     """
     Internal fixture function. Use the `clone_github_repo` fixture.
     Clones the github repo at repo_url into `repo_destination` and checks out `sha`.

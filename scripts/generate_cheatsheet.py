@@ -33,6 +33,8 @@
 # The POLYGLOT/ folder is meant for patterns that are identical in many
 # languages so as to avoid unnecessary duplication.
 #
+from __future__ import annotations
+
 import argparse
 import collections
 import glob
@@ -43,10 +45,6 @@ import os
 import subprocess
 import tempfile
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 from ruamel.yaml import YAML
 
@@ -186,14 +184,14 @@ def find_path(
         return joined
 
 
-def _single_pattern_to_dict(pattern: str, language: str) -> Dict[str, Any]:
+def _single_pattern_to_dict(pattern: str, language: str) -> dict[str, Any]:
     pattern = pattern.strip()
     if len(pattern.split("\n")) > 1:
         pattern = (
             pattern + "\n"
         )  # make sure multi-line patterns end in new-line otherwise semgrep dies # TODO is this still true?
 
-    sgrep_config_default: Dict[str, Any] = {
+    sgrep_config_default: dict[str, Any] = {
         "rules": [
             {
                 "id": "default-example",
@@ -216,7 +214,7 @@ def _config_to_string(config: Any) -> str:
 
 def run_semgrep_on_example(
     lang: str, config_arg_str: str, code_path: str
-) -> Optional[dict]:
+) -> dict | None:
     with tempfile.NamedTemporaryFile("w") as config:
         pattern_text = open(config_arg_str).read()
         config.write(_config_to_string(_single_pattern_to_dict(pattern_text, lang)))
@@ -392,7 +390,7 @@ th {
 
 
 def snippet_and_pattern_to_html(
-    sgrep_pattern: str, sgrep_path: str, code_snippets: List[Tuple[str, str]]
+    sgrep_pattern: str, sgrep_path: str, code_snippets: list[tuple[str, str]]
 ):
     s = ""
     if sgrep_pattern:
@@ -425,11 +423,11 @@ def snippet_and_pattern_to_html(
     return s, True
 
 
-def wrap_in_div(L: List[str], className="") -> List[str]:
+def wrap_in_div(L: list[str], className="") -> list[str]:
     return "".join([f"<div class={className}>{i}</div>" for i in L])
 
 
-def add_headers_for_category(category: str, subcategories: List[str]) -> str:
+def add_headers_for_category(category: str, subcategories: list[str]) -> str:
     s = ""
     category_long = VERBOSE_FEATURE_NAME[category]
     for subcategory in subcategories:
@@ -458,7 +456,7 @@ def generate_headers_for_table():
 
 
 def check_if_test_exists(
-    test_matrix_dict: Dict[str, Dict[Tuple, bool]],
+    test_matrix_dict: dict[str, dict[tuple, bool]],
     category: str,
     subcategory: str,
     lang: str,
@@ -468,18 +466,18 @@ def check_if_test_exists(
         VERBOSE_SUBCATEGORY_NAME[subcategory],
     )
     if subcategory in LANGUAGE_EXCEPTIONS.get(lang, []):
-        return f"<td>&#128125;</td>\n"
+        return "<td>&#128125;</td>\n"
     if test_matrix_entry in test_matrix_dict[lang]:
         test_exists = test_matrix_dict[lang][test_matrix_entry]
         if test_exists:
-            return f"<td>&#9989;</td>\n"
+            return "<td>&#9989;</td>\n"
         else:
-            return f"<td>&#10060;</td>\n"
-    return f"<td>&#10060;</td>\n"
+            return "<td>&#10060;</td>\n"
+    return "<td>&#10060;</td>\n"
 
 
 def generate_table(
-    cheatsheet: Dict[str, Any], test_matrix_dict: Dict[str, Dict[Tuple, bool]]
+    cheatsheet: dict[str, Any], test_matrix_dict: dict[str, dict[tuple, bool]]
 ) -> str:
     s = "<h2>Table of Languages and Features Supported</h2>"
     s += '<table class="pure-table pure-table-bordered"><tr>\n<td></td>\n'
@@ -506,7 +504,7 @@ def generate_table(
     return s
 
 
-def cheatsheet_to_html(cheatsheet: Dict[str, Any]):
+def cheatsheet_to_html(cheatsheet: dict[str, Any]):
     s = ""
     s += f"<head><style>{CSS}</style></head><body>"
 
@@ -541,7 +539,7 @@ def cheatsheet_to_html(cheatsheet: Dict[str, Any]):
     return s
 
 
-def read_if_exists(path: Optional[str]):
+def read_if_exists(path: str | None):
     if path and os.path.exists(path):
         text = str(open(path).read())
         return text
@@ -569,10 +567,10 @@ def get_emoji(count: int):
 
 
 def print_to_html(stats):
-    def append_td(l, name):
-        l.append("<td>")
-        l.append(name)
-        l.append("</td>")
+    def append_td(tags, name):
+        tags.append("<td>")
+        tags.append(name)
+        tags.append("</td>")
 
     tags = ['<table style="text-align:center">', "<tr>"]
     languages = stats.keys()
@@ -601,12 +599,12 @@ def compute_stats(dir_name: str, lang_dir: str):
     return count_per_feature
 
 
-def get_language_directories(dir_name: str) -> List[str]:
+def get_language_directories(dir_name: str) -> list[str]:
     files = os.listdir(dir_name)
     return [
         f
         for f in files
-        if os.path.isdir(os.path.join(dir_name, f)) and not f in EXCLUDE
+        if os.path.isdir(os.path.join(dir_name, f)) and f not in EXCLUDE
     ]
 
 

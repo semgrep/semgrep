@@ -1,11 +1,12 @@
 #! /usr/bin/env python3
+from __future__ import annotations
+
 import logging
 import os
 import subprocess
 import sys
 import venv
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
@@ -22,12 +23,12 @@ def activate(venv_path: Path) -> dict:
     # set to the path of the virtual environment. This can be used to check if one
     # is running inside a virtual environment.
     #
-    # You don’t specifically need to activate an environment; activation just prepends
-    # the virtual environment’s binary directory to your path, so that “python” invokes
-    # the virtual environment’s Python interpreter and you can run installed scripts
+    # You don`t specifically need to activate an environment; activation just prepends
+    # the virtual environment`s binary directory to your path, so that “python” invokes
+    # the virtual environment`s Python interpreter and you can run installed scripts
     # without having to use their full path. However, all scripts installed in a virtual
     # environment should be runnable without activating it, and run with the virtual
-    # environment’s Python automatically.
+    # environment`s Python automatically.
     import copy
 
     oldenv = copy.deepcopy(os.environ)
@@ -44,10 +45,10 @@ def deactivate(oldenv: dict):
 
 
 def run_semgrep_version(
-    venv_builder: Optional[venv.EnvBuilder] = None,
+    venv_builder: venv.EnvBuilder | None = None,
     semgrep_version: str = "local",
-    semgrep_local_path: Optional[Path] = None,
-    script_arguments: Optional[list] = None,
+    semgrep_local_path: Path | None = None,
+    script_arguments: list | None = None,
 ):
     if semgrep_version == "local" and not semgrep_local_path:
         raise ValueError(
@@ -68,7 +69,7 @@ def run_semgrep_version(
         logger.info(f"Installing semgrep from {semgrep_local_path.absolute()}")
         subprocess.run(["pip", "install", semgrep_local_path])
     elif semgrep_version == "latest":
-        logger.info(f"Installing latest semgrep")
+        logger.info("Installing latest semgrep")
         subprocess.run(["pip", "install", "--upgrade", "semgrep"])
     else:
         logger.info(f"Installing semgrep=={semgrep_version}")
@@ -78,7 +79,7 @@ def run_semgrep_version(
     real_semgrep_version = r.stdout.decode("utf-8")
     logger.info(f"Using semgrep version {real_semgrep_version}")
 
-    subprocess.run(["./run-benchmarks"] + script_arguments)  # nosemgrep
+    subprocess.run(["./run-benchmarks", *script_arguments])  # nosemgrep
 
     deactivate(oldenv)
 

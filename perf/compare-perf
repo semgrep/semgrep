@@ -7,12 +7,13 @@
 #
 # Testing: run the companion 'test-compare-perf' script.
 #
+from __future__ import annotations
+
 import json
 import os
 import sys
 from collections import namedtuple
 from pathlib import Path
-from typing import List
 
 import requests
 
@@ -49,13 +50,13 @@ def send_comment(message: str, github_token: str, pull_request_number: str) -> N
 Timing = namedtuple("Timing", "name time")
 
 
-def read_timing(filename: Path) -> List[Timing]:
+def read_timing(filename: Path) -> list[Timing]:
     print(f"Reading {filename}")
     with open(filename) as f:
         return [Timing(a["name"], a["time"]) for a in json.load(f)]
 
 
-def select_min_timings(al: List[Timing], bl: List[Timing]) -> List[Timing]:
+def select_min_timings(al: list[Timing], bl: list[Timing]) -> list[Timing]:
     res = []
     for a, b in zip(al, bl):
         if a.time < b.time:

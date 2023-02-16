@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import ast
 
 with open("./imports.py") as imports_file:

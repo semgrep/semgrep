@@ -12,8 +12,9 @@ import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Awaitable
+from typing import TYPE_CHECKING
 from typing import Any
+from typing import Awaitable
 from typing import Dict
 from typing import List
 from typing import Sequence

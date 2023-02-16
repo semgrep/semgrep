@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"

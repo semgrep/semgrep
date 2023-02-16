@@ -6,11 +6,12 @@
 #
 #   https://dashboard.semgrep.dev/metric/semgrep.core.javascript.parse.pct
 #
+from __future__ import annotations
+
 import json
 import sys
 import urllib.request
 from collections import namedtuple
-from typing import List
 
 HOST = "https://dashboard.semgrep.dev"
 
@@ -21,7 +22,7 @@ Stat = namedtuple("Stat", ["lang", "line_count", "parse_success"])
 # Return an array of 0 or 1 dicts, whose field values will be posted over HTTP.
 # See Parsing_stats.atd for the input format.
 #
-def load_stat_file(in_file: str) -> List[Stat]:
+def load_stat_file(in_file: str) -> list[Stat]:
     res = []
     with open(in_file) as f:
         root = json.load(f)
@@ -36,7 +37,7 @@ def load_stat_file(in_file: str) -> List[Stat]:
     return res
 
 
-def upload_stats(stats: List[Stat]) -> None:
+def upload_stats(stats: list[Stat]) -> None:
     for stat in stats:
         url = f"{HOST}/api/metric/semgrep.core.{stat.lang}.parse.pct"
         r = urllib.request.urlopen(  # nosemgrep

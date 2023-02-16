@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import hashlib
 import json
 import os
@@ -6,22 +8,22 @@ import sys
 import urllib.request
 from typing import Any
 from typing import Callable
-from typing import Dict
-from typing import List
 
 
 def asset_for(
-    release: Dict[str, Any], f: Callable[[Dict[str, Any]], Any]
-) -> List[Dict[str, Any]]:
+    release: dict[str, Any], f: Callable[[dict[str, Any]], Any]
+) -> list[dict[str, Any]]:
     return [asset for asset in release["assets"] if f(asset)]
 
 
-def check_ubuntu_binary(release: Dict[str, Any], version: str) -> List[str]:
+def check_ubuntu_binary(release: dict[str, Any], version: str) -> list[str]:
     errs = []
     # TODO: should we be making a 16.04 asset?
     for ubuntu_version in ["16.04"]:  # , '18.04']:
         expected_name = f"semgrep-{version}-ubuntu-{ubuntu_version}.tgz"
-        ubuntu_assets = asset_for(release, lambda a: a["name"] == expected_name)
+        ubuntu_assets = asset_for(
+            release, lambda a: a["name"] == expected_name  # noqa: B023
+        )
         if len(ubuntu_assets) != 1:
             asset_names = [asset["name"] for asset in release["assets"]]
             errs.append(
@@ -31,7 +33,7 @@ def check_ubuntu_binary(release: Dict[str, Any], version: str) -> List[str]:
     return errs
 
 
-def check_osx_binary(release: Dict[str, Any], version: str) -> List[str]:
+def check_osx_binary(release: dict[str, Any], version: str) -> list[str]:
     errs = []
     expected_name = f"semgrep-{version}-osx.zip"
     osx_assets = asset_for(release, lambda a: a["name"] == expected_name)
@@ -43,11 +45,13 @@ def check_osx_binary(release: Dict[str, Any], version: str) -> List[str]:
     return errs
 
 
-def validate_checksums(release: Dict[str, Any], version: str) -> List[str]:
-    errs: List[str] = []
+def validate_checksums(release: dict[str, Any], version: str) -> list[str]:
+    errs: list[str] = []
     all_assets = asset_for(release, lambda asset: "sha256" not in asset["name"])
     for asset in all_assets:
-        checksum = asset_for(release, lambda a: a["name"] == asset["name"] + ".sha256")
+        checksum = asset_for(
+            release, lambda a: a["name"] == asset["name"] + ".sha256"  # noqa: B023
+        )
         if not checksum:
             errs.append(f'No check sum for {asset["name"]}')
         checksum_data = checksum[0]
@@ -60,7 +64,7 @@ def validate_checksums(release: Dict[str, Any], version: str) -> List[str]:
     return errs
 
 
-def validate_checksum(name: str, actual_url: str, checksum_url: str) -> List[str]:
+def validate_checksum(name: str, actual_url: str, checksum_url: str) -> list[str]:
     actual_data = urllib.request.urlopen(actual_url).read()
     checksum_data = (
         urllib.request.urlopen(checksum_url).read().decode("utf-8").split()[0].strip()
@@ -102,7 +106,7 @@ if __name__ == "__main__":
 
     release = matching_releases[0]
 
-    errs: List[str] = []
+    errs: list[str] = []
     for check in CHECKS:
         errs += check(release, version)
 

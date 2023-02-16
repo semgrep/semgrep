@@ -3,17 +3,18 @@
 # Compare the findings for two different versions of semgrep.
 # It's meant to run within a semgrep pull request.
 #
+from __future__ import annotations
+
 import json
 import os
 import sys
 from pathlib import Path
 from typing import Any
-from typing import Dict
 
 FINDINGS_SNAPSHOT_PATH = "snapshots/benchmark_findings.json"
 
 
-def findings_differ(expected: Dict[str, Any], findings: Dict[str, Any]) -> bool:
+def findings_differ(expected: dict[str, Any], findings: dict[str, Any]) -> bool:
     name = findings["name"]
     baseline = {json.dumps(result) for result in expected["findings"]["results"]}
     latest = {json.dumps(result) for result in findings["findings"]["results"]}
@@ -33,12 +34,12 @@ def findings_differ(expected: Dict[str, Any], findings: Dict[str, Any]) -> bool:
         output_diff(b_diff)
         print(f"Extra {ld_len} findings:")
         output_diff(l_diff)
-        print(f"*" * 70)
+        print("*" * 70)
         return True
     return False
 
 
-def read_findings(filename: Path) -> Dict[str, Any]:
+def read_findings(filename: Path) -> dict[str, Any]:
     print(f"Reading {filename}")
     with open(filename) as f:
         return json.load(f)
@@ -52,8 +53,8 @@ def main() -> None:
 
     errors = 0
 
-    for expected, findings in zip(expected, findings):
-        if findings_differ(expected, findings):
+    for expected_item, findings_item in zip(expected, findings):
+        if findings_differ(expected_item, findings_item):
             errors += 1
 
     # Fail only after printing and sending all messages

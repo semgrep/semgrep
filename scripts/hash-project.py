@@ -4,6 +4,8 @@ E.g.
 
   pipenv run ../scripts/hash-project.py $(git ls-remote --get-url)
 """
+from __future__ import annotations
+
 from sys import argv
 
 from semgrep.metrics import Metrics

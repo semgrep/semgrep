@@ -1,7 +1,7 @@
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
-from typing import Optional
-from typing import Union
 
 
 # Run command and propagate errors
@@ -16,9 +16,9 @@ class Corpus:
     def __init__(
         self,
         name: str,
-        rule_dir: Union[str, Path],
-        target_dir: Union[str, Path],
-        language: Optional[str] = None,
+        rule_dir: str | Path,
+        target_dir: str | Path,
+        language: str | None = None,
     ):
         # name for the input corpus (rules and targets)
         self.name = name

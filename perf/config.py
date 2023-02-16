@@ -1,21 +1,18 @@
+from __future__ import annotations
+
 import logging
 import os
 import shutil
 import sys
 import time
 from pathlib import Path
-from typing import List
-from typing import Optional
-from typing import Type
 from urllib.parse import urlparse
 
 import requests
 from attrs import define
 from attrs import field
 from ruamel.yaml import YAML
-
 from semgrep.state import get_state
-
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.DEBUG)
@@ -38,7 +35,7 @@ class Repository:
 class RuleConfig:
     config_str: str = field(default="")
 
-    def _fetch_rule_config_from_url(self, rule_config_url: str) -> Optional[str]:
+    def _fetch_rule_config_from_url(self, rule_config_url: str) -> str | None:
         logger.info(f"Fetching config from '{rule_config_url}'")
         try:
             r = requests.get(
@@ -57,10 +54,10 @@ class RuleConfig:
             return None
         return r.text
 
-    def _fetch_rule_config_from_path(self, path: Path) -> Optional[str]:
+    def _fetch_rule_config_from_path(self, path: Path) -> str | None:
         pass
 
-    def _write(self, path: Path, text: Optional[str]) -> None:
+    def _write(self, path: Path, text: str | None) -> None:
         if not text:
             raise ValueError(
                 f"Data was not received from '{self.config_str}'. Could not write config"
@@ -179,9 +176,9 @@ class BenchmarkRunSetupData:
     """
 
     run_name: str = field(default="benchmark_run")
-    rule_configs: List[RuleConfig] = field(default=["p/r2c"])
-    repositories: List[Repository] = field(factory=list)
-    semgrep_options: List[str] = field(factory=list)
+    rule_configs: list[RuleConfig] = field(default=["p/r2c"])
+    repositories: list[Repository] = field(factory=list)
+    semgrep_options: list[str] = field(factory=list)
 
 
 @define
@@ -206,12 +203,12 @@ class SemgrepBenchmarkConfig:
     '''
     """
 
-    benchmark_setup_data: List[BenchmarkRunSetupData] = field(factory=list)
+    benchmark_setup_data: list[BenchmarkRunSetupData] = field(factory=list)
 
     @classmethod
     def parse_config(
-        cls: Type["SemgrepBenchmarkConfig"], config_file: Path
-    ) -> "SemgrepBenchmarkConfig":
+        cls: type[SemgrepBenchmarkConfig], config_file: Path
+    ) -> SemgrepBenchmarkConfig:
         logger.debug(f"Using config at {config_file.absolute()}")
         with open(config_file) as fin:
             config = yaml.load(fin)

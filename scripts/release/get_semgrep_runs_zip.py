@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import subprocess
 from typing import Any
 from typing import Mapping
@@ -31,7 +33,7 @@ def _get_last_rules_commit() -> str:
 
 
 def _get_action_run() -> JsonObject:
-    res = _gh_get(f"actions/runs?branch=develop&event=push")
+    res = _gh_get("actions/runs?branch=develop&event=push")
     # Runs are in reverse time order, so this gets the most recent run
     return next(r for r in res["workflow_runs"] if r["name"] == "semgrep-rules-test")
 
@@ -63,8 +65,8 @@ def main(access_token: str):
     url: str = _get_artifact_url(run_id)
     err(f"Downloading {url}")
     _get_runs_artifact(url, access_token)
-    err(f"Download successful")
-    err(f"Unzipping archive")
+    err("Download successful")
+    err("Unzipping archive")
     _unzip_artifact()
     err(f"Done; artifact is at {FILE_LOC}")
 

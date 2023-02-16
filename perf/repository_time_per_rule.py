@@ -1,11 +1,10 @@
+from __future__ import annotations
+
 import json
 import logging
 import sys
 from collections import defaultdict
 from operator import add
-from typing import Dict
-from typing import List
-from typing import Optional
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
@@ -21,7 +20,7 @@ class TotalTimeAndTargetNum:
         self.total_rule_time = total_rule_time
         self.num_targets = num_targets
 
-    def __add__(self, other: "TotalTimeAndTargetNum") -> "TotalTimeAndTargetNum":
+    def __add__(self, other: TotalTimeAndTargetNum) -> TotalTimeAndTargetNum:
         added_total_rule_time = self.total_rule_time + other.total_rule_time
         added_num_targets = self.num_targets + other.num_targets
         return TotalTimeAndTargetNum(added_total_rule_time, added_num_targets)
@@ -34,10 +33,8 @@ class RepositoryTimePerRule:
     def __init__(
         self,
         output_file: str,
-        repo_to_times_per_rule: Optional[Dict[str, Dict[str, float]]] = None,
-        rules_to_total_time_num_files: Optional[
-            Dict[str, TotalTimeAndTargetNum]
-        ] = None,
+        repo_to_times_per_rule: dict[str, dict[str, float]] | None = None,
+        rules_to_total_time_num_files: dict[str, TotalTimeAndTargetNum] | None = None,
     ) -> None:
         self.repo_to_times_per_rule = repo_to_times_per_rule or defaultdict(dict)
         self.output_file = output_file
@@ -45,7 +42,7 @@ class RepositoryTimePerRule:
             rules_to_total_time_num_files or defaultdict(TotalTimeAndTargetNum)
         )
 
-    def _calculate_time_per_rule(self) -> Dict[str, float]:
+    def _calculate_time_per_rule(self) -> dict[str, float]:
         time_per_rule_dict = defaultdict(float)
         for (
             rule_id,
@@ -57,7 +54,7 @@ class RepositoryTimePerRule:
     def times_per_file_to_times_per_rule(
         self, repo_name: str, times_per_file: dict
     ) -> None:
-        if not "time" in times_per_file:
+        if "time" not in times_per_file:
             logger.error(
                 "Semgrep-core ran without the --time flag, please try again with --time set to true."
             )
@@ -68,10 +65,10 @@ class RepositoryTimePerRule:
             rule_ids.append(rule_id["id"])
 
         # this is for repo -> rule_id -> time
-        total_time_per_rule: List[float] = [0.0] * len(rule_ids)
+        total_time_per_rule: list[float] = [0.0] * len(rule_ids)
 
         # this is for rule_id -> average file time, want to remove all 0 run-times
-        repo_time_per_rule_no_zeroes: Dict[str, TotalTimeAndTargetNum] = defaultdict(
+        repo_time_per_rule_no_zeroes: dict[str, TotalTimeAndTargetNum] = defaultdict(
             TotalTimeAndTargetNum
         )
 

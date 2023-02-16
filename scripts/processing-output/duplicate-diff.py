@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import json
 
@@ -36,7 +38,7 @@ for target in target_times:
 rule_run_times = {}
 for i in range(num_rules):
     rule = rules[i]["id"]
-    if not rule in rule_run_times:
+    if rule not in rule_run_times:
         rule_run_times[rule] = []
     rule_run_times[rule].append(run_times[i])
 

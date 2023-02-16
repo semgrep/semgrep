@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,7 +11,6 @@ from typing import Mapping
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from jinja2 import select_autoescape
-
 
 # Generates Lang.ml from Lang.ml.j2 and the shared lang.json data structure.
 # See github.com/returntocorp/semgrep-langs for more information
@@ -35,7 +36,7 @@ class LanguageDefinition:
     tags: Collection[str]
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "LanguageDefinition":
+    def from_dict(cls, data: Mapping[str, Any]) -> LanguageDefinition:
         return cls(
             # "id" is mapped to OCaml types, which must begin with a capital letter
             id=data["id"].capitalize(),

@@ -1,5 +1,7 @@
 # Original source: semgrep/perf/bench/netflix/input/lemur/tests/conftest.py
 # type: ignore
+from __future__ import annotations
+
 import datetime
 import os
 
@@ -82,7 +84,7 @@ def db(app, request):
     UserFactory()
     r = RoleFactory(name="admin")
     u = UserFactory(roles=[r])
-    rp = RotationPolicyFactory(name="default")
+    RotationPolicyFactory(name="default")
     ApiKeyFactory(user=u)
 
     _db.session.commit()
@@ -90,7 +92,7 @@ def db(app, request):
     _db.drop_all()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def session(db, request):
     """
     Creates a new database session with (with working transaction)
@@ -101,54 +103,54 @@ def session(db, request):
     db.session.rollback()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def client(app, session, client):
-    yield client
+    return client
 
 
-@pytest.fixture
+@pytest.fixture()
 def authority(session):
     a = AuthorityFactory()
     session.commit()
     return a
 
 
-@pytest.fixture
+@pytest.fixture()
 def crypto_authority(session):
     a = CryptoAuthorityFactory()
     session.commit()
     return a
 
 
-@pytest.fixture
+@pytest.fixture()
 def async_authority(session):
     a = AsyncAuthorityFactory()
     session.commit()
     return a
 
 
-@pytest.fixture
+@pytest.fixture()
 def destination(session):
     d = DestinationFactory()
     session.commit()
     return d
 
 
-@pytest.fixture
+@pytest.fixture()
 def source(session):
     s = SourceFactory()
     session.commit()
     return s
 
 
-@pytest.fixture
+@pytest.fixture()
 def notification(session):
     n = NotificationFactory()
     session.commit()
     return n
 
 
-@pytest.fixture
+@pytest.fixture()
 def certificate(session):
     u = UserFactory()
     a = AuthorityFactory()
@@ -157,7 +159,7 @@ def certificate(session):
     return c
 
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint(session):
     s = SourceFactory()
     e = EndpointFactory(source=s)
@@ -165,14 +167,14 @@ def endpoint(session):
     return e
 
 
-@pytest.fixture
+@pytest.fixture()
 def role(session):
     r = RoleFactory()
     session.commit()
     return r
 
 
-@pytest.fixture
+@pytest.fixture()
 def user(session):
     u = UserFactory()
     session.commit()
@@ -181,7 +183,7 @@ def user(session):
     return {"user": u, "token": token}
 
 
-@pytest.fixture
+@pytest.fixture()
 def pending_certificate(session):
     u = UserFactory()
     a = AsyncAuthorityFactory()
@@ -190,7 +192,7 @@ def pending_certificate(session):
     return p
 
 
-@pytest.fixture
+@pytest.fixture()
 def pending_certificate_from_full_chain_ca(session):
     u = UserFactory()
     a = AuthorityFactory()
@@ -199,7 +201,7 @@ def pending_certificate_from_full_chain_ca(session):
     return p
 
 
-@pytest.fixture
+@pytest.fixture()
 def pending_certificate_from_partial_chain_ca(session):
     u = UserFactory()
     c = CACertificateFactory(body=ROOTCA_CERT_STR, private_key=ROOTCA_KEY, chain=None)
@@ -209,7 +211,7 @@ def pending_certificate_from_partial_chain_ca(session):
     return p
 
 
-@pytest.fixture
+@pytest.fixture()
 def invalid_certificate(session):
     u = UserFactory()
     a = AsyncAuthorityFactory()
@@ -218,7 +220,7 @@ def invalid_certificate(session):
     return i
 
 
-@pytest.fixture
+@pytest.fixture()
 def admin_user(session):
     u = UserFactory()
     admin_role = RoleFactory(name="admin")
@@ -229,76 +231,81 @@ def admin_user(session):
     return {"user": u, "token": token}
 
 
-@pytest.fixture
+@pytest.fixture()
 def async_issuer_plugin():
     from lemur.plugins.base import register
+
     from .plugins.issuer_plugin import TestAsyncIssuerPlugin
 
     register(TestAsyncIssuerPlugin)
     return TestAsyncIssuerPlugin
 
 
-@pytest.fixture
+@pytest.fixture()
 def issuer_plugin():
     from lemur.plugins.base import register
+
     from .plugins.issuer_plugin import TestIssuerPlugin
 
     register(TestIssuerPlugin)
     return TestIssuerPlugin
 
 
-@pytest.fixture
+@pytest.fixture()
 def notification_plugin():
     from lemur.plugins.base import register
+
     from .plugins.notification_plugin import TestNotificationPlugin
 
     register(TestNotificationPlugin)
     return TestNotificationPlugin
 
 
-@pytest.fixture
+@pytest.fixture()
 def destination_plugin():
     from lemur.plugins.base import register
+
     from .plugins.destination_plugin import TestDestinationPlugin
 
     register(TestDestinationPlugin)
     return TestDestinationPlugin
 
 
-@pytest.fixture
+@pytest.fixture()
 def source_plugin():
     from lemur.plugins.base import register
+
     from .plugins.source_plugin import TestSourcePlugin
 
     register(TestSourcePlugin)
     return TestSourcePlugin
 
 
-@pytest.fixture(scope="function")
-def logged_in_user(session, app):
+@pytest.fixture()
+def _logged_in_user(session, app):
     with app.test_request_context():
         identity_changed.send(current_app._get_current_object(), identity=Identity(1))
         yield
 
 
-@pytest.fixture(scope="function")
-def logged_in_admin(session, app):
+@pytest.fixture()
+def _logged_in_admin(session, app):
     with app.test_request_context():
         identity_changed.send(current_app._get_current_object(), identity=Identity(2))
         yield
 
 
-@pytest.fixture
+@pytest.fixture()
 def private_key():
     return parse_private_key(SAN_CERT_KEY)
 
 
-@pytest.fixture
+@pytest.fixture()
 def issuer_private_key():
     return parse_private_key(INTERMEDIATE_KEY)
 
 
-@pytest.fixture
+@pytest.fixture()
 def cert_builder(private_key):
     return (
         x509.CertificateBuilder()
@@ -315,14 +322,14 @@ def cert_builder(private_key):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def selfsigned_cert(cert_builder, private_key):
     # cert_builder uses the same cert public key as 'private_key'
     return cert_builder.sign(private_key, hashes.SHA256(), default_backend())
 
 
-@pytest.fixture(scope="function")
-def aws_credentials():
+@pytest.fixture()
+def _aws_credentials():
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
     os.environ["AWS_SECURITY_TOKEN"] = "testing"

@@ -1,6 +1,8 @@
 # type: ignore
 # Used for pre-commit since it expects a setup.py in repo root
 # for actual setup.py see cli/setup.py
+from __future__ import annotations
+
 from setuptools import setup
 
 setup(

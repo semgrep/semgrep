@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import json
 from pprint import pprint
@@ -69,7 +71,7 @@ for target in older_result_times["targets"]:
 newer_keys = newer_files.keys()
 older_keys = older_files.keys()
 diff_keys = newer_keys - older_keys
-diffs = list((key, newer_files[key]) for key in diff_keys)
+diffs = [(key, newer_files[key]) for key in diff_keys]
 
 print("Files only appearing in the new timing:")
 pprint(sorted(diffs, key=lambda x: x[1], reverse=True)[:10])

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 class SemgrepVariant:
     def __init__(self, name: str, semgrep_core_extra: str, semgrep_extra: str = ""):
         # name for the input corpus (rules and targets)
