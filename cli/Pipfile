@@ -6,7 +6,7 @@ verify_ssl = true
 [dev-packages]
 # testing & linting packages
 appdirs = "*"
-mypy = "==0.931"
+mypy = "==1.0.0"
 pytest = "*"
 pytest-snapshot = "*"
 pytest-xdist = "*"

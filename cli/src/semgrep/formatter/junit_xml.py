@@ -10,8 +10,8 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.error import SemgrepError
 from semgrep.external.junit_xml import TestCase  # type: ignore[attr-defined]
 from semgrep.external.junit_xml import TestSuite  # type: ignore[attr-defined]
-from semgrep.external.junit_xml import (
-    to_xml_report_string,  # type: ignore[attr-defined]
+from semgrep.external.junit_xml import (  # type: ignore[attr-defined]
+    to_xml_report_string,
 )
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule

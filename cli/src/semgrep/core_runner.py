@@ -12,7 +12,7 @@ import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Awaitable
 from typing import Any
 from typing import Dict
 from typing import List
@@ -221,7 +221,7 @@ class StreamingSemgrepCore:
         num_scanned_targets: int = 0
 
         # Start out reading two bytes at a time (".\n")
-        def get_input(s):
+        def get_input(s: asyncio.StreamReader) -> Awaitable[bytes]:
             return s.readexactly(2)
 
         reading_json = False
@@ -274,7 +274,7 @@ class StreamingSemgrepCore:
                 # so increase the buffer read size.
                 reading_json = True
 
-                def get_input(s):
+                def get_input(s: asyncio.StreamReader) -> Awaitable[bytes]:
                     return s.read(n=LARGE_READ_SIZE)
 
     async def _core_stderr_processor(self, stream: asyncio.StreamReader | None) -> None:

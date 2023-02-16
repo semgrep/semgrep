@@ -502,8 +502,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         before = []
         # only count before if we're not refreshing the diagnostics (refreshing = user did not change code but a config file or folder or git status changed)
         if self._diagnostics.get(uri) is not None:
-            before = [d["code"] for d in self._diagnostics[uri]]  # type: ignore
-        after = [d["code"] for d in diagnostics]  # type: ignore
+            before = [d["code"] for d in self._diagnostics[uri]]
+        after = [d["code"] for d in diagnostics]
         for r in set(before + after):
             count = after.count(r)
             closed = before.count(r) - count

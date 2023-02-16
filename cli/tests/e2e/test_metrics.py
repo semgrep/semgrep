@@ -53,7 +53,7 @@ USELESS_EQEQ = """rules:
 
 
 @pytest.fixture()
-def _mock_config_request(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+def _mock_config_request(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "semgrep.config_resolver.ConfigLoader._make_config_request",
         lambda s: USELESS_EQEQ,

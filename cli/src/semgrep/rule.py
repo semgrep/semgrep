@@ -251,10 +251,10 @@ class Rule:
                 for key in sorted(raw.keys()):
                     next_raw = raw.get(key)
                     if next_raw is not None:
-                        patterns_to_add.append(get_subrules(next_raw))
+                        patterns_to_add.append(get_subrules(next_raw))  # type: ignore[arg-type]
             elif isinstance(raw, list):
                 for p in raw:
-                    patterns_to_add.append(get_subrules(p))
+                    patterns_to_add.append(get_subrules(p))  # type: ignore[arg-type]
             else:
                 raise ValueError(
                     f"This rule contains an unexpected pattern key: {self.id}:\n {str(raw)}"

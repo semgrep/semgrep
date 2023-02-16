@@ -5,8 +5,8 @@ from typing import Any
 
 import pytest
 
-from src.semgrep.config_resolver import get_config
-from src.semgrep.exclude_rules import filter_exclude_rule
+from semgrep.config_resolver import get_config
+from semgrep.exclude_rules import filter_exclude_rule
 
 MAX_RULES_TO_EXCLUDE = 10
 
