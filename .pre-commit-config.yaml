@@ -95,13 +95,6 @@ repos:
         args: [--config, mypy-tests.ini, --show-error-codes]
         additional_dependencies: *mypy-deps
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: 3.9.2
-    hooks:
-      - id: flake8
-        additional_dependencies: ["flake8-bugbear==22.1.11"]
-        args: ["--select=B,E9,F4,F63,F7,F82"]
-
   # Reformat YAML, JSON, and Markdown files
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v2.7.1
