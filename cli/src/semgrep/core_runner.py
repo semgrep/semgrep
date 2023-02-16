@@ -385,7 +385,7 @@ class StreamingSemgrepCore:
         # Invoke the semgrep_bridge_python module.
         err = semgrep_bridge_python.semgrep_analyze(self._cmd, self._handle_read_file)
 
-        if err != None:
+        if err is not None:
             # Convey an error back to the parent.
             print(err, file=sys.stderr)
             sys.exit(2)

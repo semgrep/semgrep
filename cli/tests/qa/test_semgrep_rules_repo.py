@@ -16,7 +16,7 @@ def get_git_project_root() -> str:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def in_semgrep_rules_repo(tmpdir_factory):
+def _in_semgrep_rules_repo(tmpdir_factory):
     project_root = Path(get_git_project_root())
     monkeypatch = pytest.MonkeyPatch()
     # semgrep-rules is available as a git submodule:

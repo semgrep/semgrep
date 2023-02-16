@@ -104,7 +104,7 @@ def test_projectconfig_load_from_file_invalid_format(tmp_path):
     with tmp_file.open("w") as f:
         yaml.dump(invalid_cfg, f)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="tags must be a list of strings"):
         ProjectConfig.load_from_file(tmp_file)
 
 

@@ -8,6 +8,6 @@ def trace_print_hook(
     obj: dict[str, str] | bytes,
     attr_name: str,
     args: tuple = (),
-    kwargs: dict[Any, Any] = {},
+    kwargs: dict[Any, Any] = {},  # noqa: B006
     result: Any = ...,
 ) -> None: ...

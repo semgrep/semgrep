@@ -97,7 +97,16 @@ def run_sentinel_scan(check: bool = True, base_commit: str | None = None):
     Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
     env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
 
-    cmd = [*SEMGREP_BASE_COMMAND, "--disable-version-check", "--metrics", "off", "-e", f"$X = {SENTINEL_1}", "-l", "python"]
+    cmd = [
+        *SEMGREP_BASE_COMMAND,
+        "--disable-version-check",
+        "--metrics",
+        "off",
+        "-e",
+        f"$X = {SENTINEL_1}",
+        "-l",
+        "python",
+    ]
     if base_commit:
         cmd.extend(["--baseline-commit", base_commit])
 
@@ -679,7 +688,7 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
 
 
 @pytest.fixture()
-def complex_merge_repo(git_tmp_path, snapshot):
+def _complex_merge_repo(git_tmp_path, snapshot):
     r"""
     This generates a complex history like this:
 
@@ -751,7 +760,9 @@ def complex_merge_repo(git_tmp_path, snapshot):
         commits["baz"].append(_git_commit(index, add=True))
 
 
-@pytest.mark.parametrize(("current", "baseline"), permutations(["foo", "bar", "baz"], 2))
+@pytest.mark.parametrize(
+    ("current", "baseline"), permutations(["foo", "bar", "baz"], 2)
+)
 def test_crisscrossing_merges(complex_merge_repo, current, baseline, snapshot):
     subprocess.run(["git", "checkout", current])
     output = run_sentinel_scan(base_commit=baseline)

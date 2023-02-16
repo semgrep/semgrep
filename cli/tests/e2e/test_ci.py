@@ -165,7 +165,7 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
 
 
 @pytest.fixture(autouse=True)
-def automocks(mocker):
+def _automocks(mocker):
     """
     Necessary patches to run `semgrep ci` tests
     """
@@ -253,7 +253,7 @@ def automocks(mocker):
 
 
 @pytest.fixture(params=[True, False], ids=["autofix", "noautofix"])
-def mock_autofix(request, mocker):
+def _mock_autofix(request, mocker):
     mocker.patch.object(ScanHandler, "autofix", request.param)
 
 

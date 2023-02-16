@@ -50,7 +50,10 @@ def test_baseline_context(monkeypatch, tmp_path):
     # Add and commit all changes
     subprocess.check_call(["git", "add", "."])
     # baseline_handler aborts on pending changes
-    with pytest.raises(Exception) as e:
+    with pytest.raises(
+        Exception,
+        match="Found pending changes in tracked files. Baseline scans runs require a clean git state.",
+    ) as e:
         BaselineHandler(base_commit)
     assert "Found pending changes" in str(e)
     subprocess.check_call(["git", "commit", "-m", "second"])

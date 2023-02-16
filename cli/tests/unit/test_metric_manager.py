@@ -14,7 +14,7 @@ pytestmark = pytest.mark.freeze_time("2017-03-03")
 
 
 @pytest.fixture(autouse=True)
-def automocks(mocker) -> None:
+def _automocks(mocker) -> None:
     # this makes event_id deterministic
     mocker.patch("uuid.uuid4", return_value=uuid.UUID("0" * 32))
 
