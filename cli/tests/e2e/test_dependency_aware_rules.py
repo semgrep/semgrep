@@ -77,6 +77,14 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/yarn_at_in_version",
         ),
         (
+            "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_extra_field",
+        ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_optional",
+        ),
+        (
             "rules/dependency_aware/js-sca.yaml",
             "dependency_aware/package-lock_resolved_false",
         ),
