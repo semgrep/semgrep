@@ -21,7 +21,6 @@ from typing import cast
 from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
 from semdep.find_lockfiles import LOCKFILE_TO_MANIFEST
 from semdep.parse_lockfile import parse_lockfile_path
-
 from semgrep.git import BaselineHandler
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency

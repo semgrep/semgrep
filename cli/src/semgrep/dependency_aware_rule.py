@@ -5,12 +5,11 @@ from pathlib import Path
 from typing import Callable
 from typing import Iterator
 
+import semgrep.output_from_core as core
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 from semdep.find_lockfiles import find_single_lockfile
 from semdep.package_restrictions import dependencies_range_match_any
-
-import semgrep.output_from_core as core
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch

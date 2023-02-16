@@ -6,18 +6,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from semdep.external.parsy import regex
+from semdep.external.parsy import string
+from semdep.parsers.util import consume_line
+from semdep.parsers.util import mark_line
+from semdep.parsers.util import safe_path_parse
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-
-from semdep.external.parsy import regex
-from semdep.external.parsy import string
-from semdep.parsers.util import consume_line
-from semdep.parsers.util import mark_line
-from semdep.parsers.util import safe_path_parse
 
 # Annoying to read. In english "6 colon separated strings or 5 colon separated strings"
 # Examples:

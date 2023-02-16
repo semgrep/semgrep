@@ -5,9 +5,9 @@ from typing import Sequence
 
 import pytest
 import ruamel.yaml
-from semgrep.project import ProjectConfig
-
 from tests.conftest import make_semgrepconfig_file
+
+from semgrep.project import ProjectConfig
 
 CONFIG_TAGS = "tags:\n- tag1\n- tag_key:tag_val\n"
 CONFIG_TAGS_MONOREPO_1 = "tags:\n- tag1\n- service:service-1\n"

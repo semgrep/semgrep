@@ -6,18 +6,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from semdep.parsers.util import JSON
+from semdep.parsers.util import extract_npm_lockfile_hash
+from semdep.parsers.util import json_doc
+from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.verbose_logging import getLogger
-
-from semdep.parsers.util import JSON
-from semdep.parsers.util import extract_npm_lockfile_hash
-from semdep.parsers.util import json_doc
-from semdep.parsers.util import safe_path_parse
-from semdep.parsers.util import transitivity
 
 logger = getLogger(__name__)
 

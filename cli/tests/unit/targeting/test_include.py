@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+
 from semgrep.target_manager import TargetManager
 
 CANDIDATE_NAMES = [

@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from typing import Collection
 
 import pytest
+
 from semgrep.error import FilesNotFoundError
 from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import Language

@@ -5,6 +5,7 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
+
 import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import parse_config_string

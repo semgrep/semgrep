@@ -13,9 +13,9 @@ import uuid
 import dateutil.tz
 import freezegun.api
 import pytest
+
 from semgrep.cli import cli
 from semgrep.profiling import ProfilingData
-
 from tests.conftest import TESTS_PATH
 from tests.semgrep_runner import SemgrepRunner
 

@@ -7,8 +7,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from semgrep.constants import OutputFormat
 
+from semgrep.constants import OutputFormat
 from tests.conftest import _clean_output_json
 from tests.conftest import _clean_stdout
 from tests.semgrep_runner import SEMGREP_BASE_COMMAND

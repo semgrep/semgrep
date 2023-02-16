@@ -4,6 +4,7 @@ from random import sample
 from typing import Any
 
 import pytest
+
 from semgrep.config_resolver import get_config
 from semgrep.exclude_rules import filter_exclude_rule
 

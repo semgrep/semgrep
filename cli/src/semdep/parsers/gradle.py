@@ -8,11 +8,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
-from semgrep.verbose_logging import getLogger
-
 from semdep.external.parsy import Parser
 from semdep.external.parsy import any_char
 from semdep.external.parsy import regex
@@ -24,6 +19,10 @@ from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
+from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 

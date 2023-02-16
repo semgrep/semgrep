@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from semgrep.join_rule import Condition
 from semgrep.join_rule import InvalidConditionError
 from semgrep.join_rule import JoinOperator

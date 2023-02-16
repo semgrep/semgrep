@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from semdep.package_restrictions import semver_matches
 
 

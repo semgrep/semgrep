@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from semgrep.constants import OutputFormat
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 import pytest
+
 from semgrep.constants import OutputFormat
 
 from ..conftest import TESTS_PATH

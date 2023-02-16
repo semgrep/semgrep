@@ -8,6 +8,7 @@ from typing import Iterable
 from typing import Iterator
 
 import pytest
+
 from semgrep.test import COMMENT_SYNTAXES
 from semgrep.test import OK
 from semgrep.test import RULEID

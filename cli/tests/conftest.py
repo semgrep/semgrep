@@ -18,12 +18,12 @@ from typing import Union
 
 import colorama
 import pytest
+
 from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
 from semgrep.cli import cli
 from semgrep.constants import OutputFormat
 from semgrep.lsp.server import SemgrepLSPServer
-
 from tests.semgrep_runner import SemgrepRunner
 
 TESTS_PATH = Path(__file__).parent

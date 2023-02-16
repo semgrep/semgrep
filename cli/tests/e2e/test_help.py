@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from semgrep.cli import cli
 
+from semgrep.cli import cli
 from tests.semgrep_runner import SemgrepRunner
 
 

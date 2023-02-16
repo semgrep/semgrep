@@ -12,8 +12,8 @@ from pathlib import Path
 from shutil import copytree
 
 import pytest
-from semgrep.cli import cli
 
+from semgrep.cli import cli
 from tests.conftest import TESTS_PATH
 from tests.semgrep_runner import SemgrepRunner
 

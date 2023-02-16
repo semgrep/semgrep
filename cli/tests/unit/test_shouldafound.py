@@ -5,6 +5,7 @@ from textwrap import dedent
 
 import pytest
 from click.testing import CliRunner
+
 from semgrep.cli import cli
 from semgrep.commands import shouldafound
 from semgrep.error import SemgrepError

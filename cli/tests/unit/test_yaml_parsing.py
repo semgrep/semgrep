@@ -6,6 +6,7 @@ from textwrap import dedent
 
 import pytest
 from ruamel.yaml import YAML
+
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import parse_config_string
 from semgrep.config_resolver import validate_single_rule

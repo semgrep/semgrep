@@ -7,6 +7,7 @@ from shutil import copytree
 from unittest.mock import ANY  # nosem: use-pytest-mock
 
 import pytest
+
 from semgrep.commands import scan
 from semgrep.commands import shouldafound
 

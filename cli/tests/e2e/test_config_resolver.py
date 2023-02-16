@@ -3,9 +3,9 @@ from __future__ import annotations
 from textwrap import dedent
 
 import pytest
+
 from semgrep.cli import cli
 from semgrep.config_resolver import ConfigLoader
-
 from tests.semgrep_runner import SemgrepRunner
 
 

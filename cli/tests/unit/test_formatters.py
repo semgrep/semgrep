@@ -6,8 +6,9 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
-import semgrep.output_from_core as core
 from ruamel.yaml import YAML
+
+import semgrep.output_from_core as core
 from semgrep.constants import RuleSeverity
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.rule import Rule

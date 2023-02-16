@@ -3,6 +3,7 @@ from __future__ import annotations
 from textwrap import dedent
 
 import pytest
+
 from semgrep.config_resolver import parse_config_string
 from semgrep.rule import Rule
 

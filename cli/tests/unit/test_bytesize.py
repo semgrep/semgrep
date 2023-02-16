@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from semgrep.bytesize import parse_size
 
 TESTS = [

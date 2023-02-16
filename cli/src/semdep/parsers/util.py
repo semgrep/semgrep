@@ -23,12 +23,6 @@ from typing import Tuple
 from typing import TypeVar
 from typing import cast
 
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
-from semgrep.verbose_logging import getLogger
-
 from semdep.external.parsy import ParseError
 from semdep.external.parsy import Parser
 from semdep.external.parsy import alt
@@ -37,6 +31,11 @@ from semdep.external.parsy import line_info
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
+from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 

@@ -10,6 +10,7 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
+
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
 from semgrep.app.session import AppSession
@@ -18,7 +19,6 @@ from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
-
 from tests.conftest import make_semgrepconfig_file
 from tests.e2e.test_baseline import _git_commit
 from tests.e2e.test_baseline import _git_merge

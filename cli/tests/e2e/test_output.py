@@ -8,8 +8,8 @@ from pathlib import Path
 from xml.etree import cElementTree
 
 import pytest
-from semgrep.constants import OutputFormat
 
+from semgrep.constants import OutputFormat
 from tests.conftest import TESTS_PATH
 from tests.e2e.test_ci import REPO_DIR_NAME
 

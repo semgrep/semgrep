@@ -12,12 +12,6 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
-
 from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_sum import parse_go_sum
 from semdep.parsers.gradle import parse_gradle
@@ -27,6 +21,11 @@ from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.yarn import parse_yarn
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 
 def parse_cargo(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from pytest_mock import MockerFixture
+
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error_handler import ErrorHandler
 

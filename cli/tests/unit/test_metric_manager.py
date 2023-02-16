@@ -5,6 +5,7 @@ from tempfile import NamedTemporaryFile
 from textwrap import dedent
 
 import pytest
+
 from semgrep.config_resolver import Config
 from semgrep.metrics import Metrics
 from semgrep.metrics import MetricsState

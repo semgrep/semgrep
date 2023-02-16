@@ -10,6 +10,7 @@ from typing import Sequence
 import click
 import requests
 from ruamel import yaml
+
 from semgrep.semgrep_types import LANGUAGE
 
 SEMGREP_DEV_TIMEOUT_S = 30.0

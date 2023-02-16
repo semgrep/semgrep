@@ -7,15 +7,14 @@ from __future__ import annotations
 from collections import defaultdict
 from pathlib import Path
 
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-from semgrep.verbose_logging import getLogger
-
 from semdep.parsers.poetry import manifest
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -11,8 +12,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-
-from semdep.parse_lockfile import parse_lockfile_path
 
 ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt"],

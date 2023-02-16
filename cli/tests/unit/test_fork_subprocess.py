@@ -13,6 +13,7 @@ import traceback  # print_tb
 from typing import Any
 
 import pytest  # CaptureFixture, mark
+
 import semgrep.fork_subprocess as fork_subprocess
 
 # When true, suppress printing in 'prinq'.

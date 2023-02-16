@@ -7,10 +7,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-
 from semdep.external.parsy import string
 from semdep.external.parsy import string_from
 from semdep.external.parsy import success
@@ -20,6 +16,9 @@ from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 
 whitespace = whitespace | string("\\\n")
 

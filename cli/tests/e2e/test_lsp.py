@@ -5,9 +5,9 @@ from typing import Any
 from typing import Mapping
 
 import pytest
+
 from semgrep.lsp.server import SemgrepLSPServer
 from semgrep.lsp.types import TextDocumentItem
-
 from tests.conftest import _clean_output_lsp
 
 
