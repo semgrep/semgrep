@@ -50,7 +50,7 @@ repos:
   # Extra hooks with repositories defining their own hooks
   # ----------------------------------------------------------
   - repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 23.1.0
     hooks:
       - id: black
 

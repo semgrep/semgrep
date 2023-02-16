@@ -40,7 +40,6 @@ import pytest
 )
 @pytest.mark.kinda_slow()
 def test_autofix(run_semgrep_on_copied_files, tmp_path, snapshot, rule, target, dryrun):
-
     # Use run_semgrep_on_copied_files to prevent alteration of the source-controlled test directory
     result = run_semgrep_on_copied_files(
         rule,

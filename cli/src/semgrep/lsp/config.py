@@ -317,7 +317,6 @@ class LSPConfig:
     ) -> None:
         """Add or remove folders from our config, and update what we need to"""
         if self._workspace_folders is not None:
-
             if added is not None:
                 self._workspace_folders.extend(added)
             if removed is not None:

@@ -11,7 +11,6 @@ from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 
 
 def semver_matches(expression: str, actual_version: str) -> bool:
-
     try:
         ss = SpecifierSet(expression)
         matched = len(list(ss.filter([actual_version]))) > 0

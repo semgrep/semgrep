@@ -116,7 +116,6 @@ class SarifFormatter(BaseFormatter):
 
     @staticmethod
     def _dataflow_trace_to_thread_flows_sarif(rule_match: RuleMatch) -> Any:
-
         thread_flows = []
         locations = []
 
@@ -240,7 +239,6 @@ class SarifFormatter(BaseFormatter):
 
     @staticmethod
     def _rule_match_to_sarif_fix(rule_match: RuleMatch) -> Mapping[str, Any] | None:
-
         # if rule_match.extra.get("dependency_matches"):
         fixed_lines = rule_match.extra.get("fixed_lines")
 

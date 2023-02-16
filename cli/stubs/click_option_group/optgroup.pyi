@@ -13,6 +13,6 @@ def group(
     *,
     help: str | None = None,
     cls: type[OptionGroup] | None = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Callable[[_F], _F]: ...
 def option(*args: Any, **kwargs: Any) -> Callable[[_F], _F]: ...

@@ -55,6 +55,7 @@ FINDINGS_SNAPSHOT_PATH = "snapshots/benchmark_findings.json"
 PERF_PATH = "semgrep/perf"
 PERF_RULE_PATH = "semgrep.perf"
 
+
 # This class allows us to put semgrep results in a set and compute set
 # differences while saving the original JSON dictionary
 class SemgrepResult:
@@ -479,7 +480,6 @@ def run_benchmarks(
 
             std_findings = {}
             for variant in variants:
-
                 # Run variant
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])

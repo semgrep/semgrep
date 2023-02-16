@@ -21,7 +21,10 @@ class InputType:
 class Table:
     def __init__(
         self,
-        data: list[list[str] | list[int | str]] | list[list[int | str]] | list[list[dict[str, str] | None | str]] | None = ...,
+        data: list[list[str] | list[int | str]]
+        | list[list[int | str]]
+        | list[list[dict[str, str] | None | str]]
+        | None = ...,
         headers: Any = ...,
         metadata: None = ...,
     ) -> None: ...
@@ -37,7 +40,10 @@ class Table:
     def _set_width(self, reset: bool = ...) -> None: ...
     def extend(
         self,
-        data: list[list[dict[str, str] | None | str]] | list[list[int | str] | list[int]] | list[list[int | str]] | islice,
+        data: list[list[dict[str, str] | None | str]]
+        | list[list[int | str] | list[int]]
+        | list[list[int | str]]
+        | islice,
     ) -> None: ...
     @classmethod
     def from_data(

@@ -129,7 +129,6 @@ def test_read_line_args(tmp_path, mocker):
 
 @pytest.mark.quick()
 def test_handle_api_error(tmp_path, mocker):
-
     runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
 
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=FILE_CONTENT))

@@ -83,9 +83,7 @@ def _get_test_code_for_config(
     help="If --visibility is set to public, this is the path the rule will have in the registry (example: python.flask.my-new-rule",
 )
 @handle_command_errors
-def publish(
-    target: str, visibility: VisibilityState, registry_id: str | None
-) -> None:
+def publish(target: str, visibility: VisibilityState, registry_id: str | None) -> None:
     """
     Upload rule to semgrep.dev
 

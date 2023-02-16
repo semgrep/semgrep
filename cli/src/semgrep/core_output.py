@@ -34,7 +34,6 @@ def _core_location_to_error_span(location: core.Location) -> out.ErrorSpan:
 
 
 def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
-
     # Hackily convert the level string to Semgrep expectations
     level_str = err.severity.kind
     if level_str.upper() == "WARNING":

@@ -208,7 +208,9 @@ def get_expected_and_reported_lines(
                         effective_line_num,
                         test_file_resolved,
                     )
-            except ValueError:  # comment looked like a test annotation but couldn't parse
+            except (
+                ValueError
+            ):  # comment looked like a test annotation but couldn't parse
                 logger.warning(
                     f"Could not parse {line} as a test annotation in file {test_file_resolved}. Skipping this line"
                 )
@@ -374,7 +376,6 @@ def get_config_test_filenames(
 def get_config_fixtest_filenames(
     original_target: Path, targets: dict[Path, list[Path]]
 ) -> dict[Path, list[tuple[Path, Path]]]:
-
     original_target_is_file_not_directory = original_target.is_file()
 
     if original_target_is_file_not_directory:
@@ -420,7 +421,8 @@ def config_contains_fix_key(config: Path) -> bool:
 def checkid_passed(matches_for_checkid: dict[str, Any]) -> bool:
     for _filename, expected_and_reported_lines in matches_for_checkid.items():
         if (
-            expected_and_reported_lines["expected_lines"] != expected_and_reported_lines["reported_lines"]
+            expected_and_reported_lines["expected_lines"]
+            != expected_and_reported_lines["reported_lines"]
         ):
             return False
     return True
@@ -429,7 +431,6 @@ def checkid_passed(matches_for_checkid: dict[str, Any]) -> bool:
 def fixed_file_comparison(
     fixed_testfile: Path, expected_fixed_testfile: str
 ) -> list[str]:
-
     diff = []
     with open(fixed_testfile) as file1, open(expected_fixed_testfile) as file2:
         lines1 = file1.readlines()
@@ -685,7 +686,6 @@ def test_main(
     optimizations: str,
     engine: EngineType,
 ) -> None:
-
     if len(target) != 1:
         raise Exception("only one target directory allowed for tests")
     target_path = Path(target[0])

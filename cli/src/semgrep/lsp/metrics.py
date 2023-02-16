@@ -21,6 +21,7 @@ from semgrep.metrics import MetricsState
 #    - For every scan, if there's X findings, and on the next
 #      there's Y w/ Y < X findings, we will increase the counter by X-Y
 
+
 # 1 may not cover if users fix one thing and another pops up during the
 # session, but unlike 2 we don't count a bunch of redos + autosave + undos as
 # possible fixes. Really 2 should be more accurate unless a user undos a lot of

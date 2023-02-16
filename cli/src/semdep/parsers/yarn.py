@@ -37,14 +37,14 @@ logger = getLogger(__name__)
 
 A = TypeVar("A")
 
+
 # The initial line of a yarn version 1 dependency, lists the constraints that lead to this package
 # Examples:
 # "@ampproject/remapping@^2.0.0"
 # bad-lib@0.0.8
 # "filedep@file:../../correct/path/filedep":
 # "bats@https://github.com/bats-core/bats-core#master":
-def source1(quoted: bool) -> Parser[tuple[str,str]]:
-
+def source1(quoted: bool) -> Parser[tuple[str, str]]:
     return pair(
         string("@").optional("") + upto("@", consume_other=True),
         # If the source is quoted, then we know it ends at a quote

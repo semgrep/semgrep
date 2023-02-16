@@ -60,9 +60,7 @@ class ErrorHandler:
 
         state = get_state()
 
-        if (
-            exit_code in (OK_EXIT_CODE, FINDINGS_EXIT_CODE) or not self.is_enabled
-        ):
+        if exit_code in (OK_EXIT_CODE, FINDINGS_EXIT_CODE) or not self.is_enabled:
             return exit_code
 
         import traceback

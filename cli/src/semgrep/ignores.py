@@ -27,6 +27,7 @@ IGNORE_FILE_NAME = ".semgrepignore"
 
 logger = getLogger(__name__)
 
+
 # For some reason path.is_relative_to produces a complaint that 'PosixPath' object has no attribute 'is_relative_to'
 # So we just copy its implementation
 def path_is_relative_to(p1: Path, p2: Path) -> bool:
@@ -39,6 +40,7 @@ def path_is_relative_to(p1: Path, p2: Path) -> bool:
 
 ## TODO: This files duplicates the .semgrepignore functionality from semgrep-action.
 ## We should ultimately remove this from semgrep-action, and keep it as part of the CLI
+
 
 # This class is a duplicate of the FileIgnore class in semgrep-action, but with all file walking functionality removed
 @frozen

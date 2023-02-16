@@ -223,6 +223,7 @@ class StreamingSemgrepCore:
         # Start out reading two bytes at a time (".\n")
         def get_input(s):
             return s.readexactly(2)
+
         reading_json = False
         # Read ".\n" repeatedly until we reach the JSON output.
         # TODO: read progress from one channel and JSON data from another.
@@ -272,12 +273,11 @@ class StreamingSemgrepCore:
                 # Once we see a non-"." char it means we are reading a large json blob
                 # so increase the buffer read size.
                 reading_json = True
+
                 def get_input(s):
                     return s.read(n=LARGE_READ_SIZE)
 
-    async def _core_stderr_processor(
-        self, stream: asyncio.StreamReader | None
-    ) -> None:
+    async def _core_stderr_processor(self, stream: asyncio.StreamReader | None) -> None:
         """
         Asynchronously process stderr of semgrep-core
 

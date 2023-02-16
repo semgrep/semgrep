@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 class FilePerms:
     def __init__(self, user: str = ..., group: str = ..., other: str = ...) -> None: ...
     def __int__(self) -> int: ...

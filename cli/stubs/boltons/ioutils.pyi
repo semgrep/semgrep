@@ -10,7 +10,7 @@ from io import TextIOWrapper
 from typing import Any
 
 def is_text_fileobj(
-    fileobj: TextIOWrapper | BytesIO | BufferedReader | StringIO | StreamReaderWriter
+    fileobj: TextIOWrapper | BytesIO | BufferedReader | StringIO | StreamReaderWriter,
 ) -> bool: ...
 
 class MultiFileReader:

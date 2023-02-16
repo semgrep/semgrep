@@ -42,7 +42,6 @@ def test_file_not_relative_to_base_path(run_semgrep, snapshot):
 
 @pytest.mark.kinda_slow()
 def test_internal_explicit_semgrepignore(run_semgrep_in_tmp, tmp_path, snapshot):
-
     (tmp_path / ".semgrepignore").symlink_to(
         Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
     )

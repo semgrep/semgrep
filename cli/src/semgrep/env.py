@@ -26,9 +26,7 @@ def EnvFactory(envvars: str | Iterable[str]) -> str | None:
     ...
 
 
-def EnvFactory(
-    envvars: str | Iterable[str], default: str | None = None
-) -> str | None:
+def EnvFactory(envvars: str | Iterable[str], default: str | None = None) -> str | None:
     if isinstance(envvars, str):
         envvars = [envvars]
 

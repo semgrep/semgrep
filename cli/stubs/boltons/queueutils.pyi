@@ -14,19 +14,15 @@ class BasePriorityQueue:
 class HeapPriorityQueue:
     @staticmethod
     def _pop_entry(
-        backend: list[list[Any] | list[int | Callable]] | list[list[int | Callable]]
+        backend: list[list[Any] | list[int | Callable]] | list[list[int | Callable]],
     ) -> list[int | Callable] | list[Any]: ...
     @staticmethod
-    def _push_entry(
-        backend: list[list[Any]], entry: list[int | Callable]
-    ) -> None: ...
+    def _push_entry(backend: list[list[Any]], entry: list[int | Callable]) -> None: ...
 
 class SortedPriorityQueue:
     @staticmethod
     def _pop_entry(
-        backend: list[list[Any] | list[int | Callable]] | list[list[int | Callable]]
+        backend: list[list[Any] | list[int | Callable]] | list[list[int | Callable]],
     ) -> list[int | Callable] | list[Any]: ...
     @staticmethod
-    def _push_entry(
-        backend: list[list[Any]], entry: list[int | Callable]
-    ) -> None: ...
+    def _push_entry(backend: list[list[Any]], entry: list[int | Callable]) -> None: ...

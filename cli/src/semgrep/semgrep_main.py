@@ -145,7 +145,11 @@ def run_rules(
         rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
     )
 
-    (rule_matches_by_rule, semgrep_errors, output_extra,) = core_runner.invoke_semgrep(
+    (
+        rule_matches_by_rule,
+        semgrep_errors,
+        output_extra,
+    ) = core_runner.invoke_semgrep(
         target_manager, rest_of_the_rules, dump_command_for_core, engine
     )
 
@@ -410,7 +414,11 @@ def main(
         for ruleid in sorted(rule.id for rule in experimental_rules):
             logger.verbose(f"- {ruleid}")
 
-    (rule_matches_by_rule, semgrep_errors, output_extra,) = run_rules(
+    (
+        rule_matches_by_rule,
+        semgrep_errors,
+        output_extra,
+    ) = run_rules(
         filtered_rules,
         target_manager,
         core_runner,

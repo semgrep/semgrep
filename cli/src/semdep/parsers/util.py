@@ -81,14 +81,14 @@ def extract_npm_lockfile_hash(s: str | None) -> dict[str, list[str]]:
 line_number = line_info.map(lambda t: t[0] + 1)
 
 
-def mark_line(p: Parser[A]) -> Parser[tuple[int,A]]:
+def mark_line(p: Parser[A]) -> Parser[tuple[int, A]]:
     """
     Returns a parser which gets the current line number, runs [p] and then produces a pair of the line number and the result of [p]
     """
     return line_number.bind(lambda line: p.bind(lambda x: success((line, x))))
 
 
-def pair(p1: Parser[A], p2: Parser[B]) -> Parser[tuple[A,B]]:
+def pair(p1: Parser[A], p2: Parser[B]) -> Parser[tuple[A, B]]:
     """
     Returns a parser which runs [p1] then [p2] and produces a pair of the results
     """

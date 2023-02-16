@@ -6,7 +6,14 @@ from typing import Callable
 def construct_format_field_str(fname: str, fspec: str, conv: str | None) -> str: ...
 def get_format_args(
     fstr: str,
-) -> tuple[list[tuple[int, type[str]]], list[Any]] | tuple[list[tuple[int, type[str]] | tuple[int, type[int]] | tuple[int, type[float]]], list[Any]] | tuple[list[Any], list[tuple[str, type[str]]]]: ...
+) -> (
+    tuple[list[tuple[int, type[str]]], list[Any]]
+    | tuple[
+        list[tuple[int, type[str]] | tuple[int, type[int]] | tuple[int, type[float]]],
+        list[Any],
+    ]
+    | tuple[list[Any], list[tuple[str, type[str]]]]
+): ...
 def infer_positional_format_args(fstr: str) -> str: ...
 def split_format_str(
     fstr: str,
