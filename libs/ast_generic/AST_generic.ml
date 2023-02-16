@@ -19,6 +19,8 @@
 (* A generic AST, to factorize similar analysis in different programming
  * languages (e.g., naming, semantic code highlighting, semgrep matching).
  *
+ * !!!If you modify this file, please adjust the 'version' variable below!!!
+ *
  * Right now this generic AST is mostly the factorized union of:
  *  - Python, Ruby, Lua, Julia, Elixir
  *  - Javascript, Typescript, Vue
@@ -156,6 +158,18 @@
  *    used in a function (instead of having the first Assign play the role
  *    of a VarDef, as done in Python for example).
  *)
+
+(* !! Modify version below each time you modify the generic AST!! There are
+ * now a few places where we cache the generic AST in a marshalled binary
+ * form on disk (e.g., in src/runner/Parsing_with_cache.ml) and reading back
+ * old version of this AST can lead to segfaults in OCaml.
+ * Note that this number below could be independent of the versioning scheme of
+ * Semgrep; we don't have to update version below for each version of
+ * Semgrep, just when we actually modify the generic AST. However it's convenient
+ * to correspond mostly to Semgrep versions. So version below can jump from
+ * "1.12.1" to "1.20.0" and that's fine.
+ *)
+let version = "1.12.1"
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
