@@ -5,7 +5,6 @@ import tempfile
 from collections import defaultdict
 from itertools import permutations
 from pathlib import Path
-from typing import Optional
 
 import pytest
 

@@ -5,7 +5,6 @@ import os
 import shutil
 import sys
 import types
-from typing import Optional
 
 from semgrep.verbose_logging import getLogger
 

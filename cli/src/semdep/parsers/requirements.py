@@ -6,10 +6,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import List
-from typing import Optional
-from typing import Set
-from typing import Tuple
 
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -81,7 +77,7 @@ comment_line = success(None)
 requirements = (
     mark_line(flag_line | dep | consume_line | comment_line)
     .sep_by(string("\n").at_least(1))
-    .map(lambda xs: [(l, x) for (l, x) in xs if x])
+    .map(lambda xs: [(ln, x) for (ln, x) in xs if x])
 )
 
 

@@ -8,10 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import Dict
-from typing import List
-from typing import Optional
 from typing import Sequence
-from typing import Tuple
 from typing import cast
 
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception

@@ -12,12 +12,8 @@ from io import StringIO
 from pathlib import Path
 from shutil import copytree
 from typing import Callable
-from typing import Dict
 from typing import Iterable
-from typing import List
-from typing import Optional
 from typing import Sequence
-from typing import Set
 from typing import Union
 
 import colorama

@@ -3,12 +3,7 @@ from __future__ import annotations
 from itertools import chain
 from typing import Any
 from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Type
 from typing import TypeVar
-from typing import Union
 
 C = TypeVar("C")
 

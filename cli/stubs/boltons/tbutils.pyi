@@ -1,11 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Type
-from typing import Union
 
 def _format_final_exc_line(etype: str, value: ValueError) -> str: ...
 def _some_str(value: Exception) -> str: ...

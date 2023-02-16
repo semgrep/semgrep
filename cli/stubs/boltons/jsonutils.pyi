@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from io import TextIOWrapper
-from typing import Dict
 from typing import Iterator
 
 def reverse_iter_lines(

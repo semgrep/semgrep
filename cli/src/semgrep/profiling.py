@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict
 from typing import NamedTuple
-from typing import Optional
 
 import semgrep.output_from_core as core
 from semgrep.rule import Rule

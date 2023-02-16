@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 from typing import Any
 from typing import Collection
-from typing import FrozenSet
 from typing import Iterable
 from typing import Mapping
 from typing import Sequence

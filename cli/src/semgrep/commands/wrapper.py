@@ -43,7 +43,7 @@ def handle_command_errors(func: Callable) -> Callable:
             exit_code = FATAL_EXIT_CODE
         except SystemExit as e:
             exit_code = e.code
-        except:
+        except:  # noqa: E722
             exit_code = FATAL_EXIT_CODE
         else:
             exit_code = 0

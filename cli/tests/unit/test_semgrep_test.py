@@ -6,8 +6,6 @@ from pathlib import Path
 from typing import Any
 from typing import Iterable
 from typing import Iterator
-from typing import Set
-from typing import Tuple
 
 import pytest
 from semgrep.test import COMMENT_SYNTAXES

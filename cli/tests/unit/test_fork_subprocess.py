@@ -11,7 +11,6 @@ import sys  # exit, stderr
 import time  # sleep
 import traceback  # print_tb
 from typing import Any
-from typing import List
 
 import pytest  # CaptureFixture, mark
 import semgrep.fork_subprocess as fork_subprocess

@@ -4,12 +4,7 @@ import hashlib
 import json
 from typing import Any
 from typing import AnyStr
-from typing import Dict
-from typing import List
-from typing import Optional
 from typing import Sequence
-from typing import Set
-from typing import Union
 from typing import cast
 
 import semgrep.output_from_core as core
@@ -43,7 +38,7 @@ class Rule:
             yaml.value["languages"].span if yaml and "languages" in yaml.value else None
         )
         rule_languages: set[Language] = {
-            LANGUAGE.resolve(l, lang_span) for l in self._raw.get("languages", [])
+            LANGUAGE.resolve(lang, lang_span) for lang in self._raw.get("languages", [])
         }
 
         # add typescript to languages if the rule supports javascript.
@@ -52,7 +47,7 @@ class Rule:
             language == LANGUAGE.resolve("javascript") for language in rule_languages
         ):
             rule_languages.add(LANGUAGE.resolve("typescript"))
-            self._raw["languages"] = sorted(str(l) for l in rule_languages)
+            self._raw["languages"] = sorted(str(lang) for lang in rule_languages)
 
         self._languages = sorted(rule_languages)
 

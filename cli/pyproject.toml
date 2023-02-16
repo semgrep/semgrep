@@ -28,3 +28,57 @@ setenv =
     # suppress a pipenv warning about using the active env
     PIPENV_VERBOSITY = -1
 """
+
+[tool.ruff]
+target-version = "py37"
+extend-exclude = ["external", "tests/e2e/targets"]
+select = [
+  "B",
+  "C4",
+  "E7", "E9",
+  "EXE",
+  "I",
+  "ICN",
+  "W",
+  "F",
+  "PT",
+  "RUF",
+  # uncomment below line when new ruff is bundled in vscode extension
+  # "SIM",
+  "UP",
+]
+ignore = [
+  # Unused imports, might never be able to fix properly
+  "F401",
+  # TODO: Fix mutable function argument defaults
+  "B006",
+  # TODO: Fix return inside finally block
+  "B012",
+  # TODO: Fix comparison to None with ==
+  "E711",
+  # TODO: Fix comparison to True with ==
+  "E712",
+  # TODO: Fix raising inside exception handler
+  "B904",
+  # TODO: Useless comparison
+  "B015",
+  # TODO: lru_cache on methods
+  "B019",
+  # TODO: pytest stuff without autofix
+  "PT004", "PT005", "PT007", "PT011", "PT012", "PT015", "PT018",
+  # never enable, we use specific unicode characters intentionally
+  "RUF001",
+  # uncomment below lines when new ruff is bundled in vscode extension
+  # TODO: flatten if conditions
+  # "SIM102",
+  # TODO: use contextlib.suppress
+  # "SIM105",
+  # probably never enable `or` branch merging cause of readability
+  # "SIM114",
+  # TODO: use file open context manager
+  # "SIM115",
+]
+
+[tool.ruff.isort]
+force-single-line = true
+required-imports = ["from __future__ import annotations"]

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from typing import Iterator
-from typing import List
-from typing import Tuple
 
 from semgrep.error import SemgrepError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern

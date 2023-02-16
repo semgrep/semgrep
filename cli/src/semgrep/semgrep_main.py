@@ -7,13 +7,7 @@ from os import environ
 from pathlib import Path
 from typing import Any
 from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
 from typing import Sequence
-from typing import Set
-from typing import Tuple
-from typing import Union
 
 from boltons.iterutils import partition
 

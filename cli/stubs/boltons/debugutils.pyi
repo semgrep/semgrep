@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Dict
-from typing import Tuple
-from typing import Union
 
 def trace_print_hook(
     event: str,

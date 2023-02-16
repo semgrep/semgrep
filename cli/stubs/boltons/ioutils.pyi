@@ -8,9 +8,6 @@ from io import BytesIO
 from io import StringIO
 from io import TextIOWrapper
 from typing import Any
-from typing import List
-from typing import Optional
-from typing import Union
 
 def is_text_fileobj(
     fileobj: TextIOWrapper | BytesIO | BufferedReader | StringIO | StreamReaderWriter

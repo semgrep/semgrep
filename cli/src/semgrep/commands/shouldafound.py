@@ -6,7 +6,6 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import NoReturn
-from typing import Optional
 from typing import Sequence
 
 import click

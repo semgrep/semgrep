@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import List
 from typing import MutableMapping
-from typing import Optional
 
 from semgrep.metrics import Metrics
 from semgrep.metrics import MetricsState

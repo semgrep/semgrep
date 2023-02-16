@@ -11,12 +11,8 @@ from typing import Any
 from typing import BinaryIO
 from typing import Callable
 from typing import Iterable
-from typing import List
 from typing import MutableMapping
-from typing import Optional
 from typing import Sequence
-from typing import Set
-from typing import Union
 
 from pylsp_jsonrpc.dispatchers import MethodDispatcher
 from pylsp_jsonrpc.endpoint import Endpoint

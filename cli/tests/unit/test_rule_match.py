@@ -341,7 +341,7 @@ def test_rule_match_set_indexes(mocker):
 
 @pytest.mark.quick()
 def test_rule_match_to_app_finding(snapshot, mocker):
-    mocker.patch.object(RuleMatch, "get_lines", lambda self: "foo()")
+    mocker.patch.object(RuleMatch, "get_lines", return_value="foo()")
     dependency_match = out.DependencyMatch(
         dependency_pattern=out.DependencyPattern(
             ecosystem=out.Ecosystem(out.Pypi()),

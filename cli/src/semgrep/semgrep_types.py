@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Collection
 from typing import Mapping
 from typing import NewType
-from typing import Optional
 
 from attrs import frozen
 

@@ -14,8 +14,6 @@ from typing import Iterator
 import dateutil.tz
 import freezegun.api
 import pytest
-from pytest import MonkeyPatch
-from pytest import mark
 from semgrep.cli import cli
 from semgrep.profiling import ProfilingData
 
@@ -55,7 +53,7 @@ USELESS_EQEQ = """rules:
 
 
 @pytest.fixture()
-def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
+def mock_config_request(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setattr(
         "semgrep.config_resolver.ConfigLoader._make_config_request",
         lambda s: USELESS_EQEQ,
@@ -64,7 +62,7 @@ def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
 
 
 @pytest.mark.kinda_slow()
-@mark.parametrize(
+@pytest.mark.parametrize(
     ("config", "metrics_flag", "metrics_env", "should_send"),
     [
         ("rules/eqeq.yaml", None, None, False),
@@ -239,7 +237,7 @@ def _mask_version(value: str) -> str:
     sys.version_info < (3, 8),
     reason="snapshotting mock call kwargs doesn't work on py3.7",
 )
-@mark.parametrize("pro_flag", [["--pro"], []])
+@pytest.mark.parametrize("pro_flag", [["--pro"], []])
 def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     # make the formatted timestamp strings deterministic
     mocker.patch.object(

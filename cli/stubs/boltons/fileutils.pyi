@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-from typing import Type
 
 class FilePerms:
     def __init__(self, user: str = ..., group: str = ..., other: str = ...) -> None: ...

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Union
 
 # def parse(v: str) -> Union[Version, LegacyVersion]:
 def parse(v: str) -> Version: ...

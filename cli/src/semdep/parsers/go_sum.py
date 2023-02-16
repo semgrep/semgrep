@@ -5,8 +5,6 @@ Based on https://go.dev/ref/mod#go-sum-files
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
-from typing import Optional
 
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency

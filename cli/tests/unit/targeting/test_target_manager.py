@@ -6,7 +6,6 @@ from functools import partial
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Collection
-from typing import List
 
 import pytest
 from semgrep.error import FilesNotFoundError

@@ -3,11 +3,7 @@ from __future__ import annotations
 import re
 from functools import cmp_to_key
 from pathlib import Path
-from typing import Dict
 from typing import Iterable
-from typing import List
-from typing import Set
-from typing import Tuple
 
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule

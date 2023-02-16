@@ -2,9 +2,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem

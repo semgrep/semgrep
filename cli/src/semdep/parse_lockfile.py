@@ -3,8 +3,6 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 from typing import Generator
-from typing import List
-from typing import Optional
 
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger

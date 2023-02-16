@@ -3,11 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable
-from typing import Dict
 from typing import Iterator
-from typing import List
-from typing import Set
-from typing import Tuple
 
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore

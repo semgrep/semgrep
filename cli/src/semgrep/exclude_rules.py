@@ -3,7 +3,6 @@ Main function to exclude from list of rules rules with certain id's
 """
 from __future__ import annotations
 
-from typing import List
 from typing import Sequence
 
 from semgrep.rule import Rule

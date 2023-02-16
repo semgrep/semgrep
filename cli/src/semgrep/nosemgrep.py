@@ -15,9 +15,7 @@ and check that it's compatible with any change we're making here.
 from __future__ import annotations
 
 from re import sub
-from typing import List
 from typing import Sequence
-from typing import Tuple
 
 from attrs import evolve
 from boltons.iterutils import partition

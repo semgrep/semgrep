@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Callable
 from typing import Hashable
 from typing import TypeVar
-from typing import Union
 
 ReturnType = TypeVar("ReturnType")
 

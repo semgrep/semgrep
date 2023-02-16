@@ -8,13 +8,9 @@ from enum import Enum
 from enum import auto
 from pathlib import Path
 from typing import Any
-from typing import Dict
-from typing import List
 from typing import Mapping
 from typing import NamedTuple
-from typing import Optional
 from typing import Sequence
-from typing import Tuple
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
@@ -231,14 +227,16 @@ def read_config_at_path(loc: Path, base_path: Path | None = None) -> ConfigFile:
     return ConfigFile(config_id, loc.read_text(), str(loc))
 
 
-def read_config_folder(loc: Path, relative: bool = False) -> list[ConfigFile]:
+def read_config_folder(dir_path: Path, relative: bool = False) -> list[ConfigFile]:
     configs = []
-    for l in loc.rglob("*"):
+    for file_path in dir_path.rglob("*"):
         # Allow manually specified paths with ".", but don't auto-expand them
-        correct_suffix = is_config_suffix(l)
-        if not _is_hidden_config(l.relative_to(loc)) and correct_suffix:
-            if l.is_file():
-                configs.append(read_config_at_path(l, loc if relative else None))
+        correct_suffix = is_config_suffix(file_path)
+        if not _is_hidden_config(file_path.relative_to(dir_path)) and correct_suffix:
+            if file_path.is_file():
+                configs.append(
+                    read_config_at_path(file_path, dir_path if relative else None)
+                )
     return configs
 
 
@@ -251,7 +249,7 @@ def parse_config_files(
     but is None for registry rules
     """
     config = {}
-    for (config_id, contents, config_path) in loaded_config_infos:
+    for config_id, contents, config_path in loaded_config_infos:
         try:
             if not config_id:  # registry rules don't have config ids
                 config_id = "remote-url"
@@ -447,7 +445,6 @@ class Config:
                 continue
             valid_rules = []
             for rule_dict in rules.value:
-
                 try:
                     rule = validate_single_rule(config_id, rule_dict)
                 except InvalidRuleSchemaError as ex:
@@ -460,9 +457,7 @@ class Config:
         return valid, errors
 
 
-def validate_single_rule(
-    config_id: str, rule_yaml: YamlTree[YamlMap]
-) -> Rule | None:
+def validate_single_rule(config_id: str, rule_yaml: YamlTree[YamlMap]) -> Rule | None:
     """
     Validate that a rule dictionary contains all necessary keys
     and can be correctly parsed.

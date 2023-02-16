@@ -3,8 +3,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import Iterable
-from typing import Optional
-from typing import Union
 from typing import overload
 
 from attr import Factory

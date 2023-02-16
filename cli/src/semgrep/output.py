@@ -8,15 +8,9 @@ from functools import reduce
 from pathlib import Path
 from typing import Any
 from typing import Collection
-from typing import Dict
-from typing import FrozenSet
-from typing import List
 from typing import Mapping
 from typing import NamedTuple
-from typing import Optional
 from typing import Sequence
-from typing import Set
-from typing import Type
 from typing import cast
 
 import requests

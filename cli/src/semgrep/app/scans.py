@@ -8,11 +8,6 @@ from copy import deepcopy
 from logging import DEBUG
 from pathlib import Path
 from typing import Any
-from typing import Dict
-from typing import FrozenSet
-from typing import List
-from typing import Optional
-from typing import Set
 from urllib.parse import urlencode
 
 import click

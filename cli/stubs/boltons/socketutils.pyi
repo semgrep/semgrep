@@ -4,7 +4,6 @@ from socket import AddressFamily
 from socket import SocketKind
 from socket import socket
 from typing import Any
-from typing import Optional
 
 class BufferedSocket:
     def __init__(

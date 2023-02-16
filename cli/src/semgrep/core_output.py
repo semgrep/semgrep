@@ -9,11 +9,6 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import replace
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Set
-from typing import Tuple
 
 import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out

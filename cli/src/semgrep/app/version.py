@@ -1,117 +1,18 @@
 """Ask the Semgrep App server about the latest Semgrep version
 
-This module is f
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotations
-from __future__ import annotationsor pinging the app to ask for the latest Semgrep release
+This module is for pinging the app to ask for the latest Semgrep release
 so we can print a message prompting the user to upgrade if they have
 an outdated version.
+
+TODO: for predictable test output, add a flag to avoid making actual network calls?
 """
-# TODO: for predictable test output, add a flag to avoid making actual
-# network calls?
+from __future__ import annotations
+
 import json
 import time
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Mapping
-from typing import Optional
 
 import requests
 from packaging.version import InvalidVersion
@@ -125,7 +26,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def _fetch_latest_version() -> Optional[JsonObject]:
+def _fetch_latest_version() -> JsonObject | None:
     state = get_state()
 
     try:
@@ -154,7 +55,7 @@ def _fetch_latest_version() -> Optional[JsonObject]:
     return res
 
 
-def _get_version_from_cache(version_cache_path: Path) -> Optional[JsonObject]:
+def _get_version_from_cache(version_cache_path: Path) -> JsonObject | None:
     now = time.time()
 
     if not version_cache_path.is_file():
@@ -190,7 +91,7 @@ def _get_version_from_cache(version_cache_path: Path) -> Optional[JsonObject]:
     return res
 
 
-def _get_latest_version(allow_fetch: bool = True) -> Optional[JsonObject]:
+def _get_latest_version(allow_fetch: bool = True) -> JsonObject | None:
     env = get_state().env
     latest_version = _get_version_from_cache(env.version_check_cache_path)
 
@@ -252,7 +153,7 @@ def version_check() -> None:
     _show_banners(current_version, latest_version_object)
 
 
-def get_no_findings_msg() -> Optional[str]:
+def get_no_findings_msg() -> str | None:
     """
     Gets and returns the latest no_findings message from the backend from cache.
 

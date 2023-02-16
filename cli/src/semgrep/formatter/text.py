@@ -7,9 +7,7 @@ from shutil import get_terminal_size
 from typing import Any
 from typing import Iterable
 from typing import Iterator
-from typing import List
 from typing import Mapping
-from typing import Optional
 from typing import Sequence
 from typing import cast
 

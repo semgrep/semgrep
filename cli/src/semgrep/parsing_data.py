@@ -3,8 +3,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from typing import Dict
-from typing import Tuple
 
 if TYPE_CHECKING:
     from semgrep.core_runner import Plan

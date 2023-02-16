@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import date
 from datetime import timedelta
 from typing import Iterator
-from typing import Tuple
 
 def daterange(
     start: date,

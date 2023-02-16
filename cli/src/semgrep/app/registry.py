@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import List
 
 from semgrep.error import SemgrepError
 from semgrep.state import get_state

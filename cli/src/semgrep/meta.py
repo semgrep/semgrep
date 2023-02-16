@@ -8,8 +8,6 @@ from dataclasses import dataclass
 from dataclasses import field
 from pathlib import Path
 from typing import Any
-from typing import Dict
-from typing import Optional
 
 import requests
 from boltons.cacheutils import cachedproperty

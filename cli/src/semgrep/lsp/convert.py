@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import urllib
 from typing import Any
-from typing import List
 from typing import MutableMapping
 
 from semgrep.constants import RuleSeverity

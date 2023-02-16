@@ -12,8 +12,6 @@ from textwrap import dedent
 from typing import Any
 from typing import Callable
 from typing import FrozenSet
-from typing import List
-from typing import Optional
 from typing import Sequence
 from typing import TypeVar
 from urllib.parse import urlparse
@@ -120,16 +118,19 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> str | None
 
 
 # TODO: seems dead
-def listendswith(l: list[T], tail: list[T]) -> bool:
+def listendswith(target: list[T], pattern: list[T]) -> bool:
     """
     E.g.
         - listendswith([1, 2, 3, 4], [3, 4]) -> True
         - listendswith([1, 2, 3, 4], [1, 4]) -> False
     """
-    if len(tail) > len(l):
+    if len(pattern) > len(target):
         return False
 
-    return all(l[len(l) - len(tail) + i] == tail[i] for i in range(len(tail)))
+    return all(
+        target[len(target) - len(pattern) + i] == pattern[i]
+        for i in range(len(pattern))
+    )
 
 
 def is_config_suffix(path: Path) -> bool:

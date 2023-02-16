@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Union
 
 class TType:
     def __getattr__(self, attr: str) -> Any: ...

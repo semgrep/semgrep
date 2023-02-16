@@ -2,10 +2,6 @@ from __future__ import annotations
 
 from itertools import islice
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
 
 def escape_html(obj: str | int | None, maxlen: None = ...) -> str: ...
 def to_text(obj: str | int | None, maxlen: None = ...) -> str: ...

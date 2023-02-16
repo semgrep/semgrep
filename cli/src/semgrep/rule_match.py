@@ -14,8 +14,6 @@ from typing import Dict
 from typing import Iterable
 from typing import Iterator
 from typing import List
-from typing import Optional
-from typing import Tuple
 from typing import Counter as CounterType
 from uuid import UUID
 
@@ -29,7 +27,6 @@ import semgrep.util as util
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
-from semgrep.rule import Rule
 from semgrep.util import get_lines
 
 if TYPE_CHECKING:

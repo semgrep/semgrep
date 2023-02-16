@@ -1,14 +1,8 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Dict
 from typing import Iterator
-from typing import List
-from typing import Set
 from typing import Sized
-from typing import Tuple
-from typing import Type
-from typing import Union
 from uuid import UUID
 
 def asciify(text: str, ignore: bool = ...) -> bytes: ...

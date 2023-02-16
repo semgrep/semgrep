@@ -4,8 +4,6 @@ import sys
 import time
 import uuid
 from typing import NoReturn
-from typing import Optional
-from typing import Tuple
 
 import click
 

@@ -6,9 +6,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 import ruamel.yaml
 from attr import asdict

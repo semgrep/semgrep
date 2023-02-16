@@ -8,10 +8,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable
 from typing import Iterator
-from typing import List
-from typing import Optional
 from typing import Sequence
-from typing import Tuple
 
 import click
 from rich.padding import Padding

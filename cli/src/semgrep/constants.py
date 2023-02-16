@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from enum import Enum
 from enum import auto
-from typing import Type
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 

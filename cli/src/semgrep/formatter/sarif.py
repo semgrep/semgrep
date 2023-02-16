@@ -4,7 +4,6 @@ import json
 from typing import Any
 from typing import Iterable
 from typing import Mapping
-from typing import Optional
 from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out

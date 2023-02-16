@@ -5,10 +5,8 @@ import os
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import FrozenSet
 from typing import Iterable
 from typing import Iterator
-from typing import Set
 from typing import TextIO
 
 from attr import frozen

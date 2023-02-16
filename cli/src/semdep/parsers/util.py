@@ -19,11 +19,8 @@ from re import escape
 from typing import Callable
 from typing import Dict
 from typing import List
-from typing import Optional
-from typing import Set
 from typing import Tuple
 from typing import TypeVar
-from typing import Union
 from typing import cast
 
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct

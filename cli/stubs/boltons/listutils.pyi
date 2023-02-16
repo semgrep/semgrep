@@ -3,10 +3,6 @@ from __future__ import annotations
 from itertools import chain
 from itertools import islice
 from typing import Any
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
 
 class BarrelList:
     def __delitem__(self, index: slice) -> None: ...

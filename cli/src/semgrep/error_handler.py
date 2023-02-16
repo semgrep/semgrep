@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import sys
 from typing import Any
-from typing import Dict
-from typing import Optional
 
 import requests
 from attr import Factory

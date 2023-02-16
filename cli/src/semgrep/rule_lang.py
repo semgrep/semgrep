@@ -12,9 +12,6 @@ from typing import ItemsView
 from typing import KeysView
 from typing import List
 from typing import NewType
-from typing import Optional
-from typing import Set
-from typing import Tuple
 from typing import TypeVar
 from typing import Union
 from typing import cast
@@ -208,9 +205,7 @@ class Span:
             )
         return self
 
-    def with_context(
-        self, before: int | None = None, after: int | None = None
-    ) -> Span:
+    def with_context(self, before: int | None = None, after: int | None = None) -> Span:
         """
         Expand
         """
@@ -478,11 +473,11 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
                 for k in context.validator_value
                 if "required" in k and k["required"]
             ]
-            l = []
+            props = []
             for property in mutex_properties:
                 if property and property in context.instance.keys():
-                    l.append(property)
-            redundant_keys.add(tuple(l))
+                    props.append(property)
+            redundant_keys.add(tuple(props))
         if context.message.startswith(RuleValidation.INVALID_FOR_MODE_SENTINEL):
             invalid_for_mode_keys.add(context.path.pop())
         if RuleValidation.BAD_TYPE_SENTINEL in context.message:

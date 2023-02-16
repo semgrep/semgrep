@@ -3,8 +3,6 @@ from __future__ import annotations
 from logging import getLogger
 from pathlib import Path
 from typing import Sequence
-from typing import Set
-from typing import Tuple
 
 from semgrep.lsp.config import LSPConfig
 from semgrep.rule_match import RuleMatchMap

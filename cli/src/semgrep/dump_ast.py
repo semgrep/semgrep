@@ -3,7 +3,6 @@ from __future__ import annotations
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Optional
 from typing import Sequence
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT

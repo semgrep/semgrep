@@ -10,10 +10,6 @@ Here are the Yarn 2/3 docs: https://yarnpkg.com/
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
-from typing import Optional
-from typing import Set
-from typing import Tuple
 from typing import TypeVar
 
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem

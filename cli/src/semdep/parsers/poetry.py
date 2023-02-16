@@ -7,8 +7,6 @@ Here's the docs for poetry: https://python-poetry.org/docs/
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
-from typing import Optional
 
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
