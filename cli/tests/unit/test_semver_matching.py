@@ -1,6 +1,8 @@
 import pytest
 
-from semdep.package_restrictions import semver_matches
+from semdep.package_restrictions import is_in_range
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 
 
 @pytest.mark.quick
@@ -27,4 +29,5 @@ from semdep.package_restrictions import semver_matches
     ],
 )
 def test_matches(expression, candidate, match):
-    assert semver_matches(expression, candidate) == match
+    # Can be any ecosystem except Maven, which has custom version operation
+    assert is_in_range(Ecosystem(Npm()), expression, candidate) == match
