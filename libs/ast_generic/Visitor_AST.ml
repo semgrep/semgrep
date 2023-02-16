@@ -1460,60 +1460,64 @@ let first_info_of_any any =
 (* Extract ranges *)
 (*****************************************************************************)
 
-(*s: function [[Lib_AST.extract_info_visitor]] *)
-let extract_ranges :
-    AST_generic.any -> (PI.token_location * PI.token_location) option =
-  let ranges = ref None in
+class ['self] range_visitor =
   let smaller t1 t2 =
     if compare t1.PI.charpos t2.PI.charpos < 0 then t1 else t2
   in
   let larger t1 t2 =
     if compare t1.PI.charpos t2.PI.charpos > 0 then t1 else t2
   in
-  let incorporate_tokens (left, right) =
+  let incorporate_tokens ranges (left, right) =
     match !ranges with
     | None -> ranges := Some (left, right)
     | Some (orig_left, orig_right) ->
         ranges := Some (smaller orig_left left, larger orig_right right)
   in
-  let incorporate_token tok =
+  let incorporate_token ranges tok =
     if PI.has_origin_loc tok then
       let tok_loc = PI.unsafe_token_location_of_info tok in
-      incorporate_tokens (tok_loc, tok_loc)
+      incorporate_tokens ranges (tok_loc, tok_loc)
   in
-  let hooks =
-    {
-      default_visitor with
-      kinfo = (fun (_k, _) i -> incorporate_token i);
-      kexpr =
-        (fun (k, _) expr ->
-          match expr.e_range with
-          | None -> (
-              let saved_ranges = !ranges in
-              ranges := None;
-              k expr;
-              expr.e_range <- !ranges;
-              match saved_ranges with
-              | None -> ()
-              | Some r -> incorporate_tokens r)
-          | Some range -> incorporate_tokens range);
-      kstmt =
-        (fun (k, _) stmt ->
-          match stmt.s_range with
-          | None -> (
-              let saved_ranges = !ranges in
-              ranges := None;
-              k stmt;
-              stmt.s_range <- !ranges;
-              match saved_ranges with
-              | None -> ()
-              | Some r -> incorporate_tokens r)
-          | Some range -> incorporate_tokens range);
-    }
-  in
-  let vout = mk_visitor hooks in
+  object (_self : 'self)
+    inherit ['self] AST_generic.iter as super
+    method! visit_tok ranges tok = incorporate_token ranges tok
+
+    method! visit_expr ranges expr =
+      match expr.e_range with
+      | None -> (
+          let saved_ranges = !ranges in
+          ranges := None;
+          super#visit_expr ranges expr;
+          expr.e_range <- !ranges;
+          match saved_ranges with
+          | None -> ()
+          | Some r -> incorporate_tokens ranges r)
+      | Some range -> incorporate_tokens ranges range
+
+    method! visit_stmt ranges stmt =
+      match stmt.s_range with
+      | None -> (
+          let saved_ranges = !ranges in
+          ranges := None;
+          super#visit_stmt ranges stmt;
+          stmt.s_range <- !ranges;
+          match saved_ranges with
+          | None -> ()
+          | Some r -> incorporate_tokens ranges r)
+      | Some range -> incorporate_tokens ranges range
+
+    (* Mimics the old mk_visitor -- otherwise we will end up visiting resolved
+     * names which contain remote tokens *)
+    method! visit_id_info _env _info = ()
+  end
+
+(*s: function [[Lib_AST.extract_info_visitor]] *)
+let extract_ranges :
+    AST_generic.any -> (PI.token_location * PI.token_location) option =
+  let v = new range_visitor in
+  let ranges = ref None in
   fun any ->
-    vout any;
+    v#visit_any ranges any;
     let res = !ranges in
     ranges := None;
     res
