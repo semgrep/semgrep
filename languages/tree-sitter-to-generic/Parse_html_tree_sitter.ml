@@ -35,7 +35,6 @@ type env = unit H.env
 let fake = AST_generic.fake
 let token = H.token
 let str = H.str
-let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -48,26 +47,30 @@ let fb = Parse_info.unsafe_fake_bracket
 *)
 
 let map_quoted_attribute_value (env : env) (x : CST.quoted_attribute_value) :
-    string wrap bracket =
+    string wrap =
   match x with
   | `SQUOT_opt_pat_58fbb2e_SQUOT (v1, v2, v3) ->
-      let l = token env v1 (* "'" *) in
-      let xs =
+      let v1 = token env v1 (* "'" *) in
+      let s, ts =
         match v2 with
-        | Some tok -> [ str env tok ] (* pattern "[^']+" *)
-        | None -> []
+        | Some tok ->
+            let s, t = str env tok (* pattern "[^']+" *) in
+            (s, [ t ])
+        | None -> ("", [])
       in
-      let r = token env v3 (* "'" *) in
-      G.string_ (l, xs, r)
+      let v3 = token env v3 (* "'" *) in
+      (s, PI.combine_infos v1 (ts @ [ v3 ]))
   | `DQUOT_opt_pat_98d585a_DQUOT (v1, v2, v3) ->
-      let l = token env v1 (* "\"" *) in
-      let xs =
+      let v1 = token env v1 (* "\"" *) in
+      let s, ts =
         match v2 with
-        | Some tok -> [ str env tok ] (* pattern "[^\"]+" *)
-        | None -> []
+        | Some tok ->
+            let s, t = str env tok (* pattern "[^\"]+" *) in
+            (s, [ t ])
+        | None -> ("", [])
       in
-      let r = token env v3 (* "\"" *) in
-      G.string_ (l, xs, r)
+      let v3 = token env v3 (* "\"" *) in
+      (s, PI.combine_infos v1 (ts @ [ v3 ]))
 
 let map_end_tag (env : env) (x : CST.end_tag) : tok =
   match x with
@@ -88,7 +91,7 @@ let map_attribute (env : env) ((v1, v2) : CST.attribute) : xml_attribute =
         | `Attr_value tok ->
             (* todo: remove quotes? *)
             let v = str env tok (* pattern "[^<>\"'=\\s]+" *) in
-            L (String (fb v)) |> G.e
+            L (String v) |> G.e
         | `Quoted_attr_value x ->
             let v = map_quoted_attribute_value env x in
             L (String v) |> G.e

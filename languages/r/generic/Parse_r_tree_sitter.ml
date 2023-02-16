@@ -98,13 +98,13 @@ let map_identifier (env : env) (x : CST.identifier) : G.ident =
           combine_str_and_infos l xs r)
   | `Semg_meta tok -> (* semgrep_metavariable *) str env tok
 
-let map_string_ (env : env) (x : CST.string_) : string G.wrap G.bracket =
+let map_string_ (env : env) (x : CST.string_) : string G.wrap =
   match x with
   (* TODO: need to remove the enclosing quotes *)
-  | `Raw_str_lit tok -> (* raw_string_literal *) fb (str env tok)
+  | `Raw_str_lit tok -> (* raw_string_literal *) str env tok
   | `DQUOT_rep_choice_pat_de5d470_DQUOT (v1, v2, v3) ->
-      let l = (* "\"" *) token env v1 in
-      let xs =
+      let v1 = (* "\"" *) token env v1 in
+      let v2 =
         Common.map
           (fun x ->
             match x with
@@ -112,11 +112,11 @@ let map_string_ (env : env) (x : CST.string_) : string G.wrap G.bracket =
             | `Esc_seq tok -> (* escape_sequence *) str env tok)
           v2
       in
-      let r = (* "\"" *) token env v3 in
-      G.string_ (l, xs, r)
+      let v3 = (* "\"" *) token env v3 in
+      combine_str_and_infos v1 v2 v3
   | `SQUOT_rep_choice_pat_3e57880_SQUOT (v1, v2, v3) ->
-      let l = (* "'" *) token env v1 in
-      let xs =
+      let v1 = (* "'" *) token env v1 in
+      let v2 =
         Common.map
           (fun x ->
             match x with
@@ -124,8 +124,8 @@ let map_string_ (env : env) (x : CST.string_) : string G.wrap G.bracket =
             | `Esc_seq tok -> (* escape_sequence *) str env tok)
           v2
       in
-      let r = (* "'" *) token env v3 in
-      G.string_ (l, xs, r)
+      let v3 = (* "'" *) token env v3 in
+      combine_str_and_infos v1 v2 v3
 
 let rec map_argument (env : env) (x : CST.argument) : G.argument =
   match x with
@@ -253,23 +253,24 @@ and map_binary (env : env) (x : CST.binary) : G.expr =
 
 and map_default_argument (env : env) ((v1, v2, v3) : CST.default_argument) :
     G.argument =
-  let id =
+  let v1 =
     match v1 with
     | `Id x -> map_identifier env x
-    | `Str x ->
-        let _, x, _ = map_string_ env x in
-        x
+    | `Str x -> map_string_ env x
     (* TODO ?? not semgrep! *)
     | `Dots tok ->
         let x = (* "..." *) str env tok in
         x
   in
-  let teq = (* "=" *) token env v2 in
-  match v3 with
-  | Some x ->
-      let e = map_expression env x in
-      ArgKwd (id, e)
-  | None -> OtherArg (("Empty =", teq), [ I id ])
+  let v2 = (* "=" *) token env v2 in
+  let v3 =
+    match v3 with
+    | Some x ->
+        let e = map_expression env x in
+        ArgKwd (v1, e)
+    | None -> OtherArg (("Empty =", v2), [ I v1 ])
+  in
+  v3
 
 and map_expression (env : env) (x : CST.expression) : G.expr =
   match x with
@@ -348,7 +349,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       let id =
         match v3 with
         | `Id x -> map_identifier env x
-        | `Str x -> map_string_ env x |> Parse_info.unbracket
+        | `Str x -> map_string_ env x
       in
       DotAccess (e, t, FN (H2.name_of_id id)) |> G.e
   | `Slot (v1, v2, v3) ->

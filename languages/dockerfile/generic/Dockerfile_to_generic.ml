@@ -8,7 +8,6 @@ open AST_dockerfile
 
 type env = AST_bash.input_kind
 
-let fb = Parse_info.unsafe_fake_bracket
 let stmt_of_expr loc (e : G.expr) : G.stmt = G.s (G.ExprStmt (e, fst loc))
 
 let call ((orig_name, name_tok) : string wrap) ((args_start, args_end) : Loc.t)
@@ -56,7 +55,7 @@ let expr_of_stmt (st : G.stmt) : G.expr = G.stmt_to_expr st
 let expr_of_stmts loc (stmts : G.stmt list) : G.expr =
   G.Block (bracket loc stmts) |> G.s |> expr_of_stmt
 
-let string_expr s : G.expr = G.L (G.String (fb s)) |> G.e
+let string_expr s : G.expr = G.L (G.String s) |> G.e
 
 let id_expr (x : string wrap) : G.expr =
   G.N (G.Id (x, G.empty_id_info ())) |> G.e

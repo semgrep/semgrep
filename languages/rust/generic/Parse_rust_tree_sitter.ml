@@ -260,8 +260,10 @@ let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
         (* string_content *))
       v2
   in
-  let rdquote = token env v3 in
-  G.String (G.string_ (ldquote, strs, rdquote))
+  let rdquote = token env v3 (* "\"" *) in
+  let str = strs |> Common.map fst |> String.concat "" in
+  let toks = (strs |> Common.map snd) @ [ rdquote ] in
+  G.String (str, PI.combine_infos ldquote toks)
 
 let integer_literal env tok =
   let s, t = str env tok in
@@ -274,7 +276,7 @@ let float_literal env tok =
 let map_literal (env : env) (x : CST.literal) : G.literal =
   match x with
   | `Str_lit x -> map_string_literal env x
-  | `Raw_str_lit tok -> G.String (fb (str env tok)) (* raw_string_literal *)
+  | `Raw_str_lit tok -> G.String (str env tok) (* raw_string_literal *)
   | `Char_lit tok -> G.Char (str env tok) (* char_literal *)
   | `Bool_lit x -> map_boolean_literal env x
   | `Int_lit tok -> G.Int (integer_literal env tok) (* integer_literal *)
@@ -286,7 +288,7 @@ let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =
   match x with
   | `Str_lit x -> G.PatLiteral (map_string_literal env x)
   | `Raw_str_lit tok ->
-      G.PatLiteral (G.String (fb (str env tok))) (* raw_string_literal *)
+      G.PatLiteral (G.String (str env tok)) (* raw_string_literal *)
   | `Char_lit tok -> G.PatLiteral (G.Char (str env tok)) (* char_literal *)
   | `Bool_lit x -> G.PatLiteral (map_boolean_literal env x)
   | `Int_lit tok ->

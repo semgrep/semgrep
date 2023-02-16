@@ -110,13 +110,13 @@ let rec statement_strings stmt =
             (* less: we could extract strings for the other literals too?
              * atoms, chars, even int?
              *)
-            | L (String (_, (str, _tok), _)) -> push str res
+            | L (String (str, _tok)) -> push str res
             | IdSpecial (_, tok) -> push (Parse_info.str_of_info tok) res
             | __else__ -> k x);
         V.ksvalue =
           (fun (_k, _) x ->
             match x with
-            | Lit (String (_, (str, _tok), _)) ->
+            | Lit (String (str, _tok)) ->
                 if not (Pattern.is_special_string_literal str) then push str res
             | Lit _
             | Cst _

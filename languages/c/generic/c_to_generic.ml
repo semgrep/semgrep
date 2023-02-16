@@ -177,7 +177,7 @@ and expr e =
       G.L (G.Bool v1) |> G.e
   | String v1 ->
       let v1 = wrap string v1 in
-      G.L (G.String (fb v1)) |> G.e
+      G.L (G.String v1) |> G.e
   | Char v1 ->
       let v1 = wrap string v1 in
       G.L (G.Char v1) |> G.e
@@ -185,8 +185,7 @@ and expr e =
   | ConcatString xs ->
       G.Call
         ( G.IdSpecial (G.ConcatString G.SequenceConcat, unsafe_fake " ") |> G.e,
-          fb (xs |> Common.map (fun x -> G.Arg (G.L (G.String (fb x)) |> G.e)))
-        )
+          fb (xs |> Common.map (fun x -> G.Arg (G.L (G.String x) |> G.e))) )
       |> G.e
   | Defined (t, id) ->
       let e = G.N (G.Id (id, G.empty_id_info ())) |> G.e in
@@ -463,7 +462,7 @@ and directive = function
       let v2 =
         match v2 with
         | None -> []
-        | Some s -> [ G.E (G.L (G.String (fb s)) |> G.e) ]
+        | Some s -> [ G.E (G.L (G.String s) |> G.e) ]
       in
       G.DirectiveStmt (G.Pragma (v1, v2) |> G.d)
 

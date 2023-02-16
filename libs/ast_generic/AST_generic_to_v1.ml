@@ -251,11 +251,10 @@ and map_expr x : B.expr =
          like /hello #{name}/ *)
       `L
         (match v1 with
-        | { e = G.L (G.String (l, x, r)); _ } ->
-            let l = map_tok l in
-            let r = map_tok r in
+        | { e = G.L (G.String x); _ } ->
+            let fk' = map_tok fk in
             let static_regexp = map_wrap map_of_string x in
-            `Regexp ((l, static_regexp, r), None)
+            `Regexp ((fk', static_regexp, fk'), None)
         | _dropped_template ->
             let fk' = map_tok fk in
             `Regexp ((fk', ("", map_tok l), fk'), None))
@@ -413,7 +412,7 @@ and map_literal = function
       let v1 = map_wrap map_of_string v1 in
       `Char v1
   | String v1 ->
-      let _, v1, _ = map_bracket (map_wrap map_of_string) v1 in
+      let v1 = map_wrap map_of_string v1 in
       `String v1
   | Regexp (v1, v2) ->
       let v1 = map_bracket (map_wrap map_of_string) v1 in
@@ -1346,7 +1345,7 @@ and map_any x : B.any =
       let v1 = map_ident v1 in
       `I v1
   | Str v1 ->
-      let _, v1, _ = map_bracket (map_wrap map_of_string) v1 in
+      let v1 = map_wrap map_of_string v1 in
       `Str v1
   | Tk v1 ->
       let v1 = map_tok v1 in

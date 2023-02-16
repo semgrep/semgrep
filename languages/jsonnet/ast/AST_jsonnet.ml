@@ -278,7 +278,9 @@ type any = E of expr
 (* Helpers *)
 (*****************************************************************************)
 
-let mk_string_ (l, (str, tk), r) = (None, DoubleQuote, (l, [ (str, tk) ], r))
+let mk_string_ (str, tk) =
+  let fk = Parse_info.unsafe_fake_info "" in
+  (None, DoubleQuote, (fk, [ (str, tk) ], fk))
 
 let string_of_string_ (x : string_) : string wrap =
   let _verbatimTODO, _kindTODO, (l, xs, r) = x in

@@ -216,7 +216,7 @@ and literal x : G.literal =
       G.Float v1
   | String v1 ->
       let v1 = wrap string v1 in
-      G.String (fb v1)
+      G.String v1
   | Regexp (v1, v2) ->
       let v1 = bracket (wrap string) v1 in
       let v2 = option (wrap string) v2 in
@@ -709,7 +709,7 @@ and module_directive x =
   match x with
   | ReExportNamespace (v1, _v2, _opt_alias, _v3, v4) ->
       let v4 = filename v4 in
-      G.OtherDirective (("ReExportNamespace", v1), [ G.Str (fb v4) ])
+      G.OtherDirective (("ReExportNamespace", v1), [ G.Str v4 ])
   | Import (t, v1, v2) ->
       let v1 =
         Common.map

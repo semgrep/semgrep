@@ -295,15 +295,15 @@ let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
        [ (ANY (E e'), replace_name); (ANY (Args args), replace_args) ] ));
   ]
 
-let pattern_from_literal env lit : pattern_instrs =
-  match lit with
-  | String (l, (_, tok), r) ->
+let pattern_from_literal env l : pattern_instrs =
+  match l with
+  | String (_, tok) ->
       [
         ( env,
-          E (L (String (l, ("...", tok), r)) |> G.e),
-          [ (LN (E (L lit |> G.e)), fun f any -> f any) ] );
+          E (L (String ("...", tok)) |> G.e),
+          [ (LN (E (L l |> G.e)), fun f any -> f any) ] );
       ]
-  | _ -> [ (env, E (L lit |> G.e), [ (DONE, fun f e -> f e) ]) ]
+  | _ -> [ (env, E (L l |> G.e), [ (DONE, fun f e -> f e) ]) ]
 
 type side = Left | Right
 

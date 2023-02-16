@@ -25,8 +25,6 @@ module H2 = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 
-let fb = Parse_info.unsafe_fake_bracket
-
 let map_argument (arg : argument) : G.definition =
   let id, _teq, e = arg in
   let ent = G.basic_entity id in
@@ -55,7 +53,7 @@ and map_block ({ btype = _kind, tk; blabels; bbody = lb, body, rb } : block) :
   let labels_id =
     blabels
     |> Common.map (function
-         | LblStr x -> G.L (G.String (fb x)) |> G.e
+         | LblStr x -> G.L (G.String x) |> G.e
          | LblId id ->
              let n = H2.name_of_id id in
              G.N n |> G.e)

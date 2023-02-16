@@ -107,13 +107,11 @@ let get_id ?(with_type = false) env e =
               match !id_type with
               | None -> (notype_id, has_type)
               | Some t -> (default_tyvar (count_to_id env.count) t, true))
-          | L (String (l, (_, tag), r)) ->
-              (L (String (l, ("...", tag), r)) |> G.e, false)
+          | L (String (_, tag)) -> (L (String ("...", tag)) |> G.e, false)
           | _ -> (notype_id, has_type)
         else
           match e.e with
-          | L (String (l, (_, tag), r)) ->
-              (L (String (l, ("...", tag), r)) |> G.e, false)
+          | L (String (_, tag)) -> (L (String ("...", tag)) |> G.e, false)
           | _ -> (notype_id, has_type)
       in
       let env' =

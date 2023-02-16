@@ -229,7 +229,7 @@ and expr =
 and literal =
   | Bool of bool wrap
   | Num of float option wrap
-  | String of string wrap (* TODO: bracket, like for Regexp below *)
+  | String of string wrap
   | Regexp of string wrap bracket (* // *) * string wrap option (* modifier *)
 
 and a_arguments = a_argument list bracket

@@ -54,7 +54,6 @@ let warning _tok s =
 (*****************************************************************************)
 
 let str_of_name name = spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
-let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Constness *)
@@ -200,7 +199,7 @@ let int_of_literal = function
   | G.Int (x, _) -> x
   | ___else___ -> None
 
-let literal_of_string ?tok s : G.literal =
+let literal_of_string ?tok s =
   let tok =
     match tok with
     | None -> Parse_info.unsafe_fake_info s
@@ -213,7 +212,7 @@ let literal_of_string ?tok s : G.literal =
          * an $MVAR always has a source location. *)
         tok
   in
-  G.String (fb (s, tok))
+  G.String (s, tok)
 
 let eval_unop_bool op b =
   match op with
@@ -327,8 +326,7 @@ and eval_op env wop args =
       eval_binop_bool op b1 b2
   | op, [ G.Lit (G.Int _ as li1); G.Lit (G.Int _ as li2) ] ->
       eval_binop_int tok op (int_of_literal li1) (int_of_literal li2)
-  | op, [ G.Lit (G.String (_, (s1, _), _)); G.Lit (G.String (_, (s2, _), _)) ]
-    ->
+  | op, [ G.Lit (G.String (s1, _)); G.Lit (G.String (s2, _)) ] ->
       eval_binop_string ~tok op s1 s2
   | _op, [ (G.Cst _ as c1) ] -> c1
   | _op, [ G.Cst t1; G.Cst t2 ] -> G.Cst (union_ctype t1 t2)
@@ -341,14 +339,12 @@ and eval_op env wop args =
 and eval_concat env args =
   match Common.map (eval env) args with
   | [] -> G.Lit (literal_of_string "")
-  | G.Lit (G.String (_, (r, tok), _)) :: args' ->
+  | G.Lit (G.String (r, tok)) :: args' ->
       List.fold_left
         (fun res e ->
           match (res, e) with
-          | G.Lit (G.String (_l, (x, tok), _r)), G.Lit (G.String (_, (s, _), _))
-            ->
-              (* should reuse l/r? *)
-              G.Lit (literal_of_string ~tok (x ^ s))
+          | G.Lit (G.String (r, tok)), G.Lit (G.String (s, _)) ->
+              G.Lit (literal_of_string ~tok (r ^ s))
           | (G.Lit _ | G.Cst _), G.Cst G.Cstr -> G.Cst G.Cstr
           | _____else_____ -> G.NotCst)
         (G.Lit (literal_of_string ~tok r))

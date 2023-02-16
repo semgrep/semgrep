@@ -18,8 +18,6 @@ module PI = Parse_info
 module M = Map_AST
 module G = AST_generic
 
-let fb = Parse_info.unsafe_fake_bracket
-
 let parse_json_string json =
   try
     Some
@@ -74,7 +72,7 @@ let expr ?(unescape_strings = false) x =
                               * anything in Semgrep (this may change though) *)
                              if AST_generic.is_metavar_name (fst id) then
                                G.N (G.Id (id, G.empty_id_info ())) |> G.e
-                             else G.L (G.String (fb id)) |> G.e
+                             else G.L (G.String id) |> G.e
                            in
                            G.Container
                              (G.Tuple, PI.unsafe_fake_bracket [ key; e ])
@@ -82,7 +80,7 @@ let expr ?(unescape_strings = false) x =
                        | Right t -> G.Ellipsis t |> G.e)
                 in
                 G.Container (G.Dict, (lp, zs, rp)) |> G.e
-            | G.L (G.String (_, (escaped, t), _)) when unescape_strings ->
+            | G.L (G.String (escaped, t)) when unescape_strings ->
                 let unescaped =
                   match unescape_json_string_contents escaped with
                   | Some s -> s
@@ -92,7 +90,7 @@ let expr ?(unescape_strings = false) x =
                          Compare with: assert false *)
                       escaped
                 in
-                G.L (G.String (fb (unescaped, t))) |> G.e
+                G.L (G.String (unescaped, t)) |> G.e
             | _ -> e);
       }
   in
@@ -113,6 +111,6 @@ let any x =
       let key =
         if AST_generic.is_metavar_name (fst v1) then
           G.N (G.Id (v1, G.empty_id_info ())) |> G.e
-        else G.L (G.String (fb v1)) |> G.e
+        else G.L (G.String v1) |> G.e
       in
       G.E (G.Container (G.Tuple, PI.unsafe_fake_bracket [ key; expr v3 ]) |> G.e)

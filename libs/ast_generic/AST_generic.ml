@@ -614,18 +614,16 @@ and literal =
      The value is the escaped string content. For example,
      The escaped content of the Python string literal '\\(\\)' is \\(\\).
      The unescaped content would be \(\).
+     TODO: use bracket instead of wrap, ', ", or even """
      TODO: expose the unescaped contents if known, so that we could analyze
-     string contents correctly. An incremental change could be:
+     string contents correctly.
+     An incremental change could be:
+
      | String of (string * string option) bracket
                   ^^^^^^   ^^^^^^
                   escaped  unescaped
-
-     Note that the tokens in the bracket are currently fake tokens in
-     many languages. For empty strings, the token in the string wrap is
-     also usually a (safe) fake token if the tokens in the brackets are not.
-     (see the code in string_literal() far below).
   *)
-  | String of string wrap bracket (* can be ', ", or even """ sometimes *)
+  | String of string wrap
   (* Regexp literals only. Some languages such as Ruby support regexp
      templates. Those are represented separately using RegexpTemplate. *)
   | Regexp of string wrap bracket (* // *) * string wrap option (* modifiers *)
@@ -1538,9 +1536,6 @@ and function_kind =
   (* for Scala *)
   | BlockCases
 
-(* The brackets are usually '()', but it can be || in Rust (like in Smalltalk)
- * or even sometimes [xxx] in C#.
- *)
 and parameters = parameter list bracket
 
 (* newvar: *)
@@ -1865,7 +1860,7 @@ and any =
   | Raw of raw_tree
   (* misc *)
   | I of ident
-  | Str of string wrap bracket
+  | Str of string wrap
   | Def of definition
   | Dir of directive
   | Pr of program
@@ -2013,22 +2008,13 @@ let special spec es =
 
 let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
 
-let string_ (lquote, xs, rquote) : string wrap bracket =
-  let s = xs |> Common.map fst |> String.concat "" in
-  let t =
-    match xs with
-    | [] -> Parse_info.fake_info lquote ""
-    | (_, t) :: ys -> Parse_info.combine_infos t (Common.map snd ys)
-  in
-  (lquote, (s, t), rquote)
-
 (* TODO: have a separate InterpolatedConcat in expr with a cleaner type
  * instead of abusing special?
  *)
 let interpolated (lquote, xs, rquote) =
   match xs with
   | [ Common.Left3 (str, tstr) ] ->
-      L (String (lquote, (str, tstr), rquote)) |> e
+      L (String (str, Parse_info.combine_infos lquote [ tstr; rquote ])) |> e
   | __else__ ->
       let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
       Call
@@ -2036,8 +2022,7 @@ let interpolated (lquote, xs, rquote) =
           ( lquote,
             xs
             |> Common.map (function
-                 | Common.Left3 x ->
-                     Arg (L (String (Parse_info.unsafe_fake_bracket x)) |> e)
+                 | Common.Left3 str -> Arg (L (String str) |> e)
                  | Common.Right3 (lbrace, eopt, rbrace) ->
                      let special =
                        IdSpecial (InterpolatedElement, lbrace) |> e

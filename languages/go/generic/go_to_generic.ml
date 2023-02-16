@@ -329,7 +329,7 @@ let top_func () =
         G.Char v1
     | String v1 ->
         let v1 = wrap string v1 in
-        G.String (fb v1)
+        G.String v1
   and index v = expr v
   and arguments v = list argument v
   and argument = function

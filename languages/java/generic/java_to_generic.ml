@@ -232,11 +232,11 @@ and literal = function
       G.Float v1
   | String v1 ->
       let v1 = wrap string v1 in
-      G.String (fb v1)
+      G.String v1
   | TextBlock v1 ->
       (* TODO: remove enclosing triple quotes? or do that in ast_java.ml? *)
       let v1 = wrap string v1 in
-      G.String (fb v1)
+      G.String v1
   | Char v1 ->
       let v1 = wrap string v1 in
       G.Char v1

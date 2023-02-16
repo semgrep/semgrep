@@ -133,7 +133,7 @@ let print_result xopt =
 let value_of_lit ~code x =
   match x with
   | G.Bool (b, _t) -> Bool b
-  | G.String (_, (s, _t), _) -> String s
+  | G.String (s, _t) -> String s
   (* big integers or floats can't be evaluated (Int (None, ...)) *)
   | G.Int (Some i, _t) -> Int i
   | G.Float (Some f, _t) -> Float f
@@ -212,8 +212,7 @@ let rec eval env code =
                 FN (Id (("match", _), _)) );
           _;
         },
-        (_, [ G.Arg { e = G.L (G.String (_, (re, _), _)); _ }; G.Arg e2 ], _) )
-    -> (
+        (_, [ G.Arg { e = G.L (G.String (re, _)); _ }; G.Arg e2 ], _) ) -> (
       (* alt: take the text range of the metavariable in the original file,
        * and enforce e1 can only be an Id metavariable.
        * alt: let s = value_to_string v in

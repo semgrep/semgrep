@@ -396,7 +396,7 @@ let map_pragma_version_constraint (env : env)
     | None -> []
   in
   let v2 = (* pattern \d+(.\d+(.\d+)?)? *) str env v2 in
-  v1 @ [ Str (fb v2) ]
+  v1 @ [ Str v2 ]
 
 let map_fixed (env : env) (x : CST.fixed) =
   match x with
@@ -429,11 +429,11 @@ let map_single_quoted_unicode_char (env : env)
     (x : CST.single_quoted_unicode_char) =
   str env x
 
-let map_string_ (env : env) (x : CST.string_) : string wrap bracket =
+let map_string_ (env : env) (x : CST.string_) : string wrap =
   match x with
   | `DQUOT_rep_choice_str_imme_elt_inside_double_quote_DQUOT (v1, v2, v3) ->
-      let l = (* "\"" *) token env v1 in
-      let xs =
+      let v1 = (* "\"" *) token env v1 in
+      let v2 =
         Common.map
           (fun x ->
             match x with
@@ -442,11 +442,13 @@ let map_string_ (env : env) (x : CST.string_) : string wrap bracket =
             | `Esc_seq tok -> (* escape_sequence *) str env tok)
           v2
       in
-      let r = (* "\"" *) token env v3 in
-      G.string_ (l, xs, r)
+      let v3 = (* "\"" *) token env v3 in
+      let str = v2 |> Common.map fst |> String.concat "" in
+      let toks = (v2 |> Common.map snd) @ [ v3 ] in
+      (str, PI.combine_infos v1 toks)
   | `SQUOT_rep_choice_str_imme_elt_inside_quote_SQUOT (v1, v2, v3) ->
-      let l = (* "'" *) token env v1 in
-      let xs =
+      let v1 = (* "'" *) token env v1 in
+      let v2 =
         Common.map
           (fun x ->
             match x with
@@ -455,8 +457,10 @@ let map_string_ (env : env) (x : CST.string_) : string wrap bracket =
             | `Esc_seq tok -> (* escape_sequence *) str env tok)
           v2
       in
-      let r = (* "'" *) token env v3 in
-      G.string_ (l, xs, r)
+      let v3 = (* "'" *) token env v3 in
+      let str = v2 |> Common.map fst |> String.concat "" in
+      let toks = (v2 |> Common.map snd) @ [ v3 ] in
+      (str, PI.combine_infos v1 toks)
 
 let map_primitive_type (env : env) (x : CST.primitive_type) : type_ =
   match x with
@@ -552,16 +556,15 @@ let map_hex_number (env : env) (x : CST.hex_number) =
   let s, t = str env x in
   (int_of_string_opt s, t)
 
-let map_hex_string_literal (env : env) (xs : CST.hex_string_literal) :
-    (tok * string wrap bracket) list =
+let map_hex_string_literal (env : env) (xs : CST.hex_string_literal) =
   Common.map
     (fun (v1, v2) ->
       let v1 = (* "hex" *) token env v1 in
       let v2 =
         match v2 with
         | `DQUOT_opt_hex_digit_rep_opt___hex_digit_DQUOT (v1, v2, v3) ->
-            let l = (* "\"" *) token env v1 in
-            let xs =
+            let v1 = (* "\"" *) token env v1 in
+            let v2 =
               match v2 with
               | Some (v1, v2) ->
                   let v1 = (* pattern ([a-fA-F0-9][a-fA-F0-9]) *) str env v1 in
@@ -569,11 +572,13 @@ let map_hex_string_literal (env : env) (xs : CST.hex_string_literal) :
                   v1 :: v2
               | None -> []
             in
-            let r = (* "\"" *) token env v3 in
-            G.string_ (l, xs, r)
+            let v3 = (* "\"" *) token env v3 in
+            let str = v2 |> Common.map fst |> String.concat "" in
+            let toks = (v2 |> Common.map snd) @ [ v3 ] in
+            (str, PI.combine_infos v1 toks)
         | `SQUOT_opt_hex_digit_rep_opt___hex_digit_SQUOT (v1, v2, v3) ->
-            let l = (* "'" *) token env v1 in
-            let xs =
+            let v1 = (* "'" *) token env v1 in
+            let v2 =
               match v2 with
               | Some (v1, v2) ->
                   let v1 = (* pattern ([a-fA-F0-9][a-fA-F0-9]) *) str env v1 in
@@ -581,29 +586,34 @@ let map_hex_string_literal (env : env) (xs : CST.hex_string_literal) :
                   v1 :: v2
               | None -> []
             in
-            let r = (* "'" *) token env v3 in
-            G.string_ (l, xs, r)
+            let v3 = (* "'" *) token env v3 in
+            let str = v2 |> Common.map fst |> String.concat "" in
+            let toks = (v2 |> Common.map snd) @ [ v3 ] in
+            (str, PI.combine_infos v1 toks)
       in
       (v1, v2))
     xs
 
-let map_unicode_string_literal (env : env) (xs : CST.unicode_string_literal) :
-    (tok * string wrap bracket) list =
+let map_unicode_string_literal (env : env) (xs : CST.unicode_string_literal) =
   Common.map
     (fun (v1, v2) ->
       let v1 = (* "unicode" *) token env v1 in
       let v2 =
         match v2 with
         | `DQUOT_rep_double_quoted_unic_char_DQUOT (v1, v2, v3) ->
-            let l = (* "\"" *) token env v1 in
-            let xs = Common.map (map_double_quoted_unicode_char env) v2 in
-            let r = (* "\"" *) token env v3 in
-            G.string_ (l, xs, r)
+            let v1 = (* "\"" *) token env v1 in
+            let v2 = Common.map (map_double_quoted_unicode_char env) v2 in
+            let v3 = (* "\"" *) token env v3 in
+            let str = v2 |> Common.map fst |> String.concat "" in
+            let toks = (v2 |> Common.map snd) @ [ v3 ] in
+            (str, PI.combine_infos v1 toks)
         | `SQUOT_rep_single_quoted_unic_char_SQUOT (v1, v2, v3) ->
-            let l = (* "'" *) token env v1 in
-            let xs = Common.map (map_single_quoted_unicode_char env) v2 in
-            let r = (* "'" *) token env v3 in
-            G.string_ (l, xs, r)
+            let v1 = (* "'" *) token env v1 in
+            let v2 = Common.map (map_single_quoted_unicode_char env) v2 in
+            let v3 = (* "'" *) token env v3 in
+            let str = v2 |> Common.map fst |> String.concat "" in
+            let toks = (v2 |> Common.map snd) @ [ v3 ] in
+            (str, PI.combine_infos v1 toks)
       in
       (v1, v2))
     xs
@@ -682,8 +692,7 @@ let map_yul_literal (env : env) (x : CST.yul_literal) : literal =
       let b = map_yul_or_literal_boolean env x in
       Bool b
 
-let map_from_clause (env : env) ((v1, v2) : CST.from_clause) :
-    string wrap bracket =
+let map_from_clause (env : env) ((v1, v2) : CST.from_clause) : string wrap =
   let _v1 = (* "from" *) token env v1 in
   let v2 = map_yul_string_literal env v2 in
   v2
@@ -784,7 +793,7 @@ let map_literal (env : env) (x : CST.literal) : expr =
         match v2 with
         | Some x ->
             let s, t = map_number_unit env x in
-            OtherExpr (("UnitLiteral", t), [ Str (fb (s, t)); E res ]) |> G.e
+            OtherExpr (("UnitLiteral", t), [ Str (s, t); E res ]) |> G.e
         | None -> res
       in
       res
@@ -965,11 +974,11 @@ let map_directive (env : env) (x : CST.directive) : directive list =
       let res =
         match v2 with
         | `Source_import x ->
-            let (_, str, _), aliasopt = map_source_import env x in
+            let str, aliasopt = map_source_import env x in
             [ ImportAs (timport, FileName str, aliasopt) |> G.d ]
         | `Import_clause_from_clause (v1, v2) ->
             let f = map_import_clause env v1 in
-            let _, str, _ = map_from_clause env v2 in
+            let str = map_from_clause env v2 in
             f timport (FileName str)
       in
       let _sc = (* ";" *) token env v3 in

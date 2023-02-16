@@ -131,7 +131,7 @@ let generic_to_json env (key : key) ast =
     | G.L (Bool (b, _)) -> J.Bool b
     | G.L (Float (Some f, _)) -> J.Float f
     | G.L (Int (Some i, _)) -> J.Int i
-    | G.L (String (_, (s, _), _)) ->
+    | G.L (String (s, _)) ->
         (* should use the unescaped string *)
         J.String s
     | G.Container (Array, (_, xs, _)) -> J.Array (xs |> Common.map aux)
@@ -141,8 +141,7 @@ let generic_to_json env (key : key) ast =
           |> Common.map (fun x ->
                  match x.G.e with
                  | G.Container
-                     ( G.Tuple,
-                       (_, [ { e = L (String (_, (k, _), _)); _ }; v ], _) ) ->
+                     (G.Tuple, (_, [ { e = L (String (k, _)); _ }; v ], _)) ->
                      (* should use the unescaped string *)
                      (k, aux v)
                  | _ ->
@@ -158,7 +157,7 @@ let generic_to_json env (key : key) ast =
 
 let read_string_wrap e =
   match e with
-  | G.L (String (_, (value, t), _)) ->
+  | G.L (String (value, t)) ->
       (* should use the unescaped string *)
       Some (value, t)
   | G.L (Float (Some n, t)) ->
@@ -183,9 +182,8 @@ let yaml_to_dict_helper error_fun_f error_fun_d (enclosing : string R.wrap)
       |> List.iter (fun field ->
              match field.G.e with
              | G.Container
-                 ( G.Tuple,
-                   (_, [ { e = L (String (_, (key_str, t), _)); _ }; value ], _)
-                 ) ->
+                 (G.Tuple, (_, [ { e = L (String (key_str, t)); _ }; value ], _))
+               ->
                  (* Those are actually silently ignored by many YAML parsers
                   * which just consider the last key/value as the final one.
                   * This was a source of bugs in semgrep rules where people
@@ -260,7 +258,7 @@ let parse_list_no_env (key : key) f x =
 
 let parse_string_wrap_list_no_env (key : key) e =
   let extract_string = function
-    | { G.e = G.L (String (_, (value, t), _)); _ } -> (value, t)
+    | { G.e = G.L (String (value, t)); _ } -> (value, t)
     | _ ->
         yaml_error_at_key key
           ("Expected all values in the list to be strings for " ^ fst key)
@@ -296,7 +294,7 @@ let parse_listi env (key : key) f x =
 (* TODO: delete at some point, should use parse_string_wrap_list *)
 let parse_string_list env (key : key) e =
   let extract_string env = function
-    | { G.e = G.L (String (_, (value, _), _)); _ } -> value
+    | { G.e = G.L (String (value, _)); _ } -> value
     | _ ->
         error_at_key env key
           ("Expected all values in the list to be strings for " ^ fst key)
@@ -305,15 +303,15 @@ let parse_string_list env (key : key) e =
 
 let parse_bool env (key : key) x =
   match x.G.e with
-  | G.L (String (_, ("true", _), _)) -> true
-  | G.L (String (_, ("false", _), _)) -> false
+  | G.L (String ("true", _)) -> true
+  | G.L (String ("false", _)) -> false
   | G.L (Bool (b, _)) -> b
   | _x -> error_at_key env key (spf "parse_bool for %s" (fst key))
 
 let parse_int env (key : key) x =
   match x.G.e with
   | G.L (Int (Some i, _)) -> i
-  | G.L (String (_, (s, _), _)) -> (
+  | G.L (String (s, _)) -> (
       try int_of_string s with
       | Failure _ -> error_at_key env key (spf "parse_int for %s" (fst key)))
   | G.L (Float (Some f, _)) ->
@@ -323,7 +321,7 @@ let parse_int env (key : key) x =
 
 let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
   match value.G.e with
-  | G.L (String (_, (value, t), _)) ->
+  | G.L (String (value, t)) ->
       (* should use the unescaped string *)
       Either.Left (value, t)
   | G.L (Float (Some n, t)) ->
@@ -344,7 +342,7 @@ let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
 let parse_focus_mvs env (key : key) (x : G.expr) =
   match x.e with
   | G.N (G.Id ((s, _), _))
-  | G.L (String (_, (s, _), _)) ->
+  | G.L (String (s, _)) ->
       [ s ]
   | G.Container (Array, (_, mvs, _)) ->
       Common.map (fun mv -> fst (parse_string_wrap env key mv)) mvs
@@ -447,12 +445,8 @@ let parse_equivalences env key value =
                 e =
                   Container
                     ( Tuple,
-                      ( _,
-                        [
-                          { e = L (String (_, ("equivalence", t), _)); _ };
-                          value;
-                        ],
-                        _ ) );
+                      (_, [ { e = L (String ("equivalence", t)); _ }; value ], _)
+                    );
                 _;
               };
             ],
@@ -660,8 +654,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
                 {
                   e =
                     Container
-                      ( Tuple,
-                        (_, [ { e = L (String (_, key, _)); _ }; value ], _) );
+                      (Tuple, (_, [ { e = L (String key); _ }; value ], _));
                   _;
                 };
               ],
@@ -1415,11 +1408,8 @@ let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
                     e =
                       Container
                         ( Tuple,
-                          ( _,
-                            [
-                              { e = L (String (_, ("rules", _), _)); _ }; rules;
-                            ],
-                            _ ) );
+                          (_, [ { e = L (String ("rules", _)); _ }; rules ], _)
+                        );
                     _;
                   };
                 ],

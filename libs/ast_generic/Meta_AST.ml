@@ -365,7 +365,7 @@ and vof_literal = function
       let v1 = vof_wrap OCaml.vof_string v1 in
       OCaml.VSum ("Char", [ v1 ])
   | String v1 ->
-      let v1 = vof_bracket (vof_wrap OCaml.vof_string) v1 in
+      let v1 = vof_wrap OCaml.vof_string v1 in
       OCaml.VSum ("String", [ v1 ])
   | Regexp (v1, v2) ->
       let v1 = vof_bracket (vof_wrap OCaml.vof_string) v1 in
@@ -1422,7 +1422,7 @@ and vof_any = function
       let v1 = vof_case v1 in
       OCaml.VSum ("Cs", [ v1 ])
   | Str v1 ->
-      let v1 = vof_bracket (vof_wrap OCaml.vof_string) v1 in
+      let v1 = vof_wrap OCaml.vof_string v1 in
       OCaml.VSum ("Str", [ v1 ])
   | Args v1 ->
       let v1 = OCaml.vof_list vof_argument v1 in

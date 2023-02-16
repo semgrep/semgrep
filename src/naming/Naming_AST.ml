@@ -329,7 +329,7 @@ let get_resolved_type lang (vinit, vtype) =
       | Some { e = L (Int (_, tok)); _ } -> make_type "int" tok
       | Some { e = L (Float (_, tok)); _ } -> make_type "float" tok
       | Some { e = L (Char (_, tok)); _ } -> make_type "char" tok
-      | Some { e = L (String (_, (_, tok), _)); _ } ->
+      | Some { e = L (String (_, tok)); _ } ->
           let string_str =
             match lang with
             | Lang.Go -> "str"
@@ -528,8 +528,7 @@ let resolve lang prog =
                         e =
                           Call
                             ( { e = IdSpecial (Require, _); _ },
-                              (_, [ Arg { e = L (String (_, file, _)); _ } ], _)
-                            );
+                              (_, [ Arg { e = L (String file); _ } ], _) );
                         _;
                       };
                   vtype = _;
@@ -558,11 +557,8 @@ let resolve lang prog =
                                 e =
                                   Call
                                     ( { e = IdSpecial (Require, _); _ },
-                                      ( _,
-                                        [
-                                          Arg { e = L (String (_, file, _)); _ };
-                                        ],
-                                        _ ) );
+                                      (_, [ Arg { e = L (String file); _ } ], _)
+                                    );
                                 _;
                               } );
                         _;

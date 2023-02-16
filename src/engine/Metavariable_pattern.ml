@@ -228,7 +228,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                 match (xlang, mval) with
                 | _, MV.Text (content, _tok, _)
                 | _, MV.Xmls [ XmlText (content, _tok) ]
-                | _, MV.E { e = G.L (G.String (_, (content, _tok), _)); _ } ->
+                | _, MV.E { e = G.L (G.String (content, _tok)); _ } ->
                     Some content
                 | Xlang.LGeneric, _else_ ->
                     Some (Range.content_at_range mval_file mval_range)

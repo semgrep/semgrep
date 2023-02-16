@@ -151,7 +151,6 @@ let mk_bracket
     tok (e_index', e_line, e_column) ")" env )
 
 let mk_id str pos env = G.Id ((str, mk_tok pos "" env), G.empty_id_info ())
-let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Error management *)
@@ -268,7 +267,7 @@ let scalar (_tag, pos, value, style) env : G.expr * E.pos =
           G.L (G.Float (Some nan, token))
       | _ -> (
           try G.L (G.Float (Some (float_of_string value), token)) with
-          | _ -> G.L (G.String (fb (value, token)))))
+          | _ -> G.L (G.String (value, token))))
       |> G.e
     in
     (expr, pos)
@@ -373,7 +372,7 @@ let parse (env : env) : G.expr list =
           let _mappings, end_pos = read_mappings [] in
           ( G.OtherExpr
               ( ("Mapping", mk_tok start_pos "" env),
-                [ G.Str (fb ("", mk_tok end_pos "" env)) ] )
+                [ G.Str ("", mk_tok end_pos "" env) ] )
             |> G.e,
             end_pos )
       | v, pos -> error "Expected a valid scalar, got" v pos env
