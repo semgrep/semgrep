@@ -11,12 +11,14 @@ If no settings have been configured on the system, DEFAULT_SETTINGS will be writ
 If the process does not have permission to the settings path, a PermissionError will be raised;
 callers should handle this gracefully.
 """
+from __future__ import annotations
+
 import os
 import uuid
 from pathlib import Path
 from typing import Any
-from typing import cast
 from typing import Mapping
+from typing import cast
 
 from attr import define
 from attr import field

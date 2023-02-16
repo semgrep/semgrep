@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from typing import Dict
 from typing import Tuple
-from typing import TYPE_CHECKING
-
 
 if TYPE_CHECKING:
     from semgrep.core_runner import Plan
@@ -22,10 +23,10 @@ class LanguageParseData:
 
 class ParsingData:
     def __init__(self) -> None:
-        self._file_info: Dict[str, Tuple[Language, bool]] = {}
-        self._parse_errors_by_lang: Dict[Language, LanguageParseData] = {}
+        self._file_info: dict[str, tuple[Language, bool]] = {}
+        self._parse_errors_by_lang: dict[Language, LanguageParseData] = {}
 
-    def add_targets(self, plan: "Plan") -> None:
+    def add_targets(self, plan: Plan) -> None:
         """
         Adds the targets from a given plan to the set of files tracked for
         parsing statistics
@@ -95,5 +96,5 @@ class ParsingData:
             # parsing related errors.
             raise TypeError
 
-    def get_errors_by_lang(self) -> Dict[Language, LanguageParseData]:
+    def get_errors_by_lang(self) -> dict[Language, LanguageParseData]:
         return self._parse_errors_by_lang

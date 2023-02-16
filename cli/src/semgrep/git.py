@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path
@@ -12,11 +14,10 @@ from semgrep.state import get_state
 from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
 
-
 logger = getLogger(__name__)
 
 
-def zsplit(s: str) -> List[str]:
+def zsplit(s: str) -> list[str]:
     """Split a string on null characters."""
     s = s.strip("\0")
     if s:
@@ -33,11 +34,11 @@ def get_git_root_path() -> Path:
 
 
 class GitStatus(NamedTuple):
-    added: List[Path]
-    modified: List[Path]
-    removed: List[Path]
-    unmerged: List[Path]
-    renamed: Dict[str, Path]  # keys are new names, values are old paths
+    added: list[Path]
+    modified: list[Path]
+    removed: list[Path]
+    unmerged: list[Path]
+    renamed: dict[str, Path]  # keys are new names, values are old paths
 
 
 class StatusCode:
@@ -73,7 +74,7 @@ class BaselineHandler:
         """
         self._base_commit = base_commit
         self._is_mergebase = is_mergebase
-        self._dirty_paths_by_status: Optional[Dict[str, List[Path]]] = None
+        self._dirty_paths_by_status: dict[str, list[Path]] | None = None
 
         try:
             # Check commit hash exists
@@ -206,7 +207,7 @@ class BaselineHandler:
         else:
             return git_check_output(["git", "merge-base", self._base_commit, "HEAD"])
 
-    def _get_dirty_paths_by_status(self) -> Dict[str, List[Path]]:
+    def _get_dirty_paths_by_status(self) -> dict[str, list[Path]]:
         """
         Returns all paths that have a git status, grouped by change type.
 
@@ -226,7 +227,7 @@ class BaselineHandler:
         output = zsplit(git_status_output)
         logger.debug("finished getting dirty paths")
 
-        dirty_paths: Dict[str, List[Path]] = {}
+        dirty_paths: dict[str, list[Path]] = {}
         for line in output:
             status_code = line[0]
             path = Path(line[3:])

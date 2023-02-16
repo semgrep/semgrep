@@ -2,9 +2,17 @@
 Parser for go.sum files
 Based on https://go.dev/ref/mod#go-sum-files
 """
+from __future__ import annotations
+
 from pathlib import Path
 from typing import List
 from typing import Optional
+
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 from semdep.external.parsy import any_char
 from semdep.external.parsy import string
@@ -12,11 +20,6 @@ from semdep.external.parsy import success
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import upto
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 # We currently ignore the +incompatible flag, pseudo versions, and the difference between a go.mod and a direct download
 # Examples:
@@ -41,8 +44,8 @@ go_sum = dep.sep_by(string("\n")) << (string("\n") | string("\r")).optional()
 
 
 def parse_go_sum(
-    lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
+    lockfile_path: Path, manifest_path: Path | None
+) -> list[FoundDependency]:
     deps = safe_path_parse(lockfile_path, go_sum)
     if not deps:
         return []

@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 from textwrap import dedent
 
 import pytest
-from tests.semgrep_runner import SemgrepRunner
-
 from semgrep.cli import cli
 from semgrep.config_resolver import ConfigLoader
 
+from tests.semgrep_runner import SemgrepRunner
 
-@pytest.mark.quick
+
+@pytest.mark.quick()
 def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
     file_content = dedent(
         """

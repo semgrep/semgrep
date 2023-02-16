@@ -1,9 +1,10 @@
-import pytest
+from __future__ import annotations
 
+import pytest
 from semgrep.semgrep_types import LANGUAGE
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_no_duplicate_keys() -> None:
     """
     Ensures one-to-one assumption of mapping from keys to language in lang.json
@@ -16,7 +17,7 @@ def test_no_duplicate_keys() -> None:
             keys.add(k)
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_no_duplicate_reverse_exts() -> None:
     """
     Ensures one-to-one assumption of mapping from reverse file extensions to language in lang.json

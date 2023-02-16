@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
+from semgrep.cli import cli
+
 from tests.conftest import TESTS_PATH
 from tests.semgrep_runner import SemgrepRunner
 
-from semgrep.cli import cli
 
-
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_publish(tmp_path, mocker):
     runner = SemgrepRunner(
         env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")}

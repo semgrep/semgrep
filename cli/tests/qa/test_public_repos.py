@@ -1,6 +1,8 @@
 #
 # TODO: explain what these tests are for if you happen to know.
 #
+from __future__ import annotations
+
 import contextlib
 import json
 import os
@@ -129,7 +131,7 @@ def _github_repo(repo_url: str, repo_destination: Path):
     return repo_destination
 
 
-@pytest.mark.slow
+@pytest.mark.slow()
 @pytest.mark.parametrize("repo", [repo.as_param() for repo in REPOS])
 #
 # This test runs [which checks?] against one public git repo.

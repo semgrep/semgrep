@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
 from typing import Iterable
 from typing import Optional
-from typing import overload
 from typing import Union
+from typing import overload
 
 from attr import Factory
 from attr import field
@@ -17,22 +19,22 @@ def url(value: str) -> str:
 
 
 @overload
-def EnvFactory(envvars: Union[str, Iterable[str]], default: str) -> str:
+def EnvFactory(envvars: str | Iterable[str], default: str) -> str:
     ...
 
 
 @overload
-def EnvFactory(envvars: Union[str, Iterable[str]]) -> Optional[str]:
+def EnvFactory(envvars: str | Iterable[str]) -> str | None:
     ...
 
 
 def EnvFactory(
-    envvars: Union[str, Iterable[str]], default: Optional[str] = None
-) -> Optional[str]:
+    envvars: str | Iterable[str], default: str | None = None
+) -> str | None:
     if isinstance(envvars, str):
         envvars = [envvars]
 
-    def env_getter() -> Optional[str]:
+    def env_getter() -> str | None:
         for envvar in envvars:
             if os.getenv(envvar):
                 return os.getenv(envvar)
@@ -67,7 +69,7 @@ class Env:
         ),
         converter=url,
     )
-    app_token: Optional[str] = field(default=EnvFactory("SEMGREP_APP_TOKEN"))
+    app_token: str | None = field(default=EnvFactory("SEMGREP_APP_TOKEN"))
 
     version_check_url: str = field(
         default=EnvFactory(

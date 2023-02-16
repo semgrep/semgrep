@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from textwrap import dedent
 
 import pytest
-
 import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import parse_config_string
@@ -32,7 +33,7 @@ def create_rule() -> Rule:
     return Rule.from_yamltree(config["testfile"].value["rules"].value[0])
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_rule_match_attributes(mocker):
     file_content = dedent(
         """
@@ -69,7 +70,7 @@ def test_rule_match_attributes(mocker):
     ), "syntactic IDs must remain consistent to not trigger new notifications"
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_rule_match_sorting(mocker):
     file_content = dedent(
         """
@@ -117,7 +118,7 @@ def test_rule_match_sorting(mocker):
     # fmt: on
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_rule_match_hashing(mocker):
     file_content = dedent(
         """
@@ -145,7 +146,7 @@ def test_rule_match_hashing(mocker):
     assert {match, match} == {match}, "matches must deduplicate when added to a set"
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_rule_match_is_nosemgrep_agnostic(mocker):
     file_content = dedent(
         """
@@ -231,7 +232,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
     ), "matches are identical per semgrep ci deduplication if the only difference is a previous-line nosemgrep comment"
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_rule_match_set_indexes(mocker):
     file_content = dedent(
         """
@@ -331,14 +332,14 @@ def test_rule_match_set_indexes(mocker):
         raise AssertionError()
     except ValueError:
         assert True
-    sorted_matches = list(sorted(matches))
+    sorted_matches = sorted(matches)
     assert sorted_matches[0].index == 0, "1st duplicate match must be assigned index 0"
     assert sorted_matches[1].index == 1, "2nd duplicate match must be assigned index 1"
     assert sorted_matches[3].index == 2, "3rd duplicate match must be assigned index 2"
     assert sorted_matches[2].index == 0, "unique match must be assigned index 0"
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_rule_match_to_app_finding(snapshot, mocker):
     mocker.patch.object(RuleMatch, "get_lines", lambda self: "foo()")
     dependency_match = out.DependencyMatch(

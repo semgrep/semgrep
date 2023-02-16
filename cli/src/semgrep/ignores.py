@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import fnmatch
 import os
 import re
@@ -44,7 +46,7 @@ def path_is_relative_to(p1: Path, p2: Path) -> bool:
 @frozen
 class FileIgnore:
     base_path: Path
-    patterns: FrozenSet[str]
+    patterns: frozenset[str]
 
     @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def _survives(self, path: Path) -> bool:
@@ -104,7 +106,7 @@ class FileIgnore:
     @classmethod
     def from_unprocessed_patterns(
         cls, base_path: Path, patterns: Iterable[str]
-    ) -> "FileIgnore":
+    ) -> FileIgnore:
         return cls(base_path, frozenset(Processor(base_path).process(patterns)))
 
 
@@ -194,7 +196,7 @@ class Parser:
         else:
             return (line for _ in range(1))
 
-    def parse(self, stream: TextIO) -> Set[str]:
+    def parse(self, stream: TextIO) -> set[str]:
         """Performs parsing of an input stream"""
         return {
             pattern
@@ -256,7 +258,7 @@ class Processor:
             pat = os.path.join(self.base_path, pat)
         yield pat
 
-    def process(self, pre: Iterable[str]) -> Set[str]:
+    def process(self, pre: Iterable[str]) -> set[str]:
         """Post-processes an intermediate representation"""
         return {
             pattern

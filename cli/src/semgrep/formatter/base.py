@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 from typing import Any
 from typing import Collection
@@ -16,7 +18,7 @@ from semgrep.rule_match import RuleMatch
 class BaseFormatter(abc.ABC):
     def output(
         self,
-        rules: FrozenSet[Rule],
+        rules: frozenset[Rule],
         rule_matches: Sequence[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,

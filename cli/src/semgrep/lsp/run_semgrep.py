@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from logging import getLogger
 from pathlib import Path
 from typing import Sequence
@@ -12,7 +14,7 @@ log = getLogger(__name__)
 
 def run_rules(
     targets: Sequence[str], config: LSPConfig
-) -> Tuple[RuleMatchMap, Set[Path]]:
+) -> tuple[RuleMatchMap, set[Path]]:
     (
         filtered_matches_by_rule,
         _,
@@ -30,7 +32,7 @@ def run_rules(
 
 def run_rules_ci(
     targets: Sequence[str], config: LSPConfig
-) -> Tuple[RuleMatchMap, Set[Path]]:
+) -> tuple[RuleMatchMap, set[Path]]:
     (
         filtered_matches_by_rule,
         _,

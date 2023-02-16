@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import sys
 from typing import Optional
@@ -19,7 +21,7 @@ def is_valid_token(token: str) -> bool:
     return r.ok
 
 
-def get_deployment_id() -> Optional[int]:
+def get_deployment_id() -> int | None:
     """
     Returns the deployment_id attached to an api_token as int
 
@@ -35,7 +37,7 @@ def get_deployment_id() -> Optional[int]:
         return None
 
 
-def get_token() -> Optional[str]:
+def get_token() -> str | None:
     """
     Get saved token in following order:
     - env var
@@ -44,13 +46,13 @@ def get_token() -> Optional[str]:
     """
     state = get_state()
     if state.env.app_token is not None:
-        logger.debug(f"Using environment variable SEMGREP_APP_TOKEN as api token")
+        logger.debug("Using environment variable SEMGREP_APP_TOKEN as api token")
         return state.env.app_token
 
     return _read_token_from_settings_file()
 
 
-def _read_token_from_settings_file() -> Optional[str]:
+def _read_token_from_settings_file() -> str | None:
     """
     Read api token from settings file
 

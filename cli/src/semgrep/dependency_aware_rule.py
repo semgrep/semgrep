@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable
@@ -7,11 +9,12 @@ from typing import List
 from typing import Set
 from typing import Tuple
 
-import semgrep.output_from_core as core
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 from semdep.find_lockfiles import find_single_lockfile
 from semdep.package_restrictions import dependencies_range_match_any
+
+import semgrep.output_from_core as core
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -28,7 +31,7 @@ from semgrep.target_manager import TargetManager
 SCA_FINDING_SCHEMA = 20220913
 
 
-def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyPattern]:
+def parse_depends_on_yaml(entries: list[dict[str, str]]) -> Iterator[DependencyPattern]:
     """
     Convert the entries in the Yaml to ProjectDependsOnEntry objects that specify
     namespace, package name, and semver ranges
@@ -37,17 +40,17 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
         # schema checks should gaurantee we have these fields, but we'll code defensively
         namespace = entry.get("namespace")
         if namespace is None:
-            raise SemgrepError(f"project-depends-on is missing `namespace`")
+            raise SemgrepError("project-depends-on is missing `namespace`")
         try:
             ecosystem = Ecosystem.from_json(namespace.lower())
         except ValueError:
             raise SemgrepError(f"unknown package ecosystem: {namespace}")
         package = entry.get("package")
         if package is None:
-            raise SemgrepError(f"project-depends-on is missing `package`")
+            raise SemgrepError("project-depends-on is missing `package`")
         semver_range = entry.get("version")
         if semver_range is None:
-            raise SemgrepError(f"project-depends-on is missing `version`")
+            raise SemgrepError("project-depends-on is missing `version`")
         try:
             SpecifierSet(semver_range)
         except InvalidSpecifier:
@@ -62,9 +65,9 @@ def generate_unreachable_sca_findings(
     rule: Rule,
     target_manager: TargetManager,
     already_reachable: Callable[[Path, FoundDependency], bool],
-) -> Tuple[List[RuleMatch], List[SemgrepError], Set[Path]]:
+) -> tuple[list[RuleMatch], list[SemgrepError], set[Path]]:
     depends_on_keys = rule.project_depends_on
-    dep_rule_errors: List[SemgrepError] = []
+    dep_rule_errors: list[SemgrepError] = []
 
     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
     ecosystems = list(rule.ecosystems)
@@ -121,7 +124,7 @@ def generate_unreachable_sca_findings(
 
 @lru_cache(maxsize=100_000)
 def transivite_dep_is_also_direct(
-    package: str, deps: Tuple[Tuple[str, Transitivity], ...]
+    package: str, deps: tuple[tuple[str, Transitivity], ...]
 ) -> bool:
     """
     Assumes that [dep] is transitive
@@ -131,12 +134,12 @@ def transivite_dep_is_also_direct(
 
 
 def generate_reachable_sca_findings(
-    matches: List[RuleMatch], rule: Rule, target_manager: TargetManager
-) -> Tuple[
-    List[RuleMatch], List[SemgrepError], Callable[[Path, FoundDependency], bool]
+    matches: list[RuleMatch], rule: Rule, target_manager: TargetManager
+) -> tuple[
+    list[RuleMatch], list[SemgrepError], Callable[[Path, FoundDependency], bool]
 ]:
     depends_on_keys = rule.project_depends_on
-    dep_rule_errors: List[SemgrepError] = []
+    dep_rule_errors: list[SemgrepError] = []
 
     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
     ecosystems = list(rule.ecosystems)

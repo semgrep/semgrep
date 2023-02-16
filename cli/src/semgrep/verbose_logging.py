@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 from typing import Any
-from typing import cast
 from typing import Optional
+from typing import cast
 
 
 class VerboseLogging(logging.Logger):
@@ -45,7 +47,7 @@ def install_verbose_logging() -> None:
 install_verbose_logging()
 
 
-def getLogger(name: Optional[str]) -> VerboseLogging:
+def getLogger(name: str | None) -> VerboseLogging:
     """
     Wrapper around logging.getLogger to correctly cast so mypy
     detects verbose() function

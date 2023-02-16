@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import glob
 import urllib
 from functools import partial
@@ -39,7 +41,7 @@ from semgrep.util import git_check_output
 
 class LSPConfig:
     def __init__(
-        self, lsp_config: JsonObject, workspace_folders: List[JsonObject]
+        self, lsp_config: JsonObject, workspace_folders: list[JsonObject]
     ) -> None:
         lsp_config = dict(lsp_config)
         # Ensure that we have these config keys
@@ -58,7 +60,7 @@ class LSPConfig:
     # =====================
 
     @property
-    def configs(self) -> List[str]:
+    def configs(self) -> list[str]:
         """Get all valid configs to run semgrep on for the current workspace"""
         configs = []
         settings_configs = self._settings["scan"].get("configuration")
@@ -74,19 +76,19 @@ class LSPConfig:
             return ["auto"]
 
     @property
-    def baseline_commit(self) -> Optional[str]:
+    def baseline_commit(self) -> str | None:
         return self._settings["scan"].get("baselineCommit")
 
     @property
-    def severity(self) -> List[str]:
+    def severity(self) -> list[str]:
         return self._settings["scan"].get("severity", ["INFO", "WARNING", "ERROR"])
 
     @property
-    def exclude(self) -> List[str]:
+    def exclude(self) -> list[str]:
         return self._settings["scan"].get("exclude", [])
 
     @property
-    def include(self) -> List[str]:
+    def include(self) -> list[str]:
         return self._settings["scan"].get("include", [])
 
     @property
@@ -94,7 +96,7 @@ class LSPConfig:
         return self._settings["scan"].get("jobs", 1)
 
     @property
-    def configurationSource(self) -> List[str]:
+    def configurationSource(self) -> list[str]:
         return self._settings["scan"].get("configurationSource", ["file"])
 
     @property
@@ -118,19 +120,14 @@ class LSPConfig:
         return self._settings["scan"].get("useGitIgnore", True)
 
     @property
-    def project_url(self) -> Union[str, None]:
+    def project_url(self) -> str | None:
         return get_project_url()
 
     @property
     def scan_url(self) -> str:
         scan_handler = ScanHandler(True)
         metadata = generate_meta_from_environment(self.baseline_commit)
-        state = get_state()
-        to_server = (
-            ""
-            if state.env.semgrep_url == "https://semgrep.dev"
-            else f" to {state.env.semgrep_url}"
-        )
+        get_state()
         metadata_dict = metadata.to_dict()
         scan_handler.fetch_and_init_scan_config(metadata_dict)
         return scan_handler.rules
@@ -176,7 +173,7 @@ class LSPConfig:
     def settings(self) -> JsonObject:
         return self._settings
 
-    def _rules(self, configs: List[str]) -> List[Rule]:
+    def _rules(self, configs: list[str]) -> list[Rule]:
         configs_obj, _ = get_config(None, None, configs, project_url=self.project_url)
         all_rules = configs_obj.get_rules(True)
         filtered_rules = [
@@ -185,23 +182,23 @@ class LSPConfig:
         return filtered_rules
 
     @property
-    def workspace_rules(self) -> List[Rule]:
+    def workspace_rules(self) -> list[Rule]:
         """Get all local rules we're running"""
         return self._rules(self.configs)
 
     @property
-    def ci_rules(self) -> Optional[List[Rule]]:
+    def ci_rules(self) -> list[Rule] | None:
         if not self.logged_in:
             return None
         return self._rules([self.scan_url])
 
     @property
-    def folders(self) -> List[str]:
+    def folders(self) -> list[str]:
         """All workspace folders by URI"""
         return [f["uri"] for f in self._workspace_folders]
 
     @property
-    def folder_paths(self) -> List[str]:
+    def folder_paths(self) -> list[str]:
         """All workspace folders by path"""
         folder_paths = []
         for f in self.folders:
@@ -211,7 +208,7 @@ class LSPConfig:
         return folder_paths
 
     @property
-    def token(self) -> Optional[str]:
+    def token(self) -> str | None:
         return get_state().app_session.token
 
     @property
@@ -228,19 +225,19 @@ class LSPConfig:
             return False
 
     def _scanner(
-        self, configs: List[str]
+        self, configs: list[str]
     ) -> Callable[
         ...,
-        Tuple[
+        tuple[
             RuleMatchMap,
-            List[SemgrepError],
-            Set[Path],
+            list[SemgrepError],
+            set[Path],
             FileTargetingLog,
-            List[Rule],
+            list[Rule],
             ProfileManager,
             OutputExtra,
             Collection[RuleSeverity],
-            Dict[str, int],
+            dict[str, int],
         ],
     ]:
         """Generate a scanner according to the config"""
@@ -273,16 +270,16 @@ class LSPConfig:
         self,
     ) -> Callable[
         ...,
-        Tuple[
+        tuple[
             RuleMatchMap,
-            List[SemgrepError],
-            Set[Path],
+            list[SemgrepError],
+            set[Path],
             FileTargetingLog,
-            List[Rule],
+            list[Rule],
             ProfileManager,
             OutputExtra,
             Collection[RuleSeverity],
-            Dict[str, int],
+            dict[str, int],
         ],
     ]:
         return self._scanner(configs=self.configs)
@@ -292,16 +289,16 @@ class LSPConfig:
         self,
     ) -> Callable[
         ...,
-        Tuple[
+        tuple[
             RuleMatchMap,
-            List[SemgrepError],
-            Set[Path],
+            list[SemgrepError],
+            set[Path],
             FileTargetingLog,
-            List[Rule],
+            list[Rule],
             ProfileManager,
             OutputExtra,
             Collection[RuleSeverity],
-            Dict[str, int],
+            dict[str, int],
         ],
     ]:
         return self._scanner(configs=[self.scan_url])
@@ -321,8 +318,8 @@ class LSPConfig:
 
     def update_workspace(
         self,
-        added: Optional[List[JsonObject]],
-        removed: Optional[List[JsonObject]],
+        added: list[JsonObject] | None,
+        removed: list[JsonObject] | None,
     ) -> None:
         """Add or remove folders from our config, and update what we need to"""
         if self._workspace_folders is not None:

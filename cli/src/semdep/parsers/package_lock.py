@@ -2,16 +2,13 @@
 Parser for package-lock.json files
 Based on https://docs.npmjs.com/cli/v9/configuring-npm/package-lock-json
 """
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Optional
 
-from semdep.parsers.util import extract_npm_lockfile_hash
-from semdep.parsers.util import JSON
-from semdep.parsers.util import json_doc
-from semdep.parsers.util import safe_path_parse
-from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
@@ -19,12 +16,18 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.verbose_logging import getLogger
 
+from semdep.parsers.util import JSON
+from semdep.parsers.util import extract_npm_lockfile_hash
+from semdep.parsers.util import json_doc
+from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import transitivity
+
 logger = getLogger(__name__)
 
 
 def parse_package_lock(
-    lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
+    lockfile_path: Path, manifest_path: Path | None
+) -> list[FoundDependency]:
     lockfile_json_opt = safe_path_parse(lockfile_path, json_doc)
     if not lockfile_json_opt:
         return []
@@ -50,7 +53,7 @@ def parse_package_lock(
             else set()
         )
 
-    def parse_deps(deps: Dict[str, JSON], nested: bool) -> List[FoundDependency]:
+    def parse_deps(deps: dict[str, JSON], nested: bool) -> list[FoundDependency]:
         # Dependency dicts in a package-lock.json can be nested:
         # {"foo" : {stuff, "dependencies": {"bar": stuff, "dependencies": {"baz": stuff}}}}
         # So we need to handle them recursively

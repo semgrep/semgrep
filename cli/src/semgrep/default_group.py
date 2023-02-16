@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 from typing import List
 from typing import Optional
@@ -44,7 +46,7 @@ class DefaultGroup(click.Group):
         if default_command is not None:
             self.default_command_name = default_command
 
-    def parse_args(self, ctx: click.Context, args: List[str]) -> List[str]:
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
         """
         If there are no arguments, insert default command
         """
@@ -54,7 +56,7 @@ class DefaultGroup(click.Group):
 
     def get_command(
         self, ctx: click.Context, command_name: str
-    ) -> Optional[click.Command]:
+    ) -> click.Command | None:
         """
         If COMMAND_NAME is not in self.commands then it means
         it is an option/arg to the default command. So place
@@ -70,8 +72,8 @@ class DefaultGroup(click.Group):
         return super().get_command(ctx, command_name)
 
     def resolve_command(
-        self, ctx: click.Context, args: List[str]
-    ) -> Tuple[Optional[str], Optional[click.Command], List[str]]:
+        self, ctx: click.Context, args: list[str]
+    ) -> tuple[str | None, click.Command | None, list[str]]:
         """
         MultiCommand.resolve_command assumes args[0] is the command name
         if we are running a default command then args[0] will actually be

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import inspect
 import sys
@@ -5,12 +7,12 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
-from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
+from typing import cast
 
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
@@ -78,7 +80,7 @@ class SemgrepError(Exception):
         """
         return dataclasses.replace(base, message=str(self))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return cast(Dict[str, Any], self.to_CliError().to_json())
 
     def format_for_terminal(self) -> str:
@@ -102,7 +104,7 @@ class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
     # TODO: spans are used only for PatternParseError
-    spans: Optional[List[out.ErrorSpan]]
+    spans: list[out.ErrorSpan] | None
     core: core.CoreError
 
     # TODO: we should return a proper variant instead of converting to a str
@@ -230,7 +232,7 @@ class FilesNotFoundError(SemgrepError):
         return "\n".join(lines)
 
 
-def span_list_to_tuple(spans: List[Span]) -> Tuple[Span, ...]:
+def span_list_to_tuple(spans: list[Span]) -> tuple[Span, ...]:
     """
     Helper converter so mypy can track that we are converting
     from list of spans to tuple of spans
@@ -270,9 +272,9 @@ class ErrorWithSpan(SemgrepError):
     """
 
     short_msg: str = attr.ib()
-    long_msg: Optional[str] = attr.ib()
-    spans: List[Span] = attr.ib(converter=span_list_to_tuple)
-    help: Optional[str] = attr.ib(default=None)
+    long_msg: str | None = attr.ib()
+    spans: list[Span] = attr.ib(converter=span_list_to_tuple)
+    help: str | None = attr.ib(default=None)
 
     def __attrs_post_init__(self) -> None:
         if not hasattr(self, "code"):
@@ -299,7 +301,7 @@ class ErrorWithSpan(SemgrepError):
         return len(str((span.context_end or span.end).line)) + 1
 
     @staticmethod
-    def _format_line_number(span: Span, line_number: Optional[int]) -> str:
+    def _format_line_number(span: Span, line_number: int | None) -> str:
         """
         Produce a string like:
         ` 10 |`
@@ -316,8 +318,8 @@ class ErrorWithSpan(SemgrepError):
             return with_color(Colors.bright_blue, "".ljust(width) + "| ")
 
     def _format_code_segment(
-        self, start: Position, end: Position, source: List[str], part_of_span: Span
-    ) -> List[str]:
+        self, start: Position, end: Position, source: list[str], part_of_span: Span
+    ) -> list[str]:
         """
         Line by line output for a snippet of code from `start_line` to `end_line`
         Each line will be annotated with a line number, properly spaced according to
@@ -357,7 +359,7 @@ class ErrorWithSpan(SemgrepError):
                 snippet = []
 
             # all the lines of code in the file this comes from
-            source: List[str] = SourceTracker.source(span.source_hash)
+            source: list[str] = SourceTracker.source(span.source_hash)
 
             # First, print the span from `context_start` to `start`
             # Next, sprint the focus of the span from `start` to `end`

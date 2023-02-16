@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 import builtins
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
 
 import pytest
-from ruamel.yaml import YAML
-
 import semgrep.output_from_core as core
+from ruamel.yaml import YAML
 from semgrep.constants import RuleSeverity
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.rule import Rule
@@ -66,7 +67,7 @@ def create_taint_rule_match():
     return match
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_dataflow_source_to_thread_flow_sarif(mocker):
     # https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html#_Toc16012707
     file_content = dedent(
@@ -93,7 +94,7 @@ def test_dataflow_source_to_thread_flow_sarif(mocker):
     )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_intermediate_vars_to_thread_flow_location_sarif(mocker):
     # https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html#_Toc16012707
     file_content = dedent(
@@ -128,7 +129,7 @@ def test_intermediate_vars_to_thread_flow_location_sarif(mocker):
         )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_sink_to_thread_flow_location_sarif(mocker):
     # https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html#_Toc16012707
     file_content = dedent(
@@ -155,7 +156,7 @@ def test_sink_to_thread_flow_location_sarif(mocker):
     )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_dataflow_trace_to_thread_flows_sarif(mocker):
     # https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html#_Toc16012699
     file_content = dedent(
@@ -181,7 +182,7 @@ def test_dataflow_trace_to_thread_flows_sarif(mocker):
         ), "A locations value is an array of one or more threadFlowLocation objects"
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_dataflow_trace_to_codeflow_sarif(mocker):
     # https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html#_Toc16012696
     file_content = dedent(
@@ -204,7 +205,7 @@ def test_dataflow_trace_to_codeflow_sarif(mocker):
     ), "A threadFlows value is an array of one or more threadFlow objects"
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_rule_to_sarif_tags():
     r = """
       id: blah

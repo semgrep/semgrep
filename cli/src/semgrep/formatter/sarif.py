@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from typing import Any
 from typing import Iterable
@@ -149,7 +151,7 @@ class SarifFormatter(BaseFormatter):
     @staticmethod
     def _dataflow_trace_to_codeflow_sarif(
         rule_match: RuleMatch,
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> Mapping[str, Any] | None:
         dataflow_trace = rule_match.dataflow_trace
         if not dataflow_trace:
             return None
@@ -238,7 +240,7 @@ class SarifFormatter(BaseFormatter):
         return rule_match_sarif
 
     @staticmethod
-    def _rule_match_to_sarif_fix(rule_match: RuleMatch) -> Optional[Mapping[str, Any]]:
+    def _rule_match_to_sarif_fix(rule_match: RuleMatch) -> Mapping[str, Any] | None:
 
         # if rule_match.extra.get("dependency_matches"):
         fixed_lines = rule_match.extra.get("fixed_lines")

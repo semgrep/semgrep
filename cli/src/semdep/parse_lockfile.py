@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import lru_cache
 from pathlib import Path
 from typing import Generator
@@ -12,32 +14,25 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
-from semdep.parsers.requirements import parse_requirements
-from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_sum import parse_go_sum
 from semdep.parsers.gradle import parse_gradle
+from semdep.parsers.package_lock import parse_package_lock
 from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
+from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.yarn import parse_yarn
-from semdep.parsers.package_lock import parse_package_lock
-
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 
 def parse_cargo(
-    lockfile_text: str, manifest_text: Optional[str]
+    lockfile_text: str, manifest_text: str | None
 ) -> Generator[FoundDependency, None, None]:
     def parse_dep(s: str) -> FoundDependency:
         lines = s.split("\n")[1:]
@@ -79,8 +74,8 @@ NEW_LOCKFILE_PARSERS = {
 
 @lru_cache(maxsize=1000)
 def parse_lockfile_path(
-    lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
+    lockfile_path: Path, manifest_path: Path | None
+) -> list[FoundDependency]:
     # coupling with the github action, which decides to send files with these names back to us
     lockfile_name = lockfile_path.name.lower()
     if lockfile_name in NEW_LOCKFILE_PARSERS:

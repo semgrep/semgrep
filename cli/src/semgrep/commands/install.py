@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import platform
 import shutil
@@ -44,7 +46,7 @@ def run_install_semgrep_pro() -> None:
     logger.info(f"Semgrep Pro Engine will be installed in {semgrep_pro_path}")
 
     if semgrep_pro_path.exists():
-        logger.info(f"Overwriting Semgrep Pro Engine already installed!")
+        logger.info("Overwriting Semgrep Pro Engine already installed!")
 
     if state.app_session.token is None:
         logger.info("run `semgrep login` before using `semgrep install`")

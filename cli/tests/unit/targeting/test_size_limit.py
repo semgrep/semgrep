@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pytest
-
 from semgrep.target_manager import TargetManager
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.parametrize(
-    "size_limit,should_skip",
+    ("size_limit", "should_skip"),
     [
         pytest.param(-1, False, id="no max size (-1)"),
         pytest.param(0, False, id="no max size (0)"),

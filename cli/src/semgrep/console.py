@@ -7,6 +7,8 @@ https://rich.readthedocs.io/en/stable/console.html#console-api
 See also the semgrep.terminal module which is an earlier attempt to standardize some output configuration,
 but is more low level and doesn't really offload logic to other libraries.
 """
+from __future__ import annotations
+
 from attrs import frozen
 from rich import box
 from rich.console import Console

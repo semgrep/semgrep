@@ -1,4 +1,7 @@
-from typing import NamedTuple, Any
+from __future__ import annotations
+
+from typing import Any
+from typing import NamedTuple
 
 class LineCol(NamedTuple):
     line: int

@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import json
 import os
 import time
 from collections import OrderedDict
-from enum import auto
 from enum import Enum
+from enum import auto
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -23,7 +25,6 @@ from ruamel.yaml import YAMLError
 from semgrep import __VERSION__
 from semgrep.app import auth
 from semgrep.constants import CLI_RULE_ID
-from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
@@ -31,18 +32,19 @@ from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
+from semgrep.constants import Colors
 from semgrep.constants import RuleSeverity
+from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
-from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
-from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
+from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.state import get_state
 from semgrep.util import is_config_suffix
 from semgrep.util import is_rules
@@ -72,7 +74,7 @@ DEFAULT_CONFIG = {
 
 
 class ConfigFile(NamedTuple):
-    config_id: Optional[str]  # None for remote files
+    config_id: str | None  # None for remote files
     contents: str
     config_path: str
 
@@ -86,9 +88,9 @@ class ConfigLoader:
     _origin = ConfigType.LOCAL
     _config_path = ""
     _project_url = None
-    _extra_headers: Dict[str, str] = {}
+    _extra_headers: dict[str, str] = {}
 
-    def __init__(self, config_str: str, project_url: Optional[str] = None) -> None:
+    def __init__(self, config_str: str, project_url: str | None = None) -> None:
         """
         Mutates Metrics state!
         Takes a user's inputted config_str and transforms it into the appropriate
@@ -114,7 +116,7 @@ class ConfigLoader:
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
             self._config_path = registry_id_to_url(config_str)
         elif is_saved_snippet(config_str):
-            state.metrics.add_feature("config", f"registry:snippet-id")
+            state.metrics.add_feature("config", "registry:snippet-id")
             self._config_path = saved_snippet_to_url(config_str)
         elif config_str == AUTO_CONFIG_KEY:
             state.metrics.add_feature("config", "auto")
@@ -128,7 +130,7 @@ class ConfigLoader:
             state.metrics.is_using_registry = True
             state.metrics.add_registry_url(self._config_path)
 
-    def load_config(self) -> List[ConfigFile]:
+    def load_config(self) -> list[ConfigFile]:
         """
         Loads a config based on self's state.
         A config path produces a list of ConfigFiles because
@@ -171,7 +173,7 @@ class ConfigLoader:
                 terminal_wrap(f"Failed to download config from {config_url}: {str(e)}")
             )
 
-    def _load_config_from_local_path(self) -> List[ConfigFile]:
+    def _load_config_from_local_path(self) -> list[ConfigFile]:
         """
         Return config file(s) as dictionary object
         """
@@ -218,7 +220,7 @@ class ConfigLoader:
         return self._origin == ConfigType.REGISTRY
 
 
-def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigFile:
+def read_config_at_path(loc: Path, base_path: Path | None = None) -> ConfigFile:
     """
     Assumes file at loc exists
     """
@@ -229,7 +231,7 @@ def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigFi
     return ConfigFile(config_id, loc.read_text(), str(loc))
 
 
-def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
+def read_config_folder(loc: Path, relative: bool = False) -> list[ConfigFile]:
     configs = []
     for l in loc.rglob("*"):
         # Allow manually specified paths with ".", but don't auto-expand them
@@ -241,8 +243,8 @@ def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
 
 
 def parse_config_files(
-    loaded_config_infos: List[ConfigFile],
-) -> Dict[str, YamlTree]:
+    loaded_config_infos: list[ConfigFile],
+) -> dict[str, YamlTree]:
     """
     Parse a list of config files into rules
     This assumes that config_id is set for local rules
@@ -269,11 +271,11 @@ def parse_config_files(
 
 
 class ConfigPath:
-    def __init__(self, config_str: str, project_url: Optional[str] = None) -> None:
+    def __init__(self, config_str: str, project_url: str | None = None) -> None:
         self._config_str = config_str
         self._project_url = project_url
 
-    def resolve_config(self) -> Dict[str, YamlTree]:
+    def resolve_config(self) -> dict[str, YamlTree]:
         """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
         start_t = time.time()
 
@@ -300,16 +302,16 @@ class Config:
 
     @classmethod
     def from_pattern_lang(
-        cls, pattern: str, lang: str, replacement: Optional[str] = None
-    ) -> Tuple["Config", Sequence[SemgrepError]]:
+        cls, pattern: str, lang: str, replacement: str | None = None
+    ) -> tuple[Config, Sequence[SemgrepError]]:
         config_dict = manual_config(pattern, lang, replacement)
         valid, errors = cls._validate(config_dict)
         return cls(valid), errors
 
     @classmethod
-    def from_rules_yaml(cls, config: str) -> Tuple["Config", Sequence[SemgrepError]]:
-        config_dict: Dict[str, YamlTree] = {}
-        errors: List[SemgrepError] = []
+    def from_rules_yaml(cls, config: str) -> tuple[Config, Sequence[SemgrepError]]:
+        config_dict: dict[str, YamlTree] = {}
+        errors: list[SemgrepError] = []
 
         try:
             resolved_config_key = "semgrep-app-rules"
@@ -325,16 +327,16 @@ class Config:
 
     @classmethod
     def from_config_list(
-        cls, configs: Sequence[str], project_url: Optional[str]
-    ) -> Tuple["Config", Sequence[SemgrepError]]:
+        cls, configs: Sequence[str], project_url: str | None
+    ) -> tuple[Config, Sequence[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
         list of errors parsing said config files
 
         If empty list is passed, tries to read config file at default locations
         """
-        config_dict: Dict[str, YamlTree] = {}
-        errors: List[SemgrepError] = []
+        config_dict: dict[str, YamlTree] = {}
+        errors: list[SemgrepError] = []
 
         if not configs:
             try:
@@ -354,7 +356,7 @@ class Config:
                     resolved_config_key,
                     resolved_config_yaml_tree,
                 ) in resolved_config.items():
-                    patched_resolved_config: Dict[str, YamlTree] = {}
+                    patched_resolved_config: dict[str, YamlTree] = {}
                     patched_resolved_config[
                         f"{resolved_config_key}_{i}"
                     ] = resolved_config_yaml_tree
@@ -367,7 +369,7 @@ class Config:
         errors.extend(parse_errors)
         return cls(valid), errors
 
-    def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
+    def get_rules(self, no_rewrite_rule_ids: bool) -> list[Rule]:
         """
         Return list of rules
 
@@ -421,12 +423,12 @@ class Config:
     @staticmethod
     def _validate(
         config_dict: Mapping[str, YamlTree]
-    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError]]:
+    ) -> tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError]]:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
-        errors: List[SemgrepError] = []
-        valid: Dict[str, Any] = {}
+        errors: list[SemgrepError] = []
+        valid: dict[str, Any] = {}
         for config_id, config_yaml_tree in config_dict.items():
             config = config_yaml_tree.value
             if not isinstance(config, YamlMap):
@@ -460,20 +462,19 @@ class Config:
 
 def validate_single_rule(
     config_id: str, rule_yaml: YamlTree[YamlMap]
-) -> Optional[Rule]:
+) -> Rule | None:
     """
     Validate that a rule dictionary contains all necessary keys
     and can be correctly parsed.
     """
-    rule: YamlMap = rule_yaml.value
 
     # Defaults to search mode if mode is not specified
     return Rule.from_yamltree(rule_yaml)
 
 
 def manual_config(
-    pattern: str, lang: str, replacement: Optional[str]
-) -> Dict[str, YamlTree]:
+    pattern: str, lang: str, replacement: str | None
+) -> dict[str, YamlTree]:
     """Create a fake rule when we only have a pattern and language
 
     This is used when someone calls `semgrep scan -e print -l py`
@@ -521,7 +522,7 @@ def indent(msg: str) -> str:
     return "\n".join(["\t" + line for line in msg.splitlines()])
 
 
-def import_callback(base: str, path: str) -> Tuple[str, bytes]:
+def import_callback(base: str, path: str) -> tuple[str, bytes]:
     """
     Instructions to jsonnet for how to resolve
     import expressions (`local $NAME = $PATH`).
@@ -567,17 +568,17 @@ def import_callback(base: str, path: str) -> Tuple[str, bytes]:
     # TODO? should we pass also base?
     config_infos = ConfigLoader(path, None).load_config()
     if len(config_infos) == 0:
-        raise SemgrepError(f"No valid configs imported")
+        raise SemgrepError("No valid configs imported")
     elif len(config_infos) > 1:
-        raise SemgrepError(f"Currently configs cannot be imported from a directory")
+        raise SemgrepError("Currently configs cannot be imported from a directory")
     else:
         (_config_id, contents, config_path) = config_infos[0]
         return config_path, contents.encode()
 
 
 def parse_config_string(
-    config_id: str, contents: str, filename: Optional[str]
-) -> Dict[str, YamlTree]:
+    config_id: str, contents: str, filename: str | None
+) -> dict[str, YamlTree]:
     if not contents:
         raise SemgrepError(
             f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
@@ -639,7 +640,7 @@ def _is_hidden_config(loc: Path) -> bool:
     )
 
 
-def load_default_config() -> Dict[str, YamlTree]:
+def load_default_config() -> dict[str, YamlTree]:
     """
     Load config from DEFAULT_CONFIG_FILE or DEFAULT_CONFIG_FOLDER
     """
@@ -743,13 +744,13 @@ def is_pack_id(config_str: str) -> bool:
 
 
 def get_config(
-    pattern: Optional[str],
-    lang: Optional[str],
+    pattern: str | None,
+    lang: str | None,
     config_strs: Sequence[str],
     *,
-    project_url: Optional[str],
-    replacement: Optional[str] = None,
-) -> Tuple[Config, Sequence[SemgrepError]]:
+    project_url: str | None,
+    replacement: str | None = None,
+) -> tuple[Config, Sequence[SemgrepError]]:
     if pattern:
         if not lang:
             raise SemgrepError("language must be specified when a pattern is passed")

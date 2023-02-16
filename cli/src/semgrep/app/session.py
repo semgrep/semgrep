@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import subprocess
 from pathlib import Path
@@ -27,12 +29,12 @@ class UserAgent:
     'semgrep/0.1.2 (testing)'
     """
 
-    name: str = field(default=f"Semgrep", init=False)
+    name: str = field(default="Semgrep", init=False)
     version: str = field(default=__VERSION__, init=False)
-    tags: Set[str] = field(init=False)
+    tags: set[str] = field(init=False)
 
     @tags.default
-    def get_default_tags(self) -> Set[str]:
+    def get_default_tags(self) -> set[str]:
         result = set()
         if os.getenv("SEMGREP_USER_AGENT_APPEND"):
             result.add(os.environ["SEMGREP_USER_AGENT_APPEND"])
@@ -83,7 +85,7 @@ def enhance_ssl_error_message(
     """
     If the provided SSLError wraps a SSL hostname mismatch exception, re-create the SSLError with a more descriptive error message.
     """
-    inner_err: Optional[Exception] = None
+    inner_err: Exception | None = None
 
     if err.args:
         inner_err = err.args[0]
@@ -138,7 +140,7 @@ class AppSession(requests.Session):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.user_agent = UserAgent()
-        self.token: Optional[str] = None
+        self.token: str | None = None
 
         # retry after 4, 8, 16 seconds
         retry_adapter = requests.adapters.HTTPAdapter(

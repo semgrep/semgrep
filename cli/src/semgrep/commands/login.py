@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 import time
 import uuid
@@ -16,7 +18,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def make_login_url() -> Tuple[uuid.UUID, str]:
+def make_login_url() -> tuple[uuid.UUID, str]:
     env = get_state().env
     session_id = uuid.uuid4()
     return (
@@ -53,7 +55,7 @@ def login() -> NoReturn:
     # interactively prompt the user to supply it (if we are in a TTY).
     if not auth.is_a_tty():
         click.echo(
-            f"Error: semgrep login is an interactive command: run in an interactive terminal (or define SEMGREP_APP_TOKEN)",
+            "Error: semgrep login is an interactive command: run in an interactive terminal (or define SEMGREP_APP_TOKEN)",
             err=True,
         )
         sys.exit(FATAL_EXIT_CODE)
@@ -89,13 +91,13 @@ def login() -> NoReturn:
         time.sleep(WAIT_BETWEEN_RETRY_IN_SEC)
 
     click.echo(
-        f"Failed to login: please check your internet connection or contact support@r2c.dev",
+        "Failed to login: please check your internet connection or contact support@r2c.dev",
         err=True,
     )
     sys.exit(FATAL_EXIT_CODE)
 
 
-def save_token(login_token: Optional[str], echo_token: bool) -> bool:
+def save_token(login_token: str | None, echo_token: bool) -> bool:
     state = get_state()
     if login_token is not None and auth.is_valid_token(login_token):
         auth.set_token(login_token)

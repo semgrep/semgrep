@@ -1,5 +1,10 @@
-from socket import AddressFamily, SocketKind, socket
-from typing import Any, Optional
+from __future__ import annotations
+
+from socket import AddressFamily
+from socket import SocketKind
+from socket import socket
+from typing import Any
+from typing import Optional
 
 class BufferedSocket:
     def __init__(
@@ -19,11 +24,11 @@ class BufferedSocket:
     def getrecvbuffer(self) -> bytes: ...
     def getsendbuffer(self) -> bytes: ...
     def getsockname(self) -> str: ...
-    def gettimeout(self) -> Optional[float]: ...
+    def gettimeout(self) -> float | None: ...
     @property
     def proto(self) -> int: ...
     def recv(self, size: int, flags: int = ..., timeout: Any = ...) -> bytes: ...
-    def recv_close(self, timeout: Any = ..., maxsize: Optional[int] = ...) -> bytes: ...
+    def recv_close(self, timeout: Any = ..., maxsize: int | None = ...) -> bytes: ...
     def recv_size(self, size: int, timeout: Any = ...) -> bytes: ...
     def recv_until(
         self,
@@ -43,8 +48,8 @@ class BufferedSocket:
 class MessageTooLong:
     def __init__(
         self,
-        bytes_read: Optional[int] = ...,
-        delimiter: Optional[bytes] = ...,
+        bytes_read: int | None = ...,
+        delimiter: bytes | None = ...,
     ) -> None: ...
 
 class NetstringMessageTooLong:

@@ -1,4 +1,9 @@
-from typing import Callable, Hashable, TypeVar, Union
+from __future__ import annotations
+
+from typing import Callable
+from typing import Hashable
+from typing import TypeVar
+from typing import Union
 
 ReturnType = TypeVar("ReturnType")
 
@@ -7,7 +12,7 @@ class LRI: ...
 class LRU: ...
 
 def cachedmethod(
-    cache: Union[LRI, LRU, str],
+    cache: LRI | LRU | str,
     scoped: bool = ...,
     typed: bool = ...,
     key: Callable[..., Hashable] = ...,

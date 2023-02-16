@@ -4,9 +4,15 @@ I could not find any comprehensive description of this format online, I just loo
 If you find any sort of spec, please link it here
 Here's the docs for poetry: https://python-poetry.org/docs/
 """
+from __future__ import annotations
+
 from pathlib import Path
 from typing import List
 from typing import Optional
+
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 
 from semdep.external.parsy import any_char
 from semdep.external.parsy import eof
@@ -16,9 +22,6 @@ from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 
 # These use [until] instead of [upto] because [upto] only works on single characters
 # and [upto] works on arbitrary parsers (this makes it slower though)
@@ -127,8 +130,8 @@ manifest = (manifest_deps | poetry_dep_extra).sep_by(
 
 
 def parse_poetry(
-    lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
+    lockfile_path: Path, manifest_path: Path | None
+) -> list[FoundDependency]:
     deps = safe_path_parse(lockfile_path, poetry)
     if not deps:
         return []

@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import pytest
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 @pytest.mark.parametrize(
-    "rule,target",
+    ("rule", "target"),
     [
         (
             "rules/join_rules/user-input-escaped-with-safe.yaml",
@@ -34,9 +36,9 @@ def test_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
     )
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 @pytest.mark.parametrize(
-    "rule,target",
+    ("rule", "target"),
     [
         (
             "rules/join_rules/recursive/java-callgraph-example/vulnado-sqli.yaml",

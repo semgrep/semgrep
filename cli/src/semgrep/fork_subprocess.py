@@ -4,11 +4,12 @@ Define the fork_subprocess.Process class, which uses the
 'multiprocessing' library to fork a child process, then expose its
 stdout and stderr as 'asyncio.StreamReaders' in the parent.
 """
+from __future__ import annotations
+
 import asyncio  # StreamReader, gather, run
 import multiprocessing  # Process
 import os  # fdopen, pipe, dup2, etc.
 from typing import Callable
-
 
 # This is a copy of asyncio.subprocess._DEFAULT_LIMIT.
 DEFAULT_LIMIT = 2**16  # 64 KiB

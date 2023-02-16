@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
+
 from tests.conftest import _clean_output_json
 
 from ..conftest import TESTS_PATH
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_semgrepignore(run_semgrep_in_tmp, tmp_path, snapshot):
     (tmp_path / ".semgrepignore").symlink_to(
         Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
@@ -19,7 +22,7 @@ def test_semgrepignore(run_semgrep_in_tmp, tmp_path, snapshot):
 
 
 # We provide no .semgrepignore but everything except find.js should still be ignored
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_default_semgrepignore(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -30,14 +33,14 @@ def test_default_semgrepignore(run_semgrep_in_tmp, snapshot):
 
 
 # Input from stdin will not have a path that is relative to tmp_path, where we're running semgrep
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_file_not_relative_to_base_path(run_semgrep, snapshot):
     results = run_semgrep(options=["--json", "-e", "a", "--lang", "js", "-"], stdin="a")
     results.raw_stdout = _clean_output_json(results.raw_stdout, True)
     snapshot.assert_match(results.as_snapshot(), "results.txt")
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_internal_explicit_semgrepignore(run_semgrep_in_tmp, tmp_path, snapshot):
 
     (tmp_path / ".semgrepignore").symlink_to(

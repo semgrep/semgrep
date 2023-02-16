@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import sys
 from typing import Any
 from typing import Dict
 from typing import Optional
 
 import requests
-from attr import define
 from attr import Factory
+from attr import define
 from attr import field
 
 from semgrep.error import FINDINGS_EXIT_CODE
@@ -22,9 +24,9 @@ class ErrorHandler:
     """
 
     suppress_errors: bool = field(default=False)
-    payload: Dict[str, Any] = Factory(dict)
+    payload: dict[str, Any] = Factory(dict)
 
-    def configure(self, suppress_errors: Optional[bool] = False) -> None:
+    def configure(self, suppress_errors: bool | None = False) -> None:
         """
         Configures whether to always or never send fail-open status.
 
@@ -55,8 +57,8 @@ class ErrorHandler:
 
         Status will only be emitted if is_enabled is True
         """
-        from semgrep.state import get_state  # avoiding circular import
         from semgrep.app import auth  # avoiding circular import
+        from semgrep.state import get_state  # avoiding circular import
 
         state = get_state()
 

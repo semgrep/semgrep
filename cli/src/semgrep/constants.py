@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import re
-from enum import auto
 from enum import Enum
+from enum import auto
 from typing import Type
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-
 
 RULES_KEY = "rules"
 ID_KEY = "id"
@@ -76,7 +77,7 @@ class RuleSeverity(Enum):
     EXPERIMENT = "EXPERIMENT"
 
     @classmethod
-    def _missing_(cls: Type[Enum], value: object) -> Enum:
+    def _missing_(cls: type[Enum], value: object) -> Enum:
         if not isinstance(value, str):
             raise TypeError(f"invalid rule severity type: {type(value)}")
         for member in cls:

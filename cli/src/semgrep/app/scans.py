@@ -1,4 +1,6 @@
 # Handle communication of findings / errors to semgrep.app
+from __future__ import annotations
+
 import json
 import os
 from collections import Counter
@@ -27,29 +29,28 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
-
 logger = getLogger(__name__)
 
 
 class ScanHandler:
     def __init__(self, dry_run: bool) -> None:
-        self._deployment_id: Optional[int] = None
+        self._deployment_id: int | None = None
         self._deployment_name: str = ""
 
         self.scan_id = None
-        self.ignore_patterns: List[str] = []
-        self._policy_names: List[str] = []
+        self.ignore_patterns: list[str] = []
+        self._policy_names: list[str] = []
         self._autofix = False
         self._deepsemgrep = False
         self.dry_run = dry_run
         self._dry_run_rules_url: str = ""
-        self._skipped_syntactic_ids: List[str] = []
-        self._skipped_match_based_ids: List[str] = []
+        self._skipped_syntactic_ids: list[str] = []
+        self._skipped_match_based_ids: list[str] = []
         self._scan_params: str = ""
         self._rules: str = ""
 
     @property
-    def deployment_id(self) -> Optional[int]:
+    def deployment_id(self) -> int | None:
         """
         Separate property for easy of mocking in test
         """
@@ -63,7 +64,7 @@ class ScanHandler:
         return self._deployment_name
 
     @property
-    def policy_names(self) -> List[str]:
+    def policy_names(self) -> list[str]:
         """
         Separate property for easy of mocking in test
         """
@@ -84,14 +85,14 @@ class ScanHandler:
         return self._deepsemgrep
 
     @property
-    def skipped_syntactic_ids(self) -> List[str]:
+    def skipped_syntactic_ids(self) -> list[str]:
         """
         Separate property for easy of mocking in test
         """
         return self._skipped_syntactic_ids
 
     @property
-    def skipped_match_based_ids(self) -> List[str]:
+    def skipped_match_based_ids(self) -> list[str]:
         """
         Separate property for easy of mocking in test
         """
@@ -111,7 +112,7 @@ class ScanHandler:
         """
         return self._rules
 
-    def _get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
+    def _get_scan_config_from_app(self, url: str) -> dict[str, Any]:
         state = get_state()
         response = state.app_session.get(url)
         try:
@@ -128,7 +129,7 @@ class ScanHandler:
                 f"API server at {state.env.semgrep_url} returned type '{type(response.json())}'. Expected a dictionary."
             )
 
-    def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
+    def fetch_and_init_scan_config(self, meta: dict[str, Any]) -> None:
         """
         Get configurations for scan
         """
@@ -165,7 +166,7 @@ class ScanHandler:
                 pass
             logger.debug(f"Got configuration {json.dumps(config, indent=4)}")
 
-    def start_scan(self, meta: Dict[str, Any]) -> None:
+    def start_scan(self, meta: dict[str, Any]) -> None:
         """
         Get scan id and file ignores
 
@@ -173,7 +174,7 @@ class ScanHandler:
         """
         state = get_state()
         if self.dry_run:
-            logger.info(f"Would have sent POST request to create scan")
+            logger.info("Would have sent POST request to create scan")
             return
 
         logger.debug("Starting scan")
@@ -225,15 +226,15 @@ class ScanHandler:
     def report_findings(
         self,
         matches_by_rule: RuleMatchMap,
-        errors: List[SemgrepError],
-        rules: List[Rule],
-        targets: Set[Path],
-        renamed_targets: Set[Path],
-        ignored_targets: FrozenSet[Path],
+        errors: list[SemgrepError],
+        rules: list[Rule],
+        targets: set[Path],
+        renamed_targets: set[Path],
+        ignored_targets: frozenset[Path],
         parse_rate: ParsingData,
         total_time: float,
         commit_date: str,
-        lockfile_scan_info: Dict[str, int],
+        lockfile_scan_info: dict[str, int],
         engine_requested: EngineType,
     ) -> None:
         """

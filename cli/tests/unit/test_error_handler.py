@@ -1,16 +1,16 @@
+from __future__ import annotations
+
 import pytest
 from pytest_mock import MockerFixture
-
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error_handler import ErrorHandler
-
 
 FAKE_TOKEN = "abc123"
 FAKE_USER_AGENT = "user-agent"
 FAIL_OPEN_URL = "https://fail-open.semgrep.dev/failure"
 
 
-@pytest.fixture
+@pytest.fixture()
 def error_handler(mocker) -> ErrorHandler:
     return ErrorHandler()
 
@@ -19,22 +19,22 @@ class NetworkBlockedInTests(Exception):
     pass
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_get_token(mocker):
     mocked = mocker.patch("semgrep.app.auth.get_token", return_value=FAKE_TOKEN)
-    yield mocked
+    return mocked
 
 
-@pytest.fixture
+@pytest.fixture()
 def mocked_state(mocker):
     mocked = mocker.MagicMock()
     mocked.app_session.user_agent = FAKE_USER_AGENT
     mocked.env.fail_open_url = FAIL_OPEN_URL
     mocker.patch("semgrep.state.get_state", return_value=mocked)
-    yield mocked
+    return mocked
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_send_nominal(
     error_handler, mocker: MockerFixture, mock_get_token, mocked_state
 ) -> None:
@@ -68,7 +68,7 @@ def test_send_nominal(
     )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_send_with_scan_id(
     error_handler, mocker: MockerFixture, mock_get_token, mocked_state
 ) -> None:
@@ -105,7 +105,7 @@ def test_send_with_scan_id(
     )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_send_nominal_with_trace(
     error_handler, mocker: MockerFixture, mock_get_token, mocked_state
 ) -> None:
@@ -144,7 +144,7 @@ def test_send_nominal_with_trace(
     )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_send_timeout_success(error_handler, mocker) -> None:
     """
     Check that no network does not cause failures and zero exit code is returned
@@ -162,7 +162,7 @@ def test_send_timeout_success(error_handler, mocker) -> None:
     assert exit_code == 0
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_send_skip(error_handler, mocker) -> None:
     """
     Check that data is NOT posted to fail-open url and fatal exit code is returned

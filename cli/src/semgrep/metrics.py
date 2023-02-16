@@ -1,27 +1,29 @@
+from __future__ import annotations
+
 import functools
 import hashlib
 import json
 import os
 import uuid
 from datetime import datetime
-from enum import auto
 from enum import Enum
+from enum import auto
 from pathlib import Path
 from typing import Any
 from typing import Callable
-from typing import cast
 from typing import Dict
 from typing import List
 from typing import NewType
 from typing import Optional
 from typing import Sequence
 from typing import Set
+from typing import cast
 from urllib.parse import urlparse
 
 import click
 import requests
-from attr import define
 from attr import Factory
+from attr import define
 from typing_extensions import LiteralString
 from typing_extensions import TypedDict
 
@@ -61,55 +63,55 @@ Sha256Hash = NewType("Sha256Hash", str)
 class RuleStats(TypedDict, total=False):
     ruleHash: str
     bytesScanned: int
-    matchTime: Optional[float]
+    matchTime: float | None
 
 
 class FileStats(TypedDict, total=False):
     size: int
     numTimesScanned: int
-    parseTime: Optional[float]
-    matchTime: Optional[float]
-    runTime: Optional[float]
+    parseTime: float | None
+    matchTime: float | None
+    runTime: float | None
 
 
 class EnvironmentSchema(TypedDict, total=False):
     version: str
-    projectHash: Optional[Sha256Hash]
+    projectHash: Sha256Hash | None
     configNamesHash: Sha256Hash
     rulesHash: Sha256Hash
-    ci: Optional[str]
+    ci: str | None
     isAuthenticated: bool
 
 
 class PerformanceSchema(TypedDict, total=False):
-    fileStats: List[FileStats]
-    ruleStats: List[RuleStats]
-    profilingTimes: Dict[str, float]
-    numRules: Optional[int]
-    numTargets: Optional[int]
-    totalBytesScanned: Optional[int]
-    maxMemoryBytes: Optional[int]
+    fileStats: list[FileStats]
+    ruleStats: list[RuleStats]
+    profilingTimes: dict[str, float]
+    numRules: int | None
+    numTargets: int | None
+    totalBytesScanned: int | None
+    maxMemoryBytes: int | None
 
 
 class ErrorsSchema(TypedDict, total=False):
-    returnCode: Optional[int]
-    errors: List[str]
+    returnCode: int | None
+    errors: list[str]
 
 
 class ValueRequiredSchema(TypedDict):
-    features: Set[str]
+    features: set[str]
 
 
 class ValueSchema(ValueRequiredSchema, total=False):
     engineRequested: str
     numFindings: int
     numIgnored: int
-    ruleHashesWithFindings: Dict[str, int]
+    ruleHashesWithFindings: dict[str, int]
 
 
 class FixRateSchema(TypedDict, total=False):
-    lowerLimits: Dict[str, int]
-    upperLimits: Dict[str, int]
+    lowerLimits: dict[str, int]
+    upperLimits: dict[str, int]
 
 
 class ParseStatSchema(TypedDict, total=False):
@@ -133,7 +135,7 @@ class PayloadSchema(TopLevelSchema):
     errors: ErrorsSchema
     value: ValueSchema
     fix_rate: FixRateSchema
-    parse_rate: Dict[Language, ParseStatSchema]
+    parse_rate: dict[Language, ParseStatSchema]
 
 
 class MetricsJsonEncoder(json.JSONEncoder):
@@ -145,7 +147,7 @@ class MetricsJsonEncoder(json.JSONEncoder):
             return str(obj)
 
         if isinstance(obj, set):
-            return list(sorted(obj))
+            return sorted(obj)
 
         return super().default(obj)
 
@@ -183,7 +185,7 @@ class Metrics:
             performance=PerformanceSchema(),
             value=ValueSchema(features=set()),
             fix_rate=FixRateSchema(),
-            parse_rate=dict(),
+            parse_rate={},
         )
     )
 
@@ -195,8 +197,8 @@ class Metrics:
 
     def configure(
         self,
-        metrics_state: Optional[MetricsState],
-        legacy_state: Optional[MetricsState],
+        metrics_state: MetricsState | None,
+        legacy_state: MetricsState | None,
     ) -> None:
         """
         Configures whether to always, never, or automatically send metrics (based on whether config
@@ -239,7 +241,7 @@ class Metrics:
         self._is_using_registry = value
 
     @suppress_errors
-    def add_project_url(self, project_url: Optional[str]) -> None:
+    def add_project_url(self, project_url: str | None) -> None:
         """
         Standardizes url then hashes
         """
@@ -309,7 +311,7 @@ class Metrics:
         )
 
     @suppress_errors
-    def add_targets(self, targets: Set[Path], profiling_data: ProfilingData) -> None:
+    def add_targets(self, targets: set[Path], profiling_data: ProfilingData) -> None:
         self.payload["performance"]["fileStats"] = [
             {
                 "size": target.stat().st_size,
@@ -326,7 +328,7 @@ class Metrics:
         self.payload["performance"]["numTargets"] = len(targets)
 
     @suppress_errors
-    def add_errors(self, errors: List[SemgrepError]) -> None:
+    def add_errors(self, errors: list[SemgrepError]) -> None:
         self.payload["errors"]["errors"] = [e.semgrep_error_type() for e in errors]
 
     @suppress_errors
@@ -334,7 +336,7 @@ class Metrics:
         self.payload["performance"]["profilingTimes"] = profiler.dump_stats()
 
     @suppress_errors
-    def add_token(self, token: Optional[str]) -> None:
+    def add_token(self, token: str | None) -> None:
         self.payload["environment"]["isAuthenticated"] = bool(token)
 
     @suppress_errors
@@ -371,7 +373,7 @@ class Metrics:
 
     @suppress_errors
     def add_fix_rate(
-        self, lower_limits: Dict[str, int], upper_limits: Dict[str, int]
+        self, lower_limits: dict[str, int], upper_limits: dict[str, int]
     ) -> None:
         logger.debug(f"Adding fix rate: {lower_limits} {upper_limits}")
         self.payload["fix_rate"]["lowerLimits"] = lower_limits

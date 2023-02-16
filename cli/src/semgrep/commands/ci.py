@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 import time
@@ -23,8 +25,8 @@ from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.console import console
 from semgrep.console import Title
+from semgrep.console import console
 from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
 from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
 from semgrep.constants import EngineType
@@ -33,9 +35,9 @@ from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.ignores import IGNORE_FILE_NAME
-from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitMeta
+from semgrep.meta import generate_meta_from_environment
 from semgrep.metrics import MetricsState
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
@@ -182,28 +184,28 @@ def ci(
     *,
     audit_on: Sequence[str],
     autofix: bool,
-    baseline_commit: Optional[str],
-    core_opts: Optional[str],
-    config: Optional[Tuple[str, ...]],
+    baseline_commit: str | None,
+    core_opts: str | None,
+    config: tuple[str, ...] | None,
     debug: bool,
     dry_run: bool,
     enable_nosem: bool,
     enable_version_check: bool,
-    exclude: Optional[Tuple[str, ...]],
-    exclude_rule: Optional[Tuple[str, ...]],
+    exclude: tuple[str, ...] | None,
+    exclude_rule: tuple[str, ...] | None,
     suppress_errors: bool,
     force_color: bool,
-    include: Optional[Tuple[str, ...]],
+    include: tuple[str, ...] | None,
     jobs: int,
     max_chars_per_line: int,
     max_lines_per_finding: int,
-    max_memory: Optional[int],
+    max_memory: int | None,
     max_target_bytes: int,
-    metrics: Optional[MetricsState],
-    metrics_legacy: Optional[MetricsState],
+    metrics: MetricsState | None,
+    metrics_legacy: MetricsState | None,
     optimizations: str,
     dataflow_traces: bool,
-    output: Optional[str],
+    output: str | None,
     output_format: OutputFormat,
     pro_languages: bool,
     pro_intrafile: bool,
@@ -216,7 +218,7 @@ def ci(
     time_flag: bool,
     timeout_threshold: int,
     timeout: int,
-    interfile_timeout: Optional[int],
+    interfile_timeout: int | None,
     use_git_ignore: bool,
     verbose: bool,
 ) -> None:
@@ -436,9 +438,9 @@ def ci(
     total_time = time.time() - start
 
     # Split up rules into respective categories:
-    blocking_rules: List[Rule] = []
-    nonblocking_rules: List[Rule] = []
-    cai_rules: List[Rule] = []
+    blocking_rules: list[Rule] = []
+    nonblocking_rules: list[Rule] = []
+    cai_rules: list[Rule] = []
     for rule in filtered_rules:
         if "r2c-internal-cai" in rule.id:
             cai_rules.append(rule)

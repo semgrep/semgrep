@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import os
 import subprocess
 import sys
@@ -8,9 +10,7 @@ from typing import Sequence
 import click
 import requests
 from ruamel import yaml
-
 from semgrep.semgrep_types import LANGUAGE
-
 
 SEMGREP_DEV_TIMEOUT_S = 30.0
 

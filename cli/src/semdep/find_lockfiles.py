@@ -1,10 +1,11 @@
 # find lockfiles
+from __future__ import annotations
+
 from pathlib import Path
 from typing import List
 from typing import Optional
 from typing import Tuple
 
-from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -13,6 +14,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+
+from semdep.parse_lockfile import parse_lockfile_path
 
 ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt"],
@@ -39,7 +42,7 @@ LOCKFILE_TO_MANIFEST = {
 
 def find_single_lockfile(
     p: Path, ecosystem: Ecosystem
-) -> Optional[Tuple[Path, List[FoundDependency]]]:
+) -> tuple[Path, list[FoundDependency]] | None:
     """
     Find the nearest lockfile in a given ecosystem to P
     Searches only up the directory tree

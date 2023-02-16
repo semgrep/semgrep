@@ -1,17 +1,23 @@
-from itertools import islice
-from typing import Any, Dict, List, Optional, Union
+from __future__ import annotations
 
-def escape_html(obj: Optional[Union[str, int]], maxlen: None = ...) -> str: ...
-def to_text(obj: Optional[Union[str, int]], maxlen: None = ...) -> str: ...
+from itertools import islice
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
+
+def escape_html(obj: str | int | None, maxlen: None = ...) -> str: ...
+def to_text(obj: str | int | None, maxlen: None = ...) -> str: ...
 
 class DictInputType:
     def get_entry(
-        self, obj: Dict[str, Union[int, str]], headers: List[str]
-    ) -> List[Union[int, str]]: ...
+        self, obj: dict[str, int | str], headers: list[str]
+    ) -> list[int | str]: ...
     def get_entry_seq(
-        self, obj: List[Dict[str, Union[int, str]]], headers: List[str]
-    ) -> List[List[Union[int, str]]]: ...
-    def guess_headers(self, obj: Dict[str, Union[int, str]]) -> List[str]: ...
+        self, obj: list[dict[str, int | str]], headers: list[str]
+    ) -> list[list[int | str]]: ...
+    def guess_headers(self, obj: dict[str, int | str]) -> list[str]: ...
 
 class InputType:
     def __init__(self, *a: Any, **kw: Any) -> None: ...
@@ -19,39 +25,28 @@ class InputType:
 class Table:
     def __init__(
         self,
-        data: Optional[
-            Union[
-                List[Union[List[str], List[Union[int, str]]]],
-                List[List[Union[int, str]]],
-                List[List[Union[Dict[str, str], None, str]]],
-            ]
-        ] = ...,
+        data: list[list[str] | list[int | str]] | list[list[int | str]] | list[list[dict[str, str] | None | str]] | None = ...,
         headers: Any = ...,
         metadata: None = ...,
     ) -> None: ...
     def __len__(self) -> int: ...
     def __repr__(self) -> str: ...
     def _add_horizontal_html_lines(
-        self, lines: List[str], headers: List[str], max_depth: int
+        self, lines: list[str], headers: list[str], max_depth: int
     ) -> None: ...
     def _add_vertical_html_lines(
-        self, lines: List[str], headers: List[str], max_depth: int
+        self, lines: list[str], headers: list[str], max_depth: int
     ) -> None: ...
     def _fill(self) -> None: ...
     def _set_width(self, reset: bool = ...) -> None: ...
     def extend(
         self,
-        data: Union[
-            List[List[Union[Dict[str, str], None, str]]],
-            List[Union[List[Union[int, str]], List[int]]],
-            List[List[Union[int, str]]],
-            islice,
-        ],
+        data: list[list[dict[str, str] | None | str]] | list[list[int | str] | list[int]] | list[list[int | str]] | islice,
     ) -> None: ...
     @classmethod
     def from_data(
         cls,
-        data: Union[Dict[str, Union[int, str]], List[Dict[str, Union[int, str]]]],
+        data: dict[str, int | str] | list[dict[str, int | str]],
         headers: Any = ...,
         max_depth: int = ...,
         **kwargs: Any,
@@ -59,12 +54,12 @@ class Table:
     @classmethod
     def from_dict(
         cls,
-        data: Union[Dict[str, Union[int, str]], List[Dict[str, Union[int, str]]]],
+        data: dict[str, int | str] | list[dict[str, int | str]],
         headers: Any = ...,
         max_depth: int = ...,
         metadata: None = ...,
     ) -> Table: ...
-    def get_cell_html(self, value: Optional[Union[int, str]]) -> str: ...
+    def get_cell_html(self, value: int | str | None) -> str: ...
     def to_html(
         self,
         orientation: None = ...,

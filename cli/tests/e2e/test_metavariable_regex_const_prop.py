@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import pytest
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_metavariable_regex_const_prop(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(

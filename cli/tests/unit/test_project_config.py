@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Sequence
 
 import pytest
 import ruamel.yaml
-from tests.conftest import make_semgrepconfig_file
-
 from semgrep.project import ProjectConfig
+
+from tests.conftest import make_semgrepconfig_file
 
 CONFIG_TAGS = "tags:\n- tag1\n- tag_key:tag_val\n"
 CONFIG_TAGS_MONOREPO_1 = "tags:\n- tag1\n- service:service-1\n"
@@ -19,7 +21,7 @@ def create_mock_dir(git_tmp_path, files: Sequence[str]) -> None:
         out_file.write_text("x = 1")
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_projectconfig__find_all_config_files_basic(git_tmp_path):
     dir_files = ["test.py", "main.py", "setup.py"]
     create_mock_dir(git_tmp_path, dir_files)
@@ -28,7 +30,7 @@ def test_projectconfig__find_all_config_files_basic(git_tmp_path):
     assert config_files == [git_tmp_path / ".semgrepconfig"]
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_projectconfig__find_all_config_files_monorepo(git_tmp_path):
     dir_files = [
         "service1/main.py",
@@ -55,7 +57,7 @@ def test_projectconfig__find_all_config_files_monorepo(git_tmp_path):
     assert service_2_dir / ".semgrepconfig" not in config_files
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_projectconfig_load_all_basic(git_tmp_path, mocker):
     dir_files = ["test.py", "main.py", "setup.py"]
     create_mock_dir(git_tmp_path, dir_files)
@@ -69,7 +71,7 @@ def test_projectconfig_load_all_basic(git_tmp_path, mocker):
     assert proj_config.tags == expected_tags
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_projectconfig_load_all_monorepo(git_tmp_path, mocker):
     dir_files = [
         "service1/main.py",
@@ -94,7 +96,7 @@ def test_projectconfig_load_all_monorepo(git_tmp_path, mocker):
     assert proj_config.tags == expected_tags
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_projectconfig_load_from_file_invalid_format(tmp_path):
     tmp_file = tmp_path / ".semgrepconfig"
     yaml = ruamel.yaml.YAML(typ="safe")
@@ -106,7 +108,7 @@ def test_projectconfig_load_from_file_invalid_format(tmp_path):
         ProjectConfig.load_from_file(tmp_file)
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_projectconfig_todict():
     project_config = ProjectConfig(version="v1", tags=["tag1", "tag2"])
 

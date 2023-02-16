@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import pytest
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 @pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
 @pytest.mark.parametrize(
-    "rule,target",
+    ("rule", "target"),
     [
         ("rules/autofix/autofix.yaml", "autofix/autofix.py"),
         ("rules/autofix/csv-writer.yaml", "autofix/csv-writer.py"),
@@ -36,7 +38,7 @@ import pytest
         ),
     ],
 )
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_autofix(run_semgrep_on_copied_files, tmp_path, snapshot, rule, target, dryrun):
 
     # Use run_semgrep_on_copied_files to prevent alteration of the source-controlled test directory

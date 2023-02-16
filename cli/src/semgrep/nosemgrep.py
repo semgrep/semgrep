@@ -12,6 +12,8 @@ of nosemgrep comments.
 See https://github.com/returntocorp/semgrep-action/blob/develop/src/semgrep_agent/findings.py
 and check that it's compatible with any change we're making here.
 """
+from __future__ import annotations
+
 from re import sub
 from typing import List
 from typing import Sequence
@@ -38,7 +40,7 @@ def process_ignores(
     *,
     keep_ignored: bool,
     strict: bool,
-) -> Tuple[FilteredMatches, Sequence[SemgrepError]]:
+) -> tuple[FilteredMatches, Sequence[SemgrepError]]:
     """
     Converts a mapping of findings to a mapping of findings that
     will be shown to the caller.
@@ -55,7 +57,7 @@ def process_ignores(
         i.e. a nosem without associated finding or nosem id not matching finding
     """
     result = FilteredMatches(rule_matches_by_rule)
-    errors: List[SemgrepError] = []
+    errors: list[SemgrepError] = []
     for rule, matches in rule_matches_by_rule.items():
         evolved_matches = []
         for match in matches:
@@ -71,11 +73,11 @@ def process_ignores(
 
 def _rule_match_nosem(
     rule_match: RuleMatch, strict: bool
-) -> Tuple[bool, Sequence[SemgrepError]]:
+) -> tuple[bool, Sequence[SemgrepError]]:
     if not rule_match.lines:
         return False, []
 
-    ids: List[str] = []
+    ids: list[str] = []
 
     # Only consider the first line of a match. This will keep consistent
     # behavior on where we expect a 'nosem' comment to exist. If we allow these

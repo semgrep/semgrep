@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import subprocess
 from functools import partial
@@ -7,7 +9,6 @@ from typing import Collection
 from typing import List
 
 import pytest
-
 from semgrep.error import FilesNotFoundError
 from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import Language
@@ -15,7 +16,7 @@ from semgrep.target_manager import Target
 from semgrep.target_manager import TargetManager
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_nonexistent(tmp_path, monkeypatch):
     """
     Test that initializing TargetManager with targets that do not exist
@@ -36,7 +37,7 @@ def test_nonexistent(tmp_path, monkeypatch):
     assert e.value.paths == (Path("foo/doesntexist.py"),)
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_delete_git(tmp_path, monkeypatch):
     """
     Check that deleted files are not included in expanded targets
@@ -57,7 +58,7 @@ def test_delete_git(tmp_path, monkeypatch):
     assert_path_sets_equal(Target(".", True).files(), {bar})
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def assert_path_sets_equal(a: Collection[Path], b: Collection[Path]):
     """
     Assert that two sets of path contain the same paths
@@ -71,7 +72,7 @@ def assert_path_sets_equal(a: Collection[Path], b: Collection[Path]):
     assert a_abs == b_abs
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.fixture(
     scope="session", params=["no-repo", "git-repo", "git-repo-with-ignores"]
 )
@@ -135,7 +136,7 @@ def paths(request, tmp_path_factory):
             else partial(partial(TargetManager, respect_git_ignore=True))
         )
 
-    yield Paths
+    return Paths
 
 
 LANG_PY = Language("python")
@@ -143,9 +144,9 @@ LANG_GENERIC = Language("generic")
 LANG_REGEX = Language("regex")
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.parametrize(
-    "workdir, targets, expected",
+    ("workdir", "targets", "expected"),
     [
         ("/", ["."], "all"),
         ("/", ["foo", "bar"], "all"),
@@ -184,7 +185,7 @@ def test_get_files_for_language(
     assert_path_sets_equal(actual, getattr(paths, expected))
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_skip_symlink(tmp_path, monkeypatch):
     foo = tmp_path / "foo"
     foo.mkdir()
@@ -204,7 +205,7 @@ def test_skip_symlink(tmp_path, monkeypatch):
         TargetManager([str(foo / "link.py")]).get_files_for_language(PY)
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_ignore_git_dir(tmp_path, monkeypatch):
     """
     Ignores all files in .git directory when scanning generic
@@ -220,7 +221,7 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
     )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_explicit_path(tmp_path, monkeypatch):
     foo = tmp_path / "foo"
     foo.mkdir()
@@ -295,7 +296,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_ignores(tmp_path, monkeypatch):
     def ignore(ignore_pats):
         return TargetManager(
@@ -364,11 +365,11 @@ def test_ignores(tmp_path, monkeypatch):
     assert dir3_a not in files
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_unsupported_lang_paths(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
-    targets: List[str] = []
+    targets: list[str] = []
 
     # we will "scan" only for python---others will be unsupported
     paths = {
@@ -401,11 +402,11 @@ def test_unsupported_lang_paths(tmp_path, monkeypatch):
     )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_unsupported_lang_paths_2(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
-    targets: List[str] = []
+    targets: list[str] = []
 
     # we will "scan" only for generic and regex
     paths = {

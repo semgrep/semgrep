@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import NamedTuple
 from typing import Optional
 
@@ -6,8 +8,8 @@ import pytest
 
 class Repo(NamedTuple):
     url: str
-    languages: Optional[list] = None
-    xfail_reason: Optional[str] = None
+    languages: list | None = None
+    xfail_reason: str | None = None
 
     @property
     def short_url(self):

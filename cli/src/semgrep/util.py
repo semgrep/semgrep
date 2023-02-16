@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import itertools
 import operator
@@ -18,11 +20,10 @@ from urllib.parse import urlparse
 
 import click
 
-from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
-
+from semgrep.constants import Colors
 
 T = TypeVar("T")
 
@@ -54,7 +55,7 @@ def abort(message: str) -> None:
 def with_color(
     color: Colors,
     text: str,
-    bgcolor: Optional[Colors] = None,
+    bgcolor: Colors | None = None,
     bold: bool = False,
     underline: bool = False,
 ) -> str:
@@ -79,8 +80,8 @@ def with_color(
 
 
 def terminal_wrap(text: str) -> str:
-    from shutil import get_terminal_size
     import textwrap
+    from shutil import get_terminal_size
 
     paras = text.split("\n")
     terminal_size = get_terminal_size((MAX_TEXT_WIDTH, 1))[0]
@@ -91,7 +92,7 @@ def terminal_wrap(text: str) -> str:
     return "\n".join(wrapped_paras)
 
 
-def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
+def sub_check_output(cmd: list[str], **kwargs: Any) -> Any:
     """A simple proxy function to minimize and centralize subprocess usage."""
     from semgrep.state import get_state  # avoiding circular imports
 
@@ -103,7 +104,7 @@ def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
     return subprocess.check_output(cmd, **kwargs)
 
 
-def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[str]:
+def manually_search_file(path: str, search_term: str, suffix: str) -> str | None:
     """
     Searches a file for the given search term and, if found,
     returns the first word that contains that search term
@@ -119,7 +120,7 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[s
 
 
 # TODO: seems dead
-def listendswith(l: List[T], tail: List[T]) -> bool:
+def listendswith(l: list[T], tail: list[T]) -> bool:
     """
     E.g.
         - listendswith([1, 2, 3, 4], [3, 4]) -> True
@@ -171,7 +172,7 @@ def truncate(file_name: str, col_lim: int) -> str:
     return file_name
 
 
-def flatten(some_list: List[List[T]]) -> List[T]:
+def flatten(some_list: list[list[T]]) -> list[T]:
     return functools.reduce(operator.iconcat, some_list, [])
 
 
@@ -187,7 +188,7 @@ def unit_str(count: int, unit: str, pad: bool = False) -> str:
     return f"{count} {unit}"
 
 
-def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
+def git_check_output(command: Sequence[str], cwd: str | None = None) -> str:
     """
     Helper function to run a GIT command that prints out helpful debugging information
     """
@@ -248,7 +249,7 @@ def get_lines(
     path: Path,
     start_line: int,
     end_line: int,
-) -> List[str]:
+) -> list[str]:
     """
     Return lines in the given file.
 

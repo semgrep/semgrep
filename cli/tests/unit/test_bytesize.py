@@ -1,7 +1,7 @@
+from __future__ import annotations
+
 import pytest
-
 from semgrep.bytesize import parse_size
-
 
 TESTS = [
     # test format
@@ -24,7 +24,7 @@ TESTS = [
 ]
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_parse_size() -> None:
     for input, expected_output in TESTS:
         assert parse_size(input) == expected_output

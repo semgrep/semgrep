@@ -1,9 +1,10 @@
-import pytest
+from __future__ import annotations
 
+import pytest
 from semgrep.constants import OutputFormat
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 @pytest.mark.parametrize(
     "settings",
     [

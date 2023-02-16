@@ -1,6 +1,106 @@
 """Ask the Semgrep App server about the latest Semgrep version
 
-This module is for pinging the app to ask for the latest Semgrep release
+This module is f
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotations
+from __future__ import annotationsor pinging the app to ask for the latest Semgrep release
 so we can print a message prompting the user to upgrade if they have
 an outdated version.
 """
@@ -80,7 +180,7 @@ def _get_version_from_cache(version_cache_path: Path) -> Optional[JsonObject]:
     try:
         res = json.loads(latest_version_str)
     except JSONDecodeError:
-        logger.debug(f"Version cache does not contain JSON object")
+        logger.debug("Version cache does not contain JSON object")
         return None
 
     if not isinstance(res, Mapping):

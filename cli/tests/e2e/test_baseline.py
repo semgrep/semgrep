@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import subprocess
 import tempfile
 from collections import defaultdict
@@ -6,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
+
 from tests.semgrep_runner import SEMGREP_BASE_COMMAND
 
 pytestmark = pytest.mark.kinda_slow
@@ -47,7 +50,7 @@ def _git_commit(serial_no: int = 1, add: bool = False) -> str:
 
 
 def _git_merge(ref: str) -> str:
-    date_string = f"Mon 10 Mar 2000 00:00:00Z"
+    date_string = "Mon 10 Mar 2000 00:00:00Z"
 
     subprocess.run(
         [
@@ -88,22 +91,14 @@ def _git_merge(ref: str) -> str:
     ).strip()
 
 
-def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
+def run_sentinel_scan(check: bool = True, base_commit: str | None = None):
     env = {"LANG": "en_US.UTF-8"}
     env["SEMGREP_USER_AGENT_APPEND"] = "testing"
     unique_settings_file = tempfile.NamedTemporaryFile().name
     Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
     env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
 
-    cmd = SEMGREP_BASE_COMMAND + [
-        "--disable-version-check",
-        "--metrics",
-        "off",
-        "-e",
-        f"$X = {SENTINEL_1}",
-        "-l",
-        "python",
-    ]
+    cmd = [*SEMGREP_BASE_COMMAND, "--disable-version-check", "--metrics", "off", "-e", f"$X = {SENTINEL_1}", "-l", "python"]
     if base_commit:
         cmd.extend(["--baseline-commit", base_commit])
 
@@ -315,8 +310,8 @@ def test_no_findings_both(git_tmp_path, snapshot):
     # Test if no findings in head or base semgrep doesnt explode
     foo = git_tmp_path / "foo.py"
     bar = git_tmp_path / "bar.py"
-    bar.write_text(f"y = 1\n")
-    foo.write_text(f"x = 1\n")
+    bar.write_text("y = 1\n")
+    foo.write_text("x = 1\n")
 
     # Add files with no finding
     subprocess.run(["git", "add", "."], check=True, capture_output=True)
@@ -435,7 +430,7 @@ def test_no_findings_head(git_tmp_path, snapshot):
 def test_no_findings_baseline(git_tmp_path, snapshot):
     # Test when head contains all findings and baseline doesnt contain any
     foo = git_tmp_path / "foo.py"
-    foo.write_text(f"x = 1")
+    foo.write_text("x = 1")
 
     # Add baseline finding
     subprocess.run(["git", "add", "."], check=True, capture_output=True)
@@ -621,12 +616,12 @@ def test_renamed_file(git_tmp_path, snapshot, new_name):
     }, "the old path should be gone now"
 
 
-@pytest.mark.todo
+@pytest.mark.todo()
 def test_multiple_on_same_line(git_tmp_path, snapshot):
     pass
 
 
-@pytest.mark.todo
+@pytest.mark.todo()
 def test_run_in_subdirectory(git_tmp_path, snapshot):
     pass
 
@@ -649,7 +644,7 @@ def test_unstaged_changes(git_tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
 
-@pytest.mark.todo
+@pytest.mark.todo()
 def test_baseline_has_head_untracked(git_tmp_path, snapshot):
     pass
 
@@ -684,7 +679,7 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
 
-@pytest.fixture
+@pytest.fixture()
 def complex_merge_repo(git_tmp_path, snapshot):
     r"""
     This generates a complex history like this:
@@ -757,9 +752,9 @@ def complex_merge_repo(git_tmp_path, snapshot):
         commits["baz"].append(_git_commit(index, add=True))
 
 
-@pytest.mark.parametrize("current, baseline", permutations(["foo", "bar", "baz"], 2))
+@pytest.mark.parametrize(("current", "baseline"), permutations(["foo", "bar", "baz"], 2))
 def test_crisscrossing_merges(complex_merge_repo, current, baseline, snapshot):
     subprocess.run(["git", "checkout", current])
     output = run_sentinel_scan(base_commit=baseline)
-    snapshot.assert_match(output.stdout, f"stdout.txt")
-    snapshot.assert_match(output.stderr, f"stderr.txt")
+    snapshot.assert_match(output.stdout, "stdout.txt")
+    snapshot.assert_match(output.stderr, "stderr.txt")

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import platform
 import sys
 from typing import Dict
@@ -73,7 +75,7 @@ def cli(ctx: click.Context) -> None:
 
     abort_if_linux_arm64()
 
-    commands: Dict[str, click.Command] = ctx.command.commands  # type: ignore
+    commands: dict[str, click.Command] = ctx.command.commands  # type: ignore
 
     subcommand: str = (
         ctx.invoked_subcommand if ctx.invoked_subcommand in commands else "unset"

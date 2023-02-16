@@ -1,6 +1,8 @@
 """
 Tests for semgrep.metrics and associated command-line arguments.
 """
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -12,13 +14,13 @@ from typing import Iterator
 import dateutil.tz
 import freezegun.api
 import pytest
-from pytest import mark
 from pytest import MonkeyPatch
-from tests.conftest import TESTS_PATH
-from tests.semgrep_runner import SemgrepRunner
-
+from pytest import mark
 from semgrep.cli import cli
 from semgrep.profiling import ProfilingData
+
+from tests.conftest import TESTS_PATH
+from tests.semgrep_runner import SemgrepRunner
 
 # Test data to avoid making web calls in test code
 
@@ -52,18 +54,18 @@ USELESS_EQEQ = """rules:
 """
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
     monkeypatch.setattr(
         "semgrep.config_resolver.ConfigLoader._make_config_request",
         lambda s: USELESS_EQEQ,
     )
-    yield
+    return
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 @mark.parametrize(
-    "config,metrics_flag,metrics_env,should_send",
+    ("config", "metrics_flag", "metrics_env", "should_send"),
     [
         ("rules/eqeq.yaml", None, None, False),
         ("r/python.lang.correctness.useless-eqeq.useless-eqeq", None, None, True),
@@ -150,7 +152,7 @@ def test_flags(
         assert "Not sending pseudonymous metrics" in stderr
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_flags_actual_send(run_semgrep_in_tmp):
     """
     Test that the server for metrics sends back success
@@ -165,7 +167,7 @@ def test_flags_actual_send(run_semgrep_in_tmp):
     assert "Failed to send pseudonymous metrics" not in stderr
 
 
-@pytest.mark.slow
+@pytest.mark.slow()
 def test_legacy_flags(run_semgrep_in_tmp):
     """
     Test metrics sending respects legacy flags. Flags take precedence over envvar
@@ -231,7 +233,7 @@ def _mask_version(value: str) -> str:
     return re.sub(r"\d+", "x", value)
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.freeze_time("2017-03-03")
 @pytest.mark.skipif(
     sys.version_info < (3, 8),
@@ -268,7 +270,7 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
         env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")}
     )
     runner.invoke(
-        cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"] + pro_flag
+        cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py", *pro_flag]
     )
 
     payload = json.loads(mock_post.call_args.kwargs["data"])

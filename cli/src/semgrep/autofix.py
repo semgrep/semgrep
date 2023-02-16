@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from functools import cmp_to_key
 from pathlib import Path
@@ -21,7 +23,7 @@ SPLIT_CHAR = "\n"
 
 
 class Fix:
-    def __init__(self, fixed_contents: str, fixed_lines: List[str]):
+    def __init__(self, fixed_contents: str, fixed_lines: list[str]):
         self.fixed_contents = fixed_contents
         self.fixed_lines = fixed_lines
 
@@ -43,7 +45,7 @@ class FileOffsets:
         self.active_line = active_line
 
 
-def _get_lines(path: Path) -> List[str]:
+def _get_lines(path: Path) -> list[str]:
     contents = path.read_text()
     lines = contents.split(SPLIT_CHAR)
     return lines
@@ -51,7 +53,7 @@ def _get_lines(path: Path) -> List[str]:
 
 def _get_match_context(
     rule_match: RuleMatch, offsets: FileOffsets
-) -> Tuple[int, int, int, int]:
+) -> tuple[int, int, int, int]:
     start_obj = rule_match.start
     start_line = start_obj.line - 1  # start_line is 1 indexed
     start_col = start_obj.col - 1  # start_col is 1 indexed
@@ -70,7 +72,7 @@ def _get_match_context(
 
 def _basic_fix(
     rule_match: RuleMatch, file_offsets: FileOffsets, fix: str
-) -> Tuple[Fix, FileOffsets]:
+) -> tuple[Fix, FileOffsets]:
 
     p = rule_match.path
     lines = _get_lines(p)
@@ -104,7 +106,7 @@ def _regex_replace(
     from_str: str,
     to_str: str,
     count: int = 1,
-) -> Tuple[Fix, FileOffsets]:
+) -> tuple[Fix, FileOffsets]:
     """
     Use a regular expression to autofix.
     Replaces from_str to to_str, starting from the left,
@@ -169,7 +171,7 @@ def matches_overlap(x: RuleMatch, y: RuleMatch) -> bool:
 
 
 def deduplicate_overlapping_matches(
-    rules_and_matches: Iterable[Tuple[Rule, OrderedRuleMatchList]]
+    rules_and_matches: Iterable[tuple[Rule, OrderedRuleMatchList]]
 ) -> OrderedRuleMatchList:
 
     final_matches = []
@@ -206,8 +208,8 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
     Modify files in place for all files with findings from rules with an
     autofix configuration
     """
-    modified_files: Set[Path] = set()
-    modified_files_offsets: Dict[Path, FileOffsets] = {}
+    modified_files: set[Path] = set()
+    modified_files_offsets: dict[Path, FileOffsets] = {}
 
     nonoverlapping_matches = deduplicate_overlapping_matches(
         rule_matches_by_rule.items()
@@ -259,4 +261,4 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
                 f"successfully modified {unit_str(len(modified_files), 'file')}."
             )
         else:
-            logger.info(f"no files modified.")
+            logger.info("no files modified.")

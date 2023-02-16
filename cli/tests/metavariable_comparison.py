@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 def f(x):
     return x
 

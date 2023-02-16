@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import re
 import sys
@@ -42,7 +44,6 @@ from semgrep.lsp.types import TextDocumentItem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import MetavarValue
 from semgrep.state import get_state
 from semgrep.types import JsonObject
-
 
 log = logging.getLogger(__name__)
 
@@ -92,7 +93,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         # Used so we don't scan an individual file while we're scanning the workspace
         self._scanning_workspace = False
 
-        self._active_scans: Set[Path] = set()
+        self._active_scans: set[Path] = set()
 
         # Prepare the json-rpc endpoint
         self._jsonrpc_stream_reader = JsonRpcStreamReader(rx)
@@ -101,7 +102,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             self, self._jsonrpc_stream_writer.write, max_workers=10
         )
 
-        self._diagnostics: MutableMapping[str, List[Diagnostic]] = {}
+        self._diagnostics: MutableMapping[str, list[Diagnostic]] = {}
         self._fix_metrics: LSPMetrics = LSPMetrics()
         self._registered_capabilities: MutableMapping[str, str] = {}
 
@@ -137,11 +138,11 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     def m_initialize(
         self,
-        processId: Optional[str] = None,
-        rootUri: Optional[str] = None,
-        rootPath: Optional[str] = None,
-        initializationOptions: Optional[JsonObject] = None,
-        workspaceFolders: Optional[List[JsonObject]] = None,
+        processId: str | None = None,
+        rootUri: str | None = None,
+        rootPath: str | None = None,
+        initializationOptions: JsonObject | None = None,
+        workspaceFolders: list[JsonObject] | None = None,
         **_kwargs: JsonObject,
     ) -> JsonObject:
         """Called by the client before ANYTHING else."""
@@ -228,7 +229,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             self.process_text_document(textDocument)
 
     def m_text_document__did_save(self, textDocument: TextDocumentItem) -> None:
-        log.debug(f"document__did_save")
+        log.debug("document__did_save")
         if self.config.watch_open_files:
             self.process_text_document(textDocument)
 
@@ -246,7 +247,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     def m_text_document__code_action(
         self, textDocument: TextDocumentItem, range: Range, context: CodeActionContext
-    ) -> List[CodeAction]:
+    ) -> list[CodeAction]:
         """Called by client to get code actions for a document + where there cursor is"""
         return self.compute_code_actions(textDocument["uri"], range)
 
@@ -257,7 +258,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         self,
         textDocument: TextDocumentItem,
         range: Range,
-    ) -> List[JsonObject]:
+    ) -> list[JsonObject]:
         """Called by client to get inlay hints. Use self.refresh_inlay_hints() to prompt them to request new hints"""
         return self.compute_inlay_hints(textDocument["uri"], range)
 
@@ -267,7 +268,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     def m_workspace__workspace_folders(
         self,
-        workspace_folders: Optional[List[JsonObject]] = None,
+        workspace_folders: list[JsonObject] | None = None,
     ) -> None:
         """Called by client when workspace is opened"""
         if workspace_folders is not None:
@@ -330,7 +331,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         """Called by client to scan all files in the workspace"""
         self.process_workspaces(force=True)
 
-    def m_semgrep__login(self) -> Optional[JsonObject]:
+    def m_semgrep__login(self) -> JsonObject | None:
         """Called by client to login to Semgrep App. Returns None if already logged in"""
         if self.config.logged_in:
             return None
@@ -367,7 +368,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             "workspace/inlayHint/refresh",
         )
 
-    def notify_diagnostics(self, uri: str, diagnostics: List[Diagnostic]) -> None:
+    def notify_diagnostics(self, uri: str, diagnostics: list[Diagnostic]) -> None:
         """Notify the client of new diagnostics"""
         self._endpoint.notify(
             "textDocument/publishDiagnostics",
@@ -429,8 +430,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         self,
         type: int,
         message: str,
-        actions: List[str],
-        callback: Callable[[Union[str, None]], None],
+        actions: list[str],
+        callback: Callable[[str | None], None],
     ) -> None:
         """Show a message to the user with some actions. The callback will be called with the chosen action."""
         res = self._endpoint.request(
@@ -455,7 +456,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     # See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#client_registerCapability since this can be trick to understand
     def request_register_capability(
-        self, method: str, registerOptions: Optional[JsonObject] = None
+        self, method: str, registerOptions: JsonObject | None = None
     ) -> None:
         """General method to register a capability with the client. Some capabilities such as watched files are recommended not to be done statically, but to be done dynamically through this method."""
         # Each capability needs a unique id, so we'll just generate one and
@@ -492,7 +493,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     # The client DOES NOT do any merging of diagnostics, and to clear them ALL
     # out you must send an empty list explicitly.
-    def publish_diagnostics(self, uri: str, diagnostics: List[Diagnostic]) -> None:
+    def publish_diagnostics(self, uri: str, diagnostics: list[Diagnostic]) -> None:
         """Publish diagnostics to the client"""
 
         # Check if file still exists
@@ -505,8 +506,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         before = []
         # only count before if we're not refreshing the diagnostics (refreshing = user did not change code but a config file or folder or git status changed)
         if self._diagnostics.get(uri) is not None:
-            before = list(map(lambda d: d["code"], self._diagnostics[uri]))  # type: ignore
-        after = list(map(lambda d: d["code"], diagnostics))  # type: ignore
+            before = [d["code"] for d in self._diagnostics[uri]]  # type: ignore
+        after = [d["code"] for d in diagnostics]  # type: ignore
         for r in set(before + after):
             count = after.count(r)
             closed = before.count(r) - count
@@ -530,10 +531,10 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             if r.status_code == 200:
                 as_json = r.json()
                 if save_token(as_json.get("token"), echo_token=True):
-                    self.notify_show_message(3, f"Successfully logged in to semgrep.")
+                    self.notify_show_message(3, "Successfully logged in to semgrep.")
                     return
                 else:
-                    self.notify_show_message(1, f"Failed to log in to semgrep.")
+                    self.notify_show_message(1, "Failed to log in to semgrep.")
             elif r.status_code != 404:
                 self.notify_show_message(
                     1,
@@ -607,7 +608,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             self.notify_diagnostics(uri, [])
         self.request_refresh_inlay_hints()
 
-    def lsp_scan(self, targets: List[str], workspaces: bool = False) -> None:
+    def lsp_scan(self, targets: list[str], workspaces: bool = False) -> None:
         """Run a scan on targets and update diagnostics"""
 
         # If we're already scanning the whole workspace, don't bother trying to
@@ -621,7 +622,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         if len(targets) == 0:
             return
 
-        active_scans = set(map(lambda t: Path(t), targets))
+        active_scans = {Path(t) for t in targets}
         self._active_scans.update(active_scans)
 
         # Notify scan beginning
@@ -634,7 +635,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
         # Run a scan on the file and convert to LSP diagnostics
         diagnostics = []
-        all_targets: Set[Path] = set()
+        all_targets: set[Path] = set()
         self._diagnostics.keys()
         try:
             matches, all_targets = run_rules(targets, self.config)
@@ -659,7 +660,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
                 return
             self.notify_work_done_end(token, "Scanning partially complete")
 
-        sorted_diagnostics: MutableMapping[str, List[JsonObject]] = {}
+        sorted_diagnostics: MutableMapping[str, list[JsonObject]] = {}
 
         # Make sure we're recording diagnostics for all files scanned even if
         # they had no result
@@ -694,7 +695,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     # Compute Responses
     #
 
-    def compute_code_actions(self, uri: str, range: Range) -> List[CodeAction]:
+    def compute_code_actions(self, uri: str, range: Range) -> list[CodeAction]:
         """Compute code actions for a given range"""
         log.debug(f"Compute code actions for uri {uri} and range {range}")
         actions = []
@@ -716,7 +717,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         log.debug(f"Computed code actions: {actions}")
         return actions
 
-    def compute_inlay_hints(self, uri: str, range: Range) -> List[JsonObject]:
+    def compute_inlay_hints(self, uri: str, range: Range) -> list[JsonObject]:
         """Compute inlay hints for a given document. This labels the abstract content associated with a metavar"""
         log.debug(f"Compute inlay hints for uri {uri} and range {range}")
 

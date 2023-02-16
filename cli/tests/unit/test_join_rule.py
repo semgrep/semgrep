@@ -1,16 +1,17 @@
-import pytest
+from __future__ import annotations
 
+import pytest
 from semgrep.join_rule import Condition
-from semgrep.join_rule import create_collection_set_from_conditions
-from semgrep.join_rule import create_model_map
 from semgrep.join_rule import InvalidConditionError
 from semgrep.join_rule import JoinOperator
+from semgrep.join_rule import create_collection_set_from_conditions
+from semgrep.join_rule import create_model_map
 from semgrep.join_rule import model_factory
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.parametrize(
-    "A,propA,B,propB,op",
+    ("A", "propA", "B", "propB", "op"),
     [
         ("hello", "world", "goodbye", "world", JoinOperator("==")),
         ("hello", "world", "goodbye", "world", JoinOperator("!=")),
@@ -44,7 +45,7 @@ def test_condition_parse(A, propA, B, propB, op):
     assert expected == actual
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_condition_parse_dot_behavior():
     A = "a.b.c.d.e"
     propA = "$FOO"
@@ -62,7 +63,7 @@ def test_condition_parse_dot_behavior():
     assert actual.operator == op
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.parametrize(
     "condition_string",
     [
@@ -79,7 +80,7 @@ def test_invalid_condition_string(condition_string):
         Condition.parse(condition_string)
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_model_factory():
     model = model_factory("HelloWorld", ["a", "b", "c"])
     assert model.__name__ == "HelloWorld"
@@ -90,7 +91,7 @@ def test_model_factory():
         _ = model.d
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_create_collection_set_from_conditions():
     conditions = [
         Condition("A", "propA1", "B", "propB", JoinOperator("==")),
@@ -102,7 +103,7 @@ def test_create_collection_set_from_conditions():
     assert expected == actual
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_create_model_map():
     results = [
         {

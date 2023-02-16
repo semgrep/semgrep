@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 from time import time
@@ -10,7 +12,7 @@ pytestmark = pytest.mark.kinda_slow
 
 
 @pytest.mark.parametrize(
-    "rule,target",
+    ("rule", "target"),
     [
         (
             "rules/dependency_aware/awscli_vuln.yaml",
@@ -98,7 +100,7 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
 
 
 @pytest.mark.parametrize(
-    "file_size,target,max_time",
+    ("file_size", "target", "max_time"),
     [
         (file_size, target, max_time)
         # These times are set relative to Github Actions, they should be lower when running locally

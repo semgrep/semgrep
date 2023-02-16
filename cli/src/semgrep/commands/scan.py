@@ -1,15 +1,17 @@
+from __future__ import annotations
+
 import os
 import tempfile
 from itertools import chain
 from pathlib import Path
 from typing import Any
 from typing import Callable
-from typing import cast
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
+from typing import cast
 
 import click
 from click.shell_completion import CompletionItem
@@ -24,14 +26,14 @@ from semgrep import bytesize
 from semgrep.app.registry import list_current_public_rulesets
 from semgrep.app.version import get_no_findings_msg
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
-from semgrep.constants import EngineType
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.constants import Colors
+from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
@@ -58,7 +60,7 @@ logger = getLogger(__name__)
 ScanReturn = Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]
 
 
-def __validate_lang(option: str, lang: Optional[str]) -> str:
+def __validate_lang(option: str, lang: str | None) -> str:
     if lang is None:
         abort(f"{option} and -l/--lang must both be specified")
     return cast(str, lang)
@@ -66,7 +68,7 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
 
 def __get_severity_options(
     context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
+) -> list[Any]:
     return [
         CompletionItem(e.value) for e in RuleSeverity if e.value.startswith(incomplete)
     ]
@@ -74,7 +76,7 @@ def __get_severity_options(
 
 def __get_language_options(
     context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
+) -> list[Any]:
     return [
         CompletionItem(e)
         for e in LANGUAGE.all_language_keys
@@ -84,7 +86,7 @@ def __get_language_options(
 
 def __get_size_options(
     context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
+) -> list[Any]:
     if incomplete.isnumeric():
         sizes = [f"{incomplete}{u}" for u in bytesize.UNITS.keys()]
         return [CompletionItem(s) for s in sizes if s.startswith(incomplete)]
@@ -94,20 +96,20 @@ def __get_size_options(
 
 def __get_file_options(
     context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
+) -> list[Any]:
     return [CompletionItem(f, type="file") for f in os.listdir(".")]
 
 
 def __get_config_options(
     context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
+) -> list[Any]:
     if incomplete[:2] == "p/":
         # Get list of rulesets
         rulesets = list_current_public_rulesets()
         rulesets = list(
             filter(lambda r: "hidden" not in r or not r["hidden"], rulesets)
         )
-        rulesets_names = list(map(lambda r: f"p/{r['name']}", rulesets))
+        rulesets_names = [f"p/{r['name']}" for r in rulesets]
 
         return [CompletionItem(r) for r in rulesets_names if r.startswith(incomplete)]
     else:
@@ -119,7 +121,7 @@ def __get_config_options(
 
 def __get_optimization_options(
     context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
+) -> list[Any]:
     return [CompletionItem("all"), CompletionItem("none")]
 
 
@@ -131,7 +133,7 @@ class MetricsStateType(click.ParamType):
 
     def shell_complete(
         self, context: click.Context, _param: click.Parameter, incomplete: str
-    ) -> List[Any]:
+    ) -> list[Any]:
         return [
             CompletionItem(e) for e in ["auto", "on", "off"] if e.startswith(incomplete)
         ]
@@ -139,8 +141,8 @@ class MetricsStateType(click.ParamType):
     def convert(
         self,
         value: Any,
-        _param: Optional["click.Parameter"],
-        ctx: Optional["click.Context"],
+        _param: click.Parameter | None,
+        ctx: click.Context | None,
     ) -> Any:
         if value is None:
             return None
@@ -162,7 +164,7 @@ METRICS_STATE_TYPE = MetricsStateType()
 # Slightly increase the help width from default 80 characters, to improve readability
 CONTEXT_SETTINGS = {"max_content_width": 90}
 
-_scan_options: List[Callable] = [
+_scan_options: list[Callable] = [
     click.help_option("--help", "-h", help=("Show this message and exit.")),
     click.option(
         "-a",
@@ -353,7 +355,7 @@ _scan_options: List[Callable] = [
     optgroup.option(
         "--interfile-timeout",
         type=int,
-        help=f"""
+        help="""
             Maximum time to spend on interfile analysis. If set to 0 will not have
             time limit. Defaults to 0 s for all CLI scans. For CI scans, it defaults
             to 3 hours.
@@ -655,9 +657,9 @@ def scan_options(func: Callable) -> Callable:
 def scan(
     *,
     autofix: bool,
-    baseline_commit: Optional[str],
-    config: Optional[Tuple[str, ...]],
-    core_opts: Optional[str],
+    baseline_commit: str | None,
+    config: tuple[str, ...] | None,
+    core_opts: str | None,
     debug: bool,
     dump_engine_path: bool,
     pro_languages: bool,
@@ -669,28 +671,28 @@ def scan(
     enable_nosem: bool,
     enable_version_check: bool,
     error_on_findings: bool,
-    exclude: Optional[Tuple[str, ...]],
-    exclude_rule: Optional[Tuple[str, ...]],
+    exclude: tuple[str, ...] | None,
+    exclude_rule: tuple[str, ...] | None,
     force_color: bool,
-    include: Optional[Tuple[str, ...]],
-    jobs: Optional[int],
-    lang: Optional[str],
+    include: tuple[str, ...] | None,
+    jobs: int | None,
+    lang: str | None,
     max_chars_per_line: int,
     max_lines_per_finding: int,
-    max_memory: Optional[int],
+    max_memory: int | None,
     max_target_bytes: int,
-    metrics: Optional[MetricsState],
-    metrics_legacy: Optional[MetricsState],
+    metrics: MetricsState | None,
+    metrics_legacy: MetricsState | None,
     optimizations: str,
     dataflow_traces: bool,
-    output: Optional[str],
+    output: str | None,
     output_format: OutputFormat,
-    pattern: Optional[str],
+    pattern: str | None,
     quiet: bool,
-    replacement: Optional[str],
+    replacement: str | None,
     rewrite_rule_ids: bool,
     scan_unknown_extensions: bool,
-    severity: Optional[Tuple[str, ...]],
+    severity: tuple[str, ...] | None,
     show_supported_languages: bool,
     strict: bool,
     targets: Sequence[str],
@@ -699,7 +701,7 @@ def scan(
     time_flag: bool,
     timeout: int,
     timeout_threshold: int,
-    interfile_timeout: Optional[int],
+    interfile_timeout: int | None,
     use_git_ignore: bool,
     validate: bool,
     verbose: bool,
@@ -852,7 +854,7 @@ def scan(
         elif validate:
             if not (pattern or lang or config):
                 logger.error(
-                    f"Nothing to validate, use the --config or --pattern flag to specify a rule"
+                    "Nothing to validate, use the --config or --pattern flag to specify a rule"
                 )
             else:
                 resolved_configs, config_errors = semgrep.config_resolver.get_config(

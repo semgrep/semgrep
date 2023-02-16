@@ -1,6 +1,8 @@
 """
 Utility for identifying the URL of the current git project
 """
+from __future__ import annotations
+
 import re
 from pathlib import Path
 from typing import Any
@@ -23,7 +25,7 @@ logger = getLogger(__name__)
 CONFIG_FILE_PATTERN = re.compile(r"^\.semgrepconfig(\.yml|\.yaml)?$")
 
 
-def get_project_url() -> Optional[str]:
+def get_project_url() -> str | None:
     """
     Returns the current git project's default remote URL, or None if not a git project / no remote
     """
@@ -55,10 +57,10 @@ class ProjectConfig:
     FILE_VERSION = "v1"
 
     version: str = field(default=FILE_VERSION)
-    tags: Optional[List[str]] = field(default=None)
+    tags: list[str] | None = field(default=None)
 
     @tags.validator
-    def check_tags(self, _attribute: Any, value: Optional[List[str]]) -> None:
+    def check_tags(self, _attribute: Any, value: list[str] | None) -> None:
         if value is None:
             return
         if not isinstance(value, list):
@@ -72,7 +74,7 @@ class ProjectConfig:
         return CONFIG_FILE_PATTERN.search(file_path.name) is not None
 
     @classmethod
-    def _find_all_config_files(cls, src_directory: Path, cwd_path: Path) -> List[Path]:
+    def _find_all_config_files(cls, src_directory: Path, cwd_path: Path) -> list[Path]:
         conf_files = []
 
         # Populate stack of directories to traverse
@@ -92,16 +94,16 @@ class ProjectConfig:
         return conf_files
 
     @classmethod
-    def load_from_file(cls, file_path: Path) -> "ProjectConfig":
+    def load_from_file(cls, file_path: Path) -> ProjectConfig:
         yaml = ruamel.yaml.YAML(typ="safe")
         logger.debug(f"Loading semgrepconfig file: {file_path}")
         with file_path.open("r") as fp:
-            config: Dict[str, Any] = yaml.load(fp)
+            config: dict[str, Any] = yaml.load(fp)
             cfg = cls(**config)
             return cfg
 
     @classmethod
-    def load_all(cls) -> "ProjectConfig":
+    def load_all(cls) -> ProjectConfig:
         src_directory = get_git_root_path()
         cwd_path = Path.cwd()
         conf_files = cls._find_all_config_files(src_directory, cwd_path)
@@ -110,14 +112,14 @@ class ProjectConfig:
         conf_files.sort(key=lambda x: len(x.parts))
 
         # Merge metadata from all config files
-        all_metadata: Dict[Any, Any] = {}
+        all_metadata: dict[Any, Any] = {}
         for conf_file in conf_files:
             project_conf = cls.load_from_file(conf_file)
             project_conf_data = asdict(project_conf)
             all_metadata = {**all_metadata, **project_conf_data}
         return cls(**all_metadata)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         # Strip out version
         data.pop("version", None)

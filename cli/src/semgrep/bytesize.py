@@ -6,6 +6,8 @@
 # https://pypi.org/project/datasize/ (documentation?)
 # or https://github.com/xolox/python-humanfriendly
 #
+from __future__ import annotations
+
 from typing import Optional
 from typing import Union
 
@@ -51,10 +53,10 @@ class ByteSizeType(click.ParamType):
 
     def convert(
         self,
-        value: Union[None, str, int],
-        _param: Optional[click.Parameter],
-        ctx: Optional[click.Context],
-    ) -> Optional[int]:
+        value: None | str | int,
+        _param: click.Parameter | None,
+        ctx: click.Context | None,
+    ) -> int | None:
         try:
             return (
                 parse_size(value)

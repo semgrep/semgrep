@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import pathlib
 import sys
@@ -5,7 +7,6 @@ from collections import defaultdict
 from functools import reduce
 from pathlib import Path
 from typing import Any
-from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
@@ -16,13 +17,14 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Type
+from typing import cast
 
 import requests
 from boltons.iterutils import partition
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep.console import console
 from semgrep.console import Title
+from semgrep.console import console
 from semgrep.constants import Colors
 from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
@@ -57,7 +59,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
+FORMATTERS: Mapping[OutputFormat, type[BaseFormatter]] = {
     OutputFormat.EMACS: EmacsFormatter,
     OutputFormat.GITLAB_SAST: GitlabSastFormatter,
     OutputFormat.GITLAB_SECRETS: GitlabSecretsFormatter,
@@ -83,7 +85,7 @@ def get_path_str(target: Path) -> str:
 
 
 def _build_time_target_json(
-    rules: List[Rule],
+    rules: list[Rule],
     target: Path,
     num_bytes: int,
     profiling_data: ProfilingData,
@@ -105,10 +107,10 @@ def _build_time_target_json(
 #    $ ./run-benchmarks --dummy --upload
 # to double check everything still works
 def _build_time_json(
-    rules: List[Rule],
-    targets: Set[Path],
+    rules: list[Rule],
+    targets: set[Path],
     profiling_data: ProfilingData,  # (rule, target) -> times
-    profiler: Optional[ProfileManager],
+    profiler: ProfileManager | None,
 ) -> out.CliTiming:
     """Convert match times to a json-ready format.
 
@@ -139,9 +141,9 @@ def _build_time_json(
 # changes to this API, and make them backwards compatible, if possible.
 class OutputSettings(NamedTuple):
     output_format: OutputFormat
-    output_destination: Optional[str] = None
-    output_per_finding_max_lines_limit: Optional[int] = None
-    output_per_line_max_chars_limit: Optional[int] = None
+    output_destination: str | None = None
+    output_per_finding_max_lines_limit: int | None = None
+    output_per_line_max_chars_limit: int | None = None
     error_on_findings: bool = False
     verbose_errors: bool = False  # to do: rename to just 'verbose'
     strict: bool = False
@@ -170,24 +172,24 @@ class OutputHandler:
     ):
         self.settings = output_settings
 
-        self.rule_matches: List[RuleMatch] = []
-        self.all_targets: Set[Path] = set()
-        self.profiler: Optional[ProfileManager] = None
-        self.rules: FrozenSet[Rule] = frozenset()
-        self.semgrep_structured_errors: List[SemgrepError] = []
-        self.error_set: Set[SemgrepError] = set()
+        self.rule_matches: list[RuleMatch] = []
+        self.all_targets: set[Path] = set()
+        self.profiler: ProfileManager | None = None
+        self.rules: frozenset[Rule] = frozenset()
+        self.semgrep_structured_errors: list[SemgrepError] = []
+        self.error_set: set[SemgrepError] = set()
         self.has_output = False
         self.is_ci_invocation = False
-        self.filtered_rules: List[Rule] = []
+        self.filtered_rules: list[Rule] = []
         self.profiling_data: ProfilingData = (
             ProfilingData()
         )  # (rule, target) -> duration
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
-        self.explanations: Optional[List[out.MatchingExplanation]] = None
-        self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
+        self.explanations: list[out.MatchingExplanation] | None = None
+        self.rules_by_engine: list[out.RuleIdAndEngineKind] | None = None
         self.engine_requested: EngineType = EngineType.OSS
 
-        self.final_error: Optional[Exception] = None
+        self.final_error: Exception | None = None
         formatter_type = FORMATTERS.get(self.settings.output_format)
         if formatter_type is None:
             raise RuntimeError(f"Invalid output format: {self.settings.output_format}")
@@ -220,7 +222,7 @@ class OutputHandler:
             t_errors = dict(timeout_errors)  # please mypy
             self._handle_semgrep_timeout_errors(t_errors)
 
-    def _handle_semgrep_timeout_errors(self, errors: Dict[Path, List[str]]) -> None:
+    def _handle_semgrep_timeout_errors(self, errors: dict[Path, list[str]]) -> None:
         self.has_output = True
         separator = ", "
         print_threshold_hint = False
@@ -239,7 +241,7 @@ class OutputHandler:
             logger.error(
                 with_color(
                     Colors.red,
-                    f"You can use the `--timeout-threshold` flag to set a number of timeouts after which a file will be skipped.",
+                    "You can use the `--timeout-threshold` flag to set a number of timeouts after which a file will be skipped.",
                 )
             )
 
@@ -256,7 +258,7 @@ class OutputHandler:
             ):
                 logger.error(error.format_for_terminal())
 
-    def _final_raise(self, ex: Optional[Exception]) -> None:
+    def _final_raise(self, ex: Exception | None) -> None:
         if ex is None:
             return
         if isinstance(ex, SemgrepError):
@@ -273,10 +275,10 @@ class OutputHandler:
     @staticmethod
     def _make_failed_to_analyze(
         semgrep_core_errors: Sequence[SemgrepCoreError],
-    ) -> Mapping[Path, Optional[int]]:
+    ) -> Mapping[Path, int | None]:
         def update_failed_to_analyze(
-            memo: Mapping[Path, Optional[int]], err: SemgrepCoreError
-        ) -> Mapping[Path, Optional[int]]:
+            memo: Mapping[Path, int | None], err: SemgrepCoreError
+        ) -> Mapping[Path, int | None]:
             path = Path(err.core.location.path)
             so_far = memo.get(path, 0)
             if err.spans is None or so_far is None:
@@ -293,14 +295,14 @@ class OutputHandler:
         self,
         rule_matches_by_rule: RuleMatchMap,
         *,
-        all_targets: Set[Path],
-        filtered_rules: List[Rule],
-        ignore_log: Optional[FileTargetingLog] = None,
-        profiler: Optional[ProfileManager] = None,
-        profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
-        explanations: Optional[List[out.MatchingExplanation]] = None,
-        rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None,
-        severities: Optional[Collection[RuleSeverity]] = None,
+        all_targets: set[Path],
+        filtered_rules: list[Rule],
+        ignore_log: FileTargetingLog | None = None,
+        profiler: ProfileManager | None = None,
+        profiling_data: ProfilingData | None = None,  # (rule, target) -> duration
+        explanations: list[out.MatchingExplanation] | None = None,
+        rules_by_engine: list[out.RuleIdAndEngineKind] | None = None,
+        severities: Collection[RuleSeverity] | None = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
         engine: EngineType = EngineType.OSS,
@@ -438,16 +440,16 @@ class OutputHandler:
             _comment=None,
             skipped=None,
         )
-        cli_timing: Optional[out.CliTiming] = None
+        cli_timing: out.CliTiming | None = None
 
-        explanations: Optional[List[out.MatchingExplanation]] = self.explanations
-        rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = self.rules_by_engine
+        explanations: list[out.MatchingExplanation] | None = self.explanations
+        rules_by_engine: list[out.RuleIdAndEngineKind] | None = self.rules_by_engine
 
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
         # - The text formatter uses it to store settings
         # You should use CliOutputExtra for better type checking
-        extra: Dict[str, Any] = {}
+        extra: dict[str, Any] = {}
         if self.settings.output_time:
             cli_timing = _build_time_json(
                 self.filtered_rules,

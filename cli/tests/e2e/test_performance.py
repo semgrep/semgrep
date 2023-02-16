@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import time
 
 import pytest
 
 
-@pytest.mark.slow
+@pytest.mark.slow()
 @pytest.mark.flaky(reruns=2)
 def test_debug_performance(run_semgrep_in_tmp):
     """

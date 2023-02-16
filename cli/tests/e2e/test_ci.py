@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import re
 import shutil
@@ -8,10 +10,6 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
-from tests.conftest import make_semgrepconfig_file
-from tests.e2e.test_baseline import _git_commit
-from tests.e2e.test_baseline import _git_merge
-
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
 from semgrep.app.session import AppSession
@@ -20,6 +18,10 @@ from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
+
+from tests.conftest import make_semgrepconfig_file
+from tests.e2e.test_baseline import _git_commit
+from tests.e2e.test_baseline import _git_merge
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -44,7 +46,7 @@ BAD_CONFIG = dedent(
 ).lstrip()
 
 
-@pytest.fixture
+@pytest.fixture()
 def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     """
     Initialize a git repo at a temp directory with one dummy commit.
@@ -73,7 +75,7 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     )
 
     foo = repo_base / "foo.py"
-    foo.write_text(f"x = 1\n")
+    foo.write_text("x = 1\n")
 
     unknown_ext = repo_base / "xyz.txt"
     unknown_ext.write_text("xyz")
@@ -159,7 +161,7 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     subprocess.run(["git", "checkout", f"{MAIN_BRANCH_NAME}"])
     subprocess.run(["git", "checkout", f"{BRANCH_NAME}"])
 
-    yield (repo_copy_base, base_commit, head_commit)
+    return (repo_copy_base, base_commit, head_commit)
 
 
 @pytest.fixture(autouse=True)
@@ -832,7 +834,7 @@ def test_shallow_wrong_merge_base(
     baz = git_tmp_path / "baz.py"
 
     subprocess.run(["git", "checkout", "-b", "foo"])
-    foo.open("a").write(f"foo == 5\n")
+    foo.open("a").write("foo == 5\n")
     commits["foo"].append(_git_commit(1, add=True))
     subprocess.run(
         [
@@ -845,7 +847,7 @@ def test_shallow_wrong_merge_base(
     )
 
     subprocess.run(["git", "checkout", "-b", "baz"])
-    baz.open("a").write(f"baz == 5\n")
+    baz.open("a").write("baz == 5\n")
     commits["baz"].append(_git_commit(2, add=True))
 
     subprocess.run(["git", "checkout", "foo"])
@@ -853,12 +855,12 @@ def test_shallow_wrong_merge_base(
     commits["foo"].append(_git_commit(3, add=True))
 
     subprocess.run(["git", "checkout", "-b", "bar"])
-    bar.open("a").write(f"bar == 5\n\n")
+    bar.open("a").write("bar == 5\n\n")
     commits["bar"].append(_git_commit(4, add=True))
 
     for _ in range(16):
         subprocess.run(["git", "checkout", "foo"])
-        foo.open("a").write(f"new == 5\n\n")
+        foo.open("a").write("new == 5\n\n")
         commits["foo"].append(_git_commit(5, add=True))
 
     commits["foo"].append(_git_merge("baz"))
@@ -989,7 +991,7 @@ def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofi
     snapshot.assert_match(result.as_snapshot(), "results.txt")
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 @pytest.mark.parametrize(
     "format",
     ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],

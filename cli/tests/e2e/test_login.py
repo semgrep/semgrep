@@ -1,10 +1,12 @@
-import pytest
-from tests.semgrep_runner import SemgrepRunner
+from __future__ import annotations
 
+import pytest
 from semgrep.cli import cli
 
+from tests.semgrep_runner import SemgrepRunner
 
-@pytest.mark.slow
+
+@pytest.mark.slow()
 def test_login(tmp_path, mocker):
     runner = SemgrepRunner(
         env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")}

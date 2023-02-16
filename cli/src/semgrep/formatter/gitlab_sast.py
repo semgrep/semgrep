@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import json
 from typing import Any
@@ -16,7 +18,7 @@ from semgrep.rule_match import RuleMatch
 
 def _to_gitlab_severity(semgrep_severity: RuleSeverity) -> str:
     # Todo: Semgrep states currently don't map super well to Gitlab schema.
-    conversion_table: Dict[RuleSeverity, str] = {
+    conversion_table: dict[RuleSeverity, str] = {
         RuleSeverity.INFO: "Info",
         RuleSeverity.WARNING: "Medium",
         RuleSeverity.ERROR: "High",

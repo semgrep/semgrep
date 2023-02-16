@@ -4,6 +4,7 @@
 # For usage information, see the module help text:
 #
 #   $ python3 -c "import semgrep_bridge_python; help(semgrep_bridge_python)"
+from __future__ import annotations
 
 from typing import Callable
 from typing import List
@@ -13,7 +14,7 @@ from typing import Tuple
 def startup() -> None: ...
 def shutdown() -> None: ...
 def semgrep_analyze(
-    argv: List[str], read_file: Callable[[str], Tuple[bytes, int]]
-) -> Optional[str]: ...
+    argv: list[str], read_file: Callable[[str], tuple[bytes, int]]
+) -> str | None: ...
 
 # EOF

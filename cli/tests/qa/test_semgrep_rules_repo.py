@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import subprocess
 from pathlib import Path
@@ -28,7 +30,7 @@ def in_semgrep_rules_repo(tmpdir_factory):
     monkeypatch.undo()
 
 
-@pytest.mark.slow
+@pytest.mark.slow()
 def test_semgrep_rules_repo__validate(in_semgrep_rules_repo):
     """Validate the rule files found in the semgrep-rules repo.
 
@@ -41,7 +43,7 @@ def test_semgrep_rules_repo__validate(in_semgrep_rules_repo):
     assert exit_code == 0
 
 
-@pytest.mark.slow
+@pytest.mark.slow()
 def test_semgrep_rules_repo__test(in_semgrep_rules_repo):
     """Test the pairs rule/target found in the semgrep-rules repo.
 

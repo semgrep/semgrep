@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import pytest
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 @pytest.mark.parametrize(
-    "rule,target",
+    ("rule", "target"),
     [
         ("rules/spacegrep/terraform.yaml", "spacegrep/terraform.tf"),
         ("rules/spacegrep/html.yaml", "spacegrep/html.mustache"),
@@ -20,9 +22,9 @@ def test_spacegrep(run_semgrep_in_tmp, snapshot, rule, target):
     )
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 @pytest.mark.parametrize(
-    "rule,target",
+    ("rule", "target"),
     [
         ("rules/spacegrep/nosem-html.yaml", "spacegrep/nosem.html"),
     ],

@@ -1,14 +1,18 @@
+from __future__ import annotations
+
 from typing import Any
-from typing import cast
 from typing import Iterable
 from typing import Mapping
 from typing import Sequence
+from typing import cast
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.error import SemgrepError
 from semgrep.external.junit_xml import TestCase  # type: ignore[attr-defined]
 from semgrep.external.junit_xml import TestSuite  # type: ignore[attr-defined]
-from semgrep.external.junit_xml import to_xml_report_string  # type: ignore[attr-defined]
+from semgrep.external.junit_xml import (
+    to_xml_report_string,  # type: ignore[attr-defined]
+)
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch

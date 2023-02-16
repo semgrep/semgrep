@@ -1,3 +1,6 @@
-from typing import Dict, Any
+from __future__ import annotations
 
-def get_profile() -> Dict[str, Any]: ...
+from typing import Any
+from typing import Dict
+
+def get_profile() -> dict[str, Any]: ...

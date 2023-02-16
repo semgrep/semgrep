@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import json
 
 import pytest
+
 from tests.conftest import _clean_stdout
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 @pytest.mark.parametrize(
-    "rule,target",
+    ("rule", "target"),
     [
         ("rules/invalid-rules/invalid-metavariable-regex.yaml", "basic/stupid.py"),
         ("rules/invalid-rules/invalid-pattern-child.yaml", "basic/stupid.py"),

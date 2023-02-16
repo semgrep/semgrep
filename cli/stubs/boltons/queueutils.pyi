@@ -1,4 +1,9 @@
-from typing import Any, Callable, List, Union
+from __future__ import annotations
+
+from typing import Any
+from typing import Callable
+from typing import List
+from typing import Union
 
 class BasePriorityQueue:
     def __init__(self, **kw: Any) -> None: ...
@@ -11,25 +16,19 @@ class BasePriorityQueue:
 class HeapPriorityQueue:
     @staticmethod
     def _pop_entry(
-        backend: Union[
-            List[Union[List[Any], List[Union[int, Callable]]]],
-            List[List[Union[int, Callable]]],
-        ]
-    ) -> Union[List[Union[int, Callable]], List[Any]]: ...
+        backend: list[list[Any] | list[int | Callable]] | list[list[int | Callable]]
+    ) -> list[int | Callable] | list[Any]: ...
     @staticmethod
     def _push_entry(
-        backend: List[List[Any]], entry: List[Union[int, Callable]]
+        backend: list[list[Any]], entry: list[int | Callable]
     ) -> None: ...
 
 class SortedPriorityQueue:
     @staticmethod
     def _pop_entry(
-        backend: Union[
-            List[Union[List[Any], List[Union[int, Callable]]]],
-            List[List[Union[int, Callable]]],
-        ]
-    ) -> Union[List[Union[int, Callable]], List[Any]]: ...
+        backend: list[list[Any] | list[int | Callable]] | list[list[int | Callable]]
+    ) -> list[int | Callable] | list[Any]: ...
     @staticmethod
     def _push_entry(
-        backend: List[List[Any]], entry: List[Union[int, Callable]]
+        backend: list[list[Any]], entry: list[int | Callable]
     ) -> None: ...

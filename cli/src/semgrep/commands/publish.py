@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 from enum import Enum
 from pathlib import Path
@@ -37,8 +39,8 @@ class VisibilityStateType(click.ParamType):
     def convert(
         self,
         value: Any,
-        _param: Optional["click.Parameter"],
-        ctx: Optional["click.Context"],
+        _param: click.Parameter | None,
+        ctx: click.Context | None,
     ) -> Any:
         if value is None:
             return None
@@ -58,7 +60,7 @@ VISIBILITY_STATE = VisibilityStateType()
 
 def _get_test_code_for_config(
     target: Path,
-) -> Tuple[List[Path], Dict[Path, List[Path]]]:
+) -> tuple[list[Path], dict[Path, list[Path]]]:
     config = target
     config_filenames = get_config_filenames(config)
     if len(config_filenames) == 0:
@@ -86,7 +88,7 @@ def _get_test_code_for_config(
 )
 @handle_command_errors
 def publish(
-    target: str, visibility: VisibilityState, registry_id: Optional[str]
+    target: str, visibility: VisibilityState, registry_id: str | None
 ) -> None:
     """
     Upload rule to semgrep.dev
@@ -106,12 +108,12 @@ def publish(
         sys.exit(FATAL_EXIT_CODE)
     if len(config_filenames) != 1 and visibility == VisibilityState.PUBLIC:
         click.echo(
-            f"Only one public rule can be uploaded at a time: specify a single Semgrep rule",
+            "Only one public rule can be uploaded at a time: specify a single Semgrep rule",
             err=True,
         )
         sys.exit(FATAL_EXIT_CODE)
     if visibility == VisibilityState.PUBLIC and registry_id is None:
-        click.echo(f"--visibility=public requires --registry-id", err=True)
+        click.echo("--visibility=public requires --registry-id", err=True)
         sys.exit(FATAL_EXIT_CODE)
 
     click.echo(
@@ -142,8 +144,8 @@ def publish(
 def _upload_rule(
     rule_file: Path,
     visibility: VisibilityState,
-    test_code_file: Optional[Path],
-    registry_id: Optional[str],
+    test_code_file: Path | None,
+    registry_id: str | None,
 ) -> bool:
     """
     Uploads rule in rule_file with the specificied visibility

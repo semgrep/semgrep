@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 from typing import List
@@ -9,13 +11,13 @@ from semgrep.types import JsonObject
 logger = logging.getLogger(__name__)
 
 
-def list_current_public_rulesets() -> List[JsonObject]:
+def list_current_public_rulesets() -> list[JsonObject]:
     state = get_state()
     api_full_url = f"{state.env.semgrep_url}/api/registry/ruleset"
     try:
         r = state.app_session.get(api_full_url)
     except Exception:
-        raise SemgrepError(f"Failed to download list of public rulesets")
+        raise SemgrepError("Failed to download list of public rulesets")
 
     if not r.ok:
         raise SemgrepError(
@@ -25,7 +27,7 @@ def list_current_public_rulesets() -> List[JsonObject]:
     logger.debug(f"Retrieved rulesets: {r.text}")
     try:
         ruleset_json = json.loads(r.text)
-    except json.decoder.JSONDecodeError as e:
-        raise SemgrepError(f"Failed to parse rulesets as valid json")
+    except json.decoder.JSONDecodeError:
+        raise SemgrepError("Failed to parse rulesets as valid json")
 
     return ruleset_json  # type:ignore

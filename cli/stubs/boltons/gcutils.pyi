@@ -1,6 +1,10 @@
-from typing import Any, List, Type
+from __future__ import annotations
 
-def get_all(type_obj: Type[bool], include_subtypes: bool = ...) -> List[Any]: ...
+from typing import Any
+from typing import List
+from typing import Type
+
+def get_all(type_obj: type[bool], include_subtypes: bool = ...) -> list[Any]: ...
 
 class GCToggler:
     def __enter__(self) -> None: ...

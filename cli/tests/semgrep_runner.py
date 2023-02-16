@@ -4,6 +4,8 @@
 #
 # This is replacement for CliRunner provided by Click.
 #
+from __future__ import annotations
+
 import os
 import sys
 from subprocess import PIPE
@@ -29,7 +31,7 @@ def parse_env_bool(var_name: str, var_val: str) -> bool:
         )
 
 
-def get_env_bool(var_name: str) -> Optional[bool]:
+def get_env_bool(var_name: str) -> bool | None:
     """Get the value of an environment holding either 'true' or 'false'."""
     s = os.environ.get(var_name)
     if s is None:
@@ -49,7 +51,7 @@ USE_OSEMGREP = get_env_bool("PYTEST_USE_OSEMGREP")
 # The semgrep command suitable to run semgrep as a separate process.
 # It's something like ["semgrep"] or ["python3"; -m; "semgrep"] or
 # ["/path/to/osemgrep"].
-SEMGREP_BASE_COMMAND: List[str] = (
+SEMGREP_BASE_COMMAND: list[str] = (
     [OSEMGREP_PATH] if USE_OSEMGREP else [sys.executable, "-m", "semgrep"]
 )
 
@@ -95,9 +97,9 @@ class Result:
 # Run osemgrep in an external process
 # (there's no other choice since it's an OCaml binary)
 def invoke_osemgrep(
-    args: Optional[Union[str, Sequence[str]]], env: Optional[Dict[str, str]] = None
+    args: str | Sequence[str] | None, env: dict[str, str] | None = None
 ) -> Result:
-    arg_list: List[str] = []
+    arg_list: list[str] = []
     if isinstance(args, str):
         # This is not exactly how the shell would interpret the arguments
         # but hopefully it's sufficient to run our tests correctly.
@@ -106,7 +108,7 @@ def invoke_osemgrep(
         arg_list = args.split(" ")
     elif isinstance(args, List):
         arg_list = args
-    argv: List[str] = [OSEMGREP_PATH] + arg_list
+    argv: list[str] = [OSEMGREP_PATH, *arg_list]
     env_dict = {}
     if env:
         env_dict = env
@@ -131,7 +133,7 @@ class SemgrepRunner:
         if not self._use_osemgrep:
             self._runner = CliRunner(env=env, mix_stderr=mix_stderr)
 
-    def invoke(self, python_cli, args, input: Optional[str] = None, env=None) -> Result:
+    def invoke(self, python_cli, args, input: str | None = None, env=None) -> Result:
         if not self._use_osemgrep:
             result = self._runner.invoke(python_cli, args, input=input, env=env)
             stderr = result.stderr if not self._mix_stderr else ""

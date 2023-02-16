@@ -1,16 +1,16 @@
-from typing import (
-    Any,
-    Dict,
-    Tuple,
-    Union,
-)
+from __future__ import annotations
+
+from typing import Any
+from typing import Dict
+from typing import Tuple
+from typing import Union
 
 def trace_print_hook(
     event: str,
     label: str,
-    obj: Union[Dict[str, str], bytes],
+    obj: dict[str, str] | bytes,
     attr_name: str,
-    args: Tuple = (),
-    kwargs: Dict[Any, Any] = {},
+    args: tuple = (),
+    kwargs: dict[Any, Any] = {},
     result: Any = ...,
 ) -> None: ...

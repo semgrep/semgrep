@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import subprocess
 import tempfile
 from pathlib import Path
@@ -11,7 +13,7 @@ from semgrep.util import sub_check_output
 
 
 def dump_parsed_ast(
-    to_json: bool, language: str, pattern: Optional[str], target_strings: Sequence[str]
+    to_json: bool, language: str, pattern: str | None, target_strings: Sequence[str]
 ) -> None:
     targets = [Path(target_string) for target_string in target_strings]
 
@@ -28,7 +30,7 @@ def dump_parsed_ast(
             args = ["-lang", language, "-dump_ast", str(target)]
 
         if to_json:
-            args = ["-json"] + args
+            args = ["-json", *args]
 
         # Use the executable even if the module is available.  This
         # one-off usage does not employ the usual progress protocol on
@@ -36,7 +38,7 @@ def dump_parsed_ast(
         # the normal case (namely, it discards it or passes it through
         # depending on --quiet).  StreamingSemgrepCore could be extended
         # with these capabilities in the future if desired.
-        cmd = [SemgrepCore.executable_path()] + args
+        cmd = [SemgrepCore.executable_path(), *args]
         try:
             output = sub_check_output(cmd)
         except subprocess.CalledProcessError as ex:

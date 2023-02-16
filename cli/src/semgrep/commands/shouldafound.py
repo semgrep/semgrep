@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import subprocess
@@ -43,9 +45,9 @@ from semgrep.util import git_check_output
 @handle_command_errors
 def shouldafound(
     message: str,
-    email: Optional[str],
-    start: Optional[int],
-    end: Optional[int],
+    email: str | None,
+    start: int | None,
+    end: int | None,
     yes: bool,
     path: Path,
 ) -> NoReturn:
@@ -105,7 +107,7 @@ def _get_git_email() -> str:
     return git_check_output(["git", "config", "user.email"])
 
 
-def _make_shouldafound_request(data: JsonObject) -> Optional[str]:
+def _make_shouldafound_request(data: JsonObject) -> str | None:
     state = get_state()
     resp = state.app_session.post(
         f"{state.env.shouldafound_base_url}/shouldafound", json=data
@@ -124,7 +126,7 @@ def _make_shouldafound_request(data: JsonObject) -> Optional[str]:
         )
 
 
-def _read_lines(path: Path, start: Optional[int], end: Optional[int]) -> Sequence[str]:
+def _read_lines(path: Path, start: int | None, end: int | None) -> Sequence[str]:
     with path.open("r") as fd:
         lines = fd.readlines()
     if start is not None:

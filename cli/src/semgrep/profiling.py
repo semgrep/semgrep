@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict
@@ -21,21 +23,21 @@ class Times(NamedTuple):
 class ProfilingData:
     def __init__(self) -> None:
         self._rules_parse_time: float = 0.0
-        self._file_parse_time: Dict[Path, float] = defaultdict(float)
-        self._file_run_time: Dict[Path, float] = defaultdict(float)
-        self._match_time_matrix: Dict[Semgrep_run, Times] = defaultdict(Times)
+        self._file_parse_time: dict[Path, float] = defaultdict(float)
+        self._file_run_time: dict[Path, float] = defaultdict(float)
+        self._match_time_matrix: dict[Semgrep_run, Times] = defaultdict(Times)
 
-        self._rule_match_times: Dict[core.RuleId, float] = defaultdict(float)
-        self._rule_bytes_scanned: Dict[core.RuleId, int] = defaultdict(int)
-        self._file_match_times: Dict[Path, float] = defaultdict(float)
-        self._file_num_times_scanned: Dict[Path, int] = defaultdict(int)
+        self._rule_match_times: dict[core.RuleId, float] = defaultdict(float)
+        self._rule_bytes_scanned: dict[core.RuleId, int] = defaultdict(int)
+        self._file_match_times: dict[Path, float] = defaultdict(float)
+        self._file_num_times_scanned: dict[Path, int] = defaultdict(int)
 
-        self._max_memory_bytes: Optional[int] = None
+        self._max_memory_bytes: int | None = None
 
     def get_run_times(self, rule: Rule, target: Path) -> Times:
         return self._match_time_matrix[Semgrep_run(rule=rule.id2, target=target)]
 
-    def get_file_parse_time(self, target: Path) -> Optional[float]:
+    def get_file_parse_time(self, target: Path) -> float | None:
         """
         Return time taken to parse a file. This is the max of all
         times reported to parse the file from semgrep-core since
@@ -45,7 +47,7 @@ class ProfilingData:
         """
         return self._file_parse_time[target]
 
-    def get_rule_match_time(self, rule: Rule) -> Optional[float]:
+    def get_rule_match_time(self, rule: Rule) -> float | None:
         """
         Return total match time for a given rule over all the files scanned
         with said rule
@@ -60,7 +62,7 @@ class ProfilingData:
         """
         return self._rule_bytes_scanned[rule.id2]
 
-    def get_file_match_time(self, target: Path) -> Optional[float]:
+    def get_file_match_time(self, target: Path) -> float | None:
         """
         Return total match time for a given file over all the rules that
         scanned the file
@@ -69,7 +71,7 @@ class ProfilingData:
         """
         return self._file_match_times[target]
 
-    def get_file_run_time(self, target: Path) -> Optional[float]:
+    def get_file_run_time(self, target: Path) -> float | None:
         """
         Return total run time for a given file over all the rules that
         scanned the file
@@ -86,7 +88,7 @@ class ProfilingData:
         """
         return self._file_num_times_scanned[target]
 
-    def get_max_memory_bytes(self) -> Optional[int]:
+    def get_max_memory_bytes(self) -> int | None:
         """
         Returns the amount of bytes of memory used during Semgrep's
         run on the OCaml side.
@@ -94,7 +96,7 @@ class ProfilingData:
         return self._max_memory_bytes
 
     def set_file_times(
-        self, target: Path, times: Dict[core.RuleId, Times], run_time: float
+        self, target: Path, times: dict[core.RuleId, Times], run_time: float
     ) -> None:
         num_bytes = target.stat().st_size
 

@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import uuid
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
 
 import pytest
-
 from semgrep.config_resolver import Config
 from semgrep.metrics import Metrics
 from semgrep.metrics import MetricsState
@@ -18,14 +19,14 @@ def automocks(mocker) -> None:
     mocker.patch("uuid.uuid4", return_value=uuid.UUID("0" * 32))
 
 
-@pytest.fixture
+@pytest.fixture()
 def metrics(mocker) -> Metrics:
     return Metrics()
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.parametrize(
-    "first, second, is_equal",
+    ("first", "second", "is_equal"),
     [
         (["p/r2c"], ["p/r2c"], True),
         (["p/r2c"], ["p/ci"], False),
@@ -46,9 +47,9 @@ def test_configs_hash(first, second, is_equal) -> None:
         assert first_metrics != second_metrics
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.parametrize(
-    "first, second, is_equal",
+    ("first", "second", "is_equal"),
     [
         ([0], [0], True),
         ([0], [1], False),
@@ -106,7 +107,7 @@ class NetworkBlockedInTests(Exception):
     pass
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_send(metrics, mocker) -> None:
     """
     Check that no network does not cause failures
@@ -122,7 +123,7 @@ def test_send(metrics, mocker) -> None:
     metrics.send()
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_project_hash(metrics):
     metrics.add_project_url("https://foo.bar.com/org/project.git")
     no_username_password = metrics.payload

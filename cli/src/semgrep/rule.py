@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import hashlib
 import json
 from typing import Any
 from typing import AnyStr
-from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Union
+from typing import cast
 
 import semgrep.output_from_core as core
 from semgrep.constants import RuleSeverity
@@ -21,16 +23,16 @@ from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
-from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
+from semgrep.semgrep_types import Language
 
 
 class Rule:
     def __init__(
-        self, raw: Dict[str, Any], yaml: Optional[YamlTree[YamlMap]] = None
+        self, raw: dict[str, Any], yaml: YamlTree[YamlMap] | None = None
     ) -> None:
-        self._raw: Dict[str, Any] = raw
-        self._yaml: Optional[YamlTree[YamlMap]] = yaml
+        self._raw: dict[str, Any] = raw
+        self._yaml: YamlTree[YamlMap] | None = yaml
         self._id = str(self._raw["id"])
 
         path_dict = self._raw.get("paths", {})
@@ -40,7 +42,7 @@ class Rule:
         lang_span = (
             yaml.value["languages"].span if yaml and "languages" in yaml.value else None
         )
-        rule_languages: Set[Language] = {
+        rule_languages: set[Language] = {
             LANGUAGE.resolve(l, lang_span) for l in self._raw.get("languages", [])
         }
 
@@ -70,7 +72,7 @@ class Rule:
         """
 
         def _recursive_contains(
-            obj: Union[Dict[str, Any], List[Any], str], search_key: str
+            obj: dict[str, Any] | list[Any] | str, search_key: str
         ) -> bool:
             """
             Returns true if object contains any object that contains search_key as key
@@ -92,10 +94,10 @@ class Rule:
 
         if _recursive_contains(self._raw, "pattern"):
             raise InvalidRuleSchemaError(
-                short_msg=f"invalid pattern clause",
+                short_msg="invalid pattern clause",
                 long_msg=f"invalid pattern clause 'pattern' with regex-only rules in rule: {self.id}",
                 spans=[],
-                help=f"use only patterns, pattern-either, pattern-regex, or pattern-not-regex with regex-only rules",
+                help="use only patterns, pattern-either, pattern-regex, or pattern-not-regex with regex-only rules",
             )
 
     def __eq__(self, other: object) -> bool:
@@ -128,7 +130,7 @@ class Rule:
         return str(self._raw.get("message"))
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         return self._raw.get("metadata", {})
 
     @property
@@ -149,11 +151,11 @@ class Rule:
         return self._mode
 
     @property
-    def project_depends_on(self) -> List[Dict[str, str]]:
+    def project_depends_on(self) -> list[dict[str, str]]:
         if "r2c-internal-project-depends-on" in self._raw:
             depends_on = self._raw["r2c-internal-project-depends-on"]
             if "depends-on-either" in depends_on:
-                dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
+                dependencies: list[dict[str, str]] = depends_on["depends-on-either"]
                 return dependencies
             else:
                 return [depends_on]
@@ -161,11 +163,11 @@ class Rule:
             return []
 
     @property
-    def ecosystems(self) -> Set[Ecosystem]:
+    def ecosystems(self) -> set[Ecosystem]:
         if "r2c-internal-project-depends-on" in self._raw:
             depends_on = self._raw["r2c-internal-project-depends-on"]
             if "depends-on-either" in depends_on:
-                dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
+                dependencies: list[dict[str, str]] = depends_on["depends-on-either"]
                 return {
                     Ecosystem.from_json(d["namespace"].lower()) for d in dependencies
                 }
@@ -174,7 +176,7 @@ class Rule:
         return set()
 
     @property
-    def languages(self) -> List[Language]:
+    def languages(self) -> list[Language]:
         return self._languages
 
     @property
@@ -184,25 +186,25 @@ class Rule:
         return EmptySpan
 
     @property
-    def raw(self) -> Dict[str, Any]:
+    def raw(self) -> dict[str, Any]:
         return self._raw
 
     @property
-    def fix(self) -> Optional[str]:
+    def fix(self) -> str | None:
         return self._raw.get("fix")
 
     # TODO: use v1.FixRegex and do the validation currently done
     # in core_output.convert_to_rule_match() here
     @property
-    def fix_regex(self) -> Optional[Dict[str, Any]]:
+    def fix_regex(self) -> dict[str, Any] | None:
         return self._raw.get("fix-regex")
 
     @classmethod
-    def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":
+    def from_json(cls, rule_json: dict[str, Any]) -> Rule:
         return cls(rule_json, None)
 
     @classmethod
-    def from_yamltree(cls, rule_yaml: YamlTree[YamlMap]) -> "Rule":
+    def from_yamltree(cls, rule_yaml: YamlTree[YamlMap]) -> Rule:
         return cls(rule_yaml.unroll_dict(), rule_yaml)
 
     def __repr__(self) -> str:
@@ -246,7 +248,7 @@ class Rule:
         # and where that is not applicable, we do a DFS of two equal keys and
         # sort them by their resulting strings. I.e. sort by pattern key first
         # then any conflicts are resoled by the whole content of the pattern
-        def get_subrules(raw: Union[AnyStr, Dict, List]) -> str:
+        def get_subrules(raw: AnyStr | dict | list) -> str:
             patterns_to_add = []
             if isinstance(raw, str):
                 patterns_to_add.append(raw)

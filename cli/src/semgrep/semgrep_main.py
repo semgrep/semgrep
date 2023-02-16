@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import time
 from io import StringIO
@@ -23,13 +25,13 @@ from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
-from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
+from semgrep.error import FilesNotFoundError
 from semgrep.error import SemgrepError
 from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.git import BaselineHandler
-from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
+from semgrep.ignores import FileIgnore
 from semgrep.ignores import Parser
 from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
@@ -47,7 +49,6 @@ from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
-
 
 logger = getLogger(__name__)
 
@@ -89,10 +90,10 @@ def get_file_ignore() -> FileIgnore:
 
 def invoke_semgrep(
     config: Path,
-    targets: List[Path],
-    output_settings: Optional[OutputSettings] = None,
+    targets: list[Path],
+    output_settings: OutputSettings | None = None,
     **kwargs: Any,
-) -> Union[Dict[str, Any], str]:
+) -> dict[str, Any] | str:
     """
     Return Semgrep results of 'config' on 'targets' as a dict|str
     Uses default arguments of 'semgrep_main.main' unless overwritten with 'kwargs'
@@ -135,13 +136,13 @@ def invoke_semgrep(
 
 
 def run_rules(
-    filtered_rules: List[Rule],
+    filtered_rules: list[Rule],
     target_manager: TargetManager,
     core_runner: CoreRunner,
     output_handler: OutputHandler,
     dump_command_for_core: bool,
     engine: EngineType,
-) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra]:
+) -> tuple[RuleMatchMap, list[SemgrepError], OutputExtra]:
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
@@ -171,10 +172,8 @@ def run_rules(
             output_handler.handle_semgrep_errors(join_rule_errors)
 
     if len(dependency_aware_rules) > 0:
-        from semgrep.dependency_aware_rule import (
-            generate_unreachable_sca_findings,
-            generate_reachable_sca_findings,
-        )
+        from semgrep.dependency_aware_rule import generate_reachable_sca_findings
+        from semgrep.dependency_aware_rule import generate_unreachable_sca_findings
 
         for rule in dependency_aware_rules:
             if rule.should_run_on_semgrep_core:
@@ -226,7 +225,7 @@ def run_rules(
 def remove_matches_in_baseline(
     head_matches_by_rule: RuleMatchMap,
     baseline_matches_by_rule: RuleMatchMap,
-    file_renames: Dict[str, Path],
+    file_renames: dict[str, Path],
 ) -> RuleMatchMap:
     """
     Remove the matches in head_matches_by_rule that also occur in baseline_matches_by_rule
@@ -257,22 +256,22 @@ def remove_matches_in_baseline(
 
 def main(
     *,
-    core_opts_str: Optional[str] = None,
+    core_opts_str: str | None = None,
     dump_command_for_core: bool = False,
     engine: EngineType = EngineType.OSS,
     output_handler: OutputHandler,
     target: Sequence[str],
-    pattern: Optional[str],
-    lang: Optional[str],
+    pattern: str | None,
+    lang: str | None,
     configs: Sequence[str],
     no_rewrite_rule_ids: bool = False,
-    jobs: Optional[int] = None,
-    include: Optional[Sequence[str]] = None,
-    exclude: Optional[Sequence[str]] = None,
-    exclude_rule: Optional[Sequence[str]] = None,
+    jobs: int | None = None,
+    include: Sequence[str] | None = None,
+    exclude: Sequence[str] | None = None,
+    exclude_rule: Sequence[str] | None = None,
     strict: bool = False,
     autofix: bool = False,
-    replacement: Optional[str] = None,
+    replacement: str | None = None,
     dryrun: bool = False,
     disable_nosem: bool = False,
     no_git_ignore: bool = False,
@@ -282,20 +281,20 @@ def main(
     max_target_bytes: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
-    severity: Optional[Sequence[str]] = None,
+    severity: Sequence[str] | None = None,
     optimizations: str = "none",
-    baseline_commit: Optional[str] = None,
+    baseline_commit: str | None = None,
     baseline_commit_is_mergebase: bool = False,
-) -> Tuple[
+) -> tuple[
     RuleMatchMap,
-    List[SemgrepError],
-    Set[Path],
+    list[SemgrepError],
+    set[Path],
     FileTargetingLog,
-    List[Rule],
+    list[Rule],
     ProfileManager,
     OutputExtra,
     Collection[RuleSeverity],
-    Dict[str, int],
+    dict[str, int],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
     if include is None:
@@ -438,7 +437,7 @@ def main(
     if baseline_handler:
         logger.info(f"  Current version has {unit_str(findings_count, 'finding')}.")
         logger.info("")
-        baseline_targets: Set[Path] = set(paths_with_matches).union(
+        baseline_targets: set[Path] = set(paths_with_matches).union(
             set(baseline_handler.status.renamed.values())
         ) - set(baseline_handler.status.added)
         if not paths_with_matches:

@@ -1,9 +1,10 @@
-import pytest
+from __future__ import annotations
 
+import pytest
 from semgrep.app import version
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_version_check_caching(tmp_path, mocker, monkeypatch):
     tmp_cache_path = tmp_path / "semgrep_version"
 

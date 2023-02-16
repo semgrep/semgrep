@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 import json
 import shutil
 from pathlib import Path
 
 import pytest
-
 from semgrep.constants import OutputFormat
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_duplicate_matches_indexing(run_semgrep_in_tmp, snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/match_based_id/duplicates.yaml",
@@ -18,9 +19,9 @@ def test_duplicate_matches_indexing(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(results, "results.json")
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 @pytest.mark.parametrize(
-    "rule,target_name,expect_change",
+    ("rule", "target_name", "expect_change"),
     [
         # ("rules/match_based_id/","",True)
         ("rules/match_based_id/formatting.yaml", "formatting.c", False),

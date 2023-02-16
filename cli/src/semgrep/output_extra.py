@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -16,8 +18,8 @@ from semgrep.profiling import ProfilingData
 # in the future.
 @frozen
 class OutputExtra:
-    all_targets: Set[Path]
+    all_targets: set[Path]
     profiling_data: ProfilingData
     parsing_data: ParsingData
-    explanations: Optional[List[core.MatchingExplanation]]
-    rules_by_engine: List[core.RuleIdAndEngineKind]
+    explanations: list[core.MatchingExplanation] | None
+    rules_by_engine: list[core.RuleIdAndEngineKind]

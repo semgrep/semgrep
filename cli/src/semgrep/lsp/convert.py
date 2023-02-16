@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import urllib
 from typing import Any
@@ -14,7 +16,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import MetavarValue
 from semgrep.target_manager import TargetManager
 from semgrep.types import JsonObject
 from semgrep.util import flatten
-
 
 SeverityMapping = {
     RuleSeverity.ERROR: DiagnosticSeverity.Error,
@@ -61,7 +62,7 @@ def diagnostic_to_code_action(
 
 
 # Right now this is just the location + abstract content of metavars
-def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
+def rule_match_get_related(rule_match: RuleMatch) -> list[JsonObject]:
     """Get related info (metavars + locations) for a rule match"""
 
     # According to https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#diagnosticRelatedInformation
@@ -84,10 +85,10 @@ def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
         return related
 
     if rule_match.extra.get("metavars") is not None:
-        return list(
+        return [
             get_metavar_related(m, MetavarValue.from_json(d))
             for m, d in rule_match.extra["metavars"].items()
-        )
+        ]
     return []
 
 
@@ -144,7 +145,7 @@ def rule_match_to_diagnostic(rule_match: RuleMatch) -> Diagnostic:
     return diagnostic
 
 
-def rule_match_map_to_diagnostics(rule_map: RuleMatchMap) -> List[Diagnostic]:
+def rule_match_map_to_diagnostics(rule_map: RuleMatchMap) -> list[Diagnostic]:
     return flatten(
         [
             list(map(rule_match_to_diagnostic, rule_match_list))
@@ -153,7 +154,7 @@ def rule_match_map_to_diagnostics(rule_map: RuleMatchMap) -> List[Diagnostic]:
     )
 
 
-def rule_to_files(rule: Rule, target_manager: TargetManager) -> List[str]:
+def rule_to_files(rule: Rule, target_manager: TargetManager) -> list[str]:
     """Get assocaitated files for a rule match"""
     target_files = []
     for lang in rule.languages:

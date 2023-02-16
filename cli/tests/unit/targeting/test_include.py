@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
-
 from semgrep.target_manager import TargetManager
 
 CANDIDATE_NAMES = [
@@ -28,9 +29,9 @@ CANDIDATE_NAMES = [
 CANDIDATES = frozenset(Path(name) for name in CANDIDATE_NAMES)
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.parametrize(
-    "patterns, expected_kept",
+    ("patterns", "expected_kept"),
     [
         pytest.param(
             ["*.py"],
@@ -145,7 +146,7 @@ EQUIVALENT_PATTERNS = [
 ]
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.parametrize("pattern_variant", EQUIVALENT_PATTERNS)
 def test_filter_include__equivalent_variants(pattern_variant):
     """Test some different variations of the pattern yield the same result."""

@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import re
 
 import pytest
-
 from semgrep.constants import OutputFormat
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_fixtest_test1_no_json(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/fixtest/test1.yaml",
@@ -20,7 +21,7 @@ def test_fixtest_test1_no_json(run_semgrep_in_tmp, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_fixtest_test1_json(run_semgrep_in_tmp, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/fixtest/test1.yaml",
@@ -31,7 +32,7 @@ def test_fixtest_test1_json(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(stdout, "test-results.json")
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_fixtest_test2_no_json(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/fixtest/test2.yaml",
@@ -46,7 +47,7 @@ def test_fixtest_test2_no_json(run_semgrep_in_tmp, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_fixtest_test2_json(run_semgrep_in_tmp, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/fixtest/test2.yaml",
@@ -57,7 +58,7 @@ def test_fixtest_test2_json(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(stdout, "test-results.json")
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_fixtest_test3_no_json(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/fixtest/test3.yaml",
@@ -73,7 +74,7 @@ def test_fixtest_test3_no_json(run_semgrep_in_tmp, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_fixtest_test3_json(run_semgrep_in_tmp, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/fixtest/test3.yaml",
@@ -85,7 +86,7 @@ def test_fixtest_test3_json(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(stdout, "test-results.json")
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_fixtest_test4_no_json(run_semgrep_in_tmp, snapshot):
     results = run_semgrep_in_tmp(
         "rules/fixtest/test4.yaml",
@@ -102,7 +103,7 @@ def test_fixtest_test4_no_json(run_semgrep_in_tmp, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_fixtest_test4_json(run_semgrep_in_tmp, snapshot):
     results = run_semgrep_in_tmp(
         "rules/fixtest/test4.yaml",
@@ -119,7 +120,7 @@ def test_fixtest_test4_json(run_semgrep_in_tmp, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_fixtest_test5_no_json(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/fixtest/test5.yaml",
@@ -134,7 +135,7 @@ def test_fixtest_test5_no_json(run_semgrep_in_tmp, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_fixtest_test5_json(run_semgrep_in_tmp, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/fixtest/test5.yaml",

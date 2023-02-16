@@ -49,35 +49,16 @@ repos:
   # ----------------------------------------------------------
   # Extra hooks with repositories defining their own hooks
   # ----------------------------------------------------------
-  - repo: https://github.com/myint/autoflake
-    rev: v1.4
-    hooks:
-      - id: autoflake
-        args:
-          - --in-place
-          - --remove-unused-variables
-          - --remove-duplicate-keys
-          - --remove-all-unused-imports
-          - --ignore-init-module-imports
-          - --exclude=/cli/src/semgrep/output_from_core.py
-
   - repo: https://github.com/psf/black
     rev: 22.6.0
     hooks:
       - id: black
-        args: [--exclude=/cli/src/semgrep/output_from_core.py]
 
-  - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.1.0
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: "v0.0.247"
     hooks:
-      - id: reorder-python-imports
-        args: ["--application-directories=cli/src", --py37-plus]
-
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v2.34.0
-    hooks:
-      - id: pyupgrade
-        args: ["--py37-plus"]
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix, --config=cli/ruff.toml]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.961

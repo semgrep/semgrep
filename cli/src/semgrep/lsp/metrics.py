@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 from typing import List
 from typing import MutableMapping
@@ -34,7 +36,7 @@ class LSPMetrics:
     rule_seen_closed_map: MutableMapping[str, int] = {}
 
     @property
-    def rules(self) -> List[str]:
+    def rules(self) -> list[str]:
         """Return a list of all rules that have been seen."""
         return list(self.rule_seen_max_map.keys())
 
@@ -50,7 +52,7 @@ class LSPMetrics:
         )
 
     def send(
-        self, state: MetricsState, project_url: Optional[str], token: Optional[str]
+        self, state: MetricsState, project_url: str | None, token: str | None
     ) -> None:
         """Send the metrics to the backend."""
         metrics = Metrics()

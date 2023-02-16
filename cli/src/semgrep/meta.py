@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import subprocess
@@ -11,8 +13,8 @@ from typing import Optional
 
 import requests
 from boltons.cacheutils import cachedproperty
-from glom import glom
 from glom import T
+from glom import glom
 from glom.core import TType
 
 from semgrep import __VERSION__
@@ -24,7 +26,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
+def get_url_from_sstp_url(sstp_url: str | None) -> str | None:
     """Gets regular url from sstp url.
     We use repo urls on semgrep-app to link to files, so we need to make sure they are
     in the right format to be appended to. We do this by parsing the url with a git url
@@ -52,7 +54,7 @@ def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
     return f"{protocol}://{result.resource}/{result.owner}/{result.name}"
 
 
-def get_repo_name_from_repo_url(repo_url: Optional[str]) -> Optional[str]:
+def get_repo_name_from_repo_url(repo_url: str | None) -> str | None:
     """Pulls repository name from the url using a git url parser"""
     if repo_url is None:
         return None
@@ -66,7 +68,7 @@ def get_repo_name_from_repo_url(repo_url: Optional[str]) -> Optional[str]:
 class GitMeta:
     """Gather metadata only from local filesystem."""
 
-    cli_baseline_ref: Optional[str] = None
+    cli_baseline_ref: str | None = None
     environment: str = field(default="git", init=False)
 
     @property
@@ -98,7 +100,7 @@ class GitMeta:
         return str(os.path.basename(repo_root_str))
 
     @property
-    def repo_url(self) -> Optional[str]:
+    def repo_url(self) -> str | None:
         env = get_state().env
         repo_url = os.getenv("SEMGREP_REPO_URL")
         if not repo_url:
@@ -112,14 +114,14 @@ class GitMeta:
             )
             if git_parse.returncode != 0:
                 logger.warn(
-                    f"Unable to infer repo_url. Set SEMGREP_REPO_URL environment variable or run in a valid git project with remote origin defined"
+                    "Unable to infer repo_url. Set SEMGREP_REPO_URL environment variable or run in a valid git project with remote origin defined"
                 )
             repo_url = git_parse.stdout.strip()
 
         return get_url_from_sstp_url(repo_url)
 
     @property
-    def commit_sha(self) -> Optional[str]:
+    def commit_sha(self) -> str | None:
         """
         Read commit hash of head from env var or run `git rev-parse HEAD`
         """
@@ -130,23 +132,23 @@ class GitMeta:
         return git_check_output(["git", "rev-parse", "HEAD"])
 
     @cachedproperty
-    def merge_base_ref(self) -> Optional[str]:
+    def merge_base_ref(self) -> str | None:
         return self.cli_baseline_ref
 
     @property
-    def ci_job_url(self) -> Optional[str]:
+    def ci_job_url(self) -> str | None:
         return os.getenv("SEMGREP_JOB_URL")
 
     @property
-    def pr_id(self) -> Optional[str]:
+    def pr_id(self) -> str | None:
         return os.getenv("SEMGREP_PR_ID")
 
     @property
-    def pr_title(self) -> Optional[str]:
+    def pr_title(self) -> str | None:
         return os.getenv("SEMGREP_PR_TITLE")
 
     @property
-    def branch(self) -> Optional[str]:
+    def branch(self) -> str | None:
         branch = os.getenv("SEMGREP_BRANCH")
         if branch:
             return branch
@@ -164,7 +166,7 @@ class GitMeta:
         """
         return git_check_output(["git", "show", "-s", "--format=%ct"])
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         commit_title = git_check_output(["git", "show", "-s", "--format=%B"])
         commit_author_email = git_check_output(["git", "show", "-s", "--format=%ae"])
         commit_author_name = git_check_output(["git", "show", "-s", "--format=%an"])
@@ -205,14 +207,14 @@ class GithubMeta(GitMeta):
         return glom(self.event, spec, default=None)
 
     @property
-    def event(self) -> Dict[str, Any]:
+    def event(self) -> dict[str, Any]:
         value = os.getenv("GITHUB_EVENT_PATH")
         if value:
             return json.loads(Path(value).read_text())  # type: ignore
         return {}
 
     @property
-    def gh_token(self) -> Optional[str]:
+    def gh_token(self) -> str | None:
         return os.getenv("GH_TOKEN")
 
     @property
@@ -229,7 +231,7 @@ class GithubMeta(GitMeta):
             raise Exception("Could not get repo_name when running in GithubAction")
 
     @property
-    def repo_url(self) -> Optional[str]:
+    def repo_url(self) -> str | None:
         server_url = os.getenv("GITHUB_SERVER_URL", "https://github.com")
 
         if self.repo_name:
@@ -237,11 +239,11 @@ class GithubMeta(GitMeta):
         return None
 
     @property
-    def api_url(self) -> Optional[str]:
+    def api_url(self) -> str | None:
         return os.getenv("GITHUB_API_URL")
 
     @property
-    def commit_sha(self) -> Optional[str]:
+    def commit_sha(self) -> str | None:
         if self.is_pull_request_event:
             # https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
             return self.glom_event(T["pull_request"]["head"]["sha"])  # type: ignore
@@ -490,7 +492,7 @@ class GithubMeta(GitMeta):
             return merge_base
 
     @cachedproperty
-    def merge_base_ref(self) -> Optional[str]:
+    def merge_base_ref(self) -> str | None:
         if self.cli_baseline_ref:
             return self.cli_baseline_ref
         if self.is_pull_request_event and self.head_branch_hash is not None:
@@ -498,7 +500,7 @@ class GithubMeta(GitMeta):
         return None
 
     @property
-    def ci_job_url(self) -> Optional[str]:
+    def ci_job_url(self) -> str | None:
         value = os.getenv("GITHUB_RUN_ID")
         if self.repo_url and value:
             return f"{self.repo_url}/actions/runs/{value}"
@@ -509,17 +511,17 @@ class GithubMeta(GitMeta):
         return os.getenv("GITHUB_EVENT_NAME", "unknown")
 
     @property
-    def pr_id(self) -> Optional[str]:
+    def pr_id(self) -> str | None:
         pr_id = self.glom_event(T["pull_request"]["number"])
         return str(pr_id) if pr_id else None
 
     @property
-    def pr_title(self) -> Optional[str]:
+    def pr_title(self) -> str | None:
         pr_title = self.glom_event(T["pull_request"]["title"])
         return str(pr_title) if pr_title else None
 
     @property
-    def branch(self) -> Optional[str]:
+    def branch(self) -> str | None:
         """This branch name gets used for tracking issue state over time on the backend.
 
         The head ref is in GITHUB_HEAD_REF and the base ref is in GITHUB_REF.
@@ -543,7 +545,7 @@ class GithubMeta(GitMeta):
             return os.getenv("GITHUB_HEAD_REF")
         return os.getenv("GITHUB_REF")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             **super().to_dict(),
             "commit_author_username": self.glom_event(T["sender"]["login"]),
@@ -592,19 +594,19 @@ class GitlabMeta(GitMeta):
         return os.getenv("CI_PROJECT_PATH", "[unknown]")
 
     @property
-    def repo_url(self) -> Optional[str]:
+    def repo_url(self) -> str | None:
         return os.getenv("CI_PROJECT_URL")
 
     @property
-    def commit_sha(self) -> Optional[str]:
+    def commit_sha(self) -> str | None:
         return os.getenv("CI_COMMIT_SHA")
 
     @property
-    def commit_ref(self) -> Optional[str]:
+    def commit_ref(self) -> str | None:
         return os.getenv("CI_COMMIT_REF_NAME")
 
     @cachedproperty
-    def merge_base_ref(self) -> Optional[str]:
+    def merge_base_ref(self) -> str | None:
         if self.cli_baseline_ref:
             return self.cli_baseline_ref
         target_branch = os.getenv("CI_MERGE_REQUEST_TARGET_BRANCH_NAME")
@@ -615,7 +617,7 @@ class GitlabMeta(GitMeta):
         return self._fetch_branch_get_merge_base(target_branch, head_sha)
 
     @property
-    def ci_job_url(self) -> Optional[str]:
+    def ci_job_url(self) -> str | None:
         return os.getenv("CI_JOB_URL")
 
     @property
@@ -626,18 +628,18 @@ class GitlabMeta(GitMeta):
         return gitlab_event_name
 
     @property
-    def pr_id(self) -> Optional[str]:
+    def pr_id(self) -> str | None:
         return os.getenv("CI_MERGE_REQUEST_IID")
 
     @property
-    def start_sha(self) -> Optional[str]:
+    def start_sha(self) -> str | None:
         return os.getenv("CI_MERGE_REQUEST_DIFF_BASE_SHA")
 
     @property
-    def pr_title(self) -> Optional[str]:
+    def pr_title(self) -> str | None:
         return os.getenv("CI_MERGE_REQUEST_TITLE")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             **super().to_dict(),
             "branch": self.commit_ref,
@@ -667,7 +669,7 @@ class CircleCIMeta(GitMeta):
         return f"{project_name}/{repo_name}"
 
     @property
-    def repo_url(self) -> Optional[str]:
+    def repo_url(self) -> str | None:
         repo_url = os.getenv("SEMGREP_REPO_URL")
         if repo_url:
             return repo_url
@@ -677,7 +679,7 @@ class CircleCIMeta(GitMeta):
         return url if url else super().repo_url
 
     @property
-    def branch(self) -> Optional[str]:
+    def branch(self) -> str | None:
         branch = os.getenv("SEMGREP_BRANCH")
         if branch:
             return branch
@@ -685,7 +687,7 @@ class CircleCIMeta(GitMeta):
         return os.getenv("CIRCLE_BRANCH")
 
     @property
-    def ci_job_url(self) -> Optional[str]:
+    def ci_job_url(self) -> str | None:
         job_url = os.getenv("SEMGREP_JOB_URL")
         if job_url:
             return job_url
@@ -693,7 +695,7 @@ class CircleCIMeta(GitMeta):
         return os.getenv("CIRCLE_BUILD_URL")
 
     @property
-    def commit_sha(self) -> Optional[str]:
+    def commit_sha(self) -> str | None:
         commit = os.getenv("SEMGREP_COMMIT")
         if commit:
             return commit
@@ -701,7 +703,7 @@ class CircleCIMeta(GitMeta):
         return os.getenv("CIRCLE_SHA1")
 
     @property
-    def pr_id(self) -> Optional[str]:
+    def pr_id(self) -> str | None:
         pr_id = os.getenv("SEMGREP_PR_ID")
         if pr_id:
             return pr_id
@@ -729,7 +731,7 @@ class JenkinsMeta(GitMeta):
         return name if name else super().repo_name
 
     @property
-    def repo_url(self) -> Optional[str]:
+    def repo_url(self) -> str | None:
         repo_url = os.getenv("SEMGREP_REPO_URL")
         if repo_url:
             return repo_url
@@ -738,7 +740,7 @@ class JenkinsMeta(GitMeta):
         return url if url else super().repo_url
 
     @property
-    def branch(self) -> Optional[str]:
+    def branch(self) -> str | None:
         branch = os.getenv("SEMGREP_BRANCH")
         if branch:
             return branch
@@ -749,7 +751,7 @@ class JenkinsMeta(GitMeta):
         return None
 
     @property
-    def ci_job_url(self) -> Optional[str]:
+    def ci_job_url(self) -> str | None:
         job_url = os.getenv("SEMGREP_JOB_URL")
         if job_url:
             return job_url
@@ -757,7 +759,7 @@ class JenkinsMeta(GitMeta):
         return os.getenv("BUILD_URL")
 
     @property
-    def commit_sha(self) -> Optional[str]:
+    def commit_sha(self) -> str | None:
         commit = os.getenv("SEMGREP_COMMIT")
         if commit:
             return commit
@@ -784,7 +786,7 @@ class BitbucketMeta(GitMeta):
         return name if name else super().repo_name
 
     @property
-    def repo_url(self) -> Optional[str]:
+    def repo_url(self) -> str | None:
         repo_url = os.getenv("SEMGREP_REPO_URL")
         if repo_url:
             return repo_url
@@ -795,7 +797,7 @@ class BitbucketMeta(GitMeta):
         return url if url else super().repo_url
 
     @property
-    def branch(self) -> Optional[str]:
+    def branch(self) -> str | None:
         branch = os.getenv("SEMGREP_BRANCH")
         if branch:
             return branch
@@ -803,7 +805,7 @@ class BitbucketMeta(GitMeta):
         return os.getenv("BITBUCKET_BRANCH")
 
     @property
-    def ci_job_url(self) -> Optional[str]:
+    def ci_job_url(self) -> str | None:
         job_url = os.getenv("SEMGREP_JOB_URL")
         if job_url:
             return job_url
@@ -814,14 +816,14 @@ class BitbucketMeta(GitMeta):
         return url
 
     @property
-    def commit_sha(self) -> Optional[str]:
+    def commit_sha(self) -> str | None:
         commit = os.getenv("SEMGREP_COMMIT")
         if commit:
             return commit
         return os.getenv("BITBUCKET_COMMIT")
 
     @property
-    def pr_id(self) -> Optional[str]:
+    def pr_id(self) -> str | None:
         pr_id = os.getenv("SEMGREP_PR_ID")
         if pr_id:
             return pr_id
@@ -847,7 +849,7 @@ class AzurePipelinesMeta(GitMeta):
         return name if name else super().repo_name
 
     @property
-    def repo_url(self) -> Optional[str]:
+    def repo_url(self) -> str | None:
         repo_url = os.getenv("SEMGREP_REPO_URL")
         if repo_url:
             return repo_url
@@ -858,7 +860,7 @@ class AzurePipelinesMeta(GitMeta):
         return url if url else super().repo_url
 
     @property
-    def branch(self) -> Optional[str]:
+    def branch(self) -> str | None:
         branch = os.getenv("SEMGREP_BRANCH")
         if branch:
             return branch
@@ -874,7 +876,7 @@ class AzurePipelinesMeta(GitMeta):
         return None
 
     @property
-    def ci_job_url(self) -> Optional[str]:
+    def ci_job_url(self) -> str | None:
         job_url = os.getenv("SEMGREP_JOB_URL")
         if job_url:
             return job_url
@@ -895,7 +897,7 @@ class AzurePipelinesMeta(GitMeta):
         return None
 
     @property
-    def commit_sha(self) -> Optional[str]:
+    def commit_sha(self) -> str | None:
         commit = os.getenv("SEMGREP_COMMIT")
         if commit:
             return commit
@@ -905,7 +907,7 @@ class AzurePipelinesMeta(GitMeta):
         )
 
     @property
-    def pr_id(self) -> Optional[str]:
+    def pr_id(self) -> str | None:
         pr_id = os.getenv("SEMGREP_PR_ID")
         if pr_id:
             return pr_id
@@ -929,7 +931,7 @@ class BuildkiteMeta(GitMeta):
         return name if name else super().repo_name
 
     @property
-    def repo_url(self) -> Optional[str]:
+    def repo_url(self) -> str | None:
         repo_url = os.getenv("SEMGREP_REPO_URL")
         if repo_url:
             return repo_url
@@ -938,7 +940,7 @@ class BuildkiteMeta(GitMeta):
         return url if url else super().repo_url
 
     @property
-    def branch(self) -> Optional[str]:
+    def branch(self) -> str | None:
         branch = os.getenv("SEMGREP_BRANCH")
         if branch:
             return branch
@@ -946,7 +948,7 @@ class BuildkiteMeta(GitMeta):
         return os.getenv("BUILDKITE_BRANCH")
 
     @property
-    def ci_job_url(self) -> Optional[str]:
+    def ci_job_url(self) -> str | None:
         job_url = os.getenv("SEMGREP_JOB_URL")
         if job_url:
             return job_url
@@ -956,7 +958,7 @@ class BuildkiteMeta(GitMeta):
         )
 
     @property
-    def commit_sha(self) -> Optional[str]:
+    def commit_sha(self) -> str | None:
         commit = os.getenv("SEMGREP_COMMIT")
         if commit:
             return commit
@@ -964,7 +966,7 @@ class BuildkiteMeta(GitMeta):
         return os.getenv("BUILDKITE_COMMIT")
 
     @property
-    def pr_id(self) -> Optional[str]:
+    def pr_id(self) -> str | None:
         pr_id = os.getenv("SEMGREP_PR_ID")
         if pr_id:
             return pr_id
@@ -973,7 +975,7 @@ class BuildkiteMeta(GitMeta):
         pr_id = os.getenv("BUILDKITE_PULL_REQUEST")
         return None if pr_id == "false" else pr_id
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             **super().to_dict(),
             "commit_author_email": os.getenv("BUILDKITE_BUILD_AUTHOR_EMAIL"),
@@ -998,7 +1000,7 @@ class TravisMeta(GitMeta):
         return repo_name if repo_name else super().repo_name
 
     @property
-    def repo_url(self) -> Optional[str]:
+    def repo_url(self) -> str | None:
         repo_url = os.getenv("SEMGREP_REPO_URL")
         if repo_url:
             return repo_url
@@ -1006,7 +1008,7 @@ class TravisMeta(GitMeta):
         return f"https://github.com/{self.repo_name}"
 
     @property
-    def branch(self) -> Optional[str]:
+    def branch(self) -> str | None:
         branch = os.getenv("SEMGREP_BRANCH")
         if branch:
             return branch
@@ -1014,7 +1016,7 @@ class TravisMeta(GitMeta):
         return os.getenv("TRAVIS_PULL_REQUEST_BRANCH") or os.getenv("TRAVIS_BRANCH")
 
     @property
-    def ci_job_url(self) -> Optional[str]:
+    def ci_job_url(self) -> str | None:
         job_url = os.getenv("SEMGREP_JOB_URL")
         if job_url:
             return job_url
@@ -1022,7 +1024,7 @@ class TravisMeta(GitMeta):
         return os.getenv("TRAVIS_JOB_WEB_URL")
 
     @property
-    def commit_sha(self) -> Optional[str]:
+    def commit_sha(self) -> str | None:
         commit = os.getenv("SEMGREP_COMMIT")
         if commit:
             return commit
@@ -1030,18 +1032,18 @@ class TravisMeta(GitMeta):
         return os.getenv("TRAVIS_COMMIT")
 
     @property
-    def pr_id(self) -> Optional[str]:
+    def pr_id(self) -> str | None:
         pr_id = os.getenv("SEMGREP_PR_ID")
         if pr_id:
             return pr_id
 
         return os.getenv("TRAVIS_PULL_REQUEST")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {**super().to_dict(), "commit_title": os.getenv("TRAVIS_COMMIT_MESSAGE")}
 
 
-def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
+def generate_meta_from_environment(baseline_ref: str | None) -> GitMeta:
     # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
     if os.getenv("GITHUB_ACTIONS") == "true":
         return GithubMeta(baseline_ref)

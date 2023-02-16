@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 from enum import Enum
 
 from semgrep.types import JsonObject
-
 
 CodeActionContext = JsonObject
 CodeAction = JsonObject

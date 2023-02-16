@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -20,14 +22,13 @@ from typing import Union
 
 import colorama
 import pytest
-from tests.semgrep_runner import SemgrepRunner
-
 from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
 from semgrep.cli import cli
 from semgrep.constants import OutputFormat
 from semgrep.lsp.server import SemgrepLSPServer
 
+from tests.semgrep_runner import SemgrepRunner
 
 TESTS_PATH = Path(__file__).parent
 
@@ -204,7 +205,7 @@ class SemgrepResult:
         stream.seek(0)
         return stream.read()
 
-    def mask_text(self, text: str, mask: Optional[Maskers] = None) -> str:
+    def mask_text(self, text: str, mask: Maskers | None = None) -> str:
         if mask is None:
             mask = []
         for pattern in [*mask, *ALWAYS_MASK]:
@@ -227,7 +228,7 @@ class SemgrepResult:
     def stderr(self) -> str:
         return self.mask_text(self.raw_stderr)
 
-    def as_snapshot(self, mask: Optional[Maskers] = None):
+    def as_snapshot(self, mask: Maskers | None = None):
         stdout = self.mask_text(self.raw_stdout, mask)
         stderr = self.mask_text(self.raw_stderr, mask)
         sections = {
@@ -269,19 +270,19 @@ class SemgrepResult:
 
 
 def _run_semgrep(
-    config: Optional[Union[str, Path, List[str]]] = None,
+    config: str | Path | list[str] | None = None,
     *,
-    target_name: Optional[str] = "basic",
-    options: Optional[List[Union[str, Path]]] = None,
-    output_format: Optional[OutputFormat] = OutputFormat.JSON,
+    target_name: str | None = "basic",
+    options: list[str | Path] | None = None,
+    output_format: OutputFormat | None = OutputFormat.JSON,
     strict: bool = True,
     quiet: bool = False,
-    env: Optional[Dict[str, str]] = None,
-    assert_exit_code: Union[None, int, Set[int]] = 0,
-    force_color: Optional[bool] = None,
+    env: dict[str, str] | None = None,
+    assert_exit_code: None | int | set[int] = 0,
+    force_color: bool | None = None,
     assume_targets_dir: bool = True,  # See e2e/test_dependency_aware_rule.py for why this is here
     force_metrics_off: bool = True,
-    stdin: Optional[str] = None,
+    stdin: str | None = None,
     clean_fingerprint: bool = True,
 ) -> SemgrepResult:
     """Run the semgrep CLI.
@@ -377,15 +378,15 @@ def unique_home_dir(monkeypatch, tmp_path):
     Assign the home directory to a unique temporary directory.
     """
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    yield tmp_path
+    return tmp_path
 
 
-@pytest.fixture
+@pytest.fixture()
 def run_semgrep():
-    yield partial(_run_semgrep, strict=False, target_name=None, output_format=None)
+    return partial(_run_semgrep, strict=False, target_name=None, output_format=None)
 
 
-@pytest.fixture
+@pytest.fixture()
 def run_semgrep_in_tmp(monkeypatch, tmp_path):
     """
     Note that this can cause failures if Semgrep pollutes either the targets or rules path
@@ -394,10 +395,10 @@ def run_semgrep_in_tmp(monkeypatch, tmp_path):
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
 
-    yield _run_semgrep
+    return _run_semgrep
 
 
-@pytest.fixture
+@pytest.fixture()
 def run_semgrep_on_copied_files(monkeypatch, tmp_path):
     """
     Like run_semgrep_in_tmp, but fully copies rule and target data to avoid
@@ -407,10 +408,10 @@ def run_semgrep_on_copied_files(monkeypatch, tmp_path):
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
-    yield _run_semgrep
+    return _run_semgrep
 
 
-@pytest.fixture
+@pytest.fixture()
 def git_tmp_path(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     # Initialize State
@@ -430,10 +431,10 @@ def git_tmp_path(monkeypatch, tmp_path):
         check=True,
         capture_output=True,
     )
-    yield tmp_path
+    return tmp_path
 
 
-@pytest.fixture
+@pytest.fixture()
 def lsp(monkeypatch, tmp_path):
     """Return an initialized lsp"""
 
@@ -444,7 +445,7 @@ def lsp(monkeypatch, tmp_path):
     return ls
 
 
-@pytest.fixture
+@pytest.fixture()
 def parse_lockfile_path_in_tmp(monkeypatch, tmp_path):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())

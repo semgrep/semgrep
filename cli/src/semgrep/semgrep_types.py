@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Collection
@@ -21,7 +23,7 @@ SEARCH_MODE = DEFAULT_MODE = Mode("search")
 
 class Language(str):
     @property
-    def definition(self) -> "LanguageDefinition":
+    def definition(self) -> LanguageDefinition:
         return LANGUAGE.definition_by_id[self]
 
 
@@ -39,7 +41,7 @@ class LanguageDefinition:
     shebangs: Collection[Shebang]
 
     @classmethod
-    def from_dict(cls, data: JsonObject) -> "LanguageDefinition":
+    def from_dict(cls, data: JsonObject) -> LanguageDefinition:
         return cls(
             id=Language(data["id"]),
             name=data["name"],
@@ -70,7 +72,7 @@ class _LanguageData:
         }
         self.all_language_keys: Collection[str] = sorted(self.lang_by_key.keys())
 
-    def resolve(self, lang_str: str, span: Optional[Span] = None) -> Language:
+    def resolve(self, lang_str: str, span: Span | None = None) -> Language:
         """
         Convert an inputted string representing a language to a Language
 

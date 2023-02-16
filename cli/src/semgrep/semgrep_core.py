@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib.resources
 import os
 import shutil
@@ -10,7 +12,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def compute_executable_path(exec_name: str) -> Optional[str]:
+def compute_executable_path(exec_name: str) -> str | None:
     """
     Determine full executable path if full path is needed to run it.
 
@@ -46,12 +48,12 @@ class SemgrepCore:
     # Path to either the bridge module .so file or the semgrep-core
     # executable, or None if we could not find either or have not looked
     # yet.
-    _SEMGREP_PATH_: Optional[str] = None
+    _SEMGREP_PATH_: str | None = None
 
-    _PRO_PATH_: Optional[str] = None
+    _PRO_PATH_: str | None = None
 
     # Reference to the bridge module if we are using it.
-    _bridge_module: Optional[types.ModuleType] = None
+    _bridge_module: types.ModuleType | None = None
 
     @classmethod
     def executable_path(cls) -> str:
@@ -136,7 +138,7 @@ class SemgrepCore:
         return cls._bridge_module is not None
 
     @classmethod
-    def pro_path(cls) -> Optional[str]:
+    def pro_path(cls) -> str | None:
         if cls._PRO_PATH_ is None:
             cls._PRO_PATH_ = compute_executable_path("semgrep-core-proprietary")
         return cls._PRO_PATH_

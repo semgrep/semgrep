@@ -1,11 +1,12 @@
-import pytest
+from __future__ import annotations
 
+import pytest
 from semdep.package_restrictions import semver_matches
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.parametrize(
-    "expression,candidate,match",
+    ("expression", "candidate", "match"),
     [
         pytest.param(">1.0.0", "1.0.1", True),
         pytest.param(">1.0.0", "2.0.0", True),

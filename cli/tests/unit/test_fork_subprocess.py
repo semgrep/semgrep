@@ -3,6 +3,8 @@
 """
 Demonstrate the 'fork_subprocess' module.
 """
+from __future__ import annotations
+
 import asyncio  # StreamReader
 import os  # getpid
 import sys  # exit, stderr
@@ -12,9 +14,7 @@ from typing import Any
 from typing import List
 
 import pytest  # CaptureFixture, mark
-
 import semgrep.fork_subprocess as fork_subprocess
-
 
 # When true, suppress printing in 'prinq'.
 g_quiet = False
@@ -41,7 +41,7 @@ def info(label: str) -> None:
     prinq(f"{label}: process id:", os.getpid())
 
 
-def child(argv: List[str]) -> None:
+def child(argv: list[str]) -> None:
     """Function to run in the child process."""
 
     # In the child, we need to communicate via stdout/err.
@@ -74,7 +74,7 @@ async def consume_reader(label: str, reader: asyncio.StreamReader) -> None:
         all += data
 
     output: str = all.decode("UTF-8")
-    lines: List[str] = output.splitlines()
+    lines: list[str] = output.splitlines()
     prinq(f"parent: all of {label}:")
     for line in lines:
         prinq(f"  {line}")
@@ -121,7 +121,7 @@ def main() -> None:
     prinq(f"child exit code: {code}")
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_from_pytest(capsys: pytest.CaptureFixture[str]) -> None:
     """Test function as invoked by pytest."""
 

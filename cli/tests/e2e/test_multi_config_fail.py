@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import pytest
 
 
 # Running semgrep with multiple configs should fail fast if any of them have errors
-@pytest.mark.kinda_slow
+@pytest.mark.kinda_slow()
 def test_multi_config_fail(run_semgrep_in_tmp):
     run_semgrep_in_tmp(
         [

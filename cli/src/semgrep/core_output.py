@@ -5,6 +5,8 @@ json output into a typed object
 The precise type of the response from semgrep-core is specified in
 https://github.com/returntocorp/semgrep/blob/develop/interfaces/Output_from_core.atd
 """
+from __future__ import annotations
+
 import dataclasses
 from dataclasses import replace
 from typing import Dict
@@ -46,7 +48,7 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
         level_str = "ERROR"
     level = Level[level_str.upper()]
 
-    spans: Optional[List[out.ErrorSpan]] = None
+    spans: list[out.ErrorSpan] | None = None
     if isinstance(err.error_type.value, core.PatternParseError):
         yaml_path = err.error_type.value.value[::-1]
         error_span = _core_location_to_error_span(err.location)
@@ -100,8 +102,8 @@ def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
 
 
 def core_matches_to_rule_matches(
-    rules: List[Rule], res: core.CoreMatchResults
-) -> Dict[Rule, List[RuleMatch]]:
+    rules: list[Rule], res: core.CoreMatchResults
+) -> dict[Rule, list[RuleMatch]]:
     """
     Convert core_match objects into RuleMatch objects that the rest of the codebase
     interacts with.
@@ -111,7 +113,7 @@ def core_matches_to_rule_matches(
     rule_table = {rule.id: rule for rule in rules}
 
     def interpolate(
-        text: str, metavariables: Dict[str, str], propagated_values: Dict[str, str]
+        text: str, metavariables: dict[str, str], propagated_values: dict[str, str]
     ) -> str:
         """Interpolates a string with the metavariables contained in it, returning a new string"""
 
@@ -126,7 +128,7 @@ def core_matches_to_rule_matches(
 
     def read_metavariables(
         match: core.CoreMatch,
-    ) -> Tuple[Dict[str, str], Dict[str, str]]:
+    ) -> tuple[dict[str, str], dict[str, str]]:
         matched_values = {}
         propagated_values = {}
 
@@ -197,8 +199,8 @@ def core_matches_to_rule_matches(
         )
 
     # TODO: Dict[core.RuleId, RuleMatchSet]
-    findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
-    seen_cli_unique_keys: Set[Tuple] = set()
+    findings: dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
+    seen_cli_unique_keys: set[tuple] = set()
     for match in res.matches:
         rule = rule_table[match.rule_id.value]
         rule_match = convert_to_rule_match(match)

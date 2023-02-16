@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import collections
 import contextlib
@@ -10,9 +12,9 @@ import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 from typing import Any
 from typing import Callable
-from typing import cast
 from typing import Coroutine
 from typing import Dict
 from typing import List
@@ -20,7 +22,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
-from typing import TYPE_CHECKING
+from typing import cast
 
 from attr import asdict
 from attr import field
@@ -32,9 +34,9 @@ import semgrep.fork_subprocess as fork_subprocess
 import semgrep.output_from_core as core
 from semgrep.app import auth
 from semgrep.config_resolver import Config
+from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import Colors
 from semgrep.constants import EngineType
-from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.core_output import core_matches_to_rule_matches
 from semgrep.core_output import parse_core_output
@@ -140,13 +142,13 @@ def setrlimits_preexec_fn() -> None:
 
 # This is used only to dedup errors from validate_configs(). For dedupping errors
 # from _invoke_semgrep(), see output.py and the management of self.error_set
-def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
+def dedup_errors(errors: list[SemgrepCoreError]) -> list[SemgrepCoreError]:
     return list({uniq_error_id(e): e for e in errors}.values())
 
 
 def uniq_error_id(
     error: SemgrepCoreError,
-) -> Tuple[int, Path, core.Position, core.Position, str]:
+) -> tuple[int, Path, core.Position, core.Position, str]:
     return (
         error.code,
         Path(error.core.location.path),
@@ -162,7 +164,7 @@ def open_and_ignore(fname: str) -> None:
     be seen by 'strace'.
     """
     try:
-        with open(fname, "rb") as in_file:
+        with open(fname, "rb"):
             pass  # Not expected, but not a problem.
     except BaseException:
         pass  # Expected outcome
@@ -181,7 +183,7 @@ class StreamingSemgrepCore:
     expediency in integrating
     """
 
-    def __init__(self, cmd: List[str], total: int) -> None:
+    def __init__(self, cmd: list[str], total: int) -> None:
         """
         cmd: semgrep-core command to run
         total: how many rules to run / how many "." we expect to see a priori
@@ -191,11 +193,11 @@ class StreamingSemgrepCore:
         self._total = total
         self._stdout = ""
         self._stderr = ""
-        self._progress_bar: Optional[tqdm] = None  # type: ignore
+        self._progress_bar: tqdm | None = None  # type: ignore
 
         # Map from file name to contents, to be checked before the real
         # file system when servicing requests from semgrep-core.
-        self.vfs_map: Dict[str, bytes] = {}
+        self.vfs_map: dict[str, bytes] = {}
 
     @property
     def stdout(self) -> str:
@@ -219,14 +221,13 @@ class StreamingSemgrepCore:
 
         When it sees neither output it saves it to self._stdout
         """
-        stdout_lines: List[bytes] = []
+        stdout_lines: list[bytes] = []
         num_total_targets: int = self._total
         num_scanned_targets: int = 0
 
         # Start out reading two bytes at a time (".\n")
-        get_input: Callable[
-            [asyncio.StreamReader], Coroutine[Any, Any, bytes]
-        ] = lambda s: s.readexactly(2)
+        def get_input(s):
+            return s.readexactly(2)
         reading_json = False
         # Read ".\n" repeatedly until we reach the JSON output.
         # TODO: read progress from one channel and JSON data from another.
@@ -276,10 +277,11 @@ class StreamingSemgrepCore:
                 # Once we see a non-"." char it means we are reading a large json blob
                 # so increase the buffer read size.
                 reading_json = True
-                get_input = lambda s: s.read(n=LARGE_READ_SIZE)
+                def get_input(s):
+                    return s.read(n=LARGE_READ_SIZE)
 
     async def _core_stderr_processor(
-        self, stream: Optional[asyncio.StreamReader]
+        self, stream: asyncio.StreamReader | None
     ) -> None:
         """
         Asynchronously process stderr of semgrep-core
@@ -287,7 +289,7 @@ class StreamingSemgrepCore:
         Basically works synchronously and combines output to
         stderr to self._stderr
         """
-        stderr_lines: List[str] = []
+        stderr_lines: list[str] = []
 
         if stream is None:
             raise RuntimeError("subprocess was created without a stream")
@@ -304,7 +306,7 @@ class StreamingSemgrepCore:
             line = line_bytes.decode("utf-8", "replace")
             stderr_lines.append(line)
 
-    def _handle_read_file(self, fname: str) -> Tuple[bytes, int]:
+    def _handle_read_file(self, fname: str) -> tuple[bytes, int]:
         """
         Handler for semgrep_analyze 'read_file' callback.
         """
@@ -470,14 +472,14 @@ class Plan:
     log: outputs a summary of how many files will be scanned for each file
     """
 
-    def __init__(self, mappings: List[Task], rule_ids: List[str]):
+    def __init__(self, mappings: list[Task], rule_ids: list[str]):
         self.target_mappings = TargetMappings(mappings)
         # important: this is a list of rule_ids, not a set
         # target_mappings relies on the index of each rule_id in rule_ids
         self.rule_ids = rule_ids
 
-    def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
-        result: Dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
+    def split_by_lang_label(self) -> dict[str, TargetMappings]:
+        result: dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
         for task in self.target_mappings:
             label = (
                 "<multilang>"
@@ -487,7 +489,7 @@ class Plan:
             result[label].append(task)
         return result
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "target_mappings": [asdict(task) for task in self.target_mappings],
             "rule_ids": self.rule_ids,
@@ -551,14 +553,14 @@ class CoreRunner:
 
     def __init__(
         self,
-        jobs: Optional[int],
+        jobs: int | None,
         engine: EngineType,
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
         interfile_timeout: int,
         optimizations: str,
-        core_opts_str: Optional[str],
+        core_opts_str: str | None,
     ):
         if jobs is None:
             if engine is EngineType.PRO_INTERFILE:
@@ -589,12 +591,12 @@ class CoreRunner:
 
     def _extract_core_output(
         self,
-        rules: List[Rule],
+        rules: list[Rule],
         returncode: int,
         shell_command: str,
         core_stdout: str,
         core_stderr: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if not core_stderr:
             core_stderr = (
                 "<semgrep-core stderr not captured, should be printed above>\n"
@@ -649,7 +651,7 @@ class CoreRunner:
         semgrep_output: str,
         semgrep_error_output: str,
         returncode: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         # See if semgrep output contains a JSON error that we can decode.
         try:
             return cast(Dict[str, Any], json.loads(semgrep_output))
@@ -737,7 +739,7 @@ class CoreRunner:
         profiling_data.set_max_memory_bytes(max_memory_bytes)
 
     def _plan_core_run(
-        self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
+        self, rules: list[Rule], target_manager: TargetManager, all_targets: set[Path]
     ) -> Plan:
         """
         Gets the targets to run for each rule
@@ -749,7 +751,7 @@ class CoreRunner:
 
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
-        target_info: Dict[Tuple[Path, Language], List[int]] = collections.defaultdict(
+        target_info: dict[tuple[Path, Language], list[int]] = collections.defaultdict(
             list
         )
 
@@ -779,19 +781,19 @@ class CoreRunner:
 
     def _run_rules_direct_to_semgrep_core_helper(
         self,
-        rules: List[Rule],
+        rules: list[Rule],
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
-    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
+    ) -> tuple[RuleMatchMap, list[SemgrepError], OutputExtra,]:
         state = get_state()
-        logger.debug(f"Passing whole rules directly to semgrep_core")
+        logger.debug("Passing whole rules directly to semgrep_core")
 
         outputs: RuleMatchMap = collections.defaultdict(OrderedRuleMatchList)
-        errors: List[SemgrepError] = []
-        all_targets: Set[Path] = set()
-        file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
-        max_timeout_files: Set[Path] = set()
+        errors: list[SemgrepError] = []
+        all_targets: set[Path] = set()
+        file_timeouts: dict[Path, int] = collections.defaultdict(lambda: 0)
+        max_timeout_files: set[Path] = set()
         # TODO this is a quick fix, refactor this logic
 
         profiling_data: ProfilingData = ProfilingData()
@@ -831,7 +833,7 @@ class CoreRunner:
 
             # Create a map to feed to semgrep-core as an alternative to
             # having it actually read the files.
-            vfs_map: Dict[str, bytes] = {
+            vfs_map: dict[str, bytes] = {
                 target_file.name: target_file_contents.encode("UTF-8"),
                 rule_file.name: rule_file_contents.encode("UTF-8"),
             }
@@ -902,7 +904,6 @@ class CoreRunner:
                 elif engine is EngineType.PRO_INTRAFILE:
                     cmd += ["-deep_intra_file"]
 
-            stderr: Optional[int] = subprocess.PIPE
             if state.terminal.is_debug:
                 cmd += ["--debug"]
 
@@ -989,11 +990,11 @@ class CoreRunner:
 
     def _run_rules_direct_to_semgrep_core(
         self,
-        rules: List[Rule],
+        rules: list[Rule],
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
-    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
+    ) -> tuple[RuleMatchMap, list[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
         These issues may possibly cause a failure if a user, for instance, updates their
@@ -1030,10 +1031,10 @@ Exception raised: `{e}`
     def invoke_semgrep(
         self,
         target_manager: TargetManager,
-        rules: List[Rule],
+        rules: list[Rule],
         dump_command_for_core: bool,
         engine: EngineType,
-    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
+    ) -> tuple[RuleMatchMap, list[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and retuns object with findings
         """
@@ -1065,7 +1066,7 @@ Exception raised: `{e}`
             output_extra,
         )
 
-    def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
+    def validate_configs(self, configs: tuple[str, ...]) -> Sequence[SemgrepError]:
         metachecks = Config.from_config_list(["p/semgrep-rule-lints"], None)[
             0
         ].get_rules(True)

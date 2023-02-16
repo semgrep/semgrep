@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 from shutil import copy
@@ -5,7 +7,6 @@ from shutil import copytree
 from unittest.mock import ANY  # nosem: use-pytest-mock
 
 import pytest
-
 from semgrep.commands import scan
 from semgrep.commands import shouldafound
 
@@ -13,7 +14,7 @@ from semgrep.commands import shouldafound
 TESTS_PATH = Path(__file__).parent.parent
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_shouldafound_no_args(run_semgrep, tmp_path, snapshot):
     """
     Test for shouldafound usage output
@@ -24,7 +25,7 @@ def test_shouldafound_no_args(run_semgrep, tmp_path, snapshot):
     )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.parametrize(
     "email_args",
     [
@@ -102,7 +103,7 @@ def test_shouldafound_no_confirmation(
     snapshot.assert_match(results.as_snapshot(), "results.txt")
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.parametrize("pattern", ["11512123123", "$X == $X"])
 @pytest.mark.parametrize("message", [None, "foobar"])
 def test_shouldafound_findings_output(

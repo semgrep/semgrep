@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import binascii
 import hashlib
 import itertools
@@ -6,15 +8,15 @@ from collections import Counter
 from datetime import datetime
 from functools import total_ordering
 from pathlib import Path
+from typing import TYPE_CHECKING
 from typing import Any
-from typing import Counter as CounterType
 from typing import Dict
 from typing import Iterable
 from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import TYPE_CHECKING
+from typing import Counter as CounterType
 from uuid import UUID
 
 from attrs import evolve
@@ -34,7 +36,7 @@ if TYPE_CHECKING:
     from semgrep.rule import Rule
 
 
-def rstrip(value: Optional[str]) -> Optional[str]:
+def rstrip(value: str | None) -> str | None:
     return value.rstrip() if value else None
 
 
@@ -53,7 +55,7 @@ class RuleMatch:
     # fields from the rule
     message: str = field(repr=False)
     severity: RuleSeverity
-    metadata: Dict[str, Any] = field(repr=False, factory=dict)
+    metadata: dict[str, Any] = field(repr=False, factory=dict)
 
     # Do not use this extra field! This prevents from having typed JSON output
     # TODO: instead of extra, we should use the more explicit fields:
@@ -65,13 +67,13 @@ class RuleMatch:
     # this frozen class.
     # TODO: redundant with core.extra but we do some monkey patching on
     # this extra field which prevents to use directly core.extra (immutable)
-    extra: Dict[str, Any] = field(repr=False, factory=dict)
+    extra: dict[str, Any] = field(repr=False, factory=dict)
 
     # fields derived from the rule
     # We call rstrip() for consistency with semgrep-core, which ignores whitespace
     # including newline chars at the end of multiline patterns
-    fix: Optional[str] = field(converter=rstrip, default=None)
-    fix_regex: Optional[out.FixRegex] = None
+    fix: str | None = field(converter=rstrip, default=None)
+    fix_regex: out.FixRegex | None = None
 
     # ???
     index: int = 0
@@ -88,16 +90,16 @@ class RuleMatch:
     match_formula_string: str = ""
 
     # None means we didn't check; ignore status is unknown
-    is_ignored: Optional[bool] = field(default=None)
+    is_ignored: bool | None = field(default=None)
 
     # derived attributes
-    lines: List[str] = field(init=False, repr=False)
+    lines: list[str] = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
     syntactic_context: str = field(init=False, repr=False)
-    cli_unique_key: Tuple = field(init=False, repr=False)
-    ci_unique_key: Tuple = field(init=False, repr=False)
-    ordering_key: Tuple = field(init=False, repr=False)
-    match_based_key: Tuple = field(init=False, repr=False)
+    cli_unique_key: tuple = field(init=False, repr=False)
+    ci_unique_key: tuple = field(init=False, repr=False)
+    ordering_key: tuple = field(init=False, repr=False)
+    match_based_key: tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
     match_based_id: str = field(init=False, repr=False)
 
@@ -119,7 +121,7 @@ class RuleMatch:
         return self.match.location.end
 
     @lines.default
-    def get_lines(self) -> List[str]:
+    def get_lines(self) -> list[str]:
         """
         Return lines in file that this RuleMatch is referring to.
 
@@ -176,7 +178,7 @@ class RuleMatch:
         return code
 
     @cli_unique_key.default
-    def get_cli_unique_key(self) -> Tuple:
+    def get_cli_unique_key(self) -> tuple:
         """
         A unique key designed with data-completeness & correctness in mind.
 
@@ -199,7 +201,7 @@ class RuleMatch:
         )
 
     @ci_unique_key.default
-    def get_ci_unique_key(self) -> Tuple:
+    def get_ci_unique_key(self) -> tuple:
         """
         A unique key designed with notification user experience in mind.
 
@@ -211,7 +213,7 @@ class RuleMatch:
             path = self.path
         return (self.rule_id, str(path), self.syntactic_context, self.index)
 
-    def get_path_changed_ci_unique_key(self, rename_dict: Dict[str, Path]) -> Tuple:
+    def get_path_changed_ci_unique_key(self, rename_dict: dict[str, Path]) -> tuple:
         """
         A unique key that accounts for filepath renames.
 
@@ -225,7 +227,7 @@ class RuleMatch:
         return (self.rule_id, renamed_path, self.syntactic_context, self.index)
 
     @ordering_key.default
-    def get_ordering_key(self) -> Tuple:
+    def get_ordering_key(self) -> tuple:
         """
         Used to sort findings in output.
 
@@ -258,7 +260,7 @@ class RuleMatch:
         return str(binascii.hexlify(hash_bytes), "ascii")
 
     @match_based_key.default
-    def get_match_based_key(self) -> Tuple:
+    def get_match_based_key(self) -> tuple:
         """
         A unique key with match based id's notion of uniqueness in mind.
 
@@ -309,10 +311,10 @@ class RuleMatch:
             return blocking
 
     @property
-    def dataflow_trace(self) -> Optional[core.CliMatchDataflowTrace]:
+    def dataflow_trace(self) -> core.CliMatchDataflowTrace | None:
         # We need this to quickly get augment a Location with the contents of the location
         # Convenient to just have it as a separate function
-        def translate_loc(location: core.Location) -> Tuple[core.Location, str]:
+        def translate_loc(location: core.Location) -> tuple[core.Location, str]:
             with open(location.path, errors="replace") as fd:
                 content = util.read_range(
                     fd, location.start.offset, location.end.offset
@@ -428,7 +430,7 @@ class RuleMatch:
             return False
         return self.cli_unique_key == other.cli_unique_key
 
-    def __lt__(self, other: "RuleMatch") -> bool:
+    def __lt__(self, other: RuleMatch) -> bool:
         if not isinstance(other, type(self)):
             return NotImplemented
         return self.ordering_key < other.ordering_key
@@ -442,10 +444,10 @@ class RuleMatchSet(Iterable[RuleMatch]):
     """
 
     def __init__(
-        self, rule: Rule, __iterable: Optional[Iterable[RuleMatch]] = None
+        self, rule: Rule, __iterable: Iterable[RuleMatch] | None = None
     ) -> None:
-        self._match_based_counts: CounterType[Tuple] = Counter()
-        self._ci_key_counts: CounterType[Tuple] = Counter()
+        self._match_based_counts: CounterType[tuple] = Counter()
+        self._ci_key_counts: CounterType[tuple] = Counter()
         self._rule = rule
         if __iterable is None:
             self._set = set()

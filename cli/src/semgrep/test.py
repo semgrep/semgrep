@@ -9,6 +9,8 @@ Validate that the output is annotated in the source file with by looking for a c
  On the preceeding line.
 
  """
+from __future__ import annotations
+
 import collections
 import difflib
 import functools
@@ -61,7 +63,7 @@ def _remove_ending_comments(rule: str) -> str:
     return rule
 
 
-def normalize_rule_ids(line: str) -> Set[str]:
+def normalize_rule_ids(line: str) -> set[str]:
     """
     given a line like `     # ruleid:foobar`
     or `      // ruleid:foobar`
@@ -71,11 +73,11 @@ def normalize_rule_ids(line: str) -> Set[str]:
     rules_text = rules_text.strip()
     rules = rules_text.split(",")
     # remove comment ends for non-newline comment syntaxes
-    rules_clean = map(lambda rule: _remove_ending_comments(rule), rules)
+    rules_clean = (_remove_ending_comments(rule) for rule in rules)
     return set(filter(None, [rule.strip() for rule in rules_clean]))
 
 
-def _annotations(annotation: str) -> Set[str]:
+def _annotations(annotation: str) -> set[str]:
     # returns something like: {"#ruleid:", "# ruleid:", "//ruleid:", ...}
     return {
         f"{comment_syntax[0]}{space}{annotation}"
@@ -104,8 +106,8 @@ def line_has_todo_ok(line: str) -> bool:
 
 
 def _add_line_to_dict_of_ruleids(
-    rule_ids: Set[str],
-    line_dict: Dict[str, Dict[str, List[int]]],
+    rule_ids: set[str],
+    line_dict: dict[str, dict[str, list[int]]],
     effective_line_num: int,
     test_file_resolved: str,
 ) -> None:
@@ -118,7 +120,7 @@ def _add_line_to_dict_of_ruleids(
 
 
 def check_rule_id_mismatch(
-    reported_lines: Dict[str, Dict[str, List[int]]], test_lines: Dict[str, Set]
+    reported_lines: dict[str, dict[str, list[int]]], test_lines: dict[str, set]
 ) -> None:
     """
     checks whether there exists a #ruleid: <rule name> annotation where a rule matching <rule name> doesn't exist.
@@ -143,8 +145,8 @@ def check_rule_id_mismatch(
 
 
 def get_expected_and_reported_lines(
-    json_out: Dict[str, Any], test_files: List[Path]
-) -> Dict[str, Dict[str, Any]]:
+    json_out: dict[str, Any], test_files: list[Path]
+) -> dict[str, dict[str, Any]]:
     """
     Collects the expected lines (which are the lines annotated with '#ruleid')
     and the reported lines (which are the lines that the run of semgrep flagged on)
@@ -154,23 +156,23 @@ def get_expected_and_reported_lines(
     Note: we need matches to map check_ids -> file paths because some rule_ids have two
     distinct test files (notably, for rules that work on both tsx and jsx)
     """
-    ruleid_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
+    ruleid_lines: dict[str, dict[str, list[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
-    ok_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
+    ok_lines: dict[str, dict[str, list[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
-    reported_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
+    reported_lines: dict[str, dict[str, list[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
-    todo_ok_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
+    todo_ok_lines: dict[str, dict[str, list[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
-    todo_ruleid_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
+    todo_ruleid_lines: dict[str, dict[str, list[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
 
-    matches_by_check_id: Dict[str, Dict[str, Any]] = collections.defaultdict(dict)
+    matches_by_check_id: dict[str, dict[str, Any]] = collections.defaultdict(dict)
 
     for test_file in test_files:
         test_file_resolved = str(test_file.resolve())
@@ -223,14 +225,14 @@ def get_expected_and_reported_lines(
         start_line = int(result["start"]["line"])
         reported_lines[path][check_id].append(start_line)
 
-    test_lines: Dict[str, Set] = collections.defaultdict(set)
+    test_lines: dict[str, set] = collections.defaultdict(set)
     for lines in [ruleid_lines, ok_lines]:
         for file_path, test_annotations in lines.items():
             test_lines[file_path].update(test_annotations.keys())
 
     check_rule_id_mismatch(reported_lines, test_lines)
 
-    def join_keys(a: Dict[str, Any], b: Dict[str, Any]) -> Set[str]:
+    def join_keys(a: dict[str, Any], b: dict[str, Any]) -> set[str]:
         return set(a.keys()).union(set(b.keys()))
 
     for file_path in join_keys(ruleid_lines, reported_lines):
@@ -282,15 +284,15 @@ def _generate_check_output_line(check_id: str, check_results: Mapping[str, Any])
 
 
 def _generate_fixcheck_output_line(
-    filename: Path, diff: List[str], fixtest: Path
+    filename: Path, diff: list[str], fixtest: Path
 ) -> str:
     diff_lines = "\n\t".join(diff)
     return f"\t✖ {fixtest} <> autofix applied to {filename} \n\n\t{diff_lines}\n\n\n"
 
 
 def invoke_semgrep_multi(
-    config: Path, targets: List[Path], **kwargs: Any
-) -> Tuple[Path, Optional[str], Any]:
+    config: Path, targets: list[Path], **kwargs: Any
+) -> tuple[Path, str | None, Any]:
     try:
         output = invoke_semgrep(config, targets, **kwargs)
     except Exception as error:
@@ -327,7 +329,7 @@ def relatively_eq(
     )
 
 
-def get_config_filenames(original_config: Path) -> List[Path]:
+def get_config_filenames(original_config: Path) -> list[Path]:
     if original_config.is_file():
         return [original_config]
     configs = list(original_config.rglob("*"))
@@ -341,8 +343,8 @@ def get_config_filenames(original_config: Path) -> List[Path]:
 
 
 def get_config_test_filenames(
-    original_config: Path, configs: List[Path], original_target: Path
-) -> Dict[Path, List[Path]]:
+    original_config: Path, configs: list[Path], original_target: Path
+) -> dict[Path, list[Path]]:
     original_config_is_file_not_directory = original_config.is_file()
     original_target_is_file_not_directory = original_target.is_file()
 
@@ -375,8 +377,8 @@ def get_config_test_filenames(
 
 
 def get_config_fixtest_filenames(
-    original_target: Path, targets: Dict[Path, List[Path]]
-) -> Dict[Path, List[Tuple[Path, Path]]]:
+    original_target: Path, targets: dict[Path, list[Path]]
+) -> dict[Path, list[tuple[Path, Path]]]:
 
     original_target_is_file_not_directory = original_target.is_file()
 
@@ -420,7 +422,7 @@ def config_contains_fix_key(config: Path) -> bool:
             return False
 
 
-def checkid_passed(matches_for_checkid: Dict[str, Any]) -> bool:
+def checkid_passed(matches_for_checkid: dict[str, Any]) -> bool:
     for _filename, expected_and_reported_lines in matches_for_checkid.items():
         if (
             not expected_and_reported_lines["expected_lines"]
@@ -432,7 +434,7 @@ def checkid_passed(matches_for_checkid: Dict[str, Any]) -> bool:
 
 def fixed_file_comparison(
     fixed_testfile: Path, expected_fixed_testfile: str
-) -> List[str]:
+) -> list[str]:
 
     diff = []
     with open(fixed_testfile) as file1, open(expected_fixed_testfile) as file2:
@@ -459,8 +461,8 @@ def generate_test_results(
 
     # Extract the subset of tests using autofix.
     # They'll be run later again, with autofix on (why run them twice?).
-    config_fixtest_filenames: Dict[
-        Path, List[Tuple[Path, Path]]
+    config_fixtest_filenames: dict[
+        Path, list[tuple[Path, Path]]
     ] = get_config_fixtest_filenames(target, config_test_filenames)
 
     config_with_tests, config_without_tests = partition(
@@ -510,7 +512,7 @@ def generate_test_results(
         for filename, matches, errors in tested
     }
 
-    fixtest_filenames: Dict[Path, List[Tuple[Path, Path]]] = {
+    fixtest_filenames: dict[Path, list[tuple[Path, Path]]] = {
         config: [
             (target, fixtest)
             for target, fixtest in testfiles
@@ -538,7 +540,7 @@ def generate_test_results(
         == expected_and_reported_lines["reported_lines"]
         and not soft_errors
     ]
-    configs_with_fixtests = {
+    {
         config: [
             (target, fixtest)
             for target, fixtest in testfiles
@@ -547,7 +549,7 @@ def generate_test_results(
         for config, testfiles in config_with_fixtests
     }
 
-    temp_copies: Dict[Path, str] = {
+    temp_copies: dict[Path, str] = {
         target: create_temporary_copy(target)
         for _config, testfiles in config_with_fixtests
         for target, _fixtest in testfiles
@@ -579,7 +581,7 @@ def generate_test_results(
         for target, fixtest in testfiles
     }
 
-    fixtest_results: Dict[Path, Tuple[List[str], Path]] = {}
+    fixtest_results: dict[Path, tuple[list[str], Path]] = {}
     fixtest_results_output = {}
     for t, tempcopy in temp_copies.items():
         fixtest = fixtest_comparisons[tempcopy]
@@ -682,7 +684,7 @@ def generate_test_results(
 def test_main(
     *,
     target: Sequence[str],
-    config: Optional[Sequence[str]],
+    config: Sequence[str] | None,
     test_ignore_todo: bool,
     strict: bool,
     json: bool,

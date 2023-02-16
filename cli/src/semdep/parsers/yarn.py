@@ -7,6 +7,8 @@ https://classic.yarnpkg.com/lang/en/docs/yarn-lock/
 Version 2/3 parser based on looking at examples on github, I could not find any documentation
 Here are the Yarn 2/3 docs: https://yarnpkg.com/
 """
+from __future__ import annotations
+
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -14,8 +16,13 @@ from typing import Set
 from typing import Tuple
 from typing import TypeVar
 
-from semdep.external.parsy import any_char
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
+from semgrep.verbose_logging import getLogger
+
 from semdep.external.parsy import Parser
+from semdep.external.parsy import any_char
 from semdep.external.parsy import peek
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
@@ -29,10 +36,6 @@ from semdep.parsers.util import quoted
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
-from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
@@ -44,7 +47,7 @@ A = TypeVar("A")
 # bad-lib@0.0.8
 # "filedep@file:../../correct/path/filedep":
 # "bats@https://github.com/bats-core/bats-core#master":
-def source1(quoted: bool) -> "Parser[Tuple[str,str]]":
+def source1(quoted: bool) -> Parser[tuple[str,str]]:
 
     return pair(
         string("@").optional("") + upto("@", consume_other=True),
@@ -68,7 +71,7 @@ multi_source1 = (quoted(source1(True)) | source1(False)).sep_by(string(", "))
 #   version "2.1.1"
 #   integrity sha512-Aolwjd7HSC2PyY0fDj/wA/EimQT4HfEnFYNp5s9CQlrdhyvWTtvZ5YzrUPu6R6/1jKiUlxu8bUhkdSnKHNAHMA==
 #   dependencies:
-key_value1: "Parser[Optional[Tuple[str,str]]]" = (
+key_value1: Parser[tuple[str, str] | None] = (
     string(" ")
     .many()
     .bind(
@@ -148,7 +151,7 @@ multi_source2 = quoted(source2.sep_by(string(", ")))
 #   version: 7.18.10
 #   resolution: "@babel/generator@npm:7.18.10"
 #   dependencies:
-key_value2: "Parser[Optional[Tuple[str,str]]]" = (
+key_value2: Parser[tuple[str, str] | None] = (
     string(" ")
     .many()
     .bind(
@@ -204,7 +207,7 @@ yarn2 = (
 )
 
 
-def get_manifest_deps(manifest_path: Optional[Path]) -> Optional[Set[Tuple[str, str]]]:
+def get_manifest_deps(manifest_path: Path | None) -> set[tuple[str, str]] | None:
     """
     Extract a set of constraints from a package.json file
     """
@@ -220,7 +223,7 @@ def get_manifest_deps(manifest_path: Optional[Path]) -> Optional[Set[Tuple[str, 
     return {(x[0], x[1].as_str()) for x in deps.as_dict().items()}
 
 
-def remove_trailing_octothorpe(s: Optional[str]) -> Optional[str]:
+def remove_trailing_octothorpe(s: str | None) -> str | None:
     if s is None:
         return None
     else:
@@ -228,8 +231,8 @@ def remove_trailing_octothorpe(s: Optional[str]) -> Optional[str]:
 
 
 def parse_yarn(
-    lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
+    lockfile_path: Path, manifest_path: Path | None
+) -> list[FoundDependency]:
     with open(lockfile_path) as f:
         lockfile_text = f.read()
     manifest_deps = get_manifest_deps(manifest_path)

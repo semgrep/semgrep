@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import hashlib
 import json
 import re
 from io import StringIO
 from pathlib import Path
 from typing import Any
-from typing import cast
 from typing import Dict
 from typing import Generic
 from typing import ItemsView
@@ -16,15 +17,16 @@ from typing import Set
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
+from typing import cast
 
 import jsonschema.exceptions
 from attrs import evolve
 from attrs import frozen
 from jsonschema.validators import Draft7Validator
+from ruamel.yaml import YAML
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
-from ruamel.yaml import YAML
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -38,10 +40,10 @@ class EmptyYamlException(Exception):
 
 
 class RuleSchema:
-    _schema: Dict[str, Any] = {}
+    _schema: dict[str, Any] = {}
 
     @classmethod
-    def get(cls) -> Dict[str, Any]:
+    def get(cls) -> dict[str, Any]:
         """
         Returns the rule schema
 
@@ -64,7 +66,7 @@ class SourceTracker:
     """
 
     # sources are a class variable to share state
-    sources: Dict[SourceFileHash, List[str]] = {}
+    sources: dict[SourceFileHash, list[str]] = {}
 
     @classmethod
     def add_source(cls, source: str) -> SourceFileHash:
@@ -73,11 +75,11 @@ class SourceTracker:
         return file_hash
 
     @classmethod
-    def source(cls, source_hash: SourceFileHash) -> List[str]:
+    def source(cls, source_hash: SourceFileHash) -> list[str]:
         return cls.sources[source_hash]
 
     @staticmethod
-    def _src_to_hash(contents: Union[str, bytes]) -> SourceFileHash:
+    def _src_to_hash(contents: str | bytes) -> SourceFileHash:
         if isinstance(contents, str):
             contents = contents.encode("utf-8")
         return SourceFileHash(hashlib.sha256(contents).hexdigest())
@@ -100,10 +102,10 @@ class Position:
     def to_PositionBis(self) -> out.PositionBis:
         return out.PositionBis(line=self.line, col=self.col)
 
-    def next_line(self) -> "Position":
+    def next_line(self) -> Position:
         return evolve(self, line=self.line + 1)
 
-    def previous_line(self) -> "Position":
+    def previous_line(self) -> Position:
         return evolve(self, line=self.line - 1)
 
     def to_dict(self) -> dict:
@@ -124,18 +126,18 @@ class Span:
     start: Position
     end: Position
     source_hash: SourceFileHash
-    file: Optional[str]
+    file: str | None
 
     # ???
-    context_start: Optional[Position] = None
-    context_end: Optional[Position] = None
+    context_start: Position | None = None
+    context_end: Position | None = None
 
     # The path to the pattern in the yaml rule
     # and an adjusted start/end within just the pattern
     # Used to report playground parse errors in the simpler editor
-    config_path: Optional[List[str]] = None
-    config_start: Optional[Position] = None
-    config_end: Optional[Position] = None
+    config_path: list[str] | None = None
+    config_start: Position | None = None
+    config_end: Position | None = None
 
     def to_ErrorSpan(self) -> out.ErrorSpan:
         context_start = None
@@ -157,21 +159,21 @@ class Span:
 
     @classmethod
     def from_node(
-        cls, node: Node, source_hash: SourceFileHash, filename: Optional[str]
-    ) -> "Span":
+        cls, node: Node, source_hash: SourceFileHash, filename: str | None
+    ) -> Span:
         start = Position(line=node.start_mark.line + 1, col=node.start_mark.column + 1)
         end = Position(line=node.end_mark.line + 1, col=node.end_mark.column + 1)
         return Span(start=start, end=end, file=filename, source_hash=source_hash).fix()
 
     @classmethod
-    def from_string(cls, s: str, filename: Optional[str] = None) -> "Span":
+    def from_string(cls, s: str, filename: str | None = None) -> Span:
         src_hash = SourceTracker.add_source(s)
         start = Position(1, 1)
         lines = s.splitlines()
         end = Position(line=len(lines), col=len(lines[-1]))
         return Span(start=start, end=end, file=filename, source_hash=src_hash)
 
-    def fix(self) -> "Span":
+    def fix(self) -> Span:
         # some issues in ruamel lead to bad spans
         # correct empty spans by rewinding to the last non-whitespace character:
         if self.start == self.end:
@@ -192,7 +194,7 @@ class Span:
                 cur_col = len(src[cur_line]) - 1
         return self
 
-    def truncate(self, lines: int) -> "Span":
+    def truncate(self, lines: int) -> Span:
         """
         Produce a new span truncated to at most `lines` starting from the start line.
         - start_context is not considered.
@@ -207,8 +209,8 @@ class Span:
         return self
 
     def with_context(
-        self, before: Optional[int] = None, after: Optional[int] = None
-    ) -> "Span":
+        self, before: int | None = None, after: int | None = None
+    ) -> Span:
         """
         Expand
         """
@@ -253,7 +255,7 @@ class YamlTree(Generic[T]):
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} span={self.span} value={self.value}>"
 
-    def unroll_dict(self) -> Dict[str, Any]:
+    def unroll_dict(self) -> dict[str, Any]:
         """
         Helper wrapper mostly for mypy when you know it contains a dictionary
         """
@@ -282,7 +284,7 @@ class YamlTree(Generic[T]):
             )
 
     @classmethod
-    def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":
+    def wrap(cls, value: YamlValue, span: Span) -> YamlTree:
         """
         Wraps a value in a YamlTree and attaches the span everywhere.
         This exists so you can take generate a datastructure from user input, but track all the errors within that
@@ -313,7 +315,7 @@ class YamlMap:
     necessary spans
     """
 
-    def __init__(self, internal: Dict[YamlTree[str], YamlTree]):
+    def __init__(self, internal: dict[YamlTree[str], YamlTree]):
         self._internal = internal
 
     def __getitem__(self, key: str) -> YamlTree:
@@ -338,7 +340,7 @@ class YamlMap:
         except KeyError:
             return False
 
-    def get(self, key: str) -> Optional[YamlTree]:
+    def get(self, key: str) -> YamlTree | None:
         match = [v for k, v in self._internal.items() if k.value == key]
         if match:
             return match[0]
@@ -348,7 +350,7 @@ class YamlMap:
         return self._internal.keys()
 
 
-def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTree:
+def parse_yaml_preserve_spans(contents: str, filename: str | None) -> YamlTree:
     """
     parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
     so they can be used later when constructing error messages or displaying context.
@@ -373,14 +375,14 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
             if isinstance(node, MappingNode):
                 from semgrep.error import InvalidRuleSchemaError
 
-                kv_pairs: List[Tuple[Node, Node]] = [t for t in node.value]
-                uniq_key_names: Set[str] = {t[0].value for t in kv_pairs}
+                kv_pairs: list[tuple[Node, Node]] = list(node.value)
+                uniq_key_names: set[str] = {t[0].value for t in kv_pairs}
                 # If the number of unique key names is less than the number
                 # of key-value nodes, then there's a duplicate key
                 if len(uniq_key_names) < len(kv_pairs):
                     raise InvalidRuleSchemaError(
                         short_msg="Detected duplicate key",
-                        long_msg=f"Detected duplicate key name, one of {list(sorted(uniq_key_names))}.",
+                        long_msg=f"Detected duplicate key name, one of {sorted(uniq_key_names)}.",
                         spans=[
                             Span.from_node(
                                 node, source_hash=source_hash, filename=filename
@@ -409,7 +411,7 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
             )
 
         def construct_yaml_timestamp(
-            self, node: Node, values: Optional[List[Any]] = None
+            self, node: Node, values: list[Any] | None = None
         ) -> Any:
             """Load YAML timestamps as strings"""
             return self.construct_yaml_str(node)  # type: ignore ## missing from ruamel stub

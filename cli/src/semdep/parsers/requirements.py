@@ -2,12 +2,18 @@
 Parsers for requirements.txt and requirements.in files
 Based on https://pip.pypa.io/en/stable/reference/requirements-file-format/
 """
+from __future__ import annotations
+
 import re
 from pathlib import Path
 from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
+
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 
 from semdep.external.parsy import string
 from semdep.external.parsy import string_from
@@ -18,10 +24,6 @@ from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-
 
 whitespace = whitespace | string("\\\n")
 
@@ -105,14 +107,14 @@ def remove_comments(s: str) -> str:
 
 
 def get_manifest_deps(
-    parsed: Optional[List[Tuple[int, Tuple[str, List[Tuple[str, str]]]]]]
-) -> Optional[Set[str]]:
+    parsed: list[tuple[int, tuple[str, list[tuple[str, str]]]]] | None
+) -> set[str] | None:
     return {package for _, (package, _) in parsed} if parsed else None
 
 
 def parse_requirements(
-    lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
+    lockfile_path: Path, manifest_path: Path | None
+) -> list[FoundDependency]:
     deps = safe_path_parse(lockfile_path, requirements, preprocess=remove_comments)
     if deps is None:
         return []

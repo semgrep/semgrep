@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import sys
 from typing import Optional
@@ -8,7 +10,7 @@ from semgrep.commands.wrapper import handle_command_errors
 from semgrep.lsp.server import run_server
 
 
-def init_log(name: str, level: int, logfile: Optional[str] = None) -> None:
+def init_log(name: str, level: int, logfile: str | None = None) -> None:
     """
     Set logging to avoid stdout as the LSP server needs exclusive use of it.
     """
@@ -34,7 +36,7 @@ def init_log(name: str, level: int, logfile: Optional[str] = None) -> None:
     help="Write logs to this file",
 )
 @handle_command_errors
-def lsp(verbose: Optional[bool], debug: Optional[bool], logfile: Optional[str]) -> None:
+def lsp(verbose: bool | None, debug: bool | None, logfile: str | None) -> None:
     """
     [EXPERIMENTAL] Start the Semgrep LSP server
     """

@@ -2,28 +2,30 @@
 Parser for pipfile.lock files
 Based on https://pipenv.pypa.io/en/latest/basics/
 """
+from __future__ import annotations
+
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Optional
 
-from semdep.parsers.poetry import manifest
-from semdep.parsers.util import json_doc
-from semdep.parsers.util import safe_path_parse
-from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.verbose_logging import getLogger
 
+from semdep.parsers.poetry import manifest
+from semdep.parsers.util import json_doc
+from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import transitivity
 
 logger = getLogger(__name__)
 
 
 def parse_pipfile(
-    lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
+    lockfile_path: Path, manifest_path: Path | None
+) -> list[FoundDependency]:
     lockfile_json_opt = safe_path_parse(lockfile_path, json_doc)
     if not lockfile_json_opt:
         return []
@@ -33,8 +35,8 @@ def parse_pipfile(
     manifest_deps = safe_path_parse(manifest_path, manifest)
 
     def extract_pipfile_hashes(
-        hashes: List[str],
-    ) -> Dict[str, List[str]]:
+        hashes: list[str],
+    ) -> dict[str, list[str]]:
         output = defaultdict(list)
         for h in hashes:
             parts = h.split(":")

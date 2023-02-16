@@ -2,9 +2,15 @@
 Parser for Gemfile.lock files
 Based on https://stackoverflow.com/questions/7517524/understanding-the-gemfile-lock-file
 """
+from __future__ import annotations
+
 from pathlib import Path
 from typing import List
 from typing import Optional
+
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
 
 from semdep.external.parsy import any_char
 from semdep.external.parsy import string
@@ -14,10 +20,6 @@ from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
-
 
 # Examples:
 # (1.25.0)
@@ -60,8 +62,8 @@ gemfile = (
 
 
 def parse_gemfile(
-    lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
+    lockfile_path: Path, manifest_path: Path | None
+) -> list[FoundDependency]:
     deps_opt = safe_path_parse(lockfile_path, gemfile)
     if not deps_opt:
         return []

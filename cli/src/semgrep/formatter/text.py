@@ -1,25 +1,27 @@
+from __future__ import annotations
+
 import textwrap
 from itertools import groupby
 from pathlib import Path
 from shutil import get_terminal_size
 from typing import Any
-from typing import cast
 from typing import Iterable
 from typing import Iterator
 from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
+from typing import cast
 
 import click
 import colorama
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import CLI_RULE_ID
-from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.constants import Colors
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
@@ -83,10 +85,10 @@ class TextFormatter(BaseFormatter):
         start_col: int,
         end_line: int,
         end_col: int,
-        lines: List[str],
+        lines: list[str],
         color_output: bool,
-        per_finding_max_lines_limit: Optional[int],
-        per_line_max_chars_limit: Optional[int],
+        per_finding_max_lines_limit: int | None,
+        per_line_max_chars_limit: int | None,
         show_separator: bool,
         show_path: bool,
     ) -> Iterator[str]:
@@ -145,11 +147,11 @@ class TextFormatter(BaseFormatter):
 
             # plus one because we want this to be slightly separated from the intervening messages
             if i == 0 and show_path:
-                yield f" " * (
+                yield " " * (
                     BASE_INDENT + 1
                 ) + f"{with_color(Colors.cyan, f'{path}', bold=False)}"
 
-            yield f" " * (
+            yield " " * (
                 11 - len(line_number)
             ) + f"{line_number}┆ {line}" if line_number else f"{line}"
 
@@ -162,14 +164,14 @@ class TextFormatter(BaseFormatter):
                 trimmed_str = f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
                 yield " " * FINDINGS_INDENT_DEPTH + trimmed_str
             elif lines and show_separator:
-                yield f" " * FINDINGS_INDENT_DEPTH + f"⋮┆" + f"-" * 40
+                yield " " * FINDINGS_INDENT_DEPTH + "⋮┆" + "-" * 40
 
     @staticmethod
     def _finding_to_line(
         rule_match: RuleMatch,
         color_output: bool,
-        per_finding_max_lines_limit: Optional[int],
-        per_line_max_chars_limit: Optional[int],
+        per_finding_max_lines_limit: int | None,
+        per_line_max_chars_limit: int | None,
         show_separator: bool,
     ) -> Iterator[str]:
         path = rule_match.path
@@ -199,8 +201,8 @@ class TextFormatter(BaseFormatter):
         location: out.Location,
         content: str,
         color_output: bool,
-        per_finding_max_lines_limit: Optional[int],
-        per_line_max_chars_limit: Optional[int],
+        per_finding_max_lines_limit: int | None,
+        per_line_max_chars_limit: int | None,
     ) -> Iterator[str]:
         path = Path(location.path)
         is_same_file = path == ref_path
@@ -224,8 +226,8 @@ class TextFormatter(BaseFormatter):
         ref_path: Path,
         call_trace: out.CliMatchCallTrace,
         color_output: bool,
-        per_finding_max_lines_limit: Optional[int],
-        per_line_max_chars_limit: Optional[int],
+        per_finding_max_lines_limit: int | None,
+        per_line_max_chars_limit: int | None,
     ) -> Iterator[str]:
         trace = call_trace.value
         if isinstance(trace, out.CliLoc):
@@ -293,10 +295,10 @@ class TextFormatter(BaseFormatter):
     @staticmethod
     def _dataflow_trace_to_lines(
         rule_match_path: Path,
-        dataflow_trace: Optional[out.CliMatchDataflowTrace],
+        dataflow_trace: out.CliMatchDataflowTrace | None,
         color_output: bool,
-        per_finding_max_lines_limit: Optional[int],
-        per_line_max_chars_limit: Optional[int],
+        per_finding_max_lines_limit: int | None,
+        per_line_max_chars_limit: int | None,
         show_separator: bool,
     ) -> Iterator[str]:
         if dataflow_trace:
@@ -357,10 +359,10 @@ class TextFormatter(BaseFormatter):
                 yield ""
 
             if source and show_separator:
-                yield f" " * BASE_INDENT + f"⋮┆" + f"-" * 40
+                yield " " * BASE_INDENT + "⋮┆" + "-" * 40
 
     @staticmethod
-    def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
+    def _get_details_shortlink(rule_match: RuleMatch) -> str | None:
         source_url = rule_match.metadata.get("shortlink")
         if not source_url:
             return ""
@@ -454,12 +456,12 @@ class TextFormatter(BaseFormatter):
         core_time = time_data.profiling_times.get("core_time", 0.0)
         # time_data.profiling_times.get("ignores_time", 0.0)
 
-        yield f"\n============================[ summary ]============================"
+        yield "\n============================[ summary ]============================"
 
         yield f"Total time: {total_time:.4f}s Config time: {config_time:.4f}s Core time: {core_time:.4f}s"
 
         # Output semgrep-core information
-        yield f"\nSemgrep-core time:"
+        yield "\nSemgrep-core time:"
         yield f"Total CPU time: {all_total_time:.4f}s  File parse time: {file_parsing_time:.4f}s" f"  Rule parse time: {rule_parsing_time:.4f}s  Match time: {total_matching_time:.4f}s"
 
         yield f"Slowest {items_to_show}/{len(file_timings)} files"
@@ -485,7 +487,7 @@ class TextFormatter(BaseFormatter):
         headings = [ANALYZED, FAILED]
         max_heading_len = max(len(h) for h in headings) + 1  # for the space
 
-        def add_heading(heading: str, lines: List[str]) -> List[str]:
+        def add_heading(heading: str, lines: list[str]) -> list[str]:
             heading = heading + " " * (max_heading_len - len(heading))
             first = True
             returned = []
@@ -524,8 +526,8 @@ class TextFormatter(BaseFormatter):
     def _build_text_output(
         rule_matches: Iterable[RuleMatch],
         color_output: bool,
-        per_finding_max_lines_limit: Optional[int],
-        per_line_max_chars_limit: Optional[int],
+        per_finding_max_lines_limit: int | None,
+        per_line_max_chars_limit: int | None,
         dataflow_traces: bool,
     ) -> Iterator[str]:
         last_file = None
@@ -710,7 +712,7 @@ class TextFormatter(BaseFormatter):
             )
         if first_party_blocking:
 
-            def generate_output(header: str, matches: List[RuleMatch]) -> None:
+            def generate_output(header: str, matches: list[RuleMatch]) -> None:
                 if len(matches) > 0:
                     output = self._build_text_output(
                         matches,
@@ -736,7 +738,7 @@ class TextFormatter(BaseFormatter):
                     elif isinstance(x.match.extra.engine_kind.value, out.PRO):
                         pro_matches.append(x)
                 generate_output(f"{blocking_description}", oss_matches)
-                generate_output(f"Semgrep Pro Engine Findings", pro_matches)
+                generate_output("Semgrep Pro Engine Findings", pro_matches)
 
         first_party_blocking_rules_output = []
 

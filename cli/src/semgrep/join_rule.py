@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import tempfile
 from collections import defaultdict
@@ -52,7 +54,7 @@ class InvalidConditionError(SemgrepError):
 
 
 ### Utility functions
-def group(items: List[Any], key: Callable[[Any], Any]) -> Dict[Any, Any]:
+def group(items: list[Any], key: Callable[[Any], Any]) -> dict[Any, Any]:
     dd = defaultdict(list)
     for item in items:
         k = key(item)
@@ -76,7 +78,7 @@ class JoinOperator(Enum):
 @define
 class Ref:
     id: str
-    renames: Dict[str, str]
+    renames: dict[str, str]
     alias: str
 
 
@@ -89,7 +91,7 @@ class Condition:
     operator: JoinOperator
 
     @classmethod
-    def parse(cls, condition_string: str) -> "Condition":
+    def parse(cls, condition_string: str) -> Condition:
         try:
             lhs, operator, rhs = condition_string.split()
             # TODO: consider enforcing aliases to avoid extra dots
@@ -111,7 +113,7 @@ class BaseModel(pw.Model):  # type: ignore
         database = db
 
 
-def model_factory(model_name: str, columns: List[str]) -> Type[BaseModel]:
+def model_factory(model_name: str, columns: list[str]) -> type[BaseModel]:
     """
     Dynamically create a database model with the specified column names.
     By default, all columns will be TextFields.
@@ -152,7 +154,7 @@ def evaluate_condition(
     raise NotImplementedError(f"The operator '{operator}' is not supported.")
 
 
-def create_collection_set_from_conditions(conditions: List[Condition]) -> Set[str]:
+def create_collection_set_from_conditions(conditions: list[Condition]) -> set[str]:
     return set(
         chain(
             *[
@@ -164,10 +166,10 @@ def create_collection_set_from_conditions(conditions: List[Condition]) -> Set[st
 
 
 def match_on_conditions(  # type: ignore
-    model_map: Dict[str, Type[BaseModel]],
-    aliases: Dict[str, str],
-    conditions: List[Condition],
-) -> Optional[pw.ModelSelect]:
+    model_map: dict[str, type[BaseModel]],
+    aliases: dict[str, str],
+    conditions: list[Condition],
+) -> pw.ModelSelect | None:
     """
     Retrieve all the findings that satisfy the conditions.
 
@@ -211,18 +213,18 @@ def match_on_conditions(  # type: ignore
 
     # Use the rhs of the final condition as the finding to return.
     # Without this, the return value is non-deterministic.
-    last_condition_model: Type[BaseModel] = condition_terms[-1][2]
+    last_condition_model: type[BaseModel] = condition_terms[-1][2]
     query = (
         joined.select(last_condition_model.raw)
         .distinct()
         .where(
-            *list(map(lambda terms: evaluate_condition(*terms), condition_terms))  # type: ignore
+            *[evaluate_condition(*terms) for terms in condition_terms]  # type: ignore
         )
     )
     return query
 
 
-def create_config_map(semgrep_config_strings: List[str]) -> Dict[str, Rule]:
+def create_config_map(semgrep_config_strings: list[str]) -> dict[str, Rule]:
     """
     Create a mapping of Semgrep config strings to Rule objects.
     This will resolve the config strings into their Rule objects, as well.
@@ -241,8 +243,8 @@ def create_config_map(semgrep_config_strings: List[str]) -> Dict[str, Rule]:
 
 
 def rename_metavars_in_place(
-    semgrep_results: List[Dict[str, Any]],
-    refs_lookup: Dict[str, Ref],
+    semgrep_results: list[dict[str, Any]],
+    refs_lookup: dict[str, Ref],
 ) -> None:
     """
     Rename metavariables in-place for all results in 'semgrep_results'.
@@ -263,8 +265,8 @@ def rename_metavars_in_place(
 
 
 def create_model_map(
-    semgrep_results: List[Dict[str, Any]]
-) -> Dict[str, Type[BaseModel]]:
+    semgrep_results: list[dict[str, Any]]
+) -> dict[str, type[BaseModel]]:
     """
     Dynamically create 'peewee' model classes directly from Semgrep results.
     The models are stored in a mapping where the key is the rule ID.
@@ -272,22 +274,22 @@ def create_model_map(
 
     The return value is a mapping from rule ID to its model class.
     """
-    collections: Dict[str, List[Dict]] = group(
+    collections: dict[str, list[dict]] = group(
         semgrep_results, key=lambda item: item.get("check_id")
     )
-    model_map: Dict[str, Type[BaseModel]] = {}
+    model_map: dict[str, type[BaseModel]] = {}
     for name, findings in collections.items():
         metavars = set()
         for finding in findings:
             metavars.update(finding.get("extra", {}).get("metavars", {}).keys())
-        model_fields = ["path"] + list(metavars)
+        model_fields = ["path", *list(metavars)]
         model_class = model_factory(camel_case(name), model_fields)
         model_map[name] = model_class
     return model_map
 
 
 def load_results_into_db(
-    semgrep_results: List[Dict[str, Any]], model_map: Dict[str, Type[BaseModel]]
+    semgrep_results: list[dict[str, Any]], model_map: dict[str, type[BaseModel]]
 ) -> None:
     """
     Populate the models in the database directly from Semgrep results.
@@ -310,9 +312,9 @@ def load_results_into_db(
 
 
 def handle_recursive_conditions(
-    conditions: List[Condition],
-    model_map: Dict[str, Type[BaseModel]],
-    aliases: Dict[str, str],
+    conditions: list[Condition],
+    model_map: dict[str, type[BaseModel]],
+    aliases: dict[str, str],
 ) -> None:
     for condition in conditions:
         if condition.collection_a != condition.collection_b:
@@ -350,7 +352,7 @@ def handle_recursive_conditions(
         model_map[aliases.get(collection, "")] = new_model
 
 
-def generate_recursive_cte(model: Type[BaseModel], column1: str, column2: str) -> CTE:  # type: ignore
+def generate_recursive_cte(model: type[BaseModel], column1: str, column2: str) -> CTE:  # type: ignore
     first_clause = model.select(
         getattr(model, column1),
         getattr(model, column2),
@@ -364,8 +366,8 @@ def generate_recursive_cte(model: Type[BaseModel], column1: str, column2: str) -
 
 
 def cli_intermediate_vars_to_core_intermediate_vars(
-    i_vars: List[core.CliMatchIntermediateVar],
-) -> List[core.CoreMatchIntermediateVar]:
+    i_vars: list[core.CliMatchIntermediateVar],
+) -> list[core.CoreMatchIntermediateVar]:
     return [core.CoreMatchIntermediateVar(location=v.location) for v in i_vars]
 
 
@@ -417,7 +419,7 @@ def cli_trace_to_core_trace(
 # For join mode, we get the final output of Semgrep and then need to construct
 # RuleMatches from that. Ideally something would be refactored so that we don't
 # need to move backwards in the pipeline like this.
-def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> RuleMatch:
+def json_to_rule_match(join_rule: dict[str, Any], match: dict[str, Any]) -> RuleMatch:
     cli_match_extra = core.CliMatchExtra.from_json(match.get("extra", {}))
     dataflow_trace = (
         cli_trace_to_core_trace(cli_match_extra.dataflow_trace)
@@ -459,9 +461,9 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
 
 
 def run_join_rule(
-    join_rule: Dict[str, Any],
-    targets: List[Path],
-) -> Tuple[List[RuleMatch], List[SemgrepError]]:
+    join_rule: dict[str, Any],
+    targets: list[Path],
+) -> tuple[list[RuleMatch], list[SemgrepError]]:
     """
     Run a 'join' mode rule.
 
@@ -471,7 +473,7 @@ def run_join_rule(
     from different rules.
 
     'join_rule' is a join rule definition in dictionary form. The required keys are
-    {'id', 'mode', 'severity', 'message', 'join'}.
+    {'id', 'mode', 'severity', 'message', 'join'}.
 
     'join' is dictionary with the required keys {'refs', 'on'}.
 
@@ -498,7 +500,7 @@ def run_join_rule(
     semgrep_config_strings = [ref.get("rule") for ref in refs]
     config_map = create_config_map(semgrep_config_strings)
 
-    join_rule_refs: List[Ref] = [
+    join_rule_refs: list[Ref] = [
         Ref(
             id=config_map[ref.get("rule")].id,
             renames={

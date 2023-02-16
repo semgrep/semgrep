@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import io
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
 
 import pytest
 from ruamel.yaml import YAML
-
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import parse_config_string
 from semgrep.config_resolver import validate_single_rule
@@ -12,7 +13,7 @@ from semgrep.constants import RULES_KEY
 from semgrep.error import InvalidRuleSchemaError
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_parse_taint_rules():
     yaml_contents = dedent(
         """
@@ -53,7 +54,7 @@ def test_parse_taint_rules():
     assert True
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_multiple_configs():
     config1 = dedent(
         """
@@ -94,7 +95,7 @@ def test_multiple_configs():
         assert {"rule1", "rule2", "rule3"} == {rule.id for rule in rules}
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_default_yaml_type_safe():
     s = '!!python/object/apply:os.system ["echo Hello world"]'
 
@@ -112,7 +113,7 @@ def test_default_yaml_type_safe():
     assert unsafe_yaml.load(io.StringIO(s)) == 0
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_invalid_metavariable_regex():
     rule = dedent(
         """
@@ -135,7 +136,7 @@ def test_invalid_metavariable_regex():
         parse_config_string("testfile", rule, None)
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_invalid_metavariable_comparison():
     rule = dedent(
         """
@@ -158,7 +159,7 @@ def test_invalid_metavariable_comparison():
         parse_config_string("testfile", rule, None)
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_invalid_metavariable_comparison2():
     rule = dedent(
         """
@@ -181,7 +182,7 @@ def test_invalid_metavariable_comparison2():
         parse_config_string("testfile", rule, None)
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_invalid_pattern_child():
     rule = dedent(
         """
@@ -201,7 +202,7 @@ def test_invalid_pattern_child():
         parse_config_string("testfile", rule, None)
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_invalid_rule_with_null():
     rule = dedent(
         """

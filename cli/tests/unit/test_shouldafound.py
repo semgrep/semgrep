@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from pathlib import Path
 from textwrap import dedent
 
 import pytest
 from click.testing import CliRunner
-
 from semgrep.cli import cli
 from semgrep.commands import shouldafound
 from semgrep.error import SemgrepError
@@ -25,14 +26,14 @@ FILE_CONTENT = dedent(
 )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_read_all_lines(mocker):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=FILE_CONTENT))
     output = shouldafound._read_lines(Path("path/to/fake.go"), None, None)
     assert output == FILE_CONTENT
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_read_selected_lines(mocker):
     desired_content = dedent(
         """
@@ -47,7 +48,7 @@ def test_read_selected_lines(mocker):
     assert output == desired_content
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_read_single_line(mocker):
     # Format as single line, with 4 space indent, and a newline at the end (for playground compatibility)
     desired_content = """    fmt.Println("hello world")\n"""
@@ -56,7 +57,7 @@ def test_read_single_line(mocker):
     assert output == desired_content
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_read_args(tmp_path, mocker):
     api_content = {"playground_link": "https://foo.bar.semgrep.dev/playground/asdf"}
 
@@ -80,7 +81,7 @@ def test_read_args(tmp_path, mocker):
     )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_read_line_args(tmp_path, mocker):
     desired_content = dedent(
         """
@@ -126,7 +127,7 @@ def test_read_line_args(tmp_path, mocker):
     )
 
 
-@pytest.mark.quick
+@pytest.mark.quick()
 def test_handle_api_error(tmp_path, mocker):
 
     runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})

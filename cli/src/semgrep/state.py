@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import click
 from attrs import Factory
 from attrs import frozen

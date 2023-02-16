@@ -4,19 +4,21 @@ Tests for parse rates from semgrep.metrics.
 Ensures that the parse errors reported from core are correctly picked up by the
 CLI.
 """
+from __future__ import annotations
+
 import json
 import sys
 from pathlib import Path
 from shutil import copytree
 
 import pytest
+from semgrep.cli import cli
+
 from tests.conftest import TESTS_PATH
 from tests.semgrep_runner import SemgrepRunner
 
-from semgrep.cli import cli
 
-
-@pytest.mark.quick
+@pytest.mark.quick()
 @pytest.mark.skipif(
     sys.version_info < (3, 8),
     reason="snapshotting mock call kwargs doesn't work on py3.7",
