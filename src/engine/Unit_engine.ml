@@ -595,10 +595,10 @@ let tainting_test lang rules_file file =
              Match_tainting_mode.check_rules [ rule ]
                (fun _ _ -> ())
                xconf xtarget
-               (fun _rule f -> Some (f ()))
+               (fun _rule f -> f ())
            in
            match results with
-           | [ (_, Some (res, _)) ] -> res.matches
+           | [ res ] -> res.matches
            (* By construction, `check_rules` should only return the same number of results as rules it
               was initially given.
               With a timeout function that always returns Some, it should also never return None.

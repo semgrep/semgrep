@@ -144,7 +144,6 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
   let res_taint_rules =
     Match_tainting_mode.check_rules relevant_taint_rules match_hook xconf
       xtarget per_rule_boilerplate_fn
-    |> Common.map (fun (res, _TODO_debug_taint) -> res)
   in
   let res_nontaint_rules =
     relevant_nontaint_rules

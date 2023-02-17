@@ -85,8 +85,6 @@ type debug_taint = {
   sinks : (RM.t * R.taint_sink) list;
 }
 
-type taint_result = RP.rule_profiling RP.match_result * debug_taint
-
 (*****************************************************************************)
 (* Hooks *)
 (*****************************************************************************)
@@ -564,11 +562,15 @@ let check_fundef lang options taint_config opt_ent fdef =
 let check_rules (rules : R.taint_rule list) match_hook
     (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
     (per_rule_boilerplate_fn :
-      R.taint_rule -> (unit -> taint_result) -> taint_result) :
-    taint_result list =
+      R.rule ->
+      (unit -> RP.rule_profiling RP.match_result) ->
+      RP.rule_profiling RP.match_result) :
+    RP.rule_profiling RP.match_result list =
   rules
   |> Common.map (fun rule ->
-         per_rule_boilerplate_fn rule (fun () ->
+         per_rule_boilerplate_fn
+           (rule :> R.rule)
+           (fun () ->
              let matches = ref [] in
              let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
              let lang =
@@ -582,7 +584,9 @@ let check_rules (rules : R.taint_rule list) match_hook
              let (ast, skipped_tokens), parse_time =
                Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
              in
-             let taint_config, debug_taint, expls =
+             (* TODO: 'debug_taint' should just be part of 'res'
+              * (i.e., add a "debugging" field to 'Report.match_result'). *)
+             let taint_config, _TODO_debug_taint, expls =
                let handle_findings _ findings _env =
                  findings
                  |> List.iter (fun finding ->
@@ -649,4 +653,4 @@ let check_rules (rules : R.taint_rule list) match_hook
                else []
              in
              let report = { report with explanations } in
-             (report, debug_taint)))
+             report))
