@@ -98,7 +98,6 @@ CI scan completed successfully.
   Uploading findings.
 Would have sent findings and ignores blob: {
     "token": null,
-    "gitlab_token": null,
     "findings": [
         {
             "check_id": "taint-test",
