@@ -652,6 +652,10 @@ let check_rules (rules : R.taint_rule list) match_hook
          let xconf =
            Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
          in
+         (* This boilerplate function will take care of things like
+            timing out if this rule takes too long, and returning a dummy
+            result for the timed-out rule.
+         *)
          per_rule_boilerplate_fn
            (rule :> R.rule)
            (fun () -> check_rule rule match_hook xconf xtarget))
