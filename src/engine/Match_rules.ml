@@ -105,14 +105,9 @@ let group_rules xconf rules xtarget =
      to [Match_tainting_mode.check_rules].
   *)
   let relevant_taint_rules_groups =
-    let relevant_taint_rules_groups_hashtbl =
-      relevant_taint_rules
-      |> Common.map (fun r -> (r.R.languages, r))
-      |> Common.hash_of_list
-    in
-    relevant_taint_rules_groups_hashtbl |> Hashtbl.to_seq_keys |> List.of_seq
-    |> Common.map (fun l ->
-           Hashtbl.find_all relevant_taint_rules_groups_hashtbl l)
+    relevant_taint_rules
+    |> Common.map (fun r -> (r.R.languages, r))
+    |> Common.group_assoc_bykey_eff |> Common.map snd
   in
   (relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules)
 
