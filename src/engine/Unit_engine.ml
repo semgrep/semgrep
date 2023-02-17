@@ -591,10 +591,20 @@ let tainting_test lang rules_file file =
                lazy_ast_and_errors = lazy (ast, []);
              }
            in
-           let res, _debug =
-             Match_tainting_mode.check_rule rule (fun _ _ -> ()) xconf xtarget
+           let results =
+             Match_tainting_mode.check_rules [ rule ]
+               (fun _ _ -> ())
+               xconf xtarget
+               (fun _rule f -> Some (f ()))
            in
-           res.matches)
+           match results with
+           | [ (_, Some (res, _)) ] -> res.matches
+           (* By construction, `check_rules` should only return the same number of results as rules it
+              was initially given.
+              With a timeout function that always returns Some, it should also never return None.
+              So this case is impossible.
+           *)
+           | __else__ -> raise Impossible)
     |> List.flatten
   in
   let actual =

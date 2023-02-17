@@ -8,6 +8,8 @@ type debug_taint = {
 }
 (** To facilitate debugging of taint rules. *)
 
+type taint_result = Report.rule_profiling Report.match_result * debug_taint
+
 val hook_setup_hook_function_taint_signature :
   (Match_env.xconfig ->
   Rule.taint_rule ->
@@ -56,9 +58,11 @@ val check_fundef :
   * This is a low-level function exposed for debugging purposes (-dfg_tainting).
   *)
 
-val check_rule :
-  Rule.taint_rule ->
+val check_rules :
+  Rule.taint_rule list ->
   (string -> Pattern_match.t -> unit) ->
   Match_env.xconfig ->
   Xtarget.t ->
-  Report.rule_profiling Report.match_result * debug_taint
+  (Rule.taint_rule -> (unit -> taint_result) -> taint_result option) ->
+  (* timeout function *)
+  (Rule.taint_rule * taint_result option) list
