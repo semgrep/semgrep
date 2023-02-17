@@ -85,6 +85,15 @@ type debug_taint = {
   sinks : (RM.t * R.taint_sink) list;
 }
 
+module Xpat_tbl = Hashtbl.Make (struct
+  type t = Xpattern.t
+
+  let equal xp1 xp2 = fst xp1.Xpattern.pstr = fst xp2.Xpattern.pstr
+  let hash x = Hashtbl.hash (fst x.Xpattern.pstr)
+end)
+
+type xpat_env = (RM.ranges * ME.t list) Xpat_tbl.t
+
 (*****************************************************************************)
 (* Hooks *)
 (*****************************************************************************)
@@ -112,14 +121,27 @@ let option_bind_list opt f =
   | None -> []
   | Some x -> f x
 
+let xpat_cache : xpat_env = Xpat_tbl.create 128
+
 (* Finds all matches of a taint-spec pattern formula. *)
 let range_w_metas_of_formula (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
     (rule : Rule.t) (formula : Rule.formula) : RM.ranges * ME.t list =
   (* !! Calling Match_search_mode here !! *)
-  let report, ranges =
-    Match_search_mode.matches_of_formula xconf rule xtarget formula None
+  let doit () =
+    let report, ranges =
+      Match_search_mode.matches_of_formula xconf rule xtarget formula None
+    in
+    (match formula with
+    | P xpat -> Xpat_tbl.add xpat_cache xpat (ranges, report.explanations)
+    | __else__ -> ());
+    (ranges, report.explanations)
   in
-  (ranges, report.explanations)
+  match formula with
+  | P xpat -> (
+      match Xpat_tbl.find_opt xpat_cache xpat with
+      | None -> doit ()
+      | Some res -> res)
+  | __else__ -> doit ()
 
 type propagator_match = {
   id : D.var;
@@ -647,6 +669,7 @@ let check_rules (rules : R.taint_rule list) match_hook
       (unit -> RP.rule_profiling RP.match_result) ->
       RP.rule_profiling RP.match_result) :
     RP.rule_profiling RP.match_result list =
+  Xpat_tbl.clear xpat_cache;
   rules
   |> Common.map (fun rule ->
          let xconf =
