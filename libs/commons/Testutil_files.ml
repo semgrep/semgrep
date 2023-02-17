@@ -13,6 +13,21 @@ type t =
   | File of string * string
   | Symlink of string * string
 
+let get_name = function
+  | Dir (name, _)
+  | File (name, _)
+  | Symlink (name, _) -> name
+
+let rec sort xs =
+  Common.map sort_one xs
+  |> List.sort (fun a b -> String.compare (get_name a) (get_name b))
+
+and sort_one x =
+  match x with
+  | Dir (name, xs) -> Dir (name, sort xs)
+  | File _
+  | Symlink _ -> x
+
 let flatten ?(root = Fpath.v ".") ?(include_dirs = false) files =
   let rec flatten acc files =
     List.fold_left flatten_one acc files
@@ -157,15 +172,19 @@ let create_tempdir () =
   Lazy.force init_rng;
   loop 1
 
-let rec remove path =
-  let path_s = Fpath.basename path in
-  match (Unix.lstat path_s).st_kind with
-  | S_DIR ->
-      let names = get_dir_entries path in
-      List.iter (fun name -> remove (path / name)) names;
-      Unix.rmdir path_s
-  | _other ->
-      Sys.remove path_s
+let remove path =
+  let rec remove path =
+    let path_s = Fpath.to_string path in
+    match (Unix.lstat path_s).st_kind with
+    | S_DIR ->
+        let names = get_dir_entries path in
+        List.iter (fun name -> remove (path / name)) names;
+        Unix.rmdir path_s
+    | _other ->
+        Sys.remove path_s
+  in
+  if Sys.file_exists (Fpath.to_string path) then
+    remove path
 
 let with_tempdir ?(persist = false) ?(chdir = false) func =
   let dir = create_tempdir () in
@@ -197,6 +216,15 @@ let () = Testutil.test "Testutil_files" (fun () ->
     in
     write root tree;
     let tree2 = read root in
-    assert (tree2 = tree)
+    assert (sort tree2 = sort tree);
+
+    let paths = flatten tree |> Common.map Fpath.to_string in
+    List.iter print_endline paths;
+    assert (paths = [
+      "a";
+      "b";
+      "c";
+      "d/e"
+    ])
   )
 )

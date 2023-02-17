@@ -14,6 +14,11 @@ type t =
   | Symlink of string * string
 
 (*
+   Sort the files in a reasonable order. Useful for comparison purposes.
+*)
+val sort : t list -> t list
+
+(*
    Return one path per file or symlink the tree.
    'include_dirs=true' will return the path to the folders as well.
 *)
