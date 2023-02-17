@@ -601,7 +601,6 @@ let tainting_test lang rules_file file =
            | [ res ] -> res.matches
            (* By construction, `check_rules` should only return the same number of results as rules it
               was initially given.
-              With a timeout function that always returns Some, it should also never return None.
               So this case is impossible.
            *)
            | __else__ -> raise Impossible)

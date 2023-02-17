@@ -562,6 +562,7 @@ let check_fundef lang options taint_config opt_ent fdef =
 let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) =
   let matches = ref [] in
+
   let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
   let lang =
     match xlang with
@@ -597,9 +598,9 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     ast;
 
   (* Check the top-level statements.
-      * In scripting languages it is not unusual to write code outside
-      * function declarations and we want to check this too. We simply
-      * treat the program itself as an anonymous function. *)
+   * In scripting languages it is not unusual to write code outside
+   * function declarations and we want to check this too. We simply
+   * treat the program itself as an anonymous function. *)
   let (), match_time =
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
