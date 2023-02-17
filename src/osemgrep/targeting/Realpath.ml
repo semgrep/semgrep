@@ -89,14 +89,6 @@ let realpath_str s =
 (* Tests (Unix only) *)
 (**********************************************************)
 
-let with_chdir dir f =
-  let orig = Unix.getcwd () in
-  Fun.protect
-    ~finally:(fun () -> Unix.chdir orig)
-    (fun () ->
-      Unix.chdir dir;
-      f ())
-
 let make_test_tree () =
   let cmd =
     "rm -rf /tmp/test-realpath\n\
@@ -147,14 +139,14 @@ let test () =
       "/tmp/test-realpath/regfile/.";
       "/tmp/test-realpath/regfile/..";
     ];
-  with_chdir "/tmp/test-realpath/sub" (fun () ->
-      List.iter check
-        [
-          (".", "/tmp/test-realpath/sub");
-          ("..", "/tmp/test-realpath");
-          ("../link-to-tmp", "/tmp");
-          ("../link-to-tmp/test-realpath", "/tmp/test-realpath");
-        ])
+  Testutil_files.with_chdir (Fpath.v "/tmp/test-realpath/sub") (fun () ->
+    List.iter check
+      [
+        (".", "/tmp/test-realpath/sub");
+        ("..", "/tmp/test-realpath");
+        ("../link-to-tmp", "/tmp");
+        ("../link-to-tmp/test-realpath", "/tmp/test-realpath");
+      ])
 
 let () =
   match Sys.os_type with

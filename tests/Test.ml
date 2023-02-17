@@ -36,6 +36,7 @@ let any_gen_of_string str =
 
 (* temporary: force initialization of modules that aren't used yet *)
 let () = ignore Osemgrep_targeting.Semgrepignore.select
+let () = ignore Testutil_files.read
 
 (*
    Some test suites are created from files present in file system.
