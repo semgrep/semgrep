@@ -111,6 +111,37 @@ let group_rules xconf rules xtarget =
   in
   (relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules)
 
+(* Given a thunk [f] that computes the results of running the engine on a single
+    rule, this function simply instruments the computation on a single rule with
+    some boilerplate logic, like setting the last matched rule, timing out if
+    it takes too long, and producing a faulty match result in that case.
+
+    In particular, we need this to call [Match_tainting_mode.check_rules], which
+    will iterate over each rule in a different place, and so needs access to this
+    logic.
+*)
+let per_rule_boilerplate_fn ~timeout ~timeout_threshold file rule f =
+  let cnt_timeout = ref 0 in
+
+  let rule_id = fst rule.R.id in
+  Rule.last_matched_rule := Some rule_id;
+  let res_opt =
+    Profiling.profile_code (spf "real_rule:%s" rule_id) (fun () ->
+        (* here we handle the rule! *)
+        timeout_function rule file timeout f)
+  in
+  match res_opt with
+  | Some res -> res
+  | None ->
+      incr cnt_timeout;
+      if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
+        raise File_timeout;
+      let loc = Parse_info.first_loc_of_file file in
+      let error = E.mk_error ~rule_id:(Some rule_id) loc "" Out.Timeout in
+      RP.make_match_result []
+        (Report.ErrorSet.singleton error)
+        (RP.empty_rule_profiling rule)
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -123,37 +154,8 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
     logger#info "forcing eval of ast outside of rules, for better profile";
     Lazy.force lazy_ast_and_errors |> ignore);
 
-  let cnt_timeout = ref 0 in
-
-  (* Given a thunk [f] that computes the results of running the engine on a single
-     rule, this function simply instruments the computation on a single rule with
-     some boilerplate logic, like setting the last matched rule, timing out if
-     it takes too long, and producing a faulty match result in that case.
-
-     In particular, we need this to call [Match_tainting_mode.check_rules], which
-     will iterate over each rule in a different place, and so needs access to this
-     logic.
-  *)
-  let per_rule_boilerplate_fn r f =
-    let rule_id = fst r.R.id in
-    Rule.last_matched_rule := Some rule_id;
-    let res_opt =
-      Profiling.profile_code (spf "real_rule:%s" rule_id) (fun () ->
-          (* here we handle the rule! *)
-          timeout_function r file timeout f)
-    in
-    match res_opt with
-    | Some res -> res
-    | None ->
-        let rule_id = fst r.R.id in
-        incr cnt_timeout;
-        if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
-          raise File_timeout;
-        let loc = Parse_info.first_loc_of_file file in
-        let error = E.mk_error ~rule_id:(Some rule_id) loc "" Out.Timeout in
-        RP.make_match_result []
-          (Report.ErrorSet.singleton error)
-          (RP.empty_rule_profiling r)
+  let per_rule_boilerplate_fn =
+    per_rule_boilerplate_fn ~timeout ~timeout_threshold file
   in
 
   (* We separate out the taint rules specifically, because we may want to
@@ -169,8 +171,8 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
   let res_taint_rules =
     relevant_taint_rules_groups
     |> List.concat_map (fun relevant_taint_rules ->
-           Match_tainting_mode.check_rules relevant_taint_rules match_hook xconf
-             xtarget per_rule_boilerplate_fn)
+           Match_tainting_mode.check_rules ~match_hook ~per_rule_boilerplate_fn
+             relevant_taint_rules xconf xtarget)
   in
   let res_nontaint_rules =
     relevant_nontaint_rules

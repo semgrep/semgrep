@@ -640,12 +640,12 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
   let report = { report with explanations } in
   report
 
-let check_rules (rules : R.taint_rule list) match_hook
-    (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    (per_rule_boilerplate_fn :
-      R.rule ->
-      (unit -> RP.rule_profiling RP.match_result) ->
-      RP.rule_profiling RP.match_result) :
+let check_rules ~match_hook
+    ~(per_rule_boilerplate_fn :
+       R.rule ->
+       (unit -> RP.rule_profiling RP.match_result) ->
+       RP.rule_profiling RP.match_result) (rules : R.taint_rule list)
+    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) :
     RP.rule_profiling RP.match_result list =
   rules
   |> Common.map (fun rule ->

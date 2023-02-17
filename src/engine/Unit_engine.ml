@@ -592,10 +592,10 @@ let tainting_test lang rules_file file =
              }
            in
            let results =
-             Match_tainting_mode.check_rules [ rule ]
-               (fun _ _ -> ())
-               xconf xtarget
-               (fun _rule f -> f ())
+             Match_tainting_mode.check_rules
+               ~match_hook:(fun _ _ -> ())
+               ~per_rule_boilerplate_fn:(fun _rule f -> f ())
+               [ rule ] xconf xtarget
            in
            match results with
            | [ res ] -> res.matches
@@ -603,7 +603,9 @@ let tainting_test lang rules_file file =
               was initially given.
               So this case is impossible.
            *)
-           | __else__ -> raise Impossible)
+           | []
+           | _ :: _ :: _ ->
+               raise Impossible)
     |> List.flatten
   in
   let actual =
