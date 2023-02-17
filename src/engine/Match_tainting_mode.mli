@@ -66,3 +66,6 @@ val check_rules :
   Report.rule_profiling Report.match_result) ->
   (* timeout function *)
   Report.rule_profiling Report.match_result list
+(** Runs the engine on a group of taint rules, which should be for the same language.
+  * Running on multiple rules at once enables inter-rule optimizations.
+  *)
