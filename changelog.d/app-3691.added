@@ -1,0 +1,1 @@
+Detect a JSON Web Token from the `PIPELINES_JTW_TOKEN` environment variable in Bitbucket Pipelines to authenticate with the Bitbucket API.
