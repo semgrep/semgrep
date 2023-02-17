@@ -173,7 +173,7 @@ let o_include : string list Term.t =
         {|Filter files or directories by path. The argument is a
 glob-style pattern such as 'foo.*' that must match the path. This is
 an extra filter in addition to other applicable filters. For example,
-specifying the language with '-l javascript' migh preselect files
+specifying the language with '-l javascript' might preselect files
 'src/foo.jsx' and 'lib/bar.js'.  Specifying one of '--include=src',
 '-- include=*.jsx', or '--include=src/foo.*' will restrict the
 selection to the single file 'src/foo.jsx'. A choice of multiple '--
@@ -854,7 +854,7 @@ let man : Manpage.block list =
     `P "For more information about Semgrep, go to https://semgrep.dev.";
     `P
       "NOTE: By default, Semgrep will report pseudonymous usage metrics to its \
-       server if you pull your configuration from the Semgrep registy. To \
+       server if you pull your configuration from the Semgrep registry. To \
        learn more about how and why these metrics are collected, please see \
        https://semgrep.dev/docs/metrics. To modify this behavior, see the \
        --metrics option below.";
