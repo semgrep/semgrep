@@ -254,7 +254,9 @@
     }
   ],
   "searched_paths": [
-    "foo.py"
+    "poetry.lock",
+    "foo.py",
+    "yarn.lock"
   ],
   "renamed_paths": [],
   "rule_ids": [
