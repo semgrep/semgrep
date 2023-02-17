@@ -24,9 +24,9 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import Colors
-from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
+from semgrep.engine import EngineType
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
@@ -185,7 +185,7 @@ class OutputHandler:
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
-        self.engine_requested: EngineType = EngineType.OSS
+        self.requested_engine: EngineType = EngineType.OSS
 
         self.final_error: Optional[Exception] = None
         formatter_type = FORMATTERS.get(self.settings.output_format)
@@ -303,7 +303,7 @@ class OutputHandler:
         severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
-        engine: EngineType = EngineType.OSS,
+        requested_engine: EngineType = EngineType.OSS,
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -317,7 +317,7 @@ class OutputHandler:
         self.all_targets = all_targets
         self.filtered_rules = filtered_rules
 
-        self.engine_requested = engine
+        self.requested_engine = requested_engine
 
         if ignore_log:
             self.ignore_log = ignore_log
@@ -487,7 +487,7 @@ class OutputHandler:
             extra["dataflow_traces"] = self.settings.dataflow_traces
 
         # as opposed to below, we need to distinguish the various kinds of pro engine
-        extra["engine_requested"] = self.engine_requested
+        extra["engine_requested"] = self.requested_engine
 
         # the rules are used only by the SARIF formatter
         return self.formatter.output(
@@ -500,7 +500,7 @@ class OutputHandler:
                 explanations=explanations,
                 rules_by_engine=rules_by_engine,
                 # this flattens the information into just distinguishing "pro" and "not-pro"
-                engine_requested=self.engine_requested.to_engine_kind(),
+                engine_requested=self.requested_engine.to_engine_kind(),
             ),
             extra,
             self.severities,
