@@ -30,10 +30,11 @@ module G = AST_generic
  *)
 
 (*****************************************************************************)
-(* Types *)
+(* Helpers *)
 (*****************************************************************************)
 
 let error tk s = raise (Parse_info.Other_error (s, tk))
+let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Expr to expr *)
@@ -52,7 +53,7 @@ let rec expr_to_expr (e : G.expr) : A.expr =
       | G.Bool (b, tk) -> A.L (A.Bool (b, tk))
       | G.Int (Some i, tk) -> A.L (A.Number (string_of_int i, tk))
       | G.Float (Some f, tk) -> A.L (A.Number (string_of_float f, tk))
-      | G.String (s, tk) -> A.L (A.Str (A.mk_string_ (s, tk)))
+      | G.String x -> A.L (A.Str (A.mk_string_ x))
       | _else_ -> error ())
   (* in some YAML constructs like
    *   - metavariable-regex:
@@ -60,7 +61,7 @@ let rec expr_to_expr (e : G.expr) : A.expr =
    * the $EXN is actually passed as an Id, not a String
    * TODO? double check is_metavariable str?
    *)
-  | G.N (G.Id ((str, tk), _idinfo)) -> A.L (A.Str (A.mk_string_ (str, tk)))
+  | G.N (G.Id ((str, tk), _idinfo)) -> A.L (A.Str (A.mk_string_ (fb (str, tk))))
   | G.Container (kind, (l, xs, r)) -> (
       match kind with
       | G.Array ->
@@ -74,8 +75,7 @@ let rec expr_to_expr (e : G.expr) : A.expr =
                    | G.Container (G.Tuple, (l, [ k; v ], _)) ->
                        let fld_name =
                          match k.G.e with
-                         | G.L (G.String (s, tk)) ->
-                             A.FStr (A.mk_string_ (s, tk))
+                         | G.L (G.String x) -> A.FStr (A.mk_string_ x)
                          | _else_ -> error ()
                        in
                        A.OField

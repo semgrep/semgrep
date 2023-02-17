@@ -108,7 +108,7 @@ type type_ =
   (* tree-sitter-c: kind of poor's man generic via cpp *)
   | TMacroApply of name * type_ bracket
 
-and function_type = type_ * parameter list
+and function_type = type_ * parameter list (* TODO bracket *)
 
 and parameter =
   | ParamClassic of parameter_classic
@@ -129,12 +129,12 @@ and struct_kind = Struct | Union
 and expr =
   | Int of int option wrap
   | Float of float option wrap
-  | String of string wrap
+  | String of string wrap (* TODO: bracket *)
   | Char of string wrap
   (* c-ext:? *)
   | Null of tok
   | Bool of bool wrap
-  | ConcatString of string wrap list
+  | ConcatString of string wrap list (* TODO: bracket *)
   (* can be a cpp or enum constant (e.g. FOO), or a local/global/parameter
    * variable, or a function name.
    *)

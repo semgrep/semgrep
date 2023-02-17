@@ -21,9 +21,9 @@ poetry.lock:0:0:error(supply-chain1)::found a dependency
 === stderr - plain
                                                                                 
                                                                                 
-╭────────────────╮                                                              
+┌────────────────┐                                                              
 │ Debugging Info │                                                              
-╰────────────────╯                                                              
+└────────────────┘                                                              
                                                                                 
   SCAN ENVIRONMENT                                                              
   versions    - semgrep <MASKED> on python <MASKED>
@@ -31,24 +31,25 @@ poetry.lock:0:0:error(supply-chain1)::found a dependency
   server      - https://semgrep.dev                                             
                                                                                 
                                                                                 
-╭─────────────╮                                                                 
+┌─────────────┐                                                                 
 │ Scan Status │                                                                 
-╰─────────────╯                                                                 
+└─────────────┘                                                                 
                                                                                 
 Fetching configuration from semgrep.dev
 Authenticated as org_name
 Scanning 1 file with 4 python rules.
+
                                                                                 
                                                                                 
-╭─────────╮                                                                     
+┌─────────┐                                                                     
 │ Results │                                                                     
-╰─────────╯                                                                     
+└─────────┘                                                                     
                                                                                 
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.

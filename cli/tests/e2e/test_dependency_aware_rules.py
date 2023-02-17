@@ -5,6 +5,9 @@ from time import time
 import pytest
 
 from ..conftest import TESTS_PATH
+from semdep.package_restrictions import is_in_range
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -76,6 +79,22 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/yarn-sass.yaml",
             "dependency_aware/yarn_at_in_version",
         ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_extra_field",
+        ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_optional",
+        ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_release_version",
+        ),
+        (
+            "rules/dependency_aware/js-sca.yaml",
+            "dependency_aware/package-lock_resolved_false",
+        ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
@@ -83,6 +102,21 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
         run_semgrep_on_copied_files(rule, target_name=target).as_snapshot(),
         "results.txt",
     )
+
+
+@pytest.mark.parametrize(
+    "version,specifier",
+    [
+        ("1.2-beta-2", "> 1.0, < 1.2"),
+        ("1.2-beta-2", "> 1.2-alpha-6, < 1.2-beta-3"),
+        ("1.0.10.1", "< 1.0.10.2"),
+        ("1.0.10.2", "> 1.0.10.1, < 1.0.9.3"),  # Yes, seriously
+        ("1.3.4-SNAPSHOT", "< 1.3.4"),
+        ("1.0-SNAPSHOT", "> 1.0-alpha"),
+    ],
+)
+def test_maven_version_comparison(version, specifier):
+    assert is_in_range(Ecosystem(Maven()), specifier, version)
 
 
 @pytest.mark.parametrize(

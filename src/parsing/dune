@@ -31,6 +31,7 @@
    parser_bash.tree_sitter parser_bash.ast_generic
    parser_dockerfile.tree_sitter parser_dockerfile.ast_generic
    parser_jsonnet.tree_sitter parser_jsonnet.ast_generic
+   parser_terraform.tree_sitter parser_terraform.ast_generic
    ; directly to generic AST
    parser_lisp.tree_sitter
    parser_solidity.ast_generic
@@ -41,7 +42,6 @@
    parser_elixir.ast_generic
    parser_swift.ast_generic
    parser_julia.ast_generic
-   parser_hcl.ast_generic
    parser_r.ast_generic
 
    ; no ast, directoy to generic AST

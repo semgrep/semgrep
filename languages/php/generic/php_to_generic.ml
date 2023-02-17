@@ -255,7 +255,7 @@ and expr e : G.expr =
       G.L (G.Float v1) |> G.e
   | String v1 ->
       let v1 = wrap string v1 in
-      G.L (G.String v1) |> G.e
+      G.L (G.String (fb v1)) |> G.e
   | Id v1 ->
       let v1 = name_of_qualified_ident v1 in
       G.N v1 |> G.e
@@ -382,7 +382,7 @@ and expr e : G.expr =
        * generate an InterpolatedConcat because it's actually not an
        * interpolation ($VAR is interpreted as a metavar, not a PHP var)
        *)
-      | [ ({ e = G.L (G.String (str, _)); _ } as e) ]
+      | [ ({ e = G.L (G.String (_, (str, _), _)); _ } as e) ]
         when AST_generic.is_metavar_name str ->
           e
       | _else_ ->
@@ -431,7 +431,7 @@ and expr e : G.expr =
           (* TODO: transform l_uses in UseOuterDecl preceding body *)
           G.Lambda
             {
-              G.fparams = ps;
+              G.fparams = fb ps;
               frettype = rett;
               fbody = G.FBStmt body;
               fkind = (lambdakind, t);
@@ -542,7 +542,7 @@ and func_def
   let body = stmt f_body in
   let ent = G.basic_entity id ~attrs:(modifiers @ attrs) in
   let def =
-    { G.fparams = params; frettype = fret; fbody = G.FBStmt body; fkind }
+    { G.fparams = fb params; frettype = fret; fbody = G.FBStmt body; fkind }
   in
   (ent, def)
 
@@ -554,7 +554,7 @@ and function_kind (kind, t) =
     | Method -> G.Method),
     t )
 
-and parameters x = list parameter x
+and parameters x : G.parameter list = list parameter x
 
 and parameter x =
   match x with
@@ -654,7 +654,7 @@ and class_def
       cextends = extends |> Option.to_list;
       cimplements = implements;
       cmixins = uses;
-      cparams = [];
+      cparams = fb [];
       cbody = (t1, fields |> Common.map (fun def -> G.fld def), t2);
     }
   in

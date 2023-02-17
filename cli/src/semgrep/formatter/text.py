@@ -144,7 +144,7 @@ class TextFormatter(BaseFormatter):
                     line = line + colorama.Style.RESET_ALL
 
             # plus one because we want this to be slightly separated from the intervening messages
-            if show_path:
+            if i == 0 and show_path:
                 yield f" " * (
                     BASE_INDENT + 1
                 ) + f"{with_color(Colors.cyan, f'{path}', bold=False)}"
@@ -195,6 +195,7 @@ class TextFormatter(BaseFormatter):
 
     @staticmethod
     def _match_to_lines(
+        ref_path: Path,
         location: out.Location,
         content: str,
         color_output: bool,
@@ -202,6 +203,7 @@ class TextFormatter(BaseFormatter):
         per_line_max_chars_limit: Optional[int],
     ) -> Iterator[str]:
         path = Path(location.path)
+        is_same_file = path == ref_path
         lines = get_lines(path, location.start.line, location.end.line)
         yield from TextFormatter._format_lines(
             path,
@@ -214,11 +216,12 @@ class TextFormatter(BaseFormatter):
             per_finding_max_lines_limit,
             per_line_max_chars_limit,
             False,
-            True,
+            not is_same_file,
         )
 
     @staticmethod
     def _call_trace_to_lines(
+        ref_path: Path,
         call_trace: out.CliMatchCallTrace,
         color_output: bool,
         per_finding_max_lines_limit: Optional[int],
@@ -227,6 +230,7 @@ class TextFormatter(BaseFormatter):
         trace = call_trace.value
         if isinstance(trace, out.CliLoc):
             yield from TextFormatter._match_to_lines(
+                ref_path,
                 trace.value[0],
                 trace.value[1],
                 color_output,
@@ -238,6 +242,7 @@ class TextFormatter(BaseFormatter):
             data, intermediate_vars, call_trace = trace.value
 
             yield from TextFormatter._match_to_lines(
+                ref_path,
                 data[0],
                 data[1],
                 color_output,
@@ -252,9 +257,12 @@ class TextFormatter(BaseFormatter):
                     BASE_INDENT * " "
                     + "Taint flows through these intermediate variables:"
                 )
+                prev_path = ref_path
                 for var in intermediate_vars:
                     loc = var.location
+                    path = Path(loc.path)
                     lines = get_lines(Path(loc.path), loc.start.line, loc.end.line)
+                    is_same_file = path == prev_path
                     yield from TextFormatter._format_lines(
                         Path(loc.path),
                         loc.start.line,
@@ -266,14 +274,16 @@ class TextFormatter(BaseFormatter):
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
                         False,
-                        False,
+                        not is_same_file,
                     )
+                    prev_path = path
 
             if isinstance(call_trace.value, out.CliCall):
                 yield (BASE_INDENT * " " + "then call to:")
             elif isinstance(call_trace.value, out.CliLoc):
                 yield (BASE_INDENT * " " + "then reaches:")
             yield from TextFormatter._call_trace_to_lines(
+                ref_path,
                 call_trace,
                 color_output,
                 per_finding_max_lines_limit,
@@ -282,10 +292,12 @@ class TextFormatter(BaseFormatter):
 
     @staticmethod
     def _dataflow_trace_to_lines(
+        rule_match_path: Path,
         dataflow_trace: Optional[out.CliMatchDataflowTrace],
         color_output: bool,
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
+        show_separator: bool,
     ) -> Iterator[str]:
         if dataflow_trace:
             source = dataflow_trace.taint_source
@@ -296,6 +308,7 @@ class TextFormatter(BaseFormatter):
                 yield ""
                 yield (BASE_INDENT * " " + "Taint comes from:")
                 yield from TextFormatter._call_trace_to_lines(
+                    rule_match_path,
                     source,
                     color_output,
                     per_finding_max_lines_limit,
@@ -310,11 +323,14 @@ class TextFormatter(BaseFormatter):
                     BASE_INDENT * " "
                     + "Taint flows through these intermediate variables:"
                 )
+                prev_path = rule_match_path
                 for var in intermediate_vars:
                     loc = var.location
-                    lines = get_lines(Path(loc.path), loc.start.line, loc.end.line)
+                    path = Path(loc.path)
+                    lines = get_lines(path, loc.start.line, loc.end.line)
+                    is_same_file = path == prev_path
                     yield from TextFormatter._format_lines(
-                        Path(loc.path),
+                        path,
                         loc.start.line,
                         loc.start.col,
                         loc.end.line,
@@ -324,19 +340,24 @@ class TextFormatter(BaseFormatter):
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
                         False,
-                        False,
+                        not is_same_file,
                     )
+                    prev_path = path
 
             if sink:
                 yield ""
                 yield (BASE_INDENT * " " + "This is how taint reaches the sink:")
                 yield from TextFormatter._call_trace_to_lines(
+                    rule_match_path,
                     sink,
                     color_output,
                     per_finding_max_lines_limit,
                     per_line_max_chars_limit,
                 )
                 yield ""
+
+            if source and show_separator:
+                yield f" " * BASE_INDENT + f"⋮┆" + f"-" * 40
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
@@ -575,17 +596,19 @@ class TextFormatter(BaseFormatter):
                 # if we have dataflow traces on, then we should print the separator,
                 # because otherwise it is easy to mistake taint traces as belonging
                 # to a different finding
-                is_same_file or dataflow_traces,
+                is_same_file and not (dataflow_traces and rule_match.dataflow_trace),
             )
 
             if dataflow_traces:
                 indented_dataflow_trace = (
                     (2 * " ") + s
                     for s in TextFormatter._dataflow_trace_to_lines(
+                        rule_match.path,
                         rule_match.dataflow_trace,
                         color_output,
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
+                        is_same_file,
                     )
                 )
 
@@ -749,10 +772,7 @@ class TextFormatter(BaseFormatter):
         ]
 
         rules_output = []
-        if (
-            cli_output_extra.engine_requested is None
-            or not isinstance(cli_output_extra.engine_requested.value, out.OSS)
-        ) and oss_rules:
+        if (extra["engine_requested"].is_interfile) and oss_rules:
             rules_output = [
                 "\nSome rules were run as OSS rules because `interfile: true` was not specified.\n"
             ]

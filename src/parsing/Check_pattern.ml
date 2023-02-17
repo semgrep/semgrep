@@ -19,7 +19,7 @@ let lang_has_no_dollar_ids =
     | Json
     | Jsonnet
     | Yaml
-    | Hcl
+    | Terraform
     | Csharp
     | Kotlin
     | Lua

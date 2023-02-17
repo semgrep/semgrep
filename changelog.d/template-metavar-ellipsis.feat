@@ -1,1 +1,0 @@
-Allow metavariable ellipsis in template literals, e.g. `$...X${1 + 2}`

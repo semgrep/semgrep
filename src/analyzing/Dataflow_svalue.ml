@@ -39,7 +39,7 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
-type constness_type = Constant | NotAlwaysConstant [@@deriving show]
+type constness = Constant | NotConstant [@@deriving show]
 
 (*****************************************************************************)
 (* Error management *)
@@ -54,34 +54,15 @@ let warning _tok s =
 (*****************************************************************************)
 
 let str_of_name name = spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
-
-(* TODO: depends on the language? sometimes '.', sometimes '->' or '#' *)
-let str_of_canonical_name name = String.concat "." name
+let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Constness *)
 (*****************************************************************************)
 
-let hook_constness_table_of_functions = ref None
+let hook_constness_of_function = ref None
 
 let result_of_function_call_is_constant lang f args =
-  let check_f f_name =
-    match !hook_constness_table_of_functions with
-    | Some constness_f -> (
-        match constness_f f_name with
-        | Some Constant ->
-            logger#trace "%s is always constant" f_name;
-            true
-        | Some NotAlwaysConstant ->
-            logger#trace "%s is not always constant" f_name;
-            false
-        | None ->
-            logger#trace "we have no information about the constness of %s"
-              f_name;
-            false)
-    | _ -> false
-  in
-
   match (lang, f, args) with
   (* Built-in knowledge, we know these functions return constants when
      * given constant arguments. *)
@@ -102,34 +83,17 @@ let result_of_function_call_is_constant lang f args =
       },
       [ (G.Lit (G.String _) | G.Cst G.Cstr) ] ) ->
       true
-  (* DeepSemgrep: Look up inferred constness of the function *)
-  | ( _,
-      {
-        (* If there is an offset, the full resolved name will be found
-           there. Otherwise, it will be found in the base *)
-        e =
-          ( Fetch
-              {
-                rev_offset =
-                  { o = Dot { ident; id_info = { id_resolved; _ }; _ }; _ } :: _;
-                _;
-              }
-          | Fetch
-              {
-                base = Var { ident; id_info = { id_resolved; _ }; _ };
-                rev_offset = [] | { o = Index _; _ } :: _;
-              } );
-        _;
-      },
-      _ ) -> (
-      match !id_resolved with
-      | Some (G.GlobalName (name, _alternate_names), _) ->
-          let f_name = str_of_canonical_name name in
-          check_f f_name
-      | _ ->
-          logger#info "%s does not have a resolved name" (fst ident);
-          false)
-  | _ -> false
+  (* Pro/Interfile: Look up inferred constness of the function *)
+  | _lang, { e = Fetch _; eorig = SameAs eorig }, _args -> (
+      match !hook_constness_of_function with
+      | Some constness_of_func -> (
+          match constness_of_func eorig with
+          | Some Constant -> true
+          | Some NotConstant
+          | None ->
+              false)
+      | None -> false)
+  | __else__ -> false
 
 let eq_literal l1 l2 = G.equal_literal l1 l2
 let eq_ctype t1 t2 = t1 =*= t2
@@ -236,7 +200,7 @@ let int_of_literal = function
   | G.Int (x, _) -> x
   | ___else___ -> None
 
-let literal_of_string ?tok s =
+let literal_of_string ?tok s : G.literal =
   let tok =
     match tok with
     | None -> Parse_info.unsafe_fake_info s
@@ -249,7 +213,7 @@ let literal_of_string ?tok s =
          * an $MVAR always has a source location. *)
         tok
   in
-  G.String (s, tok)
+  G.String (fb (s, tok))
 
 let eval_unop_bool op b =
   match op with
@@ -363,7 +327,8 @@ and eval_op env wop args =
       eval_binop_bool op b1 b2
   | op, [ G.Lit (G.Int _ as li1); G.Lit (G.Int _ as li2) ] ->
       eval_binop_int tok op (int_of_literal li1) (int_of_literal li2)
-  | op, [ G.Lit (G.String (s1, _)); G.Lit (G.String (s2, _)) ] ->
+  | op, [ G.Lit (G.String (_, (s1, _), _)); G.Lit (G.String (_, (s2, _), _)) ]
+    ->
       eval_binop_string ~tok op s1 s2
   | _op, [ (G.Cst _ as c1) ] -> c1
   | _op, [ G.Cst t1; G.Cst t2 ] -> G.Cst (union_ctype t1 t2)
@@ -376,12 +341,14 @@ and eval_op env wop args =
 and eval_concat env args =
   match Common.map (eval env) args with
   | [] -> G.Lit (literal_of_string "")
-  | G.Lit (G.String (r, tok)) :: args' ->
+  | G.Lit (G.String (_, (r, tok), _)) :: args' ->
       List.fold_left
         (fun res e ->
           match (res, e) with
-          | G.Lit (G.String (r, tok)), G.Lit (G.String (s, _)) ->
-              G.Lit (literal_of_string ~tok (r ^ s))
+          | G.Lit (G.String (_l, (x, tok), _r)), G.Lit (G.String (_, (s, _), _))
+            ->
+              (* should reuse l/r? *)
+              G.Lit (literal_of_string ~tok (x ^ s))
           | (G.Lit _ | G.Cst _), G.Cst G.Cstr -> G.Cst G.Cstr
           | _____else_____ -> G.NotCst)
         (G.Lit (literal_of_string ~tok r))

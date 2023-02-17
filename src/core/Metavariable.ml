@@ -106,7 +106,8 @@ let mvalue_to_any = function
   | Xmls x -> G.Xmls x
   | T x -> G.T x
   | P x -> G.P x
-  | Text (s, info, _) -> G.E (G.L (G.String (s, info)) |> G.e)
+  | Text (s, info, _) ->
+      G.E (G.L (G.String (Parse_info.unsafe_fake_bracket (s, info))) |> G.e)
 
 (* coupling: this function should be an inverse to the function above! *)
 let mvalue_of_any = function
@@ -114,7 +115,8 @@ let mvalue_of_any = function
   | E { e = RawExpr x; _ }
   | Raw x ->
       Some (Raw x)
-  | E { e = L (String (s, info)); _ } -> Some (Text (s, info, G.fake ""))
+  | E { e = L (String (_, (s, info), _)); _ } ->
+      Some (Text (s, info, G.fake ""))
   | E e -> Some (E e)
   | S s -> Some (S s)
   | Name x -> Some (N x)

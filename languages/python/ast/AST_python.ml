@@ -110,7 +110,9 @@ type expr =
    * content is string wrap bracket where bracket are enclosing
    * quote/double-quote/triple-quotes
    *)
-  | Str of string wrap (* s *)
+  | Str of string wrap
+  (* s *)
+  (* TODO bracket *)
   (* TODO: we should split the token in r'foo' in two, one string wrap
    * for the prefix and a string wrap for the string itself. *)
   | EncodedStr of string wrap * string (* prefix *)
@@ -255,6 +257,7 @@ and argument =
 (* ------------------------------------------------------------------------- *)
 (* Parameters (used for Lambda above and function_definition below) *)
 (* ------------------------------------------------------------------------- *)
+(* TODO: add bracket *)
 and parameters = parameter list
 
 and parameter =

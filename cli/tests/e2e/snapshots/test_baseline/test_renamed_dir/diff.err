@@ -1,4 +1,5 @@
 Scanning 2 files.
+
   Current version has 2 findings.
 
 Switching repository to baseline commit 'HEAD^'.
@@ -6,11 +7,12 @@ Switching repository to baseline commit 'HEAD^'.
     * 94d55d4 commit #2
 
 Scanning 2 files.
+
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.

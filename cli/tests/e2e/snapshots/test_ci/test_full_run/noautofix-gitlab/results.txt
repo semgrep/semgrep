@@ -50,9 +50,9 @@ Blocking Rules Fired:
 === stderr - plain
                                                                                 
                                                                                 
-╭────────────────╮                                                              
+┌────────────────┐                                                              
 │ Debugging Info │                                                              
-╰────────────────╯                                                              
+└────────────────┘                                                              
                                                                                 
   SCAN ENVIRONMENT                                                              
   versions    - semgrep <MASKED> on python <MASKED>
@@ -61,13 +61,14 @@ Blocking Rules Fired:
   server      - https://semgrep.dev                                             
                                                                                 
                                                                                 
-╭─────────────╮                                                                 
+┌─────────────┐                                                                 
 │ Scan Status │                                                                 
-╰─────────────╯                                                                 
+└─────────────┘                                                                 
                                                                                 
 Fetching configuration from semgrep.dev
 Authenticated as org_name
 Scanning 1 file with 4 python rules.
+
   Current version has 14 findings.
 
 Switching repository to baseline commit '<MASKED>'.
@@ -75,17 +76,18 @@ Switching repository to baseline commit '<MASKED>'.
     * <MASKED> Some other commit/ message
 
 Scanning 1 file with 4 python rules.
+
                                                                                 
                                                                                 
-╭─────────╮                                                                     
+┌─────────┐                                                                     
 │ Results │                                                                     
-╰─────────╯                                                                     
+└─────────┘                                                                     
                                                                                 
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.

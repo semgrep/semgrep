@@ -28,6 +28,7 @@ module A = AST_jsonnet
 (*****************************************************************************)
 
 let error tk s = raise (Parse_info.Other_error (s, tk))
+let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Entry point *)
@@ -41,7 +42,7 @@ let rec value_to_expr (v : V.value_) : G.expr =
         | V.Null tk -> G.Null tk
         | V.Bool (b, tk) -> G.Bool (b, tk)
         | V.Double (f, tk) -> G.Float (Some f, tk)
-        | V.Str (s, tk) -> G.String (s, tk)
+        | V.Str (s, tk) -> G.String (fb (s, tk))
       in
       G.L literal |> G.e
   | V.Function { f_tok = tk; _ } -> error tk "Function value"
@@ -64,7 +65,7 @@ let rec value_to_expr (v : V.value_) : G.expr =
                | A.ForcedVisible ->
                    let v = Lazy.force fld_value.v in
                    let e = value_to_expr v in
-                   let k = G.L (G.String fld_name) |> G.e in
+                   let k = G.L (G.String (fb fld_name)) |> G.e in
                    Some (G.keyval k (snd fld_name) e))
       in
       G.Container (G.Dict, (l, xs, r)) |> G.e

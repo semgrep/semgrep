@@ -228,7 +228,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                 match (xlang, mval) with
                 | _, MV.Text (content, _tok, _)
                 | _, MV.Xmls [ XmlText (content, _tok) ]
-                | _, MV.E { e = G.L (G.String (content, _tok)); _ } ->
+                | _, MV.E { e = G.L (G.String (_, (content, _tok), _)); _ } ->
                     Some content
                 | Xlang.LGeneric, _else_ ->
                     Some (Range.content_at_range mval_file mval_range)
@@ -261,9 +261,14 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                               let { Parse_target.ast; skipped_tokens; _ } =
                                 Parse_target.parse_and_resolve_name lang file
                               in
-                              (* TODO: If we wanted to report the parse errors
-                               * then we should fix the parse info with
-                               * Parse_info.adjust_info_wrt_base! *)
+                              (* Reposition the errors to the original source
+                               * text, so that we don't report them to the end
+                               * user as being from the temp file that we
+                               * created. *)
+                              let skipped_tokens =
+                                skipped_tokens
+                                |> Common.map (fun tok -> revert_loc tok)
+                              in
                               if skipped_tokens <> [] then
                                 pr2
                                   (spf

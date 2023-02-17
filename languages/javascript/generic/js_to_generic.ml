@@ -216,7 +216,7 @@ and literal x : G.literal =
       G.Float v1
   | String v1 ->
       let v1 = wrap string v1 in
-      G.String v1
+      G.String (fb v1)
   | Regexp (v1, v2) ->
       let v1 = bracket (wrap string) v1 in
       let v2 = option (wrap string) v2 in
@@ -557,7 +557,7 @@ and fun_ { f_kind; f_attrs = f_props; f_params; f_body; f_rettype } =
   let v2 = list parameter_binding f_params in
   let v3 = stmt f_body |> as_block in
   let frettype = option type_ f_rettype in
-  ({ G.fparams = v2; frettype; fbody = G.FBStmt v3; fkind = f_kind }, v1)
+  ({ G.fparams = fb v2; frettype; fbody = G.FBStmt v3; fkind = f_kind }, v1)
 
 and parameter_binding = function
   | ParamClassic x -> parameter x
@@ -640,7 +640,7 @@ and class_ { c_extends; c_implements; c_body; c_kind; c_attrs } =
       cextends;
       cimplements;
       cmixins = [];
-      cparams = [];
+      cparams = fb [];
       cbody = v2;
     },
     attrs )
@@ -709,7 +709,7 @@ and module_directive x =
   match x with
   | ReExportNamespace (v1, _v2, _opt_alias, _v3, v4) ->
       let v4 = filename v4 in
-      G.OtherDirective (("ReExportNamespace", v1), [ G.Str v4 ])
+      G.OtherDirective (("ReExportNamespace", v1), [ G.Str (fb v4) ])
   | Import (t, v1, v2) ->
       let v1 =
         Common.map

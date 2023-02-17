@@ -3,17 +3,18 @@ Scanning across multiple languages:
     python | 3 rules × 11 files
         js | 1 rule  ×  3 files
 
+
                                                                                 
                                                                                 
-╭─────────╮                                                                     
+┌─────────┐                                                                     
 │ Results │                                                                     
-╰─────────╯                                                                     
+└─────────┘                                                                     
                                                                                 
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.

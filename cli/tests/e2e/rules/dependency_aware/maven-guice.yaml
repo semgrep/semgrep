@@ -1,0 +1,9 @@
+rules:
+  - id: maven-guice
+    r2c-internal-project-depends-on:
+      namespace: maven
+      package: com.google.inject:guice
+      version: <= 4.3.3
+    message: got em
+    languages: [java]
+    severity: WARNING

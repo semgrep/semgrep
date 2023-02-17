@@ -229,7 +229,7 @@ and expr =
 and literal =
   | Bool of bool wrap
   | Num of float option wrap
-  | String of string wrap
+  | String of string wrap (* TODO: bracket, like for Regexp below *)
   | Regexp of string wrap bracket (* // *) * string wrap option (* modifier *)
 
 and a_arguments = a_argument list bracket
@@ -433,7 +433,7 @@ and function_definition = {
   f_kind : AST_generic.function_kind wrap;
   (* less: move that in entity? but some anon func have attributes too *)
   f_attrs : attribute list;
-  f_params : parameter list;
+  f_params : parameter list; (* TODO: bracket *)
   (* typescript-ext: *)
   f_rettype : type_ option;
   f_body : stmt;

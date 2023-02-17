@@ -145,6 +145,7 @@ let error_with_rule_id rule_id (error : E.error) =
   | _ -> { error with rule_id = Some rule_id }
 
 let lazy_force x = Lazy.force x [@@profiling]
+let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Adapters *)
@@ -554,7 +555,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                 * but too many possible escaping problems, so easier to build
                 * an expression manually.
                 *)
-               let re_exp = G.L (G.String (re_str, fk)) |> G.e in
+               let re_exp = G.L (G.String (fb (re_str, fk))) |> G.e in
                let mvar_exp = G.N (G.Id ((mvar, fk), fki)) |> G.e in
                let call_re_match re_exp str_exp =
                  G.Call
@@ -621,7 +622,23 @@ and get_nested_formula_matches env formula range =
       { env.xconf with nested_formula = true }
       env.rule env.xtarget formula (Some range)
   in
-  env.errors := Report.ErrorSet.union res.RP.errors !(env.errors);
+  (* Update the error messages with some more context. Otherwise it will appear
+   * as if, for example, we encountered a parse error while parsing the original
+   * file as the original language. *)
+  let nested_errors =
+    let lang = env.xtarget.xlang |> Xlang.to_string in
+    let rule = fst env.rule.id in
+    res.RP.errors
+    |> RP.ErrorSet.map (fun err ->
+           let msg =
+             spf
+               "When parsing a snippet as %s for metavariable-pattern in rule \
+                '%s', %s"
+               lang rule err.msg
+           in
+           { err with msg })
+  in
+  env.errors := Report.ErrorSet.union nested_errors !(env.errors);
   final_ranges
 
 (*****************************************************************************)

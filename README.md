@@ -46,11 +46,12 @@ Its rules look like the code you already write; no abstract syntax trees, regex 
     <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/doc/playground-example.png" width="582" alt="Semgrep rule example for finding Python print() statements"/></a>
 </p>
 
-The Semgrep ecosystem includes:
+The Semgrep ecosystem includes the following products:
 
-- Semgrep - The open-source command line tool at the heart of everything (this project).
-- [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain) - high-signal dependency scanner that detects reachable vulnerabilities in third-party libraries and functions across the SDLC.
-- [Semgrep App](https://semgrep.dev/manage) - Deploy, manage, and monitor Semgrep and Semgrep Supply Chain at scale with free and paid tiers. Integrates with CI providers such as GitHub, GitLab, CircleCI, and more.
+- Semgrep OSS Engine - The open-source engine at the heart of everything (this project).
+- [Semgrep Cloud Platform (SCP)](https://semgrep.dev/login) - Deploy, manage, and monitor SAST and SCA at scale using Semgrep, with [free and paid tiers](https://semgrep.dev/pricing). Integrates with continuous integration (CI) providers such as GitHub, GitLab, CircleCI, and more.
+- [Semgrep Code](https://semgrep.dev/products/semgrep-code) - Scan your code with Semgrep's Pro rules and Semgrep Pro Engine to find OWASP Top 10 vulnerabilities and protect against critical security risks specific to your organization. Semgrep Code provides both Community (free) and Team (paid) tiers.
+- [Semgrep Supply Chain (SSC)](https://semgrep.dev/products/semgrep-supply-chain) - A high-signal dependency scanner that detects reachable vulnerabilities in open source third-party libraries and functions across the software development life cycle (SDLC). Semgrep Supply Chain is available on Team (paid) tiers.
 
 and:
 

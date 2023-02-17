@@ -3,17 +3,18 @@ No .semgrepignore found. Using default .semgrepignore rules. See the docs for th
 Rules:
 - rules.eqeq-bad
 Scanning 1 file.
+
                                                                                 
                                                                                 
-╭─────────╮                                                                     
+┌─────────┐                                                                     
 │ Results │                                                                     
-╰─────────╯                                                                     
+└─────────┘                                                                     
                                                                                 
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 
 ========================================

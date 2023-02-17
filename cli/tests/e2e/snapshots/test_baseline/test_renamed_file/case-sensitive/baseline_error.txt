@@ -1,4 +1,5 @@
 Scanning 1 file.
+
   Current version has 2 findings.
 
 Switching repository to baseline commit 'baseline-commit'.
@@ -6,17 +7,18 @@ Switching repository to baseline commit 'baseline-commit'.
     * 11a6bea commit #2
 
 Scanning 1 file.
+
                                                                                 
                                                                                 
-╭─────────╮                                                                     
+┌─────────┐                                                                     
 │ Results │                                                                     
-╰─────────╯                                                                     
+└─────────┘                                                                     
                                                                                 
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.

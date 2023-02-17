@@ -31,6 +31,7 @@ BRANCH_NAME = "some/branch-name"
 MAIN_BRANCH_NAME = "main"
 COMMIT_MESSAGE = "some: commit message! foo"
 COMMIT_MESSAGE_2 = "Some other commit/ message"
+REMOTE_REPO_URL = "git@github.com:example/fake.git"
 DEPLOYMENT_ID = 33
 BAD_CONFIG = dedent(
     """
@@ -257,7 +258,10 @@ def mock_autofix(request, mocker):
 @pytest.mark.parametrize(
     "env",
     [
-        {"SEMGREP_APP_TOKEN": "dummy"},  # Local run with no CI env vars
+        {  # Local run with no CI env vars
+            "SEMGREP_APP_TOKEN": "dummy",
+            "SEMGREP_REPO_URL": REMOTE_REPO_URL,
+        },
         {  # Github full scan
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -533,6 +537,7 @@ def test_full_run(
     snapshot,
     env,
     run_semgrep,
+    mocker,
     mock_autofix,
 ):
     repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
@@ -648,9 +653,6 @@ def test_full_run(
 
     complete_json = post_calls[2].kwargs["json"]
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
-    complete_json["stats"][
-        "event_id"
-    ] = "xxxxxxxxxx"  # Sanitize event_id for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
     complete_json["stats"]["lockfile_scan_info"] = {}

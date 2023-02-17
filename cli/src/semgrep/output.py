@@ -486,6 +486,9 @@ class OutputHandler:
         if self.settings.output_format == OutputFormat.SARIF:
             extra["dataflow_traces"] = self.settings.dataflow_traces
 
+        # as opposed to below, we need to distinguish the various kinds of pro engine
+        extra["engine_requested"] = self.requested_engine
+
         # the rules are used only by the SARIF formatter
         return self.formatter.output(
             self.rules,
@@ -496,6 +499,7 @@ class OutputHandler:
                 time=cli_timing,
                 explanations=explanations,
                 rules_by_engine=rules_by_engine,
+                # this flattens the information into just distinguishing "pro" and "not-pro"
                 engine_requested=self.requested_engine.to_engine_kind(),
             ),
             extra,

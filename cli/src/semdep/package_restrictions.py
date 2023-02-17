@@ -4,22 +4,27 @@ from typing import Tuple
 
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
+from semdep.maven_version import compare_maven_specifier
 from semgrep.error import SemgrepError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 
 
-def semver_matches(expression: str, actual_version: str) -> bool:
-
-    try:
-        ss = SpecifierSet(expression)
-        matched = len(list(ss.filter([actual_version]))) > 0
-        # print(f'does {expression} match {actual_version}?: {matched}')
-        return matched
-    except InvalidSpecifier:
-        raise SemgrepError(
-            f"unknown package version comparison expression: {expression}"
-        )
+def is_in_range(ecosystem: Ecosystem, range: str, version: str) -> bool:
+    if ecosystem == Ecosystem(Maven()):
+        specifiers = [s.strip(" ") for s in range.split(",")]
+        return all(compare_maven_specifier(s, version) for s in specifiers)
+    else:
+        try:
+            ss = SpecifierSet(range)
+            matched = len(list(ss.filter([version]))) > 0
+            return matched
+        except InvalidSpecifier:
+            raise SemgrepError(
+                f"unknown package version comparison expression: {range}"
+            )
 
 
 # compare vulnerable range to version in lockfile
@@ -32,6 +37,8 @@ def dependencies_range_match_any(
             if (
                 target_range.ecosystem == have_dep.ecosystem
                 and target_range.package == have_dep.package
-                and semver_matches(target_range.semver_range, have_dep.version)
+                and is_in_range(
+                    target_range.ecosystem, target_range.semver_range, have_dep.version
+                )
             ):
                 yield (target_range, have_dep)

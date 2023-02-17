@@ -242,9 +242,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === stderr - plain
                                                                                 
                                                                                 
-╭────────────────╮                                                              
+┌────────────────┐                                                              
 │ Debugging Info │                                                              
-╰────────────────╯                                                              
+└────────────────┘                                                              
                                                                                 
   SCAN ENVIRONMENT                                                              
   versions    - semgrep <MASKED> on python <MASKED>
@@ -252,24 +252,25 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   server      - https://semgrep.dev                                             
                                                                                 
                                                                                 
-╭─────────────╮                                                                 
+┌─────────────┐                                                                 
 │ Scan Status │                                                                 
-╰─────────────╯                                                                 
+└─────────────┘                                                                 
                                                                                 
 Fetching configuration from semgrep.dev
 Authenticated as org_name
 Scanning 1 file with 4 python rules.
+
                                                                                 
                                                                                 
-╭─────────╮                                                                     
+┌─────────┐                                                                     
 │ Results │                                                                     
-╰─────────╯                                                                     
+└─────────┘                                                                     
                                                                                 
                                                                                 
                                                                                 
-╭──────────────╮                                                                
+┌──────────────┐                                                                
 │ Scan Summary │                                                                
-╰──────────────╯                                                                
+└──────────────┘                                                                
                                                                                 
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.

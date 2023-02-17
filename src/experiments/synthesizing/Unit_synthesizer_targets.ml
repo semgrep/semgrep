@@ -12,9 +12,11 @@ let stmt_tests =
     (* Motivating example. *)
     ("hello.py", [ "2:0-2:5"; "5:0-5:8" ], "$X(3, ...)");
     (* Single statement. *)
-    ("string_ellipsis.py", [ "2:0-2:13"; "5:0-5:13" ], "foo('...')");
+    ("string_ellipsis.py", [ "2:0-2:13"; "5:0-5:13" ], "foo(\"...\")");
     (* Three targets. *)
-    ("string_ellipsis.py", [ "2:0-2:13"; "5:0-5:13"; "8:0-8:13" ], "foo('...')");
+    ( "string_ellipsis.py",
+      [ "2:0-2:13"; "5:0-5:13"; "8:0-8:13" ],
+      "foo(\"...\")" );
   ]
 
 let statement_list_tests =

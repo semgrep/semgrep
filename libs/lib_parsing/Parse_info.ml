@@ -60,6 +60,8 @@ type token_origin =
          * origin tokens. This can be useful when have to give an error
          * message that involves a fakeToken. The int is a kind of
          * virtual position, an offset. See compare_pos below.
+         * Those are called "safe" fake tokens (in contrast to the
+         * regular/unsafe one which have no position information at all).
          *)
       (token_location * int) option
   (* In the case of a XHP file, we could preprocess it and incorporate
@@ -140,6 +142,7 @@ let unsafe_token_location_of_info ii =
 let unsafe_fake_info str : token_mutable =
   { token = FakeTokStr (str, None); transfo = NoTransfo }
 
+(* "safe" fake token *)
 let fake_info_loc next_to_loc str : token_mutable =
   (* TODO: offset seems to have no use right now (?) *)
   { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
@@ -155,6 +158,14 @@ let is_fake tok =
   match tok.token with
   | FakeTokStr _ -> true
   | _ -> false
+
+(* TODO: the use of unsafe_fake_xxx is usually because the token
+ * does not exist in the original file. It's better then to generate
+ * an empty string in the FakeTokStr so that pretty printer will
+ * not generate those brackets or semicolons. Moreover
+ * we use unsafe_fake_bracket not only for () but also for [], {}, and
+ * now even for "", so better again to put an empty string in it.
+ *)
 
 (* used to be in AST_generic.ml *)
 let unsafe_fake_bracket x = (unsafe_fake_info "(", x, unsafe_fake_info ")")
@@ -382,6 +393,9 @@ let compare_pos ii1 ii2 =
       | 1 -> 1
       | _ -> raise Impossible)
 
+(* TODO: we should filter with is_origintok() first, to avoid having
+ * the caller to do it.
+ *)
 let min_max_ii_by_pos xs =
   match xs with
   | [] ->

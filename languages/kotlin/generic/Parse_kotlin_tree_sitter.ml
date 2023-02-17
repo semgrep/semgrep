@@ -623,7 +623,7 @@ and class_declaration (env : env) (x : CST.class_declaration) :
   | `Opt_modifs_choice_class_simple_id_opt_type_params_opt_prim_cons_opt_COLON_dele_specis_opt_type_consts_opt_class_body
       (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 = modifiers_opt env v1 in
-      let v2 =
+      let ckind =
         match v2 with
         | `Class tok -> (Class, token env tok) (* "class" *)
         | `Inte tok -> (Interface, token env tok)
@@ -635,12 +635,12 @@ and class_declaration (env : env) (x : CST.class_declaration) :
         | Some x -> type_parameters env x
         | None -> []
       in
-      let v5 =
+      let cparams =
         match v5 with
         | Some x -> primary_constructor env x
-        | None -> []
+        | None -> fb []
       in
-      let v6 =
+      let cextends =
         match v6 with
         | Some (v1, v2) ->
             let _v1 = token env v1 (* ":" *) in
@@ -653,40 +653,33 @@ and class_declaration (env : env) (x : CST.class_declaration) :
         | Some x -> type_constraints env x
         | None -> []
       in
-      let v8 =
+      let cbody =
         match v8 with
         | Some x -> class_body env x
         | None -> fb []
       in
       let ent = G.basic_entity v3 ~attrs:v1 ~tparams:v4 in
       let cdef =
-        {
-          ckind = v2;
-          cextends = v6;
-          cimplements = [];
-          cmixins = [];
-          cparams = v5;
-          cbody = v8;
-        }
+        { ckind; cextends; cimplements = []; cmixins = []; cparams; cbody }
       in
       (ent, cdef)
   | `Opt_modifs_enum_class_simple_id_opt_type_params_opt_prim_cons_opt_COLON_dele_specis_opt_type_consts_opt_enum_class_body
       (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 = modifiers_opt env v1 in
       let v2 = token env v2 (* "enum" *) in
-      let v3 = token env v3 (* "class" *) in
+      let tclass = token env v3 (* "class" *) in
       let v4 = simple_identifier env v4 in
       let v5 =
         match v5 with
         | Some x -> type_parameters env x
         | None -> []
       in
-      let v6 =
+      let cparams =
         match v6 with
         | Some x -> primary_constructor env x
-        | None -> []
+        | None -> fb []
       in
-      let v7 =
+      let cextends =
         match v7 with
         | Some (v1, v2) ->
             let _v1 = token env v1 (* ":" *) in
@@ -699,7 +692,7 @@ and class_declaration (env : env) (x : CST.class_declaration) :
         | Some x -> type_constraints env x
         | None -> []
       in
-      let v9 =
+      let cbody =
         match v9 with
         | Some x -> enum_class_body env x
         | None -> fb []
@@ -709,12 +702,12 @@ and class_declaration (env : env) (x : CST.class_declaration) :
       in
       let cdef =
         {
-          ckind = (Class, v3);
-          cextends = v7;
+          ckind = (Class, tclass);
+          cextends;
           cimplements = [];
           cmixins = [];
-          cparams = v6;
-          cbody = v9;
+          cparams;
+          cbody;
         }
       in
       (ent, cdef)
@@ -756,7 +749,7 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
               cextends = v5;
               cimplements = [];
               cmixins = [];
-              cparams = [];
+              cparams = fb [];
               cbody = v6;
             }
           in
@@ -768,7 +761,7 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
       | `Seco_cons (v1, v2, v3, v4, v5) ->
           let v1 = modifiers_opt env v1 in
           let v2 = str env v2 (* "constructor" *) in
-          let v3 = function_value_parameters env v3 in
+          let fparams = function_value_parameters env v3 in
           let _v4TODO =
             match v4 with
             | Some (v1, v2) ->
@@ -777,19 +770,14 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
                 Some (v1, v2)
             | None -> None
           in
-          let v5 =
+          let fbody =
             match v5 with
             | Some x -> G.FBStmt (block env x)
             | None -> G.FBDecl G.sc
           in
           let ent = G.basic_entity v2 ~attrs:v1 in
           let def =
-            {
-              fkind = (Method, snd v2);
-              fparams = v3;
-              frettype = None;
-              fbody = v5;
-            }
+            { fkind = (Method, snd v2); fparams; frettype = None; fbody }
           in
           (ent, FuncDef def) |> G.fld)
   | `Ellips x ->
@@ -835,8 +823,8 @@ and class_parameter (env : env) (x : CST.class_parameter) : G.parameter =
 
 and class_parameters (env : env) ((v1, v2, v3, v4) : CST.class_parameters) :
     parameters =
-  let _v1 = token env v1 (* "(" *) in
-  let v2 =
+  let l = token env v1 (* "(" *) in
+  let params =
     match v2 with
     | Some (v1, v2) ->
         let v1 = class_parameter env v1 in
@@ -857,8 +845,8 @@ and class_parameters (env : env) ((v1, v2, v3, v4) : CST.class_parameters) :
     | Some v3 -> Some (token env v3)
     (* , *)
   in
-  let _v4 = token env v4 (* ")" *) in
-  v2
+  let r = token env v4 (* ")" *) in
+  (l, params, r)
 
 and constructor_delegation_call (env : env)
     ((v1, v2) : CST.constructor_delegation_call) : expr =
@@ -962,7 +950,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
           cextends = v4;
           cimplements = [];
           cmixins = [];
-          cparams = [];
+          cparams = fb [];
           cbody = v5;
         }
       in
@@ -1280,9 +1268,9 @@ and function_value_parameter (env : env) (x : CST.function_value_parameter) =
       ParamEllipsis t
 
 and function_value_parameters (env : env)
-    ((v1, v2, _v3, v4) : CST.function_value_parameters) : G.parameter list =
-  let _v1 = token env v1 (* "(" *) in
-  let v2 =
+    ((v1, v2, _v3, v4) : CST.function_value_parameters) : G.parameters =
+  let l = token env v1 (* "(" *) in
+  let params =
     match v2 with
     | Some (v1, v2) ->
         let v1 = function_value_parameter env v1 in
@@ -1297,8 +1285,8 @@ and function_value_parameters (env : env)
         v1 :: v2
     | None -> []
   in
-  let _v4 = token env v4 (* ")" *) in
-  v2
+  let r = token env v4 (* ")" *) in
+  (l, params, r)
 
 and getter (env : env) ((v0, v1, v2) : CST.getter) =
   let mods = modifiers_opt env v0 in
@@ -1436,7 +1424,9 @@ and lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) =
   let v4 = token env v4 (* "}" *) in
   let fbody = G.FBStmt (Block (lbracket_block_start, v3, v4) |> G.s) in
   let kind = (LambdaKind, v1) in
-  let func_def = { fkind = kind; fparams = params; frettype = None; fbody } in
+  let func_def =
+    { fkind = kind; fparams = fb params; frettype = None; fbody }
+  in
   Lambda func_def |> G.e
 
 and var_or_multivar (env : env) (x : CST.lambda_parameter) =
@@ -1639,7 +1629,7 @@ and parenthesized_type (env : env) ((v1, v2, v3) : CST.parenthesized_type) =
   v2
 
 and primary_constructor (env : env) ((v1, v2) : CST.primary_constructor) :
-    parameter list =
+    parameters =
   let _v1TODO =
     match v1 with
     | Some (v1, v2) ->
@@ -1707,7 +1697,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           cextends = v2;
           cimplements = [];
           cmixins = [];
-          cparams = [];
+          cparams = fb [];
           cbody = v3;
         }
       |> G.e

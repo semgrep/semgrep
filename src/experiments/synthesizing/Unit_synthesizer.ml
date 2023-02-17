@@ -23,10 +23,10 @@ let python_tests =
     ( "arrays_and_funcs.py",
       "4:9-4:29",
       [
-        ("exact match", "metrics.send('my-report-id')");
+        ("exact match", "metrics.send(\"my-report-id\")");
         ("dots", "metrics.send(...)");
-        ("metavars", "metrics.send('...', ...)");
-        ("exact metavars", "metrics.send('...')");
+        ("metavars", "metrics.send(\"...\", ...)");
+        ("exact metavars", "metrics.send(\"...\")");
       ] );
     (* TODO: adjust range, this changed after we added parens for tuples
        ("arrays_and_funcs.py", "5:4-5:11", [ ("exact match", "(hi, my)") ]);
@@ -52,7 +52,7 @@ let python_tests =
       [ ("exact match", "self.data"); ("metavar", "$X") ] );
     ( "arrays_and_funcs.py",
       "17:3-17:36",
-      [ ("exact match", "'nice' if is_nice else 'not nice'") ] );
+      [ ("exact match", "\"nice\" if is_nice else \"not nice\"") ] );
     ( "arrays_and_funcs.py",
       "18:3-18:34",
       [
@@ -70,13 +70,13 @@ let python_tests =
       "5:10-7:35",
       [
         ( "exact match",
-          "flask.response.set_cookie('sessionid', \
-           generate_cookie_value('RANDOM-UUID'), secure=True)" );
+          "flask.response.set_cookie(\"sessionid\", \
+           generate_cookie_value(\"RANDOM-UUID\"), secure=True)" );
         ("dots", "flask.response.set_cookie(...)");
-        ("metavars", "flask.response.set_cookie('...', $Y, secure=$Z, ...)");
-        ("exact metavars", "flask.response.set_cookie('...', $Y, secure=$Z)");
+        ("metavars", "flask.response.set_cookie(\"...\", $Y, secure=$Z, ...)");
+        ("exact metavars", "flask.response.set_cookie(\"...\", $Y, secure=$Z)");
         ( "deep metavars",
-          "flask.response.set_cookie('...', generate_cookie_value('...'), \
+          "flask.response.set_cookie(\"...\", generate_cookie_value(\"...\"), \
            secure=$Z)" );
       ] );
     ( "set_cookie.py",

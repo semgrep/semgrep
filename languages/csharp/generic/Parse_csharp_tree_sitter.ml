@@ -110,7 +110,9 @@ let param_from_lambda_params lambda_params =
 
 (* create lambda lambda_params -> expr *)
 let create_lambda lambda_params expr =
-  let fparams = [ param_from_lambda_params lambda_params ] in
+  let fparams =
+    PI.unsafe_fake_bracket [ param_from_lambda_params lambda_params ]
+  in
   Lambda
     {
       fkind = (Arrow, fake "=>");
@@ -124,7 +126,7 @@ let create_lambda lambda_params expr =
 let create_join_result_lambda lambda_params ident =
   let p1 = param_from_lambda_params lambda_params in
   let p2 = Param (param_of_id ident) in
-  let fparams = [ p1; p2 ] in
+  let fparams = fb [ p1; p2 ] in
   let ids =
     lambda_params @ [ ident ]
     |> Common.map (fun id -> N (Id (id, empty_id_info ())) |> G.e)
@@ -299,7 +301,7 @@ let _TODOparameter_modifier (env : env) (x : CST.parameter_modifier) =
 let escape_sequence (env : env) (tok : CST.escape_sequence) =
   let s = str env tok in
   (* escape_sequence *)
-  String s
+  String (fb s)
 
 let assignment_operator (env : env) (x : CST.assignment_operator) :
     operator wrap =
@@ -330,7 +332,7 @@ let predefined_type (env : env) (tok : CST.predefined_type) =
   G.ty_builtin (str env tok)
 
 let verbatim_string_literal (env : env) (tok : CST.verbatim_string_literal) =
-  G.String (str env tok)
+  G.String (fb (str env tok))
 
 (* verbatim_string_literal *)
 
@@ -434,7 +436,7 @@ let interpolated_verbatim_string_text (env : env)
     | `DQUOTDQUOT tok -> str env tok
     (* "\"\"" *)
   in
-  String x
+  String (fb x)
 
 let real_literal (env : env) (tok : CST.real_literal) =
   let s, t = str env tok (* real_literal *) in
@@ -485,9 +487,9 @@ let _preproc_directive_end (env : env) (tok : CST.preproc_directive_end) =
 
 let interpolated_string_text (env : env) (x : CST.interpolated_string_text) =
   match x with
-  | `LCURLLCURL tok -> String (str env tok) (* "{{" *)
+  | `LCURLLCURL tok -> String (fb (str env tok)) (* "{{" *)
   | `Inte_str_text_frag tok ->
-      String (str env tok) (* pattern "[^{\"\\\\\\n]+" *)
+      String (fb (str env tok)) (* pattern "[^{\"\\\\\\n]+" *)
   | `Esc_seq tok -> escape_sequence env tok
 
 (* escape_sequence *)
@@ -590,8 +592,8 @@ let literal (env : env) (x : CST.literal) : literal =
   | `Real_lit tok -> real_literal env tok (* real_literal *)
   | `Int_lit tok -> integer_literal env tok (* integer_literal *)
   | `Str_lit (v1, v2, v3) ->
-      let v1 = token env v1 (* "\"" *) in
-      let v2 =
+      let l = token env v1 (* "\"" *) in
+      let xs =
         Common.map
           (fun x ->
             match x with
@@ -600,16 +602,13 @@ let literal (env : env) (x : CST.literal) : literal =
             (* escape_sequence *))
           v2
       in
-      let v3 =
+      let r =
         match v3 with
         | `DQUOT tok -> (* "\"" *) token env tok
         | `DQUOTU8 tok -> (* "\"U8" *) token env tok
         | `DQUOTu8 tok -> (* "\"u8" *) token env tok
       in
-      let str = v2 |> Common.map fst |> String.concat "" in
-      let toks = v2 |> Common.map snd in
-      let toks = PI.combine_infos v1 (toks @ [ v3 ]) in
-      G.String (str, toks)
+      G.String (G.string_ (l, xs, r))
   | `Verb_str_lit tok -> verbatim_string_literal env tok
 
 (* verbatim_string_literal *)
@@ -1192,17 +1191,17 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | Some tok -> [ KeywordAttr (Async, token env tok) ] (* "async" *)
         | None -> []
       in
-      let v2 = token env v2 (* "delegate" *) in
-      let v3 =
+      let tdelegate = token env v2 (* "delegate" *) in
+      let fparams =
         match v3 with
         | Some x -> parameter_list env x
-        | None -> []
+        | None -> fb []
       in
       let v4 = block env v4 in
       Lambda
         {
-          fkind = (LambdaKind, v2);
-          fparams = v3;
+          fkind = (LambdaKind, tdelegate);
+          fparams;
           frettype = None;
           fbody = G.FBStmt v4;
         }
@@ -1233,7 +1232,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
           cextends = [];
           cimplements = [];
           cmixins = [];
-          cparams = [];
+          cparams = fb [];
           cbody = (v2, v3, v5);
         }
       |> G.e
@@ -1355,7 +1354,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | `Id tok ->
             let id = identifier env tok in
             let p = param_of_id id in
-            [ Param p ]
+            fb [ Param p ]
         (* identifier *)
       in
       let v3 = token env v3 (* "=>" *) in
@@ -2368,16 +2367,16 @@ and type_parameter_constraints_clause (env : env)
   in
   (v2, v4 :: v5)
 
-and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
-    parameter list =
-  let _v1 = token env v1 (* "(" *) in
-  let v2 =
+and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) : parameters
+    =
+  let lp = token env v1 (* "(" *) in
+  let xs =
     match v2 with
     | Some x -> formal_parameter_list env x
     | None -> []
   in
-  let _v3 = token env v3 (* ")" *) in
-  v2
+  let rp = token env v3 (* ")" *) in
+  (lp, xs, rp)
 
 and attribute_argument_list (env : env)
     ((v1, v2, v3) : CST.attribute_argument_list) : arguments =
@@ -2461,11 +2460,11 @@ let accessor_declaration (env : env)
   ((attr :: v1) @ v2, id, v4)
 
 let bracketed_parameter_list (env : env)
-    ((v1, v2, v3) : CST.bracketed_parameter_list) =
-  let _lbra = token env v1 (* "[" *) in
+    ((v1, v2, v3) : CST.bracketed_parameter_list) : G.parameters =
+  let lbra = token env v1 (* "[" *) in
   let params = formal_parameter_list env v2 in
-  let _rbra = token env v3 (* "]" *) in
-  params
+  let rbra = token env v3 (* "]" *) in
+  (lbra, params, rbra)
 
 let constructor_initializer (env : env)
     ((v1, v2, v3) : CST.constructor_initializer) =
@@ -2699,7 +2698,7 @@ and class_interface_struct (env : env) class_kind
           cextends = v6;
           cimplements = [];
           cmixins = [];
-          cparams = [];
+          cparams = fb [];
           cbody = (open_bra, fields, close_bra);
         } )
   |> G.s
@@ -2731,11 +2730,11 @@ and delegate_declaration env (v1, v2, v3, v4, v5, v6, v7, v8, v9) =
     | Some x -> type_parameter_list env x
     | None -> []
   in
-  let v7 = parameter_list env v7 in
+  let _, params, _ = parameter_list env v7 in
   let v8 = Common.map (type_parameter_constraints_clause env) v8 in
   let _v9 = token env v9 (* ";" *) in
   let tparams = type_parameters_with_constraints v6 v8 in
-  let func = TyFun (v7, v4) |> G.t in
+  let func = TyFun (params, v4) |> G.t in
   let idinfo = empty_id_info () in
   let ent = { name = EN (Id (v5, idinfo)); attrs = v1 @ v2; tparams } in
   DefStmt (ent, TypeDef { tbody = NewType func }) |> G.s
@@ -2862,7 +2861,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                        FuncDef
                          {
                            fkind = (Method, itok);
-                           fparams = [ valparam ];
+                           fparams = fb [ valparam ];
                            frettype = None;
                            fbody;
                          }
@@ -2899,7 +2898,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v3 = type_constraint env v3 in
       let _v4TODO = Option.map (explicit_interface_specifier env) v4 in
       let _v5 = token env v5 (* "this" *) in
-      let v6 = bracketed_parameter_list env v6 in
+      let lbra, params, rbra = bracketed_parameter_list env v6 in
       let indexer_attrs = v1 @ v2 in
       match v7 with
       | `Acce_list x ->
@@ -2915,7 +2914,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                          FuncDef
                            {
                              fkind = (Method, itok);
-                             fparams = v6;
+                             fparams = (lbra, params, rbra);
                              frettype = Some v3;
                              fbody;
                            }
@@ -2937,7 +2936,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                          FuncDef
                            {
                              fkind = (Method, itok);
-                             fparams = v6 @ [ valparam ];
+                             fparams = (lbra, params @ [ valparam ], rbra);
                              frettype = None;
                              fbody;
                            }
@@ -2956,7 +2955,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             FuncDef
               {
                 fkind = (Arrow, arrow);
-                fparams = v6;
+                fparams = (lbra, params, rbra);
                 frettype = Some v3;
                 fbody;
               }
@@ -3054,18 +3053,19 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                       {
                         fkind = (Method, itok);
                         fparams =
-                          (if has_params then
-                           [
-                             Param
-                               {
-                                 pname = Some ("value", fake "value");
-                                 ptype = Some v3;
-                                 pdefault = None;
-                                 pattrs = [];
-                                 pinfo = empty_id_info ();
-                               };
-                           ]
-                          else []);
+                          fb
+                            (if has_params then
+                             [
+                               Param
+                                 {
+                                   pname = Some ("value", fake "value");
+                                   ptype = Some v3;
+                                   pdefault = None;
+                                   pattrs = [];
+                                   pinfo = empty_id_info ();
+                                 };
+                             ]
+                            else []);
                         frettype = (if has_return then Some v3 else None);
                         (* TODO Should this be "void"? *)
                         fbody;
@@ -3087,7 +3087,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
               FuncDef
                 {
                   fkind = (Arrow, arrow);
-                  fparams = [];
+                  fparams = fb [];
                   frettype = Some v3;
                   fbody = G.FBStmt (ExprStmt (expr, v2) |> G.s);
                 }
