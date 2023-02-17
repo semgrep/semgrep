@@ -1,1 +1,0 @@
-Fixed parsing bug maven_dep_tree.txt files where dependency specs with 6 fields, or suffixed with `(optional)` would fail to parse

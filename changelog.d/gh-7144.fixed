@@ -1,1 +1,0 @@
-Fix local scan hyperlinks by asking git for remote.origin.url if repo_url not provided

@@ -8,6 +8,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.12.1](https://github.com/returntocorp/semgrep/releases/tag/v1.12.1) - 2023-02-17
+
+### Fixed
+
+- Fix local scan hyperlinks by asking git for remote.origin.url if repo_url not provided (gh-7144)
+- Improve error messages displayed with `--verbose` when the contents of a metavariable fails to parse. (pa-2537)
+- Fixed parsing bug maven_dep_tree.txt files where dependency specs with 6 fields, or suffixed with `(optional)` would fail to parse (sc-622)
+- Supply Chain rules now correctly understand Maven version strings, as described in https://docs.oracle.com/middleware/1212/core/MAVEN/maven_version.htm#MAVEN8855 (sc-maven-versions)
+- package-lock.json files which contain `"resolved": false` as a result of a bug in NPM will now parse (sc-npm-bug)
+
 ## [1.12.0](https://github.com/returntocorp/semgrep/releases/tag/v1.12.0) - 2023-02-13
 
 ### Fixed
