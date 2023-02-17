@@ -566,7 +566,7 @@ class CoreRunner:
     def __init__(
         self,
         jobs: Optional[int],
-        requested_engine: EngineType,
+        engine_type: EngineType,
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
@@ -574,8 +574,8 @@ class CoreRunner:
         optimizations: str,
         core_opts_str: Optional[str],
     ):
-        self._binary_path = requested_engine.get_binary_path()
-        self._jobs = jobs or requested_engine.default_jobs
+        self._binary_path = engine_type.get_binary_path()
+        self._jobs = jobs or engine_type.default_jobs
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold

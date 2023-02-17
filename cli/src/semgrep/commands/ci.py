@@ -296,25 +296,26 @@ def ci(
         logger.info(f"Could not start scan {e}")
         sys.exit(FATAL_EXIT_CODE)
 
-    if requested_engine is None:
-        requested_engine = EngineType.get_default(
-            scan_handler=scan_handler, git_meta=metadata
-        )
+    engine_type = EngineType.decide_engine_type(
+        requested_engine=requested_engine,
+        scan_handler=scan_handler,
+        git_meta=metadata,
+    )
 
     if dataflow_traces is None:
-        dataflow_traces = requested_engine.has_dataflow_traces
+        dataflow_traces = engine_type.has_dataflow_traces
 
     console.print(Title("Scan Environment", order=2))
     console.print(Padding(scan_env, (0, 2)))
 
-    if requested_engine.is_pro:
+    if engine_type.is_pro:
         console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
-        if requested_engine.check_if_installed():
+        if engine_type.check_if_installed():
             console.print(
-                f"  Using Semgrep Pro Version: [bold]{requested_engine.get_pro_version()}[/bold]"
+                f"  Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]"
             )
             console.print(
-                f"  Installed at [bold]{requested_engine.get_binary_path()}[/bold]"
+                f"  Installed at [bold]{engine_type.get_binary_path()}[/bold]"
             )
         else:
             run_install_semgrep_pro()
@@ -325,13 +326,13 @@ def ci(
         # Set a default max_memory for CI runs when DeepSemgrep is on because
         # DeepSemgrep is likely to run out
         if max_memory is None:
-            if requested_engine is EngineType.PRO_INTERFILE:
+            if engine_type is EngineType.PRO_INTERFILE:
                 max_memory = DEFAULT_MAX_MEMORY_PRO_CI
             else:
                 max_memory = 0  # unlimited
         # Same for timeout (Github actions has a 6 hour timeout)
         if interfile_timeout is None:
-            if requested_engine is EngineType.PRO_INTERFILE:
+            if engine_type is EngineType.PRO_INTERFILE:
                 interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
             else:
                 interfile_timeout = 0  # unlimited
@@ -359,7 +360,7 @@ def ci(
             lockfile_scan_info,
         ) = semgrep.semgrep_main.main(
             core_opts_str=core_opts,
-            requested_engine=requested_engine,
+            engine_type=engine_type,
             output_handler=output_handler,
             target=[os.curdir],  # semgrep ci only scans cwd
             pattern=None,
@@ -458,7 +459,7 @@ def ci(
         severities=shown_severities,
         is_ci_invocation=True,
         rules_by_engine=output_extra.rules_by_engine,
-        requested_engine=requested_engine,
+        engine_type=engine_type,
     )
 
     logger.info("CI scan completed successfully.")
@@ -478,7 +479,7 @@ def ci(
             total_time,
             metadata.commit_datetime,
             lockfile_scan_info,
-            requested_engine,
+            engine_type,
         )
         logger.info("  View results in Semgrep App:")
         logger.info(

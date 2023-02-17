@@ -185,7 +185,7 @@ class OutputHandler:
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
-        self.requested_engine: EngineType = EngineType.OSS
+        self.engine_type: EngineType = EngineType.OSS
 
         self.final_error: Optional[Exception] = None
         formatter_type = FORMATTERS.get(self.settings.output_format)
@@ -303,7 +303,7 @@ class OutputHandler:
         severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
-        requested_engine: EngineType = EngineType.OSS,
+        engine_type: EngineType = EngineType.OSS,
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -317,7 +317,7 @@ class OutputHandler:
         self.all_targets = all_targets
         self.filtered_rules = filtered_rules
 
-        self.requested_engine = requested_engine
+        self.engine_type = engine_type
 
         if ignore_log:
             self.ignore_log = ignore_log
@@ -487,7 +487,7 @@ class OutputHandler:
             extra["dataflow_traces"] = self.settings.dataflow_traces
 
         # as opposed to below, we need to distinguish the various kinds of pro engine
-        extra["engine_requested"] = self.requested_engine
+        extra["engine_requested"] = self.engine_type
 
         # the rules are used only by the SARIF formatter
         return self.formatter.output(
@@ -500,7 +500,7 @@ class OutputHandler:
                 explanations=explanations,
                 rules_by_engine=rules_by_engine,
                 # this flattens the information into just distinguishing "pro" and "not-pro"
-                engine_requested=self.requested_engine.to_engine_kind(),
+                engine_requested=self.engine_type.to_engine_kind(),
             ),
             extra,
             self.severities,

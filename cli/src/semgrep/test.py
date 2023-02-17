@@ -451,7 +451,7 @@ def generate_test_results(
     config: Path,
     strict: bool,
     json_output: bool,
-    requested_engine: EngineType,
+    engine_type: EngineType,
     optimizations: str = "none",
 ) -> None:
     config_filenames = get_config_filenames(config)
@@ -472,7 +472,7 @@ def generate_test_results(
 
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
-        requested_engine=requested_engine,
+        engine_type=engine_type,
         no_git_ignore=True,
         no_rewrite_rule_ids=True,
         strict=strict,
@@ -687,7 +687,7 @@ def test_main(
     strict: bool,
     json: bool,
     optimizations: str,
-    requested_engine: EngineType,
+    engine_type: EngineType,
 ) -> None:
     if len(target) != 1:
         raise Exception("only one target directory allowed for tests")
@@ -707,6 +707,6 @@ def test_main(
         config=config_path,
         strict=strict,
         json_output=json,
-        requested_engine=requested_engine,
+        engine_type=engine_type,
         optimizations=optimizations,
     )

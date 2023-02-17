@@ -752,11 +752,10 @@ def scan(
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
 
-    if requested_engine is None:
-        requested_engine = EngineType.get_default()
+    engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
 
     if dataflow_traces is None:
-        dataflow_traces = requested_engine.has_dataflow_traces
+        dataflow_traces = engine_type.has_dataflow_traces
 
     state = get_state()
     state.metrics.configure(metrics, metrics_legacy)
@@ -823,7 +822,7 @@ def scan(
             strict=strict,
             json=output_format == OutputFormat.JSON,
             optimizations=optimizations,
-            requested_engine=requested_engine,
+            engine_type=engine_type,
         )
 
     run_has_findings = False
@@ -866,7 +865,7 @@ def scan(
                     try:
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
-                            requested_engine=requested_engine,
+                            engine_type=engine_type,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
@@ -903,7 +902,7 @@ def scan(
                 ) = semgrep.semgrep_main.main(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
-                    requested_engine=requested_engine,
+                    engine_type=engine_type,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,
@@ -946,7 +945,7 @@ def scan(
                 rules_by_engine=output_extra.rules_by_engine,
                 severities=shown_severities,
                 print_summary=True,
-                requested_engine=requested_engine,
+                engine_type=engine_type,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())

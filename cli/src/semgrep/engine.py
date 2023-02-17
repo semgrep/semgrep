@@ -19,8 +19,9 @@ class EngineType(Enum):
     PRO_INTERFILE = auto()
 
     @classmethod
-    def get_default(
+    def decide_engine_type(
         cls,
+        requested_engine: Optional["EngineType"] = None,
         scan_handler: Optional[ScanHandler] = None,
         git_meta: Optional[GitMeta] = None,
     ) -> "EngineType":
@@ -28,10 +29,14 @@ class EngineType(Enum):
 
         Considers settings from Semgrep Cloud Platform and version control state.
         """
-        if scan_handler and git_meta and scan_handler.deepsemgrep:
-            return cls.PRO_INTERFILE if git_meta.is_full_scan else cls.PRO_LANG
+        if git_meta and scan_handler:
+            if requested_engine == cls.PRO_INTERFILE and not git_meta.is_full_scan:
+                requested_engine = cls.PRO_LANG
 
-        return cls.OSS
+            if scan_handler.deepsemgrep:
+                return cls.PRO_INTERFILE if git_meta.is_full_scan else cls.PRO_LANG
+
+        return requested_engine or cls.OSS
 
     def get_pro_version(self) -> str:
         binary_path = self.get_binary_path()
@@ -82,11 +87,3 @@ class EngineType(Enum):
             return out.EngineKind(out.OSS())
         else:
             return out.EngineKind(out.PRO())
-
-
-class SupplyChainEngine(Enum):
-    OSS = auto()
-    PRO_LANG = auto()
-    PRO_ECOSYSTEMS = auto()
-    PRO_INTRAFILE = auto()
-    PRO_INTERFILE = auto()
