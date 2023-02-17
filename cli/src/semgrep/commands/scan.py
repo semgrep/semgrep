@@ -248,7 +248,7 @@ _scan_options: List[Callable] = [
             Filter files or directories by path. The argument is a
             glob-style pattern such as 'foo.*' that must match the path.
             This is an extra filter in addition to other applicable filters.
-            For example, specifying the language with '-l javascript' migh
+            For example, specifying the language with '-l javascript' might
             preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of
             '--include=src', '--include=*.jsx', or '--include=src/foo.*'
             will restrict the selection to the single file 'src/foo.jsx'.
@@ -720,7 +720,7 @@ def scan(
     For more information about Semgrep, go to https://semgrep.dev.
 
     NOTE: By default, Semgrep will report pseudonymous usage metrics to its server if you pull your configuration from
-    the Semgrep registy. To learn more about how and why these metrics are collected, please see
+    the Semgrep registry. To learn more about how and why these metrics are collected, please see
     https://semgrep.dev/docs/metrics. To modify this behavior, see the --metrics option below.
     """
 
