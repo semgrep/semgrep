@@ -40,7 +40,12 @@ def handle_command_errors(func: Callable) -> Callable:
             logger.exception(e)
             exit_code = FATAL_EXIT_CODE
         except SystemExit as e:
-            exit_code = e.code
+            if e.code is None:
+                exit_code = 0
+            elif isinstance(e.code, str):
+                exit_code = FATAL_EXIT_CODE
+            else:
+                exit_code = e.code
         except:  # noqa: B001
             exit_code = FATAL_EXIT_CODE
         else:

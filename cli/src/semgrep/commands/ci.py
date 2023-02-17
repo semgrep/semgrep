@@ -2,10 +2,8 @@ import os
 import sys
 import time
 from collections import defaultdict
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable
-from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -18,7 +16,6 @@ from rich.table import Table
 import semgrep.semgrep_main
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
-from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
@@ -27,8 +24,8 @@ from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
 from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
-from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
+from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -80,8 +77,7 @@ def yield_exclude_paths(requested_patterns: Sequence[str]) -> Iterable[str]:
     yield from patterns
 
 
-@contextmanager
-def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
+def fix_head_if_github_action(metadata: GitMeta) -> None:
     """
     GHA can checkout the incorrect commit for a PR (it will create a fake merge commit),
     so we need to reset the head to the actual PR branch head before continuing.
@@ -89,29 +85,19 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     Assumes cwd is a valid git project and that if we are in github-actions pull_request,
     metadata.head_branch_hash point to head commit of current branch
     """
-    if isinstance(metadata, GithubMeta) and metadata.is_pull_request_event:
-        assert metadata.head_branch_hash is not None  # Not none when github action PR
-        assert metadata.base_branch_hash is not None
+    if not (isinstance(metadata, GithubMeta) and metadata.is_pull_request_event):
+        return
+    assert metadata.head_branch_hash is not None  # Not none when github action PR
+    assert metadata.base_branch_hash is not None
 
-        logger.info("Fixing git state for github action pull request")
+    logger.info("Fixing git state for github action pull request")
 
-        logger.debug("Calling git rev-parse HEAD")
-        stashed_rev = git_check_output(["git", "rev-parse", "HEAD"])
-        logger.debug(f"stashed_rev: {stashed_rev}")
+    logger.debug("Calling git rev-parse HEAD")
+    stashed_rev = git_check_output(["git", "rev-parse", "HEAD"])
+    logger.debug(f"stashed_rev: {stashed_rev}")
 
-        logger.info(
-            f"Not on head ref: {metadata.head_branch_hash}; checking that out now."
-        )
-        git_check_output(["git", "checkout", metadata.head_branch_hash])
-
-        try:
-            yield
-        finally:
-            logger.info(f"Returning to original head revision {stashed_rev}")
-            git_check_output(["git", "checkout", stashed_rev])
-    else:
-        # Do nothing
-        yield
+    logger.info(f"Not on head ref: {metadata.head_branch_hash}; checking that out now.")
+    git_check_output(["git", "checkout", metadata.head_branch_hash])
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
@@ -167,15 +153,6 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     """,
     envvar="SEMGREP_SUPPRESS_ERRORS",
 )
-@click.option(
-    "--oss-only",
-    "oss_only",
-    default=False,
-    help="""
-        Run `semgrep ci` on this repo using only OSS features. Equivalent to a
-        ci run without the Semgrep Pro toggle on.
-    """,
-)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -202,13 +179,10 @@ def ci(
     metrics: Optional[MetricsState],
     metrics_legacy: Optional[MetricsState],
     optimizations: str,
-    dataflow_traces: bool,
+    dataflow_traces: Optional[bool],
     output: Optional[str],
     output_format: OutputFormat,
-    pro_languages: bool,
-    pro_intrafile: bool,
-    pro: bool,
-    oss_only: bool,
+    requested_engine: EngineType,
     quiet: bool,
     rewrite_rule_ids: bool,
     supply_chain: bool,
@@ -293,134 +267,126 @@ def ci(
         "-",
         f"running in environment [bold]{metadata.environment}[/bold], triggering event is [bold]{metadata.event_name}[/bold]",
     )
-    if scan_handler:
-        scan_env.add_row("server", "-", state.env.semgrep_url)
+
+    fix_head_if_github_action(metadata)
+
+    try:
+        # Note this needs to happen within fix_head_if_github_action
+        # so that metadata of current commit is correct
+        if scan_handler:
+            metadata_dict = metadata.to_dict()
+            metadata_dict["is_sca_scan"] = supply_chain
+            proj_config = ProjectConfig.load_all()
+            metadata_dict = {**metadata_dict, **proj_config.to_dict()}
+            scan_handler.fetch_and_init_scan_config(metadata_dict)
+            scan_handler.start_scan(metadata_dict)
+
+            config = (scan_handler.rules,)
+
+            scan_env.add_row(
+                "server",
+                "-",
+                f"logged in as [bold]{scan_handler.deployment_name}[/bold] on [bold]{state.env.semgrep_url}[/bold]",
+            )
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        logger.info(f"Could not start scan {e}")
+        sys.exit(FATAL_EXIT_CODE)
+
+    engine_type = EngineType.decide_engine_type(
+        requested_engine=requested_engine,
+        scan_handler=scan_handler,
+        git_meta=metadata,
+    )
+
+    if dataflow_traces is None:
+        dataflow_traces = engine_type.has_dataflow_traces
 
     console.print(Title("Scan Environment", order=2))
     console.print(Padding(scan_env, (0, 2)))
 
-    try:
-        with fix_head_if_github_action(metadata):
-            if scan_handler:
-                metadata_dict = metadata.to_dict()
-                metadata_dict["is_sca_scan"] = supply_chain
-
-            console.print(Title("Scan Status"))
-
-            try:
-                logger.info("Fetching configuration from semgrep.dev")
-                # Note this needs to happen within fix_head_if_github_action
-                # so that metadata of current commit is correct
-                if scan_handler:
-                    proj_config = ProjectConfig.load_all()
-                    metadata_dict = {**metadata_dict, **proj_config.to_dict()}
-                    scan_handler.fetch_and_init_scan_config(metadata_dict)
-                    scan_handler.start_scan(metadata_dict)
-
-                    logger.info(f"Authenticated as {scan_handler.deployment_name}")
-                    config = (scan_handler.rules,)
-            except Exception as e:
-                import traceback
-
-                traceback.print_exc()
-                logger.info(f"Could not start scan {e}")
-                sys.exit(FATAL_EXIT_CODE)
-
-            # Run Semgrep Pro when available
-            # By default, this is controlled by the toggle. When it is off, run
-            # the OSS engine. When it is on, for full scans run using interfile
-            # analysis and diff scans run using the pro languages
-            is_full_scan = metadata.merge_base_ref is None
-            engine = EngineType.OSS
-            if scan_handler and scan_handler.deepsemgrep:
-                engine = (
-                    EngineType.PRO_INTERFILE if is_full_scan else EngineType.PRO_LANG
-                )
-
-            # If the user explicitly requests an engine via a flag, the flag
-            # should override the toggle
-            if pro and is_full_scan:
-                # Inter-file + Pro languages
-                # This behaves slightly differently from semgrep scan, because
-                # in CI we currently do not allow interfile analysis
-                engine = EngineType.PRO_INTERFILE
-            elif pro_intrafile:
-                # Intra-file (inter-proc) + Pro languages
-                engine = EngineType.PRO_INTRAFILE
-            elif pro_languages:
-                # Just Pro languages
-                engine = EngineType.PRO_LANG
-            elif oss_only:
-                engine = EngineType.OSS
-
-            semgrep_pro_path = determine_semgrep_pro_path()
-
-            # Set a default max_memory for CI runs when DeepSemgrep is on because
-            # DeepSemgrep is likely to run out
-            if max_memory is None:
-                if engine is EngineType.PRO_INTERFILE:
-                    max_memory = DEFAULT_MAX_MEMORY_PRO_CI
-                else:
-                    max_memory = 0  # unlimited
-            # Same for timeout (Github actions has a 6 hour timeout)
-            if interfile_timeout is None:
-                if engine is EngineType.PRO_INTERFILE:
-                    interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
-                else:
-                    interfile_timeout = 0  # unlimited
-            if engine.is_pro and not semgrep_pro_path.exists():
-                run_install_semgrep_pro()
-
-            # Append ignores configured on semgrep.dev
-            requested_excludes = scan_handler.ignore_patterns if scan_handler else []
-            if requested_excludes:
-                logger.info(
-                    f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
-                )
-
-            assert exclude is not None  # exclude is default empty tuple
-            exclude = (*exclude, *yield_exclude_paths(requested_excludes))
-            assert config  # Config has to be defined here. Helping mypy out
-            start = time.time()
-            (
-                filtered_matches_by_rule,
-                semgrep_errors,
-                renamed_targets,
-                ignore_log,
-                filtered_rules,
-                profiler,
-                output_extra,
-                shown_severities,
-                dependencies,
-            ) = semgrep.semgrep_main.main(
-                core_opts_str=core_opts,
-                engine=engine,
-                output_handler=output_handler,
-                target=[os.curdir],  # semgrep ci only scans cwd
-                pattern=None,
-                lang=None,
-                configs=config,
-                no_rewrite_rule_ids=(not rewrite_rule_ids),
-                jobs=jobs,
-                include=include,
-                exclude=exclude,
-                exclude_rule=exclude_rule,
-                max_target_bytes=max_target_bytes,
-                autofix=scan_handler.autofix if scan_handler else False,
-                dryrun=True,
-                # Always true, as we want to always report all findings, even
-                # ignored ones, to the backend
-                disable_nosem=True,
-                no_git_ignore=(not use_git_ignore),
-                timeout=timeout,
-                max_memory=max_memory,
-                interfile_timeout=interfile_timeout,
-                timeout_threshold=timeout_threshold,
-                skip_unknown_extensions=(not scan_unknown_extensions),
-                optimizations=optimizations,
-                baseline_commit=metadata.merge_base_ref,
-                baseline_commit_is_mergebase=True,
+    if engine_type.is_pro:
+        console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
+        if engine_type.check_if_installed():
+            console.print(
+                f"  Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]"
             )
+            console.print(
+                f"  Installed at [bold]{engine_type.get_binary_path()}[/bold]"
+            )
+        else:
+            run_install_semgrep_pro()
+
+    try:
+        console.print(Title("Scan Status"))
+
+        # Set a default max_memory for CI runs when DeepSemgrep is on because
+        # DeepSemgrep is likely to run out
+        if max_memory is None:
+            if engine_type is EngineType.PRO_INTERFILE:
+                max_memory = DEFAULT_MAX_MEMORY_PRO_CI
+            else:
+                max_memory = 0  # unlimited
+        # Same for timeout (Github actions has a 6 hour timeout)
+        if interfile_timeout is None:
+            if engine_type is EngineType.PRO_INTERFILE:
+                interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
+            else:
+                interfile_timeout = 0  # unlimited
+
+        # Append ignores configured on semgrep.dev
+        requested_excludes = scan_handler.ignore_patterns if scan_handler else []
+        if requested_excludes:
+            logger.info(
+                f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
+            )
+
+        assert exclude is not None  # exclude is default empty tuple
+        exclude = (*exclude, *yield_exclude_paths(requested_excludes))
+        assert config  # Config has to be defined here. Helping mypy out
+        start = time.time()
+        (
+            filtered_matches_by_rule,
+            semgrep_errors,
+            renamed_targets,
+            ignore_log,
+            filtered_rules,
+            profiler,
+            output_extra,
+            shown_severities,
+            dependencies,
+        ) = semgrep.semgrep_main.main(
+            core_opts_str=core_opts,
+            engine_type=engine_type,
+            output_handler=output_handler,
+            target=[os.curdir],  # semgrep ci only scans cwd
+            pattern=None,
+            lang=None,
+            configs=config,
+            no_rewrite_rule_ids=(not rewrite_rule_ids),
+            jobs=jobs,
+            include=include,
+            exclude=exclude,
+            exclude_rule=exclude_rule,
+            max_target_bytes=max_target_bytes,
+            autofix=scan_handler.autofix if scan_handler else False,
+            dryrun=True,
+            # Always true, as we want to always report all findings, even
+            # ignored ones, to the backend
+            disable_nosem=True,
+            no_git_ignore=(not use_git_ignore),
+            timeout=timeout,
+            max_memory=max_memory,
+            interfile_timeout=interfile_timeout,
+            timeout_threshold=timeout_threshold,
+            skip_unknown_extensions=(not scan_unknown_extensions),
+            optimizations=optimizations,
+            baseline_commit=metadata.merge_base_ref,
+            baseline_commit_is_mergebase=True,
+        )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])
         output_handler.output({}, all_targets=set(), filtered_rules=[])
@@ -493,7 +459,7 @@ def ci(
         severities=shown_severities,
         is_ci_invocation=True,
         rules_by_engine=output_extra.rules_by_engine,
-        engine=engine,
+        engine_type=engine_type,
     )
 
     logger.info("CI scan completed successfully.")
@@ -513,7 +479,7 @@ def ci(
             total_time,
             metadata.commit_datetime,
             dependencies,
-            engine,
+            engine_type,
         )
         logger.info("  View results in Semgrep App:")
         logger.info(

@@ -64,19 +64,17 @@ First-Party Blocking Rules Fired:
 │ Debugging Info │                                                              
 └────────────────┘                                                              
                                                                                 
+Would have sent POST request to create scan
   SCAN ENVIRONMENT                                                              
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown         
-  server      - https://semgrep.dev                                             
+  server      - logged in as org_name on https://semgrep.dev                    
                                                                                 
                                                                                 
 ┌─────────────┐                                                                 
 │ Scan Status │                                                                 
 └─────────────┘                                                                 
                                                                                 
-Fetching configuration from semgrep.dev
-Would have sent POST request to create scan
-Authenticated as org_name
 Scanning 1 file with 4 python rules.
 
                                                                                 

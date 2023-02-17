@@ -20,10 +20,10 @@ from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
-from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
+from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -143,7 +143,7 @@ def run_rules(
     core_runner: CoreRunner,
     output_handler: OutputHandler,
     dump_command_for_core: bool,
-    engine: EngineType,
+    engine_type: EngineType,
 ) -> Tuple[
     RuleMatchMap, List[SemgrepError], OutputExtra, Dict[str, List[FoundDependency]]
 ]:
@@ -156,7 +156,7 @@ def run_rules(
     )
 
     (rule_matches_by_rule, semgrep_errors, output_extra,) = core_runner.invoke_semgrep(
-        target_manager, rest_of_the_rules, dump_command_for_core, engine
+        target_manager, rest_of_the_rules, dump_command_for_core, engine_type
     )
 
     if join_rules:
@@ -269,7 +269,7 @@ def main(
     *,
     core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
-    engine: EngineType = EngineType.OSS,
+    engine_type: EngineType = EngineType.OSS,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -334,7 +334,7 @@ def main(
     if metrics.is_enabled:
         metrics.add_project_url(project_url)
         metrics.add_configs(configs)
-        metrics.add_engine_type(engine)
+        metrics.add_engine_type(engine_type)
 
     if not severity:
         shown_severities = DEFAULT_SHOWN_SEVERITIES
@@ -405,7 +405,7 @@ def main(
     core_start_time = time.time()
     core_runner = CoreRunner(
         jobs=jobs,
-        engine=engine,
+        engine_type=engine_type,
         timeout=timeout,
         max_memory=max_memory,
         interfile_timeout=interfile_timeout,
@@ -433,7 +433,7 @@ def main(
         core_runner,
         output_handler,
         dump_command_for_core,
-        engine,
+        engine_type,
     )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
@@ -496,7 +496,7 @@ def main(
                         core_runner,
                         output_handler,
                         dump_command_for_core,
-                        engine,
+                        engine_type,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule,
