@@ -68,13 +68,61 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
     rule_id = Some rule_id;
   }
 
+(* This function separates out rules into groups of taint rules by languages,
+   all of the nontaint rules, and the rules which we skip due to prefiltering.
+*)
+let group_rules xconf rules xtarget =
+  let { Xtarget.file; lazy_content; _ } = xtarget in
+  let relevant_taint_rules, relevant_nontaint_rules, skipped_rules =
+    rules
+    |> Common.partition_either3 (fun r ->
+           let xconf =
+             Match_env.adjust_xconfig_with_rule_options xconf r.R.options
+           in
+           let relevant_rule =
+             if xconf.filter_irrelevant_rules then (
+               match Analyze_rule.regexp_prefilter_of_rule r with
+               | None -> true
+               | Some (prefilter_formula, func) ->
+                   let content = Lazy.force lazy_content in
+                   let s =
+                     Semgrep_prefilter_j.string_of_formula prefilter_formula
+                   in
+                   logger#trace "looking for %s in %s" s file;
+                   func content)
+             else true
+           in
+           if not relevant_rule then
+             logger#trace "skipping rule %s for %s" (fst r.R.id) file;
+           match r.R.mode with
+           | _ when not relevant_rule -> Right3 r
+           | `Taint _ as mode -> Left3 { r with mode }
+           | (`Extract _ | `Search _) as mode -> Middle3 { r with mode })
+  in
+  (* Taint rules are only relevant to each other if they are meant to be
+     analyzing the same language.
+     So we group the taint rules by common language, before passing them
+     to [Match_tainting_mode.check_rules].
+  *)
+  let relevant_taint_rules_groups =
+    let relevant_taint_rules_groups_hashtbl =
+      relevant_taint_rules
+      |> Common.map (fun r -> (r.R.languages, r))
+      |> Common.hash_of_list
+    in
+    relevant_taint_rules_groups_hashtbl |> Hashtbl.to_seq_keys |> List.of_seq
+    |> Common.map (fun l ->
+           Hashtbl.find_all relevant_taint_rules_groups_hashtbl l)
+  in
+  (relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules)
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
     rules xtarget =
-  let { Xtarget.file; lazy_content; lazy_ast_and_errors; _ } = xtarget in
+  let { Xtarget.file; lazy_ast_and_errors; _ } = xtarget in
   logger#trace "checking %s with %d rules" file (List.length rules);
   if !Profiling.profile =*= Profiling.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";
@@ -114,36 +162,20 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
   in
 
   (* We separate out the taint rules specifically, because we may want to
-     do some *)
-  let relevant_taint_rules, relevant_nontaint_rules, skipped_rules =
-    rules
-    |> Common.partition_either3 (fun r ->
-           let xconf =
-             Match_env.adjust_xconfig_with_rule_options xconf r.R.options
-           in
-           let relevant_rule =
-             if xconf.filter_irrelevant_rules then (
-               match Analyze_rule.regexp_prefilter_of_rule r with
-               | None -> true
-               | Some (prefilter_formula, func) ->
-                   let content = Lazy.force lazy_content in
-                   let s =
-                     Semgrep_prefilter_j.string_of_formula prefilter_formula
-                   in
-                   logger#trace "looking for %s in %s" s file;
-                   func content)
-             else true
-           in
-           if not relevant_rule then
-             logger#trace "skipping rule %s for %s" (fst r.R.id) file;
-           match r.R.mode with
-           | _ when not relevant_rule -> Right3 r
-           | `Taint _ as mode -> Left3 { r with mode }
-           | (`Extract _ | `Search _) as mode -> Middle3 { r with mode })
+     do some rule-wide optimizations, which require analyzing more than
+     just one rule at once.
+
+     The taint rules are "grouped", see [group_rule] for more.
+  *)
+  let relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules =
+    group_rules xconf rules xtarget
   in
+
   let res_taint_rules =
-    Match_tainting_mode.check_rules relevant_taint_rules match_hook xconf
-      xtarget per_rule_boilerplate_fn
+    relevant_taint_rules_groups
+    |> List.concat_map (fun relevant_taint_rules ->
+           Match_tainting_mode.check_rules relevant_taint_rules match_hook xconf
+             xtarget per_rule_boilerplate_fn)
   in
   let res_nontaint_rules =
     relevant_nontaint_rules
