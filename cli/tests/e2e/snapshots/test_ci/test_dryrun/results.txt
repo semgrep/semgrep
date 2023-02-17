@@ -351,9 +351,9 @@ Would have sent findings and ignores blob: {
         }
     ],
     "searched_paths": [
-        "yarn.lock",
         "foo.py",
-        "poetry.lock"
+        "poetry.lock",
+        "yarn.lock"
     ],
     "renamed_paths": [],
     "rule_ids": [
