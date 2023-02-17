@@ -68,6 +68,7 @@ Blocking Rules Fired:
 Fetching configuration from semgrep.dev
 Authenticated as org_name
 Scanning 1 file with 4 python rules.
+
   Current version has 14 findings.
 
 Switching repository to baseline commit '<MASKED>'.
@@ -75,6 +76,7 @@ Switching repository to baseline commit '<MASKED>'.
     * <MASKED> Some other commit/ message
 
 Scanning 1 file with 4 python rules.
+
                                                                                 
                                                                                 
 ┌─────────┐                                                                     

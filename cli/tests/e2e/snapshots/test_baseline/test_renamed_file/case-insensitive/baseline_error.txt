@@ -1,4 +1,5 @@
 Scanning 1 file.
+
   Current version has 2 findings.
 
 Switching repository to baseline commit 'baseline-commit'.
@@ -6,6 +7,7 @@ Switching repository to baseline commit 'baseline-commit'.
     * ac0f5a0 commit #2
 
 Scanning 1 file.
+
                                                                                 
                                                                                 
 ┌─────────┐                                                                     

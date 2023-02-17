@@ -25,13 +25,19 @@ from typing import TYPE_CHECKING
 from attr import asdict
 from attr import field
 from attr import frozen
+from rich.progress import BarColumn
+from rich.progress import MofNCompleteColumn
+from rich.progress import Progress
+from rich.progress import TaskID
+from rich.progress import TextColumn
+from rich.progress import TimeElapsedColumn
 from ruamel.yaml import YAML
-from tqdm import tqdm
 
 import semgrep.fork_subprocess as fork_subprocess
 import semgrep.output_from_core as core
 from semgrep.app import auth
 from semgrep.config_resolver import Config
+from semgrep.console import console
 from semgrep.constants import Colors
 from semgrep.constants import EngineType
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -191,7 +197,8 @@ class StreamingSemgrepCore:
         self._total = total
         self._stdout = ""
         self._stderr = ""
-        self._progress_bar: Optional[tqdm] = None  # type: ignore
+        self._progress_bar: Optional[Progress] = None
+        self._progress_bar_task_id: Optional[TaskID] = None
 
         # Map from file name to contents, to be checked before the real
         # file system when servicing requests from semgrep-core.
@@ -232,6 +239,8 @@ class StreamingSemgrepCore:
         # TODO: read progress from one channel and JSON data from another.
         # or at least write/read progress as a stream of JSON objects so that
         # we don't have to hack a parser together.
+
+        has_started = False
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
             try:
@@ -255,6 +264,14 @@ class StreamingSemgrepCore:
                     "\ttried these steps and still are seeing this error, please contact us."
                 )
 
+            if (
+                not has_started
+                and self._progress_bar
+                and self._progress_bar_task_id is not None
+            ):
+                has_started = True
+                self._progress_bar.start_task(self._progress_bar_task_id)
+
             # read returns empty when EOF
             if not line_bytes:
                 self._stdout = b"".join(stdout_lines).decode("utf-8", "replace")
@@ -262,15 +279,19 @@ class StreamingSemgrepCore:
 
             if line_bytes == b".\n" and not reading_json:
                 num_scanned_targets += 1
-                if self._progress_bar:
-                    self._progress_bar.update()
+                if self._progress_bar and self._progress_bar_task_id is not None:
+                    self._progress_bar.update(
+                        self._progress_bar_task_id, completed=num_scanned_targets
+                    )
             elif chr(line_bytes[0]).isdigit() and not reading_json:
                 if not line_bytes.endswith(b"\n"):
                     line_bytes = line_bytes + await stream.readline()
                 extra_targets = int(line_bytes)
                 num_total_targets += extra_targets
-                if self._progress_bar:
-                    self._progress_bar.total += extra_targets
+                if self._progress_bar and self._progress_bar_task_id is not None:
+                    self._progress_bar.update(
+                        self._progress_bar_task_id, total=num_total_targets
+                    )
             else:
                 stdout_lines.append(line_bytes)
                 # Once we see a non-"." char it means we are reading a large json blob
@@ -420,26 +441,28 @@ class StreamingSemgrepCore:
         open_and_ignore("/tmp/core-runner-semgrep-BEGIN")
 
         terminal = get_state().terminal
-        if (
-            sys.stderr.isatty()
-            and self._total > 1
-            and not terminal.is_quiet
-            and not terminal.is_debug
-        ):
-            # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
-            self._progress_bar = tqdm(  # typing: ignore
-                total=self._total,
-                file=sys.stderr,
-                bar_format="  {l_bar}{bar}|{n_fmt}/{total_fmt} tasks",
+        with Progress(
+            BarColumn(),
+            MofNCompleteColumn(),
+            TextColumn("tasks"),
+            TimeElapsedColumn(),
+            console=console,
+            disable=(
+                not sys.stderr.isatty()
+                or self._total <= 1
+                or terminal.is_quiet
+                or terminal.is_debug
+            ),
+        ) as progress_bar:
+            self._progress_bar = progress_bar
+            self._progress_bar_task_id = self._progress_bar.add_task(
+                "", total=self._total, start=False
             )
 
-        if SemgrepCore.using_bridge_module():
-            rc = asyncio.run(self._stream_fork_subprocess())
-        else:
-            rc = asyncio.run(self._stream_exec_subprocess())
-
-        if self._progress_bar:
-            self._progress_bar.close()
+            if SemgrepCore.using_bridge_module():
+                rc = asyncio.run(self._stream_fork_subprocess())
+            else:
+                rc = asyncio.run(self._stream_exec_subprocess())
 
         open_and_ignore("/tmp/core-runner-semgrep-END")
         return rc
