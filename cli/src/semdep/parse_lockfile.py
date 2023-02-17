@@ -29,12 +29,6 @@ from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.yarn import parse_yarn
 from semdep.parsers.package_lock import parse_package_lock
 
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
-
 
 def parse_cargo(
     lockfile_text: str, manifest_text: Optional[str]
@@ -76,12 +70,46 @@ NEW_LOCKFILE_PARSERS = {
     "go.sum": parse_go_sum,  # Go
 }
 
+LOCKFILE_TO_MANIFEST = {
+    "Pipfile.lock": "Pipfile",
+    "poetry.lock": "pyproject.toml",
+    "requirements.txt": "requirements.in",
+    "package-lock.json": "package.json",
+    "yarn.lock": "package.json",
+    "Gemfile.lock": None,
+    "go.sum": None,
+    "Cargo.lock": None,
+    "maven_dep_tree.txt": None,
+    "gradle.lockfile": None,
+}
+
+
+def lockfile_path_to_manifest_path(lockfile_path: Path) -> Optional[Path]:
+    """
+    Given full lockfile path, return the path to the manifest file if it exists
+
+    Return None if file doesnt exist
+    """
+    path, lockfile_pattern = lockfile_path.parent, lockfile_path.parts[-1]
+    manifest_pattern = LOCKFILE_TO_MANIFEST[lockfile_pattern]
+
+    # some lockfiles don't have a manifest
+    if not manifest_pattern:
+        return None
+
+    manifest_path = path / manifest_pattern
+    if not manifest_path.exists():
+        return None
+
+    return manifest_path
+
 
 @lru_cache(maxsize=1000)
-def parse_lockfile_path(
-    lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
-    # coupling with the github action, which decides to send files with these names back to us
+def parse_lockfile_path(lockfile_path: Path) -> List[FoundDependency]:
+    """
+    Parse a lockfile and return it as a list of dependency objects
+    """
+    manifest_path = lockfile_path_to_manifest_path(lockfile_path)
     lockfile_name = lockfile_path.name.lower()
     if lockfile_name in NEW_LOCKFILE_PARSERS:
         parse_lockfile = NEW_LOCKFILE_PARSERS[lockfile_name]
