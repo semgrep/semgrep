@@ -272,10 +272,18 @@ class ScanHandler:
         ignores = [
             match.to_app_finding_format(commit_date).to_json() for match in new_ignored
         ]
+        token = (
+            # GitHub (cloud)
+            os.getenv("GITHUB_TOKEN")
+            # GitLab.com (cloud)
+            or os.getenv("GITLAB_TOKEN")
+            # Bitbucket Cloud
+            or os.getenv("PIPELINES_JWT_TOKEN")
+        )
+
         findings_and_ignores = {
             # send a backup token in case the app is not available
-            "token": os.getenv("GITHUB_TOKEN"),
-            "gitlab_token": os.getenv("GITLAB_TOKEN"),
+            "token": token,
             "findings": findings,
             "searched_paths": [str(t) for t in targets],
             "renamed_paths": [str(rt) for rt in renamed_targets],
