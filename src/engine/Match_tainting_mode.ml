@@ -559,6 +559,86 @@ let check_fundef lang options taint_config opt_ent fdef =
   in
   (flow, mapping)
 
+let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) =
+  let matches = ref [] in
+  let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
+  let lang =
+    match xlang with
+    | L (lang, _) -> lang
+    | LGeneric
+    | LRegex ->
+        failwith "taint-mode and generic/regex matching are incompatible"
+  in
+  let (ast, skipped_tokens), parse_time =
+    Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
+  in
+  (* TODO: 'debug_taint' should just be part of 'res'
+     * (i.e., add a "debugging" field to 'Report.match_result'). *)
+  let taint_config, _TODO_debug_taint, expls =
+    let handle_findings _ findings _env =
+      findings
+      |> List.iter (fun finding ->
+             pm_of_finding finding
+             |> Option.iter (fun pm -> Common.push pm matches))
+    in
+    taint_config_of_rule xconf file (ast, []) rule handle_findings
+  in
+
+  (match !hook_setup_hook_function_taint_signature with
+  | None -> ()
+  | Some setup_hook_function_taint_signature ->
+      setup_hook_function_taint_signature xconf rule taint_config xtarget);
+
+  (* Check each function definition. *)
+  Visit_function_defs.visit
+    (fun opt_ent fdef ->
+      check_fundef lang xconf.config taint_config opt_ent fdef |> ignore)
+    ast;
+
+  (* Check the top-level statements.
+      * In scripting languages it is not unusual to write code outside
+      * function declarations and we want to check this too. We simply
+      * treat the program itself as an anonymous function. *)
+  let (), match_time =
+    Common.with_time (fun () ->
+        let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
+        let flow = CFG_build.cfg_of_stmts xs in
+        Dataflow_tainting.fixpoint xconf.config taint_config flow |> ignore)
+  in
+  let matches =
+    !matches
+    (* same post-processing as for search-mode in Match_rules.ml *)
+    |> PM.uniq
+    |> PM.no_submatches (* see "Taint-tracking via ranges" *)
+    |> Common.before_return (fun v ->
+           v
+           |> List.iter (fun (m : Pattern_match.t) ->
+                  let str = Common.spf "with rule %s" m.rule_id.id in
+                  match_hook str m))
+    |> Common.map (fun m ->
+           { m with PM.rule_id = convert_rule_id rule.Rule.id })
+  in
+  let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
+  let report =
+    RP.make_match_result matches errors
+      { RP.rule_id = fst rule.Rule.id; parse_time; match_time }
+  in
+  let explanations =
+    if xconf.matching_explanations then
+      [
+        {
+          ME.op = Out.Taint;
+          children = expls;
+          matches = report.matches;
+          pos = snd rule.id;
+        };
+      ]
+    else []
+  in
+  let report = { report with explanations } in
+  report
+
 let check_rules (rules : R.taint_rule list) match_hook
     (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
     (per_rule_boilerplate_fn :
@@ -568,89 +648,9 @@ let check_rules (rules : R.taint_rule list) match_hook
     RP.rule_profiling RP.match_result list =
   rules
   |> Common.map (fun rule ->
+         let xconf =
+           Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
+         in
          per_rule_boilerplate_fn
            (rule :> R.rule)
-           (fun () ->
-             let matches = ref [] in
-             let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
-             let lang =
-               match xlang with
-               | L (lang, _) -> lang
-               | LGeneric
-               | LRegex ->
-                   failwith
-                     "taint-mode and generic/regex matching are incompatible"
-             in
-             let (ast, skipped_tokens), parse_time =
-               Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
-             in
-             (* TODO: 'debug_taint' should just be part of 'res'
-              * (i.e., add a "debugging" field to 'Report.match_result'). *)
-             let taint_config, _TODO_debug_taint, expls =
-               let handle_findings _ findings _env =
-                 findings
-                 |> List.iter (fun finding ->
-                        pm_of_finding finding
-                        |> Option.iter (fun pm -> Common.push pm matches))
-               in
-               taint_config_of_rule xconf file (ast, []) rule handle_findings
-             in
-
-             (match !hook_setup_hook_function_taint_signature with
-             | None -> ()
-             | Some setup_hook_function_taint_signature ->
-                 setup_hook_function_taint_signature xconf rule taint_config
-                   xtarget);
-
-             (* Check each function definition. *)
-             Visit_function_defs.visit
-               (fun opt_ent fdef ->
-                 check_fundef lang xconf.config taint_config opt_ent fdef
-                 |> ignore)
-               ast;
-
-             (* Check the top-level statements.
-                * In scripting languages it is not unusual to write code outside
-                * function declarations and we want to check this too. We simply
-                * treat the program itself as an anonymous function. *)
-             let (), match_time =
-               Common.with_time (fun () ->
-                   let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
-                   let flow = CFG_build.cfg_of_stmts xs in
-                   Dataflow_tainting.fixpoint xconf.config taint_config flow
-                   |> ignore)
-             in
-             let matches =
-               !matches
-               (* same post-processing as for search-mode in Match_rules.ml *)
-               |> PM.uniq
-               |> PM.no_submatches (* see "Taint-tracking via ranges" *)
-               |> Common.before_return (fun v ->
-                      v
-                      |> List.iter (fun (m : Pattern_match.t) ->
-                             let str = Common.spf "with rule %s" m.rule_id.id in
-                             match_hook str m))
-               |> Common.map (fun m ->
-                      { m with PM.rule_id = convert_rule_id rule.Rule.id })
-             in
-             let errors =
-               Parse_target.errors_from_skipped_tokens skipped_tokens
-             in
-             let report =
-               RP.make_match_result matches errors
-                 { RP.rule_id = fst rule.Rule.id; parse_time; match_time }
-             in
-             let explanations =
-               if xconf.matching_explanations then
-                 [
-                   {
-                     ME.op = Out.Taint;
-                     children = expls;
-                     matches = report.matches;
-                     pos = snd rule.id;
-                   };
-                 ]
-               else []
-             in
-             let report = { report with explanations } in
-             report))
+           (fun () -> check_rule rule match_hook xconf xtarget))
