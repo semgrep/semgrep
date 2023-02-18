@@ -106,17 +106,13 @@ let map ~map_any x =
   in
   map x
 
-let visit ~v_token ~v_any x =
-  let rec iter x =
-    match x with
-    | Token tok -> v_token tok
-    | List xs -> List.iter iter xs
-    | Tuple xs -> List.iter iter xs
-    | Case (_cons, x) -> iter x
-    | Option opt -> (
-        match opt with
-        | None -> ()
-        | Some x -> iter x)
-    | Any any -> v_any any
-  in
-  iter x
+let visit ~v_raw_tree ~v_token ~v_any = function
+  | Token tok -> v_token tok
+  | List xs -> List.iter v_raw_tree xs
+  | Tuple xs -> List.iter v_raw_tree xs
+  | Case (_cons, x) -> v_raw_tree x
+  | Option opt -> (
+      match opt with
+      | None -> ()
+      | Some x -> v_raw_tree x)
+  | Any any -> v_any any
