@@ -179,6 +179,14 @@ let rec expr env (x : expr) =
             xs
             |> Common.map (fun x ->
                    let x = expr env x in
+                   let x =
+                     G.Call
+                       ( G.IdSpecial
+                           (G.InterpolatedElement, unsafe_fake "f-elem")
+                         |> G.e,
+                         fb [ G.Arg x ] )
+                     |> G.e
+                   in
                    G.Arg x),
             v3 ) )
       |> G.e

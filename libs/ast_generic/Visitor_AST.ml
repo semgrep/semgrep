@@ -349,6 +349,24 @@ let (mk_visitor :
       | IdSpecial v1 ->
           let v1 = v_wrap v_special v1 in
           ()
+      | G.Call ({ e = G.IdSpecial (G.ConcatString (FString "f"), _); _ }, args)
+        ->
+          let v_args args =
+            args
+            |> List.iter (fun arg ->
+                   match arg with
+                   | G.Arg
+                       {
+                         e =
+                           Call
+                             ( { e = G.IdSpecial (G.InterpolatedElement, _); _ },
+                               (_, [ G.Arg { e = G.L (G.String _); _ } ], _) );
+                         _;
+                       } ->
+                       ()
+                   | _else_ -> v_argument arg)
+          in
+          v_bracket v_args args
       | Call (v1, v2) ->
           let v1 = v_expr v1 and v2 = v_arguments v2 in
           ()

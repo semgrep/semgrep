@@ -1744,7 +1744,17 @@ and m_arguments_concat a b =
     | _ -> m_argument xa xb
   in
   let is_dots = function
-    | G.Arg { e = G.L (G.String (_, ("...", _), _)); _ } -> true
+    | G.Arg { e = G.L (G.String (_, ("...", _), _)); _ }
+    | G.Arg
+        {
+          e =
+            G.Call
+              ( { e = G.IdSpecial (G.InterpolatedElement, _); _ },
+                (_, [ G.Arg { e = G.L (G.String (_, ("...", _), _)); _ } ], _)
+              );
+          _;
+        } ->
+        true
     | _else_ -> false
   in
   let is_metavar_ellipsis = function
