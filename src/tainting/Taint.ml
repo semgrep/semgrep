@@ -34,12 +34,21 @@ type tainted_tokens = G.tok list [@@deriving show]
 type 'a call_trace =
   | PM of PM.t * 'a
   | Call of G.expr * tainted_tokens * 'a call_trace
+  (* We keep this as part of a "call trace" in order to denote when
+     an incoming source has been propagated to have a different taint label.
+     We need this so that we can compute the new label of a propagated source,
+     but so we can remember what the original source label was as well.
+     For all intents and purposes, `Propagate` should only be visible in the
+     case where we are calling [label_of_source_trace].
+  *)
+  | Propagate of 'a call_trace * string (* label *)
 [@@deriving show]
 
 let length_of_call_trace ct =
   let rec loop acc = function
     | PM _ -> acc
     | Call (_, _, ct') -> loop (acc + 1) ct'
+    | Propagate (ct', _) -> loop acc ct'
   in
   loop 0 ct
 
@@ -49,6 +58,14 @@ type sink = Rule.taint_sink call_trace [@@deriving show]
 let rec pm_of_trace = function
   | PM (pm, x) -> (pm, x)
   | Call (_, _, trace) -> pm_of_trace trace
+  | Propagate (trace, _) -> pm_of_trace trace
+
+let rec label_of_source_trace = function
+  | PM (_, x) -> x.Rule.label
+  | Call (_, _, trace) -> label_of_source_trace trace
+  (* A propagated source has just the new label it was propagated to.
+   *)
+  | Propagate (_, label) -> label
 
 let trace_of_pm (pm, x) = PM (pm, x)
 
@@ -61,6 +78,7 @@ let rec _show_call_trace show_thing = function
       Printf.sprintf "%s [%s]" s (show_thing x)
   | Call (_e, _, trace) ->
       Printf.sprintf "Call(... %s)" (_show_call_trace show_thing trace)
+  | Propagate (trace, _) -> _show_call_trace show_thing trace
 
 (*****************************************************************************)
 (* Signatures *)
@@ -144,6 +162,7 @@ let _show_taint taint =
   let rec depth acc = function
     | PM _ -> acc
     | Call (_, _, x) -> depth (acc + 1) x
+    | Propagate (trace, _) -> depth acc trace
   in
   match taint.orig with
   | Src src ->

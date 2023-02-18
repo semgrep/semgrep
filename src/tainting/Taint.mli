@@ -9,6 +9,10 @@ type 'a call_trace =
   | PM of Pattern_match.t * 'a  (** A direct match.  *)
   | Call of AST_generic.expr * tainted_tokens * 'a call_trace
       (** An indirect match through a function call. *)
+  | Propagate of 'a call_trace * string (* label *)
+      (** A source that has been propagated to have a different label.
+          Invisible for most intents and purposes!
+        *)
 [@@deriving show]
 
 type source = Rule.taint_source call_trace [@@deriving show]
@@ -82,6 +86,7 @@ type taints = Taint_set.t
 
 val trace_of_pm : Pattern_match.t * 'a -> 'a call_trace
 val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
+val label_of_source_trace : Rule.taint_source call_trace -> string
 val taint_of_pm : Pattern_match.t * Rule.taint_source -> taint
 val taints_of_pms : (Pattern_match.t * Rule.taint_source) list -> taints
 val show_taints : taints -> string

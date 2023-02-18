@@ -331,9 +331,7 @@ let labels_of_taints taints : LabelSet.t =
   taints |> Taints.to_seq
   |> Seq.filter_map (fun (t : T.taint) ->
          match t.orig with
-         | Src src ->
-             let _, ts = T.pm_of_trace src in
-             Some ts.Rule.label
+         | Src src -> Some (T.label_of_source_trace src)
          | Arg _ -> None)
   |> LabelSet.of_seq
 
@@ -407,7 +405,7 @@ let findings_of_tainted_return taints return_tok : T.finding list =
          | T.Arg i -> T.ArgToReturn (i, tokens, return_tok)
          | T.Src src -> T.SrcToReturn (src, tokens, return_tok))
 
-let filter_taints_by_labels labels taints =
+let filter_new_taint_sources_by_labels labels taints =
   Taints.fold
     (fun new_taint taints ->
       match new_taint.orig with
@@ -418,9 +416,9 @@ let filter_taints_by_labels labels taints =
           if req then Taints.add new_taint taints else taints)
     taints Taints.empty
 
-let union_taints_filtering_labels ~new_ curr =
+let union_new_taint_sources_filtering_labels ~new_ curr =
   let labels = labels_of_taints curr in
-  let new_filtered = filter_taints_by_labels labels new_ in
+  let new_filtered = filter_new_taint_sources_by_labels labels new_ in
   Taints.union new_filtered curr
 
 let find_args_taints args_taints fdef =
@@ -491,6 +489,18 @@ let find_args_taints args_taints fdef =
         "cannot match taint variable with function arguments (%i: %s)" i s;
     taint_opt
 
+(* This function is used to convert some taint thing we're holding
+   to one which has been propagated to a new label.
+   See [handle_taint_propagators] for more.
+*)
+let propagate_taint_to_label label (taint : T.taint) =
+  let new_orig =
+    match taint.orig with
+    | Src src -> T.Src (Propagate (src, label))
+    | Arg arg -> Arg arg
+  in
+  { taint with orig = new_orig }
+
 (*****************************************************************************)
 (* Tainted *)
 (*****************************************************************************)
@@ -544,11 +554,28 @@ let handle_taint_propagators env thing taints =
   let propagate_froms, propagate_tos =
     List.partition (fun p -> p.spec.kind =*= `From) propagators
   in
+  (* These are all the labels flowing in to the current thing we're looking at. *)
+  let labels = labels_of_taints taints in
   let lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
      * the environment. *)
     List.fold_left
-      (fun lval_env prop -> Lval_env.propagate_to prop.spec.var taints lval_env)
+      (fun lval_env prop ->
+        (* Only propagate if the current set of taint labels can satisfy the
+           propagator's requires precondition.
+        *)
+        if eval_label_requires ~labels prop.spec.prop.propagator_requires then
+          (* If we have an output label, change the incoming taints to be
+             of the new label.
+             Otherwise, keep them the same.
+          *)
+          let new_taints =
+            match prop.spec.prop.propagator_label with
+            | None -> taints
+            | Some label -> Taints.map (propagate_taint_to_label label) taints
+          in
+          Lval_env.propagate_to prop.spec.var new_taints lval_env
+        else lval_env)
       lval_env propagate_froms
   in
   let taints_propagated, lval_env =
@@ -590,9 +617,11 @@ let find_lval_taint_sources env ~labels lval =
     partition_mutating_sources source_pms
   in
   let taints_sources_reg =
-    reg_source_pms |> taints_of_matches |> filter_taints_by_labels labels
+    reg_source_pms |> taints_of_matches
+    |> filter_new_taint_sources_by_labels labels
   and taints_sources_mut =
-    mut_source_pms |> taints_of_matches |> filter_taints_by_labels labels
+    mut_source_pms |> taints_of_matches
+    |> filter_new_taint_sources_by_labels labels
   in
   let lval_env = Lval_env.add env.lval_env lval taints_sources_mut in
   (Taints.union taints_sources_reg taints_sources_mut, lval_env)
@@ -772,7 +801,8 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
       in
       let taints_exp, lval_env = check_subexpr exp in
       let taints =
-        taints_exp |> union_taints_filtering_labels ~new_:taints_sources
+        taints_exp
+        |> union_new_taint_sources_filtering_labels ~new_:taints_sources
       in
       let taints_propagated, var_env =
         handle_taint_propagators { env with lval_env } (`Exp exp) taints
@@ -908,7 +938,8 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
       in
       let taints_instr, lval_env' = check_instr instr.i in
       let taints =
-        taints_instr |> union_taints_filtering_labels ~new_:taint_sources
+        taints_instr
+        |> union_new_taint_sources_filtering_labels ~new_:taint_sources
       in
       let taints_propagated, lval_env' =
         handle_taint_propagators

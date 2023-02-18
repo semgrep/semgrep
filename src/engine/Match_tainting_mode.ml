@@ -439,6 +439,12 @@ let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
       let toks = Lazy.force pm.PM.tokens |> List.filter PI.is_origintok in
       PM.Toks toks
+  | Taint.Propagate (trace, _) ->
+      (* It is not important that `Propagate` be visible to the external
+         call trace representation.
+         So let's just decline to convert it here.
+      *)
+      convert_taint_call_trace trace
   | Taint.Call (expr, toks, ct) ->
       PM.Call
         {
