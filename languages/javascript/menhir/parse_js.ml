@@ -183,7 +183,7 @@ let tokens file =
 let parse2 opt_timeout filename =
   let stat = Parsing_stat.default_stat filename in
 
-  let toks = tokens filename in
+  let toks = tokens (Parsing_helpers.File filename) in
   let toks = Parsing_hacks_js.fix_tokens toks in
   let toks = Parsing_hacks_js.fix_tokens_ASI toks in
 
@@ -308,28 +308,27 @@ let type_of_string s =
 (* for sgrep/spatch *)
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Common2.with_tmp_file ~str:s ~ext:"js" (fun file ->
-          let toks = tokens file in
-          let toks = Parsing_hacks_js.fix_tokens toks in
-          let toks = Parsing_hacks_js.fix_tokens_ASI toks in
+      let toks = tokens (Parsing_helpers.Str s) in
+      let toks = Parsing_hacks_js.fix_tokens toks in
+      let toks = Parsing_hacks_js.fix_tokens_ASI toks in
 
-          let tr, lexer, lexbuf_fake =
-            Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
-          in
-          let last_charpos_error = ref 0 in
+      let tr, lexer, lexbuf_fake =
+        Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
+      in
+      let last_charpos_error = ref 0 in
 
-          let rec parse_pattern tr =
-            try Parser_js.sgrep_spatch_pattern lexer lexbuf_fake with
-            | Parsing.Parse_error -> (
-                let cur = tr.Parsing_helpers.current in
-                let info = TH.info_of_tok cur in
-                let charpos = Parse_info.pos_of_info info in
-                (* try Automatic Semicolon Insertion *)
-                match asi_opportunity charpos last_charpos_error cur tr with
-                | None -> raise Parsing.Parse_error
-                | Some (passed_before, passed_offending, passed_after) ->
-                    asi_insert charpos last_charpos_error tr
-                      (passed_before, passed_offending, passed_after);
-                    parse_pattern tr)
-          in
-          parse_pattern tr))
+      let rec parse_pattern tr =
+        try Parser_js.sgrep_spatch_pattern lexer lexbuf_fake with
+        | Parsing.Parse_error -> (
+            let cur = tr.Parsing_helpers.current in
+            let info = TH.info_of_tok cur in
+            let charpos = Parse_info.pos_of_info info in
+            (* try Automatic Semicolon Insertion *)
+            match asi_opportunity charpos last_charpos_error cur tr with
+            | None -> raise Parsing.Parse_error
+            | Some (passed_before, passed_offending, passed_after) ->
+                asi_insert charpos last_charpos_error tr
+                  (passed_before, passed_offending, passed_after);
+                parse_pattern tr)
+      in
+      parse_pattern tr)
