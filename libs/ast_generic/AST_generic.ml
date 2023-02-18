@@ -366,13 +366,36 @@ class virtual ['self] iter_parent =
 
     method visit_todo_kind env kind = self#visit_wrap self#visit_string env kind
 
-    method visit_raw_tree_t
-        : 'a. ('env -> 'a -> unit) -> 'env -> 'a Raw_tree.t -> unit =
-      fun f env x ->
-        Raw_tree.visit
-          ~v_token:(self#visit_wrap self#visit_string env)
-          ~v_any:(f env) x
+    (* This is a bit of gymnastics. Because Raw_tree.t is polymorphic, deriving
+     * visitors generates a visit_raw_tree method for the monomorphic raw_tree
+     * type, which expects there to be a polymorphic visit_raw_tree_t for `'a
+     * Raw_tree.t`. That's a problem because child classes want to override
+     * visit_raw_tree and intercept *every* raw_tree node, even nested ones. If
+     * we allowed this to be a polymorphic method as expected, there would be no
+     * way to call back into the monomorphic visit_raw_tree when visiting nested
+     * `raw_tree`s.
+     *
+     * So, instead, we just declare the `visit_raw_tree` method as virtual
+     * below (using type variables which will later get pinned down, since we
+     * don't have access to the `raw_tree` type), and call it here.
+     *
+     * This makes this method monomorphic on the `Raw_tree.t` type parameter in
+     * practice.
+     *
+     * If we introduced another use of `Raw_tree.t` in this big recursive type,
+     * with a different type parameter, then we would start getting type errors
+     * because OCaml would expect this method to be polymorphic. However, since
+     * we will likely never use `Raw_tree.t` here with a type parameter other
+     * than `AST_generic.any`, this doesn't matter. *)
+    method visit_raw_tree_t f env x =
+      Raw_tree.visit ~v_raw_tree:(self#visit_raw_tree env)
+        ~v_token:(self#visit_wrap self#visit_string env)
+        ~v_any:(f env) x
 
+    (* See comment on visit_raw_tree_t. 'raw_tree will get pinned down in the
+     * generated visitor to be `any Raw_tree.t`, but we can't refer to `any`
+     * here so a type variable does the trick. *)
+    method virtual visit_raw_tree : 'env -> 'raw_tree -> unit
     method visit_sc env tok = self#visit_tok env tok
 
     method visit_dotted_ident env dotted =
