@@ -565,8 +565,7 @@ and map_macro_rule (env : env) ((v1, v2, v3) : CST.macro_rule) : rust_macro_rule
   let body = map_token_tree env v3 in
   { rules; body }
 
-let rec map_abstract_type_trait_name (env : env)
-    (x : CST.anon_choice_type_id_02b4436) : G.type_ =
+let rec map_abstract_type_trait_name (env : env) x : G.type_ =
   match x with
   | `Id tok ->
       let ident = ident env tok in
@@ -580,15 +579,14 @@ let rec map_abstract_type_trait_name (env : env)
       G.TyN name |> G.t
   | `Func_type x -> map_function_type env x
 
-and map_struct_name (env : env) (x : CST.anon_choice_type_id_2c46bcf) : G.name =
+and map_struct_name (env : env) x : G.name =
   match x with
   | `Id tok ->
       H2.name_of_id (ident env tok)
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   | `Scoped_type_id x -> map_scoped_type_identifier_name env x
 
-and map_tuple_struct_name (env : env) (x : CST.anon_choice_type_id_f1f5a37) :
-    G.name =
+and map_tuple_struct_name (env : env) x : G.name =
   match x with
   | `Id tok ->
       H2.name_of_id (ident env tok)
