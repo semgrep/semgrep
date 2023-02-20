@@ -254,8 +254,8 @@
     }
   ],
   "searched_paths": [
-    "foo.py",
     "yarn.lock",
+    "foo.py",
     "poetry.lock"
   ],
   "renamed_paths": [],
