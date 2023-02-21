@@ -1,0 +1,14 @@
+(executables
+ (names Main)
+ (libraries semgrep.running js_of_ocaml integers_stubs_js ctypes_stubs_js)
+ (js_of_ocaml
+  (javascript_files
+   ./pcre.js
+   ./ocaml-tree-sitter.js
+   ./semgrep.js
+   ./unix.js
+   ./core.js)
+  (flags --no-source-map --opt=3 --file=./test.py:/test.py))
+ (modes js)
+ (preprocess
+  (pps js_of_ocaml-ppx js_of_ocaml-ppx_deriving_json)))
