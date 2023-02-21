@@ -27,7 +27,7 @@ func qux(int) { }
 // ruleid: metavar_ellipsis_param
 func qux(x int) { }
 
-// todo: metavar_ellipsis_param
+// ruleid: metavar_ellipsis_param
 func qux(string, x int) { }
 
 func qux(string, x int, string) { }
