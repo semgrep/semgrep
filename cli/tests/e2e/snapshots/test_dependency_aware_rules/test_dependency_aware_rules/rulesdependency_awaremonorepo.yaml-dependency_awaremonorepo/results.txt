@@ -14,7 +14,10 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
     "scanned": [
       "targets/dependency_aware/monorepo/build.js",
       "targets/dependency_aware/monorepo/webapp1/app.js",
-      "targets/dependency_aware/monorepo/webapp2/app.js"
+      "targets/dependency_aware/monorepo/webapp1/yarn.lock",
+      "targets/dependency_aware/monorepo/webapp2/app.js",
+      "targets/dependency_aware/monorepo/webapp2/yarn.lock",
+      "targets/dependency_aware/monorepo/yarn.lock"
     ]
   },
   "results": [
@@ -117,6 +120,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 
 === stderr - plain
 Scanning 3 files.
+
                                                                                 
                                                                                 
 ┌─────────┐                                                                     
@@ -130,6 +134,6 @@ Scanning 3 files.
 └──────────────┘                                                                
                                                                                 
 
-Ran 1 rule on 3 files: 2 findings.
+Ran 1 rule on 6 files: 2 findings.
 
 === end of stderr - plain

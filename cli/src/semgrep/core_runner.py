@@ -2,7 +2,6 @@ import asyncio
 import collections
 import contextlib
 import json
-import multiprocessing
 import resource
 import shlex
 import subprocess
@@ -25,19 +24,25 @@ from typing import TYPE_CHECKING
 from attr import asdict
 from attr import field
 from attr import frozen
+from rich.progress import BarColumn
+from rich.progress import MofNCompleteColumn
+from rich.progress import Progress
+from rich.progress import TaskID
+from rich.progress import TextColumn
+from rich.progress import TimeElapsedColumn
 from ruamel.yaml import YAML
-from tqdm import tqdm
 
 import semgrep.fork_subprocess as fork_subprocess
 import semgrep.output_from_core as core
 from semgrep.app import auth
 from semgrep.config_resolver import Config
+from semgrep.console import console
 from semgrep.constants import Colors
-from semgrep.constants import EngineType
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.core_output import core_matches_to_rule_matches
 from semgrep.core_output import parse_core_output
+from semgrep.engine import EngineType
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import with_color
@@ -52,7 +57,6 @@ from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
-from semgrep.util import sub_check_output
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
@@ -71,13 +75,6 @@ INPUT_BUFFER_LIMIT: int = 1024 * 1024 * 1024
 #
 # test/e2e/test_performance.py is one test that exercises this risk.
 LARGE_READ_SIZE: int = 1024 * 1024 * 512
-
-
-def get_cpu_count() -> int:
-    try:
-        return multiprocessing.cpu_count()
-    except NotImplementedError:
-        return 1  # CPU count is not implemented on Windows
 
 
 def setrlimits_preexec_fn() -> None:
@@ -191,7 +188,8 @@ class StreamingSemgrepCore:
         self._total = total
         self._stdout = ""
         self._stderr = ""
-        self._progress_bar: Optional[tqdm] = None  # type: ignore
+        self._progress_bar: Optional[Progress] = None
+        self._progress_bar_task_id: Optional[TaskID] = None
 
         # Map from file name to contents, to be checked before the real
         # file system when servicing requests from semgrep-core.
@@ -232,6 +230,8 @@ class StreamingSemgrepCore:
         # TODO: read progress from one channel and JSON data from another.
         # or at least write/read progress as a stream of JSON objects so that
         # we don't have to hack a parser together.
+
+        has_started = False
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
             try:
@@ -255,6 +255,14 @@ class StreamingSemgrepCore:
                     "\ttried these steps and still are seeing this error, please contact us."
                 )
 
+            if (
+                not has_started
+                and self._progress_bar
+                and self._progress_bar_task_id is not None
+            ):
+                has_started = True
+                self._progress_bar.start_task(self._progress_bar_task_id)
+
             # read returns empty when EOF
             if not line_bytes:
                 self._stdout = b"".join(stdout_lines).decode("utf-8", "replace")
@@ -262,15 +270,19 @@ class StreamingSemgrepCore:
 
             if line_bytes == b".\n" and not reading_json:
                 num_scanned_targets += 1
-                if self._progress_bar:
-                    self._progress_bar.update()
+                if self._progress_bar and self._progress_bar_task_id is not None:
+                    self._progress_bar.update(
+                        self._progress_bar_task_id, completed=num_scanned_targets
+                    )
             elif chr(line_bytes[0]).isdigit() and not reading_json:
                 if not line_bytes.endswith(b"\n"):
                     line_bytes = line_bytes + await stream.readline()
                 extra_targets = int(line_bytes)
                 num_total_targets += extra_targets
-                if self._progress_bar:
-                    self._progress_bar.total += extra_targets
+                if self._progress_bar and self._progress_bar_task_id is not None:
+                    self._progress_bar.update(
+                        self._progress_bar_task_id, total=num_total_targets
+                    )
             else:
                 stdout_lines.append(line_bytes)
                 # Once we see a non-"." char it means we are reading a large json blob
@@ -420,26 +432,28 @@ class StreamingSemgrepCore:
         open_and_ignore("/tmp/core-runner-semgrep-BEGIN")
 
         terminal = get_state().terminal
-        if (
-            sys.stderr.isatty()
-            and self._total > 1
-            and not terminal.is_quiet
-            and not terminal.is_debug
-        ):
-            # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
-            self._progress_bar = tqdm(  # typing: ignore
-                total=self._total,
-                file=sys.stderr,
-                bar_format="  {l_bar}{bar}|{n_fmt}/{total_fmt} tasks",
+        with Progress(
+            BarColumn(),
+            MofNCompleteColumn(),
+            TextColumn("tasks"),
+            TimeElapsedColumn(),
+            console=console,
+            disable=(
+                not sys.stderr.isatty()
+                or self._total <= 1
+                or terminal.is_quiet
+                or terminal.is_debug
+            ),
+        ) as progress_bar:
+            self._progress_bar = progress_bar
+            self._progress_bar_task_id = self._progress_bar.add_task(
+                "", total=self._total, start=False
             )
 
-        if SemgrepCore.using_bridge_module():
-            rc = asyncio.run(self._stream_fork_subprocess())
-        else:
-            rc = asyncio.run(self._stream_exec_subprocess())
-
-        if self._progress_bar:
-            self._progress_bar.close()
+            if SemgrepCore.using_bridge_module():
+                rc = asyncio.run(self._stream_fork_subprocess())
+            else:
+                rc = asyncio.run(self._stream_exec_subprocess())
 
         open_and_ignore("/tmp/core-runner-semgrep-END")
         return rc
@@ -552,7 +566,7 @@ class CoreRunner:
     def __init__(
         self,
         jobs: Optional[int],
-        engine: EngineType,
+        engine_type: EngineType,
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
@@ -560,32 +574,14 @@ class CoreRunner:
         optimizations: str,
         core_opts_str: Optional[str],
     ):
-        if jobs is None:
-            if engine is EngineType.PRO_INTERFILE:
-                # In some cases inter-file analysis consumes too much memory, and
-                # not using multi-core seems to help containing the problem.
-                jobs = 1
-            else:
-                jobs = get_cpu_count()
-        self._jobs = jobs
+        self._binary_path = engine_type.get_binary_path()
+        self._jobs = jobs or engine_type.default_jobs
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
         self._interfile_timeout = interfile_timeout
         self._optimizations = optimizations
         self._core_opts = shlex.split(core_opts_str) if core_opts_str else []
-
-        self._binary_path = SemgrepCore.path()
-
-        if engine.is_pro:
-            pro_path = SemgrepCore.pro_path()
-
-            if pro_path is None:
-                raise SemgrepError(
-                    "Could not use Pro features: Semgrep Pro Engine not installed. Run `semgrep install-semgrep-pro`"
-                )
-
-            self._binary_path = pro_path
 
     def _extract_core_output(
         self,
@@ -838,7 +834,7 @@ class CoreRunner:
 
             # Run semgrep
             cmd = [
-                self._binary_path,
+                str(self._binary_path),
                 "-json",
                 "-rules",
                 rule_file.name,
@@ -871,20 +867,10 @@ class CoreRunner:
                     logger.error("!!!This is a proprietary extension of semgrep.!!!")
                     logger.error("!!!You must be logged in to access this extension!!!")
                 else:
-                    logger.error("Running with Semgrep Pro Engine (beta).")
                     if engine is EngineType.PRO_INTERFILE:
                         logger.error(
                             "Semgrep Pro Engine may be slower and show different results than Semgrep OSS."
                         )
-
-                logger.info(f"Using Semgrep Pro installed in {self._binary_path}")
-                version = sub_check_output(
-                    [self._binary_path, "-pro_version"],
-                    timeout=10,
-                    encoding="utf-8",
-                    stderr=subprocess.STDOUT,
-                ).rstrip()
-                logger.info(f"Semgrep Pro Version Info: ({version})")
 
                 if engine is EngineType.PRO_INTERFILE:
                     targets = target_manager.targets
@@ -915,7 +901,7 @@ class CoreRunner:
                 # to copy+paste it to a shell.  (The real command is
                 # still visible in the log message above.)
                 printed_cmd = cmd.copy()
-                printed_cmd[0] = self._binary_path
+                printed_cmd[0] = str(self._binary_path)
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
@@ -1066,6 +1052,9 @@ Exception raised: `{e}`
         )
 
     def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
+        if self._binary_path is None:  # should never happen, doing this for mypy
+            raise SemgrepError("semgrep engine not found.")
+
         metachecks = Config.from_config_list(["p/semgrep-rule-lints"], None)[
             0
         ].get_rules(True)
@@ -1079,26 +1068,20 @@ Exception raised: `{e}`
             )
             rule_file.flush()
 
-            cmd = (
-                [self._binary_path]
-                + [
-                    "-json",
-                    "-check_rules",
-                    rule_file.name,
-                ]
-                + list(configs)
-            )
+            cmd = [
+                str(self._binary_path),
+                "-json",
+                "-check_rules",
+                rule_file.name,
+                *configs,
+            ]
 
             runner = StreamingSemgrepCore(cmd, 1)  # only scanning combined rules
             returncode = runner.execute()
 
             # Process output
             output_json = self._extract_core_output(
-                metachecks,
-                returncode,
-                " ".join(cmd),
-                runner.stdout,
-                runner.stderr,
+                metachecks, returncode, " ".join(cmd), runner.stdout, runner.stderr
             )
             core_output = parse_core_output(output_json)
 

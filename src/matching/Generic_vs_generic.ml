@@ -1183,16 +1183,16 @@ and m_literal a b =
            sides of the trees.
         *)
         match (a, b) with
-        | G.Int (a1, a2), B.String (b1, b2) ->
+        | G.Int (a1, a2), B.String (_, (b1, b2), _) ->
             let i = Option.map Int.to_string a1 in
             m_wrap_m_string_opt (i, a2) (Some b1, b2)
-        | G.String (a1, a2), B.Int (b1, b2) ->
+        | G.String (_, (a1, a2), _), B.Int (b1, b2) ->
             let i = Option.map Int.to_string b1 in
             m_wrap_m_string_opt (Some a1, a2) (i, b2)
-        | G.Bool (a1, a2), B.String (b1, b2) ->
+        | G.Bool (a1, a2), B.String (_, (b1, b2), _) ->
             let b = Bool.to_string a1 in
             m_wrap m_string (b, a2) (b1, b2)
-        | G.String (a1, a2), B.Bool (b1, b2) ->
+        | G.String (_, (a1, a2), _), B.Bool (b1, b2) ->
             let b = Bool.to_string b1 in
             m_wrap m_string (a1, a2) (b, b2)
         (* For the float case, we coerce from string to float, rather
@@ -1200,10 +1200,10 @@ and m_literal a b =
            While this is not strictly what Hcl does, this is because we
            may have inconsistency in how floats are represented, as strings.
         *)
-        | G.Float (a1, a2), B.String (b1, b2) ->
+        | G.Float (a1, a2), B.String (_, (b1, b2), _) ->
             let f = Float.of_string_opt b1 in
             m_wrap_m_float_opt (a1, a2) (f, b2)
-        | G.String (a1, a2), B.Float (b1, b2) ->
+        | G.String (_, (a1, a2), _), B.Float (b1, b2) ->
             let f = Float.of_string_opt a1 in
             m_wrap_m_float_opt (f, a2) (b1, b2)
         | __else__ -> m_literal_inner a b
@@ -1213,7 +1213,9 @@ and m_literal_inner a b =
   Trace_matching.(if on then print_literal_pair a b);
   match (a, b) with
   (* dots: metavar: '...' and metavars on string/regexps/atoms *)
-  | G.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
+  | G.String (_, a, _), B.String (_, b, _) ->
+      (* iso? don't care about the kind of quotes used? *)
+      m_string_ellipsis_or_metavar_or_default a b
   | G.Atom (_, a), B.Atom (_, b) -> m_ellipsis_or_metavar_or_string a b
   | G.Regexp (a1, a2), B.Regexp (b1, b2) -> (
       let* () = m_bracket m_ellipsis_or_metavar_or_string a1 b1 in
@@ -1284,7 +1286,7 @@ and m_literal_svalue a b =
   | B.Lit b1 -> m_literal a b1
   | B.Cst B.Cstr -> (
       match a with
-      | G.String ("...", _) -> return ()
+      | G.String (_, ("...", _), _) -> return ()
       | ___else___ -> fail ())
   | B.Cst _
   | B.Sym _
@@ -1742,11 +1744,12 @@ and m_arguments_concat a b =
     | _ -> m_argument xa xb
   in
   let is_dots = function
-    | G.Arg { e = G.L (G.String ("...", _)); _ } -> true
+    | G.Arg { e = G.L (G.String (_, ("...", _), _)); _ } -> true
     | _else_ -> false
   in
   let is_metavar_ellipsis = function
-    | G.Arg { e = G.L (G.String (s, tok)); _ } when MV.is_metavar_ellipsis s ->
+    | G.Arg { e = G.L (G.String (_, (s, tok), _)); _ }
+      when MV.is_metavar_ellipsis s ->
         Some ((s, tok), fun xs -> MV.Args xs)
     | _else_ -> None
   in
@@ -2003,7 +2006,7 @@ and m_type_ a b =
   | G.TyEllipsis _, _ -> return ()
   (* boilerplate *)
   | G.TyFun (a1, a2), B.TyFun (b1, b2) ->
-      m_parameters a1 b1 >>= fun () -> m_type_ a2 b2
+      m_parameter_list a1 b1 >>= fun () -> m_type_ a2 b2
   | G.TyArray (a1, a2), B.TyArray (b1, b2) ->
       m_bracket (m_option m_expr) a1 b1 >>= fun () -> m_type_ a2 b2
   | G.TyTuple a1, B.TyTuple b1 ->
@@ -2854,7 +2857,9 @@ and m_function_body a b =
   | G.FBNothing, _ ->
       fail ()
 
-and m_parameters a b =
+and m_parameters a b = m_bracket m_parameter_list a b
+
+and m_parameter_list a b =
   m_list_with_dots_and_metavar_ellipsis ~f:m_parameter
     ~is_dots:(function
       | G.ParamEllipsis _ -> true
@@ -3280,7 +3285,9 @@ and m_directive_vs_def a b =
                     e =
                       B.Call
                         ( { e = B.IdSpecial (B.Require, _); _ },
-                          (_, [ B.Arg { e = B.L (B.String fileb); _ } ], _) );
+                          ( _,
+                            [ B.Arg { e = B.L (B.String (_, fileb, _)); _ } ],
+                            _ ) );
                     _;
                   };
               vtype = _;
@@ -3306,7 +3313,10 @@ and m_directive_vs_def a b =
                               B.Call
                                 ( { e = B.IdSpecial (Require, _); _ },
                                   ( _,
-                                    [ B.Arg { e = B.L (B.String fileb); _ } ],
+                                    [
+                                      B.Arg
+                                        { e = B.L (B.String (_, fileb, _)); _ };
+                                    ],
                                     _ ) );
                             _;
                           } );
@@ -3459,7 +3469,8 @@ and m_partial a b =
 and m_any a b =
   match (a, b) with
   | G.Raw a1, B.Raw b1 -> m_raw_tree a1 b1
-  | G.Str a1, B.Str b1 -> m_string_ellipsis_or_metavar_or_default a1 b1
+  | G.Str (_, a1, _), B.Str (_, b1, _) ->
+      m_string_ellipsis_or_metavar_or_default a1 b1
   | G.Ss a1, B.Ss b1 -> m_stmts_deep ~inside:false ~less_is_ok:true a1 b1
   | G.Flds a1, B.Flds b1 -> m_fields a1 b1
   | G.E a1, B.E b1 -> m_expr a1 b1

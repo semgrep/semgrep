@@ -12,7 +12,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
-      "foo.py"
+      "foo.py",
+      "poetry.lock",
+      "yarn.lock"
     ]
   },
   "results": [
@@ -425,16 +427,15 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   SCAN ENVIRONMENT                                                              
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown         
-  server      - https://semgrep.dev                                             
+  server      - logged in as org_name on https://semgrep.dev                    
                                                                                 
                                                                                 
 ┌─────────────┐                                                                 
 │ Scan Status │                                                                 
 └─────────────┘                                                                 
                                                                                 
-Fetching configuration from semgrep.dev
-Authenticated as org_name
 Scanning 1 file with 4 python rules.
+
                                                                                 
                                                                                 
 ┌─────────┐                                                                     

@@ -7,9 +7,15 @@ import sys
 from pathlib import Path
 
 import click
-from tqdm import tqdm
+from rich.progress import BarColumn
+from rich.progress import DownloadColumn
+from rich.progress import Progress
+from rich.progress import TextColumn
+from rich.progress import TimeRemainingColumn
+from rich.progress import TransferSpeedColumn
 
 from semgrep.commands.wrapper import handle_command_errors
+from semgrep.console import console
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.semgrep_core import SemgrepCore
@@ -88,16 +94,25 @@ def run_install_semgrep_pro() -> None:
             sys.exit(FATAL_EXIT_CODE)
         r.raise_for_status()
 
-        file_size = int(r.headers.get("Content-Length", 0))
-
         # Make sure no such binary exists. We have had weird situations when the
         # downloaded binary was corrupted, and overwriting it did not fix it, but
         # it was necessary to `rm -f` it.
         if semgrep_pro_path_tmp.exists():
             semgrep_pro_path_tmp.unlink()
-        with open(semgrep_pro_path_tmp, "wb") as f:
-            with tqdm.wrapattr(r.raw, "read", total=file_size) as r_raw:
-                shutil.copyfileobj(r_raw, f)
+
+        file_size = int(r.headers.get("Content-Length", 0))
+
+        with Progress(
+            TextColumn("{task.description}"),
+            BarColumn(),
+            DownloadColumn(),
+            TransferSpeedColumn(),
+            TimeRemainingColumn(),
+            console=console,
+        ) as progress, semgrep_pro_path_tmp.open("wb") as f, progress.wrap_file(
+            r.raw, total=file_size, description="Downloading..."
+        ) as r_raw:
+            shutil.copyfileobj(r_raw, f)
 
     # THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
     #        The binary should not have setuid or setgid rights, so letting others

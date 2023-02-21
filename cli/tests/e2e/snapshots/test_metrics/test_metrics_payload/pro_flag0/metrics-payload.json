@@ -21,7 +21,7 @@
     "features": [
       "cli-flag/config",
       "cli-flag/metrics",
-      "cli-flag/pro",
+      "cli-flag/requested_engine",
       "cli-flag/targets",
       "config/local",
       "subcommand/scan"

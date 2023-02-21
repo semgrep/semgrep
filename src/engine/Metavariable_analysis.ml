@@ -46,7 +46,7 @@ let analyze_string_metavar env bindings mvar (analyzer : string -> bool) =
   analyze_metavar env bindings mvar (function
     (* We don't use Eval_generic.text_of_binding on string literals because
        it returns the quoted string but we want it unquoted. *)
-    | E { G.e = G.L (G.String (escaped, _tok)); _ } ->
+    | E { G.e = G.L (G.String (_, (escaped, _tok), _)); _ } ->
         escaped |> String_literal.approximate_unescape |> analyzer
     | other_mval -> (
         match Eval_generic.text_of_binding mvar other_mval with

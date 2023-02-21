@@ -14,6 +14,7 @@
       ppx_deriving.eq
       ppx_hash
       profiling.ppx
+      visitors.ppx
    )
  )
 )

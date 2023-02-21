@@ -18,9 +18,14 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
+# Annoying to read. In english "6 colon separated strings or 5 colon separated strings"
 # Examples:
 # org.apache.logging.log4j:log4j-api:jar:0.0.2:compile
-dep = regex("([^:]+:[^:]+):[^:]+:([^:]+):[^: \n]+", flags=0, group=(1, 2))
+# org.springframework.boot:spring-boot-configuration-processor:jar:2.3.4.RELEASE:compile (optional)
+# com.google.inject:guice:jar:no_aop:4.2.2:test
+dep = regex(
+    "([^:\n]+:[^:\n]+):[^:\n]+:[^:\n]+:([^:\n]+):[^:\n]+", flags=0, group=(1, 2)
+) | regex("([^:\n]+:[^:\n]+):[^:\n]+:([^:\n]+):[^:\n]+", flags=0, group=(1, 2))
 
 
 # Examples (these would not appear in this order in a file, they're seperate):

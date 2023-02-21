@@ -457,7 +457,8 @@ let find_args_taints args_taints fdef =
                 (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
             | None -> param :: acc (* Same as above. *))
         | __else__ -> param :: acc)
-      fdef.G.fparams []
+      (Parse_info.unbracket fdef.G.fparams)
+      []
   in
   let _ =
     (* We then process all of the positional arguments in order of the remaining parameters.
@@ -550,29 +551,31 @@ let handle_taint_propagators env thing taints =
       (fun lval_env prop -> Lval_env.propagate_to prop.spec.var taints lval_env)
       lval_env propagate_froms
   in
-  let taints_propagated =
+  let taints_propagated, lval_env =
     (* `thing` is the destination (the "to") of propagation. we collect all the
      * incoming taints by looking for the propagator ids in the environment. *)
     List.fold_left
-      (fun taints_in_acc prop ->
-        let taints_strid =
+      (fun (taints_in_acc, lval_env) prop ->
+        let taints_from_prop =
           match Lval_env.propagate_from prop.spec.var lval_env with
           | None -> Taints.empty
           | Some taints -> taints
         in
-        Taints.union taints_in_acc taints_strid)
-      Taints.empty propagate_tos
-  in
-  let lval_env =
-    match thing with
-    (* If `thing` is an l-value of the form `x.a.b.c`, then taint can be propagated
-     * by side-effect. A pattern-propagator may use this to e.g. propagate taint
-     * from `x` to `y` in `f(x,y)`, so that subsequent uses of `y` are tainted
-     * if `x` was previously tainted. *)
-    | `Lval lval -> Lval_env.add lval_env lval taints_propagated
-    | `Exp _
-    | `Ins _ ->
-        lval_env
+        let lval_env =
+          if prop.spec.prop.propagator_by_side_effect then
+            match thing with
+            (* If `thing` is an l-value of the form `x.a.b.c`, then taint can be propagated
+               * by side-effect. A pattern-propagator may use this to e.g. propagate taint
+               * from `x` to `y` in `f(x,y)`, so that subsequent uses of `y` are tainted
+               * if `x` was previously tainted. *)
+            | `Lval lval -> Lval_env.add lval_env lval taints_from_prop
+            | `Exp _
+            | `Ins _ ->
+                lval_env
+          else lval_env
+        in
+        (Taints.union taints_in_acc taints_from_prop, lval_env))
+      (Taints.empty, lval_env) propagate_tos
   in
   (taints_propagated, lval_env)
 

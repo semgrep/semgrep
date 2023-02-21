@@ -4,14 +4,13 @@ from typing import Callable
 from typing import Dict
 from typing import Iterator
 from typing import List
-from typing import Set
 from typing import Tuple
 
 import semgrep.output_from_core as core
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
-from semdep.find_lockfiles import find_single_lockfile
 from semdep.package_restrictions import dependencies_range_match_any
+from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -62,7 +61,10 @@ def generate_unreachable_sca_findings(
     rule: Rule,
     target_manager: TargetManager,
     already_reachable: Callable[[Path, FoundDependency], bool],
-) -> Tuple[List[RuleMatch], List[SemgrepError], Set[Path]]:
+) -> Tuple[List[RuleMatch], List[SemgrepError]]:
+    """
+    Returns matches to a only a rule's sca-depends-on patterns; ignoring any reachabiliy patterns it has
+    """
     depends_on_keys = rule.project_depends_on
     dep_rule_errors: List[SemgrepError] = []
 
@@ -70,11 +72,11 @@ def generate_unreachable_sca_findings(
     ecosystems = list(rule.ecosystems)
 
     non_reachable_matches = []
-    targeted_lockfiles = set()
     for ecosystem in ecosystems:
-        lockfile_data = target_manager.get_lockfile_dependencies(ecosystem)
-        for lockfile_path, deps in lockfile_data.items():
-            targeted_lockfiles.add(lockfile_path)
+        lockfile_paths = target_manager.get_lockfiles(ecosystem)
+
+        for lockfile_path in lockfile_paths:
+            deps = parse_lockfile_path(lockfile_path)
             dependency_matches = list(
                 dependencies_range_match_any(depends_on_entries, list(deps))
             )
@@ -116,7 +118,7 @@ def generate_unreachable_sca_findings(
                     },
                 )
                 non_reachable_matches.append(match)
-    return non_reachable_matches, dep_rule_errors, targeted_lockfiles
+    return non_reachable_matches, dep_rule_errors
 
 
 @lru_cache(maxsize=100_000)
@@ -147,14 +149,13 @@ def generate_reachable_sca_findings(
     for ecosystem in ecosystems:
         for match in matches:
             try:
-                lockfile_data = find_single_lockfile(match.path, ecosystem)
-                if lockfile_data is None:
+                lockfile_path = target_manager.find_single_lockfile(
+                    match.path, ecosystem
+                )
+                if lockfile_path is None:
                     continue
-                lockfile_path, deps = lockfile_data
+                deps = parse_lockfile_path(lockfile_path)
                 frozen_deps = tuple((dep.package, dep.transitivity) for dep in deps)
-                if str(lockfile_path) not in target_manager.lockfile_scan_info:
-                    # If the lockfile is not part of the actual targets or we just haven't parsed this lockfile yet
-                    target_manager.lockfile_scan_info[str(lockfile_path)] = len(deps)
 
                 dependency_matches = list(
                     dependencies_range_match_any(depends_on_entries, deps)

@@ -1,0 +1,3 @@
+Apex: Fix name resolution of class attributes. Among other things, this will allow
+Semgrep to perform constant propagation of `final` class attributes.
+See https://semgrep.dev/s/DG6v.

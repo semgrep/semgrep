@@ -107,7 +107,11 @@ and block_type =
   | Terraform
   | OtherBlockType of string
 
-and block_label = LblStr of string wrap | LblId of ident
+and block_label =
+  | LblStr of string wrap
+  (* TODO bracket? *)
+  | LblId of ident
+
 and block_body = block_body_element list bracket
 
 and block_body_element =

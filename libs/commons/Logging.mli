@@ -130,4 +130,4 @@ val add_PID_tag : unit -> unit
    Load a json config file that sets log levels for each logger matching
    specific tags.
 *)
-val load_config_file : Common.filename -> unit
+val load_config_file : string -> unit
