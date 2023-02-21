@@ -548,8 +548,8 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
               | None -> None
             in
             Some var_name
-        | `Choice_subs_opt_SLASH_opt_regex_rep_choice_choice_conc (v1, v2, v3)
-          ->
+        | `Choice_subs_opt_tok_prec_p1_slash_opt_regex_rep_choice_choice_conc
+            (v1, v2, v3) ->
             let opt_variable =
               match v1 with
               | `Subs _x -> (* TODO: subscript env x *) None
