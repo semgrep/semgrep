@@ -591,10 +591,21 @@ let tainting_test lang rules_file file =
                lazy_ast_and_errors = lazy (ast, []);
              }
            in
-           let res, _debug =
-             Match_tainting_mode.check_rule rule (fun _ _ -> ()) xconf xtarget
+           let results =
+             Match_tainting_mode.check_rules
+               ~match_hook:(fun _ _ -> ())
+               ~per_rule_boilerplate_fn:(fun _rule f -> f ())
+               [ rule ] xconf xtarget
            in
-           res.matches)
+           match results with
+           | [ res ] -> res.matches
+           (* By construction, `check_rules` should only return the same number of results as rules it
+              was initially given.
+              So this case is impossible.
+           *)
+           | []
+           | _ :: _ :: _ ->
+               raise Impossible)
     |> List.flatten
   in
   let actual =

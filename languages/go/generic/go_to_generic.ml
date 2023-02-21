@@ -167,6 +167,7 @@ let top_func () =
     match x with
     | ParamClassic x -> parameter x
     | ParamEllipsis t -> G.ParamEllipsis t
+    | ParamMetavarEllipsis id -> G.Param (G.param_of_id id)
   and parameter x =
     match x with
     | { pname; ptype; pdots } -> (
