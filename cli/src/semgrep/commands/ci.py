@@ -23,8 +23,6 @@ from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.console import Title
-from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
-from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
@@ -307,40 +305,28 @@ def ci(
         git_meta=metadata,
     )
 
+    # set default settings for selected engine type
     if dataflow_traces is None:
         dataflow_traces = engine_type.has_dataflow_traces
 
-    console.print(Title("Scan Environment", order=2))
-    console.print(Padding(scan_env, (0, 2)))
+    if max_memory is None:
+        max_memory = engine_type.default_max_memory
+
+    if interfile_timeout is None:
+        interfile_timeout = engine_type.default_interfile_timeout
 
     if engine_type.is_pro:
         console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
         if engine_type.check_if_installed():
             console.print(
-                f"  Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]"
+                f"Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]"
             )
-            console.print(
-                f"  Installed at [bold]{engine_type.get_binary_path()}[/bold]"
-            )
+            console.print(f"Installed at [bold]{engine_type.get_binary_path()}[/bold]")
         else:
             run_install_semgrep_pro()
 
     try:
         console.print(Title("Scan Status"))
-
-        # Set a default max_memory for CI runs when DeepSemgrep is on because
-        # DeepSemgrep is likely to run out
-        if max_memory is None:
-            if engine_type is EngineType.PRO_INTERFILE:
-                max_memory = DEFAULT_MAX_MEMORY_PRO_CI
-            else:
-                max_memory = 0  # unlimited
-        # Same for timeout (Github actions has a 6 hour timeout)
-        if interfile_timeout is None:
-            if engine_type is EngineType.PRO_INTERFILE:
-                interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
-            else:
-                interfile_timeout = 0  # unlimited
 
         # Append ignores configured on semgrep.dev
         requested_excludes = scan_handler.ignore_patterns if scan_handler else []
@@ -515,28 +501,3 @@ def ci(
         version_check()
 
     sys.exit(exit_code)
-
-
-def print_debugging_info(metadata, *, is_connected: bool) -> None:
-    env = get_state().env
-    console.print(Title("Debugging Info"))
-    scan_env = Table.grid(padding=(0, 1))
-    scan_env.add_row(
-        "versions",
-        "-",
-        f"semgrep [bold]{semgrep.__VERSION__}[/bold] on python [bold]{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}[/bold]",
-    )
-    scan_env.add_row(
-        "environment",
-        "-",
-        f"running in environment [bold]{metadata.environment}[/bold], triggering event is [bold]{metadata.event_name}[/bold]",
-    )
-
-    if is_connected:
-        scan_env.add_row("server", "-", env.semgrep_url)
-
-    console.print(Title("Scan Environment", order=2))
-    console.print(scan_env)
-    console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
-    console.print(f"Using Semgrep Pro Version: [bold]{'something'}[/bold]")
-    console.print(f"Installed in [bold]{'/arst/arst/qwfp'}[/bold]")

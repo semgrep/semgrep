@@ -7,6 +7,7 @@ https://rich.readthedocs.io/en/stable/console.html#console-api
 See also the semgrep.terminal module which is an earlier attempt to standardize some output configuration,
 but is more low level and doesn't really offload logic to other libraries.
 """
+from typing import Any
 from typing import Optional
 
 from attrs import frozen
@@ -38,7 +39,7 @@ class Title:
 class AutoIndentingConsole(Console):
     """This custom console keeps track of the last title printed and automatically indents the next line according to what level title we're under."""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.active_title: Optional[Title] = None
         super().__init__(*args, **kwargs)
 
@@ -60,13 +61,15 @@ class AutoIndentingConsole(Console):
         self.active_title = None
 
     @staticmethod
-    def extract_title(current: RenderableType) -> Optional[Title]:
+    def extract_title(current: Optional[RenderableType]) -> Optional[Title]:
         while isinstance(current, Title) or hasattr(current, "renderable"):
             if isinstance(current, Title):
                 return current
-            current = getattr(current, "renderable")
+            current = getattr(current, "renderable", None)
 
-    def print(self, *args, auto_indent: bool = True, **kwargs) -> None:
+        return None
+
+    def print(self, *args: Any, **kwargs: Any) -> None:
         indent = 0
 
         for arg in args:
