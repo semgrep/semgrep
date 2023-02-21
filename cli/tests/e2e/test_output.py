@@ -234,6 +234,19 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
     )
 
 
+# Test that rule board information makes its way into SARIF output
+@pytest.mark.kinda_slow
+def test_sarif_output_rule_board(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/rule-board-eqeq.yaml",
+            target_name="basic/stupid.py",
+            output_format=OutputFormat.SARIF,
+        ).stdout,
+        "results.sarif",
+    )
+
+
 @pytest.mark.kinda_slow
 def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
     stdout = run_semgrep_in_tmp(
