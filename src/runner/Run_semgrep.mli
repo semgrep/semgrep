@@ -136,6 +136,12 @@ val semgrep_with_prepared_rules_and_targets :
   Runner_config.lang_job ->
   Exception.t option * Report.final_result * Common.filename list
 
+val semgrep_with_rules :
+  Runner_config.t ->
+  (Rule.mode Rule.rule_info Common.stack * Rule.invalid_rule_error Common.stack)
+  * float ->
+  Report.final_result * Common.path Common.stack
+
 (* utilities functions used in tests or semgrep-core variants *)
 
 val replace_named_pipe_by_regular_file : Common.filename -> Common.filename
