@@ -411,13 +411,9 @@ class ['self] matching_visitor =
       env.vin.kentity (k, env.vout) x
 
     method! visit_function_definition env x =
-      let k x' =
-        (* TODO: This partial node is created using `x`, i.e. the original node
-         * passed in to this method. It does not use `x'` which is passed in to
-         * the `k` function. This is probably a mistake, but for now I am
-         * mimicking the behavior of the previous visitor. *)
+      let k x =
         self#v_partial ~recurse:false env (PartialLambdaOrFuncDef x);
-        super#visit_function_definition env x'
+        super#visit_function_definition env x
       in
       env.vin.kfunction_definition (k, env.vout) x
 
@@ -489,31 +485,6 @@ class ['self] matching_visitor =
 
     method! visit_program env v1 = self#v_stmts env v1
     method! visit_Ss env v1 = self#v_stmts env v1
-
-    (* Overrides to skip visiting nodes. TODO These should probably all be
-     * deleted but are here for now to keep the behavior the same as the old
-     * handcoded visitor. *)
-
-    method! visit_concat_string_kind _ _ = ()
-    method! visit_incr_decr _ _ = ()
-    method! visit_prefix_postfix _ _ = ()
-    method! visit_operator _ _ = ()
-    method! visit_variance _ _ = ()
-    method! visit_keyword_attribute _ _ = ()
-
-    method! visit_OtherAttribute env _v1 v2 =
-      self#visit_list self#visit_any env v2
-
-    method! visit_other_stmt_with_stmt_operator _ _ = ()
-    method! visit_other_stmt_operator _ _ = ()
-    method! visit_OtherPat env _v1 v2 = self#visit_list self#visit_any env v2
-    method! visit_OtherDef env _v1 v2 = self#visit_list self#visit_any env v2
-
-    method! visit_OtherTypeKind env _v1 v2 =
-      self#visit_list self#visit_any env v2
-
-    method! visit_class_kind _ _ = ()
-    method! visit_OtherModule env _v1 v2 = self#visit_list self#visit_any env v2
   end
 
 let visitor_instance = lazy (new matching_visitor)
