@@ -1,0 +1,2 @@
+Go: Fixed a bug where function arguments in a group that share the same type, after the first, would parse as
+having the name ","
