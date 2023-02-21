@@ -50,11 +50,15 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
  * would require to have completely independent lexer and parser
  * which seems not possible with Ruby.
  *)
-let mk_lexer file chan =
-  let lexbuf = Lexing.from_channel chan in
+let mk_lexer filename parsed_value =
   let state = Lexer_parser_ruby.create ("top_lexer", Lexer_ruby.top_lexer) in
 
-  let table = Parsing_helpers.full_charpos_to_pos_large file in
+  let table =
+    match parsed_value with
+    | Parsing_helpers.File file ->
+        Parsing_helpers.full_charpos_to_pos_large file
+    | Parsing_helpers.Str str -> Parsing_helpers.full_charpos_to_pos_str str
+  in
 
   let adjust_info ii =
     {
@@ -65,12 +69,12 @@ let mk_lexer file chan =
         | PI.OriginTok pi -> (
             try
               PI.OriginTok
-                (Parsing_helpers.complete_token_location_large file table pi)
+                (Parsing_helpers.complete_token_location_large filename table pi)
             with
             | Invalid_argument "index out of bounds" ->
                 (* TODO: fix! *)
                 (* pr2_gen pi *)
-                pr2_once (spf "TODO:%s: adjust info out-of-bounds" file);
+                pr2_once (spf "TODO:%s: adjust info out-of-bounds" filename);
                 PI.OriginTok pi)
         | _ -> failwith "adjust_info: no an OriginTok");
     }
@@ -94,7 +98,7 @@ let mk_lexer file chan =
     Common.push tok toks;
     if TH.is_comment tok then lexer lexbuf else tok
   in
-  (toks, lexbuf, lexer)
+  (toks, lexer)
 
 exception Parse_ruby_timeout
 
@@ -106,11 +110,12 @@ let parse2 opt_timeout file =
   let stat = Parsing_stat.default_stat file in
 
   Common.with_open_infile file (fun chan ->
-      let toks, lexbuf, lexer = mk_lexer file chan in
+      let toks, lexer = mk_lexer file (Parsing_helpers.File file) in
       try
         (* -------------------------------------------------- *)
         (* Call parser *)
         (* -------------------------------------------------- *)
+        let lexbuf = Lexing.from_channel chan in
         let lst =
           (* GLR parsing can be very time consuming *)
           match
@@ -168,36 +173,32 @@ let parse_program file =
 (* for semgrep *)
 let any_of_string ?timeout str =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Common2.with_tmp_file ~str ~ext:"rb" (fun file ->
-          Common.with_open_infile file (fun chan ->
-              let _toks, lexbuf, lexer = mk_lexer file chan in
-              try
-                (* -------------------------------------------------- *)
-                (* Call parser *)
-                (* -------------------------------------------------- *)
-                let lst =
-                  (* GLR parsing can be very time consuming *)
-                  match
-                    Time_limit.set_timeout_opt ~name:"Parse_ruby.any_of_string"
-                      timeout (fun () ->
-                        Parser_ruby.sgrep_spatch_pattern lexer lexbuf)
-                  with
-                  | Some res -> res
-                  | None -> raise Parse_ruby_timeout
-                in
+      let _toks, lexer = mk_lexer "<file>" (Parsing_helpers.Str str) in
+      let lexbuf = Lexing.from_string str in
+      try
+        (* -------------------------------------------------- *)
+        (* Call parser *)
+        (* -------------------------------------------------- *)
+        let lst =
+          (* GLR parsing can be very time consuming *)
+          match
+            Time_limit.set_timeout_opt ~name:"Parse_ruby.any_of_string" timeout
+              (fun () -> Parser_ruby.sgrep_spatch_pattern lexer lexbuf)
+          with
+          | Some res -> res
+          | None -> raise Parse_ruby_timeout
+        in
 
-                (* check for ambiguous parse trees *)
-                let l = List.map fst lst in
-                let l' =
-                  HH.uniq_list
-                    (fun a b -> if Ast_ruby.equal_any a b then 0 else -1)
-                    l
-                in
-                HH.do_fail "any" l' Ast_ruby.show_any;
+        (* check for ambiguous parse trees *)
+        let l = List.map fst lst in
+        let l' =
+          HH.uniq_list (fun a b -> if Ast_ruby.equal_any a b then 0 else -1) l
+        in
+        HH.do_fail "any" l' Ast_ruby.show_any;
 
-                let ast = List.hd l' in
-                ast
-              with
-              | (Dyp.Syntax_error | Failure _ | Stack.Empty | Parse_ruby_timeout)
-                as exn ->
-                  Exception.catch_and_reraise exn)))
+        let ast = List.hd l' in
+        ast
+      with
+      | (Dyp.Syntax_error | Failure _ | Stack.Empty | Parse_ruby_timeout) as exn
+        ->
+          Exception.catch_and_reraise exn)

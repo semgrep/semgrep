@@ -56,7 +56,7 @@ let tokens file =
 (*****************************************************************************)
 let parse filename =
   let stat = Parsing_stat.default_stat filename in
-  let toks = tokens filename in
+  let toks = tokens (Parsing_helpers.File filename) in
 
   (*
   let tr, lexer, lexbuf_fake =
@@ -95,12 +95,11 @@ let parse_program file =
 (* for semgrep *)
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Common2.with_tmp_file ~str:s ~ext:"scala" (fun file ->
-          let toks = tokens file in
-          (* -------------------------------------------------- *)
-          (* Call parser *)
-          (* -------------------------------------------------- *)
-          Parser_scala_recursive_descent.semgrep_pattern toks))
+      let toks = tokens (Parsing_helpers.Str s) in
+      (* -------------------------------------------------- *)
+      (* Call parser *)
+      (* -------------------------------------------------- *)
+      Parser_scala_recursive_descent.semgrep_pattern toks)
 
 (*****************************************************************************)
 (* Helpers *)

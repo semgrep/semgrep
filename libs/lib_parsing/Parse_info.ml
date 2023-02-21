@@ -106,6 +106,7 @@ type token_mutable = {
   token : token_origin;
   mutable transfo : transformation; (* less: mutable comments: ...; *)
 }
+[@@deriving show, eq]
 
 (* poor's man refactoring *)
 and transformation =
