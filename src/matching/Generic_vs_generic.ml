@@ -739,12 +739,12 @@ and m_expr_root a b = m_expr ~is_root:true a b
 (* coupling: if you add special sgrep hooks here, you should probably
  * also add them in m_pattern
  *)
-(* `is_first_invocation` should be false if this is not the first time
-   `m_expr` has recursively tried to match the same `a` and `b`.
+(* `arguments_have_changed` should be false if this is not the first time
+   `m_expr` has recursively tried to match the SAME `a` and `b`.
    This allows some cases to be "try-once", and fall-through to the others in
    all the other cases.
 *)
-and m_expr ?(is_root = false) ?(is_first_invocation = true) a b =
+and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   Trace_matching.(if on then print_expr_pair a b);
   match (a.G.e, b.G.e) with
   (* the order of the matches matters! take care! *)
@@ -755,11 +755,11 @@ and m_expr ?(is_root = false) ?(is_first_invocation = true) a b =
   | G.DisjExpr (a1, a2), _b -> m_expr a1 b >||> m_expr a2 b
   (* This case should only run exactly once.
      This is so we do not endlessly loop trying to match to the same two things.
-     By setting `is_first_invocation` to false, we ensure that we fall-through to
+     By setting `arguments_have_changed` to false, we ensure that we fall-through to
      the cases that do decompose on `a` or `b`.
   *)
-  | _, G.Cast (_, _, b1) when is_first_invocation ->
-      m_expr a b1 >||> m_expr ~is_first_invocation:false a b
+  | _, G.Cast (_, _, b1) when arguments_have_changed ->
+      m_expr a b1 >||> m_expr ~arguments_have_changed:false a b
   (* equivalence: name resolving! *)
   (* todo: it would be nice to factorize the aliasing code by just calling
    * m_name, but below we use make_dotted, which is different from what
