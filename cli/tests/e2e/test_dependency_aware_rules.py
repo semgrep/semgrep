@@ -144,7 +144,7 @@ def test_dependency_aware_timing(
 ):
     start = time()
     parse_lockfile_path_in_tmp(
-        Path(f"targets/dependency_aware/perf/{file_size}/{target}"), None
+        Path(f"targets/dependency_aware/perf/{file_size}/{target}")
     )
     end = time()
     exec_time = end - start
@@ -218,7 +218,7 @@ def test_dependency_aware_timing(
 # And removing some human written comments that would never appear in a real lockfile from some tests
 def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
-    parse_lockfile_path_in_tmp(Path(target), None)
+    parse_lockfile_path_in_tmp(Path(target))
     assert len(caplog.records) == 0
 
 

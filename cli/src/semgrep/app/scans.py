@@ -24,6 +24,7 @@ from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
@@ -236,7 +237,7 @@ class ScanHandler:
         parse_rate: ParsingData,
         total_time: float,
         commit_date: str,
-        lockfile_scan_info: Dict[str, int],
+        lockfile_dependencies: Dict[str, List[FoundDependency]],
         engine_requested: "EngineType",
     ) -> None:
         """
@@ -280,8 +281,8 @@ class ScanHandler:
             "token": os.getenv("GITHUB_TOKEN"),
             "gitlab_token": os.getenv("GITLAB_TOKEN"),
             "findings": findings,
-            "searched_paths": [str(t) for t in targets],
-            "renamed_paths": [str(rt) for rt in renamed_targets],
+            "searched_paths": [str(t) for t in sorted(targets)],
+            "renamed_paths": [str(rt) for rt in sorted(renamed_targets)],
             "rule_ids": rule_ids,
             "cai_ids": cai_ids,
             "ignores": ignores,
@@ -295,6 +296,8 @@ class ScanHandler:
         )
         ignored_ext_freqs.pop("", None)  # don't count files with no extension
 
+        dependency_counts = {k: len(v) for k, v in lockfile_dependencies.items()}
+
         complete = {
             "exit_code": 1
             if any(match.is_blocking and not match.is_ignored for match in all_matches)
@@ -304,7 +307,7 @@ class ScanHandler:
                 "errors": [error.to_dict() for error in errors],
                 "total_time": total_time,
                 "unsupported_exts": dict(ignored_ext_freqs),
-                "lockfile_scan_info": lockfile_scan_info,
+                "lockfile_scan_info": dependency_counts,
                 "parse_rate": {
                     lang: {
                         "targets_parsed": data.num_targets - data.targets_with_errors,
