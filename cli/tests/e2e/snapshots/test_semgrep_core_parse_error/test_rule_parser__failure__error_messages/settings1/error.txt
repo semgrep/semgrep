@@ -4,6 +4,7 @@ Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
 Scanning 1 file with 2 python rules.
+
                                                                                 
                                                                                 
 ┌─────────┐                                                                     

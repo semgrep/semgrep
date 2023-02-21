@@ -37,6 +37,7 @@ Scanning across multiple languages:
     python | 3 rules × 11 files
         js | 1 rule  ×  3 files
 
+
                                                                                 
                                                                                 
 ┌─────────┐                                                                     
@@ -86,6 +87,7 @@ More information: https://semgrep.dev/docs/metrics
 Scanning across multiple languages:
     python | 3 rules × 11 files
         js | 1 rule  ×  3 files
+
 
                                                                                 
                                                                                 

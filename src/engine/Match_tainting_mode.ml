@@ -575,7 +575,9 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
   let (ast, skipped_tokens), parse_time =
     Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
   in
-  let taint_config, debug_taint, expls =
+  (* TODO: 'debug_taint' should just be part of 'res'
+     * (i.e., add a "debugging" field to 'Report.match_result'). *)
+  let taint_config, _TODO_debug_taint, expls =
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
@@ -637,4 +639,24 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     else []
   in
   let report = { report with explanations } in
-  (report, debug_taint)
+  report
+
+let check_rules ~match_hook
+    ~(per_rule_boilerplate_fn :
+       R.rule ->
+       (unit -> RP.rule_profiling RP.match_result) ->
+       RP.rule_profiling RP.match_result) (rules : R.taint_rule list)
+    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) :
+    RP.rule_profiling RP.match_result list =
+  rules
+  |> Common.map (fun rule ->
+         let xconf =
+           Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
+         in
+         (* This boilerplate function will take care of things like
+            timing out if this rule takes too long, and returning a dummy
+            result for the timed-out rule.
+         *)
+         per_rule_boilerplate_fn
+           (rule :> R.rule)
+           (fun () -> check_rule rule match_hook xconf xtarget))

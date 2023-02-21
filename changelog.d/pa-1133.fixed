@@ -1,0 +1,1 @@
+Matching: Fixed a bug where expressions would not match to explicit type casts of matching expressions

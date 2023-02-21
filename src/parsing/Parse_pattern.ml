@@ -280,7 +280,7 @@ let dump_tree_sitter_pattern_cst lang file =
       |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
-      |> dump_and_print_errors Tree_sitter_rust.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree

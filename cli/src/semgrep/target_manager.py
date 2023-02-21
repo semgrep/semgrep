@@ -22,12 +22,8 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
-from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
-from semdep.find_lockfiles import LOCKFILE_TO_MANIFEST
-from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.git import BaselineHandler
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 
 # usually this would be a try...except ImportError
 # but mypy understands only this
@@ -58,6 +54,14 @@ from semgrep.util import path_has_permissions, sub_check_output
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+
 logger = getLogger(__name__)
 
 MAX_CHARS_TO_READ_FOR_SHEBANG = 255
@@ -68,6 +72,15 @@ ALL_EXTENSIONS: Collection[FileExtension] = {
     for definition in LANGUAGE.definition_by_id.values()
     for ext in definition.exts
     if ext != FileExtension("")
+}
+
+ECOSYSTEM_TO_LOCKFILES = {
+    Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt"],
+    Ecosystem(Npm()): ["package-lock.json", "yarn.lock"],
+    Ecosystem(Gem()): ["Gemfile.lock"],
+    Ecosystem(Gomod()): ["go.sum"],
+    Ecosystem(Cargo()): ["Cargo.lock"],
+    Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
 }
 
 
@@ -492,7 +505,6 @@ class TargetManager:
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
     file_ignore: Optional[FileIgnore] = None
-    lockfile_scan_info: Dict[str, int] = {}
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
@@ -735,21 +747,29 @@ class TargetManager:
         return paths.kept
 
     @lru_cache(maxsize=None)
-    def get_lockfile_dependencies(
-        self, ecosystem: Ecosystem
-    ) -> Dict[Path, List[FoundDependency]]:
-        lockfiles = self.get_files_for_language(ecosystem).kept
-        parsed: Dict[Path, List[FoundDependency]] = {}
-        for lockfile in lockfiles:
-            path, lockfile_pattern = lockfile.parent, lockfile.parts[-1]
-            manifest_pattern = LOCKFILE_TO_MANIFEST[lockfile_pattern]
-            manifest_path = path / manifest_pattern if manifest_pattern else None
-            deps = parse_lockfile_path(
-                lockfile,
-                manifest_path if manifest_path and manifest_path.exists() else None,
-            )
-            if lockfile not in self.lockfile_scan_info:
-                # We haven't seen this file during reachable finding generation
-                self.lockfile_scan_info[str(lockfile)] = len(deps)
-            parsed[lockfile] = deps
-        return parsed
+    def get_lockfiles(self, ecosystem: Ecosystem) -> FrozenSet[Path]:
+        """
+        Return set of paths to lockfiles for a given ecosystem
+
+        Respects semgrepignore/exclude flag
+        """
+        return self.get_files_for_language(ecosystem).kept
+
+    def find_single_lockfile(self, p: Path, ecosystem: Ecosystem) -> Optional[Path]:
+        """
+        Find the nearest lockfile in a given ecosystem to P
+        Searches only up the directory tree
+
+        If lockfile not in self.get_lockfiles(ecosystem) then return None
+        this would happen if the lockfile is ignored by a .semgrepignore or --exclude
+        """
+        candidates = self.get_lockfiles(ecosystem)
+
+        for path in p.parents:
+            for lockfile_pattern in ECOSYSTEM_TO_LOCKFILES[ecosystem]:
+                lockfile_path = path / lockfile_pattern
+                if lockfile_path in candidates and lockfile_path.exists():
+                    return lockfile_path
+                else:
+                    continue
+        return None

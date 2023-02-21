@@ -188,6 +188,7 @@ and taint_sink = {
  *)
 and taint_propagator = {
   propagator_formula : formula;
+  propagator_by_side_effect : bool;
   from : MV.mvar wrap;
   to_ : MV.mvar wrap;
 }

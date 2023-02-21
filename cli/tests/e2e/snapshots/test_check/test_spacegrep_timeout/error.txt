@@ -1,4 +1,5 @@
 Scanning 1 file.
+
 Warning: 1 timeout error(s) in targets/spacegrep_timeout/gnu-lgplv2.txt when running the following rules: [-]
                                                                                 
                                                                                 

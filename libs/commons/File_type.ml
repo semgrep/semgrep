@@ -79,11 +79,13 @@ and pl_type =
 
 and config_type =
   | Makefile
+  | Dockerfile
   | Json
   | Jsonnet
   (* kinda pl_type *)
   | Yaml
   | Terraform
+  | Sexp (* e.g., dune files *)
 
 and lisp_type = CommonLisp | Elisp | Scheme | Clojure
 
@@ -243,6 +245,8 @@ let file_type_of_file file =
   | "yaml" ->
       Config Yaml
   | "tf" -> Config Terraform
+  (* sometimes people use foo.Dockerfile *)
+  | "Dockerfile" -> Config Dockerfile
   | "sql" -> PL (Web Sql)
   | "sqlite" -> PL (Web Sql)
   (* apple stuff ? *)
@@ -362,6 +366,8 @@ let file_type_of_file file =
       PL R
   | _ when Common2.is_executable file -> Binary e
   | _ when b = "Makefile" || b = "mkfile" || b = "Imakefile" -> Config Makefile
+  | _ when b = "Dockerfile" -> Config Dockerfile
+  | _ when b = "dune" -> Config Sexp
   | _ when b = "README" -> Text "txt"
   | _ when b = "TAGS" -> Binary e
   | _ when b = "TARGETS" -> Config Makefile
@@ -396,26 +402,8 @@ let webpl_type_of_file file =
   | PL (Web x) -> Some x
   | _ -> None
 
-(*
-let detect_pl_of_file file =
-  raise Todo
-
-let string_of_pl x =
-  raise Todo
-  | C -> "c"
-  | Cplusplus -> "c++"
-  | Java -> "java"
-
-  | Web _ -> raise Todo
-*)
-
 let is_syncweb_obj_file file = file =~ ".*md5sum_"
 let is_json_filename filename = filename =~ ".*\\.json$"
-(*
-  match File_type.file_type_of_file filename with
-  | File_type.PL (File_type.Web (File_type.Json)) -> true
-  | _ -> false
-  *)
 
 let files_of_dirs_or_files p xs =
   Common.files_of_dir_or_files_no_vcs_nofilter xs

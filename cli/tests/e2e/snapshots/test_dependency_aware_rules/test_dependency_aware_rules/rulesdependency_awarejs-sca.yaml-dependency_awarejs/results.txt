@@ -12,6 +12,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
+      "targets/dependency_aware/js/package-lock.json",
       "targets/dependency_aware/js/sca.js"
     ]
   },
@@ -73,6 +74,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 
 === stderr - plain
 Scanning 1 file.
+
                                                                                 
                                                                                 
 ┌─────────┐                                                                     
@@ -86,6 +88,6 @@ Scanning 1 file.
 └──────────────┘                                                                
                                                                                 
 
-Ran 1 rule on 1 file: 1 finding.
+Ran 1 rule on 2 files: 1 finding.
 
 === end of stderr - plain

@@ -58,16 +58,15 @@ Blocking Rules Fired:
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment gitlab-ci, triggering event is           
                 pull_request                                                    
-  server      - https://semgrep.dev                                             
+  server      - logged in as org_name on https://semgrep.dev                    
                                                                                 
                                                                                 
 ┌─────────────┐                                                                 
 │ Scan Status │                                                                 
 └─────────────┘                                                                 
                                                                                 
-Fetching configuration from semgrep.dev
-Authenticated as org_name
 Scanning 1 file with 4 python rules.
+
   Current version has 14 findings.
 
 Switching repository to baseline commit '<MASKED>'.
@@ -75,6 +74,7 @@ Switching repository to baseline commit '<MASKED>'.
     * <MASKED> Some other commit/ message
 
 Scanning 1 file with 4 python rules.
+
                                                                                 
                                                                                 
 ┌─────────┐                                                                     
