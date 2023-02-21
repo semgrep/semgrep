@@ -1,1 +1,1 @@
-Detect `BITBUCKET_TOKEN` to authenticate with the Bitbucket API.
+Detect `BITBUCKET_TOKEN` from environment to authenticate with the Bitbucket API.
