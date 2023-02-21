@@ -120,27 +120,27 @@ let group_rules xconf rules xtarget =
     will iterate over each rule in a different place, and so needs access to this
     logic.
 *)
-let per_rule_boilerplate_fn ~timeout ~timeout_threshold file rule f =
+let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
   let cnt_timeout = ref 0 in
-
-  let rule_id = fst rule.R.id in
-  Rule.last_matched_rule := Some rule_id;
-  let res_opt =
-    Profiling.profile_code (spf "real_rule:%s" rule_id) (fun () ->
-        (* here we handle the rule! *)
-        timeout_function rule file timeout f)
-  in
-  match res_opt with
-  | Some res -> res
-  | None ->
-      incr cnt_timeout;
-      if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
-        raise File_timeout;
-      let loc = Parse_info.first_loc_of_file file in
-      let error = E.mk_error ~rule_id:(Some rule_id) loc "" Out.Timeout in
-      RP.make_match_result []
-        (Report.ErrorSet.singleton error)
-        (RP.empty_rule_profiling rule)
+  fun file rule f ->
+    let rule_id = fst rule.R.id in
+    Rule.last_matched_rule := Some rule_id;
+    let res_opt =
+      Profiling.profile_code (spf "real_rule:%s" rule_id) (fun () ->
+          (* here we handle the rule! *)
+          timeout_function rule file timeout f)
+    in
+    match res_opt with
+    | Some res -> res
+    | None ->
+        incr cnt_timeout;
+        if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
+          raise File_timeout;
+        let loc = Parse_info.first_loc_of_file file in
+        let error = E.mk_error ~rule_id:(Some rule_id) loc "" Out.Timeout in
+        RP.make_match_result []
+          (Report.ErrorSet.singleton error)
+          (RP.empty_rule_profiling rule)
 
 (*****************************************************************************)
 (* Entry point *)
