@@ -95,6 +95,7 @@ let adjust_signatures params =
       | ParamClassic {pname = None; _} -> true
       (* sgrep-ext: ellipsis count as a type *)
       | ParamEllipsis _ -> true
+      | ParamMetavarEllipsis _ -> true
       | _ ->false) in
   if all_types
   then params
@@ -1037,7 +1038,7 @@ arg_type:
      * So we parse it as such here.
      *)
     | TName [ (s, _) as id ] when AST_generic.is_metavar_ellipsis s ->
-        ParamMetavarEllipsis id
+        Flag_parsing.sgrep_guard (ParamMetavarEllipsis id)
     | __else__ ->
      ParamClassic { pname= None; ptype = $1; pdots = None }
      )

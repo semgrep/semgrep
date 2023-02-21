@@ -4,11 +4,12 @@ rules:
       - go
     message: |
       Metavariable ellipses should be able to match arguments in Go! 
-    patterns:
-      - pattern: |
-          func foo($...ARG) { ... }
-      - pattern: |
-          func bar(int, $...ARG) { ... }
-      - pattern: |
-          func qux($...ARG, x int) { ... }
+    match:
+      any:
+        - |
+            func foo($...ARG) { ... }
+        - |
+            func bar(int, $...ARG) { ... }
+        - |
+            func qux($...ARG, x int) { ... }
     severity: WARNING
