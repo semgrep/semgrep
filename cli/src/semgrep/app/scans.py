@@ -278,7 +278,7 @@ class ScanHandler:
             # GitLab.com (cloud)
             or os.getenv("GITLAB_TOKEN")
             # Bitbucket Cloud
-            or os.getenv("PIPELINES_JWT_TOKEN")
+            or os.getenv("BITBUCKET_TOKEN")
         )
 
         findings_and_ignores = {
