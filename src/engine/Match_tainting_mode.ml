@@ -562,6 +562,14 @@ let check_fundef lang options taint_config opt_ent fdef =
 
 let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) =
+
+  (match !Dataflow_tainting.hook_do_deep_for_rule with
+  | None -> ()
+  | Some tbl ->
+      match Hashtbl.find_opt tbl (fst rule.Rule.id) with
+      | None -> ()
+      | Some f -> f ());
+
   let matches = ref [] in
 
   let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in

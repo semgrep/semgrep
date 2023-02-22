@@ -92,6 +92,11 @@ type fun_env = (var, Taint.Taint_set.t) Hashtbl.t
 
 val str_of_name : IL.name -> var
 
+val hook_do_deep_for_rule :
+  (string, unit -> unit) Hashtbl.t
+  option
+  ref
+
 val hook_function_taint_signature :
   (config ->
   AST_generic.expr ->
