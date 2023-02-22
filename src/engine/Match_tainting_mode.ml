@@ -156,34 +156,6 @@ module Formula_tbl = struct
     | Some (ranges, expls) -> (ranges, expls)
 end
 
-(*
-let identify_sharing (rules : Rule.taint_rule list) =
-  let count_tbl = Formula_tbl.create 128 in
-  let flat_formulas =
-    rules |> List.concat_map (fun rule ->
-      let `Taint (spec : R.taint_spec) = rule.R.mode in
-      Common.map (fun source -> source.R.source_formula) (snd spec.sources)
-      @ Common.map (fun sanitizer -> sanitizer.R.sanitizer_formula) spec.sanitizers
-      @ Common.map (fun sink -> sink.R.sink_formula) (snd spec.sinks)
-      @ Common.map (fun propagator -> propagator.R.propagator_formula) spec.propagators
-    )
-  in
-  flat_formulas |> List.iter (fun formula ->
-    match Formula_tbl.find_opt formula_tbl formula with
-    | None -> Formula_tbl.add formula_tbl formula 1
-    | Some x -> Formula_tbl.replace formula_tbl formula (1 + x)
-  );
-  let
-  Formula_tbl.iter (fun k v ->
-    (* if there's only one occurrence, take it out *)
-    if v <= 1 then
-      None
-    else
-      Some v
-  ) formula_tbl;
-  formula_tbl
-  *)
-
 (*****************************************************************************)
 (* Finding matches for taint specs *)
 (*****************************************************************************)
