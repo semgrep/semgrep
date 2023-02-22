@@ -423,7 +423,7 @@ let union_taints_filtering_labels ~new_ curr =
   let new_filtered = filter_taints_by_labels labels new_ in
   Taints.union new_filtered curr
 
-let find_args_taints args_taints fdef =
+let find_args_taints args_taints fparams =
   let pos_args_taints, named_args_taints =
     List.partition_map
       (function
@@ -457,7 +457,7 @@ let find_args_taints args_taints fdef =
                 (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
             | None -> param :: acc (* Same as above. *))
         | __else__ -> param :: acc)
-      (Parse_info.unbracket fdef.G.fparams)
+      (Parse_info.unbracket fparams)
       []
   in
   let _ =
@@ -788,8 +788,8 @@ let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
 let check_function_signature env fun_exp args_taints =
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
-      let* fdef, fun_sig = hook env.config eorig in
-      let taints_of_arg = find_args_taints args_taints fdef in
+      let* fparams, fun_sig = hook env.config eorig in
+      let taints_of_arg = find_args_taints args_taints fparams in
       Some
         (fun_sig
         |> List.filter_map (function
