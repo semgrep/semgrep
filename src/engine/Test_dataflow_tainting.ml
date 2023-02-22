@@ -70,8 +70,9 @@ let test_dfg_tainting rules_file file =
   let handle_findings _ _ _ = () in
   let xconf = Match_env.default_xconfig in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
+  let tbl = Match_tainting_mode.Formula_tbl.create 128 in
   let config, debug_taint, _exps =
-    Match_tainting_mode.taint_config_of_rule xconf file (ast, []) rule
+    Match_tainting_mode.taint_config_of_rule tbl xconf file (ast, []) rule
       handle_findings
   in
   Common.pr2 "\nSources";

@@ -30,8 +30,11 @@ val hook_setup_hook_function_taint_signature :
   *   (or we could infer a signature for them too...).
   *)
 
+module Formula_tbl : Hashtbl.S with type key = Rule.formula
+
 (* It could be a private function, but it is also used by Deep Semgrep. *)
 val taint_config_of_rule :
+  (Range_with_metavars.ranges * Matching_explanation.t list ) Formula_tbl.t ->
   Match_env.xconfig ->
   Common.filename ->
   AST_generic.program * Parse_info.token_location list ->
