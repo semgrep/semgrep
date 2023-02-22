@@ -1,3 +1,3 @@
 
 // ruleid: go-grouped-arguments
-func foo (x, y, z int) { }
+func foo (a, b, c int) { }

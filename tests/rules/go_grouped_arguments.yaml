@@ -9,4 +9,8 @@ rules:
       func $FOO($ARG1, $ARG2, $ARG3 int) { }
     where:
       - metavariable: $ARG1
-        regex: "x"
+        regex: "a"
+      - metavariable: $ARG2
+        regex: "b"
+      - metavariable: $ARG3
+        regex: "c"
