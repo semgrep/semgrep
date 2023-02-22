@@ -47,8 +47,9 @@ type t = Gitignore_filter.t
 
 let create ?includes ?(excludes = []) ~project_root () =
   if Fpath.is_rel project_root then
-    invalid_arg ("Semgrepignore.create needs an absolute path: "
-                 ^ Fpath.to_string project_root);
+    invalid_arg
+      ("Semgrepignore.create needs an absolute path: "
+      ^ Fpath.to_string project_root);
   let root_anchor = Glob_matcher.root_pattern in
   let patterns =
     let include_selectors =
@@ -57,31 +58,33 @@ let create ?includes ?(excludes = []) ~project_root () =
       | Some deexclude_patterns ->
           (* --include means "exclude everything except these patterns" *)
           let exclude_any =
-            Gitignore_syntax.from_string ~anchor:root_anchor "**" in
+            Gitignore_syntax.from_string ~anchor:root_anchor "**"
+          in
           let deexclude =
-            List.concat_map (fun str ->
-              Gitignore_syntax.from_string ~anchor:root_anchor ("!" ^ str)
-            ) deexclude_patterns
+            List.concat_map
+              (fun str ->
+                Gitignore_syntax.from_string ~anchor:root_anchor ("!" ^ str))
+              deexclude_patterns
           in
           exclude_any @ deexclude
     in
     let exclude_selectors =
       List.concat_map
-        (Gitignore_syntax.from_string ~anchor:root_anchor) excludes
+        (Gitignore_syntax.from_string ~anchor:root_anchor)
+        excludes
     in
     include_selectors @ exclude_selectors
   in
-  let cli_level : Gitignore_level.t = {
-    level_kind = "command-line includes/excludes";
-    source_name = "<command line>";
-    patterns;
-  }
+  let cli_level : Gitignore_level.t =
+    {
+      level_kind = "command-line includes/excludes";
+      source_name = "<command line>";
+      patterns;
+    }
   in
-  Gitignore_filter.create
-    ~higher_priority_levels:[cli_level]
-    ~gitignore_filenames:[".gitignore"; ".semgrepignore"]
-    ~project_root
-    ()
+  Gitignore_filter.create ~higher_priority_levels:[ cli_level ]
+    ~gitignore_filenames:[ ".gitignore"; ".semgrepignore" ]
+    ~project_root ()
 
 let select t path =
   (*
@@ -94,8 +97,7 @@ let select t path =
     | Ok x -> x
     | Error msg -> failwith msg
   in
-  if Git_path.is_absolute git_path then
-    failwith ("Semgrepignore.select: not a relative path: "
-              ^ Fpath.to_string path)
-  else
-    Gitignore_filter.select t git_path
+  if Git_path.is_relative git_path then
+    failwith
+      ("Semgrepignore.select: not an absolute path: " ^ Fpath.to_string path)
+  else Gitignore_filter.select t git_path

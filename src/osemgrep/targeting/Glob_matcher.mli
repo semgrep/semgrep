@@ -13,27 +13,36 @@ type loc = {
   line_contents : string;
 }
 
+(* Create a location from a pattern string rather than a location in a file. *)
+val string_loc : string -> loc
+val show_loc : loc -> string
+
 type char_class_range = Class_char of char | Range of char * char
+[@@deriving show]
+
 type char_class = { complement : bool; ranges : char_class_range list }
+[@@deriving show]
 
 type component_fragment =
   | Char of char
   | Char_class of char_class
   | Question
   | Star
+[@@deriving show]
 
 (* A path component is what represents a simple file name in a directory *)
 type component =
   | Component of component_fragment list
   | Ellipsis (* '**' = path ellipsis *)
+[@@deriving show]
 
 (*
    A pattern which matches paths.
 *)
-type pattern = component list
+type pattern = component list [@@deriving show]
 
 (* A compiled pattern matcher. *)
-type compiled_pattern
+type t
 
 (* The pattern that matches '/' *)
 val root_pattern : pattern
@@ -43,7 +52,7 @@ val root_pattern : pattern
    the original glob pattern before parsing. It's used only for debugging
    purposes.
 *)
-val compile : source:loc -> pattern -> compiled_pattern
+val compile : source:loc -> pattern -> t
 
 (*
    Match a path against a pattern:
@@ -71,8 +80,7 @@ val compile : source:loc -> pattern -> compiled_pattern
    matching paths: foo/
    non-matching paths: foo bar/foo/ /foo/ /foo
 *)
-val run : compiled_pattern -> string -> bool
-
-val source : compiled_pattern -> loc
-
+val run : t -> string -> bool
+val source : t -> loc
 val of_path_components : string list -> pattern
+val show : t -> string

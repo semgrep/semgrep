@@ -6,16 +6,23 @@
 
 module M = Glob_matcher
 
-type selection_event =
-  | Selected of M.loc
-  | Deselected of M.loc
+type selection_event = Selected of M.loc | Deselected of M.loc
 
 type path_selector = {
   loc : M.loc;
-  matcher : Git_path.t -> selection_event option
+  matcher : Git_path.t -> selection_event option;
 }
 
 type t = path_selector list
+
+let show_selection_event x =
+  match x with
+  | Selected loc -> Printf.sprintf "selected at %s" (Glob_matcher.show_loc loc)
+  | Deselected loc ->
+      Printf.sprintf "deselected at %s" (Glob_matcher.show_loc loc)
+
+let show_selection_events xs =
+  Common.map (fun x -> show_selection_event x ^ "\n") xs |> String.concat ""
 
 let read_lines_from_string =
   (*
@@ -42,8 +49,9 @@ let rec contains_nontrailing_slash (pat : M.pattern) =
   match pat with
   | Component [] :: pat -> contains_nontrailing_slash pat
   | [] -> false
-  | _nonempty :: (* trailing slash *) [Component []]
-  | _nonempty :: [] -> false
+  | _nonempty :: (* trailing slash *) [ Component [] ]
+  | [ _nonempty ] ->
+      false
   | _nonempty1 :: _nonempty2 :: _ -> true
 
 (* anchored pattern = relative to the work directory only, as opposed to
@@ -68,13 +76,10 @@ let is_anchored_pattern (pat : M.pattern) =
    However a non-anchored pattern such as '*.c' will be expanded into
    '/foo/**/*.c'.
 *)
-let parse_pattern ~source ~anchor str : M.compiled_pattern =
-  let pat = Glob_parser.parse_string str in
+let parse_pattern ~source ~anchor str : M.t =
+  let pat = Glob_lexer.parse_string str in
   let absolute_pattern =
-    if is_anchored_pattern pat then
-      anchor @ pat
-    else
-      anchor @ (Ellipsis :: pat)
+    if is_anchored_pattern pat then anchor @ pat else anchor @ (Ellipsis :: pat)
   in
   M.compile ~source absolute_pattern
 
@@ -106,6 +111,5 @@ let from_string ~anchor ?(name = "<string>") str =
   |> List.filter_map (fun x -> x)
 
 let from_file ~anchor path =
-  Fpath.to_string path
-  |> Common.read_file
+  Fpath.to_string path |> Common.read_file
   |> from_string ~anchor ~name:(Fpath.to_string path)

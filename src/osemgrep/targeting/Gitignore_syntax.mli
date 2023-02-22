@@ -15,6 +15,11 @@ type selection_event =
   | Selected of Glob_matcher.loc
   | Deselected of Glob_matcher.loc
 
+val show_selection_event : selection_event -> string
+
+(* Show a list of selection events, one per line *)
+val show_selection_events : selection_event list -> string
+
 (* Path selector. *)
 type path_selector = {
   loc : Glob_matcher.loc;

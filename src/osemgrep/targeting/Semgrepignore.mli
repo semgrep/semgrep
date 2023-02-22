@@ -21,14 +21,12 @@ val create :
   ?includes:string list ->
   ?excludes:string list ->
   project_root:Fpath.t ->
-  unit -> t
+  unit ->
+  t
 
 (*
    Pass a path to a file and determine whether it should be ignored for
    Semgrep scanning purposes.
-   Paths must be relative to the project root.
+   Paths must be absolute. The root '/' designates the root of the git project.
 *)
-val select :
-  t ->
-  Fpath.t ->
-  bool * Gitignore_syntax.selection_event list
+val select : t -> Fpath.t -> bool * Gitignore_syntax.selection_event list

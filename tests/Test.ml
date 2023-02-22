@@ -47,6 +47,8 @@ let () = ignore Testutil_files.read
 *)
 let tests () = List.flatten [
   Unit_list_files.tests;
+  Osemgrep_targeting.Unit_glob.tests;
+  Osemgrep_targeting.Unit_semgrepignore.tests;
   Unit_parsing.tests ();
   Unit_reporting.tests ();
 
