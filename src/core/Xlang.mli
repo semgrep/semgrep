@@ -12,7 +12,7 @@ type t =
   | LRegex
   (* for spacegrep *)
   | LGeneric
-[@@deriving show, eq]
+[@@deriving show, eq, hash]
 
 exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
 

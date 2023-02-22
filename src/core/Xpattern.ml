@@ -13,6 +13,8 @@
  * LICENSE for more details.
  *)
 
+open Ppx_hash_lib.Std.Hash.Builtin
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -22,7 +24,7 @@
 (*****************************************************************************)
 
 type compiled_regexp = Regexp_engine.t [@@deriving show, eq]
-type regexp_string = string [@@deriving show, eq]
+type regexp_string = string [@@deriving show, eq, hash]
 (* see the NOTE "Regexp" below for the need to have this type *)
 
 (* used in the engine for rule->mini_rule and match_result gymnastic *)
@@ -52,7 +54,7 @@ type xpattern_kind =
 
 (* eXtended pattern *)
 type t = {
-  pat : xpattern_kind;
+  pat : xpattern_kind; [@hash.ignore]
   (* Regarding @equal below, even if two patterns have different indentation,
    * we still consider them equal in the metachecker context.
    * We rely only on the equality on pat, which will
@@ -66,9 +68,13 @@ type t = {
    * This is used to run the patterns in a formula in a batch all-at-once
    * and remember what was the matching results for a certain pattern id.
    *)
-  pid : pattern_id; [@equal fun _ _ -> true]
+  pid : pattern_id; [@equal fun _ _ -> true] [@hash.ignore]
 }
-[@@deriving show, eq]
+[@@deriving show, eq, hash]
+(* Patterns are just Generic ASTs, which are not easy to hash.
+   So for hashing patterns, let's just hash the originating string. It's
+   a good enough proxy.
+*)
 
 (*****************************************************************************)
 (* Helpers *)
