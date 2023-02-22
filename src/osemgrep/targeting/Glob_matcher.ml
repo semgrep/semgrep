@@ -56,14 +56,14 @@ let map_frag (frag : component_fragment) : Re.t =
   | Char c -> char c
   | Char_class { complement; ranges } ->
       let cset =
-        List.fold_left
-          (fun acc range ->
+        Common.map
+          (fun range ->
             match range with
             | Class_char c -> char c
-            | Range (a, b) -> alt [ acc; rg a b ])
-          (set "") ranges
+            | Range (a, b) -> rg a b)
+          ranges
       in
-      if complement then compl [ cset ] else cset
+      if complement then compl cset else alt cset
   | Question -> not_slash
   | Star -> rep not_slash
 
@@ -75,7 +75,7 @@ let rec map pat =
   let open Re in
   match pat with
   | [ Component comp ] -> [ map_comp comp; eos ]
-  | [ Ellipsis ] -> [ empty ]
+  | [ Ellipsis ] -> []
   | Component comp :: pat -> map_comp comp :: slash :: map pat
   | Ellipsis :: pat -> rep (seq [ rep not_slash; slash ]) :: map pat
   | [] -> [ eos ]

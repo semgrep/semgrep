@@ -1,5 +1,15 @@
 %{
 open Glob_matcher
+
+type tmp =
+| Fragment of component_fragment
+| Starstar
+
+let convert_ellipses (fragments : tmp list) =
+  match fragments with
+  | [Starstar] -> Ellipsis
+  | xs ->
+     Component (Common.map (function Fragment x -> x | Starstar -> Star) xs)
 %}
 %token SLASH QUESTION STAR STARSTAR EOF
 %token <char> CHAR
@@ -9,21 +19,19 @@ open Glob_matcher
 %%
 
 components:
-| STARSTAR SLASH comps=components
-     { Ellipsis :: comps }
-| STARSTAR EOF
-     { [Ellipsis] }
 | frags=list(fragment) SLASH comps=components
-     { Component frags :: comps }
+     { convert_ellipses frags :: comps }
 | frags=list(fragment) EOF
-     { [Component frags] }
+     { [convert_ellipses frags] }
 
 fragment:
 | c=CHAR
-     { Char c }
+     { Fragment (Char c) }
 | cc=CHAR_CLASS
-     { Char_class cc }
+     { Fragment (Char_class cc) }
 | QUESTION
-     { Question }
+     { Fragment Question }
 | STAR
-     { Star }
+     { Fragment Star }
+| STARSTAR
+     { Starstar }
