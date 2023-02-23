@@ -24,6 +24,11 @@ let test_list (files : F.t list) () =
       print_files files2;
       assert (files2 = files))
 
+(*
+   In these tests, the file hierarchy must contain the
+   .gitignore and .semgrepignore files but the target files are not
+   needed.
+*)
 let test_filter ?includes ?excludes (files : F.t list) selection () =
   F.with_tempdir ~chdir:true (fun root ->
       let files = F.sort files in
@@ -123,5 +128,19 @@ let tests =
             ("/dir/a", true);
             ("/dir/a/", false);
             ("/a/b", false);
+          ] );
+      ( "absolute patterns",
+        test_filter
+          [
+            File (".gitignore", "/a\nb/c");
+            dir "a" [ file "b" ];
+            dir "b" [ file "a"; file "c"; file "d"; dir "b" [ file "c" ] ];
+          ]
+          [
+            ("/a/b", false);
+            ("/b/a", true);
+            ("/b/c", false);
+            ("/b/d", true);
+            ("/b/b/c", true);
           ] );
     ]

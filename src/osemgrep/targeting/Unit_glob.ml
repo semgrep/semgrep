@@ -27,6 +27,7 @@ let tests =
   Testutil.pack_tests "Glob"
     [
       ("simple", test "abc" "abc" true);
+      ("absolute path", test "/a/b" "/a/b" true);
       ("star 1", test "*.c" "hello.c" true);
       ("star 2", test "*.c" "hello.h" false);
       ("question 1", test "a.?" "a.c" true);

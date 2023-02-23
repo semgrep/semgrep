@@ -81,7 +81,8 @@ let is_anchored_pattern (pat : M.pattern) =
 let parse_pattern ~source ~anchor str : M.t =
   let pat = Glob_lexer.parse_string str in
   let absolute_pattern =
-    if is_anchored_pattern pat then anchor @ pat else anchor @ (Ellipsis :: pat)
+    if is_anchored_pattern pat then M.append anchor pat
+    else M.append anchor (Ellipsis :: pat)
   in
   M.compile ~source absolute_pattern
 

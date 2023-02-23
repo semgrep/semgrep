@@ -47,6 +47,10 @@ type t
 (* The pattern that matches '/' *)
 val root_pattern : pattern
 
+(* Append the components, taking care of trailing slashes that prevent
+   us from using a plain list append (@). *)
+val append : pattern -> pattern -> pattern
+
 (*
    Compile the pattern into something efficient. The source should be
    the original glob pattern before parsing. It's used only for debugging

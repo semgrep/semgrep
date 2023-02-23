@@ -40,6 +40,29 @@ let string_loc pat =
 (* / *)
 let root_pattern = [ Component []; Component [] ]
 
+(* remove the leading slash unless it's a trailing slash *)
+let remove_leading_slash xs =
+  match xs with
+  | [ Component []; Component [] ] as xs -> xs
+  | Component [] :: xs -> xs
+  | xs -> xs
+
+(* remove the trailing slash unless it's a leading slash *)
+let remove_trailing_slash xs =
+  let rec loop xs =
+    match xs with
+    | [] -> []
+    | [ Component [] ] ->
+        (* ignore trailing slash that's not a leading slash *) []
+    | x :: xs -> x :: loop xs
+  in
+  match xs with
+  (* preserve leading slash *)
+  | Component [] :: xs -> Component [] :: loop xs
+  | xs -> loop xs
+
+let append a b = remove_trailing_slash a @ remove_leading_slash b
+
 let of_path_components components =
   Common.map
     (fun s ->
@@ -89,7 +112,15 @@ let compile ~source pat =
   let re = map_root pat |> Re.compile in
   { source; re }
 
-let run matcher path = Re.execp matcher.re path
+let debug = false
+
+let run matcher path =
+  let res = Re.execp matcher.re path in
+  if debug then
+    printf "** pattern: %S  path: %S  matches: %B\n"
+      matcher.source.line_contents path res;
+  res
+
 let source matcher = matcher.source
 
 let show x =

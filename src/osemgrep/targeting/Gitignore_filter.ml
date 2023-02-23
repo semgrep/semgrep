@@ -87,13 +87,13 @@ let select t (full_git_path : Git_path.t) =
               if is_selected sel_events then sel_events
               else loop sel_events levels file_path components)
   in
-  let components =
+  if Git_path.is_relative full_git_path then
+    invalid_arg
+      ("Gitignore_filter.select: not an absolute path: " ^ full_git_path.string);
+  let rel_components =
     match full_git_path.components with
     | "" :: xs -> xs
-    | __else_ ->
-        invalid_arg
-          ("Gitignore_filter.select: not an absolute path: "
-         ^ full_git_path.string)
+    | __else_ -> assert false
   in
   let sel_events = [] in
   let sel_events =
@@ -101,7 +101,7 @@ let select t (full_git_path : Git_path.t) =
   in
   if is_selected sel_events then result_of_selection_events sel_events
   else
-    let sel_events = loop [] [] Git_path.root components in
+    let sel_events = loop [] [] Git_path.root rel_components in
     if is_selected sel_events then result_of_selection_events sel_events
     else
       let sel_events =

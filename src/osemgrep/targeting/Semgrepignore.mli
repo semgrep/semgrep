@@ -28,6 +28,9 @@ val create :
    Pass a path to a file and determine whether it should be ignored for
    Semgrep scanning purposes.
    Paths must be absolute. The root '/' designates the root of the git project.
+   The input path doesn't have to exist. Directories are identified by
+   a trailing slash. It's important since some *ignore patterns only apply
+   to directories.
 *)
 val select :
   t ->
