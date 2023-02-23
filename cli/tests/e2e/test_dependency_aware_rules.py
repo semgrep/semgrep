@@ -116,7 +116,7 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
         ("2.17.2", "< 2.3.1", False),
         ("2.0", "< 1.0", False),
         ("2.0.0", "< 10.0.0", True),
-        ("0.2.0", "0.10.0", True),
+        ("0.2.0", "< 0.10.0", True),
         ("0.0.2", "< 0.0.10", True),
     ],
 )
