@@ -143,4 +143,20 @@ let tests =
             ("/b/d", true);
             ("/b/b/c", true);
           ] );
+      ( "includes",
+        test_filter ~includes:[ "*.ml" ] []
+          [
+            ("/a.ml", true);
+            ("/a.c", false);
+            ("/b/a.ml", true);
+            ("/b/a.c", false);
+          ] );
+      ( "excludes",
+        test_filter ~excludes:[ "*.ml" ] []
+          [
+            ("/a.ml", false);
+            ("/a.c", true);
+            ("/b/a.ml", false);
+            ("/b/a.c", true);
+          ] );
     ]
