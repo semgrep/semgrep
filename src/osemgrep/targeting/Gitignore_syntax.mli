@@ -17,7 +17,10 @@ type selection_event =
 
 val show_selection_event : selection_event -> string
 
-(* Show a list of selection events, one per line *)
+(*
+   Show a list of selection events, one per line, oldest first
+   (unlike the list which has the most recent first).
+*)
 val show_selection_events : selection_event list -> string
 
 (* Path selector. *)

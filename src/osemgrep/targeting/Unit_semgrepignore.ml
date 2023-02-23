@@ -48,17 +48,16 @@ let test_filter ?includes ?excludes (files : F.t list) selection () =
              if should_be_selected then (
                match status with
                | Not_ignored ->
-                   printf "[OK] %s: selected\n" (Fpath.to_string path)
+                   printf "[OK] %s: not ignored\n" (Fpath.to_string path)
                | Ignored ->
-                   printf "[FAIL] %s: not selected\n" (Fpath.to_string path);
+                   printf "[FAIL] %s: ignored\n" (Fpath.to_string path);
                    error := true)
              else
                match status with
                | Not_ignored ->
-                   printf "[FAIL] %s: selected\n" (Fpath.to_string path);
+                   printf "[FAIL] %s: not ignored\n" (Fpath.to_string path);
                    error := true
-               | Ignored ->
-                   printf "[OK] %s: not selected\n" (Fpath.to_string path));
+               | Ignored -> printf "[OK] %s: ignored\n" (Fpath.to_string path));
       assert (not !error))
 
 let tests =
@@ -87,4 +86,42 @@ let tests =
           ]
           [ ("/hello.ml", true); ("/hello.c", true); ("/generated.c", false) ]
       );
+      ( "semgrepignore alone",
+        test_filter
+          [ File (".semgrepignore", "hello.*"); file "hello.c"; file "bye.c" ]
+          [ ("/hello.c", false); ("/bye.c", true) ] );
+      ( "deep gitignore",
+        test_filter
+          [ dir "dir" [ File (".gitignore", "a"); file "a" ]; file "a" ]
+          [ ("/a", true); ("/dir/a", false) ] );
+      ( "deep semgrepignore + gitignore",
+        test_filter
+          [
+            File (".gitignore", "a");
+            dir "dir"
+              [ File (".semgrepignore", "b"); file "a"; file "b"; file "c" ];
+            file "a";
+            file "b";
+          ]
+          [
+            ("/a", false);
+            ("/b", true);
+            ("/dir/a", false);
+            ("/dir/b", false);
+            ("/dir/c", true);
+          ] );
+      ( "ignore directories only",
+        test_filter
+          [
+            File (".gitignore", "a/");
+            dir "dir" [ file "a" ];
+            dir "a" [ file "b" ];
+          ]
+          [
+            ("/a/", false);
+            ("/a", true);
+            ("/dir/a", true);
+            ("/dir/a/", false);
+            ("/a/b", false);
+          ] );
     ]

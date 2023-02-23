@@ -22,7 +22,9 @@ let show_selection_event x =
       Printf.sprintf "deselected at %s" (Glob_matcher.show_loc loc)
 
 let show_selection_events xs =
-  Common.map (fun x -> show_selection_event x ^ "\n") xs |> String.concat ""
+  List.rev xs
+  |> Common.map (fun x -> show_selection_event x ^ "\n")
+  |> String.concat ""
 
 let read_lines_from_string =
   (*
