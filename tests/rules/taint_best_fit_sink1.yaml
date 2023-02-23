@@ -1,0 +1,13 @@
+rules:
+  - id: taint-regression-1.6.0
+    languages:
+      - php
+    message: Match Found!
+    mode: taint
+    pattern-sanitizers:
+      - pattern: sanitizer(...)
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: $source
+    severity: WARNING
