@@ -2006,6 +2006,16 @@ and raw_tree = (any Raw_tree.t[@name "raw_tree_t"])
      * otherwise be assigned a visitor method named `visit_t`. *)
     visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
 
+(* Most clients should use this instead of the default `iter`. In many cases,
+ * it's not desirable to recurse into id_info since it contains resolved names
+ * and svalues which often contain nodes that are already present elsewhere in
+ * the AST. This matches the default behavior of the old mk_visitor. *)
+class virtual ['self] iter_no_id_info =
+  object (_self : 'self)
+    inherit ['self] iter
+    method! visit_id_info _env _info = ()
+  end
+
 (*****************************************************************************)
 (* Error *)
 (*****************************************************************************)

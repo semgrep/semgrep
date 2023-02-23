@@ -508,29 +508,23 @@ let (mk_visitor :
 (* Extract tokens *)
 (*****************************************************************************)
 
-(*s: function [[Lib_AST.extract_info_visitor]] *)
-let extract_info_visitor recursor =
+class ['self] extract_info_visitor =
+  object (_self : 'self)
+    inherit ['self] AST_generic.iter_no_id_info as super
+    method! visit_tok globals tok = Common.push tok globals
+
+    method! visit_expr globals x =
+      match x.e with
+      (* Ignore the tokens from the expression str is aliased to *)
+      | Alias ((_str, t), _e) -> Common.push t globals
+      | _ -> super#visit_expr globals x
+  end
+
+let ii_of_any any =
+  let v = new extract_info_visitor in
   let globals = ref [] in
-  let hooks =
-    {
-      default_visitor with
-      kinfo = (fun (_k, _) i -> Common.push i globals);
-      kexpr =
-        (fun (k, _) x ->
-          match x.e with
-          (* Ignore the tokens from the expression str is aliased to *)
-          | Alias ((_str, t), _e) -> Common.push t globals
-          | _ -> k x);
-    }
-  in
-  let vout = mk_visitor hooks in
-  recursor vout;
+  v#visit_any globals any;
   List.rev !globals
-
-(*e: function [[Lib_AST.extract_info_visitor]] *)
-
-(*s: function [[Lib_AST.ii_of_any]] *)
-let ii_of_any any = extract_info_visitor (fun visitor -> visitor any)
   [@@profiling]
 
 (*e: function [[Lib_AST.ii_of_any]] *)
@@ -564,7 +558,7 @@ class ['self] range_visitor =
       incorporate_tokens ranges (tok_loc, tok_loc)
   in
   object (_self : 'self)
-    inherit ['self] AST_generic.iter as super
+    inherit ['self] AST_generic.iter_no_id_info as super
     method! visit_tok ranges tok = incorporate_token ranges tok
 
     method! visit_expr ranges expr =
@@ -590,13 +584,8 @@ class ['self] range_visitor =
           | None -> ()
           | Some r -> incorporate_tokens ranges r)
       | Some range -> incorporate_tokens ranges range
-
-    (* Mimics the old mk_visitor -- otherwise we will end up visiting resolved
-     * names which contain remote tokens *)
-    method! visit_id_info _env _info = ()
   end
 
-(*s: function [[Lib_AST.extract_info_visitor]] *)
 let extract_ranges :
     AST_generic.any -> (PI.token_location * PI.token_location) option =
   let v = new range_visitor in
