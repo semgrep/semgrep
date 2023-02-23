@@ -36,4 +36,4 @@ val program_of_string : string -> AST_python.program
 
 (* internal *)
 val tokens :
-  parsing_mode -> Parsing_helpers.parsed_value -> Parser_python.token list
+  parsing_mode -> Parsing_helpers.input_stream -> Parser_python.token list

@@ -35,7 +35,6 @@ type token_mutable = {
   (* for spatch *)
   mutable transfo : transformation;
 }
-[@@deriving show, eq]
 
 and transformation =
   | NoTransfo

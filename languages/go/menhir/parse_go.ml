@@ -38,9 +38,9 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (* Lexing only *)
 (*****************************************************************************)
 
-let tokens file =
+let tokens input_stream =
   let token lexbuf = Lexer.token lexbuf in
-  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+  Parsing_helpers.tokenize_all_and_adjust_pos input_stream token TH.visitor_info_of_tok
     TH.is_eof
   [@@profiling]
 

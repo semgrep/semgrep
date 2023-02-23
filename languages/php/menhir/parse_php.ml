@@ -39,7 +39,7 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (*****************************************************************************)
 (* Lexing only *)
 (*****************************************************************************)
-let tokens2 ?(init_state = Lexer_php.INITIAL) file =
+let tokens2 ?(init_state = Lexer_php.INITIAL) input_stream =
   Lexer_php.reset ();
   Lexer_php._mode_stack := [ init_state ];
 
@@ -69,7 +69,7 @@ let tokens2 ?(init_state = Lexer_php.INITIAL) file =
       Lexer_php._last_non_whitespace_like_token := Some tok;
     tok
   in
-  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
+  Parsing_helpers.tokenize_all_and_adjust_pos input_stream token TH.visitor_info_of_tok
     TH.is_eof
 
 let tokens ?init_state a =
@@ -257,7 +257,9 @@ let tmp_php_file_from_string ?(header = "<?php\n") s =
 
 (* this function is useful mostly for our unit tests *)
 let (tokens_of_string : string -> Parser_php.token list) =
- fun str -> tokens (Parsing_helpers.Str str)
+ fun str -> 
+     let str = ("<?php \n" ^ str ^ "\n") in
+     tokens (Parsing_helpers.Str str)
 
 (* A fast-path parser of xdebug expressions in xdebug dumpfiles.
  * See xdebug.ml *)

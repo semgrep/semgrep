@@ -44,7 +44,7 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (* Lexing only *)
 (*****************************************************************************)
 
-let tokens parsing_mode parsed_value =
+let tokens parsing_mode input_stream =
   let state = Lexer.create () in
   let python2 = parsing_mode =*= Python2 in
   let token lexbuf =
@@ -86,7 +86,7 @@ let tokens parsing_mode parsed_value =
         Parse_info.lexical_error s lexbuf;
         T.EOF (Parse_info.tokinfo lexbuf)
   in
-  Parsing_helpers.tokenize_all_and_adjust_pos parsed_value token
+  Parsing_helpers.tokenize_all_and_adjust_pos input_stream token
     TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 

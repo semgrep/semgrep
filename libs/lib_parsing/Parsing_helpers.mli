@@ -6,14 +6,16 @@ type 'tok tokens_state = {
   mutable passed : 'tok list;
 }
 
-type parsed_value = Str of string | File of Common.filename
+(* NOTE something else we could use instead of this input_stream
+   is Fpath.t. This was easier for a quick refactor. *)
+type input_stream = Str of string | File of Common.filename
 
 val mk_tokens_state : 'tok list -> 'tok tokens_state
 val yyback : int -> Lexing.lexbuf -> unit
 
 (* to be used by the lexer *)
 val tokenize_all_and_adjust_pos :
-  parsed_value ->
+  input_stream ->
   (Lexing.lexbuf -> 'tok) ->
   (* tokenizer *) ((Parse_info.t -> Parse_info.t) -> 'tok -> 'tok) ->
   (* token visitor *) ('tok -> bool) ->

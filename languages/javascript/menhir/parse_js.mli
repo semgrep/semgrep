@@ -22,4 +22,4 @@ val type_of_string : string -> Ast_js.type_
 val program_of_string : string -> Ast_js.a_program
 
 (* internal *)
-val tokens : Parsing_helpers.parsed_value -> Parser_js.token list
+val tokens : Parsing_helpers.input_stream -> Parser_js.token list

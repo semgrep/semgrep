@@ -99,8 +99,8 @@ let is_same_line_or_close line tok =
 (*****************************************************************************)
 
 (* called by parse below *)
-let tokens file =
-  Parsing_helpers.tokenize_all_and_adjust_pos file Lexer.token
+let tokens input_stream =
+  Parsing_helpers.tokenize_all_and_adjust_pos input_stream Lexer.token
     TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 

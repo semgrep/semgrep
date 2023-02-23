@@ -46,7 +46,7 @@ type 'tok tokens_state = {
 (* Entry points *)
 (*****************************************************************************)
 
-type parsed_value = Str of string | File of Common.filename
+type input_stream = Str of string | File of Common.filename
 
 let mk_tokens_state toks =
   {
@@ -135,51 +135,6 @@ let distribute_info_items_toplevel a b c =
   )
 
  *)
-let full_charpos_to_pos_str s =
-  let size = String.length s + 2 in
-
-  (* old: let arr = Array.create size  (0,0) in *)
-  let arr1 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
-  let arr2 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
-  Bigarray.Array1.fill arr1 0;
-  Bigarray.Array1.fill arr2 0;
-
-  let charpos = ref 0 in
-  let line = ref 0 in
-  let str_lines = String.split_on_char '\n' s in
-
-  let full_charpos_to_pos_aux () =
-    List.iter
-      (fun s ->
-        incr line;
-        let len = String.length s in
-
-        (* '... +1 do'  cos input_line does not return the trailing \n *)
-        let col = ref 0 in
-        for i = 0 to len - 1 + 1 do
-          (* old: arr.(!charpos + i) <- (!line, i); *)
-          arr1.{!charpos + i} <- !line;
-          arr2.{!charpos + i} <- !col;
-          (* ugly: hack for weird windows files containing a single
-           * carriage return (\r) instead of a carriage return + newline
-           * (\r\n) to delimit newlines. Not recognizing those single
-           * \r as a newline marker prevents Javascript ASI to correctly
-           * insert semicolons.
-           * note: we could fix info_from_charpos() too, but it's not
-           * used for ASI so simpler to leave it as is.
-           *)
-          if i < len - 1 && String.get s i =$= '\r' then (
-            incr line;
-            col := -1);
-          incr col
-        done;
-        charpos := !charpos + len + 1)
-      str_lines
-  in
-  full_charpos_to_pos_aux ();
-  fun i -> (arr1.{i}, arr2.{i})
-  [@@profiling]
-
 let full_charpos_to_pos_large file =
   let chan = open_in_bin file in
   let size = Common2.filesize file + 2 in
@@ -236,6 +191,53 @@ let full_charpos_to_pos_large file =
   in
   full_charpos_to_pos_aux ();
   close_in chan;
+  fun i -> (arr1.{i}, arr2.{i})
+  [@@profiling]
+
+(* This is mostly a copy-paste of full_charpos_to_pos_large,
+   but using a string for a target instead of a file. *)
+let full_charpos_to_pos_str s =
+  let size = String.length s + 2 in
+
+  (* old: let arr = Array.create size  (0,0) in *)
+  let arr1 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
+  let arr2 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
+  Bigarray.Array1.fill arr1 0;
+  Bigarray.Array1.fill arr2 0;
+
+  let charpos = ref 0 in
+  let line = ref 0 in
+  let str_lines = String.split_on_char '\n' s in
+
+  let full_charpos_to_pos_aux () =
+    List.iter
+      (fun s ->
+        incr line;
+        let len = String.length s in
+
+        (* '... +1 do'  cos input_line does not return the trailing \n *)
+        let col = ref 0 in
+        for i = 0 to len - 1 + 1 do
+          (* old: arr.(!charpos + i) <- (!line, i); *)
+          arr1.{!charpos + i} <- !line;
+          arr2.{!charpos + i} <- !col;
+          (* ugly: hack for weird windows files containing a single
+           * carriage return (\r) instead of a carriage return + newline
+           * (\r\n) to delimit newlines. Not recognizing those single
+           * \r as a newline marker prevents Javascript ASI to correctly
+           * insert semicolons.
+           * note: we could fix info_from_charpos() too, but it's not
+           * used for ASI so simpler to leave it as is.
+           *)
+          if i < len - 1 && String.get s i =$= '\r' then (
+            incr line;
+            col := -1);
+          incr col
+        done;
+        charpos := !charpos + len + 1)
+      str_lines
+  in
+  full_charpos_to_pos_aux ();
   fun i -> (arr1.{i}, arr2.{i})
   [@@profiling]
 
@@ -298,8 +300,8 @@ let tokenize_and_adjust_pos lexbuf table filename tokenizer visitor_tok is_eof =
   in
   tokens_aux []
 
-let tokenize_all_and_adjust_pos parsed_value tokenizer visitor_tok is_eof =
-  match parsed_value with
+let tokenize_all_and_adjust_pos input_stream tokenizer visitor_tok is_eof =
+  match input_stream with
   | Str str ->
       let lexbuf = Lexing.from_string str in
       let table = full_charpos_to_pos_str str in

@@ -50,11 +50,11 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
  * would require to have completely independent lexer and parser
  * which seems not possible with Ruby.
  *)
-let mk_lexer filename parsed_value =
+let mk_lexer filename input_stream =
   let state = Lexer_parser_ruby.create ("top_lexer", Lexer_ruby.top_lexer) in
 
   let table =
-    match parsed_value with
+    match input_stream with
     | Parsing_helpers.File file ->
         Parsing_helpers.full_charpos_to_pos_large file
     | Parsing_helpers.Str str -> Parsing_helpers.full_charpos_to_pos_str str

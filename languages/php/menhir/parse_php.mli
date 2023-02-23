@@ -16,5 +16,5 @@ val tmp_php_file_from_string : ?header:string -> string -> Common.filename
 
 val tokens :
   ?init_state:Lexer_php.state_mode ->
-  Parsing_helpers.parsed_value ->
+  Parsing_helpers.input_stream ->
   Parser_php.token list
