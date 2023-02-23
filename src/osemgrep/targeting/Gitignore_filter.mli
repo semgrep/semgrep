@@ -13,12 +13,16 @@
 (* Any number of groups of path selectors. *)
 type t
 
+(* This should be clearer than a bool *)
+type status = Not_ignored | Ignored
+
 val create :
   ?gitignore_filenames:string list ->
   ?higher_priority_levels:Gitignore_level.t list ->
   ?lower_priority_levels:Gitignore_level.t list ->
   project_root:Fpath.t ->
-  unit -> t
+  unit ->
+  t
 
 (*
    Examine a single absolute* path** and determine whether it is selected
@@ -35,7 +39,4 @@ val create :
    went through, in reverse order. The first element of the list, if any,
    determines whether the file is selected.
 *)
-val select :
-  t ->
-  Git_path.t ->
-  bool * Gitignore_syntax.selection_event list
+val select : t -> Git_path.t -> status * Gitignore_syntax.selection_event list

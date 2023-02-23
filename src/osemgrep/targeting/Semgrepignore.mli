@@ -29,4 +29,7 @@ val create :
    Semgrep scanning purposes.
    Paths must be absolute. The root '/' designates the root of the git project.
 *)
-val select : t -> Fpath.t -> bool * Gitignore_syntax.selection_event list
+val select :
+  t ->
+  Fpath.t ->
+  Gitignore_filter.status * Gitignore_syntax.selection_event list

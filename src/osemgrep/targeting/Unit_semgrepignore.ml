@@ -41,22 +41,24 @@ let test_filter ?includes ?excludes (files : F.t list) selection () =
       |> List.iter (fun (rel_path, should_be_selected) ->
              let path = Fpath.v rel_path in
              assert (Fpath.is_abs path);
-             let selected, selection_events =
-               Semgrepignore.select filter path
-             in
+             let status, selection_events = Semgrepignore.select filter path in
              printf "Selection events for path %s:\n" (Fpath.to_string path);
              print_string
                (Gitignore_syntax.show_selection_events selection_events);
-             if should_be_selected then
-               if selected then
-                 printf "[OK] %s: selected\n" (Fpath.to_string path)
-               else (
-                 printf "[FAIL] %s: not selected\n" (Fpath.to_string path);
-                 error := true)
-             else if selected then (
-               printf "[FAIL] %s: selected\n" (Fpath.to_string path);
-               error := true)
-             else printf "[OK] %s: not selected\n" (Fpath.to_string path));
+             if should_be_selected then (
+               match status with
+               | Not_ignored ->
+                   printf "[OK] %s: selected\n" (Fpath.to_string path)
+               | Ignored ->
+                   printf "[FAIL] %s: not selected\n" (Fpath.to_string path);
+                   error := true)
+             else
+               match status with
+               | Not_ignored ->
+                   printf "[FAIL] %s: selected\n" (Fpath.to_string path);
+                   error := true
+               | Ignored ->
+                   printf "[OK] %s: not selected\n" (Fpath.to_string path));
       assert (not !error))
 
 let tests =
