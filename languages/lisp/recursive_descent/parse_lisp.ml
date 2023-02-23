@@ -50,8 +50,8 @@ type program_and_tokens = Ast_lisp.program option * Parser_lisp.token list
  *)
 let tokens input_stream =
   let token = Lexer_lisp.token in
-  Parsing_helpers.tokenize_all_and_adjust_pos input_stream token TH.visitor_info_of_tok
-    TH.is_eof
+  Parsing_helpers.tokenize_all_and_adjust_pos input_stream token
+    TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 
 (*****************************************************************************)

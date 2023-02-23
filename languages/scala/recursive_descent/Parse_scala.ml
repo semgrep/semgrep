@@ -47,8 +47,8 @@ let tokens input_stream =
     tok
   in
   (* set to false to parse correctly arrows *)
-  Parsing_helpers.tokenize_all_and_adjust_pos input_stream token TH.visitor_info_of_tok
-    TH.is_eof
+  Parsing_helpers.tokenize_all_and_adjust_pos input_stream token
+    TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 
 (*****************************************************************************)
