@@ -22,18 +22,20 @@ MavenVersion = Union[ParsedMavenVersion, str]
 
 
 def parse_maven_version(version: str) -> MavenVersion:
-    m = re.compile(r"(\d+)\.(\d+)(?:\.(\d+))?(.*)").match(version)
+    m = re.compile(
+        r"(?P<major>\d+)\.(?P<minor>\d+)(?:\.(?P<incremental>\d+))?(?P<qualifier>.*)"
+    ).match(version)
     # "If you do not follow Maven versioning standards in your project versioning scheme,
     # then for version comparison, Maven interprets the entire version as a simple string."
     if not m:
         return version
-    if "." in m.group(4):
+    if "." in m.group("qualifier"):
         return version
     return ParsedMavenVersion(
-        major=int(m.group(1)),
-        minor=int(m.group(2)),
-        incremental=int(m.group(3)) if m.group(3) else 0,
-        qualifer=m.group(4),
+        major=int(m.group("major")),
+        minor=int(m.group("minor")),
+        incremental=int(m.group("incremental")) if m.group("incremental") else 0,
+        qualifer=m.group("qualifier"),
         raw_version=m.group(0),
     )
 
