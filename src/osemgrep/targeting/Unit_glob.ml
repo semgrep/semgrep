@@ -58,5 +58,7 @@ let tests =
       ("ellipsis 8", test "a**" "a" true);
       ("ellipsis 9", test "a**" "abc" true);
       ("ellipsis 10", test "a**" "a/b" false);
+      ("ellipsis 11", test "****" "a" true);
+      ("ellipsis 12", test "****" "a/b" false);
       ("double slash", test "//a//b//" "//a//b//" true);
     ]
