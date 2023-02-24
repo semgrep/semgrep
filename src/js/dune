@@ -11,7 +11,7 @@
   (flags --no-source-map --opt=3))
  (modes js)
  (preprocess
-  (pps js_of_ocaml-ppx js_of_ocaml-ppx_deriving_json)))
+  (pps js_of_ocaml-ppx)))
 
 (rule
  (target semgrep-core.js)
