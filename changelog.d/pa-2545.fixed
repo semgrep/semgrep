@@ -1,1 +1,0 @@
-Golang: Fixed a bug where metavariable ellipses as parameters to functions were not working properly

@@ -8,6 +8,47 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.13.0](https://github.com/returntocorp/semgrep/releases/tag/v1.13.0) - 2023-02-24
+
+### Added
+
+- Detect `BITBUCKET_TOKEN` from environment to authenticate with the Bitbucket API. (app-3691)
+- taint-mode: Taint propagators can now specify `by-side-effect`, just like sources and
+  sanitizers. However, the default value of `by-side-effect` for propagators is `true`
+  (unlike for sources or sanitizers). When using rule option
+  `taint_assume_safe_functions: true`, this allows to specify functions that must
+  propagate taint, for example:
+  ```yaml
+  pattern-propagators:
+    - by-side-effect: false
+      patterns:
+        - pattern-inside: $F(..., $X, ...)
+        - focus-metavariable: $F
+        - pattern-either:
+            - pattern: unsafe_function
+      from: $X
+      to: $F
+  ```
+  Without `by-side-effect: true`, `unsafe_function` itself would be tainted by side-
+  effect, and subsequent invokations of this function, even if the arguments were safe,
+  would be tainted. (pa-2400)
+- CLI: SARIF output now includes a tag pertaining to which card of the Rule Board a rule originated from.
+  This can be "rule-board-block", "rule-board-audit", or "rule-board-pr-comments". (pa-2519)
+
+### Fixed
+
+- Fixed a couple of typos in help/usage. (gh-7184)
+- Matching: Fixed a bug where expressions would not match to explicit type casts of matching expressions (pa-1133)
+- Golang: Fixed a bug where metavariable ellipses as parameters to functions were not working properly (pa-2545)
+- Apex: Fix name resolution of class attributes. Among other things, this will allow
+  Semgrep to perform constant propagation of `final` class attributes.
+  See https://semgrep.dev/s/DG6v. (pa-2551)
+- Go: Fixed a bug where function arguments in a group that share the same type,
+  such as "func foo(x, y, z int)", would parse all arguments after the first as
+  having the name ",". For instance, "y" and "z" here would not have the correct
+  names. (pa-2558)
+- Fixed bug in comparison of Maven versions where multi digit versions would cause a default to raw string comparison (sc-maven-cmp-bug)
+
 ## [1.12.1](https://github.com/returntocorp/semgrep/releases/tag/v1.12.1) - 2023-02-17
 
 ### Fixed

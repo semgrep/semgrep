@@ -1,4 +1,0 @@
-Go: Fixed a bug where function arguments in a group that share the same type,
-such as "func foo(x, y, z int)", would parse all arguments after the first as
-having the name ",". For instance, "y" and "z" here would not have the correct
-names.
