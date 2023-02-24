@@ -124,8 +124,10 @@ let partition_xpatterns xs =
          match pat with
          | XP.Sem (x, _lang) -> Common.push (x, inside, pid, str) semgrep
          | XP.Spacegrep x -> Common.push (x, pid, str) spacegrep
-         | XP.Regexp x ->
-             Common.push (Regexp_engine.pcre_compile x, pid, str) regexp
+         | XP.Regexp (x, renames) ->
+             Common.push
+               ((Regexp_engine.pcre_compile x, renames), pid, str)
+               regexp
          | XP.Comby x -> Common.push (x, pid, str) comby);
   (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp, List.rev !comby)
 
@@ -530,7 +532,10 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
          let bindings = r.RM.mvars in
          match cond with
          | R.CondEval e ->
-             let env = Eval_generic.bindings_to_env env.xconf.config bindings in
+             let env =
+               Eval_generic.bindings_to_env env.xtarget.file env.xconf.config
+                 bindings
+             in
              Eval_generic.eval_bool env e |> map_bool r
          | R.CondNestedFormula (mvar, opt_lang, formula) -> (
              (* TODO: could return expl for nested matching! *)
@@ -547,7 +552,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
           * which may not always be a string. The regexp is really done on
           * the text representation of the metavar content.
           *)
-         | R.CondRegexp (mvar, re_str, const_prop) ->
+         | R.CondRegexp (mvar, (re_str, _renames), const_prop) ->
              let fk = PI.unsafe_fake_info "" in
              let fki = AST_generic.empty_id_info () in
              let e =
@@ -581,8 +586,10 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              let config = env.xconf.config in
              let env =
                if const_prop && config.constant_propagation then
-                 Eval_generic.bindings_to_env config bindings
-               else Eval_generic.bindings_to_env_just_strings config bindings
+                 Eval_generic.bindings_to_env env.xtarget.file config bindings
+               else
+                 Eval_generic.bindings_to_env_just_strings env.xtarget.file
+                   config bindings
              in
              Eval_generic.eval_bool env e |> map_bool r
          | R.CondAnalysis (mvar, CondEntropy) ->

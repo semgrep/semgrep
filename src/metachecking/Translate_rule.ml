@@ -43,8 +43,12 @@ let rec expr_to_string expr =
 and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
   match cond with
   | CondEval e -> `O [ ("comparison", `String (expr_to_string e)) ]
-  | CondRegexp (mv, re_str, _) ->
-      `O [ ("metavariable", `String mv); ("regex", `String re_str) ]
+  | CondRegexp (mv, (re_str, renames), _) ->
+      let _renames = Common.map (fun (key, v) -> (key, `String v)) renames in
+      `O
+        [
+          ("metavariable", `String mv); ("regex", `String re_str) (*@ renames *);
+        ]
   | CondAnalysis (mv, analysis) ->
       `O
         [

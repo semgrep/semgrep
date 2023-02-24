@@ -17,7 +17,7 @@ open Xpattern_matcher
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-let regexp_matcher big_str file regexp =
+let regexp_matcher big_str file (regexp, _renames) =
   let re_src = Regexp_engine.pcre_pattern regexp in
   let re = Regexp_engine.pcre_regexp regexp in
   let subs = SPcre.exec_all_noerr ~rex:re big_str in
@@ -49,6 +49,15 @@ let regexp_matcher big_str file regexp =
                         let line, column = line_col_of_charpos file charpos in
                         let loc = { PI.str; charpos; file; line; column } in
                         let t = PI.mk_info_of_loc loc in
+                        (* Since "$1" does not actually satisfy our metavariable
+                           naming schema, we need to rename this to a different
+                            metavariable.
+                            These renames will be explicitly specified in the
+                            regex pattern.
+                        *)
+                        (* let* renamed_mvar = List.assoc_opt (spf "$%d" n) renames in
+                           Some (renamed_mvar, MV.Text (str, t, t))
+                        *)
                         Some (spf "$%d" n, MV.Text (str, t, t))
                       with
                       | Not_found ->
