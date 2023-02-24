@@ -17,7 +17,7 @@ open Xpattern_matcher
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-let regexp_matcher big_str file (regexp, _renames) =
+let regexp_matcher big_str file (regexp, renames) =
   let re_src = Regexp_engine.pcre_pattern regexp in
   let re = Regexp_engine.pcre_regexp regexp in
   let subs = SPcre.exec_all_noerr ~rex:re big_str in
@@ -55,10 +55,10 @@ let regexp_matcher big_str file (regexp, _renames) =
                             These renames will be explicitly specified in the
                             regex pattern.
                         *)
-                        (* let* renamed_mvar = List.assoc_opt (spf "$%d" n) renames in
-                           Some (renamed_mvar, MV.Text (str, t, t))
-                        *)
-                        Some (spf "$%d" n, MV.Text (str, t, t))
+                        let* renamed_mvar =
+                          List.assoc_opt (spf "$%d" n) renames
+                        in
+                        Some (renamed_mvar, MV.Text (str, t, t))
                       with
                       | Not_found ->
                           logger#debug "not found %d substring of %s in %s" n

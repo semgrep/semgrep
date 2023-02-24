@@ -438,12 +438,12 @@ let parse_regexp_xpattern env (s, t) dict_opt : string * (string * string) list
    * the raw string, see notes attached to 'Xpattern.xpattern_kind'. *)
   try
     ignore (Regexp_engine.pcre_compile s);
-    let _renames =
+    let renames =
       match dict_opt with
       | None -> []
       | Some dict -> dict_to_regex_renames env dict
     in
-    (s, [])
+    (s, renames)
   with
   | Pcre.Error exn ->
       raise
