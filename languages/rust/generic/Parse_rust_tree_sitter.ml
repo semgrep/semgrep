@@ -57,7 +57,7 @@ let deoptionalize l =
 type function_declaration_rs = {
   name : G.entity_name;
   type_params : G.type_parameter list;
-  params : G.parameter list;
+  params : G.parameters;
   retval : G.type_ option;
 }
 
@@ -260,10 +260,8 @@ let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
         (* string_content *))
       v2
   in
-  let rdquote = token env v3 (* "\"" *) in
-  let str = strs |> Common.map fst |> String.concat "" in
-  let toks = (strs |> Common.map snd) @ [ rdquote ] in
-  G.String (str, PI.combine_infos ldquote toks)
+  let rdquote = token env v3 in
+  G.String (G.string_ (ldquote, strs, rdquote))
 
 let integer_literal env tok =
   let s, t = str env tok in
@@ -276,7 +274,7 @@ let float_literal env tok =
 let map_literal (env : env) (x : CST.literal) : G.literal =
   match x with
   | `Str_lit x -> map_string_literal env x
-  | `Raw_str_lit tok -> G.String (str env tok) (* raw_string_literal *)
+  | `Raw_str_lit tok -> G.String (fb (str env tok)) (* raw_string_literal *)
   | `Char_lit tok -> G.Char (str env tok) (* char_literal *)
   | `Bool_lit x -> map_boolean_literal env x
   | `Int_lit tok -> G.Int (integer_literal env tok) (* integer_literal *)
@@ -288,7 +286,7 @@ let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =
   match x with
   | `Str_lit x -> G.PatLiteral (map_string_literal env x)
   | `Raw_str_lit tok ->
-      G.PatLiteral (G.String (str env tok)) (* raw_string_literal *)
+      G.PatLiteral (G.String (fb (str env tok))) (* raw_string_literal *)
   | `Char_lit tok -> G.PatLiteral (G.Char (str env tok)) (* char_literal *)
   | `Bool_lit x -> G.PatLiteral (map_boolean_literal env x)
   | `Int_lit tok ->
@@ -567,8 +565,7 @@ and map_macro_rule (env : env) ((v1, v2, v3) : CST.macro_rule) : rust_macro_rule
   let body = map_token_tree env v3 in
   { rules; body }
 
-let rec map_abstract_type_trait_name (env : env)
-    (x : CST.anon_choice_type_id_02b4436) : G.type_ =
+let rec map_abstract_type_trait_name (env : env) x : G.type_ =
   match x with
   | `Id tok ->
       let ident = ident env tok in
@@ -582,15 +579,14 @@ let rec map_abstract_type_trait_name (env : env)
       G.TyN name |> G.t
   | `Func_type x -> map_function_type env x
 
-and map_struct_name (env : env) (x : CST.anon_choice_type_id_2c46bcf) : G.name =
+and map_struct_name (env : env) x : G.name =
   match x with
   | `Id tok ->
       H2.name_of_id (ident env tok)
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   | `Scoped_type_id x -> map_scoped_type_identifier_name env x
 
-and map_tuple_struct_name (env : env) (x : CST.anon_choice_type_id_f1f5a37) :
-    G.name =
+and map_tuple_struct_name (env : env) x : G.name =
   match x with
   | `Id tok ->
       H2.name_of_id (ident env tok)
@@ -957,16 +953,16 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : G.expr_kind
 and map_block (env : env) ((v1, v2, v3, v4) : CST.block) : G.stmt =
   let lbrace = token env v1 (* "{" *) in
   let stmts = List.concat_map (map_statement env) v2 in
-  let _stmts_and_exprTODO =
+  let final_expr =
     match v3 with
     | Some x ->
         let expr = map_expression env x in
         let stmt = G.ExprStmt (expr, sc) |> G.s in
-        List.concat [ stmts; [ stmt ] ]
-    | None -> stmts
+        [ stmt ]
+    | None -> []
   in
   let rbrace = token env v4 (* "}" *) in
-  G.Block (lbrace, stmts, rbrace) |> G.s
+  G.Block (lbrace, stmts @ final_expr, rbrace) |> G.s
 
 and map_block_expr (env : env) ((v1, v2, v3, v4) : CST.block) : G.expr =
   let block = map_block env (v1, v2, v3, v4) in
@@ -1005,8 +1001,8 @@ and map_bracketed_type (env : env) ((v1, v2, v3) : CST.bracketed_type) =
   (lthan, ty, gthan)
 
 and map_closure_parameters (env : env) ((v1, v2, v3) : CST.closure_parameters) :
-    G.parameter list =
-  let _lpipe = token env v1 (* "|" *) in
+    G.parameters =
+  let lpipe = token env v1 (* "|" *) in
   let params =
     match v2 with
     | Some (v1, v2) ->
@@ -1022,8 +1018,8 @@ and map_closure_parameters (env : env) ((v1, v2, v3) : CST.closure_parameters) :
         param_first :: param_rest
     | None -> []
   in
-  let _rpipe = token env v3 (* "|" *) in
-  params
+  let rpipe = token env v3 (* "|" *) in
+  (lpipe, params, rpipe)
 
 and map_const_block (env : env) ((v1, v2) : CST.const_block) : G.expr =
   let tconst = token env v1 (* "const" *) in
@@ -1843,7 +1839,7 @@ and map_function_type (env : env) ((v1, v2, v3, v4) : CST.function_type) :
         let _fnTODO = token env v2 (* "fn" *) in
         (None, modifiers)
   in
-  let params = map_parameters env v3 in
+  let _, params, _ = map_parameters env v3 in
   let ret_type =
     match v4 with
     | Some (v1, v2) ->
@@ -2243,8 +2239,8 @@ and map_parameter (env : env) ((v1, v2, v3, v4) : CST.parameter) : G.parameter =
       G.Param param
 
 and map_parameters (env : env) ((v1, v2, v3, v4) : CST.parameters) :
-    G.parameter list =
-  let _lparen = token env v1 (* "(" *) in
+    G.parameters =
+  let lparen = token env v1 (* "(" *) in
   let params =
     match v2 with
     | Some (v1, v2, v3) ->
@@ -2266,8 +2262,8 @@ and map_parameters (env : env) ((v1, v2, v3, v4) : CST.parameters) :
     | None -> []
   in
   let _comma = Option.map (fun tok -> token env tok) v3 in
-  let _rparen = token env v4 (* ")" *) in
-  params
+  let rparen = token env v4 (* ")" *) in
+  (lparen, params, rparen)
 
 and map_path_name (env : env) (x : CST.path) : G.name =
   match x with
@@ -3106,7 +3102,7 @@ and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :
           G.cextends = [];
           G.cimplements = [];
           G.cmixins = [];
-          G.cparams = [];
+          G.cparams = fb [];
           G.cbody = fields;
         }
       in
@@ -3282,7 +3278,7 @@ and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :
           G.cextends = [];
           G.cimplements = [];
           G.cmixins = [];
-          G.cparams = [];
+          G.cparams = fb [];
           G.cbody = (l, fields |> Common.map (fun x -> G.F x), r);
         }
       in

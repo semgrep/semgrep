@@ -131,7 +131,7 @@ let generic_to_json env (key : key) ast =
     | G.L (Bool (b, _)) -> J.Bool b
     | G.L (Float (Some f, _)) -> J.Float f
     | G.L (Int (Some i, _)) -> J.Int i
-    | G.L (String (s, _)) ->
+    | G.L (String (_, (s, _), _)) ->
         (* should use the unescaped string *)
         J.String s
     | G.Container (Array, (_, xs, _)) -> J.Array (xs |> Common.map aux)
@@ -141,7 +141,8 @@ let generic_to_json env (key : key) ast =
           |> Common.map (fun x ->
                  match x.G.e with
                  | G.Container
-                     (G.Tuple, (_, [ { e = L (String (k, _)); _ }; v ], _)) ->
+                     ( G.Tuple,
+                       (_, [ { e = L (String (_, (k, _), _)); _ }; v ], _) ) ->
                      (* should use the unescaped string *)
                      (k, aux v)
                  | _ ->
@@ -157,7 +158,7 @@ let generic_to_json env (key : key) ast =
 
 let read_string_wrap e =
   match e with
-  | G.L (String (value, t)) ->
+  | G.L (String (_, (value, t), _)) ->
       (* should use the unescaped string *)
       Some (value, t)
   | G.L (Float (Some n, t)) ->
@@ -182,8 +183,9 @@ let yaml_to_dict_helper error_fun_f error_fun_d (enclosing : string R.wrap)
       |> List.iter (fun field ->
              match field.G.e with
              | G.Container
-                 (G.Tuple, (_, [ { e = L (String (key_str, t)); _ }; value ], _))
-               ->
+                 ( G.Tuple,
+                   (_, [ { e = L (String (_, (key_str, t), _)); _ }; value ], _)
+                 ) ->
                  (* Those are actually silently ignored by many YAML parsers
                   * which just consider the last key/value as the final one.
                   * This was a source of bugs in semgrep rules where people
@@ -258,7 +260,7 @@ let parse_list_no_env (key : key) f x =
 
 let parse_string_wrap_list_no_env (key : key) e =
   let extract_string = function
-    | { G.e = G.L (String (value, t)); _ } -> (value, t)
+    | { G.e = G.L (String (_, (value, t), _)); _ } -> (value, t)
     | _ ->
         yaml_error_at_key key
           ("Expected all values in the list to be strings for " ^ fst key)
@@ -294,7 +296,7 @@ let parse_listi env (key : key) f x =
 (* TODO: delete at some point, should use parse_string_wrap_list *)
 let parse_string_list env (key : key) e =
   let extract_string env = function
-    | { G.e = G.L (String (value, _)); _ } -> value
+    | { G.e = G.L (String (_, (value, _), _)); _ } -> value
     | _ ->
         error_at_key env key
           ("Expected all values in the list to be strings for " ^ fst key)
@@ -303,15 +305,15 @@ let parse_string_list env (key : key) e =
 
 let parse_bool env (key : key) x =
   match x.G.e with
-  | G.L (String ("true", _)) -> true
-  | G.L (String ("false", _)) -> false
+  | G.L (String (_, ("true", _), _)) -> true
+  | G.L (String (_, ("false", _), _)) -> false
   | G.L (Bool (b, _)) -> b
   | _x -> error_at_key env key (spf "parse_bool for %s" (fst key))
 
 let parse_int env (key : key) x =
   match x.G.e with
   | G.L (Int (Some i, _)) -> i
-  | G.L (String (s, _)) -> (
+  | G.L (String (_, (s, _), _)) -> (
       try int_of_string s with
       | Failure _ -> error_at_key env key (spf "parse_int for %s" (fst key)))
   | G.L (Float (Some f, _)) ->
@@ -321,7 +323,7 @@ let parse_int env (key : key) x =
 
 let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
   match value.G.e with
-  | G.L (String (value, t)) ->
+  | G.L (String (_, (value, t), _)) ->
       (* should use the unescaped string *)
       Either.Left (value, t)
   | G.L (Float (Some n, t)) ->
@@ -342,7 +344,7 @@ let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
 let parse_focus_mvs env (key : key) (x : G.expr) =
   match x.e with
   | G.N (G.Id ((s, _), _))
-  | G.L (String (s, _)) ->
+  | G.L (String (_, (s, _), _)) ->
       [ s ]
   | G.Container (Array, (_, mvs, _)) ->
       Common.map (fun mv -> fst (parse_string_wrap env key mv)) mvs
@@ -445,8 +447,12 @@ let parse_equivalences env key value =
                 e =
                   Container
                     ( Tuple,
-                      (_, [ { e = L (String ("equivalence", t)); _ }; value ], _)
-                    );
+                      ( _,
+                        [
+                          { e = L (String (_, ("equivalence", t), _)); _ };
+                          value;
+                        ],
+                        _ ) );
                 _;
               };
             ],
@@ -654,7 +660,8 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
                 {
                   e =
                     Container
-                      (Tuple, (_, [ { e = L (String key); _ }; value ], _));
+                      ( Tuple,
+                        (_, [ { e = L (String (_, key, _)); _ }; value ], _) );
                   _;
                 };
               ],
@@ -984,6 +991,7 @@ and produce_constraint env dict tok indicator =
             (env', Some xlang)
         | ___else___ -> (env, None)
       in
+      let env' = { env' with in_metavariable_pattern = true } in
       let formula = parse_pair env' (find_formula env dict) in
       match formula with
       | R.P { pat = Xpattern.Regexp regexp; _ } ->
@@ -1076,68 +1084,138 @@ let parse_taint_requires env key x =
 (* TODO: can add a case where these take in only a single string *)
 let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_source =
-  let f =
-    if is_old then parse_formula_old_from_dict else parse_formula_from_dict
+  let default_source_requires = R.default_source_requires (snd key) in
+  let parse_from_dict dict f =
+    let source_by_side_effect =
+      take_opt dict env parse_bool "by-side-effect"
+      |> Option.value ~default:false
+    in
+    let label =
+      take_opt dict env parse_string "label"
+      |> Option.value ~default:R.default_source_label
+    in
+    let source_requires =
+      take_opt dict env parse_taint_requires "requires"
+      |> Option.value ~default:default_source_requires
+    in
+    let source_formula = f env dict in
+    { R.source_formula; source_by_side_effect; label; source_requires }
   in
-  let source_dict = yaml_to_dict env key value in
-  let source_by_side_effect =
-    take_opt source_dict env parse_bool "by-side-effect"
-    |> Option.value ~default:false
-  in
-  let label =
-    take_opt source_dict env parse_string "label"
-    |> Option.value ~default:R.default_source_label
-  in
-  let source_requires =
-    let tok = snd key in
-    take_opt source_dict env parse_taint_requires "requires"
-    |> Option.value ~default:(R.default_source_requires tok)
-  in
-  let source_formula = f env source_dict in
-  { source_formula; source_by_side_effect; label; source_requires }
+  if is_old then
+    let dict = yaml_to_dict env key value in
+    parse_from_dict dict parse_formula_old_from_dict
+  else
+    match parse_str_or_dict env value with
+    | Left value ->
+        let source_formula = R.P (parse_xpattern env value) in
+        {
+          source_formula;
+          source_by_side_effect = false;
+          label = R.default_source_label;
+          source_requires = default_source_requires;
+        }
+    | Right dict -> parse_from_dict dict parse_formula_from_dict
 
 let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_propagator =
   let f =
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
-  let propagator_dict = yaml_to_dict env key value in
-  let from = take propagator_dict env parse_string_wrap "from" in
-  let to_ = take propagator_dict env parse_string_wrap "to" in
-  let propagator_formula = f env propagator_dict in
-  { propagator_formula; from; to_ }
+  let parse_from_dict dict f =
+    let propagator_by_side_effect =
+      take_opt dict env parse_bool "by-side-effect"
+      |> Option.value ~default:true
+    in
+    let from = take dict env parse_string_wrap "from" in
+    let to_ = take dict env parse_string_wrap "to" in
+    let propagator_formula = f env dict in
+    { R.propagator_formula; propagator_by_side_effect; from; to_ }
+  in
+  let dict = yaml_to_dict env key value in
+  parse_from_dict dict f
 
 let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
-  let f =
-    if is_old then parse_formula_old_from_dict else parse_formula_from_dict
+  let parse_from_dict dict f =
+    let sanitizer_by_side_effect =
+      take_opt dict env parse_bool "by-side-effect"
+      |> Option.value ~default:false
+    in
+    let not_conflicting =
+      take_opt dict env parse_bool
+        (if is_old then "not_conflicting" else "not-conflicting")
+      |> Option.value ~default:false
+    in
+    let sanitizer_formula = f env dict in
+    { sanitizer_formula; sanitizer_by_side_effect; R.not_conflicting }
   in
-  let sanitizer_dict = yaml_to_dict env key value in
-  let sanitizer_by_side_effect =
-    take_opt sanitizer_dict env parse_bool "by-side-effect"
-    |> Option.value ~default:false
-  in
-  let not_conflicting =
-    take_opt sanitizer_dict env parse_bool
-      (if is_old then "not_conflicting" else "not-conflicting")
-    |> Option.value ~default:false
-  in
-  let sanitizer_formula = f env sanitizer_dict in
-  { sanitizer_formula; sanitizer_by_side_effect; R.not_conflicting }
+  if is_old then
+    let dict = yaml_to_dict env key value in
+    parse_from_dict dict parse_formula_old_from_dict
+  else
+    match parse_str_or_dict env value with
+    | Left value ->
+        let sanitizer_formula = R.P (parse_xpattern env value) in
+        {
+          sanitizer_formula;
+          sanitizer_by_side_effect = false;
+          R.not_conflicting = false;
+        }
+    | Right dict -> parse_from_dict dict parse_formula_from_dict
 
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_sink =
   let sink_id = String.concat ":" env.path in
-  let f =
-    if is_old then parse_formula_old_from_dict else parse_formula_from_dict
+  let default_sink_requires = R.default_sink_requires (snd key) in
+  let parse_from_dict dict f =
+    let sink_requires =
+      take_opt dict env parse_taint_requires "requires"
+      |> Option.value ~default:default_sink_requires
+    in
+    let sink_formula = f env dict in
+    { R.sink_id; sink_formula; sink_requires }
   in
-  let sink_dict = yaml_to_dict env key value in
-  let sink_requires =
-    let tok = snd key in
-    take_opt sink_dict env parse_taint_requires "requires"
-    |> Option.value ~default:(R.default_sink_requires tok)
+  if is_old then
+    let dict = yaml_to_dict env key value in
+    parse_from_dict dict parse_formula_old_from_dict
+  else
+    match parse_str_or_dict env value with
+    | Left value ->
+        let sink_formula = R.P (parse_xpattern env value) in
+        { sink_id; sink_formula; sink_requires = default_sink_requires }
+    | Right dict -> parse_from_dict dict parse_formula_from_dict
+
+let parse_taint_pattern env key (value : G.expr) =
+  let dict = yaml_to_dict env key value in
+  let parse_specs parse_spec env key x =
+    ( snd key,
+      parse_listi env key
+        (fun env -> parse_spec env (fst key ^ "list item", snd key))
+        x )
   in
-  let sink_formula = f env sink_dict in
-  { sink_id; sink_formula; sink_requires }
+  let sources, propagators_opt, sanitizers_opt, sinks =
+    ( take dict env (parse_specs (parse_taint_source ~is_old:false)) "sources",
+      take_opt dict env
+        (parse_specs (parse_taint_propagator ~is_old:false))
+        "propagators",
+      take_opt dict env
+        (parse_specs (parse_taint_sanitizer ~is_old:false))
+        "sanitizers",
+      take dict env (parse_specs (parse_taint_sink ~is_old:false)) "sinks" )
+  in
+  `Taint
+    {
+      R.sources;
+      propagators =
+        (* optlist_to_list *)
+        (match propagators_opt with
+        | None -> []
+        | Some (_, xs) -> xs);
+      sanitizers =
+        (match sanitizers_opt with
+        | None -> []
+        | Some (_, xs) -> xs);
+      sinks;
+    }
 
 (*****************************************************************************)
 (* Parsers for extract mode *)
@@ -1196,41 +1274,44 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       match formula with
       | Some formula -> `Search formula
       | None -> `Search (parse_pair_old env (find_formula_old env rule_dict)))
-  | Some ("taint", _) ->
+  | Some ("taint", _) -> (
       let parse_specs parse_spec env key x =
         ( snd key,
           parse_listi env key
             (fun env -> parse_spec env (fst key ^ "list item", snd key))
             x )
       in
-      let sources, propagators_opt, sanitizers_opt, sinks =
-        ( take rule_dict env
-            (parse_specs (parse_taint_source ~is_old:true))
-            "pattern-sources",
-          take_opt rule_dict env
-            (parse_specs (parse_taint_propagator ~is_old:true))
-            "pattern-propagators",
-          take_opt rule_dict env
-            (parse_specs (parse_taint_sanitizer ~is_old:true))
-            "pattern-sanitizers",
-          take rule_dict env
-            (parse_specs (parse_taint_sink ~is_old:true))
-            "pattern-sinks" )
-      in
-      `Taint
-        {
-          sources;
-          propagators =
-            (* optlist_to_list *)
-            (match propagators_opt with
-            | None -> []
-            | Some (_, xs) -> xs);
-          sanitizers =
-            (match sanitizers_opt with
-            | None -> []
-            | Some (_, xs) -> xs);
-          sinks;
-        }
+      match Hashtbl.find_opt rule_dict.h "taint" with
+      | Some (key, value) -> parse_taint_pattern env key value
+      | __else__ ->
+          let sources, propagators_opt, sanitizers_opt, sinks =
+            ( take rule_dict env
+                (parse_specs (parse_taint_source ~is_old:true))
+                "pattern-sources",
+              take_opt rule_dict env
+                (parse_specs (parse_taint_propagator ~is_old:true))
+                "pattern-propagators",
+              take_opt rule_dict env
+                (parse_specs (parse_taint_sanitizer ~is_old:true))
+                "pattern-sanitizers",
+              take rule_dict env
+                (parse_specs (parse_taint_sink ~is_old:true))
+                "pattern-sinks" )
+          in
+          `Taint
+            {
+              sources;
+              propagators =
+                (* optlist_to_list *)
+                (match propagators_opt with
+                | None -> []
+                | Some (_, xs) -> xs);
+              sanitizers =
+                (match sanitizers_opt with
+                | None -> []
+                | Some (_, xs) -> xs);
+              sinks;
+            })
   | Some ("extract", _) ->
       let formula = parse_pair_old env (find_formula_old env rule_dict) in
       let dst_lang =
@@ -1338,8 +1419,11 @@ let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
                     e =
                       Container
                         ( Tuple,
-                          (_, [ { e = L (String ("rules", _)); _ }; rules ], _)
-                        );
+                          ( _,
+                            [
+                              { e = L (String (_, ("rules", _), _)); _ }; rules;
+                            ],
+                            _ ) );
                     _;
                   };
                 ],

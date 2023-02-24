@@ -154,7 +154,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
   | Lang.Jsonnet ->
       Tree_sitter_jsonnet.Parse.file file
-      |> dump_and_print_errors Tree_sitter_jsonnet.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_jsonnet.Boilerplate.dump_tree
   | Lang.Solidity ->
       Tree_sitter_solidity.Parse.file file
       |> dump_and_print_errors Tree_sitter_solidity.Boilerplate.dump_tree
@@ -174,7 +174,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
-      |> dump_and_print_errors Tree_sitter_rust.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree
   | Lang.Ocaml ->
       Tree_sitter_ocaml.Parse.file file
       |> dump_and_print_errors Tree_sitter_ocaml.CST.dump_tree
@@ -193,7 +193,7 @@ let dump_tree_sitter_cst lang file =
   | Lang.Php ->
       Tree_sitter_php.Parse.file file
       |> dump_and_print_errors Tree_sitter_php.CST.dump_tree
-  | Lang.Hcl ->
+  | Lang.Terraform ->
       Tree_sitter_hcl.Parse.file file
       |> dump_and_print_errors Tree_sitter_hcl.CST.dump_tree
   | Lang.Elixir ->
@@ -204,7 +204,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_julia.CST.dump_tree
   | Lang.Dart ->
       Tree_sitter_dart.Parse.file file
-      |> dump_and_print_errors Tree_sitter_dart.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_dart.Boilerplate.dump_tree
   | Lang.Python2
   | Lang.Python3
   | Lang.Python ->
@@ -261,7 +261,7 @@ let test_parse_tree_sitter lang root_paths =
                      Tree_sitter_vue.Parse.file file |> fail_on_error |> ignore
                  | Lang.Php ->
                      Tree_sitter_php.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Hcl ->
+                 | Lang.Terraform ->
                      Tree_sitter_hcl.Parse.file file |> fail_on_error |> ignore
                  | Lang.Dart ->
                      Tree_sitter_dart.Parse.file file |> fail_on_error |> ignore

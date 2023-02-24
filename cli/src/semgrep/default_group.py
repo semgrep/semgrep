@@ -85,5 +85,5 @@ class DefaultGroup(click.Group):
         """
         cmd_name, cmd, args = super().resolve_command(ctx, args)
         if hasattr(ctx, "_default_command_overwrite_args0"):
-            args.insert(0, ctx._default_command_overwrite_args0)  # type: ignore
+            args.insert(0, ctx._default_command_overwrite_args0)
         return cmd_name, cmd, args

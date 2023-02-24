@@ -60,7 +60,7 @@ let mk_var_or_func tlet params tret body =
   | _ :: _, _body ->
       G.FuncDef
         {
-          G.fparams = params;
+          G.fparams = fb params;
           frettype = tret;
           fkind = (G.Function, tlet);
           (* TODO? maybe generate FBExpr when we can? *)
@@ -352,7 +352,7 @@ and expr e =
       let v1 = list parameter v1 and v2 = expr v2 in
       let def =
         {
-          G.fparams = v1;
+          G.fparams = fb v1;
           frettype = None;
           fkind = (G.Function, t);
           fbody = G.FBExpr v2;
@@ -370,7 +370,7 @@ and expr e =
       in
       G.Lambda
         {
-          G.fparams = params;
+          G.fparams = fb params;
           frettype = None;
           fkind = (G.Function, t);
           fbody = G.FBStmt body_stmt;
@@ -402,7 +402,7 @@ and literal = function
       G.Char v1
   | String v1 ->
       let v1 = wrap string v1 in
-      G.String v1
+      G.String (fb v1)
   | Bool v1 ->
       let v1 = wrap bool v1 in
       G.Bool v1

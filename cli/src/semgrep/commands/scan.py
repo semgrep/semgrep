@@ -29,13 +29,13 @@ from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
-from semgrep.constants import EngineType
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
 from semgrep.dump_ast import dump_parsed_ast
+from semgrep.engine import EngineType
 from semgrep.error import SemgrepError
 from semgrep.metrics import MetricsState
 from semgrep.notifications import possibly_notify_user
@@ -248,7 +248,7 @@ _scan_options: List[Callable] = [
             Filter files or directories by path. The argument is a
             glob-style pattern such as 'foo.*' that must match the path.
             This is an extra filter in addition to other applicable filters.
-            For example, specifying the language with '-l javascript' migh
+            For example, specifying the language with '-l javascript' might
             preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of
             '--include=src', '--include=*.jsx', or '--include=src/foo.*'
             will restrict the selection to the single file 'src/foo.jsx'.
@@ -311,7 +311,7 @@ _scan_options: List[Callable] = [
         type=int,
         help="""
             Number of subprocesses to use to run checks in parallel. Defaults to the
-            number of cores on the system (1 if using --interfile).
+            number of cores on the system (1 if using --pro).
         """,
     ),
     optgroup.option(
@@ -349,6 +349,7 @@ _scan_options: List[Callable] = [
             skipped. If set to 0 will not have limit. Defaults to 3.
         """,
     ),
+    # TODO: Move to Semgrep Pro Engine group ?
     optgroup.option(
         "--interfile-timeout",
         type=int,
@@ -399,6 +400,7 @@ _scan_options: List[Callable] = [
     ),
     optgroup.option(
         "--dataflow-traces",
+        default=None,
         is_flag=True,
         help="Explain how non-local values reach the location of a finding (only affects text and SARIF output).",
     ),
@@ -453,31 +455,90 @@ _scan_options: List[Callable] = [
         help="Uses ASCII output if no format specified.",
     ),
     optgroup.option(
-        "--emacs",
-        is_flag=True,
+        "--text",
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.TEXT,
+        default=True,
         help="Output results in Emacs single-line format.",
     ),
     optgroup.option(
-        "--json", is_flag=True, help="Output results in Semgrep's JSON format."
+        "--emacs",
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.EMACS,
+        help="Output results in Emacs single-line format.",
+    ),
+    optgroup.option(
+        "--json",
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.JSON,
+        help="Output results in Semgrep's JSON format.",
     ),
     optgroup.option(
         "--gitlab-sast",
-        is_flag=True,
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.GITLAB_SAST,
         help="Output results in GitLab SAST format.",
     ),
     optgroup.option(
         "--gitlab-secrets",
-        is_flag=True,
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.GITLAB_SECRETS,
         help="Output results in GitLab Secrets format.",
     ),
     optgroup.option(
-        "--junit-xml", is_flag=True, help="Output results in JUnit XML format."
+        "--junit-xml",
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.JUNIT_XML,
+        help="Output results in JUnit XML format.",
     ),
-    optgroup.option("--sarif", is_flag=True, help="Output results in SARIF format."),
+    optgroup.option(
+        "--sarif",
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.SARIF,
+        help="Output results in SARIF format.",
+    ),
     optgroup.option(
         "--vim",
-        is_flag=True,
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.VIM,
         help="Output results in vim single-line format.",
+    ),
+    optgroup.group("Semgrep Pro Engine options"),
+    optgroup.option(
+        "--pro",
+        "requested_engine",
+        type=EngineType,
+        flag_value=EngineType.PRO_INTERFILE,
+        help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+    ),
+    optgroup.option(
+        "--pro-intrafile",
+        "requested_engine",
+        type=EngineType,
+        flag_value=EngineType.PRO_INTRAFILE,
+        help="Intra-file inter-procedural taint analysis. Implies --pro-languages. Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+    ),
+    optgroup.option(
+        "--pro-languages",
+        "requested_engine",
+        type=EngineType,
+        flag_value=EngineType.PRO_LANG,
+        help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+    ),
+    optgroup.option(
+        "--oss-only",
+        "requested_engine",
+        type=EngineType,
+        flag_value=EngineType.OSS,
+        help="Run using only OSS features, even if the Semgrep Pro toggle is on.",
     ),
 ]
 
@@ -597,32 +658,6 @@ def scan_options(func: Callable) -> Callable:
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
-# DEPRECATED: --deep to be removed by Feb 2023 launch
-@click.option(
-    "--deep",
-    "-x",
-    is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
-)
-@click.option(
-    "--pro",
-    is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
-)
-@click.option(
-    "--interproc",
-    is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
-)
-@click.option(
-    "--interfile",
-    is_flag=True,
-    hidden=True
-    # help="contact support@r2c.dev for more information on this"
-)
 @click.option(
     "--dump-engine-path",
     is_flag=True,
@@ -638,27 +673,19 @@ def scan(
     config: Optional[Tuple[str, ...]],
     core_opts: Optional[str],
     debug: bool,
-    deep: bool,
     dump_engine_path: bool,
-    pro: bool,
-    interproc: bool,
-    interfile: bool,
+    requested_engine: Optional[EngineType],
     dryrun: bool,
     dump_ast: bool,
     dump_command_for_core: bool,
-    emacs: bool,
     enable_nosem: bool,
     enable_version_check: bool,
     error_on_findings: bool,
     exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
     force_color: bool,
-    gitlab_sast: bool,
-    gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
     jobs: Optional[int],
-    json: bool,
-    junit_xml: bool,
     lang: Optional[str],
     max_chars_per_line: int,
     max_lines_per_finding: int,
@@ -669,11 +696,11 @@ def scan(
     optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
+    output_format: OutputFormat,
     pattern: Optional[str],
     quiet: bool,
     replacement: Optional[str],
     rewrite_rule_ids: bool,
-    sarif: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     show_supported_languages: bool,
@@ -689,7 +716,6 @@ def scan(
     validate: bool,
     verbose: bool,
     version: bool,
-    vim: bool,
 ) -> ScanReturn:
     """
     Run semgrep rules on files
@@ -706,7 +732,7 @@ def scan(
     For more information about Semgrep, go to https://semgrep.dev.
 
     NOTE: By default, Semgrep will report pseudonymous usage metrics to its server if you pull your configuration from
-    the Semgrep registy. To learn more about how and why these metrics are collected, please see
+    the Semgrep registry. To learn more about how and why these metrics are collected, please see
     https://semgrep.dev/docs/metrics. To modify this behavior, see the --metrics option below.
     """
 
@@ -726,10 +752,19 @@ def scan(
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
 
+    engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
+
+    if dataflow_traces is None:
+        dataflow_traces = engine_type.has_dataflow_traces
+
     state = get_state()
     state.metrics.configure(metrics, metrics_legacy)
     state.terminal.configure(
-        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
+        verbose=verbose,
+        debug=debug,
+        quiet=quiet,
+        force_color=force_color,
+        output_format=output_format,
     )
 
     if include and exclude:
@@ -764,38 +799,6 @@ def scan(
         semgrep.config_resolver.adjust_for_docker()
         targets = (os.curdir,)
 
-    output_format = OutputFormat.TEXT
-    if json:
-        output_format = OutputFormat.JSON
-    elif gitlab_sast:
-        output_format = OutputFormat.GITLAB_SAST
-    elif gitlab_secrets:
-        output_format = OutputFormat.GITLAB_SECRETS
-    elif junit_xml:
-        output_format = OutputFormat.JUNIT_XML
-    elif sarif:
-        output_format = OutputFormat.SARIF
-    elif emacs:
-        output_format = OutputFormat.EMACS
-    elif vim:
-        output_format = OutputFormat.VIM
-
-    if deep:
-        abort("The experimental flag --deep has been renamed to --interfile.")
-
-    if interfile:
-        engine = EngineType.INTERFILE
-    elif interproc:
-        engine = EngineType.INTERPROC
-    elif pro:
-        engine = EngineType.PRO
-    else:
-        engine = EngineType.OSS
-
-    # Turn on `dataflow_traces` by default for inter-procedural taint analysis.
-    if engine is EngineType.INTERPROC or engine is EngineType.INTERFILE:
-        dataflow_traces = True
-
     output_settings = OutputSettings(
         output_format=output_format,
         output_destination=output,
@@ -817,9 +820,9 @@ def scan(
             config=config,
             test_ignore_todo=test_ignore_todo,
             strict=strict,
-            json=json,
+            json=output_format == OutputFormat.JSON,
             optimizations=optimizations,
-            engine=engine,
+            engine_type=engine_type,
         )
 
     run_has_findings = False
@@ -841,7 +844,12 @@ def scan(
         return_data: ScanReturn = None
 
         if dump_ast:
-            dump_parsed_ast(json, __validate_lang("--dump-ast", lang), pattern, targets)
+            dump_parsed_ast(
+                output_format == OutputFormat.JSON,
+                __validate_lang("--dump-ast", lang),
+                pattern,
+                targets,
+            )
         elif validate:
             if not (pattern or lang or config):
                 logger.error(
@@ -857,7 +865,7 @@ def scan(
                     try:
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
-                            engine=engine,
+                            engine_type=engine_type,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
@@ -890,11 +898,11 @@ def scan(
                     profiler,
                     output_extra,
                     shown_severities,
-                    _,
+                    _dependencies,
                 ) = semgrep.semgrep_main.main(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
-                    engine=engine,
+                    engine_type=engine_type,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,
@@ -934,8 +942,10 @@ def scan(
                 filtered_rules=filtered_rules,
                 profiling_data=output_extra.profiling_data,
                 explanations=output_extra.explanations,
+                rules_by_engine=output_extra.rules_by_engine,
                 severities=shown_severities,
                 print_summary=True,
+                engine_type=engine_type,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())

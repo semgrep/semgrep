@@ -131,6 +131,8 @@ let language_exceptions =
 
     (* TODO: to fix *)
     (Lang.Kotlin, [ "dots_stmts"; "metavar_equality_var" ]);
+    (* good boy *)
+    (Lang.Rust, []);
     (* Experimental languages *)
 
     (* TODO: dots_nested_stmts to fix for C and C++ *)
@@ -198,31 +200,28 @@ let maturity_tests () =
       (* Beta *)
       check_maturity Lang.Hack "hack" ".hack" Beta;
       check_maturity Lang.Kotlin "kotlin" ".kt" Beta;
+      check_maturity Lang.Rust "rust" ".rs" Beta;
       (* Terraform/HCL has too many NA, not worth it *)
 
       (* Experimental *)
       check_maturity Lang.Bash "bash" ".bash" Experimental;
       check_maturity Lang.C "c" ".c" Experimental;
       check_maturity Lang.Cpp "cpp" ".cpp" Experimental;
-      (* TODO dockerfile
-          check_maturity Lang.Dockerfile "dockerfile" ".dockerfile" Experimental;
+      (* TODO
+         check_maturity Lang.Dockerfile "dockerfile" ".dockerfile" Experimental;
       *)
       check_maturity Lang.Lua "lua" ".lua" Experimental;
       check_maturity Lang.Ocaml "ocaml" ".ml" Experimental;
-      (* TODO we say we support R, but not really actually *)
-      (* TODO: too many exns, we need to write tests!
-         check_maturity Lang.Rust "rust" ".rust" Experimental;
-      *)
+      check_maturity Lang.R "r" ".r" Experimental;
       check_maturity Lang.Solidity "solidity" ".sol" Experimental;
       check_maturity Lang.Elixir "elixir" ".ex" Experimental;
       check_maturity Lang.Swift "swift" ".swift" Experimental;
       check_maturity Lang.Julia "julia" ".jl" Experimental;
       (* YAML has too many NA, not worth it *)
-      check_maturity Lang.R "r" ".r" Experimental;
       check_maturity Lang.Jsonnet "jsonnet" ".jsonnet" Experimental;
       check_maturity Lang.Clojure "clojure" ".clj" Experimental
-      (* Not even experimental *)
-      (* HTML, Vue *);
+      (* Not even experimental yet *)
+      (* HTML, XML, Vue, Dart *);
     ]
 
 (*****************************************************************************)
@@ -415,7 +414,7 @@ let lang_regression_tests ~polyglot_pattern_path ~with_caching =
         (Lang.Swift, "swift", ".swift");
         (Lang.Html, "html", ".html");
         (Lang.Vue, "vue", ".vue");
-        (Lang.Hcl, "hcl", ".tf");
+        (Lang.Terraform, "terraform", ".tf");
         (Lang.Kotlin, "kotlin", ".kt");
         (Lang.Solidity, "solidity", ".sol");
         (Lang.Elixir, "elixir", ".ex");
@@ -426,6 +425,7 @@ let lang_regression_tests ~polyglot_pattern_path ~with_caching =
          *)
         (Lang.Jsonnet, "jsonnet", ".jsonnet");
         (Lang.Clojure, "clojure", ".clj");
+        (Lang.Xml, "xml", ".xml");
       ]
   in
   let irregular_tests =
@@ -591,10 +591,21 @@ let tainting_test lang rules_file file =
                lazy_ast_and_errors = lazy (ast, []);
              }
            in
-           let res, _debug =
-             Match_tainting_mode.check_rule rule (fun _ _ -> ()) xconf xtarget
+           let results =
+             Match_tainting_mode.check_rules
+               ~match_hook:(fun _ _ -> ())
+               ~per_rule_boilerplate_fn:(fun _rule f -> f ())
+               [ rule ] xconf xtarget
            in
-           res.matches)
+           match results with
+           | [ res ] -> res.matches
+           (* By construction, `check_rules` should only return the same number of results as rules it
+              was initially given.
+              So this case is impossible.
+           *)
+           | []
+           | _ :: _ :: _ ->
+               raise Impossible)
     |> List.flatten
   in
   let actual =

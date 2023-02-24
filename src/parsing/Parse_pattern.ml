@@ -165,12 +165,16 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Swift ->
         let res = Parse_swift_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
-    | Lang.Html ->
+    | Lang.Html
+    | Lang.Xml ->
         let res = Parse_html_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
-    | Lang.Hcl ->
-        let res = Parse_hcl_tree_sitter.parse_pattern str in
-        extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.Terraform ->
+        let res = Parse_terraform_tree_sitter.parse_pattern str in
+        let pattern =
+          extract_pattern_from_tree_sitter_result res print_errors
+        in
+        Terraform_to_generic.any pattern
     (* use pfff *)
     | Lang.Python
     | Lang.Python2
@@ -254,9 +258,11 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.R ->
         let res = Parse_r_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
-        (* not yet handled ?? *)
-        (* Lang.Xxx failwith "No Xxx generic parser yet" *)
-    | Lang.Dart -> failwith "Dart patterns not supported yet"
+    | Lang.Dart ->
+        let res = Parse_dart_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
+    (* not yet handled ?? *)
+    (* | Lang.Xxx -> failwith "No Xxx generic parser yet" *)
   in
   let any = normalize_any lang any in
 
@@ -274,7 +280,7 @@ let dump_tree_sitter_pattern_cst lang file =
       |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
-      |> dump_and_print_errors Tree_sitter_rust.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree

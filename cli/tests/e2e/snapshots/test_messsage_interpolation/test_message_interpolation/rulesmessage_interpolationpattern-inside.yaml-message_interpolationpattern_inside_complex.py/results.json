@@ -15,7 +15,7 @@
         "offset": 44
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    def B():\n        print(\"hey\")",
@@ -66,7 +66,7 @@
         "offset": 79
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    def C():\n        print(\"yeh\")",
@@ -117,7 +117,7 @@
         "offset": 122
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    def C():\n        print(\"\")",

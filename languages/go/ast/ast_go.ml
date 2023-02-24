@@ -93,6 +93,12 @@ and func_type = {
 and parameter_binding =
   | ParamClassic of parameter
   (* sgrep-ext: *)
+  (* For metavariable ellipsis identifier (like $...ARGS), we don't
+     usually separate this out at the AST level. However, single
+     identifiers as parameters are parsed as types in Go, so we can't
+     reuse the ordinary identifier construct. So we use this.
+  *)
+  | ParamMetavarEllipsis of ident
   | ParamEllipsis of tok
 
 and parameter = {
@@ -139,7 +145,7 @@ and expr =
    * To disambiguate requires semantic information.
    * Selector (Name,'.', ident) can be many things.
    *)
-  | Id of ident (* * AST_generic.resolved_name option ref *)
+  | Id of ident
   (* A Selector can be a
    *  - a field access of a struct
    *  - a top decl access of a package
@@ -190,7 +196,9 @@ and literal =
   | Float of float option wrap
   | Imag of string wrap
   | Rune of string wrap (* unicode char *)
-  | String of string wrap (* unicode string *)
+  | String of string wrap
+(* unicode string *)
+(* TODO: bracket *)
 
 and index = expr
 and arguments = argument list

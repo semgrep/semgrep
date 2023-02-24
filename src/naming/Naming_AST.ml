@@ -329,7 +329,7 @@ let get_resolved_type lang (vinit, vtype) =
       | Some { e = L (Int (_, tok)); _ } -> make_type "int" tok
       | Some { e = L (Float (_, tok)); _ } -> make_type "float" tok
       | Some { e = L (Char (_, tok)); _ } -> make_type "char" tok
-      | Some { e = L (String (_, tok)); _ } ->
+      | Some { e = L (String (_, (_, tok), _)); _ } ->
           let string_str =
             match lang with
             | Lang.Go -> "str"
@@ -366,6 +366,7 @@ let is_resolvable_name_ctx env lang =
       match lang with
       (* true for Java so that we can type class fields *)
       | Lang.Java
+      | Lang.Apex
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Js
       | Lang.Ts
@@ -384,6 +385,7 @@ let resolved_name_kind env lang =
        * alt: use a different scope.class?
        *)
       | Lang.Java
+      | Lang.Apex
       (* true for JS/TS to resolve class methods. *)
       | Lang.Js
       | Lang.Ts
@@ -393,8 +395,8 @@ let resolved_name_kind env lang =
       | _ -> raise Impossible)
 
 (* !also set the id_info of the parameter as a side effect! *)
-let params_of_parameters env xs =
-  xs
+let params_of_parameters env params : scope =
+  params |> Parse_info.unbracket
   |> Common.map_filter (function
        | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
            let sid = SId.mk () in
@@ -528,7 +530,8 @@ let resolve lang prog =
                         e =
                           Call
                             ( { e = IdSpecial (Require, _); _ },
-                              (_, [ Arg { e = L (String file); _ } ], _) );
+                              (_, [ Arg { e = L (String (_, file, _)); _ } ], _)
+                            );
                         _;
                       };
                   vtype = _;
@@ -557,8 +560,11 @@ let resolve lang prog =
                                 e =
                                   Call
                                     ( { e = IdSpecial (Require, _); _ },
-                                      (_, [ Arg { e = L (String file); _ } ], _)
-                                    );
+                                      ( _,
+                                        [
+                                          Arg { e = L (String (_, file, _)); _ };
+                                        ],
+                                        _ ) );
                                 _;
                               } );
                         _;

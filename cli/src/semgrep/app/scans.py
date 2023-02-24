@@ -2,6 +2,8 @@
 import json
 import os
 from collections import Counter
+from copy import deepcopy
+from logging import DEBUG
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -9,6 +11,7 @@ from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
 import click
@@ -21,9 +24,13 @@ from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
+
+if TYPE_CHECKING:
+    from semgrep.engine import EngineType
 
 logger = getLogger(__name__)
 
@@ -125,49 +132,6 @@ class ScanHandler:
                 f"API server at {state.env.semgrep_url} returned type '{type(response.json())}'. Expected a dictionary."
             )
 
-    def fetch_config_and_start_scan_old(self, meta: Dict[str, Any]) -> None:
-        """
-        Get configurations for scan and create scan object
-        Backwards-compatible with versions of semgrep-app from before Aug 2022
-        TODO: Delete once all old, on-prem instances have been deprecated
-        """
-        state = get_state()
-
-        logger.debug("Getting deployment information")
-        get_deployment_url = f"{state.env.semgrep_url}/api/agent/deployments/current"
-        body = self._get_scan_config_from_app(get_deployment_url)
-        self._deployment_id = body["deployment"]["id"]
-        self._deployment_name = body["deployment"]["name"]
-
-        logger.debug("Creating scan")
-        create_scan_url_old = (
-            f"{state.env.semgrep_url}/api/agent/deployments/{self.deployment_id}/scans"
-        )
-        response = state.app_session.post(
-            create_scan_url_old,
-            json={"meta": meta},
-        )
-        try:
-            response.raise_for_status()
-        except requests.RequestException:
-            raise Exception(
-                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
-            )
-        body = response.json()
-        self.scan_id = body["scan"]["id"]
-        self._policy_names = body["policy"]
-        self._autofix = body.get("autofix") or False
-        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
-        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
-
-        state.error_handler.append_request(scan_id=self.scan_id)
-
-        logger.debug("Getting rules file")
-        get_rules_url = (
-            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/rules.yaml"
-        )
-        self._rules = get_rules_url
-
     def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
         """
         Get configurations for scan
@@ -196,6 +160,14 @@ class ScanHandler:
         self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
         self.ignore_patterns = body.get("ignored_files") or []
+
+        if logger.isEnabledFor(DEBUG):
+            config = deepcopy(body)
+            try:
+                config["rule_config"] = json.loads(config["rule_config"])
+            except Exception:
+                pass
+            logger.debug(f"Got configuration {json.dumps(config, indent=4)}")
 
     def start_scan(self, meta: Dict[str, Any]) -> None:
         """
@@ -265,7 +237,8 @@ class ScanHandler:
         parse_rate: ParsingData,
         total_time: float,
         commit_date: str,
-        lockfile_scan_info: Dict[str, int],
+        lockfile_dependencies: Dict[str, List[FoundDependency]],
+        engine_requested: "EngineType",
     ) -> None:
         """
         commit_date here for legacy reasons. epoch time of latest commit
@@ -303,13 +276,21 @@ class ScanHandler:
         ignores = [
             match.to_app_finding_format(commit_date).to_json() for match in new_ignored
         ]
+        token = (
+            # GitHub (cloud)
+            os.getenv("GITHUB_TOKEN")
+            # GitLab.com (cloud)
+            or os.getenv("GITLAB_TOKEN")
+            # Bitbucket Cloud
+            or os.getenv("BITBUCKET_TOKEN")
+        )
+
         findings_and_ignores = {
             # send a backup token in case the app is not available
-            "token": os.getenv("GITHUB_TOKEN"),
-            "gitlab_token": os.getenv("GITLAB_TOKEN"),
+            "token": token,
             "findings": findings,
-            "searched_paths": [str(t) for t in targets],
-            "renamed_paths": [str(rt) for rt in renamed_targets],
+            "searched_paths": [str(t) for t in sorted(targets)],
+            "renamed_paths": [str(rt) for rt in sorted(renamed_targets)],
             "rule_ids": rule_ids,
             "cai_ids": cai_ids,
             "ignores": ignores,
@@ -323,6 +304,8 @@ class ScanHandler:
         )
         ignored_ext_freqs.pop("", None)  # don't count files with no extension
 
+        dependency_counts = {k: len(v) for k, v in lockfile_dependencies.items()}
+
         complete = {
             "exit_code": 1
             if any(match.is_blocking and not match.is_ignored for match in all_matches)
@@ -332,7 +315,7 @@ class ScanHandler:
                 "errors": [error.to_dict() for error in errors],
                 "total_time": total_time,
                 "unsupported_exts": dict(ignored_ext_freqs),
-                "lockfile_scan_info": lockfile_scan_info,
+                "lockfile_scan_info": dependency_counts,
                 "parse_rate": {
                     lang: {
                         "targets_parsed": data.num_targets - data.targets_with_errors,
@@ -342,6 +325,7 @@ class ScanHandler:
                     }
                     for (lang, data) in parse_rate.get_errors_by_lang().items()
                 },
+                "engine_requested": engine_requested.name,
             },
         }
 
@@ -363,20 +347,7 @@ class ScanHandler:
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings_and_ignores",
             json=findings_and_ignores,
         )
-        # TODO: delete this once all on-prem app instances are gone
-        if (
-            response.status_code == 404
-            and state.env.semgrep_url != "https://semgrep.dev"
-        ):
-            # order matters here - findings sends back errors but ignores doesn't
-            ignores_response = state.app_session.post(
-                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/ignores",
-                json={"findings": ignores},
-            )
-            response = state.app_session.post(
-                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings",
-                json=findings_and_ignores,
-            )
+
         try:
             response.raise_for_status()
 

@@ -7,7 +7,6 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 === end of exit code
 
 === stdout - plain
-
 Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
 
 
@@ -59,25 +58,45 @@ First-Party Blocking Rules Fired:
 === end of stdout - plain
 
 === stderr - plain
-Scan environment:
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment git, triggering event is unknown
-  server      - https://semgrep.dev
-
-Fetching configuration from semgrep.dev
+                                                                                
+                                                                                
+┌────────────────┐                                                              
+│ Debugging Info │                                                              
+└────────────────┘                                                              
+                                                                                
 Would have sent POST request to create scan
-Authenticated as org_name
+  SCAN ENVIRONMENT                                                              
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment git, triggering event is unknown         
+  server      - logged in as org_name on https://semgrep.dev                    
+                                                                                
+                                                                                
+┌─────────────┐                                                                 
+│ Scan Status │                                                                 
+└─────────────┘                                                                 
+                                                                                
 Scanning 1 file with 4 python rules.
 
+                                                                                
+                                                                                
+┌─────────┐                                                                     
+│ Results │                                                                     
+└─────────┘                                                                     
+                                                                                
+                                                                                
+                                                                                
+┌──────────────┐                                                                
+│ Scan Summary │                                                                
+└──────────────┘                                                                
+                                                                                
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
   Found 8 findings (6 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
+  Uploading findings.
 Would have sent findings and ignores blob: {
     "token": null,
-    "gitlab_token": null,
     "findings": [
         {
             "check_id": "taint-test",
@@ -189,7 +208,7 @@ Would have sent findings and ignores blob: {
                         "ecosystem": "pypi",
                         "allowed_hashes": {},
                         "transitivity": "unknown",
-                        "line_number": 2
+                        "line_number": 1
                     },
                     "lockfile": "poetry.lock"
                 }
@@ -331,7 +350,9 @@ Would have sent findings and ignores blob: {
         }
     ],
     "searched_paths": [
-        "foo.py"
+        "foo.py",
+        "poetry.lock",
+        "yarn.lock"
     ],
     "renamed_paths": [],
     "rule_ids": [
@@ -452,9 +473,13 @@ Would have sent complete blob: {
                 "bytes_parsed": 366,
                 "num_bytes": 366
             }
-        }
+        },
+        "engine_requested": "OSS"
     }
 }
+  View results in Semgrep App:
+    https://semgrep.dev/orgs/org_name/findings
+    https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain

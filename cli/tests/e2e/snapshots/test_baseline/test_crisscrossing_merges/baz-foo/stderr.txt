@@ -1,5 +1,6 @@
 git could not find a single branch-off point, so we will compare the baseline commit directly
 Scanning 3 files.
+
   Current version has 21 findings.
 
 Switching repository to baseline commit 'foo'.
@@ -45,6 +46,18 @@ Switching repository to baseline commit 'foo'.
 
 Scanning 1 file.
 
+                                                                                
+                                                                                
+┌─────────┐                                                                     
+│ Results │                                                                     
+└─────────┘                                                                     
+                                                                                
+                                                                                
+                                                                                
+┌──────────────┐                                                                
+│ Scan Summary │                                                                
+└──────────────┘                                                                
+                                                                                
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 

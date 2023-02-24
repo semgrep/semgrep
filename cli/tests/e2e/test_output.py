@@ -120,6 +120,24 @@ def test_yaml_metavariables(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(stdout, "report.json")
 
 
+@pytest.mark.quick
+def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp, snapshot):
+    """
+    Test that quiet mode doesn't print anything to stderr.
+
+    This is because some contexts e.g. Kubernetes jobs force-mix stdout and stderr,
+    and --quiet is the only way to get valid JSON output in that case.
+    """
+    stdout, stderr = run_semgrep_in_tmp(
+        "rules/yaml_key.yaml",
+        target_name="yaml/target.yaml",
+        output_format=OutputFormat.JSON,
+        options=["--quiet"],
+    )
+    assert stderr == ""
+    json.loads(stdout)  # stdout must be parseable JSON
+
+
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
@@ -216,6 +234,19 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
     )
 
 
+# Test that rule board information makes its way into SARIF output
+@pytest.mark.kinda_slow
+def test_sarif_output_rule_board(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/rule-board-eqeq.yaml",
+            target_name="basic/stupid.py",
+            output_format=OutputFormat.SARIF,
+        ).stdout,
+        "results.sarif",
+    )
+
+
 @pytest.mark.kinda_slow
 def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
     stdout = run_semgrep_in_tmp(
@@ -261,7 +292,6 @@ def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
 
 @pytest.mark.kinda_slow
 def test_sarif_output_with_autofix(run_semgrep_in_tmp, snapshot):
-
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/autofix/autofix.yaml",

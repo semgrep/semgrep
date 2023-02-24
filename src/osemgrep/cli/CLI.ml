@@ -134,7 +134,7 @@ let dispatch_subcommand argv =
       | "publish" -> missing_subcommand ()
       | "scan" -> Scan_subcommand.main subcmd_argv
       | "shouldafound" -> missing_subcommand ()
-      (* TOPORT: cli.add_command(install_deep_semgrep) *)
+      (* TOPORT: cli.add_command(install_pro) *)
       | _else_ -> (* should have defaulted to 'scan' above *) assert false)
   [@@profiling]
 

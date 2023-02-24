@@ -31,10 +31,12 @@ type conf = {
    here.
 
    Usage: let possible_targets = get_files scanning_roots
+
+   This may raise Unix.Unix_error if the scanning root do not exist.
 *)
 val get_targets :
   conf ->
-  string list (* scanning roots *) ->
+  Fpath.t list (* scanning roots *) ->
   Common.filename list * Output_from_core_t.skipped_target list
 
 type baseline_handler = TODO

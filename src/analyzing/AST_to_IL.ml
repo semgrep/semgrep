@@ -223,7 +223,7 @@ let mk_unnamed_args (exps : IL.exp list) = Common.map (fun x -> Unnamed x) exps
 
 let is_hcl lang =
   match lang with
-  | Lang.Hcl -> true
+  | Lang.Terraform -> true
   | _ -> false
 
 (*****************************************************************************)
@@ -1035,8 +1035,8 @@ and for_var_or_expr_list env xs =
 (*****************************************************************************)
 (* Parameters *)
 (*****************************************************************************)
-and parameters _env params =
-  params
+and parameters _env params : name list =
+  params |> Parse_info.unbracket
   |> List.filter_map (function
        | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
        | ___else___ -> None (* TODO *))

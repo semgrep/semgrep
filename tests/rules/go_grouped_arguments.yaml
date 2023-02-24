@@ -1,0 +1,16 @@
+rules:
+- id: go-grouped-arguments 
+  message: |
+    Consecutive Go arguments should parse as having their real names
+  severity: ERROR
+  languages: [go]
+  match:
+    pattern: |
+      func $FOO($ARG1, $ARG2, $ARG3 int) { }
+    where:
+      - metavariable: $ARG1
+        regex: "a"
+      - metavariable: $ARG2
+        regex: "b"
+      - metavariable: $ARG3
+        regex: "c"

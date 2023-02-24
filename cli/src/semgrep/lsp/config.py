@@ -17,9 +17,9 @@ import semgrep.commands.ci
 import semgrep.semgrep_main
 from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
-from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
+from semgrep.engine import EngineType
 from semgrep.error import SemgrepError
 from semgrep.meta import generate_meta_from_environment
 from semgrep.metrics import MetricsState
@@ -30,6 +30,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
@@ -240,7 +241,7 @@ class LSPConfig:
             ProfileManager,
             OutputExtra,
             Collection[RuleSeverity],
-            Dict[str, int],
+            Dict[str, List[FoundDependency]],
         ],
     ]:
         """Generate a scanner according to the config"""
@@ -249,7 +250,7 @@ class LSPConfig:
         get_state().metrics.configure(self.metrics, None)
         return partial(
             semgrep.semgrep_main.main,
-            engine=EngineType.OSS,
+            engine_type=EngineType.OSS,
             configs=configs,
             severity=self.severity,
             exclude=self.exclude,
@@ -282,7 +283,7 @@ class LSPConfig:
             ProfileManager,
             OutputExtra,
             Collection[RuleSeverity],
-            Dict[str, int],
+            Dict[str, List[FoundDependency]],
         ],
     ]:
         return self._scanner(configs=self.configs)
@@ -301,7 +302,7 @@ class LSPConfig:
             ProfileManager,
             OutputExtra,
             Collection[RuleSeverity],
-            Dict[str, int],
+            Dict[str, List[FoundDependency]],
         ],
     ]:
         return self._scanner(configs=[self.scan_url])
@@ -326,7 +327,6 @@ class LSPConfig:
     ) -> None:
         """Add or remove folders from our config, and update what we need to"""
         if self._workspace_folders is not None:
-
             if added is not None:
                 self._workspace_folders.extend(added)
             if removed is not None:

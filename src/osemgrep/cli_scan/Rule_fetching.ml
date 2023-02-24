@@ -10,7 +10,6 @@ module C = Semgrep_dashdash_config
    Partially translated from config_resolver.py
 
    TODO:
-    - handle the registry-aware jsonnet format (LONG)
     - lots of stuff ...
  *)
 
@@ -219,7 +218,9 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
 (* Entry point *)
 (*****************************************************************************)
 
-(* TODO: rewrite rule_id of the rules using x.path origin? *)
+(* python: mix of resolver_config.get_config() and resolver_config.get_rules()
+ * TODO: rewrite rule_id of the rules using x.path origin?
+ *)
 let rules_from_rules_source (source : rules_source) : rules_and_origin list =
   match source with
   | Configs xs ->

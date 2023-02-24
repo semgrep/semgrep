@@ -98,13 +98,13 @@ let map_identifier (env : env) (x : CST.identifier) : G.ident =
           combine_str_and_infos l xs r)
   | `Semg_meta tok -> (* semgrep_metavariable *) str env tok
 
-let map_string_ (env : env) (x : CST.string_) : string G.wrap =
+let map_string_ (env : env) (x : CST.string_) : string G.wrap G.bracket =
   match x with
   (* TODO: need to remove the enclosing quotes *)
-  | `Raw_str_lit tok -> (* raw_string_literal *) str env tok
+  | `Raw_str_lit tok -> (* raw_string_literal *) fb (str env tok)
   | `DQUOT_rep_choice_pat_de5d470_DQUOT (v1, v2, v3) ->
-      let v1 = (* "\"" *) token env v1 in
-      let v2 =
+      let l = (* "\"" *) token env v1 in
+      let xs =
         Common.map
           (fun x ->
             match x with
@@ -112,11 +112,11 @@ let map_string_ (env : env) (x : CST.string_) : string G.wrap =
             | `Esc_seq tok -> (* escape_sequence *) str env tok)
           v2
       in
-      let v3 = (* "\"" *) token env v3 in
-      combine_str_and_infos v1 v2 v3
+      let r = (* "\"" *) token env v3 in
+      G.string_ (l, xs, r)
   | `SQUOT_rep_choice_pat_3e57880_SQUOT (v1, v2, v3) ->
-      let v1 = (* "'" *) token env v1 in
-      let v2 =
+      let l = (* "'" *) token env v1 in
+      let xs =
         Common.map
           (fun x ->
             match x with
@@ -124,8 +124,8 @@ let map_string_ (env : env) (x : CST.string_) : string G.wrap =
             | `Esc_seq tok -> (* escape_sequence *) str env tok)
           v2
       in
-      let v3 = (* "'" *) token env v3 in
-      combine_str_and_infos v1 v2 v3
+      let r = (* "'" *) token env v3 in
+      G.string_ (l, xs, r)
 
 let rec map_argument (env : env) (x : CST.argument) : G.argument =
   match x with
@@ -253,24 +253,23 @@ and map_binary (env : env) (x : CST.binary) : G.expr =
 
 and map_default_argument (env : env) ((v1, v2, v3) : CST.default_argument) :
     G.argument =
-  let v1 =
+  let id =
     match v1 with
     | `Id x -> map_identifier env x
-    | `Str x -> map_string_ env x
+    | `Str x ->
+        let _, x, _ = map_string_ env x in
+        x
     (* TODO ?? not semgrep! *)
     | `Dots tok ->
         let x = (* "..." *) str env tok in
         x
   in
-  let v2 = (* "=" *) token env v2 in
-  let v3 =
-    match v3 with
-    | Some x ->
-        let e = map_expression env x in
-        ArgKwd (v1, e)
-    | None -> OtherArg (("Empty =", v2), [ I v1 ])
-  in
-  v3
+  let teq = (* "=" *) token env v2 in
+  match v3 with
+  | Some x ->
+      let e = map_expression env x in
+      ArgKwd (id, e)
+  | None -> OtherArg (("Empty =", teq), [ I id ])
 
 and map_expression (env : env) (x : CST.expression) : G.expr =
   match x with
@@ -349,7 +348,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       let id =
         match v3 with
         | `Id x -> map_identifier env x
-        | `Str x -> map_string_ env x
+        | `Str x -> map_string_ env x |> Parse_info.unbracket
       in
       DotAccess (e, t, FN (H2.name_of_id id)) |> G.e
   | `Slot (v1, v2, v3) ->
@@ -478,8 +477,8 @@ and map_formal_parameter (env : env) (x : CST.formal_parameter) : G.parameter =
       G.ParamEllipsis t
 
 and map_formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) :
-    G.parameter list =
-  let _l = (* "(" *) token env v1 in
+    G.parameters =
+  let l = (* "(" *) token env v1 in
   let xs =
     match v2 with
     | Some (v1, v2, v3) ->
@@ -500,20 +499,15 @@ and map_formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) :
         e :: xs
     | None -> []
   in
-  let _r = (* ")" *) token env v3 in
-  xs
+  let r = (* ")" *) token env v3 in
+  (l, xs, r)
 
 and map_function_definition (env : env) ((v1, v2, v3) : CST.function_definition)
     : G.function_definition =
   let tk = (* "function" *) token env v1 in
-  let params = map_formal_parameters env v2 in
+  let fparams = map_formal_parameters env v2 in
   let body = map_expression env v3 in
-  {
-    G.fkind = (LambdaKind, tk);
-    fparams = params;
-    frettype = None;
-    fbody = FBExpr body;
-  }
+  { G.fkind = (LambdaKind, tk); fparams; frettype = None; fbody = FBExpr body }
 
 and map_lambda_function (env : env) ((v1, v2, v3) : CST.lambda_function) :
     G.function_definition =

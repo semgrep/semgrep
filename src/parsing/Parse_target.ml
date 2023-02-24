@@ -385,7 +385,8 @@ let rec just_parse_with_lang lang file =
         skipped_tokens = [];
         stat = Parsing_stat.default_stat file;
       }
-  | Lang.Html ->
+  | Lang.Html
+  | Lang.Xml ->
       (* less: there is an html parser in pfff too we could use as backup *)
       run file [ TreeSitter Parse_html_tree_sitter.parse ] (fun x -> x)
   | Lang.Vue ->
@@ -402,7 +403,10 @@ let rec just_parse_with_lang lang file =
       run file
         [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
         (fun x -> x)
-  | Lang.Hcl -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
+  | Lang.Terraform ->
+      run file
+        [ TreeSitter Parse_terraform_tree_sitter.parse ]
+        Terraform_to_generic.program
   | Lang.Apex ->
       (* Proprietary. The actual parser needs to register itself for
          parsing to take place. *)

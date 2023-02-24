@@ -418,7 +418,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
           let v1 = map_wrap map_of_string v1 in
           Char v1
       | String v1 ->
-          let v1 = map_wrap map_of_string v1 in
+          let v1 = map_bracket (map_wrap map_of_string) v1 in
           String v1
       | Regexp (v1, v2) ->
           let v1 = map_bracket (map_wrap map_of_string) v1 in
@@ -977,7 +977,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_frettype = map_of_option map_type_ v_frettype in
     let v_fparams = map_parameters v_fparams in
     { fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody }
-  and map_parameters v = map_of_list map_parameter v
+  and map_parameters v = map_bracket (map_of_list map_parameter) v
   and map_parameter = function
     | Param v1 ->
         let v1 = map_parameter_classic v1 in
@@ -1204,7 +1204,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_of_list map_any v1 in
         Anys v1
     | Str v1 ->
-        let v1 = map_wrap map_of_string v1 in
+        let v1 = map_bracket (map_wrap map_of_string) v1 in
         Str v1
     | Args v1 ->
         let v1 = map_of_list map_argument v1 in

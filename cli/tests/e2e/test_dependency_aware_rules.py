@@ -1,8 +1,13 @@
+import logging
 from pathlib import Path
+from time import time
 
 import pytest
 
 from ..conftest import TESTS_PATH
+from semdep.package_restrictions import is_in_range
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -38,6 +43,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/gradle",
         ),
         (
+            "rules/dependency_aware/java-gradle-sca.yaml",
+            "dependency_aware/gradle_trailing_newline",
+        ),
+        (
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/poetry",
         ),
@@ -66,6 +75,26 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/no-pattern.yaml",
             "dependency_aware/yarn_multi_hash",
         ),
+        (
+            "rules/dependency_aware/yarn-sass.yaml",
+            "dependency_aware/yarn_at_in_version",
+        ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_extra_field",
+        ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_optional",
+        ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_release_version",
+        ),
+        (
+            "rules/dependency_aware/js-sca.yaml",
+            "dependency_aware/package-lock_resolved_false",
+        ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
@@ -73,6 +102,129 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
         run_semgrep_on_copied_files(rule, target_name=target).as_snapshot(),
         "results.txt",
     )
+
+
+@pytest.mark.parametrize(
+    "version,specifier,outcome",
+    [
+        ("1.2-beta-2", "> 1.0, < 1.2", True),
+        ("1.2-beta-2", "> 1.2-alpha-6, < 1.2-beta-3", True),
+        ("1.0.10.1", "< 1.0.10.2", True),
+        ("1.0.10.2", "> 1.0.10.1, < 1.0.9.3", True),  # Yes, seriously
+        ("1.3.4-SNAPSHOT", "< 1.3.4", True),
+        ("1.0-SNAPSHOT", "> 1.0-alpha", True),
+        ("2.17.2", "< 2.3.1", False),
+        ("2.0", "< 1.0", False),
+        ("2.0.0", "< 10.0.0", True),
+        ("0.2.0", "< 0.10.0", True),
+        ("0.0.2", "< 0.0.10", True),
+    ],
+)
+def test_maven_version_comparison(version, specifier, outcome):
+    assert is_in_range(Ecosystem(Maven()), specifier, version) == outcome
+
+
+@pytest.mark.parametrize(
+    "file_size,target,max_time",
+    [
+        (file_size, target, max_time)
+        # These times are set relative to Github Actions, they should be lower when running locally
+        # Local time expectation is more like 1, 5, 10
+        for file_size, max_time in [("10k", 3), ("50k", 15), ("100k", 30)]
+        for target in [
+            "Gemfile.lock",
+            "go.sum",
+            "gradle.lockfile",
+            "maven_dep_tree.txt",
+            "package-lock.json",
+            "poetry.lock",
+            "requirements.txt",
+            "yarn.lock",
+            "Pipfile.lock",
+        ]
+    ],
+)
+def test_dependency_aware_timing(
+    parse_lockfile_path_in_tmp, file_size, target, max_time
+):
+    start = time()
+    parse_lockfile_path_in_tmp(
+        Path(f"targets/dependency_aware/perf/{file_size}/{target}")
+    )
+    end = time()
+    exec_time = end - start
+    assert exec_time < max_time
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "targets/dependency_aware/osv_parsing/requirements/empty/requirements.txt",
+        "targets/dependency_aware/osv_parsing/requirements/only-comments/requirements.txt",
+        "targets/dependency_aware/osv_parsing/requirements/file-format-example/requirements.txt",
+        "targets/dependency_aware/osv_parsing/requirements/with-added-support/requirements.txt",
+        "targets/dependency_aware/osv_parsing/requirements/multiple-packages-mixed/requirements.txt",
+        "targets/dependency_aware/osv_parsing/requirements/multiple-packages-constrained/requirements.txt",
+        "targets/dependency_aware/osv_parsing/requirements/one-package-unconstrained/requirements.txt",
+        "targets/dependency_aware/osv_parsing/requirements/non-normalized-names/requirements.txt",
+        "targets/dependency_aware/osv_parsing/requirements/one-package-constrained/requirements.txt",
+        "targets/dependency_aware/osv_parsing/yarn/metadata-only.v2/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/files.v1/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/versions-with-build-strings.v2/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/scoped-packages.v1/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/one-package.v2/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/two-packages.v1/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/multiple-versions.v2/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/empty.v1/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/files.v2/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/scoped-packages.v2/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/versions-with-build-strings.v1/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/one-package.v1/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/two-packages.v2/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/multiple-versions.v1/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/empty.v2/yarn.lock",
+        "targets/dependency_aware/osv_parsing/yarn/multiple-constraints.v1/yarn.lock",
+        "targets/dependency_aware/osv_parsing/package-lock/files.v1/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/nested-dependencies-dup.v2/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/scoped-packages.v1/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/one-package-dev.v1/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/one-package.v2/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/commits.v1/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/two-packages.v1/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/nested-dependencies.v1/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/empty.v1/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/files.v2/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/one-package-dev.v2/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/scoped-packages.v2/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/nested-dependencies-dup.v1/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/one-package.v1/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/two-packages.v2/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/commits.v2/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/nested-dependencies.v2/package-lock.json",
+        "targets/dependency_aware/osv_parsing/package-lock/empty.v2/package-lock.json",
+        "targets/dependency_aware/osv_parsing/pipfile/empty/Pipfile.lock",
+        "targets/dependency_aware/osv_parsing/pipfile/one-package/Pipfile.lock",
+        "targets/dependency_aware/osv_parsing/pipfile/no-version/Pipfile.lock",
+        "targets/dependency_aware/osv_parsing/pipfile/one-package-dev/Pipfile.lock",
+        "targets/dependency_aware/osv_parsing/pipfile/two-packages/Pipfile.lock",
+        "targets/dependency_aware/osv_parsing/pipfile/two-packages-alt/Pipfile.lock",
+        "targets/dependency_aware/osv_parsing/poetry/source-legacy/poetry.lock",
+        "targets/dependency_aware/osv_parsing/poetry/empty/poetry.lock",
+        "targets/dependency_aware/osv_parsing/poetry/one-package/poetry.lock",
+        "targets/dependency_aware/osv_parsing/poetry/one-package-with-metadata/poetry.lock",
+        "targets/dependency_aware/osv_parsing/poetry/two-packages/poetry.lock",
+        "targets/dependency_aware/osv_parsing/poetry/source-git/poetry.lock",
+    ],
+)
+# These tests are taken from https://github.com/google/osv-scanner/tree/main/pkg/lockfile/fixtures
+# With some minor edits, namely removing the "this isn't even a lockfile" tests
+# And removing some human written comments that would never appear in a real lockfile from some tests
+def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
+    caplog.set_level(logging.ERROR)
+    parse_lockfile_path_in_tmp(Path(target))
+    assert len(caplog.records) == 0
 
 
 # Quite awkward. To test that we can handle a target whose toplevel parent

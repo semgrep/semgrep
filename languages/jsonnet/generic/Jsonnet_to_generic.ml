@@ -170,14 +170,11 @@ and map_literal env v : G.literal =
       let v = map_string_ env v in
       G.String v
 
-and map_string_ env (v1, v2, v3) : string G.wrap =
+and map_string_ env (v1, v2, v3) : string G.wrap G.bracket =
   let _v1 = (map_option map_verbatim) env v1 in
   let _v2 = map_string_kind env v2 in
   let l, xs, r = (map_bracket map_string_content) env v3 in
-  let s = xs |> Common.map fst |> String.concat "" in
-  let toks = xs |> Common.map snd in
-  let tk = PI.combine_infos l (toks @ [ r ]) in
-  (s, tk)
+  G.string_ (l, xs, r)
 
 and map_verbatim env v = map_tok env v
 
@@ -304,7 +301,7 @@ and map_bind env v : G.definition =
 and map_function_definition env v : G.function_definition =
   let { f_tok; f_params; f_body } = v in
   let f_tok = map_tok env f_tok in
-  let _l, fparams, _r = (map_bracket (map_list map_parameter)) env f_params in
+  let fparams = (map_bracket (map_list map_parameter)) env f_params in
   let f_body = map_expr env f_body in
   {
     fkind = (G.LambdaKind, f_tok);
@@ -370,7 +367,7 @@ and map_field_name env v : G.entity_name =
       let id = map_ident env v in
       G.EN (G.Id (id, G.empty_id_info ()))
   | FStr v ->
-      let s, tk = map_string_ env v in
+      let _, (s, tk), _ = map_string_ env v in
       G.EN (G.Id ((s, tk), G.empty_id_info ()))
   | FDynamic v ->
       let l, e, r = (map_bracket map_expr) env v in

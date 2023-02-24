@@ -92,6 +92,8 @@ module G = AST_generic
 (* Helpers *)
 (*****************************************************************************)
 
+let fb = Parse_info.unsafe_fake_bracket
+
 (* We apply a different mapping whether we're parsing a pattern or target
    program. *)
 type env = AST_bash.input_kind
@@ -414,7 +416,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
         G.FuncDef
           {
             G.fkind = (G.Function, first_tok);
-            fparams = [];
+            fparams = fb [];
             frettype = None;
             fbody = G.FBStmt (command env def.body |> as_stmt);
           }
@@ -448,13 +450,13 @@ and expression (env : env) (e : expression) : G.expr =
   | Word ("...", tok) when env =*= Pattern ->
       (* occurs in unquoted concatenations e.g. ...$x or $x... *)
       G.Ellipsis tok |> G.e
-  | Word str -> G.L (G.String str) |> G.e
+  | Word str -> G.L (G.String (fb str)) |> G.e
   | String (* "foo" *) (open_, frags, close) -> (
       match frags with
       | [ String_content ((str, _) as wrap) ]
         when not (env =*= Pattern && str = "...") ->
           (* normalization to enable matching of e.g. "foo" against foo *)
-          G.L (G.String wrap) |> G.e
+          G.L (G.String (fb wrap)) |> G.e
       | _ ->
           let loc = (open_, close) in
           Common.map (string_fragment env) frags |> call loc C.quoted_concat)
@@ -468,9 +470,9 @@ and expression (env : env) (e : expression) : G.expr =
         else (* it's a bug but let's not fail *)
           str
       in
-      G.L (G.String (without_quotes, tok)) |> G.e
-  | Ansii_c_string str -> G.L (G.String str) |> G.e
-  | Special_character str -> G.L (G.String str) |> G.e
+      G.L (G.String (fb (without_quotes, tok))) |> G.e
+  | Ansii_c_string str -> G.L (G.String (fb str)) |> G.e
+  | Special_character str -> G.L (G.String (fb str)) |> G.e
   | Concatenation (loc, el) ->
       Common.map (expression env) el |> call loc C.concat
   | Expr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
@@ -478,7 +480,7 @@ and expression (env : env) (e : expression) : G.expr =
       G.DeepEllipsis (open_, expression env e, close) |> G.e
   | Expr_semgrep_metavar mv -> G.N (mk_name mv) |> G.e
   | Equality_test (loc, _, _) -> (* don't know what this is *) todo_expr loc
-  | Empty_expression loc -> G.L (G.String ("", fst loc)) |> G.e
+  | Empty_expression loc -> G.L (G.String (fb ("", fst loc))) |> G.e
   | Array (loc, (open_, elts, close)) ->
       let elts = Common.map (expression env) elts in
       G.Container (G.Array, (open_, elts, close)) |> G.e
@@ -491,7 +493,7 @@ and string_fragment (env : env) (frag : string_fragment) : G.expr =
   | String_content (("...", tok) as wrap) when env =*= Pattern ->
       (* convert the '...' in '"${foo}...${bar}"' into an ellipsis *)
       G.Ellipsis tok |> G.e
-  | String_content ((_, tok) as wrap) -> G.e (G.L (G.String wrap))
+  | String_content ((_, tok) as wrap) -> G.e (G.L (G.String (fb wrap)))
   | Expansion (loc, ex) -> expansion env ex
   | Command_substitution (open_, x, close) ->
       let loc = (open_, close) in

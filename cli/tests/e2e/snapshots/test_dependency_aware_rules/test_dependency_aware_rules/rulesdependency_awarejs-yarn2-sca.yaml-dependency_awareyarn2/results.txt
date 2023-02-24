@@ -12,7 +12,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
-      "targets/dependency_aware/yarn2/foo.js"
+      "targets/dependency_aware/yarn2/foo.js",
+      "targets/dependency_aware/yarn2/yarn.lock"
     ]
   },
   "results": [
@@ -24,7 +25,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "offset": 5
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "bad()",
@@ -73,7 +74,19 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === stderr - plain
 Scanning 1 file.
 
+                                                                                
+                                                                                
+┌─────────┐                                                                     
+│ Results │                                                                     
+└─────────┘                                                                     
+                                                                                
+                                                                                
+                                                                                
+┌──────────────┐                                                                
+│ Scan Summary │                                                                
+└──────────────┘                                                                
+                                                                                
 
-Ran 1 rule on 1 file: 1 finding.
+Ran 1 rule on 2 files: 1 finding.
 
 === end of stderr - plain

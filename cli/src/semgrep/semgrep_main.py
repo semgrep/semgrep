@@ -15,14 +15,15 @@ from typing import Union
 
 from boltons.iterutils import partition
 
+from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
-from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
+from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -41,8 +42,10 @@ from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
+from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import unit_str
@@ -129,6 +132,7 @@ def invoke_semgrep(
     output_handler.profiling_data = output_extra.profiling_data
     output_handler.severities = shown_severities
     output_handler.explanations = output_extra.explanations
+    output_handler.rules_by_engine = output_extra.rules_by_engine
 
     return json.loads(output_handler._build_output())  # type: ignore
 
@@ -139,8 +143,10 @@ def run_rules(
     core_runner: CoreRunner,
     output_handler: OutputHandler,
     dump_command_for_core: bool,
-    engine: EngineType,
-) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra]:
+    engine_type: EngineType,
+) -> Tuple[
+    RuleMatchMap, List[SemgrepError], OutputExtra, Dict[str, List[FoundDependency]]
+]:
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
@@ -150,7 +156,7 @@ def run_rules(
     )
 
     (rule_matches_by_rule, semgrep_errors, output_extra,) = core_runner.invoke_semgrep(
-        target_manager, rest_of_the_rules, dump_command_for_core, engine
+        target_manager, rest_of_the_rules, dump_command_for_core, engine_type
     )
 
     if join_rules:
@@ -169,6 +175,7 @@ def run_rules(
             rule_matches_by_rule.update(join_rule_matches_by_rule)
             output_handler.handle_semgrep_errors(join_rule_errors)
 
+    dependencies = {}
     if len(dependency_aware_rules) > 0:
         from semgrep.dependency_aware_rule import (
             generate_unreachable_sca_findings,
@@ -196,29 +203,33 @@ def run_rules(
                 (
                     dep_rule_matches,
                     dep_rule_errors,
-                    targeted_lockfiles,
                 ) = generate_unreachable_sca_findings(
                     rule, target_manager, already_reachable
                 )
                 rule_matches_by_rule[rule].extend(dep_rule_matches)
                 output_handler.handle_semgrep_errors(dep_rule_errors)
-                output_extra.all_targets.union(targeted_lockfiles)
             else:
                 (
                     dep_rule_matches,
                     dep_rule_errors,
-                    targeted_lockfiles,
                 ) = generate_unreachable_sca_findings(
                     rule, target_manager, lambda p, d: False
                 )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
-                output_extra.all_targets.union(targeted_lockfiles)
+
+        # Generate stats per lockfile:
+        for ecosystem in ECOSYSTEM_TO_LOCKFILES.keys():
+            for lockfile in target_manager.get_lockfiles(ecosystem):
+                # Add lockfiles as a target that was scanned
+                output_extra.all_targets.add(lockfile)
+                dependencies[str(lockfile)] = parse_lockfile_path(lockfile)
 
     return (
         rule_matches_by_rule,
         semgrep_errors,
         output_extra,
+        dependencies,
     )
 
 
@@ -258,7 +269,7 @@ def main(
     *,
     core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
-    engine: EngineType = EngineType.OSS,
+    engine_type: EngineType = EngineType.OSS,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -294,7 +305,7 @@ def main(
     ProfileManager,
     OutputExtra,
     Collection[RuleSeverity],
-    Dict[str, int],
+    Dict[str, List[FoundDependency]],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
     if include is None:
@@ -309,19 +320,21 @@ def main(
     project_url = get_project_url()
     profiler = ProfileManager()
 
-    # Metrics send part 1: add environment information
-    metrics = get_state().metrics
-    if metrics.is_enabled:
-        metrics.add_project_url(project_url)
-        metrics.add_configs(configs)
-        metrics.add_engine_type(engine)
-
     rule_start_time = time.time()
     configs_obj, config_errors = get_config(
         pattern, lang, configs, replacement=replacement, project_url=project_url
     )
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
+
+    # Metrics send part 1: add environment information
+    # Must happen after configs are resolved because it is determined
+    # then whether metrics are sent or not
+    metrics = get_state().metrics
+    if metrics.is_enabled:
+        metrics.add_project_url(project_url)
+        metrics.add_configs(configs)
+        metrics.add_engine_type(engine_type)
 
     if not severity:
         shown_severities = DEFAULT_SHOWN_SEVERITIES
@@ -392,7 +405,7 @@ def main(
     core_start_time = time.time()
     core_runner = CoreRunner(
         jobs=jobs,
-        engine=engine,
+        engine_type=engine_type,
         timeout=timeout,
         max_memory=max_memory,
         interfile_timeout=interfile_timeout,
@@ -414,13 +427,13 @@ def main(
         for ruleid in sorted(rule.id for rule in experimental_rules):
             logger.verbose(f"- {ruleid}")
 
-    (rule_matches_by_rule, semgrep_errors, output_extra,) = run_rules(
+    (rule_matches_by_rule, semgrep_errors, output_extra, dependencies) = run_rules(
         filtered_rules,
         target_manager,
         core_runner,
         output_handler,
         dump_command_for_core,
-        engine,
+        engine_type,
     )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
@@ -470,7 +483,8 @@ def main(
                     (
                         baseline_rule_matches_by_rule,
                         baseline_semgrep_errors,
-                        baseline_output_extra,
+                        _,
+                        _,
                     ) = run_rules(
                         # only the rules that had a match
                         [
@@ -482,7 +496,7 @@ def main(
                         core_runner,
                         output_handler,
                         dump_command_for_core,
-                        engine,
+                        engine_type,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule,
@@ -528,5 +542,5 @@ def main(
         profiler,
         output_extra,
         shown_severities,
-        target_manager.lockfile_scan_info,
+        dependencies,
     )

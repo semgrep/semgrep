@@ -493,7 +493,9 @@ and _token python2 state = parse
         | "print" when python2 -> PRINT (tokinfo lexbuf)
         | "exec" when python2 -> EXEC (tokinfo lexbuf)
         (* python3-ext: no more: print, exec *)
-
+        (* Note that "self" is not listed above because it's not considered
+         * a Python keyword. In theory you could use different names for self.
+         *)
         | _          -> NAME (id, (tokinfo lexbuf))
     }
 

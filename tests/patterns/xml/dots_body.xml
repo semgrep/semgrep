@@ -1,0 +1,8 @@
+<!-- ERROR: match -->
+<plugin>
+    <configuration>
+        <somethingInvalid/>
+    </configuration>
+    <artifactId>maven-compiler-plugin</artifactId>
+    <groupId>org.apache.maven.plugins</groupId>
+</plugin>

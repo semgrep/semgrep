@@ -40,6 +40,15 @@ def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
         # let's just pick https
         protocol = "https"
 
+    # We need to parse the URL into a clickable format, a la these supported formats:
+    # https://stackoverflow.com/questions/31801271/what-are-the-supported-git-url-formats
+    # We only support a few, though, so we may get `None` if we run into a format we do
+    # not support.
+    # So if we know that this URL is going to be unclickable, we should return
+    # the original URL
+    if None in [protocol, result.resource, result.owner, result.name]:
+        return sstp_url
+
     return f"{protocol}://{result.resource}/{result.owner}/{result.name}"
 
 
@@ -90,7 +99,24 @@ class GitMeta:
 
     @property
     def repo_url(self) -> Optional[str]:
-        return get_url_from_sstp_url(os.getenv("SEMGREP_REPO_URL"))
+        env = get_state().env
+        repo_url = os.getenv("SEMGREP_REPO_URL")
+        if not repo_url:
+            # if the repo URL was not explicitly provided, try getting it from git
+            # nosem: use-git-check-output-helper
+            git_parse = subprocess.run(
+                ["git", "remote", "get-url", "origin"],
+                capture_output=True,
+                encoding="utf-8",
+                timeout=env.git_command_timeout,
+            )
+            if git_parse.returncode != 0:
+                logger.warn(
+                    f"Unable to infer repo_url. Set SEMGREP_REPO_URL environment variable or run in a valid git project with remote origin defined"
+                )
+            repo_url = git_parse.stdout.strip()
+
+        return get_url_from_sstp_url(repo_url)
 
     @property
     def commit_sha(self) -> Optional[str]:
@@ -138,6 +164,10 @@ class GitMeta:
         """
         return git_check_output(["git", "show", "-s", "--format=%ct"])
 
+    @property
+    def is_full_scan(self) -> bool:
+        return self.merge_base_ref is None
+
     def to_dict(self) -> Dict[str, Any]:
         commit_title = git_check_output(["git", "show", "-s", "--format=%B"])
         commit_author_email = git_check_output(["git", "show", "-s", "--format=%ae"])
@@ -147,7 +177,7 @@ class GitMeta:
             "semgrep_version": __VERSION__,
             # REQUIRED for semgrep-app backend
             "repository": self.repo_name,
-            #  OPTIONAL for semgrep-app backend
+            # OPTIONAL for semgrep-app backend
             "repo_url": self.repo_url,
             "branch": self.branch,
             "ci_job_url": self.ci_job_url,
@@ -163,7 +193,7 @@ class GitMeta:
             "pull_request_id": self.pr_id,
             "pull_request_title": self.pr_title,
             "scan_environment": self.environment,
-            "is_full_scan": self.merge_base_ref is None,
+            "is_full_scan": self.is_full_scan,
         }
 
 
@@ -763,7 +793,9 @@ class BitbucketMeta(GitMeta):
         if repo_url:
             return repo_url
 
-        url = get_url_from_sstp_url(os.getenv("BITBUCKET_GIT_HTTP_ORIGIN"))
+        # Bitbucket Cloud URLs should be in the format: http://bitbucket.org/<workspace>/<repo>
+        # Bitbucker Server URLs should be in the format: https://bitbucket<company>.com/projects/<PROJECT>/repos/<REPO_NAME>
+        url = os.getenv("BITBUCKET_GIT_HTTP_ORIGIN")
         return url if url else super().repo_url
 
     @property

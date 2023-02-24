@@ -12,7 +12,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
-      "foo.py"
+      "foo.py",
+      "poetry.lock",
+      "yarn.lock"
     ]
   },
   "results": [
@@ -24,7 +26,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 43
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    a == a",
@@ -62,7 +64,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 54
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    a == a",
@@ -100,7 +102,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 89
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    a == a",
@@ -138,7 +140,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 126
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    y == y",
@@ -176,7 +178,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 227
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    baz == 4",
@@ -276,7 +278,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             ]
           ]
         },
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "    sink(d2)",
@@ -327,7 +329,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 163
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "(x == 2)",
         "fixed_lines": [
@@ -371,7 +373,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "offset": 0
       },
       "extra": {
-        "engine_kind": "OSSMatch",
+        "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "",
@@ -393,7 +395,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "pypi",
-              "line_number": 2,
+              "line_number": 1,
               "package": "badlib",
               "transitivity": "unknown",
               "version": "99.99.99"
@@ -419,21 +421,45 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of stdout - plain
 
 === stderr - plain
-Scan environment:
+                                                                                
+                                                                                
+┌────────────────┐                                                              
+│ Debugging Info │                                                              
+└────────────────┘                                                              
+                                                                                
+  SCAN ENVIRONMENT                                                              
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment git, triggering event is unknown
-  server      - https://semgrep.dev
-
-Fetching configuration from semgrep.dev
-Authenticated as org_name
+  environment - running in environment git, triggering event is unknown         
+  server      - logged in as org_name on https://semgrep.dev                    
+                                                                                
+                                                                                
+┌─────────────┐                                                                 
+│ Scan Status │                                                                 
+└─────────────┘                                                                 
+                                                                                
 Scanning 1 file with 4 python rules.
 
+                                                                                
+                                                                                
+┌─────────┐                                                                     
+│ Results │                                                                     
+└─────────┘                                                                     
+                                                                                
+                                                                                
+                                                                                
+┌──────────────┐                                                                
+│ Scan Summary │                                                                
+└──────────────┘                                                                
+                                                                                
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
   Found 8 findings (6 blocking) from 6 rules.
-  Uploading findings to Semgrep App.
+  Uploading findings.
+  View results in Semgrep App:
+    https://semgrep.dev/orgs/org_name/findings
+    https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain

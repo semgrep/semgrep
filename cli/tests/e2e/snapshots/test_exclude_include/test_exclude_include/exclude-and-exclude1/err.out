@@ -1,5 +1,17 @@
 Nothing to scan.
 
+                                                                                
+                                                                                
+┌─────────┐                                                                     
+│ Results │                                                                     
+└─────────┘                                                                     
+                                                                                
+                                                                                
+                                                                                
+┌──────────────┐                                                                
+│ Scan Summary │                                                                
+└──────────────┘                                                                
+                                                                                
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
   Scan skipped: 4 files matching --exclude patterns

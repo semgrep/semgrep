@@ -45,7 +45,15 @@ and pl_type =
   | Thrift
   | MiscPL of string
 
-and config_type = Makefile | Json | Jsonnet | Yaml | HCL
+and config_type =
+  | Makefile
+  | Dockerfile
+  | Json
+  | Jsonnet
+  | Yaml
+  | Terraform
+  | Sexp
+
 and lisp_type = CommonLisp | Elisp | Scheme | Clojure
 
 and webpl_type =

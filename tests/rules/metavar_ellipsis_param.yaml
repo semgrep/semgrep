@@ -1,0 +1,15 @@
+rules:
+  - id: test
+    languages:
+      - go
+    message: |
+      Metavariable ellipses should be able to match arguments in Go! 
+    match:
+      any:
+        - |
+            func foo($...ARG) { ... }
+        - |
+            func bar(int, $...ARG) { ... }
+        - |
+            func qux($...ARG, x int) { ... }
+    severity: WARNING

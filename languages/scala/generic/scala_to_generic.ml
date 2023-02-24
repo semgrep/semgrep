@@ -54,7 +54,7 @@ let cases_to_lambda lb cases : G.function_definition =
   {
     fkind = (G.BlockCases, lb);
     frettype = None;
-    fparams = [ param ];
+    fparams = fb [ param ];
     fbody = G.FBStmt body;
   }
 
@@ -174,7 +174,7 @@ let rec v_literal = function
       Left (G.Char v1)
   | String v1 ->
       let v1 = v_wrap v_string v1 in
-      Left (G.String v1)
+      Left (G.String (fb v1))
   | Bool v1 ->
       let v1 = v_wrap v_bool v1 in
       Left (G.Bool v1)
@@ -201,7 +201,7 @@ let rec v_literal = function
 and v_encaps = function
   | EncapsStr v1 ->
       let v1 = v_wrap v_string v1 in
-      Left (G.String v1)
+      Left (G.String (fb v1))
   | EncapsDollarIdent v1 ->
       let v1 = v_ident v1 in
       let name = H.name_of_id v1 in
@@ -430,7 +430,7 @@ and v_expr e : G.expr =
       match v2 with
       | {
        cextends = [ (tp, args) ];
-       cparams = [];
+       cparams = _, [], _;
        cmixins = [];
        cbody = _, [], _;
        cimplements = [];
@@ -810,7 +810,7 @@ and v_function_definition
   let fbody = v_option v_fbody vfbody in
   {
     fkind = kind;
-    fparams = List.flatten params;
+    fparams = fb (List.flatten params);
     (* TODO? *)
     frettype = tret;
     fbody =
@@ -882,7 +882,7 @@ and v_template_definition
     } : G.class_definition =
   let ckind = v_wrap v_template_kind v_ckind in
   (* TODO? flatten? *)
-  let cparams = v_list v_bindings v_cparams |> List.flatten in
+  let cparams = fb (v_list v_bindings v_cparams |> List.flatten) in
   let cextends, cmixins = v_template_parents v_cparents in
   let body = v_option v_template_body v_cbody in
   let cbody =

@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 import types
+from pathlib import Path
 from typing import Optional
 
 from semgrep.verbose_logging import getLogger
@@ -48,9 +49,6 @@ class SemgrepCore:
     # yet.
     _SEMGREP_PATH_: Optional[str] = None
 
-    # DEPRECATED: To be removed by Feb 2023 launch
-    _DEEP_PATH_: Optional[str] = None
-
     _PRO_PATH_: Optional[str] = None
 
     # Reference to the bridge module if we are using it.
@@ -73,7 +71,7 @@ class SemgrepCore:
         return ret
 
     @classmethod
-    def path(cls) -> str:
+    def path(cls) -> Path:
         """
         Return the path to the semgrep binary, either the Python module
         or the stand-alone program.  Raise Exception if neither is
@@ -116,7 +114,7 @@ class SemgrepCore:
 
                 cls._SEMGREP_PATH_ = cls.executable_path()
 
-        return cls._SEMGREP_PATH_
+        return Path(cls._SEMGREP_PATH_)
 
     @classmethod
     def get_bridge_module(cls) -> types.ModuleType:
@@ -138,15 +136,9 @@ class SemgrepCore:
         """
         return cls._bridge_module is not None
 
-    # DEPRECATED: To be removed by Feb 2023 launch
     @classmethod
-    def deep_path(cls) -> Optional[str]:
-        if cls._DEEP_PATH_ is None:
-            cls._DEEP_PATH_ = compute_executable_path("deep-semgrep")
-        return cls._DEEP_PATH_
-
-    @classmethod
-    def pro_path(cls) -> Optional[str]:
+    def pro_path(cls) -> Optional[Path]:
         if cls._PRO_PATH_ is None:
             cls._PRO_PATH_ = compute_executable_path("semgrep-core-proprietary")
-        return cls._PRO_PATH_
+
+        return Path(cls._PRO_PATH_) if cls._PRO_PATH_ is not None else None

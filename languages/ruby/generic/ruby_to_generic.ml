@@ -141,7 +141,7 @@ let rec expr e =
       let st = G.Block (t1, list_stmts xs, t2) |> G.s in
       let def =
         {
-          G.fparams = params;
+          G.fparams = fb params;
           frettype = None;
           fbody = G.FBStmt st;
           fkind = (G.LambdaKind, t1);
@@ -158,7 +158,7 @@ let rec expr e =
       let st = G.Block (tok, list_stmts xs, tok) |> G.s in
       let def =
         {
-          G.fparams = params;
+          G.fparams = fb params;
           frettype = None;
           fbody = G.FBStmt st;
           fkind = (G.LambdaKind, tok);
@@ -342,7 +342,7 @@ and interpolated_string (t1, xs, t2) : G.expr_kind =
       (t1, xs |> Common.map (fun e -> G.Arg e), t2) )
 
 and string_contents tok = function
-  | StrChars s -> G.L (G.String s) |> G.e
+  | StrChars s -> G.L (G.String (fb s)) |> G.e
   | StrExpr (l, e, r) ->
       G.Call
         ( G.IdSpecial (G.InterpolatedElement, tok) |> G.e,
@@ -455,13 +455,9 @@ and literal x =
   | Nil t -> G.L (G.Null (tok t))
   | String skind -> (
       match skind with
-      | Single x -> G.L (G.String x)
-      | Double (l, [], r) ->
-          let t = PI.combine_infos l [ r ] in
-          G.L (G.String ("", t))
-      | Double (l, [ StrChars (s, t2) ], r) ->
-          let t = PI.combine_infos l [ t2; r ] in
-          G.L (G.String (s, t))
+      | Single x -> G.L (G.String (fb x))
+      | Double (l, [], r) -> G.L (G.String (l, ("", l), r))
+      | Double (l, [ StrChars (s, t) ], r) -> G.L (G.String (l, (s, t), r))
       | Double x -> interpolated_string x
       | Tick (l, xs, r) ->
           G.OtherExpr
@@ -490,7 +486,7 @@ and expr_special_cases e =
   | G.Call ({ G.e = G.N (G.Id (("require", t), _)); _ }, args)
   | G.Call ({ G.e = G.N (G.Id (("load", t), _)); _ }, args) -> (
       match args with
-      | _, [ G.Arg { G.e = G.L (G.String str); _ } ], _
+      | _, [ G.Arg { G.e = G.L (G.String (_, str, _)); _ } ], _
       | _, [ G.Arg { G.e = G.N (G.Id (str, _)); _ } ], _ ->
           let s =
             G.DirectiveStmt
@@ -643,7 +639,7 @@ and definition def =
       let body = body_exn body in
       let funcdef =
         {
-          G.fparams = params;
+          G.fparams = fb params;
           frettype = None;
           fbody = G.FBStmt body;
           fkind = (G.Method, t);
@@ -689,7 +685,7 @@ and definition def =
               (* TODO: this is done by special include/require builtins *)
               cimplements = [];
               cmixins = [];
-              cparams = [];
+              cparams = fb [];
               cbody = fb [ G.F body ];
             }
           in

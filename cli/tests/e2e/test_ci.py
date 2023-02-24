@@ -31,6 +31,7 @@ BRANCH_NAME = "some/branch-name"
 MAIN_BRANCH_NAME = "main"
 COMMIT_MESSAGE = "some: commit message! foo"
 COMMIT_MESSAGE_2 = "Some other commit/ message"
+REMOTE_REPO_URL = "git@github.com:example/fake.git"
 DEPLOYMENT_ID = 33
 BAD_CONFIG = dedent(
     """
@@ -257,7 +258,10 @@ def mock_autofix(request, mocker):
 @pytest.mark.parametrize(
     "env",
     [
-        {"SEMGREP_APP_TOKEN": "dummy"},  # Local run with no CI env vars
+        {  # Local run with no CI env vars
+            "SEMGREP_APP_TOKEN": "dummy",
+            "SEMGREP_REPO_URL": REMOTE_REPO_URL,
+        },
         {  # Github full scan
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -478,6 +482,14 @@ def mock_autofix(request, mocker):
             "SEMGREP_PR_ID": "35",
             "SEMGREP_BRANCH": BRANCH_NAME,
         },
+        {  # URL that doesn't parse correctly
+            "CI": "true",
+            "SEMGREP_REPO_NAME": f"{REPO_ORG_NAME}/{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "SEMGREP_REPO_URL": "https://gitlab.net/foo.bar/a-b/a-b-c-d",
+            # Sent in metadata but no functionality change
+            "SEMGREP_PR_ID": "35",
+            "SEMGREP_BRANCH": BRANCH_NAME,
+        },
         {  # Github PR with additional project metadata
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -511,6 +523,7 @@ def mock_autofix(request, mocker):
         "travis",
         "travis-overwrite-autodetected-variables",
         "self-hosted",
+        "unparsable_url",
         "github-pr-semgrepconfig",
     ],
 )
@@ -524,6 +537,7 @@ def test_full_run(
     snapshot,
     env,
     run_semgrep,
+    mocker,
     mock_autofix,
 ):
     repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
@@ -1024,6 +1038,7 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep):
                 base_commit,
                 re.compile(r'"commit_date": (.*),?'),
                 re.compile(r'"total_time": (.*),?'),
+                re.compile(r'"event_id": (.*),?'),
             ]
         ),
         "results.txt",

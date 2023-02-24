@@ -145,6 +145,7 @@ let error_with_rule_id rule_id (error : E.error) =
   | _ -> { error with rule_id = Some rule_id }
 
 let lazy_force x = Lazy.force x [@@profiling]
+let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Adapters *)
@@ -521,19 +522,24 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
 (* Metavariable condition evaluation *)
 (*****************************************************************************)
 
-let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
-    RM.ranges =
+let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
+    (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
   xs
-  |> List.filter (fun r ->
+  |> List.filter_map (fun (r, new_bindings) ->
+         let map_bool r b = if b then Some (r, new_bindings) else None in
          let bindings = r.RM.mvars in
          match cond with
          | R.CondEval e ->
              let env = Eval_generic.bindings_to_env env.xconf.config bindings in
-             Eval_generic.eval_bool env e
-         | R.CondNestedFormula (mvar, opt_lang, formula) ->
+             Eval_generic.eval_bool env e |> map_bool r
+         | R.CondNestedFormula (mvar, opt_lang, formula) -> (
              (* TODO: could return expl for nested matching! *)
-             Metavariable_pattern.satisfies_metavar_pattern_condition
-               nested_formula_has_matches env r mvar opt_lang formula
+             match
+               Metavariable_pattern.get_nested_metavar_pattern_bindings
+                 get_nested_formula_matches env r mvar opt_lang formula
+             with
+             | [] -> None
+             | bindings -> Some (r, bindings @ new_bindings))
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really
@@ -549,7 +555,7 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
                 * but too many possible escaping problems, so easier to build
                 * an expression manually.
                 *)
-               let re_exp = G.L (G.String (re_str, fk)) |> G.e in
+               let re_exp = G.L (G.String (fb (re_str, fk))) |> G.e in
                let mvar_exp = G.N (G.Id ((mvar, fk), fki)) |> G.e in
                let call_re_match re_exp str_exp =
                  G.Call
@@ -578,11 +584,12 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
                  Eval_generic.bindings_to_env config bindings
                else Eval_generic.bindings_to_env_just_strings config bindings
              in
-             Eval_generic.eval_bool env e
+             Eval_generic.eval_bool env e |> map_bool r
          | R.CondAnalysis (mvar, CondEntropy) ->
              let bindings = r.mvars in
              Metavariable_analysis.analyze_string_metavar env bindings mvar
                Entropy.has_high_score
+             |> map_bool r
          | R.CondAnalysis (mvar, CondReDoS) ->
              let bindings = r.mvars in
              let analyze re_str =
@@ -606,18 +613,33 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
                    false
              in
              Metavariable_analysis.analyze_string_metavar env bindings mvar
-               analyze)
+               analyze
+             |> map_bool r)
 
-and nested_formula_has_matches env formula opt_context =
+and get_nested_formula_matches env formula range =
   let res, final_ranges =
     matches_of_formula
       { env.xconf with nested_formula = true }
-      env.rule env.xtarget formula opt_context
+      env.rule env.xtarget formula (Some range)
   in
-  env.errors := Report.ErrorSet.union res.RP.errors !(env.errors);
-  match final_ranges with
-  | [] -> false
-  | _ :: _ -> true
+  (* Update the error messages with some more context. Otherwise it will appear
+   * as if, for example, we encountered a parse error while parsing the original
+   * file as the original language. *)
+  let nested_errors =
+    let lang = env.xtarget.xlang |> Xlang.to_string in
+    let rule = fst env.rule.id in
+    res.RP.errors
+    |> RP.ErrorSet.map (fun err ->
+           let msg =
+             spf
+               "When parsing a snippet as %s for metavariable-pattern in rule \
+                '%s', %s"
+               lang rule err.msg
+           in
+           { err with msg })
+  in
+  env.errors := Report.ErrorSet.union nested_errors !(env.errors);
+  final_ranges
 
 (*****************************************************************************)
 (* Formula evaluation *)
@@ -748,16 +770,42 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
           let ranges, filter_expls =
             conds
             |> List.fold_left
-                 (fun (ranges, acc_expls) (tok, cond) ->
-                   let ranges = filter_ranges env ranges cond in
+                 (fun (ranges_with_bindings, acc_expls) (tok, cond) ->
+                   let ranges_with_bindings =
+                     filter_ranges env ranges_with_bindings cond
+                   in
                    let expl =
-                     if_explanations env ranges []
+                     if_explanations env
+                       (Common.map fst ranges_with_bindings)
+                       []
                        (Out.Filter (PI.str_of_info tok), tok)
                    in
-                   (ranges, expl :: acc_expls))
-                 (ranges, [])
+                   (ranges_with_bindings, expl :: acc_expls))
+                 (Common.map (fun x -> (x, [])) ranges, [])
           in
-          let ranges = apply_focus_on_ranges env focus ranges in
+
+          (* Here, we unpack all the persistent bindings for each instance of the inner
+             `metavariable-pattern`s that succeeded.
+
+             We just take those persistent bindings and add them to the original range,
+             now that we're done with the filtering step.
+          *)
+          let ranges_with_persistent_bindings =
+            ranges
+            |> List.concat_map (fun (r, new_bindings_list) ->
+                   (* At a prior step, we ensured that all these new bindings were nonempty.
+                      We should keep around a copy of the original range, because otherwise
+                      if we have no new bindings to add, we'll kill the range.
+                   *)
+                   r
+                   :: (new_bindings_list
+                      |> Common.map (fun new_bindings ->
+                             { r with RM.mvars = new_bindings @ r.RM.mvars })))
+          in
+
+          let ranges =
+            apply_focus_on_ranges env focus ranges_with_persistent_bindings
+          in
           let focus_expls =
             match focus with
             | [] -> []

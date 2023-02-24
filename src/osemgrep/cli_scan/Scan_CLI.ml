@@ -26,7 +26,7 @@ type conf = {
   (* mix of --pattern/--lang/--replacement, --config *)
   rules_source : Rule_fetching.rules_source;
   (* can be a list of files or directories *)
-  target_roots : string list;
+  target_roots : Fpath.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_target.conf;
@@ -62,7 +62,7 @@ let default : conf =
   {
     (* alt: Configs [ "auto" ]? *)
     rules_source = Configs [];
-    target_roots = [ "." ];
+    target_roots = [ Fpath.v "." ];
     (* alt: could move in a Target_manager.default *)
     targeting_conf =
       {
@@ -173,7 +173,7 @@ let o_include : string list Term.t =
         {|Filter files or directories by path. The argument is a
 glob-style pattern such as 'foo.*' that must match the path. This is
 an extra filter in addition to other applicable filters. For example,
-specifying the language with '-l javascript' migh preselect files
+specifying the language with '-l javascript' might preselect files
 'src/foo.jsx' and 'lib/bar.js'.  Specifying one of '--include=src',
 '-- include=*.jsx', or '--include=src/foo.*' will restrict the
 selection to the single file 'src/foo.jsx'. A choice of multiple '--
@@ -563,7 +563,10 @@ let o_target_roots : string list Term.t =
     Arg.info [] ~docv:"TARGETS"
       ~doc:{|Files or folders to be scanned by semgrep.|}
   in
-  Arg.value (Arg.pos_all Arg.string default.target_roots info)
+  Arg.value
+    (Arg.pos_all Arg.string
+       (default.target_roots |> Common.map Fpath.to_string)
+       info)
 
 (* ------------------------------------------------------------------ *)
 (* !!NEW arguments!! not in pysemgrep *)
@@ -592,6 +595,7 @@ let cmdline_term : conf Term.t =
       scan_unknown_extensions severity show_supported_languages strict
       target_roots test test_ignore_todo time_flag timeout timeout_threshold
       validate verbose version version_check vim =
+    let target_roots = target_roots |> Common.map Fpath.v in
     let logging_level =
       match (verbose, debug, quiet) with
       | false, false, false -> Some Logs.Warning
@@ -747,11 +751,13 @@ let cmdline_term : conf Term.t =
         let target =
           match (target_roots, config) with
           | [ x ], [ config ] ->
-              if Sys.file_exists x && Sys.is_directory x then
+              let file_str = Fpath.to_string x in
+              if Sys.file_exists file_str && Sys.is_directory file_str then
                 Test_subcommand.Dir (x, Some config)
               else Test_subcommand.File (x, config)
           | [ x ], [] ->
-              if Sys.is_directory x then Test_subcommand.Dir (x, None)
+              let file_str = Fpath.to_string x in
+              if Sys.is_directory file_str then Test_subcommand.Dir (x, None)
               else
                 (* was raise Exception but cleaner abort I think *)
                 Error.abort
@@ -848,7 +854,7 @@ let man : Manpage.block list =
     `P "For more information about Semgrep, go to https://semgrep.dev.";
     `P
       "NOTE: By default, Semgrep will report pseudonymous usage metrics to its \
-       server if you pull your configuration from the Semgrep registy. To \
+       server if you pull your configuration from the Semgrep registry. To \
        learn more about how and why these metrics are collected, please see \
        https://semgrep.dev/docs/metrics. To modify this behavior, see the \
        --metrics option below.";

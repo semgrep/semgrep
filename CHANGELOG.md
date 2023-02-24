@@ -8,6 +8,103 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.12.1](https://github.com/returntocorp/semgrep/releases/tag/v1.12.1) - 2023-02-17
+
+### Fixed
+
+- Fix local scan hyperlinks by asking git for remote.origin.url if repo_url not provided (gh-7144)
+- Improve error messages displayed with `--verbose` when the contents of a metavariable fails to parse. (pa-2537)
+- Fixed parsing bug maven_dep_tree.txt files where dependency specs with 6 fields, or suffixed with `(optional)` would fail to parse (sc-622)
+- Supply Chain rules now correctly understand Maven version strings, as described in https://docs.oracle.com/middleware/1212/core/MAVEN/maven_version.htm#MAVEN8855 (sc-maven-versions)
+- package-lock.json files which contain `"resolved": false` as a result of a bug in NPM will now parse (sc-npm-bug)
+
+## [1.12.0](https://github.com/returntocorp/semgrep/releases/tag/v1.12.0) - 2023-02-13
+
+### Fixed
+
+- CLI: No longer reports rules as being run with a lack of `interfile: true` when interfile
+  analysis was not requested. (pa-2528)
+- The 1.11.0 release started printing log lines to stderr even when --quiet was
+  on, making it impossible to get well-formed JSON output when mixing stdout and
+  stderr. These lines are now gone, and output is again restricted to just scan
+  results. (quiet-please)
+- Output lines in GitHub Actions logs could appear scrambled, due to GitHub
+  Actions mixing together the stdout and stderr streams in non-deterministic
+  order. Semgrep will now log everything only to one stream in GitHub Actions
+  when using text output mode, which ensures lines no longer appear scrambled.
+  (sc-607)
+
+## [1.11.0](https://github.com/returntocorp/semgrep/releases/tag/v1.11.0) - 2023-02-10
+
+### Changed
+
+- Pro: Removed already deprecated flags `--deep` (now `--pro`), `--interfile` (now `--pro`),
+  and `--interproc` (now `--pro-intrafile`). Also removed already deprecated command
+  `install-deep-semgrep` (now `install-semgrep-pro`). (pa-2518)
+
+### Fixed
+
+- Go: Fixed a bug where the location of Go raw string literals were not being reported correctly.
+  This could cause issues with Playground range highlighting and autofix (pa-2206)
+- CLI: Progress bar for Semgrep Pro Engine interfile scans now reflects actual progress more faithfully (pa-2313)
+- Pro: We now check the downloaded binary before installing it, this should prevent
+  installation of corrupted binaries due to errors during the download. (pa-2492)
+- Fix the location associated with metavariables bound inside of
+  `metavariable-pattern` clauses, which could lead to matches being incorrectly
+  displayed. (extracted-metavar-loc)
+- CLI: Fixed bug with `semgrep --validate` for metavariables like $1, $2.
+  Previously, it blocked rules that it shouldn't. (validate-regex-mvar)
+
+## [1.10.0](https://github.com/returntocorp/semgrep/releases/tag/v1.10.0) - 2023-02-08
+
+### Added
+
+- Experimental support for XML (gh-5939)
+- Rust: Beta support for Rust. (gh-6545)
+- Rule syntax: Metavariable bindings bound within `metavariable-pattern` now persist to outside of the `metavariable-pattern` (pa-2490)
+- Updated all lockfile parsers (except Cargo.lock) to produce better error messages, at the cost of a couple seconds of lowdown on large (>10k lines) lockfiles (sc-better-parsers)
+- Allow metavariable-pattern clauses that use `language: generic` to run (and
+  potentially match) on any metavariable binding kind, not just strings. For
+  example, with the pattern `foo($...ARGS)`, it is now possible to use a
+  `metavariable-pattern` on `$...ARGS` with `language: generic`, and match using
+  generic mode against whatever text `$...ARGS` is bound to.
+  (metavar-pattern-generic)
+- Print handy links to review results on Semgrep App when a CI scan uploads
+  findings. (sc-564)
+- Allow metavariable ellipsis in template literals, e.g. `$...X${1 + 2}`
+  (template-metavar-ellipsis)
+
+### Changed
+
+- Pro: `--pro` will now enable _all_ Pro features, including Apex, inter-procedural taint
+  analysis, and also inter-file analysis for supported languages. For Apex support only
+  (and more languages in the future) now use `--pro-languages`. For intra-file analysis
+  only now use `--pro-intrafile`. Flags `--interproc` and `--interfile` are now
+  deprecated. (pa-2488)
+- The output formatting of semgrep ci is getting revamped in the coming weeks.
+  This release includes the first couple changes to the output. (sc-590)
+- Packages from the maven ecosystem are now parsed to include their org slug. This means a log4j rule must now use `org.apache.logging.log4j:log4j-core` instead of just `log4j-core`. This change is backwards incompatible, in that any Java Supply Chain rules not taking into account will stop producing any findings, since the packages parsed from lockfiles will include the org, but the old rules will not. (sc-maven-org)
+- Add the engine requested by the user to the metrics (pa-2427)
+
+### Fixed
+
+- Rust: correctly parse the last expression in blocks (gh-7071)
+- Dataflow traces: Findings now always display the separating line with `--dataflow-traces` in the CLI, to reduce
+  confusion over where the findings fall between the dataflow traces. (pa-2471)
+- CLI: Added `install-semgrep-pro` to the list of commands in the `semgrep --help` help text. (pa-2505)
+- Fixed bug where gradle.lockfile files would fail to parse if they contained a trailing newline, and bug where an error on a trailing newline would cause our lockfile parse error pretty printing to fail (sc-trailing-newline)
+
+## [1.9.0](https://github.com/returntocorp/semgrep/releases/tag/v1.9.0) - 2023-02-01
+
+### Added
+
+- Pro: If the "Semgrep Pro Engine" toggle is enabled in App, `semgrep ci` will add
+  support for Apex in all scans (including diff scans). (pa-2462)
+
+### Fixed
+
+- Fix incorrectly reformatted Bitbucket repository URLs (app-3279)
+
 ## [1.8.0](https://github.com/returntocorp/semgrep/releases/tag/v1.8.0) - 2023-02-01
 
 ### Added

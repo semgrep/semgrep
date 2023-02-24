@@ -1,0 +1,11 @@
+(library
+ (public_name parser_terraform.ast)
+ (name parser_terraform_ast)
+ (wrapped false)
+ (libraries
+   commons
+   lib_parsing
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

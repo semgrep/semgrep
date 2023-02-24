@@ -1,32 +1,32 @@
-import json as jsonlib
+import atexit
 import os
 import sys
 import time
 from collections import defaultdict
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable
-from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
 import click
+from rich.padding import Padding
+from rich.table import Table
 
 import semgrep.semgrep_main
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
-from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.config_resolver import Config
+from semgrep.console import console
+from semgrep.console import Title
 from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
 from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
-from semgrep.constants import EngineType
 from semgrep.constants import OutputFormat
+from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -78,8 +78,7 @@ def yield_exclude_paths(requested_patterns: Sequence[str]) -> Iterable[str]:
     yield from patterns
 
 
-@contextmanager
-def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
+def fix_head_if_github_action(metadata: GitMeta) -> None:
     """
     GHA can checkout the incorrect commit for a PR (it will create a fake merge commit),
     so we need to reset the head to the actual PR branch head before continuing.
@@ -87,29 +86,22 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     Assumes cwd is a valid git project and that if we are in github-actions pull_request,
     metadata.head_branch_hash point to head commit of current branch
     """
-    if isinstance(metadata, GithubMeta) and metadata.is_pull_request_event:
-        assert metadata.head_branch_hash is not None  # Not none when github action PR
-        assert metadata.base_branch_hash is not None
+    if not (isinstance(metadata, GithubMeta) and metadata.is_pull_request_event):
+        return
 
-        logger.info("Fixing git state for github action pull request")
+    assert metadata.head_branch_hash is not None  # Not none when github action PR
+    assert metadata.base_branch_hash is not None
 
-        logger.debug("Calling git rev-parse HEAD")
-        stashed_rev = git_check_output(["git", "rev-parse", "HEAD"])
-        logger.debug(f"stashed_rev: {stashed_rev}")
+    logger.info("Fixing git state for github action pull request")
 
-        logger.info(
-            f"Not on head ref: {metadata.head_branch_hash}; checking that out now."
-        )
-        git_check_output(["git", "checkout", metadata.head_branch_hash])
+    logger.debug("Calling git rev-parse HEAD")
+    stashed_rev = git_check_output(["git", "rev-parse", "HEAD"])
+    logger.debug(f"stashed_rev: {stashed_rev}")
 
-        try:
-            yield
-        finally:
-            logger.info(f"Returning to original head revision {stashed_rev}")
-            git_check_output(["git", "checkout", stashed_rev])
-    else:
-        # Do nothing
-        yield
+    logger.info(f"Not on head ref: {metadata.head_branch_hash}; checking that out now.")
+    git_check_output(["git", "checkout", metadata.head_branch_hash])
+
+    atexit.register(git_check_output, ["git", "checkout", stashed_rev])
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
@@ -176,19 +168,14 @@ def ci(
     config: Optional[Tuple[str, ...]],
     debug: bool,
     dry_run: bool,
-    emacs: bool,
     enable_nosem: bool,
     enable_version_check: bool,
     exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
     suppress_errors: bool,
     force_color: bool,
-    gitlab_sast: bool,
-    gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
     jobs: int,
-    json: bool,
-    junit_xml: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
     max_memory: Optional[int],
@@ -196,9 +183,10 @@ def ci(
     metrics: Optional[MetricsState],
     metrics_legacy: Optional[MetricsState],
     optimizations: str,
-    dataflow_traces: bool,
+    dataflow_traces: Optional[bool],
     output: Optional[str],
-    sarif: bool,
+    output_format: OutputFormat,
+    requested_engine: EngineType,
     quiet: bool,
     rewrite_rule_ids: bool,
     supply_chain: bool,
@@ -209,7 +197,6 @@ def ci(
     interfile_timeout: Optional[int],
     use_git_ignore: bool,
     verbose: bool,
-    vim: bool,
 ) -> None:
     """
     The recommended way to run semgrep in CI
@@ -224,7 +211,11 @@ def ci(
     """
     state = get_state()
     state.terminal.configure(
-        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
+        verbose=verbose,
+        debug=debug,
+        quiet=quiet,
+        force_color=force_color,
+        output_format=output_format,
     )
 
     state.metrics.configure(metrics, metrics_legacy)
@@ -255,22 +246,6 @@ def ci(
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
 
-    output_format = OutputFormat.TEXT
-    if json:
-        output_format = OutputFormat.JSON
-    elif gitlab_sast:
-        output_format = OutputFormat.GITLAB_SAST
-    elif gitlab_secrets:
-        output_format = OutputFormat.GITLAB_SECRETS
-    elif junit_xml:
-        output_format = OutputFormat.JUNIT_XML
-    elif sarif:
-        output_format = OutputFormat.SARIF
-    elif emacs:
-        output_format = OutputFormat.EMACS
-    elif vim:
-        output_format = OutputFormat.VIM
-
     output_settings = OutputSettings(
         output_format=output_format,
         output_destination=output,
@@ -283,139 +258,139 @@ def ci(
     output_handler = OutputHandler(output_settings)
     metadata = generate_meta_from_environment(baseline_commit)
 
-    logger.info("Scan environment:")
-    logger.info(
-        f"  versions    - semgrep {semgrep.__VERSION__} on python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    console.print(Title("Debugging Info"))
+
+    scan_env = Table.grid(padding=(0, 1))
+    scan_env.add_row(
+        "versions",
+        "-",
+        f"semgrep [bold]{semgrep.__VERSION__}[/bold] on python [bold]{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}[/bold]",
     )
-    logger.info(
-        f"  environment - running in environment {metadata.environment}, triggering event is {metadata.event_name}"
+    scan_env.add_row(
+        "environment",
+        "-",
+        f"running in environment [bold]{metadata.environment}[/bold], triggering event is [bold]{metadata.event_name}[/bold]",
     )
-    if scan_handler:
-        logger.info(f"  server      - {state.env.semgrep_url}")
-    if supply_chain:
-        logger.info("  running a supply chain scan")
-    logger.info("")
+
+    fix_head_if_github_action(metadata)
 
     try:
-        with fix_head_if_github_action(metadata):
-            if scan_handler:
-                metadata_dict = metadata.to_dict()
-                metadata_dict["is_sca_scan"] = supply_chain
+        # Note this needs to happen within fix_head_if_github_action
+        # so that metadata of current commit is correct
+        if scan_handler:
+            metadata_dict = metadata.to_dict()
+            metadata_dict["is_sca_scan"] = supply_chain
+            proj_config = ProjectConfig.load_all()
+            metadata_dict = {**metadata_dict, **proj_config.to_dict()}
+            scan_handler.fetch_and_init_scan_config(metadata_dict)
+            scan_handler.start_scan(metadata_dict)
 
-            try:
-                logger.info("Fetching configuration from semgrep.dev")
-                # Note this needs to happen within fix_head_if_github_action
-                # so that metadata of current commit is correct
-                if scan_handler:
-                    try:
-                        proj_config = ProjectConfig.load_all()
-                        metadata_dict = {**metadata_dict, **proj_config.to_dict()}
-                        scan_handler.fetch_and_init_scan_config(metadata_dict)
-                        scan_handler.start_scan(metadata_dict)
-                    except Exception as e:
-                        if (
-                            state.env.semgrep_url != "https://semgrep.dev"
-                        ):  # support old on-prem apps
-                            scan_handler.fetch_config_and_start_scan_old(metadata_dict)
-                        else:
-                            raise e
-                    logger.info(f"Authenticated as {scan_handler.deployment_name}")
-                    config = (scan_handler.rules,)
-            except Exception as e:
-                import traceback
+            config = (scan_handler.rules,)
 
-                traceback.print_exc()
-                logger.info(f"Could not start scan {e}")
-                sys.exit(FATAL_EXIT_CODE)
-
-            assert config  # Config has to be defined here. Helping mypy out
-            # Run DeepSemgrep when available but only for full scans
-            is_full_scan = metadata.merge_base_ref is None
-            engine = EngineType.OSS
-            if scan_handler and scan_handler.deepsemgrep:
-                engine = EngineType.INTERFILE if is_full_scan else EngineType.PRO
-
-            (semgrep_pro_path, _deep_semgrep_path) = determine_semgrep_pro_path()
-
-            # Set a default max_memory for CI runs when DeepSemgrep is on because
-            # DeepSemgrep is likely to run out
-            if max_memory is None:
-                if engine is EngineType.INTERFILE:
-                    max_memory = DEFAULT_MAX_MEMORY_PRO_CI
-                else:
-                    max_memory = 0  # unlimited
-            # Same for timeout (Github actions has a 6 hour timeout)
-            if interfile_timeout is None:
-                if engine is EngineType.INTERFILE:
-                    interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
-                else:
-                    interfile_timeout = 0  # unlimited
-            if engine.is_pro and not semgrep_pro_path.exists():
-                run_install_semgrep_pro()
-            if engine is EngineType.INTERFILE:
-                # Add the p/deepsemgrep rules
-                # TODO this is a temporary hack!!! In the future,
-                # we will ensure that deepsemgrep rules are in the
-                # default-v1 ruleset. This code should be removed
-                # by Feburary 2023
-                deep_semgrep_rules = Config.from_config_list(["p/deepsemgrep"], None)[
-                    0
-                ].get_rules(True)
-                deep_semgrep_rules_json = [r.raw for r in deep_semgrep_rules]
-                rules = jsonlib.loads(config[0])
-                if "rules" in rules:
-                    rules["rules"].extend(deep_semgrep_rules_json)
-                config = (jsonlib.dumps(rules),)
-
-            # Append ignores configured on semgrep.dev
-            requested_excludes = scan_handler.ignore_patterns if scan_handler else []
-            if requested_excludes:
-                logger.info(
-                    f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
-                )
-
-            assert exclude is not None  # exclude is default empty tuple
-            exclude = (*exclude, *yield_exclude_paths(requested_excludes))
-            start = time.time()
-            (
-                filtered_matches_by_rule,
-                semgrep_errors,
-                renamed_targets,
-                ignore_log,
-                filtered_rules,
-                profiler,
-                output_extra,
-                shown_severities,
-                lockfile_scan_info,
-            ) = semgrep.semgrep_main.main(
-                core_opts_str=core_opts,
-                engine=engine,
-                output_handler=output_handler,
-                target=[os.curdir],  # semgrep ci only scans cwd
-                pattern=None,
-                lang=None,
-                configs=config,
-                no_rewrite_rule_ids=(not rewrite_rule_ids),
-                jobs=jobs,
-                include=include,
-                exclude=exclude,
-                exclude_rule=exclude_rule,
-                max_target_bytes=max_target_bytes,
-                autofix=scan_handler.autofix if scan_handler else False,
-                dryrun=True,
-                # Always true, as we want to always report all findings, even
-                # ignored ones, to the backend
-                disable_nosem=True,
-                no_git_ignore=(not use_git_ignore),
-                timeout=timeout,
-                max_memory=max_memory,
-                interfile_timeout=interfile_timeout,
-                timeout_threshold=timeout_threshold,
-                skip_unknown_extensions=(not scan_unknown_extensions),
-                optimizations=optimizations,
-                baseline_commit=metadata.merge_base_ref,
-                baseline_commit_is_mergebase=True,
+            scan_env.add_row(
+                "server",
+                "-",
+                f"logged in as [bold]{scan_handler.deployment_name}[/bold] on [bold]{state.env.semgrep_url}[/bold]",
             )
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        logger.info(f"Could not start scan {e}")
+        sys.exit(FATAL_EXIT_CODE)
+
+    engine_type = EngineType.decide_engine_type(
+        requested_engine=requested_engine,
+        scan_handler=scan_handler,
+        git_meta=metadata,
+    )
+
+    if dataflow_traces is None:
+        dataflow_traces = engine_type.has_dataflow_traces
+
+    console.print(Title("Scan Environment", order=2))
+    console.print(Padding(scan_env, (0, 2)))
+
+    if engine_type.is_pro:
+        console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
+        if engine_type.check_if_installed():
+            console.print(
+                f"  Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]"
+            )
+            console.print(
+                f"  Installed at [bold]{engine_type.get_binary_path()}[/bold]"
+            )
+        else:
+            run_install_semgrep_pro()
+
+    try:
+        console.print(Title("Scan Status"))
+
+        # Set a default max_memory for CI runs when DeepSemgrep is on because
+        # DeepSemgrep is likely to run out
+        if max_memory is None:
+            if engine_type is EngineType.PRO_INTERFILE:
+                max_memory = DEFAULT_MAX_MEMORY_PRO_CI
+            else:
+                max_memory = 0  # unlimited
+        # Same for timeout (Github actions has a 6 hour timeout)
+        if interfile_timeout is None:
+            if engine_type is EngineType.PRO_INTERFILE:
+                interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
+            else:
+                interfile_timeout = 0  # unlimited
+
+        # Append ignores configured on semgrep.dev
+        requested_excludes = scan_handler.ignore_patterns if scan_handler else []
+        if requested_excludes:
+            logger.info(
+                f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
+            )
+
+        assert exclude is not None  # exclude is default empty tuple
+        exclude = (*exclude, *yield_exclude_paths(requested_excludes))
+        assert config  # Config has to be defined here. Helping mypy out
+        start = time.time()
+        (
+            filtered_matches_by_rule,
+            semgrep_errors,
+            renamed_targets,
+            ignore_log,
+            filtered_rules,
+            profiler,
+            output_extra,
+            shown_severities,
+            dependencies,
+        ) = semgrep.semgrep_main.main(
+            core_opts_str=core_opts,
+            engine_type=engine_type,
+            output_handler=output_handler,
+            target=[os.curdir],  # semgrep ci only scans cwd
+            pattern=None,
+            lang=None,
+            configs=config,
+            no_rewrite_rule_ids=(not rewrite_rule_ids),
+            jobs=jobs,
+            include=include,
+            exclude=exclude,
+            exclude_rule=exclude_rule,
+            max_target_bytes=max_target_bytes,
+            autofix=scan_handler.autofix if scan_handler else False,
+            dryrun=True,
+            # Always true, as we want to always report all findings, even
+            # ignored ones, to the backend
+            disable_nosem=True,
+            no_git_ignore=(not use_git_ignore),
+            timeout=timeout,
+            max_memory=max_memory,
+            interfile_timeout=interfile_timeout,
+            timeout_threshold=timeout_threshold,
+            skip_unknown_extensions=(not scan_unknown_extensions),
+            optimizations=optimizations,
+            baseline_commit=metadata.merge_base_ref,
+            baseline_commit_is_mergebase=True,
+        )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])
         output_handler.output({}, all_targets=set(), filtered_rules=[])
@@ -487,6 +462,8 @@ def ci(
         profiling_data=output_extra.profiling_data,
         severities=shown_severities,
         is_ci_invocation=True,
+        rules_by_engine=output_extra.rules_by_engine,
+        engine_type=engine_type,
     )
 
     logger.info("CI scan completed successfully.")
@@ -494,7 +471,7 @@ def ci(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(blocking_rules) + len(nonblocking_rules), 'rule')}."
     )
     if scan_handler:
-        logger.info("  Uploading findings to Semgrep App.")
+        logger.info("  Uploading findings.")
         scan_handler.report_findings(
             filtered_matches_by_rule,
             semgrep_errors,
@@ -505,8 +482,17 @@ def ci(
             output_extra.parsing_data,
             total_time,
             metadata.commit_datetime,
-            lockfile_scan_info,
+            dependencies,
+            engine_type,
         )
+        logger.info("  View results in Semgrep App:")
+        logger.info(
+            f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
+        )
+        if "r2c-internal-project-depends-on" in scan_handler.rules:
+            logger.info(
+                f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/supply-chain"
+            )
 
     audit_mode = metadata.event_name in audit_on
     if num_blocking_findings > 0:

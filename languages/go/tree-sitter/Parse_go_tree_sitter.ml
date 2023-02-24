@@ -62,7 +62,7 @@ let trailing_comma env v =
  * https://github.com/tree-sitter/tree-sitter-go/blob/0fa917a7022d1cd2e9b779a6a8fc5dc7fad69c75/grammar.js#L839-L843
  * *)
 let raw_string_literal env tok =
-  let loc, s = tok in
+  let _, s = tok in
   (* Remove leading and trailing backticks. The grammar guarantees that raw
    * string literals will always have leading and trailing backticks, so this
    * String.sub call should be safe. Let's check just to be sure. *)
@@ -74,8 +74,7 @@ let raw_string_literal env tok =
   then
     failwith @@ "Found unexpected raw string literal without delimiters: " ^ s;
   let s = String.sub s 1 (String.length s - 2) in
-  let tok = (loc, s) in
-  str env tok
+  (s, token env tok)
 
 let expr1 xs =
   match xs with
@@ -151,9 +150,9 @@ let field_name_list (env : env) ((v1, v2) : CST.field_name_list) : ident list =
   let v2 =
     Common.map
       (fun (v1, v2) ->
-        let v1 = identifier env v1 (* "," *) in
-        let _v2 = token env v2 (* identifier *) in
-        v1)
+        let _v1 = token env v1 (* "," *) in
+        let v2 = identifier env v2 (* identifier *) in
+        v2)
       v2
   in
   v1 :: v2

@@ -14,6 +14,7 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import TypeVar
+from typing import Union
 from urllib.parse import urlparse
 
 import click
@@ -91,7 +92,7 @@ def terminal_wrap(text: str) -> str:
     return "\n".join(wrapped_paras)
 
 
-def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
+def sub_check_output(cmd: Sequence[Union[str, Path]], **kwargs: Any) -> Any:
     """A simple proxy function to minimize and centralize subprocess usage."""
     from semgrep.state import get_state  # avoiding circular imports
 

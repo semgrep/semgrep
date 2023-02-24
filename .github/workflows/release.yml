@@ -48,6 +48,79 @@ jobs:
             echo "Setting dry-run to FALSE"
           fi
 
+  park-pypi-packages:
+    name: Park PyPI package names
+    runs-on: ubuntu-latest
+    needs: [dry-run]
+    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+    defaults:
+      run:
+        working-directory: cli/
+    env:
+      SEMGREP_SKIP_BIN: "1"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: pipenv
+      - run: sudo python3 -m pip install pipenv==2022.6.7
+      - name: Install dependencies
+        run: pipenv install --dev
+      - name: Build parked packages
+        run: pipenv run python setup.py park
+      - name: Publish to Pypi
+        uses: pypa/gh-action-pypi-publish@master
+        if: ${{ !contains(github.ref,'-test-release') }}
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_upload_token }}
+          skip_existing: true
+          packages_dir: cli/dist/
+      - name: Publish to test Pypi
+        uses: pypa/gh-action-pypi-publish@master
+        if: ${{ contains(github.ref,'-test-release') }}
+        with:
+          repository_url: https://test.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.test_pypi_upload_token }}
+          skip_existing: true
+          packages_dir: cli/dist/
+
+  build-test-docker:
+    uses: ./.github/workflows/build-test-docker.yaml
+    secrets: inherit
+    with:
+      docker-tags: |
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+      repository-name: ${{ github.repository }}
+      artifact-name: image-release
+      file: Dockerfile
+      enable-tests: true
+
+  build-test-osx-x86:
+    uses: ./.github/workflows/build-test-osx-x86.yaml
+    secrets: inherit
+
+  build-test-osx-m1:
+    uses: ./.github/workflows/build-test-osx-m1.yaml
+    secrets: inherit
+
+  build-test-core-x86:
+    uses: ./.github/workflows/build-test-core-x86.yaml
+    secrets: inherit
+
+  build-test-ubuntu-16-04:
+    needs: [build-test-core-x86]
+    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
+    secrets: inherit
+
+  build-test-manylinux-x86:
+    needs: [build-test-core-x86]
+    uses: ./.github/workflows/build-test-manylinux-x86.yaml
+    secrets: inherit
+
   wait-for-build-test:
     name: Wait for Build/Test All Platforms
     runs-on: ubuntu-22.04
@@ -62,6 +135,51 @@ jobs:
     steps:
       - name: Continue
         run: echo "All Platforms have been built and tested - proceeding!"
+
+  push-docker:
+    needs: [wait-for-build-test, dry-run]
+    uses: ./.github/workflows/push-docker.yaml
+    secrets: inherit
+    with:
+      artifact-name: image-release
+      repository-name: ${{ github.repository }}
+      dry-run: ${{ needs.dry-run.outputs.dry-run == 'true' }}
+
+  upload-wheels:
+    name: Upload Wheels to PyPI
+    runs-on: ubuntu-latest
+    needs: [wait-for-build-test, dry-run]
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: manylinux-wheel
+          path: manylinux-wheel
+      - name: Download Osx Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: osx-wheel
+          path: osx-wheel
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: m1-wheel
+          path: m1-wheel
+      - name: Unzip
+        run: unzip ./manylinux-wheel/dist.zip
+      - name: Unzip OSX Wheel
+        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
+        run: unzip ./osx-wheel/dist.zip "*.whl"
+      - name: Unzip M1 Wheel
+        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
+        run: unzip ./m1-wheel/dist.zip "*.whl"
+      - name: Publish to Pypi
+        uses: pypa/gh-action-pypi-publish@master
+        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_upload_token }}
+          skip_existing: true
 
   create-release:
     name: Create the Github Release
@@ -179,148 +297,20 @@ jobs:
         run: |
           gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false
 
-  build-test-docker:
-    uses: ./.github/workflows/build-test-docker.yaml
-    secrets: inherit
-    with:
-      docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-      repository-name: ${{ github.repository }}
-      artifact-name: image-release
-      file: Dockerfile
-      enable-tests: true
-
-  push-docker:
-    needs: [wait-for-build-test, dry-run]
-    uses: ./.github/workflows/push-docker.yaml
-    secrets: inherit
-    with:
-      artifact-name: image-release
-      repository-name: ${{ github.repository }}
-      dry-run: ${{ needs.dry-run.outputs.dry-run == 'true' }}
-
-  build-test-osx-x86:
-    uses: ./.github/workflows/build-test-osx-x86.yaml
-    secrets: inherit
-
-  build-test-osx-m1:
-    uses: ./.github/workflows/build-test-osx-m1.yaml
-    secrets: inherit
-
-  build-test-core-x86:
-    uses: ./.github/workflows/build-test-core-x86.yaml
-    secrets: inherit
-
-  build-test-ubuntu-16-04:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
-    secrets: inherit
-
-  build-test-manylinux-x86:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-manylinux-x86.yaml
-    secrets: inherit
-
-  upload-wheels:
-    name: Upload Wheels to PyPI
-    runs-on: ubuntu-latest
-    needs: [wait-for-build-test, dry-run]
-    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
-    steps:
-      - name: Download Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: manylinux-wheel
-          path: manylinux-wheel
-      - name: Download Osx Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: osx-wheel
-          path: osx-wheel
-      - name: Download Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: m1-wheel
-          path: m1-wheel
-      - name: Unzip
-        run: unzip ./manylinux-wheel/dist.zip
-      - name: Unzip OSX Wheel
-        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
-        run: unzip ./osx-wheel/dist.zip "*.whl"
-      - name: Unzip M1 Wheel
-        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
-        run: unzip ./m1-wheel/dist.zip "*.whl"
-      - name: Publish to Pypi
-        uses: pypa/gh-action-pypi-publish@master
-        if: ${{ !contains(github.ref,'-test-release') }}
-        with:
-          user: __token__
-          password: ${{ secrets.pypi_upload_token }}
-          skip_existing: true
-      - name: Publish to test Pypi
-        uses: pypa/gh-action-pypi-publish@master
-        if: ${{ contains(github.ref,'-test-release') }}
-        with:
-          repository_url: https://test.pypi.org/legacy/
-          user: __token__
-          password: ${{ secrets.test_pypi_upload_token }}
-          skip_existing: true
-
-  park-pypi-packages:
-    name: Park PyPI package names
-    runs-on: ubuntu-latest
-    needs: [dry-run]
-    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
-    defaults:
-      run:
-        working-directory: cli/
-    env:
-      SEMGREP_SKIP_BIN: "1"
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-          cache: pipenv
-      - run: sudo python3 -m pip install pipenv==2022.6.7
-      - name: Install dependencies
-        run: pipenv install --dev
-      - name: Build parked packages
-        run: pipenv run python setup.py park
-      - name: Publish to Pypi
-        uses: pypa/gh-action-pypi-publish@master
-        if: ${{ !contains(github.ref,'-test-release') }}
-        with:
-          user: __token__
-          password: ${{ secrets.pypi_upload_token }}
-          skip_existing: true
-          packages_dir: cli/dist/
-      - name: Publish to test Pypi
-        uses: pypa/gh-action-pypi-publish@master
-        if: ${{ contains(github.ref,'-test-release') }}
-        with:
-          repository_url: https://test.pypi.org/legacy/
-          user: __token__
-          password: ${{ secrets.test_pypi_upload_token }}
-          skip_existing: true
-          packages_dir: cli/dist/
-
   sleep-before-homebrew:
     name: Sleep 10 min before releasing to homebrew
     # Need to wait for pypi to propagate ssince pipgrip relies on it being published on pypi
     needs: [dry-run, upload-wheels]
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
     steps:
       - name: Sleep 10 min
+        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
         run: sleep 10m
 
   homebrew-core-pr:
     name: Update on Homebrew-Core
     needs: [dry-run, sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
     runs-on: macos-12
-    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
     steps:
       - name: Get the version
         id: get-version
@@ -338,10 +328,56 @@ jobs:
         run: brew install --overwrite python@3.11
       - name: Install pipgrip
         run: brew install --overwrite pipgrip
-      - name: Open Brew PR on homebrew/homebrew-core
+      - name: Dry Run Brew PR
+        # This step does some brew oddities (setting a fake version, and setting a revision) to allow the brew PR prep to succeed
+        # The `brew bump-formula-pr` does checks to ensure your PR is legit, but we want to do a phony PR (or at least prep it) for Dry Run only
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_PR_TOKEN }}
+        if: ${{ contains(github.ref, '-test-release') || needs.dry-run.outputs.dry-run == 'true' }}
+        run: |
+          brew bump-formula-pr --force --no-audit --no-browse --write-only \
+            --message="Bump semgrep to version v99.99.99" \
+            --fork-org=returntocorp --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
+      - name: Prepare Brew PR
+        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
         env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_PR_TOKEN }}
         run: |
-          brew bump-formula-pr --force --no-audit --no-browse \
+          brew bump-formula-pr --force --no-audit --no-browse --write-only \
             --message="Bump semgrep to version ${{ steps.get-version.outputs.VERSION }}" \
             --fork-org=returntocorp --tag="${{ steps.get-version.outputs.VERSION }}" semgrep
+      - name: Prepare Branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_PR_TOKEN }}
+          R2C_HOMEBREW_CORE_FORK_HTTPS_URL: https://github.com/returntocorp/homebrew-core.git
+        run: |
+          cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
+          git status
+          git diff
+
+          git config user.name ${{ github.actor }}
+          git config user.email ${{ github.actor }}@users.noreply.github.com
+
+          gh auth setup-git
+          git remote add r2c "${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}"
+
+          git checkout -b bump-semgrep-${{ steps.get-version.outputs.VERSION }}
+          git add Formula/semgrep.rb
+          git commit -m "Bump semgrep to version ${{ steps.get-version.outputs.VERSION }}"
+      - name: Push Branch to Fork
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_PR_TOKEN }}
+        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+        run: |
+          cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
+          git push --set-upstream r2c --force "bump-semgrep-${{ steps.get-version.outputs.VERSION }}"
+      - name: Push to Fork
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_PR_TOKEN }}
+          R2C_HOMEBREW_CORE_OWNER: returntocorp
+        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+        run: |
+          gh pr create --repo homebrew/homebrew-core \
+            --base master --head "${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-${{ steps.get-version.outputs.VERSION }}" \
+            --title="semgrep ${{ steps.get-version.outputs.VERSION }}" \
+            --body "Bump semgrep to version ${{ steps.get-version.outputs.VERSION }}"

@@ -1,0 +1,401 @@
+{
+  "name": "my-library",
+  "lockfileVersion": 2,
+  "requires": true,
+  "packages": {
+    "": {
+      "dependencies": {},
+      "devDependencies": {}
+    },
+    "node_modules/@vue/component-compiler-utils/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/autoprefixer/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/babel-code-frame/node_modules/supports-color": {
+      "version": "2.0.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-2.0.0.tgz",
+      "integrity": "sha1-U10EXOa2Nj+kARcIRimZXp3zJMc=",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "node_modules/css-declaration-sorter/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/cssnano-preset-default/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/cssnano-util-raw-cache/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/cssnano/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/friendly-errors-webpack-plugin/node_modules/supports-color": {
+      "version": "2.0.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-2.0.0.tgz",
+      "integrity": "sha1-U10EXOa2Nj+kARcIRimZXp3zJMc=",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "node_modules/postcss-calc/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-colormin/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-convert-values/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-discard-comments/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-discard-duplicates/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-discard-empty/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-discard-overridden/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-loader/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-merge-longhand/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-merge-rules/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-minify-font-values/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-minify-gradients/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-minify-params/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-minify-selectors/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-normalize-charset/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-normalize-display-values/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-normalize-positions/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-normalize-repeat-style/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-normalize-string/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-normalize-timing-functions/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-normalize-unicode/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-normalize-url/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-normalize-whitespace/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-ordered-values/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-reduce-initial/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-reduce-transforms/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-svgo/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    },
+    "node_modules/postcss-unique-selectors/node_modules/supports-color": {
+      "version": "6.1.0",
+      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-6.1.0.tgz",
+      "integrity": "sha512-qe1jfm1Mg7Nq/NSh6XE24gPXROEVsWHxC1LIx//XNlD9iw7YZQGjZNjYN7xGaEG6iKdA8EtNFW6R0gjnVXp+wQ==",
+      "dependencies": {
+        "has-flag": "^3.0.0"
+      },
+      "engines": {
+        "node": ">=6"
+      }
+    }
+  }
+}

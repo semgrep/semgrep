@@ -93,7 +93,6 @@ let is_in_scope env s =
 let id x = x
 let option = Option.map
 let list = Common.map
-let vref f x = ref (f !x)
 let string = id
 let bool = id
 let fake tok s = Parse_info.fake_info tok s
@@ -136,27 +135,6 @@ let module_name env (v1, dots) =
       let s = String.concat "/" (prefixes @ elems) in
       G.FileName (s, tok)
 
-let resolved_name = function
-  | LocalVar -> Some (G.LocalVar, G.SId.unsafe_default)
-  | Parameter -> Some (G.Parameter, G.SId.unsafe_default)
-  | GlobalVar -> Some (G.Global, G.SId.unsafe_default)
-  | ClassField -> None
-  | ImportedModule xs ->
-      let xs = G.dotted_to_canonical xs in
-      Some (G.ImportedModule xs, G.SId.unsafe_default)
-  | ImportedEntity xs ->
-      let xs = G.dotted_to_canonical xs in
-      Some (G.ImportedEntity xs, G.SId.unsafe_default)
-  | NotResolved -> None
-
-let expr_context = function
-  | Load -> ()
-  | Store -> ()
-  | Del -> ()
-  | AugLoad -> ()
-  | AugStore -> ()
-  | Param -> ()
-
 let rec expr env (x : expr) =
   match x with
   | DotAccessEllipsis (v1, v2) ->
@@ -179,7 +157,7 @@ let rec expr env (x : expr) =
       G.L v1 |> G.e
   | Str v1 ->
       let v1 = wrap string v1 in
-      G.L (G.String v1) |> G.e
+      G.L (G.String (fb v1)) |> G.e
   | EncodedStr (v1, pre) ->
       let v1 = wrap string v1 in
       (* bugfix: do not reuse the same tok! otherwise in semgrep
@@ -190,7 +168,7 @@ let rec expr env (x : expr) =
        *)
       G.Call
         ( G.IdSpecial (G.EncodedString pre, fake (snd v1) "") |> G.e,
-          fb [ G.Arg (G.L (G.String v1) |> G.e) ] )
+          fb [ G.Arg (G.L (G.String (fb v1)) |> G.e) ] )
       |> G.e
   | InterpolatedString (v1, xs, v3) ->
       G.Call
@@ -223,38 +201,39 @@ let rec expr env (x : expr) =
       G.Call
         (G.IdSpecial (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
       |> G.e
-  | Name (v1, v2, v3) ->
-      let v1 = name env v1
-      and _v2TODO = expr_context v2
-      and v3 = vref resolved_name v3 in
-      G.N (G.Id (v1, { (G.empty_id_info ()) with G.id_resolved = v3 })) |> G.e
-  | Tuple (CompList v1, v2) ->
-      let v1 = bracket (list (expr env)) v1 and _v2TODO = expr_context v2 in
+  (* In theory one can use any name for "self" in Python; it just has
+   * to be the first parameter of a method. In practice, it's
+   * always "self" and it's useful to convert it to 'This' here
+   * to simplify further analysis (e.g., naming).
+   * TODO? we could use 'env' to store that we are in a method
+   * and what is the first parameter of a method?
+   *)
+  | Name (("self", t), _expr_ctx) -> G.IdSpecial (G.Self, t) |> G.e
+  | Name (v1, _expr_ctx) ->
+      let v1 = name env v1 in
+      G.N (G.Id (v1, G.empty_id_info ())) |> G.e
+  | Tuple (CompList v1, _expr_ctx) ->
+      let v1 = bracket (list (expr env)) v1 in
       G.Container (G.Tuple, v1) |> G.e
-  | Tuple (CompForIf (l, (v1, v2), r), v3) ->
+  | Tuple (CompForIf (l, (v1, v2), r), _expr_ctx) ->
       let e1 = comprehension env expr v1 v2 in
-      let _v4TODO = expr_context v3 in
       G.Comprehension (G.Tuple, (l, e1, r)) |> G.e
-  | List (CompList v1, v2) ->
-      let v1 = bracket (list (expr env)) v1 and _v2TODO = expr_context v2 in
+  | List (CompList v1, _expr_ctx) ->
+      let v1 = bracket (list (expr env)) v1 in
       G.Container (G.List, v1) |> G.e
-  | List (CompForIf (l, (v1, v2), r), v3) ->
+  | List (CompForIf (l, (v1, v2), r), _expr_ctx) ->
       let e1 = comprehension env expr v1 v2 in
-      let _v3TODO = expr_context v3 in
       G.Comprehension (G.List, (l, e1, r)) |> G.e
-  | Subscript (v1, v2, v3) ->
-      (let e = expr env v1 and _v3TODO = expr_context v3 in
+  | Subscript (v1, v2, _expr_ctx) ->
+      (let e = expr env v1 in
        match v2 with
        | l1, [ x ], l2 -> slice1 env e (l1, x, l2)
        | l1, xs, _ ->
            let xs = list (slice env e) xs in
            G.OtherExpr (("Slices", l1), xs |> Common.map (fun x -> G.E x)))
       |> G.e
-  | Attribute (v1, t, v2, v3) ->
-      let v1 = expr env v1
-      and t = info t
-      and v2 = name env v2
-      and _v3TODO = expr_context v3 in
+  | Attribute (v1, t, v2, _expr_ctx) ->
+      let v1 = expr env v1 and t = info t and v2 = name env v2 in
       G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ()))) |> G.e
   | DictOrSet (CompList (t1, v, t2)) ->
       let v' = list (dictorset_elt env) v in
@@ -311,7 +290,7 @@ let rec expr env (x : expr) =
       let v1 = parameters env v1 and v2 = expr env v2 in
       G.Lambda
         {
-          G.fparams = v1;
+          G.fparams = fb v1;
           fbody = G.FBExpr v2;
           frettype = None;
           fkind = (G.LambdaKind, t0);
@@ -466,7 +445,7 @@ and param_pattern env = function
       let t = list (param_pattern env) t in
       G.PatTuple (PI.unsafe_fake_bracket t)
 
-and parameters env xs =
+and parameters env xs : G.parameter list =
   xs
   |> Common.map (function
        | ParamDefault ((n, topt), e) ->
@@ -583,7 +562,7 @@ and stmt_aux env x =
       let ent = G.basic_entity v1 ~attrs:v5 in
       let def =
         {
-          G.fparams = v2;
+          G.fparams = fb v2;
           frettype = v3;
           fbody = G.FBStmt v4;
           fkind = (G.Function, t);
@@ -603,7 +582,7 @@ and stmt_aux env x =
           cextends = v2;
           cimplements = [];
           cmixins = [];
-          cparams = [];
+          cparams = fb [];
           cbody = fb (v3 |> Common.map (fun x -> fieldstmt x));
         }
       in
@@ -745,7 +724,7 @@ and stmt_aux env x =
   | AugAssign (v1, (v2, tok), v3) ->
       let v1 = expr env v1 and v2 = operator v2 and v3 = expr env v3 in
       [ G.exprstmt (G.AssignOp (v1, (v2, tok), v3) |> G.e) ]
-  | Cast (Name (id, _kind, _ref), _tok, ty) ->
+  | Cast (Name (id, _kind), _tok, ty) ->
       (* In the following example, `x : int` is not a type cast but a variable
        * declaration:
        *
@@ -848,11 +827,11 @@ and stmt_aux env x =
   | Continue t -> [ G.Continue (t, G.LNone, G.sc) |> G.s ]
   (* python2: *)
   | Print (tok, _dest, vals, _nl) ->
-      let id = Name (("print", tok), Load, ref NotResolved) in
+      let id = Name (("print", tok), Load) in
       stmt_aux env
         (ExprStmt (Call (id, fb (vals |> Common.map (fun e -> Arg e)))))
   | Exec (tok, e, _eopt, _eopt2) ->
-      let id = Name (("exec", tok), Load, ref NotResolved) in
+      let id = Name (("exec", tok), Load) in
       stmt_aux env (ExprStmt (Call (id, fb [ Arg e ])))
 
 and cases_and_body env = function
