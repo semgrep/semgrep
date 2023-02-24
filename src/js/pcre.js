@@ -1,3 +1,9 @@
+// TODO:
+// - fix memory leaks that I've no doubt created
+// - implement unimplemented (but not yet needed) pcre features
+// - improve my crummy struct thing (maybe use WebIDL?)
+// - misc cleanup
+
 //Provides: pcre_wasm_module const
 const pcre_wasm_module = (() => {
 	if (typeof Module !== "object") {

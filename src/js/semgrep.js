@@ -135,6 +135,7 @@ function octs_create_parser_c_sharp() {
 //Provides: octs_create_parser_julia
 //Requires: create_parser
 function octs_create_parser_julia() {
+    throw new Error("TODO: re-incorporate julia once we figure out why the build is so slow") // TODO
     //return create_parser(SEMGREP_LANGUAGES._tree_sitter_python())
 }
 

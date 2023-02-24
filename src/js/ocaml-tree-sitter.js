@@ -67,6 +67,8 @@ function octs_node_child(vNode, vX) {
 //Requires: tree_sitter_wasm_module
 function octs_tree_delete(vTree) {
     tree_sitter_wasm_module._ts_tree_delete(vTree.tree_ptr)
+
+    // TODO: are there any additional free()s needed?
 }
 
 //Provides: octs_node_type

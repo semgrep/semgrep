@@ -55,6 +55,7 @@ let debug_extract_mode = ref false
 *)
 let replace_named_pipe_by_regular_file path =
   if !Common.jsoo then path
+    (* don't bother supporting exotic things like fds if running in JS *)
   else
     match (Unix.stat path).st_kind with
     | Unix.S_FIFO ->
