@@ -299,9 +299,6 @@ class RuleMatch:
         a unique finding in the future, since we can analyze things like code, file, index all
         independently of one another.
         """
-        # Upon reviewing an old decision,
-        # there's no good reason for us to use MurmurHash3 here,
-        # but we need to keep consistent hashes so we cannot change this easily
         hash_int = hash128(str(self.syntactic_context))
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
@@ -318,9 +315,6 @@ class RuleMatch:
         By sending the hash of ONLY the pattern contents, we can determine whether a finding
         has only changed because e.g. the file path changed
         """
-        # Upon reviewing an old decision,
-        # there's no good reason for us to use MurmurHash3 here,
-        # but we need to keep consistent hashes so we cannot change this easily
         match_formula_str = self.match_formula_string
         if self.extra.get("metavars") is not None:
             metavars = self.extra["metavars"]
