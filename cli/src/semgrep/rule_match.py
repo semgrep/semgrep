@@ -376,6 +376,26 @@ class RuleMatch:
             )
         return None
 
+    @property
+    def exposure_type(self) -> Optional[str]:
+        """
+        Mimic the exposure categories on semgrep.dev for supply chain.
+
+        "reachable": dependency is used in the codebase or is vulnerable even without usage
+        "unreachable": dependency is not used in the codebase
+        "undetermined": rule for dependency doesn't look for reachability
+        None: not a supply chain rule
+        """
+        if "sca_info" not in self.extra:
+            return None
+
+        if self.metadata.get("sca-kind") == "upgrade-only":
+            return "reachable"
+        elif self.metadata.get("sca-kind") == "legacy":
+            return "undetermined"
+        else:
+            return "reachable" if self.extra["sca_info"].reachable else "unreachable"
+
     def to_app_finding_format(self, commit_date: str) -> out.Finding:
         """
         commit_date here for legacy reasons.

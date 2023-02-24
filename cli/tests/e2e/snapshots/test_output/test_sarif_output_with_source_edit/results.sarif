@@ -35,6 +35,7 @@
           "message": {
             "text": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?"
           },
+          "properties": {},
           "ruleId": "rules.eqeq-is-bad"
         },
         {
@@ -63,6 +64,7 @@
           "message": {
             "text": "useless comparison"
           },
+          "properties": {},
           "ruleId": "rules.javascript-basic-eqeq-bad"
         }
       ],
