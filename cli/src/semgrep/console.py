@@ -27,9 +27,9 @@ class Title:
 
     def __rich__(self) -> RenderableType:
         if self.order == 1:
-            return Padding(Panel(self.text, expand=False, box=box.SQUARE), (2, 0, 1, 0))
+            return Padding(Panel(self.text, expand=False, box=box.SQUARE), (2, 0, 0, 0))
         elif self.order == 2:
-            return Padding(Text(self.text.upper(), style="underline"), (0, 2))
+            return Padding(Text(self.text.upper(), style="underline"), (1, 0, 0, 2))
         elif self.order == 3:
             return Text("  ⮕ " + self.text.upper())
         else:
@@ -69,7 +69,7 @@ class AutoIndentingConsole(Console):
 
         return None
 
-    def print(self, *args: Any, **kwargs: Any) -> None:
+    def print(self, *args: Any, deindent: int = 0, **kwargs: Any) -> None:
         indent = 0
 
         for arg in args:
@@ -80,10 +80,12 @@ class AutoIndentingConsole(Console):
         else:
             indent = self.auto_indent_size
 
+        indent = max(0, indent - deindent)
+
         super().print(Padding.indent(Group(*args), indent), **kwargs)
 
 
-console = AutoIndentingConsole()
+console = AutoIndentingConsole(highlighter=None)
 console.width = min(console.width, 120)
 
 

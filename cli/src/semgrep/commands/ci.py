@@ -257,17 +257,20 @@ def ci(
     metadata = generate_meta_from_environment(baseline_commit)
 
     console.print(Title("Debugging Info"))
-    scan_env = Table.grid(padding=(0, 1))
-    scan_env.add_row(
+    debugging_table = Table.grid(padding=(0, 1))
+    debugging_table.add_row(
         "versions",
         "-",
         f"semgrep [bold]{semgrep.__VERSION__}[/bold] on python [bold]{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}[/bold]",
     )
-    scan_env.add_row(
+    debugging_table.add_row(
         "environment",
         "-",
         f"running in environment [bold]{metadata.environment}[/bold], triggering event is [bold]{metadata.event_name}[/bold]",
     )
+
+    console.print(Title("Scan Environment", order=2))
+    console.print(debugging_table)
 
     fix_head_if_github_action(metadata)
 
@@ -284,20 +287,12 @@ def ci(
 
             config = (scan_handler.rules,)
 
-            scan_env.add_row(
-                "server",
-                "-",
-                f"logged in as [bold]{scan_handler.deployment_name}[/bold] on [bold]{state.env.semgrep_url}[/bold]",
-            )
     except Exception as e:
         import traceback
 
         traceback.print_exc()
         logger.info(f"Could not start scan {e}")
         sys.exit(FATAL_EXIT_CODE)
-
-    console.print(Title("Scan Environment", order=2))
-    console.print(scan_env)
 
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
@@ -328,15 +323,10 @@ def ci(
     try:
         console.print(Title("Scan Status"))
 
-        # Append ignores configured on semgrep.dev
-        requested_excludes = scan_handler.ignore_patterns if scan_handler else []
-        if requested_excludes:
-            logger.info(
-                f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
-            )
+        excludes_from_app = scan_handler.ignore_patterns if scan_handler else []
 
         assert exclude is not None  # exclude is default empty tuple
-        exclude = (*exclude, *yield_exclude_paths(requested_excludes))
+        exclude = (*exclude, *yield_exclude_paths(excludes_from_app))
         assert config  # Config has to be defined here. Helping mypy out
         start = time.time()
         (
