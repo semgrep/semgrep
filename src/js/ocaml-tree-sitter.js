@@ -28,9 +28,9 @@ function octs_tree_root_node(vTree) {
 function octs_node_start_point(vNode) {
     const ptr = tree_sitter_wasm_module._malloc(8)
     tree_sitter_wasm_module._ts_node_start_point(ptr, vNode.node_ptr);
-    const result = [tree_sitter_wasm_module.getValue(ptr, 'i32'), tree_sitter_wasm_module.getValue(ptr+4, 'i32')]
+    const result = [0, tree_sitter_wasm_module.getValue(ptr, 'i32'), tree_sitter_wasm_module.getValue(ptr+4, 'i32')];
     tree_sitter_wasm_module._free(ptr);
-    return result
+    return result;
 }
 
 //Provides: octs_node_end_point
@@ -38,7 +38,7 @@ function octs_node_start_point(vNode) {
 function octs_node_end_point(vNode) {
     const ptr = tree_sitter_wasm_module._malloc(8)
     tree_sitter_wasm_module._ts_node_end_point(ptr, vNode.node_ptr);
-    const result = [tree_sitter_wasm_module.getValue(ptr, 'i32'), tree_sitter_wasm_module.getValue(ptr+4, 'i32')]
+    const result = [0, tree_sitter_wasm_module.getValue(ptr, 'i32'), tree_sitter_wasm_module.getValue(ptr+4, 'i32')];
     tree_sitter_wasm_module._free(ptr);
     return result
 }
