@@ -331,7 +331,7 @@ let labels_of_taints taints : LabelSet.t =
   taints |> Taints.to_seq
   |> Seq.filter_map (fun (t : T.taint) ->
          match t.orig with
-         | Src src -> Some (T.label_of_source_trace src)
+         | Src src -> Some src.label
          | Arg _ -> None)
   |> LabelSet.of_seq
 
@@ -386,7 +386,7 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
              Some (T.ArgToSink (i, tokens, sink))
          | Src source ->
              if req then
-               let src_pm, _ = T.pm_of_trace source in
+               let src_pm, _ = T.pm_of_trace source.call_trace in
                let* merged_env =
                  merge_source_sink_mvars env sink_pm.PM.env src_pm.PM.env
                in
@@ -411,7 +411,7 @@ let filter_new_taint_sources_by_labels labels taints =
       match new_taint.orig with
       | Arg _ -> Taints.add new_taint taints
       | Src src ->
-          let _, ts = T.pm_of_trace src in
+          let _, ts = T.pm_of_trace src.call_trace in
           let req = eval_label_requires ~labels ts.source_requires in
           if req then Taints.add new_taint taints else taints)
     taints Taints.empty
@@ -496,7 +496,7 @@ let find_args_taints args_taints fdef =
 let propagate_taint_to_label label (taint : T.taint) =
   let new_orig =
     match taint.orig with
-    | Src src -> T.Src (Propagate (src, label))
+    | Src src -> T.Src ({ src with label })
     | Arg arg -> Arg arg
   in
   { taint with orig = new_orig }
@@ -824,8 +824,8 @@ let check_function_signature env fun_exp args_taints =
         (fun_sig
         |> List.filter_map (function
              | T.SrcToReturn (src, tokens, _return_tok) ->
-                 let src = T.Call (eorig, tokens, src) in
-                 Some (Taints.singleton { orig = Src src; tokens = [] })
+                 let call_trace = T.Call (eorig, tokens, src.call_trace) in
+                 Some (Taints.singleton { orig = Src { src with call_trace }; tokens = [] })
              | T.ArgToReturn (argpos, tokens, _return_tok) ->
                  let* arg_taints = taints_of_arg argpos in
                  (* Get the token of the function *)
