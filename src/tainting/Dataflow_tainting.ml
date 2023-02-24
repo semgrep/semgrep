@@ -137,9 +137,12 @@ type fun_env = (var, Taints.t) Hashtbl.t
  * because we know there is a better match.
  *)
 module Top_sinks = struct
+  (* For m, m' in S.t, not (m.range $<=$ m'.range) && not (m'.range $<=$ m.range) *)
   module S = Set.Make (struct
     type t = R.taint_sink tmatch
 
+    (* This compare function is subtle but it allows both `add` and `is_best_match`
+     * to be simple and quite efficient. *)
     let compare m1 m2 =
       let sink_id_cmp = String.compare m1.spec.R.sink_id m2.spec.R.sink_id in
       if sink_id_cmp <> 0 then sink_id_cmp
@@ -155,7 +158,7 @@ module Top_sinks = struct
 
   let empty = S.empty
 
-  let add m' sinks =
+  let rec add m' sinks =
     (* We check if we have another match for the *same* sink specification
      * (i.e., same 'sink_id'), and if so we must keep the best match and drop
      * the other one. *)
@@ -168,8 +171,20 @@ module Top_sinks = struct
         if r'.start > r.start || r'.end_ < r.end_ then
           (* The new match is a worse fit so we keep the current one. *)
           sinks
-        else (* We found a better (larger) match! *)
-          S.add m' (S.remove m sinks)
+        else
+          (* We found a better (larger) match! *)
+          (* There may be several matches in `sinks` that are subsumed by `m'`.
+           * E.g. we could have found sinks at ranges (1,5) and (6,10), and then
+           * we find that there is better sink match at range (1,10). This
+           * new larger match subsumes both (1,5) and (6, 10) matches.
+           * Thus, before we try adding `m'` to `sinks`, we need to make sure
+           * that there is no other match `m` that is included in `m'`.
+           * Otherwise `m'` would be considered a duplicate and it would not
+           * be added (e.g., if we try adding the range (1,10) to a set that
+           * still contains the range (6,10), given our `compare` function above
+           * the (1,10) range will be considered a duplicate), hence the
+           * recursive call to `add` here. *)
+          add m' (S.remove m sinks)
 
   let is_best_match sinks m' =
     match S.find_opt m' sinks with
