@@ -1,6 +1,5 @@
 import binascii
 import hashlib
-import itertools
 import textwrap
 from collections import Counter
 from datetime import datetime
@@ -100,6 +99,10 @@ class RuleMatch:
     match_based_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
     match_based_id: str = field(init=False, repr=False)
+    code_hash: str = field(init=False, repr=False)
+    pattern_hash: str = field(init=False, repr=False)
+    start_line_hash: str = field(init=False, repr=False)
+    end_line_hash: str = field(init=False, repr=False)
 
     # TODO: return a out.RuleId
     @property
@@ -118,6 +121,13 @@ class RuleMatch:
     def end(self) -> core.Position:
         return self.match.location.end
 
+    def get_individual_line(self, line_number: int) -> str:
+        line_array = get_lines(self.path, line_number, line_number)
+        if len(line_array) == 0:
+            return ""
+        else:
+            return line_array[0]
+
     @lines.default
     def get_lines(self) -> List[str]:
         """
@@ -135,26 +145,10 @@ class RuleMatch:
         """Return the line preceding the match, if any.
 
         This is meant for checking for the presence of a nosemgrep comment.
-        This implementation was derived from the 'lines' method below.
-        Refer to it for relevant comments.
-        IT feels like a lot of duplication. Feel free to improve.
         """
-        # see comments in '_get_lines' method
-        start_line = self.start.line - 2
-        end_line = start_line + 1
-        is_empty_file = self.end.line <= 0
-
-        if start_line < 0 or is_empty_file:
-            # no previous line
-            return ""
-
-        with self.path.open(buffering=1, errors="replace") as fd:
-            res = list(itertools.islice(fd, start_line, end_line))
-
-        if res:
-            return res[0]
-        else:
-            return ""
+        return (
+            self.get_individual_line(self.start.line - 1) if self.start.line > 1 else ""
+        )
 
     @syntactic_context.default
     def get_syntactic_context(self) -> str:
@@ -248,7 +242,7 @@ class RuleMatch:
         """
         A 32-character hash representation of ci_unique_key.
 
-        This value is sent to semgrep.dev and used as a unique key in the database.
+        This value is sent to semgrep.dev and used to track findings across branches
         """
         # Upon reviewing an old decision,
         # there's no good reason for us to use MurmurHash3 here,
@@ -289,6 +283,74 @@ class RuleMatch:
         match_id = self.get_match_based_key()
         match_id_str = str(match_id)
         return f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.match_based_index)}"
+
+    @code_hash.default
+    def get_code_hash(self) -> str:
+        """
+        A 32-character hash representation of syntactic_context.
+
+        We started collecting this in addition to syntactic_id because the syntactic_id changes
+        whenever the file path or rule name or index changes, but all of those can be sent in
+        plaintext, so it does not make sense to include them inside a hash.
+
+        By sending the hash of ONLY the code contents, we can determine whether a finding
+        has moved files (path changed), or moved down a file (index changed) and handle that
+        logic in the app. This also gives us more flexibility for changing the definition of
+        a unique finding in the future, since we can analyze things like code, file, index all
+        independently of one another.
+        """
+        # Upon reviewing an old decision,
+        # there's no good reason for us to use MurmurHash3 here,
+        # but we need to keep consistent hashes so we cannot change this easily
+        hash_int = hash128(str(self.syntactic_context))
+        hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
+        return str(binascii.hexlify(hash_bytes), "ascii")
+
+    @pattern_hash.default
+    def get_pattern_hash(self) -> str:
+        """
+        A 32-character hash representation of syntactic_context.
+
+        We started collecting this in addition to match_based_id because the match_based_id will
+        change when the file path or rule name or index changes, but all of those can be passed
+        in plaintext, so it does not make sense to include them in the hash.
+
+        By sending the hash of ONLY the pattern contents, we can determine whether a finding
+        has only changed because e.g. the file path changed
+        """
+        # Upon reviewing an old decision,
+        # there's no good reason for us to use MurmurHash3 here,
+        # but we need to keep consistent hashes so we cannot change this easily
+        match_formula_str = self.match_formula_string
+        if self.extra.get("metavars") is not None:
+            metavars = self.extra["metavars"]
+            for metavar in metavars:
+                match_formula_str = match_formula_str.replace(
+                    metavar, metavars[metavar]["abstract_content"]
+                )
+        hash_int = hash128(str(match_formula_str))
+        hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
+        return str(binascii.hexlify(hash_bytes), "ascii")
+
+    @start_line_hash.default
+    def get_start_line_hash(self) -> str:
+        """
+        A 32-character hash of the first line of the code in the match
+        """
+        first_line = self.get_individual_line(self.start.line)
+        hash_int = hash128(first_line)
+        hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
+        return str(binascii.hexlify(hash_bytes), "ascii")
+
+    @end_line_hash.default
+    def get_end_line_hash(self) -> str:
+        """
+        A 32-character hash of the last line of the code in the match
+        """
+        last_line = self.get_individual_line(self.end.line)
+        hash_int = hash128(last_line)
+        hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
+        return str(binascii.hexlify(hash_bytes), "ascii")
 
     @property
     def uuid(self) -> UUID:
@@ -393,6 +455,13 @@ class RuleMatch:
         else:
             app_severity = 0
 
+        hashes = out.FindingHashes(
+            start_line_hash=self.start_line_hash,
+            end_line_hash=self.end_line_hash,
+            code_hash=self.code_hash,
+            pattern_hash=self.pattern_hash,
+        )
+
         ret = out.Finding(
             check_id=out.RuleId(self.rule_id),
             path=str(self.path),
@@ -406,6 +475,7 @@ class RuleMatch:
             commit_date=commit_date_app_format,
             syntactic_id=self.syntactic_id,
             match_based_id=self.match_based_id,
+            hashes=hashes,
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
             dataflow_trace=self.dataflow_trace,
