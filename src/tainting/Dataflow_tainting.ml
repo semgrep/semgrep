@@ -174,11 +174,16 @@ module Top_sinks = struct
         else
           (* We found a better (larger) match! *)
           (* There may be several matches in `sinks` that are subsumed by `m'`.
-           * E.g. we could have sinks (1,5) and (5,10), and then add `(1,10)`
-           * as a match. Before we try adding `m'` to `sinks` we need to make
-           * sure that there is no other match `m` that is included in `m'`.
+           * E.g. we could have found sinks at ranges (1,5) and (6,10), and then
+           * we find that there is better sink match at range (1,10). This
+           * new larger match subsumes both (1,5) and (6, 10) matches.
+           * Thus, before we try adding `m'` to `sinks`, we need to make sure
+           * that there is no other match `m` that is included in `m'`.
            * Otherwise `m'` would be considered a duplicate and it would not
-           * be added. *)
+           * be added (e.g., if we try adding the range (1,10) to a set that
+           * still contains the range (6,10), given our `compare` function above
+           * the (1,10) range will be considered a duplicate), hence the
+           * recursive call to `add` here. *)
           add m' (S.remove m sinks)
 
   let is_best_match sinks m' =
