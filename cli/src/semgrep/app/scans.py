@@ -17,7 +17,8 @@ from urllib.parse import urlencode
 import click
 import requests
 from boltons.iterutils import partition
-
+from semgrep.console import console, Title
+from rich.progress import Progress, TextColumn, TaskProgressColumn
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
@@ -33,7 +34,6 @@ if TYPE_CHECKING:
     from semgrep.engine import EngineType
 
 logger = getLogger(__name__)
-
 
 class ScanHandler:
     def __init__(self, dry_run: bool) -> None:
@@ -117,27 +117,30 @@ class ScanHandler:
 
     def _get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
         state = get_state()
-        response = state.app_session.get(url)
+        response = state.app_session.get(url, stream=True)
+
         try:
             response.raise_for_status()
         except requests.RequestException:
             raise Exception(
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
+
         body = response.json()
-        if isinstance(body, dict):
-            return body
-        else:
+
+        if not isinstance(body, dict,):
             raise Exception(
-                f"API server at {state.env.semgrep_url} returned type '{type(response.json())}'. Expected a dictionary."
+                f"API server at {state.env.semgrep_url} returned type '{type(body)}'. Expected a dictionary."
             )
+
+        return body
 
     def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
         """
         Get configurations for scan
         """
         state = get_state()
-        logger.debug("Getting scan configurations")
+        console.print(Title("Semgrep Cloud Connection", order=2))
 
         self._scan_params = urlencode(
             {

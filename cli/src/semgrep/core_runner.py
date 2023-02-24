@@ -30,13 +30,17 @@ from rich.progress import Progress
 from rich.progress import TaskID
 from rich.progress import TextColumn
 from rich.progress import TimeElapsedColumn
+from rich import box
 from ruamel.yaml import YAML
+from rich.table import Table
+from rich.padding import Padding
+from rich.columns import Columns
 
 import semgrep.fork_subprocess as fork_subprocess
 import semgrep.output_from_core as core
 from semgrep.app import auth
 from semgrep.config_resolver import Config
-from semgrep.console import console
+from semgrep.console import Title, console
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import core_error_to_semgrep_error
@@ -484,11 +488,11 @@ class Plan:
     log: outputs a summary of how many files will be scanned for each file
     """
 
-    def __init__(self, mappings: List[Task], rule_ids: List[str]):
+    def __init__(self, mappings: List[Task], rules: List[Rule]):
         self.target_mappings = TargetMappings(mappings)
         # important: this is a list of rule_ids, not a set
         # target_mappings relies on the index of each rule_id in rule_ids
-        self.rule_ids = rule_ids
+        self.rules = rules
 
     def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
         result: Dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
@@ -504,53 +508,73 @@ class Plan:
     def to_json(self) -> Dict[str, Any]:
         return {
             "target_mappings": [asdict(task) for task in self.target_mappings],
-            "rule_ids": self.rule_ids,
+            "rule_ids": [rule.id for rule in self.rules],
         }
 
     @property
     def num_targets(self) -> int:
         return len(self.target_mappings)
 
-    def log(self) -> None:
-        metrics = get_state().metrics
-
-        if self.target_mappings.rule_count == 0:
-            logger.info("Nothing to scan.")
-            return
-
-        if self.target_mappings.rule_count == 1:
-            logger.info(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
-            return
+    def table_by_language(self) -> Table:
+        table = Table(box=box.SIMPLE_HEAD, show_edge=False)
+        table.add_column("Language")
+        table.add_column("Rules", justify="right")
+        table.add_column("Files", justify="right")
 
         plans_by_language = sorted(
             self.split_by_lang_label().items(),
             key=lambda x: (x[1].file_count, x[1].rule_count),
             reverse=True,
         )
-        if len(plans_by_language) == 1:
-            logger.info(
-                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{plans_by_language[0][0]} rule')}."
+        for language, plan in plans_by_language:
+            table.add_row(language, str(plan.rule_count), str(plan.file_count))
+
+        return table
+
+    def table_by_rule_tier(self) -> Table:
+        table = Table(box=box.SIMPLE_HEAD, show_edge=False)
+        table.add_column("Rule Tier")
+        table.add_column("Rules", justify="right")
+
+        for tier, count in sorted(
+            collections.Counter(rule.tier for rule in self.rules).items(),
+            key=lambda i: i[0].name,
+        ):
+            tier_name = tier.name.replace("_", " ").title()
+
+            table.add_row(tier_name, str(count))
+
+        return table
+
+    def log(self) -> None:
+        metrics = get_state().metrics
+
+        for language in self.split_by_lang_label():
+            metrics.add_feature("language", language)
+
+        if self.target_mappings.rule_count == 0:
+            console.print("Nothing to scan.")
+            return
+
+        if self.target_mappings.rule_count == 1:
+            console.print(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
+            return
+
+        if len(self.split_by_lang_label()) == 1:
+            console.print(
+                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{list(self.split_by_lang_label().values())[0]} rule')}."
             )
             return
 
-        logger.info("\nScanning across multiple languages:")
-        for language, plan in plans_by_language:
-            metrics.add_feature("language", language)
+        console.print(Title("Code Rules", order=2))
 
-            lang_chars = max(len(lang) for lang, _ in plans_by_language)
-            rules_chars = max(
-                len(str(plan.rule_count)) for _, plan in plans_by_language
-            ) + len(" rules")
-            files_chars = max(
-                len(str(plan.file_count)) for _, plan in plans_by_language
-            ) + len(" files")
+        tables = Columns(
+            [self.table_by_language(), self.table_by_rule_tier()],
+            padding=(1, 8),
+        )
 
-            lang_field = language.rjust(lang_chars)
-            rules_field = unit_str(plan.rule_count, "rule", pad=True).rjust(rules_chars)
-            files_field = unit_str(plan.file_count, "file", pad=True).rjust(files_chars)
-
-            logger.info(f"    {lang_field} | {rules_field} × {files_field}")
-        logger.info("")
+        # the tables are 2 spaces indented by default
+        console.print(Padding(tables, (1, 0)), deindent=2)
 
     def __str__(self) -> str:
         return f"<Plan of {len(self.target_mappings)} tasks for {list(self.split_by_lang_label())}>"
@@ -770,7 +794,7 @@ class CoreRunner:
                 )
                 for target, language in target_info
             ],
-            [rule.id for rule in rules],
+            rules,
         )
 
     def _run_rules_direct_to_semgrep_core_helper(

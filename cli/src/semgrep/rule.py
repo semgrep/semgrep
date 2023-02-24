@@ -1,3 +1,4 @@
+from enum import Enum, auto
 import hashlib
 import json
 from typing import Any
@@ -23,6 +24,13 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
+
+
+class RuleTier(Enum):
+    custom = auto()
+    community = auto()
+    semgrep = auto()
+    semgrep_pro = auto()
 
 
 class Rule:
@@ -233,6 +241,19 @@ class Rule:
         Remove this code once all rule runnning is done in the core and the answer is always 'yes'
         """
         return any(key in RuleValidation.PATTERN_KEYS for key in self._raw)
+
+    @property
+    def tier(self) -> RuleTier:
+        SEMGREP_RULES_LICENSE = "Commons Clause License Condition v1.0[LGPL-2.1-only]"
+
+        if ":" in self.metadata.get("semgrep.ruleset", ""):
+            return RuleTier.custom
+        elif self.metadata.get("dev.semgrep.visibility") == "team_tier":
+            return RuleTier.semgrep_pro
+        elif self.metadata.get("license") == SEMGREP_RULES_LICENSE:
+            return RuleTier.semgrep
+        else:
+            return RuleTier.community
 
     @property
     def formula_string(self) -> str:
