@@ -345,72 +345,70 @@ let var_stats prog : var_stats =
         stat
   in
 
-  let hooks =
-    {
-      V.default_visitor with
-      V.kdef =
-        (fun (k, _v) x ->
-          match x with
-          | ( {
-                name =
-                  EN
-                    (Id
-                      (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
-                _;
-              },
-              VarDef { vinit = Some _e; _ } ) ->
-              let var = (H.str_of_ident id, sid) in
-              let stat = get_stat_or_create var h in
-              incr stat.lvalue;
-              k x
-          | _ -> k x);
-      V.kexpr =
-        (fun (k, vout) x ->
-          match x.e with
-          (* TODO: What if there is an asignment inside the `lhs` ? *)
-          | Assign (* v = ... *) (lhs, _, e2)
-          | AssignOp (* v += ... *) (lhs, _, e2) ->
-              lvars_in_lhs lhs
-              |> List.iter (fun (id, sid) ->
-                     let var = (H.str_of_ident id, sid) in
-                     let stat = get_stat_or_create var h in
-                     incr stat.lvalue;
-                     match x.e with
-                     | AssignOp _ -> incr stat.rvalue
-                     | _ -> ());
-              vout (E e2)
-          | Call
-              ( { e = IdSpecial (IncrDecr _, _); _ },
-                ( _,
-                  [
-                    Arg
-                      {
-                        e =
-                          N
-                            (Id
-                              ( id,
-                                {
-                                  id_resolved = { contents = Some (_kind, sid) };
-                                  _;
-                                } ));
-                        _;
-                      };
-                  ],
-                  _ ) ) ->
-              let var = (H.str_of_ident id, sid) in
-              let stat = get_stat_or_create var h in
-              incr stat.lvalue
-          | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
-            ->
-              let var = (H.str_of_ident id, sid) in
-              let stat = get_stat_or_create var h in
-              incr stat.rvalue;
-              k x
-          | _ -> k x);
-    }
+  let visitor =
+    object (self : 'self)
+      inherit [_] AST_generic.iter_no_id_info as super
+
+      method! visit_definition env x =
+        match x with
+        | ( {
+              name =
+                EN
+                  (Id
+                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
+              _;
+            },
+            VarDef { vinit = Some _e; _ } ) ->
+            let var = (H.str_of_ident id, sid) in
+            let stat = get_stat_or_create var h in
+            incr stat.lvalue;
+            super#visit_definition env x
+        | _ -> super#visit_definition env x
+
+      method! visit_expr env x =
+        match x.e with
+        (* TODO: What if there is an asignment inside the `lhs` ? *)
+        | Assign (* v = ... *) (lhs, _, e2)
+        | AssignOp (* v += ... *) (lhs, _, e2) ->
+            lvars_in_lhs lhs
+            |> List.iter (fun (id, sid) ->
+                   let var = (H.str_of_ident id, sid) in
+                   let stat = get_stat_or_create var h in
+                   incr stat.lvalue;
+                   match x.e with
+                   | AssignOp _ -> incr stat.rvalue
+                   | _ -> ());
+            self#visit_expr env e2
+        | Call
+            ( { e = IdSpecial (IncrDecr _, _); _ },
+              ( _,
+                [
+                  Arg
+                    {
+                      e =
+                        N
+                          (Id
+                            ( id,
+                              {
+                                id_resolved = { contents = Some (_kind, sid) };
+                                _;
+                              } ));
+                      _;
+                    };
+                ],
+                _ ) ) ->
+            let var = (H.str_of_ident id, sid) in
+            let stat = get_stat_or_create var h in
+            incr stat.lvalue
+        | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ })) ->
+            let var = (H.str_of_ident id, sid) in
+            let stat = get_stat_or_create var h in
+            incr stat.rvalue;
+            super#visit_expr env x
+        | _ -> super#visit_expr env x
+    end
   in
-  let visitor = V.mk_visitor ~vardef_assign:false hooks in
-  visitor (Pr prog);
+  visitor#visit_program () prog;
   h
 
 (*****************************************************************************)
@@ -528,135 +526,133 @@ let propagate_basic lang prog =
   let stats = var_stats prog in
 
   (* step2: second pass where we actually propagate when we can *)
-  let hooks =
-    {
-      V.default_visitor with
+  let visitor =
+    object (self : 'self)
+      inherit [_] AST_generic.iter_no_id_info as super
+
       (* the defs *)
-      V.kdef =
-        (fun (k, _v) x ->
-          match x with
-          | ( {
-                name =
-                  EN
+      method! visit_definition venv x =
+        match x with
+        | ( {
+              name =
+                EN
+                  (Id
+                    ( id,
+                      {
+                        id_resolved = { contents = Some (_kind, sid) };
+                        id_svalue;
+                        _;
+                      } ));
+              attrs;
+              _;
+            },
+            VarDef { vinit = Some e; _ } )
+        (* note that some languages such as Python do not have VarDef.
+         * todo? should add those somewhere instead of in_lvalue detection?*)
+          -> (
+            match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
+            | Some stats ->
+                (if
+                 H.has_keyword_attr Const attrs
+                 || H.has_keyword_attr Final attrs
+                 || (!(stats.lvalue) = 1 && is_js env)
+                 || !(stats.lvalue) = 1 && env.lang = Some Lang.Java
+                    && List.exists is_private attrs
+                then
+                 match (!id_svalue, e.e) with
+                 (* When the name already has an svalue computed, just use
+                  * that. DeepSemgrep assigns svalues sometimes in its naming
+                  * phase. *)
+                 | Some svalue, _ -> add_constant_env id (sid, svalue) env
+                 | None, L literal -> add_constant_env id (sid, Lit literal) env
+                 (* For any other symbolic expression, it is OK to propagate it symbolically so long as
+                    the lvalue is only assigned to once.
+                    Although we may propagate expressions with identifiers in them, those identifiers
+                    will simply not have an `svalue` if they are non-propagated as well.
+                 *)
+                 | None, _ when Dataflow_svalue.is_symbolic_expr e ->
+                     add_constant_env id (sid, Sym e) env
+                 | None, _ -> ());
+                super#visit_definition venv x
+            | None ->
+                logger#debug "No stats for (%s,%s)" (H.str_of_ident id)
+                  (G.SId.show sid);
+                super#visit_definition venv x)
+        | _ -> super#visit_definition venv x
+
+      (* the uses (and also defs for Python Assign) *)
+      method! visit_expr venv x =
+        match x.e with
+        | N (Id (id, id_info))
+        | Call
+            ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
+              (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
+          when not !(env.in_lvalue) ->
+            let/ svalue = find_id env id id_info in
+            id_info.id_svalue := Some svalue
+        (* ugly: dockerfile specific *)
+        | Call
+            ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
+              (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
+          when not !(env.in_lvalue) ->
+            let/ svalue = find_id env id id_info in
+            id_info.id_svalue := Some svalue
+        | DotAccess
+            ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
+          when not !(env.in_lvalue) ->
+            let/ svalue = find_id env id id_info in
+            id_info.id_svalue := Some svalue
+        (* ugly: terraform specific.
+         * coupling: with eval() above
+         *)
+        | DotAccess
+            ( { e = N (Id (((("local" | "var") as prefix), _), _)); _ },
+              _,
+              FN (Id ((str, _tk), id_info)) )
+          when lang = Lang.Terraform && not !(env.in_lvalue) ->
+            let var = (prefix ^ "." ^ str, terraform_sid) in
+            let/ svalue = Hashtbl.find_opt env.constants var in
+            id_info.id_svalue := Some svalue
+        | ArrayAccess (e1, (_, e2, _)) ->
+            self#visit_expr venv e1;
+            Common.save_excursion env.in_lvalue false (fun () ->
+                self#visit_expr venv e2)
+            (* Assign that is really a hidden VarDef (e.g., in Python) *)
+        | Assign
+            ( {
+                e =
+                  N
                     (Id
-                      ( id,
-                        {
-                          id_resolved = { contents = Some (_kind, sid) };
-                          id_svalue;
-                          _;
-                        } ));
-                attrs;
+                      (id, { id_resolved = { contents = Some (kind, sid) }; _ }));
                 _;
               },
-              VarDef { vinit = Some e; _ } )
-          (* note that some languages such as Python do not have VarDef.
-           * todo? should add those somewhere instead of in_lvalue detection?*)
-            -> (
-              match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
-              | Some stats ->
-                  (if
-                   H.has_keyword_attr Const attrs
-                   || H.has_keyword_attr Final attrs
-                   || (!(stats.lvalue) = 1 && is_js env)
-                   || !(stats.lvalue) = 1 && env.lang = Some Lang.Java
-                      && List.exists is_private attrs
-                  then
-                   match (!id_svalue, e.e) with
-                   (* When the name already has an svalue computed, just use
-                    * that. DeepSemgrep assigns svalues sometimes in its naming
-                    * phase. *)
-                   | Some svalue, _ -> add_constant_env id (sid, svalue) env
-                   | None, L literal ->
-                       add_constant_env id (sid, Lit literal) env
-                   (* For any other symbolic expression, it is OK to propagate it symbolically so long as
-                      the lvalue is only assigned to once.
-                      Although we may propagate expressions with identifiers in them, those identifiers
-                      will simply not have an `svalue` if they are non-propagated as well.
-                   *)
-                   | None, _ when Dataflow_svalue.is_symbolic_expr e ->
-                       add_constant_env id (sid, Sym e) env
-                   | None, _ -> ());
-                  k x
-              | None ->
-                  logger#debug "No stats for (%s,%s)" (H.str_of_ident id)
-                    (G.SId.show sid);
-                  k x)
-          | _ -> k x);
-      (* the uses (and also defs for Python Assign) *)
-      V.kexpr =
-        (fun (k, v) x ->
-          match x.e with
-          | N (Id (id, id_info))
-          | Call
-              ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
-                (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
-            when not !(env.in_lvalue) ->
-              let/ svalue = find_id env id id_info in
-              id_info.id_svalue := Some svalue
-          (* ugly: dockerfile specific *)
-          | Call
-              ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
-                (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
-            when not !(env.in_lvalue) ->
-              let/ svalue = find_id env id id_info in
-              id_info.id_svalue := Some svalue
-          | DotAccess
-              ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
-            when not !(env.in_lvalue) ->
-              let/ svalue = find_id env id id_info in
-              id_info.id_svalue := Some svalue
-          (* ugly: terraform specific.
-           * coupling: with eval() above
-           *)
-          | DotAccess
-              ( { e = N (Id (((("local" | "var") as prefix), _), _)); _ },
-                _,
-                FN (Id ((str, _tk), id_info)) )
-            when lang = Lang.Terraform && not !(env.in_lvalue) ->
-              let var = (prefix ^ "." ^ str, terraform_sid) in
-              let/ svalue = Hashtbl.find_opt env.constants var in
-              id_info.id_svalue := Some svalue
-          | ArrayAccess (e1, (_, e2, _)) ->
-              v (E e1);
-              Common.save_excursion env.in_lvalue false (fun () -> v (E e2))
-              (* Assign that is really a hidden VarDef (e.g., in Python) *)
-          | Assign
-              ( {
-                  e =
-                    N
-                      (Id
-                        ( id,
-                          { id_resolved = { contents = Some (kind, sid) }; _ }
-                        ));
-                  _;
-                },
-                _,
-                rexp ) ->
-              eval env rexp
-              |> Option.iter (fun svalue ->
-                     match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
-                     | Some stats ->
-                         if
-                           !(stats.lvalue) = 1
-                           (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
-                           && (is_lang env Lang.Python || is_lang env Lang.Ruby
-                             || is_lang env Lang.Php || is_js env)
-                           && (is_global kind || is_resolved_name kind)
-                         then add_constant_env id (sid, svalue) env
-                     | None ->
-                         logger#debug "No stats for (%s,%s)" (H.str_of_ident id)
-                           (G.SId.show sid);
-                         ());
-              v (E rexp)
-          | Assign (e1, _, e2)
-          | AssignOp (e1, _, e2) ->
-              Common.save_excursion env.in_lvalue true (fun () -> v (E e1));
-              v (E e2)
-          | _ -> k x);
-    }
+              _,
+              rexp ) ->
+            eval env rexp
+            |> Option.iter (fun svalue ->
+                   match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
+                   | Some stats ->
+                       if
+                         !(stats.lvalue) = 1
+                         (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
+                         && (is_lang env Lang.Python || is_lang env Lang.Ruby
+                           || is_lang env Lang.Php || is_js env)
+                         && (is_global kind || is_resolved_name kind)
+                       then add_constant_env id (sid, svalue) env
+                   | None ->
+                       logger#debug "No stats for (%s,%s)" (H.str_of_ident id)
+                         (G.SId.show sid);
+                       ());
+            self#visit_expr venv rexp
+        | Assign (e1, _, e2)
+        | AssignOp (e1, _, e2) ->
+            Common.save_excursion env.in_lvalue true (fun () ->
+                self#visit_expr venv e1);
+            self#visit_expr venv e2
+        | _ -> super#visit_expr venv x
+    end
   in
-  let visitor = V.mk_visitor hooks in
-  visitor (Pr prog);
+  visitor#visit_program () prog;
   ()
   [@@profiling]
 
