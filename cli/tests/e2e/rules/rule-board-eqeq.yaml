@@ -1,0 +1,9 @@
+rules:
+  - id: rule-board-eqeq-five
+    message: "this rule comes from the rule board!"
+    languages: [python]
+    severity: ERROR
+    pattern: $X == $X
+    metadata:
+      semgrep.policy:
+        slug: "rule-board-block"

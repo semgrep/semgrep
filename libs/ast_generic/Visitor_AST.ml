@@ -411,13 +411,9 @@ class ['self] matching_visitor =
       env.vin.kentity (k, env.vout) x
 
     method! visit_function_definition env x =
-      let k x' =
-        (* TODO: This partial node is created using `x`, i.e. the original node
-         * passed in to this method. It does not use `x'` which is passed in to
-         * the `k` function. This is probably a mistake, but for now I am
-         * mimicking the behavior of the previous visitor. *)
+      let k x =
         self#v_partial ~recurse:false env (PartialLambdaOrFuncDef x);
-        super#visit_function_definition env x'
+        super#visit_function_definition env x
       in
       env.vin.kfunction_definition (k, env.vout) x
 
@@ -489,31 +485,6 @@ class ['self] matching_visitor =
 
     method! visit_program env v1 = self#v_stmts env v1
     method! visit_Ss env v1 = self#v_stmts env v1
-
-    (* Overrides to skip visiting nodes. TODO These should probably all be
-     * deleted but are here for now to keep the behavior the same as the old
-     * handcoded visitor. *)
-
-    method! visit_concat_string_kind _ _ = ()
-    method! visit_incr_decr _ _ = ()
-    method! visit_prefix_postfix _ _ = ()
-    method! visit_operator _ _ = ()
-    method! visit_variance _ _ = ()
-    method! visit_keyword_attribute _ _ = ()
-
-    method! visit_OtherAttribute env _v1 v2 =
-      self#visit_list self#visit_any env v2
-
-    method! visit_other_stmt_with_stmt_operator _ _ = ()
-    method! visit_other_stmt_operator _ _ = ()
-    method! visit_OtherPat env _v1 v2 = self#visit_list self#visit_any env v2
-    method! visit_OtherDef env _v1 v2 = self#visit_list self#visit_any env v2
-
-    method! visit_OtherTypeKind env _v1 v2 =
-      self#visit_list self#visit_any env v2
-
-    method! visit_class_kind _ _ = ()
-    method! visit_OtherModule env _v1 v2 = self#visit_list self#visit_any env v2
   end
 
 let visitor_instance = lazy (new matching_visitor)
@@ -537,29 +508,23 @@ let (mk_visitor :
 (* Extract tokens *)
 (*****************************************************************************)
 
-(*s: function [[Lib_AST.extract_info_visitor]] *)
-let extract_info_visitor recursor =
+class ['self] extract_info_visitor =
+  object (_self : 'self)
+    inherit ['self] AST_generic.iter_no_id_info as super
+    method! visit_tok globals tok = Common.push tok globals
+
+    method! visit_expr globals x =
+      match x.e with
+      (* Ignore the tokens from the expression str is aliased to *)
+      | Alias ((_str, t), _e) -> Common.push t globals
+      | _ -> super#visit_expr globals x
+  end
+
+let ii_of_any any =
+  let v = new extract_info_visitor in
   let globals = ref [] in
-  let hooks =
-    {
-      default_visitor with
-      kinfo = (fun (_k, _) i -> Common.push i globals);
-      kexpr =
-        (fun (k, _) x ->
-          match x.e with
-          (* Ignore the tokens from the expression str is aliased to *)
-          | Alias ((_str, t), _e) -> Common.push t globals
-          | _ -> k x);
-    }
-  in
-  let vout = mk_visitor hooks in
-  recursor vout;
+  v#visit_any globals any;
   List.rev !globals
-
-(*e: function [[Lib_AST.extract_info_visitor]] *)
-
-(*s: function [[Lib_AST.ii_of_any]] *)
-let ii_of_any any = extract_info_visitor (fun visitor -> visitor any)
   [@@profiling]
 
 (*e: function [[Lib_AST.ii_of_any]] *)
@@ -593,7 +558,7 @@ class ['self] range_visitor =
       incorporate_tokens ranges (tok_loc, tok_loc)
   in
   object (_self : 'self)
-    inherit ['self] AST_generic.iter as super
+    inherit ['self] AST_generic.iter_no_id_info as super
     method! visit_tok ranges tok = incorporate_token ranges tok
 
     method! visit_expr ranges expr =
@@ -619,13 +584,8 @@ class ['self] range_visitor =
           | None -> ()
           | Some r -> incorporate_tokens ranges r)
       | Some range -> incorporate_tokens ranges range
-
-    (* Mimics the old mk_visitor -- otherwise we will end up visiting resolved
-     * names which contain remote tokens *)
-    method! visit_id_info _env _info = ()
   end
 
-(*s: function [[Lib_AST.extract_info_visitor]] *)
 let extract_ranges :
     AST_generic.any -> (PI.token_location * PI.token_location) option =
   let v = new range_visitor in

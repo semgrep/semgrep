@@ -154,7 +154,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
   | Lang.Jsonnet ->
       Tree_sitter_jsonnet.Parse.file file
-      |> dump_and_print_errors Tree_sitter_jsonnet.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_jsonnet.Boilerplate.dump_tree
   | Lang.Solidity ->
       Tree_sitter_solidity.Parse.file file
       |> dump_and_print_errors Tree_sitter_solidity.Boilerplate.dump_tree
@@ -174,7 +174,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
-      |> dump_and_print_errors Tree_sitter_rust.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree
   | Lang.Ocaml ->
       Tree_sitter_ocaml.Parse.file file
       |> dump_and_print_errors Tree_sitter_ocaml.CST.dump_tree

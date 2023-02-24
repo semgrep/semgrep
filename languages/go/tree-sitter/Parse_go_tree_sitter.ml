@@ -150,9 +150,9 @@ let field_name_list (env : env) ((v1, v2) : CST.field_name_list) : ident list =
   let v2 =
     Common.map
       (fun (v1, v2) ->
-        let v1 = identifier env v1 (* "," *) in
-        let _v2 = token env v2 (* identifier *) in
-        v1)
+        let _v1 = token env v1 (* "," *) in
+        let v2 = identifier env v2 (* identifier *) in
+        v2)
       v2
   in
   v1 :: v2

@@ -97,7 +97,6 @@ CI scan completed successfully.
   Uploading findings.
 Would have sent findings and ignores blob: {
     "token": null,
-    "gitlab_token": null,
     "findings": [
         {
             "check_id": "taint-test",
@@ -351,7 +350,9 @@ Would have sent findings and ignores blob: {
         }
     ],
     "searched_paths": [
-        "foo.py"
+        "foo.py",
+        "poetry.lock",
+        "yarn.lock"
     ],
     "renamed_paths": [],
     "rule_ids": [

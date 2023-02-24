@@ -105,18 +105,23 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
 
 
 @pytest.mark.parametrize(
-    "version,specifier",
+    "version,specifier,outcome",
     [
-        ("1.2-beta-2", "> 1.0, < 1.2"),
-        ("1.2-beta-2", "> 1.2-alpha-6, < 1.2-beta-3"),
-        ("1.0.10.1", "< 1.0.10.2"),
-        ("1.0.10.2", "> 1.0.10.1, < 1.0.9.3"),  # Yes, seriously
-        ("1.3.4-SNAPSHOT", "< 1.3.4"),
-        ("1.0-SNAPSHOT", "> 1.0-alpha"),
+        ("1.2-beta-2", "> 1.0, < 1.2", True),
+        ("1.2-beta-2", "> 1.2-alpha-6, < 1.2-beta-3", True),
+        ("1.0.10.1", "< 1.0.10.2", True),
+        ("1.0.10.2", "> 1.0.10.1, < 1.0.9.3", True),  # Yes, seriously
+        ("1.3.4-SNAPSHOT", "< 1.3.4", True),
+        ("1.0-SNAPSHOT", "> 1.0-alpha", True),
+        ("2.17.2", "< 2.3.1", False),
+        ("2.0", "< 1.0", False),
+        ("2.0.0", "< 10.0.0", True),
+        ("0.2.0", "< 0.10.0", True),
+        ("0.0.2", "< 0.0.10", True),
     ],
 )
-def test_maven_version_comparison(version, specifier):
-    assert is_in_range(Ecosystem(Maven()), specifier, version)
+def test_maven_version_comparison(version, specifier, outcome):
+    assert is_in_range(Ecosystem(Maven()), specifier, version) == outcome
 
 
 @pytest.mark.parametrize(
@@ -144,7 +149,7 @@ def test_dependency_aware_timing(
 ):
     start = time()
     parse_lockfile_path_in_tmp(
-        Path(f"targets/dependency_aware/perf/{file_size}/{target}"), None
+        Path(f"targets/dependency_aware/perf/{file_size}/{target}")
     )
     end = time()
     exec_time = end - start
@@ -218,7 +223,7 @@ def test_dependency_aware_timing(
 # And removing some human written comments that would never appear in a real lockfile from some tests
 def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
-    parse_lockfile_path_in_tmp(Path(target), None)
+    parse_lockfile_path_in_tmp(Path(target))
     assert len(caplog.records) == 0
 
 

@@ -93,6 +93,12 @@ and func_type = {
 and parameter_binding =
   | ParamClassic of parameter
   (* sgrep-ext: *)
+  (* For metavariable ellipsis identifier (like $...ARGS), we don't
+     usually separate this out at the AST level. However, single
+     identifiers as parameters are parsed as types in Go, so we can't
+     reuse the ordinary identifier construct. So we use this.
+  *)
+  | ParamMetavarEllipsis of ident
   | ParamEllipsis of tok
 
 and parameter = {
