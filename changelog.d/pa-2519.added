@@ -1,2 +1,0 @@
-CLI: SARIF output now includes a tag pertaining to which card of the Rule Board a rule originated from.
-This can be "rule-board-block", "rule-board-audit", or "rule-board-pr-comments".

@@ -1,1 +1,0 @@
-Fixed bug in comparison of Maven versions where multi digit versions would cause a default to raw string comparison
