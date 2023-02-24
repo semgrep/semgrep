@@ -1,6 +1,5 @@
 open Common
 module G = AST_generic
-module V = Visitor_AST
 module RM = Range_with_metavars
 
 module DataflowX = Dataflow_core.Make (struct
@@ -85,18 +84,17 @@ let test_dfg_tainting rules_file file =
   Common.pr2 "-----";
   pr2_ranges file (debug_taint.sinks |> Common.map fst);
   let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (k, _v) def ->
-            test_tainting lang file xconf.config config def;
-            (* go into nested functions *)
-            k def);
-      }
+    object
+      inherit [_] AST_generic.iter_no_id_info as super
+
+      method! visit_function_definition env def =
+        test_tainting lang file xconf.config config def;
+        (* go into nested functions *)
+        super#visit_function_definition env def
+    end
   in
   (* Check each function definition. *)
-  v (AST_generic.Pr ast)
+  v#visit_program () ast
 
 let actions () =
   [

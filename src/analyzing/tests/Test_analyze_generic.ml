@@ -1,7 +1,6 @@
 open Common
 open AST_generic
 module H = AST_generic_helpers
-module V = Visitor_AST
 
 let test_typing_generic ~parse_program file =
   let ast = parse_program file in
@@ -9,21 +8,20 @@ let test_typing_generic ~parse_program file =
   Naming_AST.resolve lang ast;
 
   let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (_k, _) def ->
-            let body = H.funcbody_to_stmt def.fbody in
-            let s = AST_generic.show_any (S body) in
-            pr2 s;
-            pr2 "==>";
-            let xs = AST_to_IL.stmt lang body in
-            let s = IL.show_any (IL.Ss xs) in
-            pr2 s);
-      }
+    object
+      inherit [_] AST_generic.iter_no_id_info
+
+      method! visit_function_definition _ def =
+        let body = H.funcbody_to_stmt def.fbody in
+        let s = AST_generic.show_any (S body) in
+        pr2 s;
+        pr2 "==>";
+        let xs = AST_to_IL.stmt lang body in
+        let s = IL.show_any (IL.Ss xs) in
+        pr2 s
+    end
   in
-  v (Pr ast)
+  v#visit_program () ast
 
 let test_constant_propagation ~parse_program file =
   let ast = parse_program file in
@@ -39,22 +37,21 @@ let test_il_generic ~parse_program file =
   Naming_AST.resolve lang ast;
 
   let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (_k, _) def ->
-            let body = H.funcbody_to_stmt def.fbody in
-            let s = AST_generic.show_any (S body) in
-            pr2 s;
-            pr2 "==>";
+    object
+      inherit [_] AST_generic.iter_no_id_info
 
-            let xs = AST_to_IL.stmt lang body in
-            let s = IL.show_any (IL.Ss xs) in
-            pr2 s);
-      }
+      method! visit_function_definition _ def =
+        let body = H.funcbody_to_stmt def.fbody in
+        let s = AST_generic.show_any (S body) in
+        pr2 s;
+        pr2 "==>";
+
+        let xs = AST_to_IL.stmt lang body in
+        let s = IL.show_any (IL.Ss xs) in
+        pr2 s
+    end
   in
-  v (Pr ast)
+  v#visit_program () ast
 
 let test_cfg_il ~parse_program file =
   let ast = parse_program file in
@@ -82,24 +79,22 @@ let test_dfg_svalue ~parse_program file =
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
   let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (_k, _) def ->
-            let inputs, xs = AST_to_IL.function_definition lang def in
-            let flow = CFG_build.cfg_of_stmts xs in
-            pr2 "Constness";
-            let mapping = Dataflow_svalue.fixpoint lang inputs flow in
-            Dataflow_svalue.update_svalue flow mapping;
-            DataflowY.display_mapping flow mapping
-              (Dataflow_var_env.env_to_str
-                 (Pretty_print_AST.svalue_to_string lang));
-            let s = AST_generic.show_any (S (H.funcbody_to_stmt def.fbody)) in
-            pr2 s);
-      }
+    object
+      inherit [_] AST_generic.iter_no_id_info
+
+      method! visit_function_definition _ def =
+        let inputs, xs = AST_to_IL.function_definition lang def in
+        let flow = CFG_build.cfg_of_stmts xs in
+        pr2 "Constness";
+        let mapping = Dataflow_svalue.fixpoint lang inputs flow in
+        Dataflow_svalue.update_svalue flow mapping;
+        DataflowY.display_mapping flow mapping
+          (Dataflow_var_env.env_to_str (Pretty_print_AST.svalue_to_string lang));
+        let s = AST_generic.show_any (S (H.funcbody_to_stmt def.fbody)) in
+        pr2 s
+    end
   in
-  v (Pr ast)
+  v#visit_program () ast
 
 let actions ~parse_program =
   [
