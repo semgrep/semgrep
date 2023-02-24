@@ -1,5 +1,6 @@
-Taint: `pattern-propagators` now have optional fields `requires` and `label`, which are used identically to their counterparts
-in `pattern-sources` and `pattern-sinks`.
+Taint: `pattern-propagators` now have optional fields `requires` and `label`,
+which are used identically to their counterparts in `pattern-sources` and `
+pattern-sinks`.
 
 For instance, we can define:
 ```
@@ -11,8 +12,9 @@ pattern-propagators:
     requires: A
     label: B
 ```
-to denote a propagator which only propagates from $FROM to $TO if $FROM has taint label A. In addition, it also taints $TO
-with label B.
+to denote a propagator which only propagates from $FROM to $TO if $FROM has
+taint label A. In addition, it converts the taint from $TO to have label B.
 
-If `label` is not specified, the `to` is tainted with the same label of taint that $FROM has. If `requires` is not specified,
-it does not require $FROM to have a particular label of taint.
+If `label` is not specified, the `to` is tainted with the same label of taint
+that $FROM has. If `requires` is not specified, it does not require $FROM to
+have a particular label of taint.
