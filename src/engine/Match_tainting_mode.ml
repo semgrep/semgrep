@@ -150,11 +150,65 @@ module Formula_tbl = struct
   let cached_find_opt formula_cache formula compute_matches_fn =
     match find_opt formula_cache formula with
     | None ->
+        (* if it's not in the formula table at all, then don't
+           bother caching, just compute and move on
+
+           See [get_shared_formulas] above.
+        *)
+        compute_matches_fn ()
+    | Some None ->
+        (* if it's in the table, but is not yet cached, then
+           compute and add it into the table.
+        *)
         let ranges, expls = compute_matches_fn () in
-        add formula_cache formula (ranges, expls);
+        replace formula_cache formula (Some (ranges, expls));
         (ranges, expls)
-    | Some (ranges, expls) -> (ranges, expls)
+    | Some (Some (ranges, expls)) -> (ranges, expls)
 end
+
+(* This function is for creating a formula cache which only caches formula that
+   it knows will be shared, at least once, among the formula in a bunch of
+   taint rules.
+
+   This is because it's obviously not useful to cache a formula's matches if
+   that formula never comes up again. This cache stores an option, with keys
+   that are only formula that are guaranteed to appear more than once in the
+   collection.
+*)
+let mk_specialized_formula_cache (rules : Rule.taint_rule list) =
+  let count_tbl = Formula_tbl.create 128 in
+  let flat_formulas =
+    rules
+    |> List.concat_map (fun rule ->
+           let (`Taint (spec : R.taint_spec)) = rule.R.mode in
+           Common.map (fun source -> source.R.source_formula) (snd spec.sources)
+           @ Common.map
+               (fun sanitizer -> sanitizer.R.sanitizer_formula)
+               spec.sanitizers
+           @ Common.map (fun sink -> sink.R.sink_formula) (snd spec.sinks)
+           @ Common.map
+               (fun propagator -> propagator.R.propagator_formula)
+               spec.propagators)
+  in
+  flat_formulas
+  |> List.iter (fun formula ->
+         match Formula_tbl.find_opt count_tbl formula with
+         | None -> Formula_tbl.add count_tbl formula 1
+         | Some x -> Formula_tbl.replace count_tbl formula (1 + x));
+  (* This new table will map each formula which exhibits sharing
+     to `None`.
+     This way, we know a priori which keys are actually worth
+     sharing. If a formula is used only once, then we will not
+     spuriously store it in the `new_tbl`.
+  *)
+  let new_tbl = Formula_tbl.create 128 in
+  Formula_tbl.iter
+    (fun k v ->
+      (* if it's worth sharing, keep it in the new table as None
+     *)
+      if v > 1 then Formula_tbl.add new_tbl k None)
+    count_tbl;
+  new_tbl
 
 (*****************************************************************************)
 (* Finding matches for taint specs *)
@@ -687,7 +741,7 @@ let check_rules ~match_hook
      In particular, this expects to see big gains due to shared propagators,
      in Semgrep Pro. There may be some benefit in OSS, but it's low-probability.
   *)
-  let formula_cache = Formula_tbl.create 128 in
+  let formula_cache = mk_specialized_formula_cache rules in
 
   rules
   |> Common.map (fun rule ->
