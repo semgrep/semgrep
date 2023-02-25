@@ -1,14 +1,11 @@
-import json
 from pathlib import Path
 from textwrap import dedent
 
 import pytest
 
 import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import parse_config_string
 from semgrep.constants import RuleSeverity
-from semgrep.dependency_aware_rule import SCA_FINDING_SCHEMA
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
@@ -31,6 +28,7 @@ def eqeq_rule() -> Rule:
         None,
     )
     return Rule.from_yamltree(config["testfile"].value["rules"].value[0])
+
 
 @pytest.fixture
 def double_eqeq_rule() -> Rule:
@@ -67,7 +65,9 @@ def foo_contents() -> str:
     ).lstrip()
 
 
-def get_rule_match(filepath="foo.py", start_line=3, end_line=3, rule_id="rule_id", metavars={}) -> RuleMatch:
+def get_rule_match(
+    filepath="foo.py", start_line=3, end_line=3, rule_id="rule_id", metavars=None
+) -> RuleMatch:
     return RuleMatch(
         message="message",
         severity=RuleSeverity.ERROR,
@@ -75,15 +75,17 @@ def get_rule_match(filepath="foo.py", start_line=3, end_line=3, rule_id="rule_id
             rule_id=core.RuleId(rule_id),
             location=core.Location(
                 path=filepath,
-                start=core.Position(start_line, 0, start_line*5),
-                end=core.Position(end_line, 5, end_line*5 + 5),
+                start=core.Position(start_line, 0, start_line * 5),
+                end=core.Position(end_line, 5, end_line * 5 + 5),
             ),
             extra=core.CoreMatchExtra(
-                metavars=core.Metavars(metavars), engine_kind=core.EngineKind(core.OSS())
+                metavars=core.Metavars(metavars if metavars else {}),
+                engine_kind=core.EngineKind(core.OSS()),
             ),
         ),
-        extra={"metavars": metavars}
+        extra={"metavars": metavars if metavars else {}},
     )
+
 
 @pytest.mark.quick
 def test_code_hash_independent_of_filepath(mocker, foo_contents):
@@ -106,6 +108,7 @@ def test_code_hash_independent_of_rulename(mocker, foo_contents):
     assert match_1.code_hash == match_2.code_hash
     assert match_1.pattern_hash == match_2.pattern_hash
 
+
 @pytest.mark.quick
 def test_code_hash_independent_of_index(mocker, eqeq_rule, foo_contents):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
@@ -114,7 +117,7 @@ def test_code_hash_independent_of_index(mocker, eqeq_rule, foo_contents):
     matches = RuleMatchSet(eqeq_rule)
     matches.update([match_1, match_2])
     matches = list(sorted(matches))
-    # Adding a RuleMatch to a RuleMatchSet does not update the index of the 
+    # Adding a RuleMatch to a RuleMatchSet does not update the index of the
     # original RuleMatch object, instead it creates a copy of each RuleMatch
     # that gets added to the set, and updates those indexes
     assert matches[0].index == 0
@@ -128,12 +131,16 @@ def test_code_hash_independent_of_index(mocker, eqeq_rule, foo_contents):
 @pytest.mark.quick
 def test_code_hash_changes_with_code(mocker, eqeq_rule, foo_contents):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
-    match_1 = get_rule_match(start_line=3, end_line=3, metavars={'$X': {'abstract_content': '5'}})
-    match_2 = get_rule_match(start_line=5, end_line=5, metavars={'$X': {'abstract_content': '6'}})
+    match_1 = get_rule_match(
+        start_line=3, end_line=3, metavars={"$X": {"abstract_content": "5"}}
+    )
+    match_2 = get_rule_match(
+        start_line=5, end_line=5, metavars={"$X": {"abstract_content": "6"}}
+    )
     matches = RuleMatchSet(eqeq_rule)
     matches.update([match_1, match_2])
     matches = list(sorted(matches))
-    # Adding a RuleMatch to a RuleMatchSet does not update the index of the 
+    # Adding a RuleMatch to a RuleMatchSet does not update the index of the
     # original RuleMatch object, instead it creates a copy of each RuleMatch
     # that gets added to the set, and updates those indexes
     assert matches[0].index == 0
@@ -141,11 +148,12 @@ def test_code_hash_changes_with_code(mocker, eqeq_rule, foo_contents):
     assert matches[0].code_hash != matches[1].code_hash
     assert matches[0].pattern_hash != matches[1].pattern_hash
 
+
 @pytest.mark.quick
 def test_line_hashes_hash_correct_line(mocker, double_eqeq_rule, foo_contents):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
-    match_1 = get_rule_match(start_line=4, end_line=5) # 5 == 5\n6 == 6\n
-    match_2 = get_rule_match(start_line=5, end_line=6) # 6 == 6\n5 == 5\n
+    match_1 = get_rule_match(start_line=4, end_line=5)  # 5 == 5\n6 == 6\n
+    match_2 = get_rule_match(start_line=5, end_line=6)  # 6 == 6\n5 == 5\n
     matches = RuleMatchSet(double_eqeq_rule)
     matches.update([match_1, match_2])
     matches = list(sorted(matches))
