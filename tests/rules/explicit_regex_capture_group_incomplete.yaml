@@ -1,0 +1,23 @@
+rules:
+  - id: explicit-regex-capture-group 
+    patterns:
+      - pattern-regex: "one (.*) (.*) two (.*) (.*) three (.*) (.*)"
+        $6: $Y
+        $2: $Z
+        $4: $X
+      - metavariable-regex:
+          metavariable: $Z
+          regex: "A2"
+      - metavariable-regex:
+          metavariable: $X
+          regex: "B2"
+      - metavariable-regex:
+          metavariable: $Y
+          regex: "C2"
+    message: |
+      We should be able to rename metavariables properly,
+      even if we only name some of the ones that are captured,
+      and in a different order. 
+    languages:
+      - python 
+    severity: WARNING
