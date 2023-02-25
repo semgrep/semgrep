@@ -46,7 +46,7 @@ type 'tok tokens_state = {
 (* Entry points *)
 (*****************************************************************************)
 
-type input_stream = Str of string | File of Common.filename
+type input_source = Str of string | File of Common.filename
 
 let mk_tokens_state toks =
   {
@@ -300,8 +300,8 @@ let tokenize_and_adjust_pos lexbuf table filename tokenizer visitor_tok is_eof =
   in
   tokens_aux []
 
-let tokenize_all_and_adjust_pos input_stream tokenizer visitor_tok is_eof =
-  match input_stream with
+let tokenize_all_and_adjust_pos input_source tokenizer visitor_tok is_eof =
+  match input_source with
   | Str str ->
       let lexbuf = Lexing.from_string str in
       let table = full_charpos_to_pos_str str in

@@ -39,7 +39,7 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (*****************************************************************************)
 (* Lexing only *)
 (*****************************************************************************)
-let tokens2 ?(init_state = Lexer_php.INITIAL) input_stream =
+let tokens2 ?(init_state = Lexer_php.INITIAL) input_source =
   Lexer_php.reset ();
   Lexer_php._mode_stack := [ init_state ];
 
@@ -69,7 +69,7 @@ let tokens2 ?(init_state = Lexer_php.INITIAL) input_stream =
       Lexer_php._last_non_whitespace_like_token := Some tok;
     tok
   in
-  Parsing_helpers.tokenize_all_and_adjust_pos input_stream token
+  Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
 
 let tokens ?init_state a =

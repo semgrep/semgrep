@@ -40,4 +40,4 @@ val extract_macros :
 (* todo: init_defs_macros and init_defs_builtins *)
 
 (* subsystem testing *)
-val tokens : Parsing_helpers.input_stream -> Parser_cpp.token list
+val tokens : Parsing_helpers.input_source -> Parser_cpp.token list

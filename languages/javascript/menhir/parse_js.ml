@@ -156,7 +156,7 @@ let asi_insert charpos last_charpos_error tr
 (* Lexing only *)
 (*****************************************************************************)
 
-let tokens input_stream =
+let tokens input_source =
   Lexer_js.reset ();
   let token lexbuf =
     let tok =
@@ -172,7 +172,7 @@ let tokens input_stream =
       Lexer_js._last_non_whitespace_like_token := Some tok;
     tok
   in
-  Parsing_helpers.tokenize_all_and_adjust_pos input_stream token
+  Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 

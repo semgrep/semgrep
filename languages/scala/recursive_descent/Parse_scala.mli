@@ -10,4 +10,4 @@ val parse_program : Common.filename -> AST_scala.program
 val any_of_string : string -> AST_scala.any
 
 (* internal *)
-val tokens : Parsing_helpers.input_stream -> Parser_scala.token list
+val tokens : Parsing_helpers.input_source -> Parser_scala.token list

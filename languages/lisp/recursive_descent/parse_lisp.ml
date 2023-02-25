@@ -48,9 +48,9 @@ type program_and_tokens = Ast_lisp.program option * Parser_lisp.token list
 (* could factorize and take the tokenf and visitor_of_infof in argument
  * but sometimes copy-paste is ok.
  *)
-let tokens input_stream =
+let tokens input_source =
   let token = Lexer_lisp.token in
-  Parsing_helpers.tokenize_all_and_adjust_pos input_stream token
+  Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 
