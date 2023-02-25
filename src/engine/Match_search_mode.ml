@@ -532,10 +532,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
          let bindings = r.RM.mvars in
          match cond with
          | R.CondEval e ->
-             let env =
-               Eval_generic.bindings_to_env env.xtarget.file env.xconf.config
-                 bindings
-             in
+             let env = Eval_generic.bindings_to_env env.xconf.config bindings in
              Eval_generic.eval_bool env e |> map_bool r
          | R.CondNestedFormula (mvar, opt_lang, formula) -> (
              (* TODO: could return expl for nested matching! *)
@@ -553,6 +550,8 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
           * the text representation of the metavar content.
           *)
          | R.CondRegexp (mvar, (re_str, _renames), const_prop) ->
+             (* TODO: allow renames for capture groups in metavariable-regex
+              *)
              let fk = PI.unsafe_fake_info "" in
              let fki = AST_generic.empty_id_info () in
              let e =
@@ -586,10 +585,8 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              let config = env.xconf.config in
              let env =
                if const_prop && config.constant_propagation then
-                 Eval_generic.bindings_to_env env.xtarget.file config bindings
-               else
-                 Eval_generic.bindings_to_env_just_strings env.xtarget.file
-                   config bindings
+                 Eval_generic.bindings_to_env config bindings
+               else Eval_generic.bindings_to_env_just_strings config bindings
              in
              Eval_generic.eval_bool env e |> map_bool r
          | R.CondAnalysis (mvar, CondEntropy) ->

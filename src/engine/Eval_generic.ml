@@ -53,11 +53,7 @@ type value =
 (* less: Id of string (* simpler to merge with AST *) *)
 [@@deriving show]
 
-type env = {
-  mvars : (MV.mvar, value) Hashtbl.t;
-  constant_propagation : bool;
-  file : string;
-}
+type env = { mvars : (MV.mvar, value) Hashtbl.t; constant_propagation : bool }
 
 (* we restrict ourselves to simple expressions for now *)
 type code = AST_generic.expr
@@ -107,7 +103,6 @@ let parse_json file =
             {
               mvars = Common.hash_of_list metavars;
               constant_propagation = true;
-              file;
             }
           in
           (env, code)
@@ -234,14 +229,7 @@ let rec eval env code =
           let v = Bool res in
           logger#info "regexp %s on %s return %s" re s (show_value v);
           v
-      | _ -> raise (NotHandled code)
-      (*
-           match eval_regexp_to_bindings env re e2 [] with
-      | None -> Bool false
-      | Some _ -> Bool true
-      )
-      *)
-      )
+      | _ -> raise (NotHandled code))
   | _ -> raise (NotHandled code)
 
 and eval_op op values code =
@@ -327,27 +315,6 @@ and eval_str _env ~code v =
   in
   String str
 
-and _eval_regexp_to_bindings env re e renames =
-  (* alt: take the text range of the metavariable in the original file,
-     * and enforce e1 can only be an Id metavariable.
-     * alt: let s = value_to_string v in
-     * to convert anything in a string before using regexps on it
-  *)
-  let v = eval env e in
-  match v with
-  | String s -> (
-      (* todo? factorize with Matching_generic.regexp_matcher_of_regexp_.. *)
-      (* let regexp = SPcre.regexp ~flags:[ `ANCHORED ] re in
-       *)
-      let regexp = Regexp_engine.pcre_compile re in
-      let results =
-        Xpattern_match_regexp.regexp_matcher s env.file (regexp, renames)
-      in
-      match results with
-      | [] -> None
-      | results -> Some (Common.map snd results))
-  | _ -> None
-
 (*****************************************************************************)
 (* Env builders *)
 (*****************************************************************************)
@@ -395,7 +362,7 @@ let string_of_binding mvar mval =
   let* x = text_of_binding mvar mval in
   Some (mvar, AST x)
 
-let bindings_to_env file (config : Config_semgrep.t) bindings =
+let bindings_to_env (config : Config_semgrep.t) bindings =
   let constant_propagation = config.constant_propagation in
   let mvars =
     bindings
@@ -404,9 +371,7 @@ let bindings_to_env file (config : Config_semgrep.t) bindings =
              try
                Some
                  ( mvar,
-                   eval
-                     { mvars = Hashtbl.create 0; constant_propagation; file }
-                     e )
+                   eval { mvars = Hashtbl.create 0; constant_propagation } e )
              with
              | NotHandled _
              | NotInEnv _ ->
@@ -430,15 +395,15 @@ let bindings_to_env file (config : Config_semgrep.t) bindings =
            | x -> string_of_binding mvar x)
     |> Common.hash_of_list
   in
-  { mvars; constant_propagation; file }
+  { mvars; constant_propagation }
 
-let bindings_to_env_just_strings file (config : Config_semgrep.t) xs =
+let bindings_to_env_just_strings (config : Config_semgrep.t) xs =
   let mvars =
     xs
     |> Common.map_filter (fun (mvar, mval) -> string_of_binding mvar mval)
     |> Common.hash_of_list
   in
-  { mvars; constant_propagation = config.constant_propagation; file }
+  { mvars; constant_propagation = config.constant_propagation }
 
 (*****************************************************************************)
 (* Entry points *)

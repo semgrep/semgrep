@@ -237,13 +237,15 @@ let dict_to_regex_renames env dict =
   Common.hash_to_list dict.h
   |> List.filter_map (fun (s, (_, expr)) ->
          match expr.G.e with
-         | G.L (String (_, (s', _), _)) -> Some (s, s')
-         | _ when Metavariable.is_metavar_for_capture_group s ->
-             (* If we're mapping $1 to something that is not itself a string,
-                this doesn't make sense, since we expect a metavariable name.
-             *)
-             error env dict.first_tok
-               (spf "Expected string for rename of %s in pattern-regex" s)
+         | _ when Metavariable.is_metavar_for_capture_group s -> (
+             match expr.G.e with
+             | G.L (String (_, (s', _), _)) -> Some (s, s')
+             | __else__ ->
+                 (* If we're mapping $1 to something that is not itself a string,
+                      this doesn't make sense, since we expect a metavariable name.
+                 *)
+                 error env dict.first_tok
+                   (spf "Expected string for rename of %s in pattern-regex" s))
          | __else__ -> None)
 
 (*****************************************************************************)
@@ -438,6 +440,22 @@ let parse_regexp_xpattern env (s, t) dict_opt : string * (string * string) list
    * the raw string, see notes attached to 'Xpattern.xpattern_kind'. *)
   try
     ignore (Regexp_engine.pcre_compile s);
+    (* We use the ambient dictionary that we found this `pattern-regex` or
+       `metavariable-regex` from, in order to look for explicitly-introduced
+       regex metavariables. These look like:
+
+       pattern-regex: "one (.*) two (.*)"
+       $1: $A
+       $2: $B
+
+       which introduces the first regex capture group metavar as $A,
+       and the second as $B
+
+       Since regex metavariables (like $1 and $2) are not actually proper
+       metavariable names, by our naming schema, we must change them to a
+       name which is. To make sure old rules don't silently break, we enforce
+       that any such metavariables must be explicitly named.
+    *)
     let renames =
       match dict_opt with
       | None -> []
@@ -694,7 +712,15 @@ and parse_pair_old env ((key, value, dict) : key * G.expr * dict) : R.formula =
     | Left (value, t) when allow_string ->
         R.P (parse_xpattern env (value, t) None)
     | Left _ -> error_at_expr env x "Expected dictionary, not a string!"
-    | Right dict -> parse_pair_old env (find_formula_old env dict)
+    | Right dict ->
+        (* Whereas previously we could assume this would be a singleton dictionary,
+           the addition of "explicit regex metavariable introduction" (see the
+           `parse_regex` case below) means that this is no longer a safe assumption.
+
+           This means that we have no choice but to search for which pattern we're
+           looking at.
+        *)
+        parse_pair_old env (find_formula_old env dict)
   in
   let get_nested_formula_in_list env key i x =
     let env = { env with path = string_of_int i :: env.path } in
