@@ -164,11 +164,11 @@ let dump_tree_sitter_cst lang file =
   | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
       Tree_sitter_tsx.Parse.file file
-      |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_tsx.Boilerplate.dump_tree
   | Lang.Ts ->
       (* Typescript is mostly a subset of TSX *)
       Tree_sitter_tsx.Parse.file file
-      |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_tsx.Boilerplate.dump_tree
   | Lang.Lua ->
       Tree_sitter_lua.Parse.file file
       |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
