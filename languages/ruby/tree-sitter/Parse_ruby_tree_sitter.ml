@@ -15,6 +15,7 @@
 open Common
 module AST = Ast_ruby
 module CST = Tree_sitter_ruby.CST
+module Boilerplate = Tree_sitter_ruby.Boilerplate
 module PI = Parse_info
 open Ast_ruby
 module G = AST_generic
@@ -64,7 +65,7 @@ let true_ (env : env) (tok : CST.true_) : bool wrap = (true, token2 env tok)
 let nil (env : env) (tok : CST.nil) : tok = token2 env tok
 
 let operator (env : env) (x : CST.operator) =
-  match x with
+  match x with 
   | `DOTDOT tok -> (Left Op_DOT2, token2 env tok)
   | `BAR tok -> (Left Op_BOR, token2 env tok)
   | `HAT tok -> (Left Op_XOR, token2 env tok)
@@ -1060,7 +1061,7 @@ and scope_resolution (env : env) ((v1, v2) : CST.scope_resolution) :
   let v1 =
     match v1 with
     | `COLONCOLON tok -> fun e -> TopScope (token2 env tok, e)
-    | `Prim_imm_tok_COLONCOLON (v1, v2) ->
+    | `Prim_imm_tok_colo (v1, v2) ->
         let v1 = primary env v1 in
         let v2 = token2 env v2 in
         fun e -> Scope (v1, v2, SV e)
@@ -1072,7 +1073,21 @@ and scope_resolution (env : env) ((v1, v2) : CST.scope_resolution) :
   in
   v1 v2
 
-and anon_choice_id_5ca805c (env : env) (x : CST.anon_choice_id_5ca805c) =
+and anon_choice_for_call_no_id(env : env) x =
+  match x with
+  | `Id tok -> (MethodId (str env tok, ID_Lowercase), None)
+  | `Op x -> (
+      let op = operator env x in
+      match op with
+      | Left bin, t -> (MethodOperator (bin, t), None)
+      | Right un, t -> (MethodUOperator (un, t), None))
+  | `Cst tok -> (MethodId (str env tok, ID_Uppercase), None)
+  | `Arg_list x ->
+      (* ex: block.(), to call the block *)
+      let l, xs, r = argument_list env x in
+      (MethodSpecialCall (l, (), r), Some (l, xs, r))
+
+  and anon_choice_for_command_call_no_id (env : env) x =
   match x with
   | `Id tok -> (MethodId (str env tok, ID_Lowercase), None)
   | `Op x -> (
@@ -1089,7 +1104,7 @@ and anon_choice_id_5ca805c (env : env) (x : CST.anon_choice_id_5ca805c) =
 and call (env : env) ((v1, v2, v3) : CST.call) =
   let v1 = primary env v1 in
   let v2 = anon_choice_DOT_5431c66 env v2 in
-  let v3, args_opt = anon_choice_id_5ca805c env v3 in
+  let v3, args_opt = anon_choice_for_call_no_id env v3 in
   match args_opt with
   | None -> DotAccess (v1, v2, v3)
   | Some xs -> Call (DotAccess (v1, v2, v3), xs, None)
@@ -1098,7 +1113,7 @@ and chained_command_call (env : env) ((v1, v2, v3) : CST.chained_command_call) :
     AST.expr =
   let v1 = command_call_with_block env v1 in
   let v2 = anon_choice_DOT_5431c66 env v2 in
-  let v3, args_opt = anon_choice_id_5ca805c env v3 in
+  let v3, args_opt = anon_choice_for_command_call_no_id env v3 in
   match args_opt with
   | None -> DotAccess (v1, v2, v3)
   | Some xs -> Call (DotAccess (v1, v2, v3), xs, None)
@@ -1638,7 +1653,7 @@ and pair (env : env) (x : CST.pair) =
       let v3 = arg env v3 in
       (* will be converted to ArgKwd in ruby_to_generic.ml if needed *)
       Left (Binop (v1, (Op_ASSOC, v2), v3))
-  | `Choice_hash_key_symb_imm_tok_COLON_arg (v1, v2, v3) -> (
+  | `Choice_hash_key_symb_imm_tok_colon_arg (v1, v2, v3) -> (
       let v1 =
         match v1 with
         | `Hash_key_symb tok -> Id (str env tok, ID_Lowercase)
@@ -1679,7 +1694,16 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       (if debug then
-       let sexp = CST.sexp_of_program cst in
-       let s = Sexplib.Sexp.to_string_hum sexp in
-       print_endline s);
+       Boilerplate.dump_tree cst);
       program env cst)
+
+let parse_pattern string =
+  let debug = false in
+  H.wrap_parser
+    (fun () -> Tree_sitter_ruby.Parse.string string)
+    (fun cst ->
+      let file = "<file>" in
+      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      (if debug then
+       Boilerplate.dump_tree cst);
+      Ss (program env cst))

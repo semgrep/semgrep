@@ -115,8 +115,10 @@ let wrap_parser tree_sitter_parser ast_mapper =
   let program =
     match res.program with
     | Some cst ->
-        if res.errors <> [] then
-          logger#error "Partial errors returned by Tree-sitter parser";
+        if res.errors <> [] then (
+          let error_strs = List.map (fun err -> err.Tree_sitter_run.Tree_sitter_error.msg) res.errors in
+          let error_str = String.concat "\n" error_strs in
+          logger#error "Partial errors returned by Tree-sitter parser\n%s" error_str);
         Some (ast_mapper cst)
     | None -> None
   in
