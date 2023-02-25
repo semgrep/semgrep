@@ -65,7 +65,7 @@ let true_ (env : env) (tok : CST.true_) : bool wrap = (true, token2 env tok)
 let nil (env : env) (tok : CST.nil) : tok = token2 env tok
 
 let operator (env : env) (x : CST.operator) =
-  match x with 
+  match x with
   | `DOTDOT tok -> (Left Op_DOT2, token2 env tok)
   | `BAR tok -> (Left Op_BOR, token2 env tok)
   | `HAT tok -> (Left Op_XOR, token2 env tok)
@@ -1073,7 +1073,7 @@ and scope_resolution (env : env) ((v1, v2) : CST.scope_resolution) :
   in
   v1 v2
 
-and anon_choice_for_call_no_id(env : env) x =
+and anon_choice_for_call_no_id (env : env) x =
   match x with
   | `Id tok -> (MethodId (str env tok, ID_Lowercase), None)
   | `Op x -> (
@@ -1087,7 +1087,7 @@ and anon_choice_for_call_no_id(env : env) x =
       let l, xs, r = argument_list env x in
       (MethodSpecialCall (l, (), r), Some (l, xs, r))
 
-  and anon_choice_for_command_call_no_id (env : env) x =
+and anon_choice_for_command_call_no_id (env : env) x =
   match x with
   | `Id tok -> (MethodId (str env tok, ID_Lowercase), None)
   | `Op x -> (
@@ -1693,8 +1693,7 @@ let parse file =
     (fun () -> Tree_sitter_ruby.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      (if debug then
-       Boilerplate.dump_tree cst);
+      if debug then Boilerplate.dump_tree cst;
       program env cst)
 
 let parse_pattern string =
@@ -1704,6 +1703,5 @@ let parse_pattern string =
     (fun cst ->
       let file = "<file>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      (if debug then
-       Boilerplate.dump_tree cst);
+      if debug then Boilerplate.dump_tree cst;
       Ss (program env cst))
