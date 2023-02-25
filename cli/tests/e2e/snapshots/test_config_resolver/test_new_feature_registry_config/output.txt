@@ -18,6 +18,6 @@ semgrep error: Invalid rule schema
 5 |   languages: [python]
 6 |   severity: ERROR
 
-Additional properties are not allowed ('pattern-new-feature' was unexpected)
+'pattern-new-feature' does not match any of the regexes: '^\\$([0-9]+)$'
 
 [ERROR] invalid configuration file found (1 configs were invalid)
