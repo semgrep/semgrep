@@ -124,8 +124,10 @@ let partition_xpatterns xs =
          match pat with
          | XP.Sem (x, _lang) -> Common.push (x, inside, pid, str) semgrep
          | XP.Spacegrep x -> Common.push (x, pid, str) spacegrep
-         | XP.Regexp x ->
-             Common.push (Regexp_engine.pcre_compile x, pid, str) regexp
+         | XP.Regexp (x, renames) ->
+             Common.push
+               ((Regexp_engine.pcre_compile x, renames), pid, str)
+               regexp
          | XP.Comby x -> Common.push (x, pid, str) comby);
   (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp, List.rev !comby)
 
@@ -547,7 +549,9 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
           * which may not always be a string. The regexp is really done on
           * the text representation of the metavar content.
           *)
-         | R.CondRegexp (mvar, re_str, const_prop) ->
+         | R.CondRegexp (mvar, (re_str, _renames), const_prop) ->
+             (* TODO: allow renames for capture groups in metavariable-regex
+              *)
              let fk = PI.unsafe_fake_info "" in
              let fki = AST_generic.empty_id_info () in
              let e =
