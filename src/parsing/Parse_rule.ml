@@ -987,13 +987,7 @@ and parse_formula env (value : G.expr) : R.formula =
         take_opt dict env (fun _env key value -> (key, value)) "where"
       in
       match where_formula with
-      (* If there's a `where`, then there must be one key left, the other of which is the
-         pattern. *)
-      | _ when Hashtbl.length dict.h <> 1 ->
-          error env dict.first_tok
-            "Expected exactly one key of `pattern`, `pattern-either`, \
-             `patterns`, `pattern-regex`, or `pattern-comby`"
-      (* Otherwise, use the where formula if it exists, to modify the formula we know must exist. *)
+      (* Otherwise, use the where formula if it exists, to modify the formula, if it exists. *)
       | None -> parse_pair env (find_formula env dict)
       | Some (((_, t) as key), value) ->
           parse_pair env (find_formula env dict)
