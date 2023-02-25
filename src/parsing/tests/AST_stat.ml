@@ -21,8 +21,11 @@ let stat (ast : G.program) : t =
         ktype_ = count_ordinary_node;
         kpattern = count_ordinary_node;
         kfield = count_ordinary_node;
-        kfields = count_ordinary_node;
-        kpartial = count_ordinary_node;
+        (* Fields are also visited individually *)
+        kfields = (fun (k, _) x -> k x);
+        (* Partial nodes are generated for matching and will lead to
+         * double-counting *)
+        kpartial = (fun _ _ -> ());
         kdef = count_ordinary_node;
         kdir = count_ordinary_node;
         kattr = count_ordinary_node;
@@ -32,7 +35,8 @@ let stat (ast : G.program) : t =
         kident = count_ordinary_node;
         kname = count_ordinary_node;
         kentity = count_ordinary_node;
-        kstmts = count_ordinary_node;
+        (* Statements are also visited individually *)
+        kstmts = (fun (k, _) x -> k x);
         kfunction_definition = count_ordinary_node;
         kclass_definition = count_ordinary_node;
         kinfo = count_ordinary_node;
