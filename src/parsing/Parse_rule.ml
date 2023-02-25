@@ -239,7 +239,11 @@ let dict_to_regex_renames env dict =
          match expr.G.e with
          | _ when Metavariable.is_metavar_for_capture_group s -> (
              match expr.G.e with
-             | G.L (String (_, (s', _), _)) -> Some (s, s')
+             | G.L (String (_, (s', _), _)) ->
+                 if Metavariable.is_metavar_name s' then Some (s, s')
+                 else
+                   error env dict.first_tok
+                     (spf "%s not a valid rename for %s in pattern-regex" s' s)
              | __else__ ->
                  (* If we're mapping $1 to something that is not itself a string,
                       this doesn't make sense, since we expect a metavariable name.
