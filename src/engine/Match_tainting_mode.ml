@@ -147,11 +147,11 @@ module Formula_tbl = struct
     let hash = Rule.hash_formula
   end)
 
-  let cached_find_opt formula_cache formula cont =
+  let cached_find_opt formula_cache formula compute_matches_fn =
     match find_opt formula_cache formula with
     | None ->
-        let ranges, expls = cont () in
-        replace formula_cache formula (ranges, expls);
+        let ranges, expls = compute_matches_fn () in
+        add formula_cache formula (ranges, expls);
         (ranges, expls)
     | Some (ranges, expls) -> (ranges, expls)
 end
