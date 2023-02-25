@@ -16,15 +16,10 @@ type t
    until the patterns of all the gitignore files in the folder were scanned.
 *)
 val create :
-  ?gitignore_filenames:string list ->
-  project_root:Fpath.t ->
-  unit -> t
+  ?gitignore_filenames:string list -> project_root:Fpath.t -> unit -> t
 
 (*
    Load the .gitignore files applicable to target files in the given
    folder.
 *)
-val load :
-  t ->
-  Git_path.t ->
-  Gitignore_level.t
+val load : t -> Git_path.t -> Gitignore_level.t option

@@ -36,7 +36,10 @@
      plan)
 *)
 
-type t = Gitignore_filter.t
+type t = {
+  include_filter : Include_filter.t option;
+  gitignore_filter : Gitignore_filter.t;
+}
 
 (*
    TODO: Preprocess a file to expand ':include' directives before parsing it
@@ -45,46 +48,37 @@ type t = Gitignore_filter.t
    Honor them with a deprecation warning.
 *)
 
-let create ?includes ?(excludes = []) ~project_root () =
+let create ?include_patterns ?(cli_patterns = []) ~project_root () =
   if Fpath.is_rel project_root then
     invalid_arg
       ("Semgrepignore.create needs an absolute path: "
       ^ Fpath.to_string project_root);
+  let include_filter =
+    match include_patterns with
+    | None -> None
+    | Some include_patterns ->
+        Some (Include_filter.create ~project_root include_patterns)
+  in
   let root_anchor = Glob_matcher.root_pattern in
-  let patterns =
-    let include_selectors =
-      match includes with
-      | None -> []
-      | Some deexclude_patterns ->
-          (* --include means "exclude everything except these patterns" *)
-          let exclude_any =
-            Gitignore_syntax.from_string ~anchor:root_anchor "**"
-          in
-          let deexclude =
-            List.concat_map
-              (fun str ->
-                Gitignore_syntax.from_string ~anchor:root_anchor ("!" ^ str))
-              deexclude_patterns
-          in
-          exclude_any @ deexclude
-    in
-    let exclude_selectors =
-      List.concat_map
-        (Gitignore_syntax.from_string ~anchor:root_anchor)
-        excludes
-    in
-    include_selectors @ exclude_selectors
+  let cli_patterns =
+    List.concat_map
+      (Gitignore_syntax.from_string ~name:"exclude pattern from command line"
+         ~anchor:root_anchor)
+      cli_patterns
   in
   let cli_level : Gitignore_level.t =
     {
       level_kind = "command-line includes/excludes";
       source_name = "<command line>";
-      patterns;
+      patterns = cli_patterns;
     }
   in
-  Gitignore_filter.create ~higher_priority_levels:[ cli_level ]
-    ~gitignore_filenames:[ ".gitignore"; ".semgrepignore" ]
-    ~project_root ()
+  let gitignore_filter =
+    Gitignore_filter.create ~higher_priority_levels:[ cli_level ]
+      ~gitignore_filenames:[ ".gitignore"; ".semgrepignore" ]
+      ~project_root ()
+  in
+  { include_filter; gitignore_filter }
 
 let select t path =
   (*
@@ -100,4 +94,13 @@ let select t path =
   if Git_path.is_relative git_path then
     failwith
       ("Semgrepignore.select: not an absolute path: " ^ Fpath.to_string path)
-  else Gitignore_filter.select t git_path
+  else
+    let status, sel_events =
+      match t.include_filter with
+      | None -> (Gitignore_filter.Not_ignored, [])
+      | Some include_filter -> Include_filter.select include_filter git_path
+    in
+    match status with
+    | Ignored -> (Gitignore_filter.Ignored, sel_events)
+    | Not_ignored ->
+        Gitignore_filter.select t.gitignore_filter sel_events git_path

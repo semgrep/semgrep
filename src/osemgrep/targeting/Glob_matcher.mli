@@ -14,7 +14,7 @@ type loc = {
 }
 
 (* Create a location from a pattern string rather than a location in a file. *)
-val string_loc : string -> loc
+val string_loc : ?source_name:string -> string -> loc
 val show_loc : loc -> string
 
 type char_class_range = Class_char of char | Range of char * char

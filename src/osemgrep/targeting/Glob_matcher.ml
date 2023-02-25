@@ -34,8 +34,8 @@ type component = Component of component_fragment list | Ellipsis
 type pattern = component list [@@deriving show]
 type t = { source : loc; re : Re.re }
 
-let string_loc pat =
-  { source_name = "<pattern>"; line_number = 0; line_contents = pat }
+let string_loc ?(source_name = "<pattern>") pat =
+  { source_name; line_number = 1; line_contents = pat }
 
 (* / *)
 let root_pattern = [ Component []; Component [] ]
@@ -112,7 +112,7 @@ let compile ~source pat =
   let re = map_root pat |> Re.compile in
   { source; re }
 
-let debug = false
+let debug = true
 
 let run matcher path =
   let res = Re.execp matcher.re path in

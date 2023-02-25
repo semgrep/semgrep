@@ -5,7 +5,7 @@
 type t = {
   project_root : Fpath.t;
   gitignore_filenames : string list;
-  cache : (string, Gitignore_level.t) Hashtbl.t;
+  cache : (string, Gitignore_level.t option) Hashtbl.t;
 }
 
 let create ?(gitignore_filenames = [ ".gitignore" ]) ~project_root () =
@@ -41,8 +41,17 @@ let load t dir_path =
             else acc)
           [] t.gitignore_filenames
       in
-      {
-        level_kind = "in-project gitignore files";
-        source_name = Fpath.to_string path;
-        patterns;
-      }
+      let res =
+        match patterns with
+        | [] -> None
+        | _ :: _ ->
+            Some
+              ({
+                 level_kind = "in-project gitignore files";
+                 source_name = Fpath.to_string path;
+                 patterns;
+               }
+                : Gitignore_level.t)
+      in
+      Hashtbl.add tbl key res;
+      res

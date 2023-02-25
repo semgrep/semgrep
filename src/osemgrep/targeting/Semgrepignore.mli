@@ -18,8 +18,8 @@ type t
    This is an instanciation of Gitignore_filter.t specific to Semgrep.
 *)
 val create :
-  ?includes:string list ->
-  ?excludes:string list ->
+  ?include_patterns:string list ->
+  ?cli_patterns:string list ->
   project_root:Fpath.t ->
   unit ->
   t

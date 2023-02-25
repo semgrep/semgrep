@@ -41,6 +41,22 @@ type t = path_selector list
 
    The anchor is the pattern that matches the path from the git project
    root to the work folder, typically the one containing the gitignore file.
+
+   The default selection mode is Ignore.
 *)
 val from_string : anchor:Glob_matcher.pattern -> ?name:string -> string -> t
 val from_file : anchor:Glob_matcher.pattern -> Fpath.t -> t
+
+(*
+   Remove the leading exclamation mark from the string, returning
+   'Some new_string' if successful, 'None' otherwise.
+*)
+val remove_negator : string -> string option
+
+(* Lower-level function that can be used to create custom matchers that
+   combine multiple patterns. *)
+val parse_pattern :
+  source:Glob_matcher.loc ->
+  anchor:Glob_matcher.pattern ->
+  string ->
+  Glob_matcher.t

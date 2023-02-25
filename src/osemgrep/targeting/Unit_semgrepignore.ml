@@ -29,7 +29,8 @@ let test_list (files : F.t list) () =
    .gitignore and .semgrepignore files but the target files are not
    needed.
 *)
-let test_filter ?includes ?excludes (files : F.t list) selection () =
+let test_filter ?includes:include_patterns ?excludes:cli_patterns
+    (files : F.t list) selection () =
   F.with_tempdir ~chdir:true (fun root ->
       let files = F.sort files in
       printf "--- All files ---\n";
@@ -39,7 +40,8 @@ let test_filter ?includes ?excludes (files : F.t list) selection () =
       assert (files2 = files);
       printf "--- Filtered files ---\n";
       let filter =
-        Semgrepignore.create ?includes ?excludes ~project_root:root ()
+        Semgrepignore.create ?include_patterns ?cli_patterns ~project_root:root
+          ()
       in
       let error = ref false in
       selection
@@ -158,5 +160,27 @@ let tests =
             ("/a.c", true);
             ("/b/a.ml", false);
             ("/b/a.c", true);
+          ] );
+      ( "includes + excludes",
+        test_filter ~includes:[ "/src" ] ~excludes:[ "*.c" ] []
+          [
+            ("/a.ml", false);
+            ("/a.c", false);
+            ("/src/a.ml", true);
+            ("/src/a.c", false);
+          ] );
+      ( "includes + excludes + semgrepignore",
+        test_filter ~includes:[ "/src" ] ~excludes:[ "*.c" ]
+          [
+            (* command-line level includes/excludes take precedence over
+               gitignore/semgrepignore files, so this is ignored. *)
+            File (".semgrepignore", "!b.*");
+          ]
+          [
+            ("/a.ml", false);
+            ("/a.c", false);
+            ("/src/a.ml", true);
+            ("/src/a.c", false);
+            ("/src/b.c", false);
           ] );
     ]

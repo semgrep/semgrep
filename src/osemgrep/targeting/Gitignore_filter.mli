@@ -39,4 +39,8 @@ val create :
    went through, in reverse order. The first element of the list, if any,
    determines whether the file is selected.
 *)
-val select : t -> Git_path.t -> status * Gitignore_syntax.selection_event list
+val select :
+  t ->
+  Gitignore_syntax.selection_event list ->
+  Git_path.t ->
+  status * Gitignore_syntax.selection_event list
