@@ -56,7 +56,7 @@ let mk_lexer filename input_source =
   let table =
     match input_source with
     | Parsing_helpers.File file ->
-        Parsing_helpers.full_charpos_to_pos_large file
+        Parsing_helpers.full_charpos_to_pos_large (Fpath.to_string file)
     | Parsing_helpers.Str str -> Parsing_helpers.full_charpos_to_pos_str str
   in
 
@@ -110,7 +110,7 @@ let parse2 opt_timeout file =
   let stat = Parsing_stat.default_stat file in
 
   Common.with_open_infile file (fun chan ->
-      let toks, lexer = mk_lexer file (Parsing_helpers.File file) in
+      let toks, lexer = mk_lexer file (Parsing_helpers.file file) in
       try
         (* -------------------------------------------------- *)
         (* Call parser *)

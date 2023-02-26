@@ -47,7 +47,7 @@ let parse filename =
   let stat = Parsing_stat.default_stat filename in
   let filelines = Common2.cat_array filename in
 
-  let toks = tokens (Parsing_helpers.File filename) in
+  let toks = tokens (Parsing_helpers.file filename) in
   let toks = Parsing_hacks_java.fix_tokens toks in
 
   let tr, lexer, lexbuf_fake =

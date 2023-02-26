@@ -12,7 +12,7 @@ let test_tokens_ml file =
   Flag.verbose_parsing := true;
   Flag.exn_when_lexical_error := true;
 
-  let toks = Parse_ml.tokens (Parsing_helpers.File file) in
+  let toks = Parse_ml.tokens (Parsing_helpers.file file) in
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 

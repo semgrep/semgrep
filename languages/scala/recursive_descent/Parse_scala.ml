@@ -56,7 +56,7 @@ let tokens input_source =
 (*****************************************************************************)
 let parse filename =
   let stat = Parsing_stat.default_stat filename in
-  let toks = tokens (Parsing_helpers.File filename) in
+  let toks = tokens (Parsing_helpers.file filename) in
 
   (*
   let tr, lexer, lexbuf_fake =

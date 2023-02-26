@@ -13,7 +13,7 @@ let test_tokens_php file =
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
 
-  let toks = Parse_php.tokens (Parsing_helpers.File file) in
+  let toks = Parse_php.tokens (Parsing_helpers.file file) in
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 

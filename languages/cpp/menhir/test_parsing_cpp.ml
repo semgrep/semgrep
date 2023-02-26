@@ -11,7 +11,7 @@ module Flag_cpp = Flag_parsing_cpp
 let test_tokens_cpp file =
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
-  let toks = Parse_cpp.tokens (Parsing_helpers.File file) in
+  let toks = Parse_cpp.tokens (Parsing_helpers.file file) in
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 
@@ -86,7 +86,7 @@ let test_dump_cpp file =
 let test_dump_cpp_full file =
   Parse_cpp.init_defs !Flag_cpp.macros_h;
   let ast = Parse_cpp.parse_program file in
-  let toks = Parse_cpp.tokens (Parsing_helpers.File file) in
+  let toks = Parse_cpp.tokens (Parsing_helpers.file file) in
   let _precision =
     { Meta_parse_info.full_info = true; type_info = false; token_info = true }
   in
@@ -104,7 +104,7 @@ let test_dump_cpp_full file =
 
 let test_dump_cpp_view file =
   Parse_cpp.init_defs !Flag_cpp.macros_h;
-  let toks_orig = Parse_cpp.tokens (Parsing_helpers.File file) in
+  let toks_orig = Parse_cpp.tokens (Parsing_helpers.file file) in
   let toks =
     toks_orig
     |> Common.exclude (fun x ->

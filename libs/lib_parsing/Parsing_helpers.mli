@@ -1,3 +1,8 @@
+type input_source = Str of string | File of Fpath.t
+
+(* just a shortcut for Parsing_helpers.File (Fpath.v s) *)
+val file : Common.filename -> input_source
+
 (* lexer helpers *)
 type 'tok tokens_state = {
   mutable rest : 'tok list;
@@ -5,10 +10,6 @@ type 'tok tokens_state = {
   (* it's passed since last "checkpoint", not passed from the beginning *)
   mutable passed : 'tok list;
 }
-
-(* NOTE something else we could use instead of this input_source
-   is Fpath.t. This was easier for a quick refactor. *)
-type input_source = Str of string | File of Common.filename
 
 val mk_tokens_state : 'tok list -> 'tok tokens_state
 val yyback : int -> Lexing.lexbuf -> unit
