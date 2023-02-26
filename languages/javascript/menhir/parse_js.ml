@@ -183,7 +183,7 @@ let tokens input_source =
 let parse2 opt_timeout filename =
   let stat = Parsing_stat.default_stat filename in
 
-  let toks = tokens (Parsing_helpers.File filename) in
+  let toks = tokens (Parsing_helpers.file filename) in
   let toks = Parsing_hacks_js.fix_tokens toks in
   let toks = Parsing_hacks_js.fix_tokens_ASI toks in
 

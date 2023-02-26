@@ -25,6 +25,10 @@ open Parse_info
 (* Types *)
 (*****************************************************************************)
 
+type input_source = Str of string | File of Fpath.t
+
+let file s = File (Fpath.v s)
+
 (* Many parsers need to interact with the lexer, or use tricks around
  * the stream of tokens, or do some error recovery, or just need to
  * pass certain tokens (like the comments token) which requires
@@ -45,8 +49,6 @@ type 'tok tokens_state = {
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
-
-type input_source = Str of string | File of Common.filename
 
 let mk_tokens_state toks =
   {
@@ -306,7 +308,8 @@ let tokenize_all_and_adjust_pos input_source tokenizer visitor_tok is_eof =
       let lexbuf = Lexing.from_string str in
       let table = full_charpos_to_pos_str str in
       tokenize_and_adjust_pos lexbuf table "<file>" tokenizer visitor_tok is_eof
-  | File file ->
+  | File path ->
+      let file = Fpath.to_string path in
       Common.with_open_infile file (fun chan ->
           let lexbuf = Lexing.from_channel chan in
           let table = full_charpos_to_pos_large file in

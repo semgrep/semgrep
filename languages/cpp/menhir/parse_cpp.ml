@@ -150,7 +150,7 @@ and multi_grouped_list_comma xs =
  *)
 let parse_fuzzy file =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      let toks_orig = tokens (Parsing_helpers.File file) in
+      let toks_orig = tokens (Parsing_helpers.file file) in
       let toks =
         toks_orig
         |> Common.exclude (fun x ->
@@ -175,7 +175,7 @@ let parse_fuzzy file =
 let extract_macros file =
   Common.save_excursion Flag.verbose_lexing false (fun () ->
       let toks =
-        tokens (* todo: ~profile:false *) (Parsing_helpers.File file)
+        tokens (* todo: ~profile:false *) (Parsing_helpers.file file)
       in
       let toks = Parsing_hacks_define.fix_tokens_define toks in
       Pp_token.extract_macros toks)
@@ -269,7 +269,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
   (* -------------------------------------------------- *)
   (* call lexer and get all the tokens *)
   (* -------------------------------------------------- *)
-  let toks_orig = tokens (Parsing_helpers.File file) in
+  let toks_orig = tokens (Parsing_helpers.file file) in
 
   let toks =
     try Parsing_hacks.fix_tokens ~macro_defs:_defs lang toks_orig with
@@ -494,7 +494,7 @@ let parse_with_dypgen file =
   (* -------------------------------------------------- *)
   (* call lexer and get all the tokens *)
   (* -------------------------------------------------- *)
-  let toks_orig = tokens (Parsing_helpers.File file) in
+  let toks_orig = tokens (Parsing_helpers.file file) in
   let lang = Flag_parsing_cpp.Cplusplus in
 
   let toks =

@@ -98,7 +98,7 @@ let rec parse_basic ?(parsing_mode = Python) filename =
   let stat = Parsing_stat.default_stat filename in
 
   (* this can throw Parse_info.Lexical_error *)
-  let toks = tokens parsing_mode (Parsing_helpers.File filename) in
+  let toks = tokens parsing_mode (Parsing_helpers.file filename) in
   let toks = Parsing_hacks_python.fix_tokens toks in
 
   let tr, lexer, lexbuf_fake =

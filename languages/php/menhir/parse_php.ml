@@ -128,7 +128,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
   let stat = Parsing_stat.default_stat filename in
   let filelines = Common2.cat_array filename in
 
-  let toks = tokens (Parsing_helpers.File filename) in
+  let toks = tokens (Parsing_helpers.file filename) in
   (* note that now that pfff support XHP constructs directly,
    * this code is not that needed.
    *)

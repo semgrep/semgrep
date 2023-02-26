@@ -3,6 +3,7 @@
  (name lib_parsing)
  (wrapped false)
  (libraries
+   fpath
    stdcompat
 
    commons

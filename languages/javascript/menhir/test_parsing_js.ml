@@ -15,7 +15,7 @@ let test_tokens_js file =
   Flag.verbose_parsing := true;
 
   let toks =
-    Parse_js.tokens (Parsing_helpers.File file)
+    Parse_js.tokens (Parsing_helpers.file file)
     (* |> Parsing_hacks_js.fix_tokens  *)
   in
   toks |> List.iter (fun x -> pr2_gen x);

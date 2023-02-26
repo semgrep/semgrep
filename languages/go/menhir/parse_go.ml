@@ -49,7 +49,7 @@ let tokens input_source =
 (*****************************************************************************)
 let parse filename =
   (* this can throw Parse_info.Lexical_error *)
-  let toks_orig = tokens (Parsing_helpers.File filename) in
+  let toks_orig = tokens (Parsing_helpers.file filename) in
   let toks = Common.exclude TH.is_comment_or_space toks_orig in
   (* insert implicit SEMICOLON and replace some LBRACE with LBODY *)
   let toks = Parsing_hacks_go.fix_tokens toks in
