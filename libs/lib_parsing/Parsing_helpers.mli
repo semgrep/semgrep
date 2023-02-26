@@ -6,12 +6,16 @@ type 'tok tokens_state = {
   mutable passed : 'tok list;
 }
 
+(* NOTE something else we could use instead of this input_source
+   is Fpath.t. This was easier for a quick refactor. *)
+type input_source = Str of string | File of Common.filename
+
 val mk_tokens_state : 'tok list -> 'tok tokens_state
 val yyback : int -> Lexing.lexbuf -> unit
 
 (* to be used by the lexer *)
 val tokenize_all_and_adjust_pos :
-  Common.filename ->
+  input_source ->
   (Lexing.lexbuf -> 'tok) ->
   (* tokenizer *) ((Parse_info.t -> Parse_info.t) -> 'tok -> 'tok) ->
   (* token visitor *) ('tok -> bool) ->
@@ -31,6 +35,7 @@ val mk_lexer_for_yacc :
 (* can deprecate? just use tokenize_all_and_adjust_pos *)
 (* f(i) will contain the (line x col) of the i char position *)
 val full_charpos_to_pos_large : Common.filename -> int -> int * int
+val full_charpos_to_pos_str : string -> int -> int * int
 
 (* fill in the line and column field of token_location that were not set
  * during lexing because of limitations of ocamllex. *)

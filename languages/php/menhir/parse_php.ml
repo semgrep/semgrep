@@ -39,7 +39,7 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (*****************************************************************************)
 (* Lexing only *)
 (*****************************************************************************)
-let tokens2 ?(init_state = Lexer_php.INITIAL) file =
+let tokens2 ?(init_state = Lexer_php.INITIAL) input_source =
   Lexer_php.reset ();
   Lexer_php._mode_stack := [ init_state ];
 
@@ -69,8 +69,8 @@ let tokens2 ?(init_state = Lexer_php.INITIAL) file =
       Lexer_php._last_non_whitespace_like_token := Some tok;
     tok
   in
-  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
-    TH.is_eof
+  Parsing_helpers.tokenize_all_and_adjust_pos input_source token
+    TH.visitor_info_of_tok TH.is_eof
 
 let tokens ?init_state a =
   Profiling.profile_code "Parse_php.tokens" (fun () -> tokens2 ?init_state a)
@@ -128,7 +128,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
   let stat = Parsing_stat.default_stat filename in
   let filelines = Common2.cat_array filename in
 
-  let toks = tokens filename in
+  let toks = tokens (Parsing_helpers.File filename) in
   (* note that now that pfff support XHP constructs directly,
    * this code is not that needed.
    *)
@@ -206,13 +206,14 @@ let parse_program ?pp file =
 
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Common2.with_tmp_file ~str:s ~ext:"java" (fun file ->
-          let toks = tokens ~init_state:Lexer_php.ST_IN_SCRIPTING file in
-          let toks = Parsing_hacks_php.fix_tokens toks in
-          let _tr, lexer, lexbuf_fake =
-            Parsing_helpers.mk_lexer_for_yacc toks is_comment
-          in
-          Parser_php.semgrep_pattern lexer lexbuf_fake))
+      let toks =
+        tokens ~init_state:Lexer_php.ST_IN_SCRIPTING (Parsing_helpers.Str s)
+      in
+      let toks = Parsing_hacks_php.fix_tokens toks in
+      let _tr, lexer, lexbuf_fake =
+        Parsing_helpers.mk_lexer_for_yacc toks is_comment
+      in
+      Parser_php.semgrep_pattern lexer lexbuf_fake)
 
 (*
  * todo: obsolete now with parse_any ? just redirect to parse_any ?
@@ -256,12 +257,9 @@ let tmp_php_file_from_string ?(header = "<?php\n") s =
 
 (* this function is useful mostly for our unit tests *)
 let (tokens_of_string : string -> Parser_php.token list) =
- fun s ->
-  let tmpfile = Common.new_temp_file "pfff_tokens_of_s" "php" in
-  Common.write_file tmpfile ("<?php \n" ^ s ^ "\n");
-  let toks = tokens tmpfile in
-  Common.erase_this_temp_file tmpfile;
-  toks
+ fun str ->
+  let str = "<?php \n" ^ str ^ "\n" in
+  tokens (Parsing_helpers.Str str)
 
 (* A fast-path parser of xdebug expressions in xdebug dumpfiles.
  * See xdebug.ml *)

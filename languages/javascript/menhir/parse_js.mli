@@ -22,4 +22,4 @@ val type_of_string : string -> Ast_js.type_
 val program_of_string : string -> Ast_js.a_program
 
 (* internal *)
-val tokens : Common.filename -> Parser_js.token list
+val tokens : Parsing_helpers.input_source -> Parser_js.token list

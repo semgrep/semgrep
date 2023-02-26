@@ -12,4 +12,4 @@ val parse_string :
 val any_of_string : string -> Ast_java.any
 
 (* internal *)
-val tokens : Common.filename -> Parser_java.token list
+val tokens : Parsing_helpers.input_source -> Parser_java.token list

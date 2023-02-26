@@ -25,6 +25,7 @@ type token_origin =
   | FakeTokStr of string * (token_location * int) option (* next to *)
   | ExpandedTok of token_location * token_location * int
   | Ab (* abstract token, see Parse_info.ml comment *)
+[@@deriving show, eq]
 
 (* to allow source to source transformation via token "annotations",
  * see the documentation for spatch.
