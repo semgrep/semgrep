@@ -56,6 +56,7 @@ depends: [
   "comby-kernel" {= "1.4.1"}
   "visitors" {= "20210608"}
   "js_of_ocaml"
+  "js_of_ocaml-compiler"
   "js_of_ocaml-ppx"
   "ctypes_stubs_js"
   "integers_stubs_js"

@@ -5,7 +5,7 @@
 // - misc cleanup
 
 //Provides: pcre_wasm_module const
-const pcre_wasm_module = (() => {
+var pcre_wasm_module = (function () {
   if (typeof Module !== "object") {
     throw new Error("wasm must be loaded first");
   }
@@ -13,40 +13,41 @@ const pcre_wasm_module = (() => {
 })();
 
 //Provides: NULL const
-const NULL = 0;
+var NULL = 0;
 
 //Provides: PCRE_CONFIG_UTF8 const
-const PCRE_CONFIG_UTF8 = 0;
+var PCRE_CONFIG_UTF8 = 0;
 //Provides: PCRE_CONFIG_NEWLINE const
-const PCRE_CONFIG_NEWLINE = 1;
+var PCRE_CONFIG_NEWLINE = 1;
 //Provides: PCRE_CONFIG_LINK_SIZE const
-const PCRE_CONFIG_LINK_SIZE = 2;
+var PCRE_CONFIG_LINK_SIZE = 2;
 
 //Provides: PCRE_CONFIG_MATCH_LIMIT const
-const PCRE_CONFIG_MATCH_LIMIT = 4;
+var PCRE_CONFIG_MATCH_LIMIT = 4;
 //Provides: PCRE_CONFIG_STACKRECURSE const
-const PCRE_CONFIG_STACKRECURSE = 5;
+var PCRE_CONFIG_STACKRECURSE = 5;
 
 //Provides: PCRE_CONFIG_MATCH_LIMIT_RECURSION const
-const PCRE_CONFIG_MATCH_LIMIT_RECURSION = 7;
+var PCRE_CONFIG_MATCH_LIMIT_RECURSION = 7;
 
 //Provides: PCRE_STUDY_JIT_COMPILE const
-const PCRE_STUDY_JIT_COMPILE = 0x0001;
+var PCRE_STUDY_JIT_COMPILE = 0x0001;
 
 //Provides: PCRE_EXTRA_MATCH_LIMIT const
-const PCRE_EXTRA_MATCH_LIMIT = 0x0002;
+var PCRE_EXTRA_MATCH_LIMIT = 0x0002;
 //Provides: PCRE_EXTRA_MATCH_LIMIT_RECURSION const
-const PCRE_EXTRA_MATCH_LIMIT_RECURSION = 0x0010;
+var PCRE_EXTRA_MATCH_LIMIT_RECURSION = 0x0010;
 
 //Provides: PCRE_INFO_SIZE const
-const PCRE_INFO_SIZE = 1;
+var PCRE_INFO_SIZE = 1;
 //Provides: PCRE_INFO_CAPTURECOUNT const
-const PCRE_INFO_CAPTURECOUNT = 2;
+var PCRE_INFO_CAPTURECOUNT = 2;
 
 //Provides: PCRE_ERROR_NOMATCH const
-const PCRE_ERROR_NOMATCH = -1;
+var PCRE_ERROR_NOMATCH = -1;
 
-const STRUCT_PCRE_EXTRA = {
+//Provides: STRUCT_PCRE_EXTRA const
+var STRUCT_PCRE_EXTRA = {
   flags: 0,
   study_data_ptr: 4,
   match_limit: 8,
@@ -57,7 +58,8 @@ const STRUCT_PCRE_EXTRA = {
   executable_jit_ptr: 28,
 };
 
-const STRUCT_PCRE = {
+//Provides: STRUCT_PCRE const
+var STRUCT_PCRE = {
   magic_number: 0,
   size: 4,
   options: 8,
@@ -80,26 +82,14 @@ const STRUCT_PCRE = {
   nullpad_ptr: 54,
 };
 
-function struct_sizeof(struct) {
-  return Math.max(...Object.values(struct)) + 4;
-}
-
-function print_struct(wasm, ptr, type) {
-  console.log(
-    Object.keys(type)
-      .map((key) => `${key}: ${wasm.getValue(ptr + type[key], "i32")}`)
-      .join(", ")
-  );
-}
-
 //Provides: pcre_ocaml_init
 function pcre_ocaml_init() {}
 
 //Provides: pcre_version_stub const
 //Requires: pcre_wasm_module
 function pcre_version_stub() {
-  const ptr = pcre_wasm_module._pcre_version();
-  const value = pcre_wasm_module.AsciiToString();
+  var ptr = pcre_wasm_module._pcre_version();
+  var value = pcre_wasm_module.AsciiToString();
   pcre_wasm_module._free(ptr);
   return value;
 }
@@ -107,9 +97,9 @@ function pcre_version_stub() {
 //Provides: pcre_config_get_int
 //Requires: pcre_wasm_module
 function pcre_config_get_int(what) {
-  const ptr = pcre_wasm_module._malloc(4);
+  var ptr = pcre_wasm_module._malloc(4);
   pcre_wasm_module._pcre_config(what, ptr);
-  const value = pcre_wasm_module.HEAP8[ptr];
+  var value = pcre_wasm_module.getValue(ptr, "i8");
   pcre_wasm_module._free(ptr);
   return value;
 }
@@ -117,9 +107,9 @@ function pcre_config_get_int(what) {
 //Provides: pcre_config_get_long
 //Requires: pcre_wasm_module
 function pcre_config_get_long(what) {
-  const ptr = pcre_wasm_module._malloc(4);
+  var ptr = pcre_wasm_module._malloc(4);
   pcre_wasm_module._pcre_config(what, ptr);
-  const value = pcre_wasm_module.HEAP16[ptr];
+  var value = pcre_wasm_module.getValue(ptr, "i16");
   pcre_wasm_module._free(ptr);
   return value;
 }
@@ -160,8 +150,22 @@ function pcre_config_stackrecurse_stub() {
   return pcre_config_get_int(PCRE_CONFIG_STACKRECURSE);
 }
 
+//Provides: pcre_make_string
+//Requires: pcre_wasm_module, PCRE_CONFIG_UTF8
+function pcre_make_string(v_opt, string) {
+  var ptr;
+  if (v_opt & PCRE_CONFIG_UTF8) {
+    ptr = pcre_wasm_module._malloc(string.length * 4 + 1);
+    pcre_wasm_module.stringToUTF8(string, ptr);
+  } else {
+    ptr = pcre_wasm_module._malloc(string.length + 1);
+    pcre_wasm_module.stringToAscii(string, ptr);
+  }
+  return ptr;
+}
+
 //Provides: pcre_compile_stub_bc
-//Requires: PCRE_INFO_SIZE, NULL, pcre_wasm_module
+//Requires: PCRE_INFO_SIZE, NULL, pcre_wasm_module, pcre_make_string
 function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
   //size_t regexp_size, ocaml_regexp_size = sizeof(struct pcre_ocaml_regexp);
   var regexp_info_ptr = pcre_wasm_module._malloc(16);
@@ -180,16 +184,10 @@ function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
     throw new Error("need to do something with v_tables");
   }
 
-  const pattern_ptr = pcre_wasm_module._malloc(v_pat.length * 4); // TODO
-  if (v_opt & 0x800) {
-    // TODO: const
-    pcre_wasm_module.stringToUTF8(v_pat, pattern_ptr);
-  } else {
-    pcre_wasm_module.stringToAscii(v_pat, pattern_ptr);
-  }
+  var pattern_ptr = pcre_make_string(v_opt, v_pat);
 
   /* Compiles the pattern */
-  const regexp_ptr = pcre_wasm_module._pcre_compile(
+  var regexp_ptr = pcre_wasm_module._pcre_compile(
     pattern_ptr,
     v_opt,
     error_ptr_ptr,
@@ -200,7 +198,7 @@ function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
   /* Raises appropriate exception with [BadPattern] if the pattern
      could not be compiled */
   if (regexp_ptr == NULL) {
-    const errorString = pcre_wasm_module.AsciiToString(
+    var errorString = pcre_wasm_module.AsciiToString(
       pcre_wasm_module.getValue(error_ptr_ptr, "i32")
     );
     throw new Error(
@@ -213,7 +211,7 @@ function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
      have to decide on a size.  Tests with some simple patterns indicate a
      roughly 50% increase in size when studying without JIT.  A factor of
      two times hence seems like a reasonable bound to use here. */
-  const fullinfo_result = pcre_wasm_module._pcre_fullinfo(
+  var fullinfo_result = pcre_wasm_module._pcre_fullinfo(
     regexp_ptr,
     0,
     PCRE_INFO_SIZE,
@@ -231,18 +229,19 @@ function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
 //Requires: PCRE_STUDY_JIT_COMPILE, NULL, pcre_wasm_module
 function pcre_study_stub(v_rex, v_jit_compile) {
   if (!v_rex.studied) {
-    const flags = v_jit_compile ? PCRE_STUDY_JIT_COMPILE : 0;
-    const error_ptr = pcre_wasm_module._malloc(1024);
-    const extra_ptr = pcre_wasm_module._pcre_study(
+    var flags = v_jit_compile ? PCRE_STUDY_JIT_COMPILE : 0;
+    var error_ptr = pcre_wasm_module._malloc(1024);
+    var extra_ptr = pcre_wasm_module._pcre_study(
       v_rex.regexp_ptr,
       flags,
       error_ptr
     );
     if (pcre_wasm_module.HEAP8[error_ptr] != NULL) {
       throw new Error(
-        `invalid argument: ${pcre_wasm_module.AsciiToString(
-          pcre_wasm_module.HEAP8[error_ptr]
-        )}`
+        "invalid argument: " +
+          pcre_wasm_module.AsciiToString(
+            pcre_wasm_module.getValue(error_ptr, "i32")
+          )
       );
     }
     v_rex.extra_ptr = extra_ptr;
@@ -252,12 +251,10 @@ function pcre_study_stub(v_rex, v_jit_compile) {
 }
 
 //Provides: pcre_set_imp_match_limit_stub_bc
-//Requires: PCRE_EXTRA_MATCH_LIMIT, NULL, pcre_wasm_module
+//Requires: PCRE_EXTRA_MATCH_LIMIT, NULL, pcre_wasm_module, STRUCT_PCRE_EXTRA
 function pcre_set_imp_match_limit_stub_bc(v_rex, v_lim) {
   if (v_rex.extra_ptr == NULL) {
-    v_rex.extra_ptr = pcre_wasm_module._malloc(
-      struct_sizeof(STRUCT_PCRE_EXTRA)
-    );
+    v_rex.extra_ptr = pcre_wasm_module._malloc(32);
     pcre_wasm_module.setValue(
       v_rex.extra_ptr + STRUCT_PCRE_EXTRA.flags,
       PCRE_EXTRA_MATCH_LIMIT,
@@ -282,12 +279,10 @@ function pcre_set_imp_match_limit_stub_bc(v_rex, v_lim) {
 }
 
 //Provides: pcre_set_imp_match_limit_recursion_stub_bc
-//Requires; PCRE_EXTRA_MATCH_LIMIT_RECURSION, NULL, pcre_wasm_module
+//Requires: PCRE_EXTRA_MATCH_LIMIT_RECURSION, NULL, pcre_wasm_module, STRUCT_PCRE_EXTRA
 function pcre_set_imp_match_limit_recursion_stub_bc(v_rex, v_lim) {
   if (v_rex.extra_ptr == NULL) {
-    v_rex.extra_ptr = pcre_wasm_module._malloc(
-      struct_sizeof(STRUCT_PCRE_EXTRA)
-    );
+    v_rex.extra_ptr = pcre_wasm_module._malloc(32);
     pcre_wasm_module.setValue(
       v_rex.extra_ptr + STRUCT_PCRE_EXTRA.flags,
       PCRE_EXTRA_MATCH_LIMIT_RECURSION,
@@ -314,15 +309,15 @@ function pcre_set_imp_match_limit_recursion_stub_bc(v_rex, v_lim) {
 //Provides: pcre_capturecount_stub_bc
 //Requires: PCRE_INFO_CAPTURECOUNT, pcre_wasm_module
 function pcre_capturecount_stub_bc(v_rex) {
-  const options_ptr = pcre_wasm_module._malloc(4);
-  const ret = pcre_wasm_module._pcre_fullinfo(
+  var options_ptr = pcre_wasm_module._malloc(4);
+  var ret = pcre_wasm_module._pcre_fullinfo(
     v_rex.regexp_ptr,
     v_rex.extra_ptr,
     PCRE_INFO_CAPTURECOUNT,
     options_ptr
   );
   if (ret != 0) {
-    throw new Error("shit"); // TODO
+    throw new Error("TODO");
   }
   return pcre_wasm_module.getValue(options_ptr, "i32");
 }
@@ -340,7 +335,7 @@ function handle_exec_error(loc, ret) {
 }
 
 //Provides: pcre_exec_stub_bc
-//Requires: handle_exec_error, pcre_wasm_module
+//Requires: handle_exec_error, pcre_wasm_module, pcre_make_string
 function pcre_exec_stub_bc(
   v_opt,
   v_rex,
@@ -352,13 +347,12 @@ function pcre_exec_stub_bc(
   v_workspace
 ) {
   var ret;
-  const is_dfa = !!v_workspace;
+  var is_dfa = !!v_workspace;
   var pos = v_pos;
   var len = v_subj.length;
   var subj_start = v_subj_start;
 
-  const v_subj_ptr = pcre_wasm_module._malloc(v_subj.length);
-  pcre_wasm_module.stringToAscii(v_subj, v_subj_ptr);
+  var v_subj_ptr = pcre_make_string(v_opt, v_subj);
 
   var ovec_len = v_ovec.length;
 
@@ -373,11 +367,11 @@ function pcre_exec_stub_bc(
   pos -= subj_start;
   len -= subj_start;
 
-  const ocaml_subj_ptr = v_subj_ptr + subj_start;
-  const opt = v_opt;
+  var ocaml_subj_ptr = v_subj_ptr + subj_start;
+  var opt = v_opt;
 
   if (!v_maybe_cof) {
-    const ovec_ptr = pcre_wasm_module._malloc(ovec_len * 4);
+    var ovec_ptr = pcre_wasm_module._malloc(ovec_len * 4);
     if (is_dfa) {
       ret = pcre_wasm_module._pcre_dfa_exec();
     } else {
@@ -396,7 +390,7 @@ function pcre_exec_stub_bc(
       handle_exec_error("pcre_exec_stub", ret);
     } else {
       for (var i = 0; i < ovec_len; i++) {
-        v_ovec[i] = pcre_wasm_module.getValue(ovec_ptr + i * 4);
+        v_ovec[i] = pcre_wasm_module.getValue(ovec_ptr + i * 4, "i32");
       }
     }
   } else {

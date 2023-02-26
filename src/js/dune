@@ -7,8 +7,7 @@
    ./ocaml-tree-sitter.js
    ./semgrep.js
    ./unix.js
-   ./core.js)
-  (flags --no-source-map --opt=3))
+   ./core.js))
  (modes js)
  (preprocess
   (pps js_of_ocaml-ppx)))

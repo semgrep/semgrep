@@ -829,7 +829,7 @@ let cat file =
 *)
 let read_file ?(max_len = max_int) path =
   if !jsoo then (
-    let ic = open_in path in
+    let ic = open_in_bin path in
     let s = really_input_string ic (in_channel_length ic) in
     close_in ic;
     s)

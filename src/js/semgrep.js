@@ -1,7 +1,7 @@
 //Provides: create_parser
 //Requires: tree_sitter_wasm_module
 function create_parser(language) {
-  const parser = tree_sitter_wasm_module._ts_parser_new();
+  var parser = tree_sitter_wasm_module._ts_parser_new();
   tree_sitter_wasm_module._ts_parser_set_language(parser, language);
   return parser;
 }
@@ -135,7 +135,7 @@ function octs_create_parser_c_sharp() {
 //Provides: octs_create_parser_julia
 //Requires: create_parser
 function octs_create_parser_julia() {
-  throw new Error(
+  console.log(
     "TODO: re-incorporate julia once we figure out why the build is so slow"
   ); // TODO
   //return create_parser(SEMGREP_LANGUAGES._tree_sitter_python())
