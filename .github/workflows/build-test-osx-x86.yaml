@@ -58,7 +58,7 @@ jobs:
     runs-on: macos-12
     needs: [build-wheels-osx]
     steps:
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v3
         with:
           name: osx-wheel
       - name: unzip dist

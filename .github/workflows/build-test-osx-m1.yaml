@@ -58,7 +58,7 @@ jobs:
         run: |
           pip3 uninstall -y semgrep
           rm -rf dist/
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v3
         with:
           name: m1-wheel
       - name: unzip dist
