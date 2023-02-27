@@ -1,6 +1,6 @@
 Taint: `pattern-propagators` now have optional fields `requires` and `label`,
 which are used identically to their counterparts in `pattern-sources` and `
-pattern-sinks`.
+pattern-sinks`, for the experimental taint labels feature.
 
 For instance, we can define:
 ```
