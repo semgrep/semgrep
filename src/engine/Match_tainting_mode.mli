@@ -8,6 +8,16 @@ type debug_taint = {
 }
 (** To facilitate debugging of taint rules. *)
 
+(* The type of the specialized formual cache used for inter-rule
+   match sharing.
+*)
+type formula_cache
+
+(* These formula caches are only safe to use to share results between
+   runs of rules on the same target! It is consumed by [taint_config_of_rule].
+*)
+val mk_specialized_formula_cache : Rule.taint_rule list -> formula_cache
+
 val hook_setup_hook_function_taint_signature :
   (Match_env.xconfig ->
   Rule.taint_rule ->
@@ -30,13 +40,6 @@ val hook_setup_hook_function_taint_signature :
   *   (or we could infer a signature for them too...).
   *)
 
-module Formula_tbl : Hashtbl.S with type key = Rule.formula
-
-val mk_specialized_formula_cache :
-  Rule.taint_rule list ->
-  (Range_with_metavars.ranges * Matching_explanation.t list) option
-  Formula_tbl.t
-
 (* It could be a private function, but it is also used by Deep Semgrep. *)
 (* This [formula_cache] argument is exposed here because this function is also
    a subroutine but the cache itself should be created outside of the any main
@@ -44,9 +47,7 @@ val mk_specialized_formula_cache :
    [taint_config_of_rule] is used on the same file!
 *)
 val taint_config_of_rule :
-  formula_cache:
-    (Range_with_metavars.ranges * Matching_explanation.t list) option
-    Formula_tbl.t ->
+  formula_cache:formula_cache ->
   Match_env.xconfig ->
   Common.filename ->
   AST_generic.program * Parse_info.token_location list ->

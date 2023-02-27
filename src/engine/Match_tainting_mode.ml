@@ -150,21 +150,31 @@ module Formula_tbl = struct
   let cached_find_opt formula_cache formula compute_matches_fn =
     match find_opt formula_cache formula with
     | None ->
-        (* if it's not in the formula table at all, then don't
-           bother caching, just compute and move on
+        (* it should not actually be possible for a formula to
+           not be in the formula table
 
-           See [get_shared_formulas] above.
+           just don't cache it I guess
         *)
-        compute_matches_fn ()
-    | Some None ->
-        (* if it's in the table, but is not yet cached, then
-           compute and add it into the table.
-        *)
+        raise Common.Impossible
+    | Some (None, count) ->
         let ranges, expls = compute_matches_fn () in
-        replace formula_cache formula (Some (ranges, expls));
+        if count <= 1 then
+          (* if there's only 1 more use left, there's no point
+             in caching it
+          *)
+          ranges, expls
+        else (
+          (* otherwise, this is the first time we've seen this
+             formula, and we should cache it
+          *)
+          replace formula_cache formula (Some (ranges, expls), count - 1);
+          (ranges, expls))
+    | Some (Some (ranges, expls), count) ->
+        if count <= 1 then remove formula_cache formula;
         (ranges, expls)
-    | Some (Some (ranges, expls)) -> (ranges, expls)
 end
+
+type formula_cache = ((RM.t list * ME.t list) option * int) Formula_tbl.t
 
 (* This function is for creating a formula cache which only caches formula that
    it knows will be shared, at least once, among the formula in a bunch of
@@ -193,22 +203,15 @@ let mk_specialized_formula_cache (rules : Rule.taint_rule list) =
   flat_formulas
   |> List.iter (fun formula ->
          match Formula_tbl.find_opt count_tbl formula with
-         | None -> Formula_tbl.add count_tbl formula 1
-         | Some x -> Formula_tbl.replace count_tbl formula (1 + x));
-  (* This new table will map each formula which exhibits sharing
-     to `None`.
-     This way, we know a priori which keys are actually worth
-     sharing. If a formula is used only once, then we will not
-     spuriously store it in the `new_tbl`.
+         | None -> Formula_tbl.add count_tbl formula (None, 1)
+         | Some (_, x) -> Formula_tbl.replace count_tbl formula (None, 1 + x));
+  (* We return the table with pairs of (None, count) itself.
+     When we try to cache a find, we will first check whether decreasing this
+     counter results in 0. Then, there are no more uses, and the result is no
+     longer worth caching.
+     This way we don't keep around entries when we don't need to.
   *)
-  let new_tbl = Formula_tbl.create 128 in
-  Formula_tbl.iter
-    (fun k v ->
-      (* if it's worth sharing, keep it in the new table as None
-     *)
-      if v > 1 then Formula_tbl.add new_tbl k None)
-    count_tbl;
-  new_tbl
+  count_tbl
 
 (*****************************************************************************)
 (* Finding matches for taint specs *)

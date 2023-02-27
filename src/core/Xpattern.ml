@@ -55,6 +55,14 @@ type xpattern_kind =
 (* eXtended pattern *)
 type t = {
   pat : xpattern_kind; [@hash.ignore]
+  (* w.r.t. hashing, these are just Generic ASTs, which can be rather large.
+     Whereas `Hashtbl.hash` will hash only to a certain depth, because it
+     is polymorphic, it will be sensitive to things like tokens, which should
+     be ignored by the hash function.
+     The generated hash function for Generic ASTs will be rather hefty though,
+     for the above reasoning. So we will choose to just decline to hash
+     the generic AST.
+  *)
   (* Regarding @equal below, even if two patterns have different indentation,
    * we still consider them equal in the metachecker context.
    * We rely only on the equality on pat, which will
@@ -71,8 +79,7 @@ type t = {
   pid : pattern_id; [@equal fun _ _ -> true] [@hash.ignore]
 }
 [@@deriving show, eq, hash]
-(* Patterns are just Generic ASTs, which are not easy to hash.
-   So for hashing patterns, let's just hash the originating string. It's
+(* For hashing patterns, let's just hash the originating string. It's
    a good enough proxy.
 *)
 
