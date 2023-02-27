@@ -77,10 +77,10 @@ class FileStats(TypedDict, total=False):
 
 class EnvironmentRequiredSchema(TypedDict):
     version: str
-    ci: Optional[str]
 
 
 class EnvironmentSchema(EnvironmentRequiredSchema, total=False):
+    ci: Optional[str]
     projectHash: Optional[Sha256Hash]
     configNamesHash: Sha256Hash
     rulesHash: Sha256Hash
@@ -187,7 +187,7 @@ class Metrics:
     metrics_state: MetricsState = MetricsState.OFF
     payload: PayloadSchema = Factory(
         lambda: PayloadSchema(
-            environment=EnvironmentSchema(version=__VERSION__, ci=os.getenv("CI")),
+            environment=EnvironmentSchema(version=__VERSION__),
             errors=ErrorsSchema(),
             performance=PerformanceSchema(),
             value=ValueSchema(features=set()),
@@ -197,6 +197,9 @@ class Metrics:
             event_id=uuid.uuid4(),
         )
     )
+
+    def __attrs_post_init__(self) -> None:
+        self.payload["environment"]["ci"] = os.getenv("CI")
 
     def configure(
         self,
