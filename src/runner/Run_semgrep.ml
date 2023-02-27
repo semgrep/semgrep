@@ -54,24 +54,27 @@ let debug_extract_mode = ref false
    coupling: this functionality is implemented also in semgrep-python.
 *)
 let replace_named_pipe_by_regular_file path =
-  match (Unix.stat path).st_kind with
-  | Unix.S_FIFO ->
-      let data = Common.read_file path in
-      let prefix = spf "semgrep-core-" in
-      let suffix = spf "-%s" (Filename.basename path) in
-      let tmp_path, oc =
-        Filename.open_temp_file
-          ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
-          prefix suffix
-      in
-      let remove () = if Sys.file_exists tmp_path then Sys.remove tmp_path in
-      (* Try to remove temporary file when program exits. *)
-      at_exit remove;
-      Fun.protect
-        ~finally:(fun () -> close_out_noerr oc)
-        (fun () -> output_string oc data);
-      tmp_path
-  | _ -> path
+  if !Common.jsoo then path
+    (* don't bother supporting exotic things like fds if running in JS *)
+  else
+    match (Unix.stat path).st_kind with
+    | Unix.S_FIFO ->
+        let data = Common.read_file path in
+        let prefix = spf "semgrep-core-" in
+        let suffix = spf "-%s" (Filename.basename path) in
+        let tmp_path, oc =
+          Filename.open_temp_file
+            ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
+            prefix suffix
+        in
+        let remove () = if Sys.file_exists tmp_path then Sys.remove tmp_path in
+        (* Try to remove temporary file when program exits. *)
+        at_exit remove;
+        Fun.protect
+          ~finally:(fun () -> close_out_noerr oc)
+          (fun () -> output_string oc data);
+        tmp_path
+    | _ -> path
 
 let timeout_function file timeout f =
   let timeout = if timeout <= 0. then None else Some timeout in
