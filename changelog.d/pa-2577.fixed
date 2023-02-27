@@ -1,0 +1,2 @@
+Supply Chain scans on a project using pipenv would print an error if no pyproject.toml is present.
+This error no longer appears.
