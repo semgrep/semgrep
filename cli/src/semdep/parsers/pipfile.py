@@ -8,17 +8,36 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from semdep.external.parsy import regex
+from semdep.external.parsy import string
+from semdep.parsers.poetry import key_value
 from semdep.parsers.util import json_doc
+from semdep.parsers.util import pair
 from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.verbose_logging import getLogger
 
 
 logger = getLogger(__name__)
+
+
+manifest_block = pair(
+    regex(r"\[(.*)\]\n", flags=0, group=1), key_value.sep_by(string("\n"))
+)
+
+manifest = (
+    manifest_block.map(
+        lambda block: None
+        if block[0] not in ["packages", "dev-packages"]
+        else {x[0] for x in block[1]}
+    )
+    .sep_by(string("\n").at_least(1))
+    .map(lambda sets: {x for s in sets if s for x in s})
+    << string("\n").optional()
+)
 
 
 def parse_pipfile(
@@ -29,6 +48,7 @@ def parse_pipfile(
         return []
 
     deps = lockfile_json_opt.as_dict()["default"].as_dict()
+    manifest_deps = safe_path_parse(manifest_path, manifest)
 
     def extract_pipfile_hashes(
         hashes: List[str],
@@ -38,7 +58,7 @@ def parse_pipfile(
             parts = h.split(":")
             if len(parts) < 2:
                 continue
-            algorithm = h.split(":")[0]
+            algorithm = parts[0]
             rest = h[len(algorithm) + 1 :]  # pipfile is already in base16
             output[algorithm].append(rest.lower())
         return output
@@ -62,7 +82,7 @@ def parse_pipfile(
                 )
                 if "hashes" in fields
                 else {},
-                transitivity=Transitivity(Unknown()),
+                transitivity=transitivity(manifest_deps, [package]),
                 line_number=dep_json.line_number,
             )
         )
