@@ -20,6 +20,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/awscli",
         ),
         (
+            "rules/dependency_aware/awscli_vuln.yaml",
+            "dependency_aware/awscli-with-manifest",
+        ),
+        (
             "rules/dependency_aware/lodash-4.17.19.yaml",
             "dependency_aware/lodash",
         ),
