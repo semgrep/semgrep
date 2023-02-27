@@ -14,12 +14,13 @@ type 'a call_trace =
 type source = {
   call_trace : Rule.taint_source call_trace;
   label : string;
-    (** The label of this particular taint.
+      (** The label of this particular taint.
         This may not agree with the source of the `call_trace`, because
         this label may have changed, for instance by being propagated to
         a different label.
       *)
-} [@@deriving show]
+}
+[@@deriving show]
 
 type sink = Rule.taint_sink call_trace [@@deriving show]
 type arg_pos = string * int [@@deriving show]
