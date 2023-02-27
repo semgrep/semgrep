@@ -8,13 +8,13 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from semdep.parsers.poetry import manifest
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import safe_path_parse
-from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.verbose_logging import getLogger
 
 
@@ -29,8 +29,6 @@ def parse_pipfile(
         return []
 
     deps = lockfile_json_opt.as_dict()["default"].as_dict()
-
-    manifest_deps = safe_path_parse(manifest_path, manifest)
 
     def extract_pipfile_hashes(
         hashes: List[str],
@@ -64,7 +62,7 @@ def parse_pipfile(
                 )
                 if "hashes" in fields
                 else {},
-                transitivity=transitivity(manifest_deps, [package]),
+                transitivity=Transitivity(Unknown()),
                 line_number=dep_json.line_number,
             )
         )
