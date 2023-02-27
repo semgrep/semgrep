@@ -1,5 +1,6 @@
 import json
 from typing import Any
+from typing import Dict
 from typing import Iterable
 from typing import Mapping
 from typing import Optional
@@ -115,7 +116,6 @@ class SarifFormatter(BaseFormatter):
 
     @staticmethod
     def _dataflow_trace_to_thread_flows_sarif(rule_match: RuleMatch) -> Any:
-
         thread_flows = []
         locations = []
 
@@ -181,7 +181,7 @@ class SarifFormatter(BaseFormatter):
     def _rule_match_to_sarif(
         rule_match: RuleMatch, dataflow_traces: bool
     ) -> Mapping[str, Any]:
-        rule_match_sarif = {
+        rule_match_sarif: Dict[str, Any] = {
             "ruleId": rule_match.rule_id,
             "message": {"text": rule_match.message},
             "locations": [
@@ -202,6 +202,7 @@ class SarifFormatter(BaseFormatter):
                 }
             ],
             "fingerprints": {"matchBasedId/v1": rule_match.match_based_id},
+            "properties": {},
         }
 
         if dataflow_traces and rule_match.dataflow_trace:
@@ -217,29 +218,13 @@ class SarifFormatter(BaseFormatter):
         if fix is not None:
             rule_match_sarif["fixes"] = [fix]
 
-        if "sca_info" in rule_match.extra:
-            # Mimics the exposure catergories on semgrep.dev for supply chain:
-            # "reachable": dependency is used in the codebase or is vulnerable even without usage
-            # "unreachable": dependency is not used in the codebase
-            # "undetermined": rule for dependency doesn't look for reachability
-            if rule_match.metadata.get("sca-kind") == "upgrade-only":
-                exposure = "reachable"
-            elif rule_match.metadata.get("sca-kind") == "legacy":
-                exposure = "undetermined"
-            else:
-                # rule_match.metadata.get("sca-kind") == "reachable":
-                if rule_match.extra["sca_info"].reachable:
-                    exposure = "reachable"
-                else:
-                    exposure = "unreachable"
-
-            rule_match_sarif["properties"] = {"exposure": exposure}
+        if rule_match.exposure_type:
+            rule_match_sarif["properties"]["exposure"] = rule_match.exposure_type
 
         return rule_match_sarif
 
     @staticmethod
     def _rule_match_to_sarif_fix(rule_match: RuleMatch) -> Optional[Mapping[str, Any]]:
-
         # if rule_match.extra.get("dependency_matches"):
         fixed_lines = rule_match.extra.get("fixed_lines")
 

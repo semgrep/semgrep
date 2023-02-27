@@ -1,11 +1,37 @@
 {
   "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
-  "version": "14.1.2",
+  "scan": {
+    "analyzer": {
+      "id": "semgrep",
+      "name": "Semgrep",
+      "url": "https://semgrep.dev",
+      "vendor": {
+        "name": "Semgrep"
+      },
+      "version": "<MASKED>"
+    },
+    "end_time": "<MASKED>",
+    "scanner": {
+      "id": "semgrep",
+      "name": "Semgrep",
+      "url": "https://semgrep.dev",
+      "vendor": {
+        "name": "Semgrep"
+      },
+      "version": "<MASKED>"
+    },
+    "start_time": "<MASKED>",
+    "status": "success",
+    "type": "sast",
+    "version": "<MASKED>"
+  },
+  "version": "15.0.4",
   "vulnerabilities": [
     {
       "category": "sast",
-      "confidence": "High",
       "cve": "targets/basic/stupid.py:4eb070c4173775f0145392a730b9f22018e5e44638f8d085bd48e7cd18fec7da:rules.eqeq-is-bad",
+      "details": {},
+      "flags": [],
       "id": "30b0accd-52fb-52b0-995b-f1a7f094320f",
       "identifiers": [
         {
