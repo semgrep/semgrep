@@ -450,6 +450,9 @@ and assign env lhs tok rhs_exp e_gen =
 (* less: we could pass in an optional lval that we know the caller want
  * to assign into, which would avoid creating useless fresh_var intermediates.
  *)
+(* We set `void` to `true` when the value of the expression is being discarded, in
+ * which case, for certain expressions and in certain languages, we assume that the
+ * expression has side-effects. See translation of operators below. *)
 and expr_aux env ?(void = false) e_gen =
   let eorig = SameAs e_gen in
   match e_gen.G.e with
