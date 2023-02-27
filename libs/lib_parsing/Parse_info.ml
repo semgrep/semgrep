@@ -338,13 +338,6 @@ let is_origintok ii =
   | OriginTok _ -> true
   | _ -> false
 
-let has_origin_loc ii =
-  match ii.token with
-  | OriginTok _
-  | FakeTokStr (_, Some _) ->
-      true
-  | _ -> false
-
 (* info about the current location *)
 
 (* original info *)
@@ -365,9 +358,7 @@ type posrv =
 
 let compare_pos ii1 ii2 =
   let get_pos = function
-    | OriginTok pi
-    | FakeTokStr (_, Some (pi, _)) ->
-        Real pi
+    | OriginTok pi -> Real pi
     (* todo? I have this for lang_php/
         | FakeTokStr (s, Some (pi_orig, offset)) ->
             Virt (pi_orig, offset)

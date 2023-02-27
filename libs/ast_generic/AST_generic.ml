@@ -2109,9 +2109,7 @@ let basic_id_info ?(hidden = false) resolved =
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
 let dotted_to_canonical xs = Common.map fst xs
-
-let canonical_to_dotted tid xs =
-  xs |> Common.map (fun s -> (s, Parse_info.fake_info tid s))
+let canonical_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
 
 (* ------------------------------------------------------------------------- *)
 (* Entities *)
