@@ -65,11 +65,13 @@ and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
         | None -> []
         | Some x -> [ ("language", `String (Xlang.to_string x)) ])
 
-and translate_taint_source { source_formula; source_by_side_effect; label; source_requires } : [> `O of (string * Yaml.value) list ] =
+and translate_taint_source
+    { source_formula; source_by_side_effect; label; source_requires } :
+    [> `O of (string * Yaml.value) list ] =
   let (`O source_f) = translate_formula source_formula in
   let label_obj =
     if label = Rule.default_source_label then []
-    else [ ("label", `String label)]
+    else [ ("label", `String label) ]
   in
   let requires_obj =
     match source_requires.e with
@@ -77,61 +79,59 @@ and translate_taint_source { source_formula; source_by_side_effect; label; sourc
     | _ -> [ ("requires", `String (expr_to_string source_requires)) ]
   in
   let side_effect_obj =
-    if source_by_side_effect then
-      [ ("by-side-effect", `Bool true) ]
-    else []
+    if source_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
   in
-  `O
-    ( List.concat [source_f; label_obj; requires_obj; side_effect_obj] )
+  `O (List.concat [ source_f; label_obj; requires_obj; side_effect_obj ])
 
-and translate_taint_sink { sink_id = _; sink_formula; sink_requires } : [> `O of (string * Yaml.value) list ] =
+and translate_taint_sink { sink_id = _; sink_formula; sink_requires } :
+    [> `O of (string * Yaml.value) list ] =
   let (`O sink_f) = translate_formula sink_formula in
   let requires_obj =
     match sink_requires.e with
     | G.N (G.Id (name, _)) when fst name = Rule.default_source_label -> []
     | _ -> [ ("requires", `String (expr_to_string sink_requires)) ]
   in
-  `O
-    (List.concat [sink_f; requires_obj])
+  `O (List.concat [ sink_f; requires_obj ])
 
-and translate_taint_sanitizer { sanitizer_formula; sanitizer_by_side_effect; not_conflicting } : [> `O of (string * Yaml.value) list ] =
+and translate_taint_sanitizer
+    { sanitizer_formula; sanitizer_by_side_effect; not_conflicting } :
+    [> `O of (string * Yaml.value) list ] =
   let (`O san_f) = translate_formula sanitizer_formula in
   let side_effect_obj =
-    if sanitizer_by_side_effect then
-      [ ("by-side-effect", `Bool true) ]
-    else
-      []
+    if sanitizer_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
   in
   let not_conflicting_obj =
-    if not_conflicting then [ ("not-conflicting", `Bool true)] else [] in
-  `O
-    (List.concat [san_f; side_effect_obj; not_conflicting_obj])
+    if not_conflicting then [ ("not-conflicting", `Bool true) ] else []
+  in
+  `O (List.concat [ san_f; side_effect_obj; not_conflicting_obj ])
 
-
-and translate_taint_propagator { propagator_formula; propagator_by_side_effect; from; to_ } : [> `O of (string * Yaml.value) list ] =
+and translate_taint_propagator
+    { propagator_formula; propagator_by_side_effect; from; to_ } :
+    [> `O of (string * Yaml.value) list ] =
   let (`O prop_f) = translate_formula propagator_formula in
   let side_effect_obj =
-    if propagator_by_side_effect then
-      []
+    if propagator_by_side_effect then []
     else [ ("by-side-effect", `Bool false) ]
   in
-  let from_obj =
-    [ ("from", `String (fst from)) ]
-  in
-  let to_obj = [ ("to", `String (fst to_)) ]
-  in
-  `O
-    (List.concat [prop_f; side_effect_obj; from_obj; to_obj])
+  let from_obj = [ ("from", `String (fst from)) ] in
+  let to_obj = [ ("to", `String (fst to_)) ] in
+  `O (List.concat [ prop_f; side_effect_obj; from_obj; to_obj ])
 
-and translate_taint_spec ({ sources; sanitizers; sinks; propagators } : taint_spec) : [> `O of (string * Yaml.value) list ] =
-  `O [ ("taint",
-    `O ["sources", `A (Common.map translate_taint_source (snd sources))
-    ; "sanitizers", `A (Common.map translate_taint_sanitizer sanitizers)
-    ; "propagators", `A (Common.map translate_taint_propagator propagators)
-    ; "sinks", `A (Common.map translate_taint_sink (snd sinks))
+and translate_taint_spec
+    ({ sources; sanitizers; sinks; propagators } : taint_spec) :
+    [> `O of (string * Yaml.value) list ] =
+  `O
+    [
+      ( "taint",
+        `O
+          [
+            ("sources", `A (Common.map translate_taint_source (snd sources)));
+            ("sanitizers", `A (Common.map translate_taint_sanitizer sanitizers));
+            ( "propagators",
+              `A (Common.map translate_taint_propagator propagators) );
+            ("sinks", `A (Common.map translate_taint_sink (snd sinks)));
+          ] );
     ]
-  )
-  ]
 
 and translate_formula f : [> `O of (string * Yaml.value) list ] =
   match f with
@@ -216,9 +216,7 @@ let translate_files fparser xs =
                     | `Search formula
                     | `Extract { formula; _ } ->
                         (formula |> translate_formula :> Yaml.value)
-                    | `Taint spec ->
-                        (translate_taint_spec spec :> Yaml.value)
-             )
+                    | `Taint spec -> (translate_taint_spec spec :> Yaml.value))
            in
            (file, formulas))
   in
