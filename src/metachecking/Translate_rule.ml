@@ -120,18 +120,24 @@ and translate_taint_propagator
 and translate_taint_spec
     ({ sources; sanitizers; sinks; propagators } : taint_spec) :
     [> `O of (string * Yaml.value) list ] =
+  let sanitizers =
+    match Common.map translate_taint_sanitizer sanitizers with
+    | [] -> []
+    | other -> [ ("sanitizers", `A other) ]
+  in
+  let propagators =
+    match Common.map translate_taint_propagator propagators with
+    | [] -> []
+    | other -> [ ("propagators", `A other) ]
+  in
   `O
-    [
-      ( "taint",
-        `O
-          [
-            ("sources", `A (Common.map translate_taint_source (snd sources)));
-            ("sanitizers", `A (Common.map translate_taint_sanitizer sanitizers));
-            ( "propagators",
-              `A (Common.map translate_taint_propagator propagators) );
-            ("sinks", `A (Common.map translate_taint_sink (snd sinks)));
-          ] );
-    ]
+    (List.concat
+       [
+         [ ("sources", `A (Common.map translate_taint_source (snd sources))) ];
+         sanitizers;
+         propagators;
+         [ ("sinks", `A (Common.map translate_taint_sink (snd sinks))) ];
+       ])
 
 and translate_formula f : [> `O of (string * Yaml.value) list ] =
   match f with
@@ -180,12 +186,18 @@ let rec json_to_yaml json : Yaml.value =
   | Bool b -> `Bool b
   | Null -> `Null
 
-let replace_pattern rule_fields translated_formula =
+(* This code exists so that we can go and replace the pattern in the original
+   rule, since we still have yet to amend the original YAML rule that we parsed.
+*)
+let replace_pattern rule_fields translated_formula : (string * Yaml.value) list
+    =
   List.concat_map
     (fun (name, value) ->
       (* Remove all taint fields, except replace sources with translation *)
-      if name = "mode" && value =*= `String "taint" then []
-      else if
+      (* Keep mode: taint for now though, since taint patterns aren't yet
+         a thing.
+      *)
+      if
         List.mem name
           [ "pattern-sinks"; "pattern-sanitizers"; "pattern-propagators" ]
       then []
@@ -200,7 +212,7 @@ let replace_pattern rule_fields translated_formula =
             "pattern-comby";
             "pattern-sources";
           ]
-      then [ ("match", translated_formula) ]
+      then translated_formula
       else [ (name, value) ])
     rule_fields
 
@@ -215,8 +227,11 @@ let translate_files fparser xs =
                     match rule.mode with
                     | `Search formula
                     | `Extract { formula; _ } ->
-                        (formula |> translate_formula :> Yaml.value)
-                    | `Taint spec -> (translate_taint_spec spec :> Yaml.value))
+                        [
+                          ("match", (formula |> translate_formula :> Yaml.value));
+                        ]
+                    | `Taint spec ->
+                        [ ("taint", (translate_taint_spec spec :> Yaml.value)) ])
            in
            (file, formulas))
   in
