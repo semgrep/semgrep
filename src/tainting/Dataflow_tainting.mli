@@ -95,7 +95,7 @@ val str_of_name : IL.name -> var
 val hook_function_taint_signature :
   (config ->
   AST_generic.expr ->
-  (AST_generic.function_definition * Taint.finding list) option)
+  (AST_generic.parameters (* params of function *) * Taint.finding list) option)
   option
   ref
 (** Deep Semgrep *)
