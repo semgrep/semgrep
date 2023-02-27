@@ -190,6 +190,14 @@ let pop_stmts env =
   env.stmts := [];
   xs
 
+let with_pre_stmts env f =
+  let saved_stmts = !(env.stmts) in
+  env.stmts := [];
+  let r = f env in
+  let f_stmts = pop_stmts env in
+  env.stmts := saved_stmts;
+  (f_stmts, r)
+
 let bracket_keep f (t1, x, t2) = (t1, f x, t2)
 
 let ident_of_entity_opt ent =
@@ -442,11 +450,20 @@ and assign env lhs tok rhs_exp e_gen =
 (* less: we could pass in an optional lval that we know the caller want
  * to assign into, which would avoid creating useless fresh_var intermediates.
  *)
+(* We set `void` to `true` when the value of the expression is being discarded, in
+ * which case, for certain expressions and in certain languages, we assume that the
+ * expression has side-effects. See translation of operators below. *)
 and expr_aux env ?(void = false) e_gen =
   let eorig = SameAs e_gen in
   match e_gen.G.e with
+  | G.Call
+      ( { e = G.IdSpecial (G.Op ((G.And | G.Or) as op), tok); _ },
+        (_, arg0 :: args, _) )
+    when not void ->
+      expr_lazy_op env op tok arg0 args eorig
+  (* args_with_pre_stmts *)
   | G.Call ({ e = G.IdSpecial (G.Op op, tok); _ }, args) -> (
-      let args = arguments env args in
+      let args = arguments env (PI.unbracket args) in
       if not void then mk_e (Operator ((op, tok), args)) eorig
       else
         (* The operation's result is not being used, so it may have side-effects.
@@ -521,7 +538,7 @@ and expr_aux env ?(void = false) e_gen =
       (* obj.concat(args) *)
       (* NOTE: Often this will be string concatenation but not necessarily! *)
       let obj_arg' = Unnamed (expr env obj) in
-      let args' = arguments env args in
+      let args' = arguments env (PI.unbracket args) in
       let res =
         match env.lang with
         (* Ruby's concat method is side-effectful and updates the object. *)
@@ -546,7 +563,7 @@ and expr_aux env ?(void = false) e_gen =
         args ) ->
       let lval = fresh_lval env tok in
       let special = (Eval, tok) in
-      let args = arguments env args in
+      let args = arguments env (PI.unbracket args) in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
       mk_e (Fetch lval) (related_tok tok)
   | G.Call
@@ -560,12 +577,12 @@ and expr_aux env ?(void = false) e_gen =
       (* TODO: lift up New in IL like we did in AST_generic *)
       let special = (New, tok) in
       let arg = G.ArgType ty in
-      let args = arguments env args in
+      let args = arguments env (PI.unbracket args) in
       add_call env tok eorig ~void (fun res ->
           CallSpecial (res, special, argument env arg :: args))
   | G.Call ({ e = G.IdSpecial spec; _ }, args) -> (
       let tok = snd spec in
-      let args = arguments env args in
+      let args = arguments env (PI.unbracket args) in
       try
         let special = call_special env spec in
         add_call env tok eorig ~void (fun res ->
@@ -762,6 +779,25 @@ and expr_opt env = function
       mk_e (Literal void) NoOrig
   | Some e -> expr env e
 
+and expr_lazy_op env op tok arg0 args eorig =
+  let arg0' = argument env arg0 in
+  let args' : exp argument list =
+    (* Consider A && B && C, side-effects in B must only take effect `if A`,
+       * and side-effects in C must only take effect `if A && B`. *)
+    args
+    |> List.fold_left_map
+         (fun cond argi ->
+           let ssi, argi' = arg_with_pre_stmts env argi in
+           if ssi <> [] then add_stmt env (mk_s @@ If (tok, cond, ssi, []));
+           let condi =
+             mk_e (Operator ((op, tok), [ Unnamed cond; argi' ])) eorig
+           in
+           (condi, argi'))
+         (IL_helpers.exp_of_arg arg0')
+    |> snd
+  in
+  mk_e (Operator ((op, tok), arg0' :: args')) eorig
+
 and call_generic env ?(void = false) tok e args =
   let eorig = SameAs (G.Call (e, args) |> G.e) in
   let e = expr env e in
@@ -774,7 +810,7 @@ and call_generic env ?(void = false) tok e args =
    * to return in expr multiple arguments and thread things around; Not
    * worth it.
    *)
-  let args = arguments env args in
+  let args = arguments env (PI.unbracket args) in
   add_call env tok eorig ~void (fun res -> Call (res, e, args))
 
 and call_special _env (x, tok) =
@@ -811,7 +847,7 @@ and composite_kind = function
   | G.Tuple -> CTuple
 
 (* TODO: dependency of order between arguments for instr? *)
-and arguments env xs = xs |> PI.unbracket |> Common.map (argument env)
+and arguments env xs = xs |> Common.map (argument env)
 
 and argument env arg =
   match arg with
@@ -987,28 +1023,23 @@ and lval_of_ent env ent =
       | x :: _ -> fresh_lval env x)
 
 and expr_with_pre_stmts env ?void e =
-  let e = expr env ?void e in
-  let xs = pop_stmts env in
-  (xs, e)
+  with_pre_stmts env (fun env -> expr env ?void e)
 
 (* alt: could use H.cond_to_expr and reuse expr_with_pre_stmts *)
 and cond_with_pre_stmts env ?void cond =
-  match cond with
-  | G.Cond e ->
-      let e = expr env ?void e in
-      let xs = pop_stmts env in
-      (xs, e)
-  | G.OtherCond (categ, xs) ->
-      let e = G.OtherExpr (categ, xs) |> G.e in
-      log_fixme ToDo (G.E e);
-      let e = expr env ?void e in
-      let xs = pop_stmts env in
-      (xs, e)
+  with_pre_stmts env (fun env ->
+      match cond with
+      | G.Cond e -> expr env ?void e
+      | G.OtherCond (categ, xs) ->
+          let e = G.OtherExpr (categ, xs) |> G.e in
+          log_fixme ToDo (G.E e);
+          expr env ?void e)
+
+and arg_with_pre_stmts env arg =
+  with_pre_stmts env (fun env -> argument env arg)
 
 and args_with_pre_stmts env args =
-  let args = arguments env args in
-  let xs = pop_stmts env in
-  (xs, args)
+  with_pre_stmts env (fun env -> arguments env args)
 
 and expr_with_pre_stmts_opt env eopt =
   match eopt with
@@ -1218,7 +1249,7 @@ and stmt_aux env st =
       let ss, e = expr_with_pre_stmts_opt env eopt in
       ss @ [ mk_s (Return (tok, e)) ]
   | G.Assert (tok, args, _) ->
-      let ss, args = args_with_pre_stmts env args in
+      let ss, args = args_with_pre_stmts env (PI.unbracket args) in
       let special = (Assert, tok) in
       (* less: wrong e? would not be able to match on Assert, or
        * need add sorig:
