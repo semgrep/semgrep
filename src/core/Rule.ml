@@ -196,6 +196,12 @@ and taint_propagator = {
        * This propagator will only propagate taint if the incoming taint
        * satisfies the 'requires'.
        *)
+  propagator_replace_labels : string list option;
+      (* A list of the particular labels of taint to be replaced by
+         the propagator.
+         Does nothing if [propagator_label] is not also specified.
+         If not specified, all kinds are propagated.
+      *)
   propagator_label : string option;
       (* If [propagator_label] is specified, then the propagator will
          output taint with the given label.

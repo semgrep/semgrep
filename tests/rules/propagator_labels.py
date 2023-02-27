@@ -48,3 +48,18 @@ sinkd(d4)
 
 sinkd(c_good) # sink doesn't accept C
 sink(d1)      # qux doesn't output A or B 
+
+"""
+testing replacing specific labels
+"""
+
+e1.baz(a)
+e2.baz(b)
+e3.baz(any)
+
+# ruleid: propagator-labels
+sinke(e1)
+# ruleid: propagator-labels
+sinke(e2)
+sinke(e3)     # any taint does not satisfy requires  
+sinke(c_good) # does not replace label C 

@@ -508,11 +508,17 @@ let find_args_taints args_taints fparams =
    to one which has been propagated to a new label.
    See [handle_taint_propagators] for more.
 *)
-let propagate_taint_to_label label (taint : T.taint) =
+let propagate_taint_to_label replace_labels label (taint : T.taint) =
   let new_orig =
-    match taint.orig with
-    | Src src -> T.Src ({ src with label })
-    | Arg arg -> Arg arg
+    match (taint.orig, replace_labels) with
+    (* if there are no replaced labels specified, we will replace
+       indiscriminately
+    *)
+    | Src src, None -> T.Src { src with label }
+    | Src src, Some replace_labels when List.mem src.T.label replace_labels ->
+        T.Src { src with label }
+    | Src src, _ -> Src src
+    | Arg arg, _ -> Arg arg
   in
   { taint with orig = new_orig }
 
@@ -587,7 +593,11 @@ let handle_taint_propagators env thing taints =
           let new_taints =
             match prop.spec.prop.propagator_label with
             | None -> taints
-            | Some label -> Taints.map (propagate_taint_to_label label) taints
+            | Some label ->
+                Taints.map
+                  (propagate_taint_to_label
+                     prop.spec.prop.propagator_replace_labels label)
+                  taints
           in
           Lval_env.propagate_to prop.spec.var new_taints lval_env
         else lval_env)
@@ -840,7 +850,9 @@ let check_function_signature env fun_exp args_taints =
         |> List.filter_map (function
              | T.SrcToReturn (src, tokens, _return_tok) ->
                  let call_trace = T.Call (eorig, tokens, src.call_trace) in
-                 Some (Taints.singleton { orig = Src { src with call_trace }; tokens = [] })
+                 Some
+                   (Taints.singleton
+                      { orig = Src { src with call_trace }; tokens = [] })
              | T.ArgToReturn (argpos, tokens, _return_tok) ->
                  let* arg_taints = taints_of_arg argpos in
                  (* Get the token of the function *)

@@ -1134,6 +1134,12 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
       |> Option.value ~default:default_propagator_requires
     in
     let propagator_label = take_opt dict env parse_string "label" in
+    let propagator_replace_labels =
+      take_opt dict env
+        (fun env key v ->
+          parse_listi env key (fun env v -> parse_string env key v) v)
+        "replace-labels"
+    in
     let propagator_formula = f env dict in
     {
       R.propagator_formula;
@@ -1141,6 +1147,7 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
       from;
       to_;
       propagator_requires;
+      propagator_replace_labels;
       propagator_label;
     }
   in
