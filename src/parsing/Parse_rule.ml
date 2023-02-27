@@ -224,34 +224,6 @@ let fold_dict f dict x = Hashtbl.fold f dict.h x
 let yaml_to_dict env enclosing =
   yaml_to_dict_helper (error_at_expr env) (error_at_expr env) enclosing
 
-(* This helper function is just for taking a dictionary of mappings,
-   meant to accompany a `pattern-regex`, and then getting all the
-   renames. For instance, we may have:
-
-   pattern-regex: "(.*)"
-   $1: $A
-
-   and produce [("$1", "$A")].
-*)
-let dict_to_regex_renames env dict =
-  Common.hash_to_list dict.h
-  |> List.filter_map (fun (s, (_, expr)) ->
-         match expr.G.e with
-         | _ when Metavariable.is_metavar_for_capture_group s -> (
-             match expr.G.e with
-             | G.L (String (_, (s', _), _)) ->
-                 if Metavariable.is_metavar_name s' then Some (s, s')
-                 else
-                   error env dict.first_tok
-                     (spf "%s not a valid rename for %s in pattern-regex" s' s)
-             | __else__ ->
-                 (* If we're mapping $1 to something that is not itself a string,
-                      this doesn't make sense, since we expect a metavariable name.
-                 *)
-                 error env dict.first_tok
-                   (spf "Expected string for rename of %s in pattern-regex" s))
-         | __else__ -> None)
-
 (*****************************************************************************)
 (* Parsing methods for before env is created *)
 (*****************************************************************************)
@@ -380,6 +352,64 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
       error_at_key env key
         ("Expected a string or a list of strings for " ^ fst key)
 
+(* This helper function is just for taking a dictionary of mappings,
+   meant to accompany a `pattern-regex`, and then getting all the
+   renames. For instance, we may have:
+
+   pattern-regex: "one (.*) two (.*)"
+   metavars:
+     - $1: $A
+     - $2: $B
+
+   and produce [("$1", "$A"); ("$2", "$B")].
+*)
+let dict_to_regex_renames env dict =
+  let renames =
+    match
+      take_opt dict env
+        (fun _ key v -> parse_listi env key (fun _ v -> v) v)
+        "metavars"
+    with
+    | None -> []
+    | Some res -> res
+  in
+  renames
+  |> List.filter_map (fun expr ->
+         (* Every entry in the `metavars` list should be a singleton dict.
+       *)
+         match expr.G.e with
+         | Container
+             ( Dict,
+               ( _,
+                 [
+                   {
+                     e =
+                       Container
+                         ( Tuple,
+                           ( _,
+                             [
+                               { e = L (String (_, (s, _), _)); _ };
+                               { e = L (String (_, (s', _), _)); _ };
+                             ],
+                             _ ) );
+                     _;
+                   };
+                 ],
+                 _ ) )
+           when Metavariable.is_metavar_for_capture_group s ->
+             if Metavariable.is_metavar_name s' then Some (s, s')
+             else
+               error env dict.first_tok
+                 (spf "%s not a valid rename for %s in pattern-regex" s' s)
+               (* If we're mapping $1 to something that is not itself a string,
+                    this doesn't make sense, since we expect a metavariable name.
+               *)
+         | __else__ ->
+             error env dict.first_tok
+               (spf
+                  "Expected singleton dictionaries for introduced metavars in \
+                   pattern-regex"))
+
 (*****************************************************************************)
 (* Parsers for core fields (languages:, severity:) *)
 (*****************************************************************************)
@@ -449,8 +479,9 @@ let parse_regexp_xpattern env (s, t) dict_opt : string * (string * string) list
        regex metavariables. These look like:
 
        pattern-regex: "one (.*) two (.*)"
-       $1: $A
-       $2: $B
+       renames:
+        - $1: $A
+        - $2: $B
 
        which introduces the first regex capture group metavar as $A,
        and the second as $B

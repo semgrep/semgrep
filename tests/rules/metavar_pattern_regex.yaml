@@ -5,8 +5,9 @@ rules:
     message: New dependency with name $A and version $B
     patterns:
       - pattern-regex: gem "(.*)", "(.*)"
-        $1: $A
-        $2: $B
+        metavars:
+          - $1: $A
+          - $2: $B
       - metavariable-pattern:
           metavariable: $A
           language: generic

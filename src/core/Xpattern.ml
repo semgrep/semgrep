@@ -32,7 +32,8 @@ type regexp_xpattern = regexp_string * (string * string) list
       For instance, you may have a regex pattern
 
       pattern-regex: "(.*)"
-      $1: $A
+      metavars:
+        - $1: $A
 
       which explicitly renames the first capture group metavar to $A
     *)

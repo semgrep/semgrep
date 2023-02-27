@@ -2,9 +2,10 @@ rules:
   - id: explicit-regex-capture-group 
     patterns:
       - pattern-regex: "one (.*) two (.*) three (.*)"
-        $1: $Z
-        $2: $X
-        $3: $Y
+        metavars:
+          - $1: $Z
+          - $2: $X
+          - $3: $Y
       - metavariable-regex:
           metavariable: $Z
           regex: "A"
