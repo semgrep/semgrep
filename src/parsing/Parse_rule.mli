@@ -9,7 +9,7 @@
  * (e.g., Rule.InvalidYaml).
  *)
 val parse_and_filter_invalid_rules :
-  Common.filename -> Rule.rules * Rule.invalid_rule_error list
+  Common.filename -> Rule.lazy_rule list * Rule.invalid_rule_error list
 
 (* ex: foo.yaml, foo.yml, but not foo.test.yaml.
  *
@@ -43,4 +43,4 @@ val parse_generic_ast :
   ?error_recovery:bool ->
   Common.filename ->
   AST_generic.program ->
-  Rule.rules * Rule.invalid_rule_error list
+  Rule.lazy_rule list * Rule.invalid_rule_error list

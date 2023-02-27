@@ -35,7 +35,7 @@ type rules_and_origin = {
   (* TODO? put a config_id: string option? or config prefix? or
    * compute it later based on the origin?
    *)
-  rules : Rule.rules;
+  rules : Rule.lazy_rule list;
   errors : Rule.invalid_rule_error list;
 }
 
@@ -48,8 +48,10 @@ and origin = Common.filename option (* None for remote files *)
 (*****************************************************************************)
 
 let partition_rules_and_errors (xs : rules_and_origin list) :
-    Rule.rules * Rule.invalid_rule_error list =
-  let (rules : Rule.rules) = xs |> List.concat_map (fun x -> x.rules) in
+    Rule.lazy_rule list * Rule.invalid_rule_error list =
+  let (rules : Rule.lazy_rule list) =
+    xs |> List.concat_map (fun x -> x.rules)
+  in
   let (errors : Rule.invalid_rule_error list) =
     xs |> List.concat_map (fun x -> x.errors)
   in
@@ -129,7 +131,8 @@ let import_callback base str =
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
  *)
-let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
+let parse_rule (file : filename) :
+    Rule.lazy_rule list * Rule.invalid_rule_error list =
   match FT.file_type_of_file file with
   | FT.Config FT.Jsonnet ->
       Logs.warn (fun m ->
@@ -239,5 +242,7 @@ let rules_from_rules_source (source : rules_source) : rules_and_origin list =
       let rule = Rule.rule_of_xpattern xlang xpat in
       let rule = { rule with id = (Constants.cli_rule_id, fk); fix } in
       (* TODO? transform the pattern parse error in invalid_rule_error? *)
-      [ { origin = None; rules = [ rule ]; errors = [] } ]
+      [
+        { origin = None; rules = [ Rule.lazy_rule_of_rule rule ]; errors = [] };
+      ]
   [@@profiling]

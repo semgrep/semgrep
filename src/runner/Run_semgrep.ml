@@ -22,6 +22,7 @@ module R = Rule
 module RP = Report
 module In = Input_to_core_j
 module Out = Output_from_core_j
+module Set = Set_
 
 let logger = Logging.get_logger [ __MODULE__ ]
 let debug_extract_mode = ref false
@@ -443,10 +444,10 @@ let rules_for_xlang (xlang : Xlang.t) (rules : Rule.t list) : Rule.t list =
  * omitted from the final table.
  * TODO: This is needed because?
  *)
-let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : Rule.rule_id list) :
-    (int, Rule.t) Hashtbl.t =
+let mk_rule_table (rules : Rule.lazy_rule list)
+    (list_of_rule_ids : Rule.rule_id list) : (int, Rule.lazy_rule) Hashtbl.t =
   let rule_table =
-    rules |> Common.map (fun r -> (fst r.R.id, r)) |> Common.hash_of_list
+    rules |> Common.map (fun r -> (fst r.R.lid, r)) |> Common.hash_of_list
   in
   let id_pairs =
     list_of_rule_ids
@@ -604,6 +605,45 @@ let extracted_targets_of_config (config : Runner_config.t)
 (* Semgrep -config *)
 (*****************************************************************************)
 
+let validate_extract_rules extract_rules =
+  Common.map
+    (fun r ->
+      match r.Rule.mode with
+      | `Extract _ as e -> { r with mode = e }
+      | _ ->
+          raise
+            (Rule.Err
+               (Rule.InvalidRule
+                  ( Rule.InvalidOther
+                      "Extract mode rule wasn't parsed as extract. This is an \
+                       error with Parse_rule.ml",
+                    fst r.id,
+                    snd r.id ))))
+    extract_rules
+
+let parse_needed_rules lazy_rule_table all_targets prev_invalid_rules
+    prev_parse_time =
+  let needed_rule_nums =
+    List.fold_left
+      (fun set target -> Set.union (Set.of_list target.In.rule_nums) set)
+      Set.empty all_targets
+    |> Set.elements
+  in
+  let needed_lazy_rule_pairs =
+    needed_rule_nums
+    |> List.filter_map (fun n ->
+           match Hashtbl.find_opt lazy_rule_table n with
+           | None -> None
+           | Some rule -> Some (n, rule))
+  in
+  let nums, needed_lazy_rules = List.split needed_lazy_rule_pairs in
+  let needed_rules, invalid_rules, parse_time =
+    Rule.force_and_record_rules needed_lazy_rules prev_invalid_rules
+      prev_parse_time
+  in
+  let needed_rule_pairs = List.combine nums needed_rules in
+  (Common.hash_of_list needed_rule_pairs, invalid_rules, parse_time)
+
 (* This is the main function used by the semgrep Python wrapper right now.
  * It takes a set of rules and a set of targets (targets derived from config,
  * and potentially also extract rules) and iteratively process those targets.
@@ -614,11 +654,11 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   let rules, extract_rules =
     rules
     |> Common.partition_either (fun r ->
-           match r.Rule.mode with
-           | `Extract _ as e -> Right { r with mode = e }
-           | mode -> Left { r with mode })
+           match r.Rule.mode_type with
+           | Extract -> Right r
+           | Match -> Left r)
   in
-  let rule_ids = rules |> Common.map (fun r -> fst r.R.id) in
+  let rule_ids = rules |> Common.map (fun r -> fst r.R.lid) in
 
   (* The basic targets.
    * TODO: possibly extract (recursively) from generated stuff? *)
@@ -628,6 +668,11 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   (* The "extracted" targets we generate on the fly by calling
    * our extractors (extract mode rules) on the relevant basic targets.
    *)
+  let extract_rules, invalid_rules, rules_parse_time =
+    Rule.force_and_record_rules extract_rules invalid_rules rules_parse_time
+  in
+  let extract_rules = validate_extract_rules extract_rules in
+
   let new_extracted_targets, extract_result_map =
     extracted_targets_of_config config rule_ids extract_rules
   in
@@ -642,7 +687,12 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
    * this target. mk_rule_table resolves this by ignoring any rule id it can't
    * find in the rules list.
    *)
-  let rule_table = mk_rule_table rules targets_info.rule_ids in
+  let lazy_rule_table = mk_rule_table rules targets_info.rule_ids in
+
+  let rule_table, invalid_rules, rules_parse_time =
+    parse_needed_rules lazy_rule_table all_targets invalid_rules
+      rules_parse_time
+  in
 
   (* Let's go! *)
   logger#info "processing %d files, skipping %d files" (List.length all_targets)
@@ -709,9 +759,10 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
            | Some f -> f matches
            | None -> matches)
   in
+  let used_rules = Hashtbl.to_seq_values rule_table |> List.of_seq in
   let res =
     RP.make_final_result file_results
-      (Common.map (fun r -> (r, Pattern_match.OSS)) rules)
+      (Common.map (fun r -> (r, Pattern_match.OSS)) used_rules)
       ~rules_parse_time
   in
   logger#info "found %d matches, %d errors" (List.length res.matches)
@@ -746,7 +797,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
       extra;
       explanations = res.explanations;
       rules_by_engine =
-        Common.map (fun x -> (fst x.R.id, Pattern_match.OSS)) rules;
+        Common.map (fun x -> (fst x.R.id, Pattern_match.OSS)) used_rules;
     },
     (* TODO not all_targets here, because ?? *)
     targets |> Common.map (fun x -> x.In.path) )
@@ -771,7 +822,9 @@ let semgrep_with_raw_results_and_exn_handler config =
                 Parse_rule.parse_and_filter_invalid_rules file)
           in
           timed_rules
-      | Some (Rules rules) -> ((rules, []), 0.)
+      | Some (Rules rules) ->
+          (* TODO osemgrep currently does not benefit from the lazy rule parsing optimization *)
+          ((Common.map R.lazy_rule_of_rule rules, []), 0.)
       | None ->
           (* TODO: ensure that this doesn't happen *)
           failwith "missing rules"
@@ -916,7 +969,8 @@ let semgrep_with_one_pattern config =
             Rule.rule_of_xpattern xlang xpat)
       in
       let res, files =
-        semgrep_with_rules config (([ rule ], []), rules_parse_time)
+        semgrep_with_rules config
+          (([ Rule.lazy_rule_of_rule rule ], []), rules_parse_time)
       in
       let json =
         JSON_report.match_results_of_matches_and_errors

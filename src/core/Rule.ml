@@ -275,27 +275,12 @@ type extract_rule = extract_mode rule_info [@@deriving show]
 
 (* the general type *)
 type rule = mode rule_info [@@deriving show]
+type mode_type = Match | Extract [@@deriving show]
 
 (* aliases *)
 type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
 type hrules = (rule_id, t) Hashtbl.t
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-let hrules_of_rules (rules : t list) : hrules =
-  rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
-
-let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list =
-  rules
-  |> Common.partition_either3 (fun r ->
-         match r.mode with
-         | `Search _ as s -> Left3 { r with mode = s }
-         | `Taint _ as t -> Middle3 { r with mode = t }
-         | `Extract _ as e -> Right3 { r with mode = e })
 
 (*****************************************************************************)
 (* Error Management *)
@@ -335,6 +320,72 @@ type error =
 
 (* can't use Error because it's used for severity *)
 exception Err of error
+
+(*****************************************************************************)
+(* Lazy parsing *)
+(*****************************************************************************)
+
+type rule_result = Rule of rule | InvalidRuleError of invalid_rule_error
+[@@deriving show]
+
+type lazy_rule_contents = Parsed of rule | Lazy of rule_result Lazy.t
+[@@deriving show]
+
+type lazy_rule = {
+  lid : rule_id wrap;
+  mode_type : mode_type;
+  lazy_contents : lazy_rule_contents;
+}
+[@@deriving show]
+
+let lazy_rule_of_rule (r : rule) =
+  let mode_type =
+    match r.mode with
+    | `Extract _ -> Extract
+    | `Taint _ -> Match
+    | `Search _ -> Match
+  in
+  { lid = r.id; mode_type; lazy_contents = Parsed r }
+
+let force_rule r =
+  match r.lazy_contents with
+  | Parsed rule -> Rule rule
+  | Lazy lazy_rule -> Lazy.force lazy_rule
+
+let force_rules_raise_exn rules =
+  let force_rule_raise_exn r =
+    match force_rule r with
+    | Rule r -> r
+    | InvalidRuleError e -> raise (Err (InvalidRule e))
+  in
+  Common.map force_rule_raise_exn rules
+
+let force_and_record_rules lazy_rules prev_invalid_rules prev_parse_time =
+  let (rules, invalid_rules), parse_time =
+    Common.with_time (fun () ->
+        lazy_rules
+        |> Common.partition_either (fun r ->
+               match force_rule r with
+               | Rule r -> Left r
+               | InvalidRuleError e -> Right e))
+  in
+  (rules, invalid_rules @ prev_invalid_rules, prev_parse_time +. parse_time)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let hrules_of_rules (rules : t list) : hrules =
+  rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
+
+let partition_rules (rules : rules) :
+    search_rule list * taint_rule list * extract_rule list =
+  rules
+  |> Common.partition_either3 (fun r ->
+         match r.mode with
+         | `Search _ as s -> Left3 { r with mode = s }
+         | `Taint _ as t -> Middle3 { r with mode = t }
+         | `Extract _ as e -> Right3 { r with mode = e })
 
 (*****************************************************************************)
 (* String-of *)

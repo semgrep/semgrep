@@ -1338,6 +1338,20 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
             'extract', not %s"
            (fst key))
 
+let parse_mode_type env mode_opt =
+  match mode_opt with
+  | None
+  | Some ("search", _)
+  | Some ("taint", _) ->
+      R.Match
+  | Some ("extract", _) -> R.Extract
+  | Some key ->
+      error_at_key env key
+        (spf
+           "Unexpected value for mode, should be 'search', 'taint', or \
+            'extract', not %s"
+           (fst key))
+
 (* sanity check there are no remaining fields in rd *)
 let report_unparsed_fields rd =
   (* those were not "consumed" *)
@@ -1353,22 +1367,7 @@ let report_unparsed_fields rd =
       |> List.iter (fun (k, _v) ->
              logger#warning "skipping unknown field: %s" k)
 
-let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
-  let rd = yaml_to_dict_no_env ("rules", t) rule in
-  let id, languages =
-    ( take_no_env rd parse_string_wrap_no_env "id",
-      take_no_env rd parse_string_wrap_list_no_env "languages" )
-  in
-  let languages = parse_languages ~id languages in
-  let env =
-    {
-      id = fst id;
-      languages;
-      in_metavariable_pattern = false;
-      path = [ string_of_int i; "rules" ];
-    }
-  in
-  let mode_opt = take_opt rd env parse_string_wrap "mode" in
+let parse_one_rule env id mode_opt (rd : dict) : Rule.t =
   let mode = parse_mode env mode_opt rd in
   let ( (message, severity),
         metadata_opt,
@@ -1393,7 +1392,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
   {
     R.id;
     message;
-    languages;
+    languages = env.languages;
     severity = parse_severity ~id:env.id severity;
     mode;
     (* optional fields *)
@@ -1405,8 +1404,42 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
     options = options_opt;
   }
 
+let parse_one_rule_lazy ?(error_recovery = false) (t : G.tok) (i : int)
+    (rule : G.expr) : Rule.lazy_rule =
+  let rd = yaml_to_dict_no_env ("rules", t) rule in
+  let id, languages =
+    ( take_no_env rd parse_string_wrap_no_env "id",
+      take_no_env rd parse_string_wrap_list_no_env "languages" )
+  in
+  let languages = parse_languages ~id languages in
+  let env =
+    {
+      id = fst id;
+      languages;
+      in_metavariable_pattern = false;
+      path = [ string_of_int i; "rules" ];
+    }
+  in
+  let mode_opt = take_opt rd env parse_string_wrap "mode" in
+  let mode_type = parse_mode_type env mode_opt in
+  let parse_rest_of_rule env id rd : R.rule_result =
+    if error_recovery then (
+      try R.Rule (parse_one_rule env id mode_opt rd) with
+      | R.Err (R.InvalidRule ((kind, ruleid, _) as err)) ->
+          let s = R.string_of_invalid_rule_error_kind kind in
+          logger#warning "skipping rule %s, error = %s" ruleid s;
+          R.InvalidRuleError err)
+    else R.Rule (parse_one_rule env id mode_opt rd)
+  in
+  {
+    R.lid = id;
+    R.mode_type;
+    R.lazy_contents = R.Lazy (lazy (parse_rest_of_rule env id rd));
+  }
+
 let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
-    (ast : AST_generic.program) : Rule.rules * Rule.invalid_rule_error list =
+    (ast : AST_generic.program) :
+    Rule.lazy_rule list * Rule.invalid_rule_error list =
   let t, rules =
     match ast with
     | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
@@ -1448,12 +1481,12 @@ let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
     rules
     |> List.mapi (fun i rule ->
            if error_recovery then (
-             try Left (parse_one_rule t i rule) with
+             try Left (parse_one_rule_lazy t i rule) with
              | R.Err (R.InvalidRule ((kind, ruleid, _) as err)) ->
-                 let s = Rule.string_of_invalid_rule_error_kind kind in
+                 let s = R.string_of_invalid_rule_error_kind kind in
                  logger#warning "skipping rule %s, error = %s" ruleid s;
                  Right err)
-           else Left (parse_one_rule t i rule))
+           else Left (parse_one_rule_lazy t i rule))
   in
   Common.partition_either (fun x -> x) xs
 
@@ -1532,7 +1565,7 @@ let parse_file ?error_recovery file =
 let parse file =
   let xs, skipped = parse_file ~error_recovery:false file in
   assert (skipped =*= []);
-  xs
+  R.force_rules_raise_exn xs
 
 let parse_and_filter_invalid_rules file = parse_file ~error_recovery:true file
 

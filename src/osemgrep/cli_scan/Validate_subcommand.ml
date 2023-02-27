@@ -94,6 +94,9 @@ let run (conf : conf) : Exit_code.t =
         let metarules, metaerrors =
           Rule_fetching.partition_rules_and_errors metarules_and_origin
         in
+        let metarules, metaerrors, _rules_parse_time =
+          Rule.force_and_record_rules metarules metaerrors 0.0
+        in
         if metaerrors <> [] then
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
 
