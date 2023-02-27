@@ -139,7 +139,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_r.CST.dump_tree
   | Lang.Ruby ->
       Tree_sitter_ruby.Parse.file file
-      |> dump_and_print_errors Tree_sitter_ruby.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_ruby.Boilerplate.dump_tree
   | Lang.Java ->
       Tree_sitter_java.Parse.file file
       |> dump_and_print_errors Tree_sitter_java.CST.dump_tree
@@ -154,7 +154,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
   | Lang.Jsonnet ->
       Tree_sitter_jsonnet.Parse.file file
-      |> dump_and_print_errors Tree_sitter_jsonnet.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_jsonnet.Boilerplate.dump_tree
   | Lang.Solidity ->
       Tree_sitter_solidity.Parse.file file
       |> dump_and_print_errors Tree_sitter_solidity.Boilerplate.dump_tree
@@ -164,17 +164,17 @@ let dump_tree_sitter_cst lang file =
   | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
       Tree_sitter_tsx.Parse.file file
-      |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_tsx.Boilerplate.dump_tree
   | Lang.Ts ->
       (* Typescript is mostly a subset of TSX *)
       Tree_sitter_tsx.Parse.file file
-      |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_tsx.Boilerplate.dump_tree
   | Lang.Lua ->
       Tree_sitter_lua.Parse.file file
       |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
-      |> dump_and_print_errors Tree_sitter_rust.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree
   | Lang.Ocaml ->
       Tree_sitter_ocaml.Parse.file file
       |> dump_and_print_errors Tree_sitter_ocaml.CST.dump_tree

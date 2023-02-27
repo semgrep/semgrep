@@ -17,15 +17,13 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment github-actions, triggering event is      
                 push                                                            
-  server      - https://semgrep.dev                                             
+  server      - logged in as org_name on https://semgrep.dev                    
                                                                                 
                                                                                 
 ┌─────────────┐                                                                 
 │ Scan Status │                                                                 
 └─────────────┘                                                                 
                                                                                 
-Fetching configuration from semgrep.dev
-Authenticated as org_name
 Scanning 1 file with 4 python rules.
 
                                                                                 

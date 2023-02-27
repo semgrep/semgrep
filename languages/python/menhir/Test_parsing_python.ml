@@ -15,7 +15,8 @@ let test_tokens_python file =
   let parsing_mode = Parse_python.Python in
 
   let toks =
-    Parse_python.tokens parsing_mode file |> Parsing_hacks_python.fix_tokens
+    Parse_python.tokens parsing_mode (Parsing_helpers.file file)
+    |> Parsing_hacks_python.fix_tokens
   in
   toks |> List.iter (fun x -> pr2_gen x);
   ()

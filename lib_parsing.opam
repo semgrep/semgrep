@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "lib_parsing"
-version: "1.5.5"
+version: "1.14.0"
 synopsis: "Small library to help writing parsers"
 description: """
 This is a small library of utilities used by Semgrep and
@@ -21,6 +21,7 @@ depends: [
   "commons" {>= "1.5.5"}
   "profiling" {>= "1.5.5"}
   "stdcompat" {>= "19"}
+  "fpath" {>= "0.7.3"}
 ]
 
 build: ["dune" "build" "-p" name "-j" jobs]

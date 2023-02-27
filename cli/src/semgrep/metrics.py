@@ -16,6 +16,7 @@ from typing import NewType
 from typing import Optional
 from typing import Sequence
 from typing import Set
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import click
@@ -26,7 +27,6 @@ from typing_extensions import LiteralString
 from typing_extensions import TypedDict
 
 from semgrep import __VERSION__
-from semgrep.constants import EngineType
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
@@ -35,6 +35,9 @@ from semgrep.rule import Rule
 from semgrep.semgrep_types import Language
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
+
+if TYPE_CHECKING:
+    from semgrep.engine import EngineType
 
 logger = getLogger(__name__)
 
@@ -219,7 +222,7 @@ class Metrics:
         self.metrics_state = metrics_state or legacy_state or MetricsState.AUTO
 
     @suppress_errors
-    def add_engine_type(self, engineType: EngineType) -> None:
+    def add_engine_type(self, engineType: "EngineType") -> None:
         """
         Assumes configs is list of arguments passed to semgrep using --config
         """

@@ -29,10 +29,10 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (*****************************************************************************)
 (* Lexing only *)
 (*****************************************************************************)
-let tokens file =
+let tokens input_source =
   let token = Lexer_ml.token in
-  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
-    TH.is_eof
+  Parsing_helpers.tokenize_all_and_adjust_pos input_source token
+    TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 
 (*****************************************************************************)
@@ -40,7 +40,7 @@ let tokens file =
 (*****************************************************************************)
 let parse filename =
   let stat = Parsing_stat.default_stat filename in
-  let toks = tokens filename in
+  let toks = tokens (Parsing_helpers.file filename) in
 
   let tr, lexer, lexbuf_fake =
     Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
@@ -92,12 +92,11 @@ let type_of_string s =
 (* for sgrep/spatch *)
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Common2.with_tmp_file ~str:s ~ext:"ml" (fun file ->
-          let toks = tokens file in
-          let _tr, lexer, lexbuf_fake =
-            Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
-          in
-          (* -------------------------------------------------- *)
-          (* Call parser *)
-          (* -------------------------------------------------- *)
-          Parser_ml.semgrep_pattern lexer lexbuf_fake))
+      let toks = tokens (Parsing_helpers.Str s) in
+      let _tr, lexer, lexbuf_fake =
+        Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
+      in
+      (* -------------------------------------------------- *)
+      (* Call parser *)
+      (* -------------------------------------------------- *)
+      Parser_ml.semgrep_pattern lexer lexbuf_fake)

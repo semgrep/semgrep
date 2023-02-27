@@ -341,6 +341,14 @@ class SarifFormatter(BaseFormatter):
                 if isinstance(owasp, list)
                 else [f"OWASP-{owasp}"]
             )
+        if (
+            "semgrep.policy" in rule.metadata
+            and "slug" in rule.metadata["semgrep.policy"]
+        ):
+            # https://github.com/returntocorp/semgrep-app/blob/8d2e6187b7daa2b20c49839a4fcb67e560202aa8/frontend/src/pages/ruleBoard/constants/constants.tsx#L74
+            # this should be "rule-board-audit", "rule-board-block", or "rule-board-pr-comments"
+            slug = rule.metadata["semgrep.policy"]["slug"]
+            result.append(slug)
 
         for tags in rule.metadata.get("tags", []):
             result.append(tags)

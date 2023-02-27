@@ -45,4 +45,8 @@ val map : map_any:('a -> 'b) -> 'a t -> 'b t
 
 (* Iterate over the tree. *)
 val visit :
-  v_token:(string * Tok.t -> unit) -> v_any:('any -> unit) -> 'any t -> unit
+  v_raw_tree:('any t -> unit) ->
+  v_token:(string * Tok.t -> unit) ->
+  v_any:('any -> unit) ->
+  'any t ->
+  unit

@@ -14,7 +14,7 @@ let test_tokens_go file =
   Flag.verbose_parsing := true;
   Flag.exn_when_lexical_error := true;
 
-  let toks = Parse_go.tokens file in
+  let toks = Parse_go.tokens (Parsing_helpers.file file) in
   let toks = Parsing_hacks_go.fix_tokens toks in
   toks |> List.iter (fun x -> pr2_gen x);
   ()

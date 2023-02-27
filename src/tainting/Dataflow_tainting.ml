@@ -137,9 +137,12 @@ type fun_env = (var, Taints.t) Hashtbl.t
  * because we know there is a better match.
  *)
 module Top_sinks = struct
+  (* For m, m' in S.t, not (m.range $<=$ m'.range) && not (m'.range $<=$ m.range) *)
   module S = Set.Make (struct
     type t = R.taint_sink tmatch
 
+    (* This compare function is subtle but it allows both `add` and `is_best_match`
+     * to be simple and quite efficient. *)
     let compare m1 m2 =
       let sink_id_cmp = String.compare m1.spec.R.sink_id m2.spec.R.sink_id in
       if sink_id_cmp <> 0 then sink_id_cmp
@@ -155,7 +158,7 @@ module Top_sinks = struct
 
   let empty = S.empty
 
-  let add m' sinks =
+  let rec add m' sinks =
     (* We check if we have another match for the *same* sink specification
      * (i.e., same 'sink_id'), and if so we must keep the best match and drop
      * the other one. *)
@@ -168,8 +171,20 @@ module Top_sinks = struct
         if r'.start > r.start || r'.end_ < r.end_ then
           (* The new match is a worse fit so we keep the current one. *)
           sinks
-        else (* We found a better (larger) match! *)
-          S.add m' (S.remove m sinks)
+        else
+          (* We found a better (larger) match! *)
+          (* There may be several matches in `sinks` that are subsumed by `m'`.
+           * E.g. we could have found sinks at ranges (1,5) and (6,10), and then
+           * we find that there is better sink match at range (1,10). This
+           * new larger match subsumes both (1,5) and (6, 10) matches.
+           * Thus, before we try adding `m'` to `sinks`, we need to make sure
+           * that there is no other match `m` that is included in `m'`.
+           * Otherwise `m'` would be considered a duplicate and it would not
+           * be added (e.g., if we try adding the range (1,10) to a set that
+           * still contains the range (6,10), given our `compare` function above
+           * the (1,10) range will be considered a duplicate), hence the
+           * recursive call to `add` here. *)
+          add m' (S.remove m sinks)
 
   let is_best_match sinks m' =
     match S.find_opt m' sinks with
@@ -421,7 +436,7 @@ let union_new_taint_sources_filtering_labels ~new_ curr =
   let new_filtered = filter_new_taint_sources_by_labels labels new_ in
   Taints.union new_filtered curr
 
-let find_args_taints args_taints fdef =
+let find_args_taints args_taints fparams =
   let pos_args_taints, named_args_taints =
     List.partition_map
       (function
@@ -455,7 +470,7 @@ let find_args_taints args_taints fdef =
                 (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
             | None -> param :: acc (* Same as above. *))
         | __else__ -> param :: acc)
-      (Parse_info.unbracket fdef.G.fparams)
+      (Parse_info.unbracket fparams)
       []
   in
   let _ =
@@ -818,8 +833,8 @@ let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
 let check_function_signature env fun_exp args_taints =
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
-      let* fdef, fun_sig = hook env.config eorig in
-      let taints_of_arg = find_args_taints args_taints fdef in
+      let* fparams, fun_sig = hook env.config eorig in
+      let taints_of_arg = find_args_taints args_taints fparams in
       Some
         (fun_sig
         |> List.filter_map (function

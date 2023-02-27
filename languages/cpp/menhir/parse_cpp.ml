@@ -99,8 +99,8 @@ let is_same_line_or_close line tok =
 (*****************************************************************************)
 
 (* called by parse below *)
-let tokens file =
-  Parsing_helpers.tokenize_all_and_adjust_pos file Lexer.token
+let tokens input_source =
+  Parsing_helpers.tokenize_all_and_adjust_pos input_source Lexer.token
     TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 
@@ -150,7 +150,7 @@ and multi_grouped_list_comma xs =
  *)
 let parse_fuzzy file =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      let toks_orig = tokens file in
+      let toks_orig = tokens (Parsing_helpers.file file) in
       let toks =
         toks_orig
         |> Common.exclude (fun x ->
@@ -174,7 +174,9 @@ let parse_fuzzy file =
  * that we try to parse *)
 let extract_macros file =
   Common.save_excursion Flag.verbose_lexing false (fun () ->
-      let toks = tokens (* todo: ~profile:false *) file in
+      let toks =
+        tokens (* todo: ~profile:false *) (Parsing_helpers.file file)
+      in
       let toks = Parsing_hacks_define.fix_tokens_define toks in
       Pp_token.extract_macros toks)
   [@@profiling]
@@ -267,7 +269,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
   (* -------------------------------------------------- *)
   (* call lexer and get all the tokens *)
   (* -------------------------------------------------- *)
-  let toks_orig = tokens file in
+  let toks_orig = tokens (Parsing_helpers.file file) in
 
   let toks =
     try Parsing_hacks.fix_tokens ~macro_defs:_defs lang toks_orig with
@@ -465,27 +467,26 @@ let parse_program file =
 (* for sgrep/spatch *)
 let any_of_string lang s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Common2.with_tmp_file ~str:s ~ext:"c" (fun file ->
-          let toks_orig = tokens file in
+      let toks_orig = tokens (Parsing_helpers.Str s) in
 
-          let toks =
-            try Parsing_hacks.fix_tokens ~macro_defs:_defs lang toks_orig with
-            | Token_views_cpp.UnclosedSymbol s ->
-                logger#error "unclosed symbol %s" s;
-                if !Flag_cpp.debug_cplusplus then
-                  raise (Token_views_cpp.UnclosedSymbol s)
-                else toks_orig
-          in
+      let toks =
+        try Parsing_hacks.fix_tokens ~macro_defs:_defs lang toks_orig with
+        | Token_views_cpp.UnclosedSymbol s ->
+            logger#error "unclosed symbol %s" s;
+            if !Flag_cpp.debug_cplusplus then
+              raise (Token_views_cpp.UnclosedSymbol s)
+            else toks_orig
+      in
 
-          let tr = Parsing_helpers.mk_tokens_state toks in
-          let lexbuf_fake =
-            Lexing.from_function (fun _buf _n -> raise Impossible)
-          in
+      let tr = Parsing_helpers.mk_tokens_state toks in
+      let lexbuf_fake =
+        Lexing.from_function (fun _buf _n -> raise Impossible)
+      in
 
-          (* -------------------------------------------------- *)
-          (* Call parser *)
-          (* -------------------------------------------------- *)
-          Parser_cpp.semgrep_pattern (lexer_function tr) lexbuf_fake))
+      (* -------------------------------------------------- *)
+      (* Call parser *)
+      (* -------------------------------------------------- *)
+      Parser_cpp.semgrep_pattern (lexer_function tr) lexbuf_fake)
 
 (* experimental *)
 (*
@@ -493,7 +494,7 @@ let parse_with_dypgen file =
   (* -------------------------------------------------- *)
   (* call lexer and get all the tokens *)
   (* -------------------------------------------------- *)
-  let toks_orig = tokens file in
+  let toks_orig = tokens (Parsing_helpers.file file) in
   let lang = Flag_parsing_cpp.Cplusplus in
 
   let toks =

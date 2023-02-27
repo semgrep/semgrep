@@ -25,6 +25,7 @@ type token_origin =
   | FakeTokStr of string * (token_location * int) option (* next to *)
   | ExpandedTok of token_location * token_location * int
   | Ab (* abstract token, see Parse_info.ml comment *)
+[@@deriving show, eq]
 
 (* to allow source to source transformation via token "annotations",
  * see the documentation for spatch.
@@ -142,9 +143,6 @@ exception NoTokenLocation of string
 val fake_token_location : token_location
 val is_fake : t -> bool
 val is_origintok : t -> bool
-
-val has_origin_loc : t -> bool
-(** Either an OriginTok or a FakeTokStr associated with a real location. *)
 
 (* NOTE: These functions introduce unsafe fake tokens, prefer safe functions
  * below, use these only as a last resort! *)

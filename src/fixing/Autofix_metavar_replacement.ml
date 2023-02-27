@@ -170,33 +170,28 @@ let find_remaining_metavars metavar_tbl ast =
        spf ".*\\(%s\\).*" regex_body)
   in
   let visitor =
-    Visitor_AST.(
-      mk_visitor
-        {
-          default_visitor with
-          kident =
-            (fun (k, _) id ->
-              let idstr, _ = id in
-              if Hashtbl.mem metavar_tbl idstr then
-                Common.push idstr seen_metavars;
-              k id);
-          klit =
-            (fun (k, _) lit ->
-              (match lit with
-              | String (_, (str, _), _) ->
-                  (* Textual autofix allows metavars to appear anywhere within
-                   * string literals. This is useful when the pattern is
-                   * something like `foo("$X")` and you'd like the fix to modify
-                   * the string literal, e.g. `foo("bar $X")`. So, we have to
-                   * look for a lingering metavariable anywhere within a string,
-                   * and abort if we find one that hasn't been replaced. *)
-                  if str =~ Lazy.force str_metavars_regexp then
-                    Common.push (Common.matched1 str) seen_metavars
-              | _ -> ());
-              k lit);
-        })
+    object
+      inherit [_] AST_generic.iter_no_id_info as super
+
+      method! visit_ident env id =
+        let idstr, _ = id in
+        if Hashtbl.mem metavar_tbl idstr then Common.push idstr seen_metavars;
+        super#visit_ident env id
+
+      method! visit_String env lit =
+        let _, (str, _tok), _ = lit in
+        (* Textual autofix allows metavars to appear anywhere within string
+         * literals. This is useful when the pattern is something like
+         * `foo("$X")` and you'd like the fix to modify the string literal, e.g.
+         * `foo("bar $X")`. So, we have to look for a lingering metavariable
+         * anywhere within a string, and abort if we find one that hasn't been
+         * replaced. *)
+        if str =~ Lazy.force str_metavars_regexp then
+          Common.push (Common.matched1 str) seen_metavars;
+        super#visit_String env lit
+    end
   in
-  visitor ast;
+  visitor#visit_any () ast;
   !seen_metavars
 
 (******************************************************************************)

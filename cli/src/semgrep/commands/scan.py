@@ -29,13 +29,13 @@ from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
-from semgrep.constants import EngineType
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
 from semgrep.dump_ast import dump_parsed_ast
+from semgrep.engine import EngineType
 from semgrep.error import SemgrepError
 from semgrep.metrics import MetricsState
 from semgrep.notifications import possibly_notify_user
@@ -248,7 +248,7 @@ _scan_options: List[Callable] = [
             Filter files or directories by path. The argument is a
             glob-style pattern such as 'foo.*' that must match the path.
             This is an extra filter in addition to other applicable filters.
-            For example, specifying the language with '-l javascript' migh
+            For example, specifying the language with '-l javascript' might
             preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of
             '--include=src', '--include=*.jsx', or '--include=src/foo.*'
             will restrict the selection to the single file 'src/foo.jsx'.
@@ -400,6 +400,7 @@ _scan_options: List[Callable] = [
     ),
     optgroup.option(
         "--dataflow-traces",
+        default=None,
         is_flag=True,
         help="Explain how non-local values reach the location of a finding (only affects text and SARIF output).",
     ),
@@ -512,19 +513,32 @@ _scan_options: List[Callable] = [
     ),
     optgroup.group("Semgrep Pro Engine options"),
     optgroup.option(
-        "--pro-languages",
-        is_flag=True,
-        help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+        "--pro",
+        "requested_engine",
+        type=EngineType,
+        flag_value=EngineType.PRO_INTERFILE,
+        help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
     ),
     optgroup.option(
         "--pro-intrafile",
-        is_flag=True,
+        "requested_engine",
+        type=EngineType,
+        flag_value=EngineType.PRO_INTRAFILE,
         help="Intra-file inter-procedural taint analysis. Implies --pro-languages. Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
     ),
     optgroup.option(
-        "--pro",
-        is_flag=True,
-        help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+        "--pro-languages",
+        "requested_engine",
+        type=EngineType,
+        flag_value=EngineType.PRO_LANG,
+        help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+    ),
+    optgroup.option(
+        "--oss-only",
+        "requested_engine",
+        type=EngineType,
+        flag_value=EngineType.OSS,
+        help="Run using only OSS features, even if the Semgrep Pro toggle is on.",
     ),
 ]
 
@@ -660,9 +674,7 @@ def scan(
     core_opts: Optional[str],
     debug: bool,
     dump_engine_path: bool,
-    pro_languages: bool,
-    pro_intrafile: bool,
-    pro: bool,
+    requested_engine: Optional[EngineType],
     dryrun: bool,
     dump_ast: bool,
     dump_command_for_core: bool,
@@ -720,7 +732,7 @@ def scan(
     For more information about Semgrep, go to https://semgrep.dev.
 
     NOTE: By default, Semgrep will report pseudonymous usage metrics to its server if you pull your configuration from
-    the Semgrep registy. To learn more about how and why these metrics are collected, please see
+    the Semgrep registry. To learn more about how and why these metrics are collected, please see
     https://semgrep.dev/docs/metrics. To modify this behavior, see the --metrics option below.
     """
 
@@ -739,6 +751,11 @@ def scan(
     if show_supported_languages:
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
+
+    engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
+
+    if dataflow_traces is None:
+        dataflow_traces = engine_type.has_dataflow_traces
 
     state = get_state()
     state.metrics.configure(metrics, metrics_legacy)
@@ -782,22 +799,6 @@ def scan(
         semgrep.config_resolver.adjust_for_docker()
         targets = (os.curdir,)
 
-    if pro:
-        # Inter-file + Pro languages
-        engine = EngineType.PRO_INTERFILE
-    elif pro_intrafile:
-        # Intra-file (inter-proc) + Pro languages
-        engine = EngineType.PRO_INTRAFILE
-    elif pro_languages:
-        # Just Pro languages
-        engine = EngineType.PRO_LANG
-    else:
-        engine = EngineType.OSS
-
-    # Turn on `dataflow_traces` by default for inter-procedural taint analysis.
-    if engine is EngineType.PRO_INTRAFILE or engine is EngineType.PRO_INTERFILE:
-        dataflow_traces = True
-
     output_settings = OutputSettings(
         output_format=output_format,
         output_destination=output,
@@ -821,7 +822,7 @@ def scan(
             strict=strict,
             json=output_format == OutputFormat.JSON,
             optimizations=optimizations,
-            engine=engine,
+            engine_type=engine_type,
         )
 
     run_has_findings = False
@@ -864,7 +865,7 @@ def scan(
                     try:
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
-                            engine=engine,
+                            engine_type=engine_type,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
@@ -897,11 +898,11 @@ def scan(
                     profiler,
                     output_extra,
                     shown_severities,
-                    _,
+                    _dependencies,
                 ) = semgrep.semgrep_main.main(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
-                    engine=engine,
+                    engine_type=engine_type,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,
@@ -944,7 +945,7 @@ def scan(
                 rules_by_engine=output_extra.rules_by_engine,
                 severities=shown_severities,
                 print_summary=True,
-                engine=engine,
+                engine_type=engine_type,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())

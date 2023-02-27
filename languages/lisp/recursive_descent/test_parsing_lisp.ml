@@ -13,7 +13,7 @@ let test_tokens_lisp file =
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
 
-  let toks = Parse_lisp.tokens file in
+  let toks = Parse_lisp.tokens (Parsing_helpers.file file) in
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 

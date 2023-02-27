@@ -56,9 +56,17 @@ val check_fundef :
   * This is a low-level function exposed for debugging purposes (-dfg_tainting).
   *)
 
-val check_rule :
-  Rule.taint_rule ->
-  (string -> Pattern_match.t -> unit) ->
+val check_rules :
+  match_hook:(string -> Pattern_match.t -> unit) ->
+  per_rule_boilerplate_fn:
+    (Rule.rule ->
+    (unit -> Report.rule_profiling Report.match_result) ->
+    Report.rule_profiling Report.match_result) ->
+  Rule.taint_rule list ->
   Match_env.xconfig ->
   Xtarget.t ->
-  Report.rule_profiling Report.match_result * debug_taint
+  (* timeout function *)
+  Report.rule_profiling Report.match_result list
+(** Runs the engine on a group of taint rules, which should be for the same language.
+  * Running on multiple rules at once enables inter-rule optimizations.
+  *)
