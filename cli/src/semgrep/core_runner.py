@@ -992,7 +992,11 @@ class CoreRunner:
             return self._run_rules_direct_to_semgrep_core_helper(
                 rules, target_manager, dump_command_for_core, engine
             )
+        except SemgrepError as e:
+            # Handle Semgrep errors normally
+            raise e
         except Exception as e:
+            # Unexpected error, output a warning that the engine might be out of date
             if engine.is_pro:
                 logger.error(
                     f"""
