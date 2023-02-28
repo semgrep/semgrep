@@ -1075,6 +1075,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | OrUnion (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_type_ v2 in
         OrUnion (v1, v2)
+    | OrEllipsis v1 ->
+        let v1 = map_tok v1 in
+        OrEllipsis v1
   and map_class_definition
       {
         ckind = v_ckind;

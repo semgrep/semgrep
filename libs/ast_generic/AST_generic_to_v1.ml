@@ -1208,6 +1208,10 @@ and map_or_type_element = function
   | OrUnion (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_type_ v2 in
       `OrUnion (v1, v2)
+  (* new: *)
+  | OrEllipsis v1 ->
+      let v1 = map_tok v1 in
+      `OrEnum (("...", v1), None)
 
 and map_class_definition
     {

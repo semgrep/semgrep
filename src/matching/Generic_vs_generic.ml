@@ -3053,7 +3053,12 @@ and m_type_definition a b =
 
 and m_type_definition_kind a b =
   match (a, b) with
-  | G.OrType a1, B.OrType b1 -> (m_list m_or_type) a1 b1
+  | G.OrType a1, B.OrType b1 ->
+      m_list_with_dots m_or_type
+        (function
+          | G.OrEllipsis _ -> true
+          | _else_ -> false)
+        ~less_is_ok:false a1 b1
   | G.AndType a1, B.AndType b1 -> m_bracket m_fields a1 b1
   | G.AliasType a1, B.AliasType b1 -> m_type_ a1 b1
   | G.NewType a1, B.NewType b1 -> m_type_ a1 b1
@@ -3083,6 +3088,8 @@ and m_or_type a b =
       m_ident a1 b1 >>= fun () -> m_option m_expr a2 b2
   | G.OrUnion (a1, a2), B.OrUnion (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_type_ a2 b2
+  (* dots: *)
+  | G.OrEllipsis _, _ -> return ()
   | G.OrConstructor _, _
   | G.OrEnum _, _
   | G.OrUnion _, _ ->

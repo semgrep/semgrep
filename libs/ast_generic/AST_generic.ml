@@ -1750,6 +1750,8 @@ and or_type_element =
   | OrEnum of ident * expr option
   (* C union *)
   | OrUnion of ident * type_
+  (* sgrep-ext: *)
+  | OrEllipsis of tok
 
 (* ------------------------------------------------------------------------- *)
 (* Object/struct/record/class field definition *)
