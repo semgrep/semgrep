@@ -1,1 +1,2 @@
-Fix: Semgrep Pro previously reported a crash for normal errors. This fixes that
+Fix: Semgrep Pro previously reported a crash for user errors such as
+invalid patterns. It will now give a good error message.
