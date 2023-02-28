@@ -1,6 +1,8 @@
 (*
    Lazy file tree used for path filtering.
 
+   Ftree stands for "file tree" like Fpath for file paths.
+
    Design principles:
    - This module reads from but doesn't write to the file system. This allows
      us to ignore certain file types without conflicts.
