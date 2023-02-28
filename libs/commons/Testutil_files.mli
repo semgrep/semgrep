@@ -39,7 +39,6 @@ val write : Fpath.t -> t list -> unit
 
 (* Recursive removal (rm -r) *)
 val remove : Fpath.t -> unit
-
 val is_dir : Fpath.t -> bool
 val is_file : Fpath.t -> bool
 val is_symlink : Fpath.t -> bool
@@ -61,7 +60,4 @@ val with_chdir : Fpath.t -> (unit -> 'a) -> 'a
    is true. If 'chdir' is set to true, the current directory is
    set temporarily to the temporary directory.
  *)
-val with_tempdir :
-  ?persist:bool ->
-  ?chdir:bool ->
-  (Fpath.t -> 'a) -> 'a
+val with_tempdir : ?persist:bool -> ?chdir:bool -> (Fpath.t -> 'a) -> 'a

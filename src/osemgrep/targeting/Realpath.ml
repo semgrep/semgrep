@@ -140,13 +140,13 @@ let test () =
       "/tmp/test-realpath/regfile/..";
     ];
   Testutil_files.with_chdir (Fpath.v "/tmp/test-realpath/sub") (fun () ->
-    List.iter check
-      [
-        (".", "/tmp/test-realpath/sub");
-        ("..", "/tmp/test-realpath");
-        ("../link-to-tmp", "/tmp");
-        ("../link-to-tmp/test-realpath", "/tmp/test-realpath");
-      ])
+      List.iter check
+        [
+          (".", "/tmp/test-realpath/sub");
+          ("..", "/tmp/test-realpath");
+          ("../link-to-tmp", "/tmp");
+          ("../link-to-tmp/test-realpath", "/tmp/test-realpath");
+        ])
 
 let () =
   match Sys.os_type with
