@@ -28,10 +28,18 @@ jobs:
       - name: Cleanup semgrep
         run: brew cleanup --prune=all semgrep
       - name: Brew update
-        run: brew update
+        run: brew update --debug --verbose
+      - name: Debug
+        run: |
+          brew --repository
+          cat /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/semgrep.rb
       - name: Brew Install
-        run: brew install semgrep --HEAD
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: 1
+        run: brew install semgrep --HEAD --debug
       - name: Check installed correctly
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: 1
         run: brew test semgrep --HEAD
       - name: Clean up semgrep installation
         run: brew uninstall semgrep
@@ -42,18 +50,18 @@ jobs:
     with:
       dry-run: true
 
-  notify-failure:
-    needs: [brew-build, release-dry-run]
-    name: Notify of Failure
-    runs-on: ubuntu-20.04
-    if: failure()
-    steps:
-      - name: Notify Failure
-        run: |
-          curl --request POST \
-          --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
-          --header 'content-type: application/json' \
-          --data '{
-            "commit_sha": "${{needs.release-setup.outputs.version}}",
-            "workflow_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
-          }'
+  # notify-failure:
+  #   needs: [brew-build, release-dry-run]
+  #   name: Notify of Failure
+  #   runs-on: ubuntu-20.04
+  #   if: failure()
+  #   steps:
+  #     - name: Notify Failure
+  #       run: |
+  #         curl --request POST \
+  #         --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
+  #         --header 'content-type: application/json' \
+  #         --data '{
+  #           "commit_sha": "${{needs.release-setup.outputs.version}}",
+  #           "workflow_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+  #         }'
