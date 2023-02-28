@@ -280,7 +280,7 @@ class StreamingSemgrepCore:
                 #
                 # So a dot counts as 0.33 files progress if running Pro, but 1
                 # file's progress if running the OSS engine.
-                advanced_targets = 0.33 if self._engine_type.is_interfile else 1
+                advanced_targets = 1 / 3 if self._engine_type.is_interfile else 1
 
                 if self._progress_bar and self._progress_bar_task_id is not None:
                     self._progress_bar.update(
