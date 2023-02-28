@@ -31,10 +31,6 @@ jobs:
         env:
           HOMEBREW_NO_INSTALL_FROM_API: 1
         run: brew update --debug --verbose
-      - name: Debug
-        run: |
-          brew --repository
-          cat /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/semgrep.rb
       - name: Brew Install
         env:
           HOMEBREW_NO_INSTALL_FROM_API: 1
