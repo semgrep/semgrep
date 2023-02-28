@@ -178,7 +178,7 @@ class StreamingSemgrepCore:
     expediency in integrating
     """
 
-    def __init__(self, cmd: List[str], total: int) -> None:
+    def __init__(self, cmd: List[str], total: int, engine_type: EngineType) -> None:
         """
         cmd: semgrep-core command to run
         total: how many rules to run / how many "." we expect to see a priori
@@ -190,6 +190,7 @@ class StreamingSemgrepCore:
         self._stderr = ""
         self._progress_bar: Optional[Progress] = None
         self._progress_bar_task_id: Optional[TaskID] = None
+        self._engine_type: EngineType = engine_type
 
         # Map from file name to contents, to be checked before the real
         # file system when servicing requests from semgrep-core.
@@ -269,10 +270,21 @@ class StreamingSemgrepCore:
                 break
 
             if line_bytes == b".\n" and not reading_json:
-                num_scanned_targets += 1
+                # We expect to see 3 dots for each target, when running interfile analysis:
+                # - once when finishing phase 4, name resolution, on that target
+                # - once when finishing phase 5, taint configs, on that target
+                # - once when finishing analysis on that target as usual
+                #
+                # However, for regular OSS Semgrep, we only print one dot per
+                # target, that being the last bullet point listed above.
+                #
+                # So a dot counts as 0.33 files progress if running Pro, but 1
+                # file's progress if running the OSS engine.
+                advanced_targets = 0.33 if self._engine_type.is_interfile else 1
+
                 if self._progress_bar and self._progress_bar_task_id is not None:
                     self._progress_bar.update(
-                        self._progress_bar_task_id, completed=num_scanned_targets
+                        self._progress_bar_task_id, advance=advanced_targets
                     )
             elif chr(line_bytes[0]).isdigit() and not reading_json:
                 if not line_bytes.endswith(b"\n"):
@@ -435,7 +447,7 @@ class StreamingSemgrepCore:
         with Progress(
             BarColumn(),
             MofNCompleteColumn(),
-            TextColumn("tasks"),
+            TextColumn("files"),
             TimeElapsedColumn(),
             console=console,
             disable=(
@@ -553,7 +565,7 @@ class Plan:
         logger.info("")
 
     def __str__(self) -> str:
-        return f"<Plan of {len(self.target_mappings)} tasks for {list(self.split_by_lang_label())}>"
+        return f"<Plan of {len(self.target_mappings)} files for {list(self.split_by_lang_label())}>"
 
 
 class CoreRunner:
@@ -576,6 +588,7 @@ class CoreRunner:
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
+        self._engine_type = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
@@ -905,14 +918,7 @@ class CoreRunner:
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(
-                # We expect to see 3 dots for each target, when running interfile analysis:
-                # - once when finishing phase 4, name resolution, on that target
-                # - once when finishing phase 5, taint configs, on that target
-                # - once when finishing analysis on that target as usual
-                cmd,
-                plan.num_targets * 3 if engine.is_interfile else plan.num_targets,
-            )
+            runner = StreamingSemgrepCore(cmd, plan.num_targets, engine)
             runner.vfs_map = vfs_map
             returncode = runner.execute()
 
@@ -1076,7 +1082,9 @@ Exception raised: `{e}`
                 *configs,
             ]
 
-            runner = StreamingSemgrepCore(cmd, 1)  # only scanning combined rules
+            runner = StreamingSemgrepCore(
+                cmd, 1, self._engine_type
+            )  # only scanning combined rules
             returncode = runner.execute()
 
             # Process output
