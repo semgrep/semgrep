@@ -13,16 +13,22 @@ let print_files files =
   F.flatten files
   |> List.iter (fun path -> printf "%s\n" (Fpath.to_string path))
 
-let test_list (files : F.t list) () =
+let test_with_files (files : F.t list) func () =
   F.with_tempdir ~chdir:true (fun root ->
       let files = F.sort files in
       printf "Input files:\n";
       print_files files;
       F.write root files;
+      func root)
+
+let test_list (files : F.t list) () =
+  test_with_files files
+    (fun root ->
       let files2 = F.read root |> F.sort in
       printf "Output files:\n";
       print_files files2;
       assert (files2 = files))
+    ()
 
 (*
    In these tests, the file hierarchy must contain the
@@ -45,26 +51,26 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
       in
       let error = ref false in
       selection
-      |> List.iter (fun (rel_path, should_be_selected) ->
-             let path = Fpath.v rel_path in
-             assert (Fpath.is_abs path);
+      |> List.iter (fun (path, should_be_selected) ->
+             let path = Git_path.of_string path in
              let status, selection_events = Semgrepignore.select filter path in
-             printf "Selection events for path %s:\n" (Fpath.to_string path);
+             printf "Selection events for path %s:\n" (Git_path.to_string path);
              print_string
                (Gitignore_syntax.show_selection_events selection_events);
              if should_be_selected then (
                match status with
                | Not_ignored ->
-                   printf "[OK] %s: not ignored\n" (Fpath.to_string path)
+                   printf "[OK] %s: not ignored\n" (Git_path.to_string path)
                | Ignored ->
-                   printf "[FAIL] %s: ignored\n" (Fpath.to_string path);
+                   printf "[FAIL] %s: ignored\n" (Git_path.to_string path);
                    error := true)
              else
                match status with
                | Not_ignored ->
-                   printf "[FAIL] %s: not ignored\n" (Fpath.to_string path);
+                   printf "[FAIL] %s: not ignored\n" (Git_path.to_string path);
                    error := true
-               | Ignored -> printf "[OK] %s: ignored\n" (Fpath.to_string path));
+               | Ignored ->
+                   printf "[OK] %s: ignored\n" (Git_path.to_string path));
       assert (not !error))
 
 let tests =
@@ -187,4 +193,27 @@ let tests =
             ("/src/a.c", false);
             ("/src/b.c", false);
           ] );
+      ( "find project root",
+        test_with_files
+          [
+            symlink "c_link" "proj/a/b/c";
+            dir "proj"
+              [ dir ".git" []; dir "a" [ file ".git"; dir "b" [ file "c" ] ] ];
+          ]
+          (fun root ->
+            let tmp_root = Realpath.realpath root in
+            let expected_proj_root = Fpath.add_seg tmp_root "proj" in
+            let target_path = Fpath.append root (Fpath.v "c_link") in
+            (match Git_project.find_project_root target_path with
+            | None -> assert false
+            | Some (proj_root, c_path) ->
+                Alcotest.(check string)
+                  "equal"
+                  (Fpath.to_string expected_proj_root)
+                  (Fpath.to_string proj_root);
+                Alcotest.(check string)
+                  "equal" "/a/b/c"
+                  (Git_path.to_string c_path));
+            (* We assume the temporary workspace is not inside a git project. *)
+            assert (Git_project.find_project_root root = None)) );
     ]

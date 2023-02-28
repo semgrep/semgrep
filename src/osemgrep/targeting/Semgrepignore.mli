@@ -16,6 +16,9 @@ type t
    locate .gitignore and .semgrepignore files.
 
    This is an instanciation of Gitignore_filter.t specific to Semgrep.
+
+   Use Git_project.find_project_root to determine the root of the
+   git project.
 *)
 val create :
   ?include_patterns:
@@ -38,10 +41,13 @@ val create :
    The input path doesn't have to exist. Directories are identified by
    a trailing slash. It's important since some *ignore patterns only apply
    to directories.
+
+   Use Git_project.find_project_root to determine the root of the
+   git project and obtain valid git paths (paths relative to the project root).
 *)
 val select :
   t ->
-  Fpath.t ->
+  Git_path.t ->
   Gitignore_filter.status * Gitignore_syntax.selection_event list
 
 (* TODO: list project files without relying on 'git ls-files'.
@@ -63,6 +69,6 @@ val select :
       ?include_folders:bool ->
       ?include_symlinks:bool ->
       t ->
-      Fpath.t list ->
+      Git_path.t list ->
       list_result
 *)
