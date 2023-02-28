@@ -5,5 +5,5 @@ from .core import TType
 T: TType
 
 def glom(
-    target: Dict[str, Any], spec: Union[TType, str, Dict[str, Any]], default: Any = None
+    target: object, spec: Union[TType, str, Dict[str, Any]], default: Any = None
 ) -> Any: ...
