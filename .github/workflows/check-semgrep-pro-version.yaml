@@ -1,0 +1,94 @@
+# workflow used to check the latest version of Semgrep Pro, ensuring the version manifests are up to date before releasing.
+
+name: Check Semgrep Pro Version Manifest
+
+on:
+  workflow_dispatch:
+    inputs:
+      bucket-name:
+        required: true
+        type: string
+        description: Bucket name (not the ARN) to pull the manifest from.
+      manifest-key:
+        required: true
+        type: string
+        description: Name (key) of the manifest JSON file in S3
+      artifact-name:
+        required: true
+        type: string
+        description: Name (key) of the updated manifest file stored in GHA artifact store
+      semgrep-version:
+        required: true
+        type: string
+        description: The version of Semgrep OSS to add to the manifest
+      dry-run:
+        required: true
+        type: boolean
+        description: Whether a dry-run (e.g., print tags to push) should be peformed. Actually push images if false.
+
+  workflow_call:
+    inputs:
+      bucket-name:
+        required: true
+        type: string
+        description: Bucket name (not the ARN) to pull the manifest from.
+      manifest-key:
+        required: true
+        type: string
+        description: Name (key) of the manifest JSON file in S3
+      artifact-name:
+        required: true
+        type: string
+        description: Name (key) of the updated manifest file stored in GHA artifact store
+      semgrep-version:
+        required: true
+        type: string
+        description: The version of Semgrep OSS to add to the manifest
+      dry-run:
+        required: true
+        type: boolean
+        description: Whether a dry-run (e.g., print tags to push) should be peformed. Actually push images if false.
+
+jobs:
+  evaluate-latest-version:
+    name: Evaluate Semgrep Version
+    secrets: inherit
+    uses: ./.github/workflows/evaluate-latest-version.yml
+
+  update-manifest:
+    runs-on: ubuntu-22.04
+    name: Update Manifest
+    needs: [evaluate-latest-version]
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::338683922796:role/returntocorp-deep-semgrep-deploy-role
+          role-duration-seconds: 900
+          role-session-name: "deep-semgrep-deploy"
+          aws-region: us-west-2
+      - name: Download binaries from S3
+        run: |
+          aws s3 cp "s3://${{ inputs.bucket-name }}/${{ inputs.manifest-key }}" versions-manifest.json
+      - name: Update Manifest
+        run: |
+          jq --arg semgrep_version ${{ inputs.semgrep-version }} --arg version ${{ needs.evaluate-latest-version.outputs.latest-version }} \
+            --arg hash ${{ needs.evaluate-latest-version.outputs.latest-commit-hash }} \
+            '.versions += {($semgrep_version):{pro_version: $version, pro_commit_hash: $hash}}' versions-manifest.json > versions-manifest.json.tmp \
+            && mv versions-manifest.json.tmp versions-manifest.json
+      - name: Upload Manifest File
+        uses: actions/upload-artifact@v1
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: versions-manifest.json
+      - name: Dry Run - Inspect Versions
+        if: ${{ inputs.dry-run }}
+        run: |
+          jq -r '.' versions-manifest.json
+      - name: Upload binaries to S3
+        if: ${{ ! inputs.dry-run }}
+        run: |
+          aws s3 cp versions-manifest.json "s3://${{ inputs.bucket-name }}/${{ inputs.manifest-key }}"
