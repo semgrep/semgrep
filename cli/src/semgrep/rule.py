@@ -1,6 +1,7 @@
-from enum import Enum, auto
 import hashlib
 import json
+from enum import auto
+from enum import Enum
 from typing import Any
 from typing import AnyStr
 from typing import cast
@@ -26,11 +27,9 @@ from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
 
 
-class RuleTier(Enum):
-    custom = auto()
-    community = auto()
-    semgrep = auto()
-    semgrep_pro = auto()
+class RuleProduct(Enum):
+    sast = auto()
+    sca = auto()
 
 
 class Rule:
@@ -243,17 +242,8 @@ class Rule:
         return any(key in RuleValidation.PATTERN_KEYS for key in self._raw)
 
     @property
-    def tier(self) -> RuleTier:
-        SEMGREP_RULES_LICENSE = "Commons Clause License Condition v1.0[LGPL-2.1-only]"
-
-        if ":" in self.metadata.get("semgrep.ruleset", ""):
-            return RuleTier.custom
-        elif self.metadata.get("dev.semgrep.visibility") == "team_tier":
-            return RuleTier.semgrep_pro
-        elif self.metadata.get("license") == SEMGREP_RULES_LICENSE:
-            return RuleTier.semgrep
-        else:
-            return RuleTier.community
+    def product(self) -> RuleProduct:
+        return RuleProduct.sca if self.project_depends_on else RuleProduct.sast
 
     @property
     def formula_string(self) -> str:

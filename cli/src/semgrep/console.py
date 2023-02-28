@@ -57,6 +57,11 @@ class AutoIndentingConsole(Console):
         else:
             return 0
 
+    def line(self, *_: Any, **__: Any) -> None:
+        """Whenever rich internally tries to print a blank line, we ignore it.
+
+        This way we have greater control over spacing."""
+
     def reset_title(self) -> None:
         self.active_title = None
 

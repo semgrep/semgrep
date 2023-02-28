@@ -12,6 +12,9 @@ from typing import Tuple
 
 import click
 from rich.padding import Padding
+from rich.progress import Progress
+from rich.progress import SpinnerColumn
+from rich.progress import TextColumn
 from rich.table import Table
 
 import semgrep.semgrep_main
@@ -278,12 +281,32 @@ def ci(
         # Note this needs to happen within fix_head_if_github_action
         # so that metadata of current commit is correct
         if scan_handler:
+            console.print(Title("Connection", order=2))
             metadata_dict = metadata.to_dict()
             metadata_dict["is_sca_scan"] = supply_chain
             proj_config = ProjectConfig.load_all()
             metadata_dict = {**metadata_dict, **proj_config.to_dict()}
-            scan_handler.fetch_and_init_scan_config(metadata_dict)
-            scan_handler.start_scan(metadata_dict)
+            with Progress(
+                TextColumn("  {task.description}"),
+                SpinnerColumn(spinner_name="simpleDotsScrolling"),
+                console=console,
+            ) as progress_bar:
+                at_url_maybe = (
+                    f" at [bold]{state.env.semgrep_url}[/bold]"
+                    if state.env.semgrep_url != "https://semgrep.dev"
+                    else ""
+                )
+                connection_task = progress_bar.add_task(
+                    f"Fetching configuration from Semgrep Cloud Platform{at_url_maybe}"
+                )
+                scan_handler.fetch_and_init_scan_config(metadata_dict)
+                progress_bar.update(connection_task, completed=100)
+
+                start_scan_task = progress_bar.add_task(
+                    f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
+                )
+                scan_handler.start_scan(metadata_dict)
+                progress_bar.update(start_scan_task, completed=100)
 
             config = (scan_handler.rules,)
 

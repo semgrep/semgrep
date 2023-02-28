@@ -17,8 +17,7 @@ from urllib.parse import urlencode
 import click
 import requests
 from boltons.iterutils import partition
-from semgrep.console import console, Title
-from rich.progress import Progress, TextColumn, TaskProgressColumn
+
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
@@ -34,6 +33,7 @@ if TYPE_CHECKING:
     from semgrep.engine import EngineType
 
 logger = getLogger(__name__)
+
 
 class ScanHandler:
     def __init__(self, dry_run: bool) -> None:
@@ -117,6 +117,7 @@ class ScanHandler:
 
     def _get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
         state = get_state()
+
         response = state.app_session.get(url, stream=True)
 
         try:
@@ -128,7 +129,7 @@ class ScanHandler:
 
         body = response.json()
 
-        if not isinstance(body, dict,):
+        if not isinstance(body, dict):
             raise Exception(
                 f"API server at {state.env.semgrep_url} returned type '{type(body)}'. Expected a dictionary."
             )
@@ -140,7 +141,6 @@ class ScanHandler:
         Get configurations for scan
         """
         state = get_state()
-        console.print(Title("Semgrep Cloud Connection", order=2))
 
         self._scan_params = urlencode(
             {
@@ -152,6 +152,7 @@ class ScanHandler:
             }
         )
         app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+
         body = self._get_scan_config_from_app(app_get_config_url)
 
         self._deployment_id = body["deployment_id"]
