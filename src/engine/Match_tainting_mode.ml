@@ -155,7 +155,10 @@ module Formula_tbl = struct
 
            just don't cache it I guess
         *)
-        raise Common.Impossible
+        logger#error
+          "Tried to compute matches for a taint formula not in the cache \
+           (impossible?)";
+        compute_matches_fn ()
     | Some (None, count) ->
         let ranges, expls = compute_matches_fn () in
         if count <= 1 then
@@ -430,8 +433,9 @@ let lazy_force x = Lazy.force x [@@profiling]
 (* Main entry points *)
 (*****************************************************************************)
 
-let taint_config_of_rule ~formula_cache xconf file ast_and_errors
+let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_findings =
+  let formula_cache = per_file_formula_cache in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   let lazy_ast_and_errors = lazy ast_and_errors in
   let xtarget =
@@ -649,7 +653,7 @@ let check_fundef lang options taint_config opt_ent fdef =
   in
   (flow, mapping)
 
-let check_rule formula_cache (rule : R.taint_rule) match_hook
+let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   let matches = ref [] in
 
@@ -673,7 +677,8 @@ let check_rule formula_cache (rule : R.taint_rule) match_hook
              pm_of_finding finding
              |> Option.iter (fun pm -> Common.push pm matches))
     in
-    taint_config_of_rule formula_cache xconf file (ast, []) rule handle_findings
+    taint_config_of_rule ~per_file_formula_cache xconf file (ast, []) rule
+      handle_findings
   in
 
   (match !hook_setup_hook_function_taint_signature with
@@ -744,7 +749,7 @@ let check_rules ~match_hook
      In particular, this expects to see big gains due to shared propagators,
      in Semgrep Pro. There may be some benefit in OSS, but it's low-probability.
   *)
-  let formula_cache = mk_specialized_formula_cache rules in
+  let per_file_formula_cache = mk_specialized_formula_cache rules in
 
   rules
   |> Common.map (fun rule ->
@@ -757,4 +762,5 @@ let check_rules ~match_hook
          *)
          per_rule_boilerplate_fn
            (rule :> R.rule)
-           (fun () -> check_rule formula_cache rule match_hook xconf xtarget))
+           (fun () ->
+             check_rule per_file_formula_cache rule match_hook xconf xtarget))

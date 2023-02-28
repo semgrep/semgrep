@@ -47,7 +47,7 @@ val hook_setup_hook_function_taint_signature :
    [taint_config_of_rule] is used on the same file!
 *)
 val taint_config_of_rule :
-  formula_cache:formula_cache ->
+  per_file_formula_cache:formula_cache ->
   Match_env.xconfig ->
   Common.filename ->
   AST_generic.program * Parse_info.token_location list ->
