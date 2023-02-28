@@ -299,9 +299,7 @@ class RuleMatch:
         a unique finding in the future, since we can analyze things like code, file, index all
         independently of one another.
         """
-        hash_int = hash128(str(self.syntactic_context))
-        hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
-        return str(binascii.hexlify(hash_bytes), "ascii")
+        return hashlib.sha256(self.syntactic_context.encode()).hexdigest()
 
     @pattern_hash.default
     def get_pattern_hash(self) -> str:
@@ -322,9 +320,7 @@ class RuleMatch:
                 match_formula_str = match_formula_str.replace(
                     metavar, metavars[metavar]["abstract_content"]
                 )
-        hash_int = hash128(str(match_formula_str))
-        hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
-        return str(binascii.hexlify(hash_bytes), "ascii")
+        return hashlib.sha256(match_formula_str.encode()).hexdigest()
 
     @start_line_hash.default
     def get_start_line_hash(self) -> str:
@@ -332,9 +328,7 @@ class RuleMatch:
         A 32-character hash of the first line of the code in the match
         """
         first_line = self.get_individual_line(self.start.line)
-        hash_int = hash128(first_line)
-        hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
-        return str(binascii.hexlify(hash_bytes), "ascii")
+        return hashlib.sha256(first_line.encode()).hexdigest()
 
     @end_line_hash.default
     def get_end_line_hash(self) -> str:
@@ -342,9 +336,7 @@ class RuleMatch:
         A 32-character hash of the last line of the code in the match
         """
         last_line = self.get_individual_line(self.end.line)
-        hash_int = hash128(last_line)
-        hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
-        return str(binascii.hexlify(hash_bytes), "ascii")
+        return hashlib.sha256(last_line.encode()).hexdigest()
 
     @property
     def uuid(self) -> UUID:
