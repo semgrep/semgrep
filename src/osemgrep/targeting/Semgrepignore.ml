@@ -51,7 +51,7 @@ type t = {
 let create ?include_patterns ?(cli_patterns = []) ~project_root () =
   if Fpath.is_rel project_root then
     invalid_arg
-      ("Semgrepignore.create needs an absolute path: "
+      ("Semgrepignore.create needs an absolute path for the project root: "
       ^ Fpath.to_string project_root);
   let include_filter =
     match include_patterns with
@@ -87,20 +87,18 @@ let select t path =
      in an error if 'foo' doesn't exist or isn't a readable directory.
   *)
   let git_path =
-    match Git_path.of_fpath path |> Git_path.normalize with
+    match
+      Git_path.of_fpath path |> Git_path.make_absolute |> Git_path.normalize
+    with
     | Ok x -> x
     | Error msg -> failwith msg
   in
-  if Git_path.is_relative git_path then
-    failwith
-      ("Semgrepignore.select: not an absolute path: " ^ Fpath.to_string path)
-  else
-    let status, sel_events =
-      match t.include_filter with
-      | None -> (Gitignore_filter.Not_ignored, [])
-      | Some include_filter -> Include_filter.select include_filter git_path
-    in
-    match status with
-    | Ignored -> (Gitignore_filter.Ignored, sel_events)
-    | Not_ignored ->
-        Gitignore_filter.select t.gitignore_filter sel_events git_path
+  let status, sel_events =
+    match t.include_filter with
+    | None -> (Gitignore_filter.Not_ignored, [])
+    | Some include_filter -> Include_filter.select include_filter git_path
+  in
+  match status with
+  | Ignored -> (Gitignore_filter.Ignored, sel_events)
+  | Not_ignored ->
+      Gitignore_filter.select t.gitignore_filter sel_events git_path

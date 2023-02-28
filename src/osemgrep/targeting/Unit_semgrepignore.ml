@@ -83,6 +83,10 @@ let tests =
         test_filter
           [ File (".gitignore", "*.c"); file "hello.c"; file "hello.ml" ]
           [ ("/hello.ml", true); ("/hello.c", false) ] );
+      ( "relative paths",
+        test_filter
+          [ File (".gitignore", "*.c"); file "hello.c"; file "hello.ml" ]
+          [ ("hello.ml", true); ("hello.c", false) ] );
       ( "gitignore + semgrepignore",
         test_filter
           [

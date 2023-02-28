@@ -18,7 +18,11 @@ type t
    This is an instanciation of Gitignore_filter.t specific to Semgrep.
 *)
 val create :
-  ?include_patterns:string list ->
+  ?include_patterns:
+    (* TODO: ignore folders containing a '.git' file (in list_files only?)
+       ?ignore_folder_if_contains:string list ->
+    *)
+    string list ->
   ?cli_patterns:string list ->
   project_root:Fpath.t ->
   unit ->
@@ -27,7 +31,10 @@ val create :
 (*
    Pass a path to a file and determine whether it should be ignored for
    Semgrep scanning purposes.
-   Paths must be absolute. The root '/' designates the root of the git project.
+
+   The input path must be either absolute with the root '/' designating
+   the root of the git project or relative to the project root.
+
    The input path doesn't have to exist. Directories are identified by
    a trailing slash. It's important since some *ignore patterns only apply
    to directories.
@@ -36,3 +43,26 @@ val select :
   t ->
   Fpath.t ->
   Gitignore_filter.status * Gitignore_syntax.selection_event list
+
+(* TODO: list project files without relying on 'git ls-files'.
+      This will allow de-excluding some files using negated patterns in
+      semgrepignore files.
+
+   type list_result = {
+     (* List of the files that were not ignored. *)
+     selected_files: Fpath.t list;
+
+     (* List of the files and folders that were ignored. Children of ignored
+        folders aren't listed since we don't know about their existence. *)
+     ignored_files:
+      (Fpath.t * Gitignore_filter.status * Gitignore_syntax.selection_event list)
+      list;
+   }
+
+   val list_files :
+      ?include_folders:bool ->
+      ?include_symlinks:bool ->
+      t ->
+      Fpath.t list ->
+      list_result
+*)

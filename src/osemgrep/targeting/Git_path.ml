@@ -13,6 +13,7 @@ let of_string string =
   in
   { string; components }
 
+let root = of_string "/"
 let to_string x = x.string
 
 let check_component str =
@@ -56,6 +57,11 @@ let is_absolute x =
 
 let is_relative x = not (is_absolute x)
 
+let make_absolute x =
+  if is_relative x then
+    { string = "/" ^ x.string; components = "" :: x.components }
+  else x
+
 let normalize x =
   let rec normalize xs =
     match xs with
@@ -86,7 +92,6 @@ let normalize x =
       Ok (create components)
 
 let of_fpath path = Fpath.segs path |> create
-let root = of_string "/"
 
 let () =
   Testutil.test "Git_path" (fun () ->

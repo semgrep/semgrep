@@ -5,10 +5,7 @@
    git paths use '/' as a separator.
 *)
 
-type t = private {
-  string: string;
-  components: string list;
-}
+type t = private { string : string; components : string list }
 
 (* A slash-separated path. *)
 val of_string : string -> t
@@ -30,14 +27,20 @@ end
 val is_absolute : t -> bool
 val is_relative : t -> bool
 
+(* Turn foo/bar into /foo/bar *)
+val make_absolute : t -> t
+
 (*
    Syntactic path normalization.
    e.g. foo/../bar -> bar  (even if 'foo/' doesn't exist)
+
+   Fail if the resulting path is absolute and refers to a file above the
+   root e.g. '/..' or '/../..'.
+
    TODO: use filesystem path to the project root to perform a correct
    normalization.
 *)
 val normalize : t -> (t, string) result
-
 val of_fpath : Fpath.t -> t
 
 (* / *)
