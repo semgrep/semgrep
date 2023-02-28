@@ -69,12 +69,18 @@ type var = string * AST_generic.sid
 type env = {
   lang : Lang.t option;
   (* basic constant propagation of literals for semgrep *)
-  constants : (var, svalue) Hashtbl.t;
+  constant_defs : (var, svalue) Hashtbl.t;
+  constant_uses : (var, svalue option ref) Hashtbl.t;
   in_lvalue : bool ref;
 }
 
 let default_env lang =
-  { lang; constants = Hashtbl.create 64; in_lvalue = ref false }
+  {
+    lang;
+    constant_defs = Hashtbl.create 64;
+    constant_uses = Hashtbl.create 64;
+    in_lvalue = ref false;
+  }
 
 type lr_stats = {
   (* note that a VarDef defining the value will count as 1 *)
@@ -133,25 +139,32 @@ let is_js env =
   | None -> false
   | Some lang -> Lang.is_js lang
 
-let add_constant_env ident (sid, svalue) env =
+let find_var id id_info =
+  match id_info with
+  | { id_resolved = { contents = Some (_kind, sid) }; _ } ->
+      let s = H.str_of_ident id in
+      Some (s, sid)
+  | __else__ -> None
+
+let add_constant_def ident (sid, svalue) env =
   match svalue with
   | Lit _
   | Cst _
   | Sym _ ->
       logger#trace "adding constant in env %s" (H.str_of_ident ident);
-      Hashtbl.add env.constants (H.str_of_ident ident, sid) svalue
+      Hashtbl.add env.constant_defs (H.str_of_ident ident, sid) svalue
   | NotCst -> ()
 
-let find_id env id id_info =
-  match id_info with
-  | { id_resolved = { contents = Some (_kind, sid) }; _ } ->
-      let s = H.str_of_ident id in
-      Hashtbl.find_opt env.constants (s, sid)
-  | __else__ -> None
+let add_constant_use env (s, sid) id_info =
+  Hashtbl.add env.constant_uses (s, sid) id_info.id_svalue
 
-let find_name env name =
+let eval_id env id id_info =
+  let* var = find_var id id_info in
+  Hashtbl.find_opt env.constant_defs var
+
+let eval_name env name =
   match name with
-  | Id (id, id_info) -> find_id env id id_info
+  | Id (id, id_info) -> eval_id env id id_info
   | IdQualified _ -> None
 
 let deep_constant_propagation_and_evaluate_literal x =
@@ -277,7 +290,7 @@ let rec eval env x : svalue option =
   | Call ({ e = IdSpecial special; _ }, args) -> eval_special env special args
   | Call ({ e = N name; _ }, args) -> eval_call env name args
   | N name -> (
-      match find_name env name with
+      match eval_name env name with
       | Some svalue -> Some svalue
       | None -> deep_constant_propagation_and_evaluate_literal x)
   | _ ->
@@ -508,7 +521,7 @@ let add_special_constants env lang prog =
            match v.e with
            | L literal ->
                logger#trace "adding special terraform constant for %s" (fst id);
-               add_constant_env id (terraform_sid, Lit literal) env
+               add_constant_def id (terraform_sid, Lit literal) env
            | _ -> ())
 
 (*****************************************************************************)
@@ -556,22 +569,28 @@ let propagate_basic lang prog =
                  H.has_keyword_attr Const attrs
                  || H.has_keyword_attr Final attrs
                  || (!(stats.lvalue) = 1 && is_js env)
+                 || (!(stats.lvalue) = 1 && env.lang = Some Lang.Apex)
                  || !(stats.lvalue) = 1 && env.lang = Some Lang.Java
                     && List.exists is_private attrs
                 then
-                 match (!id_svalue, e.e) with
+                 match
+                   Common.(pr2 (spf "%s passed" (fst id)));
+                   (!id_svalue, e.e)
+                 with
                  (* When the name already has an svalue computed, just use
                   * that. DeepSemgrep assigns svalues sometimes in its naming
                   * phase. *)
-                 | Some svalue, _ -> add_constant_env id (sid, svalue) env
-                 | None, L literal -> add_constant_env id (sid, Lit literal) env
+                 | Some svalue, _ -> add_constant_def id (sid, svalue) env
+                 | None, L literal ->
+                     Common.(pr2 (spf "%s goes in the env" (fst id)));
+                     add_constant_def id (sid, Lit literal) env
                  (* For any other symbolic expression, it is OK to propagate it symbolically so long as
                     the lvalue is only assigned to once.
                     Although we may propagate expressions with identifiers in them, those identifiers
                     will simply not have an `svalue` if they are non-propagated as well.
                  *)
                  | None, _ when Dataflow_svalue.is_symbolic_expr e ->
-                     add_constant_env id (sid, Sym e) env
+                     add_constant_def id (sid, Sym e) env
                  | None, _ -> ());
                 super#visit_definition venv x
             | None ->
@@ -588,20 +607,20 @@ let propagate_basic lang prog =
             ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
               (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
           when not !(env.in_lvalue) ->
-            let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            let/ s, sid = find_var id id_info in
+            add_constant_use env (s, sid) id_info
         (* ugly: dockerfile specific *)
         | Call
             ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
               (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
           when not !(env.in_lvalue) ->
-            let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            let/ s, sid = find_var id id_info in
+            add_constant_use env (s, sid) id_info
         | DotAccess
             ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
           when not !(env.in_lvalue) ->
-            let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            let/ s, sid = find_var id id_info in
+            add_constant_use env (s, sid) id_info
         (* ugly: terraform specific.
          * coupling: with eval() above
          *)
@@ -611,8 +630,7 @@ let propagate_basic lang prog =
               FN (Id ((str, _tk), id_info)) )
           when lang = Lang.Terraform && not !(env.in_lvalue) ->
             let var = (prefix ^ "." ^ str, terraform_sid) in
-            let/ svalue = Hashtbl.find_opt env.constants var in
-            id_info.id_svalue := Some svalue
+            add_constant_use env var id_info
         | ArrayAccess (e1, (_, e2, _)) ->
             self#visit_expr venv e1;
             Common.save_excursion env.in_lvalue false (fun () ->
@@ -638,7 +656,7 @@ let propagate_basic lang prog =
                          && (is_lang env Lang.Python || is_lang env Lang.Ruby
                            || is_lang env Lang.Php || is_js env)
                          && (is_global kind || is_resolved_name kind)
-                       then add_constant_env id (sid, svalue) env
+                       then add_constant_def id (sid, svalue) env
                    | None ->
                        logger#debug "No stats for (%s,%s)" (H.str_of_ident id)
                          (G.SId.show sid);
@@ -652,7 +670,20 @@ let propagate_basic lang prog =
         | _ -> super#visit_expr venv x
     end
   in
+
+  (* Set the hashtables in the environment via `add_constant_use` and
+     `add_constant_def`
+  *)
   visitor#visit_program () prog;
+
+  (* Iterate over every definition we've seen, assigning it to
+     all corresponding uses
+  *)
+  env.constant_defs
+  |> Hashtbl.iter (fun var svalue ->
+         Hashtbl.find_all env.constant_uses var
+         |> List.iter (fun id_info_svalue -> id_info_svalue := Some svalue));
+
   ()
   [@@profiling]
 
