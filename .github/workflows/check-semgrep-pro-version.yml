@@ -21,7 +21,6 @@ on:
         required: true
         type: boolean
         description: Dry-Run flag determines whether or not the check failing means that the job will actually fail.
-        default: true
 
   workflow_call:
     inputs:
@@ -41,7 +40,6 @@ on:
         required: true
         type: boolean
         description: Dry-Run flag determines whether or not the check failing means that the job will actually fail.
-        default: true
 
 jobs:
   check-pro-version-manifest:
@@ -66,7 +64,7 @@ jobs:
         run: |
           VERSION_EXISTS=$(jq --arg semgrep_version ${{ inputs.semgrep-version }} '.versions | has($semgrep_version)' versions-manifest.json)
 
-          if [ ${VERSION_EXISTS} = "true" ]; then
+          if [ "${VERSION_EXISTS}" = "true" ]; then
               echo "This vesion has a corresponding Semgrep Pro version - continuing."
           else
               echo "This version of semgrep does not yet have a corresponding version of Semgrep Pro."
@@ -78,7 +76,7 @@ jobs:
         run: |
           VERSION_EXISTS=$(jq --arg semgrep_version ${{ inputs.semgrep-version }} '.versions | has($semgrep_version)' versions-manifest.json)
 
-          if [ ${VERSION_EXISTS} = "true" ]; then
+          if [ "${VERSION_EXISTS}" = "true" ]; then
               echo "This vesion has a corresponding Semgrep Pro version - continuing."
           else
               echo "This version of semgrep does not yet have a corresponding version of Semgrep Pro."
