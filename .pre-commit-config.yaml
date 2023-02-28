@@ -195,6 +195,8 @@ repos:
         # Both the .semgrepignore file and the --exclude option
         # do nothing because the target files are passed
         # explicitly on the command line by pre-commit!
+        # TODO: remove once file targeting is revamped and supports
+        # filtering for explicit targets (a command-line flag should do)
         exclude: "^semgrep-core/src/pfff|Realpath.ml"
 
         #coupling: 'make check' and the SEMGREP_ARGS variable
