@@ -87,6 +87,12 @@ let timeout_function file timeout f =
       let err = E.mk_error loc "" Out.Timeout in
       Common.push err E.g_errors
 
+let update_cli_progress config =
+  (* Print when each file is done so the Python progress bar knows *)
+  match config.output_format with
+  | Json true -> pr "."
+  | _ -> ()
+
 (*****************************************************************************)
 (* Printing matches *)
 (*****************************************************************************)
@@ -703,10 +709,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
              else matches
            in
 
-           (* Print when each file is done so Python knows *)
-           (match config.output_format with
-           | Json true -> pr "."
-           | _ -> ());
+           update_cli_progress config;
+
            (* adjust the match location for extracted targets *)
            match Hashtbl.find_opt extract_result_map file with
            | Some f -> f matches
