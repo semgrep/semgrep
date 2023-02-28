@@ -1,0 +1,1 @@
+Fix: Semgrep Pro previously reported a crash for normal errors. This fixes that
