@@ -162,7 +162,7 @@ module Formula_tbl = struct
           (* if there's only 1 more use left, there's no point
              in caching it
           *)
-          ranges, expls
+          (ranges, expls)
         else (
           (* otherwise, this is the first time we've seen this
              formula, and we should cache it
