@@ -71,8 +71,7 @@ kinda-quick-tests:
 .PHONY:
 regenerate-tests:
 	pipenv run pytest -n auto \
-	  --snapshot-update --allow-snapshot-deletion \
-	  tests
+	  --run-only-snapshots --snapshot-update --allow-snapshot-deletion
 
 .PHONY: setup
 setup:
