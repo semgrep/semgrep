@@ -13,9 +13,8 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+from boltons.iterutils import get_path
 from boltons.iterutils import partition
-from glom import glom
-from glom import T
 
 from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
@@ -152,6 +151,8 @@ def run_rules(
 ) -> Tuple[
     RuleMatchMap, List[SemgrepError], OutputExtra, Dict[str, List[FoundDependency]]
 ]:
+    console.print(Title("Scan Status"))
+
     sast_plan = CoreRunner.plan_core_run(
         [rule for rule in filtered_rules if rule.product == RuleProduct.sast],
         target_manager,
@@ -177,7 +178,8 @@ def run_rules(
         [
             rule
             for rule in sast_plan.rules
-            if glom(rule, T.metadata["semgrep.dev"]["rule"]["origin"]) == "pro_rules"
+            if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
+            == "pro_rules"
         ]
     )
     if pro_rule_count:

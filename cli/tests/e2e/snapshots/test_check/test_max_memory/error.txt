@@ -2,20 +2,20 @@ running 1 rules from 1 config rules/long.yaml_0
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
 Rules:
 - rules.forcetimeout
-Scanning 1 file.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Scanning 1 file.
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘
 
 ========================================
 Files skipped:
@@ -52,6 +52,11 @@ Files skipped:
 
    • targets/equivalence/open_redirect.py (all lines skipped)
 
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
   Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error

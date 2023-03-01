@@ -423,20 +423,25 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
-Scanning 1 file with 5 python rules.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 3 files tracked by git with 6 Code rules:
+            
+  CODE RULES
+  Scanning 1 file with 6 python rules.
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 
 Ran 6 rules on 2 files: 8 findings.
 

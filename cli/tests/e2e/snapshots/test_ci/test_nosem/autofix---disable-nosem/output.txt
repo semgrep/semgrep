@@ -73,37 +73,35 @@ First-Party Blocking Rules Fired:
 === end of stdout - plain
 
 === stderr - plain
-Running `semgrep ci` without API token but with configs ('p/something',)
-                                                                                
-                                                                                
-┌────────────────┐                                                              
-│ Debugging Info │                                                              
-└────────────────┘                                                              
-                                                                                
-  SCAN ENVIRONMENT                                                              
+                  
+                  
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+                  
+  SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment git, triggering event is unknown         
-                                                                                
-                                                                                
-┌─────────────┐                                                                 
-│ Scan Status │                                                                 
-└─────────────┘                                                                 
-                                                                                
+  environment - running in environment git, triggering event is unknown
 Semgrep rule registry URL is https://semgrep.dev/registry.
-Scanning 1 file with 4 python rules.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 4 files tracked by git with 6 Code rules:
+            
+  CODE RULES
+  Scanning 1 file with 5 python rules.
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
