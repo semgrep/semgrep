@@ -243,7 +243,7 @@ class Rule:
 
     @property
     def product(self) -> RuleProduct:
-        return RuleProduct.sca if self.project_depends_on else RuleProduct.sast
+        return RuleProduct.sca if "sca-schema" in self.metadata else RuleProduct.sast
 
     @property
     def formula_string(self) -> str:
