@@ -14,4 +14,5 @@
 
 exception Syntax_error of string
 
+(* Parse a pattern or fail with exception 'Syntax_error' *)
 val parse_string : string -> Glob_matcher.pattern

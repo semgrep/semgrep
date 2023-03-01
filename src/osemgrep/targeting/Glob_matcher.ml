@@ -1,11 +1,13 @@
 (*
    AST and matching of a glob pattern against a path.
-   This is purely syntaxic: the file system is not accessed.
+   This is purely syntactic: the file system is not accessed.
 
-   We could use Re.Glob from the ocaml-re library but it doesn't expose
-   the AST of the glob pattern, and this prevents us from making
-   transformations required by gitignore such as treating the pattern
-   'foo/bar' as equivalent to '/foo/bar' but not treat 'foo' as '/foo'.
+   We could use Re.Glob from the ocaml-re library for parsing the patterns
+   but it doesn't expose the AST of the glob pattern, and this prevents us
+   from making transformations required by gitignore such as treating
+   the pattern 'foo/bar' as equivalent to '/foo/bar' but not treat
+   'foo' as '/foo'. However, we use ocaml-re to produce the regexp tree
+   and then execute it to match a path given as a string.
 *)
 
 open Printf
@@ -112,11 +114,13 @@ let compile ~source pat =
   let re = map_root pat |> Re.compile in
   { source; re }
 
-let debug = true
+(* This is used during unit testing. *)
+let debug = ref false
 
 let run matcher path =
   let res = Re.execp matcher.re path in
-  if debug then
+  if !debug then
+    (* expensive string concatenation; may not be suitable for logger#debug *)
     printf "** pattern: %S  path: %S  matches: %B\n"
       matcher.source.line_contents path res;
   res

@@ -7,6 +7,11 @@
    https://man7.org/linux/man-pages/man7/glob.7.html (man 7 glob)
 *)
 
+(* This is used by the unit tests and prints the activity of the
+   'run' function. I'm worried that logger#debug would be too expensive
+   when not debugging. *)
+val debug : bool ref
+
 (* The location of a pattern, for logging and troubleshooting. *)
 type loc = {
   (* File name or other source location name useful to a human reader
@@ -54,9 +59,9 @@ val root_pattern : pattern
 val append : pattern -> pattern -> pattern
 
 (*
-   Compile the pattern into something efficient. The source should be
-   the original glob pattern before parsing. It's used only for debugging
-   purposes.
+   Compile the pattern into something efficient (currently uses the
+   ocaml-re library). The source should be the original glob pattern
+   before parsing. It's used only for debugging purposes.
 *)
 val compile : source:loc -> pattern -> t
 

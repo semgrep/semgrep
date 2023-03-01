@@ -53,7 +53,10 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
       selection
       |> List.iter (fun (path, should_be_selected) ->
              let path = Git_path.of_string path in
-             let status, selection_events = Semgrepignore.select filter path in
+             let status, selection_events =
+               Common.save_excursion Glob_matcher.debug true (fun () ->
+                   Semgrepignore.select filter path)
+             in
              printf "Selection events for path %s:\n" (Git_path.to_string path);
              print_string
                (Gitignore_syntax.show_selection_events selection_events);
