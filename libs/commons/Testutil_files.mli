@@ -21,11 +21,29 @@
    We don't deal with other file types than those three.
    File names must be normal names, i.e. not ".", "..", or "". They may not
    contain slashes or backslashes either.
+
+   Sample file tree:
+     [
+       File (".gitignore", "*.c");
+       Dir ("src", [
+         File ("hello.ml", "print_endline {|hello|}");
+         Dir ("tmp", []);
+         Symlink ("hello", "hello.ml")
+       ])
+     ]
+
+   represents this:
+     .
+     ├── .gitignore
+     └── src/
+         ├── hello -> hello.ml
+         ├── hello.ml
+         └── tmp/
 *)
 type t =
-  | Dir of string * t list
-  | File of string * string
-  | Symlink of string * string
+  | Dir of string (* name *) * t list
+  | File of string (* name *) * string (* contents *)
+  | Symlink of string (* name *) * string (* destination path *)
 
 (*
    Sort the files in a reasonable order. Useful for comparison purposes.
@@ -39,7 +57,7 @@ val sort : t list -> t list
 val flatten : ?root:Fpath.t -> ?include_dirs:bool -> t list -> Fpath.t list
 
 (*
-   Read files from a root. Don't follow symlinks.
+   Read the file tree starting from a root folder. Don't follow symlinks.
    Fail with an exception if we can't read the files or if they're of an
    exotic kind.
 *)
