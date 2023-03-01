@@ -36,7 +36,7 @@ class EngineType(Enum):
                 requested_engine = cls.PRO_INTERFILE
 
             if requested_engine == cls.PRO_INTERFILE and not git_meta.is_full_scan:
-                requested_engine = cls.PRO_LANG
+                requested_engine = cls.PRO_INTRAFILE
 
         return requested_engine or cls.OSS
 
