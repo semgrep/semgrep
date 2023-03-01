@@ -28,7 +28,7 @@ type segment_fragment =
   | Star
 [@@deriving show { with_path = false }]
 
-type segment = Segment of segment_fragment list | Ellipsis
+type segment = Segment of segment_fragment list | Any_subpath
 [@@deriving show { with_path = false }]
 
 type pattern = segment list [@@deriving show]
@@ -98,9 +98,9 @@ let rec map pat =
   let open Re in
   match pat with
   | [ Segment seg ] -> [ map_seg seg; eos ]
-  | [ Ellipsis ] -> []
+  | [ Any_subpath ] -> []
   | Segment seg :: pat -> map_seg seg :: slash :: map pat
-  | Ellipsis :: pat -> rep (seq [ rep not_slash; slash ]) :: map pat
+  | Any_subpath :: pat -> rep (seq [ rep not_slash; slash ]) :: map pat
   | [] -> [ eos ]
 
 let map_root pat =

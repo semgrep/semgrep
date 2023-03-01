@@ -7,7 +7,7 @@ type tmp =
 
 let convert_ellipses (fragments : tmp list) =
   match fragments with
-  | [Starstar] -> Ellipsis
+  | [Starstar] -> Any_subpath
   | xs ->
      Segment (Common.map (function Fragment x -> x | Starstar -> Star) xs)
 %}

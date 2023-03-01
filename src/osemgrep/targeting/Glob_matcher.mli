@@ -31,9 +31,7 @@ type segment_fragment =
 [@@deriving show]
 
 (* A path segment is what represents a simple file name in a directory *)
-type segment =
-  | Segment of segment_fragment list
-  | Ellipsis (* '**' = path ellipsis *)
+type segment = Segment of segment_fragment list | Any_subpath
 [@@deriving show]
 
 (*

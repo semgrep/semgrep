@@ -63,7 +63,7 @@ let is_anchored_pattern (pat : M.pattern) =
   (* /... *)
   | Segment [] :: _ -> true
   (* **/ *)
-  | Ellipsis :: _ -> true
+  | Any_subpath :: _ -> true
   | pat -> contains_nontrailing_slash pat
 
 (*
@@ -82,7 +82,7 @@ let parse_pattern ~source ~anchor str : M.t =
   let pat = Glob_lexer.parse_string str in
   let absolute_pattern =
     if is_anchored_pattern pat then M.append anchor pat
-    else M.append anchor (Ellipsis :: pat)
+    else M.append anchor (Any_subpath :: pat)
   in
   M.compile ~source absolute_pattern
 
