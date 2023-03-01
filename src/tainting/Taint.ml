@@ -132,12 +132,9 @@ let compare_sources s1 s2 =
    *)
   let pm1, ts1 = pm_of_trace s1.call_trace
   and pm2, ts2 = pm_of_trace s2.call_trace in
-  match String.compare s1.label s2.label with
-  | 0 ->
-      Stdlib.compare
-        (pm1.rule_id, pm1.range_loc, pm1.env, ts1.Rule.label)
-        (pm2.rule_id, pm2.range_loc, pm2.env, ts2.Rule.label)
-  | other -> other
+  Stdlib.compare
+    (pm1.rule_id, pm1.range_loc, pm1.env, s1.label, ts1.Rule.label)
+    (pm2.rule_id, pm2.range_loc, pm2.env, s2.label, ts2.Rule.label)
 
 let compare_orig orig1 orig2 =
   match (orig1, orig2) with

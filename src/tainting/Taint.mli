@@ -55,7 +55,7 @@ type signature = finding list
  * "taint polymorphism", making the taint analysis context-sensitive.
  *
  * Also note that, within each function, if there are multiple paths through
- * which a taint ssourcee may reach a sink, we do not keep all of them but only
+ * which a taint source may reach a sink, we do not keep all of them but only
  * the shortest one.
  *
  * THINK: We could write this in a way that resembles a function type,
