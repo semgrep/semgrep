@@ -23,8 +23,6 @@ from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.console import Title
-from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
-from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
@@ -229,7 +227,7 @@ def ci(
         sys.exit(INVALID_API_KEY_EXIT_CODE)
     elif not token and config:
         # Not logged in but has explicit config
-        logger.info(f"Running `semgrep ci` without API token but with configs {config}")
+        pass
     elif token and config:
         # Logged in but has explicit config
         logger.info(
@@ -306,11 +304,18 @@ def ci(
         git_meta=metadata,
     )
 
+    # set default settings for selected engine type
     if dataflow_traces is None:
         dataflow_traces = engine_type.has_dataflow_traces
 
     console.print(Title("Scan Environment", order=2))
     console.print(Padding(scan_env, (0, 2)))
+
+    if max_memory is None:
+        max_memory = engine_type.default_max_memory
+
+    if interfile_timeout is None:
+        interfile_timeout = engine_type.default_interfile_timeout
 
     if engine_type.is_pro:
         console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
@@ -327,29 +332,10 @@ def ci(
     try:
         console.print(Title("Scan Status"))
 
-        # Set a default max_memory for CI runs when DeepSemgrep is on because
-        # DeepSemgrep is likely to run out
-        if max_memory is None:
-            if engine_type is EngineType.PRO_INTERFILE:
-                max_memory = DEFAULT_MAX_MEMORY_PRO_CI
-            else:
-                max_memory = 0  # unlimited
-        # Same for timeout (Github actions has a 6 hour timeout)
-        if interfile_timeout is None:
-            if engine_type is EngineType.PRO_INTERFILE:
-                interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
-            else:
-                interfile_timeout = 0  # unlimited
-
-        # Append ignores configured on semgrep.dev
-        requested_excludes = scan_handler.ignore_patterns if scan_handler else []
-        if requested_excludes:
-            logger.info(
-                f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
-            )
+        excludes_from_app = scan_handler.ignore_patterns if scan_handler else []
 
         assert exclude is not None  # exclude is default empty tuple
-        exclude = (*exclude, *yield_exclude_paths(requested_excludes))
+        exclude = (*exclude, *yield_exclude_paths(excludes_from_app))
         assert config  # Config has to be defined here. Helping mypy out
         start = time.time()
         (
