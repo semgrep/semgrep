@@ -1,0 +1,3 @@
+`--oss-only` previously required `--oss-only true` to be passed. This PR fixes
+it so that `--oss-only` will invoke the oss engine. Note that `--oss-only true`
+will no longer be supported

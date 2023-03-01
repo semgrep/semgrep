@@ -30,11 +30,11 @@ class EngineType(Enum):
         Considers settings from Semgrep Cloud Platform and version control state.
         """
         if git_meta and scan_handler:
+            if scan_handler.deepsemgrep and requested_engine is None:
+                requested_engine = cls.PRO_INTERFILE
+
             if requested_engine == cls.PRO_INTERFILE and not git_meta.is_full_scan:
                 requested_engine = cls.PRO_LANG
-
-            if scan_handler.deepsemgrep:
-                return cls.PRO_INTERFILE if git_meta.is_full_scan else cls.PRO_LANG
 
         return requested_engine or cls.OSS
 
