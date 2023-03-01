@@ -183,7 +183,7 @@ jobs:
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           cache: pipenv
       - run: pip install pipenv==2022.6.7
       - name: Download artifacts
