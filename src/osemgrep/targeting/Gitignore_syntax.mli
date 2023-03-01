@@ -30,11 +30,9 @@ val show_selection_events : selection_event list -> string
 type path_selector = {
   loc : Glob_matcher.loc;
   (* The matcher tells whether a given path matches the pattern.
-     For example, the pattern /foo matches the path /
+     For example, the pattern '/f*' matches the path '/foo'.
 
-     The result is the list of selection events, most recent first.
-     The head of the list alone determines whether the path is selected.
-     An empty list indicates that the path was not selected. *)
+     The result comes with a selection event in case of a match. *)
   matcher : Git_path.t -> selection_event option;
 }
 
