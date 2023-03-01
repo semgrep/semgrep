@@ -28,10 +28,10 @@ Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of 81af3f0c528f
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 6 Code rules:
+  Scanning 1 file tracked by git with 4 Code rules:
             
   CODE RULES
-  Scanning 1 file with 5 python rules.
+  Scanning 1 file with 4 python rules.
   Current version has 1 finding.
 
 Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
