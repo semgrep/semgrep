@@ -243,7 +243,11 @@ class Rule:
 
     @property
     def product(self) -> RuleProduct:
-        return RuleProduct.sca if "sca-schema" in self.metadata else RuleProduct.sast
+        return (
+            RuleProduct.sca
+            if "r2c-internal-project-depends-on" in self._raw
+            else RuleProduct.sast
+        )
 
     @property
     def formula_string(self) -> str:
