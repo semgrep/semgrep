@@ -77,9 +77,11 @@ val is_symlink : Fpath.t -> bool
 
 (*
    Create a folder specified as a string. This path is parsed. If relative,
-   it created relative to the root, which must exist and defaults to
+   it is created relative to the root, which must exist and defaults to
    the process' current directory. If absolute, that path is used
    and all the parent directories up to the root are created if necessary.
+
+   This is the same functionality as 'mkdir -p' if no root is specified.
 *)
 val mkdir : ?root:Fpath.t -> Fpath.t -> unit
 
