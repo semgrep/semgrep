@@ -38,7 +38,6 @@ Passing whole rules directly to semgrep_core
 Scanning 1 file.
 Running Semgrep engine with command:
 /<MASKED>/semgrep<MASKED> -json -rules <MASKED>-json_time -fast --debug
-
 --- semgrep-core stderr ---
 <MASKED>
 <MASKED>
@@ -63,15 +62,15 @@ Running Semgrep engine with command:
 <MASKED>
 <MASKED>
 <MASKED>
+<MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 
 ========================================
 Files skipped:

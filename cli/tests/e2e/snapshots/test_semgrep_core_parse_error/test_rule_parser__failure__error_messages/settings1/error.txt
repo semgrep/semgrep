@@ -4,19 +4,16 @@ Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
 Scanning 1 file with 2 python rules.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 
 ========================================
 Files skipped:
