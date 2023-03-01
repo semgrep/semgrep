@@ -2,33 +2,31 @@
    Abstract type for a file path within a git project
 *)
 
-type t = { string : string; components : string list }
+type t = { string : string; segments : string list }
 
 let of_string string =
-  let components =
+  let segments =
     match String.split_on_char '/' string with
     | [ "" ] -> (* should be an error? *) [ "." ]
     | [] -> assert false
     | x -> x
   in
-  { string; components }
+  { string; segments }
 
 let root = of_string "/"
 let to_string x = x.string
 
-let check_component str =
+let check_segment str =
   if String.contains str '/' then
-    invalid_arg
-      ("Git_path.create: path component may not contain a slash: " ^ str)
+    invalid_arg ("Git_path.create: path segment may not contain a slash: " ^ str)
 
-let unsafe_create components =
-  { string = String.concat "/" components; components }
+let unsafe_create segments = { string = String.concat "/" segments; segments }
 
-let create components =
-  List.iter check_component components;
-  unsafe_create components
+let create segments =
+  List.iter check_segment segments;
+  unsafe_create segments
 
-let append_component xs x =
+let append_segment xs x =
   let rec loop xs =
     match xs with
     | [] -> [ x ]
@@ -39,27 +37,26 @@ let append_component xs x =
   | "" :: xs -> "" :: loop xs
   | xs -> loop xs
 
-let append path comp =
-  check_component comp;
-  let components = append_component path.components comp in
-  unsafe_create components
+let append path seg =
+  check_segment seg;
+  let segments = append_segment path.segments seg in
+  unsafe_create segments
 
 module Ops = struct
   let ( / ) = append
 end
 
-let components x = x.components
+let segments x = x.segments
 
 let is_absolute x =
-  match x.components with
+  match x.segments with
   | "" :: _ -> true
   | __else__ -> false
 
 let is_relative x = not (is_absolute x)
 
 let make_absolute x =
-  if is_relative x then
-    { string = "/" ^ x.string; components = "" :: x.components }
+  if is_relative x then { string = "/" ^ x.string; segments = "" :: x.segments }
   else x
 
 let normalize x =
@@ -77,19 +74,19 @@ let normalize x =
           normalize (x :: res)
     | [] -> []
   in
-  match x.components with
+  match x.segments with
   | "" :: xs -> (
       match normalize xs with
       | ".." :: _ -> Error ("invalid git path: " ^ x.string)
       | [] -> Ok (create [ ""; "" ])
-      | components -> Ok (create ("" :: components)))
+      | segments -> Ok (create ("" :: segments)))
   | xs ->
-      let components =
+      let segments =
         match normalize xs with
         | [] -> [ "." ]
         | xs -> xs
       in
-      Ok (create components)
+      Ok (create segments)
 
 let of_fpath path = Fpath.segs path |> create
 

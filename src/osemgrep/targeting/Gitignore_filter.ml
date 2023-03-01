@@ -63,12 +63,12 @@ let select_one acc levels path : S.selection_event list =
         acc level.patterns)
     acc levels
 
-let select_path opt_gitignore_file_cache sel_events levels relative_components =
-  let rec loop sel_events levels parent_path components =
-    (* add a component to the path and check if it's gitignored *)
-    match components with
+let select_path opt_gitignore_file_cache sel_events levels relative_segments =
+  let rec loop sel_events levels parent_path segments =
+    (* add a segment to the path and check if it's gitignored *)
+    match segments with
     | [] -> sel_events
-    | component :: components -> (
+    | segment :: segments -> (
         let levels =
           match opt_gitignore_file_cache with
           | Some cache -> (
@@ -79,24 +79,24 @@ let select_path opt_gitignore_file_cache sel_events levels relative_components =
           | None -> levels
         in
         (* check whether partial path should be gitignored *)
-        let file_path = parent_path / component in
+        let file_path = parent_path / segment in
         let sel_events = select_one sel_events levels file_path in
         if is_selected sel_events then
           (* stop here, don't go deeper as per gitignore spec *)
           sel_events
         else
-          match components with
+          match segments with
           | []
           | [ "" ] ->
-              loop sel_events levels file_path components
+              loop sel_events levels file_path segments
           | _ :: _ ->
               (* add trailing slash to match directory-only patterns *)
               let dir_path = file_path / "" in
               let sel_events = select_one sel_events levels dir_path in
               if is_selected sel_events then sel_events
-              else loop sel_events levels file_path components)
+              else loop sel_events levels file_path segments)
   in
-  loop sel_events levels Git_path.root relative_components
+  loop sel_events levels Git_path.root relative_segments
 
 (*
    Filter a path according to gitignore rules, requiring all the parent paths
@@ -110,8 +110,8 @@ let select t sel_events (full_git_path : Git_path.t) =
   if Git_path.is_relative full_git_path then
     invalid_arg
       ("Gitignore_filter.select: not an absolute path: " ^ full_git_path.string);
-  let rel_components =
-    match full_git_path.components with
+  let rel_segments =
+    match full_git_path.segments with
     | "" :: xs -> xs
     | __else__ -> assert false
   in
@@ -119,12 +119,12 @@ let select t sel_events (full_git_path : Git_path.t) =
      and middle levels (gitignore files discovered along the way) *)
   let sel_events =
     select_path (Some t.gitignore_file_cache) sel_events
-      t.higher_priority_levels rel_components
+      t.higher_priority_levels rel_segments
   in
   if is_selected sel_events then result_of_selection_events sel_events
   else
     (* lower levels (other sources of gitignore patterns) *)
     let sel_events =
-      select_path None sel_events t.lower_priority_levels rel_components
+      select_path None sel_events t.lower_priority_levels rel_segments
     in
     result_of_selection_events sel_events

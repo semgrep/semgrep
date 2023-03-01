@@ -49,9 +49,9 @@ let remove_negator str =
 
 let rec contains_nontrailing_slash (pat : M.pattern) =
   match pat with
-  | Component [] :: pat -> contains_nontrailing_slash pat
+  | Segment [] :: pat -> contains_nontrailing_slash pat
   | [] -> false
-  | _nonempty :: (* trailing slash *) [ Component [] ]
+  | _nonempty :: (* trailing slash *) [ Segment [] ]
   | [ _nonempty ] ->
       false
   | _nonempty1 :: _nonempty2 :: _ -> true
@@ -61,7 +61,7 @@ let rec contains_nontrailing_slash (pat : M.pattern) =
 let is_anchored_pattern (pat : M.pattern) =
   match pat with
   (* /... *)
-  | Component [] :: _ -> true
+  | Segment [] :: _ -> true
   (* **/ *)
   | Ellipsis :: _ -> true
   | pat -> contains_nontrailing_slash pat

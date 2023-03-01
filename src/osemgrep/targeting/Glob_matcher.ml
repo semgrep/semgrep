@@ -21,30 +21,30 @@ type char_class_range = Class_char of char | Range of char * char
 type char_class = { complement : bool; ranges : char_class_range list }
 [@@deriving show { with_path = false }]
 
-type component_fragment =
+type segment_fragment =
   | Char of char
   | Char_class of char_class
   | Question
   | Star
 [@@deriving show { with_path = false }]
 
-type component = Component of component_fragment list | Ellipsis
+type segment = Segment of segment_fragment list | Ellipsis
 [@@deriving show { with_path = false }]
 
-type pattern = component list [@@deriving show]
+type pattern = segment list [@@deriving show]
 type t = { source : loc; re : Re.re }
 
 let string_loc ?(source_name = "<pattern>") pat =
   { source_name; line_number = 1; line_contents = pat }
 
 (* / *)
-let root_pattern = [ Component []; Component [] ]
+let root_pattern = [ Segment []; Segment [] ]
 
 (* remove the leading slash unless it's a trailing slash *)
 let remove_leading_slash xs =
   match xs with
-  | [ Component []; Component [] ] as xs -> xs
-  | Component [] :: xs -> xs
+  | [ Segment []; Segment [] ] as xs -> xs
+  | Segment [] :: xs -> xs
   | xs -> xs
 
 (* remove the trailing slash unless it's a leading slash *)
@@ -52,28 +52,28 @@ let remove_trailing_slash xs =
   let rec loop xs =
     match xs with
     | [] -> []
-    | [ Component [] ] ->
+    | [ Segment [] ] ->
         (* ignore trailing slash that's not a leading slash *) []
     | x :: xs -> x :: loop xs
   in
   match xs with
   (* preserve leading slash *)
-  | Component [] :: xs -> Component [] :: loop xs
+  | Segment [] :: xs -> Segment [] :: loop xs
   | xs -> loop xs
 
 let append a b = remove_trailing_slash a @ remove_leading_slash b
 
-let of_path_components components =
+let of_path_segments segments =
   Common.map
     (fun s ->
       let chars = String.fold_right (fun c acc -> Char c :: acc) s [] in
-      Component chars)
-    components
+      Segment chars)
+    segments
 
 let slash = Re.char '/'
 let not_slash = Re.compl [ slash ]
 
-let map_frag (frag : component_fragment) : Re.t =
+let map_frag (frag : segment_fragment) : Re.t =
   let open Re in
   match frag with
   | Char c -> char c
@@ -90,16 +90,16 @@ let map_frag (frag : component_fragment) : Re.t =
   | Question -> not_slash
   | Star -> rep not_slash
 
-let map_comp (comp : component_fragment list) : Re.t =
+let map_seg (seg : segment_fragment list) : Re.t =
   let open Re in
-  seq (Common.map map_frag comp)
+  seq (Common.map map_frag seg)
 
 let rec map pat =
   let open Re in
   match pat with
-  | [ Component comp ] -> [ map_comp comp; eos ]
+  | [ Segment seg ] -> [ map_seg seg; eos ]
   | [ Ellipsis ] -> []
-  | Component comp :: pat -> map_comp comp :: slash :: map pat
+  | Segment seg :: pat -> map_seg seg :: slash :: map pat
   | Ellipsis :: pat -> rep (seq [ rep not_slash; slash ]) :: map pat
   | [] -> [ eos ]
 

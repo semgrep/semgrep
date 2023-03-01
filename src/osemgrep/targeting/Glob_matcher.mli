@@ -23,23 +23,23 @@ type char_class_range = Class_char of char | Range of char * char
 type char_class = { complement : bool; ranges : char_class_range list }
 [@@deriving show]
 
-type component_fragment =
+type segment_fragment =
   | Char of char
   | Char_class of char_class
   | Question
   | Star
 [@@deriving show]
 
-(* A path component is what represents a simple file name in a directory *)
-type component =
-  | Component of component_fragment list
+(* A path segment is what represents a simple file name in a directory *)
+type segment =
+  | Segment of segment_fragment list
   | Ellipsis (* '**' = path ellipsis *)
 [@@deriving show]
 
 (*
    A pattern which matches paths.
 *)
-type pattern = component list [@@deriving show]
+type pattern = segment list [@@deriving show]
 
 (* A compiled pattern matcher. *)
 type t
@@ -47,7 +47,7 @@ type t
 (* The pattern that matches '/' *)
 val root_pattern : pattern
 
-(* Append the components, taking care of trailing slashes that prevent
+(* Append the segments, taking care of trailing slashes that prevent
    us from using a plain list append (@). *)
 val append : pattern -> pattern -> pattern
 
@@ -86,5 +86,5 @@ val compile : source:loc -> pattern -> t
 *)
 val run : t -> string -> bool
 val source : t -> loc
-val of_path_components : string list -> pattern
+val of_path_segments : string list -> pattern
 val show : t -> string

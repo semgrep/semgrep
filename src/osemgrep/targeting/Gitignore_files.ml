@@ -17,10 +17,10 @@ let create ?(gitignore_filenames = [ ".gitignore" ]) ~project_root () =
   { project_root; gitignore_filenames; cache }
 
 let anchor_of_git_path git_path =
-  Git_path.components git_path |> Glob_matcher.of_path_components
+  Git_path.segments git_path |> Glob_matcher.of_path_segments
 
 let path_of_git_path root (git_path : Git_path.t) =
-  match git_path.components with
+  match git_path.segments with
   | "" :: xs -> List.fold_left Fpath.add_seg root xs
   | __else__ -> assert false
 

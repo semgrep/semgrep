@@ -5,18 +5,18 @@
    git paths use '/' as a separator.
 *)
 
-type t = private { string : string; components : string list }
+type t = private { string : string; segments : string list }
 
 (* A slash-separated path. *)
 val of_string : string -> t
 val to_string : t -> string
 
-(* Create a path from the list of components. Components may not contain
+(* Create a path from the list of segments. Segments may not contain
    slashes. *)
 val create : string list -> t
-val components : t -> string list
+val segments : t -> string list
 
-(* Append a component to a path. *)
+(* Append a segment to a path. *)
 val append : t -> string -> t
 
 module Ops : sig

@@ -51,17 +51,17 @@ let rec find_first func xs =
    file is selected.
 *)
 let select t (full_git_path : Git_path.t) =
-  let rec scan_components matcher parent_path components =
-    (* add a component to the path and check if it's selected *)
-    match components with
+  let rec scan_segments matcher parent_path segments =
+    (* add a segment to the path and check if it's selected *)
+    match segments with
     | [] -> None
-    | component :: components -> (
+    | segment :: segments -> (
         (* check whether partial path should be gitignored *)
-        let file_path = parent_path / component in
+        let file_path = parent_path / segment in
         if Glob_matcher.run matcher (Git_path.to_string file_path) then
           Some (Glob_matcher.source matcher)
         else
-          match components with
+          match segments with
           | []
           | [ "" ] ->
               None
@@ -70,17 +70,17 @@ let select t (full_git_path : Git_path.t) =
               let dir_path = file_path / "" in
               if Glob_matcher.run matcher (Git_path.to_string dir_path) then
                 Some (Glob_matcher.source matcher)
-              else scan_components matcher file_path components)
+              else scan_segments matcher file_path segments)
   in
-  let rel_components =
-    match full_git_path.components with
+  let rel_segments =
+    match full_git_path.segments with
     | "" :: xs -> xs
     | __else__ -> assert false
   in
   match
     t.glob_matchers
     |> find_first (fun matcher ->
-           scan_components matcher Git_path.root rel_components)
+           scan_segments matcher Git_path.root rel_segments)
   with
   | None ->
       (Gitignore_filter.Ignored, [ Gitignore_syntax.Selected t.no_match_loc ])

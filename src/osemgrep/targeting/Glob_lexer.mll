@@ -12,7 +12,7 @@ let neg = ['^' '!']
 
 rule tokens = parse
 | '/'      { SLASH }
-| "**"     { (* only special if it occupies a whole path component. This
+| "**"     { (* only special if it occupies a whole path segment. This
                 is dealt with later. *)
              STARSTAR }
 | '*'      { STAR }
@@ -47,5 +47,5 @@ and char_class acc = parse
 {
   let parse_string str =
     let lexbuf = Lexing.from_string str in
-    Glob_parser.components tokens lexbuf
+    Glob_parser.segments tokens lexbuf
 }
