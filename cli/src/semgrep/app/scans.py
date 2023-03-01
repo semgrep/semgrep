@@ -3,7 +3,6 @@ import json
 import os
 from collections import Counter
 from copy import deepcopy
-from logging import DEBUG
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -165,7 +164,7 @@ class ScanHandler:
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
         self.ignore_patterns = body.get("ignored_files") or []
 
-        if logger.isEnabledFor(DEBUG):
+        if state.terminal.is_debug:
             config = deepcopy(body)
             try:
                 config["rule_config"] = json.loads(config["rule_config"])

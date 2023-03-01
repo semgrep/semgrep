@@ -8,14 +8,17 @@ import subprocess
 import sys
 import tempfile
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Coroutine
+from typing import DefaultDict
 from typing import Dict
 from typing import FrozenSet
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -23,6 +26,7 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 
 from attr import asdict
+from attr import define
 from attr import field
 from attr import frozen
 from glom import glom
@@ -44,7 +48,6 @@ import semgrep.output_from_core as core
 from semgrep.app import auth
 from semgrep.config_resolver import Config
 from semgrep.console import console
-from semgrep.console import Title
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import core_error_to_semgrep_error
@@ -480,7 +483,7 @@ class Task:
     path: str = field(converter=str)
     language: Language
     # a rule_num is the rule's index in the rule ID list
-    rule_nums: Sequence[int]
+    rule_nums: Tuple[int, ...]
 
     @property
     def language_label(self) -> str:
@@ -499,6 +502,12 @@ class TargetMappings(List[Task]):
     @property
     def file_count(self) -> int:
         return len(self)
+
+
+@define
+class TaskCounts:
+    files: int = 0
+    rules: int = 0
 
 
 class Plan:
@@ -522,23 +531,51 @@ class Plan:
         self.rules = rules
         self.lockfiles_by_ecosystem = lockfiles_by_ecosystem
 
+    # TODO: make this counts_by_lang_label, returning TaskCounts
     def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
         result: Dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
         for task in self.target_mappings:
             result[task.language_label].append(task)
         return result
 
-    def split_by_ecosystem(self) -> Dict[Ecosystem, "TargetMappings"]:
-        result: Dict[Ecosystem, TargetMappings] = collections.defaultdict(
-            TargetMappings
-        )
+    @lru_cache(maxsize=1000)  # caching this saves 60+ seconds on mid-sized repos
+    def ecosystems_by_rule_nums(self, rule_nums: Tuple[int]) -> Set[Ecosystem]:
+        return {
+            ecosystem
+            for rule_num in rule_nums
+            for ecosystem in self.rules[rule_num].ecosystems
+        }
+
+    def counts_by_ecosystem(
+        self,
+    ) -> Mapping[Ecosystem, TaskCounts]:
+        result: DefaultDict[Ecosystem, TaskCounts] = collections.defaultdict(TaskCounts)
+
+        # if a pypi rule does reachability analysis on *.json files,
+        # when the user has no .json files, then there is no task for it,
+        # but we should still print it as a reachability rule we used
+        # so we get rule counts by looking at all rules
+        for rule in self.rules:
+            for ecosystem in rule.ecosystems:
+                result[ecosystem].rules += 1
+
+        # one .json file could determine the reachability of libraries from pypi and npm at the same time
+        # so one task might need increase counts for multiple ecosystems (unlike when splitting by lang)
         for task in self.target_mappings:
-            # one .json file could determine the reachability of libraries from pypi and npm at the same time
-            # so one task might need increase counts for multiple ecosystems (unlike when splitting by lang)
-            rules = [self.rules[rule_num] for rule_num in task.rule_nums]
-            ecosystems = {ecosystem for rule in rules for ecosystem in rule.ecosystems}
-            for ecosystem in ecosystems:
-                result[ecosystem].append(task)
+            for ecosystem in self.ecosystems_by_rule_nums(task.rule_nums):
+                result[ecosystem].files += 1
+
+        # if a rule scans npm and maven, but we only have npm lockfiles,
+        # then we skip mentioning maven in debug info by deleting maven's counts
+        if self.lockfiles_by_ecosystem is not None:
+            unused_ecosystems = {
+                ecosystem
+                for ecosystem in result
+                if not self.lockfiles_by_ecosystem.get(ecosystem)
+            }
+            for ecosystem in unused_ecosystems:
+                del result[ecosystem]
+
         return result
 
     def to_json(self) -> Dict[str, Any]:
@@ -574,13 +611,13 @@ class Plan:
         table.add_column("Files", justify="right")
         table.add_column("Lockfiles")
 
-        plans_by_ecosystem = sorted(
-            self.split_by_ecosystem().items(),
-            key=lambda x: (x[1].file_count, x[1].rule_count),
-            reverse=True,
-        )
+        counts_by_ecosystem = self.counts_by_ecosystem()
 
-        for ecosystem, plan in plans_by_ecosystem:
+        for ecosystem, plan in sorted(
+            counts_by_ecosystem.items(),
+            key=lambda x: (x[1].files, x[1].rules),
+            reverse=True,
+        ):
             if self.lockfiles_by_ecosystem is not None:
                 lockfile_paths = ", ".join(
                     str(lockfile)
@@ -588,10 +625,11 @@ class Plan:
                 )
             else:
                 lockfile_paths = "N/A"
+
             table.add_row(
                 ecosystem.kind,
-                str(plan.rule_count),
-                str(plan.file_count),
+                str(plan.rules),
+                str(plan.files),
                 lockfile_paths,
             )
 
@@ -632,6 +670,7 @@ class Plan:
         SCA_ANALYSIS_NAMES = {
             "reachable": "Reachability",
             "legacy": "Presence",
+            "malicious": "Presence",
             "upgrade-only": "Presence",
         }
 
@@ -673,7 +712,7 @@ class Plan:
 
         if len(self.split_by_lang_label()) == 1:
             console.print(
-                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{list(self.split_by_lang_label().values())[0]} rule')}."
+                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{list(self.split_by_lang_label())[0]} rule')}."
             )
             return
 
@@ -876,8 +915,11 @@ class CoreRunner:
         """
         profiling_data.set_max_memory_bytes(max_memory_bytes)
 
-    def _plan_core_run(
-        self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
+    @staticmethod
+    def plan_core_run(
+        rules: List[Rule],
+        target_manager: TargetManager,
+        all_targets: Optional[Set[Path]] = None,
     ) -> Plan:
         """
         Gets the targets to run for each rule
@@ -885,7 +927,7 @@ class CoreRunner:
         Returns this information as a list of rule ids and a list of targets with
         language + index of the rule ids for the rules to run each target on.
         Semgrep-core will use this to determine what to run (see Input_to_core.atd).
-        Also updates all_targets, used by core_runner
+        Also updates all_targets if set, used by core_runner
 
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
@@ -895,12 +937,15 @@ class CoreRunner:
 
         lockfiles = target_manager.get_all_lockfiles()
 
-        for i, rule in enumerate(rules):
-            if rule.product == RuleProduct.sca and not any(
-                lockfiles[ecosystem] for ecosystem in rule.ecosystems
-            ):
-                continue  # no need to run this SCA rule with no relevant lockfiles
+        rules = [
+            rule
+            for rule in rules
+            # filter out SCA rules with no relevant lockfiles
+            if rule.product != RuleProduct.sca
+            or any(lockfiles[ecosystem] for ecosystem in rule.ecosystems)
+        ]
 
+        for rule_num, rule in enumerate(rules):
             for language in rule.languages:
                 targets = list(
                     target_manager.get_files_for_rule(
@@ -909,15 +954,17 @@ class CoreRunner:
                 )
 
                 for target in targets:
-                    all_targets.add(target)
-                    target_info[target, language].append(i)
+                    if all_targets is not None:
+                        all_targets.add(target)
+                    target_info[target, language].append(rule_num)
 
         return Plan(
             [
                 Task(
                     path=target,
                     language=language,
-                    rule_nums=target_info[target, language],
+                    # tuple conversion makes rule_nums hashable, so usable as cache key
+                    rule_nums=tuple(target_info[target, language]),
                 )
                 for target, language in target_info
             ],
@@ -964,24 +1011,7 @@ class CoreRunner:
         )
 
         with exit_stack:
-            sast_plan = self._plan_core_run(
-                [rule for rule in rules if rule.product == RuleProduct.sast],
-                target_manager,
-                all_targets,
-            )
-            console.print(Title("Code Rules", order=2))
-            sast_plan.log(with_tables_for=RuleProduct.sast)
-
-            if any(rule.product == RuleProduct.sca for rule in rules):
-                sca_plan = self._plan_core_run(
-                    [rule for rule in rules if rule.product == RuleProduct.sca],
-                    target_manager,
-                    all_targets,
-                )
-                console.print(Title("Supply Chain Rules", order=2))
-                sca_plan.log(with_tables_for=RuleProduct.sca)
-
-            plan = self._plan_core_run(rules, target_manager, all_targets)
+            plan = self.plan_core_run(rules, target_manager, all_targets)
             plan.record_metrics()
 
             parsing_data.add_targets(plan)
