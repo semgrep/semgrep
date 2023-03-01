@@ -3,6 +3,7 @@ from pathlib import Path
 from time import time
 
 import pytest
+from tests.fixtures import RunSemgrep
 
 from ..conftest import TESTS_PATH
 from semdep.package_restrictions import is_in_range
@@ -101,7 +102,9 @@ pytestmark = pytest.mark.kinda_slow
         ),
     ],
 )
-def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
+def test_dependency_aware_rules(
+    run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target
+):
     snapshot.assert_match(
         run_semgrep_on_copied_files(rule, target_name=target).as_snapshot(),
         "results.txt",
@@ -235,7 +238,7 @@ def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
 # contains no lockfiles for the language in our rule, we need to _not_ pass in
 # a target that begins with "targets", as that dir contains every kind of lockfile
 # So we add the keyword arg to run_semgrep and manually do some cd-ing
-def test_no_lockfiles(run_semgrep, monkeypatch, tmp_path, snapshot):
+def test_no_lockfiles(run_semgrep: RunSemgrep, monkeypatch, tmp_path, snapshot):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path / "targets" / "basic")

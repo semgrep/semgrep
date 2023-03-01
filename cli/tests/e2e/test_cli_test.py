@@ -1,6 +1,7 @@
 import re
 
 import pytest
+from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
 
@@ -13,7 +14,7 @@ def _mask_floats(text_output: str) -> str:
 
 
 @pytest.mark.kinda_slow
-def test_cli_test_basic(run_semgrep_in_tmp, snapshot):
+def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
         options=["--test"],
@@ -28,7 +29,7 @@ def test_cli_test_basic(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_cli_test_verbose(run_semgrep_in_tmp, snapshot):
+def test_cli_test_verbose(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
         options=["--verbose"],
@@ -44,7 +45,7 @@ def test_cli_test_verbose(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_cli_test_time(run_semgrep_in_tmp, snapshot):
+def test_cli_test_time(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
         options=["--time"],
@@ -60,7 +61,7 @@ def test_cli_test_time(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_timeout(run_semgrep_in_tmp, snapshot):
+def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/error/",
         options=["--test"],
@@ -74,7 +75,7 @@ def test_timeout(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_cli_test_yaml_language(run_semgrep_in_tmp, snapshot):
+def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/language/",
         options=["--test"],
@@ -88,7 +89,7 @@ def test_cli_test_yaml_language(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_cli_test_show_supported_languages(run_semgrep_in_tmp, snapshot):
+def test_cli_test_show_supported_languages(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
         options=["--show-supported-languages"],
@@ -103,7 +104,7 @@ def test_cli_test_show_supported_languages(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_cli_test_suffixes(run_semgrep_in_tmp, snapshot):
+def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/suffixes/",
         options=["--test"],
@@ -117,7 +118,7 @@ def test_cli_test_suffixes(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_cli_test_multiline_annotations(run_semgrep_in_tmp, snapshot):
+def test_cli_test_multiline_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/multiple_annotations/",
         options=["--test"],
@@ -132,7 +133,7 @@ def test_cli_test_multiline_annotations(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_parse_errors(run_semgrep_in_tmp, snapshot):
+def test_parse_errors(run_semgrep_in_tmp: RunSemgrep, snapshot):
     _results, errors = run_semgrep_in_tmp(
         "rules/cli_test/parse_errors/",
         options=["--verbose"],
