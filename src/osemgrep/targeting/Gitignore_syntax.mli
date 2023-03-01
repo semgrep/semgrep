@@ -5,11 +5,14 @@
 *)
 
 (*
-   A ternary state indicating whether a path is selected or deselected at
-   the end of a level:
+   An event representing where a pattern matched a path. The sequence
+   of selection events forms a trace that's useful to understand why
+   particular path was gitignored (selected) or not gitignored (deselected).
+
    - Selected: select the file (= ignore it for git purposes)
+     e.g. a file selected via 'generated/*.c'
    - Deselected: deselect the file (= don't ignore it for git purposes)
-   - Unmatched: move on to the next level to determine the fate of the path.
+     e.g. a file deselected via '!generated/main.c'
 *)
 type selection_event =
   | Selected of Glob_matcher.loc
@@ -18,7 +21,7 @@ type selection_event =
 val show_selection_event : selection_event -> string
 
 (*
-   Show a list of selection events, one per line, oldest first
+   Show a trace of selection events, one per line, oldest first
    (unlike the list which has the most recent first).
 *)
 val show_selection_events : selection_event list -> string
