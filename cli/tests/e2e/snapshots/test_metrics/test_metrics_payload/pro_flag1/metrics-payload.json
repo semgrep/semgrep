@@ -74,6 +74,7 @@
       "cli-flag/metrics",
       "cli-flag/targets",
       "config/local",
+      "language/python",
       "subcommand/scan"
     ],
     "numFindings": 1,

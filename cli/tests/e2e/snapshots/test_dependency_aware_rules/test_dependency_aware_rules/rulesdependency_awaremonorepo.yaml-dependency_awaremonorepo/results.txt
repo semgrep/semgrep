@@ -119,20 +119,25 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
-Scanning 3 files.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 6 files tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Scanning 3 files.
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 
 Ran 1 rule on 6 files: 2 findings.
 

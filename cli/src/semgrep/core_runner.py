@@ -29,8 +29,7 @@ from attr import asdict
 from attr import define
 from attr import field
 from attr import frozen
-from glom import glom
-from glom import T
+from boltons.iterutils import get_path
 from rich import box
 from rich.columns import Columns
 from rich.padding import Padding
@@ -641,13 +640,8 @@ class Plan:
         table.add_column("Rules", justify="right")
 
         origin_counts = collections.Counter(
-            cast(
-                str,
-                glom(
-                    rule,
-                    T.metadata["semgrep.dev"]["rule"]["origin"],
-                    default="unknown",
-                ),
+            get_path(
+                rule.metadata, ("semgrep.dev", "rule", "origin"), default="unknown"
             )
             for rule in self.rules
             if rule.product == RuleProduct.sast
@@ -675,13 +669,7 @@ class Plan:
         }
 
         sca_analysis_counts = collections.Counter(
-            SCA_ANALYSIS_NAMES.get(
-                cast(
-                    str,
-                    glom(rule, T.metadata["sca-kind"]),
-                ),
-                "Unknown",
-            )
+            SCA_ANALYSIS_NAMES.get(rule.metadata.get("sca-kind", ""), "Unknown")
             for rule in self.rules
             if rule.product == RuleProduct.sca
         )
