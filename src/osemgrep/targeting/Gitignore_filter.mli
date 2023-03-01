@@ -25,15 +25,15 @@ val create :
   t
 
 (*
-   Examine a single absolute* path** and determine whether it is selected
+   Examine a single absolute[1] path[2] and determine whether it is selected
    by the gitignore mechanism, i.e. ignored for git purposes.
 
-   *The path must be absolute within the git project. For example,
+   [1] The path must be absolute within the git project. For example,
    if the git project root is at /home/bob/fooproj, then
    the path to the file /home/bob/fooproj/bar
    must be given as /bar.
 
-   **Paths to folders must have a trailing slash.
+   [2] Paths to folders must have a trailing slash.
 
    Return whether the list of selection/deselection events that the path
    went through, in reverse order. The first element of the list, if any,

@@ -34,10 +34,6 @@ let any_gen_of_string str =
 (* All tests *)
 (*****************************************************************************)
 
-(* temporary: force initialization of modules that aren't used yet *)
-let () = ignore Osemgrep_targeting.Semgrepignore.select
-let () = ignore Testutil_files.read
-
 (*
    Some test suites are created from files present in file system.
    To avoid errors during module initialization when running 'dune utop'

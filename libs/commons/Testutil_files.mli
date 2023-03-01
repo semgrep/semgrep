@@ -1,9 +1,23 @@
 (*
    Utilities for creating, scanning, and deleting a hierarchy
    of test files.
+
+   It is recommended for running tests that operate on a file hierarchy.
+   This file hierarchy is defined inline alongside the test code, which
+   is more convenient than having to manually create actual files and folders
+   for each test case. Another advantage is that we can test the structure
+   of git repositories without interfering with our project's real
+   repository (e.g. the tests can create a '.git' folder and '.gitignore'
+   files without restrictions). During the execution of a test with
+   'with_tempfiles', the file hierarchy is created in a temporary folder.
+
+   See Unit_semgrepignore.ml for sample usage.
 *)
 
 (*
+   File tree. A file tree can be easily inspected in OCaml, and can be written,
+   read, or deleted in a single function all.
+
    We don't deal with other file types than those three.
    File names must be normal names, i.e. not ".", "..", or "". They may not
    contain slashes or backslashes either.
