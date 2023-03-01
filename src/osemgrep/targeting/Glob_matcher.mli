@@ -1,6 +1,10 @@
 (*
    AST and matching of a glob pattern against a path.
    This is purely syntaxic: the file system is not accessed.
+
+   The main reference for this is https://git-scm.com/docs/gitignore
+   which itself relies partially on POSIX glob
+   https://man7.org/linux/man-pages/man7/glob.7.html (man 7 glob)
 *)
 
 (* The location of a pattern, for logging and troubleshooting. *)
@@ -58,6 +62,9 @@ val compile : source:loc -> pattern -> t
 
 (*
    Match a path against a pattern:
+   - The pattern is anchored: the beginning of the pattern must match
+     the beginning of the path, and the end of the pattern must match
+     the end of the path.
    - The path must be slash-separated (not backslash-separated like on
      Windows).
    - If the pattern starts with a slash, the path must start with a slash
@@ -74,7 +81,7 @@ val compile : source:loc -> pattern -> t
    matching paths: bar.c
    non-matching paths: /bar.c foo.c/bar bar/foo.c
 
-   sliding pattern: **/.c
+   sliding pattern: **/*.c
    matching paths: foo.c bar/foo.c /foo.c
    non-matching paths: foo.c/bar
 
