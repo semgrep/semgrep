@@ -862,6 +862,9 @@ let filemtime file =
   else (Unix.stat file).Unix.st_mtime
 
 (*
+Update 2023-01-20: OCaml >= 4.13 provides a Unix.realpath which works
+on all platforms.
+
 Using an external C functions complicates the linking process of
 programs using commons/. Thus, I replaced realpath() with an OCaml-only
 similar functions fullpath().

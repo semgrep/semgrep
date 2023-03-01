@@ -1,0 +1,2 @@
+Fix: Semgrep Pro previously reported a crash for user errors such as
+invalid patterns. It will now give a good error message.

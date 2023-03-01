@@ -16,6 +16,8 @@
     semgrep.synthesizing
     semgrep.reporting
     semgrep.engine
+
+    osemgrep_targeting
   )
  (preprocess
    (pps

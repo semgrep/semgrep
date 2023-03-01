@@ -10,6 +10,7 @@
    easy_logging easy_logging_yojson
    alcotest
    cmdliner
+   fpath
    re
    pcre
    parmap

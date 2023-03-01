@@ -1,0 +1,2 @@
+Kotlin: allow to match extended class in any order
+(e.g., the pattern `class $X : Foo` will also match `class Stuff : Bar, Foo`).

@@ -186,6 +186,7 @@ ALWAYS_MASK: Maskers = (
     re.compile(r"python (\d+[.]\d+[.]\d+[ ]+)"),
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
     re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
+    re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"),
 )
 
 
