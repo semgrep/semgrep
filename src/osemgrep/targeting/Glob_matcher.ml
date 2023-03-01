@@ -105,6 +105,7 @@ let rec map pat =
   | Any_subpath :: pat -> rep (seq [ rep not_slash; slash ]) :: map pat
   | [] -> [ eos ]
 
+(* Create a pattern that's left-anchored and right-anchored *)
 let map_root pat =
   let open Re in
   seq (bos :: map pat)
