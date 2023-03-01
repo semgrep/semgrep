@@ -44,7 +44,7 @@ def first(
 ) -> Optional[Union[int, float]]: ...
 def get_path(
     root: Union[Dict[str, List[str]], List[str], Dict[str, str]],
-    path: Union[Tuple[str, int], str, Tuple[str], Tuple[int]],
+    path: Union[Tuple[Union[str, int], ...], str, Tuple[str, ...], Tuple[int, ...]],
     default: Any = ...,
 ) -> str: ...
 def remap(

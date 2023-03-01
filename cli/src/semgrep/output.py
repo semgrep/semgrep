@@ -386,8 +386,6 @@ class OutputHandler:
             num_targets = len(self.all_targets)
             num_rules = len(self.filtered_rules)
 
-            console.print(Title("Scan Summary"))
-
             ignores_line = str(ignore_log or "No ignore information available")
             suggestion_line = ""
             if (
@@ -405,6 +403,7 @@ class OutputHandler:
                 logger.verbose(ignore_log.verbose_output())
 
             output_text = ignores_line + suggestion_line + stats_line
+            console.print(Title("Scan Summary"))
             logger.info(output_text)
 
         self._final_raise(final_error)
