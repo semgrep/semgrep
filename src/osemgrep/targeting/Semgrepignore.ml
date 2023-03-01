@@ -54,10 +54,7 @@ let create ?include_patterns ?(cli_patterns = []) ~project_root () =
       ("Semgrepignore.create needs an absolute path for the project root: "
       ^ Fpath.to_string project_root);
   let include_filter =
-    match include_patterns with
-    | None -> None
-    | Some include_patterns ->
-        Some (Include_filter.create ~project_root include_patterns)
+    Option.map (Include_filter.create ~project_root) include_patterns
   in
   let root_anchor = Glob_matcher.root_pattern in
   let cli_patterns =
