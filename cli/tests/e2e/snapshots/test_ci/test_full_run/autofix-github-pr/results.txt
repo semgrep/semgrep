@@ -7,28 +7,26 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of exit code
 
 === stdout - plain
-                                                                                
-                                                                                
-┌────────────────┐                                                              
-│ Debugging Info │                                                              
-└────────────────┘                                                              
-                                                                                
+                  
+                  
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
 Fixing git state for github action pull request
 Not on head ref: <MASKED>; checking that out now.
 Using <MASKED> as the merge-base of <MASKED> and <MASKED>
-  SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment github-actions, triggering event is      
-                pull_request                                                    
-  server      - logged in as org_name on https://semgrep.dev                    
-                                                                                
-                                                                                
-┌─────────────┐                                                                 
-│ Scan Status │                                                                 
-└─────────────┘                                                                 
-                                                                                
+                  
+  SCAN ENVIRONMENT
+    versions    - semgrep <MASKED> on python <MASKED>
+    environment - running in environment github-actions, triggering event is    
+                  pull_request                                                  
+    server      - logged in as org_name on https://semgrep.dev                  
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
 Scanning 1 file with 4 python rules.
-
   Current version has 14 findings.
 
 Switching repository to baseline commit '<MASKED>'.
@@ -36,13 +34,11 @@ Switching repository to baseline commit '<MASKED>'.
     * <MASKED> Some other commit/ message
 
 Scanning 1 file with 4 python rules.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘
 Non-Blocking Findings:
 
   foo.py 
@@ -80,12 +76,11 @@ Blocking Rules Fired:
    eqeq-bad   
    eqeq-four   
    taint-test
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
