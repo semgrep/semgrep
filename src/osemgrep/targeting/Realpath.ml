@@ -89,23 +89,7 @@ let realpath_str s =
 (* Tests (Unix only) *)
 (**********************************************************)
 
-let make_test_tree () =
-  let cmd =
-    "rm -rf /tmp/test-realpath\n\
-     mkdir -p /tmp/test-realpath/sub\n\n\
-     cd /tmp/test-realpath\n\
-     ln -s loop_a loop_b\n\
-     ln -s loop_b loop_a\n\
-     ln -s /tmp link-to-tmp\n\
-     touch regfile\n\
-     ln -s ../test-realpath//regfile/// link-to-reg\n"
-  in
-  match Sys.command cmd with
-  | 0 -> ()
-  | n -> failwith (sprintf "make_test_tree failed with exit code %i" n)
-
 let test () =
-  make_test_tree ();
   let check (input, expected_output) =
     Alcotest.(check string)
       ("realpath " ^ input) expected_output (realpath_str input)
@@ -117,36 +101,45 @@ let test () =
     with
     | _ -> ()
   in
-  List.iter check
+  Testutil_files.with_tempfiles ~chdir:true
     [
-      ("/", "/");
-      ("/tmp", "/tmp");
-      ("/tmp/.", "/tmp");
-      ("/tmp/..", "/");
-      ("/tmp/", "/tmp");
-      ("/tmp/test-realpath", "/tmp/test-realpath");
-      (* not sure why Fpath considers an extra leading slash to a be volume,
-         which we preserve like a Windows volume. *)
-      ("//tmp", "//tmp");
-      ("/////tmp", "//tmp");
-      ("/tmp//test-realpath/", "/tmp/test-realpath");
-      ("/tmp/test-realpath/link-to-reg", "/tmp/test-realpath/regfile");
-    ];
-  List.iter fails
-    [
-      "/tmp/test-realpath/loop_a";
-      "/tmp/test-realpath/xxxxxxxxxxxx";
-      "/tmp/test-realpath/regfile/.";
-      "/tmp/test-realpath/regfile/..";
-    ];
-  Testutil_files.with_chdir (Fpath.v "/tmp/test-realpath/sub") (fun () ->
+      Symlink ("loop_a", "loop_b");
+      Symlink ("loop_b", "loop_a");
+      Symlink ("link-to-tmp", "/tmp");
+      File ("regfile", "");
+      Dir ("sub", [ Symlink ("link-to-reg", "..//regfile///") ]);
+    ]
+    (fun root ->
+      let root_s = Fpath.to_string root in
       List.iter check
         [
-          (".", "/tmp/test-realpath/sub");
-          ("..", "/tmp/test-realpath");
-          ("../link-to-tmp", "/tmp");
-          ("../link-to-tmp/test-realpath", "/tmp/test-realpath");
-        ])
+          ("/", "/");
+          ("/tmp", "/tmp");
+          ("/tmp/.", "/tmp");
+          ("/tmp/..", "/");
+          ("/tmp/", "/tmp");
+          (root_s, root_s);
+          (* not sure why Fpath considers an extra leading slash to be
+             a volume, which we preserve like a Windows volume. *)
+          ("//tmp", "//tmp");
+          ("/////tmp", "//tmp");
+          (sprintf "%s//sub" root_s, sprintf "%s/sub" root_s);
+          (sprintf "%s/sub/link-to-reg" root_s, sprintf "%s/regfile" root_s);
+        ];
+      List.iter fails
+        [
+          sprintf "%s/loop_a" root_s;
+          sprintf "%s/xxxxxxxxxxxx" root_s;
+          sprintf "%s/sub/regfile/." root_s;
+          sprintf "%s/sub/regfile/.." root_s;
+        ];
+      Testutil_files.with_chdir (Fpath.v "sub") (fun () ->
+          List.iter check
+            [
+              (".", sprintf "%s/sub" root_s);
+              ("..", root_s);
+              ("../link-to-tmp", "/tmp");
+            ]))
 
 let () =
   match Sys.os_type with

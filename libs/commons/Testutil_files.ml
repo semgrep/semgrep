@@ -185,6 +185,13 @@ let with_tempdir ?(persist = false) ?(chdir = false) func =
     ~finally:(fun () -> if not persist then remove dir)
     (fun () -> if chdir then with_chdir dir (fun () -> func dir) else func dir)
 
+let with_tempfiles ?persist ?chdir files func =
+  with_tempdir ?persist ?chdir (fun root ->
+      (* files are automatically deleted as part of the cleanup done by
+         'with_tempdir'. *)
+      write root files;
+      func root)
+
 let () =
   Testutil.test "Testutil_files" (fun () ->
       with_tempdir ~chdir:true (fun root ->

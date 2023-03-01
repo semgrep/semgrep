@@ -61,3 +61,10 @@ val with_chdir : Fpath.t -> (unit -> 'a) -> 'a
    set temporarily to the temporary directory.
  *)
 val with_tempdir : ?persist:bool -> ?chdir:bool -> (Fpath.t -> 'a) -> 'a
+
+(*
+   Create files under a temporary root and execute a function in this
+   context. See 'with_tempdir' for the meaning of the options.
+*)
+val with_tempfiles :
+  ?persist:bool -> ?chdir:bool -> t list -> (Fpath.t -> 'a) -> 'a
