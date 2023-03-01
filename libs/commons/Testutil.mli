@@ -11,7 +11,7 @@
 
    There are two main recommended ways of writing a test:
 
-   1. With 'assert false:
+   1. With 'assert false':
 
    Each test may use 'assert false' to indicate that the test doesn't pass.
    This is the simplest way of failing while also showing the location
@@ -30,6 +30,19 @@
    hesitate to log a lot during the execution of the test.
 *)
 type test = string * (unit -> unit)
+
+(* Register a test. The test gets added to the global list of tests.
+   This is meant to declare inline tests as follows:
+
+     let () = Testutil.test "foo" (fun () ->
+       (* test body raising exceptions to signal failure *)
+       ...
+     )
+*)
+val test : string -> (unit -> unit) -> unit
+
+(* Get the list of registered tests. *)
+val get_registered_tests : unit -> test list
 
 (*
    This extends the name of each test by adding a prefix, using '>'

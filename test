@@ -13,12 +13,15 @@
 
 # 'test' for running the tests or 'list' for only printing the list of tests
 subcommand=test
+options=""
 case "$(basename "$0")" in
   test)
+    options="-e"
     ;;
   *)
     subcommand=list
 esac
 
 cd _build/default/tests
-./test.exe "$subcommand" -e "$@"
+./test.exe "$subcommand" $options "$@"
+echo
