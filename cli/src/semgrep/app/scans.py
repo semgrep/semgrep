@@ -124,20 +124,21 @@ class ScanHandler:
             raise Exception(
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
+
         body = response.json()
-        if isinstance(body, dict):
-            return body
-        else:
+
+        if not isinstance(body, dict):
             raise Exception(
-                f"API server at {state.env.semgrep_url} returned type '{type(response.json())}'. Expected a dictionary."
+                f"API server at {state.env.semgrep_url} returned type '{type(body)}'. Expected a dictionary."
             )
+
+        return body
 
     def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
         """
         Get configurations for scan
         """
         state = get_state()
-        logger.debug("Getting scan configurations")
 
         self._scan_params = urlencode(
             {
@@ -149,6 +150,7 @@ class ScanHandler:
             }
         )
         app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+
         body = self._get_scan_config_from_app(app_get_config_url)
 
         self._deployment_id = body["deployment_id"]
