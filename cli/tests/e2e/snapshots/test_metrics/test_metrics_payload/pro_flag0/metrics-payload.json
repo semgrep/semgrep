@@ -24,6 +24,7 @@
       "cli-flag/requested_engine",
       "cli-flag/targets",
       "config/local",
+      "language/python",
       "subcommand/scan"
     ]
   }

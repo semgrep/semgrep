@@ -3,20 +3,20 @@ No .semgrepignore found. Using default .semgrepignore rules. See the docs for th
 Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
-Scanning 1 file with 2 python rules.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 2 Code rules:
+            
+  CODE RULES
+  Scanning 1 file with 2 python rules.
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘
 
 ========================================
 Files skipped:
@@ -54,6 +54,11 @@ Files skipped:
 
    • [36m[22m[24mtargets/bad/invalid_python.py (2 lines skipped)[0m
 
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error
 
