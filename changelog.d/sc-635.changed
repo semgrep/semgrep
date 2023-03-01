@@ -1,5 +1,0 @@
-The `--gitlab-sast` and `--gitlab-secrets` output formats have been upgraded.
-The output is now valid with the GitLab v15 schema,
-while staying valid with the GitLab v14 schema as well.
-Code findings now include the confidence of the rule.
-Supply Chain findings now include the exposure type.

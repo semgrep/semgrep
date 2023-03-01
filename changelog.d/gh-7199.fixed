@@ -1,4 +1,0 @@
-Dataflow: Fixed incorrect translation of side-effects inside Boolean expressions,
-this was (for example) causing `if (cond && x = 42) S1; S2` to be interpreted as
-`x = 42; if (cond && x) S1; S2`, thus incorrectly flagging `x` as a constant
-inside S2.

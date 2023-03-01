@@ -1,2 +1,0 @@
-metavariable-pattern: Fixed regression introduced in version 1.9.0 that broke
-the use of `pattern-not` within `metavariable-pattern` in some cases.

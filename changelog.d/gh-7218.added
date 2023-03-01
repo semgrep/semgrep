@@ -1,5 +1,0 @@
-Add new hashes of a match (finding) to send to the app:
-- code_hash
-- pattern_hash
-- start_line_hash
-- end-line_hash
