@@ -86,6 +86,8 @@ let _show_source { call_trace; label } =
 
 type arg_pos = string * int [@@deriving show]
 
+type arg_taint = ArgTaint of arg_pos * IL.offset_kind list [@@deriving show]
+
 type source_to_sink = {
   source : source;
   tokens : tainted_tokens;
@@ -97,8 +99,8 @@ type source_to_sink = {
 type finding =
   | SrcToSink of source_to_sink
   | SrcToReturn of source * tainted_tokens * G.tok
-  | ArgToSink of arg_pos * tainted_tokens * sink
-  | ArgToReturn of arg_pos * tainted_tokens * G.tok
+  | ArgToSink of arg_taint * tainted_tokens * sink
+  | ArgToReturn of arg_taint * tainted_tokens * G.tok
 [@@deriving show]
 
 type signature = finding list
@@ -110,14 +112,14 @@ let _show_source_to_sink { source; sink; _ } =
 let _show_finding = function
   | SrcToSink x -> _show_source_to_sink x
   | SrcToReturn (src, _, _) -> Printf.sprintf "return (%s)" (_show_source src)
-  | ArgToSink (a, _, _) -> Printf.sprintf "%s ----> sink" (show_arg_pos a)
-  | ArgToReturn (a, _, _) -> Printf.sprintf "return (%s)" (show_arg_pos a)
+  | ArgToSink (a, _, _) -> Printf.sprintf "%s ----> sink" (show_arg_taint a)
+  | ArgToReturn (a, _, _) -> Printf.sprintf "return (%s)" (show_arg_taint a)
 
 (*****************************************************************************)
 (* Taint *)
 (*****************************************************************************)
 
-type orig = Src of source | Arg of arg_pos [@@deriving show]
+type orig = Src of source | Arg of arg_taint [@@deriving show]
 type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
 let src_of_pm (pm, (x : Rule.taint_source)) =
@@ -138,7 +140,7 @@ let compare_sources s1 s2 =
 
 let compare_orig orig1 orig2 =
   match (orig1, orig2) with
-  | Arg (s, i), Arg (s', j) -> (
+  | Arg (ArgTaint ((s, i), _)), Arg (ArgTaint ((s', j), _)) -> (
       match String.compare s s' with
       | 0 -> Int.compare i j
       | other -> other)
@@ -153,7 +155,7 @@ let compare_taint taint1 taint2 =
 
 let _show_taint_label taint =
   match taint.orig with
-  | Arg (s, i) -> Printf.sprintf "arg(%s)#%d" s i
+  | Arg (ArgTaint ((s, i), _)) -> Printf.sprintf "arg(%s)#%d" s i
   | Src src -> src.label
 
 let _show_taint taint =
@@ -167,7 +169,12 @@ let _show_taint taint =
       let tok1, tok2 = pm.range_loc in
       let r = Range.range_of_token_locations tok1 tok2 in
       Printf.sprintf "(%d,%d)#%s|%d|" r.start r.end_ label (depth 0 call_trace)
-  | Arg (s, i) -> Printf.sprintf "arg(%s)#%d" s i
+  | Arg (ArgTaint ((s, i), os)) ->
+    if os <> [] then
+      let os_str = os |> Common.map (function IL.Dot n -> fst n.ident | IL.Index _ -> "?" ) |> String.concat "." in
+      Printf.sprintf "arg(%s)#%d.%s" s i os_str
+    else
+      Printf.sprintf "arg(%s)#%d" s i
 
 (*****************************************************************************)
 (* Taint sets *)
