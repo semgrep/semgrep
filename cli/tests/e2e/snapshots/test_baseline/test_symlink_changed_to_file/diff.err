@@ -1,11 +1,27 @@
-Scanning 1 file.
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Scanning 1 file.
   Current version has 1 finding.
 
 Switching repository to baseline commit 'HEAD^'.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * ea47e9e commit #2
 
-Nothing to scan.
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 0 files tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Nothing to scan.
            
            
 ┌─────────┐

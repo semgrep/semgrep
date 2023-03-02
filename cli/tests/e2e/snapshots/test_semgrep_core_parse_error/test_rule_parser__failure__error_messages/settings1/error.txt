@@ -3,7 +3,15 @@ No .semgrepignore found. Using default .semgrepignore rules. See the docs for th
 Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
-Scanning 1 file with 2 python rules.
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 2 Code rules:
+            
+  CODE RULES
+  Scanning 1 file with 2 python rules.
            
            
 ┌─────────┐
