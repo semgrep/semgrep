@@ -12,6 +12,9 @@ from typing import Tuple
 
 import click
 from rich.padding import Padding
+from rich.progress import Progress
+from rich.progress import SpinnerColumn
+from rich.progress import TextColumn
 from rich.table import Table
 
 import semgrep.semgrep_main
@@ -257,18 +260,20 @@ def ci(
     metadata = generate_meta_from_environment(baseline_commit)
 
     console.print(Title("Debugging Info"))
-
-    scan_env = Table.grid(padding=(0, 1))
-    scan_env.add_row(
+    debugging_table = Table.grid(padding=(0, 1))
+    debugging_table.add_row(
         "versions",
         "-",
         f"semgrep [bold]{semgrep.__VERSION__}[/bold] on python [bold]{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}[/bold]",
     )
-    scan_env.add_row(
+    debugging_table.add_row(
         "environment",
         "-",
         f"running in environment [bold]{metadata.environment}[/bold], triggering event is [bold]{metadata.event_name}[/bold]",
     )
+
+    console.print(Title("Scan Environment", order=2))
+    console.print(debugging_table)
 
     fix_head_if_github_action(metadata)
 
@@ -276,20 +281,34 @@ def ci(
         # Note this needs to happen within fix_head_if_github_action
         # so that metadata of current commit is correct
         if scan_handler:
+            console.print(Title("Connection", order=2))
             metadata_dict = metadata.to_dict()
             metadata_dict["is_sca_scan"] = supply_chain
             proj_config = ProjectConfig.load_all()
             metadata_dict = {**metadata_dict, **proj_config.to_dict()}
-            scan_handler.fetch_and_init_scan_config(metadata_dict)
-            scan_handler.start_scan(metadata_dict)
+            with Progress(
+                TextColumn("  {task.description}"),
+                SpinnerColumn(spinner_name="simpleDotsScrolling"),
+                console=console,
+            ) as progress_bar:
+                at_url_maybe = (
+                    f" at [bold]{state.env.semgrep_url}[/bold]"
+                    if state.env.semgrep_url != "https://semgrep.dev"
+                    else ""
+                )
+                connection_task = progress_bar.add_task(
+                    f"Fetching configuration from Semgrep Cloud Platform{at_url_maybe}"
+                )
+                scan_handler.fetch_and_init_scan_config(metadata_dict)
+                progress_bar.update(connection_task, completed=100)
+
+                start_scan_task = progress_bar.add_task(
+                    f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
+                )
+                scan_handler.start_scan(metadata_dict)
+                progress_bar.update(start_scan_task, completed=100)
 
             config = (scan_handler.rules,)
-
-            scan_env.add_row(
-                "server",
-                "-",
-                f"logged in as [bold]{scan_handler.deployment_name}[/bold] on [bold]{state.env.semgrep_url}[/bold]",
-            )
 
     except Exception as e:
         import traceback
@@ -308,9 +327,6 @@ def ci(
     if dataflow_traces is None:
         dataflow_traces = engine_type.has_dataflow_traces
 
-    console.print(Title("Scan Environment", order=2))
-    console.print(Padding(scan_env, (0, 2)))
-
     if max_memory is None:
         max_memory = engine_type.default_max_memory
 
@@ -321,11 +337,9 @@ def ci(
         console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
         if engine_type.check_if_installed():
             console.print(
-                f"  Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]"
+                f"Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]"
             )
-            console.print(
-                f"  Installed at [bold]{engine_type.get_binary_path()}[/bold]"
-            )
+            console.print(f"Installed at [bold]{engine_type.get_binary_path()}[/bold]")
         else:
             run_install_semgrep_pro()
 

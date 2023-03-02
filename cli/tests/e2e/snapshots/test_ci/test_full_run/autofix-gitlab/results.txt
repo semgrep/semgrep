@@ -55,11 +55,13 @@ Blocking Rules Fired:
 └────────────────┘
                   
   SCAN ENVIRONMENT
-    versions    - semgrep <MASKED> on python <MASKED>
-    environment - running in environment gitlab-ci, triggering event is         
-                  pull_request                                                  
-    server      - logged in as org_name on https://semgrep.dev                  
-               
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment gitlab-ci, triggering event is           
+                pull_request                                                    
+            
+  CONNECTION
+  Fetching configuration from Semgrep Cloud Platform  
+  Reporting start of scan for org_name                               
                
 ┌─────────────┐
 │ Scan Status │
