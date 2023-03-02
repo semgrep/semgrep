@@ -1,4 +1,5 @@
 import pytest
+from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
 
@@ -11,7 +12,9 @@ from semgrep.constants import OutputFormat
         {"filename": "invalid_python.py", "rule": "eqeq-python.yaml"},
     ],
 )
-def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, settings):
+def test_rule_parser__failure__error_messages(
+    run_semgrep_in_tmp: RunSemgrep, snapshot, settings
+):
     stdout, stderr = run_semgrep_in_tmp(
         config=f"rules/{settings['rule']}",
         target_name=f"bad/{settings['filename']}",

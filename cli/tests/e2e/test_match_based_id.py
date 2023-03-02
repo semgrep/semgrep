@@ -3,12 +3,13 @@ import shutil
 from pathlib import Path
 
 import pytest
+from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
 
 
 @pytest.mark.kinda_slow
-def test_duplicate_matches_indexing(run_semgrep_in_tmp, snapshot):
+def test_duplicate_matches_indexing(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/match_based_id/duplicates.yaml",
         target_name="match_based_id/duplicates",
@@ -32,7 +33,7 @@ def test_duplicate_matches_indexing(run_semgrep_in_tmp, snapshot):
     ],
 )
 def test_id_change(
-    run_semgrep_on_copied_files, tmp_path, rule, target_name, expect_change
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, rule, target_name, expect_change
 ):
     """
     Ensures that match-based IDs are resistant to various types of changes in code.

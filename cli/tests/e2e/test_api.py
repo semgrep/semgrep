@@ -4,16 +4,16 @@ import sys
 from pathlib import Path
 
 import pytest
+from tests.fixtures import RunSemgrep
 
 from semgrep.semgrep_main import invoke_semgrep
-
 
 # When calling osemgrep, stderr isn't available via this 'capsys' object,
 # causing the test to pass when it shouldn't.
 # TODO: use SemgrepRunner instead, which is drop-in replacement for CliRunner.
 @pytest.mark.slow
 @pytest.mark.todo
-def test_api(unique_home_dir, capsys, run_semgrep_in_tmp):
+def test_api(unique_home_dir, capsys, run_semgrep_in_tmp: RunSemgrep):
     # Test that exposed python API works and prints out nothing to stderr or stdout
     # unique_home_dir is used to ensure that the test runs with it's own
     # settings.yaml file to avoid reading one corrupted by another concurrent test run.
@@ -32,7 +32,7 @@ def test_api(unique_home_dir, capsys, run_semgrep_in_tmp):
 
 @pytest.mark.slow
 @pytest.mark.no_semgrep_cli
-def test_api_via_cli(unique_home_dir, run_semgrep_in_tmp):
+def test_api_via_cli(unique_home_dir, run_semgrep_in_tmp: RunSemgrep):
     # Check that logging code isnt handled by default root handler and printed to stderr
     # This is run as a separate test from the one above so that it has a separate, temp directory
     env = os.environ.copy()

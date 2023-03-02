@@ -11,6 +11,7 @@ import pytest
 from tests.conftest import make_semgrepconfig_file
 from tests.e2e.test_baseline import _git_commit
 from tests.e2e.test_baseline import _git_merge
+from tests.fixtures import RunSemgrep
 
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
@@ -536,7 +537,7 @@ def test_full_run(
     git_tmp_path_with_commit,
     snapshot,
     env,
-    run_semgrep,
+    run_semgrep: RunSemgrep,
     mocker,
     mock_autofix,
 ):
@@ -676,7 +677,7 @@ def drop_bridge_module_import_line(text: str) -> str:
 # TODO: flaky test on Linux
 # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests
 # def test_github_ci_bad_base_sha(
-#    run_semgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
+#    run_semgrep: RunSemgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
 # ):
 #    """
 #    Github PullRequest Event Webhook file's reported base sha is not guaranteed
@@ -823,7 +824,7 @@ def drop_bridge_module_import_line(text: str) -> str:
 
 
 def test_shallow_wrong_merge_base(
-    run_semgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
+    run_semgrep: RunSemgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
 ):
     """ """
     commits = defaultdict(list)
@@ -978,7 +979,9 @@ def test_shallow_wrong_merge_base(
     ), "Potentially scanning wrong files/commits"
 
 
-def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofix):
+def test_config_run(
+    run_semgrep: RunSemgrep, git_tmp_path_with_commit, snapshot, mock_autofix
+):
     result = run_semgrep(
         "p/something",
         options=["ci", "--no-suppress-errors"],
@@ -994,7 +997,9 @@ def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofi
     "format",
     ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
 )
-def test_outputs(git_tmp_path_with_commit, snapshot, format, mock_autofix, run_semgrep):
+def test_outputs(
+    git_tmp_path_with_commit, snapshot, format, mock_autofix, run_semgrep: RunSemgrep
+):
     result = run_semgrep(
         options=["ci", "--no-suppress-errors", format],
         target_name=None,
@@ -1007,7 +1012,9 @@ def test_outputs(git_tmp_path_with_commit, snapshot, format, mock_autofix, run_s
 
 
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
-def test_nosem(git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semgrep):
+def test_nosem(
+    git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semgrep: RunSemgrep
+):
     result = run_semgrep(
         "p/something",
         options=["ci", "--no-suppress-errors", nosem],
@@ -1019,7 +1026,7 @@ def test_nosem(git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semg
     snapshot.assert_match(result.as_snapshot(), "output.txt")
 
 
-def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep):
+def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSemgrep):
     _, base_commit, head_commit = git_tmp_path_with_commit
     result = run_semgrep(
         options=["ci", "--dry-run", "--no-suppress-errors"],
@@ -1045,7 +1052,7 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep):
     )
 
 
-def test_fail_auth(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that failure to authenticate does not have exit code 0 or 1
     """
@@ -1068,7 +1075,9 @@ def test_fail_auth(run_semgrep, mocker, git_tmp_path_with_commit):
     )
 
 
-def test_fail_auth_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_auth_error_handler(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
+):
     """
     Test that failure to authenticate with --suppres-errors returns exit code 0
     """
@@ -1085,7 +1094,7 @@ def test_fail_auth_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
-def test_fail_start_scan(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_start_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that failing to start scan does not have exit code 0 or 1
     """
@@ -1099,7 +1108,9 @@ def test_fail_start_scan(run_semgrep, mocker, git_tmp_path_with_commit):
     )
 
 
-def test_fail_start_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_start_scan_error_handler(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
+):
     """
     Test that failing to start scan with --suppres-errors returns exit code 0
     """
@@ -1116,7 +1127,7 @@ def test_fail_start_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_co
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
-def test_bad_config(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_bad_config(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that bad rules has exit code > 1
     """
@@ -1141,7 +1152,9 @@ def test_bad_config(run_semgrep, mocker, git_tmp_path_with_commit):
     assert "Invalid rule schema" in result.stderr
 
 
-def test_bad_config_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_bad_config_error_handler(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
+):
     """
     Test that bad rules with --suppres-errors returns exit code 0
     """
@@ -1168,7 +1181,7 @@ def test_bad_config_error_handler(run_semgrep, mocker, git_tmp_path_with_commit)
     mock_send.assert_called_once_with(mocker.ANY, 7)
 
 
-def test_fail_scan_findings(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_scan_findings(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure with findings has exit code == 1.
 
@@ -1187,7 +1200,7 @@ def test_fail_scan_findings(run_semgrep, mocker, git_tmp_path_with_commit):
     mock_request_post.assert_not_called()
 
 
-def test_fail_finish_scan(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure to send findings has exit code > 1
     """
@@ -1201,7 +1214,9 @@ def test_fail_finish_scan(run_semgrep, mocker, git_tmp_path_with_commit):
     )
 
 
-def test_fail_finish_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_finish_scan_error_handler(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
+):
     """
     Test failure to send findings with --suppres-errors returns exit code 0
     """
@@ -1217,7 +1232,7 @@ def test_fail_finish_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_c
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
-def test_git_failure(run_semgrep, git_tmp_path_with_commit, mocker):
+def test_git_failure(run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker):
     """
     Test failure from using git has exit code > 1
     """
@@ -1231,7 +1246,9 @@ def test_git_failure(run_semgrep, git_tmp_path_with_commit, mocker):
     )
 
 
-def test_git_failure_error_handler(run_semgrep, git_tmp_path_with_commit, mocker):
+def test_git_failure_error_handler(
+    run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker
+):
     """
     Test failure from using git --suppres-errors returns exit code 0
     """

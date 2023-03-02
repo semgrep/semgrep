@@ -20,6 +20,7 @@ from typing import Union
 
 import colorama
 import pytest
+from tests import fixtures
 from tests.semgrep_runner import SemgrepRunner
 
 from semdep.parse_lockfile import parse_lockfile_path
@@ -295,6 +296,7 @@ class SemgrepResult:
 
 
 def _run_semgrep(
+    # if you change these args, mypy will require updating tests.fixtures.RunSemgrep too
     config: Optional[Union[str, Path, List[str]]] = None,
     *,
     target_name: Optional[str] = "basic",
@@ -407,12 +409,14 @@ def unique_home_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 
 
 @pytest.fixture
-def run_semgrep():
-    yield partial(_run_semgrep, strict=False, target_name=None, output_format=None)
+def run_semgrep() -> fixtures.RunSemgrep:
+    return partial(_run_semgrep, strict=False, target_name=None, output_format=None)
 
 
 @pytest.fixture
-def run_semgrep_in_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+def run_semgrep_in_tmp(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> fixtures.RunSemgrep:
     """
     Note that this can cause failures if Semgrep pollutes either the targets or rules path
     """
@@ -420,11 +424,13 @@ def run_semgrep_in_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
 
-    yield _run_semgrep
+    return _run_semgrep
 
 
 @pytest.fixture
-def run_semgrep_on_copied_files(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+def run_semgrep_on_copied_files(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> fixtures.RunSemgrep:
     """
     Like run_semgrep_in_tmp, but fully copies rule and target data to avoid
     directory pollution, also avoids issues with symlink navigation
@@ -433,7 +439,7 @@ def run_semgrep_on_copied_files(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
-    yield _run_semgrep
+    return _run_semgrep
 
 
 @pytest.fixture

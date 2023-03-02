@@ -1,4 +1,5 @@
 import pytest
+from tests.fixtures import RunSemgrep
 
 
 @pytest.mark.kinda_slow
@@ -13,7 +14,7 @@ import pytest
         ("rules/spacegrep/multi-lines.yaml", "spacegrep/multi-lines.java"),
     ],
 )
-def test_spacegrep(run_semgrep_in_tmp, snapshot, rule, target):
+def test_spacegrep(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
     snapshot.assert_match(
         run_semgrep_in_tmp(rule, target_name=target).stdout,
         "results.json",
@@ -27,7 +28,7 @@ def test_spacegrep(run_semgrep_in_tmp, snapshot, rule, target):
         ("rules/spacegrep/nosem-html.yaml", "spacegrep/nosem.html"),
     ],
 )
-def test_spacegrep_nosem(run_semgrep_in_tmp, snapshot, rule, target):
+def test_spacegrep_nosem(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             rule, target_name=target, options=["--no-rewrite-rule-ids"]
