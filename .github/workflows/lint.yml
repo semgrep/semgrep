@@ -30,7 +30,7 @@ jobs:
       # pre-commit is a Python script, this speedup things from Xmin to Ymin?
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           # This caches the pip installed dependencies that pre-commit uses.
           # Otherwise it will need to reinstall everytime.
           # TODO? who will need to reinstall everytime? github action? How much does this
