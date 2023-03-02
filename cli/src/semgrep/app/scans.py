@@ -35,7 +35,7 @@ logger = getLogger(__name__)
 
 
 class ScanHandler:
-    def __init__(self, dry_run: bool) -> None:
+    def __init__(self, dry_run: bool = False) -> None:
         self._deployment_id: Optional[int] = None
         self._deployment_name: str = ""
 
