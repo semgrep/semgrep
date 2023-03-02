@@ -493,8 +493,10 @@ let parse_options env (key : key) value =
 let parse_xpattern env (str, tok) =
   match env.languages with
   | Xlang.L (lang, _) ->
-      let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
-      XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
+      let lpat =
+        lazy (Parse_pattern.parse_pattern lang ~print_errors:false str)
+      in
+      XP.mk_xpat (XP.Sem (lpat, lang)) (str, tok)
   | Xlang.LRegex ->
       XP.mk_xpat (XP.Regexp (parse_regexp env (str, tok))) (str, tok)
   | Xlang.LGeneric -> (
@@ -1549,12 +1551,8 @@ let parse_file ?error_recovery file =
 (* Main Entry point *)
 (*****************************************************************************)
 
-let parse file =
-  let xs, skipped = parse_file ~error_recovery:false file in
-  assert (skipped =*= []);
-  xs
-
 let parse_and_filter_invalid_rules file = parse_file ~error_recovery:true file
+  [@@profiling]
 
 let parse_xpattern xlang (str, tok) =
   let env =
@@ -1566,6 +1564,15 @@ let parse_xpattern xlang (str, tok) =
     }
   in
   parse_xpattern env (str, tok)
+
+(*****************************************************************************)
+(* Useful for tests *)
+(*****************************************************************************)
+
+let parse file =
+  let xs, skipped = parse_file ~error_recovery:false file in
+  assert (skipped =*= []);
+  xs
 
 (*****************************************************************************)
 (* Valid rule filename checks *)

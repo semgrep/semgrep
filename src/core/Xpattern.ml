@@ -29,7 +29,7 @@ type regexp_string = string [@@deriving show, eq]
 type pattern_id = int [@@deriving show, eq]
 
 type xpattern_kind =
-  | Sem of Pattern.t * Lang.t (* language used for parsing the pattern *)
+  | Sem of Pattern.t Lazy.t * Lang.t (* language used for parsing the pattern *)
   | Spacegrep of Spacegrep.Pattern_AST.t
   | Regexp of regexp_string
       (** NOTE "Regexp":
