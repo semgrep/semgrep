@@ -13,12 +13,15 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+from boltons.iterutils import get_path
 from boltons.iterutils import partition
 
 from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
+from semgrep.console import console
+from semgrep.console import Title
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -40,6 +43,7 @@ from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
+from semgrep.rule import RuleProduct
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -147,6 +151,51 @@ def run_rules(
 ) -> Tuple[
     RuleMatchMap, List[SemgrepError], OutputExtra, Dict[str, List[FoundDependency]]
 ]:
+    console.print(Title("Scan Status"))
+
+    sast_plan = CoreRunner.plan_core_run(
+        [rule for rule in filtered_rules if rule.product == RuleProduct.sast],
+        target_manager,
+    )
+    sca_plan = CoreRunner.plan_core_run(
+        [rule for rule in filtered_rules if rule.product == RuleProduct.sca],
+        target_manager,
+    )
+
+    file_count = len(target_manager.get_all_files())
+    summary_line = f"Scanning {unit_str(file_count, 'file')}"
+    if target_manager.respect_git_ignore:
+        summary_line += " tracked by git"
+
+    sast_rule_count = len(sast_plan.rules)
+    summary_line += f" with {unit_str(sast_rule_count, 'Code rule')}"
+
+    sca_rule_count = len(sca_plan.rules)
+    if sca_rule_count:
+        summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
+
+    pro_rule_count = len(
+        [
+            rule
+            for rule in sast_plan.rules
+            if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
+            == "pro_rules"
+        ]
+    )
+    if pro_rule_count:
+        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
+
+    summary_line += ":"
+
+    console.print(summary_line)
+
+    console.print(Title("Code Rules", order=2))
+    sast_plan.log(with_tables_for=RuleProduct.sast)
+
+    if sca_plan.rules:
+        console.print(Title("Supply Chain Rules", order=2))
+        sca_plan.log(with_tables_for=RuleProduct.sca)
+
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )

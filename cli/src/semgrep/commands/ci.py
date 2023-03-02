@@ -344,8 +344,6 @@ def ci(
             run_install_semgrep_pro()
 
     try:
-        console.print(Title("Scan Status"))
-
         excludes_from_app = scan_handler.ignore_patterns if scan_handler else []
 
         assert exclude is not None  # exclude is default empty tuple

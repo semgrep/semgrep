@@ -23,7 +23,6 @@ from typing import Tuple
 from typing import Union
 
 from semgrep.git import BaselineHandler
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 
 # usually this would be a try...except ImportError
 # but mypy understands only this
@@ -745,6 +744,23 @@ class TargetManager:
         self.ignore_log.rule_excludes[rule_id].update(paths.removed)
 
         return paths.kept
+
+    def get_all_lockfiles(self) -> Dict[Ecosystem, FrozenSet[Path]]:
+        """
+        Return a dict mapping each ecosystem to the set of lockfiles for that ecosystem
+        """
+        ALL_ECOSYSTEMS: Set[Ecosystem] = {
+            Ecosystem(Npm()),
+            Ecosystem(Pypi()),
+            Ecosystem(Gem()),
+            Ecosystem(Gomod()),
+            Ecosystem(Cargo()),
+            Ecosystem(Maven()),
+        }
+
+        return {
+            ecosystem: self.get_lockfiles(ecosystem) for ecosystem in ALL_ECOSYSTEMS
+        }
 
     @lru_cache(maxsize=None)
     def get_lockfiles(self, ecosystem: Ecosystem) -> FrozenSet[Path]:
