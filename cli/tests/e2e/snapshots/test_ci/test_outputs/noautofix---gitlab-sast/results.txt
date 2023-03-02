@@ -286,10 +286,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 └────────────────┘
                   
   SCAN ENVIRONMENT
-    versions    - semgrep <MASKED> on python <MASKED>
-    environment - running in environment git, triggering event is unknown  
-    server      - logged in as org_name on https://semgrep.dev             
-               
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment git, triggering event is unknown
+            
+  CONNECTION
+  Fetching configuration from Semgrep Cloud Platform  
+  Reporting start of scan for org_name                               
                
 ┌─────────────┐
 │ Scan Status │

@@ -7,11 +7,6 @@ Rules:
 Scanning 1 file with 3 python rules.
 [31m[22m[24mWarning: 1 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules:
 [rules.forcetimeout2][0m
-                
-                
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
 
 ========================================
 Files skipped:
@@ -49,6 +44,11 @@ Files skipped:
 
    • [36m[22m[24mtargets/equivalence/open_redirect.py (all lines skipped)[0m
 
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
   Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error

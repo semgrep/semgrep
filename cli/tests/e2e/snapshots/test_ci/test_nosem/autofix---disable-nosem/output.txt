@@ -80,14 +80,13 @@ First-Party Blocking Rules Fired:
 └────────────────┘
                   
   SCAN ENVIRONMENT
-    versions    - semgrep <MASKED> on python <MASKED>
-    environment - running in environment git, triggering event is unknown  
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment git, triggering event is unknown
                
                
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-Semgrep rule registry URL is https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
            
            
