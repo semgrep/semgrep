@@ -1,3 +1,0 @@
-Supply Chain scans on a project using Pipenv
-will now detect transitivity from the committed Pipfile,
-instead of printing an error while trying to parse it.
