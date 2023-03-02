@@ -559,7 +559,7 @@ let targets_of_config (config : Runner_config.t)
  * the original rules passed via -rules, without the extract-mode rules).
  *)
 let extracted_targets_of_config (config : Runner_config.t)
-    (rule_ids : Rule.rule_id list) (extractors : Rule.extract_rule list) :
+    (extractors : Rule.extract_rule list) (all_rules : Rule.t list) :
     In.target list
     * ( Common.filename,
         Match_extract_mode.match_result_location_adjuster )
@@ -587,7 +587,7 @@ let extracted_targets_of_config (config : Runner_config.t)
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
                ~timeout_threshold:config.timeout_threshold extractors xtarget
-               rule_ids
+               all_rules
            in
            (* Print number of extra targets so Python knows *)
            (match config.output_format with
@@ -614,12 +614,15 @@ let extracted_targets_of_config (config : Runner_config.t)
 let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   sanity_check_rules_and_invalid_rules config rules invalid_rules;
 
-  let rules, extract_rules =
-    rules
-    |> Common.partition_either (fun r ->
-           match r.Rule.mode with
-           | `Extract _ as e -> Right { r with mode = e }
-           | mode -> Left { r with mode })
+  let extract_rules =
+    List.filter_map
+      (fun r ->
+        match r.Rule.mode with
+        | `Extract _ as e -> Some { r with mode = e }
+        | `Search _
+        | `Taint _ ->
+            None)
+      rules
   in
   let rule_ids = rules |> Common.map (fun r -> fst r.R.id) in
 
@@ -632,7 +635,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
    * our extractors (extract mode rules) on the relevant basic targets.
    *)
   let new_extracted_targets, extract_result_map =
-    extracted_targets_of_config config rule_ids extract_rules
+    extracted_targets_of_config config extract_rules rules
   in
 
   let all_targets = targets @ new_extracted_targets in
@@ -660,6 +663,14 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                  is in skipped_rules *)
              target.In.rule_nums
              |> List.filter_map (fun r_num -> Hashtbl.find_opt rule_table r_num)
+             (* Don't run the extract rules
+                Note: we can't filter this out earlier because the rule ids need to be stable *)
+             |> List.filter (fun r ->
+                    match r.R.mode with
+                    | `Extract _ -> false
+                    | `Search _
+                    | `Taint _ ->
+                        true)
            in
 
            let xtarget = xtarget_of_file config xlang file in

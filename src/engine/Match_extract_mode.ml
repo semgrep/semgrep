@@ -126,19 +126,53 @@ let offsets_of_mval extract_mvalue =
            end_pos = end_loc.charpos + end_len;
          })
 
-let mk_extract_target dst_lang contents rule_ids =
-  let dst_lang =
+(* Compute the rules that should be run for the extracted
+   language.
+
+   Note: for normal targets, this decision is made on the Python
+   side. Implementing that for extracted targets would be far more
+   annoying, however. The main implication of selecting the rules
+   here is, if your target is html and your dest lang is javascript,
+   there is no way to ignore an html path for a specific javascript
+   rule. In general extract mode does not allow you to select rules to
+   run on extracted targets so this is in keeping with that design *)
+let rules_for_extracted_lang (all_rules : Rule.t list) =
+  let rules_for_lang_tbl = Hashtbl.create 10 in
+  let memo xlang =
+    match Hashtbl.find_opt rules_for_lang_tbl xlang with
+    | Some rules_for_lang -> rules_for_lang
+    | None ->
+        let rule_ids_for_lang =
+          all_rules
+          |> List.mapi (fun i r -> (i, r))
+          |> List.filter (fun (_i, r) ->
+                 let r_lang = r.Rule.languages in
+                 match (xlang, r_lang) with
+                 | Xlang.L (l, _), Xlang.L (rl, rls) ->
+                     List.exists (fun x -> Lang.equal l x) (rl :: rls)
+                 | Xlang.LGeneric, Xlang.LGeneric -> true
+                 | Xlang.LRegex, Xlang.LRegex -> true
+                 | _else -> false)
+          |> Common.map (fun (i, _r) -> i)
+        in
+        Hashtbl.add rules_for_lang_tbl xlang rule_ids_for_lang;
+        rule_ids_for_lang
+  in
+  memo
+
+let mk_extract_target dst_lang contents all_rules =
+  let dst_lang_str =
     match dst_lang with
     | Xlang.LGeneric -> "generic"
     | Xlang.LRegex -> "regex"
     | Xlang.L (x, _) -> Lang.show x
   in
-  let f : Common.dirname = Common.new_temp_file "extracted" dst_lang in
+  let f : Common.dirname = Common.new_temp_file "extracted" dst_lang_str in
   Common2.write_file ~file:f contents;
   {
     In.path = f;
-    language = dst_lang;
-    rule_nums = List.mapi (fun i _ -> i) rule_ids;
+    language = dst_lang_str;
+    rule_nums = rules_for_extracted_lang all_rules dst_lang;
   }
 
 (* Unquote string *)
