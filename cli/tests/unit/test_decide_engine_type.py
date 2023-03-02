@@ -59,9 +59,3 @@ def test_code_hash_independent_of_filepath(mocker):
     assert decide_type(EngineType.PRO_LANG, msh, mgm) == EngineType.PRO_LANG
     assert decide_type(EngineType.PRO_INTRAFILE, msh, mgm) == EngineType.PRO_INTRAFILE
     assert decide_type(EngineType.PRO_INTERFILE, msh, mgm) == EngineType.PRO_LANG
-
-    """
-     requested_engine: Optional["EngineType"] = None,
-     scan_handler: Optional[ScanHandler] = None,
-     git_meta: Optional[GitMeta] = None,
-    """
