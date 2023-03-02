@@ -28,8 +28,33 @@ from semgrep.cli import cli
 from semgrep.constants import OutputFormat
 from semgrep.lsp.server import SemgrepLSPServer
 
-
 TESTS_PATH = Path(__file__).parent
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--run-only-snapshots",
+        action="store_true",
+        default=False,
+        help="Filter test execution to tests that use pytest-snapshot",
+    )
+
+
+def pytest_collection_modifyitems(items: pytest.Item, config: pytest.Config) -> None:
+    if config.getoption("--run-only-snapshots"):
+        selected_items: List[pytest.Item] = []
+        deselected_items: List[pytest.Item] = []
+
+        for item in items:
+            group = (
+                selected_items
+                if "snapshot" in getattr(item, "fixturenames", ())
+                else deselected_items
+            )
+            group.append(item)
+
+        config.hook.pytest_deselected(items=deselected_items)
+        items[:] = selected_items
 
 
 def make_semgrepconfig_file(dir_path: Path, contents: str) -> None:
@@ -373,7 +398,7 @@ def _run_semgrep(
 
 
 @pytest.fixture()
-def unique_home_dir(monkeypatch, tmp_path):
+def unique_home_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     """
     Assign the home directory to a unique temporary directory.
     """
@@ -387,7 +412,7 @@ def run_semgrep():
 
 
 @pytest.fixture
-def run_semgrep_in_tmp(monkeypatch, tmp_path):
+def run_semgrep_in_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     """
     Note that this can cause failures if Semgrep pollutes either the targets or rules path
     """
@@ -399,7 +424,7 @@ def run_semgrep_in_tmp(monkeypatch, tmp_path):
 
 
 @pytest.fixture
-def run_semgrep_on_copied_files(monkeypatch, tmp_path):
+def run_semgrep_on_copied_files(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     """
     Like run_semgrep_in_tmp, but fully copies rule and target data to avoid
     directory pollution, also avoids issues with symlink navigation
@@ -412,7 +437,7 @@ def run_semgrep_on_copied_files(monkeypatch, tmp_path):
 
 
 @pytest.fixture
-def git_tmp_path(monkeypatch, tmp_path):
+def git_tmp_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     monkeypatch.chdir(tmp_path)
     # Initialize State
     subprocess.run(["git", "init"], check=True, capture_output=True)
@@ -435,7 +460,7 @@ def git_tmp_path(monkeypatch, tmp_path):
 
 
 @pytest.fixture
-def lsp(monkeypatch, tmp_path):
+def lsp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     """Return an initialized lsp"""
 
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
@@ -446,7 +471,7 @@ def lsp(monkeypatch, tmp_path):
 
 
 @pytest.fixture
-def parse_lockfile_path_in_tmp(monkeypatch, tmp_path):
+def parse_lockfile_path_in_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
