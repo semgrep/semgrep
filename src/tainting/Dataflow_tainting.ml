@@ -968,6 +968,44 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let all_args_taints =
           List.fold_left Taints.union Taints.empty all_taints
         in
+        let get_taints, lval_env =
+          (* logger#flash "%s" (IL.show_exp e); *)
+          match (e, args) with
+          | ( {
+                e =
+                  Fetch
+                    ({
+                       base = Var obj;
+                       rev_offset = [ ({ o = Dot m; _ } as offset) ];
+                     } as lval);
+                _;
+              },
+              _ ) ->
+              let o_str = fst obj.IL.ident in
+              let m_str = fst m.IL.ident in
+              if String.starts_with ~prefix:"set" m_str then (
+                let x = Str.string_after m_str 3 in
+                let o = Dot { m with ident = (x, snd m.IL.ident) } in
+                let lval = { lval with rev_offset = [ { offset with o } ] } in
+                logger#flash "%s.%s -> %s.%s (%s)" o_str m_str o_str x
+                  (Display_IL.string_of_lval lval);
+                if not (Taints.is_empty all_args_taints) then
+                  (Taints.empty, Lval_env.add lval_env lval all_args_taints)
+                else (Taints.empty, lval_env))
+              else if String.starts_with ~prefix:"get" m_str then (
+                let x = Str.string_after m_str 3 in
+                let o = Dot { m with ident = (x, snd m.IL.ident) } in
+                let lval = { lval with rev_offset = [ { offset with o } ] } in
+                logger#flash "%s.%s -> %s.%s (%s)" o_str m_str o_str x
+                  (Display_IL.string_of_lval lval);
+                match Lval_env.dumb_find lval_env lval with
+                | `Tainted taints -> (taints, lval_env)
+                | `Clean
+                | `None ->
+                    (Taints.empty, lval_env))
+              else (Taints.empty, lval_env)
+          | __else__ -> (Taints.empty, lval_env)
+        in
         let opt_taint_sig = check_function_signature env e args_taints in
         (* After we introduced Top_sinks, we need to explicitly support sinks like
          * `sink(...)` by considering that all of the parameters are sinks. To make
@@ -990,7 +1028,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
          * DEEP: In DeepSemgrep this also helps identifying `x.foo()` as tainted
          * when `x` is tainted, because the call is represented in IL as `(x.foo)()`.
          * TODO: Properly track taint through objects. *)
-        (Taints.union e_taints call_taints, lval_env)
+        (Taints.union e_taints call_taints |> Taints.union get_taints, lval_env)
     | CallSpecial (_, _, args) ->
         args
         |> Common.map IL_helpers.exp_of_arg
