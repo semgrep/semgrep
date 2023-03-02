@@ -37,7 +37,11 @@ class Title:
 
 
 class AutoIndentingConsole(Console):
-    """This custom console keeps track of the last title printed and automatically indents the next line according to what level title we're under."""
+    """
+    This custom console keeps track of the last title printed,
+    and automatically indents the next line
+    according to what level title we're under.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.active_title: Optional[Title] = None
@@ -75,6 +79,12 @@ class AutoIndentingConsole(Console):
         return None
 
     def print(self, *args: Any, deindent: int = 0, **kwargs: Any) -> None:
+        """Override the default print.
+
+        If what we're printing is a title, we remember it.
+        If we remember a recent title,
+        indent whatever we print now by how much the most recent title prefers.
+        """
         indent = 0
 
         for arg in args:
@@ -90,8 +100,10 @@ class AutoIndentingConsole(Console):
         super().print(Padding.indent(Group(*args), indent), **kwargs)
 
 
+MAX_WIDTH = 160
+
 console = AutoIndentingConsole(highlighter=None)
-console.width = min(console.width, 120)
+console.width = min(console.width, MAX_WIDTH)
 
 
 if __name__ == "__main__":
