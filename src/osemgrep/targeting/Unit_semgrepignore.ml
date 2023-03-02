@@ -147,6 +147,8 @@ let tests =
       ( "absolute patterns",
         test_filter
           [
+            (* [!] 'b/c' is treated as anchored just like '/b/c' because it
+               contains a slash in the middle, as per the gitignore spec. *)
             File (".gitignore", "/a\nb/c");
             dir "a" [ file "b" ];
             dir "b" [ file "a"; file "c"; file "d"; dir "b" [ file "c" ] ];

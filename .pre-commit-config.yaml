@@ -190,6 +190,8 @@ repos:
         # 'docker_image' to run semgrep, but for now jsonnet support
         # is not available via setup.py and only (unofficially)
         # available in docker.
+        # If docker complains that --platform isn't supported because
+        # it's experimental, try upgrading your docker server.
         entry: -e SEMGREP_LOG_FILE=/tmp/out.log -e SEMGREP_VERSION_CACHE_PATH=/tmp/cache --platform linux/amd64 returntocorp/semgrep:develop semgrep
 
         # Both the .semgrepignore file and the --exclude option
