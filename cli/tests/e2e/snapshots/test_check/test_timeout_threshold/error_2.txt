@@ -5,15 +5,13 @@ Rules:
 - rules.forcetimeout2
 - rules.forcetimeout3
 Scanning 1 file with 3 python rules.
-
 [31m[22m[24mWarning: 1 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules:
 [rules.forcetimeout2][0m
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 
 ========================================
 Files skipped:

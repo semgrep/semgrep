@@ -1,10 +1,8 @@
 Nothing to scan.
-
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 
 Ran 1 rule on 0 files: 0 findings.

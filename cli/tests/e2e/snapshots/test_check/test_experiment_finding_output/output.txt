@@ -1,11 +1,9 @@
 Scanning 1 file.
-
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
