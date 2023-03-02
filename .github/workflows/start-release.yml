@@ -249,7 +249,7 @@ jobs:
     if: ${{ ! inputs.dry-run }}
     name: Create Release Tag
     runs-on: ubuntu-20.04
-    needs: [get-version, check-semgrep-pro, release-setup]
+    needs: [get-version, check-semgrep-pro, release-setup, wait-for-pr-checks]
     steps:
       - name: Get JWT for semgrep-ci GitHub App
         id: jwt
@@ -295,7 +295,7 @@ jobs:
     if: ${{ ! inputs.dry-run }}
     name: Create Draft Release
     runs-on: ubuntu-20.04
-    needs: [get-version, release-setup, create-tag]
+    needs: [get-version, release-setup, create-tag, wait-for-pr-checks]
     steps:
       - name: Download Release Body Artifact
         id: download_body
