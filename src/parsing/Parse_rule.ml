@@ -493,6 +493,13 @@ let parse_options env (key : key) value =
 let parse_xpattern env (str, tok) =
   match env.languages with
   | Xlang.L (lang, _) ->
+      (* opti: parsing Semgrep patterns lazily improves speed significantly.
+       * Parsing p/default goes from 13s to just 0.2s, mostly because
+       * p/default contains lots of ruby rules which are currently very
+       * slow to parse. The disadvantage of parsing lazily is that
+       * parse errors in the pattern are detected only later, when
+       * the rule/pattern is actually needed.
+       *)
       let lpat =
         lazy (Parse_pattern.parse_pattern lang ~print_errors:false str)
       in
