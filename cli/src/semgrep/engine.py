@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Optional
 
 from semgrep.app.scans import ScanHandler
+from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
+from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
 from semgrep.meta import GitMeta
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces import semgrep_output_v1 as out
@@ -62,6 +64,20 @@ class EngineType(Enum):
         if self == EngineType.PRO_INTERFILE:
             return 1
         return self.get_cpu_count()
+
+    @property
+    def default_max_memory(self) -> int:
+        """Interfile uses a lot of memory, so it should have a safe default limit."""
+        if self == EngineType.PRO_INTERFILE:
+            return DEFAULT_MAX_MEMORY_PRO_CI
+        return 0  # unlimited
+
+    @property
+    def default_interfile_timeout(self) -> int:
+        """Interfile uses a lot of time, so it should have a safe default limit."""
+        if self == EngineType.PRO_INTERFILE:
+            return DEFAULT_PRO_TIMEOUT_CI
+        return 0  # unlimited
 
     def get_binary_path(self) -> Optional[Path]:
         return SemgrepCore.pro_path() if self.is_pro else SemgrepCore.path()

@@ -73,7 +73,6 @@ First-Party Blocking Rules Fired:
 === end of stdout - plain
 
 === stderr - plain
-Running `semgrep ci` without API token but with configs ('p/something',)
                   
                   
 ┌────────────────┐
