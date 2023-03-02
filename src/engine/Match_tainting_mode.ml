@@ -449,7 +449,7 @@ let rec convert_taint_call_trace = function
 
 let taint_trace_of_src_to_sink source tokens sink =
   {
-    Pattern_match.source = convert_taint_call_trace source;
+    Pattern_match.source = convert_taint_call_trace source.T.call_trace;
     tokens;
     sink = convert_taint_call_trace sink;
   }

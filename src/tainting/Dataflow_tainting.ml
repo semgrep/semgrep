@@ -387,9 +387,7 @@ let labels_of_taints taints : LabelSet.t =
   taints |> Taints.to_seq
   |> Seq.filter_map (fun (t : T.taint) ->
          match t.orig with
-         | Src src ->
-             let _, ts = T.pm_of_trace src in
-             Some ts.Rule.label
+         | Src src -> Some src.label
          | Arg _ -> None)
   |> LabelSet.of_seq
 
@@ -444,7 +442,7 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
              Some (T.ArgToSink (i, tokens, sink))
          | Src source ->
              if req then
-               let src_pm, _ = T.pm_of_trace source in
+               let src_pm, _ = T.pm_of_trace source.call_trace in
                let* merged_env =
                  merge_source_sink_mvars env sink_pm.PM.env src_pm.PM.env
                in
@@ -474,20 +472,20 @@ let check_orig_if_sink env ?filter_sinks orig taints =
   let findings = findings_of_tainted_sinks env taints sinks in
   report_findings env findings
 
-let filter_taints_by_labels labels taints =
+let filter_new_taint_sources_by_labels labels taints =
   Taints.fold
     (fun new_taint taints ->
       match new_taint.orig with
       | Arg _ -> Taints.add new_taint taints
       | Src src ->
-          let _, ts = T.pm_of_trace src in
+          let _, ts = T.pm_of_trace src.call_trace in
           let req = eval_label_requires ~labels ts.source_requires in
           if req then Taints.add new_taint taints else taints)
     taints Taints.empty
 
-let union_taints_filtering_labels ~new_ curr =
+let union_new_taint_sources_filtering_labels ~new_ curr =
   let labels = labels_of_taints curr in
-  let new_filtered = filter_taints_by_labels labels new_ in
+  let new_filtered = filter_new_taint_sources_by_labels labels new_ in
   Taints.union new_filtered curr
 
 let find_args_taints args_taints fparams =
@@ -558,6 +556,24 @@ let find_args_taints args_taints fparams =
         "cannot match taint variable with function arguments (%i: %s)" i s;
     taint_opt
 
+(* This function is used to convert some taint thing we're holding
+   to one which has been propagated to a new label.
+   See [handle_taint_propagators] for more.
+*)
+let propagate_taint_to_label replace_labels label (taint : T.taint) =
+  let new_orig =
+    match (taint.orig, replace_labels) with
+    (* if there are no replaced labels specified, we will replace
+       indiscriminately
+    *)
+    | Src src, None -> T.Src { src with label }
+    | Src src, Some replace_labels when List.mem src.T.label replace_labels ->
+        T.Src { src with label }
+    | Src src, _ -> Src src
+    | Arg arg, _ -> Arg arg
+  in
+  { taint with orig = new_orig }
+
 (*****************************************************************************)
 (* Tainted *)
 (*****************************************************************************)
@@ -611,11 +627,32 @@ let handle_taint_propagators env thing taints =
   let propagate_froms, propagate_tos =
     List.partition (fun p -> p.spec.kind =*= `From) propagators
   in
+  (* These are all the labels flowing in to the current thing we're looking at. *)
+  let labels = labels_of_taints taints in
   let lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
      * the environment. *)
     List.fold_left
-      (fun lval_env prop -> Lval_env.propagate_to prop.spec.var taints lval_env)
+      (fun lval_env prop ->
+        (* Only propagate if the current set of taint labels can satisfy the
+           propagator's requires precondition.
+        *)
+        if eval_label_requires ~labels prop.spec.prop.propagator_requires then
+          (* If we have an output label, change the incoming taints to be
+             of the new label.
+             Otherwise, keep them the same.
+          *)
+          let new_taints =
+            match prop.spec.prop.propagator_label with
+            | None -> taints
+            | Some label ->
+                Taints.map
+                  (propagate_taint_to_label
+                     prop.spec.prop.propagator_replace_labels label)
+                  taints
+          in
+          Lval_env.propagate_to prop.spec.var new_taints lval_env
+        else lval_env)
       lval_env propagate_froms
   in
   let taints_propagated, lval_env =
@@ -657,9 +694,11 @@ let find_lval_taint_sources env ~labels lval =
     partition_mutating_sources source_pms
   in
   let taints_sources_reg =
-    reg_source_pms |> taints_of_matches |> filter_taints_by_labels labels
+    reg_source_pms |> taints_of_matches
+    |> filter_new_taint_sources_by_labels labels
   and taints_sources_mut =
-    mut_source_pms |> taints_of_matches |> filter_taints_by_labels labels
+    mut_source_pms |> taints_of_matches
+    |> filter_new_taint_sources_by_labels labels
   in
   let lval_env = Lval_env.add env.lval_env lval taints_sources_mut in
   (Taints.union taints_sources_reg taints_sources_mut, lval_env)
@@ -836,7 +875,8 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
       in
       let taints_exp, lval_env = check_subexpr exp in
       let taints =
-        taints_exp |> union_taints_filtering_labels ~new_:taints_sources
+        taints_exp
+        |> union_new_taint_sources_filtering_labels ~new_:taints_sources
       in
       let taints_propagated, var_env =
         handle_taint_propagators { env with lval_env } (`Exp exp) taints
@@ -857,8 +897,10 @@ let check_function_signature env fun_exp args_taints =
         (fun_sig
         |> List.filter_map (function
              | T.SrcToReturn (src, tokens, _return_tok) ->
-                 let src = T.Call (eorig, tokens, src) in
-                 Some (Taints.singleton { orig = Src src; tokens = [] })
+                 let call_trace = T.Call (eorig, tokens, src.call_trace) in
+                 Some
+                   (Taints.singleton
+                      { orig = Src { src with call_trace }; tokens = [] })
              | T.ArgToReturn (argpos, tokens, _return_tok) ->
                  let* arg_taints = taints_of_arg argpos in
                  (* Get the token of the function *)
@@ -967,7 +1009,8 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
       in
       let taints_instr, lval_env' = check_instr instr.i in
       let taints =
-        taints_instr |> union_taints_filtering_labels ~new_:taint_sources
+        taints_instr
+        |> union_new_taint_sources_filtering_labels ~new_:taint_sources
       in
       let taints_propagated, lval_env' =
         handle_taint_propagators
