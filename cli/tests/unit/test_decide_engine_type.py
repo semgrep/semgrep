@@ -11,7 +11,7 @@ def decide_type(a, b, c):
 
 
 @pytest.mark.quick
-def test_code_hash_independent_of_filepath(mocker):
+def test_engine_type_deciding_logic(mocker):
     mocker.patch.object(ScanHandler, "deepsemgrep")
     mocker.patch.object(GitMeta, "is_full_scan")
     msh = ScanHandler(False)
