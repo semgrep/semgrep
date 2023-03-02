@@ -26,6 +26,7 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
+from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
@@ -141,27 +142,9 @@ def invoke_semgrep(
     return json.loads(output_handler._build_output())  # type: ignore
 
 
-def run_rules(
-    filtered_rules: List[Rule],
-    target_manager: TargetManager,
-    core_runner: CoreRunner,
-    output_handler: OutputHandler,
-    dump_command_for_core: bool,
-    engine_type: EngineType,
-) -> Tuple[
-    RuleMatchMap, List[SemgrepError], OutputExtra, Dict[str, List[FoundDependency]]
-]:
-    console.print(Title("Scan Status"))
-
-    sast_plan = CoreRunner.plan_core_run(
-        [rule for rule in filtered_rules if rule.product == RuleProduct.sast],
-        target_manager,
-    )
-    sca_plan = CoreRunner.plan_core_run(
-        [rule for rule in filtered_rules if rule.product == RuleProduct.sca],
-        target_manager,
-    )
-
+def print_summary_line(
+    target_manager: TargetManager, sast_plan: Plan, sca_plan: Plan
+) -> None:
     file_count = len(target_manager.get_all_files())
     summary_line = f"Scanning {unit_str(file_count, 'file')}"
     if target_manager.respect_git_ignore:
@@ -174,27 +157,52 @@ def run_rules(
     if sca_rule_count:
         summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
 
-    pro_rule_count = len(
-        [
-            rule
-            for rule in sast_plan.rules
-            if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
-            == "pro_rules"
-        ]
+    pro_rule_count = sum(
+        1
+        for rule in sast_plan.rules
+        if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
+        == "pro_rules"
     )
     if pro_rule_count:
         summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
 
-    summary_line += ":"
+    console.print(summary_line + ":")
 
-    console.print(summary_line)
+
+def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> None:
+    """Print a section like:"""
+    console.print(Title("Scan Status"))
+
+    sast_plan = CoreRunner.plan_core_run(
+        [rule for rule in rules if rule.product == RuleProduct.sast],
+        target_manager,
+    )
+    sca_plan = CoreRunner.plan_core_run(
+        [rule for rule in rules if rule.product == RuleProduct.sca],
+        target_manager,
+    )
+
+    print_summary_line(target_manager, sast_plan, sca_plan)
 
     console.print(Title("Code Rules", order=2))
-    sast_plan.log(with_tables_for=RuleProduct.sast)
+    sast_plan.print(with_tables_for=RuleProduct.sast)
 
     if sca_plan.rules:
         console.print(Title("Supply Chain Rules", order=2))
-        sca_plan.log(with_tables_for=RuleProduct.sca)
+        sca_plan.print(with_tables_for=RuleProduct.sca)
+
+
+def run_rules(
+    filtered_rules: List[Rule],
+    target_manager: TargetManager,
+    core_runner: CoreRunner,
+    output_handler: OutputHandler,
+    dump_command_for_core: bool,
+    engine_type: EngineType,
+) -> Tuple[
+    RuleMatchMap, List[SemgrepError], OutputExtra, Dict[str, List[FoundDependency]]
+]:
+    print_scan_status(filtered_rules, target_manager)
 
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE

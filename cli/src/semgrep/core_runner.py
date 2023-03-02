@@ -683,7 +683,7 @@ class Plan:
         for language in self.split_by_lang_label():
             metrics.add_feature("language", language)
 
-    def log(self, *, with_tables_for: RuleProduct) -> None:
+    def print(self, *, with_tables_for: RuleProduct) -> None:
         if self.target_mappings.rule_count == 0:
             console.print("Nothing to scan.")
             return
