@@ -1,5 +1,6 @@
 module In = Input_to_core_t
 module Out = Output_from_core_t
+open Osemgrep_targeting
 
 (*************************************************************************)
 (* Prelude *)
@@ -146,11 +147,9 @@ let list_regular_files (conf : conf) (scan_root : path) : path list =
       else
         (* python: was called Target.files_from_filesystem () *)
         List_files.list_regular_files ~keep_root:true scan_root
-  (* TODO? handle symlink? python does not I think and may raise exn here
-   * but I think we should, at least symlink to dirs.
-   * assert false because of use of Unix.stat above now?
-   *)
-  | S_LNK -> []
+  | S_LNK ->
+      (* already dereferenced by Unix.stat *)
+      assert false
   (* TODO? use write_pipe_to_disk? *)
   | S_FIFO -> []
   | S_CHR
@@ -222,28 +221,106 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
   in
   (sorted_paths, sorted_skipped)
 
+(*
+   func must return:
+     ((project_kind, project_root), path)
+*)
+let group_by_project_root func paths =
+  Common.map func paths |> Common.group_by fst
+  |> Common.map (fun (k, kv_list) -> (k, Common.map snd kv_list))
+
+(*
+   Identify the project root for each scanning root and group them
+   by project root.
+
+   This is important to avoid reading the gitignore and semgrepignore files
+   twice when multiple scanning roots that belong to the same project.
+
+   LATER: use git_paths rather than full paths as scanning roots
+   when we switch to Semgrepignore.list to list project files.
+*)
+let group_roots_by_project ?fallback_root conf paths =
+  if conf.respect_git_ignore then
+    paths
+    |> group_by_project_root (fun path ->
+           match Git_project.find_any_project_root ?fallback_root path with
+           | (Other_project as kind), root, git_path ->
+               ((kind, root), Git_path.to_fpath root git_path)
+           | (Git_project as kind), root, git_path ->
+               ( (kind, root),
+                 Git_path.to_fpath root ?project_root:fallback_root git_path ))
+  else
+    (* ignore gitignore files but respect semgrepignore files *)
+    paths
+    |> group_by_project_root (fun path ->
+           let root, git_path = Git_project.force_project_root path in
+           ((Git_project.Other_project, root), Git_path.to_fpath root git_path))
+
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
 
 (* python: mix of Target_manager(), target_manager.get_files_for_rule(),
- * target_manager.get_all_files(), Target(), and Target.files() *)
+   target_manager.get_all_files(), Target(), and Target.files()
+
+   This takes a list of scanning roots which are either regular files
+   or directories. Directories are scanned and we return files discovered
+   in this directories.
+
+   See the documentation for the conf object for the various filters
+   that we apply.
+*)
 let get_targets conf scanning_roots =
   (* python: =~ Target_manager.get_all_files() *)
-  let paths =
-    scanning_roots
-    |> List.concat_map (fun scan_root ->
-           list_regular_files conf (Fpath.to_string scan_root))
-    |> deduplicate_list
-  in
-  let paths, skipped_paths =
-    global_filter ~opt_lang:None ~sort_by_decr_size:true paths
-  in
-  (* !!!TODO!!! use conf.include_, conf.exclude_,
-   * max_target_bytes (* from the semgrep CLI, not semgrep-core *)
-   * respect_git_ignore, baseline_handler, file_ignore?, etc.
-   *)
-  (paths, skipped_paths)
+  group_roots_by_project conf scanning_roots
+  |> Common.map (fun (proj_kind, project_root, scanning_roots) ->
+         let exclusion_mechanism : Semgrepignore.exclusion_mechanism =
+           match (proj_kind : Git_project.kind) with
+           | Git_project -> Gitignore_and_semgrepignore
+           | Other_project -> Only_semgrepignore
+         in
+         let ign =
+           Semgrepignore.create ?include_patterns ?cli_pattern
+             ~exclusion_mechanisms ~project_root ()
+         in
+         let paths =
+           scanning_roots
+           |> List.concat_map (fun scan_root ->
+                  list_regular_files conf (Fpath.to_string scan_root))
+           |> deduplicate_list
+           |> List.filter_map (fun path ->
+                  let rel_path =
+                    match Fpath.relativize ~root:project_root path with
+                    | Some x -> x
+                    | None ->
+                        (* we're supposed to be working with clean paths by now *)
+                        assert false
+                  in
+                  let git_path =
+                    Git_path.(of_fpath rel_path |> make_absolute)
+                  in
+                  let status, selection_events =
+                    Semgrepignore.select ign git_path
+                  in
+                  (* TODO: log selection_events in debug mode *)
+                  (* TODO: should we return all the gitignored files as part of
+                     the skipped_paths (see the filter below)? *)
+                  match status with
+                  | Not_ignored -> Some path
+                  | Ignored -> None)
+         in
+         let paths, skipped_paths =
+           global_filter ~opt_lang:None ~sort_by_decr_size:true paths
+         in
+         (* !!!TODO!!! use conf.include_, conf.exclude_,
+          * max_target_bytes (* from the semgrep CLI, not semgrep-core *)
+          * respect_git_ignore, baseline_handler, file_ignore?, etc.
+          *)
+         (paths, skipped_paths))
+  |> (* flatten results that were grouped by project *)
+  List.split
+  |> fun (paths_list, skipped_paths_list) ->
+  (List.flatten paths_list, List.flatten skipped_paths_list)
 
 (*************************************************************************)
 (* TODO *)

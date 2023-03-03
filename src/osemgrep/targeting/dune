@@ -4,6 +4,7 @@
 ; - no dependency on full-fledged language parsing or the resulting ASTs.
 ;
 (library
+  (public_name osemgrep_targeting)
   (name osemgrep_targeting)
   (libraries
     commons

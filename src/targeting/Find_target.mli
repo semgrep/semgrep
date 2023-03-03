@@ -22,9 +22,13 @@ type conf = {
 
 (* Entry point.
 
-   Take a set of scanning roots which are files or folders and
+   Take a set of scanning roots which are files or folders (directories) and
    expand them into the set of files that could be targets for some
-   rules. Return a list of deduplicated file paths.
+   rules. Return a list of deduplicated paths to regular files.
+
+   If a scanning root is a symbolic link, it is dereferenced recursively
+   until it results in a regular file or a directory. However, we
+   don't follow symbolic links discovered when listing directories.
 
    The order of the files isn't guaranteed to be anything special
    at the moment but we could obey some ordering if it makes sense to do it
@@ -32,7 +36,7 @@ type conf = {
 
    Usage: let possible_targets = get_files scanning_roots
 
-   This may raise Unix.Unix_error if the scanning root do not exist.
+   This may raise Unix.Unix_error if the scanning root does not exist.
 *)
 val get_targets :
   conf ->

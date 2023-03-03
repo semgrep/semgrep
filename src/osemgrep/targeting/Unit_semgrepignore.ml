@@ -209,7 +209,7 @@ let tests =
             let tmp_root = Realpath.realpath root in
             let expected_proj_root = Fpath.add_seg tmp_root "proj" in
             let target_path = Fpath.append root (Fpath.v "c_link") in
-            (match Git_project.find_project_root target_path with
+            (match Git_project.find_git_project_root target_path with
             | None -> assert false
             | Some (proj_root, c_path) ->
                 Alcotest.(check string)
@@ -220,5 +220,5 @@ let tests =
                   "equal" "/a/b/c"
                   (Git_path.to_string c_path));
             (* We assume the temporary workspace is not inside a git project. *)
-            assert (Git_project.find_project_root root = None)) );
+            assert (Git_project.find_git_project_root root = None)) );
     ]
