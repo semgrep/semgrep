@@ -22,11 +22,11 @@ from semgrep.meta import GitMeta
         (True, True, ET.PRO_INTRAFILE, ET.PRO_INTRAFILE),
         (True, True, ET.PRO_INTERFILE, ET.PRO_INTERFILE),
         # semgrep ci with toggle on, diff scan
-        (True, False, None, ET.PRO_LANG),
+        (True, False, None, ET.PRO_INTRAFILE),
         (True, False, ET.OSS, ET.OSS),
         (True, False, ET.PRO_LANG, ET.PRO_LANG),
         (True, False, ET.PRO_INTRAFILE, ET.PRO_INTRAFILE),
-        (True, False, ET.PRO_INTERFILE, ET.PRO_LANG),
+        (True, False, ET.PRO_INTERFILE, ET.PRO_INTRAFILE),
         # semgrep ci with toggle off, full scan
         (False, True, None, ET.OSS),
         (False, True, ET.OSS, ET.OSS),
@@ -38,7 +38,7 @@ from semgrep.meta import GitMeta
         (False, False, ET.OSS, ET.OSS),
         (False, False, ET.PRO_LANG, ET.PRO_LANG),
         (False, False, ET.PRO_INTRAFILE, ET.PRO_INTRAFILE),
-        (False, False, ET.PRO_INTERFILE, ET.PRO_LANG),
+        (False, False, ET.PRO_INTERFILE, ET.PRO_INTRAFILE),
     ],
 )
 def test_decide_engine_type(
