@@ -1,4 +1,12 @@
-Scanning 2 files.
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 2 files tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Scanning 2 files.
   Current version has 1 finding.
 
 Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.

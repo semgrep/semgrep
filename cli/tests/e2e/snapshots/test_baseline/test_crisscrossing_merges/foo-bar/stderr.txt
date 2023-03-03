@@ -1,4 +1,12 @@
-Scanning 1 file.
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Scanning 1 file.
   Current version has 9 findings.
 
 Switching repository to baseline commit 'bar'.
@@ -23,7 +31,15 @@ Switching repository to baseline commit 'bar'.
   To avoid reporting such findings, compare to the branch-off point with:
     --baseline-commit=$(git merge-base bar HEAD)
 
-Scanning 1 file.
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Scanning 1 file.
            
            
 ┌─────────┐

@@ -1,5 +1,7 @@
 import hashlib
 import json
+from enum import auto
+from enum import Enum
 from typing import Any
 from typing import AnyStr
 from typing import cast
@@ -23,6 +25,11 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
+
+
+class RuleProduct(Enum):
+    sast = auto()
+    sca = auto()
 
 
 class Rule:
@@ -233,6 +240,14 @@ class Rule:
         Remove this code once all rule runnning is done in the core and the answer is always 'yes'
         """
         return any(key in RuleValidation.PATTERN_KEYS for key in self._raw)
+
+    @property
+    def product(self) -> RuleProduct:
+        return (
+            RuleProduct.sca
+            if "r2c-internal-project-depends-on" in self._raw
+            else RuleProduct.sast
+        )
 
     @property
     def formula_string(self) -> str:
