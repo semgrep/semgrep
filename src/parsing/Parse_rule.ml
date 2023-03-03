@@ -115,6 +115,19 @@ let pcre_error_to_string s exn =
   in
   spf "'%s': %s" s message
 
+let try_and_raise_invalid_pattern_if_error env (s, t) f =
+  try f () with
+  | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
+  (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
+  | exn ->
+      raise
+        (R.Err
+           (R.InvalidRule
+              ( R.InvalidPattern
+                  (s, env.languages, Common.exn_to_s exn, env.path),
+                env.id,
+                t )))
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -493,8 +506,24 @@ let parse_options env (key : key) value =
 let parse_xpattern env (str, tok) =
   match env.languages with
   | Xlang.L (lang, _) ->
-      let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
-      XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
+      (* opti: parsing Semgrep patterns lazily improves speed significantly.
+       * Parsing p/default goes from 13s to just 0.2s, mostly because
+       * p/default contains lots of ruby rules which are currently very
+       * slow to parse. Still, even if there was no Ruby rule, it's probably
+       * still worth the optimization.
+       * The disadvantage of parsing lazily is that
+       * parse errors in the pattern are detected only later, when
+       * the rule/pattern is actually needed. In practice we have pretty
+       * good error management and error recovery so the error should
+       * find its way to the JSON error field anyway.
+       *)
+      let lpat =
+        lazy
+          ((* we need to raise the right error *)
+           try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
+               Parse_pattern.parse_pattern lang ~print_errors:false str))
+      in
+      XP.mk_xpat (XP.Sem (lpat, lang)) (str, tok)
   | Xlang.LRegex ->
       XP.mk_xpat (XP.Regexp (parse_regexp env (str, tok))) (str, tok)
   | Xlang.LGeneric -> (
@@ -540,17 +569,8 @@ let parse_xpattern_expr env e =
        (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
        (* TODO put in *)
      in *)
-  try parse_xpattern env (s, t) with
-  | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
-  (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
-  | exn ->
-      raise
-        (R.Err
-           (R.InvalidRule
-              ( R.InvalidPattern
-                  (s, env.languages, Common.exn_to_s exn, env.path),
-                env.id,
-                t )))
+  try_and_raise_invalid_pattern_if_error env (s, t) (fun () ->
+      parse_xpattern env (s, t))
 
 (*****************************************************************************)
 (* Parser for old (but current) formula *)
@@ -1549,12 +1569,8 @@ let parse_file ?error_recovery file =
 (* Main Entry point *)
 (*****************************************************************************)
 
-let parse file =
-  let xs, skipped = parse_file ~error_recovery:false file in
-  assert (skipped =*= []);
-  xs
-
 let parse_and_filter_invalid_rules file = parse_file ~error_recovery:true file
+  [@@profiling]
 
 let parse_xpattern xlang (str, tok) =
   let env =
@@ -1566,6 +1582,15 @@ let parse_xpattern xlang (str, tok) =
     }
   in
   parse_xpattern env (str, tok)
+
+(*****************************************************************************)
+(* Useful for tests *)
+(*****************************************************************************)
+
+let parse file =
+  let xs, skipped = parse_file ~error_recovery:false file in
+  assert (skipped =*= []);
+  xs
 
 (*****************************************************************************)
 (* Valid rule filename checks *)

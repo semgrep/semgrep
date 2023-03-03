@@ -110,6 +110,9 @@ let import_callback base str =
               *)
              Logs.debug (fun m ->
                  m "trying to download from %s" (Uri.to_string url));
+             (* TODO: ask for JSON in headers which improves performance
+              * because Yaml rule parsing is slower than Json rule parsing.
+              *)
              let content =
                try Network.get url with
                | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn

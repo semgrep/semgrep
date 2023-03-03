@@ -913,7 +913,7 @@ let semgrep_with_one_pattern config =
             let xlang = Xlang.L (lang, []) in
             let xpat =
               Xpattern.mk_xpat
-                (Xpattern.Sem (pattern, lang))
+                (Xpattern.Sem (lazy pattern, lang))
                 (pattern_string, fk)
             in
             Rule.rule_of_xpattern xlang xpat)
