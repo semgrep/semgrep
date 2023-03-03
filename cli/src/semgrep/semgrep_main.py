@@ -15,6 +15,7 @@ from typing import Union
 
 from boltons.iterutils import get_path
 from boltons.iterutils import partition
+from rich.padding import Padding
 
 from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
@@ -184,12 +185,15 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> N
 
     print_summary_line(target_manager, sast_plan, sca_plan)
 
-    console.print(Title("Code Rules", order=2))
-    sast_plan.print(with_tables_for=RuleProduct.sast)
+    if not sca_plan.rules:
+        # just print these tables without the section headers
+        sast_plan.print(with_tables_for=RuleProduct.sast)
+        return
 
-    if sca_plan.rules:
-        console.print(Title("Supply Chain Rules", order=2))
-        sca_plan.print(with_tables_for=RuleProduct.sca)
+    console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
+    sast_plan.print(with_tables_for=RuleProduct.sast)
+    console.print(Title("Supply Chain Rules", order=2))
+    sca_plan.print(with_tables_for=RuleProduct.sca)
 
 
 def run_rules(
