@@ -574,6 +574,18 @@ let propagate_taint_to_label replace_labels label (taint : T.taint) =
   in
   { taint with orig = new_orig }
 
+let add_offset_to_poly_taint o taints =
+  taints |> Taints.map (fun taint ->
+          (match taint.orig with
+          | Arg (ArgTaint (p, os)) ->
+          (* logger#flash "%s: %s" (Display_IL.string_of_lval lval) (Taint.show_arg_taint a) *)
+            let at = Taint.ArgTaint (p, o::os) in
+            (* logger#flash "at %s" (Taint.show_arg_taint at); *)
+            {taint with orig = Arg (at)}
+          | __else__ -> taint
+          )
+        )
+
 (*****************************************************************************)
 (* Tainted *)
 (*****************************************************************************)
@@ -781,16 +793,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
           | `Clean -> `Clean
           | `None -> `None
           | `Tainted taints ->
-        `Tainted (taints |> Taints.map (fun taint ->
-          (match taint.orig with
-          | Arg (ArgTaint (p, os)) ->
-          (* logger#flash "%s: %s" (Display_IL.string_of_lval lval) (Taint.show_arg_taint a) *)
-            let at = Taint.ArgTaint (p, offset.o::os) in
-            (* logger#flash "at %s" (Taint.show_arg_taint at); *)
-            {taint with orig = Arg (at)}
-          | __else__ -> taint
-          )
-        ))
+        `Tainted (add_offset_to_poly_taint offset.o taints)
       in
       let taints_from_env = status_to_taints lval_in_env in
       (* Find taint sources matching lval. *)
@@ -1026,25 +1029,28 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
               let o_str = fst obj.IL.ident in
               let m_str = fst m.IL.ident in
               if String.starts_with ~prefix:"set" m_str then (
-                let x = Str.string_after m_str 3 in
+                let x = "get" ^ Str.string_after m_str 3 in
                 let o = Dot { m with ident = (x, snd m.IL.ident) } in
                 let lval = { lval with rev_offset = [ { offset with o } ] } in
-                logger#flash "%s.%s -> %s.%s (%s)" o_str m_str o_str x
-                  (Display_IL.string_of_lval lval);
+                logger#flash "SETTER %s.%s -> %s.%s (%s) [taints: %s]" o_str m_str o_str x
+                  (Display_IL.string_of_lval lval) (Taint.show_taints all_args_taints);
                 if not (Taints.is_empty all_args_taints) then
                   (Taints.empty, Lval_env.add lval_env lval all_args_taints)
                 else (Taints.empty, lval_env))
               else if String.starts_with ~prefix:"get" m_str then (
-                let x = Str.string_after m_str 3 in
+                let x = m_str (* Str.string_after m_str 3 *) in
                 let o = Dot { m with ident = (x, snd m.IL.ident) } in
                 let lval = { lval with rev_offset = [ { offset with o } ] } in
-                logger#flash "%s.%s -> %s.%s (%s)" o_str m_str o_str x
-                  (Display_IL.string_of_lval lval);
-                match Lval_env.dumb_find lval_env lval with
-                | `Tainted taints -> (taints, lval_env)
-                | `Clean
-                | `None ->
-                    (Taints.empty, lval_env))
+                (* let taints =
+                  match Lval_env.dumb_find lval_env lval with
+                  | `Tainted taints -> taints
+                  | `Clean
+                  | `None -> Taints.empty
+                in *)
+                logger#flash "GETTER %s.%s -> %s.%s (%s)" o_str m_str o_str x
+                    (Display_IL.string_of_lval lval);
+                (Taints.empty, lval_env)
+                    )
               else (Taints.empty, lval_env)
           | __else__ -> (Taints.empty, lval_env)
         in
