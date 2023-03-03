@@ -301,6 +301,9 @@ jobs:
         run: |
           perf/compare-perf cli/baseline_timing1.json cli/baseline_timing2.json cli/timing1.json cli/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
           perf/compare-bench-findings cli/findings.json
+      - name: Run python performance tests
+        working-directory: cli
+        run: pipenv run pytest tests/performance
 
   build-test-docker:
     uses: ./.github/workflows/build-test-docker.yaml
