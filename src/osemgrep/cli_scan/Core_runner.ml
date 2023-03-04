@@ -153,7 +153,8 @@ let split_jobs_by_language all_rules all_targets : Runner_config.lang_job list =
               rules)
           all_targets
       in
-      ({ lang; targets; rules } : Runner_config.lang_job))
+      ({ lang; targets = Common.map Fpath.to_string targets; rules }
+        : Runner_config.lang_job))
     grouped_rules
 
 let runner_config_of_conf (conf : conf) : Runner_config.t =
@@ -190,8 +191,9 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
 *)
 let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
     (rule_errors : Rule.invalid_rule_error list)
-    (all_targets : Common.filename list) : result =
+    (all_targets_s : Common.filename list) : result =
   let config : Runner_config.t = runner_config_of_conf conf in
+  let all_targets = Common.map Fpath.v all_targets_s in
 
   match rule_errors with
   (* with semgrep-python, semgrep-core is passed all the rules unparsed,

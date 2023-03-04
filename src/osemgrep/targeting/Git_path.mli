@@ -3,6 +3,8 @@
 
    This avoids issues of Unix-style vs. Windows-style paths. All
    git paths use '/' as a separator.
+
+   TODO: Rename the module since we also use this type for non-git projects?
 *)
 
 type t = private { string : string; segments : string list }

@@ -5,13 +5,11 @@
    such as 'find'.
 *)
 
-type path = string
-
 (*
    List all files recursively. Exclude folders/directories.
    For further filtering based on file type, use 'list_with_stat'.
 *)
-val list : path -> path list
+val list : Fpath.t -> Fpath.t list
 
 (*
    List all regular files recursively. This excludes symlinks, among other.
@@ -28,16 +26,18 @@ val list : path -> path list
    Moreover while traversing dirs, list_regular_files ignores all
    Unix.Unix_error exceptions raised by Unix.lstat.
 *)
-val list_regular_files : ?keep_root:bool -> path -> path list
+val list_regular_files : ?keep_root:bool -> Fpath.t -> Fpath.t list
 
 (*
    List all files recursively. Exclude folders/directories.
    Use List.filter_map to exclude more file types.
 *)
-val list_with_stat : path -> (path * Unix.stats) list
+val list_with_stat : Fpath.t -> (Fpath.t * Unix.stats) list
 
 (*
    Iterate over files recursively. Exclude folders/directories.
 *)
-val fold_left : ('acc -> path -> Unix.stats -> 'acc) -> 'acc -> path -> 'acc
-val iter : (path -> Unix.stats -> unit) -> path -> unit
+val fold_left :
+  ('acc -> Fpath.t -> Unix.stats -> 'acc) -> 'acc -> Fpath.t -> 'acc
+
+val iter : (Fpath.t -> Unix.stats -> unit) -> Fpath.t -> unit

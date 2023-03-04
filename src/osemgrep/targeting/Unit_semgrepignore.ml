@@ -46,8 +46,8 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
       assert (files2 = files);
       printf "--- Filtered files ---\n";
       let filter =
-        Semgrepignore.create ?include_patterns ?cli_patterns ~project_root:root
-          ()
+        Semgrepignore.create ?include_patterns ?cli_patterns
+          ~exclusion_mechanism:Gitignore_and_semgrepignore ~project_root:root ()
       in
       let error = ref false in
       selection

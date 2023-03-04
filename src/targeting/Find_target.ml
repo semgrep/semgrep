@@ -2,6 +2,10 @@ module In = Input_to_core_t
 module Out = Output_from_core_t
 open Osemgrep_targeting
 
+(* Experimenting with a shortcut. If successful, we could move it
+   to the Common library or to some Files module *)
+let ( !! ) = Fpath.to_string
+
 (*************************************************************************)
 (* Prelude *)
 (*************************************************************************)
@@ -43,12 +47,9 @@ open Osemgrep_targeting
 (* Types *)
 (*************************************************************************)
 
-(* TODO? use Fpath library at some point? *)
-type path = string
-
 type conf = {
   exclude : string list;
-  include_ : string list;
+  include_ : string list option;
   max_target_bytes : int;
   respect_git_ignore : bool;
   (* TODO? use, and better parsing of the string? a Git.version type? *)
@@ -69,7 +70,7 @@ type file_ignore = TODO
    across the many rules that target the same language.
 *)
 type target_cache_key = {
-  path : path;
+  path : Fpath.t;
   lang : Xlang.t;
   required_path_patterns : string list;
   excluded_path_patterns : string list;
@@ -91,7 +92,7 @@ type target_cache = (target_cache_key, bool) Hashtbl.t
 *)
 let is_valid_file file =
   (* TOPORT: return self._is_valid_file_or_dir(path) and path.is_file() *)
-  Common2.is_file file
+  Common2.is_file !!file
 
 (* 'git ls-files' is significantly faster than os.walk when performed on
  * a git project, so identify the git files first, then filter those later.
@@ -114,17 +115,17 @@ let files_from_git_ls ~cwd:scan_root =
   (* tracked files *)
   let tracked_output = Git.files_from_git_ls ~cwd:scan_root in
   tracked_output
-  |> Common.map (fun x -> Filename.concat scan_root x)
+  |> Common.map (fun x -> Fpath.append scan_root x)
   |> List.filter is_valid_file
 
 (* python: mostly Target.files() method in target_manager.py *)
-let list_regular_files (conf : conf) (scan_root : path) : path list =
+let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
   (* This may raise Unix.Unix_error.
    * osemgrep-new: Note that I use Unix.stat below, not Unix.lstat, so we can
    * actually analyze symlink to dirs!
    * TODO? improve Unix.Unix_error in Find_target specific exn?
    *)
-  match (Unix.stat scan_root).st_kind with
+  match (Unix.stat !!scan_root).st_kind with
   (* TOPORT? make sure has right permissions (readable) *)
   | S_REG -> [ scan_root ]
   | S_DIR ->
@@ -141,7 +142,7 @@ let list_regular_files (conf : conf) (scan_root : path) : path list =
                   "Unable to ignore files ignored by git (%s is not a git \
                    directory or git is not installed). Running on all files \
                    instead..."
-                  scan_root);
+                  !!scan_root);
             Logs.debug (fun m -> m "exn = %s" (Common.exn_to_s exn));
             List_files.list_regular_files ~keep_root:true scan_root)
       else
@@ -183,7 +184,7 @@ let sort_targets_by_decreasing_size targets =
 
 let sort_files_by_decreasing_size files =
   files
-  |> Common.map (fun file -> (file, Common2.filesize file))
+  |> Common.map (fun file -> (file, Common2.filesize !!file))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> Common.map fst
 
@@ -247,8 +248,7 @@ let group_roots_by_project ?fallback_root conf paths =
            | (Other_project as kind), root, git_path ->
                ((kind, root), Git_path.to_fpath root git_path)
            | (Git_project as kind), root, git_path ->
-               ( (kind, root),
-                 Git_path.to_fpath root ?project_root:fallback_root git_path ))
+               ((kind, root), Git_path.to_fpath ~root git_path))
   else
     (* ignore gitignore files but respect semgrepignore files *)
     paths
@@ -273,20 +273,20 @@ let group_roots_by_project ?fallback_root conf paths =
 let get_targets conf scanning_roots =
   (* python: =~ Target_manager.get_all_files() *)
   group_roots_by_project conf scanning_roots
-  |> Common.map (fun (proj_kind, project_root, scanning_roots) ->
+  |> Common.map (fun ((proj_kind, project_root), scanning_roots) ->
          let exclusion_mechanism : Semgrepignore.exclusion_mechanism =
            match (proj_kind : Git_project.kind) with
            | Git_project -> Gitignore_and_semgrepignore
            | Other_project -> Only_semgrepignore
          in
          let ign =
-           Semgrepignore.create ?include_patterns ?cli_pattern
-             ~exclusion_mechanisms ~project_root ()
+           Semgrepignore.create ?include_patterns:conf.include_
+             ~cli_patterns:conf.exclude ~exclusion_mechanism ~project_root ()
          in
          let paths =
            scanning_roots
            |> List.concat_map (fun scan_root ->
-                  list_regular_files conf (Fpath.to_string scan_root))
+                  list_regular_files conf scan_root)
            |> deduplicate_list
            |> List.filter_map (fun path ->
                   let rel_path =
@@ -369,7 +369,7 @@ let filter_target_for_lang ~cache ~lang ~required_path_patterns
       Hashtbl.replace cache key res;
       res
 
-let filter_target_for_rule cache (rule : Rule.t) (path : path) =
+let filter_target_for_rule cache (rule : Rule.t) path =
   let required_path_patterns, excluded_path_patterns =
     match rule.paths with
     | Some { include_; exclude } -> (include_, exclude)
@@ -393,15 +393,18 @@ let files_of_dirs_or_files ?(keep_root_files = true)
     if keep_root_files then
       roots
       |> List.partition (fun path ->
-             Sys.file_exists path && not (Sys.is_directory path))
+             Sys.file_exists !!path && not (Sys.is_directory !!path))
     else (roots, [])
   in
-  let paths = Common.files_of_dir_or_files_no_vcs_nofilter paths in
+  let paths =
+    paths |> Common.map Fpath.to_string
+    |> Common.files_of_dir_or_files_no_vcs_nofilter |> Common.map Fpath.v
+  in
   let paths, skipped = global_filter ~opt_lang ~sort_by_decr_size paths in
   let paths = explicit_targets @ paths in
   let sorted_paths =
     if sort_by_decr_size then sort_files_by_decreasing_size paths
-    else List.sort String.compare paths
+    else List.sort Fpath.compare paths
   in
   let sorted_skipped =
     List.sort

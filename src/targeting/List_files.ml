@@ -1,5 +1,9 @@
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* Experimenting with a shortcut. If successful, we could move it
+   to the Common library or to some Files module *)
+let ( !! ) = Fpath.to_string
+
 (*************************************************************************)
 (* Prelude *)
 (*************************************************************************)
@@ -11,18 +15,11 @@ let logger = Logging.get_logger [ __MODULE__ ]
 *)
 
 (*************************************************************************)
-(* Types *)
-(*************************************************************************)
-
-(* TODO? use Fpath.t at some point? *)
-type path = string
-
-(*************************************************************************)
 (* Helpers *)
 (*************************************************************************)
 
 let with_dir_handle path func =
-  let dir = Unix.opendir path in
+  let dir = Unix.opendir !!path in
   Fun.protect ~finally:(fun () -> Unix.closedir dir) (fun () -> func dir)
 
 (* Read the names found in a directory, excluding "." and "..". *)
@@ -48,7 +45,7 @@ let rec iter_dir_entries func dir names =
   List.iter (iter_dir_entry func dir) names
 
 and iter_dir_entry func dir name =
-  let path = Filename.concat dir name in
+  let path = Fpath.add_seg dir name in
   iter func path
 
 (*************************************************************************)
@@ -57,7 +54,7 @@ and iter_dir_entry func dir name =
 
 and iter func path =
   let stat =
-    try Some (Unix.lstat path) with
+    try Some (Unix.lstat !!path) with
     | Unix.Unix_error (_error_kind, _func, _info) ->
         (* Ignore all errors. Should we ignore less? *)
         None
@@ -85,7 +82,7 @@ let list path = list_with_stat path |> Common.map fst
 let list_regular_files ?(keep_root = false) root_path =
   list_with_stat root_path
   |> List.filter_map (fun (path, (stat : Unix.stats)) ->
-         logger#info "root: %s path: %s" root_path path;
+         logger#info "root: %s path: %s" !!root_path !!path;
          if keep_root && path = root_path then Some path
          else
            match stat.st_kind with

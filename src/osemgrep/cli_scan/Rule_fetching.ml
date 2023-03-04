@@ -190,7 +190,7 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
   match kind with
   | C.File file -> [ load_rules_from_file file ]
   | C.Dir dir ->
-      List_files.list dir
+      List_files.list (Fpath.v dir)
       (* TOPORT:
          and not _is_hidden_config(l.relative_to(loc))
          ...
@@ -207,6 +207,7 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
            for part in loc.parts
          )
       *)
+      |> Common.map Fpath.to_string
       |> List.filter Parse_rule.is_valid_rule_filename
       |> Common.map load_rules_from_file
   | C.URL url -> [ load_rules_from_url url ]

@@ -8,6 +8,10 @@
 open Common
 module Resp = Output_from_core_t
 
+(* Experimenting with a shortcut. If successful, we could move it
+   to the Common library or to some Files module *)
+let ( !! ) = Fpath.to_string
+
 (****************************************************************************)
 (* Minified files detection (via whitespace stats) *)
 (****************************************************************************)
@@ -78,7 +82,7 @@ let whitespace_stat_of_block ?block_size path =
   let s = Guess_lang.get_first_block ?block_size path in
   whitespace_stat_of_string s
 
-let is_minified path =
+let is_minified (path : Fpath.t) =
   if not !Flag_semgrep.skip_minified_files then Ok path
   else
     let stat = whitespace_stat_of_block ~block_size:4096 path in
@@ -90,7 +94,7 @@ let is_minified path =
       if stat.ws_freq < min_whitespace_frequency then
         Error
           {
-            Resp.path;
+            Resp.path = !!path;
             reason = Minified;
             details =
               spf "file contains too little whitespace: %.3f%% (min = %.1f%%)"
@@ -101,7 +105,7 @@ let is_minified path =
       else if stat.line_freq < min_line_frequency then
         Error
           {
-            Resp.path;
+            Resp.path = !!path;
             reason = Minified;
             details =
               spf
@@ -122,6 +126,7 @@ let exclude_minified_files paths = Common.partition_result is_minified paths
 
 let exclude_files_in_skip_lists roots =
   let paths, skipped_paths =
+    let roots = Common.map Fpath.to_string roots in
     Skip_code.filter_files_if_skip_list ~root:roots roots
   in
   let skipped =
@@ -134,7 +139,7 @@ let exclude_files_in_skip_lists roots =
              rule_id = None;
            })
   in
-  (paths, skipped)
+  (Common.map Fpath.v paths, skipped)
 
 (****************************************************************************)
 (* Big file filtering *)
@@ -152,11 +157,11 @@ let exclude_big_files paths =
   let max_bytes = !Flag_semgrep.max_target_bytes in
   paths
   |> Common.partition_result (fun path ->
-         let size = Common2.filesize path in
+         let size = Common2.filesize !!path in
          if max_bytes > 0 && size > max_bytes then
            Error
              {
-               Resp.path;
+               Resp.path = !!path;
                reason = Too_big;
                details =
                  spf "target file size exceeds %i bytes at %i bytes" max_bytes
