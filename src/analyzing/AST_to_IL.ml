@@ -862,6 +862,7 @@ and argument env arg =
 
 and record env ((_tok, origfields, _) as record_def) =
   let e_gen = G.Record record_def |> G.e in
+  (* let tmpvar = fresh_var ~str:"_record" env tok in *)
   let fields =
     origfields
     |> Common.map_filter (function
@@ -881,6 +882,10 @@ and record env ((_tok, origfields, _) as record_def) =
                | ___else___ -> todo (G.E e_gen)
              in
              let field_def = expr env fdeforig in
+             (* let f_name = var_of_id_info id id_info in (* maybe use an empty_id_info since they are different IDs... *)
+                let f_o = Dot f_name in
+                let lval = { base = Var tmpvar; rev_offset = [{o = f_o; oorig = NoOrig}] } in
+                add_instr env (mk_i (Assign (lval, field_def)) NoOrig); *)
              Some (Field (id, field_def))
          | G.F
              {
@@ -906,6 +911,8 @@ and record env ((_tok, origfields, _) as record_def) =
          | G.F _ -> todo (G.E e_gen))
   in
   mk_e (Record fields) (SameAs e_gen)
+(* |> ignore;
+   mk_e (Fetch (lval_of_base (Var tmpvar))) (SameAs e_gen) *)
 
 and xml_expr env xml =
   let attrs =
