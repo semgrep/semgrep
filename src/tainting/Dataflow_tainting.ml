@@ -786,7 +786,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
             | `None -> st)
       in
       let lval_in_env =
-        if env.lang =*= Java then
+        if env.lang =*= Java || env.lang =*= Lang.Python then
           match lval.rev_offset with
           | [] -> lval_in_env
           | offset :: _ -> (
