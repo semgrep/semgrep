@@ -972,8 +972,8 @@ let check_function_signature env fun_exp (_args : exp argument stack) args_taint
                     |> Taints.iter (fun t ->
                             findings_of_tainted_sink env (Taints.singleton t) sink
                             |> report_findings env);
-                    None 
-                  | _ -> None
+                    None
+                  | __else__ -> None
                   )
                  | _ -> None
                         )
