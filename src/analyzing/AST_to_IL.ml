@@ -860,9 +860,9 @@ and argument env arg =
       let any = G.Ar arg in
       Unnamed (fixme_exp ToDo any (Related any))
 
-and record env ((tok, origfields, _) as record_def) =
+and record env ((_tok, origfields, _) as record_def) =
   let e_gen = G.Record record_def |> G.e in
-  let tmpvar = fresh_var ~str:"_record" env tok in
+  (* let tmpvar = fresh_var ~str:"_record" env tok in *)
   let fields =
     origfields
     |> Common.map_filter (function
@@ -870,7 +870,7 @@ and record env ((tok, origfields, _) as record_def) =
              {
                s =
                  G.DefStmt
-                   ({ G.name = G.EN (G.Id (id, id_info)); tparams = []; _ }, def_kind);
+                   ({ G.name = G.EN (G.Id (id, _)); tparams = []; _ }, def_kind);
                _;
              } ->
              let fdeforig =
@@ -882,10 +882,10 @@ and record env ((tok, origfields, _) as record_def) =
                | ___else___ -> todo (G.E e_gen)
              in
              let field_def = expr env fdeforig in
-             let f_name = var_of_id_info id id_info in (* maybe use an empty_id_info since they are different IDs... *)
+             (* let f_name = var_of_id_info id id_info in (* maybe use an empty_id_info since they are different IDs... *)
              let f_o = Dot f_name in
              let lval = { base = Var tmpvar; rev_offset = [{o = f_o; oorig = NoOrig}] } in
-             add_instr env (mk_i (Assign (lval, field_def)) NoOrig);
+             add_instr env (mk_i (Assign (lval, field_def)) NoOrig); *)
              Some (Field (id, field_def))
          | G.F
              {
@@ -910,8 +910,9 @@ and record env ((tok, origfields, _) as record_def) =
              None
          | G.F _ -> todo (G.E e_gen))
   in
-  mk_e (Record fields) (SameAs e_gen) |> ignore;
-  mk_e (Fetch (lval_of_base (Var tmpvar))) (SameAs e_gen)
+  mk_e (Record fields) (SameAs e_gen)
+  (* |> ignore;
+  mk_e (Fetch (lval_of_base (Var tmpvar))) (SameAs e_gen) *)
 
 and xml_expr env xml =
   let attrs =

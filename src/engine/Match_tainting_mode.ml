@@ -556,7 +556,7 @@ let check_fundef lang options taint_config opt_ent fdef =
   let _, xs = AST_to_IL.function_definition lang fdef in
   let flow = CFG_build.cfg_of_stmts xs in
   let mapping =
-    Dataflow_tainting.fixpoint ~in_env ?name options taint_config flow
+    Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config flow
   in
   (flow, mapping)
 
@@ -606,7 +606,7 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
         let flow = CFG_build.cfg_of_stmts xs in
-        Dataflow_tainting.fixpoint xconf.config taint_config flow |> ignore)
+        Dataflow_tainting.fixpoint lang xconf.config taint_config flow |> ignore)
   in
   let matches =
     !matches
