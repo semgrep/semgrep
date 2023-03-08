@@ -786,15 +786,16 @@ and check_tainted_lval_aux env (lval : IL.lval) :
             | `None -> st)
       in
       let lval_in_env =
-        if env.lang =*= Java || env.lang =*= Lang.Python then
+        if env.lang =*= Java then
           match lval.rev_offset with
-          | [] -> lval_in_env
-          | offset :: _ -> (
+          | { o = Dot n as o; _ } :: _ when String.starts_with ~prefix:"get" (fst n.ident) -> (
               match lval_in_env with
               | `Clean -> `Clean
               | `None -> `None
               | `Tainted taints ->
-                  `Tainted (add_offset_to_poly_taint offset.o taints))
+                  `Tainted (add_offset_to_poly_taint o taints))
+          | _::_ 
+          | [] -> lval_in_env
         else lval_in_env
       in
       let taints_from_env = status_to_taints lval_in_env in
