@@ -199,6 +199,7 @@ end
 
 (* THINK: Separate read-only enviroment into a new a "cfg" type? *)
 type env = {
+  lang : Lang.t;
   options : Config_semgrep.t; (* rule options *)
   config : config;
   fun_name : var option;
@@ -968,6 +969,31 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let all_args_taints =
           List.fold_left Taints.union Taints.empty all_taints
         in
+        let lval_env =
+          (* HACK: Java: If we encounter `obj.setX(arg)` we interpret this as `obj.getX = arg`. *)
+          match (e, args) with
+          | ( {
+                e =
+                  Fetch
+                    ({
+                       base = Var _obj;
+                       rev_offset = [ ({ o = Dot m; _ } as offset) ];
+                     } as lval);
+                _;
+              },
+              [ _ ] )
+            when env.lang =*= Lang.Java
+                 && String.starts_with ~prefix:"set" (fst m.IL.ident) ->
+              let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
+              let prop_lval =
+                let o = Dot { m with ident = (prop_name, snd m.IL.ident) } in
+                { lval with rev_offset = [ { offset with o } ] }
+              in
+              if not (Taints.is_empty all_args_taints) then
+                Lval_env.add lval_env prop_lval all_args_taints
+              else lval_env
+          | __else__ -> lval_env
+        in
         let opt_taint_sig = check_function_signature env e args_taints in
         (* After we introduced Top_sinks, we need to explicitly support sinks like
          * `sink(...)` by considering that all of the parameters are sinks. To make
@@ -1053,6 +1079,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
 
 let transfer :
+    Lang.t ->
     Config_semgrep.t ->
     config ->
     Lval_env.t ->
@@ -1060,7 +1087,7 @@ let transfer :
     flow:F.cfg ->
     top_sinks:Top_sinks.t ->
     Lval_env.t D.transfn =
- fun options config enter_env opt_name ~flow ~top_sinks
+ fun lang options config enter_env opt_name ~flow ~top_sinks
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
@@ -1068,7 +1095,7 @@ let transfer :
   let node = flow.graph#nodes#assoc ni in
   let out' : Lval_env.t =
     let env =
-      { options; config; fun_name = opt_name; lval_env = in'; top_sinks }
+      { lang; options; config; fun_name = opt_name; lval_env = in'; top_sinks }
     in
     match node.F.n with
     | NInstr x ->
@@ -1141,11 +1168,12 @@ let transfer :
 let (fixpoint :
       ?in_env:Lval_env.t ->
       ?name:Var_env.var ->
+      Lang.t ->
       Config_semgrep.t ->
       config ->
       F.cfg ->
       mapping) =
- fun ?in_env ?name:opt_name options config flow ->
+ fun ?in_env ?name:opt_name lang options config flow ->
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
   let enter_env =
     match in_env with
@@ -1161,6 +1189,6 @@ let (fixpoint :
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint ~eq_env:Lval_env.equal ~init:init_mapping
-    ~trans:(transfer options config enter_env opt_name ~flow ~top_sinks)
+    ~trans:(transfer lang options config enter_env opt_name ~flow ~top_sinks)
       (* tainting is a forward analysis! *)
     ~forward:true ~flow
