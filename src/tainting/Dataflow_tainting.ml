@@ -917,6 +917,39 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
 let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
   check_tainted_lval env (LV.lval_of_var var)
 
+let taints_of_arg_lval env fun_exp fparams args_taints arg_lval =
+  match arg_lval with
+  | T.ArgLval (("<this>", -1), _os) ->
+      (match fun_exp with
+      | ( {
+            e =
+              Fetch
+                ({
+                  base = Var _obj;
+                  rev_offset = [ ({ o = Dot _m; _ }) ];
+                } as _lval);
+            _;
+          }) -> 
+          (match _os with
+          (* TODO: more than one offset? *)
+          | [o] ->
+            let arg_lval = { base = Var _obj; rev_offset = []} in
+            let arg_taints =
+                  match Lval_env.dumb_find env.lval_env arg_lval with
+                  | `Clean
+                  | `None ->
+                      Taints.empty
+                  | `Tainted ts -> ts |> add_offset_to_poly_taint o
+                in
+            Some arg_taints
+          | [] | _::_ -> None
+          )
+      | _no_method_call -> None
+      )
+  | T.ArgLval (argpos, _) ->
+    let taints_of_arg = find_args_taints args_taints fparams in
+    taints_of_arg argpos
+
 let check_function_signature env fun_exp (_args : exp argument stack)
     args_taints =
   match (!hook_function_taint_signature, fun_exp) with
@@ -931,43 +964,8 @@ let check_function_signature env fun_exp (_args : exp argument stack)
                  Some
                    (Taints.singleton
                       { orig = Src { src with call_trace }; tokens = [] })
-             | T.ArgToReturn (ArgLval (("<this>", -1), _os), _tokens, _return_tok) ->
-                (match fun_exp with
-                | ( {
-                      e =
-                        Fetch
-                          ({
-                            base = Var _obj;
-                            rev_offset = [ ({ o = Dot _m; _ }) ];
-                          } as _lval);
-                      _;
-                    }) -> 
-                    (
-                    match _os with
-                    | [o] ->
-                      logger#flash "check-fun ArgToReturn %s.%s" (fst _obj.ident)  (fst _m.ident);
-                      let arg_lval = { base = Var _obj; rev_offset = []} in
-                      let arg_taints =
-                           match Lval_env.dumb_find env.lval_env arg_lval with
-                           | `Clean
-                           | `None ->
-                               Taints.empty
-                           | `Tainted ts -> ts |> add_offset_to_poly_taint o
-                         in
-                      Some
-                        (arg_taints
-                        |> Taints.map (fun taint ->
-                                let tokens =
-                                  List.rev_append _tokens (snd _obj.ident :: taint.tokens)
-                                in
-                                { taint with tokens }))
-                    | [] | _::_ ->
-                    None
-                    )
-                    | _else -> None
-                )
-             | T.ArgToReturn (ArgLval (argpos, _TODO_os), tokens, _return_tok) ->
-                 let* arg_taints = taints_of_arg argpos in
+             | T.ArgToReturn (arg_lval, tokens, _return_tok) ->
+                 let* arg_taints = taints_of_arg_lval env fun_exp fparams args_taints arg_lval in
                  (* Get the token of the function *)
                  let* ident =
                    match f with
