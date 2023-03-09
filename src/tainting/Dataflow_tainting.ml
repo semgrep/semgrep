@@ -203,6 +203,7 @@ type env = {
   options : Config_semgrep.t; (* rule options *)
   config : config;
   fun_name : var option;
+  enter_env : Lval_env.t;
   lval_env : Lval_env.t;
   top_sinks : Top_sinks.t;
 }
@@ -774,6 +775,20 @@ and check_tainted_lval_aux env (lval : IL.lval) :
             (* Recursive case, given `x.a.b` we must first check `x.a`. *)
             check_tainted_lval_aux env { lval with rev_offset = rev_offset' }
       in
+      (* logger#flash "lval %s ; sub_new_taints %s" (Display_IL.string_of_lval lval) (Taint.show_taints sub_new_taints); *)
+      let sub_in_env =
+        if env.lang =*= Java then
+          match lval.rev_offset with
+          | { o = Dot n as o; _ } :: _ when String.starts_with ~prefix:"get" (fst n.ident) -> (
+              match sub_in_env with
+              | `Clean -> `Clean
+              | `None -> `None
+              | `Tainted taints ->
+                  `Tainted (add_offset_to_poly_taint o taints))
+          | _::_ 
+          | [] -> sub_in_env
+        else sub_in_env
+      in
       (* Check the status of lval in the environemnt. *)
       let lval_in_env =
         match sub_in_env with
@@ -785,19 +800,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
             | (`Clean | `Tainted _) as st' -> st'
             | `None -> st)
       in
-      let lval_in_env =
-        if env.lang =*= Java then
-          match lval.rev_offset with
-          | { o = Dot n as o; _ } :: _ when String.starts_with ~prefix:"get" (fst n.ident) -> (
-              match lval_in_env with
-              | `Clean -> `Clean
-              | `None -> `None
-              | `Tainted taints ->
-                  `Tainted (add_offset_to_poly_taint o taints))
-          | _::_ 
-          | [] -> lval_in_env
-        else lval_in_env
-      in
+      (* logger#flash "lval %s ; lval_in_env %s" (Display_IL.string_of_lval lval) (Taint.show_taints (status_to_taints lval_in_env)); *)
       let taints_from_env = status_to_taints lval_in_env in
       (* Find taint sources matching lval. *)
       let current_taints = Taints.union sub_new_taints taints_from_env in
@@ -1149,7 +1152,7 @@ let transfer :
   let node = flow.graph#nodes#assoc ni in
   let out' : Lval_env.t =
     let env =
-      { lang; options; config; fun_name = opt_name; lval_env = in'; top_sinks }
+      { lang; options; config; fun_name = opt_name; enter_env; lval_env = in'; top_sinks }
     in
     match node.F.n with
     | NInstr x ->
