@@ -481,6 +481,7 @@ let pm_of_finding finding =
   (* TODO: We might want to report functions that let input taint
    * go into a sink (?) *)
   | T.ArgToSink _
+  | T.ArgToArg _
   | T.ArgToReturn _ ->
       None
 

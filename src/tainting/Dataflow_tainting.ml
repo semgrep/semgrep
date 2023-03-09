@@ -580,9 +580,9 @@ let add_offset_to_poly_taint o taints =
   taints
   |> Taints.map (fun taint ->
          match taint.orig with
-         | Arg (ArgTaint (p, os)) ->
+         | Arg (ArgLval (p, os)) ->
              (* logger#flash "%s: %s" (Display_IL.string_of_lval lval) (Taint.show_arg_taint a) *)
-             let at = Taint.ArgTaint (p, o :: os) in
+             let at = Taint.ArgLval (p, o :: os) in
              (* logger#flash "at %s" (Taint.show_arg_taint at); *)
              { taint with orig = Arg at }
          | __else__ -> taint)
@@ -779,12 +779,13 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       let sub_in_env =
         if env.lang =*= Java then
           match lval.rev_offset with
-          | { o = Dot n as o; _ } :: _ when String.starts_with ~prefix:"get" (fst n.ident) -> (
+          | { o = Dot {id_info = {id_resolved = {contents = Some (G.GlobalName _, _sid)} ; _ }; _}; _ } :: _  -> sub_in_env
+          | { o = Dot n; _ } :: _ when String.starts_with ~prefix:"get" (fst n.ident) -> (
               match sub_in_env with
               | `Clean -> `Clean
               | `None -> `None
               | `Tainted taints ->
-                  `Tainted (add_offset_to_poly_taint o taints))
+                  `Tainted (add_offset_to_poly_taint n taints))
           | _::_ 
           | [] -> sub_in_env
         else sub_in_env
@@ -930,7 +931,42 @@ let check_function_signature env fun_exp (_args : exp argument stack)
                  Some
                    (Taints.singleton
                       { orig = Src { src with call_trace }; tokens = [] })
-             | T.ArgToReturn (ArgTaint (argpos, _), tokens, _return_tok) ->
+             | T.ArgToReturn (ArgLval (("<this>", -1), _os), _tokens, _return_tok) ->
+                (match fun_exp with
+                | ( {
+                      e =
+                        Fetch
+                          ({
+                            base = Var _obj;
+                            rev_offset = [ ({ o = Dot _m; _ }) ];
+                          } as _lval);
+                      _;
+                    }) -> 
+                    (
+                    match _os with
+                    | [o] ->
+                      logger#flash "check-fun ArgToReturn %s.%s" (fst _obj.ident)  (fst _m.ident);
+                      let arg_lval = { base = Var _obj; rev_offset = []} in
+                      let arg_taints =
+                           match Lval_env.dumb_find env.lval_env arg_lval with
+                           | `Clean
+                           | `None ->
+                               Taints.empty
+                           | `Tainted ts -> ts |> add_offset_to_poly_taint o
+                         in
+                      Some
+                        (arg_taints
+                        |> Taints.map (fun taint ->
+                                let tokens =
+                                  List.rev_append _tokens (snd _obj.ident :: taint.tokens)
+                                in
+                                { taint with tokens }))
+                    | [] | _::_ ->
+                    None
+                    )
+                    | _else -> None
+                )
+             | T.ArgToReturn (ArgLval (argpos, _TODO_os), tokens, _return_tok) ->
                  let* arg_taints = taints_of_arg argpos in
                  (* Get the token of the function *)
                  let* ident =
@@ -953,7 +989,7 @@ let check_function_signature env fun_exp (_args : exp argument stack)
                             List.rev_append tokens (snd ident :: taint.tokens)
                           in
                           { taint with tokens }))
-             | T.ArgToSink (ArgTaint (argpos, _os), tokens, sink) -> (
+             | T.ArgToSink (ArgLval (argpos, _os), tokens, sink) -> (
                  let sink = T.Call (eorig, tokens, sink) in
                  match _os with
                  | [] ->
@@ -965,12 +1001,11 @@ let check_function_signature env fun_exp (_args : exp argument stack)
                             |> report_findings env);
                      None
                  | [ _x ] -> (
-                     logger#flash "ArgToSink with offset %s"
-                       (IL.show_offset_kind _x);
+                     logger#flash "ArgToSink with offset %s" (fst _x.IL.ident);
                      let* _arg_exp = find_args_taints _args fparams argpos in
                      match _arg_exp.e with
                      | Fetch _lval ->
-                         let o = { o = _x; oorig = NoOrig } in
+                         let o = { o = Dot _x; oorig = NoOrig } in
                          let _lval =
                            { _lval with rev_offset = o :: _lval.rev_offset }
                          in
@@ -989,6 +1024,9 @@ let check_function_signature env fun_exp (_args : exp argument stack)
                          None
                      | __else__ -> None)
                  | _ -> None)
+             | T.ArgToArg _ -> 
+              logger#flash "ArgToArg";
+              (* TODO *) None
              (* THINK: Should we report something here? *)
              | T.SrcToSink _ -> None)
         |> List.fold_left Taints.union Taints.empty)
@@ -1025,6 +1063,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let all_args_taints =
           List.fold_left Taints.union Taints.empty all_taints
         in
+        let opt_taint_sig = check_function_signature env e args args_taints in
         let lval_env =
           (* HACK: Java: If we encounter `obj.setX(arg)` we interpret this as `obj.getX = arg`. *)
           match (e, args) with
@@ -1038,7 +1077,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
                 _;
               },
               [ _ ] )
-            when env.lang =*= Lang.Java
+            when Option.is_none opt_taint_sig && env.lang =*= Lang.Java
                  && String.starts_with ~prefix:"set" (fst m.IL.ident) ->
               let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
               let prop_lval =
@@ -1050,7 +1089,6 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
               else lval_env
           | __else__ -> lval_env
         in
-        let opt_taint_sig = check_function_signature env e args args_taints in
         (* After we introduced Top_sinks, we need to explicitly support sinks like
          * `sink(...)` by considering that all of the parameters are sinks. To make
          * sure that we are backwards compatible, we do this for any sink that does
@@ -1116,6 +1154,26 @@ let check_tainted_return env tok e : Taints.t * Lval_env.t =
   report_findings env findings;
   (taints, var_env')
 
+let findings_of_assign env lval taints : T.finding list =
+  logger#flash "findings_of_assign %s" (Display_IL.string_of_lval lval);
+  match Lval_env.dumb_find env.enter_env lval with
+  | `Clean | `None -> []
+  | `Tainted enter_taints ->
+      let arglval_list = 
+        enter_taints |> Taints.elements |> List.filter_map (fun taint ->
+          match taint.T.orig with
+          | T.Arg arglval -> Some arglval
+          | _ -> None
+          )
+        in
+      let new_taints = Taints.diff taints enter_taints in
+      new_taints |> Taints.elements |> List.filter_map (fun taint ->
+        match taint.T.orig, arglval_list with
+        | T.Arg t, [argpos] -> Some (T.ArgToArg (t, taint.tokens, argpos))
+        | _ -> None
+      )
+      
+
 (*****************************************************************************)
 (* Transfer *)
 (*****************************************************************************)
@@ -1176,10 +1234,11 @@ let transfer :
           let has_taints = not (Taints.is_empty taints) in
           match opt_lval with
           | Some lval ->
-              if has_taints then
+              if has_taints then (
+                findings_of_assign env lval taints |> report_findings env;
                 (* Instruction returns tainted data, add taints to lval.
                  * See [Taint_lval_env] for details. *)
-                Lval_env.add lval_env' lval taints
+                Lval_env.add lval_env' lval taints)
               else
                 (* Instruction returns safe data, remove taints from lval.
                  * See [Taint_lval_env] for details. *)
