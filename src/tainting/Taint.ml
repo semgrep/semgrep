@@ -18,6 +18,8 @@ module PM = Pattern_match
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+module LabelMap = Map.Make (String)
+
 (*****************************************************************************)
 (* Call traces *)
 (*****************************************************************************)
@@ -57,6 +59,13 @@ type source = {
 
 type sink = Rule.taint_sink call_trace [@@deriving show]
 
+let rec sink_has_no_requires = function
+  | PM (_pm, x) -> (
+      match x.Rule.sink_requires.G.e with
+      | G.N (G.Id ((s, _), _)) -> s = Rule.default_source_label
+      | __else__ -> false)
+  | Call (_, _, trace) -> sink_has_no_requires trace
+
 let rec pm_of_trace = function
   | PM (pm, x) -> (pm, x)
   | Call (_, _, trace) -> pm_of_trace trace
@@ -81,43 +90,24 @@ let _show_source { call_trace; label } =
   _show_call_trace (fun _ -> label) call_trace
 
 (*****************************************************************************)
+(* Requires traces *)
+(*****************************************************************************)
+
+(*****************************************************************************)
 (* Signatures *)
 (*****************************************************************************)
 
 type arg_pos = string * int [@@deriving show]
+type orig = Src of source | Arg of arg_pos [@@deriving show]
 
-type source_to_sink = {
-  source : source;
-  tokens : tainted_tokens;
-  sink : sink;
-  merged_env : Metavariable.bindings;
-}
-[@@deriving show]
-
-type finding =
-  | SrcToSink of source_to_sink
-  | SrcToReturn of source * tainted_tokens * G.tok
-  | ArgToSink of arg_pos * tainted_tokens * sink
-  | ArgToReturn of arg_pos * tainted_tokens * G.tok
-[@@deriving show]
-
-type signature = finding list
-
-let _show_source_to_sink { source; sink; _ } =
-  Printf.sprintf "%s ~~~> %s" (_show_source source)
-    (_show_call_trace (fun _ -> "sink") sink)
-
-let _show_finding = function
-  | SrcToSink x -> _show_source_to_sink x
-  | SrcToReturn (src, _, _) -> Printf.sprintf "return (%s)" (_show_source src)
-  | ArgToSink (a, _, _) -> Printf.sprintf "%s ----> sink" (show_arg_pos a)
-  | ArgToReturn (a, _, _) -> Printf.sprintf "return (%s)" (show_arg_pos a)
+let _show_orig = function
+  | Src src -> _show_source src
+  | Arg arg_pos -> show_arg_pos arg_pos
 
 (*****************************************************************************)
 (* Taint *)
 (*****************************************************************************)
 
-type orig = Src of source | Arg of arg_pos [@@deriving show]
 type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
 let src_of_pm (pm, (x : Rule.taint_source)) =
@@ -168,6 +158,35 @@ let _show_taint taint =
       let r = Range.range_of_token_locations tok1 tok2 in
       Printf.sprintf "(%d,%d)#%s|%d|" r.start r.end_ label (depth 0 call_trace)
   | Arg (s, i) -> Printf.sprintf "arg(%s)#%d" s i
+
+let _show_taints taints = Common2.string_of_list _show_taint taints
+
+type taints_to_sink = {
+  (* These taints were incoming to the sink, under a certain
+     REQUIRES expression.
+     When we discharge the taint signature, we will produce
+     a certain number of findings suitable to how the sink was
+     reached.
+  *)
+  taints_with_precondition : taint list * G.expr;
+      (** These [label_origs] are the "requires trace" of the *)
+  sink : sink;
+  merged_env : Metavariable.bindings;
+}
+[@@deriving show]
+
+type finding = ToSink of taints_to_sink | ToReturn of taint list * G.tok
+[@@deriving show]
+
+type signature = finding list
+
+let _show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
+  Common.spf "%s ~~~> %s" (_show_taints taints)
+    (_show_call_trace (fun _ -> "sink") sink)
+
+let _show_finding = function
+  | ToSink x -> _show_taints_to_sink x
+  | ToReturn (taints, _) -> Printf.sprintf "return (%s)" (_show_taints taints)
 
 (*****************************************************************************)
 (* Taint sets *)
@@ -256,6 +275,7 @@ module Taint_set = struct
   let map f set = Taint_map.map f set
   let iter f set = Taint_map.iter (fun _k -> f) set
   let fold f set acc = Taint_map.fold (fun _k -> f) set acc
+  let exists f set = Taint_map.exists (fun _ x -> f x) set
 
   let of_list taints =
     List.fold_left (fun set taint -> add taint set) Taint_map.empty taints

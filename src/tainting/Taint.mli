@@ -1,3 +1,5 @@
+module LabelMap : Map.S with type key = string
+
 type tainted_tokens = AST_generic.tok list [@@deriving show]
 (** A list of tokens showing where the taint passed through,
   * at present these represent only code variables. *)
@@ -23,11 +25,22 @@ type source = {
 [@@deriving show]
 
 type sink = Rule.taint_sink call_trace [@@deriving show]
+
+val sink_has_no_requires : sink -> bool
+
 type arg_pos = string * int [@@deriving show]
 
-type source_to_sink = {
-  source : source;
-  tokens : tainted_tokens;
+(** The origin of taint, where does taint comes from? *)
+type orig =
+  | Src of source  (** An actual taint source (`pattern-sources:` match). *)
+  | Arg of arg_pos
+      (** A taint variable (potential taint coming through an argument). *)
+[@@deriving show]
+
+type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
+
+type taints_to_sink = {
+  taints_with_precondition : taint list * AST_generic.expr;
   sink : sink;
   merged_env : Metavariable.bindings;
 }
@@ -37,15 +50,12 @@ type source_to_sink = {
   * depend on taint variables so they must be interpreted on a specific
   * context. *)
 type finding =
-  | SrcToSink of source_to_sink
-      (** A taint source inside the function reaches a sink. *)
-  | SrcToReturn of source * tainted_tokens * AST_generic.tok
-      (** A taint source inside the function reaches a `return` statement,
-   * therefore the result of the function is tainted.  *)
-  | ArgToSink of arg_pos * tainted_tokens * sink
-      (** If this argument was tainted, the taint would reach a sink. *)
-  | ArgToReturn of arg_pos * tainted_tokens * AST_generic.tok
-      (** If this argument was tainted, the taint would reach a `return` statement. *)
+  | ToSink of taints_to_sink
+      (** A taint source or potentially-tainted argument inside the function
+          reaches a sink. *)
+  | ToReturn of taint list * AST_generic.tok
+      (** A taint source or potentially-tainted argument
+          would reach a `return` statement. *)
 [@@deriving show]
 
 type signature = finding list
@@ -61,15 +71,6 @@ type signature = finding list
  * THINK: We could write this in a way that resembles a function type,
  *   but right now it would probably just add complexity. *)
 
-(** The origin of taint, where does taint comes from? *)
-type orig =
-  | Src of source  (** An actual taint source (`pattern-sources:` match). *)
-  | Arg of arg_pos
-      (** A taint variable (potential taint coming through an argument). *)
-[@@deriving show]
-
-type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
-
 (** A set of taint sources. *)
 module Taint_set : sig
   type t
@@ -83,6 +84,7 @@ module Taint_set : sig
   val map : (taint -> taint) -> t -> t
   val iter : (taint -> unit) -> t -> unit
   val fold : (taint -> 'a -> 'a) -> t -> 'a -> 'a
+  val exists : (taint -> bool) -> t -> bool
   val of_list : taint list -> t
   val to_seq : t -> taint Seq.t
   val elements : t -> taint list

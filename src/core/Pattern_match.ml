@@ -54,9 +54,34 @@ type taint_call_trace =
     }
 [@@deriving show, eq]
 
+type labeled_taint_source_trace = {
+  labels_found : (string option * (taint_call_trace * tainted_tokens) list) list;
+      (** An association from labels to possibly-multiple taint sources
+          reaching the sink with that label.
+          These are only the ones that were necessary for the requires
+          formula to be satisfied.
+          The enclosed label is None for any label which should not be
+          directly reported (such as the default label).
+        *)
+      (* TODO: in the future, we should take into account the labels that were not
+         found, which are necessarily absent to produce a finding.
+         for instance, for a sink with `requires: not A`, we should probably report
+         in the trace not just the taint found, but the fact that it was explicitly
+         not the label A
+
+         labels_not_found : string list;
+      *)
+}
+[@@deriving show, eq]
+(** This augmented call trace allows the possibility of multiple tainted inputs
+    reaching a given sink.
+    This is important because several tainted inputs may be necessary for a finding
+    to occur, depending on the `requires` condition attached to the sink.
+    This type subsumes previous call trace representation.
+  *)
+
 type taint_trace = {
-  source : taint_call_trace;
-  tokens : tainted_tokens;
+  source : labeled_taint_source_trace;
   sink : taint_call_trace;
 }
 [@@deriving show, eq]

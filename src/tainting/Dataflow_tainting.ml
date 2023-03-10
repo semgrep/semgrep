@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Iago Abal
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -25,6 +25,7 @@ module LV = IL_helpers
 module T = Taint
 module Lval_env = Taint_lval_env
 module Taints = T.Taint_set
+module LabelSet = Label_resolution.LabelSet
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -56,7 +57,6 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
-module LabelSet = Set.Make (String)
 module SMap = Map.Make (String)
 
 (*****************************************************************************)
@@ -421,45 +421,48 @@ and eval_label_args ~labels args =
       logger#error "Unexpected argument kind";
       false :: eval_label_args ~labels args'
 
-(* Produces a finding for every taint source that is unifiable with the sink. *)
-let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
-  let labels = labels_of_taints taints in
+(* Potentially produces a finding from incoming taints to a sink.
+   Note that, while this sink has a `requires` and incoming labels,
+   we decline to solve this now!
+   We will figure out how many actual Semgrep findings are generated
+   when this information is used, later.
+*)
+let findings_of_tainted_sink env taints (sink : T.sink) : T.finding option =
   let sink_pm, ts = T.pm_of_trace sink in
-  let req = eval_label_requires ~labels ts.sink_requires in
   (* TODO: With taint labels it's less clear what is "the source",
      * in fact, there could be many sources, each one providing a
      * different label. Here these would be reported as different
      * findings... We would need to have multiple sources in `SrcToSink`!
      * And `ArgtoSink` needs to carry the other taint that reaches the
      * sink besides the argument. *)
-  taints |> Taints.elements
-  |> List.filter_map (fun (taint : T.taint) ->
-         let tokens = List.rev taint.tokens in
-         match taint.orig with
-         | Arg i ->
-             (* We need to check the label and unifiability requirements
-                at the call site. *)
-             Some (T.ArgToSink (i, tokens, sink))
-         | Src source ->
-             if req then
-               let src_pm, _ = T.pm_of_trace source.call_trace in
-               let* merged_env =
-                 merge_source_sink_mvars env sink_pm.PM.env src_pm.PM.env
-               in
-               Some (T.SrcToSink { source; tokens; sink; merged_env })
-             else None)
+  let taints = Taints.elements taints in
+  let* merged_env =
+    let src_pms_bindings =
+      taints
+      |> List.concat_map (fun t ->
+             match t.T.orig with
+             | T.Arg _ -> []
+             | Src source ->
+                 let src_pm, _ = T.pm_of_trace source.call_trace in
+                 src_pm.PM.env)
+    in
+    merge_source_sink_mvars env sink_pm.PM.env src_pms_bindings
+  in
+  Some
+    (T.ToSink
+       {
+         taints_with_precondition = (taints, ts.sink_requires);
+         sink;
+         merged_env;
+       })
 
 (* Produces a finding for every unifiable source-sink pair. *)
 let findings_of_tainted_sinks env taints sinks : T.finding list =
-  sinks |> List.concat_map (findings_of_tainted_sink env taints)
+  sinks |> List.filter_map (findings_of_tainted_sink env taints)
 
-let findings_of_tainted_return taints return_tok : T.finding list =
-  taints |> Taints.elements
-  |> Common.map (fun (taint : T.taint) ->
-         let tokens = List.rev taint.tokens in
-         match taint.orig with
-         | T.Arg i -> T.ArgToReturn (i, tokens, return_tok)
-         | T.Src src -> T.SrcToReturn (src, tokens, return_tok))
+let finding_of_tainted_return taints return_tok : T.finding =
+  let taints = taints |> Taints.elements in
+  T.ToReturn (taints, return_tok)
 
 let check_orig_if_sink env ?filter_sinks orig taints =
   let sinks = orig_is_best_sink env orig in
@@ -895,45 +898,89 @@ let check_function_signature env fun_exp args_taints =
       let taints_of_arg = find_args_taints args_taints fparams in
       Some
         (fun_sig
-        |> List.filter_map (function
-             | T.SrcToReturn (src, tokens, _return_tok) ->
-                 let call_trace = T.Call (eorig, tokens, src.call_trace) in
-                 Some
-                   (Taints.singleton
-                      { orig = Src { src with call_trace }; tokens = [] })
-             | T.ArgToReturn (argpos, tokens, _return_tok) ->
-                 let* arg_taints = taints_of_arg argpos in
-                 (* Get the token of the function *)
-                 let* ident =
-                   match f with
-                   (* Case `$F()` *)
-                   | { base = Var { ident; _ }; rev_offset = []; _ }
-                   (* Case `$X. ... .$F()` *)
-                   | {
-                       base = _;
-                       rev_offset = { o = Dot { ident; _ }; _ } :: _;
-                       _;
-                     } ->
-                       Some ident
-                   | __else__ -> None
-                 in
-                 Some
-                   (arg_taints
-                   |> Taints.map (fun taint ->
-                          let tokens =
-                            List.rev_append tokens (snd ident :: taint.tokens)
-                          in
-                          { taint with tokens }))
-             | T.ArgToSink (argpos, tokens, sink) ->
-                 let sink = T.Call (eorig, tokens, sink) in
-                 let* arg_taints = taints_of_arg argpos in
-                 arg_taints
-                 |> Taints.iter (fun t ->
-                        findings_of_tainted_sink env (Taints.singleton t) sink
-                        |> report_findings env);
-                 None
-             (* THINK: Should we report something here? *)
-             | T.SrcToSink _ -> None)
+        |> List.concat_map (function
+             | T.ToReturn (taints, _return_tok) ->
+                 taints
+                 |> List.filter_map (fun t ->
+                        match t.T.orig with
+                        | Src src ->
+                            let call_trace =
+                              T.Call (eorig, t.tokens, src.call_trace)
+                            in
+                            Some
+                              (Taints.singleton
+                                 {
+                                   orig = Src { src with call_trace };
+                                   tokens = [];
+                                 })
+                        | Arg argpos ->
+                            let* arg_taints = taints_of_arg argpos in
+                            (* Get the token of the function *)
+                            let* ident =
+                              match f with
+                              (* Case `$F()` *)
+                              | { base = Var { ident; _ }; rev_offset = []; _ }
+                              (* Case `$X. ... .$F()` *)
+                              | {
+                                  base = _;
+                                  rev_offset = { o = Dot { ident; _ }; _ } :: _;
+                                  _;
+                                } ->
+                                  Some ident
+                              | __else__ -> None
+                            in
+                            let tokens =
+                              List.rev_append t.tokens (snd ident :: t.tokens)
+                            in
+                            Some
+                              (arg_taints
+                              |> Taints.map (fun taint ->
+                                     let tokens =
+                                       List.rev_append tokens
+                                         (snd ident :: taint.tokens)
+                                     in
+                                     { taint with tokens })))
+             | T.ToSink
+                 { taints_with_precondition = taints, _requires; sink; _ } ->
+                 (* TODO: use arg taints once interproc taint labels are a thing
+
+                    coupling: [pms_of_finding] in `Match_tainting_mode`
+                    notably, we may report findings twice if we have a finding
+                    here which may occur due to no arguments. That should be reported
+                    by [pms_of_finding] instead, so if we need no arguments to satisfy
+                    a sink, then we should refrain from reporting it here
+                 *)
+                 taints
+                 |> List.filter_map (fun t ->
+                        match t.T.orig with
+                        | Src _ ->
+                            (* THINK: Should we report something here? *)
+                            None
+                        | Arg argpos ->
+                            let sink = T.Call (eorig, t.tokens, sink) in
+                            let* arg_taints = taints_of_arg argpos in
+                            arg_taints
+                            |> Taints.iter (fun t ->
+                                   findings_of_tainted_sinks env
+                                     (Taints.singleton t) [ sink ]
+                                   |> report_findings env);
+                            None)
+                 (*| T.SrcToReturn (src, tokens, _return_tok) ->
+                       let call_trace = T.Call (eorig, tokens, src.call_trace) in
+                       Some
+                         (Taints.singleton
+                            { orig = Src { src with call_trace }; tokens = [] })
+                   | T.ArgToReturn (argpos, tokens, _return_tok)
+                   | T.ArgToSink (argpos, tokens, sink) ->
+                       let sink = T.Call (eorig, tokens, sink) in
+                       let* arg_taints = taints_of_arg argpos in
+                       arg_taints
+                       |> Taints.iter (fun t ->
+                              findings_of_tainted_sink env (Taints.singleton t) sink
+                              |> report_findings env);
+                       None
+                   | T.SrcToSink _ -> None
+                 *))
         |> List.fold_left Taints.union Taints.empty)
   | None, _
   | Some _, _ ->
@@ -1112,8 +1159,8 @@ let transfer :
     | NReturn (tok, e) ->
         (* TODO: Move most of this to check_tainted_return. *)
         let taints, lval_env' = check_tainted_return env tok e in
-        let findings = findings_of_tainted_return taints tok in
-        report_findings env findings;
+        let return_finding = finding_of_tainted_return taints tok in
+        report_findings env [ return_finding ];
         lval_env'
     | NLambda params ->
         params

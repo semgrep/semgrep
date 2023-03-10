@@ -28,6 +28,7 @@ module PI = Parse_info
 module MV = Metavariable
 module ME = Matching_explanation
 module Out = Output_from_core_t
+module Labels = Label_resolution.LabelSet
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -447,42 +448,129 @@ let rec convert_taint_call_trace = function
           call_trace = convert_taint_call_trace ct;
         }
 
-let taint_trace_of_src_to_sink source tokens sink =
-  {
-    Pattern_match.source = convert_taint_call_trace source.T.call_trace;
-    tokens;
-    sink = convert_taint_call_trace sink;
-  }
+let taint_trace_of_src_trace_and_sink source sink =
+  { Pattern_match.source; sink = convert_taint_call_trace sink }
 
-let pm_of_finding finding =
+let pms_of_finding finding =
   match finding with
-  | T.SrcToSink { source; tokens; sink; merged_env } ->
-      (* We always report the finding on the sink that gets tainted, the call trace
-       * must be used to explain how exactly the taint gets there. At some point
-       * we experimented with reporting the match on the `sink`'s function call that
-       * leads to the actual sink. E.g.:
-       *
-       *     def f(x):
-       *       sink(x)
-       *
-       *     def g():
-       *       f(source)
-       *
-       * Here we tried reporting the match on `f(source)` as "the line to blame"
-       * for the injection bug... but most users seem to be confused about this. They
-       * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
-       *)
-      let taint_trace =
-        Some (lazy (taint_trace_of_src_to_sink source tokens sink))
-      in
-      let sink_pm, _ = T.pm_of_trace sink in
-      Some { sink_pm with env = merged_env; taint_trace }
-  | T.SrcToReturn _
-  (* TODO: We might want to report functions that let input taint
-   * go into a sink (?) *)
-  | T.ArgToSink _
-  | T.ArgToReturn _ ->
-      None
+  | T.ToReturn (_taints, _) ->
+      (* TODO: We might want to report functions that let input taint
+         * go into a sink (?) *)
+      []
+  | ToSink { taints_with_precondition = taints, requires; sink; merged_env }
+    -> (
+      let necessary_labels = Label_resolution.needed_labels_of_expr requires in
+      match necessary_labels with
+      | None ->
+          (* The kinds of sinks that fall into this case are sinks without
+             requires, and sinks that contain `or` or `not` (or are otherwise
+             not just a straight conjunct of literals)
+          *)
+          (* Just a normal finding. *)
+          taints
+          |> List.filter_map (fun t ->
+                 match t.T.orig with
+                 | Src src ->
+                     (* We always report the finding on the sink that gets tainted, the call trace
+                        * must be used to explain how exactly the taint gets there. At some point
+                        * we experimented with reporting the match on the `sink`'s function call that
+                        * leads to the actual sink. E.g.:
+                        *
+                        *     def f(x):
+                        *       sink(x)
+                        *
+                        *     def g():
+                        *       f(source)
+                        *
+                        * Here we tried reporting the match on `f(source)` as "the line to blame"
+                        * for the injection bug... but most users seem to be confused about this. They
+                        * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
+                     *)
+                     let labeled_trace =
+                       {
+                         PM.labels_found =
+                           [
+                             ( None,
+                               [
+                                 ( convert_taint_call_trace src.T.call_trace,
+                                   t.tokens );
+                               ] );
+                           ];
+                       }
+                     in
+                     let taint_trace =
+                       Some
+                         (lazy
+                           (taint_trace_of_src_trace_and_sink labeled_trace sink))
+                     in
+                     let sink_pm, _ = T.pm_of_trace sink in
+                     Some { sink_pm with env = merged_env; taint_trace }
+                 | Arg _ -> None)
+      | Some necessary_labels ->
+          let source_taints, args_taints =
+            taints
+            |> Common.partition_either (fun { T.orig; tokens } ->
+                   match orig with
+                   | Arg arg -> Right arg
+                   | Src src -> Left (src, tokens))
+          in
+          let labeled_sources_tbl = Hashtbl.create 10 in
+          source_taints
+          |> List.iter (fun (src, tokens) ->
+                 Hashtbl.add labeled_sources_tbl src.T.label (src, tokens));
+
+          let known_labels =
+            taints
+            |> List.filter_map (fun t ->
+                   match t.T.orig with
+                   | Src src -> Some src.label
+                   | Arg _ -> None)
+            |> Labels.of_list
+          in
+          let have_all_necessary_labels =
+            (* We satisfy if for all the labels we need, we have them already.
+               Note that these are only the labels we know about, not including argument
+               taint, so it is possible we could satisfy this condition later, if our
+               argument taint were instantiated with the label we need.
+
+               However, since this is not a call-site, we don't know, so we don't count
+               it as having all the necessary labels.
+            *)
+            necessary_labels
+            |> Labels.for_all (fun l -> Labels.mem l known_labels)
+          in
+          if have_all_necessary_labels then
+            (* TODO: the tokens are problematic
+                we used to previously say if there was a Src that had traversed some
+                distance to get to the sink
+                consider all the srcs independently, and produce a trace for each one
+                using the src trace as the intermediate vars
+                but our type is now wrong because you may have many intermediate vars,
+                depending on how many things you have reaching the sink
+                bummer
+            *)
+            let taint_trace =
+              Some
+                (lazy
+                  (let source_trace =
+                     let labels_found =
+                       necessary_labels |> Labels.elements
+                       |> Common.map (fun l ->
+                              ( l,
+                                Hashtbl.find_all labeled_sources_tbl l
+                                |> Common.map (fun (src, tokens) ->
+                                       ( convert_taint_call_trace
+                                           src.T.call_trace,
+                                         tokens )) ))
+                     in
+                     { PM.labels_found }
+                   in
+                   taint_trace_of_src_trace_and_sink source_trace sink))
+            in
+            let sink_pm, _ = T.pm_of_trace sink in
+            Some { sink_pm with env = merged_env; taint_trace }
+          else None)
+(* *)
 
 let check_fundef lang options taint_config opt_ent fdef =
   let name =
@@ -581,8 +669,8 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
-             pm_of_finding finding
-             |> Option.iter (fun pm -> Common.push pm matches))
+             pms_of_finding finding
+             |> List.iter (fun pm -> Common.push pm matches))
     in
     taint_config_of_rule xconf file (ast, []) rule handle_findings
   in
