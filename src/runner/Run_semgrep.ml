@@ -109,13 +109,15 @@ let rec print_taint_call_trace ~format ~spaces = function
 
 let print_taint_trace ~format taint_trace =
   if format =*= Matching_report.Normal then (
-    let (lazy { Pattern_match.source; tokens; sink }) = taint_trace in
-    pr "  * Taint comes from:";
-    print_taint_call_trace ~format ~spaces:4 source;
-    if tokens <> [] then
-      pr
-        (spf "  * These intermediate values are tainted: %s"
-           (string_of_toks tokens));
+    let (lazy { Pattern_match.sources; sink }) = taint_trace in
+    sources
+    |> List.iter (fun (source, tokens) ->
+           pr "  * Taint comes from:";
+           print_taint_call_trace ~format ~spaces:4 source;
+           if tokens <> [] then
+             pr
+               (spf "  * These intermediate values are tainted: %s"
+                  (string_of_toks tokens)));
     match sink with
     | Pattern_match.Toks _ -> ()
     | Call _ ->

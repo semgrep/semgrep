@@ -210,11 +210,16 @@ let rec taint_call_trace = function
       let* call_trace = taint_call_trace call_trace in
       Some (Out.CoreCall (location, intermediate_vars, call_trace))
 
-let taint_trace_to_dataflow_trace { source; tokens; sink } :
+let taint_source_call_trace (call_trace, tokens) =
+  {
+    Out.taint_source = taint_call_trace call_trace;
+    intermediate_vars = Some (tokens_to_intermediate_vars tokens);
+  }
+
+let taint_trace_to_dataflow_trace { sources; sink } :
     Out.core_match_dataflow_trace =
   {
-    Out.taint_source = taint_call_trace source;
-    intermediate_vars = Some (tokens_to_intermediate_vars tokens);
+    Out.taint_sources = Some (Common.map taint_source_call_trace sources);
     taint_sink = taint_call_trace sink;
   }
 
