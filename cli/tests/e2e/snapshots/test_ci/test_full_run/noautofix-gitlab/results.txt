@@ -3,7 +3,7 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
@@ -101,9 +101,20 @@ Some files were skipped or only partially analyzed.
 CI scan completed successfully.
   Found 7 findings (6 blocking) from 6 rules.
   Uploading findings.
-  View results in Semgrep App:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
-  Has findings for blocking rules so exiting with code 1
+'CoreMatchDataflowTrace' object has no attribute 'taint_source'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 473, in ci
+    scan_handler.report_findings(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/app/scans.py", line 274, in report_findings
+    findings = [
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/app/scans.py", line 275, in <listcomp>
+    match.to_app_finding_format(commit_date).to_json() for match in new_matches
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_match.py", line 487, in to_app_finding_format
+    dataflow_trace=self.dataflow_trace,
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_match.py", line 397, in dataflow_trace
+    if dataflow_trace.taint_source:
+AttributeError: 'CoreMatchDataflowTrace' object has no attribute 'taint_source'. Did you mean: 'taint_sources'?
 
 === end of stderr - plain
