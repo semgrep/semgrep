@@ -45,14 +45,15 @@ type taints_to_sink = {
 
 (** Function-level finding (not necessarily a Semgrep finding). These may
   * depend on taint variables so they must be interpreted on a specific
-  * context. *)
+  * context.
+  *)
 type finding =
   | ToSink of taints_to_sink
-      (** A taint source or potentially-tainted argument inside the function
-      reaches a sink. *)
+      (** Taint sources or potentially-tainted arguments inside the function
+          reach a sink. *)
   | ToReturn of taint list * AST_generic.tok
-      (** A taint source or potentially-tainted argument
-      would reach a `return` statement. *)
+      (** Taint sources or potentially-tainted arguments
+          would reach a `return` statement. *)
 [@@deriving show]
 
 type signature = finding list

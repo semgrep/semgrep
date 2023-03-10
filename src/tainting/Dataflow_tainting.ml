@@ -432,21 +432,20 @@ let taints_satisfy_requires taints expr =
    when this information is used, later.
 *)
 let findings_of_tainted_sink env taints (sink : T.sink) : T.finding option =
-  let sink_pm, ts = T.pm_of_trace sink in
-  (* We cannot check whether we satisfy the REQUIRES here.
+  (* We cannot check whether we satisfy the `requires` here.
      This is because this sink may be inside of a function, meaning that
      argument taint can reach it, which can only be instantiated at the
      point where we call the function.
      So we record the `requires` within the taint finding, and evaluate
-     the formula later.
+     the formula later, when we extract the PMs
   *)
-  (* TODO: With taint labels it's less clear what is "the source",
-     * in fact, there could be many sources, each one providing a
-     * different label. Here these would be reported as different
-     * findings... We would need to have multiple sources in `SrcToSink`!
-     * And `ArgtoSink` needs to carry the other taint that reaches the
-     * sink besides the argument. *)
-  let taints_and_bindings =
+  let sink_pm, ts = T.pm_of_trace sink in
+  (* We filter out all taints which do not have unifying mvars, if they
+     exist, and the option is set. This is because we do not want to
+     deny a match if there is a non-unifying taint source, if that source
+     is irrelevant to producing the match.
+  *)
+  let taints_and_bindings_with_unifying_mvars =
     Taints.elements taints
     |> List.filter_map (fun t ->
            let bindings =
@@ -461,14 +460,15 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding option =
            | Some _ -> Some (t, bindings))
   in
   let* merged_env =
-    taints_and_bindings |> List.concat_map snd
+    taints_and_bindings_with_unifying_mvars |> List.concat_map snd
     |> merge_source_sink_mvars env sink_pm.PM.env
   in
   Some
     (T.ToSink
        {
          taints_with_precondition =
-           (Common.map fst taints_and_bindings, ts.sink_requires);
+           ( Common.map fst taints_and_bindings_with_unifying_mvars,
+             ts.sink_requires );
          sink;
          merged_env;
        })
@@ -959,12 +959,7 @@ let check_function_signature env fun_exp args_taints =
                                      { taint with tokens })))
              | T.ToSink
                  { taints_with_precondition = taints, _requires; sink; _ } ->
-                 (* TODO: use arg taints once interproc taint labels are a thing
-                    coupling: [pms_of_finding] in `Match_tainting_mode`
-                    notably, we may report findings twice if we have a finding
-                    here which may occur due to no arguments. That should be reported
-                    by [pms_of_finding] instead, so if we need no arguments to satisfy
-                    a sink, then we should refrain from reporting it here
+                 (* TODO(brandon): use arg taints once interproc taint labels are a thing
                  *)
                  taints
                  |> List.filter_map (fun t ->
@@ -972,9 +967,13 @@ let check_function_signature env fun_exp args_taints =
                         | Src _ ->
                             (* THINK: Should we report something here? *)
                             None
-                        (* TODO: this is wrong
+                        (* TODO(brandon): this is wrong
                            this assumes a world where only one arg taint is ever relevant to
                            a given sink
+                           when we refactor to allow sinks of multiple labeled taints,
+                           we need to change this case. probably, it will involve producing
+                           a single ToSink "finding" which uses all the taints, including
+                           the argument taints induced here.
                         *)
                         | Arg argpos ->
                             let sink = T.Call (eorig, t.tokens, sink) in
@@ -984,23 +983,7 @@ let check_function_signature env fun_exp args_taints =
                                    findings_of_tainted_sinks env
                                      (Taints.singleton t) [ sink ]
                                    |> report_findings env);
-                            None)
-                 (*| T.SrcToReturn (src, tokens, _return_tok) ->
-                       let call_trace = T.Call (eorig, tokens, src.call_trace) in
-                       Some
-                         (Taints.singleton
-                            { orig = Src { src with call_trace }; tokens = [] })
-                   | T.ArgToReturn (argpos, tokens, _return_tok)
-                   | T.ArgToSink (argpos, tokens, sink) ->
-                       let sink = T.Call (eorig, tokens, sink) in
-                       let* arg_taints = taints_of_arg argpos in
-                       arg_taints
-                       |> Taints.iter (fun t ->
-                              findings_of_tainted_sink env (Taints.singleton t) sink
-                              |> report_findings env);
-                       None
-                   | T.SrcToSink _ -> None
-                 *))
+                            None))
         |> List.fold_left Taints.union Taints.empty)
   | None, _
   | Some _, _ ->
