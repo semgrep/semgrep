@@ -1,0 +1,1 @@
+Dockerfile: Add a `semgrep` user and use that user when executing semgrep inside the container
