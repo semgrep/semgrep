@@ -161,6 +161,12 @@ WORKDIR /src
 # do between the ocaml build and the Python build.
 RUN rm -rf /semgrep
 
+
+RUN addgroup --system semgrep \
+    && adduser --system --shell /bin/false --ingroup semgrep semgrep
+USER semgrep
+
+
 # In case of problems, if you need to debug the docker image, run 'docker build .',
 # identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
 # to interactively explore the docker image.
