@@ -1,2 +1,3 @@
 Improved error reporting for rule parsing by correctly reporting parse errors
-instead of fatal errors in certain cases.
+instead of fatal errors in certain cases. Additionally, changes parse errors
+to all cause Semgrep to exit with error code 4.

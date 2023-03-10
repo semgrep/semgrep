@@ -24,7 +24,7 @@ def test_rule_parser__success(run_semgrep_in_tmp: RunSemgrep, snapshot, filename
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure(run_semgrep_in_tmp: RunSemgrep, snapshot, filename):
-    run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", assert_exit_code={2, 7, 8})
+    run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", assert_exit_code={4, 7, 8})
 
 
 @pytest.mark.kinda_slow
@@ -43,7 +43,7 @@ def test_rule_parser__failure__error_messages(
     run_semgrep_in_tmp: RunSemgrep, snapshot, filename
 ):
     stdout, _ = run_semgrep_in_tmp(
-        f"rules/syntax/{filename}.yaml", assert_exit_code={2, 7, 8}
+        f"rules/syntax/{filename}.yaml", assert_exit_code={4, 7, 8}
     )
 
     json_output = json.loads(stdout)
@@ -56,7 +56,7 @@ def test_rule_parser__failure__error_messages(
         options=["--force-color"],
         output_format=OutputFormat.TEXT,
         force_color=True,
-        assert_exit_code={2, 7, 8},
+        assert_exit_code={4, 7, 8},
     )
 
     snapshot.assert_match(stderr, "error-in-color.txt")
@@ -67,7 +67,7 @@ def test_rule_parser__failure__error_messages(
 def test_rule_parser_cli_pattern(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Check json output
     stdout, _ = run_semgrep_in_tmp(
-        options=["-e", "#include<asdf><<>>><$X>", "-l", "c"], assert_exit_code=2
+        options=["-e", "#include<asdf><<>>><$X>", "-l", "c"], assert_exit_code=4
     )
     snapshot.assert_match(stdout, "error.json")
 
@@ -76,7 +76,7 @@ def test_rule_parser_cli_pattern(run_semgrep_in_tmp: RunSemgrep, snapshot):
         options=["-e", "#include<asdf><<>>><$X>", "-l", "c"],
         output_format=OutputFormat.TEXT,
         force_color=True,
-        assert_exit_code=2,
+        assert_exit_code=4,
     )
     snapshot.assert_match(stderr, "error.txt")
 
