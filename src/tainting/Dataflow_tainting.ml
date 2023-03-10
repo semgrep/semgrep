@@ -917,6 +917,30 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
 let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
   check_tainted_lval env (LV.lval_of_var var)
 
+let lval_of_arg_lval fun_exp _fparams arg_lval =
+  match arg_lval with
+  | T.ArgLval (("<this>", -1), _os) ->
+      (match fun_exp with
+      | ( {
+            e =
+              Fetch
+                ({
+                  base = Var _obj;
+                  rev_offset = [ ({ o = Dot _m; _ }) ];
+                } as _lval);
+            _;
+          }) -> 
+          (match _os with
+          (* TODO: more than one offset? *)
+          | [o] ->
+            let arg_lval = { base = Var _obj; rev_offset = [{o = Dot o; oorig = NoOrig}]} in
+            Some (arg_lval, _obj)
+          | [] | _::_ -> None
+          )
+      | _no_method_call -> None
+      )
+  | _ -> None (* TODO for other args *)
+
 let taints_of_arg_lval env fun_exp fparams actuals args_taints arg_lval =
   match arg_lval with
   | T.ArgLval (("<this>", -1), _os) ->
@@ -968,14 +992,12 @@ let check_function_signature env fun_exp (_args : exp argument stack)
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
       let* fparams, fun_sig = hook env.config eorig in
-      Some
-        (fun_sig
-        |> List.filter_map (function
+      let process_sig : T.finding -> (Taints.t * (lval * Taints.t) list) option  = function
              | T.SrcToReturn (src, tokens, _return_tok) ->
                  let call_trace = T.Call (eorig, tokens, src.call_trace) in
                  Some
                    (Taints.singleton
-                      { orig = Src { src with call_trace }; tokens = [] })
+                      { orig = Src { src with call_trace }; tokens = [] }, [])
              | T.ArgToReturn (arg_lval, tokens, _return_tok) ->
                  let* arg_taints = taints_of_arg_lval env fun_exp fparams _args args_taints arg_lval in
                  (* Get the token of the function *)
@@ -998,7 +1020,7 @@ let check_function_signature env fun_exp (_args : exp argument stack)
                           let tokens =
                             List.rev_append tokens (snd ident :: taint.tokens)
                           in
-                          { taint with tokens }))
+                          { taint with tokens }), [])
              | T.ArgToSink (arg_lval, tokens, sink) -> (
                  let sink = T.Call (eorig, tokens, sink) in
                  let* arg_taints = taints_of_arg_lval env fun_exp fparams _args args_taints arg_lval in
@@ -1009,12 +1031,37 @@ let check_function_signature env fun_exp (_args : exp argument stack)
                         |> report_findings env);
                   None
                  )
-             | T.ArgToArg _ -> 
-              logger#flash "ArgToArg";
-              (* TODO *) None
+             | T.ArgToArg (src_arg_lval, _tokens, dst_arg_lval) as fi -> (
+              let* _src_taints = taints_of_arg_lval env fun_exp fparams _args args_taints src_arg_lval in
+              let* _dst_lval, _obj = lval_of_arg_lval fun_exp fparams dst_arg_lval in
+              let _dst_taints =
+                 _src_taints
+                   |> Taints.map (fun taint ->
+                          let tokens =
+                            List.rev_append _tokens (snd _obj.ident :: taint.tokens)
+                          in
+                          { taint with tokens })
+              in
+              if Taints.is_empty _dst_taints then None else (
+              logger#flash "ArgToArg %s THUS %s : %s" (T._show_finding fi) (Display_IL.string_of_lval _dst_lval) (T.show_taints _dst_taints);
+              (* TODO findings_of_asssign *)
+              Some (Taints.empty, [(_dst_lval, _dst_taints)])) )
              (* THINK: Should we report something here? *)
-             | T.SrcToSink _ -> None)
-        |> List.fold_left Taints.union Taints.empty)
+             | T.SrcToSink _ -> None
+      in
+      Some
+        (fun_sig
+        |> List.filter_map process_sig
+        |> List.fold_left (fun (tacc, lacc) (t, l) -> (Taints.union tacc t, List.rev_append l lacc)) (Taints.empty, [])
+        |> (fun (taints, rev_lval_tainted) ->
+          let lval_env =
+            rev_lval_tainted |> List.rev |> List.fold_left (fun lval_env (lval, taints) ->
+               Lval_env.add lval_env lval taints 
+              ) env.lval_env
+          in
+          (taints, lval_env)
+        )
+        )
   | None, _
   | Some _, _ ->
       None
@@ -1048,32 +1095,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let all_args_taints =
           List.fold_left Taints.union Taints.empty all_taints
         in
-        let opt_taint_sig = check_function_signature env e args args_taints in
-        let lval_env =
-          (* HACK: Java: If we encounter `obj.setX(arg)` we interpret this as `obj.getX = arg`. *)
-          match (e, args) with
-          | ( {
-                e =
-                  Fetch
-                    ({
-                       base = Var _obj;
-                       rev_offset = [ ({ o = Dot m; _ } as offset) ];
-                     } as lval);
-                _;
-              },
-              [ _ ] )
-            when Option.is_none opt_taint_sig && env.lang =*= Lang.Java
-                 && String.starts_with ~prefix:"set" (fst m.IL.ident) ->
-              let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
-              let prop_lval =
-                let o = Dot { m with ident = (prop_name, snd m.IL.ident) } in
-                { lval with rev_offset = [ { offset with o } ] }
-              in
-              if not (Taints.is_empty all_args_taints) then
-                Lval_env.add lval_env prop_lval all_args_taints
-              else lval_env
-          | __else__ -> lval_env
-        in
+        let opt_taint_sig = check_function_signature {env with lval_env} e args args_taints in
         (* After we introduced Top_sinks, we need to explicitly support sinks like
          * `sink(...)` by considering that all of the parameters are sinks. To make
          * sure that we are backwards compatible, we do this for any sink that does
@@ -1081,15 +1103,40 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
          *)
         check_orig_if_sink env instr.iorig all_args_taints
           ~filter_sinks:(fun m -> not (is_func_sink_with_focus m.spec));
-        let call_taints =
+        let call_taints, lval_env =
           match opt_taint_sig with
-          | Some call_taints -> call_taints
+          | Some (call_taints, lval_env) -> (call_taints, lval_env)
           | None ->
-              if not (propagate_through_functions env) then Taints.empty
+              let lval_env =
+                (* HACK: Java: If we encounter `obj.setX(arg)` we interpret this as `obj.getX = arg`. *)
+                match (e, args) with
+                | ( {
+                      e =
+                        Fetch
+                          ({
+                            base = Var _obj;
+                            rev_offset = [ ({ o = Dot m; _ } as offset) ];
+                          } as lval);
+                      _;
+                    },
+                    [ _ ] )
+                  when env.lang =*= Lang.Java
+                      && String.starts_with ~prefix:"set" (fst m.IL.ident) ->
+                    let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
+                    let prop_lval =
+                      let o = Dot { m with ident = (prop_name, snd m.IL.ident) } in
+                      { lval with rev_offset = [ { offset with o } ] }
+                    in
+                    if not (Taints.is_empty all_args_taints) then
+                      Lval_env.add lval_env prop_lval all_args_taints
+                    else lval_env
+                | __else__ -> lval_env
+              in
+              ((if not (propagate_through_functions env) then Taints.empty
               else
                 (* Otherwise assume that the function will propagate
                    * the taint of its arguments. *)
-                all_args_taints
+                all_args_taints), lval_env)
         in
         (* We add the taint of the function itselt (i.e., 'e_taints') too.
          * DEEP: In DeepSemgrep this also helps identifying `x.foo()` as tainted
