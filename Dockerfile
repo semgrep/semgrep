@@ -121,15 +121,13 @@ COPY cli ./
 #    by 'pip install jsonnet'.
 #    TODO: at some point we should not need the 'pip install jsonnet' because
 #    jsonnet would be mentioned in the setup.py for semgrep as a dependency.
-# TODO? why the mkdir -p /tmp/.cache?
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
      SEMGREP_SKIP_BIN=true pip install /semgrep &&\
      # running this pre-compiles some python files for faster startup times
      semgrep --version &&\
-     apk del .build-deps &&\
-     mkdir -p /tmp/.cache
+     apk del .build-deps
 
 # Let the user know how their container was built
 COPY Dockerfile /Dockerfile
@@ -141,7 +139,6 @@ RUN ln -s semgrep-core /usr/local/bin/osemgrep
 
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
-    SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
     SEMGREP_USER_AGENT_APPEND="Docker"
 
 # The command we tell people to run for testing semgrep in Docker is
