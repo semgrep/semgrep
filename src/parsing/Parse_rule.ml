@@ -491,17 +491,29 @@ let parse_options env (key : key) value =
 
 (* less: could move in a separate Parse_xpattern.ml *)
 let parse_xpattern env (str, tok) =
-  match env.languages with
-  | Xlang.L (lang, _) ->
-      let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
-      XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
-  | Xlang.LRegex ->
-      XP.mk_xpat (XP.Regexp (parse_regexp env (str, tok))) (str, tok)
-  | Xlang.LGeneric -> (
-      let src = Spacegrep.Src_file.of_string str in
-      match Spacegrep.Parse_pattern.of_src src with
-      | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
-      | Error err -> failwith err.msg)
+  try
+    match env.languages with
+    | Xlang.L (lang, _) ->
+        let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
+        XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
+    | Xlang.LRegex ->
+        XP.mk_xpat (XP.Regexp (parse_regexp env (str, tok))) (str, tok)
+    | Xlang.LGeneric -> (
+        let src = Spacegrep.Src_file.of_string str in
+        match Spacegrep.Parse_pattern.of_src src with
+        | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
+        | Error err -> failwith err.msg)
+  with
+  | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
+  (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
+  | exn ->
+      raise
+        (R.Err
+           (R.InvalidRule
+              ( R.InvalidPattern
+                  (str, env.languages, Common.exn_to_s exn, env.path),
+                env.id,
+                tok )))
 
 (* TODO: note that the [pattern] string and token location [t] given to us
  * by the YAML parser do not correspond exactly to the content
@@ -540,17 +552,7 @@ let parse_xpattern_expr env e =
        (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
        (* TODO put in *)
      in *)
-  try parse_xpattern env (s, t) with
-  | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
-  (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
-  | exn ->
-      raise
-        (R.Err
-           (R.InvalidRule
-              ( R.InvalidPattern
-                  (s, env.languages, Common.exn_to_s exn, env.path),
-                env.id,
-                t )))
+  parse_xpattern env (s, t)
 
 (*****************************************************************************)
 (* Parser for old (but current) formula *)
