@@ -28,6 +28,7 @@ module PI = Parse_info
 module MV = Metavariable
 module ME = Matching_explanation
 module Out = Output_from_core_t
+module Labels = Set.Make (String)
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -447,42 +448,80 @@ let rec convert_taint_call_trace = function
           call_trace = convert_taint_call_trace ct;
         }
 
-let taint_trace_of_src_to_sink source tokens sink =
-  {
-    Pattern_match.sources =
-      [ (convert_taint_call_trace source.T.call_trace, tokens) ];
-    sink = convert_taint_call_trace sink;
-  }
+let taint_trace_of_src_traces_and_sink sources sink =
+  { Pattern_match.sources; sink = convert_taint_call_trace sink }
 
-let pm_of_finding finding =
+let pms_of_finding finding =
   match finding with
-  | T.SrcToSink { source; tokens; sink; merged_env } ->
-      (* We always report the finding on the sink that gets tainted, the call trace
-       * must be used to explain how exactly the taint gets there. At some point
-       * we experimented with reporting the match on the `sink`'s function call that
-       * leads to the actual sink. E.g.:
-       *
-       *     def f(x):
-       *       sink(x)
-       *
-       *     def g():
-       *       f(source)
-       *
-       * Here we tried reporting the match on `f(source)` as "the line to blame"
-       * for the injection bug... but most users seem to be confused about this. They
-       * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
-       *)
-      let taint_trace =
-        Some (lazy (taint_trace_of_src_to_sink source tokens sink))
-      in
-      let sink_pm, _ = T.pm_of_trace sink in
-      Some { sink_pm with env = merged_env; taint_trace }
-  | T.SrcToReturn _
-  (* TODO: We might want to report functions that let input taint
-   * go into a sink (?) *)
-  | T.ArgToSink _
-  | T.ArgToReturn _ ->
-      None
+  | T.ToReturn (_taints, _) ->
+      (* TODO: We might want to report functions that let input taint
+         * go into a sink (?) *)
+      []
+  | ToSink { taints_with_precondition = taints, requires; sink; merged_env } ->
+      if not (D.taints_satisfy_requires (T.Taint_set.of_list taints) requires)
+      then []
+      else
+        (* these arg taints are not useful to us, because we are within
+           the function, not at the call-site. so we don't know what
+           the argument taints are.
+        *)
+        let default_taints, labeled_source_taints, _args_taints =
+          taints
+          |> Common.partition_either3 (fun { T.orig; tokens } ->
+                 match orig with
+                 | Src src when src.label =*= Rule.default_source_label ->
+                     Left3 (src, tokens)
+                 | Src src -> Middle3 (src, tokens)
+                 | Arg arg -> Right3 arg)
+        in
+        (* The old behavior used to be that, for sinks with a `requires`, we would
+           generate a finding per every single taint source going in. Later deduplication
+           would deal with it.
+           We will continue that behavior for taint sinks with no `requires`, but for multiple
+           default taint sources in an unlabeled sink, combine their information into one finding.
+        *)
+        if T.sink_has_no_requires sink then
+          let traces =
+            default_taints
+            |> Common.map (fun (src, tokens) ->
+                   (convert_taint_call_trace src.T.call_trace, tokens))
+          in
+          (* We always report the finding on the sink that gets tainted, the call trace
+             * must be used to explain how exactly the taint gets there. At some point
+             * we experimented with reporting the match on the `sink`'s function call that
+             * leads to the actual sink. E.g.:
+             *
+             *     def f(x):
+             *       sink(x)
+             *
+             *     def g():
+             *       f(source)
+             *
+             * Here we tried reporting the match on `f(source)` as "the line to blame"
+             * for the injection bug... but most users seem to be confused about this. They
+             * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
+          *)
+          let taint_trace =
+            Some (lazy (taint_trace_of_src_traces_and_sink traces sink))
+          in
+          let sink_pm, _ = T.pm_of_trace sink in
+          [ { sink_pm with env = merged_env; taint_trace } ]
+        else
+          (* TODO: change this to also report less findings, and report multiple
+             traces when there are relevant taint labels
+          *)
+          default_taints @ labeled_source_taints
+          |> List.filter_map (fun (src, tokens) ->
+                 let call_trace =
+                   (convert_taint_call_trace src.T.call_trace, tokens)
+                 in
+                 let taint_trace =
+                   Some
+                     (lazy
+                       (taint_trace_of_src_traces_and_sink [ call_trace ] sink))
+                 in
+                 let sink_pm, _ = T.pm_of_trace sink in
+                 Some { sink_pm with env = merged_env; taint_trace })
 
 let check_fundef lang options taint_config opt_ent fdef =
   let name =
@@ -581,8 +620,8 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
-             pm_of_finding finding
-             |> Option.iter (fun pm -> Common.push pm matches))
+             pms_of_finding finding
+             |> List.iter (fun pm -> Common.push pm matches))
     in
     taint_config_of_rule xconf file (ast, []) rule handle_findings
   in
