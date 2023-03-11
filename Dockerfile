@@ -137,15 +137,6 @@ COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe
 
 RUN ln -s semgrep-core /usr/local/bin/osemgrep
 
-# ???
-ENV SEMGREP_IN_DOCKER=1 \
-    SEMGREP_USER_AGENT_APPEND="Docker"
-
-# The command we tell people to run for testing semgrep in Docker is
-#   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
-# (see https://semgrep.dev/docs/getting-started/ ), hence the WORKDIR directive below
-WORKDIR /src
-
 # 'semgrep' is now available in /usr/local/bin thanks to the 'pip install' command
 # above, so let's remove /semgrep which is not needed anymore.
 #
@@ -158,6 +149,15 @@ WORKDIR /src
 # do between the ocaml build and the Python build.
 RUN rm -rf /semgrep
 
+# ???
+ENV SEMGREP_IN_DOCKER=1 \
+    SEMGREP_USER_AGENT_APPEND="Docker"
+
+# The command we tell people to run for testing semgrep in Docker is
+#   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
+# (see https://semgrep.dev/docs/getting-started/ ), hence the WORKDIR directive below
+WORKDIR /src
+RUN chmod 555 /src
 
 RUN addgroup --system semgrep \
     && adduser --system --shell /bin/false --ingroup semgrep semgrep
