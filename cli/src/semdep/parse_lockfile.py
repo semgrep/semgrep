@@ -4,6 +4,7 @@ from typing import Generator
 from typing import List
 from typing import Optional
 
+from semgrep.console import console
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 
@@ -130,7 +131,7 @@ def parse_lockfile_path(lockfile_path: Path) -> List[FoundDependency]:
         # python errors, since our parsers are just using stdlib string processing functions
         # This will avoid catching dangerous to catch things like KeyboardInterrupt and SystemExit
         except Exception as e:
-            logger.error(f"Failed to parse {lockfile_path} with exception {e}")
+            console.print(f"Failed to parse {lockfile_path} with exception {e}")
             return []
     else:
         raise SemgrepError(f"don't know how to parse this filename: {lockfile_path}")

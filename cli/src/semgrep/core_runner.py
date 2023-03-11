@@ -445,6 +445,7 @@ class StreamingSemgrepCore:
 
         terminal = get_state().terminal
         with Progress(
+            TextColumn(" "),
             BarColumn(),
             MofNCompleteColumn(),
             TextColumn("tasks"),
