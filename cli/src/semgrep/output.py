@@ -369,8 +369,7 @@ class OutputHandler:
             else:
                 if output:
                     try:
-                        console.print(Title("Results"))
-                        print(output)
+                        console.print(output)
                     except UnicodeEncodeError as ex:
                         raise Exception(
                             "Received output encoding error, please set PYTHONIOENCODING=utf-8"
@@ -409,9 +408,12 @@ class OutputHandler:
         self._final_raise(final_error)
 
     def _save_output(self, destination: str, output: str) -> None:
+        metrics = get_state().metrics
         if is_url(destination):
+            metrics.add_feature("output", "url")
             self._post_output(destination, output)
         else:
+            metrics.add_feature("output", "path")
             save_path = Path(destination)
             # create the folders if not exists
             save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -428,9 +430,7 @@ class OutputHandler:
         except requests.exceptions.Timeout:
             raise SemgrepError(f"posting output to {output_url} timed out")
 
-    def _build_output(
-        self,
-    ) -> str:
+    def _build_output(self) -> str:
         # CliOutputExtra members
         cli_paths = out.CliPaths(
             scanned=[str(path) for path in sorted(self.all_targets)],
