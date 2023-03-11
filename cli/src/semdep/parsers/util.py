@@ -215,7 +215,7 @@ def parse_error_to_str(e: ParseError) -> str:
 def safe_path_parse(
     path: Optional[Path],
     parser: "Parser[A]",
-    preprocess: Optional[Callable[[str], str]] = None,
+    preprocess: Callable[[str], str] = lambda ξ: ξ,  # ξ kinda looks like a string hehe
 ) -> Optional[A]:
     """
     Run [parser] on the text in [path]
@@ -223,9 +223,10 @@ def safe_path_parse(
     """
     if not path:
         return None
+
     text = path.read_text()
-    if preprocess:
-        text = preprocess(text)
+    text = preprocess(text)
+
     try:
         return parser.parse(text)
     except ParseError as e:
