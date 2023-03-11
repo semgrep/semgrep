@@ -43,7 +43,18 @@ let length_of_call_trace ct =
   in
   loop 0 ct
 
-type source = Rule.taint_source call_trace [@@deriving show]
+type source = {
+  call_trace : Rule.taint_source call_trace;
+  label : string;
+      (* This is needed because we may change the label of a taint,
+         from the original source that it came from.
+         This happens from propagators which change the label of the taint.
+         We don't put it under `taint`, though, because Arg taints are
+         supposed to be polymorphic in label.
+      *)
+}
+[@@deriving show]
+
 type sink = Rule.taint_sink call_trace [@@deriving show]
 
 let rec pm_of_trace = function
@@ -61,6 +72,13 @@ let rec _show_call_trace show_thing = function
       Printf.sprintf "%s [%s]" s (show_thing x)
   | Call (_e, _, trace) ->
       Printf.sprintf "Call(... %s)" (_show_call_trace show_thing trace)
+
+let _show_source { call_trace; label } =
+  (* We want to show the actual label, not the originating label.
+     This may change, for instance, if we have ever propagated this taint to
+     a different label.
+  *)
+  _show_call_trace (fun _ -> label) call_trace
 
 (*****************************************************************************)
 (* Signatures *)
@@ -86,15 +104,12 @@ type finding =
 type signature = finding list
 
 let _show_source_to_sink { source; sink; _ } =
-  Printf.sprintf "%s ~~~> %s"
-    (_show_call_trace (fun ts -> ts.Rule.label) source)
+  Printf.sprintf "%s ~~~> %s" (_show_source source)
     (_show_call_trace (fun _ -> "sink") sink)
 
 let _show_finding = function
   | SrcToSink x -> _show_source_to_sink x
-  | SrcToReturn (src, _, _) ->
-      Printf.sprintf "return (%s)"
-        (_show_call_trace (fun ts -> ts.Rule.label) src)
+  | SrcToReturn (src, _, _) -> Printf.sprintf "return (%s)" (_show_source src)
   | ArgToSink (a, _, _) -> Printf.sprintf "%s ----> sink" (show_arg_pos a)
   | ArgToReturn (a, _, _) -> Printf.sprintf "return (%s)" (show_arg_pos a)
 
@@ -105,7 +120,9 @@ let _show_finding = function
 type orig = Src of source | Arg of arg_pos [@@deriving show]
 type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
-let src_of_pm (pm, x) = Src (PM (pm, x))
+let src_of_pm (pm, (x : Rule.taint_source)) =
+  Src { call_trace = PM (pm, x); label = x.label }
+
 let taint_of_pm pm = { orig = src_of_pm pm; tokens = [] }
 
 let compare_sources s1 s2 =
@@ -113,10 +130,11 @@ let compare_sources s1 s2 =
    * [("$A",e1);("$B",e2)] is not considered equal to [("$B",e2);("$A",e1)].
    * For our purposes, this is OK.
    *)
-  let pm1, ts1 = pm_of_trace s1 and pm2, ts2 = pm_of_trace s2 in
+  let pm1, ts1 = pm_of_trace s1.call_trace
+  and pm2, ts2 = pm_of_trace s2.call_trace in
   Stdlib.compare
-    (pm1.rule_id, pm1.range_loc, pm1.env, ts1.Rule.label)
-    (pm2.rule_id, pm2.range_loc, pm2.env, ts2.Rule.label)
+    (pm1.rule_id, pm1.range_loc, pm1.env, s1.label, ts1.Rule.label)
+    (pm2.rule_id, pm2.range_loc, pm2.env, s2.label, ts2.Rule.label)
 
 let compare_orig orig1 orig2 =
   match (orig1, orig2) with
@@ -136,9 +154,7 @@ let compare_taint taint1 taint2 =
 let _show_taint_label taint =
   match taint.orig with
   | Arg (s, i) -> Printf.sprintf "arg(%s)#%d" s i
-  | Src src ->
-      let _, ts = pm_of_trace src in
-      ts.label
+  | Src src -> src.label
 
 let _show_taint taint =
   let rec depth acc = function
@@ -146,11 +162,11 @@ let _show_taint taint =
     | Call (_, _, x) -> depth (acc + 1) x
   in
   match taint.orig with
-  | Src src ->
-      let pm, ts = pm_of_trace src in
+  | Src { call_trace; label } ->
+      let pm, _ = pm_of_trace call_trace in
       let tok1, tok2 = pm.range_loc in
       let r = Range.range_of_token_locations tok1 tok2 in
-      Printf.sprintf "(%d,%d)#%s|%d|" r.start r.end_ ts.label (depth 0 src)
+      Printf.sprintf "(%d,%d)#%s|%d|" r.start r.end_ label (depth 0 call_trace)
   | Arg (s, i) -> Printf.sprintf "arg(%s)#%d" s i
 
 (*****************************************************************************)
@@ -164,7 +180,9 @@ let pick_taint taint1 taint2 =
   | Arg _, Arg _ -> taint2
   | Src src1, Src src2 ->
       let call_trace_cmp =
-        Int.compare (length_of_call_trace src1) (length_of_call_trace src2)
+        Int.compare
+          (length_of_call_trace src1.call_trace)
+          (length_of_call_trace src2.call_trace)
       in
       if call_trace_cmp < 0 then taint1
       else if call_trace_cmp > 0 then taint2

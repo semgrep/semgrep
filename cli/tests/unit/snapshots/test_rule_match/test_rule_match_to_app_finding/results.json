@@ -4,6 +4,12 @@
   "commit_date": "1970-01-01T00:00:00",
   "end_column": 0,
   "end_line": 0,
+  "hashes": {
+    "code_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "end_line_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "pattern_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "start_line_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
   "index": 0,
   "is_blocking": true,
   "line": 0,

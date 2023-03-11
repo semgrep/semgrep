@@ -8,6 +8,65 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.14.0](https://github.com/returntocorp/semgrep/releases/tag/v1.14.0) - 2023-03-01
+
+### Added
+
+- Add new hashes of a match (finding) to send to the app:
+  - code_hash
+  - pattern_hash
+  - start_line_hash
+  - end-line_hash (gh-7218)
+
+### Changed
+
+- taint-mode: Historically, the matching of taint sinks has been somewhat imprecise.
+  For example, `sink(ok if tainted else ok)` was flagged. Recently, we made sink-
+  matching more precise for sinks like `sink(...)` declaring that any argument of
+  a given function is a sink. Now we make it more precise when specific arguments of
+  a function are sinks, like:
+
+  ```yaml
+  pattern-sinks:
+    - patterns:
+        - pattern: sink($X, ...)
+        - focus-metavariable: $X
+  ```
+
+  So `sink(ok1 if tainted else ok2)`, `sink(not_a_propagator(tainted))`, and
+  `sink(some_array[tainted])`, will not be reported as findings. (pa-2477)
+
+- The `--gitlab-sast` and `--gitlab-secrets` output formats have been upgraded.
+  The output is now valid with the GitLab v15 schema,
+  while staying valid with the GitLab v14 schema as well.
+  Code findings now include the confidence of the rule.
+  Supply Chain findings now include the exposure type. (sc-635)
+
+### Fixed
+
+- Fix: Semgrep Pro previously reported a crash for user errors such as
+  invalid patterns. It will now give a good error message. (gh-7028)
+- Dataflow: Fixed incorrect translation of side-effects inside Boolean expressions,
+  this was (for example) causing `if (cond && x = 42) S1; S2` to be interpreted as
+  `x = 42; if (cond && x) S1; S2`, thus incorrectly flagging `x` as a constant
+  inside S2. (gh-7199)
+- Solidity: support enum and event patterns (gh-7230)
+- Kotlin: allow to match extended class in any order
+  (e.g., the pattern `class $X : Foo` will also match `class Stuff : Bar, Foo`). (gh-7248)
+- taint-mode: Code such as `sink(sanitizer(source) if source else ok)` will not be
+  incorrectly reported as a tainted sink. This follows a previous attempt at fixing
+  these issues in version 1.1.0. (pa-2509)
+- metavariable-pattern: Fixed regression introduced in version 1.9.0 that broke
+  the use of `pattern-not` within `metavariable-pattern` in some cases. (pa-2510)
+- Make Semgrep parse HTML-style comments in JavaScript code. (pa-2560)
+- Reduced peak memory usage during inter-file analysis (pa-2563)
+- Supply Chain scans on a project using Pipenv
+  will now detect transitivity from the committed Pipfile,
+  instead of printing an error while trying to parse it. (pa-2577)
+- `--oss-only` previously required `--oss-only true` to be passed. This PR fixes
+  it so that `--oss-only` will invoke the oss engine. Note that `--oss-only true`
+  will no longer be supported (pa-2587)
+
 ## [1.13.0](https://github.com/returntocorp/semgrep/releases/tag/v1.13.0) - 2023-02-24
 
 ### Added

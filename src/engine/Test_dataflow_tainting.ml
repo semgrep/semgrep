@@ -31,7 +31,7 @@ let test_tainting lang file options config def =
     let show_taint t =
       match t.Taint.orig with
       | Taint.Src src ->
-          let tok1, tok2 = (fst (Taint.pm_of_trace src)).range_loc in
+          let tok1, tok2 = (fst (Taint.pm_of_trace src.call_trace)).range_loc in
           let r = Range.range_of_token_locations tok1 tok2 in
           Range.content_at_range file r
       | Taint.Arg (s, i) -> spf "arg %s %d" s i

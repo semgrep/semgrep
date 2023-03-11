@@ -3,7 +3,6 @@ import json
 import os
 from collections import Counter
 from copy import deepcopy
-from logging import DEBUG
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -36,7 +35,7 @@ logger = getLogger(__name__)
 
 
 class ScanHandler:
-    def __init__(self, dry_run: bool) -> None:
+    def __init__(self, dry_run: bool = False) -> None:
         self._deployment_id: Optional[int] = None
         self._deployment_name: str = ""
 
@@ -124,20 +123,21 @@ class ScanHandler:
             raise Exception(
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
+
         body = response.json()
-        if isinstance(body, dict):
-            return body
-        else:
+
+        if not isinstance(body, dict):
             raise Exception(
-                f"API server at {state.env.semgrep_url} returned type '{type(response.json())}'. Expected a dictionary."
+                f"API server at {state.env.semgrep_url} returned type '{type(body)}'. Expected a dictionary."
             )
+
+        return body
 
     def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
         """
         Get configurations for scan
         """
         state = get_state()
-        logger.debug("Getting scan configurations")
 
         self._scan_params = urlencode(
             {
@@ -149,6 +149,7 @@ class ScanHandler:
             }
         )
         app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+
         body = self._get_scan_config_from_app(app_get_config_url)
 
         self._deployment_id = body["deployment_id"]
@@ -161,7 +162,7 @@ class ScanHandler:
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
         self.ignore_patterns = body.get("ignored_files") or []
 
-        if logger.isEnabledFor(DEBUG):
+        if state.terminal.is_debug:
             config = deepcopy(body)
             try:
                 config["rule_config"] = json.loads(config["rule_config"])

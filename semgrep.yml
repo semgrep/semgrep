@@ -176,6 +176,26 @@ rules:
       include:
         - cli/src/*
 
+  - id: typehint-run-semgrep
+    patterns:
+      - focus-metavariable: $FIXTURE
+      - pattern-inside: |
+          def $FUNC(..., $FIXTURE, ...): ...
+      - pattern-not-inside: |
+          def $FUNC(..., $FIXTURE: tests.fixtures.RunSemgrep, ...): ...
+      - metavariable-regex:
+          metavariable: $FIXTURE
+          regex: ^run_semgrep.*$
+    message: >-
+      Please add a type hint for your use of $FIXTURE.
+      It should look like this: `$FIXTURE: RunSemgrep`,
+      and you should import it like this: `from tests.fixtures import RunSemgrep`.
+    languages: [python]
+    severity: ERROR
+    paths:
+      include:
+        - cli/tests/*
+
   - id: use-git-check-output-helper
     pattern-either:
       - pattern: subprocess.$METHOD(["git", ...], ...)

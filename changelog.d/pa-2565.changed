@@ -1,0 +1,3 @@
+Pro: `semgrep ci` will run intrafile interprocedural taint analysis by default
+in differential scans (aka PR scans). (Note that interfile analysis is not run
+in differential scans for performance reasons.)

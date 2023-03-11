@@ -1,8 +1,14 @@
-Scanning 11 files.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 23 files tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Scanning 11 files.
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘

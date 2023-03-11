@@ -75,12 +75,15 @@ class FileStats(TypedDict, total=False):
     runTime: Optional[float]
 
 
-class EnvironmentSchema(TypedDict, total=False):
+class EnvironmentRequiredSchema(TypedDict):
     version: str
+
+
+class EnvironmentSchema(EnvironmentRequiredSchema, total=False):
+    ci: Optional[str]
     projectHash: Optional[Sha256Hash]
     configNamesHash: Sha256Hash
     rulesHash: Sha256Hash
-    ci: Optional[str]
     isAuthenticated: bool
 
 
@@ -123,10 +126,13 @@ class ParseStatSchema(TypedDict, total=False):
     num_bytes: int
 
 
-class TopLevelSchema(TypedDict, total=False):
+class TopLevelRequiredSchema(TypedDict):
     event_id: uuid.UUID
-    anonymous_user_id: str
     started_at: datetime
+
+
+class TopLevelSchema(TopLevelRequiredSchema, total=False):
+    anonymous_user_id: str
     sent_at: datetime
 
 
@@ -181,20 +187,19 @@ class Metrics:
     metrics_state: MetricsState = MetricsState.OFF
     payload: PayloadSchema = Factory(
         lambda: PayloadSchema(
-            environment=EnvironmentSchema(),
+            environment=EnvironmentSchema(version=__VERSION__),
             errors=ErrorsSchema(),
             performance=PerformanceSchema(),
             value=ValueSchema(features=set()),
             fix_rate=FixRateSchema(),
             parse_rate=dict(),
+            started_at=datetime.now(),
+            event_id=uuid.uuid4(),
         )
     )
 
     def __attrs_post_init__(self) -> None:
-        self.payload["started_at"] = datetime.now()
-        self.payload["environment"]["version"] = __VERSION__
         self.payload["environment"]["ci"] = os.getenv("CI")
-        self.payload["event_id"] = uuid.uuid4()
 
     def configure(
         self,
@@ -234,11 +239,6 @@ class Metrics:
 
     @is_using_registry.setter
     def is_using_registry(self, value: bool) -> None:
-        if self.is_using_registry is False and value is True:
-            logger.info(
-                f"Semgrep rule registry URL is {os.environ.get('SEMGREP_URL', 'https://semgrep.dev/registry')}."
-            )
-
         self._is_using_registry = value
 
     @suppress_errors

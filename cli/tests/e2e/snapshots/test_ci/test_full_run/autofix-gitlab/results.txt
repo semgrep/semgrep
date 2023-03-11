@@ -48,45 +48,53 @@ Blocking Rules Fired:
 === end of stdout - plain
 
 === stderr - plain
-                                                                                
-                                                                                
-┌────────────────┐                                                              
-│ Debugging Info │                                                              
-└────────────────┘                                                              
-                                                                                
-  SCAN ENVIRONMENT                                                              
+                  
+                  
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+                  
+  SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment gitlab-ci, triggering event is           
                 pull_request                                                    
-  server      - logged in as org_name on https://semgrep.dev                    
-                                                                                
-                                                                                
-┌─────────────┐                                                                 
-│ Scan Status │                                                                 
-└─────────────┘                                                                 
-                                                                                
-Scanning 1 file with 4 python rules.
-
+            
+  CONNECTION
+  Fetching configuration from Semgrep Cloud Platform  
+  Reporting start of scan for org_name                               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 4 Code rules:
+            
+  CODE RULES
+  Scanning 1 file with 4 python rules.
   Current version has 14 findings.
 
 Switching repository to baseline commit '<MASKED>'.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * <MASKED> Some other commit/ message
 
-Scanning 1 file with 4 python rules.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 4 Code rules:
+            
+  CODE RULES
+  Scanning 1 file with 4 python rules.
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
