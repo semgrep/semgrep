@@ -173,6 +173,8 @@ core-test: core
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-e2etest
 core-e2etest:
+	SEMGREP_CORE=$(PWD)/bin/semgrep-core \
+	$(MAKE) -C interfaces/semgrep_interfaces test
 	python3 tests/e2e/test_target_file.py
 
 ###############################################################################
