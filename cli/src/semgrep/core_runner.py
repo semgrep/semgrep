@@ -25,10 +25,9 @@ from attr import asdict
 from attr import field
 from attr import frozen
 from rich.progress import BarColumn
-from rich.progress import MofNCompleteColumn
 from rich.progress import Progress
 from rich.progress import TaskID
-from rich.progress import TextColumn
+from rich.progress import TaskProgressColumn
 from rich.progress import TimeElapsedColumn
 from ruamel.yaml import YAML
 
@@ -278,9 +277,9 @@ class StreamingSemgrepCore:
                 # However, for regular OSS Semgrep, we only print one dot per
                 # target, that being the last bullet point listed above.
                 #
-                # So a dot counts as 0.33 files progress if running Pro, but 1
-                # file's progress if running the OSS engine.
-                advanced_targets = 1 / 3 if self._engine_type.is_interfile else 1
+                # So a dot counts as 1 progress if running Pro, but 3 progress if
+                # running the OSS engine.
+                advanced_targets = 1 if self._engine_type.is_interfile else 3
 
                 if self._progress_bar and self._progress_bar_task_id is not None:
                     self._progress_bar.update(
@@ -446,8 +445,7 @@ class StreamingSemgrepCore:
         terminal = get_state().terminal
         with Progress(
             BarColumn(),
-            MofNCompleteColumn(),
-            TextColumn("files"),
+            TaskProgressColumn(),
             TimeElapsedColumn(),
             console=console,
             disable=(
@@ -565,7 +563,7 @@ class Plan:
         logger.info("")
 
     def __str__(self) -> str:
-        return f"<Plan of {len(self.target_mappings)} files for {list(self.split_by_lang_label())}>"
+        return f"<Plan of {len(self.target_mappings)} tasks for {list(self.split_by_lang_label())}>"
 
 
 class CoreRunner:
@@ -918,7 +916,10 @@ class CoreRunner:
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(cmd, plan.num_targets, engine)
+            # Multiplied by three, because we have three places in Pro Engine to
+            # report progress, versus one for OSS Engine. This way, we don't get
+            # floating-point drift.
+            runner = StreamingSemgrepCore(cmd, plan.num_targets * 3, engine)
             runner.vfs_map = vfs_map
             returncode = runner.execute()
 
