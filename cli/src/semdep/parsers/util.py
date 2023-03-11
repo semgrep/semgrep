@@ -240,12 +240,14 @@ def safe_path_parse(
         location = f"[bold]{path}[/bold] at [bold]{line + 1}:{col + 1}[/bold]"
         if line < len(text_lines):
             console.print(
-                f"Failed to parse {location} - {error_str}\n{line_prefix + text.splitlines()[line]}\n"
+                f"Failed to parse {location} - {error_str}\n"
+                f"{line_prefix}{text.splitlines()[line]}\n"
                 f"{' ' * (col + len(line_prefix))}^"
             )
         else:
             console.print(
-                f"Failed to parse {location} - {error_str}\nInternal Error - line {line + 1} is past the end of {path}?"
+                f"Failed to parse {location} - {error_str}\n"
+                f"Internal Error - line {line + 1} is past the end of {path}?"
             )
         return None
 
