@@ -671,7 +671,7 @@ class Plan:
         for sca_analysis, count in sorted(
             sca_analysis_counts.items(), key=lambda x: x[1], reverse=True
         ):
-            sca_analysis_name = sca_analysis.replace("_", " ").title()
+            sca_analysis_name = sca_analysis.replace("_", " ").capitalize()
 
             table.add_row(sca_analysis_name, str(count))
 
