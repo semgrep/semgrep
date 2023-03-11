@@ -1,0 +1,8 @@
+Terraform: Nested blocks can now be used as sources and sinks for taint.
+For instance, the block `x` in
+
+resource $A $B {
+  x {
+    ...
+  }
+}
