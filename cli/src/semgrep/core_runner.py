@@ -37,6 +37,7 @@ from rich.progress import BarColumn
 from rich.progress import Progress
 from rich.progress import TaskID
 from rich.progress import TaskProgressColumn
+from rich.progress import TextColumn
 from rich.progress import TimeElapsedColumn
 from rich.table import Table
 from ruamel.yaml import YAML
@@ -456,6 +457,7 @@ class StreamingSemgrepCore:
 
         terminal = get_state().terminal
         with Progress(
+            TextColumn(" "),
             BarColumn(),
             TaskProgressColumn(),
             TimeElapsedColumn(),
