@@ -75,32 +75,55 @@ See <a href="https://semgrep.dev/docs/supported-languages/">supported languages<
 
 ### Getting started
 
-To install Semgrep use Homebrew or pip, or run without installation via Docker:
+1.  Register to <a href="http://bit.ly/424Jbs0" target="_blank">semgrep.dev</a>
+<img src="images/semgrep-main-image.jpg" /> 
 
-```sh
-# For macOS
-$ brew install semgrep
 
-# For Ubuntu/WSL/Linux/macOS
-$ python3 -m pip install semgrep
+2.  Install Semgrep CLI
 
-# To try Semgrep without installation run via Docker
-$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
+  ```
+  # For macOS
+  $ brew install semgrep
+
+  # For Ubuntu/WSL/Linux/macOS
+  $ python3 -m pip install semgrep
+
+  # To try Semgrep without installation run via Docker
+  $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
+  ```
+
+3.  Run `semgrep login` to get the login URL. Open the login URL in the browser and login.
+
+  ```
+  semgrep login
+  ```
+<img src="images/semgrep-login.jpg" /> 
+
+4. Go to your app's root directory and run the following:
+
 ```
-
-Once installed, Semgrep can run with single rules or entire rulesets. Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more or try the following:
-
-```sh
-# Check for Python == where the left and right hand sides are the same (often a bug)
-$ semgrep -e '$X == $X' --lang=py path/to/src
-
-# Fetch rules automatically by setting the `--config auto` flag.
-# This will fetch rules relevant to your project from Semgrep Registry.
-# Your source code is not uploaded.
-$ semgrep --config auto
+semgrep --config auto
 ```
+<img src="images/semgrep-auto-config-example.jpg" /> 
 
-To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
+### Set up CI/CD in two minutes
+1.  Register to <a href="http://bit.ly/424Jbs0" target="_blank">semgrep.dev</a>
+
+
+2. Click on `Projects > Scan New Project > Run scan in CI`
+<img src="images/semgrep-ci-cd-popup.jpg" /> 
+
+
+3. Follow the instructions in the CI/CD wizard and you'll have your project setup.
+
+
+### Notes:
+1.  Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more about `auto` config and other rules. 
+
+2. If there are any issues, please ask us at our Slack channel <a href="https://r2c.dev/slack"> https://r2c.dev/slack</a>
+
+
+3. To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
 Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
 
 ### Rule examples
