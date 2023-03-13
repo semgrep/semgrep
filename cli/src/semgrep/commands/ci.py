@@ -219,15 +219,6 @@ def ci(
         output_format=output_format,
     )
 
-    # Metrics are always on for CI scans. It doesn't make sense for them to
-    # be off, since CI scans have to connect to the Cloud Platform
-    # (For reviewers: is this explanation below clear?)
-    if metrics == MetricsState.OFF or metrics_legacy == MetricsState.OFF:
-        raise click.BadParameter(
-            "--metrics cannot be turned off for ci scans since ci scans require access to the Cloud Platform"
-        )
-    metrics = MetricsState.ON
-
     state.metrics.configure(metrics, metrics)
     state.error_handler.configure(suppress_errors)
     scan_handler = None

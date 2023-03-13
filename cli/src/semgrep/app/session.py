@@ -163,6 +163,9 @@ class AppSession(requests.Session):
         metrics = get_state().metrics
         metrics.add_token(self.token)
 
+    def is_authenticated(self) -> bool:
+        return self.token is not None
+
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:
         kwargs.setdefault("timeout", 60)
         kwargs.setdefault("headers", {})

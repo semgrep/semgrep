@@ -410,8 +410,19 @@ class Metrics:
           - on, sends
           - off, doesn't send
         """
+        from semgrep.state import get_state
+
+        state = get_state()
+
         if self.metrics_state == MetricsState.AUTO:
-            return self.is_using_registry
+            # When running logged in with `semgrep ci`, configs are
+            # resolved before `self.is_using_registry` is set.
+            # However, these scans are still pulling from the registry
+            using_app = (
+                state.command.get_subcommand() == "ci"
+                and state.app_session.is_authenticated()
+            )
+            return self.is_using_registry or using_app
         return self.metrics_state == MetricsState.ON
 
     @suppress_errors
@@ -427,6 +438,18 @@ class Metrics:
                 self.add_feature("cli-envvar", param)
             if source == click.core.ParameterSource.PROMPT:
                 self.add_feature("cli-prompt", param)
+
+    def _post_metrics(self, user_agent: str) -> None:
+        r = requests.post(
+            METRICS_ENDPOINT,
+            data=self.as_json(),
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": user_agent,
+            },
+            timeout=3,
+        )
+        r.raise_for_status()
 
     @suppress_errors
     def send(self) -> None:
@@ -449,13 +472,4 @@ class Metrics:
         self.payload["sent_at"] = datetime.now()
         self.payload["anonymous_user_id"] = state.settings.get("anonymous_user_id")
 
-        r = requests.post(
-            METRICS_ENDPOINT,
-            data=self.as_json(),
-            headers={
-                "Content-Type": "application/json",
-                "User-Agent": str(state.app_session.user_agent),
-            },
-            timeout=3,
-        )
-        r.raise_for_status()
+        self._post_metrics(str(state.app_session.user_agent))
