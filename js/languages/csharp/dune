@@ -2,8 +2,34 @@
  (names Parser)
  (libraries
     parser_csharp.ast_generic
+    semgrep_js_shared
  )
  (modes js)
+  (js_of_ocaml
+  (javascript_files semgrep.js semgrep-csharp.js ../../shared/ocaml-tree-sitter.js)
+  )
  (preprocess
   (pps js_of_ocaml-ppx))
 )
+
+(rule
+ (targets semgrep-csharp.js semgrep-csharp.wasm)
+ (deps
+  ../../../libs/ocaml-tree-sitter-core/downloads/tree-sitter-0.20.6/lib/src/lib.c
+  ../../../languages/csharp/tree-sitter/semgrep-c-sharp/lib/parser.c
+  ../../../languages/csharp/tree-sitter/semgrep-c-sharp/lib/scanner.c)
+ (action
+  (run
+   emcc
+   -O3
+   -I../../../libs/ocaml-tree-sitter-core/downloads/tree-sitter-0.20.6/lib/src
+   -I%{env:TREESITTER_INCDIR=/usr/local/include}
+   %{deps}
+   -o
+   semgrep-csharp.js
+   -sALLOW_MEMORY_GROWTH=1
+   -sEXPORTED_RUNTIME_METHODS=%{read:../../shared/exported-runtime-methods.txt}
+   -sEXPORTED_FUNCTIONS=%{read:../../shared/exported-functions.txt},_tree_sitter_c_sharp
+   --pre-js %{dep:../../shared/pre.js}
+   --extern-post-js %{dep:../../shared/post.js}
+   )))

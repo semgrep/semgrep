@@ -6,48 +6,48 @@
 
 //Provides: pcre_wasm_module const
 var pcre_wasm_module = (function () {
-  if (typeof Module !== "object") {
+  if (typeof globalThis.PCRE !== "object") {
     throw new Error("wasm must be loaded first");
   }
-  return Module;
+  return globalThis.PCRE;
 })();
 
 //Provides: NULL const
-var NULL = 0;
+const NULL = 0;
 
 //Provides: PCRE_CONFIG_UTF8 const
-var PCRE_CONFIG_UTF8 = 0;
+const PCRE_CONFIG_UTF8 = 0;
 //Provides: PCRE_CONFIG_NEWLINE const
-var PCRE_CONFIG_NEWLINE = 1;
+const PCRE_CONFIG_NEWLINE = 1;
 //Provides: PCRE_CONFIG_LINK_SIZE const
-var PCRE_CONFIG_LINK_SIZE = 2;
+const PCRE_CONFIG_LINK_SIZE = 2;
 
 //Provides: PCRE_CONFIG_MATCH_LIMIT const
-var PCRE_CONFIG_MATCH_LIMIT = 4;
+const PCRE_CONFIG_MATCH_LIMIT = 4;
 //Provides: PCRE_CONFIG_STACKRECURSE const
-var PCRE_CONFIG_STACKRECURSE = 5;
+const PCRE_CONFIG_STACKRECURSE = 5;
 
 //Provides: PCRE_CONFIG_MATCH_LIMIT_RECURSION const
-var PCRE_CONFIG_MATCH_LIMIT_RECURSION = 7;
+const PCRE_CONFIG_MATCH_LIMIT_RECURSION = 7;
 
 //Provides: PCRE_STUDY_JIT_COMPILE const
-var PCRE_STUDY_JIT_COMPILE = 0x0001;
+const PCRE_STUDY_JIT_COMPILE = 0x0001;
 
 //Provides: PCRE_EXTRA_MATCH_LIMIT const
-var PCRE_EXTRA_MATCH_LIMIT = 0x0002;
+const PCRE_EXTRA_MATCH_LIMIT = 0x0002;
 //Provides: PCRE_EXTRA_MATCH_LIMIT_RECURSION const
-var PCRE_EXTRA_MATCH_LIMIT_RECURSION = 0x0010;
+const PCRE_EXTRA_MATCH_LIMIT_RECURSION = 0x0010;
 
 //Provides: PCRE_INFO_SIZE const
-var PCRE_INFO_SIZE = 1;
+const PCRE_INFO_SIZE = 1;
 //Provides: PCRE_INFO_CAPTURECOUNT const
-var PCRE_INFO_CAPTURECOUNT = 2;
+const PCRE_INFO_CAPTURECOUNT = 2;
 
 //Provides: PCRE_ERROR_NOMATCH const
-var PCRE_ERROR_NOMATCH = -1;
+const PCRE_ERROR_NOMATCH = -1;
 
 //Provides: STRUCT_PCRE_EXTRA const
-var STRUCT_PCRE_EXTRA = {
+const STRUCT_PCRE_EXTRA = {
   flags: 0,
   study_data_ptr: 4,
   match_limit: 8,
@@ -59,7 +59,7 @@ var STRUCT_PCRE_EXTRA = {
 };
 
 //Provides: STRUCT_PCRE const
-var STRUCT_PCRE = {
+const STRUCT_PCRE = {
   magic_number: 0,
   size: 4,
   options: 8,
@@ -82,14 +82,14 @@ var STRUCT_PCRE = {
   nullpad_ptr: 54,
 };
 
-//Provides: pcre_ocaml_init
+//Provides: pcre_ocaml_init const
 function pcre_ocaml_init() {}
 
 //Provides: pcre_version_stub const
 //Requires: pcre_wasm_module
 function pcre_version_stub() {
   var ptr = pcre_wasm_module._pcre_version();
-  var value = pcre_wasm_module.AsciiToString();
+  var value = pcre_wasm_module.AsciiToString(ptr);
   pcre_wasm_module._free(ptr);
   return value;
 }
@@ -368,28 +368,34 @@ function pcre_exec_stub_bc(
   len -= subj_start;
 
   var ocaml_subj_ptr = v_subj_ptr + subj_start;
-  var opt = v_opt;
 
   if (!v_maybe_cof) {
     var ovec_ptr = pcre_wasm_module._malloc(ovec_len * 4);
     if (is_dfa) {
       ret = pcre_wasm_module._pcre_dfa_exec();
     } else {
+      console.log(
+        `_pcre_exec(code=${v_rex.regexp_ptr}, extra=${v_rex.extra_ptr}, subject=${ocaml_subj_ptr}, length=${len}, startoffset=${pos}, options=${v_opt}, ovector=${ovec_ptr}, ovecsize=${ovec_len})`
+      );
       ret = pcre_wasm_module._pcre_exec(
         v_rex.regexp_ptr,
         v_rex.extra_ptr,
         ocaml_subj_ptr,
         len,
         pos,
-        opt,
+        v_opt,
         ovec_ptr,
         ovec_len
       );
     }
+    console.log(`ret = ${ret}`);
     if (ret < 0) {
       handle_exec_error("pcre_exec_stub", ret);
     } else {
       for (var i = 0; i < ovec_len; i++) {
+        console.log(
+          `v_ovec[${i}] = ${pcre_wasm_module.getValue(ovec_ptr + i * 4, "i32")}`
+        );
         v_ovec[i] = pcre_wasm_module.getValue(ovec_ptr + i * 4, "i32");
       }
     }

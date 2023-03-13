@@ -1,0 +1,9 @@
+(library
+ (name semgrep_js_shared)
+ (wrapped false)
+ (libraries
+   js_of_ocaml
+ )
+ (preprocess
+  (pps js_of_ocaml-ppx))
+)

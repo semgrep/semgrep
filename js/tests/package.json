@@ -1,0 +1,13 @@
+{
+  "name": "semgrep-js-tests",
+  "version": "1.0.0",
+  "description": "Tests for semgrep.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "tom@r2c.dev",
+  "license": "ISC",
+  "dependencies": {
+    "jest": "^29.5.0"
+  }
+}

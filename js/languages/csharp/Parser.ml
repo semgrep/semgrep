@@ -1,7 +1,4 @@
-let parse_target x = Parse_csharp_tree_sitter.parse x
-let parse_pattern x = Parse_csharp_tree_sitter.parse_pattern x
-
 let _ =
-  ignore parse_target;
-  ignore parse_pattern;
+  Common.jsoo := true;
+  Semgrep_js_shared.make_js_module Parse_csharp_tree_sitter.parse Parse_csharp_tree_sitter.parse_pattern;
   ()
