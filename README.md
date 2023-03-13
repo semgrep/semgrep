@@ -73,7 +73,7 @@ C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala 
 See <a href="https://semgrep.dev/docs/supported-languages/">supported languages</a> for the complete list.
 </p>
 
-### Getting started
+### Getting started (Recommended)
 
 1.  Register to <a href="http://bit.ly/424Jbs0" target="_blank">semgrep.dev</a>
 <img src="images/semgrep-main-image.jpg" /> 
@@ -94,27 +94,44 @@ See <a href="https://semgrep.dev/docs/supported-languages/">supported languages<
 
 3.  Run `semgrep login` to get the login URL. Open the login URL in the browser and login.
 
-  ```
-  semgrep login
-  ```
 <img src="images/semgrep-login.jpg" /> 
 
-4. Go to your app's root directory and run the following:
+4. Go to your app's root directory and run `semgrep --config auto`
 
+<img src="images/semgrep-auto-config-example.jpg" /> 
+
+
+### Getting started (CLI only)
+In this flow, you'll lose the simplicity of quickly seeing and managing results and setting up CI/CD pipelines with minimal effort. Additionally, you'll be unable to use additional proprietary Semgrep Registry rules and run custom policies from the Semgrep App.
+
+ 1. Install Semgrep CLI
+
+  ```
+  # For macOS
+  $ brew install semgrep
+
+  # For Ubuntu/WSL/Linux/macOS
+  $ python3 -m pip install semgrep
+
+  # To try Semgrep without installation run via Docker
+  $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
+  ```
+
+2. Go to your app's root directory and run the following:
 ```
 semgrep --config auto
 ```
-<img src="images/semgrep-auto-config-example.jpg" /> 
 
 ### Set up CI/CD in two minutes
-1.  Register to <a href="http://bit.ly/424Jbs0" target="_blank">semgrep.dev</a>
+
+1.  Register or login to <a href="http://bit.ly/424Jbs0" target="_blank">semgrep.dev</a>
 
 
-2. Click on `Projects > Scan New Project > Run scan in CI`
+2. Go to `Projects > Scan New Project > Run scan in CI`
 <img src="images/semgrep-ci-cd-popup.jpg" /> 
 
 
-3. Follow the instructions in the CI/CD wizard and you'll have your project setup.
+3. Select your version control system and follow the wizard to add your project. After this setup, you'll get continuous security. Semgrep will scan your project after every pull request!
 
 
 ### Notes:
