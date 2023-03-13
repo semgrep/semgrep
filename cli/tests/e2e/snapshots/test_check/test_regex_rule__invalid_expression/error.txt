@@ -4,11 +4,9 @@
 │ Scan Status │
 └─────────────┘
   Scanning 23 files tracked by git with 1 Code rule:
-            
-  CODE RULES
   Scanning 11 files.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
+  {"errors": [{"code": 2, "level": "error", "message": "Rule parse error in rule
+  rules.test-regex:\n invalid regex '(abc': missing ) at position 4", "rule_id":
+  "rules.test-regex", "type": "Rule parse error"}], "paths": {"_comment": "<add 
+  --verbose for a list of skipped paths>", "scanned": []}, "results": [],       
+  "version": "<MASKED>"}                                                          

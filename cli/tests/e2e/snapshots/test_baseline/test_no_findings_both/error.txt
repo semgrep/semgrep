@@ -4,8 +4,6 @@
 │ Scan Status │
 └─────────────┘
   Scanning 3 files tracked by git with 1 Code rule:
-            
-  CODE RULES
   Scanning 3 files.
                 
                 

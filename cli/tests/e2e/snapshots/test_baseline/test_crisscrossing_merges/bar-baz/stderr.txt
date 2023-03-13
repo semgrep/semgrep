@@ -4,8 +4,6 @@
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-            
-  CODE RULES
   Scanning 1 file.
   Current version has 9 findings.
 
@@ -45,14 +43,18 @@ Switching repository to baseline commit 'baz'.
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-            
-  CODE RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
+                                                        
+                                                        
+  ┌─────────────────┐                                   
+  │ 2 Code Findings │                                   
+  └─────────────────┘                                   
+                                                        
+      bar.py                                            
+             15┆ bar = 23478921                         
+              ⋮┆----------------------------------------
+             17┆ bar = 23478921                         
+                                                        
                 
                 
 ┌──────────────┐

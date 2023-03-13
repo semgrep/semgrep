@@ -7,43 +7,6 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
 === end of exit code
 
 === stdout - plain
-Non-Blocking Findings:
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (x == 2)
-         15┆ (x == 2)
-
-Blocking Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
-
-Blocking Rules Fired:
-   eqeq-bad   
-   eqeq-four   
-   taint-test
 
 === end of stdout - plain
 
@@ -67,8 +30,6 @@ Blocking Rules Fired:
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 4 Code rules:
-            
-  CODE RULES
   Scanning 1 file with 4 python rules.
   Current version has 14 findings.
 
@@ -82,14 +43,52 @@ Switching repository to baseline commit '<MASKED>'.
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 4 Code rules:
-            
-  CODE RULES
   Scanning 1 file with 4 python rules.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
+                                                        
+                                                        
+  ┌─────────────────────────────┐                       
+  │ 1 Non-blocking Code Finding │                       
+  └─────────────────────────────┘                       
+                                                        
+      foo.py                                            
+         eqeq-five                                      
+            useless comparison to 5                     
+                                                        
+             ▶▶┆ Autofix ▶ (x == 2)                     
+             15┆ (x == 2)                               
+                                                        
+                                                        
+  ┌──────────────────────────┐                          
+  │ 6 Blocking Code Findings │                          
+  └──────────────────────────┘                          
+                                                        
+      foo.py                                            
+         eqeq-bad                                       
+            useless comparison                          
+                                                        
+              4┆ a == a                                 
+              ⋮┆----------------------------------------
+              5┆ a == a                                 
+              ⋮┆----------------------------------------
+              7┆ a == a                                 
+              ⋮┆----------------------------------------
+             11┆ y == y                                 
+              ⋮┆----------------------------------------
+         eqeq-four                                      
+            useless comparison to 4                     
+                                                        
+             19┆ baz == 4                               
+              ⋮┆----------------------------------------
+         taint-test                                     
+            unsafe use of danger                        
+                                                        
+             27┆ sink(d2)                               
+                                                        
+    BLOCKING CODE RULES FIRED:                          
+    eqeq-bad                                            
+    eqeq-four                                           
+    taint-test                                          
+                                                        
                 
                 
 ┌──────────────┐
