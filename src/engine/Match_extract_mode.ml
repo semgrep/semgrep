@@ -152,8 +152,8 @@ let rules_for_extracted_lang (all_rules : Rule.t list) =
                      List.exists (fun x -> Lang.equal l x) (rl :: rls)
                  | Xlang.LGeneric, Xlang.LGeneric -> true
                  | Xlang.LRegex, Xlang.LRegex -> true
-                 | _else -> false)
-          |> Common.map (fun (i, _r) -> i)
+                 | (Xlang.L _ | Xlang.LGeneric | Xlang.LRegex), _ -> false)
+          |> Common.map fst
         in
         Hashtbl.add rules_for_lang_tbl xlang rule_ids_for_lang;
         rule_ids_for_lang

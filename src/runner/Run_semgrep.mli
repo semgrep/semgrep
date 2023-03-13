@@ -172,7 +172,6 @@ val mk_rule_table : Rule.t list -> Rule.rule_id list -> (int, Rule.t) Hashtbl.t
 
 val extracted_targets_of_config :
   Runner_config.t ->
-  Rule.extract_rule list ->
   Rule.t list ->
   Input_to_core_t.target list
   * ( Common.filename,
