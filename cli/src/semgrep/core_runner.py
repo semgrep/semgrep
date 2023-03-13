@@ -445,6 +445,7 @@ class StreamingSemgrepCore:
 
         terminal = get_state().terminal
         with Progress(
+            TextColumn(" "),
             BarColumn(),
             MofNCompleteColumn(),
             TextColumn("tasks"),
@@ -652,14 +653,14 @@ class Plan:
 
     def table_by_sca_analysis(self) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
-        table.add_column("Rule Type")
+        table.add_column("Analysis")
         table.add_column("Rules", justify="right")
 
         SCA_ANALYSIS_NAMES = {
             "reachable": "Reachability",
-            "legacy": "Presence",
-            "malicious": "Presence",
-            "upgrade-only": "Presence",
+            "legacy": "Basic",
+            "malicious": "Basic",
+            "upgrade-only": "Basic",
         }
 
         sca_analysis_counts = collections.Counter(
@@ -671,7 +672,7 @@ class Plan:
         for sca_analysis, count in sorted(
             sca_analysis_counts.items(), key=lambda x: x[1], reverse=True
         ):
-            sca_analysis_name = sca_analysis.replace("_", " ").title()
+            sca_analysis_name = sca_analysis.replace("_", " ").capitalize()
 
             table.add_row(sca_analysis_name, str(count))
 

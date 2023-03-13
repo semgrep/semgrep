@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 
 import requests
 import ruamel.yaml
+from rich import progress
 from ruamel.yaml import YAMLError
 
 from semgrep import __VERSION__
@@ -106,7 +107,7 @@ class ConfigLoader:
             self._config_path = config_str
         elif is_policy_id(config_str):
             state.metrics.add_feature("config", "policy")
-            self._config_path = url_for_policy(config_str)
+            self._config_path = url_for_policy()
         elif is_supply_chain(config_str):
             state.metrics.add_feature("config", "sca")
             self._config_path = url_for_supply_chain()
@@ -249,7 +250,13 @@ def parse_config_files(
     but is None for registry rules
     """
     config = {}
-    for (config_id, contents, config_path) in loaded_config_infos:
+    for config_id, contents, config_path in progress.track(
+        loaded_config_infos,
+        description=f"  parsing {len(loaded_config_infos)} rules",
+        transient=True,
+        # expected to take just 2-3 seconds with less than 500
+        disable=len(loaded_config_infos) < 500,
+    ):
         try:
             if not config_id:  # registry rules don't have config ids
                 config_id = "remote-url"
@@ -445,7 +452,6 @@ class Config:
                 continue
             valid_rules = []
             for rule_dict in rules.value:
-
                 try:
                     rule = validate_single_rule(config_id, rule_dict)
                 except InvalidRuleSchemaError as ex:
@@ -675,7 +681,7 @@ def registry_id_to_url(registry_id: str) -> str:
     return f"{env.semgrep_url}/{registry_id}"
 
 
-def url_for_policy(config_str: str) -> str:
+def url_for_policy() -> str:
     """
     Return url to download a policy for a given repo_name
 
