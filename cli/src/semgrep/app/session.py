@@ -163,6 +163,7 @@ class AppSession(requests.Session):
         metrics = get_state().metrics
         metrics.add_token(self.token)
 
+    @property
     def is_authenticated(self) -> bool:
         return self.token is not None
 

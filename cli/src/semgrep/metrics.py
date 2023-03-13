@@ -420,7 +420,7 @@ class Metrics:
             # However, these scans are still pulling from the registry
             using_app = (
                 state.command.get_subcommand() == "ci"
-                and state.app_session.is_authenticated()
+                and state.app_session.is_authenticated
             )
             return self.is_using_registry or using_app
         return self.metrics_state == MetricsState.ON
@@ -439,6 +439,10 @@ class Metrics:
             if source == click.core.ParameterSource.PROMPT:
                 self.add_feature("cli-prompt", param)
 
+    # Posting the metrics is separated out so that our tests can check
+    # for it
+    # TODO it's a bit unfortunate that our tests are going to post
+    # metrics...
     def _post_metrics(self, user_agent: str) -> None:
         r = requests.post(
             METRICS_ENDPOINT,
