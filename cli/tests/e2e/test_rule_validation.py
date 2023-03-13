@@ -18,7 +18,7 @@ from tests.fixtures import RunSemgrep
 def test_validation_of_invalid_rules(
     run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target
 ):
-    stdout, _ = run_semgrep_in_tmp(rule, target_name=target, assert_exit_code={4, 7})
+    stdout, _ = run_semgrep_in_tmp(rule, target_name=target, assert_exit_code={2, 7})
 
     semgrep_json_output = json.loads(_clean_stdout(stdout))
 

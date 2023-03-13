@@ -18,7 +18,6 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import Level
-from semgrep.error import RULE_PARSE_FAILURE_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
@@ -82,7 +81,10 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
         code = TARGET_PARSE_FAILURE_EXIT_CODE
         err = replace(err, rule_id=None)  # Rule id not important for parse errors
     elif isinstance(err.error_type.value, core.PatternParseError):
-        code = RULE_PARSE_FAILURE_EXIT_CODE
+        # TODO This should probably be RULE_PARSE_FAILURE_EXIT_CODE
+        # but we have been exiting with FATAL_EXIT_CODE, so we need
+        # to be deliberate about changing it
+        code = FATAL_EXIT_CODE
     else:
         code = FATAL_EXIT_CODE
 

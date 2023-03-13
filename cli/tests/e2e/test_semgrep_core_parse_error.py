@@ -43,7 +43,7 @@ def test_rule_parser__failure__error_messages(
         options=["--verbose", "--no-time"],
         output_format=OutputFormat.JSON,
         force_color=True,
-        assert_exit_code=4,
+        assert_exit_code=2,
     )
     snapshot.assert_match(stdout, "out.json")
     snapshot.assert_match(stderr, "error.txt")
