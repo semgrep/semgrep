@@ -190,7 +190,7 @@ class ScanHandler:
         logger.debug("Starting scan")
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/deployments/scans",
-            json={"meta": meta, "policy_names": self._policy_names},
+            json={"meta": meta},
         )
 
         if response.status_code == 404:

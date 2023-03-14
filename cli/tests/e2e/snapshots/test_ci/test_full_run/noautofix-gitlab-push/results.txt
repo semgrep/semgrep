@@ -69,8 +69,8 @@ First-Party Blocking Rules Fired:
   environment - running in environment gitlab-ci, triggering event is push
             
   CONNECTION
-  Fetching configuration from Semgrep Cloud Platform  
-  Reporting start of scan for org_name                               
+  Reporting start of scan for r2c                     
+  Fetching configuration from Semgrep Cloud Platform                 
                
 ┌─────────────┐
 │ Scan Status │
