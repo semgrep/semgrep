@@ -32,7 +32,7 @@ def test_publish(tmp_path, mocker):
     assert result.exit_code == 2
     assert result.output == "run `semgrep login` before using upload\n"
 
-    mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
+    mocker.patch("semgrep.app.auth.is_valid_token", return_value="r2c")
 
     # log back in
     result = runner.invoke(cli, ["login"], env={"SEMGREP_APP_TOKEN": "fakeapitoken"})

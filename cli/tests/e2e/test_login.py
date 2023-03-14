@@ -14,7 +14,7 @@ def test_login(tmp_path, mocker):
     fake_key = "key123"
 
     # Patch Token Validation:
-    mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
+    mocker.patch("semgrep.app.auth.is_valid_token", return_value="r2c")
 
     # Logout
     result = runner.invoke(
