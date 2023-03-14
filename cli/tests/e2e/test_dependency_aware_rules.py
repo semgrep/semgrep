@@ -116,7 +116,6 @@ def test_dependency_aware_rules(
         ("1.2-beta-2", "> 1.0, < 1.2", True),
         ("1.2-beta-2", "> 1.2-alpha-6, < 1.2-beta-3", True),
         ("1.0.10.1", "< 1.0.10.2", True),
-        ("1.0.10.2", "> 1.0.10.1, < 1.0.9.3", True),  # Yes, seriously
         ("1.3.4-SNAPSHOT", "< 1.3.4", True),
         ("1.0-SNAPSHOT", "> 1.0-alpha", True),
         ("2.17.2", "< 2.3.1", False),
@@ -124,6 +123,9 @@ def test_dependency_aware_rules(
         ("2.0.0", "< 10.0.0", True),
         ("0.2.0", "< 0.10.0", True),
         ("0.0.2", "< 0.0.10", True),
+        ("2.14.0", "< 2.9.10.3", False),
+        ("2.14.0-beta", "< 2.9.10.3", False),
+        ("1.1.1.1-SNAPSHOT", "< 1.1.1.1", True),
     ],
 )
 def test_maven_version_comparison(version, specifier, outcome):
