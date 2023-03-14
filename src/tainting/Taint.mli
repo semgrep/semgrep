@@ -24,7 +24,7 @@ type source = {
 
 type sink = Rule.taint_sink call_trace [@@deriving show]
 type arg_pos = string * int [@@deriving show]
-type arg_taint = ArgTaint of arg_pos * IL.offset_kind list [@@deriving show]
+type arg_lval = ArgLval of arg_pos * IL.name list [@@deriving show]
 
 type source_to_sink = {
   source : source;
@@ -43,9 +43,9 @@ type finding =
   | SrcToReturn of source * tainted_tokens * AST_generic.tok
       (** A taint source inside the function reaches a `return` statement,
    * therefore the result of the function is tainted.  *)
-  | ArgToSink of arg_taint * tainted_tokens * sink
+  | ArgToSink of arg_lval * tainted_tokens * sink
       (** If this argument was tainted, the taint would reach a sink. *)
-  | ArgToReturn of arg_taint * tainted_tokens * AST_generic.tok
+  | ArgToReturn of arg_lval * tainted_tokens * AST_generic.tok
       (** If this argument was tainted, the taint would reach a `return` statement. *)
 [@@deriving show]
 
@@ -65,7 +65,7 @@ type signature = finding list
 (** The origin of taint, where does taint comes from? *)
 type orig =
   | Src of source  (** An actual taint source (`pattern-sources:` match). *)
-  | Arg of arg_taint
+  | Arg of arg_lval
       (** A taint variable (potential taint coming through an argument). *)
 [@@deriving show]
 
@@ -81,6 +81,7 @@ module Taint_set : sig
   val singleton : taint -> t
   val add : taint -> t -> t
   val union : t -> t -> t
+  val diff : t -> t -> t
   val map : (taint -> taint) -> t -> t
   val iter : (taint -> unit) -> t -> unit
   val fold : (taint -> 'a -> 'a) -> t -> 'a -> 'a
