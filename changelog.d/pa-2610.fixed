@@ -1,0 +1,2 @@
+Improved error reporting for rule parsing by correctly reporting parse errors
+instead of engine errors in certain cases.
