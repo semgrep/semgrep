@@ -1099,8 +1099,7 @@ class CoreRunner:
                 sys.exit(0)
 
             # Multiplied by three, because we have three places in Pro Engine to
-            # report progress, versus one for OSS Engine. This way, we don't get
-            # floating-point drift.
+            # report progress, versus one for OSS Engine.
             runner = StreamingSemgrepCore(cmd, plan.num_targets * 3, engine)
             runner.vfs_map = vfs_map
             returncode = runner.execute()
