@@ -38,7 +38,7 @@
 
 Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. [Get started →.](#getting-started)
 
-<img src="images/semgrep-main-image.jpg" /> 
+<img src="images/semgrep-main-image.jpg" />
 
 <details>
   <summary style="font-size:16px;">Semgrep Ecosystem</summary>
@@ -65,6 +65,7 @@ and:
 Join hundreds of thousands of other developers and security engineers already using Semgrep at companies like GitLab, Dropbox, Slack, Figma, Shopify, HashiCorp, Snowflake, and Trail of Bits.
 
 Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev).
+
 </details>
 <br>
 
@@ -81,13 +82,13 @@ See <a href="https://semgrep.dev/docs/supported-languages/">supported languages<
 <br/>
 
 ### Getting started
-There are two ways to get started. 
 
-1. Getting started from the CLI. 
+There are two ways to get started.
+
+1. Getting started from the CLI.
 2. Getting started from the web UI.
 
-
-We recommend starting from the web interface and then install the CLI because it is simple and allows you to quickly see and manage results, as well as set up CI/CD pipelines with minimal effort. You can also use additional proprietary Semgrep Registry rules and run custom policies from the Semgrep App. 
+We recommend starting from the web interface and then install the CLI because it is simple and allows you to quickly see and manage results, as well as set up CI/CD pipelines with minimal effort. You can also use additional proprietary Semgrep Registry rules and run custom policies from the Semgrep App.
 
 However, you can also start with the CLI directly, even without logging in, but you will lose the benefits mentioned earlier.
 
@@ -95,44 +96,38 @@ However, you can also start with the CLI directly, even without logging in, but 
 
 1.  Install Semgrep CLI
 
-  ```
-  # For macOS
-  $ brew install semgrep
+```
+# For macOS
+$ brew install semgrep
 
-  # For Ubuntu/WSL/Linux/macOS
-  $ python3 -m pip install semgrep
+# For Ubuntu/WSL/Linux/macOS
+$ python3 -m pip install semgrep
 
-  # To try Semgrep without installation run via Docker
-  $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
-  ```
+# To try Semgrep without installation run via Docker
+$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
+```
+
 2.  Run `semgrep login` to get the login URL. Open the login URL in the browser and login [Optional, but recommended].
 
-
-3. Go to your app's root directory and run `semgrep --config auto`. This will scan your project with the default settings.
-
+3.  Go to your app's root directory and run `semgrep --config auto`. This will scan your project with the default settings.
 
 ### Option 2: Getting started via the web UI (Recommended)
 
 1.  Register to <a href="https://semgrep.dev/login?utm_source=github&utm_medium=readme&utm_campaign=growth-oss" target="_blank">semgrep.dev</a>
 
-2. Add your project for scanning by go to `Projects > Scan New Project > Run scan in CI`
-<img src="images/semgrep-ci-cd-popup.jpg" /> 
+2.  Add your project for scanning by go to `Projects > Scan New Project > Run scan in CI`
+    <img src="images/semgrep-ci-cd-popup.jpg" />
 
-3. Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request. You don't really need the CLI unless you want to scan on local machine.
-
-
-
-
-
+3.  Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request. You don't really need the CLI unless you want to scan on local machine.
 
 ### Notes:
-1.  Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more about `auto` config and other rules. 
 
-2. If there are any issues, please ask us at our Slack channel <a href="https://r2c.dev/slack"> https://r2c.dev/slack</a>
+1.  Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more about `auto` config and other rules.
 
+2.  If there are any issues, please ask us at our Slack channel <a href="https://r2c.dev/slack"> https://r2c.dev/slack</a>
 
-3. To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
-Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
+3.  To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
+    Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
 
 ### Rule examples
 
