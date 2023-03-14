@@ -38,6 +38,8 @@
 
 Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. [Get started →.](#getting-started)
 
+<img src="images/semgrep-main-image.jpg" /> 
+
 <details>
   <summary style="font-size:16px;">Semgrep Ecosystem</summary>
 Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**.
@@ -81,20 +83,17 @@ See <a href="https://semgrep.dev/docs/supported-languages/">supported languages<
 ### Getting started
 There are two ways to get started. 
 
-1. Starting from the web interface
-2. Starting from the command-line interface (CLI).
+1. Getting started from the CLI. 
+2. Getting started from the web UI.
+
 
 We recommend starting from the web interface and then install the CLI because it is simple and allows you to quickly see and manage results, as well as set up CI/CD pipelines with minimal effort. You can also use additional proprietary Semgrep Registry rules and run custom policies from the Semgrep App. 
-However, you can start with the CLI directly, even without logging in, but you will lose the benefits mentioned earlier.
 
+However, you can also start with the CLI directly, even without logging in, but you will lose the benefits mentioned earlier.
 
-### Option 1: Getting started via the web interface (Recommended)
+### Option 1: Getting started from the CLI
 
-1.  Register to <a href="http://bit.ly/424Jbs0" target="_blank">semgrep.dev</a>
-<img src="images/semgrep-main-image.jpg" /> 
-
-
-2.  Install Semgrep CLI
+1.  Install Semgrep CLI
 
   ```
   # For macOS
@@ -106,48 +105,24 @@ However, you can start with the CLI directly, even without logging in, but you w
   # To try Semgrep without installation run via Docker
   $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
   ```
-
-3.  Run `semgrep login` to get the login URL. Open the login URL in the browser and login.
-
-<img src="images/semgrep-login.jpg" /> 
-
-4. Go to your app's root directory and run `semgrep --config auto`
-
-<img src="images/semgrep-auto-config-example.jpg" /> 
+2.  Run `semgrep login` to get the login URL. Open the login URL in the browser and login [Optional, but recommended].
 
 
-### Option 2: Getting started via CLI
-
- 1. Install Semgrep CLI
-
-  ```
-  # For macOS
-  $ brew install semgrep
-
-  # For Ubuntu/WSL/Linux/macOS
-  $ python3 -m pip install semgrep
-
-  # To try Semgrep without installation run via Docker
-  $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
-  ```
-
-2. Go to your app's root directory and run the following:
-```
-semgrep --config auto
-```
-
-3. [Optional but recommended] Run `semgrep login` to register and login to <a href="http://bit.ly/424Jbs0" target="_blank">semgrep.dev</a>. This will connect your instance with the Semgrep platform. It'll unlock additional proprietary Semgrep Registry rules and run custom policies from the Semgrep App.
-
-### Set up CI/CD in two minutes
-
-1.  Register or login to <a href="http://bit.ly/424Jbs0" target="_blank">semgrep.dev</a>
+3. Go to your app's root directory and run `semgrep --config auto`. This will scan your project with the default settings.
 
 
-2. Go to `Projects > Scan New Project > Run scan in CI`
+### Option 2: Getting started via the web UI (Recommended)
+
+1.  Register to <a href="https://semgrep.dev/login?utm_source=github&utm_medium=readme&utm_campaign=growth-oss" target="_blank">semgrep.dev</a>
+
+2. Add your project for scanning by go to `Projects > Scan New Project > Run scan in CI`
 <img src="images/semgrep-ci-cd-popup.jpg" /> 
 
+3. Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request. You don't really need the CLI unless you want to scan on local machine.
 
-3. Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request!
+
+
+
 
 
 ### Notes:
