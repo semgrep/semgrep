@@ -1,0 +1,5 @@
+Fix an error with rule targeting for extract mode. Previously, if a ruleset had
+two rules, the first being the extract rule, the second being the rule to run,
+no rules would run on the extracted targets. Additionally, with multiple rules
+the wrong rule might be run on the extracted target, causing errors. Now, in
+extract mode all the rules for the destination language will be run.
