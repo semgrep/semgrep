@@ -7,9 +7,9 @@ from semgrep.state import get_state
 logger = logging.getLogger(__name__)
 
 
-def is_valid_token(token: str) -> Optional[str]:
+def get_deployment_from_token(token: str) -> Optional[str]:
     """
-    Returns the deployment name the token is for if token is valid
+    Returns the deployment name the token is for, if token is valid
     """
     state = get_state()
     r = state.app_session.get(

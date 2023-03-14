@@ -69,7 +69,7 @@ First-Party Blocking Rules Fired:
   environment - running in environment git, triggering event is pull_request
             
   CONNECTION
-  Reporting start of scan for r2c                     
+  Reporting start of scan for deployment_name         
   Fetching configuration from Semgrep Cloud Platform                 
                
 ┌─────────────┐

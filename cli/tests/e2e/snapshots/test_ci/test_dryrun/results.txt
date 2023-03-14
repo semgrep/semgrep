@@ -70,7 +70,7 @@ First-Party Blocking Rules Fired:
             
   CONNECTION
 Would have sent POST request to create scan
-  Reporting start of scan for r2c                     
+  Reporting start of scan for deployment_name         
   Fetching configuration from Semgrep Cloud Platform                 
                
 ┌─────────────┐

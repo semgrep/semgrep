@@ -238,13 +238,13 @@ def ci(
         )
         sys.exit(FATAL_EXIT_CODE)
     elif token:
-        deployment = auth.is_valid_token(token)
-        if not deployment:
+        deployment_name = auth.get_deployment_from_token(token)
+        if not deployment_name:
             logger.info(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
-        scan_handler = ScanHandler(dry_run=dry_run, deployment_name=deployment)
+        scan_handler = ScanHandler(dry_run=dry_run, deployment_name=deployment_name)
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
 
