@@ -489,7 +489,7 @@ let union_new_taint_sources_filtering_labels ~new_ curr =
   let new_filtered = filter_new_taint_sources_by_labels labels new_ in
   Taints.union new_filtered curr
 
-let find_args_taints args_taints fparams =
+let find_pos_in_actual_args args_taints fparams =
   let pos_args_taints, named_args_taints =
     List.partition_map
       (function
@@ -574,6 +574,30 @@ let propagate_taint_to_label replace_labels label (taint : T.taint) =
     | Arg arg, _ -> Arg arg
   in
   { taint with orig = new_orig }
+
+let add_offset_to_poly_taint_in_st env lval st =
+  if env.lang =*= Java then
+    match lval.rev_offset with
+    | { o = Dot n; _ } :: _ when String.starts_with ~prefix:"get" (fst n.ident)
+      -> (
+        match st with
+        | `Clean -> `Clean
+        | `None -> `None
+        | `Tainted taints ->
+            let taints' =
+              taints
+              |> Taints.map (fun taint ->
+                     match taint.orig with
+                     | Arg arg ->
+                         let arg' = { arg with offset = arg.offset @ [ n ] } in
+                         { taint with orig = Arg arg' }
+                     | Src _ -> taint)
+            in
+            `Tainted taints')
+    | _ :: _
+    | [] ->
+        st
+  else st
 
 (*****************************************************************************)
 (* Tainted *)
@@ -772,7 +796,11 @@ and check_tainted_lval_aux env (lval : IL.lval) :
         | (`None | `Tainted _) as st -> (
             match Lval_env.dumb_find lval_env lval with
             | (`Clean | `Tainted _) as st' -> st'
-            | `None -> st)
+            | `None ->
+                (* HACK(field-sensitivity): Java: If we encounter `obj.getX` and `obj` has
+                   * polymorphic taint,  and we know nothing specific about `obj.getX`, then
+                   * we add the same offset `.getX` to the polymorphic taint coming from `obj`. *)
+                add_offset_to_poly_taint_in_st env lval st)
       in
       let taints_from_env = status_to_taints lval_in_env in
       (* Find taint sources matching lval. *)
@@ -889,11 +917,30 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
 let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
   check_tainted_lval env (LV.lval_of_var var)
 
-let check_function_signature env fun_exp args_taints =
+(* What is the taint denoted by 'sig_arg' ? *)
+let taints_of_sig_arg env fparams args_exps args_taints (sig_arg : T.arg) =
+  match sig_arg.offset with
+  | [] -> find_pos_in_actual_args args_taints fparams sig_arg.pos
+  | xs -> (
+      (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'. *)
+      let* arg_exp = find_pos_in_actual_args args_exps fparams sig_arg.pos in
+      match arg_exp.e with
+      | Fetch arg_lval ->
+          let os = xs |> Common.map (fun x -> { o = Dot x; oorig = NoOrig }) in
+          let lval =
+            {
+              arg_lval with
+              rev_offset = List.rev_append os arg_lval.rev_offset;
+            }
+          in
+          let arg_taints = check_tainted_lval env lval |> fst in
+          Some arg_taints
+      | __else__ -> None)
+
+let check_function_signature env fun_exp args args_taints =
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
       let* fparams, fun_sig = hook env.config eorig in
-      let taints_of_arg = find_args_taints args_taints fparams in
       Some
         (fun_sig
         |> List.filter_map (function
@@ -902,8 +949,10 @@ let check_function_signature env fun_exp args_taints =
                  Some
                    (Taints.singleton
                       { orig = Src { src with call_trace }; tokens = [] })
-             | T.ArgToReturn (argpos, tokens, _return_tok) ->
-                 let* arg_taints = taints_of_arg argpos in
+             | T.ArgToReturn (arg, tokens, _return_tok) ->
+                 let* arg_taints =
+                   taints_of_sig_arg env fparams args args_taints arg
+                 in
                  (* Get the token of the function *)
                  let* ident =
                    match f with
@@ -925,9 +974,11 @@ let check_function_signature env fun_exp args_taints =
                             List.rev_append tokens (snd ident :: taint.tokens)
                           in
                           { taint with tokens }))
-             | T.ArgToSink (argpos, tokens, sink) ->
+             | T.ArgToSink (arg, tokens, sink) ->
                  let sink = T.Call (eorig, tokens, sink) in
-                 let* arg_taints = taints_of_arg argpos in
+                 let* arg_taints =
+                   taints_of_sig_arg env fparams args args_taints arg
+                 in
                  arg_taints
                  |> Taints.iter (fun t ->
                         findings_of_tainted_sink env (Taints.singleton t) sink
@@ -969,6 +1020,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let all_args_taints =
           List.fold_left Taints.union Taints.empty all_taints
         in
+        let opt_taint_sig = check_function_signature env e args args_taints in
         let lval_env =
           (* HACK: Java: If we encounter `obj.setX(arg)` we interpret this as `obj.getX = arg`. *)
           match (e, args) with
@@ -994,7 +1046,6 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
               else lval_env
           | __else__ -> lval_env
         in
-        let opt_taint_sig = check_function_signature env e args_taints in
         (* After we introduced Top_sinks, we need to explicitly support sinks like
          * `sink(...)` by considering that all of the parameters are sinks. To make
          * sure that we are backwards compatible, we do this for any sink that does
