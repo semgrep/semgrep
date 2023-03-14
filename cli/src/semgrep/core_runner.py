@@ -1268,9 +1268,8 @@ Exception raised: `{e}`
                 *configs,
             ]
 
-            runner = StreamingSemgrepCore(
-                cmd, 1, self._engine_type
-            )  # only scanning combined rules
+            # only scanning combined rules
+            runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
             returncode = runner.execute()
 
             # Process output
