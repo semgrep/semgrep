@@ -410,6 +410,7 @@ class Metrics:
           - on, sends
           - off, doesn't send
         """
+        # import here to prevent circular import
         from semgrep.state import get_state
 
         state = get_state()
