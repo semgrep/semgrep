@@ -34,7 +34,7 @@ let test_tainting lang file options config def =
           let tok1, tok2 = (fst (Taint.pm_of_trace src.call_trace)).range_loc in
           let r = Range.range_of_token_locations tok1 tok2 in
           Range.content_at_range file r
-      | Taint.Arg (s, i) -> spf "arg %s %d" s i
+      | Taint.Arg arg -> Taint._show_arg arg
     in
     taint |> Taint.Taint_set.elements |> Common.map show_taint
     |> String.concat ", "
