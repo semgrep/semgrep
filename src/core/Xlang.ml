@@ -2,6 +2,8 @@
    Extended languages: everything from Lang.t + spacegrep (generic) and regex.
 *)
 
+open Ppx_hash_lib.Std.Hash.Builtin
+
 (* eXtended language, stored in the languages: field in the rule.
  * less: merge with xpattern_kind? *)
 type t =
@@ -11,7 +13,7 @@ type t =
   | LRegex
   (* for spacegrep *)
   | LGeneric
-[@@deriving show, eq]
+[@@deriving show, eq, hash]
 
 exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
 

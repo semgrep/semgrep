@@ -1,7 +1,7 @@
 type t =
 {% for item in langs %}  | {{ item.id }}
 {% endfor %}
-[@@deriving show, eq]
+[@@deriving show, eq, hash]
 
 (* unsupported_language_message [lang] takes the language as a string and
  * returns an error message.
