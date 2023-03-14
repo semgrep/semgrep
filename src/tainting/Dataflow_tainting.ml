@@ -575,7 +575,32 @@ let propagate_taint_to_label replace_labels label (taint : T.taint) =
   in
   { taint with orig = new_orig }
 
-let add_offset_to_poly_taint_in_st env lval st =
+let propagate_taint_via_java_setter env e args all_args_taints =
+  match (e, args) with
+  | ( {
+        e =
+          Fetch
+            ({ base = Var _obj; rev_offset = [ ({ o = Dot m; _ } as offset) ] }
+            as lval);
+        _;
+      },
+      [ _ ] )
+    when env.lang =*= Lang.Java
+         && String.starts_with ~prefix:"set" (fst m.IL.ident) ->
+      let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
+      let prop_lval =
+        let o = Dot { m with ident = (prop_name, snd m.IL.ident) } in
+        { lval with rev_offset = [ { offset with o } ] }
+      in
+      if not (Taints.is_empty all_args_taints) then
+        Lval_env.add env.lval_env prop_lval all_args_taints
+      else env.lval_env
+  | __else__ -> env.lval_env
+
+let resolve_poly_taint_for_java_getters env lval st =
+  (* NOTE: This is a hack and it doesn't handle all cases, but it's mean to handle
+   * the most basic ones. It does work for more than just getters. However, it
+   * needs some testing and for now it's safer to restrict it to Java and getX. *)
   if env.lang =*= Java then
     match lval.rev_offset with
     | { o = Dot n; _ } :: _ when String.starts_with ~prefix:"get" (fst n.ident)
@@ -799,8 +824,9 @@ and check_tainted_lval_aux env (lval : IL.lval) :
             | `None ->
                 (* HACK(field-sensitivity): Java: If we encounter `obj.getX` and `obj` has
                    * polymorphic taint,  and we know nothing specific about `obj.getX`, then
-                   * we add the same offset `.getX` to the polymorphic taint coming from `obj`. *)
-                add_offset_to_poly_taint_in_st env lval st)
+                   * we add the same offset `.getX` to the polymorphic taint coming from `obj`.
+                   * See also 'propagate_taint_via_java_setter'. *)
+                resolve_poly_taint_for_java_getters env lval st)
       in
       let taints_from_env = status_to_taints lval_in_env in
       (* Find taint sources matching lval. *)
@@ -1023,28 +1049,8 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let opt_taint_sig = check_function_signature env e args args_taints in
         let lval_env =
           (* HACK: Java: If we encounter `obj.setX(arg)` we interpret this as `obj.getX = arg`. *)
-          match (e, args) with
-          | ( {
-                e =
-                  Fetch
-                    ({
-                       base = Var _obj;
-                       rev_offset = [ ({ o = Dot m; _ } as offset) ];
-                     } as lval);
-                _;
-              },
-              [ _ ] )
-            when env.lang =*= Lang.Java
-                 && String.starts_with ~prefix:"set" (fst m.IL.ident) ->
-              let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
-              let prop_lval =
-                let o = Dot { m with ident = (prop_name, snd m.IL.ident) } in
-                { lval with rev_offset = [ { offset with o } ] }
-              in
-              if not (Taints.is_empty all_args_taints) then
-                Lval_env.add lval_env prop_lval all_args_taints
-              else lval_env
-          | __else__ -> lval_env
+          propagate_taint_via_java_setter { env with lval_env } e args
+            all_args_taints
         in
         (* After we introduced Top_sinks, we need to explicitly support sinks like
          * `sink(...)` by considering that all of the parameters are sinks. To make
