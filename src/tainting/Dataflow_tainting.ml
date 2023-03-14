@@ -915,11 +915,30 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
 let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
   check_tainted_lval env (LV.lval_of_var var)
 
-let check_function_signature env fun_exp _args args_taints =
+let taints_of_arg_lval env fparams actuals args_taints arg_lval =
+  match arg_lval with
+  | T.ArgLval (argpos, []) ->
+    let taints_of_arg = find_args_taints args_taints fparams in
+    taints_of_arg argpos
+  | T.ArgLval (argpos, [_x]) -> (
+    let* _arg_exp = find_args_taints actuals fparams argpos in
+    match _arg_exp.e with
+    | Fetch _lval ->
+        let o = { o = Dot _x; oorig = NoOrig } in
+        let _lval =
+          { _lval with rev_offset = o :: _lval.rev_offset }
+        in
+        let arg_taints = check_tainted_lval env _lval |> fst
+        in
+        Some arg_taints
+    | __else__ -> None)
+  | T.ArgLval (_argpos, _::_) -> None  (* TODO more than one offset *)
+
+let check_function_signature env fun_exp (_args : exp argument stack)
+    args_taints =
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
       let* fparams, fun_sig = hook env.config eorig in
-      let taints_of_arg = find_args_taints args_taints fparams in
       Some
         (fun_sig
         |> List.filter_map (function
@@ -928,8 +947,8 @@ let check_function_signature env fun_exp _args args_taints =
                  Some
                    (Taints.singleton
                       { orig = Src { src with call_trace }; tokens = [] })
-             | T.ArgToReturn (ArgLval (argpos, _TODO_os), tokens, _return_tok) ->
-                 let* arg_taints = taints_of_arg argpos in
+             | T.ArgToReturn (arg_lval, tokens, _return_tok) ->
+                 let* arg_taints = taints_of_arg_lval env fparams _args args_taints arg_lval in
                  (* Get the token of the function *)
                  let* ident =
                    match f with
@@ -951,41 +970,16 @@ let check_function_signature env fun_exp _args args_taints =
                             List.rev_append tokens (snd ident :: taint.tokens)
                           in
                           { taint with tokens }))
-             | T.ArgToSink (ArgLval (argpos, _os), tokens, sink) -> (
+             | T.ArgToSink (arg_lval, tokens, sink) -> (
                  let sink = T.Call (eorig, tokens, sink) in
-                 match _os with
-                 | [] ->
-                     let* arg_taints = taints_of_arg argpos in
-                     arg_taints
-                     |> Taints.iter (fun t ->
-                            findings_of_tainted_sink env (Taints.singleton t)
-                              sink
-                            |> report_findings env);
-                     None
-                 | [ _x ] -> (
-                     logger#flash "ArgToSink with offset %s" (fst _x.IL.ident);
-                     let* _arg_exp = find_args_taints _args fparams argpos in
-                     match _arg_exp.e with
-                     | Fetch _lval ->
-                         let o = { o = Dot _x; oorig = NoOrig } in
-                         let _lval =
-                           { _lval with rev_offset = o :: _lval.rev_offset }
-                         in
-                         let arg_taints =
-                           match Lval_env.dumb_find env.lval_env _lval with
-                           | `Clean
-                           | `None ->
-                               Taints.empty
-                           | `Tainted ts -> ts
-                         in
-                         arg_taints
-                         |> Taints.iter (fun t ->
-                                findings_of_tainted_sink env
-                                  (Taints.singleton t) sink
-                                |> report_findings env);
-                         None
-                     | __else__ -> None)
-                 | _ -> None)
+                 let* arg_taints = taints_of_arg_lval env fparams _args args_taints arg_lval in
+                 arg_taints
+                  |> Taints.iter (fun t ->
+                        findings_of_tainted_sink env (Taints.singleton t)
+                          sink
+                        |> report_findings env);
+                  None
+                 )
              (* THINK: Should we report something here? *)
              | T.SrcToSink _ -> None)
         |> List.fold_left Taints.union Taints.empty)
