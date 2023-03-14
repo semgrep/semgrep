@@ -35,9 +35,9 @@ logger = getLogger(__name__)
 
 
 class ScanHandler:
-    def __init__(self, dry_run: bool = False) -> None:
+    def __init__(self, dry_run: bool = False, deployment_name: str = "") -> None:
         self._deployment_id: Optional[int] = None
-        self._deployment_name: str = ""
+        self._deployment_name: str = deployment_name
 
         self.scan_id = None
         self.ignore_patterns: List[str] = []
@@ -148,7 +148,13 @@ class ScanHandler:
                 "semgrep_version": meta.get("semgrep_version", "0.0.0"),
             }
         )
-        app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+
+        if self.dry_run:
+            app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+        else:
+            app_get_config_url = (
+                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
+            )
 
         body = self._get_scan_config_from_app(app_get_config_url)
 
