@@ -38,6 +38,8 @@
 
 Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. [Get started →.](#getting-started)
 
+<details>
+  <summary style="font-size:16px;">Semgrep Ecosystem</summary>
 Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**.
 
 Its rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs. Here's a quick rule for finding Python `print()` statements. Run it online in Semgrep’s Playground by clicking the image:
@@ -61,6 +63,8 @@ and:
 Join hundreds of thousands of other developers and security engineers already using Semgrep at companies like GitLab, Dropbox, Slack, Figma, Shopify, HashiCorp, Snowflake, and Trail of Bits.
 
 Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev).
+</details>
+<br>
 
 ### Language support
 
@@ -72,8 +76,19 @@ C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala 
 <p align="center">
 See <a href="https://semgrep.dev/docs/supported-languages/">supported languages</a> for the complete list.
 </p>
+<br/>
 
-### Getting started (Recommended)
+### Getting started
+There are two ways to get started. 
+
+1. Starting from the web interface
+2. Starting from the command-line interface (CLI).
+
+We recommend starting from the web interface and then install the CLI because it is simple and allows you to quickly see and manage results, as well as set up CI/CD pipelines with minimal effort. You can also use additional proprietary Semgrep Registry rules and run custom policies from the Semgrep App. 
+However, you can start with the CLI directly, even without logging in, but you will lose the benefits mentioned earlier.
+
+
+### Option 1: Getting started via the web interface (Recommended)
 
 1.  Register to <a href="http://bit.ly/424Jbs0" target="_blank">semgrep.dev</a>
 <img src="images/semgrep-main-image.jpg" /> 
@@ -101,8 +116,7 @@ See <a href="https://semgrep.dev/docs/supported-languages/">supported languages<
 <img src="images/semgrep-auto-config-example.jpg" /> 
 
 
-### Getting started (CLI only)
-In this flow, you'll lose the simplicity of quickly seeing and managing results and setting up CI/CD pipelines with minimal effort. Additionally, you'll be unable to use additional proprietary Semgrep Registry rules and run custom policies from the Semgrep App.
+### Option 2: Getting started via CLI
 
  1. Install Semgrep CLI
 
@@ -122,6 +136,8 @@ In this flow, you'll lose the simplicity of quickly seeing and managing results 
 semgrep --config auto
 ```
 
+3. [Optional but recommended] Run `semgrep login` to register and login to <a href="http://bit.ly/424Jbs0" target="_blank">semgrep.dev</a>. This will connect your instance with the Semgrep platform. It'll unlock additional proprietary Semgrep Registry rules and run custom policies from the Semgrep App.
+
 ### Set up CI/CD in two minutes
 
 1.  Register or login to <a href="http://bit.ly/424Jbs0" target="_blank">semgrep.dev</a>
@@ -131,7 +147,7 @@ semgrep --config auto
 <img src="images/semgrep-ci-cd-popup.jpg" /> 
 
 
-3. Select your version control system and follow the wizard to add your project. After this setup, you'll get continuous security. Semgrep will scan your project after every pull request!
+3. Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request!
 
 
 ### Notes:
