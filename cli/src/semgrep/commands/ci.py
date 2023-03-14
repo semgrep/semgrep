@@ -219,7 +219,7 @@ def ci(
         output_format=output_format,
     )
 
-    state.metrics.configure(metrics, metrics)
+    state.metrics.configure(metrics, metrics_legacy)
     state.error_handler.configure(suppress_errors)
     scan_handler = None
 
