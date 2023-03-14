@@ -38,7 +38,7 @@
 
 Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. [Get started →.](#getting-started)
 
-<img src="images/semgrep-main-image.jpg" />
+<img src="https://raw.githubusercontent.com/returntocorp/semgrep/readme-changes/images/semgrep-main-image.jpg" alt="Semgrep platform image"/>
 
 Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**.
 
@@ -115,7 +115,7 @@ $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 1.  Register to <a href="https://semgrep.dev/login?utm_source=github&utm_medium=readme&utm_campaign=growth-oss" target="_blank">semgrep.dev</a>
 
 2.  Add your project for scanning by go to `Projects > Scan New Project > Run scan in CI`
-    <img src="images/semgrep-ci-cd-popup.jpg" />
+    <img src="https://raw.githubusercontent.com/returntocorp/semgrep/readme-changes/images/semgrep-ci-cd-popup.jpg" alt="Semgrep CI/CD Popup image"/>
 
 3.  Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request. You don't really need the CLI unless you want to scan on local machine.
 
