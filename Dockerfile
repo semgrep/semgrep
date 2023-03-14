@@ -52,9 +52,9 @@
 # - doc/SEMGREP_CORE_CONTRIBUTING.md
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 #
-# Note that some .github/workflows/ use returntocorp/ocaml:alpine, which should
-# be the latest, but may differ from this one.
-FROM returntocorp/ocaml:alpine-2022-09-24 as semgrep-core-container
+# coupling: if you modify this FROM below, you probably need to modify also
+# a few .github/workflows/ files. grep for returntocorp/ocaml there.
+FROM returntocorp/ocaml:alpine-2023-03-03 as semgrep-core-container
 
 WORKDIR /src/semgrep
 COPY . .
