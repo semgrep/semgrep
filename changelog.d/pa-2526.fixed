@@ -1,5 +1,3 @@
-CLI: Made the progress bar reflect Semgrep's actual execution better.
-Instead of abstract "tasks", the progress bar now measures progress in terms of
-how many files Semgrep has processed.
+CLI: The scan progress bar now shows progress with higher granularity, and has fewer big jumps when using the Pro Engine.
 
-Also, the progress bar should jump less with the Pro Engine.
+The abstract unit of 'tasks' has been removed, and now only a percentage number will be displayed.
