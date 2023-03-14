@@ -1,0 +1,3 @@
+The AST dump produced by semgrep-core is now usable from Python
+with the provided ATD interface and the Python code derived from it with
+atdpy.
