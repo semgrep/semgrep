@@ -46,23 +46,17 @@ Semgrep is a fast, open-source, static analysis engine for finding bugs, detecti
 
 Semgrep supports 30+ languages.
 
-| Category              | Languages                                                                       |
-|-----------------------|---------------------------------------------------------------------------------|
-| GA                    | C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala · Terraform · TypeScript · TSX |
-| Beta & Experimental   | See <a href="https://semgrep.dev/docs/supported-languages/">supported languages</a> for the complete list.                                                                  |
-
-
-
-<br/>
+| Category            | Languages                                                                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| GA                  | C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala · Terraform · TypeScript · TSX      |
+| Beta & Experimental | See <a href="https://semgrep.dev/docs/supported-languages/">supported languages</a> for the complete list. |
 
 ### Getting started 🚀
 
 1. [From the CLI](#option-1-getting-started-from-the-cli)
 2. [From the Web UI](#option-2-getting-started-from-the-semgrep-cloud-platform-recommended) (Semgrep Cloud Platform)
 
-
-
-For beginners, we recommend starting with the Web UI  [Web UI (Semgrep Cloud Platform)](#option-2-getting-started-from-the-semgrep-cloud-platform-recommended) because it provides a visual interface, a demo project, result triaging and exploration workflows, and makes setup in CI/CD fast. Scans are still local and code isn't uploaded. Alternatively, you can start with the CLI without logging in and navigate the terminal output to run one-off searches.
+For beginners, we recommend starting with the Web UI [Web UI (Semgrep Cloud Platform)](#option-2-getting-started-from-the-semgrep-cloud-platform-recommended) because it provides a visual interface, a demo project, result triaging and exploration workflows, and makes setup in CI/CD fast. Scans are still local and code isn't uploaded. Alternatively, you can start with the CLI without logging in and navigate the terminal output to run one-off searches.
 
 ### Option 1: Getting started from the CLI
 
@@ -81,8 +75,7 @@ $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 
 2.  Go to your app's root directory and run `semgrep --config auto`. This will scan your project with the default settings.
 
-
-3. [Optional, but recommended]  Run `semgrep login` to get the login URL for the Semgrep Cloud Platform. Open the login URL in the browser and login.
+3.  [Optional, but recommended] Run `semgrep login` to get the login URL for the Semgrep Cloud Platform. Open the login URL in the browser and login.
 
 ### Option 2: Getting started from the Semgrep Cloud Platform (Recommended)
 
@@ -91,9 +84,9 @@ $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 2.  Scan your project by navigating to `Projects > Scan New Project > Run scan in CI`
     <img src="images/semgrep-ci-cd-popup.jpg" width="582" alt="Semgrep CI/CD Popup image"/>
 
-3.  Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request. 
+3.  Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request.
 
-4. [Optional but recommended] If you want to run Semgrep locally, follow the steps in the CLI section. 
+4.  [Optional but recommended] If you want to run Semgrep locally, follow the steps in the CLI section.
 
 ### Notes:
 
