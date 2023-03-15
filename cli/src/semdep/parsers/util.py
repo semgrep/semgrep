@@ -43,6 +43,7 @@ logger = getLogger(__name__)
 
 A = TypeVar("A")
 B = TypeVar("B")
+C = TypeVar("C")
 
 Pos = Tuple[int, int]
 
@@ -93,6 +94,13 @@ def pair(p1: "Parser[A]", p2: "Parser[B]") -> "Parser[Tuple[A,B]]":
     Returns a parser which runs [p1] then [p2] and produces a pair of the results
     """
     return p1.bind(lambda a: p2.bind(lambda b: success((a, b))))
+
+
+def triple(p1: "Parser[A]", p2: "Parser[B]", p3: "Parser[C]") -> "Parser[Tuple[A,B,C]]":
+    """
+    Returns a parser which runs [p1] then [p2] then [p3] and produces a triple of the results
+    """
+    return p1.bind(lambda a: p2.bind(lambda b: p3.bind(lambda c: success((a, b, c)))))
 
 
 def transitivity(manifest_deps: Optional[Set[A]], dep_sources: List[A]) -> Transitivity:
@@ -149,6 +157,8 @@ def quoted(p: "Parser[A]") -> "Parser[A]":
     return string('"') >> p << string('"')
 
 
+integer = regex(r"\d+").map(int)
+any_str = regex(".*")
 word = not_any(" ")
 consume_word = word >> success(None)
 
