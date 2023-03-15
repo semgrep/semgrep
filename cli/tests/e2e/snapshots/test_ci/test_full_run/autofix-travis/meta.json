@@ -19,10 +19,5 @@
     "scan_environment": "travis-ci",
     "is_full_scan": true,
     "is_sca_scan": false
-  },
-  "policy_names": [
-    "audit",
-    "comment",
-    "block"
-  ]
+  }
 }

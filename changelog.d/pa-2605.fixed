@@ -1,0 +1,2 @@
+Rust: Basic let-statement bindings (such as `let x = tainted`) now properly
+carry taint.

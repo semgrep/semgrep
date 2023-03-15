@@ -21,6 +21,7 @@ from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
+from semgrep.metrics import Metrics
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -263,7 +264,9 @@ def automocks(mocker):
             "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
         ],
     )
-    mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
+    mocker.patch(
+        "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"
+    )
     mocker.patch.object(AppSession, "post")
 
 
@@ -1072,7 +1075,7 @@ def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that failure to authenticate does not have exit code 0 or 1
     """
-    mocker.patch("semgrep.app.auth.is_valid_token", return_value=False)
+    mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value=None)
     run_semgrep(
         options=["ci", "--no-suppress-errors"],
         target_name=None,
@@ -1081,7 +1084,7 @@ def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
 
-    mocker.patch("semgrep.app.auth.is_valid_token", side_effect=Exception)
+    mocker.patch("semgrep.app.auth.get_deployment_from_token", side_effect=Exception)
     run_semgrep(
         options=["ci", "--no-suppress-errors"],
         target_name=None,
@@ -1097,7 +1100,7 @@ def test_fail_auth_error_handler(
     """
     Test that failure to authenticate with --suppres-errors returns exit code 0
     """
-    mocker.patch("semgrep.app.auth.is_valid_token", side_effect=Exception)
+    mocker.patch("semgrep.app.auth.get_deployment_from_token", side_effect=Exception)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
         options=["ci"],
@@ -1334,3 +1337,17 @@ def test_query_dependency(
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
     complete_json["stats"]["lockfile_scan_info"] = {}
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
+
+
+def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
+    mock_send = mocker.patch.object(Metrics, "_post_metrics")
+    run_semgrep(
+        options=["ci"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
+        force_metrics_off=False,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+    mock_send.assert_called_once()
+

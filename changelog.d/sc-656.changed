@@ -1,0 +1,1 @@
+Changed Maven version comparison to more closely reflect usage, so versions with more than 3 increments will not be treated as plain strings

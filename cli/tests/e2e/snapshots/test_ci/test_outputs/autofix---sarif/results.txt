@@ -588,8 +588,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   environment - running in environment git, triggering event is unknown
             
   CONNECTION
-  Fetching configuration from Semgrep Cloud Platform  
-  Reporting start of scan for org_name                               
+  Reporting start of scan for deployment_name         
+  Fetching configuration from Semgrep Cloud Platform                 
                
 ┌─────────────┐
 │ Scan Status │
