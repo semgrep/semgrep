@@ -40,7 +40,7 @@ Semgrep is a fast, open-source, static analysis engine for finding bugs, detecti
 
 <img src="images/semgrep-main-image.jpg" alt="Semgrep platform image"/>
 
-<br>
+
 
 ### Language support
 
