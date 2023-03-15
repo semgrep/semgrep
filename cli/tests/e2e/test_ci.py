@@ -21,6 +21,7 @@ from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
+from semgrep.metrics import Metrics
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -1264,3 +1265,16 @@ def test_git_failure_error_handler(
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
     mock_send.assert_called_once_with(mocker.ANY, 2)
+
+
+def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
+    mock_send = mocker.patch.object(Metrics, "_post_metrics")
+    run_semgrep(
+        options=["ci"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
+        force_metrics_off=False,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+    mock_send.assert_called_once()
