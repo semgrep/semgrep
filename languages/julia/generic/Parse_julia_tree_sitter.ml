@@ -670,12 +670,16 @@ and map_anon_choice_str_content_838a78d (env : env)
   match x with
   | `Str_content tok -> (* string_content *) Left3 (str env tok)
   | `Str_interp (v1, v2) ->
-      let _v1 = (* "$" *) token env v1 in
+      let dollar_s, dollar_t = (* "$" *) str env v1 in
       let v2 =
         match v2 with
-        | `Id tok ->
-            let id = map_identifier env tok in
-            Middle3 (N (H2.name_of_id id) |> G.e)
+        | `Id tok -> (
+            let s, t = map_identifier env tok in
+            match env.extra with
+            | Pattern ->
+                let mvar_id = (dollar_s ^ s, PI.combine_infos dollar_t [ t ]) in
+                Left3 mvar_id
+            | Program -> Middle3 (N (H2.name_of_id (s, t)) |> G.e))
         | `Imme_paren_LPAR_choice_exp_RPAR (v1, v2, v3, v4) ->
             let _v1 = (* immediate_paren *) token env v1 in
             let v2 = (* "(" *) token env v2 in

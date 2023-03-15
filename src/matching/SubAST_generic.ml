@@ -341,24 +341,19 @@ let substmts_of_stmt st =
 (* Visitors  *)
 (*****************************************************************************)
 (* TODO: move in pfff at some point *)
-let do_visit_with_ref mk_hooks any =
+let do_visit_with_ref visitor any =
   let res = ref [] in
-  let hooks = mk_hooks res in
-  let vout = V.mk_visitor hooks in
-  vout any;
+  visitor#visit_any res any;
   List.rev !res
 
 let lambdas_in_expr e =
   do_visit_with_ref
-    (fun aref ->
-      {
-        V.default_visitor with
-        V.kexpr =
-          (fun (k, _) e ->
-            match e.e with
-            | Lambda def -> Common.push def aref
-            | _ -> k e);
-      })
+    object (_self : 'self)
+      inherit [_] AST_generic.iter_no_id_info
+
+      (* TODO Should we recurse into the Lambda? *)
+      method! visit_Lambda aref def = Common.push def aref
+    end
     (E e)
   [@@profiling]
 

@@ -1042,6 +1042,7 @@ and lval_of_ent env ent =
   | G.EN (G.Id (id, idinfo)) -> lval_of_id_info env id idinfo
   | G.EN name -> lval env (G.N name |> G.e)
   | G.EDynamic eorig -> lval env eorig
+  | G.EPattern (PatId (id, id_info)) -> lval env (G.N (Id (id, id_info)) |> G.e)
   | G.EPattern _ -> (
       let any = G.En ent in
       log_fixme ToDo any;

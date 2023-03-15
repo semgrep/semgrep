@@ -83,7 +83,7 @@ repos:
     rev: v1.0.0
     hooks:
       - id: mypy
-        exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|pfff|^perf/.+$$
+        exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|^perf/.+$$
         args: [--config, mypy.ini, --show-error-codes]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:
@@ -150,7 +150,6 @@ repos:
         language: docker_image
         entry: koalaman/shellcheck:v0.8.0
         files: "[.]sh$"
-        exclude: "pfff"
       - id: hadolint
         name: hadolint
         language: docker_image
@@ -197,7 +196,7 @@ repos:
         # explicitly on the command line by pre-commit!
         # TODO: remove once file targeting is revamped and supports
         # filtering for explicit targets (a command-line flag should do)
-        exclude: "^semgrep-core/src/pfff|Realpath.ml"
+        exclude: "Realpath.ml"
 
         #coupling: 'make check' and the SEMGREP_ARGS variable
         args: [

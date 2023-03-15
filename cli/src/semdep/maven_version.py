@@ -4,17 +4,60 @@ Based on https://docs.oracle.com/middleware/1212/core/MAVEN/maven_version.htm#MA
 """
 import re
 from dataclasses import dataclass
+from typing import Tuple
 from typing import Union
 
+from semdep.external.parsy import ParseError
+from semdep.external.parsy import string
+from semdep.parsers.util import any_str
+from semdep.parsers.util import integer
+from semdep.parsers.util import pair
+from semdep.parsers.util import triple
 from semgrep.error import SemgrepError
 
 
 @dataclass
-class ParsedMavenVersion:
+class VersionCore:
     major: int
     minor: int
-    incremental: int
-    qualifer: str
+    incrementals: Tuple[int, ...]
+
+
+parse_version_core = triple(
+    integer,
+    string(".") >> integer,
+    (string(".") >> integer).many(),
+).map(lambda x: VersionCore(x[0], x[1], tuple(x[2])))
+
+
+def normalize_incrementals(
+    first: Tuple[int, ...], second: Tuple[int, ...]
+) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
+    if len(first) > len(second):
+        return first, second + (0,) * (len(first) - len(second))
+    elif len(second) > len(first):
+        return first + (0,) * (len(second) - len(first)), second
+    else:
+        return first, second
+
+
+def compare_version_core(first: VersionCore, second: VersionCore) -> int:
+    if first.major != second.major:
+        return first.major - second.major
+    elif first.minor != second.minor:
+        return first.minor - second.minor
+    for inc1, inc2 in zip(
+        *normalize_incrementals(first.incrementals, second.incrementals)
+    ):
+        if inc1 != inc2:
+            return inc1 - inc2
+    return 0
+
+
+@dataclass
+class ParsedMavenVersion:
+    core: VersionCore
+    qualifier: str
     raw_version: str
 
 
@@ -22,22 +65,13 @@ MavenVersion = Union[ParsedMavenVersion, str]
 
 
 def parse_maven_version(version: str) -> MavenVersion:
-    m = re.compile(
-        r"(?P<major>\d+)\.(?P<minor>\d+)(?:\.(?P<incremental>\d+))?(?P<qualifier>.*)"
-    ).match(version)
-    # "If you do not follow Maven versioning standards in your project versioning scheme,
-    # then for version comparison, Maven interprets the entire version as a simple string."
-    if not m:
+    try:
+        m = pair(parse_version_core, any_str).parse(version)
+    except ParseError:
+        # "If you do not follow Maven versioning standards in your project versioning scheme,
+        # then for version comparison, Maven interprets the entire version as a simple string."
         return version
-    if "." in m.group("qualifier"):
-        return version
-    return ParsedMavenVersion(
-        major=int(m.group("major")),
-        minor=int(m.group("minor")),
-        incremental=int(m.group("incremental")) if m.group("incremental") else 0,
-        qualifer=m.group("qualifier"),
-        raw_version=m.group(0),
-    )
+    return ParsedMavenVersion(core=m[0], qualifier=m[1], raw_version=version)
 
 
 def cmp_str(x: str, y: str) -> int:
@@ -56,27 +90,24 @@ def cmp_maven_versions(first: MavenVersion, second: MavenVersion) -> int:
     greater than 0 if first > second
     """
     if isinstance(first, ParsedMavenVersion) and isinstance(second, ParsedMavenVersion):
-        if first.major != second.major:
-            return first.major - second.major
-        elif first.minor != second.minor:
-            return first.minor - second.minor
-        elif first.incremental != second.incremental:
-            return first.incremental - second.incremental
+        core_cmp = compare_version_core(first.core, second.core)
+        if core_cmp != 0:
+            return core_cmp
         # "All versions with a qualifier are older than the same version without a qualifier (release version)."
-        elif first.qualifer == "" and second.qualifer != "":
+        elif first.qualifier == "" and second.qualifier != "":
             return 1
-        elif second.qualifer == "" and first.qualifer != "":
+        elif second.qualifier == "" and first.qualifier != "":
             return -1
 
         # "Maven treats the SNAPSHOT qualifier differently from all others.
         # If a version number is followed by -SNAPSHOT, then Maven considers it
         # the "as-yet-unreleased" version of the associated MajorVersion, MinorVersion, or IncrementalVersion."
-        elif first.qualifer == "-SNAPSHOT" and second.qualifer != "-SNAPSHOT":
+        elif first.qualifier == "-SNAPSHOT" and second.qualifier != "-SNAPSHOT":
             return 1
-        elif second.qualifer == "-SNAPSHOT" and first.qualifer != "-SNAPSHOT":
+        elif second.qualifier == "-SNAPSHOT" and first.qualifier != "-SNAPSHOT":
             return -1
         else:
-            return cmp_str(first.qualifer, second.qualifer)
+            return cmp_str(first.qualifier, second.qualifier)
     else:
         if isinstance(first, ParsedMavenVersion) and isinstance(second, str):
             first_raw = first.raw_version

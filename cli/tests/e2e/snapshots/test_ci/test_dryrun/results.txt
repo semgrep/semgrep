@@ -70,8 +70,8 @@ First-Party Blocking Rules Fired:
             
   CONNECTION
 Would have sent POST request to create scan
-  Fetching configuration from Semgrep Cloud Platform  
-  Reporting start of scan for org_name                               
+  Reporting start of scan for deployment_name         
+  Fetching configuration from Semgrep Cloud Platform                 
                
 ┌─────────────┐
 │ Scan Status │
@@ -557,7 +557,7 @@ Would have sent complete blob: {
             ".txt": 1
         },
         "lockfile_scan_info": {
-            "poetry.lock": 1,
+            "poetry.lock": 3,
             "yarn.lock": 1
         },
         "parse_rate": {
