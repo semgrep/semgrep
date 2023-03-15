@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -18,6 +19,7 @@ class Corpus:
         rule_dir: Union[str, Path],
         target_dir: Union[str, Path],
         language: Optional[str] = None,
+        semgrep_options: List[str] = [],
     ):
         # name for the input corpus (rules and targets)
         self.name = name
@@ -30,6 +32,9 @@ class Corpus:
 
         # language to run rules with (because semgrep-core requires it)
         self.language = language
+
+        # extra semgrep arguments
+        self.semgrep_options = semgrep_options
 
     # Fetch rules and targets is delegated to an ad-hoc script named 'prep'.
     def prep(self) -> None:
