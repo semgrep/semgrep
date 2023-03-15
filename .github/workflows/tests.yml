@@ -30,22 +30,8 @@ jobs:
         with:
           submodules: true
           persist-credentials: false
-      - name: Cache OCaml build files
-        uses: actions/cache@v3
-        with:
-          path: |
-            /root/.dune
-            /root/.opam/download-cache
-            /root/.opam/*/.opam-switch/packages
-            /root/.opam/*/.opam-switch/sources
-          key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
-        env:
-          DUNE_CACHE: enabled
-          DUNE_CACHE_STORAGE_MODE: copy
-          DUNE_CACHE_ROOT: /root/.dune
-          DUNE_CACHE_TRANSPORT: direct
       - name: Test semgrep-core
         run: |
           eval $(opam env)
