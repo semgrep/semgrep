@@ -68,3 +68,6 @@ let equivalence_mode = ref false
 (* Note that an important flag used during parsing is actually in pfff in
  * Flag_parsing.sgrep_mode
  *)
+
+(* One-off experiment for Raja. Delete at some point (March 2023). *)
+let raja = ref false

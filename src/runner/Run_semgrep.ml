@@ -849,6 +849,11 @@ let semgrep_with_rules_and_formatted_output config =
         JSON_report.match_results_of_matches_and_errors
           (Some Autofix.render_fix) (List.length files) res
       in
+      (* one-off experiment, delete it at some point (March 2023) *)
+      let res =
+        if !Flag_semgrep.raja then Raja_experiment.adjust_core_match_results res
+        else res
+      in
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)
         because it kills performance, adding an extra 50% time on our

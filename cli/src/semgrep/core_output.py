@@ -112,7 +112,7 @@ def core_matches_to_rule_matches(
     Convert core_match objects into RuleMatch objects that the rest of the codebase
     interacts with.
 
-    For now assumes that all matches encapsulated by this object are from the same rulee
+    For now assumes that all matches encapsulated by this object are from the same rule
     """
     rule_table = {rule.id: rule for rule in rules}
 
