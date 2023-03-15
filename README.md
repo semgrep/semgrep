@@ -35,7 +35,8 @@
 
 Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**. [Get started →.](#getting-started-🚀)
 
-<img src="images/semgrep-scan-cli.jpg" alt="Semgrep CLI image"/>
+<a href="#option-1-getting-started-from-the-cli">
+<img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-scan-cli.jpg" alt="Semgrep CLI image"/></a>
 
 ### Language support
 
@@ -75,7 +76,7 @@ $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 
 ### Option 2: Getting started from the Semgrep Cloud Platform (Recommended)
 
-<img src="images/semgrep-main-image.jpg" alt="Semgrep platform image"/>
+<a href="https://go.semgrep.dev/login-ghrmgo"  target="_blank"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-main-image.jpg" alt="Semgrep platform image"/> </a>
 
 1.  Register to <a href="https://go.semgrep.dev/login-ghrmgo" target="_blank">semgrep.dev</a>
 
@@ -91,7 +92,7 @@ $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 
 1.  Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more about `auto` config and other rules.
 
-2.  If there are any issues, please ask us at our Slack channel <a href="https://go.semgrep.dev/slack"> https://go.semgrep.dev/slack</a>
+2.  If there are any issues, please ask us at our Slack channel <a href="https://go.semgrep.dev/slack" target="_blank"> https://go.semgrep.dev/slack</a>
 
 3.  To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
     Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
@@ -121,7 +122,7 @@ Semgrep rules look like the code you already write; no abstract syntax trees, re
 Run it online in Semgrep’s Playground by [clicking here](https://semgrep.dev/s/ievans:print-to-logger).
 
 <p align="center">
-    <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="images/semgrep-example-rules-editor.jpg" width="582" alt="Semgrep rule example for finding Python print() statements"/></a>
+    <a href="https://semgrep.dev/s/ievans:print-to-logger"  target="_blank"><img src="images/semgrep-example-rules-editor.jpg" width="582" alt="Semgrep rule example for finding Python print() statements" /></a>
 </p>
 
 #### Examples
