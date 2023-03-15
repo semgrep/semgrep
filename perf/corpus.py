@@ -18,8 +18,8 @@ class Corpus:
         name: str,
         rule_dir: Union[str, Path],
         target_dir: Union[str, Path],
+        semgrep_options: List[str],
         language: Optional[str] = None,
-        semgrep_options: List[str] = [],
     ):
         # name for the input corpus (rules and targets)
         self.name = name
