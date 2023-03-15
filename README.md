@@ -18,7 +18,7 @@
   <a href="https://semgrep.dev/docs/">
       <img src="https://img.shields.io/badge/docs-semgrep.dev-purple?style=flat-square" alt="Documentation" />
   </a>
-  <a href="https://r2c.dev/slack">
+  <a href="https://go.semgrep.dev/slack">
     <img src="https://img.shields.io/badge/slack-1.9k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
   </a>
   <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
@@ -36,7 +36,7 @@
 </p>
 </br>
 
-Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**. [Get started →.](#getting-started)
+Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**. [Get started →.](#getting-started-🚀)
 
 <img src="images/semgrep-main-image.jpg" alt="Semgrep platform image"/>
 
@@ -44,24 +44,24 @@ Semgrep is a fast, open-source, static analysis engine for finding bugs, detecti
 
 ### Language support
 
-<h4 align="center">General availability</h4>
-<p align="center">
-C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala · Terraform · TypeScript · TSX</br>
-</p>
-<h4 align="center">Beta & experimental</h4>
-<p align="center">
-See <a href="https://semgrep.dev/docs/supported-languages/">supported languages</a> for the complete list.
-</p>
+Semgrep supports 30+ languages.
+
+| Category              | Languages                                                                       |
+|-----------------------|---------------------------------------------------------------------------------|
+| GA                    | C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala · Terraform · TypeScript · TSX |
+| Beta & Experimental   | See <a href="https://semgrep.dev/docs/supported-languages/">supported languages</a> for the complete list.                                                                  |
+
+
+
 <br/>
 
 ### Getting started 🚀
 
-1. [Getting started from the CLI](#option-1-getting-started-from-the-cli)
-2. [Getting started from the web UI](#option-2-getting-started-via-the-web-ui-recommended)
+1. [From the CLI](#option-1-getting-started-from-the-cli)
+2. [From the Semgrep Cloud Platform (Web UI)](#option-2-getting-started-from-the-semgrep-cloud-platform-recommended) (Recommended)
 
-We recommend starting from the [web UI](#option-2-getting-started-via-the-web-ui-recommended) and then install the CLI because it is simple and allows you to quickly see and manage results, as well as set up CI/CD pipelines with minimal effort. You can also use additional proprietary Semgrep Registry rules and run custom policies from the Semgrep App.
 
-However, you can also start with the CLI directly, even without logging in, but you will lose the benefits mentioned earlier.
+We recommend starting with the [Semgrep Cloud Platform (Web UI)](#option-2-getting-started-from-the-semgrep-cloud-platform-recommended) because it provides a demo project, result triaging and exploration workflows, and makes set up in CI/CD fast. Scans are still local and code isn't uploaded. Alternatively start without logging in, and navigate terminal output and run one-off searches.
 
 ### Option 1: Getting started from the CLI
 
@@ -78,24 +78,27 @@ $ python3 -m pip install semgrep
 $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 ```
 
-2.  Run `semgrep login` to get the login URL. Open the login URL in the browser and login [Optional, but recommended].
+2.  Go to your app's root directory and run `semgrep --config auto`. This will scan your project with the default settings.
 
-3.  Go to your app's root directory and run `semgrep --config auto`. This will scan your project with the default settings.
 
-### Option 2: Getting started via the web UI (Recommended)
+3. [Optional, but recommended]  Run `semgrep login` to get the login URL for the Semgrep Cloud Platform. Open the login URL in the browser and login.
+
+### Option 2: Getting started from the Semgrep Cloud Platform (Recommended)
 
 1.  Register to <a href="https://go.semgrep.dev/login-ghrmgo" target="_blank">semgrep.dev</a>
 
 2.  Scan your project by navigating to `Projects > Scan New Project > Run scan in CI`
     <img src="images/semgrep-ci-cd-popup.jpg" width="582" alt="Semgrep CI/CD Popup image"/>
 
-3.  Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request. You don't really need the CLI unless you want to scan on local machine.
+3.  Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request. 
+
+4. [Optional but recommended] If you want to run Semgrep locally, follow the steps in the CLI section. 
 
 ### Notes:
 
 1.  Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more about `auto` config and other rules.
 
-2.  If there are any issues, please ask us at our Slack channel <a href="https://r2c.dev/slack"> https://r2c.dev/slack</a>
+2.  If there are any issues, please ask us at our Slack channel <a href="https://go.semgrep.dev/slack"> https://go.semgrep.dev/slack</a>
 
 3.  To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
     Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
@@ -168,7 +171,7 @@ The Semgrep [privacy policy](https://semgrep.dev/docs/metrics) describes the pri
 - [Frequently asked questions (FAQs)](https://semgrep.dev/docs/faq/)
 - [Contributing](https://semgrep.dev/docs/contributing/contributing/)
 - [Build instructions for developers](INSTALL.md)
-- [Ask questions in the r2c Community Slack](https://r2c.dev/slack)
+- [Ask questions in the r2c Community Slack](https://go.semgrep.dev/slack)
 - [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
 - [Semgrep YouTube channel](https://www.youtube.com/c/semgrep)
 - [License (LGPL-2.1)](LICENSE)
