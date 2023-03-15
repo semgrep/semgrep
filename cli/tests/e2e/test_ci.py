@@ -1280,7 +1280,9 @@ def test_git_failure_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
-def test_query_dependency(git_tmp_path_with_commit, snapshot, mocker, run_semgrep):
+def test_query_dependency(
+    git_tmp_path_with_commit, snapshot, mocker, run_semgrep: RunSemgrep
+):
     file_content = dedent(
         """
         rules:
