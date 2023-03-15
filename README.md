@@ -58,10 +58,11 @@ Semgrep supports 30+ languages.
 ### Getting started 🚀
 
 1. [From the CLI](#option-1-getting-started-from-the-cli)
-2. [From the Semgrep Cloud Platform (Web UI)](#option-2-getting-started-from-the-semgrep-cloud-platform-recommended) (Recommended)
+2. [From the Web UI](#option-2-getting-started-from-the-semgrep-cloud-platform-recommended) (Semgrep Cloud Platform)
 
 
-We recommend starting with the [Semgrep Cloud Platform (Web UI)](#option-2-getting-started-from-the-semgrep-cloud-platform-recommended) because it provides a demo project, result triaging and exploration workflows, and makes set up in CI/CD fast. Scans are still local and code isn't uploaded. Alternatively start without logging in, and navigate terminal output and run one-off searches.
+
+For beginners, we recommend starting with the Web UI  [Web UI (Semgrep Cloud Platform)](#option-2-getting-started-from-the-semgrep-cloud-platform-recommended) because it provides a visual interface, a demo project, result triaging and exploration workflows, and makes setup in CI/CD fast. Scans are still local and code isn't uploaded. Alternatively, you can start with the CLI without logging in and navigate the terminal output to run one-off searches.
 
 ### Option 1: Getting started from the CLI
 
