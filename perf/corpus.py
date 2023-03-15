@@ -47,7 +47,7 @@ LARGE_CORPUSES = Path("configs/ci_large_repos.yaml")
 
 # For corpuses that cannot be run in CI because they use private repos
 INTERNAL_CORPUSES = [
-    Corpus("dogfood", "input/semgrep.yml", "input/"),
+    Corpus("dogfood", "input/semgrep.yml", "input/", []),
 ]
 
-DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", "js")]
+DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", "js", [])]
