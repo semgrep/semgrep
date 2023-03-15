@@ -107,14 +107,6 @@ workflows:
 
   # Daily semgrep benchmarks
   benchmarks:
-    triggers:
-      - schedule:
-          # Run at 00:00 every day, UTC.
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only:
-                - develop
     jobs:
       - benchmarks:
           # Run only on these branches
@@ -122,8 +114,6 @@ workflows:
             branches:
               only:
                 - develop
-
-  scheduled-parsing-stats:
     triggers:
       - schedule:
           # Run at 00:00 every day, UTC.
@@ -132,7 +122,8 @@ workflows:
             branches:
               only:
                 - develop
-                - main
+
+  scheduled-parsing-stats:
     jobs:
       - parsing-stats:
           # Run only on these branches
@@ -140,9 +131,6 @@ workflows:
             branches:
               only:
                 - develop
-                - main
-
-  scheduled-autofix-printing-stats:
     triggers:
       - schedule:
           # Run at 00:00 every day, UTC.
@@ -151,9 +139,19 @@ workflows:
             branches:
               only:
                 - develop
+
+  scheduled-autofix-printing-stats:
     jobs:
       - autofix-printing-stats:
           # Run only on these branches
+          filters:
+            branches:
+              only:
+                - develop
+    triggers:
+      - schedule:
+          # Run at 00:00 every day, UTC.
+          cron: "0 0 * * *"
           filters:
             branches:
               only:
