@@ -14,6 +14,7 @@ from rich.progress import TextColumn
 from rich.progress import TimeRemainingColumn
 from rich.progress import TransferSpeedColumn
 
+from semgrep import __VERSION__
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.error import FATAL_EXIT_CODE
@@ -70,7 +71,7 @@ def run_install_semgrep_pro() -> None:
             "Running on potentially unsupported platform. Installing linux compatible binary"
         )
 
-    url = f"{state.env.semgrep_url}/api/agent/deployments/deepbinary/{platform_kind}"
+    url = f"{state.env.semgrep_url}/api/agent/deployments/deepbinary/{platform_kind}?version={__VERSION__}"
 
     # Download the binary into a temporary location, check it, then install it.
     # This should prevent bad installations.
