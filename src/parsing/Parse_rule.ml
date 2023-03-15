@@ -851,7 +851,7 @@ let find_formula env (rule_dict : dict) : key * G.expr =
   | None ->
       error env rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, `pattern-comby` to be present"
+         `pattern-regex`, `pattern-coby` to be present"
   | Some (key, value) -> (key, value)
 
 (* intermediate type used for processing 'where' *)
@@ -1285,9 +1285,13 @@ let parse_extract_transform ~id (s, t) =
 (*****************************************************************************)
 
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
-  match mode_opt with
-  | None
-  | Some ("search", _) -> (
+  (* We do this because we should only assume that we have a search mode rule
+     if there is not a `taint` key present in the rule dict.
+  *)
+  let has_taint_key = Option.is_some (Hashtbl.find_opt rule_dict.h "taint") in
+  match (mode_opt, has_taint_key) with
+  | None, false
+  | Some ("search", _), false -> (
       let formula =
         take_opt rule_dict env
           (fun env _ expr -> parse_formula env expr)
@@ -1296,7 +1300,8 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       match formula with
       | Some formula -> `Search formula
       | None -> `Search (parse_pair_old env (find_formula_old env rule_dict)))
-  | Some ("taint", _) -> (
+  | _, true
+  | Some ("taint", _), _ -> (
       let parse_specs parse_spec env key x =
         ( snd key,
           parse_listi env key
@@ -1334,7 +1339,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
                 | Some (_, xs) -> xs);
               sinks;
             })
-  | Some ("extract", _) ->
+  | Some ("extract", _), _ ->
       let formula = parse_pair_old env (find_formula_old env rule_dict) in
       let dst_lang =
         take rule_dict env parse_string_wrap "dest-language"
@@ -1353,7 +1358,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
         |> Option.value ~default:R.Separate
       in
       `Extract { formula; dst_lang; extract; reduce; transform }
-  | Some key ->
+  | Some key, _ ->
       error_at_key env key
         (spf
            "Unexpected value for mode, should be 'search', 'taint', or \
