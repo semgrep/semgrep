@@ -1350,4 +1350,3 @@ def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
     mock_send.assert_called_once()
-
