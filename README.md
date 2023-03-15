@@ -86,7 +86,7 @@ $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 
 1.  Register to <a href="https://go.semgrep.dev/login-ghrmgo" target="_blank">semgrep.dev</a>
 
-2.  Add your project for scanning by go to `Projects > Scan New Project > Run scan in CI`
+2.  Scan your project by navigating to `Projects > Scan New Project > Run scan in CI`
     <img src="images/semgrep-ci-cd-popup.jpg" width="582" alt="Semgrep CI/CD Popup image"/>
 
 3.  Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request. You don't really need the CLI unless you want to scan on local machine.
