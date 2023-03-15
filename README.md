@@ -122,7 +122,7 @@ Semgrep is developed and commercially supported by [r2c, a software security com
 
 Semgrep rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs. Here's a quick rule for finding Python `print()` statements.
 
-Run it online in Semgrep’s Playground by [clicking here]("https://semgrep.dev/s/ievans:print-to-logger).
+Run it online in Semgrep’s Playground by [clicking here](https://semgrep.dev/s/ievans:print-to-logger).
 
 <p align="center">
     <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="images/semgrep-example-rules-editor.jpg" width="582" alt="Semgrep rule example for finding Python print() statements"/></a>
