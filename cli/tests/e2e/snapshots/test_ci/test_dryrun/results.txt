@@ -557,7 +557,7 @@ Would have sent complete blob: {
             ".txt": 1
         },
         "lockfile_scan_info": {
-            "poetry.lock": 1,
+            "poetry.lock": 3,
             "yarn.lock": 1
         },
         "parse_rate": {

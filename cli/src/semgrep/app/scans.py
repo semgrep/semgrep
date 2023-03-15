@@ -332,7 +332,12 @@ class ScanHandler:
         }
 
         if self._dependency_query:
-            complete["dependencies"] = lockfile_dependencies
+            lockfile_dependencies_json = {}
+            for path, dependencies in lockfile_dependencies.items():
+                lockfile_dependencies_json[path] = [
+                    dependency.to_json() for dependency in dependencies
+                ]
+            complete["dependencies"] = lockfile_dependencies_json
 
         if self.dry_run:
             logger.info(

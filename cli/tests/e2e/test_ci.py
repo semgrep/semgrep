@@ -90,6 +90,22 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     category = "dev"
     optional = false
     python-versions = ">=3.7"
+
+    [[package]]
+    name = "mypy"
+    version = "0.950"
+    description = "Optional static typing for Python"
+    category = "dev"
+    optional = false
+    python-versions = ">=3.6"
+
+    [[package]]
+    name = "python-dateutil"
+    version = "2.8.2"
+    description = "Extensions to the standard Python datetime module"
+    category = "main"
+    optional = false
+    python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
     """
         )
     )
@@ -1262,3 +1278,57 @@ def test_git_failure_error_handler(
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
     mock_send.assert_called_once_with(mocker.ANY, 2)
+
+
+def test_query_dependency(git_tmp_path_with_commit, snapshot, mocker, run_semgrep):
+    file_content = dedent(
+        """
+        rules:
+        - id: eqeq-bad
+          pattern: $X == $X
+          message: "useless comparison"
+          languages: [python]
+          severity: ERROR
+        - id: supply-chain1
+          message: "found a dependency"
+          languages: [python]
+          severity: ERROR
+          r2c-internal-project-depends-on:
+            namespace: pypi
+            package: badlib
+            version: == 99.99.99
+          metadata:
+            dev.semgrep.actions: [block]
+            sca-kind: upgrade-only
+        """
+    ).lstrip()
+    mocker.patch.object(ConfigLoader, "_make_config_request", return_value=file_content)
+    mocker.patch.object(
+        ScanHandler,
+        "_get_scan_config_from_app",
+        return_value={
+            "deployment_id": DEPLOYMENT_ID,
+            "deployment_name": "org_name",
+            "ignored_files": [],
+            "policy_names": ["audit", "comment", "block"],
+            "rule_config": file_content,
+            "dependency_query": True,
+        },
+    )
+
+    result = run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+    )
+    snapshot.assert_match(result.as_snapshot(), "output.txt")
+
+    post_calls = AppSession.post.call_args_list
+    complete_json = post_calls[2].kwargs["json"]
+    complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
+    # TODO: flaky tests (on Linux at least)
+    # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
+    complete_json["stats"]["lockfile_scan_info"] = {}
+    snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
