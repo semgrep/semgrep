@@ -219,6 +219,7 @@ ALPINE_APK_DEPS=pcre-dev python3 python3-dev gmp-dev
 
 # We pin to a specific version just to prevent things from breaking randomly.
 # We could update to a more recent version.
+# coupling: if you modify the version, please modify also .github/workflows/*
 PIPENV='pipenv==2022.6.7'
 
 # This target is used in our Dockerfile and a few GHA workflows.
@@ -383,7 +384,7 @@ report-perf-matching:
 
 
 #coupling: see also .circleci/config.yml and its 'semgrep' job
-SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests --exclude pfff
+SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
 # you can add --verbose for debugging
 
 DOCKER_IMAGE=returntocorp/semgrep:develop
