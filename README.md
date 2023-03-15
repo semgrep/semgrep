@@ -44,7 +44,7 @@ Semgrep supports 30+ languages.
 | Category     | Languages                                                                                                                                                            |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GA           | C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala · Terraform · TypeScript · TSX                                                                |
-| Beta         | Kotlin . Rust                                                                                                                                                        |
+| Beta         | Kotlin · Rust                                                                                                                                                        |
 | Experimental | Bash . C . C++ . Clojure . Dart . Dockerfile . Elixir . HTML . Jsonnet . Lisp . Lua . OCaml . R . Scheme . Solidity . Swift . YAML . XML . Generic (ERB, Jinja, etc) |
 
 ### Getting started 🚀
