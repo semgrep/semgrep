@@ -98,7 +98,7 @@ RUN apk update &&\
 
 
 # Here is why we need the apk packages below:
-# - bash: for entrypoint.sh (see below) and probably many other things
+# - bash: previously for entrypoint.sh (but no longer) and probably (?) many other things
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
 #   Github actions (GHA) and get git submodules and use ssh to get those submodules
 # - libstdc++: for the Python jsonnet binding now used in the semgrep CLI
@@ -131,10 +131,6 @@ RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      apk del .build-deps &&\
      mkdir -p /tmp/.cache
 
-# TODO: we should remove this (we were supposed to get rid of it in June 2022)
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 # Let the user know how their container was built
 COPY Dockerfile /Dockerfile
 
@@ -166,6 +162,5 @@ RUN rm -rf /semgrep
 # In case of problems, if you need to debug the docker image, run 'docker build .',
 # identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
 # to interactively explore the docker image.
-ENTRYPOINT ["/entrypoint.sh"]
 CMD ["semgrep", "--help"]
 LABEL maintainer="support@r2c.dev"

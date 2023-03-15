@@ -1,4 +1,4 @@
-Remove custom entry point for returntocorp/semgrep Docker image's, now you must
+Remove custom _entrypoint_ for returntocorp/semgrep Docker images, now you must
 explicitly call semgrep.
 
 This won't work now:   `docker run -v $(pwd):/src returntocorp/semgrep scan ...`
