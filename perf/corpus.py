@@ -50,4 +50,4 @@ INTERNAL_CORPUSES = [
     Corpus("dogfood", "input/semgrep.yml", "input/", []),
 ]
 
-DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", "js", [])]
+DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", [], "js")]
