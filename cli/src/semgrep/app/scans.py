@@ -165,6 +165,7 @@ class ScanHandler:
         self._rules = body["rule_config"]
         self._autofix = body.get("autofix") or False
         self._deepsemgrep = body.get("deepsemgrep") or False
+        self._dependency_query = body.get("dependency_query") or False
         self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
         self.ignore_patterns = body.get("ignored_files") or []
@@ -336,6 +337,14 @@ class ScanHandler:
                 "engine_requested": engine_requested.name,
             },
         }
+
+        if self._dependency_query:
+            lockfile_dependencies_json = {}
+            for path, dependencies in lockfile_dependencies.items():
+                lockfile_dependencies_json[path] = [
+                    dependency.to_json() for dependency in dependencies
+                ]
+            complete["dependencies"] = lockfile_dependencies_json
 
         if self.dry_run:
             logger.info(
