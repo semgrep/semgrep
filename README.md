@@ -33,7 +33,7 @@
 </p>
 </br>
 
-Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**. [Get started →.](#getting-started-🚀)
+Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**. [Get started →.](#getting-started-)
 
 <a href="#option-1-getting-started-from-the-cli">
 <img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-scan-cli.jpg" alt="Semgrep CLI image"/></a>
