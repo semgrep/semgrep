@@ -1,2 +1,0 @@
-Metrics: logged in `semgrep ci` scans now send metrics, as our Privacy.md indicates
-(previously they incorrectly did not, which made it harder for us to track failure events)

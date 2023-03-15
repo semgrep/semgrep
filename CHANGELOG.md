@@ -8,6 +8,98 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.15.0](https://github.com/returntocorp/semgrep/releases/tag/v1.15.0) - 2023-03-15
+
+### Added
+
+- On full sca scans with dep search feature on, send dependency data for dep search (depsearch)
+- metavariable-comparison: Added support for bitwise operators `~`, `&`, `|` and `^`. (gh-7284)
+- Taint: `pattern-propagators` now have optional fields `requires` and `label`,
+  which are used identically to their counterparts in `pattern-sources` and ` pattern-sinks`, for the experimental taint labels feature.
+
+  For instance, we can define:
+
+  ```
+  pattern-propagators:
+    - pattern: |
+        $TO.foo($FROM)
+      from: $FROM
+      to: $TO
+      requires: A
+      replace-labels: [A, C]
+      label: B
+  ```
+
+  to denote a propagator which only propagates from $FROM to $TO if $FROM has
+  taint label A. In addition, it converts any taints from $TO with labels
+  A or C to have label B.
+
+  If `label` is not specified, the `to` is tainted with the same label of taint
+  that $FROM has. If `requires` is not specified, it does not require $FROM to
+  have a particular label of taint.
+
+  Additionally, `replace-labels` only restricts the label being propagated if
+  the output `label` is specified. (pa-1633)
+
+- taint-mode: Java: Support for basic field sensitivity via getters and setters.
+  Given `obj.setX(tainted)`, Semgrep will identify that a subsequent `obj.getX()`
+  carries the same taint as `tainted`. It will also differentiate between
+  `obj.getX()` and `obj.getY()`. Note that Semgrep does not examine the definitions
+  for the getter or setter methods, and it does not know whether e.g. some other
+  method `obj.clearX()` clears the taint that `obj.setX(tainted)` adds. (pa-2585)
+- Pro Engine: Semgrep CLI will now download a version of Semgrep Pro Engine
+  compatible with the current version of Semgrep CLI, as opposed to the most
+  recently released version.
+
+  This behavior is only supported for Semgrep 1.12.1 and later. Previous
+  versions will still download the most recently released version, as before. (pa-2595)
+
+### Changed
+
+- Pro: `semgrep ci` will run intrafile interprocedural taint analysis by default
+  in differential scans (aka PR scans). (Note that interfile analysis is not run
+  in differential scans for performance reasons.) (pa-2565)
+- Remove custom _entrypoint_ for returntocorp/semgrep Docker images, now you must
+  explicitly call semgrep.
+
+  This won't work now: `docker run -v $(pwd):/src returntocorp/semgrep scan ...`
+  Must do this instead: `docker run -v $(pwd):/src returntocorp/semgrep semgrep scan ...` (pa-2642)
+
+- Changed Maven version comparison to more closely reflect usage, so versions with more than 3 increments will not be treated as plain strings (sc-656)
+
+### Fixed
+
+- The AST dump produced by semgrep-core is now usable from Python
+  with the provided ATD interface and the Python code derived from it with
+  atdpy. (gh-7296)
+- Terraform: Nested blocks can now be used as sources and sinks for taint.
+  For instance, the block `x` in
+
+  resource $A $B {
+  x {
+  ...
+  }
+  } (pa-2475)
+
+- CLI: The scan progress bar now shows progress with higher granularity, and has fewer big jumps when using the Pro Engine.
+
+  The abstract unit of 'tasks' has been removed, and now only a percentage number will be displayed. (pa-2526)
+
+- Fix an error with rule targeting for extract mode. Previously, if a ruleset had
+  two rules, the first being the extract rule, the second being the rule to run,
+  no rules would run on the extracted targets. Additionally, with multiple rules
+  the wrong rule might be run on the extracted target, causing errors. Now, in
+  extract mode all the rules for the destination language will be run. (pa-2591)
+- Metrics: logged in `semgrep ci` scans now send metrics, as our Privacy.md indicates
+  (previously they incorrectly did not, which made it harder for us to track failure events) (pa-2592)
+- Rust: Basic let-statement bindings (such as `let x = tainted`) now properly
+  carry taint. (pa-2605)
+- Improved error reporting for rule parsing by correctly reporting parse errors
+  instead of engine errors in certain cases. (pa-2610)
+- Taint: Fixed an issue where an error could be thrown if semgrep-core's output
+  contained a dataflow trace without a sink. (pa-2625)
+- Julia: Properly allow string literal metavariables like "$A" to be patterns. (pa-2630)
+
 ## [1.14.0](https://github.com/returntocorp/semgrep/releases/tag/v1.14.0) - 2023-03-01
 
 ### Added

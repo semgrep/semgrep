@@ -1,1 +1,0 @@
-metavariable-comparison: Added support for bitwise operators `~`, `&`, `|` and `^`.
