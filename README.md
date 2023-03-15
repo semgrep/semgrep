@@ -36,38 +36,12 @@
 </p>
 </br>
 
-Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. [Get started →.](#getting-started)
+Semgrep is a fast, open-source, static analysis engine for finding bugs, detecting vulnerabilities in third-party dependencies, and enforcing code standards. Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**. [Get started →.](#getting-started)
 
-<img src="https://raw.githubusercontent.com/returntocorp/semgrep/readme-changes/images/semgrep-main-image.jpg" alt="Semgrep platform image"/>
+<img src="images/semgrep-main-image.jpg" alt="Semgrep platform image"/>
 
-Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**.
-
-Its rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs. Here's a quick rule for finding Python `print()` statements. Run it online in Semgrep’s Playground by clicking the image:
-
-<p align="center">
-    <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/doc/playground-example.png" width="582" alt="Semgrep rule example for finding Python print() statements"/></a>
-</p>
-
-<details>
-  <summary style="font-size:16px;">Semgrep Ecosystem</summary>  
-The Semgrep ecosystem includes the following products:
-
-- Semgrep OSS Engine - The open-source engine at the heart of everything (this project).
-- [Semgrep Cloud Platform (SCP)](https://semgrep.dev/login) - Deploy, manage, and monitor SAST and SCA at scale using Semgrep, with [free and paid tiers](https://semgrep.dev/pricing). Integrates with continuous integration (CI) providers such as GitHub, GitLab, CircleCI, and more.
-- [Semgrep Code](https://semgrep.dev/products/semgrep-code) - Scan your code with Semgrep's Pro rules and Semgrep Pro Engine to find OWASP Top 10 vulnerabilities and protect against critical security risks specific to your organization. Semgrep Code provides both Community (free) and Team (paid) tiers.
-- [Semgrep Supply Chain (SSC)](https://semgrep.dev/products/semgrep-supply-chain) - A high-signal dependency scanner that detects reachable vulnerabilities in open source third-party libraries and functions across the software development life cycle (SDLC). Semgrep Supply Chain is available on Team (paid) tiers.
-
-and:
-
-- [Semgrep Playground](https://semgrep.dev/editor) - An online interactive tool for writing and sharing rules.
-- [Semgrep Registry](https://semgrep.dev/explore) - 2,000+ community-driven rules covering security, correctness, and dependency vulnerabilities.
-
-Join hundreds of thousands of other developers and security engineers already using Semgrep at companies like GitLab, Dropbox, Slack, Figma, Shopify, HashiCorp, Snowflake, and Trail of Bits.
-
-Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev).
-</details>
 <br>
-<br>
+
 ### Language support
 
 <h4 align="center">General availability</h4>
@@ -80,14 +54,12 @@ See <a href="https://semgrep.dev/docs/supported-languages/">supported languages<
 </p>
 <br/>
 
-### Getting started
+### Getting started 🚀
 
-There are two ways to get started.
+1. [Getting started from the CLI](#option-1-getting-started-from-the-cli)
+2. [Getting started from the web UI](#option-2-getting-started-via-the-web-ui-recommended)
 
-1. Getting started from the CLI.
-2. Getting started from the web UI.
-
-We recommend starting from the web interface and then install the CLI because it is simple and allows you to quickly see and manage results, as well as set up CI/CD pipelines with minimal effort. You can also use additional proprietary Semgrep Registry rules and run custom policies from the Semgrep App.
+We recommend starting from the [web UI](#option-2-getting-started-via-the-web-ui-recommended) and then install the CLI because it is simple and allows you to quickly see and manage results, as well as set up CI/CD pipelines with minimal effort. You can also use additional proprietary Semgrep Registry rules and run custom policies from the Semgrep App.
 
 However, you can also start with the CLI directly, even without logging in, but you will lose the benefits mentioned earlier.
 
@@ -112,10 +84,10 @@ $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 
 ### Option 2: Getting started via the web UI (Recommended)
 
-1.  Register to <a href="https://semgrep.dev/login?utm_source=github&utm_medium=readme&utm_campaign=growth-oss" target="_blank">semgrep.dev</a>
+1.  Register to <a href="https://go.semgrep.dev/login-ghrmgo" target="_blank">semgrep.dev</a>
 
 2.  Add your project for scanning by go to `Projects > Scan New Project > Run scan in CI`
-    <img src="https://raw.githubusercontent.com/returntocorp/semgrep/readme-changes/images/semgrep-ci-cd-popup.jpg" alt="Semgrep CI/CD Popup image"/>
+    <img src="images/semgrep-ci-cd-popup.jpg" width="582" alt="Semgrep CI/CD Popup image"/>
 
 3.  Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request. You don't really need the CLI unless you want to scan on local machine.
 
@@ -128,7 +100,35 @@ $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 3.  To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
     Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
 
-### Rule examples
+### Semgrep Ecosystem
+
+The Semgrep ecosystem includes the following products:
+
+- Semgrep OSS Engine - The open-source engine at the heart of everything (this project).
+- [Semgrep Cloud Platform (SCP)](https://semgrep.dev/login) - Deploy, manage, and monitor SAST and SCA at scale using Semgrep, with [free and paid tiers](https://semgrep.dev/pricing). Integrates with continuous integration (CI) providers such as GitHub, GitLab, CircleCI, and more.
+- [Semgrep Code](https://semgrep.dev/products/semgrep-code) - Scan your code with Semgrep's Pro rules and Semgrep Pro Engine to find OWASP Top 10 vulnerabilities and protect against critical security risks specific to your organization. Semgrep Code provides both Community (free) and Team (paid) tiers.
+- [Semgrep Supply Chain (SSC)](https://semgrep.dev/products/semgrep-supply-chain) - A high-signal dependency scanner that detects reachable vulnerabilities in open source third-party libraries and functions across the software development life cycle (SDLC). Semgrep Supply Chain is available on Team (paid) tiers.
+
+and:
+
+- [Semgrep Playground](https://semgrep.dev/editor) - An online interactive tool for writing and sharing rules.
+- [Semgrep Registry](https://semgrep.dev/explore) - 2,000+ community-driven rules covering security, correctness, and dependency vulnerabilities.
+
+Join hundreds of thousands of other developers and security engineers already using Semgrep at companies like GitLab, Dropbox, Slack, Figma, Shopify, HashiCorp, Snowflake, and Trail of Bits.
+
+Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev).
+
+### Semgrep Rules
+
+Semgrep rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs. Here's a quick rule for finding Python `print()` statements.
+
+Run it online in Semgrep’s Playground by [clicking here]("https://semgrep.dev/s/ievans:print-to-logger).
+
+<p align="center">
+    <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="images/semgrep-example-rules-editor.jpg" width="582" alt="Semgrep rule example for finding Python print() statements"/></a>
+</p>
+
+#### Examples
 
 Visit [Docs > Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for use cases and ideas.
 
