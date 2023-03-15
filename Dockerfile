@@ -45,6 +45,8 @@
 #    a base container as 'opam' itself requires lots of extra
 #    tools like gcc, make, which are not provided by default on Alpine.
 #
+# An alternative to ocaml-layer would be to use https://depot.dev/
+#
 # Note that the Docker base image below currently uses OCaml 4.14.0
 # coupling: if you modify the OCaml version there, you probably also need
 # to modify:
@@ -52,7 +54,7 @@
 # - doc/SEMGREP_CORE_CONTRIBUTING.md
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 #
-# coupling: if you modify this FROM below, you probably need to modify also
+# coupling: if you modify the FROM below, you probably need to modify also
 # a few .github/workflows/ files. grep for returntocorp/ocaml there.
 FROM returntocorp/ocaml:alpine-2023-03-03 as semgrep-core-container
 
@@ -86,17 +88,16 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
     PYTHONIOENCODING=utf8 \
     PYTHONUNBUFFERED=1
 
-
 # Update to the latest packages for the base image.
-# This allows to get CVE fixes ASAP, without waiting for new builds of the base image
-# (see docker-library/python#761 for an example of such an issue in the past
-# where the time between the CVE was discovered and the package update was X days, but the new base
-# image was updated only after Y days).
+# This allows to get CVE fixes ASAP, without waiting for new builds of the base image.
+# See docker-library/python#761 for an example of such an issue in the past
+# where the time between the CVE was discovered and the package update was X days, but
+# the new base image was updated only after Y days.
 RUN apk update &&\
     apk upgrade
 
 
-# Here is why we need those apk packages below:
+# Here is why we need the apk packages below:
 # - bash: for entrypoint.sh (see below) and probably many other things
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
 #   Github actions (GHA) and get git submodules and use ssh to get those submodules
@@ -150,15 +151,16 @@ ENV SEMGREP_IN_DOCKER=1 \
 # (see https://semgrep.dev/docs/getting-started/ ), hence the WORKDIR directive below
 WORKDIR /src
 
-# 'semgrep' is now available in /usr/local/bin thx to the 'pip install' command
+# 'semgrep' is now available in /usr/local/bin thanks to the 'pip install' command
 # above, so let's remove /semgrep which is not needed anymore.
 #
 # Note that this is only a cleanup. This does not reduce the size of
 # the Docker image. Indeed, this is how Docker images work. The state
 # of the filesystem after each Docker instruction is called a layer
 # and remains available in the final image (similarly to diffs in a
-# git history). To save space, we'd have to start another docker build
-# stage like we already do between the ocaml build and the Python build.
+# git history).
+# TODO? to save space, we could have another docker build stage like we already
+# do between the ocaml build and the Python build.
 RUN rm -rf /semgrep
 
 # In case of problems, if you need to debug the docker image, run 'docker build .',
