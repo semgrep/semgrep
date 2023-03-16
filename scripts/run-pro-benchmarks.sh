@@ -2,6 +2,8 @@
 
 set e
 
+cd /root/semgrep || return
+
 config_path=../perf/configs/ci_interfile_small_repos.yaml
 
 cd cli || return
@@ -21,7 +23,7 @@ pipenv uninstall -y semgrep
 # Install latest
 pipenv install -e .
 engine_path=$(semgrep --dump-engine-path --pro)
-cp /Users/emma/workspace/semgrep/cli/src/semgrep/bin/semgrep-core-proprietary "$engine_path"
+cp /root/semgrep-core-proprietary "$engine_path"
 
 # Run latest timing benchmark
 pipenv run python -m semgrep --version
