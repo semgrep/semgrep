@@ -3,6 +3,10 @@
 set e
 
 baseline_version=1.14.0
+# TODO: to make local dev smoother, check if `which semgrep-core-proprietary` exists
+# and use that if present
+semgrep_pro_path=$(pwd)"/semgrep-core-proprietary"
+echo $semgrep_pro_path
 
 cp tests/perf/deepsemgrep-sqli-rules.yaml semgrep/perf/rules
 
@@ -24,13 +28,12 @@ jq . baseline_timing2.json
 pipenv uninstall -y semgrep
 
 # Install latest
-pipenv install -e .
+SEMGREP_CORE_BIN=$semgrep_pro_path pipenv install -e .
 engine_path=$(semgrep --dump-engine-path --pro)
-cp /root/semgrep-core-proprietary "$engine_path"
+cp $semgrep_pro_path "$engine_path"
 
 # Run latest timing benchmark
 pipenv run python -m semgrep --version
-pipenv run semgrep-core -version
 pipenv run python3 ../perf/run-benchmarks --config $config_path --std-only --save-to timing1.json
 jq . timing1.json
 pipenv run python3 ../perf/run-benchmarks --config $config_path --std-only --save-to timing2.json --save-findings-to findings.json
