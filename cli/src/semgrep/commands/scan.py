@@ -23,6 +23,7 @@ from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep.app.registry import list_current_public_rulesets
 from semgrep.app.version import get_no_findings_msg
+from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
@@ -745,7 +746,10 @@ def scan(
         return None
 
     if dump_engine_path:
-        print(SemgrepCore.path())
+        if requested_engine == EngineType.OSS:
+            print(SemgrepCore.path())
+        else:
+            print(determine_semgrep_pro_path())
         return None
 
     if show_supported_languages:
