@@ -29,8 +29,8 @@ pipenv uninstall -y semgrep
 
 # Install latest
 SEMGREP_CORE_BIN=$semgrep_pro_path pipenv install -e .
-engine_path=$(semgrep --dump-engine-path --pro)
-cp $semgrep_pro_path "$engine_path"
+engine_path=$(pipenv run semgrep --dump-engine-path --pro)
+cp $semgrep_pro_path $engine_path
 
 # Run latest timing benchmark
 pipenv run python -m semgrep --version
