@@ -2,6 +2,8 @@
 
 set e
 
+pip install pipenv==2022.6.7
+
 cd /root/semgrep || return
 
 config_path=../perf/configs/ci_interfile_small_repos.yaml
