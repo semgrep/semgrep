@@ -2,14 +2,17 @@
 
 set e
 
+baseline_version=1.14.0
+
+cp tests/perf/deepsemgrep-sqli-rules.yaml semgrep/perf/rules
+
 cd semgrep || return
+cd cli || return
 
 config_path=../perf/configs/ci_interfile_small_repos.yaml
 
-cd cli || return
-
 # Run timing benchmark
-pipenv install semgrep==1.14.0
+pipenv install semgrep==$baseline_version
 pipenv run python -m semgrep --version
 pipenv run python -m semgrep install-semgrep-pro
 export PATH=/github/home/.local/bin:$PATH
