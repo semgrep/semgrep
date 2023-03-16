@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020-2022 r2c
+ * Copyright (C) 2020-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -337,15 +337,7 @@ let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
 (* Parsing (non-cached) *)
 (*****************************************************************************)
 
-(* TODO? this is currently deprecated, but pad still has hope the
- * feature can be resurrected.
- *)
-let parse_equivalences equivalences_file =
-  match equivalences_file with
-  | "" -> []
-  | file -> Parse_equivalences.parse file
-  [@@profiling]
-
+(* for -e/-f *)
 let parse_pattern lang_pattern str =
   try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
   | exn ->
@@ -357,6 +349,35 @@ let parse_pattern lang_pattern str =
                   (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
                 "no-id",
                 Parse_info.unsafe_fake_info "no loc" )))
+  [@@profiling]
+
+(* for -rules *)
+let rules_from_rule_source config =
+  let rule_source =
+    match config.rule_source with
+    | Some (Rule_file file) ->
+        (* useful when using process substitution, e.g.
+         * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
+         *)
+        Some (Rule_file (replace_named_pipe_by_regular_file file))
+    | other -> other
+  in
+  match rule_source with
+  | Some (Rule_file file) ->
+      logger#linfo (lazy (spf "Parsing %s:\n%s" file (read_file file)));
+      Parse_rule.parse_and_filter_invalid_rules file
+  | Some (Rules rules) -> (rules, [])
+  | None ->
+      (* TODO: ensure that this doesn't happen *)
+      failwith "missing rules"
+
+(* TODO? this is currently deprecated, but pad still has hope the
+ * feature can be resurrected.
+ *)
+let parse_equivalences equivalences_file =
+  match equivalences_file with
+  | "" -> []
+  | file -> Parse_equivalences.parse file
   [@@profiling]
 
 (*****************************************************************************)
@@ -620,7 +641,7 @@ let extracted_targets_of_config (config : Runner_config.t)
     ([], Hashtbl.create (List.length basic_targets))
 
 (*****************************************************************************)
-(* Semgrep -config *)
+(* semgrep-core -rules *)
 (*****************************************************************************)
 
 (* This is the main function used by the semgrep Python wrapper right now.
@@ -770,29 +791,9 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     targets |> Common.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
-  let rule_source =
-    match config.rule_source with
-    | Some (Rule_file file) ->
-        (* useful when using process substitution, e.g.
-         * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
-         *)
-        Some (Rule_file (replace_named_pipe_by_regular_file file))
-    | other -> other
-  in
   try
     let timed_rules =
-      match rule_source with
-      | Some (Rule_file file) ->
-          logger#linfo (lazy (spf "Parsing %s:\n%s" file (read_file file)));
-          let timed_rules =
-            Common.with_time (fun () ->
-                Parse_rule.parse_and_filter_invalid_rules file)
-          in
-          timed_rules
-      | Some (Rules rules) -> ((rules, []), 0.)
-      | None ->
-          (* TODO: ensure that this doesn't happen *)
-          failwith "missing rules"
+      Common.with_time (fun () -> rules_from_rule_source config)
     in
     let res, files = semgrep_with_rules config timed_rules in
     (None, res, files)
@@ -877,7 +878,7 @@ let semgrep_with_rules_and_formatted_output config =
         res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
 
 (*****************************************************************************)
-(* Semgrep -e/-f *)
+(* semgrep-core -e/-f *)
 (*****************************************************************************)
 
 let minirule_of_pattern lang pattern_string pattern =
