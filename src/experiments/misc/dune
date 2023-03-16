@@ -7,7 +7,8 @@
    lib_parsing
    pfff-lang_GENERIC-analyze
 
-   semgrep_core
+   semgrep.core
+   semgrep.reporting
  )
  (preprocess (pps ppx_profiling))
 )
