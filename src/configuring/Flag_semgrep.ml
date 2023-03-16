@@ -69,5 +69,5 @@ let equivalence_mode = ref false
  * Flag_parsing.sgrep_mode
  *)
 
-(* One-off experiment for Raja. Delete at some point (March 2023). *)
+(* One-off experiment for Raja (See Raja_experiment.ml) *)
 let raja = ref false
