@@ -851,7 +851,7 @@ let find_formula env (rule_dict : dict) : key * G.expr =
   | None ->
       error env rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, `pattern-coby` to be present"
+         `pattern-regex`, `pattern-comby` to be present"
   | Some (key, value) -> (key, value)
 
 (* intermediate type used for processing 'where' *)
