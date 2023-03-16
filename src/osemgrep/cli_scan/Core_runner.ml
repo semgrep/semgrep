@@ -190,10 +190,9 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
    Take in rules and targets and return object with findings.
 *)
 let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
-    (rule_errors : Rule.invalid_rule_error list)
-    (all_targets_s : Common.filename list) : result =
+    (rule_errors : Rule.invalid_rule_error list) (all_targets : Fpath.t list) :
+    result =
   let config : Runner_config.t = runner_config_of_conf conf in
-  let all_targets = Common.map Fpath.v all_targets_s in
 
   match rule_errors with
   (* with semgrep-python, semgrep-core is passed all the rules unparsed,

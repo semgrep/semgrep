@@ -2,6 +2,8 @@
    Unit tests for Guess_lang
 *)
 
+open File.Operators
+
 type exec = Exec | Nonexec
 type success = OK | XFAIL
 
@@ -59,8 +61,6 @@ let contents_tests : (string * Lang.t * string * string * exec * success) list =
     ("php", Php, "foo.php", "", Nonexec, OK);
   ]
 
-let ( / ) = Fpath.( / )
-let ( !! ) = Fpath.to_string
 let mkdir path = if not (Sys.file_exists path) then Unix.mkdir path 0o777
 
 (*

@@ -21,7 +21,7 @@ val parse_and_filter_invalid_rules :
  * the valid rule files when using --config <DIR>,
  * and also in Test_engine.ml.
  *)
-val is_valid_rule_filename : Common.filename -> bool
+val is_valid_rule_filename : Fpath.t -> bool
 
 (* this can be used for parsing -e/-f extended patterns in Run_semgrep.ml
  * and now also in osemgrep Config_resolver.ml.

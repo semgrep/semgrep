@@ -16,8 +16,7 @@ type rules_and_origin = {
   errors : Rule.invalid_rule_error list;
 }
 
-and origin = Common.filename option (* None for remote files *)
-[@@deriving show]
+and origin = Fpath.t option (* None for remote files *) [@@deriving show]
 
 val partition_rules_and_errors :
   rules_and_origin list -> Rule.rules * Rule.invalid_rule_error list

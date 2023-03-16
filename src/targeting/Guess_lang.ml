@@ -4,12 +4,9 @@
 *)
 
 open Common
+open File.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
-
-(* Experimenting with a shortcut. If successful, we could move it
-   to the Common library or to some Files module *)
-let ( !! ) = Fpath.to_string
 
 (****************************************************************************)
 (* Types *)

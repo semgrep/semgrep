@@ -508,7 +508,11 @@ let targets_of_config (config : Runner_config.t)
    *)
   | None, roots, Some xlang ->
       (* less: could also apply Common.fullpath? *)
-      let roots = roots |> Common.map replace_named_pipe_by_regular_file in
+      let roots =
+        roots
+        |> Common.map replace_named_pipe_by_regular_file
+        |> Common.map Fpath.v
+      in
       let lang_opt =
         match xlang with
         | Xlang.LRegex
@@ -524,7 +528,7 @@ let targets_of_config (config : Runner_config.t)
         files
         |> Common.map (fun file ->
                {
-                 In.path = file;
+                 In.path = Fpath.to_string file;
                  language = Xlang.to_string xlang;
                  rule_nums = List.mapi (fun i _ -> i) rule_ids;
                })

@@ -66,7 +66,7 @@ let is_php_file filename =
  *)
 let find_source_files_of_dir_or_files ?(verbose = false) ?(include_hack = false)
     xs =
-  Common.files_of_dir_or_files_no_vcs_nofilter xs
+  File.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          (* note: there was a possible race here because between the time we
           * do the 'find' and the time we call is_php_file(), the file may have

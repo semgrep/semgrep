@@ -1,10 +1,10 @@
+open Printf
 module In = Input_to_core_t
 module Out = Output_from_core_t
 open Osemgrep_targeting
+open File.Operators
 
-(* Experimenting with a shortcut. If successful, we could move it
-   to the Common library or to some Files module *)
-let ( !! ) = Fpath.to_string
+let logger = Logging.get_logger [ __MODULE__ ]
 
 (*************************************************************************)
 (* Prelude *)
@@ -302,6 +302,11 @@ let get_targets conf scanning_roots =
                   let status, selection_events =
                     Semgrepignore.select ign git_path
                   in
+                  logger#ldebug
+                    (lazy
+                      (sprintf "Ignoring path %s:\n%s" !!path
+                         (Gitignore_syntax.show_selection_events
+                            selection_events)));
                   (* TODO: log selection_events in debug mode *)
                   (* TODO: should we return all the gitignored files as part of
                      the skipped_paths (see the filter below)? *)

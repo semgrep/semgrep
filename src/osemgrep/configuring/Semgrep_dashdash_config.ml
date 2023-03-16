@@ -24,9 +24,9 @@ type config_str = string [@@deriving show]
 (* config_str in a parsed form *)
 type config_kind =
   (* ex: 'foo.yaml' *)
-  | File of Common.filename
+  | File of Fpath.t
   (* ex: 'myrules/' (will go also recursively in subdirs of myrules) *)
-  | Dir of Common.filename
+  | Dir of Fpath.t
   (* ex: 'https://raw.githubusercontent.com/r2c/semgrep-rules/template.yaml' *)
   | URL of Uri.t
   | R of registry_kind
@@ -69,8 +69,8 @@ let config_kind_of_config_str config_str =
       let user, snippet = Common.matched2 s in
       R (SavedSnippet (user, snippet))
   (* TOPORT? handle inline rules "rules:..." see python: utils.is_rules() *)
-  | dir when Sys.file_exists dir && Sys.is_directory dir -> Dir dir
-  | file when Sys.file_exists file -> File file
+  | dir when Sys.file_exists dir && Sys.is_directory dir -> Dir (Fpath.v dir)
+  | file when Sys.file_exists file -> File (Fpath.v file)
   (* TOPORT? raise SemgrepError(f"config location `{loc}` is not a file or folder!") *)
   | str ->
       let addendum =

@@ -213,12 +213,12 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = Common.map Common.fullpath root_paths in
+  let paths = Common.map Common.fullpath root_paths |> Common.map Fpath.v in
   let paths, _skipped_paths =
     Find_target.files_of_dirs_or_files (Some lang) paths
   in
   let stat_list = ref [] in
-  paths
+  paths |> Common.map Fpath.to_string
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
@@ -330,11 +330,11 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 
   let paths =
     (* = absolute paths *)
-    Common.map Common.fullpath files_or_dirs
+    Common.map Common.fullpath files_or_dirs |> Common.map Fpath.v
   in
   let paths, skipped = Find_target.files_of_dirs_or_files (Some lang) paths in
   let stats =
-    paths
+    paths |> Common.map Fpath.to_string
     |> List.rev_map (fun file ->
            pr2
              (spf "%05.1fs: [%s] processing %s" (Sys.time ())
@@ -541,11 +541,13 @@ let diff_pfff_tree_sitter xs =
 (*****************************************************************************)
 
 let test_parse_rules roots =
+  let roots = Common.map Fpath.v roots in
   let targets, _skipped_paths =
     Find_target.files_of_dirs_or_files (Some Lang.Yaml) roots
   in
   targets
   |> List.iter (fun file ->
+         let file = Fpath.to_string file in
          logger#info "processing %s" file;
          let _r = Parse_rule.parse file in
          ());

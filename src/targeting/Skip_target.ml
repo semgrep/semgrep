@@ -6,11 +6,8 @@
    place.
 *)
 open Common
+open File.Operators
 module Resp = Output_from_core_t
-
-(* Experimenting with a shortcut. If successful, we could move it
-   to the Common library or to some Files module *)
-let ( !! ) = Fpath.to_string
 
 (****************************************************************************)
 (* Minified files detection (via whitespace stats) *)

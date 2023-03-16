@@ -3,6 +3,7 @@ module PI = Parse_info
 module PS = Parsing_stat
 module Flag = Flag_parsing
 module TH = Token_helpers_ruby
+open File.Operators
 
 (*****************************************************************************)
 (* Subsystem testing *)
@@ -37,7 +38,7 @@ let test_tokens file =
   ()
 
 let test_parse xs =
-  let xs = List.map Common.fullpath xs in
+  let xs = List.map File.fullpath xs in
 
   let fullxs, _skipped_paths =
     Lib_parsing_ruby.find_source_files_of_dir_or_files xs
@@ -58,7 +59,7 @@ let test_parse xs =
                    Common.save_excursion Flag.exn_when_lexical_error false
                      (fun () ->
                        Common.save_excursion Flag.show_parsing_error true
-                         (fun () -> Parse_ruby.parse file)))
+                         (fun () -> Parse_ruby.parse !!file)))
              in
 
              Common.push stat stat_list;

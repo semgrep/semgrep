@@ -7,12 +7,10 @@
 [@@@warning "-37"]
 
 open Printf
+open File.Operators
 
 type file_tree = Dir of string * file_tree list | File of string * file_kind
 and file_kind = Regular of string | Symlink of string
-
-let ( / ) = Fpath.( / )
-let ( !! ) = Fpath.to_string
 
 let write_file path data =
   let oc = open_out_bin !!path in
