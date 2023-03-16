@@ -1,6 +1,0 @@
-Pro Engine: Semgrep CLI will now download a version of Semgrep Pro Engine
-compatible with the current version of Semgrep CLI, as opposed to the most
-recently released version.
-
-This behavior is only supported for Semgrep 1.12.1 and later. Previous
-versions will still download the most recently released version, as before.

@@ -1,2 +1,0 @@
-Taint: Fixed an issue where an error could be thrown if semgrep-core's output
-contained a dataflow trace without a sink.
