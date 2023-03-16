@@ -654,7 +654,7 @@ class Plan:
         for origin, count in sorted(
             origin_counts.items(), key=lambda x: x[1], reverse=True
         ):
-            origin_name = origin.replace("_", " ").title()
+            origin_name = origin.replace("_", " ").capitalize()
 
             table.add_row(origin_name, str(count))
 
