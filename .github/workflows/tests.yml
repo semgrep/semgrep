@@ -223,7 +223,7 @@ jobs:
         run: |
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      - name: Install semgrep
+      - name: Install cli dependencies
         working-directory: cli
         run: pipenv install --dev
       - name: Test dummy benchmarks on latest
@@ -257,6 +257,9 @@ jobs:
         run: |
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
+      - name: Install cli dependencies
+        working-directory: cli
+        run: pipenv install --dev
       - name: Run perf benchmark
         run: scripts/run-benchmarks.sh ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
       - name: Run python performance tests
