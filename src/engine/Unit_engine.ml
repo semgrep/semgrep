@@ -681,6 +681,14 @@ let lang_tainting_tests () =
 (* Full rule tests *)
 (*****************************************************************************)
 
+let full_rule_taint_maturity_tests () =
+  let path = Filename.concat tests_path "taint_maturity" in
+  pack_tests "taint maturity"
+    (let tests, _print_summary =
+       Test_engine.make_tests ~unit_testing:true [ path ]
+     in
+     tests)
+
 let full_rule_regression_tests () =
   let path = Filename.concat tests_path "rules" in
   pack_tests "full rule"
@@ -818,6 +826,7 @@ let tests () =
       extract_tests ();
       lang_tainting_tests ();
       maturity_tests ();
+      full_rule_taint_maturity_tests ();
       full_rule_regression_tests ();
       full_rule_semgrep_rules_regression_tests ();
     ]

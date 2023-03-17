@@ -611,9 +611,10 @@ and expr_aux env ?(void = false) e_gen =
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
-  | G.AssignOp (e1, (G.Eq, tok), e2) when Parse_info.str_of_info tok = ":=" ->
-      (* We encode Go's `:=` as `AssignOp(Eq)`,
-       * see "go_to_generic.ml" in Pfff. *)
+  | G.AssignOp (e1, (G.Eq, tok), e2) ->
+      (* AsssignOp(Eq) is used to represent plain assignment in some languages,
+       * e.g. Go's `:=` is represented as `AssignOp(Eq)`, and C#'s assignments
+       * are all represened this way too. *)
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
   | G.AssignOp (e1, op, e2) ->

@@ -1,0 +1,17 @@
+rules:
+  - id: taint-maturity
+    mode: taint
+    languages:
+      - csharp
+    message: |
+      This confirms taint mode works.
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: |
+          "tainted"
+      - pattern: source(...)
+    pattern-sanitizers:
+      - pattern: sanitize(...)
+    severity: ERROR
+
