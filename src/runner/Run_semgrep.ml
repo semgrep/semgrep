@@ -537,6 +537,7 @@ let targets_of_config (config : Runner_config.t)
         match target_source with
         | Targets x -> x
         | Target_file target_file ->
+           logger#info "loading targets from %s" target_file;
             Common.read_file target_file |> In.targets_of_string
       in
       let skipped = [] in

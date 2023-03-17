@@ -86,6 +86,7 @@ let output_format = ref Runner_config.default.output_format
 let match_format = ref Runner_config.default.match_format
 let mvars = ref ([] : Metavariable.mvar list)
 let lsp = ref Runner_config.default.lsp
+let ls = ref Runner_config.default.ls
 
 (* ------------------------------------------------------------------------- *)
 (* limits *)
@@ -357,6 +358,7 @@ let mk_config () =
     match_format = !match_format;
     mvars = !mvars;
     lsp = !lsp;
+    ls = !ls;
     timeout = !timeout;
     timeout_threshold = !timeout_threshold;
     max_memory_mb = !max_memory_mb;
@@ -658,6 +660,7 @@ let options actions =
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
     ("-lsp", Arg.Set lsp, " connect to LSP lang server to get type information");
+    ("-ls", Arg.Set ls, " run Semgrep Language Server");
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)
@@ -782,6 +785,7 @@ let main (sys_argv : string array) : unit =
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
           let config = { config with roots } in
+          if config.ls then LS.start config ();
           Run_semgrep.semgrep_dispatch config)
 
 (*****************************************************************************)

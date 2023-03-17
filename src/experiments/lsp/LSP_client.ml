@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
+(*
 open Common
 module J = JSON
 module C = Lsp.Client_request
@@ -330,3 +330,6 @@ let init () =
          send_request Client_request.Shutdown io |> ignore;
          Io.close io);
   ()
+  *)
+
+let init () = ()
