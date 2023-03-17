@@ -1,0 +1,2 @@
+Clojure: parse 'foo/bar' as two separate tokens, so one can use
+metavariable in it and get '$X/bar' to match 'foo/bar'
