@@ -37,7 +37,9 @@
     }
   ],
   "paths": {
-    "scanned": [],
+    "scanned": [
+      "targets/bad/basic_java.java"
+    ],
     "skipped": [
       {
         "path": "/tmp/masked/path",
