@@ -7,28 +7,31 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of exit code
 
 === stdout - plain
-                                                                                
-                                                                                
-┌────────────────┐                                                              
-│ Debugging Info │                                                              
-└────────────────┘                                                              
-                                                                                
-Fixing git state for github action pull request
-Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
-Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
-  SCAN ENVIRONMENT                                                              
+                  
+                  
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+                  
+  SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment github-actions, triggering event is      
                 pull_request                                                    
-  server      - logged in as org_name on https://semgrep.dev                    
-                                                                                
-                                                                                
-┌─────────────┐                                                                 
-│ Scan Status │                                                                 
-└─────────────┘                                                                 
-                                                                                
-Scanning 2 files with 4 python rules.
-
+Fixing git state for github action pull request
+Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
+            
+  CONNECTION
+Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
+  Reporting start of scan for deployment_name         
+  Fetching configuration from Semgrep Cloud Platform                 
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 2 files tracked by git with 4 Code rules:
+            
+  CODE RULES
+  Scanning 2 files with 4 python rules.
   Current version has 3 findings.
 
 Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e689'.
@@ -36,14 +39,20 @@ Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e68
     * 7b5cda4 commit #4
     * 5b37988 commit #3
 
-Scanning 1 file.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Scanning 1 file.
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘
 Non-Blocking Findings:
 
   bar.py 
@@ -60,12 +69,11 @@ Non-Blocking Findings:
 
          ▶▶┆ Autofix ▶ (foo == 2)
           2┆ foo == 5
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 

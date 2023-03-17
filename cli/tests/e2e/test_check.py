@@ -113,6 +113,20 @@ def test_script(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+def test_extract(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    """
+    Validates that Semgrep works with extract mode
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/extract_rules/js_html_concat.yaml",
+            target_name="extract/js_html_concat.html",
+        ).stdout,
+        "results.json",
+    )
+
+
+@pytest.mark.kinda_slow
 def test_basic_rule__absolute(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(Path.cwd() / "rules" / "eqeq.yaml").stdout,

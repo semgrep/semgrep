@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020-2022 r2c
+ * Copyright (C) 2020-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -87,6 +87,12 @@ let timeout_function file timeout f =
       let loc = PI.first_loc_of_file file in
       let err = E.mk_error loc "" Out.Timeout in
       Common.push err E.g_errors
+
+let update_cli_progress config =
+  (* Print when each file is done so the Python progress bar knows *)
+  match config.output_format with
+  | Json true -> pr "."
+  | _ -> ()
 
 (*****************************************************************************)
 (* Printing matches *)
@@ -332,15 +338,7 @@ let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
 (* Parsing (non-cached) *)
 (*****************************************************************************)
 
-(* TODO? this is currently deprecated, but pad still has hope the
- * feature can be resurrected.
- *)
-let parse_equivalences equivalences_file =
-  match equivalences_file with
-  | "" -> []
-  | file -> Parse_equivalences.parse file
-  [@@profiling]
-
+(* for -e/-f *)
 let parse_pattern lang_pattern str =
   try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
   | exn ->
@@ -352,6 +350,35 @@ let parse_pattern lang_pattern str =
                   (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
                 "no-id",
                 Parse_info.unsafe_fake_info "no loc" )))
+  [@@profiling]
+
+(* for -rules *)
+let rules_from_rule_source config =
+  let rule_source =
+    match config.rule_source with
+    | Some (Rule_file file) ->
+        (* useful when using process substitution, e.g.
+         * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
+         *)
+        Some (Rule_file (replace_named_pipe_by_regular_file file))
+    | other -> other
+  in
+  match rule_source with
+  | Some (Rule_file file) ->
+      logger#linfo (lazy (spf "Parsing %s:\n%s" !!file (File.read_file file)));
+      Parse_rule.parse_and_filter_invalid_rules file
+  | Some (Rules rules) -> (rules, [])
+  | None ->
+      (* TODO: ensure that this doesn't happen *)
+      failwith "missing rules"
+
+(* TODO? this is currently deprecated, but pad still has hope the
+ * feature can be resurrected.
+ *)
+let parse_equivalences equivalences_file =
+  match equivalences_file with
+  | "" -> []
+  | file -> Parse_equivalences.parse file
   [@@profiling]
 
 (*****************************************************************************)
@@ -560,11 +587,21 @@ let targets_of_config (config : Runner_config.t)
  * the original rules passed via -rules, without the extract-mode rules).
  *)
 let extracted_targets_of_config (config : Runner_config.t)
-    (rule_ids : Rule.rule_id list) (extractors : Rule.extract_rule list) :
+    (all_rules : Rule.t list) :
     In.target list
     * ( Common.filename,
         Match_extract_mode.match_result_location_adjuster )
       Hashtbl.t =
+  let extractors =
+    List.filter_map
+      (fun r ->
+        match r.Rule.mode with
+        | `Extract _ as e -> Some { r with mode = e }
+        | `Search _
+        | `Taint _ ->
+            None)
+      all_rules
+  in
   let erule_ids = Common.map (fun r -> fst r.R.id) extractors in
   (* TODO? do we need the erule_ids here? can we just pass []? *)
   let basic_targets_info, _skipped = targets_of_config config erule_ids in
@@ -588,7 +625,7 @@ let extracted_targets_of_config (config : Runner_config.t)
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
                ~timeout_threshold:config.timeout_threshold extractors xtarget
-               rule_ids
+               all_rules
            in
            (* Print number of extra targets so Python knows *)
            (match config.output_format with
@@ -605,7 +642,7 @@ let extracted_targets_of_config (config : Runner_config.t)
     ([], Hashtbl.create (List.length basic_targets))
 
 (*****************************************************************************)
-(* Semgrep -config *)
+(* semgrep-core -rules *)
 (*****************************************************************************)
 
 (* This is the main function used by the semgrep Python wrapper right now.
@@ -615,13 +652,6 @@ let extracted_targets_of_config (config : Runner_config.t)
 let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   sanity_check_rules_and_invalid_rules config rules invalid_rules;
 
-  let rules, extract_rules =
-    rules
-    |> Common.partition_either (fun r ->
-           match r.Rule.mode with
-           | `Extract _ as e -> Right { r with mode = e }
-           | mode -> Left { r with mode })
-  in
   let rule_ids = rules |> Common.map (fun r -> fst r.R.id) in
 
   (* The basic targets.
@@ -633,7 +663,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
    * our extractors (extract mode rules) on the relevant basic targets.
    *)
   let new_extracted_targets, extract_result_map =
-    extracted_targets_of_config config rule_ids extract_rules
+    extracted_targets_of_config config rules
   in
 
   let all_targets = targets @ new_extracted_targets in
@@ -661,6 +691,14 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                  is in skipped_rules *)
              target.In.rule_nums
              |> List.filter_map (fun r_num -> Hashtbl.find_opt rule_table r_num)
+             (* Don't run the extract rules
+                Note: we can't filter this out earlier because the rule indexes need to be stable *)
+             |> List.filter (fun r ->
+                    match r.R.mode with
+                    | `Extract _ -> false
+                    | `Search _
+                    | `Taint _ ->
+                        true)
            in
 
            let xtarget = xtarget_of_file config xlang file in
@@ -704,10 +742,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
              else matches
            in
 
-           (* Print when each file is done so Python knows *)
-           (match config.output_format with
-           | Json true -> pr "."
-           | _ -> ());
+           update_cli_progress config;
+
            (* adjust the match location for extracted targets *)
            match Hashtbl.find_opt extract_result_map file with
            | Some f -> f matches
@@ -756,30 +792,9 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     targets |> Common.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
-  let rule_source =
-    match config.rule_source with
-    | Some (Rule_file file) ->
-        (* useful when using process substitution, e.g.
-         * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
-         *)
-        Some (Rule_file (replace_named_pipe_by_regular_file file))
-    | other -> other
-  in
   try
     let timed_rules =
-      match rule_source with
-      | Some (Rule_file file) ->
-          logger#linfo
-            (lazy (spf "Parsing %s:\n%s" !!file (File.read_file file)));
-          let timed_rules =
-            Common.with_time (fun () ->
-                Parse_rule.parse_and_filter_invalid_rules file)
-          in
-          timed_rules
-      | Some (Rules rules) -> ((rules, []), 0.)
-      | None ->
-          (* TODO: ensure that this doesn't happen *)
-          failwith "missing rules"
+      Common.with_time (fun () -> rules_from_rule_source config)
     in
     let res, files = semgrep_with_rules config timed_rules in
     (None, res, files)
@@ -836,6 +851,11 @@ let semgrep_with_rules_and_formatted_output config =
         JSON_report.match_results_of_matches_and_errors
           (Some Autofix.render_fix) (List.length files) res
       in
+      (* one-off experiment, delete it at some point (March 2023) *)
+      let res =
+        if !Flag_semgrep.raja then Raja_experiment.adjust_core_match_results res
+        else res
+      in
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)
         because it kills performance, adding an extra 50% time on our
@@ -859,7 +879,7 @@ let semgrep_with_rules_and_formatted_output config =
         res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
 
 (*****************************************************************************)
-(* Semgrep -e/-f *)
+(* semgrep-core -e/-f *)
 (*****************************************************************************)
 
 let minirule_of_pattern lang pattern_string pattern =

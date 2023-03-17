@@ -24,7 +24,7 @@
 *)
 
 (* The type of a token, i.e. a leaf in a syntax tree. *)
-type tok = Parse_info.t
+type tok = Parse_info.t [@@deriving show]
 
 (* A location or 'loc' for short.
 
@@ -35,7 +35,7 @@ type tok = Parse_info.t
 
    Tuples are convenient, let's not make this type abstract.
 *)
-type t = tok * tok
+type t = tok * tok [@@deriving show]
 
 (*
    'create tok1 tok2' is essentially '(tok1, tok2)' except if one of the

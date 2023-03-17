@@ -7,37 +7,39 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of exit code
 
 === stdout - plain
-                                                                                
-                                                                                
-┌────────────────┐                                                              
-│ Debugging Info │                                                              
-└────────────────┘                                                              
-                                                                                
-Fixing git state for github action pull request
-Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
-Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
-  SCAN ENVIRONMENT                                                              
+                  
+                  
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+                  
+  SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment github-actions, triggering event is      
                 pull_request                                                    
-  server      - logged in as org_name on https://semgrep.dev                    
-                                                                                
-                                                                                
-┌─────────────┐                                                                 
-│ Scan Status │                                                                 
-└─────────────┘                                                                 
-                                                                                
-Scanning 1 file with 4 python rules.
-
+Fixing git state for github action pull request
+Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
+            
+  CONNECTION
+Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
+  Reporting start of scan for deployment_name         
+  Fetching configuration from Semgrep Cloud Platform                 
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 4 Code rules:
+            
+  CODE RULES
+  Scanning 1 file with 4 python rules.
   Current version has 1 finding.
 
 Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘
 Non-Blocking Findings:
 
   bar.py 
@@ -46,12 +48,11 @@ Non-Blocking Findings:
 
          ▶▶┆ Autofix ▶ (bar == 2)
           1┆ bar == 5
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 

@@ -35,7 +35,7 @@ let test_tainting lang file options config def =
           let tok1, tok2 = (fst (Taint.pm_of_trace src.call_trace)).range_loc in
           let r = Range.range_of_token_locations tok1 tok2 in
           Range.content_at_range file r
-      | Taint.Arg (s, i) -> spf "arg %s %d" s i
+      | Taint.Arg arg -> Taint._show_arg arg
     in
     taint |> Taint.Taint_set.elements |> Common.map show_taint
     |> String.concat ", "
@@ -74,9 +74,13 @@ let test_dfg_tainting rules_file file =
   let handle_findings _ _ _ = () in
   let xconf = Match_env.default_xconfig in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
+  (* this won't cache anything. but that's fine, we don't need it
+     for test purposes.
+  *)
+  let tbl = Match_tainting_mode.mk_specialized_formula_cache [] in
   let config, debug_taint, _exps =
-    Match_tainting_mode.taint_config_of_rule xconf !!file (ast, []) rule
-      handle_findings
+    Match_tainting_mode.taint_config_of_rule ~per_file_formula_cache:tbl xconf
+      !!file (ast, []) rule handle_findings
   in
   Common.pr2 "\nSources";
   Common.pr2 "-------";

@@ -124,7 +124,7 @@ class LSPConfig:
 
     @property
     def scan_url(self) -> str:
-        scan_handler = ScanHandler(True)
+        scan_handler = ScanHandler(dry_run=True)
         metadata = generate_meta_from_environment(self.baseline_commit)
         state = get_state()
         to_server = (

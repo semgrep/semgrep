@@ -171,11 +171,10 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                    | mode -> Left { r with mode })
                  rules
              in
-             let rule_ids = Common.map (fun r -> fst r.R.id) rules in
              let extracted_ranges =
                Match_extract_mode.extract_nested_lang
                  ~match_hook:(fun _ _ -> ())
-                 ~timeout:0. ~timeout_threshold:0 extract_rules xtarget rule_ids
+                 ~timeout:0. ~timeout_threshold:0 extract_rules xtarget rules
              in
              let extract_targets, extract_result_map =
                (List.fold_right (fun (t, fn) (ts, fn_tbl) ->

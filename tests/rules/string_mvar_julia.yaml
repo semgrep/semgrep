@@ -1,0 +1,12 @@
+rules:
+- id: string-mvar-julia 
+  patterns:
+    - pattern: |
+        "$A"
+    - metavariable-regex:
+        metavariable: $A
+        regex: "^hi$"
+  message: Test
+  languages:
+  - julia 
+  severity: WARNING

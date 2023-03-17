@@ -9,7 +9,10 @@ rules:
     paths:
       include:
         - '*.html'
-    dest-language: javascript
+    # Typescript files run Javascript rules but
+    # Javascript files do not run Typescript rules
+    # This exercises the language detection logic
+    dest-language: typescript
     reduce: concat
   - id: get-elem-id
     mode: search
@@ -25,7 +28,7 @@ rules:
     pattern-sinks:
       - pattern: bar($X)
     languages:
-      - javascript
+      - typescript
     message: "Taint match"
     severity: ERROR
 

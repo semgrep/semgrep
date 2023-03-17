@@ -8,13 +8,17 @@ import subprocess
 import sys
 import tempfile
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Coroutine
+from typing import DefaultDict
 from typing import Dict
+from typing import FrozenSet
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -22,14 +26,19 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 
 from attr import asdict
+from attr import define
 from attr import field
 from attr import frozen
+from boltons.iterutils import get_path
+from rich import box
+from rich.columns import Columns
+from rich.padding import Padding
 from rich.progress import BarColumn
-from rich.progress import MofNCompleteColumn
 from rich.progress import Progress
 from rich.progress import TaskID
-from rich.progress import TextColumn
+from rich.progress import TaskProgressColumn
 from rich.progress import TimeElapsedColumn
+from rich.table import Table
 from ruamel.yaml import YAML
 
 import semgrep.fork_subprocess as fork_subprocess
@@ -51,9 +60,11 @@ from semgrep.parsing_data import ParsingData
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.rule import Rule
+from semgrep.rule import RuleProduct
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
@@ -178,7 +189,7 @@ class StreamingSemgrepCore:
     expediency in integrating
     """
 
-    def __init__(self, cmd: List[str], total: int) -> None:
+    def __init__(self, cmd: List[str], total: int, engine_type: EngineType) -> None:
         """
         cmd: semgrep-core command to run
         total: how many rules to run / how many "." we expect to see a priori
@@ -190,6 +201,7 @@ class StreamingSemgrepCore:
         self._stderr = ""
         self._progress_bar: Optional[Progress] = None
         self._progress_bar_task_id: Optional[TaskID] = None
+        self._engine_type: EngineType = engine_type
 
         # Map from file name to contents, to be checked before the real
         # file system when servicing requests from semgrep-core.
@@ -269,10 +281,21 @@ class StreamingSemgrepCore:
                 break
 
             if line_bytes == b".\n" and not reading_json:
-                num_scanned_targets += 1
+                # We expect to see 3 dots for each target, when running interfile analysis:
+                # - once when finishing phase 4, name resolution, on that target
+                # - once when finishing phase 5, taint configs, on that target
+                # - once when finishing analysis on that target as usual
+                #
+                # However, for regular OSS Semgrep, we only print one dot per
+                # target, that being the last bullet point listed above.
+                #
+                # So a dot counts as 1 progress if running Pro, but 3 progress if
+                # running the OSS engine.
+                advanced_targets = 1 if self._engine_type.is_interfile else 3
+
                 if self._progress_bar and self._progress_bar_task_id is not None:
                     self._progress_bar.update(
-                        self._progress_bar_task_id, completed=num_scanned_targets
+                        self._progress_bar_task_id, advance=advanced_targets
                     )
             elif chr(line_bytes[0]).isdigit() and not reading_json:
                 if not line_bytes.endswith(b"\n"):
@@ -434,8 +457,7 @@ class StreamingSemgrepCore:
         terminal = get_state().terminal
         with Progress(
             BarColumn(),
-            MofNCompleteColumn(),
-            TextColumn("tasks"),
+            TaskProgressColumn(),
             TimeElapsedColumn(),
             console=console,
             disable=(
@@ -463,17 +485,32 @@ class StreamingSemgrepCore:
 class Task:
     path: str = field(converter=str)
     language: Language
-    rule_nums: Sequence[int]
+    # a rule_num is the rule's index in the rule ID list
+    rule_nums: Tuple[int, ...]
+
+    @property
+    def language_label(self) -> str:
+        return (
+            "<multilang>"
+            if self.language in {Language("regex"), Language("generic")}
+            else self.language
+        )
 
 
 class TargetMappings(List[Task]):
     @property
     def rule_count(self) -> int:
-        return len({rule for task in self for rule in task.rule_nums})
+        return len({rule_num for task in self for rule_num in task.rule_nums})
 
     @property
     def file_count(self) -> int:
         return len(self)
+
+
+@define
+class TaskCounts:
+    files: int = 0
+    rules: int = 0
 
 
 class Plan:
@@ -484,73 +521,211 @@ class Plan:
     log: outputs a summary of how many files will be scanned for each file
     """
 
-    def __init__(self, mappings: List[Task], rule_ids: List[str]):
+    def __init__(
+        self,
+        mappings: List[Task],
+        rules: List[Rule],
+        *,
+        lockfiles_by_ecosystem: Optional[Dict[Ecosystem, FrozenSet[Path]]] = None,
+    ):
         self.target_mappings = TargetMappings(mappings)
         # important: this is a list of rule_ids, not a set
         # target_mappings relies on the index of each rule_id in rule_ids
-        self.rule_ids = rule_ids
+        self.rules = rules
+        self.lockfiles_by_ecosystem = lockfiles_by_ecosystem
 
+    # TODO: make this counts_by_lang_label, returning TaskCounts
     def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
         result: Dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
         for task in self.target_mappings:
-            label = (
-                "<multilang>"
-                if task.language in {Language("regex"), Language("generic")}
-                else task.language
-            )
-            result[label].append(task)
+            result[task.language_label].append(task)
+        return result
+
+    @lru_cache(maxsize=1000)  # caching this saves 60+ seconds on mid-sized repos
+    def ecosystems_by_rule_nums(self, rule_nums: Tuple[int]) -> Set[Ecosystem]:
+        return {
+            ecosystem
+            for rule_num in rule_nums
+            for ecosystem in self.rules[rule_num].ecosystems
+        }
+
+    def counts_by_ecosystem(
+        self,
+    ) -> Mapping[Ecosystem, TaskCounts]:
+        result: DefaultDict[Ecosystem, TaskCounts] = collections.defaultdict(TaskCounts)
+
+        # if a pypi rule does reachability analysis on *.json files,
+        # when the user has no .json files, then there is no task for it,
+        # but we should still print it as a reachability rule we used
+        # so we get rule counts by looking at all rules
+        for rule in self.rules:
+            for ecosystem in rule.ecosystems:
+                result[ecosystem].rules += 1
+
+        # one .json file could determine the reachability of libraries from pypi and npm at the same time
+        # so one task might need increase counts for multiple ecosystems (unlike when splitting by lang)
+        for task in self.target_mappings:
+            for ecosystem in self.ecosystems_by_rule_nums(task.rule_nums):
+                result[ecosystem].files += 1
+
+        # if a rule scans npm and maven, but we only have npm lockfiles,
+        # then we skip mentioning maven in debug info by deleting maven's counts
+        if self.lockfiles_by_ecosystem is not None:
+            unused_ecosystems = {
+                ecosystem
+                for ecosystem in result
+                if not self.lockfiles_by_ecosystem.get(ecosystem)
+            }
+            for ecosystem in unused_ecosystems:
+                del result[ecosystem]
+
         return result
 
     def to_json(self) -> Dict[str, Any]:
         return {
             "target_mappings": [asdict(task) for task in self.target_mappings],
-            "rule_ids": self.rule_ids,
+            "rule_ids": [rule.id for rule in self.rules],
         }
 
     @property
     def num_targets(self) -> int:
         return len(self.target_mappings)
 
-    def log(self) -> None:
-        metrics = get_state().metrics
-
-        if self.target_mappings.rule_count == 0:
-            logger.info("Nothing to scan.")
-            return
-
-        if self.target_mappings.rule_count == 1:
-            logger.info(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
-            return
+    def table_by_language(self) -> Table:
+        table = Table(box=box.SIMPLE_HEAD, show_edge=False)
+        table.add_column("Language")
+        table.add_column("Rules", justify="right")
+        table.add_column("Files", justify="right")
 
         plans_by_language = sorted(
             self.split_by_lang_label().items(),
             key=lambda x: (x[1].file_count, x[1].rule_count),
             reverse=True,
         )
-        if len(plans_by_language) == 1:
-            logger.info(
-                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{plans_by_language[0][0]} rule')}."
+        for language, plan in plans_by_language:
+            table.add_row(language, str(plan.rule_count), str(plan.file_count))
+
+        return table
+
+    def table_by_ecosystem(self) -> Table:
+        table = Table(box=box.SIMPLE_HEAD, show_edge=False)
+        table.add_column("Ecosystem")
+        table.add_column("Rules", justify="right")
+        table.add_column("Files", justify="right")
+        table.add_column("Lockfiles")
+
+        counts_by_ecosystem = self.counts_by_ecosystem()
+
+        for ecosystem, plan in sorted(
+            counts_by_ecosystem.items(),
+            key=lambda x: (x[1].files, x[1].rules),
+            reverse=True,
+        ):
+            if self.lockfiles_by_ecosystem is not None:
+                lockfile_paths = ", ".join(
+                    str(lockfile)
+                    for lockfile in self.lockfiles_by_ecosystem.get(ecosystem, [])
+                )
+            else:
+                lockfile_paths = "N/A"
+
+            table.add_row(
+                ecosystem.kind,
+                str(plan.rules),
+                str(plan.files),
+                lockfile_paths,
+            )
+
+        return table
+
+    def table_by_origin(self) -> Table:
+        table = Table(box=box.SIMPLE_HEAD, show_edge=False)
+        table.add_column("Origin")
+        table.add_column("Rules", justify="right")
+
+        origin_counts = collections.Counter(
+            get_path(
+                rule.metadata, ("semgrep.dev", "rule", "origin"), default="unknown"
+            )
+            for rule in self.rules
+            if rule.product == RuleProduct.sast
+        )
+
+        for origin, count in sorted(
+            origin_counts.items(), key=lambda x: x[1], reverse=True
+        ):
+            origin_name = origin.replace("_", " ").capitalize()
+
+            table.add_row(origin_name, str(count))
+
+        return table
+
+    def table_by_sca_analysis(self) -> Table:
+        table = Table(box=box.SIMPLE_HEAD, show_edge=False)
+        table.add_column("Analysis")
+        table.add_column("Rules", justify="right")
+
+        SCA_ANALYSIS_NAMES = {
+            "reachable": "Reachability",
+            "legacy": "Basic",
+            "malicious": "Basic",
+            "upgrade-only": "Basic",
+        }
+
+        sca_analysis_counts = collections.Counter(
+            SCA_ANALYSIS_NAMES.get(rule.metadata.get("sca-kind", ""), "Unknown")
+            for rule in self.rules
+            if rule.product == RuleProduct.sca
+        )
+
+        for sca_analysis, count in sorted(
+            sca_analysis_counts.items(), key=lambda x: x[1], reverse=True
+        ):
+            sca_analysis_name = sca_analysis.replace("_", " ").title()
+
+            table.add_row(sca_analysis_name, str(count))
+
+        return table
+
+    def record_metrics(self) -> None:
+        metrics = get_state().metrics
+
+        for language in self.split_by_lang_label():
+            metrics.add_feature("language", language)
+
+    def print(self, *, with_tables_for: RuleProduct) -> None:
+        if self.target_mappings.rule_count == 0:
+            console.print("Nothing to scan.")
+            return
+
+        if self.target_mappings.rule_count == 1:
+            console.print(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
+            return
+
+        if len(self.split_by_lang_label()) == 1:
+            console.print(
+                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{list(self.split_by_lang_label())[0]} rule')}."
             )
             return
 
-        logger.info("\nScanning across multiple languages:")
-        for language, plan in plans_by_language:
-            metrics.add_feature("language", language)
+        if with_tables_for == RuleProduct.sast:
+            tables = [
+                self.table_by_language(),
+                self.table_by_origin(),
+            ]
+        elif with_tables_for == RuleProduct.sca:
+            tables = [
+                self.table_by_ecosystem(),
+                self.table_by_sca_analysis(),
+            ]
+        else:
+            tables = []
 
-            lang_chars = max(len(lang) for lang, _ in plans_by_language)
-            rules_chars = max(
-                len(str(plan.rule_count)) for _, plan in plans_by_language
-            ) + len(" rules")
-            files_chars = max(
-                len(str(plan.file_count)) for _, plan in plans_by_language
-            ) + len(" files")
+        columns = Columns(tables, padding=(1, 8))
 
-            lang_field = language.rjust(lang_chars)
-            rules_field = unit_str(plan.rule_count, "rule", pad=True).rjust(rules_chars)
-            files_field = unit_str(plan.file_count, "file", pad=True).rjust(files_chars)
-
-            logger.info(f"    {lang_field} | {rules_field} × {files_field}")
-        logger.info("")
+        # rich tables are 2 spaces indented by default
+        # deindent only by 1 to align the content, instead of the invisible table border
+        console.print(Padding(columns, (1, 0)), deindent=1)
 
     def __str__(self) -> str:
         return f"<Plan of {len(self.target_mappings)} tasks for {list(self.split_by_lang_label())}>"
@@ -576,6 +751,7 @@ class CoreRunner:
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
+        self._engine_type = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
@@ -732,8 +908,11 @@ class CoreRunner:
         """
         profiling_data.set_max_memory_bytes(max_memory_bytes)
 
-    def _plan_core_run(
-        self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
+    @staticmethod
+    def plan_core_run(
+        rules: List[Rule],
+        target_manager: TargetManager,
+        all_targets: Optional[Set[Path]] = None,
     ) -> Plan:
         """
         Gets the targets to run for each rule
@@ -741,7 +920,7 @@ class CoreRunner:
         Returns this information as a list of rule ids and a list of targets with
         language + index of the rule ids for the rules to run each target on.
         Semgrep-core will use this to determine what to run (see Input_to_core.atd).
-        Also updates all_targets, used by core_runner
+        Also updates all_targets if set, used by core_runner
 
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
@@ -749,7 +928,17 @@ class CoreRunner:
             list
         )
 
-        for i, rule in enumerate(rules):
+        lockfiles = target_manager.get_all_lockfiles()
+
+        rules = [
+            rule
+            for rule in rules
+            # filter out SCA rules with no relevant lockfiles
+            if rule.product != RuleProduct.sca
+            or any(lockfiles[ecosystem] for ecosystem in rule.ecosystems)
+        ]
+
+        for rule_num, rule in enumerate(rules):
             for language in rule.languages:
                 targets = list(
                     target_manager.get_files_for_rule(
@@ -758,19 +947,22 @@ class CoreRunner:
                 )
 
                 for target in targets:
-                    all_targets.add(target)
-                    target_info[target, language].append(i)
+                    if all_targets is not None:
+                        all_targets.add(target)
+                    target_info[target, language].append(rule_num)
 
         return Plan(
             [
                 Task(
                     path=target,
                     language=language,
-                    rule_nums=target_info[target, language],
+                    # tuple conversion makes rule_nums hashable, so usable as cache key
+                    rule_nums=tuple(target_info[target, language]),
                 )
                 for target, language in target_info
             ],
-            [rule.id for rule in rules],
+            rules,
+            lockfiles_by_ecosystem=lockfiles,
         )
 
     def _run_rules_direct_to_semgrep_core_helper(
@@ -812,8 +1004,9 @@ class CoreRunner:
         )
 
         with exit_stack:
-            plan = self._plan_core_run(rules, target_manager, all_targets)
-            plan.log()
+            plan = self.plan_core_run(rules, target_manager, all_targets)
+            plan.record_metrics()
+
             parsing_data.add_targets(plan)
             target_file_contents = json.dumps(plan.to_json())
             target_file.write(target_file_contents)
@@ -905,14 +1098,9 @@ class CoreRunner:
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(
-                # We expect to see 3 dots for each target, when running interfile analysis:
-                # - once when finishing phase 4, name resolution, on that target
-                # - once when finishing phase 5, taint configs, on that target
-                # - once when finishing analysis on that target as usual
-                cmd,
-                plan.num_targets * 3 if engine.is_interfile else plan.num_targets,
-            )
+            # Multiplied by three, because we have three places in Pro Engine to
+            # report progress, versus one for OSS Engine.
+            runner = StreamingSemgrepCore(cmd, plan.num_targets * 3, engine)
             runner.vfs_map = vfs_map
             returncode = runner.execute()
 
@@ -1080,7 +1268,8 @@ Exception raised: `{e}`
                 *configs,
             ]
 
-            runner = StreamingSemgrepCore(cmd, 1)  # only scanning combined rules
+            # only scanning combined rules
+            runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
             returncode = runner.execute()
 
             # Process output

@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from time import time
 
 import pytest
 from tests.fixtures import RunSemgrep
@@ -117,7 +116,6 @@ def test_dependency_aware_rules(
         ("1.2-beta-2", "> 1.0, < 1.2", True),
         ("1.2-beta-2", "> 1.2-alpha-6, < 1.2-beta-3", True),
         ("1.0.10.1", "< 1.0.10.2", True),
-        ("1.0.10.2", "> 1.0.10.1, < 1.0.9.3", True),  # Yes, seriously
         ("1.3.4-SNAPSHOT", "< 1.3.4", True),
         ("1.0-SNAPSHOT", "> 1.0-alpha", True),
         ("2.17.2", "< 2.3.1", False),
@@ -125,42 +123,13 @@ def test_dependency_aware_rules(
         ("2.0.0", "< 10.0.0", True),
         ("0.2.0", "< 0.10.0", True),
         ("0.0.2", "< 0.0.10", True),
+        ("2.14.0", "< 2.9.10.3", False),
+        ("2.14.0-beta", "< 2.9.10.3", False),
+        ("1.1.1.1-SNAPSHOT", "< 1.1.1.1", True),
     ],
 )
 def test_maven_version_comparison(version, specifier, outcome):
     assert is_in_range(Ecosystem(Maven()), specifier, version) == outcome
-
-
-@pytest.mark.parametrize(
-    "file_size,target,max_time",
-    [
-        (file_size, target, max_time)
-        # These times are set relative to Github Actions, they should be lower when running locally
-        # Local time expectation is more like 1, 5, 10
-        for file_size, max_time in [("10k", 3), ("50k", 15), ("100k", 30)]
-        for target in [
-            "Gemfile.lock",
-            "go.sum",
-            "gradle.lockfile",
-            "maven_dep_tree.txt",
-            "package-lock.json",
-            "poetry.lock",
-            "requirements.txt",
-            "yarn.lock",
-            "Pipfile.lock",
-        ]
-    ],
-)
-def test_dependency_aware_timing(
-    parse_lockfile_path_in_tmp, file_size, target, max_time
-):
-    start = time()
-    parse_lockfile_path_in_tmp(
-        Path(f"targets/dependency_aware/perf/{file_size}/{target}")
-    )
-    end = time()
-    exec_time = end - start
-    assert exec_time < max_time
 
 
 @pytest.mark.parametrize(

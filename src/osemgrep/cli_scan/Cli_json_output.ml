@@ -317,9 +317,10 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
        message;
        metavars;
        rendered_fix;
+       engine_kind;
+       extra_extra;
        (* LATER *)
        dataflow_trace = _;
-       engine_kind;
      };
   } ->
       let rule =
@@ -382,6 +383,7 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
             (* It's optional in the CLI output, but not in the core match results!
              *)
             engine_kind = Some engine_kind;
+            extra_extra;
           };
       }
 
