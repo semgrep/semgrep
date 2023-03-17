@@ -49,7 +49,8 @@ let setup_logging (conf : Scan_CLI.conf) =
     | Some Logs.Debug -> true
     | _else_ -> false
   in
-  Logging_helpers.setup ~debug ~log_config_file:"log_config.json"
+  Logging_helpers.setup ~debug
+    ~log_config_file:(Fpath.v "log_config.json")
     ~log_to_file:None;
   ()
 

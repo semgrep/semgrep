@@ -11,7 +11,7 @@ let _ =
              rule_source = Some (Rule_file (Fpath.v (Js.to_string rule_file)));
              lang = Some (Xlang.of_string (Js.to_string language));
              output_format = Json false;
-             roots = [ Js.to_string source_file ];
+             roots = [ Fpath.v (Js.to_string source_file) ];
            }
          in
          let timed_rules =

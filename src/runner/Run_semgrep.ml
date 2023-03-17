@@ -509,11 +509,7 @@ let targets_of_config (config : Runner_config.t)
    *)
   | None, roots, Some xlang ->
       (* less: could also apply Common.fullpath? *)
-      let roots =
-        roots
-        |> Common.map replace_named_pipe_by_regular_file
-        |> File.of_strings
-      in
+      let roots = roots |> Common.map replace_named_pipe_by_regular_file in
       let lang_opt =
         match xlang with
         | Xlang.LRegex
@@ -766,14 +762,15 @@ let semgrep_with_raw_results_and_exn_handler config =
         (* useful when using process substitution, e.g.
          * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
          *)
-        Some (Rule_file (Fpath.v (replace_named_pipe_by_regular_file file)))
+        Some (Rule_file (replace_named_pipe_by_regular_file file))
     | other -> other
   in
   try
     let timed_rules =
       match rule_source with
       | Some (Rule_file file) ->
-          logger#linfo (lazy (spf "Parsing %s:\n%s" file (read_file file)));
+          logger#linfo
+            (lazy (spf "Parsing %s:\n%s" !!file (File.read_file file)));
           let timed_rules =
             Common.with_time (fun () ->
                 Parse_rule.parse_and_filter_invalid_rules file)
@@ -812,7 +809,7 @@ let semgrep_with_prepared_rules_and_targets config (x : lang_job) =
   let target_mappings =
     Common.map
       (fun path : Input_to_core_t.target ->
-        { path; language = lang_str; rule_nums })
+        { path = !!path; language = lang_str; rule_nums })
       x.targets
   in
   let wrapped_targets : Input_to_core_t.targets =

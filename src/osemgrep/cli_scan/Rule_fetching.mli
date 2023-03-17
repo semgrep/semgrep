@@ -36,5 +36,5 @@ val rules_from_dashdash_config :
   Semgrep_dashdash_config.config_kind -> rules_and_origin list
 
 (* low-level API *)
-val load_rules_from_file : Common.filename -> rules_and_origin
+val load_rules_from_file : Fpath.t -> rules_and_origin
 val load_rules_from_url : Uri.t -> rules_and_origin

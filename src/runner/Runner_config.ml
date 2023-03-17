@@ -52,7 +52,7 @@ type t = {
   lang_job : lang_job option;
   equivalences_file : string; (* TODO: use Fpath.t option *)
   lang : Xlang.t option;
-  roots : Common.path list;
+  roots : Fpath.t list;
   output_format : output_format;
   match_format : Matching_report.match_format;
   mvars : Metavariable.mvar list;

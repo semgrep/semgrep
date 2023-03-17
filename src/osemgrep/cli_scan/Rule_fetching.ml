@@ -130,7 +130,7 @@ let import_callback base str =
  * for a registry-aware jsonnet.
  *)
 let parse_rule (file : Fpath.t) : Rule.rules * Rule.invalid_rule_error list =
-  match FT.file_type_of_file !!file with
+  match FT.file_type_of_file file with
   | FT.Config FT.Jsonnet ->
       Logs.warn (fun m ->
           m
@@ -142,8 +142,8 @@ let parse_rule (file : Fpath.t) : Rule.rules * Rule.invalid_rule_error list =
       let value_ = Eval_jsonnet.eval_program core in
       let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
       (* TODO: put to true at some point *)
-      Parse_rule.parse_generic_ast ~error_recovery:false !!file gen
-  | _else_ -> Parse_rule.parse_and_filter_invalid_rules !!file
+      Parse_rule.parse_generic_ast ~error_recovery:false file gen
+  | _else_ -> Parse_rule.parse_and_filter_invalid_rules file
 
 (*****************************************************************************)
 (* Loading rules *)
