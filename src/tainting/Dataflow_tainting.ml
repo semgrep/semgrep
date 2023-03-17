@@ -333,7 +333,7 @@ let is_func_sink_with_focus taint_sink =
   | Rule.And
       ( _,
         {
-          conjuncts = [ P { pat = Sem (E { e = Call _; _ }, _); _ } ];
+          conjuncts = [ P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ } ];
           focus = [ _focus ];
           _;
         } ) ->

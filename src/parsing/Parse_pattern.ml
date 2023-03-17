@@ -123,7 +123,7 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let parse_pattern lang ?(print_errors = false) str =
+let parse_pattern ?(print_errors = false) lang str =
   let any =
     match lang with
     (* directly to generic AST any using tree-sitter only *)
@@ -269,6 +269,10 @@ let parse_pattern lang ?(print_errors = false) str =
   Caching.prepare_pattern any;
   Check_pattern.check lang any;
   any
+
+let parse_pattern ?print_errors a b =
+  Profiling.profile_code "Parse_pattern.parse_pattern" (fun () ->
+      parse_pattern ?print_errors a b)
 
 let dump_tree_sitter_pattern_cst lang file =
   match lang with
