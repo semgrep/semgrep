@@ -22,13 +22,16 @@ Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now
             
   CONNECTION
 Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
-  Fetching configuration from Semgrep Cloud Platform  
-  Reporting start of scan for org_name                               
+  Reporting start of scan for deployment_name         
+  Fetching configuration from Semgrep Cloud Platform                 
                
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-Scanning 2 files with 4 python rules.
+  Scanning 2 files tracked by git with 4 Code rules:
+            
+  CODE RULES
+  Scanning 2 files with 4 python rules.
   Current version has 3 findings.
 
 Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e689'.
@@ -36,7 +39,15 @@ Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e68
     * 7b5cda4 commit #4
     * 5b37988 commit #3
 
-Scanning 1 file.
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Scanning 1 file.
            
            
 ┌─────────┐

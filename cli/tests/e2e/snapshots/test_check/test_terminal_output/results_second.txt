@@ -26,11 +26,20 @@ Findings:
 === end of stdout - plain
 
 === stderr - plain
-
-Scanning across multiple languages:
-    python | 3 rules × 11 files
-        js | 1 rule  ×  3 files
-
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 23 files tracked by git with 4 Code rules:
+            
+  CODE RULES
+                                                                                
+  Language   Rules   Files          Origin    Rules                             
+ ──────────────────────────        ─────────────────                            
+  python         3      11          Unknown       4                             
+  js             1       3                                                      
+                                                                                
            
            
 ┌─────────┐
@@ -68,11 +77,20 @@ Findings:
 === end of stdout - color
 
 === stderr - color
-
-Scanning across multiple languages:
-    python | 3 rules × 11 files
-        js | 1 rule  ×  3 files
-
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 23 files tracked by git with 4 Code rules:
+            
+  CODE RULES
+                                                                                
+  Language   Rules   Files          Origin    Rules                             
+ ──────────────────────────        ─────────────────                            
+  python         3      11          Unknown       4                             
+  js             1       3                                                      
+                                                                                
            
            
 ┌─────────┐

@@ -1,11 +1,27 @@
-Scanning 1 file.
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Scanning 1 file.
   Current version has 2 findings.
 
 Switching repository to baseline commit 'baseline-commit'.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * 11a6bea commit #2
 
-Scanning 1 file.
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+            
+  CODE RULES
+  Scanning 1 file.
            
            
 ┌─────────┐

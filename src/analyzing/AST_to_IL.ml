@@ -896,6 +896,41 @@ and record env ((_tok, origfields, _) as record_def) =
                _;
              } ->
              Some (Spread (expr env e))
+         | G.F
+             {
+               s =
+                 G.ExprStmt
+                   ( ({
+                        e =
+                          Call
+                            ( { e = N (Id (id, _)); _ },
+                              (_, [ Arg { e = Record fields; _ } ], _) );
+                        _;
+                      } as prior_expr),
+                     _ );
+               _;
+             }
+           when is_hcl env.lang ->
+             (* This is an inner block of the form
+                someblockhere {
+                  s {
+                    <args>
+                  }
+                }
+
+                We want this to be understood as a record of { <args> } being bound to
+                the name `s`.
+
+                So we just translate it to a field defining `s = <record>`.
+
+                We don't actually really care for it to be specifically defining the name `s`.
+                we just want it in there at all so that we can use it as a sink.
+             *)
+             let field_expr = record env fields in
+             (* We need to use the entire `prior_expr` here, or the range won't be quite
+                right (we'll leave out the identifier)
+             *)
+             Some (Field (id, { field_expr with eorig = SameAs prior_expr }))
          | _ when is_hcl env.lang ->
              (* For HCL constructs such as `lifecycle` blocks within a module call, the
                 IL translation engine will brick the whole record if it is encountered.
@@ -1007,6 +1042,7 @@ and lval_of_ent env ent =
   | G.EN (G.Id (id, idinfo)) -> lval_of_id_info env id idinfo
   | G.EN name -> lval env (G.N name |> G.e)
   | G.EDynamic eorig -> lval env eorig
+  | G.EPattern (PatId (id, id_info)) -> lval env (G.N (Id (id, id_info)) |> G.e)
   | G.EPattern _ -> (
       let any = G.En ent in
       log_fixme ToDo any;

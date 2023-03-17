@@ -105,24 +105,33 @@ let test () =
     [
       Symlink ("loop_a", "loop_b");
       Symlink ("loop_b", "loop_a");
-      Symlink ("link-to-tmp", "/tmp");
+      (* Previously we used /tmp for testing, but in OSX /tmp is a symlink to
+       * /private/tmp. After that we used /bin for testing, but on Fedora, /bin
+       * is a symlink to /usr/bin. *)
+      Symlink ("link-to-usr", "/usr");
       File ("regfile", "");
       Dir ("sub", [ Symlink ("link-to-reg", "..//regfile///") ]);
     ]
     (fun root ->
-      let root_s = Fpath.to_string root in
+      let root_s =
+        Fpath.to_string root
+        (* In OSX `root` is /var/... and at the same time /var is a symlink
+         * to /private/var, so we need to resolve the symlink here or else all
+         * subsequent tests based on this `root` will fail. *)
+        |> realpath_str
+      in
       List.iter check
         [
           ("/", "/");
-          ("/tmp", "/tmp");
-          ("/tmp/.", "/tmp");
-          ("/tmp/..", "/");
-          ("/tmp/", "/tmp");
+          ("/usr", "/usr");
+          ("/usr/.", "/usr");
+          ("/usr/..", "/");
+          ("/usr/", "/usr");
           (root_s, root_s);
           (* not sure why Fpath considers an extra leading slash to be
              a volume, which we preserve like a Windows volume. *)
-          ("//tmp", "//tmp");
-          ("/////tmp", "//tmp");
+          ("//usr", "//usr");
+          ("/////usr", "//usr");
           (sprintf "%s//sub" root_s, sprintf "%s/sub" root_s);
           (sprintf "%s/sub/link-to-reg" root_s, sprintf "%s/regfile" root_s);
         ];
@@ -138,7 +147,7 @@ let test () =
             [
               (".", sprintf "%s/sub" root_s);
               ("..", root_s);
-              ("../link-to-tmp", "/tmp");
+              ("../link-to-usr", "/usr");
             ]))
 
 let () =

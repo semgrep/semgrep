@@ -132,6 +132,90 @@ type propagator_match = {
 }
 (** Taint will flow from `from` to `to_` through the axiliary variable `id`. *)
 
+(* This Formula_tbl structure is used to create a "formula cache", which will
+   permit the sharing of matches resulting from common formulas that occur as
+   sources, sinks, sanitizers, or propagators.
+
+   In particular, because of hardcoded propagators, we expect to see lots of
+   sharing from Semgrep Pro Engine.
+*)
+module Formula_tbl = struct
+  include Hashtbl.Make (struct
+    type t = Rule.formula
+
+    let equal = AST_utils.with_structural_equal Rule.equal_formula
+    let hash = Rule.hash_formula
+  end)
+
+  let cached_find_opt formula_cache formula compute_matches_fn =
+    match find_opt formula_cache formula with
+    | None ->
+        (* it should not actually be possible for a formula to
+           not be in the formula table
+
+           just don't cache it I guess
+        *)
+        logger#error
+          "Tried to compute matches for a taint formula not in the cache \
+           (impossible?)";
+        compute_matches_fn ()
+    | Some (None, count) ->
+        let ranges, expls = compute_matches_fn () in
+        if count <= 1 then
+          (* if there's only 1 more use left, there's no point
+             in caching it
+          *)
+          (ranges, expls)
+        else (
+          (* otherwise, this is the first time we've seen this
+             formula, and we should cache it
+          *)
+          replace formula_cache formula (Some (ranges, expls), count - 1);
+          (ranges, expls))
+    | Some (Some (ranges, expls), count) ->
+        if count <= 1 then remove formula_cache formula;
+        (ranges, expls)
+end
+
+type formula_cache = ((RM.t list * ME.t list) option * int) Formula_tbl.t
+
+(* This function is for creating a formula cache which only caches formula that
+   it knows will be shared, at least once, among the formula in a bunch of
+   taint rules.
+
+   This is because it's obviously not useful to cache a formula's matches if
+   that formula never comes up again. This cache stores an option, with keys
+   that are only formula that are guaranteed to appear more than once in the
+   collection.
+*)
+let mk_specialized_formula_cache (rules : Rule.taint_rule list) =
+  let count_tbl = Formula_tbl.create 128 in
+  let flat_formulas =
+    rules
+    |> List.concat_map (fun rule ->
+           let (`Taint (spec : R.taint_spec)) = rule.R.mode in
+           Common.map (fun source -> source.R.source_formula) (snd spec.sources)
+           @ Common.map
+               (fun sanitizer -> sanitizer.R.sanitizer_formula)
+               spec.sanitizers
+           @ Common.map (fun sink -> sink.R.sink_formula) (snd spec.sinks)
+           @ Common.map
+               (fun propagator -> propagator.R.propagator_formula)
+               spec.propagators)
+  in
+  flat_formulas
+  |> List.iter (fun formula ->
+         match Formula_tbl.find_opt count_tbl formula with
+         | None -> Formula_tbl.add count_tbl formula (None, 1)
+         | Some (_, x) -> Formula_tbl.replace count_tbl formula (None, 1 + x));
+  (* We return the table with pairs of (None, count) itself.
+     When we try to cache a find, we will first check whether decreasing this
+     counter results in 0. Then, there are no more uses, and the result is no
+     longer worth caching.
+     This way we don't keep around entries when we don't need to.
+  *)
+  count_tbl
+
 (*****************************************************************************)
 (* Finding matches for taint specs *)
 (*****************************************************************************)
@@ -148,24 +232,29 @@ let concat_map_with_expls f xs =
   in
   (res, List.flatten !all_expls)
 
-let find_range_w_metas (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    (rule : Rule.t) (specs : (R.formula * 'a) list) :
+let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) (rule : Rule.t) (specs : (R.formula * 'a) list) :
     (RM.t * 'a) list * ME.t list =
   (* TODO: Make an Or formula and run a single query. *)
   (* if perf is a problem, we could build an interval set here *)
   specs
   |> concat_map_with_expls (fun (pf, x) ->
-         let ranges, expls = range_w_metas_of_formula xconf xtarget rule pf in
+         let ranges, expls =
+           Formula_tbl.cached_find_opt formula_cache pf (fun () ->
+               range_w_metas_of_formula xconf xtarget rule pf)
+         in
          (ranges |> Common.map (fun rwm -> (rwm, x)), expls))
 
-let find_sanitizers_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    (rule : Rule.t) (specs : R.taint_sanitizer list) :
+let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) (rule : Rule.t) (specs : R.taint_sanitizer list) :
     (bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
   |> concat_map_with_expls (fun (sanitizer : R.taint_sanitizer) ->
          let ranges, exps =
-           range_w_metas_of_formula xconf xtarget rule
-             sanitizer.sanitizer_formula
+           Formula_tbl.cached_find_opt formula_cache sanitizer.sanitizer_formula
+             (fun () ->
+               range_w_metas_of_formula xconf xtarget rule
+                 sanitizer.sanitizer_formula)
          in
          ( ranges
            |> Common.map (fun x ->
@@ -173,14 +262,17 @@ let find_sanitizers_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
            exps ))
 
 (* Finds all matches of `pattern-propagators`. *)
-let find_propagators_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    (rule : Rule.t) (propagators_spec : R.taint_propagator list) =
+let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) (rule : Rule.t)
+    (propagators_spec : R.taint_propagator list) =
   propagators_spec
   |> List.concat_map (fun (p : Rule.taint_propagator) ->
          let mvar_pfrom, tok_pfrom = p.from in
          let mvar_pto, tok_pto = p.to_ in
          let ranges_w_metavars, _expsTODO =
-           range_w_metas_of_formula xconf xtarget rule p.propagator_formula
+           Formula_tbl.cached_find_opt formula_cache p.propagator_formula
+             (fun () ->
+               range_w_metas_of_formula xconf xtarget rule p.propagator_formula)
          in
          (* Now, for each match of the propagator pattern, we try to construct
           * a `propagator_match`. We just need to look up what code is captured
@@ -341,8 +433,9 @@ let lazy_force x = Lazy.force x [@@profiling]
 (* Main entry points *)
 (*****************************************************************************)
 
-let taint_config_of_rule xconf file ast_and_errors
+let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_findings =
+  let formula_cache = per_file_formula_cache in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   let lazy_ast_and_errors = lazy ast_and_errors in
   let xtarget =
@@ -354,20 +447,20 @@ let taint_config_of_rule xconf file ast_and_errors
     }
   in
   let (sources_ranges : (RM.t * R.taint_source) list), expls_sources =
-    find_range_w_metas xconf xtarget rule
+    find_range_w_metas formula_cache xconf xtarget rule
       (spec.sources |> snd
       |> Common.map (fun (src : Rule.taint_source) -> (src.source_formula, src))
       )
   and (propagators_ranges : propagator_match list) =
-    find_propagators_matches xconf xtarget rule spec.propagators
+    find_propagators_matches formula_cache xconf xtarget rule spec.propagators
   and (sinks_ranges : (RM.t * R.taint_sink) list), expls_sinks =
-    find_range_w_metas xconf xtarget rule
+    find_range_w_metas formula_cache xconf xtarget rule
       (spec.sinks |> snd
       |> Common.map (fun (sink : Rule.taint_sink) -> (sink.sink_formula, sink))
       )
   in
   let sanitizers_ranges, _exps_sanitizersTODO =
-    find_sanitizers_matches xconf xtarget rule spec.sanitizers
+    find_sanitizers_matches formula_cache xconf xtarget rule spec.sanitizers
   in
   let (sanitizers_ranges : (RM.t * R.taint_sanitizer) list) =
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
@@ -556,12 +649,12 @@ let check_fundef lang options taint_config opt_ent fdef =
   let _, xs = AST_to_IL.function_definition lang fdef in
   let flow = CFG_build.cfg_of_stmts xs in
   let mapping =
-    Dataflow_tainting.fixpoint ~in_env ?name options taint_config flow
+    Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config flow
   in
   (flow, mapping)
 
-let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
-    (xtarget : Xtarget.t) =
+let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
+    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   let matches = ref [] in
 
   let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
@@ -584,7 +677,8 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
              pm_of_finding finding
              |> Option.iter (fun pm -> Common.push pm matches))
     in
-    taint_config_of_rule xconf file (ast, []) rule handle_findings
+    taint_config_of_rule ~per_file_formula_cache xconf file (ast, []) rule
+      handle_findings
   in
 
   (match !hook_setup_hook_function_taint_signature with
@@ -606,7 +700,7 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
         let flow = CFG_build.cfg_of_stmts xs in
-        Dataflow_tainting.fixpoint xconf.config taint_config flow |> ignore)
+        Dataflow_tainting.fixpoint lang xconf.config taint_config flow |> ignore)
   in
   let matches =
     !matches
@@ -648,6 +742,15 @@ let check_rules ~match_hook
        RP.rule_profiling RP.match_result) (rules : R.taint_rule list)
     (xconf : Match_env.xconfig) (xtarget : Xtarget.t) :
     RP.rule_profiling RP.match_result list =
+  (* We create a "formula cache" here, before dealing with individual rules, to
+     permit sharing of matches for sources, sanitizers, propagators, and sinks
+     between rules.
+
+     In particular, this expects to see big gains due to shared propagators,
+     in Semgrep Pro. There may be some benefit in OSS, but it's low-probability.
+  *)
+  let per_file_formula_cache = mk_specialized_formula_cache rules in
+
   rules
   |> Common.map (fun rule ->
          let xconf =
@@ -659,4 +762,5 @@ let check_rules ~match_hook
          *)
          per_rule_boilerplate_fn
            (rule :> R.rule)
-           (fun () -> check_rule rule match_hook xconf xtarget))
+           (fun () ->
+             check_rule per_file_formula_cache rule match_hook xconf xtarget))
