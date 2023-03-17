@@ -46,7 +46,7 @@ type 'a visitor_env = {
  *)
 class ['self] matching_visitor =
   object (self : 'self)
-    inherit ['self] AST_generic.iter as super
+    inherit ['self] AST_generic.iter_no_id_info as super
 
     (**************************************************************************)
     (* Helpers *)
