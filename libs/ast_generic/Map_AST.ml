@@ -1278,6 +1278,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | At v1 ->
         let v1 = map_attribute v1 in
         At v1
+    | XmlAt v1 ->
+        let v1 = map_xml_attribute v1 in
+        XmlAt v1
     | Dk v1 ->
         let v1 = map_definition_kind v1 in
         Dk v1

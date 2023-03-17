@@ -59,6 +59,7 @@ type mvalue =
   | T of AST_generic.type_
   | P of AST_generic.pattern
   | Raw of AST_generic.raw_tree
+  | XmlAt of AST_generic.xml_attribute
   (* Those can be now empty with $...XXX metavariables.
    * coupling: if you add more constructors that allow an empty content,
    * you may need to modify JSON_report.range_of_any to not get
@@ -99,6 +100,7 @@ let mvalue_to_any = function
   | Id (id, Some idinfo) -> G.E (G.N (G.Id (id, idinfo)) |> G.e)
   | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info ())) |> G.e)
   | N x -> G.Name x
+  | XmlAt x -> G.XmlAt x
   | Raw x -> G.E (G.RawExpr x |> G.e)
   | Ss x -> G.Ss x
   | Args x -> G.Args x
@@ -120,6 +122,7 @@ let mvalue_of_any = function
   | E e -> Some (E e)
   | S s -> Some (S s)
   | Name x -> Some (N x)
+  | XmlAt x -> Some (XmlAt x)
   | Ss x -> Some (Ss x)
   | Args x -> Some (Args x)
   | Params x -> Some (Params x)
@@ -171,6 +174,7 @@ let program_of_mvalue : mvalue -> G.program option =
   | Xmls _
   | T _
   | P _
+  | XmlAt _
   | Text _ ->
       logger#debug "program_of_mvalue: not handled '%s'" (show_mvalue mval);
       None

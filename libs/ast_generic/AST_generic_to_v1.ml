@@ -1298,6 +1298,7 @@ and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | XmlAt _
   | Raw _
   | Name _
   | Xmls _
