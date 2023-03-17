@@ -15,7 +15,6 @@
 open Common
 module V = Visitor_js
 module FT = File_type
-open File.Operators
 
 (*****************************************************************************)
 (* Filemames *)

@@ -9,7 +9,7 @@
  * (e.g., Rule.InvalidYaml).
  *)
 val parse_and_filter_invalid_rules :
-  Common.filename -> Rule.rules * Rule.invalid_rule_error list
+  Fpath.t -> Rule.rules * Rule.invalid_rule_error list
 
 (* ex: foo.yaml, foo.yml, but not foo.test.yaml.
  *
@@ -33,7 +33,7 @@ val parse_xpattern : Xlang.t -> string Rule.wrap -> Xpattern.t
  * This function may raise (Rule.Err ....) or Assert_failure (when
  * there are invalid rules).
  *)
-val parse : Common.filename -> Rule.rules
+val parse : Fpath.t -> Rule.rules
 
 (* Internals, used by osemgrep to setup a ojsonnet import hook.
  * The filename parameter is just used in case of missing 'rules:'
@@ -41,6 +41,6 @@ val parse : Common.filename -> Rule.rules
  *)
 val parse_generic_ast :
   ?error_recovery:bool ->
-  Common.filename ->
+  Fpath.t ->
   AST_generic.program ->
   Rule.rules * Rule.invalid_rule_error list

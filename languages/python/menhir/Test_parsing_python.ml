@@ -1,7 +1,7 @@
 open Common
+open File.Operators
 module PS = Parsing_stat
 module Flag = Flag_parsing
-open File.Operators
 
 (*****************************************************************************)
 (* Subsystem testing *)
@@ -23,7 +23,7 @@ let test_tokens_python file =
   ()
 
 let test_parse_python_common parsing_mode xs =
-  let xs = Common.map Fpath.v xs in
+  let xs = File.of_strings xs in
   let xs = List.map File.fullpath xs in
 
   let fullxs, _skipped_paths =

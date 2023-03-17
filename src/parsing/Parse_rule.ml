@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module J = JSON
 module FT = File_type
 module R = Rule
@@ -1425,7 +1426,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
     options = options_opt;
   }
 
-let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
+let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
     (ast : AST_generic.program) : Rule.rules * Rule.invalid_rule_error list =
   let t, rules =
     match ast with
@@ -1458,7 +1459,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
          *)
         | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
         | _ ->
-            let loc = PI.first_loc_of_file file in
+            let loc = PI.first_loc_of_file !!file in
             yaml_error (PI.mk_info_of_loc loc)
               "missing rules entry as top-level key")
     | _ -> assert false
@@ -1517,31 +1518,31 @@ let parse_file ?error_recovery file =
          * below.
          *)
         Json_to_generic.program ~unescape_strings:true
-          (Parse_json.parse_program file)
+          (Parse_json.parse_program !!file)
     | FT.Config FT.Jsonnet ->
         if use_ojsonnet then
-          let ast = Parse_jsonnet.parse_program file in
+          let ast = Parse_jsonnet.parse_program !!file in
           (* Note that here we do not support registry-aware import;
            * those are defined in osemgrep/.../Rule_fetching.ml where
            * we use Network.get functions. Thus, semgrep-core -dump_rule
            * will not work with registry-aware import either.
            * Use osemgrep --dump-config instead.
            *)
-          let core = Desugar_jsonnet.desugar_program file ast in
+          let core = Desugar_jsonnet.desugar_program !!file ast in
           let value_ = Eval_jsonnet.eval_program core in
           Manifest_jsonnet_to_AST_generic.manifest_value value_
         else
           Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
-              let cmd = spf "jsonnet -J vendor %s -o %s" file tmpfile in
+              let cmd = spf "jsonnet -J vendor %s -o %s" !!file tmpfile in
               let n = Sys.command cmd in
               if n <> 0 then failwith (spf "error executing %s" cmd);
               let ast = Parse_json.parse_program tmpfile in
               Json_to_generic.program ~unescape_strings:true ast)
-    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true file
+    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true !!file
     | _else_ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
-        logger#info "trying to parse %s as YAML" file;
-        parse_yaml_rule_file ~is_target:true file
+        logger#info "trying to parse %s as YAML" !!file;
+        parse_yaml_rule_file ~is_target:true !!file
   in
   parse_generic_ast ?error_recovery file ast
 
@@ -1577,6 +1578,7 @@ let parse_xpattern xlang (str, tok) =
  *)
 let is_test_yaml_file filepath =
   (* .test.yaml files are YAML target files rather than config files! *)
+  let filepath = !!filepath in
   Filename.check_suffix filepath ".test.yaml"
   || Filename.check_suffix filepath ".test.yml"
   || Filename.check_suffix filepath ".test.fixed.yaml"

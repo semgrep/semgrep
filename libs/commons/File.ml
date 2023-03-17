@@ -20,12 +20,13 @@ end
 
 open Operators
 
+let of_strings strings = Common.map Fpath.v strings
+let to_strings paths = Common.map Fpath.to_string paths
 let fullpath file = Common.fullpath !!file |> Fpath.v
 let readable ~root path = Common.readable ~root:!!root !!path |> Fpath.v
 
 let files_of_dirs_or_files_no_vcs_nofilter xs =
-  xs |> Common.map Fpath.to_string
-  |> Common.files_of_dir_or_files_no_vcs_nofilter |> Common.map Fpath.v
+  xs |> to_strings |> Common.files_of_dir_or_files_no_vcs_nofilter |> of_strings
 
 let input_text_line = Common.input_text_line
 let cat path = Common.cat !!path

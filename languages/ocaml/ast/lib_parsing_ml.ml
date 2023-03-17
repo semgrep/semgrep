@@ -64,7 +64,7 @@ let find_cmt_files_of_dir_or_files xs =
                   Common2.filename_of_dbe (d, b, "cmt")
               | [ "cmti" ] -> Common2.filename_of_dbe (d, b, "cmti")
               | _ -> raise Impossible))
-  |> Common.map Fpath.v |> Common.sort
+  |> File.of_strings |> Common.sort
 
 (*****************************************************************************)
 (* Extract infos *)

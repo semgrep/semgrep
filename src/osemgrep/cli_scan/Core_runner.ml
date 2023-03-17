@@ -153,7 +153,7 @@ let split_jobs_by_language all_rules all_targets : Runner_config.lang_job list =
               rules)
           all_targets
       in
-      ({ lang; targets = Common.map Fpath.to_string targets; rules }
+      ({ lang; targets = File.to_strings targets; rules }
         : Runner_config.lang_job))
     grouped_rules
 

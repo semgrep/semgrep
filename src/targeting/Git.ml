@@ -58,4 +58,4 @@ let files_from_git_ls ~cwd =
   (* TODO: use Unix.chdir in forked process instead of Common.cmd_to_list
    * and also redirect stderr to null
    *)
-  Common.cmd_to_list (spf "cd '%s' && git ls-files" cwd_s) |> Common.map Fpath.v
+  Common.cmd_to_list (spf "cd '%s' && git ls-files" cwd_s) |> File.of_strings

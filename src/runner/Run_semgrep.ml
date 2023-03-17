@@ -14,6 +14,7 @@
  *)
 open Common
 open Runner_config
+open File.Operators
 module PI = Parse_info
 module PM = Pattern_match
 module E = Semgrep_error_code
@@ -57,11 +58,11 @@ let replace_named_pipe_by_regular_file path =
   if !Common.jsoo then path
     (* don't bother supporting exotic things like fds if running in JS *)
   else
-    match (Unix.stat path).st_kind with
+    match (Unix.stat !!path).st_kind with
     | Unix.S_FIFO ->
-        let data = Common.read_file path in
+        let data = File.read_file path in
         let prefix = spf "semgrep-core-" in
-        let suffix = spf "-%s" (Filename.basename path) in
+        let suffix = spf "-%s" (Fpath.basename path) in
         let tmp_path, oc =
           Filename.open_temp_file
             ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
@@ -73,7 +74,7 @@ let replace_named_pipe_by_regular_file path =
         Fun.protect
           ~finally:(fun () -> close_out_noerr oc)
           (fun () -> output_string oc data);
-        tmp_path
+        Fpath.v tmp_path
     | _ -> path
 
 let timeout_function file timeout f =
@@ -511,7 +512,7 @@ let targets_of_config (config : Runner_config.t)
       let roots =
         roots
         |> Common.map replace_named_pipe_by_regular_file
-        |> Common.map Fpath.v
+        |> File.of_strings
       in
       let lang_opt =
         match xlang with
@@ -541,7 +542,7 @@ let targets_of_config (config : Runner_config.t)
         match target_source with
         | Targets x -> x
         | Target_file target_file ->
-            Common.read_file target_file |> In.targets_of_string
+            File.read_file target_file |> In.targets_of_string
       in
       let skipped = [] in
       (* in deep mode we actually have a single root dir passed *)
@@ -765,7 +766,7 @@ let semgrep_with_raw_results_and_exn_handler config =
         (* useful when using process substitution, e.g.
          * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
          *)
-        Some (Rule_file (replace_named_pipe_by_regular_file file))
+        Some (Rule_file (Fpath.v (replace_named_pipe_by_regular_file file)))
     | other -> other
   in
   try

@@ -14,6 +14,7 @@
  *)
 
 open Common
+open File.Operators
 module Flag = Flag_semgrep
 module PI = Parse_info
 module E = Semgrep_error_code
@@ -310,7 +311,7 @@ let rec just_parse_with_lang lang file =
       run file
         [
           (* this internally uses the CST for c++ *)
-          Pfff (throw_tokens Parse_c.parse);
+          Pfff (throw_tokens (fun file -> Parse_c.parse (Fpath.v file)));
           TreeSitter Parse_c_tree_sitter.parse;
         ]
         C_to_generic.program
@@ -345,7 +346,7 @@ let rec just_parse_with_lang lang file =
       run file
         [
           TreeSitter Parse_cpp_tree_sitter.parse;
-          Pfff (throw_tokens Parse_cpp.parse);
+          Pfff (throw_tokens (fun file -> Parse_cpp.parse (Fpath.v file)));
         ]
         Cpp_to_generic.program
   | Lang.Ocaml ->
@@ -418,7 +419,7 @@ let rec just_parse_with_lang lang file =
 (*****************************************************************************)
 
 let parse_and_resolve_name lang file =
-  if lang =*= Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h then
+  if lang =*= Lang.C && Sys.file_exists !!(!Flag_parsing_cpp.macros_h) then
     Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
 
   let res = just_parse_with_lang lang file in
@@ -454,6 +455,7 @@ let parse_and_resolve_name_fail_if_partial lang file =
 (* For testing purpose *)
 (*****************************************************************************)
 let parse_program file =
+  let file = Fpath.v file in
   let lang = List.hd (Lang.langs_of_filename file) in
-  let res = just_parse_with_lang lang file in
+  let res = just_parse_with_lang lang !!file in
   res.ast

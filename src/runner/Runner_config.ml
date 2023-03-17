@@ -15,7 +15,7 @@ type output_format = Text | Json of bool (* dots *) [@@deriving show]
    The 'Rules' case is for an invocation that bypasses the semgrep-core
    command (osemgrep) or when for some reason the rules had to be preparsed.
 *)
-type rule_source = Rule_file of filename | Rules of Rule.t list
+type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
 
 (*
    'Target_file' is for the semgrep-core CLI which gets a list of
@@ -26,18 +26,18 @@ type rule_source = Rule_file of filename | Rules of Rule.t list
    same process and we bypass the semgrep-core CLI.
 *)
 type target_source =
-  | Target_file of filename
+  | Target_file of Fpath.t
   | Targets of Input_to_core_t.targets
 
 (* All rules and targets applicable to a specific language.
    This is passed directly by the new osemgrep implementation, not
    from the semgrep-core command line. *)
-type lang_job = { lang : Xlang.t; targets : filename list; rules : Rule.t list }
+type lang_job = { lang : Xlang.t; targets : Fpath.t list; rules : Rule.t list }
 
 type t = {
   (* Debugging/profiling/logging flags *)
-  log_config_file : filename;
-  log_to_file : filename option;
+  log_config_file : Fpath.t;
+  log_to_file : Fpath.t option;
   test : bool;
   debug : bool;
   profile : bool;
@@ -47,10 +47,10 @@ type t = {
   matching_explanations : bool;
   (* Main flags *)
   pattern_string : string;
-  pattern_file : filename;
+  pattern_file : filename; (* TODO: use Fpath.t option *)
   rule_source : rule_source option;
   lang_job : lang_job option;
-  equivalences_file : string;
+  equivalences_file : string; (* TODO: use Fpath.t option *)
   lang : Xlang.t option;
   roots : Common.path list;
   output_format : output_format;
@@ -65,6 +65,7 @@ type t = {
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
+  (* TODO: use Fpath.t option instead of Common.dirname *)
   parsing_cache_dir : Common.dirname; (* "" means no cache *)
   filter_irrelevant_rules : bool;
   (* Flag used by the semgrep-python wrapper *)
@@ -89,7 +90,7 @@ type t = {
 let default =
   {
     (* Debugging/profiling/logging flags *)
-    log_config_file = "log_config.json";
+    log_config_file = Fpath.v "log_config.json";
     log_to_file = None;
     test = false;
     debug = false;
@@ -100,10 +101,10 @@ let default =
     matching_explanations = false;
     (* Main flags *)
     pattern_string = "";
-    pattern_file = "";
+    pattern_file = "" (* invalid path! *);
     rule_source = None;
     lang_job = None;
-    equivalences_file = "";
+    equivalences_file = "" (* invalid path! *);
     lang = None;
     roots = [];
     output_format = Text;
@@ -118,7 +119,7 @@ let default =
     max_memory_mb = 0;
     max_match_per_file = 10_000;
     ncores = 1;
-    parsing_cache_dir = "";
+    parsing_cache_dir = "" (* invalid path! *);
     filter_irrelevant_rules = true;
     (* -fast by default *)
     (* "" means no cache *)

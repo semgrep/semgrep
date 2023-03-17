@@ -125,7 +125,7 @@ let find_skip_file_from_root root =
       (* www specific *)
       "conf/codegraph/skip_list.txt";
     ]
-    |> Common.map Fpath.v
+    |> File.of_strings
   in
   candidates
   |> Common.find_some_opt (fun f ->
