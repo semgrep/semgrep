@@ -186,7 +186,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_cpp.CST.dump_tree
   | Lang.Html ->
       Tree_sitter_html.Parse.file file
-      |> dump_and_print_errors Tree_sitter_html.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_html.Boilerplate.dump_tree
   | Lang.Vue ->
       Tree_sitter_vue.Parse.file file
       |> dump_and_print_errors Tree_sitter_vue.CST.dump_tree

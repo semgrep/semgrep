@@ -130,6 +130,11 @@ let match_name_name rule a b env =
       set_last_matched_rule rule (fun () -> GG.m_name a b env))
   [@@profiling]
 
+let match_xml_attribute_xml_attribute rule a b env =
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+      set_last_matched_rule rule (fun () -> GG.m_xml_attr a b env))
+  [@@profiling]
+
 let match_raw_raw rule a b env =
   Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_raw_tree a b env))
@@ -252,6 +257,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
     let type_rules = ref [] in
     let pattern_rules = ref [] in
     let attribute_rules = ref [] in
+    let xml_attribute_rules = ref [] in
     let fld_rules = ref [] in
     let flds_rules = ref [] in
     let partial_rules = ref [] in
@@ -287,6 +293,8 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            | Partial pattern -> Common.push (pattern, rule, cache) partial_rules
            | Name pattern -> Common.push (pattern, rule, cache) name_rules
            | Raw pattern -> Common.push (pattern, rule, cache) raw_rules
+           | XmlAt pattern ->
+               Common.push (pattern, rule, cache) xml_attribute_rules
            | Args _
            | Params _
            | Xmls _
@@ -497,6 +505,13 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
             !attribute_rules match_at_at
             (super#visit_attribute env)
             (fun x -> At x)
+            x
+
+        method! visit_xml_attribute env x =
+          match_rules_and_recurse lang config (file, hook, matches)
+            !xml_attribute_rules match_xml_attribute_xml_attribute
+            (super#visit_xml_attribute env)
+            (fun x -> XmlAt x)
             x
 
         method! visit_field env x =

@@ -81,6 +81,7 @@ let range_of_any_opt startp_of_match_range any =
   | T _
   | P _
   | At _
+  | XmlAt _
   | Fld _
   | Flds _
   | Partial _
