@@ -6,7 +6,6 @@ baseline_version=1.14.0
 # TODO: to make local dev smoother, check if `which semgrep-core-proprietary` exists
 # and use that if present
 semgrep_pro_path=$(pwd)"/semgrep-core-proprietary"
-semgrep_pro_path="/Users/emma/.opam/4.14.0/bin/semgrep-core-proprietary"
 echo $semgrep_pro_path
 
 cp tests/perf/deepsemgrep-sqli-rules.yaml semgrep/perf/rules
