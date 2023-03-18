@@ -3,6 +3,7 @@
 *)
 
 open Printf
+open File.Operators
 
 type t = { string : string; segments : string list }
 
@@ -107,12 +108,19 @@ let to_fpath ~root path =
   append root rel_segments
 
 let in_project ~root path =
-  match Fpath.relativize ~root path with
+  (* This doesn't work if path doesn't have a trailing slash.
+     If we run into more problems and what's going on here is too obscure,
+     maybe it's best to write our own version of rem_prefix. *)
+  let has_trailing_slash = Fpath.is_dir_path path in
+  match Fpath.rem_prefix root (Fpath.to_dir_path path) with
   | None ->
       Error
-        (sprintf "cannot relativize path: project root: %s, path: %s"
-           (Fpath.to_string root) (Fpath.to_string path))
-  | Some path -> path |> of_fpath |> make_absolute |> normalize
+        (sprintf "cannot make path %S relative to project root %S" !!path !!root)
+  | Some path ->
+      let path =
+        if has_trailing_slash then path else Fpath.rem_empty_seg path
+      in
+      path |> of_fpath |> make_absolute |> normalize
 
 let () =
   Testutil.test "Git_path" (fun () ->
@@ -182,7 +190,7 @@ let () =
       test_in_project_ok "/a" "/a/b/" "/b/";
       test_in_project_ok "/a/b" "/a/b/c/.." "/";
       test_in_project_ok "/a/b" "/a/b/c/../" "/";
-      test_in_project_ok "/a/b" "/a/b/./c/." "/c";
+      test_in_project_ok "/a/b" "/a/b/./c/." "/c/";
       test_in_project_fail "/a/b" "/a";
       test_in_project_fail "/a/b" "/b";
       test_in_project_fail "/a/b" "a";
