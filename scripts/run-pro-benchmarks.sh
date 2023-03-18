@@ -6,6 +6,7 @@ baseline_version=1.14.0
 # TODO: to make local dev smoother, check if `which semgrep-core-proprietary` exists
 # and use that if present
 semgrep_pro_path=$(pwd)"/semgrep-core-proprietary"
+semgrep_pro_path="/Users/emma/.opam/4.14.0/bin/semgrep-core-proprietary"
 echo $semgrep_pro_path
 
 cp tests/perf/deepsemgrep-sqli-rules.yaml semgrep/perf/rules
@@ -36,10 +37,11 @@ cp $semgrep_pro_path $engine_path
 pipenv run python -m semgrep --version
 pipenv run python3 ../perf/run-benchmarks --config $config_path --std-only --save-to timing1.json
 jq . timing1.json
-pipenv run python3 ../perf/run-benchmarks --config $config_path --std-only --save-to timing2.json --save-findings-to findings.json
+pipenv run python3 ../perf/run-benchmarks --config $config_path --std-only --save-to timing2.json --save-findings-to ci_interfile_small_repos_findings.json
 jq . timing2.json
-jq . findings.json
+jq . ci_interfile_small_repos_findings.json
 
 # Compare timing infos
+# Note: if the snapshot files doesn't exist, you'll need to manually create it
 ../perf/compare-perf baseline_timing1.json baseline_timing2.json timing1.json timing2.json "$1" "$2"
-../perf/compare-bench-findings findings.json
+../perf/compare-bench-findings ci_interfile_small_repos_findings.json
