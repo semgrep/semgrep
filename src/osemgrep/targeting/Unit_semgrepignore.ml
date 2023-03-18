@@ -3,6 +3,7 @@
 *)
 
 open Printf
+open File.Operators
 module F = Testutil_files
 
 let file name : F.t = File (name, "")
@@ -10,8 +11,7 @@ let dir name entries : F.t = Dir (name, entries)
 let symlink name dest : F.t = Symlink (name, dest)
 
 let print_files files =
-  F.flatten files
-  |> List.iter (fun path -> printf "%s\n" (Fpath.to_string path))
+  F.flatten files |> List.iter (fun path -> printf "%s\n" !!path)
 
 let test_with_files (files : F.t list) func () =
   F.with_tempdir ~chdir:true (fun root ->
@@ -212,10 +212,8 @@ let tests =
             (match Git_project.find_git_project_root target_path with
             | None -> assert false
             | Some (proj_root, c_path) ->
-                Alcotest.(check string)
-                  "equal"
-                  (Fpath.to_string expected_proj_root)
-                  (Fpath.to_string proj_root);
+                printf "Obtained git project root: %s\n" !!proj_root;
+                Alcotest.(check string) "equal" !!expected_proj_root !!proj_root;
                 Alcotest.(check string)
                   "equal" "/a/b/c"
                   (Git_path.to_string c_path));

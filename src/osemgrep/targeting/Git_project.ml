@@ -19,7 +19,7 @@ let find_git_project_root_phys phys_path =
     if is_git_root path then Some (path, Git_path.create ("" :: acc))
     else
       let name = Fpath.basename path in
-      let parent = Fpath.parent path in
+      let parent = Fpath.parent path |> Fpath.rem_empty_seg in
       (* someone thought the parent of the root should be itself
          rather than an error *)
       if Fpath.equal parent path then None else loop (name :: acc) parent
