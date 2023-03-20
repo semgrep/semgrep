@@ -11,20 +11,18 @@
    readable and usually really big) or '.d.ts' (TypeScript typed interfaces
    for which we don't have a parser).
 *)
-val inspect_file_p : Lang.t -> Common.filename -> bool
+val inspect_file_p : Lang.t -> Fpath.t -> bool
 
 val inspect_file :
-  Lang.t ->
-  Common.filename ->
-  (Common.filename, Output_from_core_t.skipped_target) result
+  Lang.t -> Fpath.t -> (Fpath.t, Output_from_core_t.skipped_target) result
 
 (*
    Split selected files (left) from excluded files (right).
 *)
 val inspect_files :
   Lang.t ->
-  Common.filename list ->
-  Common.filename list * Output_from_core_t.skipped_target list
+  Fpath.t list ->
+  Fpath.t list * Output_from_core_t.skipped_target list
 
 (*
    Get the first 'block_size' bytes of the file, which is ideally obtained
@@ -33,4 +31,4 @@ val inspect_files :
    This is intended for peeking into target file contents and finding out
    if it looks like it's in the desired format.
 *)
-val get_first_block : ?block_size:int -> Common.filename -> string
+val get_first_block : ?block_size:int -> Fpath.t -> string

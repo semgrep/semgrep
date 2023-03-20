@@ -68,3 +68,12 @@ val options_of_actions :
 
 val do_action : Arg.key -> string list (* args *) -> cmdline_actions -> unit
 val action_list : cmdline_actions -> Arg.key list
+
+(*
+   Wrappers around mk_action_1_arg and mk_action_n_arg
+   that can handle the conversion from string to Fpath.t or some other type:
+
+     mk_action_1_conv Fpath.v do_something_with_the_file
+*)
+val mk_action_1_conv : (string -> 'a) -> ('a -> unit) -> action_func
+val mk_action_n_conv : (string -> 'a) -> ('a list -> unit) -> action_func

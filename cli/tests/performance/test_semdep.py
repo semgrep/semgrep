@@ -4,6 +4,7 @@ from time import time
 import pytest
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "file_size,target,max_time",
     [

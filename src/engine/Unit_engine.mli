@@ -9,7 +9,7 @@ val tests : unit -> Testutil.test list
 val match_pattern :
   lang:Lang.t ->
   hook:(Pattern_match.t -> unit) ->
-  file:string ->
+  file:Fpath.t ->
   pattern:string ->
   fix_pattern:string option ->
   Pattern_match.t list
@@ -32,8 +32,8 @@ val match_pattern :
      exist in the polyglot folder.
 *)
 val make_lang_regression_tests :
-  test_pattern_path:string ->
-  polyglot_pattern_path:string ->
+  test_pattern_path:Fpath.t ->
+  polyglot_pattern_path:Fpath.t ->
   with_caching:bool ->
   (Lang.t * string * string) list ->
   Testutil.test list

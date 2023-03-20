@@ -49,7 +49,8 @@ let setup_logging (conf : Scan_CLI.conf) =
     | Some Logs.Debug -> true
     | _else_ -> false
   in
-  Logging_helpers.setup ~debug ~log_config_file:"log_config.json"
+  Logging_helpers.setup ~debug
+    ~log_config_file:(Fpath.v "log_config.json")
     ~log_to_file:None;
   ()
 
@@ -144,11 +145,12 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
         Rule_filtering.filter_rules conf.rule_filtering_conf rules
       in
 
-      let (targets : Common.filename list), _skipped_targetsTODO =
+      let targets, _skipped_targetsTODO =
         Find_target.get_targets conf.targeting_conf conf.target_roots
       in
       Logs.debug (fun m ->
-          targets |> List.iter (fun file -> m "target = %s" file));
+          targets
+          |> List.iter (fun file -> m "target = %s" (Fpath.to_string file)));
       let (res : Core_runner.result) =
         Core_runner.invoke_semgrep_core conf.core_runner_conf filtered_rules
           errors targets

@@ -106,7 +106,7 @@ let facts_of_function lang def =
 (* Entry point *)
 (*****************************************************************************)
 let gen_facts file outdir =
-  let lang = List.hd (Lang.langs_of_filename file) in
+  let lang = List.hd (Lang.langs_of_filename (Fpath.v file)) in
   let ast = Parse_target.parse_program file in
   Naming_AST.resolve lang ast;
 

@@ -62,7 +62,7 @@ val excluded_exts_of_lang : t -> string list
 val shebangs_of_lang : t -> string list
 
 (* See also Find_target.files_of_dirs_or_files *)
-val langs_of_filename : Common.filename -> t list
+val langs_of_filename : Fpath.t -> t list
 
 (* accept any variants *)
 val is_js : t -> bool

@@ -2,6 +2,9 @@
    Abstract type for a file path within a git project
 *)
 
+open Printf
+open File.Operators
+
 type t = { string : string; segments : string list }
 
 let of_string string =
@@ -90,6 +93,35 @@ let normalize x =
 
 let of_fpath path = Fpath.segs path |> create
 
+let to_fpath ~root path =
+  let rec append fpath segments =
+    match segments with
+    | [] -> fpath
+    | seg :: segments -> append (Fpath.add_seg fpath seg) segments
+  in
+  let rel_segments =
+    match path.segments with
+    | "" :: segments
+    | segments ->
+        segments
+  in
+  append root rel_segments
+
+let in_project ~root path =
+  (* This doesn't work if path doesn't have a trailing slash.
+     If we run into more problems and what's going on here is too obscure,
+     maybe it's best to write our own version of rem_prefix. *)
+  let has_trailing_slash = Fpath.is_dir_path path in
+  match Fpath.rem_prefix root (Fpath.to_dir_path path) with
+  | None ->
+      Error
+        (sprintf "cannot make path %S relative to project root %S" !!path !!root)
+  | Some path ->
+      let path =
+        if has_trailing_slash then path else Fpath.rem_empty_seg path
+      in
+      path |> of_fpath |> make_absolute |> normalize
+
 let () =
   Testutil.test "Git_path" (fun () ->
       let test_str f input expected_output =
@@ -137,4 +169,29 @@ let () =
       in
       test_append "/" "a" "/a";
       test_append "/a" "b" "/a/b";
-      test_append "/a/" "c" "/a/c")
+      test_append "/a/" "c" "/a/c";
+
+      let test_in_project_ok root path expected =
+        match in_project ~root:(Fpath.v root) (Fpath.v path) with
+        | Ok res -> Alcotest.(check string) "equal" expected (to_string res)
+        | Error msg -> Alcotest.fail msg
+      in
+      let test_in_project_fail root path =
+        match in_project ~root:(Fpath.v root) (Fpath.v path) with
+        | Ok res -> Alcotest.fail (to_string res)
+        | Error _ -> ()
+      in
+      test_in_project_ok "/a" "/a/b" "/b";
+      test_in_project_ok "/a" "/a" "/";
+      test_in_project_ok "/a" "/a/b/c" "/b/c";
+      test_in_project_ok "/a" "/a/b/c/d" "/b/c/d";
+      test_in_project_ok "/a/b" "/a/b/c/d" "/c/d";
+      test_in_project_ok "/a/" "/a/b" "/b";
+      test_in_project_ok "/a" "/a/b/" "/b/";
+      test_in_project_ok "/a/b" "/a/b/c/.." "/";
+      test_in_project_ok "/a/b" "/a/b/c/../" "/";
+      test_in_project_ok "/a/b" "/a/b/./c/." "/c/";
+      test_in_project_fail "/a/b" "/a";
+      test_in_project_fail "/a/b" "/b";
+      test_in_project_fail "/a/b" "a";
+      test_in_project_fail "/a/b" "b")
