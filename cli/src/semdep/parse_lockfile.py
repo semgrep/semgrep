@@ -28,6 +28,7 @@ from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.yarn import parse_yarn
 from semdep.parsers.package_lock import parse_package_lock
+from semdep.parsers.pnpm import parse_pnpm
 
 
 def parse_cargo(
@@ -68,6 +69,7 @@ NEW_LOCKFILE_PARSERS = {
     "gemfile.lock": parse_gemfile,  # Ruby
     "poetry.lock": parse_poetry,  # Python
     "go.sum": parse_go_sum,  # Go
+    "pnpm-lock.yaml": parse_pnpm, # JavaScript
 }
 
 LOCKFILE_TO_MANIFEST = {
@@ -81,6 +83,7 @@ LOCKFILE_TO_MANIFEST = {
     "Cargo.lock": None,
     "maven_dep_tree.txt": None,
     "gradle.lockfile": None,
+    "pnpm-lock.yaml": None,
 }
 
 
