@@ -20,9 +20,10 @@ let _logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Parsing a pattern, using Pfff-based or Tree-sitter-based parsers.
+(* Parsing a pattern, using menhir or tree-sitter parsers, or both
+ * depending on the language.
  *
- * Like for Parse_target.ml, most of the code is now in Parse_pattern_bis.ml
+ * Like for Parse_target.ml, most of the code is now in Parse_pattern2.ml
  *)
 
 (*****************************************************************************)
@@ -63,6 +64,8 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
 (* Entry point *)
 (*****************************************************************************)
 
+(* same "trick" than in Parse_target.ml to generate a smaller JS
+ * file for the whole engine *)
 let parse_pattern_ref =
   ref (fun _lang _print_error _str -> failwith "parse_pattern_ref unset")
 

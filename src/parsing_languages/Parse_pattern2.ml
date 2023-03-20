@@ -19,6 +19,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* Most of the code here used to be in Parse_pattern.ml, but was moved
+ * to make the engine language independent so that we can generate
+ * a smaller JS file for the engine
+ *)
 
 (*****************************************************************************)
 (* Helpers *)

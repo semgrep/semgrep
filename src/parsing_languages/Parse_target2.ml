@@ -26,6 +26,13 @@ let debug_exn = ref false
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* Most of the code here used to be in Parse_target.ml, but was moved
+ * to make the engine language independent so that we can generate
+ * a smaller JS file for the engine
+ *
+ * TODO: at some point maybe leverage Parsing_plugin instead of
+ * modifying refs as currently done in Parsing_init.ml
+ *)
 
 (*****************************************************************************)
 (* Helpers *)

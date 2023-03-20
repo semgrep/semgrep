@@ -26,9 +26,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Parsing a target, using Pfff-based or Tree-sitter-based parsers.
+(* Parsing a target, using menhir or tree-sitter parsers or both
+ * depending on the language.
  *
- * update: most of the code is now in ../parsing_languages/Parse_target_bis.ml
+ * update: most of the code is now in ../parsing_languages/Parse_target2.ml
  * to remove dependencies to languages/ here, to generate a small
  * JS file for the whole engine.
  *)
