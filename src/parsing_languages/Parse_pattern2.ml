@@ -143,7 +143,7 @@ let parse_pattern lang print_errors str =
   | Lang.Python
   | Lang.Python2
   | Lang.Python3 ->
-      let parsing_mode = Parse_target_bis.lang_to_python_parsing_mode lang in
+      let parsing_mode = Parse_target2.lang_to_python_parsing_mode lang in
       let any = Parse_python.any_of_string ~parsing_mode str in
       Python_to_generic.any any
   (* abusing JS parser so no need extend tree-sitter grammar*)
