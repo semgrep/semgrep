@@ -83,6 +83,7 @@ LOCKFILE_TO_MANIFEST = {
     "Cargo.lock": None,
     "maven_dep_tree.txt": None,
     "gradle.lockfile": None,
+    "pnpm-lock.yaml": None,
 }
 
 
