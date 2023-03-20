@@ -5,13 +5,6 @@
    to get rid of the interface exposed by Common.
 *)
 
-type fpath = Fpath.t
-
-(* for ppx deriving *)
-let pp_fpath fmt path = Format.pp_print_string fmt (Fpath.to_string path)
-let show_fpath path = Fpath.to_string path
-let equal_fpath = Fpath.equal
-
 module Operators = struct
   let ( / ) = Fpath.( / )
   let ( // ) = Fpath.( // )
@@ -37,3 +30,5 @@ let with_open_infile path func = Common.with_open_infile !!path func
 let new_temp_file prefix suffix = Common.new_temp_file prefix suffix |> Fpath.v
 let erase_temp_files = Common.erase_temp_files
 let erase_this_temp_file path = Common.erase_this_temp_file !!path
+let is_executable path = Common2.is_executable !!path
+let filesize path = Common2.filesize !!path

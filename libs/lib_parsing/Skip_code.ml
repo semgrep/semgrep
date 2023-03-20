@@ -30,6 +30,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * dir or file, and maybe sometimes instead of skip we would like
  * to specify the opposite, what we want to keep, so maybe a simple
  *  +/- syntax would be better.
+ *
+ * TODO: once Gitignore.ml has been made into a library independent
+ * of semgrep, we should use a .codemapignore and .codegraphignore
+ * instead of skip_code
  *)
 
 (*****************************************************************************)
@@ -89,7 +93,7 @@ let filter_files skip_list ~root relative_paths : Fpath.t list * Fpath.t list =
   let relative_paths =
     relative_paths
     |> List.filter (fun rel_path ->
-           let path = Common.readable ~root:!!root !!rel_path |> Fpath.v in
+           let path = File.readable ~root rel_path in
            if
              Hashtbl.mem skip_files path
              || skip_dirs |> List.exists (fun dir -> !!path =~ !!dir ^ ".*")

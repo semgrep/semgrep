@@ -365,7 +365,7 @@ let file_type_of_file file =
   | "r"
   | "R" ->
       PL R
-  | _ when Common2.is_executable !!file -> Binary e
+  | _ when File.is_executable file -> Binary e
   | _ when b = "Makefile" || b = "mkfile" || b = "Imakefile" -> Config Makefile
   | _ when b = "Dockerfile" -> Config Dockerfile
   | _ when b = "dune" -> Config Sexp
@@ -374,7 +374,7 @@ let file_type_of_file file =
   | _ when b = "TARGETS" -> Config Makefile
   | _ when b = ".depend" -> Obj "depend"
   | _ when b = ".emacs" -> PL (Lisp Elisp)
-  | _ when Common2.filesize !!file > 300_000 -> Obj e
+  | _ when File.filesize file > 300_000 -> Obj e
   | _ -> Other e
 
 (*****************************************************************************)

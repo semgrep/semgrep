@@ -184,7 +184,7 @@ let sort_targets_by_decreasing_size targets =
 
 let sort_files_by_decreasing_size files =
   files
-  |> Common.map (fun file -> (file, Common2.filesize !!file))
+  |> Common.map (fun file -> (file, File.filesize file))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> Common.map fst
 
