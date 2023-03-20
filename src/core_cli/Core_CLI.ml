@@ -451,7 +451,7 @@ let all_actions () =
       " <file>",
       Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-          Parse_pattern.dump_tree_sitter_pattern_cst
+          Parse_pattern_bis.dump_tree_sitter_pattern_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
             !!file) );
     ( "-dump_pfff_ast",
@@ -785,6 +785,7 @@ let main (sys_argv : string array) : unit =
       (* main entry *)
       (* --------------------------------------------------------- *)
       | roots ->
+          Parsing_init.init ();
           (* TODO: We used to tune the garbage collector but from profiling
              we found that the effect was small. Meanwhile, the memory
              consumption causes some machines to freeze. We may want to

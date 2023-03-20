@@ -26,13 +26,17 @@ val parse_and_resolve_name_warn_if_partial :
 val parse_and_resolve_name_fail_if_partial :
   Lang.t -> Common.filename -> AST_generic.program
 
+(* to be set dynamically with the right set of language parsers *)
+val just_parse_with_lang_ref : (Lang.t -> Common.filename -> parsing_result) ref
+
 (* returns a Output_from_core.PartialParsing error *)
 val errors_from_skipped_tokens :
   Parse_info.token_location list -> Report.ErrorSet.t
 
-(* used by Parse_pattern *)
-val lang_to_python_parsing_mode : Lang.t -> Parse_python.parsing_mode
-
 (* used by Parse_jsonnet *)
 val error_of_tree_sitter_error :
   Tree_sitter_run.Tree_sitter_error.t -> Exception.t
+
+(* used by Parse_target_bis.ml *)
+val loc_of_tree_sitter_error :
+  Tree_sitter_run.Tree_sitter_error.t -> Parse_info.token_location
