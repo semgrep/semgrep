@@ -227,18 +227,22 @@ class GithubMeta(GitMeta):
     @property
     def repo_name(self) -> str:
         repo_name = os.getenv("GITHUB_REPOSITORY")
+
         if repo_name:
             return repo_name
+        elif super().repo_name:
+            return super().repo_name
         else:
             raise Exception("Could not get repo_name when running in GithubAction")
 
     @property
     def repo_url(self) -> Optional[str]:
+
         server_url = os.getenv("GITHUB_SERVER_URL", "https://github.com")
 
         if self.repo_name:
             return f"{server_url}/{self.repo_name}"
-        return None
+        return super().repo_url
 
     @property
     def api_url(self) -> Optional[str]:
@@ -506,21 +510,25 @@ class GithubMeta(GitMeta):
         value = os.getenv("GITHUB_RUN_ID")
         if self.repo_url and value:
             return f"{self.repo_url}/actions/runs/{value}"
-        return None
+        return super().ci_job_url
 
     @property
     def event_name(self) -> str:
-        return os.getenv("GITHUB_EVENT_NAME", "unknown")
+        event_name = os.getenv("GITHUB_EVENT_NAME")
+
+        if event_name:
+            return event_name
+        return super().event_name
 
     @property
     def pr_id(self) -> Optional[str]:
         pr_id = self.glom_event(T["pull_request"]["number"])
-        return str(pr_id) if pr_id else None
+        return str(pr_id) if pr_id else super().pr_id
 
     @property
     def pr_title(self) -> Optional[str]:
         pr_title = self.glom_event(T["pull_request"]["title"])
-        return str(pr_title) if pr_title else None
+        return str(pr_title) if pr_title else super().pr_title
 
     @property
     def branch(self) -> Optional[str]:
@@ -545,7 +553,10 @@ class GithubMeta(GitMeta):
         """
         if self.event_name == "pull_request_target":
             return os.getenv("GITHUB_HEAD_REF")
-        return os.getenv("GITHUB_REF")
+        github_ref = os.getenv("GITHUB_REF")
+        if github_ref:
+            return github_ref
+        return super().branch
 
     def to_dict(self) -> Dict[str, Any]:
         return {
