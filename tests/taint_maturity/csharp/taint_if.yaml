@@ -1,15 +1,16 @@
 rules:
-  - id: tainting
+  - id: taint-maturity
     mode: taint
     languages:
-      - python
+      - csharp
     message: |
       This confirms taint mode works.
     pattern-sinks:
-      - pattern: sink1(...)
+      - pattern: sink(...)
     pattern-sources:
-      - pattern: source1(...)
+      - pattern: |
+          "tainted"
     pattern-sanitizers:
-      - pattern: sanitize1(...)
+      - pattern: sanitize(...)
     severity: ERROR
 

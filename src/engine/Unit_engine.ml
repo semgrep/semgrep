@@ -688,6 +688,21 @@ let lang_tainting_tests () =
 (* Full rule tests *)
 (*****************************************************************************)
 
+(* TODO: For now we only have taint maturity tests for Beta, there are no specific
+ * tests for GA. *)
+(* TODO: We should also have here an explicit list of test filenames, like "taint_if",
+ * that is then checked for every language, like we do for the search mode maturity
+ * tests. *)
+(* TODO: We could have a taint_maturity/POLYGLOT/ directory to put reusable rules
+ * that can work for multiple languages (like we have for tests/patterns/POLYGLOT/ *)
+let full_rule_taint_maturity_tests () =
+  let path = tests_path / "taint_maturity" in
+  pack_tests "taint maturity"
+    (let tests, _print_summary =
+       Test_engine.make_tests ~unit_testing:true [ path ]
+     in
+     tests)
+
 let full_rule_regression_tests () =
   let path = tests_path / "rules" in
   pack_tests "full rule"
@@ -825,6 +840,7 @@ let tests () =
       extract_tests ();
       lang_tainting_tests ();
       maturity_tests ();
+      full_rule_taint_maturity_tests ();
       full_rule_regression_tests ();
       full_rule_semgrep_rules_regression_tests ();
     ]
