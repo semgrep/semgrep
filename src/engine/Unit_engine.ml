@@ -688,6 +688,18 @@ let lang_tainting_tests () =
 (* Full rule tests *)
 (*****************************************************************************)
 
+(* TODO: For now we only have taint maturity tests for Beta, there are no specific
+ * tests for GA, but eventually we'll need something more sophisticated. Ideally
+ * we can integrate these tests into the same `maturity_tests` function that packs
+ * search-mode maturity tests. *)
+let full_rule_taint_maturity_tests () =
+  let path = Filename.concat tests_path "taint_maturity" in
+  pack_tests "taint maturity"
+    (let tests, _print_summary =
+       Test_engine.make_tests ~unit_testing:true [ path ]
+     in
+     tests)
+
 let full_rule_regression_tests () =
   let path = tests_path / "rules" in
   pack_tests "full rule"
@@ -825,6 +837,7 @@ let tests () =
       extract_tests ();
       lang_tainting_tests ();
       maturity_tests ();
+      full_rule_taint_maturity_tests ();
       full_rule_regression_tests ();
       full_rule_semgrep_rules_regression_tests ();
     ]
