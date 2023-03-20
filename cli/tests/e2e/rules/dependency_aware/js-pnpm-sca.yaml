@@ -1,6 +1,6 @@
 
 rules:
-  - id: js-yarn2-sca
+  - id: js-pnpm-sca
     pattern: bad()
     r2c-internal-project-depends-on:
         namespace: npm
