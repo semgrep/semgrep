@@ -6,6 +6,7 @@
 (library
   (name osemgrep_targeting)
   (libraries
+    stdcompat
     commons
     fpath
   )

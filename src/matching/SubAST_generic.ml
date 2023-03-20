@@ -347,14 +347,15 @@ let do_visit_with_ref visitor any =
   List.rev !res
 
 let lambdas_in_expr e =
-  do_visit_with_ref
+  let visitor =
     object (_self : 'self)
       inherit [_] AST_generic.iter_no_id_info
 
       (* TODO Should we recurse into the Lambda? *)
       method! visit_Lambda aref def = Common.push def aref
     end
-    (E e)
+  in
+  do_visit_with_ref visitor (E e)
   [@@profiling]
 
 (* opti: using memoization speed things up a bit too
