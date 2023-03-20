@@ -696,7 +696,7 @@ let lang_tainting_tests () =
 (* TODO: We could have a taint_maturity/POLYGLOT/ directory to put reusable rules
  * that can work for multiple languages (like we have for tests/patterns/POLYGLOT/ *)
 let full_rule_taint_maturity_tests () =
-  let path = Filename.concat tests_path "taint_maturity" in
+  let path = tests_path / "taint_maturity" in
   pack_tests "taint maturity"
     (let tests, _print_summary =
        Test_engine.make_tests ~unit_testing:true [ path ]
