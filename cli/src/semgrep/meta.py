@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import Optional
+from typing import TypeVar
 
 import requests
 from boltons.cacheutils import cachedproperty
@@ -60,6 +61,15 @@ def get_repo_name_from_repo_url(repo_url: Optional[str]) -> Optional[str]:
     result = p.parse()
 
     return f"{result.owner}/{result.name}"
+
+
+Ty = TypeVar("Ty")
+
+
+def get_opt(fst: Optional[Ty], snd: Optional[Ty]) -> Optional[Ty]:
+    if fst is None:
+        return snd
+    return fst
 
 
 @dataclass
@@ -604,15 +614,18 @@ class GitlabMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        return os.getenv("CI_PROJECT_PATH", "[unknown]")
+        project_path = os.getenv("CI_PROJECT_PATH")
+        if project_path:
+            return project_path
+        return super().repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("CI_PROJECT_URL")
+        return get_opt(os.getenv("CI_PROJECT_URL"), super().repo_url)
 
     @property
     def commit_sha(self) -> Optional[str]:
-        return os.getenv("CI_COMMIT_SHA")
+        return get_opt(os.getenv("CI_COMMIT_SHA"), super().commit_sha)
 
     @property
     def commit_ref(self) -> Optional[str]:
@@ -631,7 +644,7 @@ class GitlabMeta(GitMeta):
 
     @property
     def ci_job_url(self) -> Optional[str]:
-        return os.getenv("CI_JOB_URL")
+        return get_opt(os.getenv("CI_JOB_URL"), super().ci_job_url)
 
     @property
     def event_name(self) -> str:
@@ -642,7 +655,7 @@ class GitlabMeta(GitMeta):
 
     @property
     def pr_id(self) -> Optional[str]:
-        return os.getenv("CI_MERGE_REQUEST_IID")
+        return get_opt(os.getenv("CI_MERGE_REQUEST_IID"), super().pr_id)
 
     @property
     def start_sha(self) -> Optional[str]:
@@ -650,7 +663,7 @@ class GitlabMeta(GitMeta):
 
     @property
     def pr_title(self) -> Optional[str]:
-        return os.getenv("CI_MERGE_REQUEST_TITLE")
+        return get_opt(os.getenv("CI_MERGE_REQUEST_TITLE"), super().pr_title)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
