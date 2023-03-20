@@ -1,8 +1,8 @@
 runs:
   - name: simple-mvc-app
     repos:
-      - url: git@github.com:returntocorp/simple-mvc-app.git
-        commit_hash: 336e453346e6abf73aa8522bd362eaa358c17303
+      - url: git@github.com:Shafeev/simple-mvc-app.git 
+        commit_hash: e06b2df249f8770a316846cf0aa6a7c8498ff1e9
     rule_configs:
       - rules/deepsemgrep-sqli-rules.yaml
     opts: [--pro]
