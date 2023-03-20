@@ -1,7 +1,7 @@
 (*
    Unit tests for Guess_lang
 *)
-
+open Lang
 open File.Operators
 
 type exec = Exec | Nonexec

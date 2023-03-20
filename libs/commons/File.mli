@@ -8,20 +8,6 @@
              and stop using 'string' for file paths.
 *)
 
-(* TODO: call this type 't'? *)
-type fpath = Fpath.t [@@deriving show, eq]
-(* This type exists only to be used with ppx deriving because Fpath.t
-   doesn't provide 'show' and 'eq' functions.
-
-   The deriving above will define those functions below, which
-   are needed if one use 'deriving eq, show' on other types
-   using internally 'filename'
-   (e.g., 'type foo = Foo of File.t [@@deriving show]')
-
-   val pp_fpath: Format.formatter -> File.t -> unit
-   val equal_fpath: File.t -> File.t -> bool
-*)
-
 (* Usage:
 
      open File.Operators
@@ -116,3 +102,9 @@ val with_open_infile : Fpath.t -> (in_channel -> 'a) -> 'a
 val new_temp_file : string (* prefix *) -> string (* suffix *) -> Fpath.t
 val erase_temp_files : unit -> unit
 val erase_this_temp_file : Fpath.t -> unit
+
+(*****************************************************************************)
+(* File properties *)
+(*****************************************************************************)
+val is_executable : Fpath.t -> bool
+val filesize : Fpath.t -> int
