@@ -768,6 +768,7 @@ let main (sys_argv : string array) : unit =
   in
 
   if config.lsp then LSP_client.init ();
+  Parsing_init.init ();
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Profiling.profile_code "Main total" (fun () ->
@@ -785,7 +786,6 @@ let main (sys_argv : string array) : unit =
       (* main entry *)
       (* --------------------------------------------------------- *)
       | roots ->
-          Parsing_init.init ();
           (* TODO: We used to tune the garbage collector but from profiling
              we found that the effect was small. Meanwhile, the memory
              consumption causes some machines to freeze. We may want to
