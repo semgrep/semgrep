@@ -689,9 +689,12 @@ let lang_tainting_tests () =
 (*****************************************************************************)
 
 (* TODO: For now we only have taint maturity tests for Beta, there are no specific
- * tests for GA, but eventually we'll need something more sophisticated. Ideally
- * we can integrate these tests into the same `maturity_tests` function that packs
- * search-mode maturity tests. *)
+ * tests for GA. *)
+(* TODO: We should also have here an explicit list of test filenames, like "taint_if",
+ * that is then checked for every language, like we do for the search mode maturity
+ * tests. *)
+(* TODO: We could have a taint_maturity/POLYGLOT/ directory to put reusable rules
+ * that can work for multiple languages (like we have for tests/patterns/POLYGLOT/ *)
 let full_rule_taint_maturity_tests () =
   let path = Filename.concat tests_path "taint_maturity" in
   pack_tests "taint maturity"
