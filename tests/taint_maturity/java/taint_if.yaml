@@ -10,7 +10,6 @@ rules:
     pattern-sources:
       - pattern: |
           "tainted"
-      - pattern: source(...)
     pattern-sanitizers:
       - pattern: sanitize(...)
     severity: ERROR
