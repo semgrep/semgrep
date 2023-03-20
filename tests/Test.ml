@@ -97,6 +97,7 @@ let tests_with_delayed_error () =
      ["cannot load test data - not a real test", (fun () -> raise e)]
 
 let main () =
+  Parsing_init.init ();
   let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in
   Alcotest.run "semgrep-core" alcotest_tests
 

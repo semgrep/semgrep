@@ -451,7 +451,7 @@ let all_actions () =
       " <file>",
       Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-          Parse_pattern.dump_tree_sitter_pattern_cst
+          Parse_pattern2.dump_tree_sitter_pattern_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
             !!file) );
     ( "-dump_pfff_ast",
@@ -768,6 +768,7 @@ let main (sys_argv : string array) : unit =
   in
 
   if config.lsp then LSP_client.init ();
+  Parsing_init.init ();
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Profiling.profile_code "Main total" (fun () ->

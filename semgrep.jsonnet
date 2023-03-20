@@ -58,7 +58,7 @@ local semgrep_rules = [
         "SubAST_generic.ml",
         "Analyze_pattern.ml",
         "Parse_equivalences.ml",
-        "Parse_target.ml",
+        "Parse_target2.ml",
         "Run_semgrep.ml",
         "Dataflow_tainting.ml",
         "Guess_lang.ml",
