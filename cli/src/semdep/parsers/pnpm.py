@@ -4,7 +4,7 @@ Based on https://github.com/pnpm/spec/blob/master/lockfile/5.2.md
 """
 
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from semdep.external.parsy import eof, regex, string, string_from, whitespace
 from semdep.parsers.util import mark_line, pair, safe_path_parse, transitivity, upto
 from semdep.external.parsy import success
@@ -86,7 +86,7 @@ packages_data = (consume_line.optional() >> string("\n").optional()).until(packa
 all_dependency_data = pair(direct_dependencies_data, packages_data) << (consume_line.optional() >> string("\n").optional()).until(eof)
 
 
-def parse_pnpm(lockfile_path: Path) -> List[FoundDependency]:
+def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
     direct_deps, all_deps = safe_path_parse(lockfile_path, all_dependency_data)
     if not (direct_deps and all_deps):
         return []
