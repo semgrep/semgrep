@@ -56,6 +56,7 @@ First-Party Blocking Rules Fired:
 └─────────────┘
   Scanning 4 files tracked by git with 1 Code rule, 1 Supply Chain rule:
             
+            
   CODE RULES
   Scanning 1 file.
                     

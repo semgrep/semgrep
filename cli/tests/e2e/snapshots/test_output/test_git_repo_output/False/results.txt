@@ -4,8 +4,6 @@
 │ Scan Status │
 └─────────────┘
   Scanning 0 files tracked by git with 1 Code rule:
-            
-  CODE RULES
   Nothing to scan.
                 
                 
