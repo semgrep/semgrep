@@ -106,7 +106,7 @@ all_dependency_data = pair(direct_dependencies_data, packages_data) << (
 
 def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
     direct_deps, all_deps = safe_path_parse(lockfile_path, all_dependency_data)
-    if not (direct_deps and all_deps):
+    if not direct_deps or not all_deps:
         return []
 
     # packages that start with @ will look like "'@foo/bar'"
