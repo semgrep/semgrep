@@ -442,11 +442,6 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
      the formula later, when we extract the PMs
   *)
   let sink_pm, ts = T.pm_of_trace sink in
-  (* We filter out all taints which do not have unifying mvars, if they
-     exist, and the option is set. This is because we do not want to
-     deny a match if there is a non-unifying taint source, if that source
-     is irrelevant to producing the match.
-  *)
   let taints_and_bindings =
     Taints.elements taints
     |> Common.map (fun t ->
@@ -1077,7 +1072,9 @@ let check_function_signature env fun_exp args args_taints =
                         *)
                         | Arg arg ->
                             let sink = T.Call (eorig, t.tokens, sink) in
-                            let* arg_taints = taints_of_sig_arg env fparams args args_taints arg in
+                            let* arg_taints =
+                              taints_of_sig_arg env fparams args args_taints arg
+                            in
                             arg_taints
                             |> Taints.iter (fun t ->
                                    findings_of_tainted_sinks env

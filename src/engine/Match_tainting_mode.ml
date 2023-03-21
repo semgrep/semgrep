@@ -544,14 +544,14 @@ let rec convert_taint_call_trace = function
 let taint_trace_of_src_traces_and_sink sources sink =
   { Pattern_match.sources; sink = convert_taint_call_trace sink }
 
-let pms_of_finding finding =
+let pm_of_finding finding =
   match finding with
-  | T.ToReturn (_taints, _) -> []
+  | T.ToReturn (_taints, _) -> None
   | ToSink { taints_with_precondition = taints, requires; sink; merged_env } ->
       (* TODO: We might want to report functions that let input taint
          * go into a sink (?) *)
       if not (D.taints_satisfy_requires (T.Taint_set.of_list taints) requires)
-      then []
+      then None
       else
         (* these arg taints are not useful to us, because we are within
            the function, not at the call-site. so we don't know what
@@ -595,7 +595,7 @@ let pms_of_finding finding =
           Some (lazy (taint_trace_of_src_traces_and_sink traces sink))
         in
         let sink_pm, _ = T.pm_of_trace sink in
-        [ { sink_pm with env = merged_env; taint_trace } ]
+        Some { sink_pm with env = merged_env; taint_trace }
 
 let check_fundef lang options taint_config opt_ent fdef =
   let name =
@@ -694,8 +694,8 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
-             pms_of_finding finding
-             |> List.iter (fun pm -> Common.push pm matches))
+             pm_of_finding finding
+             |> Option.iter (fun pm -> Common.push pm matches))
     in
     taint_config_of_rule ~per_file_formula_cache xconf file (ast, []) rule
       handle_findings

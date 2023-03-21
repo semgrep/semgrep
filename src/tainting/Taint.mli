@@ -35,8 +35,6 @@ type orig =
 
 type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
-
-
 type taints_to_sink = {
   taints_with_precondition : taint list * AST_generic.expr;
   sink : sink;

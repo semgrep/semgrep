@@ -87,8 +87,6 @@ let _show_source { call_trace; label } =
 type arg_pos = string * int [@@deriving show]
 type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
 
-type orig = Src of source | Arg of arg [@@deriving show]
-
 let _show_arg { pos = s, i; offset = os } =
   if os <> [] then
     let os_str =
@@ -97,14 +95,11 @@ let _show_arg { pos = s, i; offset = os } =
     Printf.sprintf "arg(%s)#%d.%s" s i os_str
   else Printf.sprintf "arg(%s)#%d" s i
 
-let _show_orig = function
-  | Src src -> _show_source src
-  | Arg arg -> _show_arg arg
-
 (*****************************************************************************)
 (* Taint *)
 (*****************************************************************************)
 
+type orig = Src of source | Arg of arg [@@deriving show]
 type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
 let src_of_pm (pm, (x : Rule.taint_source)) =
