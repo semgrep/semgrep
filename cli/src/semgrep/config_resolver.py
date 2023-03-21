@@ -23,6 +23,7 @@ from ruamel.yaml import YAMLError
 
 from semgrep import __VERSION__
 from semgrep.app import auth
+from semgrep.console import console
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_CONFIG_FILE
@@ -256,6 +257,7 @@ def parse_config_files(
         transient=True,
         # expected to take just 2-3 seconds with less than 500
         disable=len(loaded_config_infos) < 500,
+        console=console,
     ):
         try:
             if not config_id:  # registry rules don't have config ids
