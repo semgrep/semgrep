@@ -431,7 +431,7 @@ let taints_satisfy_requires taints expr =
    We will figure out how many actual Semgrep findings are generated
    when this information is used, later.
 *)
-let findings_of_tainted_sink env taints (sink : T.sink) : T.finding option =
+let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
   (* We cannot check whether we satisfy the `requires` here.
      This is because this sink may be inside of a function, meaning that
      argument taint can reach it, which can only be instantiated at the
@@ -445,9 +445,9 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding option =
      deny a match if there is a non-unifying taint source, if that source
      is irrelevant to producing the match.
   *)
-  let taints_and_bindings_with_unifying_mvars =
+  let taints_and_bindings =
     Taints.elements taints
-    |> List.filter_map (fun t ->
+    |> Common.map (fun t ->
            let bindings =
              match t.T.orig with
              | T.Arg _ -> []
@@ -455,27 +455,50 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding option =
                  let src_pm, _ = T.pm_of_trace source.call_trace in
                  src_pm.PM.env
            in
-           match merge_source_sink_mvars env sink_pm.PM.env bindings with
-           | None -> None
-           | Some _ -> Some (t, bindings))
+           (t, bindings))
   in
-  let* merged_env =
-    taints_and_bindings_with_unifying_mvars |> List.concat_map snd
-    |> merge_source_sink_mvars env sink_pm.PM.env
-  in
-  Some
-    (T.ToSink
-       {
-         taints_with_precondition =
-           ( Common.map fst taints_and_bindings_with_unifying_mvars,
-             ts.sink_requires );
-         sink;
-         merged_env;
-       })
+  (* If `unify_mvars` is set, then we will just do the previous behavior,
+     and emit a finding for every single source coming into the sink.
+     This will mean we don't regress on `taint_unify_mvars: true` rules.
+
+     This is problematic because there may be many sources, all of which do not
+     unify with each other, but which unify with the sink.
+     If we did as below and unified them all with each other, we would sometimes
+     produce no findings when we should.
+  *)
+  if env.config.unify_mvars then
+    taints_and_bindings
+    |> List.filter_map (fun (t, bindings) ->
+           let* merged_env =
+             merge_source_sink_mvars env sink_pm.PM.env bindings
+           in
+           Some
+             (T.ToSink
+                {
+                  taints_with_precondition = ([ t ], R.get_sink_requires ts);
+                  sink;
+                  merged_env;
+                }))
+  else
+    match
+      taints_and_bindings |> List.concat_map snd
+      |> merge_source_sink_mvars env sink_pm.PM.env
+    with
+    | None -> []
+    | Some merged_env ->
+        [
+          T.ToSink
+            {
+              taints_with_precondition =
+                (Taints.elements taints, R.get_sink_requires ts);
+              sink;
+              merged_env;
+            };
+        ]
 
 (* Produces a finding for every unifiable source-sink pair. *)
 let findings_of_tainted_sinks env taints sinks : T.finding list =
-  sinks |> List.filter_map (findings_of_tainted_sink env taints)
+  sinks |> List.concat_map (findings_of_tainted_sink env taints)
 
 let finding_of_tainted_return taints return_tok : T.finding =
   let taints = taints |> Taints.elements in

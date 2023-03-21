@@ -25,8 +25,6 @@ type source = {
 type sink = Rule.taint_sink call_trace [@@deriving show]
 type arg_pos = string * int [@@deriving show]
 
-val sink_has_no_requires : sink -> bool
-
 (** The origin of taint, where does taint comes from? *)
 type orig =
   | Src of source  (** An actual taint source (`pattern-sources:` match). *)

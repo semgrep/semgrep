@@ -57,13 +57,6 @@ type source = {
 
 type sink = Rule.taint_sink call_trace [@@deriving show]
 
-let rec sink_has_no_requires = function
-  | PM (_pm, x) -> (
-      match x.Rule.sink_requires.G.e with
-      | G.N (G.Id ((s, _), _)) -> s = Rule.default_source_label
-      | __else__ -> false)
-  | Call (_, _, trace) -> sink_has_no_requires trace
-
 let rec pm_of_trace = function
   | PM (pm, x) -> (pm, x)
   | Call (_, _, trace) -> pm_of_trace trace
@@ -163,7 +156,6 @@ type taints_to_sink = {
      reached.
   *)
   taints_with_precondition : taint list * G.expr;
-      (** These [label_origs] are the "requires trace" of the *)
   sink : sink;
   merged_env : Metavariable.bindings;
 }

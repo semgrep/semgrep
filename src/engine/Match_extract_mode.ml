@@ -215,7 +215,9 @@ let map_taint_trace map_loc { Pattern_match.sources; sink } =
   in
   {
     Pattern_match.sources =
-      Common.map (fun (ct, toks) -> (map_taint_call_trace ct, toks)) sources;
+      Common.map
+        (fun (ct, toks) -> (map_taint_call_trace ct, Common.map map_loc toks))
+        sources;
     sink = map_taint_call_trace sink;
   }
 
