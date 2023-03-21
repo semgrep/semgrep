@@ -21,13 +21,11 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 
-"""
-Section for the direct dependencies, should look something like
-specifiers:
-    '@types/jsdom': ^1.2.3
-    jsdom: 1.2.3
-    typescript: ~1.2.5
-"""
+# Section for the direct dependencies, should look something like
+# specifiers:
+#     '@types/jsdom': ^1.2.3
+#     jsdom: 1.2.3
+#     typescript: ~1.2.5
 
 whitespace_not_newline = regex("[^\\S\r\n]+")
 
@@ -49,24 +47,22 @@ direct_dependencies = (
     >> mark_line(dep).sep_by(string("\n").at_least(1))
 )
 
-"""
-Section for the transitive dependencies, should look something like
-packages:
-
-    /@foo/bar/1.2.3:
-        resolution: {integrity: sha512-...}
-        engines: {node: '>=1.2.3'}
-        dependencies:
-            '@fizz/buzz': 2.3.4
-
-    /min/4.5.6:
-        resolution: {integrity: sha512-...}
-        engines: {node: '>=1.2.3'}
-        dependencies:
-            'max': 2.3.4
-        transitivePeerDependencies:
-            - mathPackage
-"""
+# Section for the transitive dependencies, should look something like
+# packages:
+#
+#     /@foo/bar/1.2.3:
+#         resolution: {integrity: sha512-...}
+#         engines: {node: '>=1.2.3'}
+#         dependencies:
+#             '@fizz/buzz': 2.3.4
+#
+#     /min/4.5.6:
+#        resolution: {integrity: sha512-...}
+#        engines: {node: '>=1.2.3'}
+#        dependencies:
+#            'max': 2.3.4
+#        transitivePeerDependencies:
+#             - mathPackage
 
 packages_identifier = string("packages:")
 
