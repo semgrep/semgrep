@@ -45,30 +45,6 @@
                     {
                       "location": {
                         "message": {
-                          "text": "Propagator : 'a' @ 'targets/taint/taint.py:3'"
-                        },
-                        "physicalLocation": {
-                          "artifactLocation": {
-                            "uri": "targets/taint/taint.py"
-                          },
-                          "region": {
-                            "endColumn": 6,
-                            "endLine": 3,
-                            "message": {
-                              "text": "Propagator : 'a' @ 'targets/taint/taint.py:3'"
-                            },
-                            "snippet": {
-                              "text": "a"
-                            },
-                            "startColumn": 5,
-                            "startLine": 3
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "location": {
-                        "message": {
                           "text": "Propagator : 'b' @ 'targets/taint/taint.py:8'"
                         },
                         "physicalLocation": {
@@ -86,6 +62,30 @@
                             },
                             "startColumn": 9,
                             "startLine": 8
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "message": {
+                          "text": "Propagator : 'a' @ 'targets/taint/taint.py:3'"
+                        },
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "targets/taint/taint.py"
+                          },
+                          "region": {
+                            "endColumn": 6,
+                            "endLine": 3,
+                            "message": {
+                              "text": "Propagator : 'a' @ 'targets/taint/taint.py:3'"
+                            },
+                            "snippet": {
+                              "text": "a"
+                            },
+                            "startColumn": 5,
+                            "startLine": 3
                           }
                         }
                       }
