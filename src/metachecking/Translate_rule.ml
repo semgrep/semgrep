@@ -73,8 +73,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
       | Sem (_, _)
       | Spacegrep _ ->
           `O [ ("pattern", `String (fst pstr)) ]
-      | Regexp _ -> `O [ ("regex", `String (fst pstr)) ]
-      | Comby _ -> failwith "comby not supported in new")
+      | Regexp _ -> `O [ ("regex", `String (fst pstr)) ])
   | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]
   | And (_, { conjuncts; focus; conditions; _ }) ->
       `O
@@ -130,7 +129,6 @@ let replace_pattern rule_fields translated_formula =
             "patterns";
             "pattern-either";
             "pattern-regex";
-            "pattern-comby";
             "pattern-sources";
           ]
       then [ ("match", translated_formula) ]

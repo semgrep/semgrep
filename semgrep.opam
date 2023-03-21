@@ -53,7 +53,6 @@ depends: [
   "parmap"
   "cohttp-lwt-unix" # this brings lots of dependencies. This is for osemgrep.
   "lsp" {= "1.7.0"}
-  "comby-kernel" {= "1.4.1"}
   "visitors" {= "20210608"}
   "js_of_ocaml" {= "5.1.1"}
   "js_of_ocaml-compiler" {= "5.1.1"}
