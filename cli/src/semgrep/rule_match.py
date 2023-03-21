@@ -394,6 +394,7 @@ class RuleMatch:
         if dataflow_trace:
             taint_source = None
             intermediate_vars = None
+            taint_sink = None
             if dataflow_trace.taint_source:
                 taint_source = translate_core_match_call_trace(
                     dataflow_trace.taint_source

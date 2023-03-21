@@ -1,0 +1,14 @@
+rules:
+- id: terraform-block-sink
+  mode: taint
+  pattern-sources:
+    - pattern: |
+        150
+  pattern-sinks: 
+    - pattern: |
+        x {
+          ...
+        }
+  message: Working!
+  severity: WARNING
+  languages: [hcl]

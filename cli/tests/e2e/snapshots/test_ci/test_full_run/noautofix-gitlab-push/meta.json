@@ -21,10 +21,5 @@
     "base_sha": "sanitized",
     "start_sha": null,
     "is_sca_scan": false
-  },
-  "policy_names": [
-    "audit",
-    "comment",
-    "block"
-  ]
+  }
 }

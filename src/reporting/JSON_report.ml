@@ -81,6 +81,7 @@ let range_of_any_opt startp_of_match_range any =
   | T _
   | P _
   | At _
+  | XmlAt _
   | Fld _
   | Flds _
   | Partial _
@@ -261,6 +262,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         dataflow_trace;
         rendered_fix;
         engine_kind = convert_engine_kind x.engine_kind;
+        extra_extra = None;
       };
   }
 

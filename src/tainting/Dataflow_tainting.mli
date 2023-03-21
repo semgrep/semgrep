@@ -104,6 +104,7 @@ val hook_function_taint_signature :
 val fixpoint :
   ?in_env:Taint_lval_env.t ->
   ?name:var ->
+  Lang.t ->
   Config_semgrep.t ->
   config ->
   IL.cfg ->

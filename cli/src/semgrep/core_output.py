@@ -16,9 +16,11 @@ from typing import Tuple
 import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
+from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
+from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
@@ -76,10 +78,15 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
         or isinstance(err.error_type.value, core.LexicalError)
         or isinstance(err.error_type.value, core.PartialParsing)
     ):
-        code = 3
+        code = TARGET_PARSE_FAILURE_EXIT_CODE
         err = replace(err, rule_id=None)  # Rule id not important for parse errors
+    elif isinstance(err.error_type.value, core.PatternParseError):
+        # TODO This should probably be RULE_PARSE_FAILURE_EXIT_CODE
+        # but we have been exiting with FATAL_EXIT_CODE, so we need
+        # to be deliberate about changing it
+        code = FATAL_EXIT_CODE
     else:
-        code = 2
+        code = FATAL_EXIT_CODE
 
     return SemgrepCoreError(code, level, spans, err)
 
@@ -105,7 +112,7 @@ def core_matches_to_rule_matches(
     Convert core_match objects into RuleMatch objects that the rest of the codebase
     interacts with.
 
-    For now assumes that all matches encapsulated by this object are from the same rulee
+    For now assumes that all matches encapsulated by this object are from the same rule
     """
     rule_table = {rule.id: rule for rule in rules}
 

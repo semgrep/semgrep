@@ -199,6 +199,7 @@ end
 
 (* THINK: Separate read-only enviroment into a new a "cfg" type? *)
 type env = {
+  lang : Lang.t;
   options : Config_semgrep.t; (* rule options *)
   config : config;
   fun_name : var option;
@@ -301,7 +302,8 @@ let top_level_sinks_in_nodes config flow =
                      Seq.empty)
              in
              origs
-             |> Seq.concat_map (fun o -> orig_is_sink config o |> List.to_seq)
+             |> Stdcompat.Seq.concat_map (fun o ->
+                    orig_is_sink config o |> List.to_seq)
          | NCond (_, exp)
          | NReturn (_, exp)
          | NThrow (_, exp) ->
@@ -531,7 +533,7 @@ let union_new_taint_sources_filtering_labels ~new_ curr =
   let new_filtered = filter_new_taint_sources_by_labels labels new_ in
   Taints.union new_filtered curr
 
-let find_args_taints args_taints fparams =
+let find_pos_in_actual_args args_taints fparams =
   let pos_args_taints, named_args_taints =
     List.partition_map
       (function
@@ -616,6 +618,55 @@ let propagate_taint_to_label replace_labels label (taint : T.taint) =
     | Arg arg, _ -> Arg arg
   in
   { taint with orig = new_orig }
+
+let propagate_taint_via_java_setter env e args all_args_taints =
+  match (e, args) with
+  | ( {
+        e =
+          Fetch
+            ({ base = Var _obj; rev_offset = [ ({ o = Dot m; _ } as offset) ] }
+            as lval);
+        _;
+      },
+      [ _ ] )
+    when env.lang =*= Lang.Java
+         && Stdcompat.String.starts_with ~prefix:"set" (fst m.IL.ident) ->
+      let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
+      let prop_lval =
+        let o = Dot { m with ident = (prop_name, snd m.IL.ident) } in
+        { lval with rev_offset = [ { offset with o } ] }
+      in
+      if not (Taints.is_empty all_args_taints) then
+        Lval_env.add env.lval_env prop_lval all_args_taints
+      else env.lval_env
+  | __else__ -> env.lval_env
+
+let resolve_poly_taint_for_java_getters env lval st =
+  (* NOTE: This is a hack and it doesn't handle all cases, but it's mean to handle
+   * the most basic ones. It does work for more than just getters. However, it
+   * needs some testing and for now it's safer to restrict it to Java and getX. *)
+  if env.lang =*= Java then
+    match lval.rev_offset with
+    | { o = Dot n; _ } :: _
+      when Stdcompat.String.starts_with ~prefix:"get" (fst n.ident) -> (
+        match st with
+        | `Clean -> `Clean
+        | `None -> `None
+        | `Tainted taints ->
+            let taints' =
+              taints
+              |> Taints.map (fun taint ->
+                     match taint.orig with
+                     | Arg arg ->
+                         let arg' = { arg with offset = arg.offset @ [ n ] } in
+                         { taint with orig = Arg arg' }
+                     | Src _ -> taint)
+            in
+            `Tainted taints')
+    | _ :: _
+    | [] ->
+        st
+  else st
 
 (*****************************************************************************)
 (* Tainted *)
@@ -814,7 +865,12 @@ and check_tainted_lval_aux env (lval : IL.lval) :
         | (`None | `Tainted _) as st -> (
             match Lval_env.dumb_find lval_env lval with
             | (`Clean | `Tainted _) as st' -> st'
-            | `None -> st)
+            | `None ->
+                (* HACK(field-sensitivity): Java: If we encounter `obj.getX` and `obj` has
+                   * polymorphic taint,  and we know nothing specific about `obj.getX`, then
+                   * we add the same offset `.getX` to the polymorphic taint coming from `obj`.
+                   * See also 'propagate_taint_via_java_setter'. *)
+                resolve_poly_taint_for_java_getters env lval st)
       in
       let taints_from_env = status_to_taints lval_in_env in
       (* Find taint sources matching lval. *)
@@ -931,11 +987,30 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
 let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
   check_tainted_lval env (LV.lval_of_var var)
 
-let check_function_signature env fun_exp args_taints =
+(* What is the taint denoted by 'sig_arg' ? *)
+let taints_of_sig_arg env fparams args_exps args_taints (sig_arg : T.arg) =
+  match sig_arg.offset with
+  | [] -> find_pos_in_actual_args args_taints fparams sig_arg.pos
+  | xs -> (
+      (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'. *)
+      let* arg_exp = find_pos_in_actual_args args_exps fparams sig_arg.pos in
+      match arg_exp.e with
+      | Fetch arg_lval ->
+          let os = xs |> Common.map (fun x -> { o = Dot x; oorig = NoOrig }) in
+          let lval =
+            {
+              arg_lval with
+              rev_offset = List.rev_append os arg_lval.rev_offset;
+            }
+          in
+          let arg_taints = check_tainted_lval env lval |> fst in
+          Some arg_taints
+      | __else__ -> None)
+
+let check_function_signature env fun_exp args args_taints =
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
       let* fparams, fun_sig = hook env.config eorig in
-      let taints_of_arg = find_args_taints args_taints fparams in
       Some
         (fun_sig
         |> List.concat_map (function
@@ -953,8 +1028,10 @@ let check_function_signature env fun_exp args_taints =
                                    orig = Src { src with call_trace };
                                    tokens = [];
                                  })
-                        | Arg argpos ->
-                            let* arg_taints = taints_of_arg argpos in
+                        | Arg arg ->
+                            let* arg_taints =
+                              taints_of_sig_arg env fparams args args_taints arg
+                            in
                             (* Get the token of the function *)
                             let* ident =
                               match f with
@@ -998,9 +1075,9 @@ let check_function_signature env fun_exp args_taints =
                            a single ToSink "finding" which uses all the taints, including
                            the argument taints induced here.
                         *)
-                        | Arg argpos ->
+                        | Arg arg ->
                             let sink = T.Call (eorig, t.tokens, sink) in
-                            let* arg_taints = taints_of_arg argpos in
+                            let* arg_taints = taints_of_sig_arg env fparams args args_taints arg in
                             arg_taints
                             |> Taints.iter (fun t ->
                                    findings_of_tainted_sinks env
@@ -1041,7 +1118,12 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let all_args_taints =
           List.fold_left Taints.union Taints.empty all_taints
         in
-        let opt_taint_sig = check_function_signature env e args_taints in
+        let opt_taint_sig = check_function_signature env e args args_taints in
+        let lval_env =
+          (* HACK: Java: If we encounter `obj.setX(arg)` we interpret this as `obj.getX = arg`. *)
+          propagate_taint_via_java_setter { env with lval_env } e args
+            all_args_taints
+        in
         (* After we introduced Top_sinks, we need to explicitly support sinks like
          * `sink(...)` by considering that all of the parameters are sinks. To make
          * sure that we are backwards compatible, we do this for any sink that does
@@ -1126,6 +1208,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
 
 let transfer :
+    Lang.t ->
     Config_semgrep.t ->
     config ->
     Lval_env.t ->
@@ -1133,7 +1216,7 @@ let transfer :
     flow:F.cfg ->
     top_sinks:Top_sinks.t ->
     Lval_env.t D.transfn =
- fun options config enter_env opt_name ~flow ~top_sinks
+ fun lang options config enter_env opt_name ~flow ~top_sinks
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
@@ -1141,7 +1224,7 @@ let transfer :
   let node = flow.graph#nodes#assoc ni in
   let out' : Lval_env.t =
     let env =
-      { options; config; fun_name = opt_name; lval_env = in'; top_sinks }
+      { lang; options; config; fun_name = opt_name; lval_env = in'; top_sinks }
     in
     match node.F.n with
     | NInstr x ->
@@ -1214,11 +1297,12 @@ let transfer :
 let (fixpoint :
       ?in_env:Lval_env.t ->
       ?name:Var_env.var ->
+      Lang.t ->
       Config_semgrep.t ->
       config ->
       F.cfg ->
       mapping) =
- fun ?in_env ?name:opt_name options config flow ->
+ fun ?in_env ?name:opt_name lang options config flow ->
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
   let enter_env =
     match in_env with
@@ -1234,6 +1318,6 @@ let (fixpoint :
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint ~eq_env:Lval_env.equal ~init:init_mapping
-    ~trans:(transfer options config enter_env opt_name ~flow ~top_sinks)
+    ~trans:(transfer lang options config enter_env opt_name ~flow ~top_sinks)
       (* tainting is a forward analysis! *)
     ~forward:true ~flow

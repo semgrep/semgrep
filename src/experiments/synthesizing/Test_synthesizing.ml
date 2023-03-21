@@ -13,20 +13,21 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module J = JSON
 module In = Input_to_core_j
 
 let expr_at_range s file =
-  let r = Range.range_of_linecol_spec s file in
+  let r = Range.range_of_linecol_spec s !!file in
   pr2_gen r;
-  let ast = Parse_target.parse_program file in
+  let ast = Parse_target.parse_program !!file in
   (* just to see if it works with Naming on *)
   let lang = Lang.langs_of_filename file |> List.hd in
   Naming_AST.resolve lang ast;
   let e_opt = Range_to_AST.expr_at_range r ast in
   match e_opt with
   | Some e -> pr (AST_generic.show_expr e)
-  | None -> failwith (spf "could not find an expr at range %s in %s" s file)
+  | None -> failwith (spf "could not find an expr at range %s in %s" s !!file)
   [@@action]
 
 let synthesize_patterns s file =

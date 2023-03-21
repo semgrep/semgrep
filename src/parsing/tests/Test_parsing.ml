@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module PI = Parse_info
 module PS = Parsing_stat
 module G = AST_generic
@@ -186,7 +187,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_cpp.CST.dump_tree
   | Lang.Html ->
       Tree_sitter_html.Parse.file file
-      |> dump_and_print_errors Tree_sitter_html.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_html.Boilerplate.dump_tree
   | Lang.Vue ->
       Tree_sitter_vue.Parse.file file
       |> dump_and_print_errors Tree_sitter_vue.CST.dump_tree
@@ -213,12 +214,12 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = Common.map Common.fullpath root_paths in
+  let paths = Common.map Common.fullpath root_paths |> File.of_strings in
   let paths, _skipped_paths =
     Find_target.files_of_dirs_or_files (Some lang) paths
   in
   let stat_list = ref [] in
-  paths
+  paths |> File.to_strings
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
@@ -330,11 +331,11 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 
   let paths =
     (* = absolute paths *)
-    Common.map Common.fullpath files_or_dirs
+    Common.map Common.fullpath files_or_dirs |> File.of_strings
   in
   let paths, skipped = Find_target.files_of_dirs_or_files (Some lang) paths in
   let stats =
-    paths
+    paths |> File.to_strings
     |> List.rev_map (fun file ->
            pr2
              (spf "%05.1fs: [%s] processing %s" (Sys.time ())
@@ -541,12 +542,13 @@ let diff_pfff_tree_sitter xs =
 (*****************************************************************************)
 
 let test_parse_rules roots =
+  let roots = File.of_strings roots in
   let targets, _skipped_paths =
     Find_target.files_of_dirs_or_files (Some Lang.Yaml) roots
   in
   targets
   |> List.iter (fun file ->
-         logger#info "processing %s" file;
+         logger#info "processing %s" !!file;
          let _r = Parse_rule.parse file in
          ());
   logger#info "done test_parse_rules"

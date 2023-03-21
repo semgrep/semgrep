@@ -20,5 +20,5 @@ val extract_nested_lang :
   timeout_threshold:int ->
   Rule.extract_rule list ->
   Xtarget.t ->
-  Rule.rule_id list ->
+  Rule.t list ->
   (Input_to_core_t.target * match_result_location_adjuster) list

@@ -34,10 +34,9 @@ from rich import box
 from rich.columns import Columns
 from rich.padding import Padding
 from rich.progress import BarColumn
-from rich.progress import MofNCompleteColumn
 from rich.progress import Progress
 from rich.progress import TaskID
-from rich.progress import TextColumn
+from rich.progress import TaskProgressColumn
 from rich.progress import TimeElapsedColumn
 from rich.table import Table
 from ruamel.yaml import YAML
@@ -190,7 +189,7 @@ class StreamingSemgrepCore:
     expediency in integrating
     """
 
-    def __init__(self, cmd: List[str], total: int) -> None:
+    def __init__(self, cmd: List[str], total: int, engine_type: EngineType) -> None:
         """
         cmd: semgrep-core command to run
         total: how many rules to run / how many "." we expect to see a priori
@@ -202,6 +201,7 @@ class StreamingSemgrepCore:
         self._stderr = ""
         self._progress_bar: Optional[Progress] = None
         self._progress_bar_task_id: Optional[TaskID] = None
+        self._engine_type: EngineType = engine_type
 
         # Map from file name to contents, to be checked before the real
         # file system when servicing requests from semgrep-core.
@@ -281,10 +281,21 @@ class StreamingSemgrepCore:
                 break
 
             if line_bytes == b".\n" and not reading_json:
-                num_scanned_targets += 1
+                # We expect to see 3 dots for each target, when running interfile analysis:
+                # - once when finishing phase 4, name resolution, on that target
+                # - once when finishing phase 5, taint configs, on that target
+                # - once when finishing analysis on that target as usual
+                #
+                # However, for regular OSS Semgrep, we only print one dot per
+                # target, that being the last bullet point listed above.
+                #
+                # So a dot counts as 1 progress if running Pro, but 3 progress if
+                # running the OSS engine.
+                advanced_targets = 1 if self._engine_type.is_interfile else 3
+
                 if self._progress_bar and self._progress_bar_task_id is not None:
                     self._progress_bar.update(
-                        self._progress_bar_task_id, completed=num_scanned_targets
+                        self._progress_bar_task_id, advance=advanced_targets
                     )
             elif chr(line_bytes[0]).isdigit() and not reading_json:
                 if not line_bytes.endswith(b"\n"):
@@ -446,8 +457,7 @@ class StreamingSemgrepCore:
         terminal = get_state().terminal
         with Progress(
             BarColumn(),
-            MofNCompleteColumn(),
-            TextColumn("tasks"),
+            TaskProgressColumn(),
             TimeElapsedColumn(),
             console=console,
             disable=(
@@ -644,7 +654,7 @@ class Plan:
         for origin, count in sorted(
             origin_counts.items(), key=lambda x: x[1], reverse=True
         ):
-            origin_name = origin.replace("_", " ").title()
+            origin_name = origin.replace("_", " ").capitalize()
 
             table.add_row(origin_name, str(count))
 
@@ -652,14 +662,14 @@ class Plan:
 
     def table_by_sca_analysis(self) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
-        table.add_column("Rule Type")
+        table.add_column("Analysis")
         table.add_column("Rules", justify="right")
 
         SCA_ANALYSIS_NAMES = {
             "reachable": "Reachability",
-            "legacy": "Presence",
-            "malicious": "Presence",
-            "upgrade-only": "Presence",
+            "legacy": "Basic",
+            "malicious": "Basic",
+            "upgrade-only": "Basic",
         }
 
         sca_analysis_counts = collections.Counter(
@@ -741,6 +751,7 @@ class CoreRunner:
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
+        self._engine_type = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
@@ -1087,14 +1098,9 @@ class CoreRunner:
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(
-                # We expect to see 3 dots for each target, when running interfile analysis:
-                # - once when finishing phase 4, name resolution, on that target
-                # - once when finishing phase 5, taint configs, on that target
-                # - once when finishing analysis on that target as usual
-                cmd,
-                plan.num_targets * 3 if engine.is_interfile else plan.num_targets,
-            )
+            # Multiplied by three, because we have three places in Pro Engine to
+            # report progress, versus one for OSS Engine.
+            runner = StreamingSemgrepCore(cmd, plan.num_targets * 3, engine)
             runner.vfs_map = vfs_map
             returncode = runner.execute()
 
@@ -1262,7 +1268,8 @@ Exception raised: `{e}`
                 *configs,
             ]
 
-            runner = StreamingSemgrepCore(cmd, 1)  # only scanning combined rules
+            # only scanning combined rules
+            runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
             returncode = runner.execute()
 
             # Process output

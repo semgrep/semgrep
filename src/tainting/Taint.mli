@@ -24,15 +24,18 @@ type source = {
 
 type sink = Rule.taint_sink call_trace [@@deriving show]
 type arg_pos = string * int [@@deriving show]
+type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
 
 (** The origin of taint, where does taint comes from? *)
 type orig =
   | Src of source  (** An actual taint source (`pattern-sources:` match). *)
-  | Arg of arg_pos
+  | Arg of arg
       (** A taint variable (potential taint coming through an argument). *)
 [@@deriving show]
 
 type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
+
+
 
 type taints_to_sink = {
   taints_with_precondition : taint list * AST_generic.expr;
@@ -77,6 +80,7 @@ module Taint_set : sig
   val singleton : taint -> t
   val add : taint -> t -> t
   val union : t -> t -> t
+  val diff : t -> t -> t
   val map : (taint -> taint) -> t -> t
   val iter : (taint -> unit) -> t -> unit
   val fold : (taint -> 'a -> 'a) -> t -> 'a -> 'a
@@ -92,4 +96,5 @@ val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
 val taint_of_pm : Pattern_match.t * Rule.taint_source -> taint
 val taints_of_pms : (Pattern_match.t * Rule.taint_source) list -> taints
 val show_taints : taints -> string
+val _show_arg : arg -> string
 val _show_finding : finding -> string

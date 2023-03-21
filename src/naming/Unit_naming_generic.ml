@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 
 (*****************************************************************************)
 (* Unit tests *)
@@ -22,11 +23,12 @@ let tests parse_program =
           let files4 = Common2.glob (spf "%s/*.java" dir) in
 
           files1 @ files2 @ files3 @ files4
+          |> File.of_strings
           |> List.iter (fun file ->
                  try
                    (* at least we can assert we don't thrown an exn or go
                       into infinite loops *)
-                   let ast = parse_program file in
+                   let ast = parse_program !!file in
                    let lang = List.hd (Lang.langs_of_filename file) in
                    Naming_AST.resolve lang ast;
                    (* this used to loop forever if you were not handling correctly
@@ -35,5 +37,5 @@ let tests parse_program =
                    ()
                  with
                  | Parse_info.Parsing_error _ ->
-                     Alcotest.failf "it should correctly parse %s" file) );
+                     Alcotest.failf "it should correctly parse %s" !!file) );
     ]

@@ -28,10 +28,10 @@ logger = getLogger(__name__)
 OK_EXIT_CODE = 0
 FINDINGS_EXIT_CODE = 1
 FATAL_EXIT_CODE = 2
-# the commented one below are not used anymore
-# INVALID_CODE_EXIT_CODE = 3
-INVALID_PATTERN_EXIT_CODE = 4
+TARGET_PARSE_FAILURE_EXIT_CODE = 3
+RULE_PARSE_FAILURE_EXIT_CODE = 4
 UNPARSEABLE_YAML_EXIT_CODE = 5
+# the commented one below are not used anymore
 # NEED_ARBITRARY_CODE_EXEC_EXIT_CODE = 6
 MISSING_CONFIG_EXIT_CODE = 7
 INVALID_LANGUAGE_EXIT_CODE = 8
@@ -398,7 +398,7 @@ class ErrorWithSpan(SemgrepError):
 
 @attr.s(frozen=True, eq=True)
 class InvalidRuleSchemaError(ErrorWithSpan):
-    code = INVALID_PATTERN_EXIT_CODE
+    code = RULE_PARSE_FAILURE_EXIT_CODE
     level = Level.ERROR
 
 

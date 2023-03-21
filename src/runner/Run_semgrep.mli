@@ -144,7 +144,7 @@ val semgrep_with_rules :
 
 (* utilities functions used in tests or semgrep-core variants *)
 
-val replace_named_pipe_by_regular_file : Common.filename -> Common.filename
+val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
 (**
    Copy named pipes created with <(echo 'foo') on the command line
    into a regular file to avoid illegal seeks when reporting match results
@@ -160,6 +160,12 @@ val print_match :
   (Metavariable.mvalue -> Parse_info.t list) ->
   unit
 
+(* This function prints a dot, which is consumed by the Python CLI to update
+   the progress bar.
+   See `core_runner.py`
+*)
+val update_cli_progress : Runner_config.t -> unit
+
 val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error
 (**
   Small wrapper over Semgrep_error_code.exn_to_error to handle also
@@ -172,8 +178,7 @@ val mk_rule_table : Rule.t list -> Rule.rule_id list -> (int, Rule.t) Hashtbl.t
 
 val extracted_targets_of_config :
   Runner_config.t ->
-  Rule.rule_id list ->
-  Rule.extract_rule list ->
+  Rule.t list ->
   Input_to_core_t.target list
   * ( Common.filename,
       Match_extract_mode.match_result_location_adjuster )

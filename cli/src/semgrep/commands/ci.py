@@ -238,12 +238,13 @@ def ci(
         )
         sys.exit(FATAL_EXIT_CODE)
     elif token:
-        if not auth.is_valid_token(token):
+        deployment_name = auth.get_deployment_from_token(token)
+        if not deployment_name:
             logger.info(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
-        scan_handler = ScanHandler(dry_run)
+        scan_handler = ScanHandler(dry_run=dry_run, deployment_name=deployment_name)
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
 
@@ -296,17 +297,18 @@ def ci(
                     if state.env.semgrep_url != "https://semgrep.dev"
                     else ""
                 )
-                connection_task = progress_bar.add_task(
-                    f"Fetching configuration from Semgrep Cloud Platform{at_url_maybe}"
-                )
-                scan_handler.fetch_and_init_scan_config(metadata_dict)
-                progress_bar.update(connection_task, completed=100)
 
                 start_scan_task = progress_bar.add_task(
                     f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
                 )
                 scan_handler.start_scan(metadata_dict)
                 progress_bar.update(start_scan_task, completed=100)
+
+                connection_task = progress_bar.add_task(
+                    f"Fetching configuration from Semgrep Cloud Platform{at_url_maybe}"
+                )
+                scan_handler.fetch_and_init_scan_config(metadata_dict)
+                progress_bar.update(connection_task, completed=100)
 
             config = (scan_handler.rules,)
 

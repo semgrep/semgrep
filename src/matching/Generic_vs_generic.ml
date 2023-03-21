@@ -3525,6 +3525,7 @@ and m_any a b =
   | G.Tp a1, B.Tp b1 -> m_type_parameter a1 b1
   | G.Ta a1, B.Ta b1 -> m_type_argument a1 b1
   | G.At a1, B.At b1 -> m_attribute a1 b1
+  | G.XmlAt a1, B.XmlAt b1 -> m_xml_attr a1 b1
   | G.Dk a1, B.Dk b1 -> m_definition_kind a1 b1
   | G.Pr a1, B.Pr b1 -> m_program a1 b1
   | G.I a1, B.I b1 -> m_ident a1 b1
@@ -3548,6 +3549,7 @@ and m_any a b =
   | G.Tp _, _
   | G.Ta _, _
   | G.At _, _
+  | G.XmlAt _, _
   | G.Dk _, _
   | G.Pr _, _
   | G.Fld _, _

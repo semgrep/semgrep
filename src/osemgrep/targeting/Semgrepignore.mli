@@ -9,6 +9,7 @@
 
 (* Holds project root, and some cached data *)
 type t
+type exclusion_mechanism = Gitignore_and_semgrepignore | Only_semgrepignore
 
 (*
    Initialize the data used to filter paths.
@@ -27,6 +28,7 @@ val create :
     *)
     string list ->
   ?cli_patterns:string list ->
+  exclusion_mechanism:exclusion_mechanism ->
   project_root:Fpath.t ->
   unit ->
   t

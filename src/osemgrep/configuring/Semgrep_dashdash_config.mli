@@ -4,9 +4,9 @@ type config_str = string [@@deriving show]
 (* config_str in a parsed form *)
 type config_kind =
   (* ex: 'foo.yaml' *)
-  | File of Common.filename
+  | File of Fpath.t
   (* ex: 'myrules/' (will go also recursively in subdirs of myrules) *)
-  | Dir of Common.filename
+  | Dir of Fpath.t
   (* ex: 'https://raw.githubusercontent.com/r2c/semgrep-rules/template.yaml' *)
   | URL of Uri.t
   | R of registry_kind

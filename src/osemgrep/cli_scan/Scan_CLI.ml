@@ -67,7 +67,7 @@ let default : conf =
     targeting_conf =
       {
         Find_target.exclude = [];
-        include_ = [];
+        include_ = None;
         baseline_commit = None;
         max_target_bytes = 1_000_000 (* 1 MB *);
         respect_git_ignore = true;
@@ -564,9 +564,7 @@ let o_target_roots : string list Term.t =
       ~doc:{|Files or folders to be scanned by semgrep.|}
   in
   Arg.value
-    (Arg.pos_all Arg.string
-       (default.target_roots |> Common.map Fpath.to_string)
-       info)
+    (Arg.pos_all Arg.string (default.target_roots |> File.to_strings) info)
 
 (* ------------------------------------------------------------------ *)
 (* !!NEW arguments!! not in pysemgrep *)
@@ -595,7 +593,12 @@ let cmdline_term : conf Term.t =
       scan_unknown_extensions severity show_supported_languages strict
       target_roots test test_ignore_todo time_flag timeout timeout_threshold
       validate verbose version version_check vim =
-    let target_roots = target_roots |> Common.map Fpath.v in
+    let include_ =
+      match include_ with
+      | [] -> None
+      | nonempty -> Some nonempty
+    in
+    let target_roots = target_roots |> File.of_strings in
     let logging_level =
       match (verbose, debug, quiet) with
       | false, false, false -> Some Logs.Warning
@@ -790,7 +793,7 @@ let cmdline_term : conf Term.t =
          or run with a specific config.";
 
     (* warnings *)
-    if include_ <> [] && exclude <> [] then
+    if include_ <> None && exclude <> [] then
       Logs.warn (fun m ->
           m
             "Paths that match both --include and --exclude will be skipped by \

@@ -85,11 +85,21 @@ let _show_source { call_trace; label } =
 (*****************************************************************************)
 
 type arg_pos = string * int [@@deriving show]
-type orig = Src of source | Arg of arg_pos [@@deriving show]
+type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
+
+type orig = Src of source | Arg of arg [@@deriving show]
+
+let _show_arg { pos = s, i; offset = os } =
+  if os <> [] then
+    let os_str =
+      os |> Common.map (fun n -> fst n.IL.ident) |> String.concat "."
+    in
+    Printf.sprintf "arg(%s)#%d.%s" s i os_str
+  else Printf.sprintf "arg(%s)#%d" s i
 
 let _show_orig = function
   | Src src -> _show_source src
-  | Arg arg_pos -> show_arg_pos arg_pos
+  | Arg arg -> _show_arg arg
 
 (*****************************************************************************)
 (* Taint *)
@@ -115,7 +125,7 @@ let compare_sources s1 s2 =
 
 let compare_orig orig1 orig2 =
   match (orig1, orig2) with
-  | Arg (s, i), Arg (s', j) -> (
+  | Arg { pos = s, i; _ }, Arg { pos = s', j; _ } -> (
       match String.compare s s' with
       | 0 -> Int.compare i j
       | other -> other)
@@ -130,7 +140,7 @@ let compare_taint taint1 taint2 =
 
 let _show_taint_label taint =
   match taint.orig with
-  | Arg (s, i) -> Printf.sprintf "arg(%s)#%d" s i
+  | Arg { pos = s, i; _ } -> Printf.sprintf "arg(%s)#%d" s i
   | Src src -> src.label
 
 let _show_taint taint =
@@ -144,7 +154,7 @@ let _show_taint taint =
       let tok1, tok2 = pm.range_loc in
       let r = Range.range_of_token_locations tok1 tok2 in
       Printf.sprintf "(%d,%d)#%s|%d|" r.start r.end_ label (depth 0 call_trace)
-  | Arg (s, i) -> Printf.sprintf "arg(%s)#%d" s i
+  | Arg arg_lval -> _show_arg arg_lval
 
 let _show_taints taints = Common2.string_of_list _show_taint taints
 
@@ -256,6 +266,9 @@ module Taint_set = struct
     Taint_map.union
       (fun _k taint1 taint2 -> Some (pick_taint taint1 taint2))
       set1 set2
+
+  let diff set1 set2 =
+    set1 |> Taint_map.filter (fun k _ -> not (Taint_map.mem k set2))
 
   let singleton taint = add taint empty
   let map f set = Taint_map.map f set

@@ -1,12 +1,13 @@
 (*s: semgrep/matching/Unit_matcher.ml *)
 open Common
+open File.Operators
 module G = AST_generic
 module PPG = Pretty_print_AST
 
 (*****************************************************************************)
 (* Semgrep Unit tests *)
 (*****************************************************************************)
-let test_path = "../../../tests/synthesizing/"
+let test_path = Fpath.v "../../../tests/synthesizing"
 
 (* Format: file, range of code to infer, expected patterns *)
 let python_tests =
@@ -182,7 +183,7 @@ let tests =
         |> List.iter (fun (lang, tests) ->
                tests
                |> List.iter (fun (filename, range, sols) ->
-                      let file = test_path ^ filename in
+                      let file = test_path / filename in
                       let config = Config_semgrep.default_config in
 
                       (* pattern candidates (as strings) *)
@@ -192,12 +193,12 @@ let tests =
                       (* the code *)
                       let ast =
                         Parse_target.parse_and_resolve_name_fail_if_partial lang
-                          file
+                          !!file
                       in
                       (* BUG? resolve again? already done above *)
                       Naming_AST.resolve lang ast;
 
-                      let r = Range.range_of_linecol_spec range file in
+                      let r = Range.range_of_linecol_spec range !!file in
 
                       let check_pats (str, pat) =
                         try
@@ -235,7 +236,7 @@ let tests =
                                 true (matches_with_env <> [])
                           | None ->
                               failwith
-                                (spf "Couldn't find range %s in %s" range file)
+                                (spf "Couldn't find range %s in %s" range !!file)
                         with
                         | Parsing.Parse_error ->
                             failwith (spf "problem parsing %s" pat)

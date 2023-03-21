@@ -105,8 +105,10 @@ let test () =
     [
       Symlink ("loop_a", "loop_b");
       Symlink ("loop_b", "loop_a");
-      (* Previously we used /tmp for testing, but in OSX /tmp is a symlink to /private/tmp. *)
-      Symlink ("link-to-bin", "/bin");
+      (* Previously we used /tmp for testing, but in OSX /tmp is a symlink to
+       * /private/tmp. After that we used /bin for testing, but on Fedora, /bin
+       * is a symlink to /usr/bin. *)
+      Symlink ("link-to-usr", "/usr");
       File ("regfile", "");
       Dir ("sub", [ Symlink ("link-to-reg", "..//regfile///") ]);
     ]
@@ -121,15 +123,15 @@ let test () =
       List.iter check
         [
           ("/", "/");
-          ("/bin", "/bin");
-          ("/bin/.", "/bin");
-          ("/bin/..", "/");
-          ("/bin/", "/bin");
+          ("/usr", "/usr");
+          ("/usr/.", "/usr");
+          ("/usr/..", "/");
+          ("/usr/", "/usr");
           (root_s, root_s);
           (* not sure why Fpath considers an extra leading slash to be
              a volume, which we preserve like a Windows volume. *)
-          ("//bin", "//bin");
-          ("/////bin", "//bin");
+          ("//usr", "//usr");
+          ("/////usr", "//usr");
           (sprintf "%s//sub" root_s, sprintf "%s/sub" root_s);
           (sprintf "%s/sub/link-to-reg" root_s, sprintf "%s/regfile" root_s);
         ];
@@ -145,7 +147,7 @@ let test () =
             [
               (".", sprintf "%s/sub" root_s);
               ("..", root_s);
-              ("../link-to-bin", "/bin");
+              ("../link-to-usr", "/usr");
             ]))
 
 let () =
