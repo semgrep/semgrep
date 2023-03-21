@@ -1,0 +1,11 @@
+(executables
+ (names Parser)
+ (libraries
+    parser_javascript.ast_generic
+    parser_javascript.menhir
+    parser_typescript.tree_sitter
+)
+ (modes js)
+ (preprocess
+  (pps js_of_ocaml-ppx))
+)
