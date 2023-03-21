@@ -1,0 +1,3 @@
+Parsing rules can take multiple seconds at the start of a scan.
+When running in an interactive terminal with more than 500 rules,
+Semgrep will show a progress bar for this step.
