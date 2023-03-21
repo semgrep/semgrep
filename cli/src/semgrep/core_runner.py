@@ -457,6 +457,8 @@ class StreamingSemgrepCore:
 
         terminal = get_state().terminal
         with Progress(
+            # align progress bar to output by indenting 2 spaces
+            # (the +1 space comes from column gap)
             TextColumn(" "),
             BarColumn(),
             TaskProgressColumn(),
