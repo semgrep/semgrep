@@ -1,0 +1,23 @@
+rules:
+  - id: explicit-regex-capture-group 
+    patterns:
+      - pattern-regex: "one (.*) two (.*) three (.*)"
+        metavars:
+          - 1: $Z
+          - 2: $X
+          - 3: $Y
+      - metavariable-regex:
+          metavariable: $Z
+          regex: "A"
+      - metavariable-regex:
+          metavariable: $X
+          regex: "B"
+      - metavariable-regex:
+          metavariable: $Y
+          regex: "C"
+    message: |
+      We should be able to rename metavariables using the
+      explicit regex capture group syntax! 
+    languages:
+      - python 
+    severity: WARNING

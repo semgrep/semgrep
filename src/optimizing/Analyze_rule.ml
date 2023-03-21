@@ -238,7 +238,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
 type step1 =
   | StringsAndMvars of string list * MV.mvar list
   | Regexp of Xpattern.regexp_string
-  | MvarRegexp of MV.mvar * Xpattern.regexp_string * bool
+  | MvarRegexp of MV.mvar * Xpattern.regexp_xpattern * bool
 [@@deriving show]
 
 type cnf_step1 = step1 cnf [@@deriving show]
@@ -300,7 +300,7 @@ and xpat_step1 pat =
   (* less: could also extract ids and mvars, but maybe no need to
    * prefilter for spacegrep; it is probably fast enough already
    *)
-  | XP.Regexp re -> Some (Regexp re)
+  | XP.Regexp (re, _) -> Some (Regexp re)
   (* todo? *)
   | XP.Spacegrep _ -> None
   | XP.Comby _ -> None
@@ -374,7 +374,7 @@ let or_step2 (Or xs) =
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
       | Regexp re_str -> Regexp2_search (Regexp_engine.pcre_compile re_str)
-      | MvarRegexp (_mvar, re_str, _const_prop) ->
+      | MvarRegexp (_mvar, (re_str, _), _const_prop) ->
           (* The original regexp is meant to apply on a substring.
              We rewrite them to remove end-of-string anchors if possible. *)
           let re =

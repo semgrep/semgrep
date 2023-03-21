@@ -82,15 +82,10 @@ let error env t s =
 (*****************************************************************************)
 
 let unknown_metavar_in_comparison env f =
-  let mvar_is_ok mv mvs =
-    (* $1 may be present in the metavariable-pattern but will not
-       appear in the pattern, because it is bound by capture groups
-       in regex patterns rather than an explicit metavar *)
-    Metavariable.is_metavar_for_capture_group mv || Set.mem mv mvs
-  in
+  let mvar_is_ok mv mvs = Set.mem mv mvs in
   let rec collect_metavars f : MV.mvar Set.t =
     match f with
-    | P { pat = _pat; pstr = pstr, _; pid = _pid } ->
+    | P { pat; pstr = pstr, _; pid = _pid } ->
         (* TODO currently this guesses that the metavariables are the strings
            that have a valid metavariable name. We should ideally have each
            matcher expose the metavariables it detects. *)
@@ -102,7 +97,14 @@ let unknown_metavar_in_comparison env f =
         (* Then split the individual metavariables *)
         let words = List.concat_map (String.split_on_char '.') words_with_dot in
         let metavars = words |> List.filter Metavariable.is_metavar_name in
-        Set.union (Set.of_list metavars) (Set.of_list ellipsis_metavars)
+        let regex_metavars =
+          match pat with
+          | Regexp (_, renames) -> Common.map snd renames
+          | __else__ -> []
+        in
+        Set.of_list ellipsis_metavars
+        |> Set.union (Set.of_list metavars)
+        |> Set.union (Set.of_list regex_metavars)
     | Inside (_, f) -> collect_metavars f
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
