@@ -613,23 +613,21 @@ let find_formula_old env (rule_dict : dict) : key * G.expr =
     ( find "pattern",
       find "pattern-either",
       find "patterns",
-      find "pattern-regex",
-      find "pattern-comby" )
+      find "pattern-regex" )
   with
-  | None, None, None, None, None ->
+  | None, None, None, None ->
       error env rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, `pattern-comby` to be present"
-  | Some (key, value), None, None, None, None
-  | None, Some (key, value), None, None, None
-  | None, None, Some (key, value), None, None
-  | None, None, None, Some (key, value), None
-  | None, None, None, None, Some (key, value) ->
+         `pattern-regex` to be present"
+  | Some (key, value), None, None, None
+  | None, Some (key, value), None, None
+  | None, None, Some (key, value), None
+  | None, None, None, Some (key, value) ->
       (key, value)
   | _ ->
       error env rule_dict.first_tok
-        "Expected only one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, or `pattern-comby`"
+        "Expected only one of `pattern`, `pattern-either`, `patterns`, or \
+         `pattern-regex`"
 
 let rec parse_formula_old_from_dict (env : env) (rule_dict : dict) : R.formula =
   let formula = parse_pair_old env (find_formula_old env rule_dict) in
@@ -743,10 +741,6 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
       let x = parse_string_wrap env key value in
       let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
       R.Not (t, R.P xpat)
-  | "pattern-comby" ->
-      let x = parse_string_wrap env key value in
-      let xpat = XP.mk_xpat (Comby (fst x)) x in
-      R.P xpat
   | "focus-metavariable"
   | "metavariable-analysis"
   | "metavariable-regex"
@@ -852,7 +846,7 @@ let find_formula env (rule_dict : dict) : key * G.expr =
   | None ->
       error env rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, `pattern-comby` to be present"
+         `pattern-regex` to be present"
   | Some (key, value) -> (key, value)
 
 (* intermediate type used for processing 'where' *)
@@ -923,7 +917,7 @@ and parse_formula env (value : G.expr) : R.formula =
       | _ when Hashtbl.length dict.h <> 1 ->
           error env dict.first_tok
             "Expected exactly one key of `pattern`, `pattern-either`, \
-             `patterns`, `pattern-regex`, or `pattern-comby`"
+             `patterns`, or `pattern-regex`"
       (* Otherwise, use the where formula if it exists, to modify the formula we know must exist. *)
       | None -> parse_pair env (find_formula env dict)
       | Some (((_, t) as key), value) ->

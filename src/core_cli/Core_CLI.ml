@@ -521,9 +521,6 @@ let all_actions () =
     ( "-postmortem",
       " <log file",
       Arg_helpers.mk_action_1_arg Statistics_report.stat );
-    ( "-test_comby",
-      " <pattern> <file>",
-      Arg_helpers.mk_action_2_arg Test_comby.test_comby );
     ( "-test_eval",
       " <JSON file>",
       Arg_helpers.mk_action_1_arg Eval_generic.test_eval );
