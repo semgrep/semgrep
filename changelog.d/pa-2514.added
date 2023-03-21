@@ -1,0 +1,19 @@
+Rule syntax: `pattern-regex` now no longer implicitly introduces metavariables
+like $1, $2, $3, etc.
+
+Now, when using a `pattern-regex` which contains a capture group, you need to
+explicitly name the introduced metavariable, for it to exist in the range of
+the pattern. For instance:
+
+```
+pattern-regex: "(.*) + (.*)"
+metavars:
+  - 1: $A
+  - 2: $B
+```
+
+will match the string "1 + 2" where `$A` is bound to "1", and `$B` is bound to "2".
+
+Note that this list is 1-indexed, and that it need not be in any particular order,
+nor does every index of capture group need to appear. They must be renamed to
+valid metavariable names (which `$1` and `$2` are not)
