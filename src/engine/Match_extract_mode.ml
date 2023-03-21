@@ -223,7 +223,7 @@ let map_loc pos line col file (loc : Parse_info.token_location) =
     file;
   }
 
-let map_taint_trace map_loc { Pattern_match.source; tokens; sink } =
+let map_taint_trace map_loc { Pattern_match.sources; sink } =
   let lift_map_loc f x =
     let token =
       match x.Parse_info.token with
@@ -248,8 +248,10 @@ let map_taint_trace map_loc { Pattern_match.source; tokens; sink } =
           }
   in
   {
-    Pattern_match.source = map_taint_call_trace source;
-    tokens = Common.map map_loc tokens;
+    Pattern_match.sources =
+      Common.map
+        (fun (ct, toks) -> (map_taint_call_trace ct, Common.map map_loc toks))
+        sources;
     sink = map_taint_call_trace sink;
   }
 
