@@ -41,6 +41,11 @@ type 'ast internal_result =
   | Partial of 'ast * PI.token_location list * Parsing_stat.t
   | Error of Exception.t
 
+(* TODO: factorize with previous type *)
+type 'ast pattern_parser =
+  | PfffPat of (string -> 'ast)
+  | TreeSitterPat of (string -> 'ast Tree_sitter_run.Parsing_result.t)
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -75,6 +80,30 @@ let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
     problematic_lines = [];
     ast_stat = None;
   }
+
+let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
+  (match res.program with
+  | Some cst -> dumper cst
+  | None -> failwith "unknown error from tree-sitter parser");
+  res.errors
+  |> List.iter (fun err ->
+         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err))
+
+let extract_pattern_from_tree_sitter_result
+    (res : 'a Tree_sitter_run.Parsing_result.t) (print_errors : bool) =
+  match (res.Tree_sitter_run.Parsing_result.program, res.errors) with
+  | None, _ -> failwith "no pattern found"
+  | Some x, [] -> x
+  | Some _, _ :: _ ->
+      if print_errors then
+        res.errors
+        |> List.iter (fun err ->
+               pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err));
+      failwith "error parsing the pattern"
+
+(*****************************************************************************)
+(* Run target parsers *)
+(*****************************************************************************)
 
 let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
  fun parser file ->
@@ -195,6 +224,50 @@ let (run :
   | Partial (ast, skipped_tokens, stat) ->
       { ast = fconvert ast; skipped_tokens; stat }
   | Error e -> Exception.reraise e
+
+(*****************************************************************************)
+(* Similar to run, but for pattern parsing *)
+(*****************************************************************************)
+
+let run_parser_pat ~print_errors p str =
+  let parse () =
+    match p with
+    | PfffPat f ->
+        logger#trace "trying to parse with Pfff parser the pattern";
+        f str
+    | TreeSitterPat f ->
+        logger#trace "trying to parse with Tree-sitter parser the pattern";
+        let res = f str in
+        extract_pattern_from_tree_sitter_result res print_errors
+  in
+  try Stdlib.Ok (parse ()) with
+  | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
+  | exn -> Error (Exception.catch exn)
+
+(* This is a simplified version of run_either. We don't need most of the
+ * logic there when we're parsing patterns, so it doesn't make sense
+ * to reuse it.
+ *)
+let run_pattern ~print_errors parsers program =
+  let rec f parsers =
+    match parsers with
+    | [] ->
+        Stdlib.Error
+          (Exception.trace
+             (Failure "internal error: No pattern parser available"))
+    | p :: xs -> (
+        match run_parser_pat ~print_errors p program with
+        | Stdlib.Ok res -> Stdlib.Ok res
+        | Stdlib.Error e -> (
+            match f xs with
+            | Stdlib.Ok res -> Stdlib.Ok res
+            | Stdlib.Error _ ->
+                (* Return the error from the first parser. *)
+                Stdlib.Error e))
+  in
+  match f parsers with
+  | Stdlib.Ok res -> res
+  | Stdlib.Error e -> Exception.reraise e
 
 (*****************************************************************************)
 (* Other helpers *)
