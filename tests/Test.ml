@@ -98,6 +98,7 @@ let tests_with_delayed_error () =
 
 let main () =
   Parsing_init.init ();
+  Data_init.init();
   let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in
   Alcotest.run "semgrep-core" alcotest_tests
 
