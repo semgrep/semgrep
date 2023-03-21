@@ -50,13 +50,36 @@ let errors_from_skipped_tokens xs =
       let locs = xs |> Common.map OutH.location_of_token_location in
       Report.ErrorSet.singleton { err with typ = Out.PartialParsing locs }
 
+let undefined_just_parse_with_lang _lang _file =
+  failwith "just_parse_with_lang_ref unset"
+
 (* TODO: factorize with Parsing_plugin mechanism
  * hack to reduce the engine.js file. Set in Parsing_init.init().
  *)
-let just_parse_with_lang_ref =
-  ref (fun _lang _file -> failwith "just_parse_with_lang_ref unset")
+let just_parse_with_lang_ref = ref undefined_just_parse_with_lang
 
-let just_parse_with_lang lang file = !just_parse_with_lang_ref lang file
+let just_parse_with_lang lang file =
+  match lang with
+  (* TODO: ideally this should also be in Parse_target2.ml, but we
+   * still have a few dependencies to the Js parser because of
+   * Parse_json.parse used in Parse_rule, so at this point
+   * we can add support for JSON/JS also here. This does
+   * not increase the size of the engine.js file.
+   *)
+  | Lang.Json ->
+      run file
+        [
+          Pfff
+            (fun file ->
+              (Parse_json.parse_program file, Parsing_stat.correct_stat file));
+        ]
+        Json_to_generic.program
+  | Lang.Js
+    when Stdlib.( == ) !just_parse_with_lang_ref undefined_just_parse_with_lang
+    ->
+      (* no TreeSitter here, this would add 400K in engine.js *)
+      run file [ Pfff (throw_tokens Parse_js.parse) ] Js_to_generic.program
+  | _else_ -> !just_parse_with_lang_ref lang file
   [@@profiling]
 
 (*****************************************************************************)

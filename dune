@@ -10,7 +10,11 @@
 ;
 (env
   (_
-    (flags (:standard  -w -52-6))))
+    (flags (:standard  -w -52-6))
+    ; TODO: I've tried this, but this does not work so I've added --table in
+    ; the few dune files using menhir
+    ;(menhir_flags (--table))
+    ))
 
 ; coupling: if you modify this, you probably need to modify the core-cache
 ; regexps in .github/workflow/tests.yml passed to the hashFiles function
