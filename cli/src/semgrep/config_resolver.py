@@ -106,7 +106,7 @@ class ConfigLoader:
             self._config_path = config_str
         elif is_policy_id(config_str):
             state.metrics.add_feature("config", "policy")
-            self._config_path = url_for_policy(config_str)
+            self._config_path = url_for_policy()
         elif is_supply_chain(config_str):
             state.metrics.add_feature("config", "sca")
             self._config_path = url_for_supply_chain()
@@ -249,7 +249,7 @@ def parse_config_files(
     but is None for registry rules
     """
     config = {}
-    for (config_id, contents, config_path) in loaded_config_infos:
+    for config_id, contents, config_path in loaded_config_infos:
         try:
             if not config_id:  # registry rules don't have config ids
                 config_id = "remote-url"
@@ -445,7 +445,6 @@ class Config:
                 continue
             valid_rules = []
             for rule_dict in rules.value:
-
                 try:
                     rule = validate_single_rule(config_id, rule_dict)
                 except InvalidRuleSchemaError as ex:
@@ -675,7 +674,7 @@ def registry_id_to_url(registry_id: str) -> str:
     return f"{env.semgrep_url}/{registry_id}"
 
 
-def url_for_policy(config_str: str) -> str:
+def url_for_policy() -> str:
     """
     Return url to download a policy for a given repo_name
 
