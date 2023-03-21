@@ -452,7 +452,7 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
                  let src_pm, _ = T.pm_of_trace source.call_trace in
                  src_pm.PM.env
            in
-           (t, bindings))
+           ({ t with tokens = List.rev t.tokens }, bindings))
   in
   (* If `unify_mvars` is set, then we will just do the previous behavior,
      and emit a finding for every single source coming into the sink.
@@ -487,7 +487,7 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
           T.ToSink
             {
               taints_with_precondition =
-                (Taints.elements taints, R.get_sink_requires ts);
+                (Common.map fst taints_and_bindings, R.get_sink_requires ts);
               sink;
               merged_env;
             };
@@ -499,7 +499,9 @@ let findings_of_tainted_sinks env taints sinks : T.finding list =
 
 let finding_of_tainted_return taints return_tok : T.finding =
   let taints = taints |> Taints.elements in
-  T.ToReturn (taints, return_tok)
+  T.ToReturn
+    ( taints |> Common.map (fun t -> { t with T.tokens = List.rev t.T.tokens }),
+      return_tok )
 
 let check_orig_if_sink env ?filter_sinks orig taints =
   let sinks = orig_is_best_sink env orig in
@@ -1041,14 +1043,11 @@ let check_function_signature env fun_exp args args_taints =
                                   Some ident
                               | __else__ -> None
                             in
-                            let tokens =
-                              List.rev_append t.tokens (snd ident :: t.tokens)
-                            in
                             Some
                               (arg_taints
                               |> Taints.map (fun taint ->
                                      let tokens =
-                                       List.rev_append tokens
+                                       List.rev_append t.tokens
                                          (snd ident :: taint.tokens)
                                      in
                                      { taint with tokens })))
