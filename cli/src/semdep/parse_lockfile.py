@@ -69,7 +69,7 @@ NEW_LOCKFILE_PARSERS = {
     "gemfile.lock": parse_gemfile,  # Ruby
     "poetry.lock": parse_poetry,  # Python
     "go.sum": parse_go_sum,  # Go
-    "pnpm-lock.yaml": parse_pnpm, # JavaScript
+    "pnpm-lock.yaml": parse_pnpm,  # JavaScript
 }
 
 LOCKFILE_TO_MANIFEST = {
