@@ -7,42 +7,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of exit code
 
 === stdout - plain
-{
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "/tmp/masked/path"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "-",
-      "end": {
-        "col": 2,
-        "line": 1,
-        "offset": 1
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "a",
-        "message": "a",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR"
-      },
-      "path": "/tmp/masked/path",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
-    }
-  ],
-  "version": "0.42"
-}
+
 === end of stdout - plain
 
 === stderr - plain
@@ -53,11 +18,15 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
   Scanning 2 files.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
+  {"errors": [], "paths": {"_comment": "<add --verbose for a list of skipped    
+  paths>", "scanned": ["/tmp/tmphyzosopm/stdin"]}, "results": [{"check_id": "-",
+  "end": {"col": 2, "line": 1, "offset": 1}, "extra": {"engine_kind": "OSS",    
+  "fingerprint":                                                                
+  "18bbbea513055ae1aad4024940651cd8374c90801994aec0f57fe65136e633a385bf18735b41d
+  926cce75224ca66cfcdff1a2a6ebd56fc5e2aed2e51b92b64dd_0", "is_ignored": false,  
+  "lines": "a", "message": "a", "metadata": {}, "metavars": {}, "severity":     
+  "ERROR"}, "path": "/tmp/tmphyzosopm/stdin", "start": {"col": 1, "line": 1,    
+  "offset": 0}}], "version": "<MASKED>"}                                          
                 
                 
 ┌──────────────┐

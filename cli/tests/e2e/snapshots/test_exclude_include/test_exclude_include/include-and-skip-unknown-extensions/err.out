@@ -5,11 +5,8 @@
 └─────────────┘
   Scanning 5 files tracked by git with 4 Code rules:
   Nothing to scan.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
+  {"errors": [], "paths": {"_comment": "<add --verbose for a list of skipped    
+  paths>", "scanned": []}, "results": [], "version": "<MASKED>"}                  
                 
                 
 ┌──────────────┐

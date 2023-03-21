@@ -32,58 +32,61 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
-
-
-Unreachable Supply Chain Findings:
-
-  poetry.lock 
-     supply-chain1
-        found a dependency
-
-
-First-Party Non-Blocking Findings:
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (x == 2)
-         15┆ x == 5
-
-First-Party Blocking Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
-
-First-Party Blocking Rules Fired:
-   eqeq-bad   
-   eqeq-four   
-   taint-test
+                                                        
+                                                        
+  ┌──────────────────────────────────┐                  
+  │ 1 Reachable Supply Chain Finding │                  
+  └──────────────────────────────────┘                  
+                                                        
+      poetry.lock                                       
+         supply-chain1                                  
+            found a dependency                          
+                                                        
+                                                        
+                                                        
+  ┌─────────────────────────────┐                       
+  │ 1 Non-blocking Code Finding │                       
+  └─────────────────────────────┘                       
+                                                        
+      foo.py                                            
+         eqeq-five                                      
+            useless comparison to 5                     
+                                                        
+             ▶▶┆ Autofix ▶ (x == 2)                     
+             15┆ x == 5                                 
+                                                        
+                                                        
+  ┌──────────────────────────┐                          
+  │ 6 Blocking Code Findings │                          
+  └──────────────────────────┘                          
+                                                        
+      foo.py                                            
+         eqeq-bad                                       
+            useless comparison                          
+                                                        
+              4┆ a == a                                 
+              ⋮┆----------------------------------------
+              5┆ a == a                                 
+              ⋮┆----------------------------------------
+              7┆ a == a                                 
+              ⋮┆----------------------------------------
+             11┆ y == y                                 
+              ⋮┆----------------------------------------
+         eqeq-four                                      
+            useless comparison to 4                     
+                                                        
+             19┆ baz == 4                               
+              ⋮┆----------------------------------------
+         taint-test                                     
+            unsafe use of danger                        
+                                                        
+             27┆ sink(d2)                               
+                                                        
+    BLOCKING CODE RULES FIRED:                          
+    eqeq-bad                                            
+    eqeq-four                                           
+    taint-test                                          
+                                                        
                 
                 
 ┌──────────────┐

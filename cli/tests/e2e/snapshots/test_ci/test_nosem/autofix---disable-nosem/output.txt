@@ -7,68 +7,6 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 === end of exit code
 
 === stdout - plain
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
-
-
-Unreachable Supply Chain Findings:
-
-  poetry.lock 
-     supply-chain1
-        found a dependency
-
-
-First-Party Non-Blocking Findings:
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (x == 2)
-         15┆ x == 5
-          ⋮┆----------------------------------------
-         ▶▶┆ Autofix ▶ (y == 2)
-         16┆ y == 5  # nosemgrep
-
-First-Party Blocking Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          6┆ a == a  # nosemgrep
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-          9┆ x == x  # nosemgrep
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-         13┆ z == z  # nosemgrep
-          ⋮┆----------------------------------------
-         23┆ b == b # Triage ignored by syntactic_id
-          ⋮┆----------------------------------------
-         24┆ a == a # Triage ignored by match_based_id
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         18┆ baz == 4  # nosemgrep
-          ⋮┆----------------------------------------
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
-
-First-Party Blocking Rules Fired:
-   eqeq-bad   
-   eqeq-four   
-   taint-test
 
 === end of stdout - plain
 
@@ -95,11 +33,76 @@ First-Party Blocking Rules Fired:
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
+                                                          
+                                                          
+  ┌──────────────────────────────────┐                    
+  │ 1 Reachable Supply Chain Finding │                    
+  └──────────────────────────────────┘                    
+                                                          
+      poetry.lock                                         
+         supply-chain1                                    
+            found a dependency                            
+                                                          
+                                                          
+                                                          
+  ┌──────────────────────────────┐                        
+  │ 2 Non-blocking Code Findings │                        
+  └──────────────────────────────┘                        
+                                                          
+      foo.py                                              
+         eqeq-five                                        
+            useless comparison to 5                       
+                                                          
+             ▶▶┆ Autofix ▶ (x == 2)                       
+             15┆ x == 5                                   
+              ⋮┆----------------------------------------  
+             ▶▶┆ Autofix ▶ (y == 2)                       
+             16┆ y == 5  # nosemgrep                      
+                                                          
+                                                          
+  ┌───────────────────────────┐                           
+  │ 12 Blocking Code Findings │                           
+  └───────────────────────────┘                           
+                                                          
+      foo.py                                              
+         eqeq-bad                                         
+            useless comparison                            
+                                                          
+              4┆ a == a                                   
+              ⋮┆----------------------------------------  
+              5┆ a == a                                   
+              ⋮┆----------------------------------------  
+              6┆ a == a  # nosemgrep                      
+              ⋮┆----------------------------------------  
+              7┆ a == a                                   
+              ⋮┆----------------------------------------  
+              9┆ x == x  # nosemgrep                      
+              ⋮┆----------------------------------------  
+             11┆ y == y                                   
+              ⋮┆----------------------------------------  
+             13┆ z == z  # nosemgrep                      
+              ⋮┆----------------------------------------  
+             23┆ b == b # Triage ignored by syntactic_id  
+              ⋮┆----------------------------------------  
+             24┆ a == a # Triage ignored by match_based_id
+              ⋮┆----------------------------------------  
+         eqeq-four                                        
+            useless comparison to 4                       
+                                                          
+             18┆ baz == 4  # nosemgrep                    
+              ⋮┆----------------------------------------  
+             19┆ baz == 4                                 
+              ⋮┆----------------------------------------  
+         taint-test                                       
+            unsafe use of danger                          
+                                                          
+             27┆ sink(d2)                                 
+                                                          
+    BLOCKING CODE RULES FIRED:                            
+    eqeq-bad                                              
+    eqeq-four                                             
+    taint-test                                            
+                                                          
                 
                 
 ┌──────────────┐

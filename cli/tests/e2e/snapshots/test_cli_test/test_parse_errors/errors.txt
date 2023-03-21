@@ -12,11 +12,22 @@ Rules:
   Scanning 1 file with 2 js rules.
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mWARN[0m[31m[41m[22m[24m][0m Syntax error at line targets/cli_test/parse_errors/invalid_javascript.js:5:
  `key:` was unexpected
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
+                                                                                
+                                                                                
+  ┌─────────────────┐                                                           
+  │ 3 Code Findings │                                                           
+  └─────────────────┘                                                           
+                                                                                
+    [36m[22m[24m  targets/cli_test/parse_errors/invalid_javascript.js [0m       
+         [1m[24mrules.cli_test.parse_errors.func[0m                             
+            Called a function                                                   
+                                                                                
+              3┆ var constants = [1m[24mrequire('crypto')[0m;                   
+              ⋮┆----------------------------------------                        
+              5┆ key: [1m[24mfs.readFileSync('/etc/ssl/private/private.key')[0m,
+              ⋮┆----------------------------------------                        
+              9┆ [1m[24mhttps.createServer(sslOptions)[0m;                      
+                                                                                
 
 ========================================
 Files skipped:
