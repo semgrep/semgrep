@@ -369,7 +369,9 @@ class OutputHandler:
             else:
                 if output:
                     try:
-                        console.print(output)
+                        # console.print() would go to stderr; here we print() directly to stdout
+                        # the output string is already pre-formatted by semgrep.console
+                        print(output)
                     except UnicodeEncodeError as ex:
                         raise Exception(
                             "Received output encoding error, please set PYTHONIOENCODING=utf-8"

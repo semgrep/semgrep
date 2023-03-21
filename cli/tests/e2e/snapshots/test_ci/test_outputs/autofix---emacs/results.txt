@@ -44,11 +44,6 @@ poetry.lock:0:0:error(supply-chain1)::found a dependency
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
                 
                 
 ┌──────────────┐
