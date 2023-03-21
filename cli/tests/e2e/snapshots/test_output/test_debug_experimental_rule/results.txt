@@ -8,7 +8,6 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 
 === stdout - plain
 
-
 === end of stdout - plain
 
 === stderr - plain

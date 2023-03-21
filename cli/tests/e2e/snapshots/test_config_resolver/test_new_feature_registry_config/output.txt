@@ -9,7 +9,6 @@ Rules downloaded from https://semgrep.dev/p/ci failed to parse.
 This is likely because rules have been added that use functionality introduced in later versions of semgrep.
 Please upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.
 
-
 semgrep error: Invalid rule schema
   --> https://semgrep.dev/...:2
 2 | - id: eqeq-bad
