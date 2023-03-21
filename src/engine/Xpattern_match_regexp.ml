@@ -51,13 +51,11 @@ let regexp_matcher big_str file (regexp, renames) =
                         let t = PI.mk_info_of_loc loc in
                         (* Since "$1" does not actually satisfy our metavariable
                            naming schema, we need to rename this to a different
-                            metavariable.
-                            These renames will be explicitly specified in the
-                            regex pattern.
+                           metavariable.
+                           These renames will be following the explicit numeric
+                           keys given in the renames.
                         *)
-                        let* renamed_mvar =
-                          List.assoc_opt (spf "$%d" n) renames
-                        in
+                        let* renamed_mvar = List.assoc_opt n renames in
                         Some (renamed_mvar, MV.Text (str, t, t))
                       with
                       | Not_found ->

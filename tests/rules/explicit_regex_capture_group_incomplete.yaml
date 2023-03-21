@@ -3,9 +3,9 @@ rules:
     patterns:
       - pattern-regex: "one (.*) (.*) two (.*) (.*) three (.*) (.*)"
         metavars:
-          - $6: $Y
-          - $2: $Z
-          - $4: $X
+          - 6: $Y
+          - 2: $Z
+          - 4: $X
       - metavariable-regex:
           metavariable: $Z
           regex: "A2"

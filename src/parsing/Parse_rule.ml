@@ -310,16 +310,21 @@ let parse_bool env (key : key) x =
   | G.L (Bool (b, _)) -> b
   | _x -> error_at_key env key (spf "parse_bool for %s" (fst key))
 
-let parse_int env (key : key) x =
+let parse_int_either _env (key : key) x =
   match x.G.e with
-  | G.L (Int (Some i, _)) -> i
+  | G.L (Int (Some i, _)) -> Right i
   | G.L (String (_, (s, _), _)) -> (
-      try int_of_string s with
-      | Failure _ -> error_at_key env key (spf "parse_int for %s" (fst key)))
+      try Right (int_of_string s) with
+      | Failure _ -> Left (spf "parse_int for %s" (fst key)))
   | G.L (Float (Some f, _)) ->
       let i = int_of_float f in
-      if float_of_int i =*= f then i else error_at_key env key "not an int"
-  | _x -> error_at_key env key (spf "parse_int for %s" (fst key))
+      if float_of_int i =*= f then Right i else Left "not an int"
+  | __else__ -> Left (spf "parse_int for %s" (fst key))
+
+let parse_int env (key : key) x =
+  match parse_int_either env key x with
+  | Left s -> error_at_key env key s
+  | Right x -> x
 
 let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
   match value.G.e with
@@ -367,16 +372,16 @@ let dict_to_regex_renames env dict =
   let renames =
     match
       take_opt dict env
-        (fun _ key v -> parse_listi env key (fun _ v -> v) v)
+        (fun _ key v -> parse_listi env key (fun _ v -> (key, v)) v)
         "metavars"
     with
     | None -> []
     | Some res -> res
   in
   renames
-  |> List.filter_map (fun expr ->
+  |> List.filter_map (fun (key, expr) ->
          (* Every entry in the `metavars` list should be a singleton dict.
-       *)
+          *)
          match expr.G.e with
          | Container
              ( Dict,
@@ -386,24 +391,25 @@ let dict_to_regex_renames env dict =
                      e =
                        Container
                          ( Tuple,
-                           ( _,
-                             [
-                               { e = L (String (_, (s, _), _)); _ };
-                               { e = L (String (_, (s', _), _)); _ };
-                             ],
-                             _ ) );
+                           (_, [ e; { e = L (String (_, (s, _), _)); _ } ], _)
+                         );
                      _;
                    };
                  ],
-                 _ ) )
-           when Metavariable.is_metavar_for_capture_group s ->
-             if Metavariable.is_metavar_name s' then Some (s, s')
-             else
-               error env dict.first_tok
-                 (spf "%s not a valid rename for %s in pattern-regex" s' s)
-               (* If we're mapping $1 to something that is not itself a string,
-                    this doesn't make sense, since we expect a metavariable name.
-               *)
+                 _ ) ) -> (
+             match parse_int_either env key e with
+             | Right i ->
+                 if Metavariable.is_metavar_name s then Some (i, s)
+                 else
+                   error env dict.first_tok
+                     (spf "%s not a valid rename for %d in pattern-regex" s i)
+                   (* If we're mapping $1 to something that is not itself a string,
+                        this doesn't make sense, since we expect a metavariable name.
+                   *)
+             | Left _ ->
+                 error env dict.first_tok
+                   "Expected numeric keys for `metavars` renames in \
+                    `pattern-regex`")
          | __else__ ->
              error env dict.first_tok
                (spf
@@ -468,8 +474,7 @@ let parse_python_expression env key s =
 
 let parse_metavar_cond env key s = parse_python_expression env key s
 
-let parse_regexp_xpattern env (s, t) dict_opt : string * (string * string) list
-    =
+let parse_regexp_xpattern env (s, t) dict_opt : string * (int * string) list =
   (* We try to compile the regexp just to make sure it's valid, but we store
    * the raw string, see notes attached to 'Xpattern.xpattern_kind'. *)
   try

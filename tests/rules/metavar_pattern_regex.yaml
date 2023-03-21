@@ -6,8 +6,8 @@ rules:
     patterns:
       - pattern-regex: gem "(.*)", "(.*)"
         metavars:
-          - $1: $A
-          - $2: $B
+          - 1: $A
+          - 2: $B
       - metavariable-pattern:
           metavariable: $A
           language: generic

@@ -25,15 +25,15 @@ type compiled_regexp = Regexp_engine.t [@@deriving show, eq]
 type regexp_string = string [@@deriving show, eq]
 (* see the NOTE "Regexp" below for the need to have this type *)
 
-type regexp_xpattern = regexp_string * (string * string) list
+type regexp_xpattern = regexp_string * (int * string) list
 (* renames of metavariables *) [@@deriving show, eq]
-(** The `string * string` list is explicit introduction of regex capture
+(** The `int * string` list is explicit introduction of regex capture
       group mvars.
       For instance, you may have a regex pattern
 
       pattern-regex: "(.*)"
       metavars:
-        - $1: $A
+        - 1: $A
 
       which explicitly renames the first capture group metavar to $A
     *)

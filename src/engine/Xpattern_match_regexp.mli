@@ -1,5 +1,5 @@
 val matches_of_regexs :
-  ((Regexp_engine.t * (string * string) list (* mvar renames *))
+  ((Regexp_engine.t * (int * string) list (* mvar renames *))
   * Xpattern.pattern_id
   * string)
   list ->
