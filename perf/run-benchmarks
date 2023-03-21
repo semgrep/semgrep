@@ -59,6 +59,7 @@ PERF_RULE_PATH = "semgrep.perf"
 # differences while saving the original JSON dictionary
 class SemgrepResult:
     def __init__(self, dict: dict) -> None:
+        logger.error("jkl;asdf")
         self.res = dict
         dict2 = copy.deepcopy(dict)
 
@@ -76,17 +77,15 @@ class SemgrepResult:
                 # the paths being different will change the fingerprint
                 dict2["extra"]["fingerprint"] = "<masked in benchmarks>"
 
-        # Abbreviate paths to avoid file-system differences
-        if "path" in dict2:
-            relative_path_start = dict2["path"].find(PERF_PATH)
-            dict2["path"] = (
-                "<masked in benchmarks>/" + dict2["path"][relative_path_start:]
-            )
         if "check_id" in dict2:
             relative_path_start = dict2["check_id"].find(PERF_RULE_PATH)
             dict2["check_id"] = dict2["check_id"][relative_path_start:]
 
-        self.str = json.dumps(dict2, sort_keys=True)
+        json_str = json.dumps(dict2, sort_keys=True)
+
+        # Abbreviate paths to avoid file-system differences
+        # Do this here because path appears multiple times
+        self.str = re.sub(f"\"path\": \"[A-Za-z/\-]*{PERF_PATH}", f"\"path\": \"<masked in benchmarks>/{PERF_PATH}", json_str)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SemgrepResult):
