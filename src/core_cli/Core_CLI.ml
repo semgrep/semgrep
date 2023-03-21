@@ -768,7 +768,12 @@ let main (sys_argv : string array) : unit =
   in
 
   if config.lsp then LSP_client.init ();
+  (* hacks to reduce the size of engine.js
+   * coupling: if you add an init() call here, you probably need to modify
+   * also tests/Test.ml
+   *)
   Parsing_init.init ();
+  Data_init.init ();
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Profiling.profile_code "Main total" (fun () ->
