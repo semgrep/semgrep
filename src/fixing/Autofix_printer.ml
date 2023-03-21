@@ -126,6 +126,7 @@ let add_metavars (tbl : ast_node_table) metavars =
       | S _
       | T _
       | P _
+      | XmlAt _
       | Raw _
       | Ss _
       | Params _
@@ -147,22 +148,20 @@ let add_metavars (tbl : ast_node_table) metavars =
  * *)
 let add_fix_pattern_ast_nodes (tbl : ast_node_table) ast =
   let visitor =
-    Visitor_AST.(
-      mk_visitor
-        {
-          default_visitor with
-          kargument =
-            (fun (k, _) arg ->
-              ASTTable.replace tbl (Ar arg) FixPattern;
-              k arg);
-          kexpr =
-            (fun (k, _) e ->
-              ASTTable.replace tbl (E e) FixPattern;
-              k e)
-            (* TODO visit every node that is part of AST_generic.any *);
-        })
+    object
+      inherit [_] AST_generic.iter_no_id_info as super
+
+      method! visit_argument env arg =
+        ASTTable.replace tbl (Ar arg) FixPattern;
+        super#visit_argument env arg
+
+      method! visit_expr env e =
+        ASTTable.replace tbl (E e) FixPattern;
+        super#visit_expr env e
+      (* TODO visit every node that is part of AST_generic.any *)
+    end
   in
-  visitor ast
+  visitor#visit_any () ast
 
 let make_external_printer ~metavars ~target_contents ~fix_pattern_ast
     ~fix_pattern : AST_generic.any -> (Immutable_buffer.t, string) result =

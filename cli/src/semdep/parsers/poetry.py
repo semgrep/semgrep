@@ -10,9 +10,10 @@ from typing import Optional
 
 from semdep.external.parsy import any_char
 from semdep.external.parsy import eof
+from semdep.external.parsy import regex
 from semdep.external.parsy import string
-from semdep.external.parsy import success
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import pair
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
@@ -69,9 +70,7 @@ value = list_value | object_value | quoted_value | plain_value
 # foo = [
 #     bar, baz
 # ]
-key_value = upto(" ", "\n").bind(
-    lambda key: string(" = ") >> value.bind(lambda value: success((key, value)))
-)
+key_value = pair(regex(r"([^\s=]+)\s*=\s*", flags=0, group=1), value)
 
 # A poetry dependency
 # Example:

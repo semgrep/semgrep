@@ -1,4 +1,5 @@
 import pytest
+from tests.fixtures import RunSemgrep
 
 
 @pytest.mark.kinda_slow
@@ -37,16 +38,17 @@ import pytest
     ],
 )
 @pytest.mark.kinda_slow
-def test_autofix(run_semgrep_on_copied_files, tmp_path, snapshot, rule, target, dryrun):
-
+def test_autofix(
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot, rule, target, dryrun
+):
     # Use run_semgrep_on_copied_files to prevent alteration of the source-controlled test directory
-    result = run_semgrep_on_copied_files(
+    semgrep_result = run_semgrep_on_copied_files(
         rule,
         target_name=target,
         options=["--autofix", *(["--dryrun"] if dryrun else [])],
     )
     snapshot.assert_match(
-        result.stdout,
+        semgrep_result.stdout,
         "results.json",
     )
 

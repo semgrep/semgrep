@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module FT = File_type
 open Rule
 module R = Rule
@@ -229,7 +230,7 @@ let run_checks config fparser metachecks xs =
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   let rules, more_skipped_paths =
-    List.partition (fun file -> not (file =~ ".*\\.test\\.yaml")) yaml_xs
+    List.partition (fun file -> not (!!file =~ ".*\\.test\\.yaml")) yaml_xs
   in
   let _skipped_paths = more_skipped_paths @ skipped_paths in
   match rules with
@@ -242,7 +243,7 @@ let run_checks config fparser metachecks xs =
       let ocaml_found_errs =
         rules
         |> Common.map (fun file ->
-               logger#info "processing %s" file;
+               logger#info "processing %s" !!file;
                try
                  let rs = fparser file in
                  rs |> Common.map (fun file -> check file) |> List.flatten
@@ -252,7 +253,7 @@ let run_checks config fparser metachecks xs =
                | R.Err (R.InvalidYaml _) -> []
                | exn ->
                    let e = Exception.catch exn in
-                   [ E.exn_to_error file e ])
+                   [ E.exn_to_error !!file e ])
         |> List.flatten
       in
       semgrep_found_errs @ ocaml_found_errs
@@ -292,7 +293,7 @@ let stat_files fparser xs =
   let bad = ref 0 in
   fullxs
   |> List.iter (fun file ->
-         logger#info "processing %s" file;
+         logger#info "processing %s" !!file;
          let rs = fparser file in
          rs
          |> List.iter (fun r ->
@@ -301,7 +302,7 @@ let stat_files fparser xs =
                 | None ->
                     incr bad;
                     pr2
-                      (spf "PB: no regexp prefilter for rule %s:%s" file
+                      (spf "PB: no regexp prefilter for rule %s:%s" !!file
                          (fst r.id))
                 | Some (f, _f) ->
                     incr good;

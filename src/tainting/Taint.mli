@@ -11,9 +11,20 @@ type 'a call_trace =
       (** An indirect match through a function call. *)
 [@@deriving show]
 
-type source = Rule.taint_source call_trace [@@deriving show]
+type source = {
+  call_trace : Rule.taint_source call_trace;
+  label : string;
+      (** The label of this particular taint.
+        This may not agree with the source of the `call_trace`, because
+        this label may have changed, for instance by being propagated to
+        a different label.
+      *)
+}
+[@@deriving show]
+
 type sink = Rule.taint_sink call_trace [@@deriving show]
 type arg_pos = string * int [@@deriving show]
+type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
 
 type source_to_sink = {
   source : source;
@@ -32,9 +43,9 @@ type finding =
   | SrcToReturn of source * tainted_tokens * AST_generic.tok
       (** A taint source inside the function reaches a `return` statement,
    * therefore the result of the function is tainted.  *)
-  | ArgToSink of arg_pos * tainted_tokens * sink
+  | ArgToSink of arg * tainted_tokens * sink
       (** If this argument was tainted, the taint would reach a sink. *)
-  | ArgToReturn of arg_pos * tainted_tokens * AST_generic.tok
+  | ArgToReturn of arg * tainted_tokens * AST_generic.tok
       (** If this argument was tainted, the taint would reach a `return` statement. *)
 [@@deriving show]
 
@@ -54,7 +65,7 @@ type signature = finding list
 (** The origin of taint, where does taint comes from? *)
 type orig =
   | Src of source  (** An actual taint source (`pattern-sources:` match). *)
-  | Arg of arg_pos
+  | Arg of arg
       (** A taint variable (potential taint coming through an argument). *)
 [@@deriving show]
 
@@ -70,6 +81,7 @@ module Taint_set : sig
   val singleton : taint -> t
   val add : taint -> t -> t
   val union : t -> t -> t
+  val diff : t -> t -> t
   val map : (taint -> taint) -> t -> t
   val iter : (taint -> unit) -> t -> unit
   val fold : (taint -> 'a -> 'a) -> t -> 'a -> 'a
@@ -85,4 +97,5 @@ val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
 val taint_of_pm : Pattern_match.t * Rule.taint_source -> taint
 val taints_of_pms : (Pattern_match.t * Rule.taint_source) list -> taints
 val show_taints : taints -> string
+val _show_arg : arg -> string
 val _show_finding : finding -> string

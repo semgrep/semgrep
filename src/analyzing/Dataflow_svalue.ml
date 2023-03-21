@@ -571,25 +571,25 @@ let (fixpoint : Lang.t -> IL.name list -> F.cfg -> mapping) =
 let update_svalue (flow : F.cfg) mapping =
   let for_all_id_info : (G.id_info -> bool) -> G.any -> bool =
     (* Check that all id_info's satisfy a given condition. We use refs so that
-     * we can have a single visitor for all calls, given that `mk_visitor` is
-     * pretty expensive. *)
+     * we can have a single visitor for all calls, given that the old
+     * `mk_visitor` was pretty expensive, and constructing a visitor object may
+     * be as well. *)
     let ff = ref (fun _ -> true) in
     let ok = ref true in
-    let hooks =
-      {
-        Visitor_AST.default_visitor with
-        kid_info =
-          (fun (_k, _vout) ii ->
-            ok := !ok && !ff ii;
-            if not !ok then raise Exit);
-      }
+    let vout =
+      object
+        inherit [_] G.iter
+
+        method! visit_id_info _env ii =
+          ok := !ok && !ff ii;
+          if not !ok then raise Exit
+      end
     in
-    let vout = Visitor_AST.mk_visitor hooks in
     fun f ast ->
       ff := f;
       ok := true;
       try
-        vout ast;
+        vout#visit_any () ast;
         !ok
       with
       | Exit -> false

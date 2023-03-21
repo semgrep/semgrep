@@ -15,32 +15,33 @@
 
 module G = AST_generic
 module H = AST_generic_helpers
-module V = Visitor_AST
+
+class ['self] visitor =
+  object (self : 'self)
+    inherit [_] G.iter_no_id_info as super
+
+    method! visit_definition f ((ent, def_kind) as def) =
+      match def_kind with
+      | G.FuncDef fdef ->
+          f (Some ent) fdef;
+          (* go into nested functions
+             but do NOT revisit the function definition again
+             with `kfunction_definition` below! *)
+          let body = H.funcbody_to_stmt fdef.G.fbody in
+          self#visit_stmt f body
+      | __else__ -> super#visit_definition f def
+
+    method! visit_function_definition f def =
+      f None def;
+      (* go into nested functions *)
+      super#visit_function_definition f def
+  end
+
+let visitor_instance = lazy (new visitor)
 
 (* Visit all function definitions in an AST. *)
 let visit (f : G.entity option -> G.function_definition -> unit)
     (ast : G.program) : unit =
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kdef =
-          (fun (k, v) ((ent, def_kind) as def) ->
-            match def_kind with
-            | G.FuncDef fdef ->
-                f (Some ent) fdef;
-                (* go into nested functions
-                   but do NOT revisit the function definition again
-                   with `kfunction_definition` below! *)
-                let body = H.funcbody_to_stmt fdef.G.fbody in
-                v (G.S body)
-            | __else__ -> k def);
-        V.kfunction_definition =
-          (fun (k, _v) def ->
-            f None def;
-            (* go into nested functions *)
-            k def);
-      }
-  in
+  let (lazy v) = visitor_instance in
   (* Check each function definition. *)
-  v (G.Pr ast)
+  v#visit_program f ast

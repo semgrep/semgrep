@@ -43,6 +43,8 @@ let any_gen_of_string str =
 *)
 let tests () = List.flatten [
   Unit_list_files.tests;
+  Osemgrep_targeting.Unit_glob.tests;
+  Osemgrep_targeting.Unit_semgrepignore.tests;
   Unit_parsing.tests ();
   Unit_reporting.tests ();
 
@@ -73,6 +75,9 @@ let tests () = List.flatten [
   (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
   Unit_engine.tests ();
   Unit_metachecking.tests ();
+
+  (* Inline tests *)
+  Testutil.get_registered_tests ();
 ]
 
 (*****************************************************************************)
@@ -92,6 +97,7 @@ let tests_with_delayed_error () =
      ["cannot load test data - not a real test", (fun () -> raise e)]
 
 let main () =
+  Parsing_init.init ();
   let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in
   Alcotest.run "semgrep-core" alcotest_tests
 

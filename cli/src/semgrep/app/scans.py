@@ -3,7 +3,6 @@ import json
 import os
 from collections import Counter
 from copy import deepcopy
-from logging import DEBUG
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -36,9 +35,9 @@ logger = getLogger(__name__)
 
 
 class ScanHandler:
-    def __init__(self, dry_run: bool) -> None:
+    def __init__(self, dry_run: bool = False, deployment_name: str = "") -> None:
         self._deployment_id: Optional[int] = None
-        self._deployment_name: str = ""
+        self._deployment_name: str = deployment_name
 
         self.scan_id = None
         self.ignore_patterns: List[str] = []
@@ -124,20 +123,21 @@ class ScanHandler:
             raise Exception(
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
+
         body = response.json()
-        if isinstance(body, dict):
-            return body
-        else:
+
+        if not isinstance(body, dict):
             raise Exception(
-                f"API server at {state.env.semgrep_url} returned type '{type(response.json())}'. Expected a dictionary."
+                f"API server at {state.env.semgrep_url} returned type '{type(body)}'. Expected a dictionary."
             )
+
+        return body
 
     def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
         """
         Get configurations for scan
         """
         state = get_state()
-        logger.debug("Getting scan configurations")
 
         self._scan_params = urlencode(
             {
@@ -148,7 +148,15 @@ class ScanHandler:
                 "semgrep_version": meta.get("semgrep_version", "0.0.0"),
             }
         )
-        app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+
+        if self.dry_run:
+            app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+        else:
+            app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+            # TODO: uncomment the line below to replace the old endpoint with the new one once we have the
+            # CLI logic in place to ignore findings that are from old rule versions
+            # app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
+
         body = self._get_scan_config_from_app(app_get_config_url)
 
         self._deployment_id = body["deployment_id"]
@@ -157,11 +165,12 @@ class ScanHandler:
         self._rules = body["rule_config"]
         self._autofix = body.get("autofix") or False
         self._deepsemgrep = body.get("deepsemgrep") or False
+        self._dependency_query = body.get("dependency_query") or False
         self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
         self.ignore_patterns = body.get("ignored_files") or []
 
-        if logger.isEnabledFor(DEBUG):
+        if state.terminal.is_debug:
             config = deepcopy(body)
             try:
                 config["rule_config"] = json.loads(config["rule_config"])
@@ -183,7 +192,7 @@ class ScanHandler:
         logger.debug("Starting scan")
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/deployments/scans",
-            json={"meta": meta, "policy_names": self._policy_names},
+            json={"meta": meta},
         )
 
         if response.status_code == 404:
@@ -328,6 +337,14 @@ class ScanHandler:
                 "engine_requested": engine_requested.name,
             },
         }
+
+        if self._dependency_query:
+            lockfile_dependencies_json = {}
+            for path, dependencies in lockfile_dependencies.items():
+                lockfile_dependencies_json[path] = [
+                    dependency.to_json() for dependency in dependencies
+                ]
+            complete["dependencies"] = lockfile_dependencies_json
 
         if self.dry_run:
             logger.info(

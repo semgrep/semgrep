@@ -20,15 +20,18 @@ on:
           - "major"
           - "feature"
           - "bug"
+      dry-run:
+        required: true
+        type: boolean
+        description: Check the box for a dry-run - A dry-run will not push any external state (branches, tags, images, or PyPI packages).
+        default: true
 
 jobs:
-  release-setup:
-    name: Setup Release Branch
+  get-version:
+    name: Get Next version
     runs-on: ubuntu-20.04
     outputs:
       version: ${{ steps.next-version.outputs.next-version }}
-      pr-number: ${{ steps.open-pr.outputs.pr-number }}
-      release-branch: ${{ steps.release-branch.outputs.release-branch }}
     steps:
       - name: Get JWT for semgrep-ci GitHub App
         id: jwt
@@ -72,16 +75,60 @@ jobs:
         with:
           current-version: "${{ steps.latest-version.outputs.latest-version }}"
           version-fragment: "${{ github.event.inputs.bumpVersionFragment }}"
+
+  check-semgrep-pro:
+    needs: [get-version]
+    name: Check Semgrep Pro Manifest
+    secrets: inherit
+    uses: ./.github/workflows/check-semgrep-pro-version.yml
+    with:
+      bucket-name: deep-semgrep-artifacts
+      manifest-key: versions-manifest.json
+      semgrep-version: ${{ needs.get-version.outputs.version }}
+      dry-run: ${{ inputs.dry-run }}
+
+  release-setup:
+    name: Setup Release
+    needs: [get-version, check-semgrep-pro]
+    runs-on: ubuntu-20.04
+    outputs:
+      pr-number: ${{ steps.open-pr.outputs.pr-number }}
+      release-branch: ${{ steps.release-branch.outputs.release-branch }}
+    steps:
+      - name: Get JWT for semgrep-ci GitHub App
+        id: jwt
+        uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+        env:
+          EXPIRATION: 600 # seconds
+          ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }} # semgrep-ci GitHub App id
+          PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+      - name: Get token for semgrep-ci GitHub App
+        id: token
+        run: |
+          TOKEN="$(curl -X POST \
+          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+          jq -r .token)"
+          echo "::add-mask::$TOKEN"
+          echo "::set-output name=token::$TOKEN"
+      - name: Check out code
+        uses: actions/checkout@v3
+        id: checkout
+        with:
+          submodules: "recursive"
+          ref: "${{ github.event.repository.default_branch }}"
+          token: "${{ steps.token.outputs.token }}"
       - name: Create release branch
         id: release-branch
         run: |
-          RELEASE_BRANCH="release-${{ steps.next-version.outputs.next-version }}"
+          RELEASE_BRANCH="release-${{ needs.get-version.outputs.version }}"
           git checkout -b ${RELEASE_BRANCH}
           echo ::set-output name=release-branch::${RELEASE_BRANCH}
       - name: Run `make release`
         id: make-release
         env:
-          SEMGREP_RELEASE_NEXT_VERSION: ${{ steps.next-version.outputs.next-version }}
+          SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
         run: make release
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -91,30 +138,33 @@ jobs:
           cache-dependency-path: |
             scripts/release/Pipfile.lock
       - name: Create GitHub Release Body
+        if: ${{ ! inputs.dry-run }}
         working-directory: scripts/release
         id: changelog_output
         run: |
           pip3 install pipenv==2022.6.7
           pipenv install --dev
-          pipenv run towncrier build --draft --version ${{ steps.next-version.outputs.next-version }} > release_body.txt
+          pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version }} > release_body.txt
       - name: Upload Changelog Body Artifact
+        if: ${{ ! inputs.dry-run }}
         id: upload-changelog-artifact
         uses: actions/upload-artifact@v3
         with:
-          name: release_body_${{ steps.next-version.outputs.next-version }}
+          name: release_body_${{ needs.get-version.outputs.version }}
           path: scripts/release/release_body.txt
       - name: Update Changelog
         working-directory: scripts/release
         run: |
           pip3 install pipenv==2022.6.7
           pipenv install --dev
-          pipenv run towncrier build --yes --version ${{ steps.next-version.outputs.next-version }}
+          pipenv run towncrier build --yes --version ${{ needs.get-version.outputs.version }}
           # use || true since modifications mean exit code != 0
           pipenv run pre-commit run --files ../../CHANGELOG.md --config ../../.pre-commit-config.yaml || true
       - name: Push release branch
+        if: ${{ ! inputs.dry-run }}
         id: push-release-branch
         env:
-          SEMGREP_RELEASE_NEXT_VERSION: ${{ steps.next-version.outputs.next-version }}
+          SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
         run: |
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
@@ -122,11 +172,12 @@ jobs:
           git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
           git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
       - name: Create PR
+        if: ${{ ! inputs.dry-run }}
         id: open-pr
         env:
           SOURCE: "${{ steps.release-branch.outputs.release-branch }}"
           TARGET: "${{ github.event.repository.default_branch }}"
-          TITLE: "Release Version ${{ steps.next-version.outputs.next-version }}"
+          TITLE: "Release Version ${{ needs.get-version.outputs.version }}"
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           # check if the branch already has a pull request open
@@ -150,9 +201,10 @@ jobs:
           echo "::set-output name=pr-number::$PR_NUMBER"
 
   wait-for-pr-checks:
+    if: ${{ ! inputs.dry-run }}
     name: Wait for PR Checks
     runs-on: ubuntu-20.04
-    needs: release-setup
+    needs: [get-version, check-semgrep-pro, release-setup]
     outputs:
       num-checks: ${{ steps.num-checks.outputs.num-checks }}
     steps:
@@ -194,9 +246,10 @@ jobs:
           echo "::set-output name=num-checks::${LEN_CHECKS}"
 
   create-tag:
+    if: ${{ ! inputs.dry-run }}
     name: Create Release Tag
     runs-on: ubuntu-20.04
-    needs: [release-setup, wait-for-pr-checks]
+    needs: [get-version, check-semgrep-pro, release-setup, wait-for-pr-checks]
     steps:
       - name: Get JWT for semgrep-ci GitHub App
         id: jwt
@@ -227,34 +280,35 @@ jobs:
         run: |
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
-          git tag -a -m "Release ${{ needs.release-setup.outputs.version }}" "v${{ needs.release-setup.outputs.version }}"
-          git push origin "v${{ needs.release-setup.outputs.version }}"
+          git tag -a -m "Release ${{ needs.get-version.outputs.version }}" "v${{ needs.get-version.outputs.version }}"
+          git push origin "v${{ needs.get-version.outputs.version }}"
       - name: Create semgrep-interfaces release version tag
         id: create-interfaces-tag
         run: |
           cd cli/src/semgrep/semgrep_interfaces
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
-          git tag -a -m "Release ${{ needs.release-setup.outputs.version }}" "v${{ needs.release-setup.outputs.version }}"
-          git push origin "v${{ needs.release-setup.outputs.version }}"
+          git tag -a -m "Release ${{ needs.get-version.outputs.version }}" "v${{ needs.get-version.outputs.version }}"
+          git push origin "v${{ needs.get-version.outputs.version }}"
 
   create-draft-release:
+    if: ${{ ! inputs.dry-run }}
     name: Create Draft Release
     runs-on: ubuntu-20.04
-    needs: [release-setup, create-tag]
+    needs: [get-version, release-setup, create-tag, wait-for-pr-checks]
     steps:
       - name: Download Release Body Artifact
         id: download_body
         uses: actions/download-artifact@v3
         with:
-          name: "release_body_${{ needs.release-setup.outputs.version }}"
+          name: "release_body_${{ needs.get-version.outputs.version }}"
           path: scripts/release
       - name: Create Draft Release Semgrep
         id: create_release_semgrep
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: "v${{ needs.release-setup.outputs.version }}"
-          name: Release v${{ needs.release-setup.outputs.version }}
+          tag_name: "v${{ needs.get-version.outputs.version }}"
+          name: Release v${{ needs.get-version.outputs.version }}
           body_path: scripts/release/release_body.txt
           token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: false
@@ -280,8 +334,8 @@ jobs:
         id: create_release_semgrep_interfaces
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: "v${{ needs.release-setup.outputs.version }}"
-          name: Release v${{ needs.release-setup.outputs.version }}
+          tag_name: "v${{ needs.get-version.outputs.version }}"
+          name: Release v${{ needs.get-version.outputs.version }}
           body_path: scripts/release/release_body.txt
           token: "${{ steps.token.outputs.token }}"
           prerelease: false
@@ -289,6 +343,7 @@ jobs:
           repository: returntocorp/semgrep-interfaces
 
   wait-for-release-checks:
+    if: ${{ ! inputs.dry-run }}
     name: Wait for Release Checks
     runs-on: ubuntu-20.04
     needs: [release-setup, wait-for-pr-checks, create-tag]
@@ -320,43 +375,49 @@ jobs:
           gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch
 
   validate-release-trigger:
-    needs: [wait-for-release-checks, release-setup]
+    if: ${{ ! inputs.dry-run }}
+    needs: [get-version, wait-for-release-checks, release-setup]
     name: Trigger Release Validation
     uses: ./.github/workflows/validate-release.yml
     secrets: inherit
     with:
-      version: ${{needs.release-setup.outputs.version}}
+      version: ${{needs.get-version.outputs.version}}
 
   bump-semgrep-app:
-    needs: [validate-release-trigger, release-setup]
+    if: ${{ ! inputs.dry-run }}
+    needs: [get-version, validate-release-trigger, release-setup]
     name: Bump Semgrep App Semgrep Version
     uses: ./.github/workflows/call-bump-pr-workflow.yml
     secrets: inherit
     with:
-      version: ${{needs.release-setup.outputs.version}}
+      version: ${{needs.get-version.outputs.version}}
       repository: "returntocorp/semgrep-app"
 
   bump-semgrep-action:
-    needs: [validate-release-trigger, release-setup]
+    if: ${{ ! inputs.dry-run }}
+    needs: [get-version, validate-release-trigger, release-setup]
     name: Bump Semgrep Action Semgrep Version
     uses: ./.github/workflows/call-bump-pr-workflow.yml
     secrets: inherit
     with:
-      version: ${{needs.release-setup.outputs.version}}
+      version: ${{needs.get-version.outputs.version}}
       repository: "returntocorp/semgrep-action"
 
   bump-semgrep-rpc:
-    needs: [validate-release-trigger, release-setup]
+    if: ${{ ! inputs.dry-run }}
+    needs: [get-version, validate-release-trigger, release-setup]
     name: Bump Semgrep RPC Semgrep Version
     uses: ./.github/workflows/call-bump-pr-workflow.yml
     secrets: inherit
     with:
-      version: ${{needs.release-setup.outputs.version}}
+      version: ${{needs.get-version.outputs.version}}
       repository: "returntocorp/semgrep-rpc"
 
   notify-success:
+    if: ${{ success() && ! inputs.dry-run }}
     needs:
       [
+        get-version,
         release-setup,
         validate-release-trigger,
         bump-semgrep-action,
@@ -365,22 +426,23 @@ jobs:
       ]
     name: Notify of Success
     runs-on: ubuntu-20.04
-    if: success()
     steps:
-      - run: echo "${{needs.release-setup.outputs.version}}"
+      - run: echo "${{needs.get-version.outputs.version}}"
       - name: Notify Success
         run: |
           curl --request POST \
           --url  ${{ secrets.NOTIFICATIONS_URL }} \
           --header 'content-type: application/json' \
           --data '{
-            "version": "${{needs.release-setup.outputs.version}}",
+            "version": "${{needs.get-version.outputs.version}}",
             "message": "Release Validation has succeeded! Please review the following PRs that bump versions in other repos: ${{ needs.bump-semgrep-action.outputs.pr-url }} , ${{ needs.bump-semgrep-rpc.outputs.pr-url }} , ${{ needs.bump-semgrep-app.outputs.pr-url }}"
           }'
 
   notify-failure:
+    if: ${{ failure() && ! inputs.dry-run }}
     needs:
       [
+        get-version,
         release-setup,
         validate-release-trigger,
         bump-semgrep-action,
@@ -389,7 +451,6 @@ jobs:
       ]
     name: Notify of Failure
     runs-on: ubuntu-20.04
-    if: failure()
     steps:
       - name: Notify Failure
         run: |
@@ -397,6 +458,6 @@ jobs:
           --url  ${{ secrets.NOTIFICATIONS_URL }} \
           --header 'content-type: application/json' \
           --data '{
-            "version": "${{needs.release-setup.outputs.version}}",
+            "version": "${{needs.get-version.outputs.version}}",
             "message": "Release Validation has failed. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!"
           }'

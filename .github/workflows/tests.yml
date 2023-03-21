@@ -22,7 +22,7 @@ jobs:
     # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
     runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine-2022-09-24
+    container: returntocorp/ocaml:alpine-2023-03-03
     env:
       HOME: /root
     steps:
@@ -30,22 +30,8 @@ jobs:
         with:
           submodules: true
           persist-credentials: false
-      - name: Cache OCaml build files
-        uses: actions/cache@v3
-        with:
-          path: |
-            /root/.dune
-            /root/.opam/download-cache
-            /root/.opam/*/.opam-switch/packages
-            /root/.opam/*/.opam-switch/sources
-          key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
-        env:
-          DUNE_CACHE: enabled
-          DUNE_CACHE_STORAGE_MODE: copy
-          DUNE_CACHE_ROOT: /root/.dune
-          DUNE_CACHE_TRANSPORT: direct
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -82,7 +68,7 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        python: ["3.7", "3.8", "3.9", "3.10"]
+        python: ["3.7", "3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -183,7 +169,7 @@ jobs:
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           cache: pipenv
       - run: pip install pipenv==2022.6.7
       - name: Download artifacts
@@ -265,7 +251,7 @@ jobs:
       - run: pip install pipenv==2022.6.7
       - name: Run timing benchmark
         run: |
-          pip3 install semgrep==0.122.0
+          pip3 install semgrep==1.14.0
           semgrep --version
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
@@ -301,6 +287,9 @@ jobs:
         run: |
           perf/compare-perf cli/baseline_timing1.json cli/baseline_timing2.json cli/timing1.json cli/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
           perf/compare-bench-findings cli/findings.json
+      - name: Run python performance tests
+        working-directory: cli
+        run: pipenv run pytest tests/performance
 
   build-test-docker:
     uses: ./.github/workflows/build-test-docker.yaml

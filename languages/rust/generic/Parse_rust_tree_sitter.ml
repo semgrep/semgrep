@@ -2944,7 +2944,7 @@ and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :
   | `Asso_type v1 -> [ map_associated_type env v1 ]
   (* was moved in _statement instead of declaration_statement by ruin *)
   | `Let_decl (v1, v2, v3, v4, v5, v6) ->
-      let let_ = token env v1 (* "let" *) in
+      let _let_ = token env v1 (* "let" *) in
       let mutability =
         Option.map
           (fun tok ->
@@ -2976,8 +2976,7 @@ and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :
       let ent =
         {
           (* Patterns are difficult to convert to expressions, so wrap it *)
-          G.name =
-            G.EDynamic (G.OtherExpr (("LetPat", let_), [ G.P pattern ]) |> G.e);
+          G.name = G.EPattern pattern;
           G.attrs;
           G.tparams = [];
         }

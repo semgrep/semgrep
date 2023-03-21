@@ -15,6 +15,7 @@ import pytest
 from pytest import mark
 from pytest import MonkeyPatch
 from tests.conftest import TESTS_PATH
+from tests.fixtures import RunSemgrep
 from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
@@ -124,7 +125,7 @@ def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
     ],
 )
 def test_flags(
-    run_semgrep_in_tmp,
+    run_semgrep_in_tmp: RunSemgrep,
     mock_config_request,
     config,
     metrics_flag,
@@ -151,7 +152,7 @@ def test_flags(
 
 
 @pytest.mark.kinda_slow
-def test_flags_actual_send(run_semgrep_in_tmp):
+def test_flags_actual_send(run_semgrep_in_tmp: RunSemgrep):
     """
     Test that the server for metrics sends back success
     """
@@ -166,7 +167,7 @@ def test_flags_actual_send(run_semgrep_in_tmp):
 
 
 @pytest.mark.slow
-def test_legacy_flags(run_semgrep_in_tmp):
+def test_legacy_flags(run_semgrep_in_tmp: RunSemgrep):
     """
     Test metrics sending respects legacy flags. Flags take precedence over envvar
     """

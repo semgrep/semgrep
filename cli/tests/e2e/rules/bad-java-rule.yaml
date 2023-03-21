@@ -1,0 +1,10 @@
+rules:
+- id: broken-rule
+  severity: ERROR
+  patterns:
+  - pattern: $X
+  - pattern-not: |
+        @$HTTP_METHOD
+        public $RET $FUNC(..., @Auth $REQ, ...) { ... }
+  message: oops
+  languages: [java]

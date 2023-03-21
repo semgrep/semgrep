@@ -181,3 +181,5 @@ let mk_action_4_arg f = function
   | _ -> raise WrongNumberOfArguments
 
 let mk_action_n_arg f = f
+let mk_action_1_conv conv f = mk_action_1_arg (fun str -> f (conv str))
+let mk_action_n_conv conv f = mk_action_n_arg (fun xs -> f (Common.map conv xs))

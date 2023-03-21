@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module PI = Parse_info
 module PS = Parsing_stat
 module Flag = Flag_parsing
@@ -11,11 +12,12 @@ module Flag_cpp = Flag_parsing_cpp
 let test_tokens_cpp file =
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
-  let toks = Parse_cpp.tokens file in
+  let toks = Parse_cpp.tokens (Parsing_helpers.file file) in
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 
 let test_parse_cpp ?lang xs =
+  let xs = File.of_strings xs in
   let fullxs, _skipped_paths =
     Lib_parsing_cpp.find_source_files_of_dir_or_files xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
@@ -43,15 +45,15 @@ let test_parse_cpp ?lang xs =
                with
                | exn ->
                    (* TODO: be more strict, List.hd failure, Stack overflow *)
-                   pr2 (spf "PB on %s, exn = %s" file (Common.exn_to_s exn));
-                   Parsing_stat.bad_stat file
+                   pr2 (spf "PB on %s, exn = %s" !!file (Common.exn_to_s exn));
+                   Parsing_stat.bad_stat !!file
              in
              Common.push stat stat_list;
 
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
-               Hashtbl.add newscore file Common2.Ok
-             else Hashtbl.add newscore file (Common2.Pb s)));
+               Hashtbl.add newscore !!file Common2.Ok
+             else Hashtbl.add newscore !!file (Common2.Pb s)));
 
   Parsing_stat.print_recurring_problematic_tokens !stat_list;
   Parsing_stat.print_parsing_stat_list !stat_list;
@@ -78,15 +80,17 @@ let test_parse_cpp ?lang xs =
   ()
 
 let test_dump_cpp file =
+  let file = Fpath.v file in
   Parse_cpp.init_defs !Flag_cpp.macros_h;
   let ast = Parse_cpp.parse_program file in
   let s = Ast_cpp.show_program ast in
   pr s
 
 let test_dump_cpp_full file =
+  let file = Fpath.v file in
   Parse_cpp.init_defs !Flag_cpp.macros_h;
   let ast = Parse_cpp.parse_program file in
-  let toks = Parse_cpp.tokens file in
+  let toks = Parse_cpp.tokens (Parsing_helpers.file !!file) in
   let _precision =
     { Meta_parse_info.full_info = true; type_info = false; token_info = true }
   in
@@ -104,7 +108,7 @@ let test_dump_cpp_full file =
 
 let test_dump_cpp_view file =
   Parse_cpp.init_defs !Flag_cpp.macros_h;
-  let toks_orig = Parse_cpp.tokens file in
+  let toks_orig = Parse_cpp.tokens (Parsing_helpers.file file) in
   let toks =
     toks_orig
     |> Common.exclude (fun x ->
@@ -120,6 +124,7 @@ let test_dump_cpp_view file =
   pr s
 
 let test_parse_cpp_fuzzy xs =
+  let xs = File.of_strings xs in
   let fullxs, _skipped_paths =
     Lib_parsing_cpp.find_source_files_of_dir_or_files xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
@@ -135,7 +140,7 @@ let test_parse_cpp_fuzzy xs =
                  with
                  | exn ->
                      pr2
-                       (spf "PB with: %s, exn = %s" file (Common.exn_to_s exn)))))
+                       (spf "PB with: %s, exn = %s" !!file (Common.exn_to_s exn)))))
 
 (*
 let test_dump_cpp_fuzzy file =

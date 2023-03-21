@@ -1,4 +1,5 @@
 import pytest
+from tests.fixtures import RunSemgrep
 
 
 def idfn(options):
@@ -24,7 +25,7 @@ def idfn(options):
     ],
     ids=idfn,
 )
-def test_exclude_include(run_semgrep_in_tmp, snapshot, options):
+def test_exclude_include(run_semgrep_in_tmp: RunSemgrep, snapshot, options):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=options,

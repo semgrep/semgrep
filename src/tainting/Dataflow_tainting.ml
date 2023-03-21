@@ -158,6 +158,11 @@ module Top_sinks = struct
 
   let empty = S.empty
 
+  let _debug sinks =
+    sinks |> S.elements
+    |> Common.map (fun m -> Range.content_at_range m.spec_pm.file m.range)
+    |> String.concat " ; "
+
   let rec add m' sinks =
     (* We check if we have another match for the *same* sink specification
      * (i.e., same 'sink_id'), and if so we must keep the best match and drop
@@ -194,6 +199,7 @@ end
 
 (* THINK: Separate read-only enviroment into a new a "cfg" type? *)
 type env = {
+  lang : Lang.t;
   options : Config_semgrep.t; (* rule options *)
   config : config;
   fun_name : var option;
@@ -251,7 +257,7 @@ let orig_is_source config orig = config.is_source (any_of_orig orig)
 let orig_is_sanitized config orig = config.is_sanitizer (any_of_orig orig)
 let orig_is_sink config orig = config.is_sink (any_of_orig orig)
 
-let orig_is_best_sink env orig =
+let orig_is_best_sink env orig : R.taint_sink tmatch list =
   orig_is_sink env.config orig
   |> List.filter (Top_sinks.is_best_match env.top_sinks)
 
@@ -279,9 +285,25 @@ let report_findings env findings =
 let top_level_sinks_in_nodes config flow =
   flow.CFG.reachable |> CFG.NodeiSet.to_seq
   |> Stdcompat.Seq.concat_map (fun ni ->
+         let origs_of_args args =
+           Seq.map (fun a -> (IL_helpers.exp_of_arg a).eorig) (List.to_seq args)
+         in
          let node = flow.CFG.graph#nodes#assoc ni in
          match node.n with
-         | NInstr instr -> orig_is_sink config instr.iorig |> List.to_seq
+         | NInstr instr ->
+             let origs : orig Seq.t =
+               Seq.cons instr.iorig
+                 (match instr.i with
+                 | Call (_, c, args) -> Seq.cons c.eorig (origs_of_args args)
+                 | CallSpecial (_, _, args) -> origs_of_args args
+                 | Assign (_, e) -> List.to_seq [ e.eorig ]
+                 | AssignAnon _
+                 | FixmeInstr _ ->
+                     Seq.empty)
+             in
+             origs
+             |> Stdcompat.Seq.concat_map (fun o ->
+                    orig_is_sink config o |> List.to_seq)
          | NCond (_, exp)
          | NReturn (_, exp)
          | NThrow (_, exp) ->
@@ -297,6 +319,27 @@ let top_level_sinks_in_nodes config flow =
          | NTodo _ ->
              Seq.empty)
   |> Seq.fold_left (fun s x -> Top_sinks.add x s) Top_sinks.empty
+
+(* Checks whether the sink corresponds has the shape
+ *
+ *     patterns:
+ *     - pattern: <func>(<args>)
+ *     - focus-metavariable: $MVAR
+ *
+ * In which case we know that the function call itself is not the sink, but
+ * either the <func> or one (or more) of the <args>.
+ *)
+let is_func_sink_with_focus taint_sink =
+  match taint_sink.Rule.sink_formula with
+  | Rule.And
+      ( _,
+        {
+          conjuncts = [ P { pat = Sem (E { e = Call _; _ }, _); _ } ];
+          focus = [ _focus ];
+          _;
+        } ) ->
+      true
+  | __else__ -> false
 
 let unify_mvars_sets mvars1 mvars2 =
   let xs =
@@ -346,9 +389,7 @@ let labels_of_taints taints : LabelSet.t =
   taints |> Taints.to_seq
   |> Seq.filter_map (fun (t : T.taint) ->
          match t.orig with
-         | Src src ->
-             let _, ts = T.pm_of_trace src in
-             Some ts.Rule.label
+         | Src src -> Some src.label
          | Arg _ -> None)
   |> LabelSet.of_seq
 
@@ -403,7 +444,7 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
              Some (T.ArgToSink (i, tokens, sink))
          | Src source ->
              if req then
-               let src_pm, _ = T.pm_of_trace source in
+               let src_pm, _ = T.pm_of_trace source.call_trace in
                let* merged_env =
                  merge_source_sink_mvars env sink_pm.PM.env src_pm.PM.env
                in
@@ -422,23 +463,34 @@ let findings_of_tainted_return taints return_tok : T.finding list =
          | T.Arg i -> T.ArgToReturn (i, tokens, return_tok)
          | T.Src src -> T.SrcToReturn (src, tokens, return_tok))
 
-let filter_taints_by_labels labels taints =
+let check_orig_if_sink env ?filter_sinks orig taints =
+  let sinks = orig_is_best_sink env orig in
+  let sinks =
+    match filter_sinks with
+    | None -> sinks
+    | Some sink_pred -> sinks |> List.filter sink_pred
+  in
+  let sinks = sinks |> Common.map trace_of_match in
+  let findings = findings_of_tainted_sinks env taints sinks in
+  report_findings env findings
+
+let filter_new_taint_sources_by_labels labels taints =
   Taints.fold
     (fun new_taint taints ->
       match new_taint.orig with
       | Arg _ -> Taints.add new_taint taints
       | Src src ->
-          let _, ts = T.pm_of_trace src in
+          let _, ts = T.pm_of_trace src.call_trace in
           let req = eval_label_requires ~labels ts.source_requires in
           if req then Taints.add new_taint taints else taints)
     taints Taints.empty
 
-let union_taints_filtering_labels ~new_ curr =
+let union_new_taint_sources_filtering_labels ~new_ curr =
   let labels = labels_of_taints curr in
-  let new_filtered = filter_taints_by_labels labels new_ in
+  let new_filtered = filter_new_taint_sources_by_labels labels new_ in
   Taints.union new_filtered curr
 
-let find_args_taints args_taints fdef =
+let find_pos_in_actual_args args_taints fparams =
   let pos_args_taints, named_args_taints =
     List.partition_map
       (function
@@ -472,7 +524,7 @@ let find_args_taints args_taints fdef =
                 (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
             | None -> param :: acc (* Same as above. *))
         | __else__ -> param :: acc)
-      (Parse_info.unbracket fdef.G.fparams)
+      (Parse_info.unbracket fparams)
       []
   in
   let _ =
@@ -505,6 +557,73 @@ let find_args_taints args_taints fdef =
       logger#error
         "cannot match taint variable with function arguments (%i: %s)" i s;
     taint_opt
+
+(* This function is used to convert some taint thing we're holding
+   to one which has been propagated to a new label.
+   See [handle_taint_propagators] for more.
+*)
+let propagate_taint_to_label replace_labels label (taint : T.taint) =
+  let new_orig =
+    match (taint.orig, replace_labels) with
+    (* if there are no replaced labels specified, we will replace
+       indiscriminately
+    *)
+    | Src src, None -> T.Src { src with label }
+    | Src src, Some replace_labels when List.mem src.T.label replace_labels ->
+        T.Src { src with label }
+    | Src src, _ -> Src src
+    | Arg arg, _ -> Arg arg
+  in
+  { taint with orig = new_orig }
+
+let propagate_taint_via_java_setter env e args all_args_taints =
+  match (e, args) with
+  | ( {
+        e =
+          Fetch
+            ({ base = Var _obj; rev_offset = [ ({ o = Dot m; _ } as offset) ] }
+            as lval);
+        _;
+      },
+      [ _ ] )
+    when env.lang =*= Lang.Java
+         && Stdcompat.String.starts_with ~prefix:"set" (fst m.IL.ident) ->
+      let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
+      let prop_lval =
+        let o = Dot { m with ident = (prop_name, snd m.IL.ident) } in
+        { lval with rev_offset = [ { offset with o } ] }
+      in
+      if not (Taints.is_empty all_args_taints) then
+        Lval_env.add env.lval_env prop_lval all_args_taints
+      else env.lval_env
+  | __else__ -> env.lval_env
+
+let resolve_poly_taint_for_java_getters env lval st =
+  (* NOTE: This is a hack and it doesn't handle all cases, but it's mean to handle
+   * the most basic ones. It does work for more than just getters. However, it
+   * needs some testing and for now it's safer to restrict it to Java and getX. *)
+  if env.lang =*= Java then
+    match lval.rev_offset with
+    | { o = Dot n; _ } :: _
+      when Stdcompat.String.starts_with ~prefix:"get" (fst n.ident) -> (
+        match st with
+        | `Clean -> `Clean
+        | `None -> `None
+        | `Tainted taints ->
+            let taints' =
+              taints
+              |> Taints.map (fun taint ->
+                     match taint.orig with
+                     | Arg arg ->
+                         let arg' = { arg with offset = arg.offset @ [ n ] } in
+                         { taint with orig = Arg arg' }
+                     | Src _ -> taint)
+            in
+            `Tainted taints')
+    | _ :: _
+    | [] ->
+        st
+  else st
 
 (*****************************************************************************)
 (* Tainted *)
@@ -559,11 +678,32 @@ let handle_taint_propagators env thing taints =
   let propagate_froms, propagate_tos =
     List.partition (fun p -> p.spec.kind =*= `From) propagators
   in
+  (* These are all the labels flowing in to the current thing we're looking at. *)
+  let labels = labels_of_taints taints in
   let lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
      * the environment. *)
     List.fold_left
-      (fun lval_env prop -> Lval_env.propagate_to prop.spec.var taints lval_env)
+      (fun lval_env prop ->
+        (* Only propagate if the current set of taint labels can satisfy the
+           propagator's requires precondition.
+        *)
+        if eval_label_requires ~labels prop.spec.prop.propagator_requires then
+          (* If we have an output label, change the incoming taints to be
+             of the new label.
+             Otherwise, keep them the same.
+          *)
+          let new_taints =
+            match prop.spec.prop.propagator_label with
+            | None -> taints
+            | Some label ->
+                Taints.map
+                  (propagate_taint_to_label
+                     prop.spec.prop.propagator_replace_labels label)
+                  taints
+          in
+          Lval_env.propagate_to prop.spec.var new_taints lval_env
+        else lval_env)
       lval_env propagate_froms
   in
   let taints_propagated, lval_env =
@@ -605,9 +745,11 @@ let find_lval_taint_sources env ~labels lval =
     partition_mutating_sources source_pms
   in
   let taints_sources_reg =
-    reg_source_pms |> taints_of_matches |> filter_taints_by_labels labels
+    reg_source_pms |> taints_of_matches
+    |> filter_new_taint_sources_by_labels labels
   and taints_sources_mut =
-    mut_source_pms |> taints_of_matches |> filter_taints_by_labels labels
+    mut_source_pms |> taints_of_matches
+    |> filter_new_taint_sources_by_labels labels
   in
   let lval_env = Lval_env.add env.lval_env lval taints_sources_mut in
   (Taints.union taints_sources_reg taints_sources_mut, lval_env)
@@ -680,7 +822,12 @@ and check_tainted_lval_aux env (lval : IL.lval) :
         | (`None | `Tainted _) as st -> (
             match Lval_env.dumb_find lval_env lval with
             | (`Clean | `Tainted _) as st' -> st'
-            | `None -> st)
+            | `None ->
+                (* HACK(field-sensitivity): Java: If we encounter `obj.getX` and `obj` has
+                   * polymorphic taint,  and we know nothing specific about `obj.getX`, then
+                   * we add the same offset `.getX` to the polymorphic taint coming from `obj`.
+                   * See also 'propagate_taint_via_java_setter'. *)
+                resolve_poly_taint_for_java_getters env lval st)
       in
       let taints_from_env = status_to_taints lval_in_env in
       (* Find taint sources matching lval. *)
@@ -779,40 +926,60 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
       (Taints.empty, lval_env)
   | None ->
-      let sinks =
-        orig_is_best_sink env exp.eorig |> Common.map trace_of_match
-      in
       let taints_sources =
         orig_is_source env.config exp.eorig |> taints_of_matches
       in
       let taints_exp, lval_env = check_subexpr exp in
       let taints =
-        taints_exp |> union_taints_filtering_labels ~new_:taints_sources
+        taints_exp
+        |> union_new_taint_sources_filtering_labels ~new_:taints_sources
       in
       let taints_propagated, var_env =
         handle_taint_propagators { env with lval_env } (`Exp exp) taints
       in
       let taints = Taints.union taints taints_propagated in
-      let findings = findings_of_tainted_sinks env taints sinks in
-      report_findings env findings;
+      check_orig_if_sink env exp.eorig taints;
       (taints, var_env)
 
 let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
   check_tainted_lval env (LV.lval_of_var var)
 
-let check_function_signature env fun_exp args_taints =
+(* What is the taint denoted by 'sig_arg' ? *)
+let taints_of_sig_arg env fparams args_exps args_taints (sig_arg : T.arg) =
+  match sig_arg.offset with
+  | [] -> find_pos_in_actual_args args_taints fparams sig_arg.pos
+  | xs -> (
+      (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'. *)
+      let* arg_exp = find_pos_in_actual_args args_exps fparams sig_arg.pos in
+      match arg_exp.e with
+      | Fetch arg_lval ->
+          let os = xs |> Common.map (fun x -> { o = Dot x; oorig = NoOrig }) in
+          let lval =
+            {
+              arg_lval with
+              rev_offset = List.rev_append os arg_lval.rev_offset;
+            }
+          in
+          let arg_taints = check_tainted_lval env lval |> fst in
+          Some arg_taints
+      | __else__ -> None)
+
+let check_function_signature env fun_exp args args_taints =
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
-      let* fdef, fun_sig = hook env.config eorig in
-      let taints_of_arg = find_args_taints args_taints fdef in
+      let* fparams, fun_sig = hook env.config eorig in
       Some
         (fun_sig
         |> List.filter_map (function
              | T.SrcToReturn (src, tokens, _return_tok) ->
-                 let src = T.Call (eorig, tokens, src) in
-                 Some (Taints.singleton { orig = Src src; tokens = [] })
-             | T.ArgToReturn (argpos, tokens, _return_tok) ->
-                 let* arg_taints = taints_of_arg argpos in
+                 let call_trace = T.Call (eorig, tokens, src.call_trace) in
+                 Some
+                   (Taints.singleton
+                      { orig = Src { src with call_trace }; tokens = [] })
+             | T.ArgToReturn (arg, tokens, _return_tok) ->
+                 let* arg_taints =
+                   taints_of_sig_arg env fparams args args_taints arg
+                 in
                  (* Get the token of the function *)
                  let* ident =
                    match f with
@@ -834,9 +1001,11 @@ let check_function_signature env fun_exp args_taints =
                             List.rev_append tokens (snd ident :: taint.tokens)
                           in
                           { taint with tokens }))
-             | T.ArgToSink (argpos, tokens, sink) ->
+             | T.ArgToSink (arg, tokens, sink) ->
                  let sink = T.Call (eorig, tokens, sink) in
-                 let* arg_taints = taints_of_arg argpos in
+                 let* arg_taints =
+                   taints_of_sig_arg env fparams args args_taints arg
+                 in
                  arg_taints
                  |> Taints.iter (fun t ->
                         findings_of_tainted_sink env (Taints.singleton t) sink
@@ -848,11 +1017,6 @@ let check_function_signature env fun_exp args_taints =
   | None, _
   | Some _, _ ->
       None
-
-let check_orig_if_sink env orig taints =
-  let sinks = orig_is_best_sink env orig |> Common.map trace_of_match in
-  let findings = findings_of_tainted_sinks env taints sinks in
-  report_findings env findings
 
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
@@ -883,10 +1047,19 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let all_args_taints =
           List.fold_left Taints.union Taints.empty all_taints
         in
-        let opt_taint_sig = check_function_signature env e args_taints in
-        (* If the function is a sink, then we consider that all its parameters
-           * are sinks. *)
-        check_orig_if_sink env instr.iorig all_args_taints;
+        let opt_taint_sig = check_function_signature env e args args_taints in
+        let lval_env =
+          (* HACK: Java: If we encounter `obj.setX(arg)` we interpret this as `obj.getX = arg`. *)
+          propagate_taint_via_java_setter { env with lval_env } e args
+            all_args_taints
+        in
+        (* After we introduced Top_sinks, we need to explicitly support sinks like
+         * `sink(...)` by considering that all of the parameters are sinks. To make
+         * sure that we are backwards compatible, we do this for any sink that does
+         * not match the `is_func_sink_with_focus` pattern.
+         *)
+        check_orig_if_sink env instr.iorig all_args_taints
+          ~filter_sinks:(fun m -> not (is_func_sink_with_focus m.spec));
         let call_taints =
           match opt_taint_sig with
           | Some call_taints -> call_taints
@@ -915,15 +1088,13 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
       (Taints.empty, env.lval_env)
   | [] ->
-      let sinks =
-        orig_is_best_sink env instr.iorig |> Common.map trace_of_match
-      in
       let taint_sources =
         orig_is_source env.config instr.iorig |> taints_of_matches
       in
       let taints_instr, lval_env' = check_instr instr.i in
       let taints =
-        taints_instr |> union_taints_filtering_labels ~new_:taint_sources
+        taints_instr
+        |> union_new_taint_sources_filtering_labels ~new_:taint_sources
       in
       let taints_propagated, lval_env' =
         handle_taint_propagators
@@ -931,8 +1102,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
           (`Ins instr) taints
       in
       let taints = Taints.union taints taints_propagated in
-      let findings = findings_of_tainted_sinks env taints sinks in
-      report_findings env findings;
+      check_orig_if_sink env instr.iorig taints;
       (taints, lval_env')
 
 (* Test whether a `return' is tainted, and if it is also a sink,
@@ -967,6 +1137,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
 
 let transfer :
+    Lang.t ->
     Config_semgrep.t ->
     config ->
     Lval_env.t ->
@@ -974,7 +1145,7 @@ let transfer :
     flow:F.cfg ->
     top_sinks:Top_sinks.t ->
     Lval_env.t D.transfn =
- fun options config enter_env opt_name ~flow ~top_sinks
+ fun lang options config enter_env opt_name ~flow ~top_sinks
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
@@ -982,7 +1153,7 @@ let transfer :
   let node = flow.graph#nodes#assoc ni in
   let out' : Lval_env.t =
     let env =
-      { options; config; fun_name = opt_name; lval_env = in'; top_sinks }
+      { lang; options; config; fun_name = opt_name; lval_env = in'; top_sinks }
     in
     match node.F.n with
     | NInstr x ->
@@ -1055,11 +1226,12 @@ let transfer :
 let (fixpoint :
       ?in_env:Lval_env.t ->
       ?name:Var_env.var ->
+      Lang.t ->
       Config_semgrep.t ->
       config ->
       F.cfg ->
       mapping) =
- fun ?in_env ?name:opt_name options config flow ->
+ fun ?in_env ?name:opt_name lang options config flow ->
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
   let enter_env =
     match in_env with
@@ -1075,6 +1247,6 @@ let (fixpoint :
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint ~eq_env:Lval_env.equal ~init:init_mapping
-    ~trans:(transfer options config enter_env opt_name ~flow ~top_sinks)
+    ~trans:(transfer lang options config enter_env opt_name ~flow ~top_sinks)
       (* tainting is a forward analysis! *)
     ~forward:true ~flow

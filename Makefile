@@ -173,6 +173,8 @@ core-test: core
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-e2etest
 core-e2etest:
+	SEMGREP_CORE=$(PWD)/bin/semgrep-core \
+	$(MAKE) -C interfaces/semgrep_interfaces test
 	python3 tests/e2e/test_target_file.py
 
 ###############################################################################
@@ -215,7 +217,9 @@ install-deps: install-deps-for-semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
 ALPINE_APK_DEPS=pcre-dev python3 python3-dev gmp-dev
 
-#TODO why this one?
+# We pin to a specific version just to prevent things from breaking randomly.
+# We could update to a more recent version.
+# coupling: if you modify the version, please modify also .github/workflows/*
 PIPENV='pipenv==2022.6.7'
 
 # This target is used in our Dockerfile and a few GHA workflows.
@@ -229,9 +233,11 @@ PIPENV='pipenv==2022.6.7'
 #    container with many things pre-installed.
 # pro:
 #  - it avoids repeating yourself everywhere
+# For '--ignore-installed distlib' below see
+# https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
 install-deps-ALPINE-for-semgrep-core:
 	apk add --no-cache $(ALPINE_APK_DEPS)
-	pip install --no-cache-dir $(PIPENV)
+	pip install --no-cache-dir --ignore-installed distlib $(PIPENV)
 
 #TODO: deprecate scripts/install-alpine-xxx in favor of that
 install-deps-and-build-ALPINE-semgrep-core:
@@ -378,7 +384,7 @@ report-perf-matching:
 
 
 #coupling: see also .circleci/config.yml and its 'semgrep' job
-SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests --exclude pfff
+SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
 # you can add --verbose for debugging
 
 DOCKER_IMAGE=returntocorp/semgrep:develop

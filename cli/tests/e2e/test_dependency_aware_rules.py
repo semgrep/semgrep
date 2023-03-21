@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
-from time import time
 
 import pytest
+from tests.fixtures import RunSemgrep
 
 from ..conftest import TESTS_PATH
 from semdep.package_restrictions import is_in_range
@@ -18,6 +18,10 @@ pytestmark = pytest.mark.kinda_slow
         (
             "rules/dependency_aware/awscli_vuln.yaml",
             "dependency_aware/awscli",
+        ),
+        (
+            "rules/dependency_aware/awscli_vuln.yaml",
+            "dependency_aware/awscli-with-manifest",
         ),
         (
             "rules/dependency_aware/lodash-4.17.19.yaml",
@@ -97,7 +101,9 @@ pytestmark = pytest.mark.kinda_slow
         ),
     ],
 )
-def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
+def test_dependency_aware_rules(
+    run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target
+):
     snapshot.assert_match(
         run_semgrep_on_copied_files(rule, target_name=target).as_snapshot(),
         "results.txt",
@@ -110,7 +116,6 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
         ("1.2-beta-2", "> 1.0, < 1.2", True),
         ("1.2-beta-2", "> 1.2-alpha-6, < 1.2-beta-3", True),
         ("1.0.10.1", "< 1.0.10.2", True),
-        ("1.0.10.2", "> 1.0.10.1, < 1.0.9.3", True),  # Yes, seriously
         ("1.3.4-SNAPSHOT", "< 1.3.4", True),
         ("1.0-SNAPSHOT", "> 1.0-alpha", True),
         ("2.17.2", "< 2.3.1", False),
@@ -118,42 +123,13 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
         ("2.0.0", "< 10.0.0", True),
         ("0.2.0", "< 0.10.0", True),
         ("0.0.2", "< 0.0.10", True),
+        ("2.14.0", "< 2.9.10.3", False),
+        ("2.14.0-beta", "< 2.9.10.3", False),
+        ("1.1.1.1-SNAPSHOT", "< 1.1.1.1", True),
     ],
 )
 def test_maven_version_comparison(version, specifier, outcome):
     assert is_in_range(Ecosystem(Maven()), specifier, version) == outcome
-
-
-@pytest.mark.parametrize(
-    "file_size,target,max_time",
-    [
-        (file_size, target, max_time)
-        # These times are set relative to Github Actions, they should be lower when running locally
-        # Local time expectation is more like 1, 5, 10
-        for file_size, max_time in [("10k", 3), ("50k", 15), ("100k", 30)]
-        for target in [
-            "Gemfile.lock",
-            "go.sum",
-            "gradle.lockfile",
-            "maven_dep_tree.txt",
-            "package-lock.json",
-            "poetry.lock",
-            "requirements.txt",
-            "yarn.lock",
-            "Pipfile.lock",
-        ]
-    ],
-)
-def test_dependency_aware_timing(
-    parse_lockfile_path_in_tmp, file_size, target, max_time
-):
-    start = time()
-    parse_lockfile_path_in_tmp(
-        Path(f"targets/dependency_aware/perf/{file_size}/{target}")
-    )
-    end = time()
-    exec_time = end - start
-    assert exec_time < max_time
 
 
 @pytest.mark.parametrize(
@@ -231,7 +207,7 @@ def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
 # contains no lockfiles for the language in our rule, we need to _not_ pass in
 # a target that begins with "targets", as that dir contains every kind of lockfile
 # So we add the keyword arg to run_semgrep and manually do some cd-ing
-def test_no_lockfiles(run_semgrep, monkeypatch, tmp_path, snapshot):
+def test_no_lockfiles(run_semgrep: RunSemgrep, monkeypatch, tmp_path, snapshot):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path / "targets" / "basic")

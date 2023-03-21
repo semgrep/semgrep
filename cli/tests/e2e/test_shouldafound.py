@@ -5,6 +5,7 @@ from shutil import copytree
 from unittest.mock import ANY  # nosem: use-pytest-mock
 
 import pytest
+from tests.fixtures import RunSemgrep
 
 from semgrep.commands import scan
 from semgrep.commands import shouldafound
@@ -14,7 +15,7 @@ TESTS_PATH = Path(__file__).parent.parent
 
 
 @pytest.mark.quick
-def test_shouldafound_no_args(run_semgrep, tmp_path, snapshot):
+def test_shouldafound_no_args(run_semgrep: RunSemgrep, tmp_path, snapshot):
     """
     Test for shouldafound usage output
     """
@@ -48,7 +49,7 @@ def test_shouldafound_no_args(run_semgrep, tmp_path, snapshot):
 @pytest.mark.parametrize("git_return_error", [True, False])
 def test_shouldafound_no_confirmation(
     monkeypatch,
-    run_semgrep,
+    run_semgrep: RunSemgrep,
     git_return_error,
     email_args,
     message_args,
@@ -106,7 +107,7 @@ def test_shouldafound_no_confirmation(
 @pytest.mark.parametrize("pattern", ["11512123123", "$X == $X"])
 @pytest.mark.parametrize("message", [None, "foobar"])
 def test_shouldafound_findings_output(
-    run_semgrep, mocker, monkeypatch, tmp_path, snapshot, pattern, message
+    run_semgrep: RunSemgrep, mocker, monkeypatch, tmp_path, snapshot, pattern, message
 ):
     """
     Test to ensure that semgrep scan with no findings DOES NOT show the

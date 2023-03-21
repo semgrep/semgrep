@@ -18,6 +18,8 @@ module MV = Metavariable
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+open Ppx_hash_lib.Std.Hash.Builtin
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -107,7 +109,8 @@ and metavar_cond =
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
-and metavar_analysis_kind = CondEntropy | CondReDoS [@@deriving show, eq]
+and metavar_analysis_kind = CondEntropy | CondReDoS
+[@@deriving show, eq, hash]
 
 (*****************************************************************************)
 (* Taint-specific types *)
@@ -191,11 +194,29 @@ and taint_propagator = {
   propagator_by_side_effect : bool;
   from : MV.mvar wrap;
   to_ : MV.mvar wrap;
+  propagator_requires : AST_generic.expr;
+      (* A Boolean expression over taint labels. See also 'taint_source'.
+       * This propagator will only propagate taint if the incoming taint
+       * satisfies the 'requires'.
+       *)
+  propagator_replace_labels : string list option;
+      (* A list of the particular labels of taint to be replaced by
+         the propagator.
+         Does nothing if [propagator_label] is not also specified.
+         If not specified, all kinds are propagated.
+      *)
+  propagator_label : string option;
+      (* If [propagator_label] is specified, then the propagator will
+         output taint with the given label.
+         Otherwise, it will output taint with the same label as it
+         received.
+      *)
 }
 [@@deriving show]
 
 let default_source_label = "__SOURCE__"
 let default_source_requires tok = G.L (G.Bool (true, tok)) |> G.e
+let default_propagator_requires tok = G.L (G.Bool (true, tok)) |> G.e
 
 let default_sink_requires tok =
   G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e

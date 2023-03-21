@@ -4,18 +4,14 @@ val check : Rule.t -> Semgrep_error_code.error list
 (* to test -check_rules *)
 val run_checks :
   Runner_config.t ->
-  (Common.filename -> Rule.t list) ->
-  Common.filename (* metachecks *) ->
-  Common.filename list (* rules *) ->
+  (Fpath.t -> Rule.t list) ->
+  Fpath.t (* metachecks *) ->
+  Fpath.t list (* rules *) ->
   Semgrep_error_code.error list
 
 (* -check_rules *)
 val check_files :
-  (unit -> Runner_config.t) ->
-  (Common.filename -> Rule.t list) ->
-  Common.filename list ->
-  unit
+  (unit -> Runner_config.t) -> (Fpath.t -> Rule.t list) -> Fpath.t list -> unit
 
 (* -stat_rules *)
-val stat_files :
-  (Common.filename -> Rule.t list) -> Common.filename list -> unit
+val stat_files : (Fpath.t -> Rule.t list) -> Fpath.t list -> unit

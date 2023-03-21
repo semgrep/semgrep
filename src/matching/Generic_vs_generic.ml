@@ -3053,7 +3053,12 @@ and m_type_definition a b =
 
 and m_type_definition_kind a b =
   match (a, b) with
-  | G.OrType a1, B.OrType b1 -> (m_list m_or_type) a1 b1
+  | G.OrType a1, B.OrType b1 ->
+      m_list_with_dots m_or_type
+        (function
+          | G.OrEllipsis _ -> true
+          | _else_ -> false)
+        ~less_is_ok:false a1 b1
   | G.AndType a1, B.AndType b1 -> m_bracket m_fields a1 b1
   | G.AliasType a1, B.AliasType b1 -> m_type_ a1 b1
   | G.NewType a1, B.NewType b1 -> m_type_ a1 b1
@@ -3083,6 +3088,8 @@ and m_or_type a b =
       m_ident a1 b1 >>= fun () -> m_option m_expr a2 b2
   | G.OrUnion (a1, a2), B.OrUnion (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_type_ a2 b2
+  (* dots: *)
+  | G.OrEllipsis _, _ -> return ()
   | G.OrConstructor _, _
   | G.OrEnum _, _
   | G.OrUnion _, _ ->
@@ -3106,17 +3113,23 @@ and m_list__m_type_any_order (xsa : G.type_ list) (xsb : G.type_ list) =
 
 and m_list__m_class_parent (xsa : G.class_parent list)
     (xsb : G.class_parent list) =
-  (* TODO: m_list_in_any_order ~less_is_ok:true m_class_parent xsa xsb
-   * but regressions for python?
-   *)
-  m_list_with_dots m_class_parent
-    (function
-      | { G.t = G.TyEllipsis _; _ }, None -> true
-      (* dots: '...', this is very Python Specific I think *)
-      | { G.t = G.TyExpr { e = G.Ellipsis _i; _ }; _ }, None -> true
-      | _ -> false)
-      (* less-is-ok: it's ok to not specify all the parents I think *)
-    ~less_is_ok:true xsa xsb
+  with_lang (fun lang ->
+      if
+        lang =*= Lang.Kotlin
+        (* in Kotlin the order in cextends does not matter *)
+      then m_list_in_any_order ~less_is_ok:true m_class_parent xsa xsb
+      else
+        (* we could generalize to other languages, but we currently get
+         * regressions for python where the order does seem to matter
+         *)
+        m_list_with_dots m_class_parent
+          (function
+            | { G.t = G.TyEllipsis _; _ }, None -> true
+            (* dots: '...', this is very Python Specific I think *)
+            | { G.t = G.TyExpr { e = G.Ellipsis _i; _ }; _ }, None -> true
+            | _ -> false)
+            (* less-is-ok: it's ok to not specify all the parents I think *)
+          ~less_is_ok:true xsa xsb)
 
 and m_class_parent_basic (a1, a2) (b1, b2) =
   let* () = m_type_ a1 b1 in
@@ -3512,6 +3525,7 @@ and m_any a b =
   | G.Tp a1, B.Tp b1 -> m_type_parameter a1 b1
   | G.Ta a1, B.Ta b1 -> m_type_argument a1 b1
   | G.At a1, B.At b1 -> m_attribute a1 b1
+  | G.XmlAt a1, B.XmlAt b1 -> m_xml_attr a1 b1
   | G.Dk a1, B.Dk b1 -> m_definition_kind a1 b1
   | G.Pr a1, B.Pr b1 -> m_program a1 b1
   | G.I a1, B.I b1 -> m_ident a1 b1
@@ -3535,6 +3549,7 @@ and m_any a b =
   | G.Tp _, _
   | G.Ta _, _
   | G.At _, _
+  | G.XmlAt _, _
   | G.Dk _, _
   | G.Pr _, _
   | G.Fld _, _

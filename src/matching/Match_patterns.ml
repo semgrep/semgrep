@@ -130,6 +130,11 @@ let match_name_name rule a b env =
       set_last_matched_rule rule (fun () -> GG.m_name a b env))
   [@@profiling]
 
+let match_xml_attribute_xml_attribute rule a b env =
+  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+      set_last_matched_rule rule (fun () -> GG.m_xml_attr a b env))
+  [@@profiling]
+
 let match_raw_raw rule a b env =
   Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_raw_tree a b env))
@@ -252,6 +257,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
     let type_rules = ref [] in
     let pattern_rules = ref [] in
     let attribute_rules = ref [] in
+    let xml_attribute_rules = ref [] in
     let fld_rules = ref [] in
     let flds_rules = ref [] in
     let partial_rules = ref [] in
@@ -287,6 +293,8 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            | Partial pattern -> Common.push (pattern, rule, cache) partial_rules
            | Name pattern -> Common.push (pattern, rule, cache) name_rules
            | Raw pattern -> Common.push (pattern, rule, cache) raw_rules
+           | XmlAt pattern ->
+               Common.push (pattern, rule, cache) xml_attribute_rules
            | Args _
            | Params _
            | Xmls _
@@ -315,32 +323,86 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                  "only expr/stmt(s)/type/pattern/annotation/field(s)/partial \
                   patterns are supported");
 
-    let hooks =
-      {
-        V.default_visitor with
-        V.kexpr =
-          (fun (k, _) x ->
-            (* this could be quite slow ... we match many sgrep patterns
-             * against an expression recursively
-             *)
-            !expr_rules
-            |> List.iter (fun (pattern, _bf, rule, cache) ->
-                   match V.range_of_any_opt (E x) with
-                   | None ->
-                       logger#error "Skipping because we lack range info: %s"
-                         (show_expr_kind x.e);
-                       ()
-                   | Some range_loc when range_filter range_loc ->
-                       let env =
-                         MG.empty_environment ~mvar_context cache lang config
-                       in
-                       let matches_with_env = match_e_e rule pattern x env in
-                       if matches_with_env <> [] then
-                         (* Found a match *)
-                         matches_with_env
-                         |> List.iter (fun (env : MG.tin) ->
-                                let env = env.mv.full_env in
-                                let tokens = lazy (V.ii_of_any (E x)) in
+    let visitor =
+      object (_self : 'self)
+        inherit [_] Matching_visitor.matching_visitor as super
+
+        method! visit_expr env x =
+          (* this could be quite slow ... we match many sgrep patterns
+           * against an expression recursively
+           *)
+          !expr_rules
+          |> List.iter (fun (pattern, _bf, rule, cache) ->
+                 match V.range_of_any_opt (E x) with
+                 | None ->
+                     logger#error "Skipping because we lack range info: %s"
+                       (show_expr_kind x.e);
+                     ()
+                 | Some range_loc when range_filter range_loc ->
+                     let env =
+                       MG.empty_environment ~mvar_context cache lang config
+                     in
+                     let matches_with_env = match_e_e rule pattern x env in
+                     if matches_with_env <> [] then
+                       (* Found a match *)
+                       matches_with_env
+                       |> List.iter (fun (env : MG.tin) ->
+                              let env = env.mv.full_env in
+                              let tokens = lazy (V.ii_of_any (E x)) in
+                              let rule_id = rule_id_of_mini_rule rule in
+                              let pm =
+                                {
+                                  PM.rule_id;
+                                  file;
+                                  env;
+                                  range_loc;
+                                  tokens;
+                                  taint_trace = None;
+                                  engine_kind = OSS;
+                                }
+                              in
+                              Common.push pm matches;
+                              hook pm)
+                 | Some (start_loc, end_loc) ->
+                     logger#info
+                       "While matching pattern %s in file %s, we skipped \
+                        expression at %d:%d-%d:%d (outside any range of \
+                        interest)"
+                       rule.pattern_string start_loc.file start_loc.line
+                       start_loc.column end_loc.line end_loc.column;
+                     ());
+          (* try the rules on subexpressions *)
+          (* this can recurse to find nested matching inside the
+           * matched code itself *)
+          super#visit_expr env x
+
+        (* mostly copy paste of expr code but with the _st functions *)
+        method! visit_stmt env x =
+          (* old:
+           *   match_rules_and_recurse (file, hook, matches)
+           *   !stmt_rules match_st_st k (fun x -> S x) x
+           * but inlined to handle specially Bloom filter in stmts for now.
+           *)
+          let visit_stmt () =
+            !stmt_rules
+            |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
+                   let env = MG.empty_environment cache lang config in
+                   let matches_with_env = match_st_st rule pattern x env in
+                   if matches_with_env <> [] then
+                     (* Found a match *)
+                     matches_with_env
+                     |> List.iter (fun (env : MG.tin) ->
+                            let env = env.mv.full_env in
+                            match V.range_of_any_opt (S x) with
+                            | None ->
+                                (* TODO: Report a warning to the user? *)
+                                logger#error
+                                  "Cannot report match because we lack range \
+                                   info: %s"
+                                  (show_stmt x);
+                                ()
+                            | Some range_loc ->
+                                let tokens = lazy (V.ii_of_any (S x)) in
                                 let rule_id = rule_id_of_mini_rule rule in
                                 let pm =
                                   {
@@ -354,47 +416,62 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   }
                                 in
                                 Common.push pm matches;
-                                hook pm)
-                   | Some (start_loc, end_loc) ->
-                       logger#info
-                         "While matching pattern %s in file %s, we skipped \
-                          expression at %d:%d-%d:%d (outside any range of \
-                          interest)"
-                         rule.pattern_string start_loc.file start_loc.line
-                         start_loc.column end_loc.line end_loc.column;
-                       ());
-            (* try the rules on subexpressions *)
-            (* this can recurse to find nested matching inside the
-             * matched code itself *)
-            k x);
-        (* mostly copy paste of expr code but with the _st functions *)
-        V.kstmt =
-          (fun (k, _) x ->
-            (* old:
-             *   match_rules_and_recurse (file, hook, matches)
-             *   !stmt_rules match_st_st k (fun x -> S x) x
-             * but inlined to handle specially Bloom filter in stmts for now.
-             *)
-            let visit_stmt () =
+                                hook pm));
+            super#visit_stmt env x
+          in
+          (* If bloom_filter is not enabled, always visit the statement *)
+          (* Otherwise, filter rules first *)
+          if not !Flag.use_bloom_filter then visit_stmt ()
+          else
+            let new_stmt_rules =
               !stmt_rules
-              |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
+              |> List.filter (fun (_, pattern_strs, _, _cache) ->
+                     must_analyze_statement_bloom_opti_failed pattern_strs x)
+            in
+            let new_stmts_rules =
+              !stmts_rules
+              |> List.filter (fun (_, pattern_strs, _, _cache) ->
+                     must_analyze_statement_bloom_opti_failed pattern_strs x)
+            in
+            let new_expr_rules =
+              !expr_rules
+              |> List.filter (fun (_, pattern_strs, _, _cache) ->
+                     must_analyze_statement_bloom_opti_failed pattern_strs x)
+            in
+            Common.save_excursion stmt_rules new_stmt_rules (fun () ->
+                Common.save_excursion stmts_rules new_stmts_rules (fun () ->
+                    Common.save_excursion expr_rules new_expr_rules (fun () ->
+                        visit_stmt ())))
+
+        method! v_stmts env x =
+          (* this is potentially slower than what we did in Coccinelle with
+           * CTL. We try every sequences. Hopefully the first statement in
+           * the pattern will filter lots of sequences so we need to do
+           * the heavy stuff (e.g., handling '...' between statements) rarely.
+           *
+           * we can't factorize with match_rules_and_recurse because we
+           * do things a little bit different with the matched_statements also
+           * in matches_with_env here.
+           *)
+          !stmts_rules
+          |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
+                 Profiling.profile_code "Semgrep_generic.kstmts" (fun () ->
                      let env = MG.empty_environment cache lang config in
-                     let matches_with_env = match_st_st rule pattern x env in
+                     let matches_with_env = match_sts_sts rule pattern x env in
                      if matches_with_env <> [] then
                        (* Found a match *)
                        matches_with_env
                        |> List.iter (fun (env : MG.tin) ->
-                              let env = env.mv.full_env in
-                              match V.range_of_any_opt (S x) with
-                              | None ->
-                                  (* TODO: Report a warning to the user? *)
-                                  logger#error
-                                    "Cannot report match because we lack range \
-                                     info: %s"
-                                    (show_stmt x);
-                                  ()
+                              let span = env.stmts_match_span in
+                              match Stmts_match_span.location span with
+                              | None -> () (* empty sequence or bug *)
                               | Some range_loc ->
-                                  let tokens = lazy (V.ii_of_any (S x)) in
+                                  let env = env.mv.full_env in
+                                  let tokens =
+                                    lazy
+                                      (Stmts_match_span.list_original_tokens
+                                         span)
+                                  in
                                   let rule_id = rule_id_of_mini_rule rule in
                                   let pm =
                                     {
@@ -408,141 +485,79 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     }
                                   in
                                   Common.push pm matches;
-                                  hook pm));
-              k x
-            in
-            (* If bloom_filter is not enabled, always visit the statement *)
-            (* Otherwise, filter rules first *)
-            if not !Flag.use_bloom_filter then visit_stmt ()
-            else
-              let new_stmt_rules =
-                !stmt_rules
-                |> List.filter (fun (_, pattern_strs, _, _cache) ->
-                       must_analyze_statement_bloom_opti_failed pattern_strs x)
-              in
-              let new_stmts_rules =
-                !stmts_rules
-                |> List.filter (fun (_, pattern_strs, _, _cache) ->
-                       must_analyze_statement_bloom_opti_failed pattern_strs x)
-              in
-              let new_expr_rules =
-                !expr_rules
-                |> List.filter (fun (_, pattern_strs, _, _cache) ->
-                       must_analyze_statement_bloom_opti_failed pattern_strs x)
-              in
-              Common.save_excursion stmt_rules new_stmt_rules (fun () ->
-                  Common.save_excursion stmts_rules new_stmts_rules (fun () ->
-                      Common.save_excursion expr_rules new_expr_rules (fun () ->
-                          visit_stmt ()))));
-        V.kstmts =
-          (fun (k, _) x ->
-            (* this is potentially slower than what we did in Coccinelle with
-             * CTL. We try every sequences. Hopefully the first statement in
-             * the pattern will filter lots of sequences so we need to do
-             * the heavy stuff (e.g., handling '...' between statements) rarely.
-             *
-             * we can't factorize with match_rules_and_recurse because we
-             * do things a little bit different with the matched_statements also
-             * in matches_with_env here.
-             *)
-            !stmts_rules
-            |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
-                   Profiling.profile_code "Semgrep_generic.kstmts" (fun () ->
-                       let env = MG.empty_environment cache lang config in
-                       let matches_with_env =
-                         match_sts_sts rule pattern x env
-                       in
-                       if matches_with_env <> [] then
-                         (* Found a match *)
-                         matches_with_env
-                         |> List.iter (fun (env : MG.tin) ->
-                                let span = env.stmts_match_span in
-                                match Stmts_match_span.location span with
-                                | None -> () (* empty sequence or bug *)
-                                | Some range_loc ->
-                                    let env = env.mv.full_env in
-                                    let tokens =
-                                      lazy
-                                        (Stmts_match_span.list_original_tokens
-                                           span)
-                                    in
-                                    let rule_id = rule_id_of_mini_rule rule in
-                                    let pm =
-                                      {
-                                        PM.rule_id;
-                                        file;
-                                        env;
-                                        range_loc;
-                                        tokens;
-                                        taint_trace = None;
-                                        engine_kind = OSS;
-                                      }
-                                    in
-                                    Common.push pm matches;
-                                    hook pm)));
-            k x);
-        V.ktype_ =
-          (fun (k, _) x ->
-            match_rules_and_recurse lang config (file, hook, matches)
-              !type_rules match_t_t k
-              (fun x -> T x)
-              x);
-        V.kpattern =
-          (fun (k, _) x ->
-            match_rules_and_recurse lang config (file, hook, matches)
-              !pattern_rules match_p_p k
-              (fun x -> P x)
-              x);
-        V.kattr =
-          (fun (k, _) x ->
-            match_rules_and_recurse lang config (file, hook, matches)
-              !attribute_rules match_at_at k
-              (fun x -> At x)
-              x);
-        V.kfield =
-          (fun (k, _) x ->
-            match_rules_and_recurse lang config (file, hook, matches) !fld_rules
-              match_fld_fld k
-              (fun x -> Fld x)
-              x);
-        V.kfields =
-          (fun (k, _) x ->
-            match_rules_and_recurse lang config (file, hook, matches)
-              !flds_rules match_flds_flds k
-              (fun x -> Flds x)
-              x);
-        V.kpartial =
-          (fun (k, _) x ->
-            match_rules_and_recurse lang config (file, hook, matches)
-              !partial_rules match_partial_partial k
-              (fun x -> Partial x)
-              x);
-        V.kname =
-          (fun (k, _) x ->
-            match_rules_and_recurse lang config (file, hook, matches)
-              !name_rules match_name_name k
-              (fun x -> Name x)
-              x);
-        V.kraw =
-          (fun (k, _) x ->
-            match_rules_and_recurse lang config (file, hook, matches) !raw_rules
-              match_raw_raw k
-              (fun x -> Raw x)
-              x);
-      }
+                                  hook pm)));
+          super#v_stmts env x
+
+        method! visit_type_ env x =
+          match_rules_and_recurse lang config (file, hook, matches) !type_rules
+            match_t_t (super#visit_type_ env)
+            (fun x -> T x)
+            x
+
+        method! visit_pattern env x =
+          match_rules_and_recurse lang config (file, hook, matches)
+            !pattern_rules match_p_p (super#visit_pattern env)
+            (fun x -> P x)
+            x
+
+        method! visit_attribute env x =
+          match_rules_and_recurse lang config (file, hook, matches)
+            !attribute_rules match_at_at
+            (super#visit_attribute env)
+            (fun x -> At x)
+            x
+
+        method! visit_xml_attribute env x =
+          match_rules_and_recurse lang config (file, hook, matches)
+            !xml_attribute_rules match_xml_attribute_xml_attribute
+            (super#visit_xml_attribute env)
+            (fun x -> XmlAt x)
+            x
+
+        method! visit_field env x =
+          match_rules_and_recurse lang config (file, hook, matches) !fld_rules
+            match_fld_fld (super#visit_field env)
+            (fun x -> Fld x)
+            x
+
+        method! v_fields env x =
+          match_rules_and_recurse lang config (file, hook, matches) !flds_rules
+            match_flds_flds (super#v_fields env)
+            (fun x -> Flds x)
+            x
+
+        method! v_partial ~recurse env x =
+          match_rules_and_recurse lang config (file, hook, matches)
+            !partial_rules match_partial_partial
+            (super#v_partial ~recurse env)
+            (fun x -> Partial x)
+            x
+
+        method! visit_name env x =
+          match_rules_and_recurse lang config (file, hook, matches) !name_rules
+            match_name_name (super#visit_name env)
+            (fun x -> Name x)
+            x
+
+        method! visit_raw_tree env x =
+          match_rules_and_recurse lang config (file, hook, matches) !raw_rules
+            match_raw_raw (super#visit_raw_tree env)
+            (fun x -> Raw x)
+            x
+      end
     in
-    let visitor =
+    let visitor_env =
       let vardef_assign = config.Config.vardef_assign in
       let flddef_assign = config.Config.flddef_assign in
       let attr_expr = config.Config.attr_expr in
-      V.mk_visitor ~vardef_assign ~flddef_assign ~attr_expr hooks
+      Matching_visitor.mk_env ~vardef_assign ~flddef_assign ~attr_expr ()
     in
     (* later: opti: dont analyze certain ASTs if they do not contain
      * certain constants that interect with the pattern?
      * But this requires to analyze the pattern to extract those
      * constants (name of function, field, etc.).
      *)
-    visitor prog;
+    visitor#visit_any visitor_env prog;
 
     !matches |> List.rev
     (* TODO: optimize uniq_by? Too slow? Use a hash?

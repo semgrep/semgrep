@@ -11,6 +11,7 @@ import pytest
 from tests.conftest import make_semgrepconfig_file
 from tests.e2e.test_baseline import _git_commit
 from tests.e2e.test_baseline import _git_merge
+from tests.fixtures import RunSemgrep
 
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
@@ -20,6 +21,7 @@ from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
+from semgrep.metrics import Metrics
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -89,6 +91,22 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     category = "dev"
     optional = false
     python-versions = ">=3.7"
+
+    [[package]]
+    name = "mypy"
+    version = "0.950"
+    description = "Optional static typing for Python"
+    category = "dev"
+    optional = false
+    python-versions = ">=3.6"
+
+    [[package]]
+    name = "python-dateutil"
+    version = "2.8.2"
+    description = "Extensions to the standard Python datetime module"
+    category = "main"
+    optional = false
+    python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
     """
         )
     )
@@ -246,7 +264,9 @@ def automocks(mocker):
             "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
         ],
     )
-    mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
+    mocker.patch(
+        "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"
+    )
     mocker.patch.object(AppSession, "post")
 
 
@@ -536,7 +556,7 @@ def test_full_run(
     git_tmp_path_with_commit,
     snapshot,
     env,
-    run_semgrep,
+    run_semgrep: RunSemgrep,
     mocker,
     mock_autofix,
 ):
@@ -676,7 +696,7 @@ def drop_bridge_module_import_line(text: str) -> str:
 # TODO: flaky test on Linux
 # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests
 # def test_github_ci_bad_base_sha(
-#    run_semgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
+#    run_semgrep: RunSemgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
 # ):
 #    """
 #    Github PullRequest Event Webhook file's reported base sha is not guaranteed
@@ -823,7 +843,7 @@ def drop_bridge_module_import_line(text: str) -> str:
 
 
 def test_shallow_wrong_merge_base(
-    run_semgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
+    run_semgrep: RunSemgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
 ):
     """ """
     commits = defaultdict(list)
@@ -978,7 +998,9 @@ def test_shallow_wrong_merge_base(
     ), "Potentially scanning wrong files/commits"
 
 
-def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofix):
+def test_config_run(
+    run_semgrep: RunSemgrep, git_tmp_path_with_commit, snapshot, mock_autofix
+):
     result = run_semgrep(
         "p/something",
         options=["ci", "--no-suppress-errors"],
@@ -994,7 +1016,9 @@ def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofi
     "format",
     ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
 )
-def test_outputs(git_tmp_path_with_commit, snapshot, format, mock_autofix, run_semgrep):
+def test_outputs(
+    git_tmp_path_with_commit, snapshot, format, mock_autofix, run_semgrep: RunSemgrep
+):
     result = run_semgrep(
         options=["ci", "--no-suppress-errors", format],
         target_name=None,
@@ -1007,7 +1031,9 @@ def test_outputs(git_tmp_path_with_commit, snapshot, format, mock_autofix, run_s
 
 
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
-def test_nosem(git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semgrep):
+def test_nosem(
+    git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semgrep: RunSemgrep
+):
     result = run_semgrep(
         "p/something",
         options=["ci", "--no-suppress-errors", nosem],
@@ -1019,7 +1045,7 @@ def test_nosem(git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semg
     snapshot.assert_match(result.as_snapshot(), "output.txt")
 
 
-def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep):
+def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSemgrep):
     _, base_commit, head_commit = git_tmp_path_with_commit
     result = run_semgrep(
         options=["ci", "--dry-run", "--no-suppress-errors"],
@@ -1045,11 +1071,11 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep):
     )
 
 
-def test_fail_auth(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that failure to authenticate does not have exit code 0 or 1
     """
-    mocker.patch("semgrep.app.auth.is_valid_token", return_value=False)
+    mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value=None)
     run_semgrep(
         options=["ci", "--no-suppress-errors"],
         target_name=None,
@@ -1058,7 +1084,7 @@ def test_fail_auth(run_semgrep, mocker, git_tmp_path_with_commit):
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
 
-    mocker.patch("semgrep.app.auth.is_valid_token", side_effect=Exception)
+    mocker.patch("semgrep.app.auth.get_deployment_from_token", side_effect=Exception)
     run_semgrep(
         options=["ci", "--no-suppress-errors"],
         target_name=None,
@@ -1068,11 +1094,13 @@ def test_fail_auth(run_semgrep, mocker, git_tmp_path_with_commit):
     )
 
 
-def test_fail_auth_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_auth_error_handler(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
+):
     """
     Test that failure to authenticate with --suppres-errors returns exit code 0
     """
-    mocker.patch("semgrep.app.auth.is_valid_token", side_effect=Exception)
+    mocker.patch("semgrep.app.auth.get_deployment_from_token", side_effect=Exception)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
         options=["ci"],
@@ -1085,7 +1113,7 @@ def test_fail_auth_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
-def test_fail_start_scan(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_start_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that failing to start scan does not have exit code 0 or 1
     """
@@ -1099,7 +1127,9 @@ def test_fail_start_scan(run_semgrep, mocker, git_tmp_path_with_commit):
     )
 
 
-def test_fail_start_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_start_scan_error_handler(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
+):
     """
     Test that failing to start scan with --suppres-errors returns exit code 0
     """
@@ -1116,7 +1146,7 @@ def test_fail_start_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_co
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
-def test_bad_config(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_bad_config(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that bad rules has exit code > 1
     """
@@ -1141,7 +1171,9 @@ def test_bad_config(run_semgrep, mocker, git_tmp_path_with_commit):
     assert "Invalid rule schema" in result.stderr
 
 
-def test_bad_config_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_bad_config_error_handler(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
+):
     """
     Test that bad rules with --suppres-errors returns exit code 0
     """
@@ -1168,7 +1200,7 @@ def test_bad_config_error_handler(run_semgrep, mocker, git_tmp_path_with_commit)
     mock_send.assert_called_once_with(mocker.ANY, 7)
 
 
-def test_fail_scan_findings(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_scan_findings(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure with findings has exit code == 1.
 
@@ -1187,7 +1219,7 @@ def test_fail_scan_findings(run_semgrep, mocker, git_tmp_path_with_commit):
     mock_request_post.assert_not_called()
 
 
-def test_fail_finish_scan(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure to send findings has exit code > 1
     """
@@ -1201,7 +1233,9 @@ def test_fail_finish_scan(run_semgrep, mocker, git_tmp_path_with_commit):
     )
 
 
-def test_fail_finish_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+def test_fail_finish_scan_error_handler(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
+):
     """
     Test failure to send findings with --suppres-errors returns exit code 0
     """
@@ -1217,7 +1251,7 @@ def test_fail_finish_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_c
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
-def test_git_failure(run_semgrep, git_tmp_path_with_commit, mocker):
+def test_git_failure(run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker):
     """
     Test failure from using git has exit code > 1
     """
@@ -1231,7 +1265,9 @@ def test_git_failure(run_semgrep, git_tmp_path_with_commit, mocker):
     )
 
 
-def test_git_failure_error_handler(run_semgrep, git_tmp_path_with_commit, mocker):
+def test_git_failure_error_handler(
+    run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker
+):
     """
     Test failure from using git --suppres-errors returns exit code 0
     """
@@ -1245,3 +1281,72 @@ def test_git_failure_error_handler(run_semgrep, git_tmp_path_with_commit, mocker
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
     mock_send.assert_called_once_with(mocker.ANY, 2)
+
+
+def test_query_dependency(
+    git_tmp_path_with_commit, snapshot, mocker, run_semgrep: RunSemgrep
+):
+    file_content = dedent(
+        """
+        rules:
+        - id: eqeq-bad
+          pattern: $X == $X
+          message: "useless comparison"
+          languages: [python]
+          severity: ERROR
+        - id: supply-chain1
+          message: "found a dependency"
+          languages: [python]
+          severity: ERROR
+          r2c-internal-project-depends-on:
+            namespace: pypi
+            package: badlib
+            version: == 99.99.99
+          metadata:
+            dev.semgrep.actions: [block]
+            sca-kind: upgrade-only
+        """
+    ).lstrip()
+    mocker.patch.object(ConfigLoader, "_make_config_request", return_value=file_content)
+    mocker.patch.object(
+        ScanHandler,
+        "_get_scan_config_from_app",
+        return_value={
+            "deployment_id": DEPLOYMENT_ID,
+            "deployment_name": "org_name",
+            "ignored_files": [],
+            "policy_names": ["audit", "comment", "block"],
+            "rule_config": file_content,
+            "dependency_query": True,
+        },
+    )
+
+    result = run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+    )
+    snapshot.assert_match(result.as_snapshot(), "output.txt")
+
+    post_calls = AppSession.post.call_args_list
+    complete_json = post_calls[2].kwargs["json"]
+    complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
+    # TODO: flaky tests (on Linux at least)
+    # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
+    complete_json["stats"]["lockfile_scan_info"] = {}
+    snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
+
+
+def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
+    mock_send = mocker.patch.object(Metrics, "_post_metrics")
+    run_semgrep(
+        options=["ci"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
+        force_metrics_off=False,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+    mock_send.assert_called_once()

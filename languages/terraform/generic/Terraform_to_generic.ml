@@ -64,7 +64,7 @@ and map_block ({ btype = _kind, tk; blabels; bbody = lb, body, rb } : block) :
   let n = H2.name_of_id id in
   (* convert in a Record like map_object *)
   let flds = Common.map map_block_body_element body in
-  let body = Record (lb, flds, rb) |> G.e in
+  let body = G.Record (lb, flds, rb) |> G.e in
   let es = labels_id @ [ body ] in
   let args = es |> Common.map G.arg in
   (* coupling: if you modify this code, you should adjust
@@ -79,7 +79,7 @@ and map_block ({ btype = _kind, tk; blabels; bbody = lb, body, rb } : block) :
    * TODO: should we use something else than Call since it's already used
    * for expressions in map_expr_term() above?
    *)
-  G.Call (N n |> G.e, Parse_info.unsafe_fake_bracket args) |> G.e
+  G.Call (G.N n |> G.e, Parse_info.unsafe_fake_bracket args) |> G.e
 
 (*****************************************************************************)
 (* Entry points *)

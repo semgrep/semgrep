@@ -44,6 +44,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "useless comparison"
           },
+          "properties": {},
           "ruleId": "eqeq-bad"
         },
         {
@@ -72,6 +73,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "useless comparison"
           },
+          "properties": {},
           "ruleId": "eqeq-bad"
         },
         {
@@ -100,6 +102,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "useless comparison"
           },
+          "properties": {},
           "ruleId": "eqeq-bad",
           "suppressions": [
             {
@@ -133,6 +136,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "useless comparison"
           },
+          "properties": {},
           "ruleId": "eqeq-bad"
         },
         {
@@ -161,6 +165,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "useless comparison"
           },
+          "properties": {},
           "ruleId": "eqeq-bad",
           "suppressions": [
             {
@@ -194,6 +199,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "useless comparison"
           },
+          "properties": {},
           "ruleId": "eqeq-bad"
         },
         {
@@ -222,6 +228,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "useless comparison"
           },
+          "properties": {},
           "ruleId": "eqeq-bad",
           "suppressions": [
             {
@@ -255,6 +262,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "useless comparison to 4"
           },
+          "properties": {},
           "ruleId": "eqeq-four",
           "suppressions": [
             {
@@ -288,6 +296,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "useless comparison to 4"
           },
+          "properties": {},
           "ruleId": "eqeq-four"
         },
         {
@@ -316,6 +325,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "unsafe use of danger"
           },
+          "properties": {},
           "ruleId": "taint-test"
         },
         {
@@ -371,6 +381,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "useless comparison to 5"
           },
+          "properties": {},
           "ruleId": "eqeq-five"
         },
         {
@@ -426,6 +437,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "message": {
             "text": "useless comparison to 5"
           },
+          "properties": {},
           "ruleId": "eqeq-five",
           "suppressions": [
             {
@@ -565,36 +577,41 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of stdout - plain
 
 === stderr - plain
-                                                                                
-                                                                                
-┌────────────────┐                                                              
-│ Debugging Info │                                                              
-└────────────────┘                                                              
-                                                                                
-  SCAN ENVIRONMENT                                                              
+                  
+                  
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+                  
+  SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment git, triggering event is unknown         
-  server      - logged in as org_name on https://semgrep.dev                    
-                                                                                
-                                                                                
-┌─────────────┐                                                                 
-│ Scan Status │                                                                 
-└─────────────┘                                                                 
-                                                                                
-Scanning 1 file with 4 python rules.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+  environment - running in environment git, triggering event is unknown
+            
+  CONNECTION
+  Reporting start of scan for deployment_name         
+  Fetching configuration from Semgrep Cloud Platform                 
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
+            
+            
+  CODE RULES
+  Scanning 1 file with 4 python rules.
+                    
+  SUPPLY CHAIN RULES
+  Scanning 1 file.
+           
+           
+┌─────────┐
+│ Results │
+└─────────┘
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 

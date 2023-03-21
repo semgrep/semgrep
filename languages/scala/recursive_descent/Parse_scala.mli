@@ -1,4 +1,4 @@
-val find_source_files_of_dir_or_files : Common.path list -> Common.filename list
+val find_source_files_of_dir_or_files : Fpath.t list -> Fpath.t list
 
 (* This is the main function. See flag_parsing for settings. *)
 val parse :
@@ -10,4 +10,4 @@ val parse_program : Common.filename -> AST_scala.program
 val any_of_string : string -> AST_scala.any
 
 (* internal *)
-val tokens : Common.filename -> Parser_scala.token list
+val tokens : Parsing_helpers.input_source -> Parser_scala.token list

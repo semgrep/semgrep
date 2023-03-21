@@ -144,6 +144,7 @@
           "message": {
             "text": "A user input source() went into a dangerous sink()"
           },
+          "properties": {},
           "ruleId": "rules.classic"
         }
       ],

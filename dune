@@ -20,6 +20,7 @@
   tools
   languages
   tests ; todo, should move out Test.ml out of the tests/ data dir
+  js ; consider commenting this if the default compilation time is too much
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

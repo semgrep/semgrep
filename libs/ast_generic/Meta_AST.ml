@@ -1269,6 +1269,9 @@ and vof_or_type_element = function
   | OrUnion (v1, v2) ->
       let v1 = vof_ident v1 and v2 = vof_type_ v2 in
       OCaml.VSum ("OrUnion", [ v1; v2 ])
+  | OrEllipsis v1 ->
+      let v1 = vof_tok v1 in
+      OCaml.VSum ("OrEllipsis", [ v1 ])
 
 and vof_class_definition
     {
@@ -1496,6 +1499,9 @@ and vof_any = function
   | At v1 ->
       let v1 = vof_attribute v1 in
       OCaml.VSum ("At", [ v1 ])
+  | XmlAt v1 ->
+      let v1 = vof_xml_attribute v1 in
+      OCaml.VSum ("XmlAt", [ v1 ])
   | Dk v1 ->
       let v1 = vof_definition_kind v1 in
       OCaml.VSum ("Dk", [ v1 ])

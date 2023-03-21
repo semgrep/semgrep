@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 
 (*****************************************************************************)
 (* Unit tests *)
@@ -17,9 +18,9 @@ let tests parse_program =
         fun () ->
           let dir = Filename.concat tests_path "dataflow/python" in
           let files = Common2.glob (spf "%s/*.py" dir) in
-          files
+          files |> File.of_strings
           |> List.iter (fun file ->
-                 let ast = parse_program file in
+                 let ast = parse_program !!file in
                  let lang = List.hd (Lang.langs_of_filename file) in
                  Naming_AST.resolve lang ast;
                  match
@@ -34,5 +35,5 @@ let tests parse_program =
                        (spf
                           "constant propagation should finish in less than \
                            %gs: %s"
-                          timeout_secs file)) );
+                          timeout_secs !!file)) );
     ]

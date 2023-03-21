@@ -6,6 +6,7 @@
    place.
 *)
 open Common
+open File.Operators
 module Resp = Output_from_core_t
 
 (****************************************************************************)
@@ -78,7 +79,7 @@ let whitespace_stat_of_block ?block_size path =
   let s = Guess_lang.get_first_block ?block_size path in
   whitespace_stat_of_string s
 
-let is_minified path =
+let is_minified (path : Fpath.t) =
   if not !Flag_semgrep.skip_minified_files then Ok path
   else
     let stat = whitespace_stat_of_block ~block_size:4096 path in
@@ -90,7 +91,7 @@ let is_minified path =
       if stat.ws_freq < min_whitespace_frequency then
         Error
           {
-            Resp.path;
+            Resp.path = !!path;
             reason = Minified;
             details =
               spf "file contains too little whitespace: %.3f%% (min = %.1f%%)"
@@ -101,7 +102,7 @@ let is_minified path =
       else if stat.line_freq < min_line_frequency then
         Error
           {
-            Resp.path;
+            Resp.path = !!path;
             reason = Minified;
             details =
               spf
@@ -128,7 +129,7 @@ let exclude_files_in_skip_lists roots =
     skipped_paths
     |> Common.map (fun path ->
            {
-             Resp.path;
+             Resp.path = Fpath.to_string path;
              reason = Excluded_by_config;
              details = "excluded by 'skip list' file";
              rule_id = None;
@@ -152,11 +153,11 @@ let exclude_big_files paths =
   let max_bytes = !Flag_semgrep.max_target_bytes in
   paths
   |> Common.partition_result (fun path ->
-         let size = Common2.filesize path in
+         let size = File.filesize path in
          if max_bytes > 0 && size > max_bytes then
            Error
              {
-               Resp.path;
+               Resp.path = !!path;
                reason = Too_big;
                details =
                  spf "target file size exceeds %i bytes at %i bytes" max_bytes

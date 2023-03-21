@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module J = JSON
 module FT = File_type
 module R = Rule
@@ -576,20 +577,33 @@ let parse_options env (key : key) value =
 (*****************************************************************************)
 
 (* less: could move in a separate Parse_xpattern.ml *)
+
 let parse_xpattern env (str, tok) dict_opt =
-  match env.languages with
-  | Xlang.L (lang, _) ->
-      let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
-      XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
-  | Xlang.LRegex ->
-      XP.mk_xpat
-        (Regexp (parse_regexp_xpattern env (str, tok) dict_opt))
-        (str, tok)
-  | Xlang.LGeneric -> (
-      let src = Spacegrep.Src_file.of_string str in
-      match Spacegrep.Parse_pattern.of_src src with
-      | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
-      | Error err -> failwith err.msg)
+  try
+    match env.languages with
+    | Xlang.L (lang, _) ->
+        let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
+        XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
+    | Xlang.LRegex ->
+        XP.mk_xpat
+          (Regexp (parse_regexp_xpattern env (str, tok) dict_opt))
+          (str, tok)
+    | Xlang.LGeneric -> (
+        let src = Spacegrep.Src_file.of_string str in
+        match Spacegrep.Parse_pattern.of_src src with
+        | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
+        | Error err -> failwith err.msg)
+  with
+  | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
+  (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
+  | exn ->
+      raise
+        (R.Err
+           (R.InvalidRule
+              ( R.InvalidPattern
+                  (str, env.languages, Common.exn_to_s exn, env.path),
+                env.id,
+                tok )))
 
 (* TODO: note that the [pattern] string and token location [t] given to us
  * by the YAML parser do not correspond exactly to the content
@@ -1225,6 +1239,7 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
   let f =
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
+  let default_propagator_requires = R.default_propagator_requires (snd key) in
   let parse_from_dict dict f =
     let propagator_by_side_effect =
       take_opt dict env parse_bool "by-side-effect"
@@ -1232,8 +1247,27 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
     in
     let from = take dict env parse_string_wrap "from" in
     let to_ = take dict env parse_string_wrap "to" in
+    let propagator_requires =
+      take_opt dict env parse_taint_requires "requires"
+      |> Option.value ~default:default_propagator_requires
+    in
+    let propagator_label = take_opt dict env parse_string "label" in
+    let propagator_replace_labels =
+      take_opt dict env
+        (fun env key v ->
+          parse_listi env key (fun env v -> parse_string env key v) v)
+        "replace-labels"
+    in
     let propagator_formula = f env dict in
-    { R.propagator_formula; propagator_by_side_effect; from; to_ }
+    {
+      R.propagator_formula;
+      propagator_by_side_effect;
+      from;
+      to_;
+      propagator_requires;
+      propagator_replace_labels;
+      propagator_label;
+    }
   in
   let dict = yaml_to_dict env key value in
   parse_from_dict dict f
@@ -1509,7 +1543,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
     options = options_opt;
   }
 
-let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
+let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
     (ast : AST_generic.program) : Rule.rules * Rule.invalid_rule_error list =
   let t, rules =
     match ast with
@@ -1542,7 +1576,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
          *)
         | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
         | _ ->
-            let loc = PI.first_loc_of_file file in
+            let loc = PI.first_loc_of_file !!file in
             yaml_error (PI.mk_info_of_loc loc)
               "missing rules entry as top-level key")
     | _ -> assert false
@@ -1601,31 +1635,31 @@ let parse_file ?error_recovery file =
          * below.
          *)
         Json_to_generic.program ~unescape_strings:true
-          (Parse_json.parse_program file)
+          (Parse_json.parse_program !!file)
     | FT.Config FT.Jsonnet ->
         if use_ojsonnet then
-          let ast = Parse_jsonnet.parse_program file in
+          let ast = Parse_jsonnet.parse_program !!file in
           (* Note that here we do not support registry-aware import;
            * those are defined in osemgrep/.../Rule_fetching.ml where
            * we use Network.get functions. Thus, semgrep-core -dump_rule
            * will not work with registry-aware import either.
            * Use osemgrep --dump-config instead.
            *)
-          let core = Desugar_jsonnet.desugar_program file ast in
+          let core = Desugar_jsonnet.desugar_program !!file ast in
           let value_ = Eval_jsonnet.eval_program core in
           Manifest_jsonnet_to_AST_generic.manifest_value value_
         else
           Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
-              let cmd = spf "jsonnet -J vendor %s -o %s" file tmpfile in
+              let cmd = spf "jsonnet -J vendor %s -o %s" !!file tmpfile in
               let n = Sys.command cmd in
               if n <> 0 then failwith (spf "error executing %s" cmd);
               let ast = Parse_json.parse_program tmpfile in
               Json_to_generic.program ~unescape_strings:true ast)
-    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true file
+    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true !!file
     | _else_ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
-        logger#info "trying to parse %s as YAML" file;
-        parse_yaml_rule_file ~is_target:true file
+        logger#info "trying to parse %s as YAML" !!file;
+        parse_yaml_rule_file ~is_target:true !!file
   in
   parse_generic_ast ?error_recovery file ast
 
@@ -1661,6 +1695,7 @@ let parse_xpattern xlang (str, tok) =
  *)
 let is_test_yaml_file filepath =
   (* .test.yaml files are YAML target files rather than config files! *)
+  let filepath = !!filepath in
   Filename.check_suffix filepath ".test.yaml"
   || Filename.check_suffix filepath ".test.yml"
   || Filename.check_suffix filepath ".test.fixed.yaml"

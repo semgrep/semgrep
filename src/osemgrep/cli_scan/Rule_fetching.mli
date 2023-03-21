@@ -16,8 +16,7 @@ type rules_and_origin = {
   errors : Rule.invalid_rule_error list;
 }
 
-and origin = Common.filename option (* None for remote files *)
-[@@deriving show]
+and origin = Fpath.t option (* None for remote files *) [@@deriving show]
 
 val partition_rules_and_errors :
   rules_and_origin list -> Rule.rules * Rule.invalid_rule_error list
@@ -37,5 +36,5 @@ val rules_from_dashdash_config :
   Semgrep_dashdash_config.config_kind -> rules_and_origin list
 
 (* low-level API *)
-val load_rules_from_file : Common.filename -> rules_and_origin
+val load_rules_from_file : Fpath.t -> rules_and_origin
 val load_rules_from_url : Uri.t -> rules_and_origin
