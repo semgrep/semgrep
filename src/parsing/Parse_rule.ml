@@ -642,17 +642,7 @@ let parse_xpattern_expr env e dict =
        (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
        (* TODO put in *)
      in *)
-  try parse_xpattern env (s, t) (Some dict) with
-  | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
-  (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
-  | exn ->
-      raise
-        (R.Err
-           (R.InvalidRule
-              ( R.InvalidPattern
-                  (s, env.languages, Common.exn_to_s exn, env.path),
-                env.id,
-                t )))
+  parse_xpattern env (s, t) (Some dict)
 
 (*****************************************************************************)
 (* Parser for old (but current) formula *)
