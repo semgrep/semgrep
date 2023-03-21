@@ -1,16 +1,32 @@
+; Building with dune build --profile=release (instead of the default --profile=dev)
+; has a significant impact on the size of the generated JS file. You can go
+; from 110MB to 16MB!
+; See https://discuss.ocaml.org/t/tutorial-full-stack-web-dev-in-ocaml-w-dream-bonsai-and-graphql/9963/8?u=aryx
+
 (executables
  (names Main)
- (libraries semgrep.running js_of_ocaml integers_stubs_js ctypes_stubs_js)
+ (libraries
+    js_of_ocaml
+    integers_stubs_js ctypes_stubs_js
+    semgrep.running
+    ; semgrep.parsing_languages ; skipped to go from 16MB to 7MB
+    )
  (js_of_ocaml
   (javascript_files
    ./pcre.js
    ./ocaml-tree-sitter.js
    ./semgrep.js
    ./unix.js
-   ./core.js))
+   ./core.js)
+  ; --no-inline was suggested here:
+  ; https://discuss.ocaml.org/t/js-of-ocaml-output-performs-considerably-worse-when-built-with-profile-release-flag/8862/14
+  ; but this does not appear to have an effect for us
+  ;(flags (:standard --no-inline))
+ )
  (modes js)
  (preprocess
   (pps js_of_ocaml-ppx)))
+
 
 (rule
  (target semgrep-core.js)
