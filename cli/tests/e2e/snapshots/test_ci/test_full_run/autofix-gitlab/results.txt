@@ -60,15 +60,13 @@ Blocking Rules Fired:
                 pull_request                                                    
             
   CONNECTION
-  Fetching configuration from Semgrep Cloud Platform  
-  Reporting start of scan for org_name                               
+  Reporting start of scan for deployment_name         
+  Fetching configuration from Semgrep Cloud Platform                 
                
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 4 Code rules:
-            
-  CODE RULES
   Scanning 1 file with 4 python rules.
   Current version has 14 findings.
 
@@ -82,8 +80,6 @@ Switching repository to baseline commit '<MASKED>'.
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 4 Code rules:
-            
-  CODE RULES
   Scanning 1 file with 4 python rules.
            
            

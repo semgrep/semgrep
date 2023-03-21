@@ -144,7 +144,7 @@ val semgrep_with_rules :
 
 (* utilities functions used in tests or semgrep-core variants *)
 
-val replace_named_pipe_by_regular_file : Common.filename -> Common.filename
+val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
 (**
    Copy named pipes created with <(echo 'foo') on the command line
    into a regular file to avoid illegal seeks when reporting match results

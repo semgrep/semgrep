@@ -97,7 +97,7 @@ def login() -> NoReturn:
 
 def save_token(login_token: Optional[str], echo_token: bool) -> bool:
     state = get_state()
-    if login_token is not None and auth.is_valid_token(login_token):
+    if login_token is not None and auth.get_deployment_from_token(login_token):
         auth.set_token(login_token)
         click.echo(
             f"Saved login token\n\n\t{login_token if echo_token else '<redacted>'}\n\nin {state.settings.path}."

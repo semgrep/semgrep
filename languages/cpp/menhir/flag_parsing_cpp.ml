@@ -8,13 +8,14 @@ type language = C | Cplusplus
 (* macros *)
 (*****************************************************************************)
 
-let macros_h =
-  ref
-    (Filename.concat (*Config_pfff.path_pfff_home*) ""
-       "/data/cpp_stdlib/macros.h")
+let macros_h = ref (Fpath.v "/data/cpp_stdlib/macros.h")
 
 let cmdline_flags_macrofile () =
-  [ ("-macros", Arg.Set_string macros_h, " <file> list of macros to expand") ]
+  [
+    ( "-macros",
+      Arg.String (fun s -> macros_h := Fpath.v s),
+      " <file> list of macros to expand" );
+  ]
 
 (*****************************************************************************)
 (* verbose *)

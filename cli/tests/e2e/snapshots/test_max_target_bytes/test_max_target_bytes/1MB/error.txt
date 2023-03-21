@@ -4,8 +4,6 @@
 │ Scan Status │
 └─────────────┘
   Scanning 23 files tracked by git with 4 Code rules:
-            
-  CODE RULES
                                                                                 
   Language   Rules   Files          Origin    Rules                             
  ──────────────────────────        ─────────────────                            

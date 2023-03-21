@@ -138,9 +138,13 @@ val join : string (* sep *) -> string list -> string
 val split : string (* sep regexp *) -> string -> string list
 
 (*****************************************************************************)
-(* File path *)
+(* Real file paths - deprecated, use File.mli *)
 (*****************************************************************************)
-(* Deprecated? Should we start to use FPath.ml from dbunzli? *)
+(* Deprecated.
+
+   Migration in progress: File.ml reproduces the functions below and uses
+   Fpath.t instead of string to represent file/directory paths.
+*)
 
 (* Some signatures are arguably clearer when using 'filename' instead of
  * 'string' (see write_file below for an example).
@@ -179,7 +183,7 @@ val files_of_dir_or_files_no_vcs_nofilter : string list -> filename list
 val follow_symlinks : bool ref
 
 (*****************************************************************************)
-(* IO *)
+(* IO - deprecated, use File.mli *)
 (*****************************************************************************)
 
 (* Inputs a line of text in a platform-agnostic way. Should be preferred over

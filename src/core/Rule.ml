@@ -18,6 +18,8 @@ module MV = Metavariable
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+open Ppx_hash_lib.Std.Hash.Builtin
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -107,7 +109,8 @@ and metavar_cond =
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
-and metavar_analysis_kind = CondEntropy | CondReDoS [@@deriving show, eq]
+and metavar_analysis_kind = CondEntropy | CondReDoS
+[@@deriving show, eq, hash]
 
 (*****************************************************************************)
 (* Taint-specific types *)

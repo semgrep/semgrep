@@ -654,7 +654,7 @@ class Plan:
         for origin, count in sorted(
             origin_counts.items(), key=lambda x: x[1], reverse=True
         ):
-            origin_name = origin.replace("_", " ").title()
+            origin_name = origin.replace("_", " ").capitalize()
 
             table.add_row(origin_name, str(count))
 
@@ -662,14 +662,14 @@ class Plan:
 
     def table_by_sca_analysis(self) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
-        table.add_column("Rule Type")
+        table.add_column("Analysis")
         table.add_column("Rules", justify="right")
 
         SCA_ANALYSIS_NAMES = {
             "reachable": "Reachability",
-            "legacy": "Presence",
-            "malicious": "Presence",
-            "upgrade-only": "Presence",
+            "legacy": "Basic",
+            "malicious": "Basic",
+            "upgrade-only": "Basic",
         }
 
         sca_analysis_counts = collections.Counter(

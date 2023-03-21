@@ -1,6 +1,0 @@
-taint-mode: Java: Support for basic field sensitivity via getters and setters.
-Given `obj.setX(tainted)`, Semgrep will identify that a subsequent `obj.getX()`
-carries the same taint as `tainted`. It will also differentiate between
-`obj.getX()` and `obj.getY()`. Note that Semgrep does not examine the definitions
-for the getter or setter methods, and it does not know whether e.g. some other
-method `obj.clearX()` clears the taint that `obj.setX(tainted)` adds.
