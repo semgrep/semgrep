@@ -1,3 +1,4 @@
+
 Semgrep Supply Chain Summary: 1 Reachable finding, 1 Unreachable finding
 
 
