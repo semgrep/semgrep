@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "error",
-      "message": "Pattern parse error in rule rules.syntax.eqeq-is-bad:\n Invalid pattern for Python:\n--- pattern ---\n$X == $X 3\n--- end pattern ---\nPattern error: Parsing.Parse_error\n",
+      "message": "Pattern parse error in rule rules.syntax.eqeq-is-bad:\n Invalid pattern for Python:\n--- pattern ---\n$X == $X 3\n--- end pattern ---\nPattern error: invalid rule rules.syntax.eqeq-is-bad, /tmp/tmpdxou5_4h.json:11:21: Invalid pattern for Python: Parsing.Parse_error\n----- pattern -----\n$X == $X 3\n----- end pattern -----\n\n",
       "rule_id": "rules.syntax.eqeq-is-bad",
       "spans": [
         {

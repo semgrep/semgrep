@@ -10,5 +10,9 @@
 --- pattern ---
 #include<asdf><<>>><$X>
 --- end pattern ---
-Pattern error: Parsing.Parse_error
+Pattern error: invalid rule -, /tmp/tmpvd35qeuu.json:9:17: Invalid pattern for C: Parsing.Parse_error
+----- pattern -----
+#include<asdf><<>>><$X>
+----- end pattern -----
+
 
