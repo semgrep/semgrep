@@ -1,0 +1,9 @@
+(executables
+ (names Parser)
+ (libraries
+    parser_lua.ast_generic
+ )
+ (modes js)
+ (preprocess
+  (pps js_of_ocaml-ppx))
+)
