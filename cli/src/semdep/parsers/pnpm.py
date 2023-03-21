@@ -105,7 +105,10 @@ all_dependency_data = pair(direct_dependencies_data, packages_data) << (
 
 
 def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
-    direct_deps, all_deps = safe_path_parse(lockfile_path, all_dependency_data)
+    ret = safe_path_parse(lockfile_path, all_dependency_data)
+    if not ret:
+        return []
+    direct_deps, all_deps = ret
     if not direct_deps or not all_deps:
         return []
 
