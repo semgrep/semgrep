@@ -206,7 +206,7 @@ let dump_pattern (file : Fpath.t) =
 let dump_ast ?(naming = false) lang file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_reraise !!file (fun () ->
-      let { Parse_target.ast; skipped_tokens; _ } =
+      let { Parsing_result2.ast; skipped_tokens; _ } =
         if naming then Parse_target.parse_and_resolve_name lang !!file
         else Parse_target.just_parse_with_lang lang !!file
       in
@@ -263,7 +263,7 @@ let dump_v1_json file =
   match Lang.langs_of_filename file with
   | lang :: _ ->
       E.try_with_print_exn_and_reraise !!file (fun () ->
-          let { Parse_target.ast; skipped_tokens; _ } =
+          let { Parsing_result2.ast; skipped_tokens; _ } =
             Parse_target.parse_and_resolve_name lang !!file
           in
           let v1 = AST_generic_to_v1.program ast in
