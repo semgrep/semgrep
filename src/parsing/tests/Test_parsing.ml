@@ -351,7 +351,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                with
                | Some res ->
                    let ast_stat = AST_stat.stat res.ast in
-                   { res.Parse_target.stat with ast_stat = Some ast_stat }
+                   { res.Parsing_result2.stat with ast_stat = Some ast_stat }
                | None ->
                    { (Parsing_stat.bad_stat file) with have_timeout = true }
              with

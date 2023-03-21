@@ -14,21 +14,14 @@
  *)
 open Common
 open File.Operators
-open Parse_target
-module Flag = Flag_semgrep
-module PI = Parse_info
-
-let logger = Logging.get_logger [ __MODULE__ ]
-
-(* To get a better backtrace, to better debug parse errors *)
-let debug_exn = ref false
+open Pfff_or_tree_sitter
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* Most of the code here used to be in Parse_target.ml, but was moved
- * to make the engine language independent so that we can generate
- * a smaller JS file for the engine
+ * to make the engine/ language independent so that we can generate
+ * a smaller engine.js file.
  *
  * TODO: at some point maybe leverage Parsing_plugin instead of
  * modifying refs as currently done in Parsing_init.ml
@@ -37,156 +30,6 @@ let debug_exn = ref false
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-type 'ast parser =
-  | Pfff of (Common.filename -> 'ast * Parsing_stat.t)
-  | TreeSitter of (Common.filename -> 'ast Tree_sitter_run.Parsing_result.t)
-
-type 'ast internal_result =
-  | Ok of ('ast * Parsing_stat.t)
-  | Partial of 'ast * PI.token_location list * Parsing_stat.t
-  | Error of Exception.t
-
-let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
-  {
-    Parsing_stat.filename = file;
-    total_line_count = stat.total_line_count;
-    error_line_count = stat.error_line_count;
-    have_timeout = false;
-    commentized = 0;
-    problematic_lines = [];
-    ast_stat = None;
-  }
-
-let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
- fun parser file ->
-  match parser with
-  | Pfff f ->
-      Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
-          logger#trace "trying to parse with Pfff parser %s" file;
-          try
-            let res = f file in
-            Ok res
-          with
-          | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
-          | exn ->
-              let e = Exception.catch exn in
-              (* TODO: print where the exception was raised or reraise *)
-              logger#error "exn (%s) with Pfff parser" (Common.exn_to_s exn);
-              Error e)
-  | TreeSitter f -> (
-      logger#trace "trying to parse with TreeSitter parser %s" file;
-      try
-        let res = f file in
-        let stat = stat_of_tree_sitter_stat file res.stat in
-        match (res.program, res.errors) with
-        | None, [] ->
-            let msg =
-              "internal error: failed to recover typed tree from tree-sitter's \
-               untyped tree"
-            in
-            Error (Exception.trace (Failure msg))
-        | Some ast, [] -> Ok (ast, stat)
-        | None, ts_error :: _xs ->
-            let e = error_of_tree_sitter_error ts_error in
-            logger#error "non-recoverable error with TreeSitter parser:\n%s"
-              (Exception.to_string e);
-            Error e
-        | Some ast, x :: xs ->
-            (* Note that the first error is probably the most important;
-             * the following one may be due to cascading effects *)
-            logger#error "partial errors (%d) with TreeSitter parser"
-              (List.length (x :: xs));
-            let locs =
-              x :: xs |> Common.map Parse_target.loc_of_tree_sitter_error
-            in
-            Partial (ast, locs, stat)
-      with
-      | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
-      (* to get correct stack trace on parse error *)
-      | exn when !debug_exn -> Exception.catch_and_reraise exn
-      | exn ->
-          let e = Exception.catch exn in
-          logger#error "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
-          Error e)
-
-let rec (run_either :
-          Common.filename -> 'ast parser list -> 'ast internal_result) =
- fun file xs ->
-  match xs with
-  | [] -> Error (Exception.trace (Failure (spf "no parser found for %s" file)))
-  | p :: xs -> (
-      let res = run_parser p file in
-      match res with
-      | Ok ast -> Ok ast
-      | Partial (ast, errs, stat) -> (
-          let res = run_either file xs in
-          match res with
-          | Ok res -> Ok res
-          | Error e2 ->
-              logger#debug "exn again but return Partial:\n%s"
-                (Exception.to_string e2);
-              (* prefer a Partial to an Error *)
-              Partial (ast, errs, stat)
-          | Partial _ ->
-              logger#debug "Partial again but return first Partial";
-              Partial (ast, errs, stat))
-      | Error e1 -> (
-          let res = run_either file xs in
-          match res with
-          | Ok res -> Ok res
-          | Partial (ast, errs, stat) ->
-              logger#debug "Got now a Partial, better than exn:\n%s"
-                (Exception.to_string e1);
-              Partial (ast, errs, stat)
-          | Error e2 ->
-              logger#debug
-                "exn again but return original exn:\n\
-                 --- new exn (ignored) ---\n\
-                 %s\n\
-                 --- original exn (retained) ---\n\
-                 %s"
-                (Exception.to_string e2) (Exception.to_string e1);
-              (* prefer the first error *)
-              Error e1))
-
-let (run :
-      Common.filename ->
-      'ast parser list ->
-      ('ast -> AST_generic.program) ->
-      parsing_result) =
- fun file xs fconvert ->
-  let xs =
-    match () with
-    | _ when !Flag.tree_sitter_only ->
-        xs
-        |> Common.exclude (function
-             | Pfff _ -> true
-             | _ -> false)
-    | _ when !Flag.pfff_only ->
-        xs
-        |> Common.exclude (function
-             | TreeSitter _ -> true
-             | _ -> false)
-    | _ -> xs
-  in
-  match run_either file xs with
-  | Ok (ast, stat) -> { ast = fconvert ast; skipped_tokens = []; stat }
-  | Partial (ast, skipped_tokens, stat) ->
-      { ast = fconvert ast; skipped_tokens; stat }
-  | Error e -> Exception.reraise e
-
-(* Simplified version of 'run' that allows for plugins to hide the
-   intermediate AST type. *)
-let run_external_parser file
-    (parse :
-      Common.filename -> AST_generic.program Tree_sitter_run.Parsing_result.t) :
-    parsing_result =
-  run file [ TreeSitter parse ] (fun ast -> ast)
-
-let throw_tokens f file =
-  let res = f file in
-  (res.Parsing_result.ast, res.Parsing_result.stat)
 
 let lang_to_python_parsing_mode = function
   | Lang.Python -> Parse_python.Python
@@ -363,8 +206,8 @@ let just_parse_with_lang lang file =
       run file [ TreeSitter Parse_html_tree_sitter.parse ] (fun x -> x)
   | Lang.Vue ->
       let parse_embedded_js file =
-        let { ast; skipped_tokens; stat = _ } =
-          just_parse_with_lang Lang.Js file
+        let { Parsing_result2.ast; skipped_tokens; stat = _ } =
+          Parse_target.just_parse_with_lang Lang.Js file
         in
         (* TODO: pass the errors down to Parse_vue_tree_sitter.parse
          * and accumulate with other vue parse errors

@@ -27,7 +27,7 @@
 
 
 (rule
- (target semgrep-core.js)
+ (target engine.js)
  (deps Main.bc.js)
  (action
   (copy %{deps} %{target})))
