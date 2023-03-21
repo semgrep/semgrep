@@ -1161,6 +1161,13 @@ and expression (env : env) (x : CST.expression) : expr =
       let x2 = expression env x2 in
       let x3 = token env x3 in
       G.DeepEllipsis (x1, x2, x3) |> G.e
+  | `Typed_meta (v1, v2, v3, v4, v5) ->
+      let _v1 = (* "(" *) token env v1 in
+      let v2 = simple_identifier env v2 in
+      let v3 = (* ":" *) token env v3 in
+      let v4 = type_ env v4 in
+      let _v5 = (* ")" *) token env v5 in
+      TypedMetavar (v2, v3, v4) |> G.e
 
 and finally_block (env : env) ((v1, v2) : CST.finally_block) =
   let v1 = token env v1 (* "finally" *) in

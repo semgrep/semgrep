@@ -152,7 +152,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_c_sharp.CST.dump_tree
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
-      |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_kotlin.Boilerplate.dump_tree
   | Lang.Jsonnet ->
       Tree_sitter_jsonnet.Parse.file file
       |> dump_and_print_errors Tree_sitter_jsonnet.Boilerplate.dump_tree
