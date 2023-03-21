@@ -59,7 +59,6 @@ PERF_RULE_PATH = "semgrep.perf"
 # differences while saving the original JSON dictionary
 class SemgrepResult:
     def __init__(self, dict: dict) -> None:
-        logger.error("jkl;asdf")
         self.res = dict
         dict2 = copy.deepcopy(dict)
 
