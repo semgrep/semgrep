@@ -6,12 +6,10 @@ from pathlib import Path
 from typing import List
 from typing import Optional
 
-from semdep.external.parsy import eof
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
-from semdep.external.parsy import success
+from semdep.external.parsy import string_from
 from semdep.external.parsy import whitespace
-from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
 from semdep.parsers.util import safe_path_parse
@@ -21,6 +19,9 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 
+
+consume_line = regex(r"[^\n]*\n")
+
 # Section for the direct dependencies, should look something like
 # specifiers:
 #     '@types/jsdom': ^1.2.3
@@ -29,23 +30,20 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 
 whitespace_not_newline = regex("[^\\S\r\n]+")
 
-package = whitespace_not_newline.optional() >> upto(":", consume_other=True)
+package = whitespace_not_newline >> upto(":", consume_other=True)
 version_specifier = upto("\n")
-dep = package.bind(
-    lambda package: whitespace_not_newline.optional()
-    >> string("^").optional()
-    >> string("~").optional()
-    >> version_specifier.bind(lambda vs: success((package, vs)))
+dep = pair(
+    package, string(" ") >> string_from("~", "^").optional() >> version_specifier
 )
 
 direct_dependencies_identifier = string("specifiers:")
 
 direct_dependencies = (
-    whitespace.optional()
-    >> direct_dependencies_identifier
-    >> whitespace.optional()
+    direct_dependencies_identifier
+    >> string("\n")
     >> mark_line(dep).sep_by(string("\n").at_least(1))
 )
+
 
 # Section for the transitive dependencies, should look something like
 # packages:
@@ -76,28 +74,21 @@ raw_dependency = whitespace.optional() >> (
 # resolution: {integrity: sha512-...}
 # transitivePeerDependencies:
 #   - mathPackage
-not_used_info = whitespace.optional() >> regex(" *-[^\n]*| *[^:\n]*:[^\n]*").sep_by(
-    string("\n")
-)
+not_used_info = regex("( *-[^\n]*)|( *[^:\n]*:[^\n]*)").sep_by(string("\n"))
 
 full_raw_dependency = mark_line(raw_dependency) << not_used_info
 
 all_dependencies = (
-    whitespace.optional()
-    >> packages_identifier
-    >> whitespace.optional()
-    >> full_raw_dependency.sep_by(string("\n\n"))
+    packages_identifier >> string("\n") >> full_raw_dependency.sep_by(string("\n\n"))
 )
 
-direct_dependencies_data = (consume_line.optional() >> string("\n").optional()).until(
-    direct_dependencies_identifier
-) >> direct_dependencies
-packages_data = (consume_line.optional() >> string("\n").optional()).until(
-    packages_identifier
-) >> all_dependencies
-all_dependency_data = pair(direct_dependencies_data, packages_data) << (
-    consume_line.optional() >> string("\n").optional()
-).until(eof)
+direct_dependencies_data = (
+    consume_line.until(direct_dependencies_identifier) >> direct_dependencies
+)
+packages_data = consume_line.until(packages_identifier) >> all_dependencies
+all_dependency_data = (
+    pair(direct_dependencies_data, packages_data) << consume_line.many()
+)
 
 
 def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:

@@ -40,9 +40,6 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-hack"]
 	path = languages/tree-sitter-lang/semgrep-hack
 	url = https://github.com/returntocorp/semgrep-hack.git
-[submodule "semgrep-core/src/tree-sitter-lang/semgrep-html"]
-	path = languages/tree-sitter-lang/semgrep-html
-	url = https://github.com/returntocorp/semgrep-html.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-vue"]
 	path = languages/tree-sitter-lang/semgrep-vue
 	url = https://github.com/returntocorp/semgrep-vue.git
