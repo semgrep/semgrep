@@ -67,9 +67,15 @@ def parse_pom_tree(tree_path: Path, _: Optional[Path]) -> List[FoundDependency]:
     if not deps:
         return []
     output = []
-    for line_number, match in set(deps):
+    seen_matches = set()
+    for line_number, match in deps:
         if match is None:
             continue
+
+        if match in seen_matches:
+            continue
+        seen_matches.add(match)
+
         transitivity, package, version = match
         output.append(
             FoundDependency(
