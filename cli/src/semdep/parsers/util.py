@@ -12,6 +12,7 @@ causing no runtime errors.
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
+from os import environ
 from pathlib import Path
 from re import escape
 from sys import getrecursionlimit
@@ -339,8 +340,9 @@ json_doc = whitespace >> json_value
 
 
 class add_recursion_limit:
-    def __init__(self, increase: int):
-        self.increase = increase
+    def __init__(self) -> None:
+        increase = environ.get("SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE")
+        self.increase = int(increase) if increase else 500
 
     def __enter__(self) -> None:
         self.old_limit = getrecursionlimit()
@@ -355,12 +357,12 @@ json_doc_parse_partial = json_doc.parse_partial
 
 
 def json_doc_custom_parse(txt):  # type: ignore
-    with add_recursion_limit(500):
+    with add_recursion_limit():
         return json_doc_parse(txt)
 
 
 def json_doc_custom_parse_partial(txt):  # type: ignore
-    with add_recursion_limit(500):
+    with add_recursion_limit():
         return json_doc_parse_partial(txt)
 
 
