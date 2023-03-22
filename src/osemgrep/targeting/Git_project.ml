@@ -37,14 +37,19 @@ let force_project_root ?(project_root = default_project_root) path =
   | Ok git_path -> (project_root, git_path)
   | Error msg -> failwith msg
 
-type kind = Git_project | Other_project
+type kind = Git_project | Other_project [@@deriving show]
 
-let find_any_project_root ?fallback_root path =
+let find_any_project_root ?fallback_root ?force_root path =
   let path = Realpath.realpath path in
-  match find_git_project_root_phys path with
-  | Some (project_root, git_path) -> (Git_project, project_root, git_path)
-  | None ->
-      let project_root, git_path =
-        force_project_root ?project_root:fallback_root path
-      in
-      (Other_project, project_root, git_path)
+  match force_root with
+  | Some (kind, project_root) ->
+      let project_root, git_path = force_project_root ~project_root path in
+      (kind, project_root, git_path)
+  | None -> (
+      match find_git_project_root_phys path with
+      | Some (project_root, git_path) -> (Git_project, project_root, git_path)
+      | None ->
+          let project_root, git_path =
+            force_project_root ?project_root:fallback_root path
+          in
+          (Other_project, project_root, git_path))

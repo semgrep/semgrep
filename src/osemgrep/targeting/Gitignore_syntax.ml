@@ -17,9 +17,9 @@ type t = path_selector list
 
 let show_selection_event x =
   match x with
-  | Selected loc -> Printf.sprintf "selected at %s" (Glob_matcher.show_loc loc)
+  | Selected loc -> Printf.sprintf "ignored at %s" (Glob_matcher.show_loc loc)
   | Deselected loc ->
-      Printf.sprintf "deselected at %s" (Glob_matcher.show_loc loc)
+      Printf.sprintf "de-ignored at %s" (Glob_matcher.show_loc loc)
 
 let show_selection_events xs =
   List.rev xs

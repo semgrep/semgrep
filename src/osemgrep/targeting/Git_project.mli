@@ -20,7 +20,7 @@ val is_git_root : Fpath.t -> bool
 *)
 val find_git_project_root : Fpath.t -> (Fpath.t * Git_path.t) option
 
-type kind = Git_project | Other_project
+type kind = Git_project | Other_project [@@deriving show]
 
 (* The default value of '?fallback_project_root' *)
 val default_project_root : Fpath.t
@@ -36,6 +36,10 @@ val force_project_root :
 (*
    Find a project root even if the given path is not within a git project.
 
+   'force_root' can be used to impose the project root rather than guessing
+   it. It's useful for testing the gitignore mechanism and stay within
+   the confines of the test folder.
+
    This returns the project root and the path relative to that root just like
    'find_git_project_root'.
 
@@ -46,4 +50,7 @@ val force_project_root :
    set to the current folder '.', resolved to a physical path.
 *)
 val find_any_project_root :
-  ?fallback_root:Fpath.t -> Fpath.t -> kind * Fpath.t * Git_path.t
+  ?fallback_root:Fpath.t ->
+  ?force_root:kind * Fpath.t ->
+  Fpath.t ->
+  kind * Fpath.t * Git_path.t

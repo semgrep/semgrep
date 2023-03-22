@@ -478,7 +478,7 @@ let cli_output_of_core_results ~logging_level ~rules_source
       let scanned = res.scanned |> Set_.elements in
       let (paths : Out.cli_paths) =
         match logging_level with
-        | Some Logs.Info ->
+        | Some (Logs.Info | Logs.Debug) ->
             let skipped = cli_skipped_targets_opt ~errors ~skipped_targets in
             { scanned; _comment = None; skipped }
         | _else_ ->
