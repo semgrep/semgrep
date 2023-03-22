@@ -9,7 +9,6 @@ from typing import Optional
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import string_from
-from semdep.external.parsy import whitespace
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
 from semdep.parsers.util import safe_path_parse
@@ -66,9 +65,8 @@ packages_identifier = string("packages:")
 
 # "/foo/1.2.3:"
 # "/@foo/bar/1.2.3:"
-raw_dependency = (
-    regex("/ *(@.+/.+)/([^:]+)", flags=0, group=(1, 2))
-    | regex("/ *(.+)/([^:]+)", flags=0, group=(1, 2))
+raw_dependency = regex("/ *(@.+/.+)/([^:]+)", flags=0, group=(1, 2)) | regex(
+    "/ *(.+)/([^:]+)", flags=0, group=(1, 2)
 )
 
 # resolution: {integrity: sha512-...}
