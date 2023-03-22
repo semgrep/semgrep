@@ -48,6 +48,8 @@ tree_line = mark_line(
                 d[1],
             )
         )
+        # ignore lines that we don't recognize
+        | consume_line
     )
 )
 
@@ -65,7 +67,10 @@ def parse_pom_tree(tree_path: Path, _: Optional[Path]) -> List[FoundDependency]:
     if not deps:
         return []
     output = []
-    for line_number, (transitivity, package, version) in deps:
+    for line_number, match in set(deps):
+        if match is None:
+            continue
+        transitivity, package, version = match
         output.append(
             FoundDependency(
                 package=package,
@@ -77,8 +82,3 @@ def parse_pom_tree(tree_path: Path, _: Optional[Path]) -> List[FoundDependency]:
             )
         )
     return output
-
-
-from pathlib import Path
-
-path = Path("/Users/matthewmcquaid/test/maven_dep_tree.txt")
