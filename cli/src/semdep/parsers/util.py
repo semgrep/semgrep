@@ -220,6 +220,7 @@ def safe_path_parse(
     Run [parser] on the text in [path]
     If the parsing fails, produces a pretty error message
     """
+    print("PATH: ", path)
     if not path:
         return None
     text = path.read_text()
@@ -244,6 +245,21 @@ def safe_path_parse(
                 f"Failed to parse {path} at {line + 1}:{col + 1} - {error_str}\nInternal Error - line {line + 1} is past the end of {path}?"
             )
         return None
+
+
+import sys
+
+
+class add_recursion_limit:
+    def __init__(self, increase: int):
+        self.increase = increase
+
+    def __enter__(self) -> None:
+        self.old_limit = sys.getrecursionlimit()
+        sys.setrecursionlimit(self.old_limit + self.increase)
+
+    def __exit__(self, type, value, tb):  # type: ignore
+        sys.setrecursionlimit(self.old_limit)
 
 
 # A parser for JSON, using a line_number annotated JSON type. This is adapted from an example in the Parsy repo.
@@ -330,3 +346,25 @@ become(
     ),
 )
 json_doc = whitespace >> json_value
+
+
+# This is truly awful. Python's recursion limit is too small for some realistic package-lock.json files.
+# So we manually patch the parse and parse_partial methods of the json parser to increase it 😵‍💫
+
+
+json_doc_parse = json_doc.parse
+json_doc_parse_partial = json_doc.parse_partial
+
+
+def json_doc_custom_parse(txt):  # type: ignore
+    with add_recursion_limit(500):
+        return json_doc_parse(txt)
+
+
+def json_doc_custom_parse_partial(txt):  # type: ignore
+    with add_recursion_limit(500):
+        return json_doc_parse_partial(txt)
+
+
+json_doc.parse = json_doc_custom_parse  # type: ignore
+json_doc.parse_partial = json_doc_custom_parse_partial  # type: ignore

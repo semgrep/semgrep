@@ -25,6 +25,7 @@ logger = getLogger(__name__)
 def parse_package_lock(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
+
     lockfile_json_opt = safe_path_parse(lockfile_path, json_doc)
     if not lockfile_json_opt:
         return []
