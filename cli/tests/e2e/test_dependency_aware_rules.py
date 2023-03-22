@@ -89,6 +89,10 @@ pytestmark = pytest.mark.kinda_slow
         ),
         (
             "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_joined",
+        ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
             "dependency_aware/maven_dep_tree_optional",
         ),
         (

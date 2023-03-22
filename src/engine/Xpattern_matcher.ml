@@ -28,7 +28,7 @@ module G = AST_generic
 (*****************************************************************************)
 
 (* This type and matches_of_matcher() below factorize code between
- * the regexp, spacegrep, and now comby matchers.
+ * the regexp and spacegrep.
  *)
 type ('target_content, 'xpattern) t = {
   (* init returns an option to let the matcher the option to skip

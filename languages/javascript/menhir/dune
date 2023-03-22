@@ -3,7 +3,7 @@
  (name parser_javascript_menhir)
  (wrapped false)
  (libraries
-
+   menhirLib ; this is needed when using --table
    commons
    process_limits
    lib_parsing
@@ -12,5 +12,6 @@
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )
 (ocamllex lexer_js)
+; --table helps to generate a smaller engine.js file
 (menhir (modules parser_js)
-        (flags --unused-tokens --explain --fixed-exception))
+        (flags --unused-tokens --explain --table --fixed-exception))

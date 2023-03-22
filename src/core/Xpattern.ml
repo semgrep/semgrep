@@ -49,7 +49,6 @@ type xpattern_kind =
       * unevaluated thunks. Then Parmap will try to marshal this value and it will
       * crash if there is any "Custom" block involved.
       *)
-  | Comby of string
 [@@deriving show, eq]
 
 (* eXtended pattern *)

@@ -2,6 +2,12 @@ open Js_of_ocaml
 
 let _ =
   Common.jsoo := true;
+  (* Using semgrep.parsing_languages makes the JS goes
+     from 16MB to 7MB (in release mode) and from 110MB to 50MB (in dev mode)
+     TODO: we should add language parsers dynamically, loading language "bundles"
+     from the web on demand when one select a language in the playground.
+     old: Parsing_init.init ();
+  *)
   Js.Unsafe.global ##. Semgrep
   := object%js
        method execute language rule_file source_file =
