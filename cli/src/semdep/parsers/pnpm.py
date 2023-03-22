@@ -66,9 +66,9 @@ packages_identifier = string("packages:")
 
 # "/foo/1.2.3:"
 # "/@foo/bar/1.2.3:"
-raw_dependency = whitespace.optional() >> (
-    regex("/(@.+/.+)/([^:]+)", flags=0, group=(1, 2))
-    | regex("/(.+)/([^:]+)", flags=0, group=(1, 2))
+raw_dependency = (
+    regex("/ *(@.+/.+)/([^:]+)", flags=0, group=(1, 2))
+    | regex("/ *(.+)/([^:]+)", flags=0, group=(1, 2))
 )
 
 # resolution: {integrity: sha512-...}
@@ -79,7 +79,7 @@ not_used_info = regex("( *-[^\n]*)|( *[^:\n]*:[^\n]*)").sep_by(string("\n"))
 full_raw_dependency = mark_line(raw_dependency) << not_used_info
 
 all_dependencies = (
-    packages_identifier >> string("\n") >> full_raw_dependency.sep_by(string("\n\n"))
+    packages_identifier >> string("\n\n") >> full_raw_dependency.sep_by(string("\n\n"))
 )
 
 direct_dependencies_data = (
