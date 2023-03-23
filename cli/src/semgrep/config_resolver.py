@@ -88,7 +88,12 @@ class ConfigLoader:
     _project_url = None
     _extra_headers: Dict[str, str] = {}
 
-    def __init__(self, config_str: str, project_url: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        config_str: str,
+        project_url: Optional[str] = None,
+        config_str_for_jsonnet: Optional[str] = None,
+    ) -> None:
         """
         Mutates Metrics state!
         Takes a user's inputted config_str and transforms it into the appropriate
@@ -122,6 +127,11 @@ class ConfigLoader:
         else:
             state.metrics.add_feature("config", "local")
             self._origin = ConfigType.LOCAL
+            # For local imports, use the jsonnet config str
+            # if it exists
+            config_str = (
+                config_str_for_jsonnet if config_str_for_jsonnet else config_str
+            )
             self._config_path = str(Path(config_str).expanduser())
 
         if self.is_registry_url():
@@ -549,22 +559,12 @@ def import_callback(base: str, path: str) -> Tuple[str, bytes]:
         filename = final_path
         return filename, contents.encode()
 
-    # This could be handled by ConfigLoader below (and its _load_config_from_local_path() helper)
-    # but this would not handle the 'base' argument yet, so better to be explicit about
-    # jsonnet handling here.
-    if final_path and (
-        final_path.split(".")[-1] == "jsonnet"
-        or final_path.split(".")[-1] == "libsonnet"
-    ):
-        logger.debug(f"loading jsonnet file {final_path}")
-        contents = Path(final_path).read_text()
-        return final_path, contents.encode()
-
     logger.debug(f"defaulting to the config resolver for {path}")
     # Registry-aware import!
     # Can now do 'local x = import "p/python";'!!
-    # TODO? should we pass also base?
-    config_infos = ConfigLoader(path, None).load_config()
+    # Will also handle `.jsonnet` and `.libsonnet` files
+    # implicitly, since they will be resolved as local files
+    config_infos = ConfigLoader(path, None, final_path).load_config()
     if len(config_infos) == 0:
         raise SemgrepError(f"No valid configs imported")
     elif len(config_infos) > 1:
