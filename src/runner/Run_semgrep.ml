@@ -343,6 +343,19 @@ let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
       raise (R.Err (R.InvalidRule err))
   | _, [] -> ()
 
+let sanity_check_invalid_patterns (res : RP.final_result) files =
+  match
+    res.RP.errors
+    |> List.find_opt (fun (err : E.error) ->
+           match err.typ with
+           | Out.PatternParseError _ -> true
+           | _else_ -> false)
+  with
+  | None -> (None, res, files)
+  | Some err ->
+      let e = Exception.catch (Failure "Pattern parse error") in
+      (Some e, { RP.empty_final_result with errors = [ err ] }, [])
+
 (*****************************************************************************)
 (* Parsing (non-cached) *)
 (*****************************************************************************)
@@ -462,7 +475,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                 * later, but we still want to abort semgrep-core when we
                 * find such exns.
                 *)
-               | R.Err (R.InvalidRule _) as exn ->
+               | R.Err (R.InvalidRule _) as exn when false ->
                    Exception.catch_and_reraise exn
                (* convert all other exns (e.g., a parse error in a target file)
                 * in an empty match result with errors, so that one error
@@ -819,7 +832,8 @@ let semgrep_with_raw_results_and_exn_handler config =
       Common.with_time (fun () -> rules_from_rule_source config)
     in
     let res, files = semgrep_with_rules config timed_rules in
-    (None, res, files)
+    (* (None, res, files) *)
+    sanity_check_invalid_patterns res files
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
