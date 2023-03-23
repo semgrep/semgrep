@@ -65,8 +65,8 @@ packages_identifier = string("packages:")
 
 # "/foo/1.2.3:"
 # "/@foo/bar/1.2.3:"
-raw_dependency = regex("/ *(@.+/.+)/([^:]+)", flags=0, group=(1, 2)) | regex(
-    "/ *(.+)/([^:]+)", flags=0, group=(1, 2)
+raw_dependency = regex(" */(@.+/.+)/([^:]+)", flags=0, group=(1, 2)) | regex(
+    " */(.+)/([^:]+)", flags=0, group=(1, 2)
 )
 
 # resolution: {integrity: sha512-...}
