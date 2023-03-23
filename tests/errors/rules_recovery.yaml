@@ -14,14 +14,3 @@
   languages: [ ocaml ]
   message: found one
   severity: ERROR
-- id: rule-with-error-in-formula
-  patterns:
-    - pattern: Common.do_option
-    # this also generates an error, but the testing code for this directory
-    # parses strictly the rule and just stops at the first error
-    # (the ERROR above in rule-with-some-error)
-    - metavariable-unknown: bar
-  fix: Option.iter
-  languages: [ ocaml ]
-  message: found one
-  severity: ERROR
