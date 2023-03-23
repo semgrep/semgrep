@@ -3,37 +3,8 @@
     {
       "code": 2,
       "level": "error",
-      "message": "Pattern parse error in rule rules.syntax.eqeq-is-bad:\n Invalid pattern for Python:\n--- pattern ---\n$X == $X 3\n--- end pattern ---\nPattern error: Parsing.Parse_error\n",
-      "rule_id": "rules.syntax.eqeq-is-bad",
-      "spans": [
-        {
-          "config_end": {
-            "col": 13,
-            "line": 0
-          },
-          "config_path": [
-            "rules",
-            "0",
-            "patterns",
-            "0",
-            "pattern"
-          ],
-          "config_start": {
-            "col": 1,
-            "line": 0
-          },
-          "end": {
-            "col": 34,
-            "line": 11
-          },
-          "file": "tmp/masked/path",
-          "start": {
-            "col": 22,
-            "line": 11
-          }
-        }
-      ],
-      "type": "Pattern parse error"
+      "message": "Error while running rules: semgrep-core exited with unexpected output.\n\n\tThis can happen because it overflowed the stack or used too much memory.\n\tTry changing the stack limit with `ulimit -s <limit>` or adding\n\t`--max-memory <memory>` to the semgrep command. For CI runs with interfile\n\tanalysis, the default max-memory is 5000MB. Depending on the memory\n\tavailable in your runner, you may need to lower it. We recommend choosing\n\ta limit 70% of the available memory to allow for some overhead. If you have\n\ttried these steps and still are seeing this error, please contact us.",
+      "type": "SemgrepError"
     }
   ],
   "paths": {
