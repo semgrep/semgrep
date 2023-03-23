@@ -214,6 +214,9 @@ def parse_error_to_str(e: ParseError) -> str:
         return f"expected one of {expected_list}"
 
 
+RECUSION_LIMIT_ENV_VAR = "SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE"
+
+
 def safe_path_parse(
     path: Optional[Path],
     parser: "Parser[A]",
@@ -230,6 +233,11 @@ def safe_path_parse(
         text = preprocess(text)
     try:
         return parser.parse(text)
+    except RecursionError:
+        logger.error(
+            f"Failed to parse {path} - Python recursion depth exceeded, try again with {RECUSION_LIMIT_ENV_VAR} set higher than 500"
+        )
+        return None
     except ParseError as e:
         # These are zero indexed but most editors are one indexed
         line, col = e.index.line, e.index.column
@@ -341,7 +349,7 @@ json_doc = whitespace >> json_value
 
 class add_recursion_limit:
     def __init__(self) -> None:
-        increase = environ.get("SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE")
+        increase = environ.get(RECUSION_LIMIT_ENV_VAR)
         self.increase = int(increase) if increase else 500
 
     def __enter__(self) -> None:
