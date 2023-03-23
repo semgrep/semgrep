@@ -80,13 +80,26 @@ def _get_test_code_for_config(
     " If 'public', rules will be published to the Semgrep Registry (requires --registry-id)",
 )
 @click.option(
+    "--allow-deleted",
+    "-D",
+    "allow_deleted",
+    is_flag=True,
+    help="Allow reuploading of deleted org_private rules."
+    " If disabled (default), then an error will be emitted when attempting to upload a"
+    "    rule that has been deleted."
+    " Otherwise, if enabled, then the rule can be uploaded regardless.",
+)
+@click.option(
     "--registry-id",
     "registry_id",
     help="If --visibility is set to public, this is the path the rule will have in the registry (example: python.flask.my-new-rule",
 )
 @handle_command_errors
 def publish(
-    target: str, visibility: VisibilityState, registry_id: Optional[str]
+    target: str,
+    visibility: VisibilityState,
+    registry_id: Optional[str],
+    allow_deleted: bool,
 ) -> None:
     """
     Upload rule to semgrep.dev
@@ -130,6 +143,7 @@ def publish(
             visibility,
             first_test_case,
             registry_id,
+            allow_deleted=allow_deleted,
         ):
             fail_count += 1
     if fail_count == 0:
@@ -144,6 +158,7 @@ def _upload_rule(
     visibility: VisibilityState,
     test_code_file: Optional[Path],
     registry_id: Optional[str],
+    allow_deleted: Optional[bool] = False,
 ) -> bool:
     """
     Uploads rule in rule_file with the specificied visibility
@@ -189,7 +204,9 @@ def _upload_rule(
         "registry_check_id": registry_id,
     }
     response = state.app_session.post(
-        f"{state.env.semgrep_url}/api/registry/rule", json=request_json
+        f"{state.env.semgrep_url}/api/registry/rule",
+        json=request_json,
+        params={"allow_deleted": allow_deleted},
     )
 
     if not response.ok:
