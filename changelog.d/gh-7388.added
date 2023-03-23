@@ -1,0 +1,3 @@
+Added `--allow-deleted`, `-D` flag to `semgrep publish` command.
+When enabled, users can now make changes to `org_private` rules that have been
+previously removed. Those rules will then be _unmarked_ as deleted and reuploaded.
