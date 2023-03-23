@@ -17,8 +17,8 @@ https://github.com/travis-ci/travis-tasks
 
 https://github.com/OWASP/railsgoat
 
-# TODO? skip? may contain many test files?
-https://github.com/ruby/ruby
+# tends to fail
+# https://github.com/ruby/ruby
 
 # Most starred on GitHub:
 #   https://github.com/topics/ruby?l=ruby&o=desc&s=stars

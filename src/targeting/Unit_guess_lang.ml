@@ -1,6 +1,8 @@
 (*
    Unit tests for Guess_lang
 *)
+open Lang
+open File.Operators
 
 type exec = Exec | Nonexec
 type success = OK | XFAIL
@@ -8,7 +10,7 @@ type success = OK | XFAIL
 (*
    For these tests, the file doesn't need to exist.
 *)
-let name_tests : (string * Lang.t * string * success) list =
+let name_tests : (string * Lang.t * Fpath.t * success) list =
   [
     (* name, language, file name, expected result *)
     ("js", Js, "foo.js", OK);
@@ -22,6 +24,8 @@ let name_tests : (string * Lang.t * string * success) list =
     ("typescript .d.ts", Ts, "foo.d.ts", XFAIL);
     ("spaces", Ruby, " a b  c.rb", OK);
   ]
+  |> Common.map (fun (name, (lang : Lang.t), path, expect) ->
+         (name, lang, Fpath.v path, expect))
 
 let contents_tests : (string * Lang.t * string * string * exec * success) list =
   [
@@ -57,7 +61,6 @@ let contents_tests : (string * Lang.t * string * string * exec * success) list =
     ("php", Php, "foo.php", "", Nonexec, OK);
   ]
 
-let ( // ) = Filename.concat
 let mkdir path = if not (Sys.file_exists path) then Unix.mkdir path 0o777
 
 (*
@@ -66,12 +69,12 @@ let mkdir path = if not (Sys.file_exists path) then Unix.mkdir path 0o777
    troubleshooting tests.
 *)
 let with_file name contents exec f =
-  let dir = "tmp" in
-  mkdir dir;
-  let path = dir // name in
-  let oc = open_out_bin path in
+  let dir = Fpath.v "tmp" in
+  mkdir !!dir;
+  let path = dir / name in
+  let oc = open_out_bin !!path in
   (match exec with
-  | Exec -> Unix.chmod path 0o755
+  | Exec -> Unix.chmod !!path 0o755
   | Nonexec -> ());
   Fun.protect
     ~finally:(fun () -> close_out oc)
@@ -95,21 +98,10 @@ let test_with_contents lang name contents exec expectation =
           ()
       | _ -> assert false)
 
-(* This is necessary when running the tests on Windows. *)
-let fix_path s =
-  match Sys.os_type with
-  | "Win32" ->
-      String.map
-        (function
-          | '/' -> '\\'
-          | c -> c)
-        s
-  | _ -> s
-
 let test_inspect_file =
   Common.map
     (fun (test_name, lang, path, expectation) ->
-      (test_name, fun () -> test_name_only lang (fix_path path) expectation))
+      (test_name, fun () -> test_name_only lang path expectation))
     name_tests
   @ Common.map
       (fun (test_name, lang, file_name, contents, exec, expectation) ->

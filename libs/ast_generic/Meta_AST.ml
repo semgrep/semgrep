@@ -1499,6 +1499,9 @@ and vof_any = function
   | At v1 ->
       let v1 = vof_attribute v1 in
       OCaml.VSum ("At", [ v1 ])
+  | XmlAt v1 ->
+      let v1 = vof_xml_attribute v1 in
+      OCaml.VSum ("XmlAt", [ v1 ])
   | Dk v1 ->
       let v1 = vof_definition_kind v1 in
       OCaml.VSum ("Dk", [ v1 ])

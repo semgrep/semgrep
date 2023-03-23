@@ -209,6 +209,6 @@ let () =
           let tree2 = read root in
           assert (sort tree2 = sort tree);
 
-          let paths = flatten tree |> Common.map Fpath.to_string in
+          let paths = flatten tree |> File.to_strings in
           List.iter print_endline paths;
           assert (paths = [ "a"; "b"; "c"; "d/e" ])))

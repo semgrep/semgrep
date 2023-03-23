@@ -8,7 +8,7 @@
    commons
    semgrep.core
    semgrep.reporting ; for skipped_target ATD type
-
+   osemgrep_targeting
  )
  (preprocess
    (pps

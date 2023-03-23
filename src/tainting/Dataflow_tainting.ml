@@ -302,7 +302,8 @@ let top_level_sinks_in_nodes config flow =
                      Seq.empty)
              in
              origs
-             |> Seq.concat_map (fun o -> orig_is_sink config o |> List.to_seq)
+             |> Stdcompat.Seq.concat_map (fun o ->
+                    orig_is_sink config o |> List.to_seq)
          | NCond (_, exp)
          | NReturn (_, exp)
          | NThrow (_, exp) ->
@@ -586,7 +587,7 @@ let propagate_taint_via_java_setter env e args all_args_taints =
       },
       [ _ ] )
     when env.lang =*= Lang.Java
-         && String.starts_with ~prefix:"set" (fst m.IL.ident) ->
+         && Stdcompat.String.starts_with ~prefix:"set" (fst m.IL.ident) ->
       let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
       let prop_lval =
         let o = Dot { m with ident = (prop_name, snd m.IL.ident) } in
@@ -603,8 +604,8 @@ let resolve_poly_taint_for_java_getters env lval st =
    * needs some testing and for now it's safer to restrict it to Java and getX. *)
   if env.lang =*= Java then
     match lval.rev_offset with
-    | { o = Dot n; _ } :: _ when String.starts_with ~prefix:"get" (fst n.ident)
-      -> (
+    | { o = Dot n; _ } :: _
+      when Stdcompat.String.starts_with ~prefix:"get" (fst n.ident) -> (
         match st with
         | `Clean -> `Clean
         | `None -> `None

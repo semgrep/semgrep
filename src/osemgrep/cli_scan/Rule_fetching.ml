@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module E = Error
 module FT = File_type
 module C = Semgrep_dashdash_config
@@ -40,8 +41,7 @@ type rules_and_origin = {
 }
 
 (* TODO? more complex origin? Remote of Uri.t | Local of filename | Inline? *)
-and origin = Common.filename option (* None for remote files *)
-[@@deriving show]
+and origin = Fpath.t option (* None for remote files *) [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -132,7 +132,7 @@ let import_callback base str =
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
  *)
-let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
+let parse_rule (file : Fpath.t) : Rule.rules * Rule.invalid_rule_error list =
   match FT.file_type_of_file file with
   | FT.Config FT.Jsonnet ->
       Logs.warn (fun m ->
@@ -140,8 +140,8 @@ let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
             "Support for Jsonnet rules is experimental and currently meant for \
              internal use only. The syntax may change or be removed at any \
              point.");
-      let ast = Parse_jsonnet.parse_program file in
-      let core = Desugar_jsonnet.desugar_program ~import_callback file ast in
+      let ast = Parse_jsonnet.parse_program !!file in
+      let core = Desugar_jsonnet.desugar_program ~import_callback !!file ast in
       let value_ = Eval_jsonnet.eval_program core in
       let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
       (* TODO: put to true at some point *)
@@ -159,17 +159,17 @@ let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
  *  Parse_rule.is_valid_rule_filename, but we still need ojsonnet to
  *  be done).
  *)
-let load_rules_from_file file : rules_and_origin =
-  Logs.debug (fun m -> m "loading local config from %s" file);
-  if Sys.file_exists file then (
+let load_rules_from_file (file : Fpath.t) : rules_and_origin =
+  Logs.debug (fun m -> m "loading local config from %s" !!file);
+  if Sys.file_exists !!file then (
     let rules, errors = parse_rule file in
-    Logs.debug (fun m -> m "Done loading local config from %s" file);
+    Logs.debug (fun m -> m "Done loading local config from %s" !!file);
     { origin = Some file; rules; errors })
   else
     (* This should never happen because Semgrep_dashdash_config only builds
      * a File case if the file actually exists.
      *)
-    Error.abort (spf "file %s does not exist anymore" file)
+    Error.abort (spf "file %s does not exist anymore" !!file)
 
 let load_rules_from_url url : rules_and_origin =
   (* TOPORT? _nice_semgrep_url() *)
@@ -185,6 +185,7 @@ let load_rules_from_url url : rules_and_origin =
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+      let file = Fpath.v file in
       let res = load_rules_from_file file in
       { res with origin = None })
 

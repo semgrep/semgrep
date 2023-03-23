@@ -118,7 +118,7 @@ let ast_or_exn_of_file lang file =
   logger#trace "parsing %s" file;
   try
     (* finally calling the actual function *)
-    let { Parse_target.ast; skipped_tokens; _ } =
+    let { Parsing_result2.ast; skipped_tokens; _ } =
       Parse_target.parse_and_resolve_name lang file
     in
     Left (ast, skipped_tokens)

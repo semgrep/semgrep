@@ -258,7 +258,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                         lazy
                           (match xlang with
                           | L (lang, _) ->
-                              let { Parse_target.ast; skipped_tokens; _ } =
+                              let { Parsing_result2.ast; skipped_tokens; _ } =
                                 Parse_target.parse_and_resolve_name lang file
                               in
                               (* Reposition the errors to the original source

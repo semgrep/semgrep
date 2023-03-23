@@ -1966,6 +1966,7 @@ and any =
   | T of type_
   | P of pattern
   | At of attribute
+  | XmlAt of xml_attribute
   | Fld of field
   | Flds of field list
   | Args of argument list

@@ -80,10 +80,12 @@ class ErrorHandler:
         }
         if sys.exc_info()[0] is not None:
             self.payload["error"] = traceback.format_exc()
+
         try:
             requests.post(
                 state.env.fail_open_url, headers=headers, json=self.payload, timeout=3
             )
         except Exception as e:
-            logger.error(f"Error sending to fail-open endpoint: {e}")
+            logger.debug(f"Error sending to fail-open endpoint: {e}")
+
         return 0

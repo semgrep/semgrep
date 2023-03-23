@@ -67,8 +67,6 @@ Blocking Rules Fired:
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 4 Code rules:
-            
-  CODE RULES
   Scanning 1 file with 4 python rules.
   Current version has 14 findings.
 
@@ -82,8 +80,6 @@ Switching repository to baseline commit '<MASKED>'.
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 4 Code rules:
-            
-  CODE RULES
   Scanning 1 file with 4 python rules.
            
            

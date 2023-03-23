@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module J = JSON
 module FT = File_type
 module R = Rule
@@ -630,23 +631,21 @@ let find_formula_old env (rule_dict : dict) : key * G.expr =
     ( find "pattern",
       find "pattern-either",
       find "patterns",
-      find "pattern-regex",
-      find "pattern-comby" )
+      find "pattern-regex" )
   with
-  | None, None, None, None, None ->
+  | None, None, None, None ->
       error env rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, `pattern-comby` to be present"
-  | Some (key, value), None, None, None, None
-  | None, Some (key, value), None, None, None
-  | None, None, Some (key, value), None, None
-  | None, None, None, Some (key, value), None
-  | None, None, None, None, Some (key, value) ->
+         `pattern-regex` to be present"
+  | Some (key, value), None, None, None
+  | None, Some (key, value), None, None
+  | None, None, Some (key, value), None
+  | None, None, None, Some (key, value) ->
       (key, value)
   | _ ->
       error env rule_dict.first_tok
-        "Expected only one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, or `pattern-comby`"
+        "Expected only one of `pattern`, `pattern-either`, `patterns`, or \
+         `pattern-regex`"
 
 let rec parse_formula_old_from_dict (env : env) (rule_dict : dict) : R.formula =
   let formula = parse_pair_old env (find_formula_old env rule_dict) in
@@ -760,10 +759,6 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
       let x = parse_string_wrap env key value in
       let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
       R.Not (t, R.P xpat)
-  | "pattern-comby" ->
-      let x = parse_string_wrap env key value in
-      let xpat = XP.mk_xpat (Comby (fst x)) x in
-      R.P xpat
   | "focus-metavariable"
   | "metavariable-analysis"
   | "metavariable-regex"
@@ -869,7 +864,7 @@ let find_formula env (rule_dict : dict) : key * G.expr =
   | None ->
       error env rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, `pattern-comby` to be present"
+         `pattern-regex` to be present"
   | Some (key, value) -> (key, value)
 
 (* intermediate type used for processing 'where' *)
@@ -940,7 +935,7 @@ and parse_formula env (value : G.expr) : R.formula =
       | _ when Hashtbl.length dict.h <> 1 ->
           error env dict.first_tok
             "Expected exactly one key of `pattern`, `pattern-either`, \
-             `patterns`, `pattern-regex`, or `pattern-comby`"
+             `patterns`, or `pattern-regex`"
       (* Otherwise, use the where formula if it exists, to modify the formula we know must exist. *)
       | None -> parse_pair env (find_formula env dict)
       | Some (((_, t) as key), value) ->
@@ -1303,9 +1298,13 @@ let parse_extract_transform ~id (s, t) =
 (*****************************************************************************)
 
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
-  match mode_opt with
-  | None
-  | Some ("search", _) -> (
+  (* We do this because we should only assume that we have a search mode rule
+     if there is not a `taint` key present in the rule dict.
+  *)
+  let has_taint_key = Option.is_some (Hashtbl.find_opt rule_dict.h "taint") in
+  match (mode_opt, has_taint_key) with
+  | None, false
+  | Some ("search", _), false -> (
       let formula =
         take_opt rule_dict env
           (fun env _ expr -> parse_formula env expr)
@@ -1314,7 +1313,8 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       match formula with
       | Some formula -> `Search formula
       | None -> `Search (parse_pair_old env (find_formula_old env rule_dict)))
-  | Some ("taint", _) -> (
+  | _, true
+  | Some ("taint", _), _ -> (
       let parse_specs parse_spec env key x =
         ( snd key,
           parse_listi env key
@@ -1352,7 +1352,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
                 | Some (_, xs) -> xs);
               sinks;
             })
-  | Some ("extract", _) ->
+  | Some ("extract", _), _ ->
       let formula = parse_pair_old env (find_formula_old env rule_dict) in
       let dst_lang =
         take rule_dict env parse_string_wrap "dest-language"
@@ -1371,7 +1371,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
         |> Option.value ~default:R.Separate
       in
       `Extract { formula; dst_lang; extract; reduce; transform }
-  | Some key ->
+  | Some key, _ ->
       error_at_key env key
         (spf
            "Unexpected value for mode, should be 'search', 'taint', or \
@@ -1445,7 +1445,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
     options = options_opt;
   }
 
-let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
+let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
     (ast : AST_generic.program) : Rule.rules * Rule.invalid_rule_error list =
   let t, rules =
     match ast with
@@ -1478,7 +1478,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Common.filename)
          *)
         | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
         | _ ->
-            let loc = PI.first_loc_of_file file in
+            let loc = PI.first_loc_of_file !!file in
             yaml_error (PI.mk_info_of_loc loc)
               "missing rules entry as top-level key")
     | _ -> assert false
@@ -1537,31 +1537,31 @@ let parse_file ?error_recovery file =
          * below.
          *)
         Json_to_generic.program ~unescape_strings:true
-          (Parse_json.parse_program file)
+          (Parse_json.parse_program !!file)
     | FT.Config FT.Jsonnet ->
         if use_ojsonnet then
-          let ast = Parse_jsonnet.parse_program file in
+          let ast = Parse_jsonnet.parse_program !!file in
           (* Note that here we do not support registry-aware import;
            * those are defined in osemgrep/.../Rule_fetching.ml where
            * we use Network.get functions. Thus, semgrep-core -dump_rule
            * will not work with registry-aware import either.
            * Use osemgrep --dump-config instead.
            *)
-          let core = Desugar_jsonnet.desugar_program file ast in
+          let core = Desugar_jsonnet.desugar_program !!file ast in
           let value_ = Eval_jsonnet.eval_program core in
           Manifest_jsonnet_to_AST_generic.manifest_value value_
         else
           Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
-              let cmd = spf "jsonnet -J vendor %s -o %s" file tmpfile in
+              let cmd = spf "jsonnet -J vendor %s -o %s" !!file tmpfile in
               let n = Sys.command cmd in
               if n <> 0 then failwith (spf "error executing %s" cmd);
               let ast = Parse_json.parse_program tmpfile in
               Json_to_generic.program ~unescape_strings:true ast)
-    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true file
+    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true !!file
     | _else_ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
-        logger#info "trying to parse %s as YAML" file;
-        parse_yaml_rule_file ~is_target:true file
+        logger#info "trying to parse %s as YAML" !!file;
+        parse_yaml_rule_file ~is_target:true !!file
   in
   parse_generic_ast ?error_recovery file ast
 
@@ -1602,6 +1602,7 @@ let parse file =
  *)
 let is_test_yaml_file filepath =
   (* .test.yaml files are YAML target files rather than config files! *)
+  let filepath = !!filepath in
   Filename.check_suffix filepath ".test.yaml"
   || Filename.check_suffix filepath ".test.yml"
   || Filename.check_suffix filepath ".test.fixed.yaml"
