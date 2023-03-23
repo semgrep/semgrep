@@ -1,8 +1,64 @@
 runs:
+  - name: TSW_PROJECT
+    repos:
+      - url: https://github.com/ChristianMascolo/TSW_PROJECT.git
+        commit_hash: 4e7ab3ea562d4ff09dab45cc069966be77ee759f
+    rule_configs:
+      - rules/deepsemgrep-sqli-rules.yaml
+    opts: [--pro]
+  - name: IUTRS-TP-Bot
+    repos:
+      - url: https://github.com/Xen0Xys/IUTRS-TP-Bot.git
+        commit_hash: ae55e29455083fb6f52ba9ce05bab62f17815aba
+    rule_configs:
+      - rules/deepsemgrep-sqli-rules.yaml
+    opts: [--pro]
   - name: simple-mvc-app
     repos:
       - url: https://github.com/Shafeev/simple-mvc-app.git 
         commit_hash: e06b2df249f8770a316846cf0aa6a7c8498ff1e9
+    rule_configs:
+      - rules/deepsemgrep-sqli-rules.yaml
+    opts: [--pro]
+  - name: Hospital-System
+    repos:
+      - url: https://github.com/Ibraheem-Halasah22/Hospital-System
+        commit_hash: 0011fa22a153579805c10588dc596fc15ab73a37
+    rule_configs:
+      - rules/deepsemgrep-sqli-rules.yaml
+    opts: [--pro]
+  - name: aws-doc-sdk-examples
+    repos:
+      - url: https://github.com/beqqrry-aws/aws-doc-sdk-examples.git
+        commit_hash: 28c3fd3a38f6ae04a8e4b60c07101241baf36507
+    rule_configs:
+      - rules/deepsemgrep-sqli-rules.yaml
+    opts: [--pro]
+  - name: javaspringvulny
+    repos:
+      - url: https://github.com/zconger/javaspringvulny.git
+        commit_hash: 5565807da1d59436336c4c7e7e4f274ffda6db2f
+    rule_configs:
+      - rules/deepsemgrep-sqli-rules.yaml
+    opts: [--pro]
+  - name: vulnado
+    repos:
+      - url: https://github.com/ScaleSec/vulnado.git
+        commit_hash: 53336e14a40a0b25acdb8edd8b65a813e5f61bda
+    rule_configs:
+      - rules/deepsemgrep-sqli-rules.yaml
+    opts: [--pro]
+  - name: WebGoat
+    repos:
+      - url: https://github.com/WebGoat/WebGoat.git
+        commit_hash: 975cbf5769c000163c5ac3585267f6c4a64efaa8
+    rule_configs:
+      - rules/deepsemgrep-sqli-rules.yaml
+    opts: [--pro]
+  - name: dvja
+    repos:
+      - url: https://github.com/abhisek/dvja.git
+        commit_hash: 597ece1ab79ffffea7289d49b0c443bb2ebcbd16
     rule_configs:
       - rules/deepsemgrep-sqli-rules.yaml
     opts: [--pro]
