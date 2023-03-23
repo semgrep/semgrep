@@ -16,6 +16,7 @@ jobs:
       - name: Clean Checkout
         run: |
           rm -rf ./*
+          rm .gitmodules
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
       - uses: actions/checkout@v3

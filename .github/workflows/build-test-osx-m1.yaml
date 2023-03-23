@@ -16,6 +16,7 @@ jobs:
       - name: Clean Checkout
         run: |
           rm -rf ./*
+          rm .gitmodules
       - name: Checkout
         uses: actions/checkout@v3
         with:
