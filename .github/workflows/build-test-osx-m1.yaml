@@ -16,6 +16,7 @@ jobs:
       - name: Clean Checkout
         run: |
           cat .gitmodules
+          ls -al
           rm -rf ./*
           rm .gitmodules
       - name: Checkout
