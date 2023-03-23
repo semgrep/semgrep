@@ -12,3 +12,13 @@ $X == $X 3
 --- end pattern ---
 Pattern error: Parsing.Parse_error
 
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+  Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error
+
+Ran 1 rule on 11 files: 0 findings.
