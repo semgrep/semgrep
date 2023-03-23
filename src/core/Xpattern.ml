@@ -33,7 +33,8 @@ type pattern_id = int [@@deriving show, eq]
 type xpattern_kind =
   (* opti: parsing Semgrep patterns lazily improves speed significantly.
    * Parsing 'p/default', which contains more than 1000 rules, including
-   * lots of Ruby rules goes from 13s to just 0.2s (Dyp GLR is pretty slow).
+   * lots of Ruby rules (Dyp, used to parse Ruby, has a slow startup time),
+   * goes from 13s to just 0.2s!
    *)
   | Sem of Pattern.t Lazy.t * Lang.t (* language used for parsing the pattern *)
   | Spacegrep of Spacegrep.Pattern_AST.t
