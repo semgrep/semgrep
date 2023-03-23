@@ -15,6 +15,7 @@ jobs:
       # A more targeted approach we tried previously seems to have failed to clean up all issues
       - name: Clean Checkout
         run: |
+          cat .gitmodules
           rm -rf ./*
           rm .gitmodules
       - name: Checkout
