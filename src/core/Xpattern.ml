@@ -31,7 +31,11 @@ type regexp_string = string [@@deriving show, eq, hash]
 type pattern_id = int [@@deriving show, eq]
 
 type xpattern_kind =
-  | Sem of Pattern.t * Lang.t (* language used for parsing the pattern *)
+  (* opti: parsing Semgrep patterns lazily improves speed significantly.
+   * Parsing 'p/default', which contains more than 1000 rules, including
+   * lots of Ruby rules goes from 13s to just 0.2s (Dyp GLR is pretty slow).
+   *)
+  | Sem of Pattern.t Lazy.t * Lang.t (* language used for parsing the pattern *)
   | Spacegrep of Spacegrep.Pattern_AST.t
   | Regexp of regexp_string
       (** NOTE "Regexp":
