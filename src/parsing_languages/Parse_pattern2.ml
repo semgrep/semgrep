@@ -25,7 +25,7 @@ open Pfff_or_tree_sitter
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let parse_pattern lang print_errors str =
+let parse_pattern print_errors lang str =
   match lang with
   (* directly to generic AST any using tree-sitter only *)
   | Lang.Apex ->

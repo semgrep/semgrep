@@ -1,6 +1,7 @@
 open Lwt.Syntax
 open Cohttp_lwt_unix
 
+(* TODO: extend to allow to curl with JSON as answer *)
 let get url =
   let promise =
     let* _resp, body = Client.get url in
