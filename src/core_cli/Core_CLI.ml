@@ -767,7 +767,7 @@ let main (sys_argv : string array) : unit =
   if config.lsp then LSP_client.init ();
   (* hacks to reduce the size of engine.js
    * coupling: if you add an init() call here, you probably need to modify
-   * also tests/Test.ml
+   * also tests/Test.ml and osemgrep/cli/CLI.ml
    *)
   Parsing_init.init ();
   Data_init.init ();
