@@ -41,6 +41,7 @@ def read_findings(filename: Path) -> Dict[str, Any]:
     with open(filename) as f:
         return json.load(f)
 
+
 def expected_snapshot_for_findings(findings_path: Path):
     # Finding snapshot should have path `dir/configname_findings.json`
     # Return the snapshot path `file_dir/configname_baseline.json`
@@ -49,6 +50,7 @@ def expected_snapshot_for_findings(findings_path: Path):
     dir, filename = os.path.split(findings_path)
     configname = "_".join(filename.split("_")[0:-1])
     return os.path.join(file_dir, f"snapshots/{configname}_baseline.json")
+
 
 def main() -> None:
 

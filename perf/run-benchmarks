@@ -84,7 +84,11 @@ class SemgrepResult:
 
         # Abbreviate paths to avoid file-system differences
         # Do this here because path appears multiple times
-        self.str = re.sub(f"\"path\": \"[A-Za-z/\-]*{PERF_PATH}", f"\"path\": \"<masked in benchmarks>/{PERF_PATH}", json_str)
+        self.str = re.sub(
+            rf'"path": "[A-Za-z/\-]*{PERF_PATH}',
+            f'"path": "<masked in benchmarks>/{PERF_PATH}',
+            json_str,
+        )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SemgrepResult):

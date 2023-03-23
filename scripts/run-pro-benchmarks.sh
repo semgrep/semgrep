@@ -7,7 +7,7 @@ baseline_version=1.14.0
 # and use that if present
 semgrep_pro_path=$(pwd)"/semgrep-core-proprietary"
 # semgrep_pro_path=/Users/emma/.opam/4.14.0/bin/semgrep-core-proprietary
-echo $semgrep_pro_path
+echo "$semgrep_pro_path"
 
 cp tests/perf/deepsemgrep-sqli-rules.yaml semgrep/perf/rules
 
@@ -31,7 +31,7 @@ pipenv uninstall -y semgrep
 # Install latest
 SEMGREP_CORE_BIN=$semgrep_pro_path pipenv install -e .
 engine_path=$(pipenv run semgrep --dump-engine-path --pro)
-cp $semgrep_pro_path $engine_path
+cp "$semgrep_pro_path" "$engine_path"
 
 # Run latest timing benchmark
 pipenv run python -m semgrep --version

@@ -15,7 +15,7 @@ runs:
     opts: [--pro]
   - name: simple-mvc-app
     repos:
-      - url: https://github.com/Shafeev/simple-mvc-app.git 
+      - url: https://github.com/Shafeev/simple-mvc-app.git
         commit_hash: e06b2df249f8770a316846cf0aa6a7c8498ff1e9
     rule_configs:
       - rules/deepsemgrep-sqli-rules.yaml
