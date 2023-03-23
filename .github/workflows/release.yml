@@ -200,52 +200,6 @@ jobs:
             echo "release not yet ready, sleeping for 5 seconds"
             sleep 5
           done
-      # OSX
-      - uses: actions/download-artifact@v3
-        with:
-          name: semgrep-osx-${{ github.sha }}
-          path: semgrep-osx
-      - name: Compute checksum
-        run: cat ./semgrep-osx/artifacts.zip | sha256sum > ./semgrep-osx/artifacts.zip.sha256
-      - name: Upload Release Asset
-        id: upload-release-asset-osx
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cp ./semgrep-osx/artifacts.zip semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip
-          gh release --repo returntocorp/semgrep upload ${{ steps.get-version.outputs.VERSION }} semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip
-          rm semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip
-      - name: Upload Release Checksum
-        id: upload-checksum-asset-osx
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cp ./semgrep-osx/artifacts.zip.sha256 semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip.sha256
-          gh release --repo returntocorp/semgrep upload ${{ steps.get-version.outputs.VERSION }} semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip.sha256
-          rm semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip.sha256
-          ## UBUNTU
-      - uses: actions/download-artifact@v3
-        with:
-          name: semgrep-ubuntu-16.04-${{ github.sha }}
-          path: semgrep-ubuntu
-      - name: Compute checksum
-        run: cat ./semgrep-ubuntu/artifacts.tar.gz | sha256sum > ./semgrep-ubuntu/artifacts.tar.gz.sha256
-      - name: Upload Release Asset
-        id: upload-release-asset-ubuntu
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cp ./semgrep-ubuntu/artifacts.tar.gz semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz
-          gh release --repo returntocorp/semgrep upload ${{ steps.get-version.outputs.VERSION }} semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz
-          rm semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz
-      - name: Upload Release Checksum
-        id: upload-release-checksum-ubuntu
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cp ./semgrep-ubuntu/artifacts.tar.gz.sha256 semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
-          gh release --repo returntocorp/semgrep upload ${{ steps.get-version.outputs.VERSION }} semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
-          rm semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
       - name: Publish Release
         id: publish_release
         env:

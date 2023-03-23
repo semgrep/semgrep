@@ -14,6 +14,7 @@
  *)
 open Common
 open Runner_config
+open File.Operators
 module PI = Parse_info
 module PM = Pattern_match
 module E = Semgrep_error_code
@@ -57,11 +58,11 @@ let replace_named_pipe_by_regular_file path =
   if !Common.jsoo then path
     (* don't bother supporting exotic things like fds if running in JS *)
   else
-    match (Unix.stat path).st_kind with
+    match (Unix.stat !!path).st_kind with
     | Unix.S_FIFO ->
-        let data = Common.read_file path in
+        let data = File.read_file path in
         let prefix = spf "semgrep-core-" in
-        let suffix = spf "-%s" (Filename.basename path) in
+        let suffix = spf "-%s" (Fpath.basename path) in
         let tmp_path, oc =
           Filename.open_temp_file
             ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
@@ -73,7 +74,7 @@ let replace_named_pipe_by_regular_file path =
         Fun.protect
           ~finally:(fun () -> close_out_noerr oc)
           (fun () -> output_string oc data);
-        tmp_path
+        Fpath.v tmp_path
     | _ -> path
 
 let timeout_function file timeout f =
@@ -364,7 +365,7 @@ let rules_from_rule_source config =
   in
   match rule_source with
   | Some (Rule_file file) ->
-      logger#linfo (lazy (spf "Parsing %s:\n%s" file (read_file file)));
+      logger#linfo (lazy (spf "Parsing %s:\n%s" !!file (File.read_file file)));
       Parse_rule.parse_and_filter_invalid_rules file
   | Some (Rules rules) -> (rules, [])
   | None ->
@@ -551,7 +552,7 @@ let targets_of_config (config : Runner_config.t)
         files
         |> Common.map (fun file ->
                {
-                 In.path = file;
+                 In.path = Fpath.to_string file;
                  language = Xlang.to_string xlang;
                  rule_nums = List.mapi (fun i _ -> i) rule_ids;
                })
@@ -564,7 +565,7 @@ let targets_of_config (config : Runner_config.t)
         match target_source with
         | Targets x -> x
         | Target_file target_file ->
-            Common.read_file target_file |> In.targets_of_string
+            File.read_file target_file |> In.targets_of_string
       in
       let skipped = [] in
       (* in deep mode we actually have a single root dir passed *)
@@ -823,7 +824,7 @@ let semgrep_with_prepared_rules_and_targets config (x : lang_job) =
   let target_mappings =
     Common.map
       (fun path : Input_to_core_t.target ->
-        { path; language = lang_str; rule_nums })
+        { path = !!path; language = lang_str; rule_nums })
       x.targets
   in
   let wrapped_targets : Input_to_core_t.targets =

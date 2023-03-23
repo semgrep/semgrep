@@ -1,8 +1,0 @@
-rules:
-- id: comby_basic
-  languages:
-  - javascript
-  - python
-  pattern-comby: foo(1, 2)
-  message: found a comby match
-  severity: ERROR

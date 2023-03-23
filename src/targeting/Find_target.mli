@@ -12,7 +12,10 @@
 
 type conf = {
   exclude : string list;
-  include_ : string list;
+  (* [!] include_ = None is the opposite of Some [].
+     If a list of include patterns is specified, a path must match
+     at least of the patterns to be selected. *)
+  include_ : string list option;
   max_target_bytes : int;
   respect_git_ignore : bool;
   baseline_commit : string option;
@@ -22,9 +25,13 @@ type conf = {
 
 (* Entry point.
 
-   Take a set of scanning roots which are files or folders and
+   Take a set of scanning roots which are files or folders (directories) and
    expand them into the set of files that could be targets for some
-   rules. Return a list of deduplicated file paths.
+   rules. Return a list of deduplicated paths to regular files.
+
+   If a scanning root is a symbolic link, it is dereferenced recursively
+   until it results in a regular file or a directory. However, we
+   don't follow symbolic links discovered when listing directories.
 
    The order of the files isn't guaranteed to be anything special
    at the moment but we could obey some ordering if it makes sense to do it
@@ -32,16 +39,15 @@ type conf = {
 
    Usage: let possible_targets = get_files scanning_roots
 
-   This may raise Unix.Unix_error if the scanning root do not exist.
+   This may raise Unix.Unix_error if the scanning root does not exist.
 *)
 val get_targets :
   conf ->
   Fpath.t list (* scanning roots *) ->
-  Common.filename list * Output_from_core_t.skipped_target list
+  Fpath.t list * Output_from_core_t.skipped_target list
 
 type baseline_handler = TODO
 type file_ignore = TODO
-type path = string
 
 (*
    A cache meant to avoid costly operations of determining whether a target
@@ -63,12 +69,13 @@ val create_cache : unit -> target_cache
 
    Usage: let rule_targets = filter_targets_for_rule ~cache global_targets rule
 *)
-val filter_targets_for_rule : target_cache -> Rule.t -> path list -> path list
+val filter_targets_for_rule :
+  target_cache -> Rule.t -> Fpath.t list -> Fpath.t list
 
 (*
    Determine whether a rule is applicable to a file.
 *)
-val filter_target_for_rule : target_cache -> Rule.t -> path -> bool
+val filter_target_for_rule : target_cache -> Rule.t -> Fpath.t -> bool
 
 (*
    Low-level version of 'filter_target_for_rule'.
@@ -78,7 +85,7 @@ val filter_target_for_lang :
   lang:Xlang.t ->
   required_path_patterns:string list ->
   excluded_path_patterns:string list ->
-  path ->
+  Fpath.t ->
   bool
 
 (*
@@ -107,8 +114,8 @@ val files_of_dirs_or_files :
   ?keep_root_files:bool ->
   ?sort_by_decr_size:bool ->
   Lang.t option ->
-  Common.path list ->
-  Common.filename list * Output_from_core_t.skipped_target list
+  Fpath.t list ->
+  Fpath.t list * Output_from_core_t.skipped_target list
 
 (*
    Sort targets by decreasing size. This is meant for optimizing

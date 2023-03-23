@@ -48,7 +48,10 @@ type t = {
    Honor them with a deprecation warning.
 *)
 
-let create ?include_patterns ?(cli_patterns = []) ~project_root () =
+type exclusion_mechanism = Gitignore_and_semgrepignore | Only_semgrepignore
+
+let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
+    ~project_root () =
   if Fpath.is_rel project_root then
     invalid_arg
       ("Semgrepignore.create needs an absolute path for the project root: "
@@ -70,10 +73,14 @@ let create ?include_patterns ?(cli_patterns = []) ~project_root () =
       patterns = cli_patterns;
     }
   in
+  let gitignore_filenames =
+    match exclusion_mechanism with
+    | Gitignore_and_semgrepignore -> [ ".gitignore"; ".semgrepignore" ]
+    | Only_semgrepignore -> [ ".semgrepignore" ]
+  in
   let gitignore_filter =
     Gitignore_filter.create ~higher_priority_levels:[ cli_level ]
-      ~gitignore_filenames:[ ".gitignore"; ".semgrepignore" ]
-      ~project_root ()
+      ~gitignore_filenames ~project_root ()
   in
   { include_filter; gitignore_filter }
 

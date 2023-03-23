@@ -22,7 +22,7 @@ module FT = File_type
 
 (* copy paste of php code, not sure this is relevant for Javascript *)
 let is_js_script file =
-  Common.with_open_infile file (fun chan ->
+  File.with_open_infile file (fun chan ->
       try
         let l = input_line chan in
         l =~ "#!/usr/.*/js" || l =~ "#!/bin/env js" || l =~ "#!/usr/bin/env js"
@@ -30,7 +30,7 @@ let is_js_script file =
       | End_of_file -> false)
 
 let find_source_files_of_dir_or_files ?(include_scripts = true) xs =
-  Common.files_of_dir_or_files_no_vcs_nofilter xs
+  File.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          match FT.file_type_of_file filename with
          (* less: could also consider Typescript files *)

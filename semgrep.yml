@@ -278,3 +278,12 @@ rules:
         - changelog.d/*.changed
         - changelog.d/*.fixed
         - changelog.d/*.infra
+  - id: pass-console-to-rich-progress
+    patterns:
+      - pattern: rich.progress.track(...)
+      - pattern-not: rich.progress.track(..., console=semgrep.console.console)
+    message: >-
+      You need to pass our custom console to rich progress bars
+      so that it progress to the correct output stream (usually stderr).
+    languages: [python]
+    severity: ERROR

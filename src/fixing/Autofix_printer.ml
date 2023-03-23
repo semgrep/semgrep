@@ -126,6 +126,7 @@ let add_metavars (tbl : ast_node_table) metavars =
       | S _
       | T _
       | P _
+      | XmlAt _
       | Raw _
       | Ss _
       | Params _

@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module FT = File_type
 open Rule
 
@@ -72,8 +73,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
       | Sem (_, _)
       | Spacegrep _ ->
           `O [ ("pattern", `String (fst pstr)) ]
-      | Regexp _ -> `O [ ("regex", `String (fst pstr)) ]
-      | Comby _ -> failwith "comby not supported in new")
+      | Regexp _ -> `O [ ("regex", `String (fst pstr)) ])
   | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]
   | And (_, { conjuncts; focus; conditions; _ }) ->
       `O
@@ -129,7 +129,6 @@ let replace_pattern rule_fields translated_formula =
             "patterns";
             "pattern-either";
             "pattern-regex";
-            "pattern-comby";
             "pattern-sources";
           ]
       then [ ("match", translated_formula) ]
@@ -140,7 +139,7 @@ let translate_files fparser xs =
   let formulas_by_file =
     xs
     |> Common.map (fun file ->
-           logger#info "processing %s" file;
+           logger#info "processing %s" !!file;
            let formulas =
              fparser file
              |> Common.map (fun rule ->
@@ -159,13 +158,13 @@ let translate_files fparser xs =
       let rules =
         match FT.file_type_of_file file with
         | FT.Config FT.Json ->
-            Common.read_file file |> JSON.json_of_string |> json_to_yaml
+            File.read_file file |> JSON.json_of_string |> json_to_yaml
         | FT.Config FT.Yaml ->
-            Yaml.of_string (Common.read_file file) |> Result.get_ok
+            Yaml.of_string (File.read_file file) |> Result.get_ok
         | _ ->
             logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
-            logger#info "trying to parse %s as YAML" file;
-            Yaml.of_string (Common.read_file file) |> Result.get_ok
+            logger#info "trying to parse %s as YAML" !!file;
+            Yaml.of_string (File.read_file file) |> Result.get_ok
       in
       match rules with
       | `O [ ("rules", `A rules) ] ->

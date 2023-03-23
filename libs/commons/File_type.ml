@@ -13,6 +13,7 @@
  * license.txt for more details.
  *)
 open Common
+open File.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -111,7 +112,7 @@ and media_type = Sound of string | Picture of string | Video of string
  * filenames, so it has to be fast!
  *)
 let file_type_of_file file =
-  let _d, b, e = Common2.dbe_of_filename_noext_ok file in
+  let _d, b, e = Common2.dbe_of_filename_noext_ok !!file in
   match e with
   | "ml"
   | "mli"
@@ -364,7 +365,7 @@ let file_type_of_file file =
   | "r"
   | "R" ->
       PL R
-  | _ when Common2.is_executable file -> Binary e
+  | _ when File.is_executable file -> Binary e
   | _ when b = "Makefile" || b = "mkfile" || b = "Imakefile" -> Config Makefile
   | _ when b = "Dockerfile" -> Config Dockerfile
   | _ when b = "dune" -> Config Sexp
@@ -373,7 +374,7 @@ let file_type_of_file file =
   | _ when b = "TARGETS" -> Config Makefile
   | _ when b = ".depend" -> Obj "depend"
   | _ when b = ".emacs" -> PL (Lisp Elisp)
-  | _ when Common2.filesize file > 300_000 -> Obj e
+  | _ when File.filesize file > 300_000 -> Obj e
   | _ -> Other e
 
 (*****************************************************************************)
@@ -402,10 +403,10 @@ let webpl_type_of_file file =
   | PL (Web x) -> Some x
   | _ -> None
 
-let is_syncweb_obj_file file = file =~ ".*md5sum_"
-let is_json_filename filename = filename =~ ".*\\.json$"
+let is_syncweb_obj_file file = !!file =~ ".*md5sum_"
+let is_json_filename filename = !!filename =~ ".*\\.json$"
 
 let files_of_dirs_or_files p xs =
-  Common.files_of_dir_or_files_no_vcs_nofilter xs
+  xs |> File.files_of_dirs_or_files_no_vcs_nofilter
   |> List.filter (fun filename -> p (file_type_of_file filename))
   |> Common.sort

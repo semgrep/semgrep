@@ -117,7 +117,6 @@ let partition_xpatterns xs =
   let semgrep = ref [] in
   let spacegrep = ref [] in
   let regexp = ref [] in
-  let comby = ref [] in
   xs
   |> List.iter (fun (xpat, inside) ->
          let { XP.pid; pstr = str, _; pat } = xpat in
@@ -125,9 +124,8 @@ let partition_xpatterns xs =
          | XP.Sem (x, _lang) -> Common.push (x, inside, pid, str) semgrep
          | XP.Spacegrep x -> Common.push (x, pid, str) spacegrep
          | XP.Regexp x ->
-             Common.push (Regexp_engine.pcre_compile x, pid, str) regexp
-         | XP.Comby x -> Common.push (x, pid, str) comby);
-  (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp, List.rev !comby)
+             Common.push (Regexp_engine.pcre_compile x, pid, str) regexp);
+  (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp)
 
 let group_matches_per_pattern_id (xs : Pattern_match.t list) :
     id_to_match_results =
@@ -451,7 +449,7 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
    * I don't match over xlang and instead assume we could have multiple
    * kinds of patterns at the same time.
    *)
-  let patterns, spacegreps, regexps, combys = partition_xpatterns xpatterns in
+  let patterns, spacegreps, regexps = partition_xpatterns xpatterns in
 
   (* final result *)
   RP.collate_pattern_results
@@ -459,7 +457,6 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
       matches_of_patterns ~mvar_context rule xconf xtarget patterns;
       Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps file;
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content file;
-      Xpattern_match_comby.matches_of_combys combys lazy_content file;
     ]
   [@@profiling]
 

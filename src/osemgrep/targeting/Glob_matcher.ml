@@ -68,7 +68,9 @@ let append a b = remove_trailing_slash a @ remove_leading_slash b
 let of_path_segments segments =
   Common.map
     (fun s ->
-      let chars = String.fold_right (fun c acc -> Char c :: acc) s [] in
+      let chars =
+        Stdcompat.String.fold_right (fun c acc -> Char c :: acc) s []
+      in
       Segment chars)
     segments
 
