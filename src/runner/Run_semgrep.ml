@@ -324,15 +324,16 @@ let exn_to_error file (e : Exception.t) =
  * - always, if there are no rules but just invalid rules
  * - when users want to fail fast, if there are valid and invalid rules
  *
- * update: we now parse patterns lazily in Parse_rule.ml, which means
- * we will not return anymore an invalid_rule for a rule containing
- * a parse error in a pattern (we still return an invalid_rule for
- * other kinds of errors such as the use of an invalid language).
- * Instead, we detect those parse errors later (as we run the engine), but
- * those errors are detected in X and we stop the engine as we used to.
- *
  * TODO: right now we always fail when there is one invalid rule, because
  * we don't have a fail_fast flag (we could use the flag for -strict)
+ *
+ * update: we now parse patterns lazily in Parse_rule.ml, which means
+ * we will not return anymore an invalid_rule below for a rule containing
+ * a parse error in a pattern (we still return an invalid_rule for
+ * other kinds of errors such as the use of an invalid language).
+ * Instead, we raise those exns later (as we run the engine). Fortunately, now
+ * those exns are detected in iter_targets_and_get_matches_and_exn_to_errors()
+ * and we stop the engine in that case (as we used to).
  *)
 let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
   match (rules, invalid_rules) with
@@ -455,14 +456,19 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                      (RP.empty_partial_profiling file)
                (* those were converted in Main_timeout in timeout_function()*)
                | Time_limit.Timeout _ -> assert false
-               (* This error used to be generated earlier
+               (* This exn used to be raised earlier in
                 * sanity_check_rules_and_invalid_rules(), but after
-                * the lazy parsing of patterns, those errors are detected
-                * later, but we still want to abort semgrep-core if
-                * find such errors.
+                * the lazy parsing of patterns, those errors are raised
+                * later, but we still want to abort semgrep-core when we
+                * find such exns.
                 *)
                | R.Err (R.InvalidRule _) as exn ->
                    Exception.catch_and_reraise exn
+               (* convert all other exns (e.g., a parse error in a target file)
+                * in an empty match result with errors, so that one error
+                * in one target file does not abort the whole semgrep-core
+                * process
+                *)
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
                    let errors = RP.ErrorSet.singleton (exn_to_error file e) in
