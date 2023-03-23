@@ -745,18 +745,18 @@ def scan(
             version_check()
         return None
 
+    if show_supported_languages:
+        click.echo(LANGUAGE.show_suppported_languages_message())
+        return None
+
+    engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
+
     if dump_engine_path:
         if requested_engine == EngineType.OSS:
             print(SemgrepCore.path())
         else:
             print(determine_semgrep_pro_path())
         return None
-
-    if show_supported_languages:
-        click.echo(LANGUAGE.show_suppported_languages_message())
-        return None
-
-    engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
 
     if dataflow_traces is None:
         dataflow_traces = engine_type.has_dataflow_traces
