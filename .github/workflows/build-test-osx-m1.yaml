@@ -17,8 +17,9 @@ jobs:
         run: |
           cat .gitmodules
           ls -al
-          rm -rf ./*
+          rm -rf * .*
           rm .gitmodules
+          ls -al
       - name: Checkout
         uses: actions/checkout@v3
         with:
