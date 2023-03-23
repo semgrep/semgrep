@@ -47,6 +47,7 @@ depends: [
   "ppxlib"
   "ppx_deriving"
   "ppx_hash"
+  "ppx_inline_test"
   "re"
   "pcre"
   "ocamlgraph"
