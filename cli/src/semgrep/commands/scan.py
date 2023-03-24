@@ -754,6 +754,7 @@ def scan(
     engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
 
     print(engine_type)
+    print("path to core", SemgrepCore.path())
 
     if dump_engine_path:
         if requested_engine == EngineType.OSS:
