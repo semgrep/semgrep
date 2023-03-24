@@ -18,7 +18,11 @@ open Xpattern_matcher
 let logger = Logging.get_logger [ __MODULE__ ]
 
 let regexp_matcher big_str (file : Xtarget.file) regexp =
-  let file = Xtarget.path_of_file file in
+  let file, fix_loc =
+    match file with
+    | `Path file -> (file, Fun.id)
+    | `Block block -> (block.Xtarget.orig_file, block.fix_loc)
+  in
   let re_src = Regexp_engine.pcre_pattern regexp in
   let re = Regexp_engine.pcre_regexp regexp in
   let subs = SPcre.exec_all_noerr ~rex:re big_str in
@@ -28,12 +32,12 @@ let regexp_matcher big_str (file : Xtarget.file) regexp =
          let charpos, _ = Pcre.get_substring_ofs sub 0 in
          let str = matched_str in
          let line, column = line_col_of_charpos file charpos in
-         let loc1 = { PI.str; charpos; file; line; column } in
+         let loc1 = { PI.str; charpos; file; line; column } |> fix_loc in
 
          let charpos = charpos + String.length str in
          let str = "" in
          let line, column = line_col_of_charpos file charpos in
-         let loc2 = { PI.str; charpos; file; line; column } in
+         let loc2 = { PI.str; charpos; file; line; column } |> fix_loc in
 
          (* return regexp bound group $1 $2 etc *)
          let n = Pcre.num_of_subs sub in
@@ -48,7 +52,9 @@ let regexp_matcher big_str (file : Xtarget.file) regexp =
                         let charpos, _ = Pcre.get_substring_ofs sub n in
                         let str = Pcre.get_substring sub n in
                         let line, column = line_col_of_charpos file charpos in
-                        let loc = { PI.str; charpos; file; line; column } in
+                        let loc =
+                          { PI.str; charpos; file; line; column } |> fix_loc
+                        in
                         let t = PI.mk_info_of_loc loc in
                         Some (spf "$%d" n, MV.Text (str, t, t))
                       with

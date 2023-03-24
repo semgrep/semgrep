@@ -10,6 +10,7 @@
 type block_info = {
   orig_file : Common.filename;
   orig_loc : Parse_info.token_location;
+  fix_loc : Parse_info.token_location -> Parse_info.token_location;
   block_lazy_content : string lazy_t;
 }
 

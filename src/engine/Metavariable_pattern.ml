@@ -204,6 +204,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                         {
                           orig_file;
                           orig_loc = mast_start_loc;
+                          fix_loc = revert_loc;
                           block_lazy_content = lazy_content;
                         }
                   in

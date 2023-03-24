@@ -29,10 +29,10 @@ let lexing_pos_to_loc file x str =
 
 let spacegrep_matcher (xconfig : Match_env.xconfig) (doc, src)
     (file : Xtarget.file) pat =
-  let file =
+  let file, fix_loc =
     match file with
-    | `Path file -> file
-    | `Block block -> block.Xtarget.orig_file
+    | `Path file -> (file, Fun.id)
+    | `Block block -> (block.Xtarget.orig_file, block.fix_loc)
   in
   let search_param =
     Spacegrep.Match.create_search_param
@@ -48,13 +48,13 @@ let spacegrep_matcher (xconfig : Match_env.xconfig) (doc, src)
            |> Common.map (fun (s, capture) ->
                   let mvar = "$" ^ s in
                   let { Spacegrep.Match.value = str; loc = pos, _ } = capture in
-                  let loc = lexing_pos_to_loc file pos str in
+                  let loc = lexing_pos_to_loc file pos str |> fix_loc in
                   let t = info_of_token_location loc in
                   let mval = mval_of_string str t in
                   (mvar, mval))
          in
-         let loc1 = lexing_pos_to_loc file pos1 str in
-         let loc2 = lexing_pos_to_loc file pos2 "" in
+         let loc1 = lexing_pos_to_loc file pos1 str |> fix_loc in
+         let loc2 = lexing_pos_to_loc file pos2 "" |> fix_loc in
          ((loc1, loc2), env))
 
 (* Preprocess spacegrep pattern or target to remove comments *)
