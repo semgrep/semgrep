@@ -72,27 +72,33 @@ let filter_new_mvars_by_range range mvars =
    information, so we need to construct a visitor so we can convert the mvalues to have
    tokens with the correct information.
 *)
-let get_persistent_bindings revert_loc r nested_matches =
-  let reverting_visitor = Map_AST.mk_fix_token_locations revert_loc in
+let get_persistent_bindings ?revert_loc r nested_matches =
+  let reverting_visitor =
+    let* revert_loc in
+    Some (Map_AST.mk_fix_token_locations revert_loc)
+  in
   nested_matches
   |> Common.map (fun nested_match ->
-         (* The bindings in this match were produced from a target whose location
-             data was all adjusted, to avoid re-parsing.
-         *)
-         let readjusted_mvars =
-           nested_match.RM.mvars
-           |> List.filter_map (fun (mvar, mval) ->
-                  match
-                    mval |> MV.mvalue_to_any |> reverting_visitor.Map_AST.vany
-                    |> MV.mvalue_of_any
-                  with
-                  | None ->
-                      logger#error "Failed to convert mvar %s to and from any"
-                        mvar;
-                      None
-                  | Some mval -> Some (mvar, mval))
-         in
-         { nested_match with RM.mvars = readjusted_mvars })
+         match reverting_visitor with
+         | None -> nested_match
+         | Some reverting_visitor ->
+             (* The bindings in this match were produced from a target whose location
+                 data was all adjusted, to avoid re-parsing.
+             *)
+             let readjusted_mvars =
+               nested_match.RM.mvars
+               |> List.filter_map (fun (mvar, mval) ->
+                      match
+                        mval |> MV.mvalue_to_any
+                        |> reverting_visitor.Map_AST.vany |> MV.mvalue_of_any
+                      with
+                      | None ->
+                          logger#error
+                            "Failed to convert mvar %s to and from any" mvar;
+                          None
+                      | Some mval -> Some (mvar, mval))
+             in
+             { nested_match with RM.mvars = readjusted_mvars })
   |> Common.map (fun r' -> filter_new_mvars_by_range r r'.RM.mvars)
 
 (*****************************************************************************)
@@ -122,35 +128,28 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                mvar);
           []
       | Some (mval_file, mval_range) -> (
-          let r' =
-            (* Fix the range to match the content of the temporary file. *)
-            {
-              r with
-              r = { start = 0; end_ = mval_range.end_ - mval_range.start };
-            }
-          in
           (* We don't want having to re-parse `content', but then we
            * need to fix the token locations in `mast`. *)
           let mast_start_loc =
             mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens |> fst
             |> PI.unsafe_token_location_of_info
           in
-          let fix_loc file loc =
-            (* The column is only perturbed if this loc is on the first line of
-             * the original metavariable match *)
-            let column =
-              if loc.PI.line =|= mast_start_loc.PI.line then
-                loc.column - mast_start_loc.column
-              else loc.column
-            in
-            {
-              loc with
-              PI.charpos = loc.PI.charpos - mast_start_loc.charpos;
-              line = loc.line - mast_start_loc.line + 1;
-              column;
-              file;
-            }
-          in
+          (* let fix_loc file loc =
+               (* The column is only perturbed if this loc is on the first line of
+                * the original metavariable match *)
+               let column =
+                 if loc.PI.line =|= mast_start_loc.PI.line then
+                   loc.column - mast_start_loc.column
+                 else loc.column
+               in
+               {
+                 loc with
+                 PI.charpos = loc.PI.charpos - mast_start_loc.charpos;
+                 line = loc.line - mast_start_loc.line + 1;
+                 column;
+                 file;
+               }
+             in *)
           (* We need to undo the changes made to the file location,
              for when we preserve this binding and re-localize it to
              the original file.
@@ -171,6 +170,13 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
           in
           match opt_xlang with
           | None -> (
+              let r' =
+                (* Fix the range to match the content of the temporary file. *)
+                {
+                  r with
+                  r = { start = mval_range.start; end_ = mval_range.end_ };
+                }
+              in
               (* We match wrt the same language as the rule.
                * NOTE: A generic pattern nested inside a generic won't work because
                *   generic mode binds metavariables to `MV.Text`, and
@@ -201,24 +207,35 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                           block_lazy_content = lazy_content;
                         }
                   in
-                  let fixing_visitor =
-                    Map_AST.mk_fix_token_locations (fix_loc orig_file)
-                  in
-                  let mast' = fixing_visitor.Map_AST.vprogram mast in
+                  (* let fixing_visitor =
+                       Map_AST.mk_fix_token_locations (fix_loc orig_file)
+                     in *)
+                  (* let mast' = fixing_visitor.Map_AST.vprogram mast in *)
                   let xtarget =
                     {
                       env.xtarget with
                       file;
-                      lazy_ast_and_errors = lazy (mast', []);
+                      lazy_ast_and_errors = lazy (mast, []);
                       lazy_content;
                     }
                   in
                   (* Persist the bindings from inside the `metavariable-pattern`
                       matches
                   *)
+                  (* logger#flash "------------------- mvar-pattern"; *)
+                  (* logger#flash "r' = %s" (RM.show r'); *)
+                  (* logger#flash "mast = %s" (G.show_program mast);
+                     logger#flash "content = %s" (Lazy.force lazy_content); *)
                   get_nested_formula_matches { env with xtarget } formula r'
-                  |> get_persistent_bindings revert_loc r)
+                  |> get_persistent_bindings r)
           | Some xlang -> (
+              let r' =
+                (* Fix the range to match the content of the temporary file. *)
+                {
+                  r with
+                  r = { start = 0; end_ = mval_range.end_ - mval_range.start };
+                }
+              in
               let content =
                 (* Previously we only allowed metavariable-pattern with a
                  * different language when the metavariable was bound to a
@@ -303,4 +320,4 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                          matches
                       *)
                       get_nested_formula_matches { env with xtarget } formula r'
-                      |> get_persistent_bindings revert_loc r))))
+                      |> get_persistent_bindings ~revert_loc r))))
