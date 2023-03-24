@@ -58,9 +58,9 @@ JENKINS_URL="some_url" SEMGREP_REPO_URL="https://random.url.org/some/path" SEMGR
            15┆ x == 5
                             
   BLOCKING CODE RULES FIRED:
-  eqeq-bad
-  eqeq-four
-  taint-test
+    eqeq-bad
+    eqeq-four
+    taint-test
 
 
 === end of stdout - plain

@@ -58,9 +58,9 @@ JENKINS_URL="some_url" GIT_URL="https://github.com/org/repo.git/" GIT_BRANCH="so
            15┆ x == 5
                             
   BLOCKING CODE RULES FIRED:
-  eqeq-bad
-  eqeq-four
-  taint-test
+    eqeq-bad
+    eqeq-four
+    taint-test
 
 
 === end of stdout - plain

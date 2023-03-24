@@ -83,9 +83,9 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
            15┆ (x == 2)
                             
   BLOCKING CODE RULES FIRED:
-  eqeq-bad
-  eqeq-four
-  taint-test
+    eqeq-bad
+    eqeq-four
+    taint-test
 
                 
                 

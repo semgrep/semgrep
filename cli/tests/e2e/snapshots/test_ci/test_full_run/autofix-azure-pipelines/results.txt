@@ -58,9 +58,9 @@ BUILD_BUILDID="some_id" BUILD_REPOSITORY_URI="https://github.com/project_name/pr
            15┆ (x == 2)
                             
   BLOCKING CODE RULES FIRED:
-  eqeq-bad
-  eqeq-four
-  taint-test
+    eqeq-bad
+    eqeq-four
+    taint-test
 
 
 === end of stdout - plain

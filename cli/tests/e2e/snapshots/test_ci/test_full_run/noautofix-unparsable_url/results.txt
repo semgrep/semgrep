@@ -58,9 +58,9 @@ CI="true" SEMGREP_REPO_NAME="org_name/project_name/project_name" SEMGREP_REPO_UR
            15┆ x == 5
                             
   BLOCKING CODE RULES FIRED:
-  eqeq-bad
-  eqeq-four
-  taint-test
+    eqeq-bad
+    eqeq-four
+    taint-test
 
 
 === end of stdout - plain

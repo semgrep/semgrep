@@ -36,7 +36,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                             
                             
   BLOCKING CODE RULES FIRED:
-  eqeq-bad
+    eqeq-bad
 
 
 === end of stdout - plain

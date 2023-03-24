@@ -705,7 +705,7 @@ class TextFormatter(BaseFormatter):
             if first_party_blocking_rules and is_ci_invocation:
                 console.print(Title("Blocking Code Rules Fired:", order=2))
                 for rule_id in sorted(first_party_blocking_rules):
-                    console.print(rule_id)
+                    console.print(f"  {rule_id}")
                 console.reset_title(order=1)
 
             if cli_output_extra.time:

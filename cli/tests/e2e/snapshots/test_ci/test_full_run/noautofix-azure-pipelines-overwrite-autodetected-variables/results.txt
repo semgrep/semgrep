@@ -58,9 +58,9 @@ BUILD_BUILDID="some_id" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:
            15┆ x == 5
                             
   BLOCKING CODE RULES FIRED:
-  eqeq-bad
-  eqeq-four
-  taint-test
+    eqeq-bad
+    eqeq-four
+    taint-test
 
 
 === end of stdout - plain
