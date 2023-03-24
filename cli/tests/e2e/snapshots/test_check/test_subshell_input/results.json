@@ -1,36 +1,4 @@
-{
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "/tmp/masked/path"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "-",
-      "end": {
-        "col": 2,
-        "line": 1,
-        "offset": 1
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "a",
-        "message": "a",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR"
-      },
-      "path": "/tmp/masked/path",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
-    }
-  ],
-  "version": "0.42"
-}
+None
+EngineType.OSS
+path to core /home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
+{"errors": [], "paths": {"_comment": "<add --verbose for a list of skipped paths>", "scanned": ["/tmp/tmpr65cgj1e/dev_fd_63"]}, "results": [{"check_id": "-", "end": {"col": 2, "line": 1, "offset": 1}, "extra": {"engine_kind": "OSS", "fingerprint": "b968832fee4c5006244cc0e9a8168f045dfd9a8dd241460eca4c2872365eeb297b563bdd0c5b5561fe08b951183250b5eb0c303c67f0d7c6f975b4d84d3a2853_0", "is_ignored": false, "lines": "a", "message": "a", "metadata": {}, "metavars": {}, "severity": "ERROR"}, "path": "/tmp/tmpr65cgj1e/dev_fd_63", "start": {"col": 1, "line": 1, "offset": 0}}], "version": "1.15.0"}

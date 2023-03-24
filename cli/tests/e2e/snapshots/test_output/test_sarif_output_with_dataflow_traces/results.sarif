@@ -1,3 +1,6 @@
+None
+EngineType.OSS
+path to core /home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -170,7 +173,7 @@
               }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

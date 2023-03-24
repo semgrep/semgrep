@@ -1,11 +1,14 @@
+None
+EngineType.OSS
+path to core /home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
 {
-  "config_missing_fixtests": [
-    "rules/fixtest/test5.yaml"
-  ],
-  "config_missing_tests": [
-    "rules/fixtest/test5.yaml"
-  ],
-  "config_with_errors": [],
-  "fixtest_results": {},
-  "results": {}
+    "config_missing_tests": [
+        "rules/fixtest/test5.yaml"
+    ],
+    "config_missing_fixtests": [
+        "rules/fixtest/test5.yaml"
+    ],
+    "config_with_errors": [],
+    "results": {},
+    "fixtest_results": {}
 }

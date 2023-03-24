@@ -1,2 +1,5 @@
+None
+EngineType.OSS
+path to core /home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
 1/1: ✓ All tests passed 
 1/1: ✓ All fix tests passed 
