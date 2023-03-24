@@ -49,7 +49,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "package": "awscli",
-              "transitivity": "direct",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
@@ -99,7 +99,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "package": "awscli",
-              "transitivity": "direct",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
@@ -149,7 +149,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "package": "awscli",
-              "transitivity": "direct",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
@@ -199,7 +199,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "package": "awscli",
-              "transitivity": "direct",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
@@ -249,7 +249,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "package": "awscli",
-              "transitivity": "direct",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
@@ -299,7 +299,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "package": "awscli",
-              "transitivity": "direct",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
@@ -349,7 +349,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "package": "awscli",
-              "transitivity": "direct",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
@@ -399,7 +399,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "package": "awscli",
-              "transitivity": "direct",
+              "transitivity": "unknown",
               "version": "1.11.82"
             },
             "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
@@ -436,6 +436,10 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                     
   SUPPLY CHAIN RULES
   Scanning 1 file with 6 python rules.
+  Failed to parse targets/dependency_aware/awscli-with-manifest/Pipfile at 8:1 -
+  expected one of ['\n', 'EOF', '\[(.*)\\]\\n']                                 
+  8 | awscli = "==1.11.82"                                                      
+      ^                                                                         
            
            
 ┌─────────┐
