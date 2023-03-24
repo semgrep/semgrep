@@ -2,7 +2,7 @@ import re
 
 
 class CommentRemover:
-    def __init__(self, regex: str) -> None:
+    def __init__(self, regex: str = r"(^|\s+)#.*$") -> None:
         self.pattern = re.compile(regex, re.MULTILINE)
 
     def __call__(self, target: str) -> str:

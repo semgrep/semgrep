@@ -104,7 +104,7 @@ def parse_requirements(
     deps = safe_path_parse(
         lockfile_path,
         requirements,
-        preprocess=preprocessors.CommentRemover(r"(^|\s+)#.*$"),
+        preprocess=preprocessors.CommentRemover(),
     )
     if deps is None:
         return []
