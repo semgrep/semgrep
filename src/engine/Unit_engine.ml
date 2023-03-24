@@ -302,7 +302,8 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
   let equiv = [] in
   Match_patterns.check ~hook
     (Config_semgrep.default_config, equiv)
-    [ rule ] (!!file, lang, ast)
+    [ rule ]
+    (`Path !!file, lang, ast)
 
 (*
    For each input file with the language's extension, locate a pattern file
@@ -591,7 +592,7 @@ let tainting_test lang rules_file file =
     |> Common.map (fun rule ->
            let xtarget =
              {
-               Xtarget.file = !!file;
+               Xtarget.file = `Path !!file;
                xlang = Xlang.L (lang, []);
                lazy_content = lazy (File.read_file file);
                lazy_ast_and_errors = lazy (ast, []);

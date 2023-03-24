@@ -17,7 +17,12 @@ open Xpattern_matcher
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-let regexp_matcher big_str file regexp =
+let regexp_matcher big_str (file : Xtarget.file) regexp =
+  let file =
+    match file with
+    | `Path file -> file
+    | `Block block -> block.Xtarget.orig_file
+  in
   let re_src = Regexp_engine.pcre_pattern regexp in
   let re = Regexp_engine.pcre_regexp regexp in
   let subs = SPcre.exec_all_noerr ~rex:re big_str in

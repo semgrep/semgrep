@@ -22,7 +22,7 @@ val hook_setup_hook_function_taint_signature :
   (Match_env.xconfig ->
   Rule.taint_rule ->
   Dataflow_tainting.config ->
-  Xtarget.t ->
+  Xtarget.path Xtarget.t ->
   unit)
   option
   ref
@@ -80,7 +80,7 @@ val check_rules :
     Report.rule_profiling Report.match_result) ->
   Rule.taint_rule list ->
   Match_env.xconfig ->
-  Xtarget.t ->
+  Xtarget.path Xtarget.t ->
   (* timeout function *)
   Report.rule_profiling Report.match_result list
 (** Runs the engine on a group of taint rules, which should be for the same language.

@@ -78,7 +78,8 @@ let ranges_matched lang file pattern : Range.t list =
         let minii_loc = Parse_info.unsafe_token_location_of_info minii in
         E.error "Synthesizier tests" minii_loc "" Out.SemgrepMatchFound)
       (Config_semgrep.default_config, equiv)
-      [ rule ] (file, lang, ast)
+      [ rule ]
+      (`Path file, lang, ast)
   in
   Common.map extract_range matches
 

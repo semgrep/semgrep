@@ -56,7 +56,7 @@ type env = {
   xconf : xconfig;
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
-  xtarget : Xtarget.t;
+  xtarget : Xtarget.file Xtarget.t;
   rule : Rule.t;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)
@@ -73,7 +73,11 @@ let error env msg =
   (* We are not supposed to report errors in the config file for several reasons
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
-  let loc = PI.first_loc_of_file env.xtarget.Xtarget.file in
+  let loc =
+    match env.xtarget.Xtarget.file with
+    | `Path file -> PI.first_loc_of_file file
+    | `Block block -> block.Xtarget.orig_loc
+  in
   (* TODO: warning or error? MatchingError or ... ? *)
   let err =
     E.mk_error ~rule_id:(Some (fst env.rule.Rule.id)) loc msg Out.MatchingError

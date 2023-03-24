@@ -31,8 +31,13 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Entry point *)
 (*****************************************************************************)
 
-let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
-  let str = Common.read_file file in
+let filter_mini_rules_relevant_to_file_using_regexp rules lang
+    (file : Xtarget.file) =
+  let str =
+    match file with
+    | `Path file -> Common.read_file file
+    | `Block block -> Lazy.force block.Xtarget.lazy_content
+  in
   rules
   |> List.filter (fun rule ->
          let pat = rule.R.pattern in

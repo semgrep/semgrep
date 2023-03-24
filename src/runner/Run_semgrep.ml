@@ -494,7 +494,7 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : Rule.rule_id list) :
   Common.hash_of_list id_pairs
 
 let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
-    (file : Common.filename) : Xtarget.t =
+    (file : Common.filename) : Xtarget.path Xtarget.t =
   let lazy_ast_and_errors =
     match xlang with
     | Xlang.L (lang, other_langs) ->
@@ -508,7 +508,7 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
   in
 
   {
-    Xtarget.file;
+    Xtarget.file = `Path file;
     xlang;
     lazy_content = lazy (Common.read_file file);
     lazy_ast_and_errors;
@@ -978,7 +978,8 @@ let semgrep_with_one_pattern config =
                        print_match config match_ Metavariable.ii_of_mval)
                      ( Config_semgrep.default_config,
                        parse_equivalences config.equivalences_file )
-                     minirule (file, lang, ast)
+                     minirule
+                     (`Path file, lang, ast)
                    |> ignore)
              in
 

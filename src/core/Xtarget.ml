@@ -7,8 +7,18 @@
  * to semgrep-core via -target.
  *)
 
-type t = {
-  file : Common.filename;
+type block_info = {
+  orig_file : Common.filename;
+  orig_loc : Parse_info.token_location;
+  lazy_content : string Lazy.t;
+}
+
+type path = [ `Path of Common.filename ]
+type block = [ `Block of block_info ]
+type file = [ path | block ]
+
+type 'file t = {
+  file : 'file;
   xlang : Xlang.t;
   lazy_content : string lazy_t;
   (* This is valid only for xlang = Xlang.L ..., not for LRegex|LGeneric *)

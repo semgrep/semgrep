@@ -294,7 +294,9 @@ let map_res map_loc tmpfile file
 (* Main logic *)
 (*****************************************************************************)
 
-let extract_and_concat erule_table xtarget rule_ids matches =
+let extract_and_concat erule_table (xtarget : Xtarget.path Xtarget.t) rule_ids
+    matches =
+  let (`Path xtarget_file) = xtarget.Xtarget.file in
   matches
   (* Group the matches within this file by rule id.
    * TODO? dangerous use of =*= ?
@@ -345,7 +347,7 @@ let extract_and_concat erule_table xtarget rule_ids matches =
          (* Read the extracted text from the source file *)
          |> Common.map (fun { start_pos; start_line; start_col; end_pos } ->
                 let contents_raw =
-                  Common.with_open_infile xtarget.Xtarget.file (fun chan ->
+                  Common.with_open_infile xtarget_file (fun chan ->
                       let extract_size = end_pos - start_pos in
                       seek_in chan start_pos;
                       really_input_string chan extract_size)
@@ -363,8 +365,8 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                   "Extract rule %s extracted the following from %s at bytes \
                    %d-%d\n\
                    %s"
-                  (fst r.Rule.id) xtarget.file start_pos end_pos contents;
-                (contents, map_loc start_pos start_line start_col xtarget.file))
+                  (fst r.Rule.id) xtarget_file start_pos end_pos contents;
+                (contents, map_loc start_pos start_line start_col xtarget_file))
          (* Combine the extracted snippets *)
          |> List.fold_left
               (fun (consumed_loc, contents, map_contents) (snippet, map_snippet) ->
@@ -427,13 +429,15 @@ let extract_and_concat erule_table xtarget rule_ids matches =
          logger#trace
            "Extract rule %s combined matches from %s resulting in the following:\n\
             %s"
-           (fst r.Rule.id) xtarget.file contents;
+           (fst r.Rule.id) xtarget_file contents;
          (* Write out the extracted text in a tmpfile *)
          let (`Extract { Rule.dst_lang; _ }) = r.mode in
          let target = mk_extract_target dst_lang contents rule_ids in
-         (target, map_res map_loc target.path xtarget.file))
+         (target, map_res map_loc target.path xtarget_file))
 
-let extract_as_separate erule_table xtarget rule_ids matches =
+let extract_as_separate erule_table (xtarget : Xtarget.path Xtarget.t) rule_ids
+    matches =
+  let (`Path xtarget_file) = xtarget.Xtarget.file in
   matches
   |> List.filter_map (fun m ->
          match extract_of_match erule_table m with
@@ -482,12 +486,11 @@ let extract_as_separate erule_table xtarget rule_ids matches =
                match transform with
                | ConcatJsonArray ->
                    map_loc start_extract_pos (line_offset - 1) col_offset
-                     xtarget.Xtarget.file
+                     xtarget_file
                | __else__ ->
-                   map_loc start_extract_pos line_offset col_offset
-                     xtarget.Xtarget.file
+                   map_loc start_extract_pos line_offset col_offset xtarget_file
              in
-             Some (target, map_res map_loc target.path xtarget.file)
+             Some (target, map_res map_loc target.path xtarget_file)
          | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)
            ->
              report_unbound_mvar id extract m;

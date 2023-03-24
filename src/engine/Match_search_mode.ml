@@ -217,7 +217,7 @@ let debug_semgrep config mini_rules file lang ast =
 (*****************************************************************************)
 
 let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
-    (xtarget : Xtarget.t)
+    (xtarget : Xtarget.file Xtarget.t)
     (patterns : (Pattern.t * bool * Xpattern.pattern_id * string) list) :
     RP.times RP.match_result =
   let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
@@ -368,9 +368,15 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     let focus_matches =
       fm_mval_range_locs
       |> Common.map (fun (focus_mvar, mval, range_loc) ->
+             let orig_file =
+               match env.xtarget.file with
+               | `Path file -> file
+               | `Block block -> block.Xtarget.orig_file
+             in
+             (* TODO: Fix tokens? *)
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
-               PM.file = env.xtarget.file;
+               PM.file = orig_file;
                PM.range_loc;
                PM.tokens = lazy (MV.ii_of_mval mval);
                PM.env = range.mvars;
@@ -441,7 +447,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
 (*****************************************************************************)
 
 let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
-    (xtarget : Xtarget.t) (xpatterns : (Xpattern.t * bool) list) :
+    (xtarget : Xtarget.file Xtarget.t) (xpatterns : (Xpattern.t * bool) list) :
     RP.times RP.match_result =
   let { Xtarget.file; lazy_content; _ } = xtarget in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
@@ -861,8 +867,13 @@ and matches_of_formula xconf rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
+let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf
+    (xtarget : Xtarget.path Xtarget.t) =
   let rule_id = fst r.id in
+  let xtarget =
+    let (`Path file) = xtarget.file in
+    { xtarget with file = `Path file }
+  in
   let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> Report.ErrorSet.map (error_with_rule_id rule_id) in
   {

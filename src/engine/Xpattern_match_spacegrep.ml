@@ -27,7 +27,13 @@ let lexing_pos_to_loc file x str =
   let column = x.Lexing.pos_cnum - x.Lexing.pos_bol in
   { PI.str; charpos; file; line; column }
 
-let spacegrep_matcher (xconfig : Match_env.xconfig) (doc, src) file pat =
+let spacegrep_matcher (xconfig : Match_env.xconfig) (doc, src)
+    (file : Xtarget.file) pat =
+  let file =
+    match file with
+    | `Path file -> file
+    | `Block block -> block.Xtarget.orig_file
+  in
   let search_param =
     Spacegrep.Match.create_search_param
       ~ellipsis_max_span:xconfig.config.generic_ellipsis_max_span ()
@@ -64,7 +70,8 @@ let preprocess_spacegrep (xconfig : Match_env.xconfig) src =
       in
       Spacegrep.Comment.remove_comments_from_src style src
 
-let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file =
+let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps
+    (file : Xtarget.file) =
   matches_of_matcher spacegreps
     {
       init =
@@ -76,7 +83,14 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file =
              * do so even if the text looks like gibberish. It can e.g. be
              * an RSA key. *)
             let src =
-              file |> Spacegrep.Src_file.of_file |> preprocess_spacegrep xconfig
+              match file with
+              | `Path file ->
+                  file |> Spacegrep.Src_file.of_file
+                  |> preprocess_spacegrep xconfig
+              | `Block block ->
+                  block.Xtarget.lazy_content |> Lazy.force
+                  |> Spacegrep.Src_file.of_string
+                  |> preprocess_spacegrep xconfig
             in
             Some (Spacegrep.Parse_doc.of_src src, src)
           else
@@ -86,6 +100,11 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file =
            This saves time on large files, by reading typically just one
            block from the file system.
           *)
+            let file =
+              match file with
+              | `Path file -> file
+              | `Block _ -> assert false
+            in
             let peek_length = 4096 in
             let partial_doc_src =
               Spacegrep.Src_file.of_file ~max_len:peek_length file

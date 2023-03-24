@@ -13,5 +13,5 @@ val check :
   timeout_threshold:int ->
   Match_env.xconfig ->
   Rule.rules ->
-  Xtarget.t ->
+  Xtarget.path Xtarget.t ->
   Report.partial_profiling Report.match_result

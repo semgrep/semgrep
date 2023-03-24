@@ -52,8 +52,7 @@ let timeout_function rule file timeout f =
       logger#info "timeout for rule %s on file %s" (fst rule.R.id) file;
       None
 
-let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
-    Resp.skipped_target =
+let skipped_target_of_rule xtarget (rule : R.rule) : Resp.skipped_target =
   let rule_id, _ = rule.id in
   let details =
     spf
@@ -61,18 +60,14 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
        elements necessary for the rule to match '%s'"
       rule_id
   in
-  {
-    path = file_and_more.file;
-    reason = Irrelevant_rule;
-    details;
-    rule_id = Some rule_id;
-  }
+  let (`Path path) = xtarget.Xtarget.file in
+  { path; reason = Irrelevant_rule; details; rule_id = Some rule_id }
 
 (* This function separates out rules into groups of taint rules by languages,
    all of the nontaint rules, and the rules which we skip due to prefiltering.
 *)
 let group_rules xconf rules xtarget =
-  let { Xtarget.file; lazy_content; _ } = xtarget in
+  let { Xtarget.file = `Path file; lazy_content; _ } = xtarget in
   let relevant_taint_rules, relevant_nontaint_rules, skipped_rules =
     rules
     |> Common.partition_either3 (fun r ->
@@ -147,8 +142,8 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
 (*****************************************************************************)
 
 let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
-    rules xtarget =
-  let { Xtarget.file; lazy_ast_and_errors; _ } = xtarget in
+    rules (xtarget : Xtarget.path Xtarget.t) =
+  let { Xtarget.file = `Path file; lazy_ast_and_errors; _ } = xtarget in
   logger#trace "checking %s with %d rules" file (List.length rules);
   if !Profiling.profile =*= Profiling.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";
@@ -194,7 +189,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                      match_hook xconf xtarget))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
-  let res = RP.collate_rule_results xtarget.Xtarget.file res_total in
+  let res = RP.collate_rule_results file res_total in
   let extra =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->

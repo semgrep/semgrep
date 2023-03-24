@@ -34,9 +34,12 @@ type ('target_content, 'xpattern) t = {
   (* init returns an option to let the matcher the option to skip
    * certain files (e.g., big binary or minified files for spacegrep)
    *)
-  init : filename -> 'target_content option;
+  init : Xtarget.file -> 'target_content option;
   matcher :
-    'target_content -> filename -> 'xpattern -> (match_range * MV.bindings) list;
+    'target_content ->
+    Xtarget.file ->
+    'xpattern ->
+    (match_range * MV.bindings) list;
 }
 
 (* bugfix: I used to just report one token_location, and if the match
@@ -58,9 +61,14 @@ let info_of_token_location loc =
 let (matches_of_matcher :
       ('xpattern * Xpattern.pattern_id * string) list ->
       ('target_content, 'xpattern) t ->
-      filename ->
+      Xtarget.file ->
       RP.times RP.match_result) =
  fun xpatterns matcher file ->
+  let orig_file =
+    match file with
+    | `Path file -> file
+    | `Block block -> block.Xtarget.orig_file
+  in
   if xpatterns =*= [] then RP.empty_semgrep_result
   else
     let target_content_opt, parse_time =
@@ -80,7 +88,7 @@ let (matches_of_matcher :
                             let rule_id = Match_env.fake_rule_id (id, pstr) in
                             {
                               PM.rule_id;
-                              file;
+                              file = orig_file;
                               range_loc = (loc1, loc2);
                               env;
                               taint_trace = None;

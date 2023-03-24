@@ -4,7 +4,7 @@ val check :
   ?range_filter:(Parse_info.token_location * Parse_info.token_location -> bool) ->
   Config_semgrep.t * Equivalence.equivalences ->
   Mini_rule.rules ->
-  Common.filename * Lang.t * Target.t ->
+  Xtarget.file * Lang.t * Target.t ->
   Pattern_match.t list
 (** Match mini-rules (patterns) against a target file.
   *
