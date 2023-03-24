@@ -659,12 +659,12 @@ class TextFormatter(BaseFormatter):
         # all output in this function is captured and returned as a string
         with force_quiet_off(console), console.capture() as captured_output:
             grouped_matches: Dict[Tuple[RuleProduct, str], List[RuleMatch]] = {
-                # ordered least important to most important
-                (RuleProduct.sca, "unreachable"): [],
-                (RuleProduct.sca, "undetermined"): [],
-                (RuleProduct.sca, "reachable"): [],
-                (RuleProduct.sast, "nonblocking"): [],
+                # ordered most important to least important
                 (RuleProduct.sast, "blocking"): [],
+                (RuleProduct.sca, "reachable"): [],
+                (RuleProduct.sca, "undetermined"): [],
+                (RuleProduct.sca, "unreachable"): [],
+                (RuleProduct.sast, "nonblocking"): [],
             }
 
             for match in rule_matches:
