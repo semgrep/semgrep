@@ -10,6 +10,7 @@ from typing import Optional
 
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
+from semdep.parsers import preprocessors
 from semdep.parsers.poetry import key_value
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import pair
@@ -48,7 +49,9 @@ def parse_pipfile(
         return []
 
     deps = lockfile_json_opt.as_dict()["default"].as_dict()
-    manifest_deps = safe_path_parse(manifest_path, manifest)
+    manifest_deps = safe_path_parse(
+        manifest_path, manifest, preprocess=preprocessors.CommentRemover()
+    )
 
     def extract_pipfile_hashes(
         hashes: List[str],
