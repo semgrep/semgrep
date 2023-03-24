@@ -24,7 +24,7 @@ pytest-split = "*"
 types-colorama = "~=0.4.0"
 types-freezegun = "*"
 types-jinja2 = "*"
-types-jsonschema = "==4.6.0"
+types-jsonschema = "==4.17.0"
 types-python-dateutil = "*"
 types-requests = "*"
 types-setuptools = "*"
@@ -44,5 +44,5 @@ importlib_resources = ">=1.4.0"
 typing_extensions = "*"
 
 [packages]
-jsonschema = "==4.6.1"
+jsonschema = "==4.17.3"
 semgrep = {editable = true, extras = ["experiments"], path = "."}
