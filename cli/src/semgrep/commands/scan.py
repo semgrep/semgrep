@@ -749,7 +749,11 @@ def scan(
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
 
+    print(requested_engine)
+
     engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
+
+    print(engine_type)
 
     if dump_engine_path:
         if requested_engine == EngineType.OSS:
