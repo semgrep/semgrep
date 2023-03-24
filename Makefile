@@ -157,7 +157,7 @@ uninstall:
 # This should *not* install the open-source libraries that we maintain
 # as part of the semgrep project.
 .PHONY: core-install
-core-install:
+core-install: copy-core-for-cli
 	cp bin/semgrep-core "$$(opam var bin)"/
 
 # Try to uninstall what was installed by 'make core-install'.

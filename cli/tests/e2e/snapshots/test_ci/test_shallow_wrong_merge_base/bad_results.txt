@@ -44,27 +44,26 @@ Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e68
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
   Scanning 1 file.
+                                
+                                
+┌──────────────────────────────┐
+│ 2 Non-blocking Code Findings │
+└──────────────────────────────┘
            
+    bar.py 
+       eqeq-five                 
+          useless comparison to 5
+                                 
+           ▶▶┆ Autofix ▶ (bar == 2)
+            1┆ bar == 5
            
-┌─────────┐
-│ Results │
-└─────────┘
-Non-Blocking Findings:
+    foo.py 
+       eqeq-five                 
+          useless comparison to 5
+                                 
+           ▶▶┆ Autofix ▶ (foo == 2)
+            2┆ foo == 5
 
-  bar.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (bar == 2)
-          1┆ bar == 5
-
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (foo == 2)
-          2┆ foo == 5
                 
                 
 ┌──────────────┐

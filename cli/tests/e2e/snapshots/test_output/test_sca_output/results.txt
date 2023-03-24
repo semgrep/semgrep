@@ -1,32 +1,40 @@
-Semgrep Supply Chain Summary: 1 Reachable finding, 1 Unreachable finding
+                                    
+                                    
+┌──────────────────────────────────┐
+│ 1 Reachable Supply Chain Finding │
+└──────────────────────────────────┘
+                                                                                
+    targets/dependency_aware/monorepo/webapp1/app.js with lockfile              
+  targets/dependency_aware/monorepo/webapp1/yarn.lock                           
+       rules.dependency_aware.js-sca
+          oh no                     
+                                    
+            1┆ bad()
+                                      
+                                      
+┌────────────────────────────────────┐
+│ 1 Unreachable Supply Chain Finding │
+└────────────────────────────────────┘
+                                                        
+    targets/dependency_aware/monorepo/webapp2/yarn.lock 
+       rules.dependency_aware.js-sca
+          oh no                     
+                                    
+                   
+                   
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+                                               
+    targets/dependency_aware/monorepo/build.js 
+       rules.dependency_aware.js-other
+          this is always bad          
+                                      
+            1┆ bad()
+                                                     
+    targets/dependency_aware/monorepo/webapp1/app.js 
+       rules.dependency_aware.js-other
+          this is always bad          
+                                      
+            1┆ bad()
 
-
-Reachable Supply Chain Findings:
-
-  targets/dependency_aware/monorepo/webapp1/app.js with lockfile targets/dependency_aware/monorepo/webapp1/yarn.lock
-     rules.dependency_aware.js-sca
-        oh no
-
-          1┆ bad()
-
-Unreachable Supply Chain Findings:
-
-  targets/dependency_aware/monorepo/webapp2/yarn.lock 
-     rules.dependency_aware.js-sca
-        oh no
-
-
-First-Party Findings:
-
-  targets/dependency_aware/monorepo/build.js 
-     rules.dependency_aware.js-other
-        this is always bad
-
-          1┆ bad()
-
-
-  targets/dependency_aware/monorepo/webapp1/app.js 
-     rules.dependency_aware.js-other
-        this is always bad
-
-          1┆ bad()

@@ -61,8 +61,8 @@ class AutoIndentingConsole(Console):
         else:
             return 0
 
-    def reset_title(self) -> None:
-        self.active_title = None
+    def reset_title(self, order: int = 1) -> None:
+        self.active_title = Title("", order=order)
 
     @staticmethod
     def extract_title(current: Optional[RenderableType]) -> Optional[Title]:
