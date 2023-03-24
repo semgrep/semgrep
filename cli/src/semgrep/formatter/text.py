@@ -1,4 +1,5 @@
 import textwrap
+from contextlib import contextmanager
 from itertools import groupby
 from pathlib import Path
 from shutil import get_terminal_size
@@ -15,6 +16,7 @@ from typing import Tuple
 
 import click
 import colorama
+from rich.console import Console
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.console import console
@@ -631,6 +633,19 @@ def print_text_output(
                 console.print("  " + line)
 
 
+@contextmanager
+def force_quiet_off(console: Console) -> Iterator[None]:
+    """
+    Force the console to be not quiet, even if it was set to be quiet before.
+    """
+    was_quiet = console.quiet
+    console.quiet = False
+    try:
+        yield
+    finally:
+        console.quiet = was_quiet
+
+
 class TextFormatter(BaseFormatter):
     def format(
         self,
@@ -642,80 +657,81 @@ class TextFormatter(BaseFormatter):
         is_ci_invocation: bool,
     ) -> str:
         # all output in this function is captured and returned as a string
-        console.begin_capture()
+        with force_quiet_off(console), console.capture() as captured_output:
+            grouped_matches: Dict[Tuple[RuleProduct, str], List[RuleMatch]] = {
+                # ordered least important to most important
+                (RuleProduct.sca, "unreachable"): [],
+                (RuleProduct.sca, "undetermined"): [],
+                (RuleProduct.sca, "reachable"): [],
+                (RuleProduct.sast, "nonblocking"): [],
+                (RuleProduct.sast, "blocking"): [],
+            }
 
-        grouped_matches: Dict[Tuple[RuleProduct, str], List[RuleMatch]] = {
-            # ordered least important to most important
-            (RuleProduct.sca, "unreachable"): [],
-            (RuleProduct.sca, "undetermined"): [],
-            (RuleProduct.sca, "reachable"): [],
-            (RuleProduct.sast, "nonblocking"): [],
-            (RuleProduct.sast, "blocking"): [],
-        }
+            for match in rule_matches:
+                if match.product == RuleProduct.sast:
+                    subgroup = "blocking" if match.is_blocking else "nonblocking"
+                else:
+                    subgroup = match.exposure_type or "undetermined"
 
-        for match in rule_matches:
-            if match.product == RuleProduct.sast:
-                subgroup = "blocking" if match.is_blocking else "nonblocking"
-            else:
-                subgroup = match.exposure_type or "undetermined"
+                grouped_matches[match.product, subgroup].append(match)
 
-            grouped_matches[match.product, subgroup].append(match)
+            first_party_blocking_rules = {
+                match.match.rule_id.value
+                for match in grouped_matches[RuleProduct.sast, "blocking"]
+            }
 
-        first_party_blocking_rules = {
-            match.match.rule_id.value
-            for match in grouped_matches[RuleProduct.sast, "blocking"]
-        }
+            # When ephemeral rules are run with the -e or --pattern flag in the command-line, the rule_id is set to -.
+            # The rule is ran in the command-line and has no associated rule_id
+            first_party_blocking_rules.discard("-")
 
-        # When ephemeral rules are run with the -e or --pattern flag in the command-line, the rule_id is set to -.
-        # The rule is ran in the command-line and has no associated rule_id
-        first_party_blocking_rules.discard("-")
+            if not is_ci_invocation:
+                grouped_matches[(RuleProduct.sast, "merged")] = [
+                    *grouped_matches.pop((RuleProduct.sast, "nonblocking")),
+                    *grouped_matches.pop((RuleProduct.sast, "blocking")),
+                ]
 
-        if not is_ci_invocation:
-            grouped_matches[(RuleProduct.sast, "merged")] = [
-                *grouped_matches.pop((RuleProduct.sast, "nonblocking")),
-                *grouped_matches.pop((RuleProduct.sast, "blocking")),
-            ]
-
-        for group, matches in grouped_matches.items():
-            if not matches:
-                continue
-            console.print(Title(unit_str(len(matches), GROUP_TITLES[group])))
-            print_text_output(
-                matches,
-                extra.get("color_output", False),
-                extra["per_finding_max_lines_limit"],
-                extra["per_line_max_chars_limit"],
-                extra["dataflow_traces"],
-            )
-
-        if first_party_blocking_rules and is_ci_invocation:
-            console.print(Title("Blocking Code Rules Fired:", order=2))
-            for rule_id in sorted(first_party_blocking_rules):
-                console.print(rule_id)
-            console.reset_title(order=1)
-
-        if cli_output_extra.time:
-            print_time_summary(cli_output_extra.time, semgrep_structured_errors)
-
-        rules_by_engine = (
-            cli_output_extra.rules_by_engine if cli_output_extra.rules_by_engine else []
-        )
-
-        oss_rules = [
-            with_color(Colors.foreground, rule.value[0].value, bold=True)
-            for rule in rules_by_engine
-            if isinstance(rule.value[1].value, out.OSS)
-        ]
-
-        if (extra["engine_requested"].is_interfile) and oss_rules:
-            console.print(
-                "Some rules were run as OSS rules because `interfile: true` was not specified."
-            )
-            if extra.get("verbose_errors"):
-                console.print("These rules were:\n   " + "   \n   ".join(oss_rules))
-            else:
-                console.print(
-                    f"{unit_str(len(oss_rules), 'rule')} ran with OSS engine (--verbose to see which)"
+            for group, matches in grouped_matches.items():
+                if not matches:
+                    continue
+                console.print(Title(unit_str(len(matches), GROUP_TITLES[group])))
+                print_text_output(
+                    matches,
+                    extra.get("color_output", False),
+                    extra["per_finding_max_lines_limit"],
+                    extra["per_line_max_chars_limit"],
+                    extra["dataflow_traces"],
                 )
 
-        return console.end_capture()
+            if first_party_blocking_rules and is_ci_invocation:
+                console.print(Title("Blocking Code Rules Fired:", order=2))
+                for rule_id in sorted(first_party_blocking_rules):
+                    console.print(rule_id)
+                console.reset_title(order=1)
+
+            if cli_output_extra.time:
+                print_time_summary(cli_output_extra.time, semgrep_structured_errors)
+
+            rules_by_engine = (
+                cli_output_extra.rules_by_engine
+                if cli_output_extra.rules_by_engine
+                else []
+            )
+
+            oss_rules = [
+                with_color(Colors.foreground, rule.value[0].value, bold=True)
+                for rule in rules_by_engine
+                if isinstance(rule.value[1].value, out.OSS)
+            ]
+
+            if (extra["engine_requested"].is_interfile) and oss_rules:
+                console.print(
+                    "Some rules were run as OSS rules because `interfile: true` was not specified."
+                )
+                if extra.get("verbose_errors"):
+                    console.print("These rules were:\n   " + "   \n   ".join(oss_rules))
+                else:
+                    console.print(
+                        f"{unit_str(len(oss_rules), 'rule')} ran with OSS engine (--verbose to see which)"
+                    )
+
+        return captured_output.get()
