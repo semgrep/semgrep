@@ -322,18 +322,18 @@ let exn_to_error file (e : Exception.t) =
 
 (* Return an exception
  * - always, if there are no rules but just invalid rules
- * - when users want to fail fast, if there are valid and invalid rules
- *
- * TODO: right now we always fail when there is one invalid rule, because
- * we don't have a fail_fast flag (we could use the flag for -strict)
+ * - TODO when users want to fail fast, if there are valid and invalid rules.
+ *   (right now we always fail when there is one invalid rule, because
+ *   we don't have a fail_fast flag (we could use the flag for -strict))
  *
  * update: we now parse patterns lazily in Parse_rule.ml, which means
- * we will not return anymore an invalid_rule below for a rule containing
- * a parse error in a pattern (we still return an invalid_rule for
+ * we will not get anymore an invalid_rule below for a rule containing
+ * a parse error in a pattern (we still get an invalid_rule for
  * other kinds of errors such as the use of an invalid language).
- * Instead, we raise those exns later (as we run the engine). Fortunately, now
- * those exns are detected in iter_targets_and_get_matches_and_exn_to_errors()
- * and we stop the engine in that case (as we used to).
+ * Instead, parse error exns in patterns are raise later (as we run the engine).
+ * Fortunately, now those exns are converted in errors which are detected in
+ * sanity_check_invalid_patterns() below, to return the same kind of error we used
+ * to before the lazy pattern optimisation.
  *)
 let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
   match (rules, invalid_rules) with
@@ -469,18 +469,24 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                      (RP.empty_partial_profiling file)
                (* those were converted in Main_timeout in timeout_function()*)
                | Time_limit.Timeout _ -> assert false
-               (* This exn used to be raised earlier in
-                * sanity_check_rules_and_invalid_rules(), but after
+               (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
+                * for errors while parsing patterns. This exn used to be raised earlier
+                * in sanity_check_rules_and_invalid_rules(), but after
                 * the lazy parsing of patterns, those errors are raised
-                * later, but we still want to abort semgrep-core when we
-                * find such exns.
+                * later. Unfortunately, we can't catch and reraise here, because
+                * with -j 2, Parmap will just abort the whole thing and return
+                * a different kind of exception to the caller. Instead, we
+                * we need to convert all exns in errors (see the code further below),
+                * and only in sanity_check_invalid_patterns() we can detect if one
+                * of those errors was a PatternParseError.
+                * does-not-work:
+                * | R.Err (R.InvalidRule _) as exn when false ->
+                *   Exception.catch_and_reraise exn
                 *)
-               | R.Err (R.InvalidRule _) as exn when false ->
-                   Exception.catch_and_reraise exn
-               (* convert all other exns (e.g., a parse error in a target file)
-                * in an empty match result with errors, so that one error
-                * in one target file does not abort the whole semgrep-core
-                * process
+               (* convert all other exns (e.g., a parse error in a target file,
+                * a parse error in a pattern), in an empty match result with errors,
+                * so that one error in one target file or rule does not abort the whole
+                * semgrep-core process.
                 *)
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
@@ -832,7 +838,6 @@ let semgrep_with_raw_results_and_exn_handler config =
       Common.with_time (fun () -> rules_from_rule_source config)
     in
     let res, files = semgrep_with_rules config timed_rules in
-    (* (None, res, files) *)
     sanity_check_invalid_patterns res files
   with
   | exn when not !Flag_semgrep.fail_fast ->
