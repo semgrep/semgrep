@@ -1,3 +1,5 @@
+None
+EngineType.OSS
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -77,42 +79,6 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "possibly useless comparison but in eq function"
-              },
-              "helpUri": "https://semgrep.dev/foo/bar/assert",
-              "id": "rules.assert-eqeq-is-ok",
-              "name": "rules.assert-eqeq-is-ok",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "possibly useless comparison but in eq function"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
-              },
-              "helpUri": "https://semgrep.dev/foo/bar/bad",
-              "id": "rules.eqeq-is-bad",
-              "name": "rules.eqeq-is-bad",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
                 "text": "useless comparison"
               },
               "helpUri": "https://semgrep.dev/foo/bar/js",
@@ -124,6 +90,24 @@
               },
               "shortDescription": {
                 "text": "useless comparison"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "possibly useless comparison but in eq function"
+              },
+              "helpUri": "https://semgrep.dev/foo/bar/assert",
+              "id": "rules.assert-eqeq-is-ok",
+              "name": "rules.assert-eqeq-is-ok",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "possibly useless comparison but in eq function"
               }
             },
             {
@@ -143,9 +127,27 @@
               "shortDescription": {
                 "text": "this function is only available on Python 3.7+"
               }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+              },
+              "helpUri": "https://semgrep.dev/foo/bar/bad",
+              "id": "rules.eqeq-is-bad",
+              "name": "rules.eqeq-is-bad",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+              }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

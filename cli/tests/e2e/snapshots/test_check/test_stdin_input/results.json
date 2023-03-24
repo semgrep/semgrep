@@ -1,36 +1,3 @@
-{
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "/tmp/masked/path"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "-",
-      "end": {
-        "col": 2,
-        "line": 1,
-        "offset": 1
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "a",
-        "message": "a",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR"
-      },
-      "path": "/tmp/masked/path",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
-    }
-  ],
-  "version": "0.42"
-}
+None
+EngineType.OSS
+{"errors": [], "paths": {"_comment": "<add --verbose for a list of skipped paths>", "scanned": ["/tmp/tmp_dy5lis7/stdin"]}, "results": [{"check_id": "-", "end": {"col": 2, "line": 1, "offset": 1}, "extra": {"engine_kind": "OSS", "fingerprint": "895e28d094218ec1e999a4b1ccd0ea69688b569f97efbd390f460929e6a078f730cc9263474862b02db7091681c7b47513b85992089bd8ce92bd16698e3d3283_0", "is_ignored": false, "lines": "a", "message": "a", "metadata": {}, "metavars": {}, "severity": "ERROR"}, "path": "/tmp/tmp_dy5lis7/stdin", "start": {"col": 1, "line": 1, "offset": 0}}], "version": "1.15.0"}
