@@ -32,28 +32,6 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
-                                    
-                                    
-┌──────────────────────────────────┐
-│ 1 Reachable Supply Chain Finding │
-└──────────────────────────────────┘
-                
-    poetry.lock 
-       supply-chain1        
-          found a dependency
-                            
-                               
-                               
-┌─────────────────────────────┐
-│ 1 Non-blocking Code Finding │
-└─────────────────────────────┘
-           
-    foo.py 
-       eqeq-five                 
-          useless comparison to 5
-                                 
-           ▶▶┆ Autofix ▶ (x == 2)
-           15┆ x == 5
                             
                             
 ┌──────────────────────────┐
@@ -81,6 +59,28 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
           unsafe use of danger
                               
            27┆ sink(d2)
+                                    
+                                    
+┌──────────────────────────────────┐
+│ 1 Reachable Supply Chain Finding │
+└──────────────────────────────────┘
+                
+    poetry.lock 
+       supply-chain1        
+          found a dependency
+                            
+                               
+                               
+┌─────────────────────────────┐
+│ 1 Non-blocking Code Finding │
+└─────────────────────────────┘
+           
+    foo.py 
+       eqeq-five                 
+          useless comparison to 5
+                                 
+           ▶▶┆ Autofix ▶ (x == 2)
+           15┆ x == 5
                             
   BLOCKING CODE RULES FIRED:
   eqeq-bad

@@ -7,28 +7,6 @@ CI="true" SEMGREP_REPO_NAME="org_name/project_name/project_name" SEMGREP_REPO_UR
 === end of exit code
 
 === stdout - plain
-                                    
-                                    
-┌──────────────────────────────────┐
-│ 1 Reachable Supply Chain Finding │
-└──────────────────────────────────┘
-                
-    poetry.lock 
-       supply-chain1        
-          found a dependency
-                            
-                               
-                               
-┌─────────────────────────────┐
-│ 1 Non-blocking Code Finding │
-└─────────────────────────────┘
-           
-    foo.py 
-       eqeq-five                 
-          useless comparison to 5
-                                 
-           ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
                             
                             
 ┌──────────────────────────┐
@@ -56,6 +34,28 @@ CI="true" SEMGREP_REPO_NAME="org_name/project_name/project_name" SEMGREP_REPO_UR
           unsafe use of danger
                               
            27┆ sink(d2)
+                                    
+                                    
+┌──────────────────────────────────┐
+│ 1 Reachable Supply Chain Finding │
+└──────────────────────────────────┘
+                
+    poetry.lock 
+       supply-chain1        
+          found a dependency
+                            
+                               
+                               
+┌─────────────────────────────┐
+│ 1 Non-blocking Code Finding │
+└─────────────────────────────┘
+           
+    foo.py 
+       eqeq-five                 
+          useless comparison to 5
+                                 
+           ▶▶┆ Autofix ▶ (x == 2)
+           15┆ (x == 2)
                             
   BLOCKING CODE RULES FIRED:
   eqeq-bad

@@ -46,18 +46,6 @@ Switching repository to baseline commit '<MASKED>'.
 └─────────────┘
   Scanning 1 file tracked by git with 4 Code rules:
   Scanning 1 file with 4 python rules.
-                               
-                               
-┌─────────────────────────────┐
-│ 1 Non-blocking Code Finding │
-└─────────────────────────────┘
-           
-    foo.py 
-       eqeq-five                 
-          useless comparison to 5
-                                 
-           ▶▶┆ Autofix ▶ (x == 2)
-           15┆ x == 5
                             
                             
 ┌──────────────────────────┐
@@ -85,6 +73,18 @@ Switching repository to baseline commit '<MASKED>'.
           unsafe use of danger
                               
            27┆ sink(d2)
+                               
+                               
+┌─────────────────────────────┐
+│ 1 Non-blocking Code Finding │
+└─────────────────────────────┘
+           
+    foo.py 
+       eqeq-five                 
+          useless comparison to 5
+                                 
+           ▶▶┆ Autofix ▶ (x == 2)
+           15┆ x == 5
                             
   BLOCKING CODE RULES FIRED:
   eqeq-bad
