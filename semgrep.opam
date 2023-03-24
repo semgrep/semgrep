@@ -41,7 +41,7 @@ depends: [
   "easy_logging_yojson" { = "0.8.1" }
   "logs"
   "atdgen"
-  "yojson"
+  "yojson" { < "2.0.0" } (* TODO remove this, just unblocking my testing *)
   "yaml"
   "cmdliner"
   "ppxlib"
