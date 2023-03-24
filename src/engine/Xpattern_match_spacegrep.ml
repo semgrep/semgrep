@@ -70,6 +70,15 @@ let preprocess_spacegrep (xconfig : Match_env.xconfig) src =
       in
       Spacegrep.Comment.remove_comments_from_src style src
 
+let read_file ?max_len file =
+  match file with
+  | `Path file -> Spacegrep.Src_file.of_file ?max_len file
+  | `Block block ->
+      (* TODO: take max_len only? I think no because in this case we are not going
+       * to apply the filters for machine-generated files. *)
+      block.Xtarget.block_lazy_content |> Lazy.force
+      |> Spacegrep.Src_file.of_string
+
 let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps
     (file : Xtarget.file) =
   matches_of_matcher spacegreps
@@ -82,16 +91,7 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps
              * requesting that Spacegrep analyzes this piece of text. We must
              * do so even if the text looks like gibberish. It can e.g. be
              * an RSA key. *)
-            let src =
-              match file with
-              | `Path file ->
-                  file |> Spacegrep.Src_file.of_file
-                  |> preprocess_spacegrep xconfig
-              | `Block block ->
-                  block.Xtarget.block_lazy_content |> Lazy.force
-                  |> Spacegrep.Src_file.of_string
-                  |> preprocess_spacegrep xconfig
-            in
+            let src = read_file file |> preprocess_spacegrep xconfig in
             Some (Spacegrep.Parse_doc.of_src src, src)
           else
             (* coupling: mostly copypaste of Spacegrep_main.run_all *)
@@ -100,20 +100,14 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps
            This saves time on large files, by reading typically just one
            block from the file system.
           *)
-            let file =
-              match file with
-              | `Path file -> file
-              | `Block _ -> assert false
-            in
             let peek_length = 4096 in
-            let partial_doc_src =
-              Spacegrep.Src_file.of_file ~max_len:peek_length file
-            in
+            let partial_doc_src = read_file ~max_len:peek_length file in
             let doc_type = Spacegrep.File_type.classify partial_doc_src in
             match doc_type with
             | Minified
             | Binary ->
-                logger#info "ignoring gibberish file: %s\n%!" file;
+                logger#info "ignoring gibberish file: %s\n%!"
+                  (Xtarget.path_of_file file);
                 None
             | Text
             | Short ->
@@ -122,7 +116,7 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps
                     Spacegrep.Src_file.length partial_doc_src < peek_length
                     (* it's actually complete, no need to re-input the file *)
                   then partial_doc_src
-                  else Spacegrep.Src_file.of_file file
+                  else read_file file
                 in
                 let src = preprocess_spacegrep xconfig src in
                 (* pr (Spacegrep.Doc_AST.show doc); *)
