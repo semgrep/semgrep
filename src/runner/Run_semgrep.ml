@@ -330,10 +330,10 @@ let exn_to_error file (e : Exception.t) =
  * we will not get anymore an invalid_rule below for a rule containing
  * a parse error in a pattern (we still get an invalid_rule for
  * other kinds of errors such as the use of an invalid language).
- * Instead, parse error exns in patterns are raise later (as we run the engine).
+ * Instead, parse error exns in patterns are raised later (as we run the engine).
  * Fortunately, now those exns are converted in errors which are detected in
- * sanity_check_invalid_patterns() below, to return the same kind of error we used
- * to before the lazy pattern optimisation.
+ * sanity_check_invalid_patterns() below, and then we return the same kind of error
+ * we used to before the lazy pattern optimisation.
  *)
 let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
   match (rules, invalid_rules) with
