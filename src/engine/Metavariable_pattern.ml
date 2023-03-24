@@ -72,33 +72,27 @@ let filter_new_mvars_by_range range mvars =
    information, so we need to construct a visitor so we can convert the mvalues to have
    tokens with the correct information.
 *)
-let get_persistent_bindings ?revert_loc r nested_matches =
-  let reverting_visitor =
-    let* revert_loc in
-    Some (Map_AST.mk_fix_token_locations revert_loc)
-  in
+let get_persistent_bindings revert_loc r nested_matches =
+  let reverting_visitor = Map_AST.mk_fix_token_locations revert_loc in
   nested_matches
   |> Common.map (fun nested_match ->
-         match reverting_visitor with
-         | None -> nested_match
-         | Some reverting_visitor ->
-             (* The bindings in this match were produced from a target whose location
-                 data was all adjusted, to avoid re-parsing.
-             *)
-             let readjusted_mvars =
-               nested_match.RM.mvars
-               |> List.filter_map (fun (mvar, mval) ->
-                      match
-                        mval |> MV.mvalue_to_any
-                        |> reverting_visitor.Map_AST.vany |> MV.mvalue_of_any
-                      with
-                      | None ->
-                          logger#error
-                            "Failed to convert mvar %s to and from any" mvar;
-                          None
-                      | Some mval -> Some (mvar, mval))
-             in
-             { nested_match with RM.mvars = readjusted_mvars })
+         (* The bindings in this match were produced from a target whose location
+             data was all adjusted, to avoid re-parsing.
+         *)
+         let readjusted_mvars =
+           nested_match.RM.mvars
+           |> List.filter_map (fun (mvar, mval) ->
+                  match
+                    mval |> MV.mvalue_to_any |> reverting_visitor.Map_AST.vany
+                    |> MV.mvalue_of_any
+                  with
+                  | None ->
+                      logger#error "Failed to convert mvar %s to and from any"
+                        mvar;
+                      None
+                  | Some mval -> Some (mvar, mval))
+         in
+         { nested_match with RM.mvars = readjusted_mvars })
   |> Common.map (fun r' -> filter_new_mvars_by_range r r'.RM.mvars)
 
 (*****************************************************************************)
@@ -197,15 +191,15 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   let lazy_content =
                     lazy (Range.content_at_range mval_file mval_range)
                   in
-                  let orig_file =
-                    match env.xtarget.file with
-                    | `Path file -> file
-                    | `Block block -> block.Xtarget.orig_file
-                  in
+                  let orig_file = Xtarget.path env.xtarget in
                   let file =
                     `Block
                       Xtarget.
-                        { orig_file; orig_loc = mast_start_loc; lazy_content }
+                        {
+                          orig_file;
+                          orig_loc = mast_start_loc;
+                          block_lazy_content = lazy_content;
+                        }
                   in
                   let fixing_visitor =
                     Map_AST.mk_fix_token_locations (fix_loc orig_file)
@@ -223,7 +217,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                       matches
                   *)
                   get_nested_formula_matches { env with xtarget } formula r'
-                  |> get_persistent_bindings ~revert_loc r)
+                  |> get_persistent_bindings revert_loc r)
           | Some xlang -> (
               let content =
                 (* Previously we only allowed metavariable-pattern with a
@@ -309,4 +303,4 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                          matches
                       *)
                       get_nested_formula_matches { env with xtarget } formula r'
-                      |> get_persistent_bindings ~revert_loc r))))
+                      |> get_persistent_bindings revert_loc r))))

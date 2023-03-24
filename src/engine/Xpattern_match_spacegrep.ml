@@ -88,7 +88,7 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps
                   file |> Spacegrep.Src_file.of_file
                   |> preprocess_spacegrep xconfig
               | `Block block ->
-                  block.Xtarget.lazy_content |> Lazy.force
+                  block.Xtarget.block_lazy_content |> Lazy.force
                   |> Spacegrep.Src_file.of_string
                   |> preprocess_spacegrep xconfig
             in

@@ -156,11 +156,6 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
 
 let match_rules_and_recurse lang config ((file : Xtarget.file), hook, matches)
     rules matcher k any x =
-  let orig_file =
-    match file with
-    | `Path file -> file
-    | `Block block -> block.Xtarget.orig_file
-  in
   rules
   |> List.iter (fun (pattern, rule, cache) ->
          let env = MG.empty_environment cache lang config in
@@ -183,7 +178,7 @@ let match_rules_and_recurse lang config ((file : Xtarget.file), hook, matches)
                       let pm =
                         {
                           PM.rule_id;
-                          file = orig_file;
+                          file = Xtarget.path_of_file file;
                           env;
                           range_loc;
                           tokens;
@@ -230,12 +225,9 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
  *   See also docs for {!check} in Match_pattern.mli. *)
 let check2 ~hook mvar_context range_filter (config, equivs) rules
     ((file : Xtarget.file), lang, ast) =
-  let orig_file =
-    match file with
-    | `Path file -> file
-    | `Block block -> block.Xtarget.orig_file
-  in
-  logger#trace "checking %s with %d mini rules" orig_file (List.length rules);
+  let file_path = Xtarget.path_of_file file in
+
+  logger#trace "checking %s with %d mini rules" file_path (List.length rules);
 
   let rules =
     (* simple opti using regexps; the bloom filter opti might supersede this *)
@@ -333,12 +325,6 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                  "only expr/stmt(s)/type/pattern/annotation/field(s)/partial \
                   patterns are supported");
 
-    let orig_file =
-      match file with
-      | `Path file -> file
-      | `Block block -> block.Xtarget.orig_file
-    in
-
     let visitor =
       object (_self : 'self)
         inherit [_] Matching_visitor.matching_visitor as super
@@ -370,7 +356,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                               let pm =
                                 {
                                   PM.rule_id;
-                                  file = orig_file;
+                                  file = file_path;
                                   env;
                                   range_loc;
                                   tokens;
@@ -424,7 +410,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                 let pm =
                                   {
                                     PM.rule_id;
-                                    file = orig_file;
+                                    file = file_path;
                                     env;
                                     range_loc;
                                     tokens;
@@ -493,7 +479,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   let pm =
                                     {
                                       PM.rule_id;
-                                      file = orig_file;
+                                      file = file_path;
                                       env;
                                       range_loc;
                                       tokens;

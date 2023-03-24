@@ -114,12 +114,9 @@ let option_bind_list opt f =
 
 (* Finds all matches of a taint-spec pattern formula. *)
 let range_w_metas_of_formula (xconf : Match_env.xconfig)
-    (xtarget : Xtarget.path Xtarget.t) (rule : Rule.t) (formula : Rule.formula)
-    : RM.ranges * ME.t list =
-  let xtarget : Xtarget.file Xtarget.t =
-    let (`Path file) = xtarget.file in
-    { xtarget with file = `Path file }
-  in
+    (xtarget : Xtarget.input) (rule : Rule.t) (formula : Rule.formula) :
+    RM.ranges * ME.t list =
+  let xtarget = Xtarget.cast xtarget in
   (* !! Calling Match_search_mode here !! *)
   let report, ranges =
     Match_search_mode.matches_of_formula xconf rule xtarget formula None
@@ -238,8 +235,8 @@ let concat_map_with_expls f xs =
   (res, List.flatten !all_expls)
 
 let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
-    (xtarget : Xtarget.path Xtarget.t) (rule : Rule.t)
-    (specs : (R.formula * 'a) list) : (RM.t * 'a) list * ME.t list =
+    (xtarget : Xtarget.input) (rule : Rule.t) (specs : (R.formula * 'a) list) :
+    (RM.t * 'a) list * ME.t list =
   (* TODO: Make an Or formula and run a single query. *)
   (* if perf is a problem, we could build an interval set here *)
   specs
@@ -251,8 +248,7 @@ let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
          (ranges |> Common.map (fun rwm -> (rwm, x)), expls))
 
 let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
-    (xtarget : Xtarget.path Xtarget.t) (rule : Rule.t)
-    (specs : R.taint_sanitizer list) :
+    (xtarget : Xtarget.input) (rule : Rule.t) (specs : R.taint_sanitizer list) :
     (bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
   |> concat_map_with_expls (fun (sanitizer : R.taint_sanitizer) ->
@@ -269,7 +265,7 @@ let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
 
 (* Finds all matches of `pattern-propagators`. *)
 let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
-    (xtarget : Xtarget.path Xtarget.t) (rule : Rule.t)
+    (xtarget : Xtarget.input) (rule : Rule.t)
     (propagators_spec : R.taint_propagator list) =
   propagators_spec
   |> List.concat_map (fun (p : Rule.taint_propagator) ->
@@ -446,7 +442,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   let lazy_ast_and_errors = lazy ast_and_errors in
   let xtarget =
     {
-      Xtarget.file = `Path file;
+      Xtarget.file;
       xlang = rule.languages;
       lazy_content = lazy (Common.read_file file);
       lazy_ast_and_errors;
@@ -660,10 +656,10 @@ let check_fundef lang options taint_config opt_ent fdef =
   (flow, mapping)
 
 let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
-    (xconf : Match_env.xconfig) (xtarget : Xtarget.path Xtarget.t) =
+    (xconf : Match_env.xconfig) (xtarget : Xtarget.input) =
   let matches = ref [] in
 
-  let { Xtarget.file = `Path file; xlang; lazy_ast_and_errors; _ } = xtarget in
+  let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
   let lang =
     match xlang with
     | L (lang, _) -> lang
@@ -746,7 +742,7 @@ let check_rules ~match_hook
        R.rule ->
        (unit -> RP.rule_profiling RP.match_result) ->
        RP.rule_profiling RP.match_result) (rules : R.taint_rule list)
-    (xconf : Match_env.xconfig) (xtarget : Xtarget.path Xtarget.t) :
+    (xconf : Match_env.xconfig) (xtarget : Xtarget.input) :
     RP.rule_profiling RP.match_result list =
   (* We create a "formula cache" here, before dealing with individual rules, to
      permit sharing of matches for sources, sanitizers, propagators, and sinks

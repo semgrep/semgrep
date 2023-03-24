@@ -154,7 +154,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              in
              let xtarget =
                {
-                 Xtarget.file = `Path !!target;
+                 Xtarget.file = !!target;
                  xlang;
                  lazy_content = lazy (File.read_file target);
                  lazy_ast_and_errors;
@@ -224,7 +224,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                         in
                         let xtarget =
                           {
-                            Xtarget.file = `Path file;
+                            Xtarget.file;
                             xlang;
                             lazy_content = lazy (Common.read_file file);
                             lazy_ast_and_errors;

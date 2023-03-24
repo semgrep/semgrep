@@ -209,4 +209,4 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
 val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
 
 val xtarget_of_file :
-  Runner_config.t -> Xlang.t -> Common.filename -> Xtarget.path Xtarget.t
+  Runner_config.t -> Xlang.t -> Common.filename -> Xtarget.input

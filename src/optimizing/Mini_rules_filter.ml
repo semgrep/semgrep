@@ -36,7 +36,7 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang
   let str =
     match file with
     | `Path file -> Common.read_file file
-    | `Block block -> Lazy.force block.Xtarget.lazy_content
+    | `Block block -> Lazy.force block.Xtarget.block_lazy_content
   in
   rules
   |> List.filter (fun rule ->

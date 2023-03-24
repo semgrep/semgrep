@@ -64,11 +64,6 @@ let (matches_of_matcher :
       Xtarget.file ->
       RP.times RP.match_result) =
  fun xpatterns matcher file ->
-  let orig_file =
-    match file with
-    | `Path file -> file
-    | `Block block -> block.Xtarget.orig_file
-  in
   if xpatterns =*= [] then RP.empty_semgrep_result
   else
     let target_content_opt, parse_time =
@@ -88,7 +83,7 @@ let (matches_of_matcher :
                             let rule_id = Match_env.fake_rule_id (id, pstr) in
                             {
                               PM.rule_id;
-                              file = orig_file;
+                              file = Xtarget.path_of_file file;
                               range_loc = (loc1, loc2);
                               env;
                               taint_trace = None;

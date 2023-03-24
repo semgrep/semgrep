@@ -494,7 +494,7 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : Rule.rule_id list) :
   Common.hash_of_list id_pairs
 
 let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
-    (file : Common.filename) : Xtarget.path Xtarget.t =
+    (file : Common.filename) : Xtarget.input =
   let lazy_ast_and_errors =
     match xlang with
     | Xlang.L (lang, other_langs) ->
@@ -508,7 +508,7 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
   in
 
   {
-    Xtarget.file = `Path file;
+    Xtarget.file;
     xlang;
     lazy_content = lazy (Common.read_file file);
     lazy_ast_and_errors;

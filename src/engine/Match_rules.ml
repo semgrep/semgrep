@@ -60,14 +60,18 @@ let skipped_target_of_rule xtarget (rule : R.rule) : Resp.skipped_target =
        elements necessary for the rule to match '%s'"
       rule_id
   in
-  let (`Path path) = xtarget.Xtarget.file in
-  { path; reason = Irrelevant_rule; details; rule_id = Some rule_id }
+  {
+    path = xtarget.Xtarget.file;
+    reason = Irrelevant_rule;
+    details;
+    rule_id = Some rule_id;
+  }
 
 (* This function separates out rules into groups of taint rules by languages,
    all of the nontaint rules, and the rules which we skip due to prefiltering.
 *)
 let group_rules xconf rules xtarget =
-  let { Xtarget.file = `Path file; lazy_content; _ } = xtarget in
+  let { Xtarget.file; lazy_content; _ } = xtarget in
   let relevant_taint_rules, relevant_nontaint_rules, skipped_rules =
     rules
     |> Common.partition_either3 (fun r ->
@@ -142,8 +146,8 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
 (*****************************************************************************)
 
 let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
-    rules (xtarget : Xtarget.path Xtarget.t) =
-  let { Xtarget.file = `Path file; lazy_ast_and_errors; _ } = xtarget in
+    rules (xtarget : Xtarget.input) =
+  let { Xtarget.file; lazy_ast_and_errors; _ } = xtarget in
   logger#trace "checking %s with %d rules" file (List.length rules);
   if !Profiling.profile =*= Profiling.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";

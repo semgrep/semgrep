@@ -56,7 +56,7 @@ type env = {
   xconf : xconfig;
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
-  xtarget : Xtarget.file Xtarget.t;
+  xtarget : Xtarget.t;
   rule : Rule.t;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)

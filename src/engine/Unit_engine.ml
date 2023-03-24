@@ -592,7 +592,7 @@ let tainting_test lang rules_file file =
     |> Common.map (fun rule ->
            let xtarget =
              {
-               Xtarget.file = `Path !!file;
+               Xtarget.file = !!file;
                xlang = Xlang.L (lang, []);
                lazy_content = lazy (File.read_file file);
                lazy_ast_and_errors = lazy (ast, []);
