@@ -5,7 +5,7 @@
 (* Cache parsed gitignore files *)
 type t
 
-(* Initialize the cache. The project root must be given as an absolute path.
+(* Initialize the cache for a project defined by the project root folder.
 
    gitignore_filenames is the list of file names for gitignore files.
    The default is [".gitignore"]. In Semgrep, we use

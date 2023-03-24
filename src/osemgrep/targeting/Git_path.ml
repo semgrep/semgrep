@@ -94,18 +94,13 @@ let normalize x =
 let of_fpath path = Fpath.segs path |> create
 
 let to_fpath ~root path =
-  let rec append fpath segments =
-    match segments with
-    | [] -> fpath
-    | seg :: segments -> append (Fpath.add_seg fpath seg) segments
-  in
-  let rel_segments =
-    match path.segments with
-    | "" :: segments
-    | segments ->
-        segments
-  in
-  append root rel_segments
+  match path.segments with
+  | "" :: segments ->
+      List.fold_left Fpath.add_seg root segments
+      |> (* remove leading "./" typically occuring when the project root
+            is "." *)
+      Fpath.normalize
+  | __ -> assert false
 
 (*
    Prepend "./" to relative paths so as to make "." a prefix.

@@ -7,7 +7,6 @@
 open File.Operators
 
 let is_git_root path =
-  Printf.printf "is_git_root %S\n" !!path;
   match (Unix.stat !!(path / ".git")).st_kind with
   | S_DIR -> true
   | _ -> false
@@ -27,7 +26,6 @@ let find_git_project_root_abs abs_dir =
          rather than an error *)
       if Fpath.equal parent path then None else loop (name :: acc) parent
   in
-  Printf.printf "find_git_project_root_abs %S\n" !!abs_dir;
   loop [] abs_dir
 
 let initial_root_candidate_of_path path =
@@ -35,7 +33,6 @@ let initial_root_candidate_of_path path =
   else Fpath.parent path |> Fpath.rem_empty_seg
 
 let find_git_project_root path =
-  Printf.printf "find_git_project_root %S\n" !!path;
   find_git_project_root_abs (initial_root_candidate_of_path path)
 
 let default_project_root = Fpath.v "."
