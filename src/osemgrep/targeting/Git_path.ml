@@ -107,20 +107,61 @@ let to_fpath ~root path =
   in
   append root rel_segments
 
+(*
+   Prepend "./" to relative paths so as to make "." a prefix.
+*)
+let make_matchable_relative_path path =
+  match Fpath.segs path with
+  | "" :: _ -> (* absolute *) path
+  | "." :: _ -> (* keep as is *) path
+  | _rel -> Fpath.v "." // path
+
+(*
+   This is a collection of fixes on top of Fpath.rem_prefix to make it
+   work as a user would expect.
+
+   if 'root' is a parent of 'path', then return the relative path
+   to go from the root to that path:
+
+     (/a, /a/b) -> b
+
+   We try to make it work even if the root string is not a string prefix
+   of the path e.g.
+
+     (., a) -> a
+     (./a, a/b) -> b
+     (a, ./a/b) -> b
+
+   TODO: Move to File module?
+*)
+let remove_prefix root path =
+  let had_a_trailing_slash = Fpath.is_dir_path path in
+  (* normalize paths syntactically e.g. "./a/b/c/.." -> "a/b"
+     to allow matching *)
+  let root = Fpath.normalize root in
+  let path = Fpath.normalize path in
+  (* prepend "./" to relative paths in case one of the paths is "." *)
+  let root = make_matchable_relative_path root in
+  let path = make_matchable_relative_path path in
+  (* add a trailing slash as required by Fpath.rem_prefix (why?) *)
+  let path = Fpath.to_dir_path path in
+  (* now we can call this function to remove the root prefix from path *)
+  match Fpath.rem_prefix root path with
+  | None -> None
+  | Some rel_path ->
+      (* remove the trailing slash if we added one *)
+      let rel_path =
+        if not had_a_trailing_slash then Fpath.rem_empty_seg rel_path
+        else rel_path
+      in
+      Some rel_path
+
 let in_project ~root path =
-  (* This doesn't work if path doesn't have a trailing slash.
-     If we run into more problems and what's going on here is too obscure,
-     maybe it's best to write our own version of rem_prefix. *)
-  let has_trailing_slash = Fpath.is_dir_path path in
-  match Fpath.rem_prefix root (Fpath.to_dir_path path) with
+  match remove_prefix root path with
   | None ->
       Error
         (sprintf "cannot make path %S relative to project root %S" !!path !!root)
-  | Some path ->
-      let path =
-        if has_trailing_slash then path else Fpath.rem_empty_seg path
-      in
-      path |> of_fpath |> make_absolute |> normalize
+  | Some path -> path |> of_fpath |> make_absolute |> normalize
 
 let () =
   Testutil.test "Git_path" (fun () ->
@@ -191,7 +232,9 @@ let () =
       test_in_project_ok "/a/b" "/a/b/c/.." "/";
       test_in_project_ok "/a/b" "/a/b/c/../" "/";
       test_in_project_ok "/a/b" "/a/b/./c/." "/c/";
+      test_in_project_ok "a/b" "a/b/c" "/c";
+      test_in_project_ok "." "a/b" "/a/b";
+      test_in_project_ok "a" "./a/b" "/b";
       test_in_project_fail "/a/b" "/a";
       test_in_project_fail "/a/b" "/b";
-      test_in_project_fail "/a/b" "a";
-      test_in_project_fail "/a/b" "b")
+      test_in_project_fail "/a/b" "a")

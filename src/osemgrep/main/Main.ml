@@ -5,7 +5,18 @@
 
 open Printf
 
-let init () = Parsing_init.init ()
+let register_stdlib_exception_printers () =
+  (* Needs to take place after JaneStreet Base does its own registration.
+     https://github.com/janestreet/base/issues/146 *)
+  Printexc.register_printer (function
+    | Failure msg ->
+        (* Avoid unnecessary quoting of the error message *)
+        Some ("Failure: " ^ msg)
+    | __ -> None)
+
+let init () =
+  register_stdlib_exception_printers ();
+  Parsing_init.init ()
 
 let main () =
   init ();

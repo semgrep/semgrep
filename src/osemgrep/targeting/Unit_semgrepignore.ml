@@ -19,6 +19,9 @@ let test_with_files (files : F.t list) func () =
       printf "Input files:\n";
       print_files files;
       F.write root files;
+      (* Nice listing of the real file tree.
+         Don't care if the 'tree' command is unavailable. *)
+      Sys.command (sprintf "tree -a '%s'" !!root) |> ignore;
       func root)
 
 let test_list (files : F.t list) () =
@@ -201,22 +204,49 @@ let tests =
       ( "find project root",
         test_with_files
           [
-            symlink "c_link" "proj/a/b/c";
+            symlink "proj_link" "proj";
             dir "proj"
-              [ dir ".git" []; dir "a" [ file ".git"; dir "b" [ file "c" ] ] ];
+              [ dir ".git" []; dir "a" [ dir ".git" []; dir "b" [ file "c" ] ] ];
           ]
-          (fun root ->
-            let tmp_root = Realpath.realpath root in
-            let expected_proj_root = Fpath.add_seg tmp_root "proj" in
-            let target_path = Fpath.append root (Fpath.v "c_link") in
-            (match Git_project.find_git_project_root target_path with
-            | None -> assert false
-            | Some (proj_root, c_path) ->
+          (fun test_root ->
+            printf "Test relative target paths, from outside the project\n";
+            let target_path = Fpath.v "proj_link" / "a" in
+            let expected_proj_root = Fpath.v "." in
+            (match Git_project.find_any_project_root target_path with
+            | Git_project, _, _ -> assert false
+            | Other_project, proj_root, path_to_a ->
+                printf "Obtained non-git project root: %s\n" !!proj_root;
+                Alcotest.(check string) "equal" !!expected_proj_root !!proj_root;
+                Alcotest.(check string)
+                  "equal" "/proj_link/a"
+                  (Git_path.to_string path_to_a));
+
+            printf "Test absolute target paths\n";
+            assert (Fpath.is_abs test_root);
+            let target_path = test_root / "proj_link" / "a" in
+            let expected_proj_root = test_root / "proj_link" in
+            (match Git_project.find_any_project_root target_path with
+            | Other_project, _, _ -> assert false
+            | Git_project, proj_root, path_to_a ->
                 printf "Obtained git project root: %s\n" !!proj_root;
                 Alcotest.(check string) "equal" !!expected_proj_root !!proj_root;
                 Alcotest.(check string)
-                  "equal" "/a/b/c"
-                  (Git_path.to_string c_path));
-            (* We assume the temporary workspace is not inside a git project. *)
-            assert (Git_project.find_git_project_root root = None)) );
+                  "equal" "/a"
+                  (Git_path.to_string path_to_a));
+
+            printf "Test relative target paths, from inside the project\n";
+            F.with_chdir
+              (Fpath.v "proj_link" / "a")
+              (fun _cwd ->
+                let target_path = Fpath.v "b" in
+                let expected_proj_root = Fpath.v ".." in
+                match Git_project.find_any_project_root target_path with
+                | Other_project, _, _ -> assert false
+                | Git_project, proj_root, path_to_b ->
+                    printf "Obtained git project root: %s\n" !!proj_root;
+                    Alcotest.(check string)
+                      "equal" !!expected_proj_root !!proj_root;
+                    Alcotest.(check string)
+                      "equal" "/b"
+                      (Git_path.to_string path_to_b))) );
     ]

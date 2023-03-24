@@ -52,10 +52,6 @@ type exclusion_mechanism = Gitignore_and_semgrepignore | Only_semgrepignore
 
 let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
     ~project_root () =
-  if Fpath.is_rel project_root then
-    invalid_arg
-      ("Semgrepignore.create needs an absolute path for the project root: "
-      ^ Fpath.to_string project_root);
   let include_filter =
     Option.map (Include_filter.create ~project_root) include_patterns
   in
