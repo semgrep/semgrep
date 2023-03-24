@@ -4,7 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-awscli = "==1.11.82"
+# pipfiles can have comments
+awscli = "==1.11.82"  # comments can be anywhere
 
 [dev-packages]
 
