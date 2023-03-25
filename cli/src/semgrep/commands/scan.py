@@ -759,8 +759,10 @@ def scan(
 
     if dump_engine_path:
         if requested_engine == EngineType.OSS:
+            print("me")
             print(SemgrepCore.path())
         else:
+            print("me2")
             print(determine_semgrep_pro_path())
         return None
 
