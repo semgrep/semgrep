@@ -264,6 +264,24 @@ let group_roots_by_project conf paths =
 (* Entry point *)
 (*************************************************************************)
 
+let get_reason_for_exclusion sel_events =
+  let fallback : Resp.skip_reason = Semgrepignore_patterns_match in
+  match (sel_events : Gitignore_syntax.selection_event list) with
+  | Selected loc :: _ -> (
+      match loc.source_kind with
+      | Some str -> (
+          match str with
+          | "include" -> Resp.Cli_include_flags_do_not_match
+          | "exclude" -> Resp.Cli_exclude_flags_match
+          | "gitignore"
+          | "semgrepignore" ->
+              Resp.Semgrepignore_patterns_match
+          | __ -> (* shouldn't happen *) fallback)
+      | None -> (* shouldn't happen *) fallback)
+  | Deselected _ :: _
+  | [] ->
+      (* shouldn't happen *) fallback
+
 (* python: mix of Target_manager(), target_manager.get_files_for_rule(),
    target_manager.get_all_files(), Target(), and Target.files()
 
@@ -313,10 +331,11 @@ let get_targets conf scanning_roots =
                   match status with
                   | Not_ignored -> Left path
                   | Ignored ->
+                      let reason = get_reason_for_exclusion selection_events in
                       let skipped =
                         {
                           Resp.path = !!path;
-                          reason = Excluded_by_config;
+                          reason;
                           details =
                             "excluded by --include/--exclude, gitignore, or \
                              semgrepignore";

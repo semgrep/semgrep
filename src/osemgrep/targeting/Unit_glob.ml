@@ -7,7 +7,9 @@ open Printf
 let test pattern path matches () =
   let pat = Glob_lexer.parse_string pattern in
   let compiled_pat =
-    Glob_matcher.compile ~source:(Glob_matcher.string_loc pattern) pat
+    Glob_matcher.compile
+      ~source:(Glob_matcher.string_loc ~source_kind:None pattern)
+      pat
   in
   let res = Glob_matcher.run compiled_pat path in
   printf

@@ -86,10 +86,17 @@ let parse_pattern ~source ~anchor str : M.t =
   in
   M.compile ~source absolute_pattern
 
-let parse_line ~anchor source_name line_number line_contents =
+let parse_line ~anchor source_name source_kind line_number line_contents =
   if is_ignored_line line_contents then None
   else
-    let loc : M.loc = { source_name; line_number; line_contents } in
+    let loc : M.loc =
+      {
+        source_name;
+        source_kind = Some source_kind;
+        line_number;
+        line_contents;
+      }
+    in
     let is_negated, pattern_str =
       match remove_negator line_contents with
       | None -> (false, line_contents)
@@ -104,15 +111,15 @@ let parse_line ~anchor source_name line_number line_contents =
     in
     Some { loc; matcher }
 
-let from_string ~anchor ?(name = "<string>") str =
+let from_string ~anchor ~name ~kind str =
   let lines = read_lines_from_string str in
   List.mapi
     (fun i contents ->
       let linenum = i + 1 in
-      parse_line ~anchor name linenum contents)
+      parse_line ~anchor name kind linenum contents)
     lines
   |> List.filter_map (fun x -> x)
 
-let from_file ~anchor path =
+let from_file ~anchor ~kind path =
   Fpath.to_string path |> Common.read_file
-  |> from_string ~anchor ~name:(Fpath.to_string path)
+  |> from_string ~anchor ~name:(Fpath.to_string path) ~kind

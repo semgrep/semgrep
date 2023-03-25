@@ -146,8 +146,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       let filtered_rules =
         Rule_filtering.filter_rules conf.rule_filtering_conf rules
       in
-      (* TODO: include skipped_targets in JSON result *)
-      let targets, skipped_targets =
+      let targets, semgrepignored_targets =
         Find_target.get_targets conf.targeting_conf conf.target_roots
       in
       Logs.debug (fun m ->
@@ -156,7 +155,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           m "]%s" "");
       Logs.debug (fun m ->
           m "skipped targets: [%s" "";
-          skipped_targets
+          semgrepignored_targets
           |> List.iter (fun x ->
                  m "  %s" (Output_from_core_t.show_skipped_target x));
           m "]%s" "");
@@ -168,6 +167,16 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       let (res : Core_runner.result) =
         Core_runner.invoke_semgrep_core conf.core_runner_conf filtered_rules
           errors targets
+      in
+      (* Add the targets that were semgrepignored *)
+      let res =
+        let core =
+          {
+            res.core with
+            skipped_targets = semgrepignored_targets @ res.core.skipped_targets;
+          }
+        in
+        { res with core }
       in
       (* TOPORT? was in formater/base.py
          def keep_ignores(self) -> bool:
