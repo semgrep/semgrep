@@ -76,17 +76,19 @@ class SemgrepResult:
                 # the paths being different will change the fingerprint
                 dict2["extra"]["fingerprint"] = "<masked in benchmarks>"
 
-        # Abbreviate paths to avoid file-system differences
-        if "path" in dict2:
-            relative_path_start = dict2["path"].find(PERF_PATH)
-            dict2["path"] = (
-                "<masked in benchmarks>/" + dict2["path"][relative_path_start:]
-            )
         if "check_id" in dict2:
             relative_path_start = dict2["check_id"].find(PERF_RULE_PATH)
             dict2["check_id"] = dict2["check_id"][relative_path_start:]
 
-        self.str = json.dumps(dict2, sort_keys=True)
+        json_str = json.dumps(dict2, sort_keys=True)
+
+        # Abbreviate paths to avoid file-system differences
+        # Do this here because path appears multiple times
+        self.str = re.sub(
+            rf'"path": "[A-Za-z/\-]*{PERF_PATH}',
+            f'"path": "<masked in benchmarks>/{PERF_PATH}',
+            json_str,
+        )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SemgrepResult):
@@ -262,6 +264,7 @@ def run_semgrep(
             os.path.abspath(corpus.rule_dir),
         ]
     args.extend(common_args)
+    args.extend(corpus.semgrep_options)
     if variant.semgrep_extra != "":
         args.extend([variant.semgrep_extra])
     if include_time:
@@ -364,6 +367,7 @@ def prepare_benchmark_run(
                     setup_data.run_name,
                     rule_cache_dir.absolute(),
                     Path("input") / repo_name,
+                    semgrep_options=setup_data.semgrep_options,
                 )
             )
 
