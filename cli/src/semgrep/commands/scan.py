@@ -763,6 +763,7 @@ def scan(
             print(SemgrepCore.path())
         else:
             print("me2")
+            print(requested_engine)
             print(determine_semgrep_pro_path())
         return None
 
