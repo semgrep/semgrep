@@ -22,7 +22,7 @@ jobs:
     # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
     runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine-2023-03-21
+    container: returntocorp/ocaml:alpine-2023-03-24
     env:
       HOME: /root
     steps:
