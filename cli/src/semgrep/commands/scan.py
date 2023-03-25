@@ -755,7 +755,7 @@ def scan(
 
     print(engine_type)
     print(SemgrepCore.path())
-    print("----")
+    print("oh_no_i_cant_use_a_line")
 
     if dump_engine_path:
         if requested_engine == EngineType.OSS:
