@@ -294,7 +294,7 @@ and leaf_step1 f =
 
 and xpat_step1 pat =
   match pat.XP.pat with
-  | XP.Sem (pat, lang) ->
+  | XP.Sem ((lazy pat), lang) ->
       let ids, mvars = Analyze_pattern.extract_strings_and_mvars ~lang pat in
       Some (StringsAndMvars (ids, mvars))
   (* less: could also extract ids and mvars, but maybe no need to

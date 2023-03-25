@@ -143,7 +143,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_ruby.Boilerplate.dump_tree
   | Lang.Java ->
       Tree_sitter_java.Parse.file file
-      |> dump_and_print_errors Tree_sitter_java.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_java.Boilerplate.dump_tree
   | Lang.Go ->
       Tree_sitter_go.Parse.file file
       |> dump_and_print_errors Tree_sitter_go.CST.dump_tree
