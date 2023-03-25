@@ -10,7 +10,7 @@
 
    commons
 
-   semgrep_core
+   semgrep.core
    semgrep_running
    semgrep_reporting
  )

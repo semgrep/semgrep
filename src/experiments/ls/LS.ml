@@ -48,6 +48,7 @@ module Session = struct
     incoming : Lwt_io.input_channel;
     outgoing : Lwt_io.output_channel;
     config : Runner_config.t; (* ... *)
+    hrules : Rule.hrules;
   }
 end
 
@@ -68,8 +69,6 @@ module Server = struct
 
   let notify server notification =
     let notification = Server_notification.to_jsonrpc notification in
-    logger#info "Server notification: %s"
-      (Yojson.Safe.to_string (Jsonrpc.Notification.yojson_of_t notification));
     let packet = Jsonrpc.Packet.Notification notification in
     Io.write server.session.outgoing packet
 
@@ -77,21 +76,42 @@ module Server = struct
     logger#info "Batch notifications: %d" (List.length notifications);
     Lwt_list.iter_s (notify server) notifications
 
+  let postprocess_results results hrules files =
+    let results =
+      JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
+        (List.length files) results
+    in
+    let matches =
+      Common2.map
+        (fun (m : Semgrep_output_v1_t.core_match) ->
+          let rule = Hashtbl.find hrules m.rule_id in
+          (m, rule))
+        results.matches
+    in
+    Common2.filter
+      (fun ((_, r) : Semgrep_output_v1_t.core_match * Rule.rule) ->
+        r.severity != Rule.Experiment && r.severity != Rule.Inventory)
+      matches
+
+  let run_semgrep server =
+    let _, res, files =
+      Run_semgrep.semgrep_with_raw_results_and_exn_handler server.session.config
+    in
+    logger#info "Server scanned %d files" (List.length files);
+    let final_results = postprocess_results res server.session.hrules files in
+    let _ =
+      batch_notify server
+        (Diagnostics.diagnostics_of_results final_results files)
+    in
+    Lwt.return server
+
   let on_notification notification server =
     let () =
       match notification with
       | Client_notification.Initialized -> logger#info "Server initialized"
       | Client_notification.DidSaveTextDocument _
       | Client_notification.TextDocumentDidOpen _ ->
-          let _, res, files =
-            Run_semgrep.semgrep_with_raw_results_and_exn_handler
-              server.session.config
-          in
-          ignore res;
-          logger#info "Server scanned %d files" (List.length files);
-          let _ =
-            batch_notify server (Diagnostics.diagnostics_of_results res files)
-          in
+          let _ = run_semgrep server in
           ()
       | _ -> logger#info "Notification"
     in
@@ -166,7 +186,7 @@ module Server = struct
 
   let create config () =
     let open Runner_config in
-    let rule_source =
+    let rules =
       match config.rule_source with
       | Some (Rule_file file) ->
           logger#info "Loading rules from %s" file;
@@ -174,11 +194,18 @@ module Server = struct
             Common.with_time (fun () ->
                 Parse_rule.parse_and_filter_invalid_rules file)
           in
-          Some (Rules rules)
-      | _ -> config.rule_source
+          rules
+      | Some (Rules rules) -> rules
+      | None -> failwith "No rules provided"
     in
     (* Make sure output format is Json false, dots/etc break LSP *)
-    let config = { config with rule_source; output_format = Json false } in
+    let config =
+      {
+        config with
+        rule_source = Some (Rules rules);
+        output_format = Json false;
+      }
+    in
     {
       session =
         Session.
@@ -187,6 +214,7 @@ module Server = struct
             incoming = Lwt_io.stdin;
             outgoing = Lwt_io.stdout;
             config;
+            hrules = Rule.hrules_of_rules rules;
           };
       state = State.Uninitialized;
     }
