@@ -1,3 +1,7 @@
+None
+EngineType.OSS
+/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
+oh_no_i_cant_use_a_line
 1/1: ✓ All tests passed 
 0/1: 1 fix tests did not pass: 
 --------------------------------------------------------------------------------

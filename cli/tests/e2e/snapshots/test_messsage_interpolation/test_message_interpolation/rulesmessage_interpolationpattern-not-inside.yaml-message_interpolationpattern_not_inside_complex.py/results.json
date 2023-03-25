@@ -1,50 +1,5 @@
-{
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "targets/message_interpolation/pattern_not_inside_complex.py"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.message_interpolation.test_rule_id",
-      "end": {
-        "col": 18,
-        "line": 13,
-        "offset": 150
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "def D():\n    print(\"asdf\")",
-        "message": "method D is not inside $CLASS",
-        "metadata": {},
-        "metavars": {
-          "$FUNC": {
-            "abstract_content": "D",
-            "end": {
-              "col": 6,
-              "line": 12,
-              "offset": 129
-            },
-            "start": {
-              "col": 5,
-              "line": 12,
-              "offset": 128
-            }
-          }
-        },
-        "severity": "INFO"
-      },
-      "path": "targets/message_interpolation/pattern_not_inside_complex.py",
-      "start": {
-        "col": 1,
-        "line": 12,
-        "offset": 124
-      }
-    }
-  ],
-  "version": "0.42"
-}
+None
+EngineType.OSS
+/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
+oh_no_i_cant_use_a_line
+{"errors": [], "paths": {"_comment": "<add --verbose for a list of skipped paths>", "scanned": ["targets/message_interpolation/pattern_not_inside_complex.py"]}, "results": [{"check_id": "rules.message_interpolation.test_rule_id", "end": {"col": 18, "line": 13, "offset": 150}, "extra": {"engine_kind": "OSS", "fingerprint": "3e25acd4a5eb527f862e048ddc9f6bf00c7b39247284d536ec1130c2448a056a6bef18e666681b1c896b5d70f78ebd1b0def27361385c5ff932330542a568daa_0", "is_ignored": false, "lines": "def D():\n    print(\"asdf\")", "message": "method D is not inside $CLASS", "metadata": {}, "metavars": {"$FUNC": {"abstract_content": "D", "end": {"col": 6, "line": 12, "offset": 129}, "start": {"col": 5, "line": 12, "offset": 128}}}, "severity": "INFO"}, "path": "targets/message_interpolation/pattern_not_inside_complex.py", "start": {"col": 1, "line": 12, "offset": 124}}], "version": "<MASKED>"}

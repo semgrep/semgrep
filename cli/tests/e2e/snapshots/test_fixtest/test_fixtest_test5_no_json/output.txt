@@ -1,2 +1,6 @@
+None
+EngineType.OSS
+/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
+oh_no_i_cant_use_a_line
 No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules
 No tests for fixes found.

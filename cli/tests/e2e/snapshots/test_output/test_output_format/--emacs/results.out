@@ -1,1 +1,5 @@
+None
+EngineType.OSS
+/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
+oh_no_i_cant_use_a_line
 targets/basic/stupid.py:3:12:error(eqeq-is-bad):    return a + b == a + b:useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?

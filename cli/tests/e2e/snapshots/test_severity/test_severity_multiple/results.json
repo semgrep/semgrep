@@ -1,9 +1,5 @@
-{
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": []
-  },
-  "results": [],
-  "version": "0.42"
-}
+None
+EngineType.OSS
+/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
+oh_no_i_cant_use_a_line
+{"errors": [], "paths": {"_comment": "<add --verbose for a list of skipped paths>", "scanned": []}, "results": [], "version": "<MASKED>"}
