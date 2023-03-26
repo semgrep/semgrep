@@ -3,6 +3,7 @@ open Types
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+
 module State = struct
   type t = Uninitialized | Running | Stopped
 end
@@ -48,9 +49,19 @@ module Session = struct
     incoming : Lwt_io.input_channel;
     outgoing : Lwt_io.output_channel;
     config : Runner_config.t; (* ... *)
+    root : string;
     hrules : Rule.hrules;
+    targets : Input_to_core_t.targets;
   }
 end
+
+let safe_basename root path =
+  let parent = Filename.dirname path in
+  let basename = Filename.basename path in
+  if parent = root then
+    basename
+  else
+    path
 
 module Server = struct
   type t = { session : Session.t; state : State.t (* ... *) }
@@ -76,7 +87,7 @@ module Server = struct
     logger#info "Batch notifications: %d" (List.length notifications);
     Lwt_list.iter_s (notify server) notifications
 
-  let postprocess_results results hrules files =
+  let postprocess_results results hrules files root =
     let results =
       JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
         (List.length files) results
@@ -85,35 +96,89 @@ module Server = struct
       Common2.map
         (fun (m : Semgrep_output_v1_t.core_match) ->
           let rule = Hashtbl.find hrules m.rule_id in
+          let m = {m with location = {m.location with path = (Filename.concat root m.location.path)}} in
           (m, rule))
         results.matches
     in
-    Common2.filter
+    let matches = Common2.filter
       (fun ((_, r) : Semgrep_output_v1_t.core_match * Rule.rule) ->
         r.severity != Rule.Experiment && r.severity != Rule.Inventory)
-      matches
+      matches in
+    (* Canonicalize paths so we can convert them to URIs LSP supports later *)
+    let files = Common2.map (Filename.concat root) files in
+    (matches, files)
 
-  let run_semgrep server =
+  let run_semgrep ?(files = []) server =
+    let config = server.session.config in
+    let targets = server.session.targets in
+    let target_source =
+      match files with
+      | [] -> config.target_source
+      | files ->
+          let filtered_targets =
+            Common2.filter
+              (fun (target : Input_to_core_t.target) ->
+                List.mem target.path files)
+              targets.target_mappings
+          in
+          Some (Targets { targets with target_mappings = filtered_targets })
+    in
+    let config = { config with target_source } in
     let _, res, files =
-      Run_semgrep.semgrep_with_raw_results_and_exn_handler server.session.config
+      Run_semgrep.semgrep_with_raw_results_and_exn_handler config
     in
     logger#info "Server scanned %d files" (List.length files);
-    let final_results = postprocess_results res server.session.hrules files in
+    let (final_results, files) = postprocess_results res server.session.hrules files server.session.root in
     let _ =
       batch_notify server
         (Diagnostics.diagnostics_of_results final_results files)
     in
     Lwt.return server
 
+  let initialize_session server root =
+    let open Runner_config in
+    let config = server.session.config in
+    let rules =
+      match config.rule_source with
+      | Some (Rule_file file) ->
+          logger#info "Loading rules from %s" file;
+          let (rules, _), _ =
+            Common.with_time (fun () ->
+                Parse_rule.parse_and_filter_invalid_rules file)
+          in
+          rules
+      | Some (Rules rules) -> rules
+      | None -> failwith "No rules provided"
+    in
+    let targets =
+      match config.target_source with
+      | Some (Targets targets) -> targets
+      | Some (Target_file _) ->
+          let targets, _ =
+            Run_semgrep.targets_of_config config
+              (Common2.map (fun r -> fst r.Rule.id) rules)
+          in
+          targets
+      | None -> failwith "No targets provided"
+    in
+    let config = { config with rule_source = Some (Rules rules) } in
+    let hrules = Rule.hrules_of_rules rules in
+    {
+      session = { server.session with hrules; targets; root; config };
+      state = State.Running;
+    }
+
   let on_notification notification server =
     let () =
       match notification with
       | Client_notification.Initialized -> logger#info "Server initialized"
-      | Client_notification.DidSaveTextDocument _
-      | Client_notification.TextDocumentDidOpen _ ->
-          let _ = run_semgrep server in
+      | Client_notification.DidSaveTextDocument { textDocument = { uri }; _ }
+      | Client_notification.TextDocumentDidOpen { textDocument = { uri; _ } } ->
+          let path = safe_basename server.session.root (Uri.to_path uri) in
+          logger#info "Server received file %s" path;
+          let _ = run_semgrep server ~files:[ path ] in
           ()
-      | _ -> logger#info "Notification"
+      | _ -> logger#info "Unhandled notification"
     in
     server
 
@@ -122,16 +187,28 @@ module Server = struct
     let resp, server =
       match request with
       | Client_request.Shutdown -> (None, { server with state = State.Stopped })
-      | Client_request.Initialize _ ->
+      | Client_request.Initialize { rootUri; workspaceFolders; _ } ->
+          (* There's rootPath, rootUri, and workspaceFolders. First two are
+             deprecated, so let's split the diffrence and support last two *)
+          let rootUri =
+            match rootUri with
+            | Some uri -> uri
+            | None -> (
+                match workspaceFolders with
+                | Some (Some ({ uri; _ } :: _)) -> uri
+                | _ -> failwith "No rootUri or workspaceFolders provided")
+          in
+          let root = Uri.to_path rootUri in
           let init =
             InitializeResult.
               {
                 capabilities = server.session.capabilities;
                 serverInfo =
-                  Some { name = "semgrep-lsp"; version = Some "0.0.1" };
+                  Some { name = "Semgrep LSP Server"; version = Some "0.0.1" };
               }
           in
-          (to_yojson init, { server with state = State.Running })
+          (* TODO we should create a progress symbol before calling initialize server! *)
+          (to_yojson init, initialize_session server root)
       | Client_request.DebugEcho params -> (to_yojson params, server)
       | _ ->
           logger#warning "Unhandled request";
@@ -186,23 +263,10 @@ module Server = struct
 
   let create config () =
     let open Runner_config in
-    let rules =
-      match config.rule_source with
-      | Some (Rule_file file) ->
-          logger#info "Loading rules from %s" file;
-          let (rules, _), _ =
-            Common.with_time (fun () ->
-                Parse_rule.parse_and_filter_invalid_rules file)
-          in
-          rules
-      | Some (Rules rules) -> rules
-      | None -> failwith "No rules provided"
-    in
-    (* Make sure output format is Json false, dots/etc break LSP *)
     let config =
       {
         config with
-        rule_source = Some (Rules rules);
+        (* Make sure output format is Json false, dots/etc break LSP *)
         output_format = Json false;
       }
     in
@@ -214,7 +278,9 @@ module Server = struct
             incoming = Lwt_io.stdin;
             outgoing = Lwt_io.stdout;
             config;
-            hrules = Rule.hrules_of_rules rules;
+            root = "";
+            hrules = Rule.hrules_of_rules [];
+            targets = { target_mappings = []; rule_ids = [] };
           };
       state = State.Uninitialized;
     }

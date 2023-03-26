@@ -38,7 +38,7 @@ let diagnostics_of_file (matches : (Semgrep_output_v1_t.core_match * Rule.rule) 
   let params =
     PublishDiagnosticsParams.create
       ~uri:
-        (Uri.of_path (Printf.sprintf "/Users/r2cuser/r2c/tests/5007/%s" file))
+        (Uri.of_path file)
       ~diagnostics ()
   in
   Server_notification.PublishDiagnostics params
