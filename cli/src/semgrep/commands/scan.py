@@ -749,21 +749,12 @@ def scan(
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
 
-    print(requested_engine)
-
     engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
-
-    print(engine_type)
-    print(SemgrepCore.path())
-    print("oh_no_i_cant_use_a_line")
 
     if dump_engine_path:
         if engine_type == EngineType.OSS:
-            print("me")
             print(SemgrepCore.path())
         else:
-            print("me2")
-            print(engine_type)
             print(determine_semgrep_pro_path())
         return None
 
