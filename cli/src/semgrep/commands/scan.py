@@ -23,6 +23,7 @@ from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep.app.registry import list_current_public_rulesets
 from semgrep.app.version import get_no_findings_msg
+from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
@@ -744,15 +745,27 @@ def scan(
             version_check()
         return None
 
-    if dump_engine_path:
-        print(SemgrepCore.path())
-        return None
-
     if show_supported_languages:
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
 
+    print(requested_engine)
+
     engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
+
+    print(engine_type)
+    print(SemgrepCore.path())
+    print("oh_no_i_cant_use_a_line")
+
+    if dump_engine_path:
+        if engine_type == EngineType.OSS:
+            print("me")
+            print(SemgrepCore.path())
+        else:
+            print("me2")
+            print(engine_type)
+            print(determine_semgrep_pro_path())
+        return None
 
     if dataflow_traces is None:
         dataflow_traces = engine_type.has_dataflow_traces
