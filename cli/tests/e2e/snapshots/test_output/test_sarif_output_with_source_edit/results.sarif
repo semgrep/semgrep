@@ -1,3 +1,7 @@
+None
+EngineType.OSS
+/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
+oh_no_i_cant_use_a_line
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -77,16 +81,17 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "possibly useless comparison but in eq function"
+                "text": "useless comparison"
               },
               "help": {
                 "text": "some help text"
               },
-              "id": "rules.assert-eqeq-is-ok",
-              "name": "rules.assert-eqeq-is-ok",
+              "id": "rules.javascript-basic-eqeq-bad",
+              "name": "rules.javascript-basic-eqeq-bad",
               "properties": {
                 "precision": "very-high",
                 "tags": [
+                  "cwe te",
                   "security",
                   "sometag"
                 ]
@@ -123,30 +128,6 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison"
-              },
-              "help": {
-                "text": "some help text"
-              },
-              "id": "rules.javascript-basic-eqeq-bad",
-              "name": "rules.javascript-basic-eqeq-bad",
-              "properties": {
-                "precision": "very-high",
-                "tags": [
-                  "cwe te",
-                  "security",
-                  "sometag"
-                ]
-              },
-              "shortDescription": {
-                "text": "some short description"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
                 "text": "this function is only available on Python 3.7+"
               },
               "help": {
@@ -164,9 +145,32 @@
               "shortDescription": {
                 "text": "some short description"
               }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "possibly useless comparison but in eq function"
+              },
+              "help": {
+                "text": "some help text"
+              },
+              "id": "rules.assert-eqeq-is-ok",
+              "name": "rules.assert-eqeq-is-ok",
+              "properties": {
+                "precision": "very-high",
+                "tags": [
+                  "security",
+                  "sometag"
+                ]
+              },
+              "shortDescription": {
+                "text": "some short description"
+              }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

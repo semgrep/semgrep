@@ -1,3 +1,7 @@
+None
+EngineType.OSS
+/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
+oh_no_i_cant_use_a_line
 {
   "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
   "scan": {

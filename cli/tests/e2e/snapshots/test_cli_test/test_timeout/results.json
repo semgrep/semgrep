@@ -1,9 +1,13 @@
+None
+EngineType.OSS
+/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
+oh_no_i_cant_use_a_line
 {
-  "config_missing_fixtests": [],
-  "config_missing_tests": [
-    "rules/cli_test/error/long.yaml"
-  ],
-  "config_with_errors": [],
-  "fixtest_results": {},
-  "results": {}
+    "config_missing_tests": [
+        "rules/cli_test/error/long.yaml"
+    ],
+    "config_missing_fixtests": [],
+    "config_with_errors": [],
+    "results": {},
+    "fixtest_results": {}
 }

@@ -1,50 +1,5 @@
-{
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "targets/spacegrep/multi-lines.java"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.spacegrep.multi-lines",
-      "end": {
-        "col": 21,
-        "line": 9,
-        "offset": 131
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    myfile = open();\n    try {\n      foo(myfile);\n    }\n    finally {\n      close(myfile);",
-        "message": "found",
-        "metadata": {},
-        "metavars": {
-          "$V": {
-            "abstract_content": "myfile",
-            "end": {
-              "col": 11,
-              "line": 4,
-              "offset": 51
-            },
-            "start": {
-              "col": 5,
-              "line": 4,
-              "offset": 45
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "targets/spacegrep/multi-lines.java",
-      "start": {
-        "col": 5,
-        "line": 4,
-        "offset": 45
-      }
-    }
-  ],
-  "version": "0.42"
-}
+None
+EngineType.OSS
+/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core
+oh_no_i_cant_use_a_line
+{"errors": [], "paths": {"_comment": "<add --verbose for a list of skipped paths>", "scanned": ["targets/spacegrep/multi-lines.java"]}, "results": [{"check_id": "rules.spacegrep.multi-lines", "end": {"col": 21, "line": 9, "offset": 131}, "extra": {"engine_kind": "OSS", "fingerprint": "64392c0fcdce063fbd3284f69f6ac8d2d6344b0bcde95bae53bb0bc282d12d08b85afc6a72604bb7329ddcfa4de8654bad10d9901545b20a0c287f724bf2338c_0", "is_ignored": false, "lines": "    myfile = open();\n    try {\n      foo(myfile);\n    }\n    finally {\n      close(myfile);", "message": "found", "metadata": {}, "metavars": {"$V": {"abstract_content": "myfile", "end": {"col": 11, "line": 4, "offset": 51}, "start": {"col": 5, "line": 4, "offset": 45}}}, "severity": "ERROR"}, "path": "targets/spacegrep/multi-lines.java", "start": {"col": 5, "line": 4, "offset": 45}}], "version": "<MASKED>"}
