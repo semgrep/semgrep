@@ -1,4 +1,16 @@
 open Common
+module Out = Semgrep_output_v1_j
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(*
+  Partially translated from nosemgrep.py
+*)
+
+(*****************************************************************************)
+(* Types and constants *)
+(*****************************************************************************)
 
 (* python: All the regexps were in constants.py before, but
  * better separation of concern to put it here.
@@ -48,3 +60,20 @@ let _nosem_previous_line_re =
   SPcre.regexp
     ({|^[^a-zA-Z0-9]* nosem(?:grep)?|} ^ rule_id_re_str)
     ~flags:[ `CASELESS ]
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+(* TODO: probably need to pass some flags from the CLI *)
+let process_ignores (out : Out.cli_output) : Out.cli_output =
+  (* TODO: port nosemgrep.py, filter in out.matches the
+     matches where the match has a corresponding nosem: annotation in
+     the corresponding file, and add new errors if nosem: has the wrong
+     format in the file.
+  *)
+  out
