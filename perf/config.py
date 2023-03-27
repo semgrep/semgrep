@@ -181,7 +181,7 @@ class BenchmarkRunSetupData:
     run_name: str = field(default="benchmark_run")
     rule_configs: List[RuleConfig] = field(default=["p/r2c"])
     repositories: List[Repository] = field(factory=list)
-    semgrep_options: List[str] = field(factory=list)
+    semgrep_options: List[str] = field(default=[])
 
 
 @define
