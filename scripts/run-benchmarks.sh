@@ -1,5 +1,8 @@
 #! /usr/bin/env bash
 
+# Coupling: If you update this script, you likely also want
+# to update run-pro-benchmarks.sh
+
 set e
 
 cd cli || return
