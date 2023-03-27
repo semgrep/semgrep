@@ -29,6 +29,7 @@ let setup_logging ~force_color ~level =
          | "ca-certs"
          | "bos"
          | "mirage-crypto-rng.lwt"
+         | "mirage-crypto-rng-lwt"
          | "mirage-crypto-rng.unix"
          | "handshake"
          | "tls.config"
