@@ -30,6 +30,10 @@ jobs:
         run: brew uninstall --force semgrep
       - name: Cleanup semgrep
         run: brew cleanup --prune=all semgrep
+        # When GHA cancels, locks can be leftover.
+      - name: Cleanup Locks
+        run: |
+          rm $(brew --prefix)/var/homebrew/locks/*
       - name: Brew update
         env:
           HOMEBREW_NO_INSTALL_FROM_API: 1
