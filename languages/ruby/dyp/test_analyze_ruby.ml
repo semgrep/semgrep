@@ -9,7 +9,7 @@ module PS = Parsing_stat
 (*****************************************************************************)
 
 let test_parse xs =
-  let xs = List.map Common.fullpath xs |> File.of_strings in
+  let xs = List.map Common.fullpath xs |> File.Path.of_strings in
 
   let fullxs, _skipped_paths =
     Lib_parsing_ruby.find_source_files_of_dir_or_files xs

@@ -765,6 +765,11 @@ val compile_regexp_union : regexp list -> Str.regexp
 (*****************************************************************************)
 (* Filenames *)
 (*****************************************************************************)
+(* TODO: migrate pure path operations to File.Path which is Fpath +
+   extensions.
+   TODO: migrate other file operations to the File module.
+   TODO: alternatively, use the bos library; this would be a bigger migration.
+*)
 
 (* now at beginning of this file: type filename = string *)
 val dirname : string -> string
@@ -946,6 +951,10 @@ val indent_string : int -> string -> string
 (*****************************************************************************)
 (* Process/Files *)
 (*****************************************************************************)
+(*
+   TODO: migrate file operations to the File module.
+   TODO: alternatively, use the bos library; this would be a bigger migration.
+*)
 val cat : filename -> string list
 val cat_orig : filename -> string list
 val cat_array : filename -> string array
