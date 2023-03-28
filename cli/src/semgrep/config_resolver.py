@@ -555,13 +555,11 @@ def import_callback(base: str, path: str) -> Tuple[str, bytes]:
 
     # If the library path is absolute, assume that's
     # the intended path. But if it's relative, assume
-    # it's relative to the base path
-    # TODO I don't actually think this is ideal, someone
-    # suggest what I should do
+    # it's relative to the path semgrep was called from
     library_path = os.environ.get("R2C_INTERNAL_JSONNET_LIB")
 
     if library_path and not os.path.isabs(library_path):
-        library_path = os.path.join(base, library_path)
+        library_path = os.path.join(os.curdir, library_path)
 
     # Assume the path is the library path if it exists,
     # otherwise try it without the library. This way,
