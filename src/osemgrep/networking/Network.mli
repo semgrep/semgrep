@@ -1,1 +1,1 @@
-val get : Uri.t -> string
+val get : Uri.t -> (string, string) result
