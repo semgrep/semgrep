@@ -173,7 +173,7 @@ let reorder_files_skip_errors_last skip_list root xs =
   let skip_errors, ok =
     xs
     |> List.partition (fun file ->
-           let readable = Common.readable ~root:!!root !!file |> Fpath.v in
+           let readable = File.readable ~root file in
            is_file_want_to_skip_error readable)
   in
   ok @ skip_errors
