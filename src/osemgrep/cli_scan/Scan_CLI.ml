@@ -564,7 +564,7 @@ let o_target_roots : string list Term.t =
       ~doc:{|Files or folders to be scanned by semgrep.|}
   in
   Arg.value
-    (Arg.pos_all Arg.string (default.target_roots |> File.to_strings) info)
+    (Arg.pos_all Arg.string (default.target_roots |> File.Path.to_strings) info)
 
 (* ------------------------------------------------------------------ *)
 (* !!NEW arguments!! not in pysemgrep *)
@@ -598,7 +598,7 @@ let cmdline_term : conf Term.t =
       | [] -> None
       | nonempty -> Some nonempty
     in
-    let target_roots = target_roots |> File.of_strings in
+    let target_roots = target_roots |> File.Path.of_strings in
     let logging_level =
       match (verbose, debug, quiet) with
       | false, false, false -> Some Logs.Warning

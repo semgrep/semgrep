@@ -129,7 +129,7 @@ let find_skip_file_from_root root =
       (* www specific *)
       "conf/codegraph/skip_list.txt";
     ]
-    |> File.of_strings
+    |> File.Path.of_strings
   in
   candidates
   |> Common.find_some_opt (fun f ->
