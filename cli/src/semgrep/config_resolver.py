@@ -555,7 +555,8 @@ def import_callback(base: str, path: str) -> Tuple[str, bytes]:
 
     # If the library path is absolute, assume that's
     # the intended path. But if it's relative, assume
-    # it's relative to the path semgrep was called from
+    # it's relative to the path semgrep was called from.
+    # This follows the semantics of `jsonnet -J`
     library_path = os.environ.get("R2C_INTERNAL_JSONNET_LIB")
 
     if library_path and not os.path.isabs(library_path):
