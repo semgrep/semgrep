@@ -8,12 +8,14 @@ let _ =
      from the web on demand when one select a language in the playground.
      old: Parsing_init.init ();
   *)
-  Js.export "Semgrep" (object%js
-      method addLanguage parseFile parseString =
-        let parse_string_wrapper _ _ x = parseString x in
-          Parse_pattern.parse_pattern_ref := parse_string_wrapper;
-        let parse_file_wrapper _ x = parseFile x in
-          Parse_target.just_parse_with_lang_ref := parse_file_wrapper;
+  Js.export "Semgrep"
+    (object%js
+       method addLanguage parseFile parseString =
+         let parse_string_wrapper _ _ x = parseString x in
+         Parse_pattern.parse_pattern_ref := parse_string_wrapper;
+         let parse_file_wrapper _ x = parseFile x in
+         Parse_target.just_parse_with_lang_ref := parse_file_wrapper
+
        method execute language rule_file source_file =
          let config : Runner_config.t =
            {
@@ -35,4 +37,4 @@ let _ =
              (Some Autofix.render_fix) (List.length files) res
          in
          Output_from_core_j.string_of_core_match_results res
-     end)
+    end)

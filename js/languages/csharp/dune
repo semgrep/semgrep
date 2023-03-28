@@ -29,7 +29,7 @@
    semgrep-csharp-parser.js
    -sALLOW_MEMORY_GROWTH=1
    -sEXPORTED_RUNTIME_METHODS=%{read:../../shared/exported-runtime-methods.txt}
-   -sEXPORTED_FUNCTIONS=%{read:../../shared/exported-functions.txt},_tree_sitter_c_sharp
+   -sEXPORTED_FUNCTIONS=_tree_sitter_c_sharp,%{read:../../shared/exported-functions.txt}
    -sMODULARIZE
    )))
 
