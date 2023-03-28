@@ -1,0 +1,11 @@
+
+rules:
+  - id: js-pnpm-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+        namespace: npm
+        package: "axios"
+        version: "< 1.2.6"
+    message: oh no
+    languages: [js]
+    severity: WARNING

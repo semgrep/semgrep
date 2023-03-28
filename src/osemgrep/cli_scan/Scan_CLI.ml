@@ -47,7 +47,7 @@ type conf = {
   profile : bool;
   rewrite_rule_ids : bool;
   (* Networking options *)
-  metrics : Metrics.config;
+  metrics : Metrics_.config;
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
   version : bool;
@@ -95,7 +95,7 @@ let default : conf =
     profile = false;
     rewrite_rule_ids = true;
     time_flag = false;
-    metrics = Metrics.Auto;
+    metrics = Metrics_.Auto;
     version_check = true;
     (* ugly: should be separate subcommands *)
     version = false;
@@ -120,7 +120,7 @@ let default : conf =
 (* TOPORT? there's also a --disable-metrics and --enable-metrics
  * but they are marked as legacy flags, so maybe not worth porting
  *)
-let o_metrics : Metrics.config Term.t =
+let o_metrics : Metrics_.config Term.t =
   let info =
     Arg.info [ "metrics" ]
       ~env:(Cmd.Env.info "SEMGREP_SEND_METRICS")
@@ -133,7 +133,7 @@ SEMGREP_SEND_METRICS environment variable value will be used. If no
 environment variable, defaults to 'auto'.
 |}
   in
-  Arg.value (Arg.opt Metrics.converter default.metrics info)
+  Arg.value (Arg.opt Metrics_.converter default.metrics info)
 
 (* alt: was in "Performance and memory options" before *)
 let o_version_check : bool Term.t =
@@ -564,7 +564,7 @@ let o_target_roots : string list Term.t =
       ~doc:{|Files or folders to be scanned by semgrep.|}
   in
   Arg.value
-    (Arg.pos_all Arg.string (default.target_roots |> File.to_strings) info)
+    (Arg.pos_all Arg.string (default.target_roots |> File.Path.to_strings) info)
 
 (* ------------------------------------------------------------------ *)
 (* !!NEW arguments!! not in pysemgrep *)
@@ -598,7 +598,7 @@ let cmdline_term : conf Term.t =
       | [] -> None
       | nonempty -> Some nonempty
     in
-    let target_roots = target_roots |> File.of_strings in
+    let target_roots = target_roots |> File.Path.of_strings in
     let logging_level =
       match (verbose, debug, quiet) with
       | false, false, false -> Some Logs.Warning
@@ -787,7 +787,7 @@ let cmdline_term : conf Term.t =
     in
 
     (* sanity checks *)
-    if List.mem "auto" config && metrics =*= Metrics.Off then
+    if List.mem "auto" config && metrics =*= Metrics_.Off then
       Error.abort
         "Cannot create auto config when metrics are off. Please allow metrics \
          or run with a specific config.";
