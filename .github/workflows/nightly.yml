@@ -27,7 +27,7 @@ jobs:
       - name: Uninstall semgrep
         # This is sub-optimal - our workflows shouldn't have to conform to their environment.
         # However, on the runner side, we can't hook into the workflow run to clean up after.
-        run: brew uninstall semgrep || true
+        run: brew uninstall --force semgrep
       - name: Cleanup semgrep
         run: brew cleanup --prune=all semgrep
       - name: Brew update
@@ -43,7 +43,7 @@ jobs:
           HOMEBREW_NO_INSTALL_FROM_API: 1
         run: brew test semgrep --HEAD
       - name: Clean up semgrep installation
-        run: brew uninstall semgrep
+        run: brew uninstall --force semgrep
 
   release-dry-run:
     uses: ./.github/workflows/release.yml
