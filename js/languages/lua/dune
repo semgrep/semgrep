@@ -3,17 +3,18 @@
  (libraries parser_lua.ast_generic semgrep_js_shared)
  (modes js)
  (js_of_ocaml
-  (javascript_files semgrep.js semgrep-lua.js ../../shared/ocaml-tree-sitter.js)
+  (javascript_files semgrep.js)
   )
  (preprocess
   (pps js_of_ocaml-ppx)))
 
 (rule
- (targets semgrep-lua.js semgrep-lua.wasm)
+ (targets semgrep-lua-parser.js semgrep-lua-parser.wasm)
  (deps
   ../../../libs/ocaml-tree-sitter-core/downloads/tree-sitter-0.20.6/lib/src/lib.c
   ../../../languages/lua/tree-sitter/semgrep-lua/lib/parser.c
-  ../../../languages/lua/tree-sitter/semgrep-lua/lib/scanner.cc)
+  ../../../languages/lua/tree-sitter/semgrep-lua/lib/scanner.cc
+  )
  (action
   (run
    emcc
@@ -22,10 +23,27 @@
    -I%{env:TREESITTER_INCDIR=/usr/local/include}
    %{deps}
    -o
-   semgrep-lua.js
+   semgrep-lua-parser.js
    -sALLOW_MEMORY_GROWTH=1
    -sEXPORTED_RUNTIME_METHODS=%{read:../../shared/exported-runtime-methods.txt}
    -sEXPORTED_FUNCTIONS=%{read:../../shared/exported-functions.txt},_tree_sitter_lua
-   --pre-js %{dep:../../shared/pre.js}
-   --extern-post-js %{dep:../../shared/post.js}
+   -sMODULARIZE
    )))
+
+(rule
+  (target entrypoint.js)
+  (deps ../../shared/entrypoint.js)
+  (action (copy %{deps} %{target}))
+)
+
+(rule
+  (target semgrep-parser.js)
+  (deps semgrep-lua-parser.js)
+  (action (copy %{deps} %{target}))
+)
+
+(rule
+ (target semgrep-lua.js)
+ (deps entrypoint.js semgrep-parser.js Parser.bc.js)
+ (action
+  (run esbuild entrypoint.js --bundle --platform=node --outfile=%{target})))

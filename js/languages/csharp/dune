@@ -6,14 +6,14 @@
  )
  (modes js)
   (js_of_ocaml
-  (javascript_files semgrep.js semgrep-csharp.js ../../shared/ocaml-tree-sitter.js)
+  (javascript_files semgrep.js)
   )
  (preprocess
   (pps js_of_ocaml-ppx))
 )
 
 (rule
- (targets semgrep-csharp.js semgrep-csharp.wasm)
+ (targets semgrep-csharp-parser.js semgrep-csharp-parser.wasm)
  (deps
   ../../../libs/ocaml-tree-sitter-core/downloads/tree-sitter-0.20.6/lib/src/lib.c
   ../../../languages/csharp/tree-sitter/semgrep-c-sharp/lib/parser.c
@@ -26,10 +26,27 @@
    -I%{env:TREESITTER_INCDIR=/usr/local/include}
    %{deps}
    -o
-   semgrep-csharp.js
+   semgrep-csharp-parser.js
    -sALLOW_MEMORY_GROWTH=1
    -sEXPORTED_RUNTIME_METHODS=%{read:../../shared/exported-runtime-methods.txt}
    -sEXPORTED_FUNCTIONS=%{read:../../shared/exported-functions.txt},_tree_sitter_c_sharp
-   --pre-js %{dep:../../shared/pre.js}
-   --extern-post-js %{dep:../../shared/post.js}
+   -sMODULARIZE
    )))
+
+(rule
+  (target entrypoint.js)
+  (deps ../../shared/entrypoint.js)
+  (action (copy %{deps} %{target}))
+)
+
+(rule
+  (target semgrep-parser.js)
+  (deps semgrep-csharp-parser.js)
+  (action (copy %{deps} %{target}))
+)
+
+(rule
+ (target semgrep-csharp.js)
+ (deps entrypoint.js semgrep-parser.js Parser.bc.js)
+ (action
+  (run esbuild entrypoint.js --bundle --platform=node --outfile=%{target})))

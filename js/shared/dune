@@ -4,6 +4,9 @@
  (libraries
    js_of_ocaml
  )
+   (js_of_ocaml
+  (javascript_files ocaml-tree-sitter.js)
+  )
  (preprocess
   (pps js_of_ocaml-ppx))
 )

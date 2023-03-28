@@ -1,1 +1,0 @@
-globalThis.TreeSitterModule = Module;

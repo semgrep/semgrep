@@ -7,11 +7,10 @@ let make_js_module parse parse_pattern =
       | ("parse", filename) -> Worker.post_message (parse filename)
       | ("parsePattern", str) -> Worker.post_message (parse_pattern str)
     | _ -> () in
-      Worker.set_onmessage handle_message;
-  
-  (* export parse() and parsePattern()*)
-  Js.export_all
-    (object%js
-        method parse = parse
-        method parsePattern = parse_pattern
-      end)
+      Worker.set_onmessage handle_message
+  else
+    (); (* TODO: am I understanding ocaml if-statements correctly? didn't seem to work without the else *)
+  Js.export_all (object%js
+      method parse = parse
+      method parsePattern = parse_pattern
+    end)

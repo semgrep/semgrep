@@ -11,7 +11,6 @@ let parse_pattern x =
   let _ = Parse_js.any_of_string x in
   res
 
-  let _ =
-    Common.jsoo := true;
-    Semgrep_js_shared.make_js_module parse_target parse_pattern;
-    ()
+let _ =
+  Common.jsoo := true;
+  Semgrep_js_shared.make_js_module parse_target parse_pattern
