@@ -31,6 +31,7 @@ let setup_logging ~force_color ~level =
          | "happy-eyeballs"
          | "happy-eyeballs.lwt"
          | "mirage-crypto-rng.lwt"
+         | "mirage-crypto-rng-lwt"
          | "mirage-crypto-rng.unix"
          | "handshake"
          | "tls.config"
