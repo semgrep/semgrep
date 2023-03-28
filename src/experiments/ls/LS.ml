@@ -3,7 +3,6 @@ open Types
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-
 module State = struct
   type t = Uninitialized | Running | Stopped
 end
@@ -25,6 +24,7 @@ module Io =
       type output = Lwt_io.output_channel
 
       let read_line = Lwt_io.read_line_opt
+
       let write = Lwt_io.write
 
       let read_exactly inc n =
@@ -40,10 +40,6 @@ module Io =
     end)
 
 module Session = struct
-  (* Active rules *)
-  (* Documents *)
-  (* Capabalites *)
-
   type t = {
     capabilities : ServerCapabilities.t;
     incoming : Lwt_io.input_channel;
@@ -51,23 +47,83 @@ module Session = struct
     config : Runner_config.t; (* ... *)
     root : string;
     hrules : Rule.hrules;
-    targets : Input_to_core_t.targets;
+    documents :
+      (Uri.t, (Semgrep_output_v1_t.core_match * Rule.rule) list) Hashtbl.t;
   }
+
+  (* This is dynamic so if the targets file is updated we don't have to restart (and reparse rules...) *)
+  let targets session =
+    let open Runner_config in
+    let config = session.config in
+    match config.target_source with
+    | Some (Targets targets) -> targets
+    | Some (Target_file _) ->
+        let targets, _ = Run_semgrep.targets_of_config config [] in
+        targets
+    | None -> failwith "No targets provided"
 end
 
-let safe_basename root path =
-  let parent = Filename.dirname path in
-  let basename = Filename.basename path in
-  if parent = root then
-    basename
-  else
-    path
+(* This probably should all go in a separate reporting file *)
+
+let interpolate_metavars (metavars : Semgrep_output_v1_t.metavars) text =
+  Common2.fold
+    (fun text ((l, v) : string * Semgrep_output_v1_t.metavar_value) ->
+      let re = Str.regexp_string l in
+      Str.global_replace re v.abstract_content text)
+    text metavars
+
+let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
+  let rule_fix (r : Rule.t) =
+    match r.fix with
+    | Some fix -> Some (interpolate_metavars m.extra.metavars fix)
+    (*TODO: regex autofix*)
+    | None -> None
+  in
+  let fix =
+    match m.extra.rendered_fix with
+    | Some fix -> Some fix
+    | None -> rule_fix rule
+  in
+  fix
+
+let postprocess_results results hrules files root =
+  let results =
+    JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
+      (List.length files) results
+  in
+  let matches =
+    Common2.map
+      (fun (m : Semgrep_output_v1_t.core_match) ->
+        let rule = Hashtbl.find hrules m.rule_id in
+        let m =
+          {
+            m with
+            location =
+              { m.location with path = Filename.concat root m.location.path };
+            extra =
+              {
+                m.extra with
+                rendered_fix = convert_fix m rule;
+                message =
+                  Some (interpolate_metavars m.extra.metavars rule.Rule.message);
+              };
+          }
+        in
+        (m, rule))
+      results.matches
+  in
+  let matches =
+    Common2.filter
+      (fun ((_, r) : Semgrep_output_v1_t.core_match * Rule.rule) ->
+        r.severity != Rule.Experiment && r.severity != Rule.Inventory)
+      matches
+  in
+  (* Canonicalize paths so we can convert them to URIs LSP supports later *)
+  let files = Common2.map (Filename.concat root) files in
+  (matches, files)
 
 module Server = struct
   type t = { session : Session.t; state : State.t (* ... *) }
-
-  (* on_request *)
-  (* on_notification *)
 
   let respond id json server =
     match json with
@@ -75,42 +131,33 @@ module Server = struct
         logger#info "Server response: %s" (Yojson.Safe.to_string json);
         let response = Jsonrpc.Response.ok id json in
         let packet = Jsonrpc.Packet.Response response in
-        Io.write server.session.outgoing packet
+        Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
     | None -> Lwt.return ()
 
-  let notify server notification =
+  let notify ?(channel = None) server notification =
     let notification = Server_notification.to_jsonrpc notification in
     let packet = Jsonrpc.Packet.Notification notification in
-    Io.write server.session.outgoing packet
+    match channel with
+    | Some channel -> Io.write channel packet
+    | None ->
+        Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
 
   let batch_notify server notifications =
     logger#info "Batch notifications: %d" (List.length notifications);
-    Lwt_list.iter_s (notify server) notifications
-
-  let postprocess_results results hrules files root =
-    let results =
-      JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
-        (List.length files) results
-    in
-    let matches =
-      Common2.map
-        (fun (m : Semgrep_output_v1_t.core_match) ->
-          let rule = Hashtbl.find hrules m.rule_id in
-          let m = {m with location = {m.location with path = (Filename.concat root m.location.path)}} in
-          (m, rule))
-        results.matches
-    in
-    let matches = Common2.filter
-      (fun ((_, r) : Semgrep_output_v1_t.core_match * Rule.rule) ->
-        r.severity != Rule.Experiment && r.severity != Rule.Inventory)
-      matches in
-    (* Canonicalize paths so we can convert them to URIs LSP supports later *)
-    let files = Common2.map (Filename.concat root) files in
-    (matches, files)
+    Lwt_io.atomic
+      (fun channel ->
+        Lwt_list.iter_s (notify server ~channel:(Some channel)) notifications)
+      Lwt_io.stdout
 
   let run_semgrep ?(files = []) server =
     let config = server.session.config in
-    let targets = server.session.targets in
+    let targets = Session.targets server.session in
+    let files =
+      Common.map
+        Uri.to_path
+        files
+    in
+    let _ = Common.map (fun f -> logger#info "Running on %s" f) files in
     let target_source =
       match files with
       | [] -> config.target_source
@@ -118,7 +165,8 @@ module Server = struct
           let filtered_targets =
             Common2.filter
               (fun (target : Input_to_core_t.target) ->
-                List.mem target.path files)
+                 logger#info "Checking %s" target.path;
+                List.mem (Filename.concat server.session.root target.path) files)
               targets.target_mappings
           in
           Some (Targets { targets with target_mappings = filtered_targets })
@@ -127,13 +175,13 @@ module Server = struct
     let _, res, files =
       Run_semgrep.semgrep_with_raw_results_and_exn_handler config
     in
+    (* We get duplicate files listed because lang jobs I believe *)
+    let files = Common2.uniq files in
     logger#info "Server scanned %d files" (List.length files);
-    let (final_results, files) = postprocess_results res server.session.hrules files server.session.root in
-    let _ =
-      batch_notify server
-        (Diagnostics.diagnostics_of_results final_results files)
+    let final_results, files =
+      postprocess_results res server.session.hrules files server.session.root
     in
-    Lwt.return server
+    (final_results, files)
 
   let initialize_session server root =
     let open Runner_config in
@@ -150,35 +198,34 @@ module Server = struct
       | Some (Rules rules) -> rules
       | None -> failwith "No rules provided"
     in
-    let targets =
-      match config.target_source with
-      | Some (Targets targets) -> targets
-      | Some (Target_file _) ->
-          let targets, _ =
-            Run_semgrep.targets_of_config config
-              (Common2.map (fun r -> fst r.Rule.id) rules)
-          in
-          targets
-      | None -> failwith "No targets provided"
-    in
     let config = { config with rule_source = Some (Rules rules) } in
     let hrules = Rule.hrules_of_rules rules in
     {
-      session = { server.session with hrules; targets; root; config };
+      session = { server.session with hrules; root; config };
       state = State.Running;
     }
 
   let on_notification notification server =
     let () =
       match notification with
-      | Client_notification.Initialized -> logger#info "Server initialized"
+      | Client_notification.Initialized ->
+          let results, files = run_semgrep server in
+          (* Let's scan the whole workspace to get a nice overview and so users know the extension is running *)
+          let diagnostics = Diagnostics.diagnostics_of_results results files in
+          let _ = batch_notify server diagnostics in
+
+          ()
       | Client_notification.DidSaveTextDocument { textDocument = { uri }; _ }
       | Client_notification.TextDocumentDidOpen { textDocument = { uri; _ } } ->
-          let path = safe_basename server.session.root (Uri.to_path uri) in
-          logger#info "Server received file %s" path;
-          let _ = run_semgrep server ~files:[ path ] in
+          let results, _ = run_semgrep server ~files:[ uri ] in
+          Hashtbl.add server.session.documents uri results;
+          logger#info "Added results for %s" (Uri.to_string uri);
+          let _ =
+            batch_notify server
+              (Diagnostics.diagnostics_of_results results [ Uri.to_path uri ])
+          in
           ()
-      | _ -> logger#info "Unhandled notification"
+      | _ -> logger#warning "Unhandled notification"
     in
     server
 
@@ -207,8 +254,21 @@ module Server = struct
                   Some { name = "Semgrep LSP Server"; version = Some "0.0.1" };
               }
           in
+          let server = initialize_session server root in
           (* TODO we should create a progress symbol before calling initialize server! *)
-          (to_yojson init, initialize_session server root)
+          (to_yojson init, server)
+      | Client_request.CodeAction { textDocument = { uri }; _ } ->
+          let results = Hashtbl.find server.session.documents uri in
+          let matches = Common.map fst results in
+          let actions =
+            CodeActions.code_actions_of_results matches [ Uri.to_path uri ]
+          in
+          let actions =
+            match actions with
+            | [] -> None
+            | actions -> Some actions
+          in
+          (to_yojson actions, server)
       | Client_request.DebugEcho params -> (to_yojson params, server)
       | _ ->
           logger#warning "Unhandled request";
@@ -241,7 +301,6 @@ module Server = struct
     Lwt.return server
 
   let rec rpc_loop server () =
-    logger#info "Server listening for next message";
     let%lwt client_msg = Io.read server.session.incoming in
     match client_msg with
     | None ->
@@ -257,17 +316,15 @@ module Server = struct
     ServerCapabilities.create
       ~textDocumentSync:
         (`TextDocumentSyncOptions
-          (TextDocumentSyncOptions.create ~openClose:true ~save:(`Bool true)
-             ~change:TextDocumentSyncKind.Incremental ()))
-      ()
+          (TextDocumentSyncOptions.create ~openClose:true ~save:(`Bool true) ()))
+      ~codeActionProvider:(`Bool true) ()
 
   let create config () =
-    let open Runner_config in
     let config =
       {
         config with
         (* Make sure output format is Json false, dots/etc break LSP *)
-        output_format = Json false;
+        Runner_config.output_format = Json false;
       }
     in
     {
@@ -280,7 +337,7 @@ module Server = struct
             config;
             root = "";
             hrules = Rule.hrules_of_rules [];
-            targets = { target_mappings = []; rule_ids = [] };
+            documents = Hashtbl.create 10;
           };
       state = State.Uninitialized;
     }
