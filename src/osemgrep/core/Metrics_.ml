@@ -69,6 +69,7 @@ let default_payload =
         fileStats = [];
         ruleStats = [];
         profilingTimes = [];
+        maxMemoryBytes = None;
       };
     errors = { returnCode = None; errors = [] };
     value =
@@ -77,6 +78,7 @@ let default_payload =
         numFinding = 0;
         numIgnored = 0;
         ruleHashesWithFindings = [];
+        engineRequested = "OSS";
       };
     fix_rate = { lowerLimits = []; upperLimits = [] };
     parse_rate = [];
