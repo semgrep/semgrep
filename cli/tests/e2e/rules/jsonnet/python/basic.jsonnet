@@ -1,4 +1,4 @@
-local lib = import '../lib/template.libsonnet';
+local lib = import 'template.libsonnet';
 local example = import '../example_rule.yaml';
 local partial = import '../part_of_rule.unknown_yaml_extension';
 {
