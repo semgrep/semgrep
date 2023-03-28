@@ -497,5 +497,5 @@ let cli_output_of_core_results ~logging_level ~rules_source
         time = None;
         explanations = None;
         rules_by_engine = Some rules_by_engine;
-        engine_requested;
+        engine_requested = Some engine_requested;
       }
