@@ -612,9 +612,9 @@ let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine autofix baseline_commit config debug dryrun dump_ast dump_config
-      emacs error project_root exclude exclude_rule_ids force_color include_
-      json lang max_memory_mb max_target_bytes metrics num_jobs optimizations
-      pattern profile quiet replacement respect_git_ignore rewrite_rule_ids
+      emacs error exclude exclude_rule_ids force_color include_ json lang
+      max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
+      profile project_root quiet replacement respect_git_ignore rewrite_rule_ids
       scan_unknown_extensions severity show_supported_languages strict
       target_roots test test_ignore_todo time_flag timeout timeout_threshold
       validate verbose version version_check vim =
@@ -856,14 +856,15 @@ let cmdline_term : conf Term.t =
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
-    $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_project_root
-    $ o_exclude $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json
-    $ o_lang $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
-    $ o_optimizations $ o_pattern $ o_profile $ o_quiet $ o_replacement
-    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_scan_unknown_extensions
-    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
-    $ o_test $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold
-    $ o_validate $ o_verbose $ o_version $ o_version_check $ o_vim)
+    $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
+    $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
+    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
+    $ o_optimizations $ o_pattern $ o_profile $ o_project_root $ o_quiet
+    $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
+    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
+    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
+    $ o_timeout $ o_timeout_threshold $ o_validate $ o_verbose $ o_version
+    $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 
