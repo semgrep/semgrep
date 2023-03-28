@@ -15,7 +15,7 @@
    to the file system.
 *)
 module Path : sig
-  include Fpath
+  include module type of Fpath
 
   (*
     Extra utilities to convert between lists of files between
