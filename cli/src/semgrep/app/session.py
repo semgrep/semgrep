@@ -1,3 +1,4 @@
+import http
 import os
 import subprocess
 from pathlib import Path
@@ -139,6 +140,10 @@ class AppSession(requests.Session):
         super().__init__(*args, **kwargs)
         self.user_agent = UserAgent()
         self.token: Optional[str] = None
+        if os.getenv("SEMGREP_COOKIES_PATH"):
+            self.cookies = http.cookiejar.MozillaCookieJar(
+                os.environ["SEMGREP_COOKIES_PATH"]
+            ).load()
 
         # retry after 4, 8, 16 seconds
         retry_adapter = requests.adapters.HTTPAdapter(
