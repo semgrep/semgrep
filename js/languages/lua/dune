@@ -37,6 +37,12 @@
 )
 
 (rule
+  (target webworker.js)
+  (deps ../../shared/webworker.js)
+  (action (copy %{deps} %{target}))
+)
+
+(rule
   (target semgrep-parser.js)
   (deps semgrep-lua-parser.js)
   (action (copy %{deps} %{target}))
@@ -46,4 +52,10 @@
  (target semgrep-lua.js)
  (deps entrypoint.js semgrep-parser.js Parser.bc.js)
  (action
-  (run esbuild entrypoint.js --bundle --platform=node --outfile=%{target})))
+  (run esbuild entrypoint.js --bundle --external:fs --external:constants --external:tty --external:child_process --outfile=%{target})))
+
+(rule
+ (target semgrep-lua-webworker.js)
+ (deps entrypoint.js semgrep-parser.js Parser.bc.js)
+ (action
+  (run esbuild webworker.js --bundle --external:fs --external:constants --external:tty --external:child_process --outfile=%{target})))
