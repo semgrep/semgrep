@@ -164,21 +164,6 @@ let o_version_check : bool Term.t =
  *  rules' languages. These options alter which files Semgrep scans."
  *)
 
-let o_project_root : string option Term.t =
-  let info =
-    Arg.info [ "project-root" ]
-      ~doc:
-        {|The project root for gitignore and semgrepignore purposes is
-          detected automatically from the presence of a .git/ directory in
-          the current directory or one of its parents. If not found,
-          the current directory is used as the project root. This option
-          forces a specific directory to be the project root. This is useful
-          for testing or for restoring compatibility with older semgrep
-          implementations that only looked for a .semgrepignore file
-          in the current directory.|}
-  in
-  Arg.value (Arg.opt Arg.(some string) None info)
-
 let o_exclude : string list Term.t =
   let info =
     Arg.info [ "exclude" ]
@@ -602,6 +587,21 @@ let o_profile : bool Term.t =
 
 let o_dump_config : string option Term.t =
   let info = Arg.info [ "dump-config" ] ~doc:{|<undocumented>|} in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
+let o_project_root : string option Term.t =
+  let info =
+    Arg.info [ "project-root" ]
+      ~doc:
+        {|The project root for gitignore and semgrepignore purposes is
+          detected automatically from the presence of a .git/ directory in
+          the current directory or one of its parents. If not found,
+          the current directory is used as the project root. This option
+          forces a specific directory to be the project root. This is useful
+          for testing or for restoring compatibility with older semgrep
+          implementations that only looked for a .semgrepignore file
+          in the current directory.|}
+  in
   Arg.value (Arg.opt Arg.(some string) None info)
 
 (*****************************************************************************)
