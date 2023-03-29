@@ -171,7 +171,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           List.iter (fun rule -> m "- %s" (rule_id rule)) (sorted normal);
           match exp with
           | [] -> ()
-          | _ ->
+          | __non_empty__ ->
               m "Experimental rules:%s" "";
               List.iter (fun rule -> m "- %s" (rule_id rule)) (sorted exp));
       let targets, semgrepignored_targets =
