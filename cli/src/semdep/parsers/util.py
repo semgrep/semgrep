@@ -229,6 +229,11 @@ def safe_path_parse(
 
     try:
         return parser.parse(text)
+    except RecursionError:
+        console.print(
+            f"Failed to parse {path} - Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
+        )
+        return None
     except ParseError as e:
         # These are zero indexed but most editors are one indexed
         line, col = e.index.line, e.index.column
