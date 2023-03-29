@@ -55,15 +55,6 @@ let rec join_with_space_if_needed xs =
         x ^ " " ^ join_with_space_if_needed (y :: xs)
       else x ^ join_with_space_if_needed (y :: xs)
 
-(* TODO? slow, and maybe we should cache it to avoid rereading
- * each time the same file for each match.
- * Note that the returned lines do not contain \n.
- *)
-let lines_of_file (start_line, end_line) file : string list =
-  let arr = Common2.cat_array file in
-  let lines = Common2.enum start_line end_line in
-  lines |> Common.map (fun i -> arr.(i))
-
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -75,7 +66,7 @@ let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
     in
     let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
     let prefix = spf "%s:%d" file line in
-    let lines_str = lines_of_file (PI.line_of_info mini, end_line) file in
+    let lines_str = File.lines_of_file (PI.line_of_info mini, end_line) file in
     match format with
     | Normal ->
         let prefix = if str = "" then prefix else prefix ^ " " ^ str in

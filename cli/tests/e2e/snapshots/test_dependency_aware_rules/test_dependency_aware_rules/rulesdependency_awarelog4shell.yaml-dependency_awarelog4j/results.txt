@@ -52,19 +52,6 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "line": 33,
               "offset": 1020
             },
-            "propagated_value": {
-              "svalue_abstract_content": "LogManager.getLogger(com.example.log4shell.log4j.class)",
-              "svalue_end": {
-                "col": 84,
-                "line": 32,
-                "offset": 1000
-              },
-              "svalue_start": {
-                "col": 29,
-                "line": 32,
-                "offset": 945
-              }
-            },
             "start": {
               "col": 13,
               "line": 33,
@@ -147,11 +134,6 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
                 
                 
 ┌──────────────┐

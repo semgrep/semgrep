@@ -21,7 +21,7 @@ let test_tokens_php file =
 (*e: test_tokens_php *)
 (*s: test_parse_php *)
 let test_parse_php xs =
-  let xs = File.of_strings xs in
+  let xs = File.Path.of_strings xs in
   let fullxs = Lib_parsing_php.find_source_files_of_dir_or_files xs in
 
   let fullxs, _skipped_paths =

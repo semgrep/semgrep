@@ -38,7 +38,7 @@ let test_tokens file =
   ()
 
 let test_parse xs =
-  let xs = xs |> File.of_strings |> List.map File.fullpath in
+  let xs = xs |> File.Path.of_strings |> List.map File.fullpath in
 
   let fullxs, _skipped_paths =
     Lib_parsing_ruby.find_source_files_of_dir_or_files xs

@@ -89,14 +89,49 @@ core:
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
 
+# Make binaries available to 'semgrep', the Python wrapper.
+#
+# TODO: find out and explain why we can't use symlinks
+# (symlink-core-for-cli) which is faster, clearer, and less wasteful
+# than full copies. It may have something to do with how we do Python
+# or Homebrew packaging.
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
+	# Executables
 	rm -f cli/src/semgrep/bin/semgrep-core
 	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
+	rm -f cli/src/semgrep/bin/osemgrep
+	cp _build/install/default/bin/osemgrep cli/src/semgrep/bin/
+	# Libraries
 	rm -f cli/src/semgrep/bin/semgrep_bridge_core.so
-	cp _build/install/default/bin/semgrep_bridge_core.so cli/src/semgrep/bin/
+	cp _build/install/default/bin/semgrep_bridge_core.so \
+	  cli/src/semgrep/bin/
 	rm -f cli/src/semgrep/bin/semgrep_bridge_python.so
-	cp _build/install/default/bin/semgrep_bridge_python.so cli/src/semgrep/bin/
+	cp _build/install/default/bin/semgrep_bridge_python.so \
+	  cli/src/semgrep/bin/
+
+# Same as copy-core-for-cli but faster. This is suitable for local testing
+# of semgrep.
+#
+# Creating symlinks is much faster than making full copies with cp
+# (< 100 ms vs. 500 ms), which is significant during development.
+#
+.PHONY: symlink-core-for-cli
+symlink-core-for-cli:
+	# Executables
+	rm -f cli/src/semgrep/bin/semgrep-core
+	ln -s ../../../../bin/semgrep-core \
+	  cli/src/semgrep/bin/semgrep-core
+	rm -f cli/src/semgrep/bin/osemgrep
+	ln -s ../../../../bin/osemgrep \
+	  cli/src/semgrep/bin/osemgrep
+	# Libraries
+	rm -f cli/src/semgrep/bin/semgrep_bridge_core.so
+	ln -s ../../../../bin/semgrep_bridge_core.so \
+	  cli/src/semgrep/bin/semgrep_bridge_core.so
+	rm -f cli/src/semgrep/bin/semgrep_bridge_python.so
+	ln -s ../../../../bin/semgrep_bridge_python.so \
+	  cli/src/semgrep/bin/semgrep_bridge_python.so
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
@@ -157,7 +192,12 @@ uninstall:
 # This should *not* install the open-source libraries that we maintain
 # as part of the semgrep project.
 .PHONY: core-install
-core-install:
+core-install: copy-core-for-cli
+	# The executable created by dune doesn't have the write permission,
+	# causing an error when running a straight cp if a file is already
+	# there.
+	# Known alternative: use 'install -m 0644 ...' instead of cp
+	$(MAKE) uninstall
 	cp bin/semgrep-core "$$(opam var bin)"/
 
 # Try to uninstall what was installed by 'make core-install'.
@@ -443,18 +483,7 @@ check_for_emacs:
 .PHONY: dev
 dev:
 	$(MAKE) core
-	rm -f cli/src/semgrep/bin/semgrep-core
-	ln -s ../../../../bin/semgrep-core \
-	  cli/src/semgrep/bin/semgrep-core
-	rm -f cli/src/semgrep/bin/osemgrep
-	ln -s ../../../../bin/osemgrep \
-	  cli/src/semgrep/bin/osemgrep
-	rm -f cli/src/semgrep/bin/semgrep_bridge_core.so
-	ln -s ../../../../bin/semgrep_bridge_core.so \
-	  cli/src/semgrep/bin/semgrep_bridge_core.so
-	rm -f cli/src/semgrep/bin/semgrep_bridge_python.so
-	ln -s ../../../../bin/semgrep_bridge_python.so \
-	  cli/src/semgrep/bin/semgrep_bridge_python.so
+	$(MAKE) symlink-core-for-cli
 
 ###############################################################################
 # Pad's targets

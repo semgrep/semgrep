@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -17,6 +18,7 @@ class Corpus:
         name: str,
         rule_dir: Union[str, Path],
         target_dir: Union[str, Path],
+        semgrep_options: List[str],
         language: Optional[str] = None,
     ):
         # name for the input corpus (rules and targets)
@@ -31,6 +33,9 @@ class Corpus:
         # language to run rules with (because semgrep-core requires it)
         self.language = language
 
+        # extra semgrep arguments
+        self.semgrep_options = semgrep_options
+
     # Fetch rules and targets is delegated to an ad-hoc script named 'prep'.
     def prep(self) -> None:
         cmd("./prep")
@@ -42,7 +47,7 @@ LARGE_CORPUSES = Path("configs/ci_large_repos.yaml")
 
 # For corpuses that cannot be run in CI because they use private repos
 INTERNAL_CORPUSES = [
-    Corpus("dogfood", "input/semgrep.yml", "input/"),
+    Corpus("dogfood", "input/semgrep.yml", "input/", []),
 ]
 
-DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", "js")]
+DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", [], "js")]

@@ -5,11 +5,6 @@
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
                 
                 
 ┌──────────────┐

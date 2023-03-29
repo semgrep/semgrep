@@ -1,2 +1,2 @@
-val parse_pattern : Lang.t -> ?print_errors:bool -> string -> Pattern.t
-val parse_pattern_ref : (Lang.t -> bool -> string -> Pattern.t) ref
+val parse_pattern : ?print_errors:bool -> Lang.t -> string -> Pattern.t
+val parse_pattern_ref : (bool -> Lang.t -> string -> Pattern.t) ref

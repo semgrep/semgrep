@@ -18,7 +18,7 @@ let tests parse_program =
         fun () ->
           let dir = Filename.concat tests_path "dataflow/python" in
           let files = Common2.glob (spf "%s/*.py" dir) in
-          files |> File.of_strings
+          files |> File.Path.of_strings
           |> List.iter (fun file ->
                  let ast = parse_program !!file in
                  let lang = List.hd (Lang.langs_of_filename file) in

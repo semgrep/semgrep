@@ -35,6 +35,7 @@ from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
+from semgrep.console import console
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -220,7 +221,7 @@ RECUSION_LIMIT_ENV_VAR = "SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE"
 def safe_path_parse(
     path: Optional[Path],
     parser: "Parser[A]",
-    preprocess: Optional[Callable[[str], str]] = None,
+    preprocess: Callable[[str], str] = lambda ξ: ξ,  # ξ kinda looks like a string hehe
 ) -> Optional[A]:
     """
     Run [parser] on the text in [path]
@@ -228,9 +229,10 @@ def safe_path_parse(
     """
     if not path:
         return None
+
     text = path.read_text()
-    if preprocess:
-        text = preprocess(text)
+    text = preprocess(text)
+
     try:
         return parser.parse(text)
     except RecursionError:
@@ -246,13 +248,17 @@ def safe_path_parse(
             ["<trailing newline>"] if text.endswith("\n") else []
         )  # Error on trailing newline shouldn't blow us up
         error_str = parse_error_to_str(e)
+        location = f"[bold]{path}[/bold] at [bold]{line + 1}:{col + 1}[/bold]"
         if line < len(text_lines):
-            logger.error(
-                f"Failed to parse {path} at {line + 1}:{col + 1} - {error_str}\n{line_prefix + text.splitlines()[line]}\n{' ' * (col + len(line_prefix))}^"
+            console.print(
+                f"Failed to parse {location} - {error_str}\n"
+                f"{line_prefix}{text.splitlines()[line]}\n"
+                f"{' ' * (col + len(line_prefix))}^"
             )
         else:
-            logger.error(
-                f"Failed to parse {path} at {line + 1}:{col + 1} - {error_str}\nInternal Error - line {line + 1} is past the end of {path}?"
+            console.print(
+                f"Failed to parse {location} - {error_str}\n"
+                f"Internal Error - line {line + 1} is past the end of {path}?"
             )
         return None
 

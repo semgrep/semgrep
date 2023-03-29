@@ -16,8 +16,14 @@ type t
 (* This should be clearer than a bool *)
 type status = Not_ignored | Ignored
 
+(*
+   Create a gitignore filter meant to be reused to filter many target paths.
+
+   gitignore_filenames: pairs (file kind, file name);
+                        see Gitignore_files.create
+*)
 val create :
-  ?gitignore_filenames:string list ->
+  ?gitignore_filenames:(string * string) list ->
   ?higher_priority_levels:Gitignore_level.t list ->
   ?lower_priority_levels:Gitignore_level.t list ->
   project_root:Fpath.t ->
