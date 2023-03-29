@@ -12,11 +12,8 @@ causing no runtime errors.
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
-from os import environ
 from pathlib import Path
 from re import escape
-from sys import getrecursionlimit
-from sys import setrecursionlimit
 from typing import Callable
 from typing import cast
 from typing import Dict
@@ -215,9 +212,6 @@ def parse_error_to_str(e: ParseError) -> str:
         return f"expected one of {expected_list}"
 
 
-RECUSION_LIMIT_ENV_VAR = "SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE"
-
-
 def safe_path_parse(
     path: Optional[Path],
     parser: "Parser[A]",
@@ -236,8 +230,8 @@ def safe_path_parse(
     try:
         return parser.parse(text)
     except RecursionError:
-        logger.error(
-            f"Failed to parse {path} - Python recursion depth exceeded, try again with {RECUSION_LIMIT_ENV_VAR} set higher than 500"
+        console.print(
+            f"Failed to parse {path} - Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
         )
         return None
     except ParseError as e:
@@ -347,38 +341,3 @@ become(
     ),
 )
 json_doc = whitespace >> json_value
-
-
-# This is truly awful. Python's recursion limit is too small for some realistic package-lock.json files.
-# So we manually patch the parse and parse_partial methods of the json parser to increase it 😵‍💫
-
-
-class add_recursion_limit:
-    def __init__(self) -> None:
-        increase = environ.get(RECUSION_LIMIT_ENV_VAR)
-        self.increase = int(increase) if increase else 500
-
-    def __enter__(self) -> None:
-        self.old_limit = getrecursionlimit()
-        setrecursionlimit(self.old_limit + self.increase)
-
-    def __exit__(self, type, value, tb):  # type: ignore
-        setrecursionlimit(self.old_limit)
-
-
-json_doc_parse = json_doc.parse
-json_doc_parse_partial = json_doc.parse_partial
-
-
-def json_doc_custom_parse(txt):  # type: ignore
-    with add_recursion_limit():
-        return json_doc_parse(txt)
-
-
-def json_doc_custom_parse_partial(txt):  # type: ignore
-    with add_recursion_limit():
-        return json_doc_parse_partial(txt)
-
-
-json_doc.parse = json_doc_custom_parse  # type: ignore
-json_doc.parse_partial = json_doc_custom_parse_partial  # type: ignore

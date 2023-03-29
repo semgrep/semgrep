@@ -3,6 +3,8 @@ import time
 from io import StringIO
 from os import environ
 from pathlib import Path
+from sys import getrecursionlimit
+from sys import setrecursionlimit
 from typing import Any
 from typing import Collection
 from typing import Dict
@@ -369,6 +371,19 @@ def main(
     Dict[str, List[FoundDependency]],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
+
+    # Some of the lockfile parsers are defined recursively
+    # This does not play well with python's conservative recursion limit, so we manually increase
+
+    if "SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE" in environ:
+        recursion_limit_increase = int(
+            environ["SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE"]
+        )
+    else:
+        recursion_limit_increase = 500
+
+    setrecursionlimit(getrecursionlimit() + recursion_limit_increase)
+
     if include is None:
         include = []
 
