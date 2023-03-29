@@ -1,0 +1,34 @@
+name: Build from empty opam switch
+
+# This workflow uses an empty opam switch and installs semgrep-core.
+# It will detect missing opam dependencies in semgrep.opam, as in #7400
+# where the "uri" opam package was not listed in semgrep.opam.
+# The other workflows use a docker container with the opam dependencies
+# already installed (returntocorp/ocaml-layer) for reducing the CI times.
+
+on: [pull_request]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        ocaml-version: ["4.14.0", "4.14.1"]
+        operating-system: [ubuntu-latest]
+
+    runs-on: ${{ matrix.operating-system }}
+
+    steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-version }}
+      - name: Install missing packages and dependencies
+        run: opam exec -- make install-deps-for-semgrep-core
+
+      - name: Build
+        run: opam exec -- make core
