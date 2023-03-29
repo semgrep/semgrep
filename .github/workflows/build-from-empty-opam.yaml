@@ -1,5 +1,11 @@
 name: Build from empty opam switch
 
+# This workflow uses an empty opam switch and installs semgrep-core.
+# It will detect missing opam dependencies in semgrep.opam, as in #7400
+# where the "uri" opam package was not listed in semgrep.opam.
+# The other workflows use a docker container with the opam dependencies
+# already installed (returntocorp/ocaml-layer) for reducing the CI times.
+
 on: [pull_request]
 
 jobs:
