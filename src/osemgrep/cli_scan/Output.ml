@@ -159,7 +159,9 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
       ~rules_source:conf.rules_source res
   in
   (* TODO: pass the -strict? other flags? *)
-  let cli_output = Nosem.process_ignores cli_output in
+  let cli_output =
+    Nosem.process_ignores ~strict:conf.Scan_CLI.strict cli_output
+  in
   (* ugly: but see the comment above why we do it here *)
   if conf.autofix then apply_fixes_and_warn conf cli_output;
   dispatch_output_format conf.output_format cli_output;
