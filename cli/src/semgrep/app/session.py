@@ -1,6 +1,6 @@
-import http
 import os
 import subprocess
+from http.cookiejar import MozillaCookieJar
 from pathlib import Path
 from typing import Any
 from typing import Optional
@@ -141,9 +141,7 @@ class AppSession(requests.Session):
         self.user_agent = UserAgent()
         self.token: Optional[str] = None
         if os.getenv("SEMGREP_COOKIES_PATH"):
-            cookies = http.cookiejar.MozillaCookieJar(
-                os.environ["SEMGREP_COOKIES_PATH"]
-            )
+            cookies = MozillaCookieJar(os.environ["SEMGREP_COOKIES_PATH"])
             cookies.load()
             self.cookies = cookies  # type: ignore
 
