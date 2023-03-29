@@ -8,6 +8,8 @@
    from semgrep_main.py and core_runner.py.
 *)
 
+open File.Operators
+
 (*****************************************************************************)
 (* Logging/Profiling/Debugging *)
 (*****************************************************************************)
@@ -144,16 +146,37 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       let filtered_rules =
         Rule_filtering.filter_rules conf.rule_filtering_conf rules
       in
-
-      let targets, _skipped_targetsTODO =
+      let targets, semgrepignored_targets =
         Find_target.get_targets conf.targeting_conf conf.target_roots
       in
       Logs.debug (fun m ->
+          m "target roots: [%s" "";
+          conf.target_roots |> List.iter (fun root -> m "  %s" !!root);
+          m "]%s" "");
+      Logs.debug (fun m ->
+          m "skipped targets: [%s" "";
+          semgrepignored_targets
+          |> List.iter (fun x ->
+                 m "  %s" (Output_from_core_t.show_skipped_target x));
+          m "]%s" "");
+      Logs.debug (fun m ->
+          m "selected targets: [%s" "";
           targets
-          |> List.iter (fun file -> m "target = %s" (Fpath.to_string file)));
+          |> List.iter (fun file -> m "target = %s" (Fpath.to_string file));
+          m "]%s" "");
       let (res : Core_runner.result) =
         Core_runner.invoke_semgrep_core conf.core_runner_conf filtered_rules
           errors targets
+      in
+      (* Add the targets that were semgrepignored *)
+      let res =
+        let core =
+          {
+            res.core with
+            skipped_targets = semgrepignored_targets @ res.core.skipped_targets;
+          }
+        in
+        { res with core }
       in
       (* TOPORT? was in formater/base.py
          def keep_ignores(self) -> bool:

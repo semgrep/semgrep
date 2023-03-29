@@ -142,7 +142,7 @@ let test () =
           sprintf "%s/sub/regfile/." root_s;
           sprintf "%s/sub/regfile/.." root_s;
         ];
-      Testutil_files.with_chdir (Fpath.v "sub") (fun () ->
+      Testutil_files.with_chdir (Fpath.v "sub") (fun _cwd ->
           List.iter check
             [
               (".", sprintf "%s/sub" root_s);
