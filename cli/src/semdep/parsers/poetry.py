@@ -132,6 +132,14 @@ def parse_poetry(
     if not deps:
         return []
     manifest_deps = safe_path_parse(manifest_path, manifest)
+
+    # According to PEP 426: pypi distributions are case insensitive and consider hyphens and underscores to be equivalent
+    sanitized_manifest_deps = (
+        {dep.lower().replace("-", "_") for dep in manifest_deps}
+        if manifest_deps
+        else manifest_deps
+    )
+
     output = []
     for line_number, dep in deps:
         if "name" not in dep or "version" not in dep:
@@ -142,7 +150,9 @@ def parse_poetry(
                 version=dep["version"],
                 ecosystem=Ecosystem(Pypi()),
                 allowed_hashes={},
-                transitivity=transitivity(manifest_deps, [dep["name"]]),
+                transitivity=transitivity(
+                    sanitized_manifest_deps, [dep["name"].lower().replace("-", "_")]
+                ),
                 line_number=line_number,
             )
         )
