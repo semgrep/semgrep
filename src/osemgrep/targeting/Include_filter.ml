@@ -21,12 +21,15 @@ let create ~project_root patterns =
     Common.map
       (fun pat ->
         Gitignore_syntax.parse_pattern
-          ~source:(Glob_matcher.string_loc ~source_name:"include pattern" pat)
+          ~source:
+            (Glob_matcher.string_loc ~source_name:"include pattern"
+               ~source_kind:(Some "include") pat)
           ~anchor:Glob_matcher.root_pattern pat)
       patterns
   in
   let no_match_loc =
     Glob_matcher.string_loc ~source_name:"include patterns"
+      ~source_kind:(Some "include")
       (Printf.sprintf "NOT (%s)" (String.concat " OR " patterns))
   in
   { project_root; glob_matchers; no_match_loc }

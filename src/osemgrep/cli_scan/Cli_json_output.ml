@@ -64,7 +64,7 @@ type metavars = (string * Out.metavar_value) list
 let lines_of_file (range : Out.position * Out.position) (file : filename) :
     string list =
   let start, end_ = range in
-  Matching_report.lines_of_file (start.line, end_.line) file
+  File.lines_of_file (start.line, end_.line) file
   [@@profiling]
 
 (* Returns the text between the positions; start inclusive, end exclusive.
@@ -408,14 +408,13 @@ let dedup_and_sort (xs : Out.cli_match list) : Out.cli_match list =
 (* Skipped target *)
 (*****************************************************************************)
 
-let cli_skipped_target_of_skipped_target (_x : Out.skipped_target) :
+let cli_skipped_target_of_skipped_target (x : Out.skipped_target) :
     Out.cli_skipped_target =
-  failwith "TODO:cli_skipped_target_of_skipped_target"
+  { path = x.path; reason = x.reason }
 
 (* skipping the python intermediate FileTargetingLog for now *)
-let cli_skipped_targets_opt ~(errors : Out.core_error list)
-    ~(skipped_targets : Out.skipped_target list option) :
-    Out.cli_skipped_target list option =
+let cli_skipped_targets ~(errors : Out.core_error list)
+    ~(skipped_targets : Out.skipped_target list) : Out.cli_skipped_target list =
   (* TODO: skipped targets are coming from the FileIgnoreLog which is
    * populated from many places in the code.
    *)
@@ -428,17 +427,14 @@ let cli_skipped_targets_opt ~(errors : Out.core_error list)
     |> Common.map (fun (err : Out.core_error) ->
            {
              Out.path = err.location.path;
-             reason = "analysis_failed_parser_or_internal_error";
+             reason = Analysis_failed_parser_or_internal_error;
            })
   in
   let core_skipped =
-    match skipped_targets with
-    | None -> []
-    | Some xs -> xs |> Common.map cli_skipped_target_of_skipped_target
+    skipped_targets |> Common.map cli_skipped_target_of_skipped_target
   in
   (* TODO: need to sort *)
-  let final = skipped_because_of_core_errors @ core_skipped in
-  if null final then None else Some final
+  skipped_because_of_core_errors @ core_skipped
 
 (*****************************************************************************)
 (* Entry point *)
@@ -478,14 +474,14 @@ let cli_output_of_core_results ~logging_level ~rules_source
       let scanned = res.scanned |> Set_.elements in
       let (paths : Out.cli_paths) =
         match logging_level with
-        | Some Logs.Info ->
-            let skipped = cli_skipped_targets_opt ~errors ~skipped_targets in
+        | Some (Logs.Info | Logs.Debug) ->
+            let skipped = cli_skipped_targets ~errors ~skipped_targets in
             { scanned; _comment = None; skipped }
         | _else_ ->
             {
               scanned;
               _comment = Some "<add --verbose for a list of skipped paths>";
-              skipped = None;
+              skipped = [];
             }
       in
       {

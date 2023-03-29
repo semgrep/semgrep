@@ -52,6 +52,13 @@ def parse_pipfile(
         manifest_path, manifest, preprocess=preprocessors.CommentRemover()
     )
 
+    # According to PEP 426: pypi distributions are case insensitive and consider hyphens and underscores to be equivalent
+    sanitized_manifest_deps = (
+        {dep.lower().replace("-", "_") for dep in manifest_deps}
+        if manifest_deps
+        else manifest_deps
+    )
+
     def extract_pipfile_hashes(
         hashes: List[str],
     ) -> Dict[str, List[str]]:
@@ -84,7 +91,9 @@ def parse_pipfile(
                 )
                 if "hashes" in fields
                 else {},
-                transitivity=transitivity(manifest_deps, [package]),
+                transitivity=transitivity(
+                    sanitized_manifest_deps, [package.lower().replace("-", "_")]
+                ),
                 line_number=dep_json.line_number,
             )
         )

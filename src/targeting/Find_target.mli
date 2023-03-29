@@ -11,6 +11,7 @@
  *)
 
 type conf = {
+  project_root : Fpath.t option;
   exclude : string list;
   (* [!] include_ = None is the opposite of Some [].
      If a list of include patterns is specified, a path must match
