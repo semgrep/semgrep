@@ -145,7 +145,7 @@ class AppSession(requests.Session):
                 os.environ["SEMGREP_COOKIES_PATH"]
             )
             cookies.load()
-            self.cookies = cookies
+            self.cookies = cookies  # type: ignore
 
         # retry after 4, 8, 16 seconds
         retry_adapter = requests.adapters.HTTPAdapter(
