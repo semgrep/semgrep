@@ -237,12 +237,14 @@ let tests =
             printf "Test relative target paths, from inside the project\n";
             F.with_chdir
               (Fpath.v "proj_link" / "a")
-              (fun _cwd ->
+              (fun () ->
                 let target_path = Fpath.v "b" in
-                let expected_proj_root = Fpath.v ".." in
+                let expected_proj_root = Unix.getcwd () |> Fpath.v in
                 match Git_project.find_any_project_root target_path with
                 | Other_project, _, _ -> assert false
                 | Git_project, proj_root, path_to_b ->
+                    printf "Expected git project root: %s\n"
+                      !!expected_proj_root;
                     printf "Obtained git project root: %s\n" !!proj_root;
                     Alcotest.(check string)
                       "equal" !!expected_proj_root !!proj_root;
