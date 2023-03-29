@@ -39,3 +39,12 @@ let erase_temp_files = Common.erase_temp_files
 let erase_this_temp_file path = Common.erase_this_temp_file !!path
 let is_executable path = Common2.is_executable !!path
 let filesize path = Common2.filesize !!path
+
+(* TODO? slow, and maybe we should cache it to avoid rereading
+ * each time the same file for each match.
+ * Note that the returned lines do not contain \n.
+ *)
+let lines_of_file (start_line, end_line) file : string list =
+  let arr = Common2.cat_array file in
+  let lines = Common2.enum start_line end_line in
+  lines |> Common.map (fun i -> arr.(i))

@@ -64,7 +64,7 @@ type metavars = (string * Out.metavar_value) list
 let lines_of_file (range : Out.position * Out.position) (file : filename) :
     string list =
   let start, end_ = range in
-  Matching_report.lines_of_file (start.line, end_.line) file
+  File.lines_of_file (start.line, end_.line) file
   [@@profiling]
 
 (* Returns the text between the positions; start inclusive, end exclusive.
