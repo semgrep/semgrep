@@ -344,6 +344,9 @@ rule token = parse
        let (tcolon, trest) = PI.split_info_at_pos 1 t in
        Flag_parsing.sgrep_guard (SymbolLiteral(tcolon, ("...", trest)))
      }
+  | "'" {
+    QUOTE (tokinfo lexbuf)
+  }
 
   (* ----------------------------------------------------------------------- *)
   (* Keywords and ident *)
