@@ -1442,6 +1442,7 @@ and patterns in_ = commaSeparated pattern in_
  *                    |  StableId  [`(` [Patterns] `)`]
  *                    |  StableId  [`(` [Patterns] `,` [varid `@`] `_` `*` `)`]
  *                    |  `(` [Patterns] `)`
+ *                    |  Quoted
  *  }}}
  *
  * XXX: Hook for IDE
@@ -1502,6 +1503,9 @@ and simplePattern in_ : pattern =
          | x when TH.isLiteral x ->
              let x = literal ~inPattern:true in_ in
              PatLiteral x
+         | QUOTE quote ->
+             let x = quoted quote in_ in
+             PatQuoted x
          | Ellipsis t ->
              nextToken in_;
              PatEllipsis t
@@ -1514,6 +1518,24 @@ and argumentPatterns in_ : pattern list bracket =
          inParens
            (fun in_ -> if in_.token =~= RPAREN ab then [] else seqPatterns in_)
            in_)
+
+(** {{{
+ *  Quoted     ::=  ‘'’ ‘{’ Block ‘}’
+ *               |  ‘'’ ‘[’ Type ‘]’
+ *  }}}
+*)
+and quoted quote_tok in_ =
+  in_
+  |> with_logging (spf "quoted") (fun () ->
+         nextToken in_;
+         match in_.token with
+         | LBRACE _ ->
+             let x = inBraces !blockStatSeq_ in_ in
+             QuotedBlock (quote_tok, x)
+         | LBRACKET _ ->
+             let x = inBrackets typ in_ in
+             QuotedType (quote_tok, x)
+         | _ -> error "error in quoted expr: brace or bracket expected" in_)
 
 (* ------------------------------------------------------------------------- *)
 (* Context sensitive choices *)
@@ -1855,24 +1877,6 @@ and simpleExprRest ~canApply t in_ : expr =
  *)
 
 and exprTypeArgs in_ = outPattern typeArgs in_
-
-(** {{{
- *  Quoted     ::=  ‘'’ ‘{’ Block ‘}’
- *               |  ‘'’ ‘[’ Type ‘]’
- *  }}}
-*)
-and quoted quote_tok in_ =
-  in_
-  |> with_logging (spf "quoted") (fun () ->
-         nextToken in_;
-         match in_.token with
-         | LBRACE _ ->
-             let x = inBraces block in_ in
-             QuotedBlock (quote_tok, x)
-         | LBRACKET _ ->
-             let x = inBrackets typ in_ in
-             QuotedType (quote_tok, x)
-         | _ -> error "error in quoted expr: brace or bracket expected" in_)
 
 (* ------------------------------------------------------------------------- *)
 (* Interpolated strings *)

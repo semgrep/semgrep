@@ -210,6 +210,7 @@ and pattern =
   (* less: only last element of a pattern list? *)
   | PatUnderscoreStar of tok (* '_' *) * tok (* '*' *)
   | PatDisj of pattern * tok (* | *) * pattern
+  | PatQuoted of quoted
   (* semgrep-ext: *)
   | PatEllipsis of tok
 

@@ -355,6 +355,14 @@ and v_pattern = function
   | PatDisj (v1, v2, v3) ->
       let v1 = v_pattern v1 and _v2 = v_tok v2 and v3 = v_pattern v3 in
       G.PatDisj (v1, v3)
+  | PatQuoted quote -> (
+      match quote with
+      | QuotedBlock (quote_tok, (_, v1, _)) ->
+          let stmts = v_block v1 in
+          G.OtherPat (("QuotedBlock", quote_tok), [ G.Ss stmts ])
+      | QuotedType (quote_tok, (_, v1, _)) ->
+          let ty = v_type_ v1 in
+          G.OtherPat (("QuotedBlock", quote_tok), [ G.T ty ]))
   | PatEllipsis v1 -> G.PatEllipsis v1
 
 and todo_expr msg any = G.OtherExpr ((msg, fake msg), any) |> G.e
