@@ -39,7 +39,7 @@ let tests =
           let files =
             Common2.glob (spf "%s/*.cpp" dir) @ Common2.glob (spf "%s/*.h" dir)
           in
-          files |> File.of_strings
+          files |> File.Path.of_strings
           |> List.iter (fun file ->
                  try
                    let _ast = parse file in
@@ -51,7 +51,7 @@ let tests =
         fun () ->
           let dir = Filename.concat tests_path "cpp/parsing_errors" in
           let files = Common2.glob (spf "%s/*.cpp" dir) in
-          files |> File.of_strings
+          files |> File.Path.of_strings
           |> List.iter (fun file ->
                  try
                    let _ast = parse file in
@@ -70,7 +70,7 @@ let tests =
             Common2.glob (spf "%s/*.c" dir)
             (* @ Common2.glob (spf "%s/*.h" dir) *)
           in
-          files |> File.of_strings
+          files |> File.Path.of_strings
           |> List.iter (fun file ->
                  try
                    let _ast = parse file in

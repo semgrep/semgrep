@@ -433,8 +433,8 @@ let files_of_dirs_or_files ?(keep_root_files = true)
     else (roots, [])
   in
   let paths =
-    paths |> File.to_strings |> Common.files_of_dir_or_files_no_vcs_nofilter
-    |> File.of_strings
+    paths |> File.Path.to_strings
+    |> Common.files_of_dir_or_files_no_vcs_nofilter |> File.Path.of_strings
   in
   let paths, skipped = global_filter ~opt_lang ~sort_by_decr_size paths in
   let paths = explicit_targets @ paths in

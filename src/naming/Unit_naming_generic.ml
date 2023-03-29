@@ -23,7 +23,7 @@ let tests parse_program =
           let files4 = Common2.glob (spf "%s/*.java" dir) in
 
           files1 @ files2 @ files3 @ files4
-          |> File.of_strings
+          |> File.Path.of_strings
           |> List.iter (fun file ->
                  try
                    (* at least we can assert we don't thrown an exn or go

@@ -22,13 +22,16 @@ let setup_logging ~force_color ~level =
   Logs.Src.list ()
   |> List.iter (fun src ->
          match Logs.Src.name src with
-         | "cohttp.lwt.io"
-         | "cohttp.lwt.server"
-         | "cohttp.lwt.client"
-         | "conduit_lwt_server"
+         | "dns"
+         | "dns_cache"
+         | "dns_client"
+         | "dns_client_lwt"
          | "ca-certs"
          | "bos"
+         | "happy-eyeballs"
+         | "happy-eyeballs.lwt"
          | "mirage-crypto-rng.lwt"
+         | "mirage-crypto-rng-lwt"
          | "mirage-crypto-rng.unix"
          | "handshake"
          | "tls.config"

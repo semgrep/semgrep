@@ -76,7 +76,7 @@ let test_parse_common xs fullxs ext =
   ()
 
 let test_parse_js xs =
-  let xs = File.of_strings xs in
+  let xs = File.Path.of_strings xs in
   let fullxs =
     Lib_parsing_js.find_source_files_of_dir_or_files ~include_scripts:false xs
   in
@@ -85,7 +85,7 @@ let test_parse_js xs =
 module FT = File_type
 
 let test_parse_ts xs =
-  let xs = File.of_strings xs in
+  let xs = File.Path.of_strings xs in
   let fullxs =
     File.files_of_dirs_or_files_no_vcs_nofilter xs
     |> List.filter (fun filename ->
@@ -124,7 +124,7 @@ let info_to_json_range info =
       ] )
 
 let parse_js_r2c xs =
-  let xs = File.of_strings xs in
+  let xs = File.Path.of_strings xs in
   let fullxs =
     Lib_parsing_js.find_source_files_of_dir_or_files ~include_scripts:false xs
   in
