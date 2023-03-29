@@ -35,11 +35,17 @@ let ranges_of_path (path : Fpath.t) : Function_range.ranges =
   match Hashtbl.find_opt cache path with
   | Some x -> x
   | None ->
-      (* alt: could use just_parse_with_lang and get the lang
-       * from the languages: field in the rule corresponding to
-       * the rule_id of the match
-       *)
-      let ast = Parse_target.parse_program (Fpath.to_string path) in
+      let ast =
+        (* ugly: parse_program may raise the "hd" exn when we can't infer
+         * the language from the filename.
+         * TODO: we should use just_parse_with_lang and get the language
+         * from the languages: field in the rule corresponding to
+         * the rule_id of the match. That would require to pass
+         * more info to ranges_of_path() though.
+         *)
+        try Parse_target.parse_program (Fpath.to_string path) with
+        | Failure "hd" -> []
+      in
       let ranges = Function_range.ranges ast in
       Hashtbl.add cache path ranges;
       ranges

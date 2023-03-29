@@ -52,10 +52,6 @@ type exclusion_mechanism = Gitignore_and_semgrepignore | Only_semgrepignore
 
 let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
     ~project_root () =
-  if Fpath.is_rel project_root then
-    invalid_arg
-      ("Semgrepignore.create needs an absolute path for the project root: "
-      ^ Fpath.to_string project_root);
   let include_filter =
     Option.map (Include_filter.create ~project_root) include_patterns
   in
@@ -63,7 +59,7 @@ let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
   let cli_patterns =
     List.concat_map
       (Gitignore_syntax.from_string ~name:"exclude pattern from command line"
-         ~anchor:root_anchor)
+         ~kind:"exclude" ~anchor:root_anchor)
       cli_patterns
   in
   let cli_level : Gitignore_level.t =
@@ -75,8 +71,9 @@ let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
   in
   let gitignore_filenames =
     match exclusion_mechanism with
-    | Gitignore_and_semgrepignore -> [ ".gitignore"; ".semgrepignore" ]
-    | Only_semgrepignore -> [ ".semgrepignore" ]
+    | Gitignore_and_semgrepignore ->
+        [ ("gitignore", ".gitignore"); ("semgrepignore", ".semgrepignore") ]
+    | Only_semgrepignore -> [ ("semgrepignore", ".semgrepignore") ]
   in
   let gitignore_filter =
     Gitignore_filter.create ~higher_priority_levels:[ cli_level ]

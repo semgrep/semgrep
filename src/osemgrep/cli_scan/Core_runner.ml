@@ -212,9 +212,9 @@ let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
         {
           Out.matches = [];
           errors = [ error ];
-          skipped_targets = None;
-          skipped_rules = None;
-          explanations = None;
+          skipped_targets = [];
+          skipped_rules = [];
+          explanations = [];
           time = None;
           stats = { okfiles = 0; errorfiles = 0 };
           rules_by_engine = [];

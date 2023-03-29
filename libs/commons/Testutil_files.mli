@@ -85,7 +85,7 @@ val is_symlink : Fpath.t -> bool
 *)
 val mkdir : ?root:Fpath.t -> Fpath.t -> unit
 
-(* Run a function in a directory, then return to the original directory *)
+(* Run a function in a directory, then return to the original directory. *)
 val with_chdir : Fpath.t -> (unit -> 'a) -> 'a
 
 (*
