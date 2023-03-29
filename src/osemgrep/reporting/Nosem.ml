@@ -38,14 +38,6 @@ let nosem_inline_re_str = {| nosem(?:grep)?|} ^ rule_id_re_str
 let nosem_inline_re = SPcre.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
 
 (*
-   As a hack adapted from semgrep-agent,
-   we assume comment markers are one of these special characters
-*)
-let _nosem_inline_comment_re =
-  SPcre.regexp (spf {|[:#/]+%s$|} nosem_inline_re_str) ~flags:[ `CASELESS ]
-(* XXX(dinosaure): seems unused by the last version of `cli/` *)
-
-(*
    A nosemgrep comment alone on its line.
    Since we don't know the comment syntax for the particular language, we
    assume it's enough that there isn't any word or number character before
@@ -66,10 +58,23 @@ let nosem_previous_line_re =
 (* Helpers *)
 (*****************************************************************************)
 
-(*****************************************************************************)
-(* Entry point *)
-(*****************************************************************************)
+(*
+   Try to recognise the [rex] (a regex) into the given [line] and returns an
+   array IDs (["ids"]) collected during this recognition.
+*)
+let recognise_and_collect ~rex line =
+  SPcre.exec_all ~rex line
+  |> Result.map
+       (Array.map (fun subst ->
+            try Some (Pcre.get_named_substring rex "ids" subst) with
+            | _ -> None))
+  |> Result.to_option
 
+(*
+   Try to recognize a possible [nosem] tag into the given [match].
+   If [strict:true], we returns possible errors when [nosem] is used with an
+   ID which is not equal to the rule's ID.
+*)
 let rule_match_nosem ~strict (rule_match : Out.cli_match) :
     bool * Out.cli_error list =
   let lines =
@@ -86,21 +91,18 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
     | [] (* XXX(dinosaure): is it possible? *) -> (None, None)
   in
 
-  let recognise_and_collect ~rex line =
-    Result.map
-      (Array.map (fun subst ->
-           try Some (Pcre.get_named_substring rex "ids" subst) with
-           | _ -> None))
-      (SPcre.exec_all ~rex line)
-    |> Result.to_option
-  in
-
   let no_ids = Array.for_all Option.is_none in
 
-  let ids_line, ids_previous_line =
-    ( Option.bind line (recognise_and_collect ~rex:nosem_inline_re),
-      Option.bind previous_line
-        (recognise_and_collect ~rex:nosem_previous_line_re) )
+  let ids_line =
+    match line with
+    | None -> None
+    | Some line -> recognise_and_collect ~rex:nosem_inline_re line
+  in
+  let ids_previous_line =
+    match previous_line with
+    | None -> None
+    | Some previous_line ->
+        recognise_and_collect ~rex:nosem_previous_line_re previous_line
   in
 
   match (ids_line, ids_previous_line) with
@@ -151,6 +153,10 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
           in
           (id = rule_match.Out.check_id || result, errors))
         (true, []) ids
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 
 let process_ignores ~strict (out : Out.cli_output) : Out.cli_output =
   let results, errors =
