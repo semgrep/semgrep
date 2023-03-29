@@ -35,7 +35,9 @@ dep = pair(
     package, string(" ") >> string_from("~", "^").optional() >> version_specifier
 )
 
-direct_dependencies_identifier = whitespace_not_newline.optional() >> string("specifiers:")
+direct_dependencies_identifier = whitespace_not_newline.optional() >> string(
+    "specifiers:"
+)
 
 direct_dependencies = (
     direct_dependencies_identifier
