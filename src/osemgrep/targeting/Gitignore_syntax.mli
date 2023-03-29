@@ -45,8 +45,10 @@ type t = path_selector list
 
    The default selection mode is Ignore.
 *)
-val from_string : anchor:Glob_matcher.pattern -> ?name:string -> string -> t
-val from_file : anchor:Glob_matcher.pattern -> Fpath.t -> t
+val from_string :
+  anchor:Glob_matcher.pattern -> name:string -> kind:string -> string -> t
+
+val from_file : anchor:Glob_matcher.pattern -> kind:string -> Fpath.t -> t
 
 (*
    Remove the leading exclamation mark from the string, returning

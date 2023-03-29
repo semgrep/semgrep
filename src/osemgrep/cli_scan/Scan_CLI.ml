@@ -15,6 +15,10 @@ module H = Cmdliner_helpers
    TOPORT? all those shell_complete() click functions?
 *)
 
+(* TODO: use parser/printer pair for file paths using Fpath.t so that
+   we don't have to convert manually from string to fpath for each
+   file option offered by the CLI. Add it to CLI_common. *)
+
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
@@ -66,7 +70,13 @@ let default : conf =
     (* alt: could move in a Target_manager.default *)
     targeting_conf =
       {
-        Find_target.exclude = [];
+        (* the project root is inferred from the presence of .git, otherwise
+           falls back to the current directory. Should it be offered as
+           a command-line option? In osemgrep, a .semgrepignore at the
+           git project root will be honored unlike in legacy semgrep
+           if we're in a subfolder. *)
+        Find_target.project_root = None;
+        exclude = [];
         include_ = None;
         baseline_commit = None;
         max_target_bytes = 1_000_000 (* 1 MB *);
@@ -579,6 +589,21 @@ let o_dump_config : string option Term.t =
   let info = Arg.info [ "dump-config" ] ~doc:{|<undocumented>|} in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_project_root : string option Term.t =
+  let info =
+    Arg.info [ "project-root" ]
+      ~doc:
+        {|The project root for gitignore and semgrepignore purposes is
+          detected automatically from the presence of a .git/ directory in
+          the current directory or one of its parents. If not found,
+          the current directory is used as the project root. This option
+          forces a specific directory to be the project root. This is useful
+          for testing or for restoring compatibility with older semgrep
+          implementations that only looked for a .semgrepignore file
+          in the current directory.|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -589,7 +614,7 @@ let cmdline_term : conf Term.t =
   let combine autofix baseline_commit config debug dryrun dump_ast dump_config
       emacs error exclude exclude_rule_ids force_color include_ json lang
       max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
-      profile quiet replacement respect_git_ignore rewrite_rule_ids
+      profile project_root quiet replacement respect_git_ignore rewrite_rule_ids
       scan_unknown_extensions severity show_supported_languages strict
       target_roots test test_ignore_todo time_flag timeout timeout_threshold
       validate verbose version version_check vim =
@@ -675,7 +700,8 @@ let cmdline_term : conf Term.t =
     in
     let targeting_conf =
       {
-        Find_target.exclude;
+        Find_target.project_root = Option.map Fpath.v project_root;
+        exclude;
         include_;
         baseline_commit;
         max_target_bytes;
@@ -833,11 +859,12 @@ let cmdline_term : conf Term.t =
     $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
     $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
     $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
-    $ o_optimizations $ o_pattern $ o_profile $ o_quiet $ o_replacement
-    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_scan_unknown_extensions
-    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
-    $ o_test $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold
-    $ o_validate $ o_verbose $ o_version $ o_version_check $ o_vim)
+    $ o_optimizations $ o_pattern $ o_profile $ o_project_root $ o_quiet
+    $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
+    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
+    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
+    $ o_timeout $ o_timeout_threshold $ o_validate $ o_verbose $ o_version
+    $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

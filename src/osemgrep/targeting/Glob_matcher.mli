@@ -17,13 +17,17 @@ type loc = {
   (* File name or other source location name useful to a human reader
      in error messages. *)
   source_name : string;
+  (* Classify the source if you wish, for better error messages. *)
+  source_kind : string option;
   (* Line number, starting from 1. *)
   line_number : int;
   line_contents : string;
 }
 
 (* Create a location from a pattern string rather than a location in a file. *)
-val string_loc : ?source_name:string -> string -> loc
+val string_loc :
+  ?source_name:string -> source_kind:string option -> string -> loc
+
 val show_loc : loc -> string
 
 type char_class_range = Class_char of char | Range of char * char
