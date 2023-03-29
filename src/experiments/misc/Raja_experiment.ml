@@ -36,9 +36,9 @@ let ranges_of_path (path : Fpath.t) : Function_range.ranges =
   | Some x -> x
   | None ->
       let ast =
-        (* parse_program may raise the "hd" exn when we can't infer
+        (* ugly: parse_program may raise the "hd" exn when we can't infer
          * the language from the filename.
-         * alt: we could use just_parse_with_lang and get the language
+         * TODO: we should use just_parse_with_lang and get the language
          * from the languages: field in the rule corresponding to
          * the rule_id of the match. That would require to pass
          * more info to ranges_of_path() though.
