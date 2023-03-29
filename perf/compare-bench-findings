@@ -60,6 +60,10 @@ def main() -> None:
 
     errors = 0
 
+    if len(expected) != len(findings):
+        print(f"Error: expected {len(expected)} results, got {len(findings)}")
+        errors += 1
+
     for expected, findings in zip(expected, findings):
         if findings_differ(expected, findings):
             errors += 1
