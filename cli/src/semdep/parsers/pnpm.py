@@ -35,7 +35,7 @@ dep = pair(
     package, string(" ") >> string_from("~", "^").optional() >> version_specifier
 )
 
-direct_dependencies_identifier = string("specifiers:")
+direct_dependencies_identifier = whitespace_not_newline.optional() >> string("specifiers:")
 
 direct_dependencies = (
     direct_dependencies_identifier
@@ -61,7 +61,7 @@ direct_dependencies = (
 #        transitivePeerDependencies:
 #             - mathPackage
 
-packages_identifier = string("packages:")
+packages_identifier = whitespace_not_newline.optional() >> string("packages:")
 
 # "/foo/1.2.3:"
 # "/@foo/bar/1.2.3:"
@@ -80,9 +80,12 @@ all_dependencies = (
     packages_identifier >> string("\n\n") >> full_raw_dependency.sep_by(string("\n\n"))
 )
 
+# if using pnpm workspaces, lockfile will have multiple direct dependencies
+# sections. in that case, we'll capture all of them, then flatten the array
+# below
 direct_dependencies_data = (
     consume_line.until(direct_dependencies_identifier) >> direct_dependencies
-)
+).at_least(1)
 packages_data = consume_line.until(packages_identifier) >> all_dependencies
 all_dependency_data = (
     pair(direct_dependencies_data, packages_data) << consume_line.many()
@@ -97,8 +100,11 @@ def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
     if not direct_deps or not all_deps:
         return []
 
+    # direct deps is an array of arrays b/c of workspaces
+    direct_deps_flattened = [wd for workspace in direct_deps for wd in workspace]
+
     # packages that start with @ will look like "'@foo/bar'"
-    direct_deps_set = {ps.replace("'", "") for _, (ps, _) in direct_deps}
+    direct_deps_set = {ps.replace("'", "") for _, (ps, _) in direct_deps_flattened}
     output = []
     for line_number, (package_str, version_str) in all_deps:
         if not package_str or not version_str:
