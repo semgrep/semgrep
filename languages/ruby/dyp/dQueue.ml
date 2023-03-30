@@ -18,6 +18,10 @@ let enqueue x (f, r) = queue f (x :: r)
 let cons x (f, r) = (x :: f, r)
 let insert = cons
 
+(* TODO: raise specific exceptions we can catch, or use failwith with an
+   informative error message, or don't use exceptions at all (especially
+   if we don't document them).
+*)
 let hd = function
   | [], _ -> failwith "hd"
   | x :: _, _ -> x
