@@ -161,7 +161,7 @@ let check_pattern (lang : Xlang.t) f =
   visit_new_formula
     (fun { pat; pstr = _pat_str; pid = _ } _ ->
       match (pat, lang) with
-      | Sem (semgrep_pat, _lang), L (lang, _rest) ->
+      | Sem ((lazy semgrep_pat), _lang), L (lang, _rest) ->
           Check_pattern.check lang semgrep_pat
       | Spacegrep _spacegrep_pat, LGeneric -> ()
       | Regexp _, _ -> ()

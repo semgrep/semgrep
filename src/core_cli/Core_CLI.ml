@@ -767,7 +767,7 @@ let main (sys_argv : string array) : unit =
   if config.lsp then LSP_client.init ();
   (* hacks to reduce the size of engine.js
    * coupling: if you add an init() call here, you probably need to modify
-   * also tests/Test.ml
+   * also tests/Test.ml and osemgrep/cli/CLI.ml
    *)
   Parsing_init.init ();
   Data_init.init ();
@@ -794,7 +794,7 @@ let main (sys_argv : string array) : unit =
              tune these parameters in the future/do more testing, but
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
-          let config = { config with roots = File.of_strings roots } in
+          let config = { config with roots = File.Path.of_strings roots } in
           Run_semgrep.semgrep_dispatch config)
 
 (*****************************************************************************)

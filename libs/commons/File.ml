@@ -5,21 +5,28 @@
    to get rid of the interface exposed by Common.
 *)
 
+module Path = struct
+  include Fpath
+
+  let of_strings strings = Common.map Fpath.v strings
+  let to_strings paths = Common.map Fpath.to_string paths
+  let ( !! ) = Fpath.to_string
+end
+
 module Operators = struct
   let ( / ) = Fpath.( / )
   let ( // ) = Fpath.( // )
-  let ( !! ) = Fpath.to_string
+  let ( !! ) = Path.( !! )
 end
 
 open Operators
 
-let of_strings strings = Common.map Fpath.v strings
-let to_strings paths = Common.map Fpath.to_string paths
 let fullpath file = Common.fullpath !!file |> Fpath.v
 let readable ~root path = Common.readable ~root:!!root !!path |> Fpath.v
 
 let files_of_dirs_or_files_no_vcs_nofilter xs =
-  xs |> to_strings |> Common.files_of_dir_or_files_no_vcs_nofilter |> of_strings
+  xs |> Path.to_strings |> Common.files_of_dir_or_files_no_vcs_nofilter
+  |> Path.of_strings
 
 let input_text_line = Common.input_text_line
 let cat path = Common.cat !!path
@@ -32,3 +39,12 @@ let erase_temp_files = Common.erase_temp_files
 let erase_this_temp_file path = Common.erase_this_temp_file !!path
 let is_executable path = Common2.is_executable !!path
 let filesize path = Common2.filesize !!path
+
+(* TODO? slow, and maybe we should cache it to avoid rereading
+ * each time the same file for each match.
+ * Note that the returned lines do not contain \n.
+ *)
+let lines_of_file (start_line, end_line) file : string list =
+  let arr = Common2.cat_array file in
+  let lines = Common2.enum start_line end_line in
+  lines |> Common.map (fun i -> arr.(i))

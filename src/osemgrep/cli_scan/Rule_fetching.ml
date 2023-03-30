@@ -110,14 +110,17 @@ let import_callback base str =
               *)
              Logs.debug (fun m ->
                  m "trying to download from %s" (Uri.to_string url));
+             (* TODO: ask for JSON in headers which improves performance
+              * because Yaml rule parsing is slower than Json rule parsing.
+              *)
              let content =
-               try Network.get url with
-               | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
-               | exn ->
+               match Network.get url with
+               | Ok body -> body
+               | Error msg ->
                    (* was raise Semgrep_error, but equivalent to abort now *)
                    Error.abort
                      (spf "Failed to download config from %s: %s"
-                        (Uri.to_string url) (Common.exn_to_s exn))
+                        (Uri.to_string url) msg)
              in
              Logs.debug (fun m ->
                  m "finished downloading from %s" (Uri.to_string url));
@@ -172,13 +175,12 @@ let load_rules_from_url url : rules_and_origin =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
-    try Network.get url with
-    | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
-    | exn ->
+    match Network.get url with
+    | Ok body -> body
+    | Error msg ->
         (* was raise Semgrep_error, but equivalent to abort now *)
         Error.abort
-          (spf "Failed to download config from %s: %s" (Uri.to_string url)
-             (Common.exn_to_s exn))
+          (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->

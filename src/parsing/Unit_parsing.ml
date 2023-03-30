@@ -104,7 +104,7 @@ let parsing_error_tests () =
   let dir = tests_path / "parsing_errors" in
   pack_tests "Parsing error detection"
     (let tests = Common2.glob (spf "%s/*" !!dir) in
-     tests |> File.of_strings
+     tests |> File.Path.of_strings
      |> Common.map (fun file ->
             ( Fpath.basename file,
               fun () ->
@@ -130,7 +130,7 @@ let parsing_rules_tests () =
         * CI: Common2.glob (spf "%s/*.jsonnet" dir)
         *)
      in
-     tests |> File.of_strings
+     tests |> File.Path.of_strings
      |> Common.map (fun file ->
             (Fpath.basename file, fun () -> Parse_rule.parse file |> ignore)))
 

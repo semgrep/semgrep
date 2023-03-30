@@ -75,7 +75,7 @@ ALL_EXTENSIONS: Collection[FileExtension] = {
 
 ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt"],
-    Ecosystem(Npm()): ["package-lock.json", "yarn.lock"],
+    Ecosystem(Npm()): ["package-lock.json", "yarn.lock", "pnpm-lock.yaml"],
     Ecosystem(Gem()): ["Gemfile.lock"],
     Ecosystem(Gomod()): ["go.sum"],
     Ecosystem(Cargo()): ["Cargo.lock"],
@@ -318,6 +318,8 @@ class FileTargetingLog:
         return output
 
     def yield_json_objects(self) -> Iterable[Dict[str, Any]]:
+        # coupling: if you add a reason here,
+        # add it also to semgrep_output_v1.atd.
         for path in self.always_skipped:
             yield {"path": str(path), "reason": "always_skipped"}
         for path in self.semgrepignored:

@@ -63,6 +63,8 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/nested_package_lock/",
         ),
         ("rules/dependency_aware/js-yarn2-sca.yaml", "dependency_aware/yarn2"),
+        ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm"),
+        ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm-workspaces"),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements",
@@ -102,6 +104,10 @@ pytestmark = pytest.mark.kinda_slow
         (
             "rules/dependency_aware/js-sca.yaml",
             "dependency_aware/package-lock_resolved_false",
+        ),
+        (
+            "rules/dependency_aware/js-sca.yaml",
+            "dependency_aware/deeply_nested_package_lock",
         ),
     ],
 )

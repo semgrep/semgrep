@@ -8,7 +8,7 @@ module Stat = Parse_info
 let test_parse_c xs =
   Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
 
-  let xs = File.of_strings xs in
+  let xs = File.Path.of_strings xs in
   let fullxs = Lib_parsing_c.find_source_files_of_dir_or_files xs in
   let stat_list = ref [] in
 

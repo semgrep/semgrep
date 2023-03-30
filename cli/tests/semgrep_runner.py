@@ -5,6 +5,7 @@
 # This is replacement for CliRunner provided by Click.
 #
 import os
+import shlex
 import sys
 from subprocess import PIPE
 from subprocess import Popen
@@ -45,6 +46,11 @@ if env_osemgrep:
     OSEMGREP_PATH = env_osemgrep
 
 USE_OSEMGREP = get_env_bool("PYTEST_USE_OSEMGREP")
+
+# The --project-root option is used to prevent the .semgrepignore
+# at the root of the git project to be taken into account when testing,
+# which is is a new behavior in osemgrep.
+OSEMGREP_COMPATIBILITY_ARGS = ["--project-root", "."]
 
 # The semgrep command suitable to run semgrep as a separate process.
 # It's something like ["semgrep"] or ["python3"; -m; "semgrep"] or
@@ -99,14 +105,11 @@ def invoke_osemgrep(
 ) -> Result:
     arg_list: List[str] = []
     if isinstance(args, str):
-        # This is not exactly how the shell would interpret the arguments
-        # but hopefully it's sufficient to run our tests correctly.
-        # If this doesn't work, consider changing the tests to they pass
-        # arguments as a list rather than a string.
-        arg_list = args.split(" ")
+        # Parse the list of shell-quoted arguments
+        arg_list = shlex.split(args)
     elif isinstance(args, List):
         arg_list = args
-    argv: List[str] = [OSEMGREP_PATH] + arg_list
+    argv: List[str] = [OSEMGREP_PATH] + OSEMGREP_COMPATIBILITY_ARGS + arg_list
     env_dict = {}
     if env:
         env_dict = env

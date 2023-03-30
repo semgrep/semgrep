@@ -12,7 +12,12 @@
 
 open Printf
 
-type loc = { source_name : string; line_number : int; line_contents : string }
+type loc = {
+  source_name : string;
+  source_kind : string option;
+  line_number : int;
+  line_contents : string;
+}
 
 let show_loc x =
   Printf.sprintf "%s, line %i: %s" x.source_name x.line_number x.line_contents
@@ -36,8 +41,8 @@ type segment = Segment of segment_fragment list | Any_subpath
 type pattern = segment list [@@deriving show]
 type t = { source : loc; re : Re.re }
 
-let string_loc ?(source_name = "<pattern>") pat =
-  { source_name; line_number = 1; line_contents = pat }
+let string_loc ?(source_name = "<pattern>") ~source_kind pat =
+  { source_name; source_kind; line_number = 1; line_contents = pat }
 
 (* / *)
 let root_pattern = [ Segment []; Segment [] ]
