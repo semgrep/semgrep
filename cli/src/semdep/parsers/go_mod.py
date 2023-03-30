@@ -13,7 +13,6 @@ from semdep.external.parsy import alt
 from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
-from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
 from semdep.parsers.util import safe_path_parse
@@ -28,16 +27,18 @@ A = TypeVar("A")
 B = TypeVar("B")
 
 
-comment = regex(r" *//([^\n]*)", flags=0, group=1)
+consume_line = regex(r"[^\n)]*").result(None)
 
-# end_of_line = string("\n").result(None) | regex(r" *//([^\n]*)\n", flags=0, group=1)
+comment = regex(r" *//([^\n]*)", flags=0, group=1)
 
 
 def multi_spec(spec: "Parser[A]") -> "Parser[List[Tuple[A,Optional[str]]]]":
     return (
         regex(r"[ \t]*\(\n")
-        >> (regex(r"[ \t]*") >> pair(spec, comment.optional(None))).sep_by(string("\n"))
-        << string("\n)")
+        >> (
+            regex(r"[ \t]*") >> pair(spec, comment.optional(None)) << string("\n")
+        ).many()
+        << string(")")
     ) | (regex(r"[ \t]*") >> pair(spec, comment.optional()).map(lambda x: [x]))
 
 
@@ -62,7 +63,10 @@ directive = alt(
     *(make_directive(string(dir), mark_line(spec)) for dir, spec in specs.items())
 )
 
-go_mod = directive.sep_by((comment.optional() >> string("\n")).at_least(1))
+go_mod = (
+    directive.sep_by((comment.optional() >> string("\n")).at_least(1))
+    << (comment.optional() >> string("\n")).many()
+)
 
 
 def parse_go_mod(
