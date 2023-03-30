@@ -28,7 +28,9 @@ let is_eof = function
 
 let is_comment = function
   | Comment _
-  | Space _ ->
+  | Space _
+  | INDENT
+  | DEDENT ->
       true
   (* newline has a meaning in the parser, so should not skip *)
   (* old: | Nl _ -> true *)
@@ -45,6 +47,7 @@ let token_kind_of_tok t =
   | Comment _ -> PI.Esthet PI.Comment
   | Space _ -> PI.Esthet PI.Space
   | Nl _ -> PI.Esthet PI.Newline
+  (* TODO? indent and dedent *)
   | _ -> PI.Other
 
 (*****************************************************************************)
@@ -148,6 +151,8 @@ let visitor_info_of_tok f = function
   | Kcatch ii -> Kcatch (f ii)
   | Kcase ii -> Kcase (f ii)
   | Kabstract ii -> Kabstract (f ii)
+  | INDENT -> INDENT
+  | DEDENT -> DEDENT
   | Ellipsis ii -> Ellipsis (f ii)
 
 let info_of_tok tok =
@@ -322,6 +327,7 @@ let isNumericLit = function
 (* Statement separators *)
 (* ------------------------------------------------------------------------- *)
 
+(* TODO? indent and dedent *)
 let isStatSep = function
   | NEWLINE _
   | NEWLINES _

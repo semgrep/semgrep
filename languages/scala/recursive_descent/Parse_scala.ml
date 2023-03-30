@@ -49,6 +49,7 @@ let tokens input_source =
   (* set to false to parse correctly arrows *)
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
+  |> Parsing_hacks_scala.insert_indentation_tokens
   [@@profiling]
 
 (*****************************************************************************)

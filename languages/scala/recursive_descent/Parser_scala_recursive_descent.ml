@@ -236,7 +236,9 @@ let rec in_next_token xs =
   | x :: xs -> (
       match x with
       | Space _
-      | Comment _ ->
+      | Comment _
+      | INDENT
+      | DEDENT ->
           in_next_token xs
       | _ -> Some x)
 
@@ -326,7 +328,9 @@ let afterLineEnd in_ =
         | NEWLINES _ ->
             true
         | Space _
-        | Comment _ ->
+        | Comment _
+        | INDENT
+        | DEDENT ->
             loop xs
         | _ ->
             if !debug_newline then
@@ -360,7 +364,9 @@ let fetchToken in_ =
 
         match x with
         | Space _
-        | Comment _ ->
+        | Comment _
+        | INDENT
+        | DEDENT ->
             loop (x :: aux)
         (* pad: the newline is skipped here, but reinserted conditionally in
          * insertNL() *)
