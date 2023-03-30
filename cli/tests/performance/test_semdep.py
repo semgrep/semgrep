@@ -14,6 +14,7 @@ import pytest
         for file_size, max_time in [("10k", 3), ("50k", 15), ("100k", 30)]
         for target in [
             "Gemfile.lock",
+            "go.mod",
             "gradle.lockfile",
             "maven_dep_tree.txt",
             "package-lock.json",
