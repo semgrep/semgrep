@@ -57,6 +57,7 @@ depends: [
   "pcre"
   "ocamlgraph"
   "parmap"
+  "uri"
   "http-lwt-client" # this brings lots of dependencies. This is for osemgrep.
   "lsp" {= "1.7.0"}
   "visitors" {= "20210608"}
