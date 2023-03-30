@@ -3423,7 +3423,7 @@ let templateStatSeq ?(startTok = None) ~isPre in_ : self_type option * block =
   (self, Option.to_list firstOpt @ xs)
 
 (** {{{
- *  TemplateBody ::= [nl] `{` TemplateStatSeq `}`
+ *  TemplateBody ::= [nl] :<<< `{` TemplateStatSeq `}` >>>
  *  }}}
  * @param isPre specifies whether in early initializer (true) or not (false)
 *)
