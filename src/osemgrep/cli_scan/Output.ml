@@ -115,7 +115,9 @@ let dispatch_output_format (output_format : Output_format.t)
                     * we can't use m.extra.lines because this field actually
                     * contains a string, not a string list.
                     *)
-                   match Cli_json_output.lines_of_file (start, end_) path with
+                   match
+                     Cli_json_output.lines_of_file (start, end_) (Fpath.v path)
+                   with
                    | [] -> ""
                    | x :: _ -> x (* TOPORT rstrip? *)
                  in

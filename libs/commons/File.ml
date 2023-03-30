@@ -45,6 +45,6 @@ let filesize path = Common2.filesize !!path
  * Note that the returned lines do not contain \n.
  *)
 let lines_of_file (start_line, end_line) file : string list =
-  let arr = Common2.cat_array file in
+  let arr = Common2.cat_array (Fpath.to_string file) in
   let lines = Common2.enum start_line end_line in
   lines |> Common.map (fun i -> arr.(i))

@@ -61,7 +61,7 @@ type metavars = (string * Out.metavar_value) list
  * python: # 'lines' already contains '\n' at the end of each line
  *   lines="".join(rule_match.lines).rstrip(),
  *)
-let lines_of_file (range : Out.position * Out.position) (file : filename) :
+let lines_of_file (range : Out.position * Out.position) (file : Fpath.t) :
     string list =
   let start, end_ = range in
   File.lines_of_file (start.line, end_.line) file
@@ -355,7 +355,9 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
         | None -> `Assoc []
         | Some json -> JSON.to_yojson json
       in
-      let lines = lines_of_file (start, end_) path |> String.concat "\n" in
+      let lines =
+        lines_of_file (start, end_) (Fpath.v path) |> String.concat "\n"
+      in
       {
         check_id;
         path;

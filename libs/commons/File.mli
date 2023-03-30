@@ -134,4 +134,4 @@ val filesize : Fpath.t -> int
  *
  * This function is slow, you should not use it!
  *)
-val lines_of_file : int * int -> Common.filename -> string list
+val lines_of_file : int * int -> Fpath.t -> string list
