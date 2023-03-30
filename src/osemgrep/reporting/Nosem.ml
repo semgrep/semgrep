@@ -80,7 +80,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
   let lines =
     File.lines_of_file
       (max 0 (rule_match.Out.start.line - 1), rule_match.Out.end_.line)
-      rule_match.Out.path
+      (Fpath.v rule_match.Out.path)
   in
 
   let previous_line, line =
