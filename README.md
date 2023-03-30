@@ -1,6 +1,12 @@
 <br />
 <p align="center">
-    <a href="https://semgrep.dev"><img src="images/semgrep-logo-light.svg" height="100" alt="Semgrep logo"/></a>
+  <a href="https://semgrep.dev">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="images/semgrep-logo-light.svg">
+      <source media="(prefers-color-scheme: dark)" srcset="images/semgrep-logo-dark.svg">
+      <img src="images/semgrep-logo-light.svg" height="100" alt="Semgrep logo"/>
+    </picture>
+  </a>
 </p>
 <h2 align="center">
   Code scanning at ludicrous speed.
