@@ -456,6 +456,38 @@ let lookingAhead2 body1 body2 in_ =
       let res2 = body2 in_' in
       res1 && res2
 
+(* ------------------------------------------------------------------------- *)
+(* indentation *)
+(* ------------------------------------------------------------------------- *)
+
+(* We used to just check the INDENT and DEDENT tokens, but this causes issues in
+   cases like this:
+
+   class Foo:
+     def foo() =
+       3
+
+     def bar() = 3
+
+   We ideally want to keep scanning the contents of Foo until we find a DEDENT,
+   which presumably signals the end of the class block. Unfortunately, we might
+   run into a DEDENT which is not the end of the class, such as the DEDENT
+   published right before the second "def", due to the indentation difference
+   between it and the 3.
+
+   So instead, we can just check the columns. We follow a rule that the first token
+   following a `:` marks the "canonical column" for this "frame", and we scan
+   until we find a token that is farther left than this frame (thus ending the
+   indentation block).
+*)
+let passedDedent startTok in_ =
+  match startTok with
+  | None -> false
+  | Some startTok ->
+      let start_info = TH.info_of_tok startTok in
+      let now_info = TH.info_of_tok in_.token in
+      PI.col_of_info now_info < PI.col_of_info start_info
+
 (*****************************************************************************)
 (* Special parsing  *)
 (*****************************************************************************)
@@ -489,8 +521,7 @@ let acceptStatSep in_ =
              nextToken in_
          | _ -> accept (SEMI ab) in_)
 
-let acceptStatSepOpt in_ =
-  if not (TH.isStatSeqEnd in_.token) then acceptStatSep in_
+let acceptStatSepOpt in_ = if TH.isStatSep in_.token then acceptStatSep in_
 
 let newLineOpt in_ =
   match in_.token with
@@ -3220,10 +3251,10 @@ let localDef implicitMod in_ : definition =
 (* Helpers *)
 (* ------------------------------------------------------------------------- *)
 
-let statSeq ?(errorMsg = "illegal start of definition") ?(rev = false) stat in_
-    =
+let statSeq ?(startTok = None) ?(errorMsg = "illegal start of definition")
+    ?(rev = false) stat in_ =
   let stats = ref [] in
-  while not (TH.isStatSeqEnd in_.token) do
+  while (not (passedDedent startTok in_)) && not (TH.isStatSeqEnd in_.token) do
     (match stat in_ with
     | Some x -> stats += x
     | None -> if TH.isStatSep in_.token then () else error errorMsg in_);
@@ -3315,7 +3346,8 @@ let templateStat in_ : template_stat option =
       Some (E x)
   | _ -> None
 
-let templateStats in_ : template_stat list = statSeq templateStat in_
+let templateStats startTok in_ : template_stat list =
+  statSeq ~startTok templateStat in_
 
 (* ------------------------------------------------------------------------- *)
 (* TopStat *)
@@ -3361,7 +3393,7 @@ let topStatSeq ?rev in_ : top_stat list =
  * @param isPre specifies whether in early initializer (true) or not (false)
 *)
 
-let templateStatSeq ~isPre in_ : self_type option * block =
+let templateStatSeq ?(startTok = None) ~isPre in_ : self_type option * block =
   ignore isPre;
   let self, firstOpt =
     (* a soft modifier like "inline" or "open" might be an expr intro, but
@@ -3387,7 +3419,7 @@ let templateStatSeq ~isPre in_ : self_type option * block =
           (noSelfType, Some (E first)))
     else (noSelfType, None)
   in
-  let xs = templateStats in_ in
+  let xs = templateStats startTok in_ in
   (self, Option.to_list firstOpt @ xs)
 
 (** {{{
@@ -3397,13 +3429,24 @@ let templateStatSeq ~isPre in_ : self_type option * block =
 *)
 
 let templateBody ~isPre in_ : template_body =
-  (* ast: self, EmptyTree.asList *)
-  inBraces (templateStatSeq ~isPre) in_
+  match in_.token with
+  | LBRACE _ ->
+      (* ast: self, EmptyTree.asList *)
+      inBraces (templateStatSeq ~isPre) in_
+  | _ ->
+      skipToken in_;
+      let res =
+        fb (PI.unsafe_fake_info "")
+          (templateStatSeq ~startTok:(Some in_.token) ~isPre in_)
+      in
+      res
 
 let templateBodyOpt ~parenMeansSyntaxError in_ : template_body option =
   newLineOptWhenFollowedBy (LBRACE ab) in_;
   match in_.token with
-  | LBRACE _ -> Some (templateBody ~isPre:false in_)
+  | COLON _
+  | LBRACE _ ->
+      Some (templateBody ~isPre:false in_)
   | LPAREN _ ->
       if parenMeansSyntaxError then
         error "traits or objects may not have parameters" in_
@@ -3454,6 +3497,7 @@ let template in_ : template_parents * template_body option =
   |> with_logging "template" (fun () ->
          newLineOptWhenFollowedBy (LBRACE ab) in_;
          match in_.token with
+         | COLON _
          | LBRACE _ -> (
              let body = templateBody ~isPre:true in_ in
              match in_.token with
