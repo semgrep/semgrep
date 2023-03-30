@@ -77,7 +77,7 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt"],
     Ecosystem(Npm()): ["package-lock.json", "yarn.lock", "pnpm-lock.yaml"],
     Ecosystem(Gem()): ["Gemfile.lock"],
-    Ecosystem(Gomod()): ["go.sum"],
+    Ecosystem(Gomod()): ["go.mod"],
     Ecosystem(Cargo()): ["Cargo.lock"],
     Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
 }
