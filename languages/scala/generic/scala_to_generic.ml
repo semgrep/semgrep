@@ -270,6 +270,14 @@ and v_type_kind = function
          | None -> []
          | Some t -> [ G.T t ])
         @ (defs |> Common.map (fun def -> G.Def def)))
+  | TyMatch (ty, tok, cases) ->
+      let cases = v_type_case_clauses cases in
+      let ty_expr =
+        G.OtherExpr (("type_expr", fake "type_expr"), [ G.T (v_type_ ty) ])
+        |> G.e
+      in
+      let st = G.Switch (tok, Some (G.Cond ty_expr), cases) |> G.s in
+      todo_type "TyMatch" [ G.S st ]
   | TyExistential (v1, v2, v3) ->
       let v1 = v_type_ v1 in
       let _v2 = v_tok v2 in
@@ -500,6 +508,20 @@ and v_argument v =
   G.Arg v
 
 and v_case_clauses v : G.case_and_body list = v_list v_case_clause v
+and v_type_case_clauses v : G.case_and_body list = v_list v_type_case_clause v
+
+and v_type_case_clause v : G.case_and_body =
+  match v with
+  | CC x ->
+      let icase, l_ty, r_ty = v_type_case_clause_classic x in
+      let pat =
+        match l_ty with
+        | Left tok -> G.PatUnderscore tok
+        | Right ty -> PatType ty
+      in
+      G.CasesAndBody
+        ([ Case (icase, pat) ], OtherStmt (OS_Todo, [ G.T r_ty ]) |> G.s)
+  | CaseEllipsis ii -> G.CaseEllipsis ii
 
 and v_case_clause v : G.case_and_body =
   match v with
@@ -511,9 +533,9 @@ and v_case_clause v : G.case_and_body =
 and v_case_clause_classic
     {
       casetoks = v_casetoks;
-      casepat = v_casepat;
+      case_left = v_casepat;
       caseguard = v_caseguard;
-      casebody = v_casebody;
+      case_right = v_casebody;
     } =
   let icase, _iarrow =
     match v_casetoks with
@@ -530,6 +552,28 @@ and v_case_clause_classic
     | Some (_t, e) -> PatWhen (pat, e)
   in
   (icase, pat, G.Block (fb block) |> G.s)
+
+and v_type_case_clause_classic
+    {
+      casetoks = v_casetoks;
+      case_left = v_case_ty_left;
+      caseguard = v_caseguard;
+      case_right = v_case_ty_right;
+    } =
+  let icase, _iarrow =
+    match v_casetoks with
+    | v1, v2 ->
+        let v1 = v_tok v1 and v2 = v_tok v2 in
+        (v1, v2)
+  in
+  let left =
+    match v_case_ty_left with
+    | Left tok -> Left tok
+    | Right ty -> Right (v_type_ ty)
+  in
+  let _guardopt = v_option v_guard v_caseguard in
+  let right = v_type_ v_case_ty_right in
+  (icase, left, right)
 
 and v_guard (v1, v2) =
   let v1 = v_tok v1 and v2 = v_expr v2 in

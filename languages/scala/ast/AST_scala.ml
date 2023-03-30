@@ -170,6 +170,7 @@ and type_ =
   | TyByName of tok (* => *) * type_
   | TyAnnotated of type_ * annotation list (* at least one *)
   | TyRefined of type_ option * refinement
+  | TyMatch of type_ * tok (* match *) * type_case_clauses
   | TyExistential of type_ * tok (* 'forSome' *) * refinement
   | TyWith of type_ * tok (* 'with' *) * type_
   | TyWildcard of tok (* '_' *) * type_bounds
@@ -263,18 +264,19 @@ and arguments =
 (* less: no keyword argument in Scala? *)
 
 and argument = expr
-and case_clauses = case_clause list
+and case_clauses = (pattern, block) case_clause list
+and type_case_clauses = (((* _ *) tok, type_) either, type_) case_clause list
 
-and case_clause =
-  | CC of case_clause_classic
+and ('a, 'b) case_clause =
+  | CC of ('a, 'b) case_clause_classic
   (* semgrep-ext: *)
   | CaseEllipsis of tok
 
-and case_clause_classic = {
+and ('a, 'b) case_clause_classic = {
   casetoks : tok (* 'case' *) * tok (* '=>' *);
-  casepat : pattern;
+  case_left : 'a;
   caseguard : guard option;
-  casebody : block;
+  case_right : 'b;
 }
 
 and guard = tok (* 'if' *) * expr
