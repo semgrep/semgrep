@@ -549,9 +549,28 @@ def import_callback(base: str, path: str) -> Tuple[str, bytes]:
     use it when resolving imports. By implementing
     this callback, we support yaml files (jsonnet
     can otherwise only build against json files)
-    and config specifiers like `p/python`.
+    and config specifiers like `p/python`. We also
+    support a library path
     """
-    final_path = os.path.join(base, path)
+
+    # If the library path is absolute, assume that's
+    # the intended path. But if it's relative, assume
+    # it's relative to the path semgrep was called from.
+    # This follows the semantics of `jsonnet -J`
+    library_path = os.environ.get("R2C_INTERNAL_JSONNET_LIB")
+
+    if library_path and not os.path.isabs(library_path):
+        library_path = os.path.join(os.curdir, library_path)
+
+    # Assume the path is the library path if it exists,
+    # otherwise try it without the library. This way,
+    # jsonnet will give an error for the path the user
+    # likely expects
+    # TODO throw an error if neither exists?
+    if library_path and os.path.exists(os.path.join(library_path, path)):
+        final_path = os.path.join(library_path, path)
+    else:
+        final_path = os.path.join(base, path)
     logger.debug(f"import_callback for {path}, base = {base}, final = {final_path}")
 
     # On the fly conversion from yaml to json.
