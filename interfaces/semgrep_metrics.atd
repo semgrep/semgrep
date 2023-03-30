@@ -67,6 +67,7 @@ type performance = {
     fileStats: file_stats list;
     ruleStats: rule_stats list;
     profilingTimes: (string * float) list;
+    maxMemoryBytes: int option;
   }
 
 type file_stats = {
@@ -118,6 +119,7 @@ type value = {
     numFinding: int;
     numIgnored: int;
     ruleHashesWithFindings: (string * int) list;
+    engineRequested: string;
   }
 
 type value_required = {
