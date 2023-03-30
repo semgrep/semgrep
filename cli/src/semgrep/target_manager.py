@@ -78,7 +78,7 @@ ECOSYSTEM_TO_LOCKFILES = {
         "Pipfile.lock",
         "poetry.lock",
         "requirements.txt",
-        "requirements3.txt"
+        "requirements3.txt",
     ],
     Ecosystem(Npm()): ["package-lock.json", "yarn.lock", "pnpm-lock.yaml"],
     Ecosystem(Gem()): ["Gemfile.lock"],
