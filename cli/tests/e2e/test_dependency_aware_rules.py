@@ -70,6 +70,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/requirements",
         ),
         (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements3",
+        ),
+        (
             "rules/dependency_aware/transitive_and_direct.yaml",
             "dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct",
         ),
