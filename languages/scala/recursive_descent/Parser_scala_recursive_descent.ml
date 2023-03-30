@@ -236,7 +236,9 @@ let rec in_next_token xs =
   | x :: xs -> (
       match x with
       | Space _
-      | Comment _ ->
+      | Comment _
+      | INDENT
+      | DEDENT ->
           in_next_token xs
       | _ -> Some x)
 
@@ -326,7 +328,9 @@ let afterLineEnd in_ =
         | NEWLINES _ ->
             true
         | Space _
-        | Comment _ ->
+        | Comment _
+        | INDENT
+        | DEDENT ->
             loop xs
         | _ ->
             if !debug_newline then
@@ -360,7 +364,9 @@ let fetchToken in_ =
 
         match x with
         | Space _
-        | Comment _ ->
+        | Comment _
+        | INDENT
+        | DEDENT ->
             loop (x :: aux)
         (* pad: the newline is skipped here, but reinserted conditionally in
          * insertNL() *)
@@ -3761,6 +3767,7 @@ let try_rule toks frule =
   x
 
 let parse toks =
+  Common.(pr2 (spf "%s" ([%show: token list] toks)));
   try try_rule toks compilationUnit with
   | PI.Parsing_error _ as err1 -> (
       let e1 = Exception.catch err1 in
