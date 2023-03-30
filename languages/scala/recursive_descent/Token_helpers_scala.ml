@@ -108,6 +108,7 @@ let visitor_info_of_tok f = function
   | BANG ii -> BANG (f ii)
   | AT ii -> AT (f ii)
   | DOT ii -> DOT (f ii)
+  | QUOTE ii -> QUOTE (f ii)
   | COMMA ii -> COMMA (f ii)
   | COLON ii -> COLON (f ii)
   | Kyield ii -> Kyield (f ii)
@@ -402,6 +403,7 @@ let isExprIntro x =
   | USCORE _
   | LPAREN _
   | LBRACE _
+  | QUOTE _
   (* | XMLSTART  *)
   (* semgrep-ext: *)
   | Ellipsis _
@@ -428,6 +430,16 @@ let isTypeIntroToken x =
 (* ------------------------------------------------------------------------- *)
 (* Misc *)
 (* ------------------------------------------------------------------------- *)
+
+(* From the Scala 3 specification:
+   > A soft modifier is treated as potential modifier of a definition if it is
+     followed by a hard modifier or a keyword combination starting a definition
+     (def, val, var, type, given, class, trait, object, enum, case class, case
+     object). Between the two words there may be a sequence of newline tokens
+     and soft modifiers.
+   https://docs.scala-lang.org/scala3/reference/soft-modifier.html
+*)
+let isSoftModifierFollower x = isModifier x || isDefIntro x
 
 let isCaseDefEnd = function
   | RBRACE _

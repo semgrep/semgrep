@@ -210,6 +210,7 @@ and pattern =
   (* less: only last element of a pattern list? *)
   | PatUnderscoreStar of tok (* '_' *) * tok (* '*' *)
   | PatDisj of pattern * tok (* | *) * pattern
+  | PatQuoted of quoted
   (* semgrep-ext: *)
   | PatEllipsis of tok
 
@@ -243,6 +244,7 @@ and expr =
   | Match of expr * tok (* 'match' *) * case_clauses bracket
   | Lambda of function_definition
   | New of tok * template_definition
+  | Quoted of quoted
   | BlockExpr of block_expr
   | S of stmt
   (* semgrep-ext: *)
@@ -278,6 +280,10 @@ and case_clause_classic = {
 and guard = tok (* 'if' *) * expr
 and block_expr = block_expr_kind bracket
 and block_expr_kind = BEBlock of block | BECases of case_clauses
+
+and quoted =
+  | QuotedBlock of tok * block bracket
+  | QuotedType of tok * type_ bracket
 
 (*****************************************************************************)
 (* Statements *)
@@ -361,6 +367,8 @@ and modifier_kind =
   | Protected of ident_or_this bracket option
   (* misc (and nice!) *)
   | Override
+  | Inline
+  | Open
   (* pad: not in original spec *)
   | CaseClassOrObject
   (* less: rewrite as Packaging and object def like in original code? *)
@@ -461,10 +469,11 @@ and fbody =
   | FExpr of tok (* = (or => for lambdas) *) * expr
 
 (* fake brackets for single param in short lambdas *)
-and bindings = binding list bracket
+and bindings = (binding list * tok option (* using *)) bracket
 
 and binding =
   | ParamClassic of parameter_classic
+  | ParamType of type_
   (* semgrep-ext: *)
   | ParamEllipsis of tok
 

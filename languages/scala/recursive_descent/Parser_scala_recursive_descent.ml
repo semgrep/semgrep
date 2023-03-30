@@ -213,8 +213,8 @@ let convertToParam tk e =
 
 let convertToParams tk e =
   match e with
-  | Tuple (lb, xs, rb) -> (lb, xs |> List.map (convertToParam tk), rb)
-  | _ -> fb tk [ convertToParam tk e ]
+  | Tuple (lb, xs, rb) -> (lb, (xs |> List.map (convertToParam tk), None), rb)
+  | _ -> fb tk ([ convertToParam tk e ], None)
 
 let makeMatchFromExpr e =
   match e with
@@ -1442,6 +1442,7 @@ and patterns in_ = commaSeparated pattern in_
  *                    |  StableId  [`(` [Patterns] `)`]
  *                    |  StableId  [`(` [Patterns] `,` [varid `@`] `_` `*` `)`]
  *                    |  `(` [Patterns] `)`
+ *                    |  Quoted
  *  }}}
  *
  * XXX: Hook for IDE
@@ -1502,6 +1503,9 @@ and simplePattern in_ : pattern =
          | x when TH.isLiteral x ->
              let x = literal ~inPattern:true in_ in
              PatLiteral x
+         | QUOTE quote ->
+             let x = quoted quote in_ in
+             PatQuoted x
          | Ellipsis t ->
              nextToken in_;
              PatEllipsis t
@@ -1514,6 +1518,24 @@ and argumentPatterns in_ : pattern list bracket =
          inParens
            (fun in_ -> if in_.token =~= RPAREN ab then [] else seqPatterns in_)
            in_)
+
+(** {{{
+ *  Quoted     ::=  ‘'’ ‘{’ Block ‘}’
+ *               |  ‘'’ ‘[’ Type ‘]’
+ *  }}}
+*)
+and quoted quote_tok in_ =
+  in_
+  |> with_logging (spf "quoted") (fun () ->
+         nextToken in_;
+         match in_.token with
+         | LBRACE _ ->
+             let x = inBraces !blockStatSeq_ in_ in
+             QuotedBlock (quote_tok, x)
+         | LBRACKET _ ->
+             let x = inBrackets typ in_ in
+             QuotedType (quote_tok, x)
+         | _ -> error "error in quoted expr: brace or bracket expected" in_)
 
 (* ------------------------------------------------------------------------- *)
 (* Context sensitive choices *)
@@ -1718,6 +1740,7 @@ and prefixExpr in_ : expr =
  *  SimpleExpr1   ::= literal
  *                  |  xLiteral
  *                  |  Path
+ *                  |  Quoted
  *                  |  `(` [Exprs] `)`
  *                  |  SimpleExpr `.` Id
  *                  |  SimpleExpr TypeArgs
@@ -1773,6 +1796,9 @@ and simpleExpr in_ : expr =
                canApply := false;
                let x = blockExpr in_ in
                BlockExpr x
+           | QUOTE quote ->
+               let x = quoted quote in_ in
+               Quoted x
            | Knew ii ->
                canApply := false;
                skipToken in_;
@@ -2043,7 +2069,7 @@ and implicitClosure implicitmod location in_ =
   let def =
     {
       fkind = (LambdaArrow, iarrow);
-      fparams = [ fb iarrow [ param ] ];
+      fparams = [ fb iarrow ([ param ], None) ];
       frettype = None;
       fbody = Some body;
     }
@@ -2431,13 +2457,35 @@ let importClause in_ : import =
 (* Parsing modifiers  *)
 (*****************************************************************************)
 
+(* NOTE: soft modifiers
+   This is necessary because of the existence of "soft keywords".
+   These are modifiers like "inline" or "open", which can sometimes behave like
+   modifiers, but only if certain conditions are met, and otherwise behave like
+   identifiers.
+   So in order to identify if it is a modifier, we need an extra lookahead.
+*)
+let is_modifier in_ =
+  let next_is_soft_modifier_follower =
+    lookingAhead (fun in_ -> TH.isSoftModifierFollower in_.token) in_
+  in
+  TH.isModifier in_.token
+  ||
+  match in_.token with
+  | ID_LOWER ("inline", _)
+  | ID_LOWER ("open", _) ->
+      next_is_soft_modifier_follower
+  | __else__ -> false
+
 (* coupling: TH.isLocalModifier *)
-let modifier_of_isLocalModifier_opt = function
+let modifier_of_isLocalModifier_opt in_ =
+  match in_.token with
   | Kabstract ii -> Some (Abstract, ii)
   | Kfinal ii -> Some (Final, ii)
   | Ksealed ii -> Some (Sealed, ii)
   | Kimplicit ii -> Some (Implicit, ii)
   | Klazy ii -> Some (Lazy, ii)
+  | ID_LOWER ("inline", ii) when is_modifier in_ -> Some (Inline, ii)
+  | ID_LOWER ("open", ii) when is_modifier in_ -> Some (Open, ii)
   | _ -> None
 
 (** {{{
@@ -2495,7 +2543,7 @@ let localModifiers in_ : modifier list =
      * then let mods = addMod mods in_.token in_ in loop mods in_
      * else mods
      *)
-    match modifier_of_isLocalModifier_opt in_.token with
+    match modifier_of_isLocalModifier_opt in_ with
     | Some x ->
         nextToken in_;
         loop (x :: mods) in_
@@ -2535,6 +2583,10 @@ let modifiers in_ =
     | Kimplicit _
     | Klazy _ ->
         (* old: let mods = addMod mods in_.token in_ in loop mods *)
+        loop (List.rev (localModifiers in_) @ mods)
+    (* see NOTE: soft modifiers
+     *)
+    | ID_LOWER _ when is_modifier in_ ->
         loop (List.rev (localModifiers in_) @ mods)
     | NEWLINE _ ->
         nextToken in_;
@@ -2579,10 +2631,12 @@ let paramType ?(repeatedParameterOK = true) in_ : param_type =
 (** {{{
  *  ParamClauses      ::= {ParamClause} [[nl] `(` implicit Params `)`]
  *  ParamClause       ::= [nl] `(` [Params] `)`
+                        | [nl] ‘(’ ‘using’ (DefParams | FunArgTypes) ‘)’
  *  Params            ::= Param {`,` Param}
- *  Param             ::= {Annotation} Id [`:` ParamType] [`=` Expr]
+ *  Param             ::= {Annotation} [`inline`] Id [`:` ParamType] [`=` Expr]
  *  ClassParamClauses ::= {ClassParamClause} [[nl] `(` implicit ClassParams `)`]
  *  ClassParamClause  ::= [nl] `(` [ClassParams] `)`
+                        | [nl] ‘(’ ‘using’ (ClsParams | FunArgTypes) ‘)’
  *  ClassParams       ::= ClassParam {`,` ClassParam}
  *  ClassParam        ::= {Annotation}  [{Modifier} (`val` | `var`)] Id [`:` ParamType] [`=` Expr]
  *  }}}
@@ -2594,9 +2648,16 @@ let param _owner implicitmod _caseParam in_ : binding =
          let mods =
            (* crazy?: if owner.isTypeName *)
            let xs = modifiers in_ in
+           let inline =
+             match in_.token with
+             | ID_LOWER ("inline", ii) ->
+                 nextToken in_;
+                 [ (Inline, ii) ]
+             | _ -> []
+           in
            (* ast: mods = xs |= Flags.PARAMACCESSOR *)
            (* CHECK: "lazy modifier not allowed here. " *)
-           implicitmod @ xs
+           implicitmod @ inline @ xs
            @
            match in_.token with
            | Kval ii ->
@@ -2656,8 +2717,8 @@ let param _owner implicitmod _caseParam in_ : binding =
 let paramClauses ~ofCaseClass owner _contextBoundBuf in_ : bindings list =
   let vds = ref [] in
   let caseParam = ref ofCaseClass in
-  let paramClause in_ : binding list =
-    if in_.token =~= RPAREN ab then []
+  let paramClause in_ : binding list * tok option =
+    if in_.token =~= RPAREN ab then ([], None)
     else
       let implicitmod =
         match in_.token with
@@ -2667,7 +2728,25 @@ let paramClauses ~ofCaseClass owner _contextBoundBuf in_ : bindings list =
             [ (Implicit, ii) ]
         | _ -> []
       in
-      commaSeparated (param owner implicitmod !caseParam) in_
+      match in_.token with
+      | ID_LOWER ("using", ii) ->
+          (* here you might have more params, or a type
+             but these are not easy to distinguish from each other :(
+          *)
+          nextToken in_;
+          let is_type =
+            TH.isTypeIntroToken in_.token
+            && lookingAhead (fun in_ -> not (in_.token =~= COLON ab)) in_
+          in
+          if is_type then
+            let tys = types in_ in
+            (Common.map (fun ty -> ParamType ty) tys, Some ii)
+          else
+            (* TODO: not right to reuse? *)
+            (* no implciitmod?*)
+            (commaSeparated (param owner implicitmod !caseParam) in_, Some ii)
+      | __else__ ->
+          (commaSeparated (param owner implicitmod !caseParam) in_, None)
   in
   newLineOptWhenFollowedBy (LPAREN ab) in_;
   while in_.token =~= LPAREN ab do
@@ -3020,7 +3099,7 @@ let patDefOrDcl vkind attrs in_ : variable_definitions =
 (** {{{
  *  Def    ::= val PatDef
  *           | var PatDef
- *           | def FunDef
+ *           | def DefDef
  *           | type [nl] TypeDef
  *           | TmplDef
  *  Dcl    ::= val PatDcl
@@ -3137,7 +3216,7 @@ let blockStatSeq in_ : block_stat list =
         stats += E x;
         acceptStatSepOptOrEndCase in_
     | t when TH.isStatSep t -> nextToken in_
-    | t when TH.isModifier t -> error "no modifiers allowed here" in_
+    | _ when is_modifier in_ -> error "no modifiers allowed here" in_
     | _ -> error "illegal start of statement" in_
   done;
   List.rev !stats
@@ -3161,7 +3240,7 @@ let templateStat in_ : template_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
-  | t when TH.isDefIntro t || TH.isModifier t || TH.isAnnotation t ->
+  | t when TH.isDefIntro t || is_modifier in_ || TH.isAnnotation t ->
       let x = nonLocalDefOrDcl in_ in
       Some (D x)
   | t when TH.isExprIntro t ->
@@ -3193,7 +3272,7 @@ let topStat in_ : top_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
-  | t when TH.isAnnotation t || TH.isTemplateIntro t || TH.isModifier t ->
+  | t when TH.isAnnotation t || TH.isTemplateIntro t || is_modifier in_ ->
       let x = !topLevelTmplDef_ in_ in
       Some (D x)
   | _ -> None
@@ -3218,7 +3297,12 @@ let topStatSeq ?rev in_ : top_stat list =
 let templateStatSeq ~isPre in_ : self_type option * block =
   ignore isPre;
   let self, firstOpt =
-    if TH.isExprIntro in_.token then (
+    (* a soft modifier like "inline" or "open" might be an expr intro, but
+       also actually be a modifier.
+       so let's check whether it's explicitly a modifier as well.
+       see NOTE: soft modifiers
+    *)
+    if TH.isExprIntro in_.token && not (is_modifier in_) then (
       let first = expr ~location:InTemplate in_ in
       match in_.token with
       | ARROW ii ->

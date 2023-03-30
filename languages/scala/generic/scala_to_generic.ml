@@ -355,6 +355,14 @@ and v_pattern = function
   | PatDisj (v1, v2, v3) ->
       let v1 = v_pattern v1 and _v2 = v_tok v2 and v3 = v_pattern v3 in
       G.PatDisj (v1, v3)
+  | PatQuoted quote -> (
+      match quote with
+      | QuotedBlock (quote_tok, (_, v1, _)) ->
+          let stmts = v_block v1 in
+          G.OtherPat (("QuotedBlock", quote_tok), [ G.Ss stmts ])
+      | QuotedType (quote_tok, (_, v1, _)) ->
+          let ty = v_type_ v1 in
+          G.OtherPat (("QuotedBlock", quote_tok), [ G.T ty ]))
   | PatEllipsis v1 -> G.PatEllipsis v1
 
 and todo_expr msg any = G.OtherExpr ((msg, fake msg), any) |> G.e
@@ -445,6 +453,14 @@ and v_expr e : G.expr =
       | _ ->
           let cl = G.AnonClass v2 |> G.e in
           G.Call (cl, fb []) |> G.e)
+  | Quoted quote -> (
+      match quote with
+      | QuotedBlock (quote_tok, (_, v1, _)) ->
+          let stmts = v_block v1 in
+          G.OtherExpr (("QuotedBlock", quote_tok), [ G.Ss stmts ]) |> G.e
+      | QuotedType (quote_tok, (_, v1, _)) ->
+          let ty = v_type_ v1 in
+          G.OtherExpr (("QuotedBlock", quote_tok), [ G.T ty ]) |> G.e)
   | BlockExpr v1 -> (
       let lb, kind, _rb = v_block_expr v1 in
       match kind with
@@ -695,6 +711,8 @@ and v_modifier_kind = function
       let _v1TODO = v_option (v_bracket v_ident_or_this) v1 in
       Left G.Protected
   | Override -> Left G.Override
+  | Inline -> Right "inline"
+  | Open -> Right "open"
   | CaseClassOrObject -> Left G.RecordClass
   | PackageObject -> Right "PackageObject"
   | Val -> Left G.Const
@@ -838,11 +856,18 @@ and v_fbody body : G.function_body =
       let _v1 = v_tok v1 and v2 = v_expr v2 in
       G.FBExpr v2
 
-and v_bindings v = v_bracket (v_list v_binding) v |> PI.unbracket
+and v_bindings v =
+  v_bracket (fun (a, b) -> v_list (v_binding b) a) v |> PI.unbracket
 
-and v_binding v : G.parameter =
+and v_binding using_opt v : G.parameter =
+  let pattrs =
+    match using_opt with
+    | None -> []
+    | Some tok -> [ G.OtherAttribute (("using", tok), []) ]
+  in
   match v with
   | ParamEllipsis t -> G.ParamEllipsis t
+  | ParamType ty -> G.Param (G.param_of_type ~pattrs (v_type_ ty))
   | ParamClassic
       {
         p_name = v_p_name;
@@ -851,7 +876,7 @@ and v_binding v : G.parameter =
         p_default = v_p_default;
       } -> (
       let id = v_ident_or_wildcard v_p_name in
-      let attrs = v_list v_attribute v_p_attrs in
+      let attrs = pattrs @ v_list v_attribute v_p_attrs in
       let default = v_option v_expr v_p_default in
       let pclassic =
         { (G.param_of_id id) with pattrs = attrs; pdefault = default }
