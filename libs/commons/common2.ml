@@ -82,7 +82,7 @@ let rec take n xs =
 let exclude p xs = List.filter (fun x -> not (p x)) xs
 let last_n n l = List.rev (take n (List.rev l))
 
-(*let last l = List.hd (last_n 1 l) *)
+(*let last l = Common.hd_exn "unexpected empty list" (last_n 1 l) *)
 let rec list_last = function
   | [] -> raise Not_found
   | [ x ] -> x
@@ -705,7 +705,8 @@ let (laws : string -> ('a -> bool) -> 'a gen -> 'a option) =
       [] 1000
   in
   let res = List.filter (fun (_x, b) -> not b) res in
-  if res = [] then None else Some (fst (List.hd res))
+  if res = [] then None
+  else Some (fst (Common.hd_exn "unexpected empty list" res))
 
 let rec (statistic_number : 'a list -> (int * 'a) list) = function
   | [] -> []
@@ -732,7 +733,8 @@ let (laws2 :
   in
   let stat = statistic (List.map (fun (_x, (_b, v)) -> v) res) in
   let res = List.filter (fun (_x, (b, _v)) -> not b) res in
-  if res = [] then (None, stat) else (Some (fst (List.hd res)), stat)
+  if res = [] then (None, stat)
+  else (Some (fst (Common.hd_exn "unexpected empty list" res)), stat)
 
 (* todo, do with coarbitrary ?? idea is that given a 'a, generate a 'b
  * depending of 'a and gen 'b, that is modify gen 'b, what is important is
@@ -1727,7 +1729,9 @@ let (split_list_regexp : string -> string list -> (string * string list) list) =
         else split_lr_aux (heading, x :: accu) xs
   in
   split_lr_aux ("__noheading__", []) xs |> fun xs ->
-  if List.hd xs =*= ("__noheading__", []) then List.tl xs else xs
+  if Common.hd_exn "unexpected empty list" xs =*= ("__noheading__", []) then
+    Common.tl_exn "unexpected empty list" xs
+  else xs
 
 let regexp_alpha = Str.regexp "^[a-zA-Z_][A-Za-z_0-9]*$"
 
@@ -2090,7 +2094,7 @@ let normalize_path (file : string) : string =
                  * them.  ("../.." does not become "".) *)
                 assert is_rel;
                 aux (x :: acc) xs
-            | _ -> aux (List.tl acc) xs)
+            | _ -> aux (Common.tl_exn "unexpected empty list" acc) xs)
         | x -> aux (x :: acc) xs)
   in
   let xs' = aux [] xs in
@@ -2388,7 +2392,9 @@ let days_in_week_of_day day =
   enum start_d end_d
   |> List.map (fun mday -> Unix.mktime { tm with Unix.tm_mday = mday } |> fst)
 
-let first_day_in_week_of_day day = List.hd (days_in_week_of_day day)
+let first_day_in_week_of_day day =
+  Common.hd_exn "unexpected empty list" (days_in_week_of_day day)
+
 let last_day_in_week_of_day day = list_last (days_in_week_of_day day)
 
 (* ---------------------------------------------------------------------- *)
@@ -3242,11 +3248,13 @@ let uncat xs file =
 (*****************************************************************************)
 
 (* pixel *)
-let uncons l = (List.hd l, List.tl l)
+let uncons l =
+  ( Common.hd_exn "unexpected empty list" l,
+    Common.tl_exn "unexpected empty list" l )
 
 (* pixel *)
 let safe_tl l =
-  try List.tl l with
+  try Common.tl_exn "unexpected empty list" l with
   | _ -> []
 
 (* in prelude
@@ -3458,7 +3466,8 @@ let _ =
 
 (* generate exception (Failure "tl") if there is no element satisfying p *)
 let rec (skip_until : ('a list -> bool) -> 'a list -> 'a list) =
- fun p xs -> if p xs then xs else skip_until p (List.tl xs)
+ fun p xs ->
+  if p xs then xs else skip_until p (Common.tl_exn "unexpected empty list" xs)
 
 let _ =
   assert (
@@ -3507,8 +3516,8 @@ let head_middle_tail xs =
   | x :: y :: xs ->
       let head = x in
       let reversed = List.rev (y :: xs) in
-      let tail = List.hd reversed in
-      let middle = List.rev (List.tl reversed) in
+      let tail = Common.hd_exn "unexpected empty list" reversed in
+      let middle = List.rev (Common.tl_exn "unexpected empty list" reversed) in
       (head, middle, tail)
   | _ -> failwith "head_middle_tail, too small list"
 
@@ -3561,7 +3570,7 @@ let rec list_init = function
 (* pixel *)
 (* now in prelude
  *   let last_n n l = List.rev (take n (List.rev l))
- *   let last l = List.hd (last_n 1 l)
+ *   let last l = Common.hd_exn "unexpected empty list" (last_n 1 l)
  *)
 
 (* Tail-recursive to prevent stack overflows. *)
@@ -3708,7 +3717,10 @@ let rec all_assoc e = function
 let prepare_want_all_assoc l =
   List.map (fun n -> (n, uniq (all_assoc n l))) (uniq (List.map fst l))
 
-let rotate list = List.tl list @ [ List.hd list ]
+let rotate list =
+  Common.tl_exn "unexpected empty list" list
+  @ [ Common.hd_exn "unexpected empty list" list ]
+
 let or_list = List.fold_left ( || ) false
 let and_list = List.fold_left ( && ) true
 
@@ -3927,10 +3939,14 @@ let pack_sorted same xs =
     match (acc, xs) with
     | (cur, rest), [] -> cur :: rest
     | (cur, rest), y :: ys ->
-        if same (List.hd cur) y then pack_s_aux (y :: cur, rest) ys
+        if same (Common.hd_exn "unexpected empty list" cur) y then
+          pack_s_aux (y :: cur, rest) ys
         else pack_s_aux ([ y ], cur :: rest) ys
   in
-  pack_s_aux ([ List.hd xs ], []) (List.tl xs) |> List.rev
+  pack_s_aux
+    ([ Common.hd_exn "unexpected empty list" xs ], [])
+    (Common.tl_exn "unexpected empty list" xs)
+  |> List.rev
 
 let rec keep_best f =
   let rec partition e = function
@@ -4187,7 +4203,7 @@ let (member_set : 'a -> 'a set -> bool) = List.mem
 let find_set = List.find
 let sort_set = List.sort
 let iter_set = List.iter
-let (top_set : 'a set -> 'a) = List.hd
+let top_set (xs : 'a set) : 'a = Common.hd_exn "unexpected empty list" xs
 
 let (inter_set : 'a set -> 'a set -> 'a set) =
  fun s1 s2 ->
@@ -4599,8 +4615,8 @@ type 'a stack = 'a list
 let (empty_stack : 'a stack) = []
 
 (*let (push: 'a -> 'a stack -> 'a stack) = fun x xs -> x::xs *)
-let (top : 'a stack -> 'a) = List.hd
-let (pop : 'a stack -> 'a stack) = List.tl
+let top (xs : 'a stack) : 'a = Common.hd_exn "unexpected empty stack" xs
+let pop (xs : 'a stack) : 'a stack = Common.tl_exn "unexpected empty stack" xs
 
 let top_option = function
   | [] -> None
@@ -4611,8 +4627,8 @@ let top_option = function
  *)
 
 let pop2 l =
-  let v = List.hd !l in
-  l := List.tl !l;
+  let v = Common.hd_exn "unexpected empty list" !l in
+  l := Common.tl_exn "unexpected empty list" !l;
   v
 
 (*****************************************************************************)
@@ -4631,7 +4647,8 @@ let (empty_undo_stack : 'a undo_stack) = ([], [])
 let (push_undo : 'a -> 'a undo_stack -> 'a undo_stack) =
  fun x (undo, _redo) -> (x :: undo, [])
 
-let (top_undo : 'a undo_stack -> 'a) = fun (undo, _redo) -> List.hd undo
+let (top_undo : 'a undo_stack -> 'a) =
+ fun (undo, _redo) -> Common.hd_exn "unexpected empty list" undo
 
 let (pop_undo : 'a undo_stack -> 'a undo_stack) =
  fun (undo, redo) ->
@@ -4970,8 +4987,8 @@ let sort xs = List.sort compare xs
 let length = List.length
 
 (* in prelude now: let null xs = match xs with [] -> true | _ -> false *)
-let head = List.hd
-let tail = List.tl
+let head xs = Common.hd_exn "unexpected empty list" xs
+let tail xs = Common.tl_exn "unexpected empty list" xs
 let is_singleton xs = List.length xs =|= 1
 (*x: common.ml *)
 
@@ -5343,7 +5360,9 @@ let member_env_key k env =
   | Some _ -> true
 
 let new_scope scoped_env = scoped_env := [] :: !scoped_env
-let del_scope scoped_env = scoped_env := List.tl !scoped_env
+
+let del_scope scoped_env =
+  scoped_env := Common.tl_exn "unexpected empty list" !scoped_env
 
 let do_in_new_scope scoped_env f =
   new_scope scoped_env;
@@ -5381,10 +5400,14 @@ let new_scope_h scoped_env =
   scoped_env := { !scoped_env with scoped_list = [] :: !scoped_env.scoped_list }
 
 let del_scope_h scoped_env =
-  List.hd !scoped_env.scoped_list
+  Common.hd_exn "unexpected empty list" !scoped_env.scoped_list
   |> List.iter (fun (k, _v) -> Hashtbl.remove !scoped_env.scoped_h k);
   scoped_env :=
-    { !scoped_env with scoped_list = List.tl !scoped_env.scoped_list }
+    {
+      !scoped_env with
+      scoped_list =
+        Common.tl_exn "unexpected empty list" !scoped_env.scoped_list;
+    }
 
 let do_in_new_scope_h scoped_env f =
   new_scope_h scoped_env;
@@ -5403,7 +5426,9 @@ let add_in_scope_h x (k, v) =
   x :=
     {
       !x with
-      scoped_list = ((k, v) :: List.hd !x.scoped_list) :: List.tl !x.scoped_list;
+      scoped_list =
+        ((k, v) :: Common.hd_exn "unexpected empty list" !x.scoped_list)
+        :: Common.tl_exn "unexpected empty list" !x.scoped_list;
     }
 
 (*****************************************************************************)
@@ -5644,9 +5669,13 @@ let find_common_root files =
 
   let rec aux current_candidate xs =
     try
-      let topsubdirs = xs |> List.map List.hd |> uniq_eff in
+      let topsubdirs =
+        xs |> List.map (Common.hd_exn "unexpected empty list") |> uniq_eff
+      in
       match topsubdirs with
-      | [ x ] -> aux (x :: current_candidate) (xs |> List.map List.tl)
+      | [ x ] ->
+          aux (x :: current_candidate)
+            (xs |> List.map Common.tl_exn "unexpected empty list")
       | _ -> List.rev current_candidate
     with
     | _ -> List.rev current_candidate
@@ -5703,7 +5732,9 @@ let inits_of_relative_dir dir =
     | [ "." ] -> []
     | _ -> dirs
   in
-  inits dirs |> List.tl |> List.map (fun xs -> join "/" xs)
+  inits dirs
+  |> Common.tl_exn "unexpected empty list"
+  |> List.map (fun xs -> join "/" xs)
 
 (*
 let _ = example
@@ -5746,7 +5777,7 @@ let (tree_of_files : filename list -> (string, string * filename) tree) =
       |> group_by_mapped_key (fun ((dirs, _base), _) ->
              (* would be a file if null dirs *)
              assert (not (null dirs));
-             List.hd dirs)
+             Common.hd_exn "unexpected empty list" dirs)
     in
 
     let nodes =
@@ -5755,7 +5786,7 @@ let (tree_of_files : filename list -> (string, string * filename) tree) =
              let xs' =
                xs
                |> List.map (fun ((dirs, base), path) ->
-                      ((List.tl dirs, base), path))
+                      ((Common.tl_exn "unexpected empty list" dirs, base), path))
              in
              Node (k, aux xs'))
     in

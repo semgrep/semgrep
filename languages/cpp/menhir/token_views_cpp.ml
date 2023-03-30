@@ -138,7 +138,7 @@ let mk_token_extended x =
     t = x;
     line;
     col;
-    (* we use List.hd at a few places, so convenient to have a sentinel *)
+    (* we use Common.hd_exn "unexpected empty list" at a few places, so convenient to have a sentinel *)
     where = [ InTopLevel ];
     new_tokens_before = [];
   }

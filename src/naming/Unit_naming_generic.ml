@@ -29,7 +29,10 @@ let tests parse_program =
                    (* at least we can assert we don't thrown an exn or go
                       into infinite loops *)
                    let ast = parse_program !!file in
-                   let lang = List.hd (Lang.langs_of_filename file) in
+                   let lang =
+                     Common.hd_exn "unexpected empty list"
+                       (Lang.langs_of_filename file)
+                   in
                    Naming_AST.resolve lang ast;
                    (* this used to loop forever if you were not handling correctly
                       possible cycles with id_type *)

@@ -231,6 +231,16 @@ let map f l = fast_map 1000 f l
 (* Other list functions *)
 (*****************************************************************************)
 
+let hd_exn errmsg xs =
+  match xs with
+  | [] -> failwith errmsg
+  | head :: _ -> head
+
+let tl_exn errmsg xs =
+  match xs with
+  | [] -> failwith errmsg
+  | _ :: tail -> tail
+
 (* Tail-recursive to prevent stack overflows. *)
 let flatten xss =
   xss |> List.fold_left (fun acc xs -> List.rev_append xs acc) [] |> List.rev

@@ -312,7 +312,7 @@ let top_func () =
     | ParenType v1 ->
         let v1 = type_ v1 in
         error
-          (Visitor_AST.ii_of_any (G.T v1) |> List.hd)
+          (Visitor_AST.info_of_any (G.T v1))
           ("ParenType should disappear" ^ Dumper.dump v1))
     |> G.e
   and literal = function

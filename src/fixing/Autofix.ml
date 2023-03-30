@@ -170,4 +170,5 @@ let apply_fixes_to_file matches ~file =
   | Overlap { discarded_edits; _ } ->
       failwith
         (spf "Could not apply fix because it overlapped with another: %s"
-           (List.hd discarded_edits).replacement_text)
+           (Common.hd_exn "unexpected empty list" discarded_edits)
+             .replacement_text)

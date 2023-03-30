@@ -109,7 +109,10 @@ let parsing_error_tests () =
             ( Fpath.basename file,
               fun () ->
                 try
-                  let lang = List.hd (Lang.langs_of_filename file) in
+                  let lang =
+                    Common.hd_exn "unexpected empty list"
+                      (Lang.langs_of_filename file)
+                  in
                   let res = Parse_target.just_parse_with_lang lang !!file in
                   if res.skipped_tokens =*= [] then
                     Alcotest.fail

@@ -46,7 +46,9 @@ let test_tainting lang file options config def =
 let test_dfg_tainting rules_file file =
   let rules_file = Fpath.v rules_file in
   let file = Fpath.v file in
-  let lang = List.hd (Lang.langs_of_filename file) in
+  let lang =
+    Common.hd_exn "unexpected empty list" (Lang.langs_of_filename file)
+  in
   let rules =
     try Parse_rule.parse rules_file with
     | exn ->
@@ -68,7 +70,7 @@ let test_dfg_tainting rules_file file =
            | _ -> false)
   in
   let _search_rules, taint_rules, _extract_rules = Rule.partition_rules rules in
-  let rule = List.hd taint_rules in
+  let rule = Common.hd_exn "unexpected empty list" taint_rules in
   pr2 "Tainting";
   pr2 "========";
   let handle_findings _ _ _ = () in

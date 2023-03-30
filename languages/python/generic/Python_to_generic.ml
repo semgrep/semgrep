@@ -124,7 +124,7 @@ let module_name env (v1, dots) =
         |> Common.map Parse_info.str_of_info
         |> String.concat "" |> String.length
       in
-      let tok = List.hd toks in
+      let tok = Common.hd_exn "unexpected empty list" toks in
       let elems = v1 |> Common.map fst in
       let prefixes =
         match count with

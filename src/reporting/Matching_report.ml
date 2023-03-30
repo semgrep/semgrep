@@ -75,7 +75,8 @@ let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
         (* todo? some context too ? *)
         lines_str |> List.iter (fun s -> pr (spaces_string ^ " " ^ s))
     (* bugfix: do not add extra space after ':', otherwise M-x wgrep will not work *)
-    | Emacs -> pr (prefix ^ ":" ^ List.hd lines_str)
+    | Emacs ->
+        pr (prefix ^ ":" ^ Common.hd_exn "unexpected empty list" lines_str)
     | OneLine ->
         pr
           (prefix ^ ": "
