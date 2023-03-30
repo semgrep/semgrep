@@ -5675,7 +5675,7 @@ let find_common_root files =
       match topsubdirs with
       | [ x ] ->
           aux (x :: current_candidate)
-            (xs |> List.map Common.tl_exn "unexpected empty list")
+            (xs |> List.map (Common.tl_exn "unexpected empty list"))
       | _ -> List.rev current_candidate
     with
     | _ -> List.rev current_candidate
