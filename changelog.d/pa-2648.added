@@ -1,3 +1,0 @@
-Kotlin: Added support for typed metavariables. You can write a pattern like:
-($X : String)
-to find all instances of expressions with type String.

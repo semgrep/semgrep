@@ -1,3 +1,0 @@
-Improved significantly the time to parse big rulesets such as p/default
-from 20s to a few seconds by parsing patterns lazily and by
-not using /tmp to parse those patterns.
