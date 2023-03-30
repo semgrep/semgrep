@@ -46,7 +46,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "package": "github.com/cheekybits/genny",
               "resolved_url": "github.com/cheekybits/genny",
               "transitivity": "direct",
-              "version": "v99.99.99"
+              "version": "99.99.99"
             },
             "lockfile": "targets/dependency_aware/go/go.mod"
           },
