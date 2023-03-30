@@ -1144,10 +1144,6 @@ and compoundTypeRest topt in_ =
     ts += (iwith, x)
   done;
   newLineOptWhenFollowedBy (LBRACE ab) in_;
-  (* in the Scala 3 grammar, this is necessary to preface with a colon
-     in the Scala 2 grammar, this actually is kind of an ambiguity, because
-     this could just be a new BlockStat entry, specifically a BlockExpr.
-  *)
   let refinements =
     if in_.token =~= LBRACE ab then Some (refinement in_) else None
   in
@@ -2059,6 +2055,7 @@ and typeCaseClause icase in_ : ((tok, type_) either, type_) case_clause =
   let iarrow = TH.info_of_tok in_.token in
   accept (ARROW ab) in_;
   let r_ty = typ in_ in
+  if TH.isStatSep in_.token then nextToken in_;
   (* ast: makeCaseDef *)
   CC
     {
