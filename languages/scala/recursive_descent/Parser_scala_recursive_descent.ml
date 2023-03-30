@@ -838,6 +838,7 @@ let tmplDef_ = ref (fun _ -> failwith "forward ref not set")
 let blockStatSeq_ = ref (fun _ -> failwith "forward ref not set")
 let topLevelTmplDef_ = ref (fun _ -> failwith "forward ref not set")
 let packageOrPackageObject_ = ref (fun _ _ -> failwith "forward ref not set")
+let typeCaseClauses_ = ref (fun _ -> failwith "forward ref not set")
 
 let paramType_ =
   ref (fun ?repeatedParameterOK _ ->
@@ -924,6 +925,7 @@ let pushOpInfo _topTODO in_ : ident * type_ list bracket option =
  *  Type ::= InfixType `=>` Type
  *         | `(` [`=>` Type] `)` `=>` Type
  *         | InfixType [ExistentialClause]
+ *         | InfixType `match` <<< TypeCaseClauses >>>
  *  ExistentialClause ::= forSome `{` ExistentialDcl {semi ExistentialDcl} `}`
  *  ExistentialDcl    ::= type TypeDcl | val ValDcl
  *  }}}
@@ -946,6 +948,10 @@ let rec typ in_ : type_ =
          | KforSome ii ->
              skipToken in_;
              makeExistentialTypeTree t ii in_
+         | Kmatch ii ->
+             skipToken in_;
+             let _, type_case_clauses, _ = inBraces !typeCaseClauses_ in_ in
+             TyMatch (t, ii, type_case_clauses)
          | _ -> t)
 
 (** {{{
@@ -1991,13 +1997,18 @@ and caseBlock in_ : tok * block =
   let x = block in_ in
   (ii, x)
 
-and caseClause icase in_ : case_clause =
+and caseClause icase in_ : (pattern, block) case_clause =
   let p = pattern in_ in
   let g = guard in_ in
   let iarrow, block = caseBlock in_ in
   (* ast: makeCaseDef *)
   CC
-    { casetoks = (icase, iarrow); casepat = p; caseguard = g; casebody = block }
+    {
+      casetoks = (icase, iarrow);
+      case_left = p;
+      caseguard = g;
+      case_right = block;
+    }
 
 (** {{{
  *  CaseClauses ::= CaseClause {CaseClause}
@@ -2020,6 +2031,56 @@ and caseClauses in_ : case_clauses =
     | Kcase ii ->
         nextToken in_;
         let x = caseClause ii in_ in
+        ts += x
+    | Ellipsis ii ->
+        nextToken in_;
+        ts += CaseEllipsis ii
+    | _ -> raise Impossible
+  done;
+  List.rev !ts
+
+(** {{{
+ *  TypeCaseClauses ::= TypeCaseClause {TypeCaseClause}
+ *  TypeCaseClause  ::= `case` (InfixType | `_`) `=>` Type [semi]
+ *  }}}
+*)
+and typeCaseClause icase in_ : ((tok, type_) either, type_) case_clause =
+  let l_ty =
+    match in_.token with
+    | USCORE ii ->
+        skipToken in_;
+        Left ii
+    | _ -> Right (startInfixType in_)
+  in
+  let iarrow = TH.info_of_tok in_.token in
+  accept (ARROW ab) in_;
+  let r_ty = typ in_ in
+  if TH.isStatSep in_.token then nextToken in_;
+  (* ast: makeCaseDef *)
+  CC
+    {
+      casetoks = (icase, iarrow);
+      case_left = l_ty;
+      caseguard = None;
+      case_right = r_ty;
+    }
+
+and typeCaseClauses in_ : type_case_clauses =
+  (* CHECK: empty cases *)
+  (* old: was
+   *   caseSeparated caseClause in_s
+   * with
+   *   let caseSeparated part in_ =
+   *     separatedToken (Kcase ab) part in_
+   * but for semgrep we also need to handle ellipsis
+   *)
+  (* similar to separatedToken body *)
+  let ts = ref [] in
+  while in_.token =~= Kcase ab || in_.token =~= Ellipsis ab do
+    match in_.token with
+    | Kcase ii ->
+        nextToken in_;
+        let x = typeCaseClause ii in_ in
         ts += x
     | Ellipsis ii ->
         nextToken in_;
@@ -3635,6 +3696,8 @@ let _ =
   annotTypeRest_ := annotTypeRest;
 
   paramType_ := paramType;
+
+  typeCaseClauses_ := typeCaseClauses;
   ()
 
 (** {{{

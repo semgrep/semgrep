@@ -1,0 +1,4 @@
+Scala: Can now parse programs containing matches on types, such as:
+type t = K match {
+  case Int => String
+}
