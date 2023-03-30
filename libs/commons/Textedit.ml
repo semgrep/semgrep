@@ -29,22 +29,26 @@ type edit_application_result =
   | Overlap of {
       partial_result : string;
       (* nonempty *)
-      discarded_edits : t list;
+      conflicting_edits : t list;
     }
 
 let remove_overlapping_edits edits =
-  let rec f edits discarded_edits = function
+  let rec f edits conflicting_edits = function
     | e1 :: e2 :: tl ->
         if e1.end_ > e2.start then
-          let discarded_edits = e2 :: discarded_edits in
-          f edits discarded_edits (e1 :: tl)
+          let conflicting_edits =
+            (* If the edits are identical, they are not conflicting. We can
+             * apply just one. *)
+            if e1 = e2 then conflicting_edits else e2 :: conflicting_edits
+          in
+          f edits conflicting_edits (e1 :: tl)
         else
           let edits = e1 :: edits in
-          f edits discarded_edits (e2 :: tl)
+          f edits conflicting_edits (e2 :: tl)
     | [ edit ] ->
         let edits = edit :: edits in
-        (List.rev edits, List.rev discarded_edits)
-    | [] -> (List.rev edits, List.rev discarded_edits)
+        (List.rev edits, List.rev conflicting_edits)
+    | [] -> (List.rev edits, List.rev conflicting_edits)
   in
   f [] [] edits
 
@@ -55,7 +59,7 @@ let apply_edit_to_text text { start; end_; replacement_text; _ } =
 
 let apply_edits_to_text text edits =
   let edits = List.sort (fun e1 e2 -> e1.start - e2.start) edits in
-  let edits, discarded_edits = remove_overlapping_edits edits in
+  let edits, conflicting_edits = remove_overlapping_edits edits in
   (* Switch to bottom to top order so that we don't need to track offsets as
    * we apply multiple patches *)
   let edits = List.rev edits in
@@ -66,8 +70,8 @@ let apply_edits_to_text text edits =
       (fun file_text edit -> apply_edit_to_text file_text edit)
       text edits
   in
-  if discarded_edits = [] then Success fixed_text
-  else Overlap { partial_result = fixed_text; discarded_edits }
+  if conflicting_edits = [] then Success fixed_text
+  else Overlap { partial_result = fixed_text; conflicting_edits }
 
 let partition_edits_by_file edits =
   (* TODO Consider using Common.group_by if we update it to return edits in
@@ -93,20 +97,20 @@ let partition_edits_by_file edits =
 
 let apply_edits ~dryrun edits =
   let edits_by_file = partition_edits_by_file edits in
-  let all_discarded_edits = ref [] in
+  let all_conflicting_edits = ref [] in
   Hashtbl.iter
     (fun file file_edits ->
       let file_text = Common.read_file file in
       let new_text =
         match apply_edits_to_text file_text file_edits with
         | Success x -> x
-        | Overlap { partial_result; discarded_edits } ->
-            Common.push discarded_edits all_discarded_edits;
+        | Overlap { partial_result; conflicting_edits } ->
+            Common.push conflicting_edits all_conflicting_edits;
             partial_result
       in
       (* TOPORT: when dryrun, report fixed lines *)
       if not dryrun then Common.write_file ~file new_text)
     edits_by_file;
   let modified_files = Hashtbl.to_seq_keys edits_by_file |> List.of_seq in
-  let discarded_edits = List.concat !all_discarded_edits in
-  (modified_files, discarded_edits)
+  let conflicting_edits = List.concat !all_conflicting_edits in
+  (modified_files, conflicting_edits)

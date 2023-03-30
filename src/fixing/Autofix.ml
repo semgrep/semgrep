@@ -39,6 +39,51 @@ let parse_target lang text =
           let e = Exception.catch e in
           Error e)
 
+(* Fixes up the AST to be syntactically valid. Currently I (nmote) am only aware
+ * of one case where this needs to be done (see the function body). Another
+ * option in this case might be to omit or downrank matches that rely on
+ * unordered keyword matching, but that assumes that a better match does in fact
+ * exist. Such a change would also have a larger impact on Semgrep as a whole.
+ * *)
+let transform_fix lang ast =
+  match lang with
+  | Lang.Python ->
+      (* Due to unordered keyword argument matching (see
+       * Generic_vs_generic.m_list__m_argument), we can end up generating
+       * autofixes where keyword arguments are moved before positional
+       * arguments. In some languages (OCaml, for example) this doesn't change
+       * the semantics, but in Python this is actually syntactically invalid.
+       * So, to avoid generating invalid autofixes, we move the positional
+       * arguments in front of the keyword arguments.
+       *
+       * See the fix_ellipsis_metavar.py test case for an example of when this
+       * can happen. *)
+      let mapper =
+        Map_AST.(
+          mk_visitor
+            {
+              default_visitor with
+              kargs =
+                (fun (k, _) args ->
+                  let args =
+                    List.stable_sort
+                      (fun a b ->
+                        match (a, b) with
+                        | ( (AST_generic.Arg _ | ArgType _ | OtherArg _),
+                            (ArgKwd _ | ArgKwdOptional _) ) ->
+                            -1
+                        | ( (ArgKwd _ | ArgKwdOptional _),
+                            (Arg _ | ArgType _ | OtherArg _) ) ->
+                            1
+                        | _else_ -> 0)
+                      args
+                  in
+                  k args);
+            })
+      in
+      mapper.Map_AST.vany ast
+  | _else_ -> ast
+
 (* Check whether the proposed fix results in syntactically valid code *)
 let validate_fix lang target_contents edit =
   let fail err =
@@ -121,6 +166,12 @@ let render_fix pm =
         Autofix_metavar_replacement.replace_metavars metavars fix_pattern_ast
       in
 
+      (* It's possible to represent syntactically invalid code in the generic
+       * AST, so in case we've done that in the previous step, we need to
+       * transform it to be syntactically valid. See the transform_fix function
+       * for more details. *)
+      let fixed_pattern_ast = transform_fix lang fixed_pattern_ast in
+
       (* Try to print the fixed pattern AST. *)
       let/ text =
         Autofix_printer.print_ast ~lang ~metavars ~target_contents
@@ -167,7 +218,7 @@ let apply_fixes_to_file matches ~file =
   in
   match Textedit.apply_edits_to_text file_text edits with
   | Success x -> x
-  | Overlap { discarded_edits; _ } ->
+  | Overlap { conflicting_edits; _ } ->
       failwith
         (spf "Could not apply fix because it overlapped with another: %s"
-           (List.hd discarded_edits).replacement_text)
+           (List.hd conflicting_edits).replacement_text)
