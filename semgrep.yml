@@ -289,7 +289,7 @@ rules:
     severity: ERROR
 
   - id: list-hd
-    pattern: Common.hd_exn "unexpected empty list"
+    pattern: List.hd
     message: >-
       Don't use 'List.hd' because it raises an unhelpful exception if its
       argument is an empty list. Prefer a match-with, possibly combined with
