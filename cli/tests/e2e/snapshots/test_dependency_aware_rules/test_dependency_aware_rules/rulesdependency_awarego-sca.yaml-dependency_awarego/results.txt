@@ -12,7 +12,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
-      "targets/dependency_aware/go/go.sum",
+      "targets/dependency_aware/go/go.mod",
       "targets/dependency_aware/go/sca.go"
     ]
   },
@@ -40,19 +40,15 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "semver_range": "== 99.99.99"
             },
             "found_dependency": {
-              "allowed_hashes": {
-                "gomod": [
-                  "uGGa4nei+j20rOSeDeP5Of12XVm7TGUd4dJA9RDitfE="
-                ]
-              },
+              "allowed_hashes": {},
               "ecosystem": "gomod",
               "line_number": 15,
               "package": "github.com/cheekybits/genny",
               "resolved_url": "github.com/cheekybits/genny",
-              "transitivity": "unknown",
-              "version": "99.99.99"
+              "transitivity": "direct",
+              "version": "v99.99.99"
             },
-            "lockfile": "targets/dependency_aware/go/go.sum"
+            "lockfile": "targets/dependency_aware/go/go.mod"
           },
           "reachability_rule": true,
           "reachable": true,
