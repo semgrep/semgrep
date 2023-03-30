@@ -287,3 +287,23 @@ rules:
       so that it progress to the correct output stream (usually stderr).
     languages: [python]
     severity: ERROR
+
+  - id: list-hd
+    pattern: Common.hd_exn "unexpected empty list"
+    message: >-
+      Don't use 'List.hd' because it raises an unhelpful exception if its
+      argument is an empty list. Prefer a match-with, possibly combined with
+      'assert false' e.g. 'match xs with [] -> assert false | x :: _ -> ...'.
+    fix: Common.hd_exn "unexpected empty list"
+    languages: [ocaml]
+    severity: WARNING
+
+  - id: list-tl
+    pattern: List.tl
+    message: >-
+      Don't use 'List.tl' because it raises an unhelpful exception if its
+      argument is an empty list. Prefer a match-with, possibly combined with
+      'assert false' e.g. 'match xs with [] -> assert false | _ :: xs -> ...'.
+    fix: Common.tl_exn "unexpected empty list"
+    languages: [ocaml]
+    severity: WARNING
