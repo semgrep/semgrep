@@ -1,0 +1,1 @@
+Switched to using go.mod files to read go dependencies for Semgrep Supply Chain, instead of go.sum files
