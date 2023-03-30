@@ -74,7 +74,7 @@ ALL_EXTENSIONS: Collection[FileExtension] = {
 }
 
 ECOSYSTEM_TO_LOCKFILES = {
-    Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt"],
+    Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt", "requirements3.txt"],
     Ecosystem(Npm()): ["package-lock.json", "yarn.lock", "pnpm-lock.yaml"],
     Ecosystem(Gem()): ["Gemfile.lock"],
     Ecosystem(Gomod()): ["go.sum"],
