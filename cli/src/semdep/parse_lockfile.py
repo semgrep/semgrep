@@ -22,7 +22,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.gem import parse_gemfile
-from semdep.parsers.go_sum import parse_go_sum
+from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
 from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.poetry import parse_poetry
@@ -69,7 +69,7 @@ NEW_LOCKFILE_PARSERS = {
     "package-lock.json": parse_package_lock,  # JavaScript
     "gemfile.lock": parse_gemfile,  # Ruby
     "poetry.lock": parse_poetry,  # Python
-    "go.sum": parse_go_sum,  # Go
+    "go.mod": parse_go_mod,  # Go
     "pnpm-lock.yaml": parse_pnpm,  # JavaScript
 }
 
@@ -80,7 +80,7 @@ LOCKFILE_TO_MANIFEST = {
     "package-lock.json": "package.json",
     "yarn.lock": "package.json",
     "Gemfile.lock": None,
-    "go.sum": None,
+    "go.mod": None,
     "Cargo.lock": None,
     "maven_dep_tree.txt": None,
     "gradle.lockfile": None,
