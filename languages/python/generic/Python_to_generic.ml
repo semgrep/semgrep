@@ -309,6 +309,10 @@ let rec expr env (x : expr) =
       let l, v1, _ = bracket (expr env) v1 in
       G.OtherExpr (("Repr", l), [ G.E v1 ]) |> G.e
   | NamedExpr (v, t, e) -> G.Assign (expr env v, t, expr env e) |> G.e
+  | ParenExpr (l, e, r) ->
+      let e = expr env e in
+      H.set_e_range l r e;
+      e
 
 and argument env = function
   | Arg e ->

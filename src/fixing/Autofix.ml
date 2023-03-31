@@ -63,6 +63,8 @@ let transform_fix lang ast =
           mk_visitor
             {
               default_visitor with
+              kexpr =
+                (fun (k, _) expr -> AST_generic.{ expr with e = (k expr).e });
               kargs =
                 (fun (k, _) args ->
                   let args =
