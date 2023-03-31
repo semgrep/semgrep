@@ -56,9 +56,9 @@ def upload_stats(stats: List[Stat]) -> None:
             url=url, data=str(stat.line_count).encode("ascii")
         )
         print(r.read().decode())
-        url = f"{HOST}/api/metric/semgrep.core.{stat.lang}.parse-translation-rate.num"
+        url = f"{HOST}/api/metric/semgrep.core.{stat.lang}.parse-translation-rate.pct"
         r = urllib.request.urlopen(  # nosemgrep
-            url=url, data=str(stat.translation_rate).encode("ascii")
+            url=url, data=str(100 * stat.translation_rate).encode("ascii")
         )
         print(r.read().decode())
 
