@@ -243,32 +243,6 @@ class StreamingSemgrepCore:
         # TODO: read progress from one channel and JSON data from another.
         # or at least write/read progress as a stream of JSON objects so that
         # we don't have to hack a parser together.
-        raise SemgrepError(
-            f"""
-            You are seeing this because the engine was killed.
-
-            The most common reason this happens is because it used too much memory.
-            If your repo is large (~10k files or more), you have three options:
-              1. Increase the amount of memory available to semgrep
-              2. Reduce the number of jobs semgrep runs with via `-j <jobs>`. We
-                 recommend using 1 job if you are running out of memory.
-              3. Scan the repo in parts (contact us for help)
-
-            Otherwise, it is likely that semgrep is hitting the limit on only some
-            files. In this case, you can try to set the limit on the amount of memory
-            semgrep can use on each file with `--max-memory <memory>`. We recommend
-            lowering this to a limit 70% of the available memory. For CI runs with
-            interfile analysis, the default max-memory is 5000MB. Without, the default
-            is unlimited.
-
-            The last thing you can try if none of these work is to raise the stack
-            limit with `ulimit -s <limit>`.
-
-            If you have tried all these steps and still are seeing this error, please
-            contact us.
-            """
-        )
-
         has_started = False
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
@@ -282,7 +256,33 @@ class StreamingSemgrepCore:
                 # Hack: the exact wording of parts this message may be used in metrics queries
                 # that are looking for it. Make sure `semgrep-core exited with unexpected output`
                 # and `interfile analysis` are both in the message, or talk to Emma.
-                print("TODO")
+                raise SemgrepError(
+                    f"""
+                    You are seeing this because the engine was killed.
+
+                    The most common reason this happens is because it used too much memory.
+                    If your repo is large (~10k files or more), you have three options:
+                    1. Increase the amount of memory available to semgrep
+                    2. Reduce the number of jobs semgrep runs with via `-j <jobs>`. We
+                        recommend using 1 job if you are running out of memory.
+                    3. Scan the repo in parts (contact us for help)
+
+                    Otherwise, it is likely that semgrep is hitting the limit on only some
+                    files. In this case, you can try to set the limit on the amount of memory
+                    semgrep can use on each file with `--max-memory <memory>`. We recommend
+                    lowering this to a limit 70% of the available memory. For CI runs with
+                    interfile analysis, the default max-memory is 5000MB. Without, the default
+                    is unlimited.
+
+                    The last thing you can try if none of these work is to raise the stack
+                    limit with `ulimit -s <limit>`.
+
+                    If you have tried all these steps and still are seeing this error, please
+                    contact us.
+
+                       Error: semgrep-core exited with unexpected output
+                    """
+                )
 
             if (
                 not has_started
