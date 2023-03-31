@@ -111,14 +111,6 @@ let v_path (v1, v2) =
   (v1, v2)
 
 let rec v_import_selector tk (path : G.dotted_ident) = function
-  | ImportBasic (id, alias) ->
-      let module_name = G.DottedName (path) in
-      let alias =
-        match alias with
-        | None -> None
-        | Some (_, alias_id) -> Some (v_ident alias_id, G.empty_id_info ())
-      in
-      G.ImportFrom (tk, module_name, [id, alias]) |> G.d
   | NamedSelector x -> v_named_selector tk path x
   | WildCardSelector x -> v_wildcard_selector tk path x
 

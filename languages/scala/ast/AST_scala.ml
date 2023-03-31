@@ -114,11 +114,8 @@ type named_selector = import_path_elem * ident_or_wildcard option
 and wildcard_selector = (ident, tok * type_ option) either
 
 and import_selector =
-  | ImportBasic of ident_or_wildcard * alias option
   | NamedSelector of named_selector
   | WildCardSelector of wildcard_selector
-
-and alias = tok (* => | `as` (scala 3) *) * ident_or_wildcard
 
 (* semgrep-ext: we allow single identifiers here so we can support import $X *)
 and import_expr =

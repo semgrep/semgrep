@@ -2453,17 +2453,17 @@ let importSelector in_ : import_selector =
       let name = wildcardOrIdent in_ in
       let rename =
         match in_.token with
-        | ARROW ii
-        | ID_LOWER ("as", ii) ->
+        | ARROW _
+        | ID_LOWER ("as", _) ->
             nextToken in_;
             (* CHECK: "Wildcard import cannot be renamed" *)
             let alias = wildcardOrIdent in_ in
-            Some (ii, alias)
+            Some alias
         (* AST: if name = nme.WILDCARD && !bbq => null *)
         | _ -> None
       in
       (* ast: ImportSelector(name, start, rename, renameOffset) *)
-      ImportBasic (name, rename)
+      NamedSelector (ImportId name, rename)
 
 (** {{{
  *  ImportSelectors ::= `{` {ImportSelector `,`} (ImportSelector | `_`) `}`
@@ -2523,10 +2523,10 @@ let rec collect_import_path (path : import_path) in_ =
   | ID_LOWER ("as", _) -> (
       nextToken in_;
       match in_.token with
-      | USCORE _ -> 
+      | USCORE _ ->
           (* This is something like `import a as _`
              Kind of a weird thing to write. I assume it's just binding it to a weird name.
-           *)
+          *)
           let ii = TH.info_of_tok in_.token in
           accept (USCORE ab) in_;
           let path, id = tl_path path in
