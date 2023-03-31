@@ -170,6 +170,7 @@ type expr =
   | DeepEllipsis of expr bracket
   | TypedMetavar of name * tok * type_
   | DotAccessEllipsis of expr * tok (* ... *)
+  | ParenExpr of expr bracket
 
 and number =
   | Int of int option wrap

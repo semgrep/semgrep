@@ -1,0 +1,1 @@
+Fixed an issue where incorrect ranges for expressions containing parentheses could lead Semgrep to generate invalid autofixes in Python.

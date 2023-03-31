@@ -401,3 +401,12 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
         |> G.e
       in
       Some (List.fold_left mk_op (mk_op a1 a2) args)
+
+let set_e_range l r e =
+  match
+    (Parse_info.token_location_of_info l, Parse_info.token_location_of_info r)
+  with
+  | Ok l, Ok r -> e.e_range <- Some (l, r)
+  | Error _, _
+  | _, Error _ ->
+      ()
