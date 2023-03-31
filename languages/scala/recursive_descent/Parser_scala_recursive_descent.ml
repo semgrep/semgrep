@@ -144,8 +144,6 @@ type location = Local | InBlock | InTemplate
 (* to correctly handle infix operators (in expressions, patterns, and types)*)
 type mode = FirstOp | LeftOp | RightOp [@@deriving show { with_path = false }]
 
-let report in_ s = Common.(pr2 (spf "%s: %s" s ([%show: token] in_.token)))
-
 (*****************************************************************************)
 (* Logging/Dumpers  *)
 (*****************************************************************************)
@@ -2580,7 +2578,6 @@ and importExpr in_ : import_expr =
 let importClause in_ : import =
   let ii = TH.info_of_tok in_.token in
   accept (Kimport ab) in_;
-  report in_ "importepxr";
   let xs = commaSeparated importExpr in_ in
   (ii, xs)
 
