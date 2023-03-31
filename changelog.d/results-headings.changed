@@ -1,2 +1,0 @@
-Findings of a scan are now printed with section headers per group for the following categories:
-Code Blocking, Code Non-blocking, Supply Chain Reachable, Supply Chain Unreachable findings.
