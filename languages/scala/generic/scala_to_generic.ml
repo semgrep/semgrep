@@ -110,15 +110,15 @@ let v_path (v1, v2) =
   let v1 = v_simple_ref v1 and v2 = v_selectors v2 in
   (v1, v2)
 
-let rec v_import_selector tk path = function
+let rec v_import_selector tk (path : G.dotted_ident) = function
   | ImportBasic (id, alias) ->
-      let module_name = G.DottedName [ v_ident id ] in
+      let module_name = G.DottedName (path) in
       let alias =
         match alias with
         | None -> None
-        | Some (_, id) -> Some (v_ident id, G.empty_id_info ())
+        | Some (_, alias_id) -> Some (v_ident alias_id, G.empty_id_info ())
       in
-      G.ImportAs (tk, module_name, alias) |> G.d
+      G.ImportFrom (tk, module_name, [id, alias]) |> G.d
   | NamedSelector x -> v_named_selector tk path x
   | WildCardSelector x -> v_wildcard_selector tk path x
 
@@ -136,7 +136,7 @@ and v_dotted_name_of_import_path v1 = Common.map id_of_import_path_elem v1
 and v_import_expr tk import_expr =
   match import_expr with
   | ImportExprSpec (path, spec) ->
-      let module_name = G.DottedName (v_dotted_name_of_import_path path) in
+      let module_name = v_dotted_name_of_import_path path in
       v_import_spec tk module_name spec
   | ImportExprMvar id ->
       (* same as Java *)
@@ -149,11 +149,11 @@ and v_named_selector tk path ((v1, v2) : named_selector) =
     | None -> None
     | Some id -> Some (v_ident_or_wildcard id, G.empty_id_info ())
   in
-  G.ImportFrom (tk, path, [ (id, alias) ]) |> G.d
+  G.ImportFrom (tk, G.DottedName path, [ (id, alias) ]) |> G.d
 
 and v_wildcard_selector tk path (x : wildcard_selector) =
   match x with
-  | Left id -> G.ImportAll (tk, path, snd id) |> G.d
+  | Left id -> G.ImportAll (tk, G.DottedName path, snd id) |> G.d
   | Right (tok, tyopt) ->
       (* given *)
       let anys =
@@ -161,7 +161,7 @@ and v_wildcard_selector tk path (x : wildcard_selector) =
         | None -> []
         | Some ty -> [ G.T (v_type_ ty) ]
       in
-      OtherDirective (("given", tok), anys) |> G.d
+      OtherDirective (("ImportGiven", tok), anys) |> G.d
 
 and v_import_spec tk path = function
   | ImportNamed v1 -> [ v_named_selector tk path v1 ]

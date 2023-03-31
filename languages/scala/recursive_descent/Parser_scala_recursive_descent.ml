@@ -2523,7 +2523,14 @@ let rec collect_import_path (path : import_path) in_ =
   | ID_LOWER ("as", _) -> (
       nextToken in_;
       match in_.token with
-      | USCORE _ -> ImportExprSpec (path, ImportWildcard (wildCardSelector in_))
+      | USCORE _ -> 
+          (* This is something like `import a as _`
+             Kind of a weird thing to write. I assume it's just binding it to a weird name.
+           *)
+          let ii = TH.info_of_tok in_.token in
+          accept (USCORE ab) in_;
+          let path, id = tl_path path in
+          ImportExprSpec (path, ImportNamed (id, Some ("_", ii)))
       | _ ->
           let path, id = tl_path path in
           (* either "as" or `=>` *)
