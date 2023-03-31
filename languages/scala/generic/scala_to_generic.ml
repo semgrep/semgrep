@@ -110,58 +110,74 @@ let v_path (v1, v2) =
   let v1 = v_simple_ref v1 and v2 = v_selectors v2 in
   (v1, v2)
 
-let rec v_import_selector (v1, v2) =
-  let v1 = v_ident_or_wildcard v1 and v2 = v_option v_alias v2 in
-  (v1, v2)
+let rec v_import_selector tk path = function
+  | ImportBasic (id, alias) ->
+      let module_name = G.DottedName [ v_ident id ] in
+      let alias =
+        match alias with
+        | None -> None
+        | Some (_, id) -> Some (v_ident id, G.empty_id_info ())
+      in
+      G.ImportAs (tk, module_name, alias) |> G.d
+  | NamedSelector x -> v_named_selector tk path x
+  | WildCardSelector x -> v_wildcard_selector tk path x
 
-and v_alias (v1, v2) =
-  let v1 = v_tok v1 and v2 = v_ident_or_wildcard v2 in
-  (v1, v2)
-
-let v_dotted_name_of_stable_id (v1, v2) =
+and v_dotted_name_of_stable_id (v1, v2) =
   let id = id_of_simple_ref v1 in
   id :: v2
 
-let rec v_import_expr tk import_expr =
+and id_of_import_path_elem = function
+  | ImportId id -> id
+  | ImportThis t -> ("this", t)
+  | ImportSuper t -> ("super", t)
+
+and v_dotted_name_of_import_path v1 = Common.map id_of_import_path_elem v1
+
+and v_import_expr tk import_expr =
   match import_expr with
-  | Left id ->
-      [
-        { G.d = G.ImportFrom (tk, DottedName [], [ (id, None) ]); d_attrs = [] };
-      ]
-  | Right (v1, v2) ->
-      let module_name = G.DottedName (v_dotted_name_of_stable_id v1) in
-      let v2 = v_import_spec v2 in
-      v2 tk module_name
+  | ImportExprSpec (path, spec) ->
+      let module_name = G.DottedName (v_dotted_name_of_import_path path) in
+      v_import_spec tk module_name spec
+  | ImportExprMvar id ->
+      (* same as Java *)
+      [ G.ImportFrom (tk, G.DottedName [], [ (v_ident id, None) ]) |> G.d ]
 
-and v_import_spec = function
-  | ImportId v1 ->
-      let v1 = v_ident v1 in
-      fun tk path -> [ G.ImportFrom (tk, path, [ (v1, None) ]) |> G.d ]
-  | ImportWildcard v1 ->
-      let v1 = v_tok v1 in
-      fun tk path -> [ G.ImportAll (tk, path, v1) |> G.d ]
-  | ImportSelectors (_, v1, _) ->
-      let v1 = (v_list v_import_selector) v1 in
-      fun tk path ->
-        v1
-        |> Common.map (fun (id, opt) ->
-               let alias =
-                 match opt with
-                 | None -> None
-                 | Some (_, id) -> Some (id, G.empty_id_info ())
-               in
-               G.ImportFrom (tk, path, [ (id, alias) ]) |> G.d)
+and v_named_selector tk path ((v1, v2) : named_selector) =
+  let id = id_of_import_path_elem v1 in
+  let alias =
+    match v2 with
+    | None -> None
+    | Some id -> Some (v_ident_or_wildcard id, G.empty_id_info ())
+  in
+  G.ImportFrom (tk, path, [ (id, alias) ]) |> G.d
 
-let v_import (v1, v2) : G.directive list =
+and v_wildcard_selector tk path (x : wildcard_selector) =
+  match x with
+  | Left id -> G.ImportAll (tk, path, snd id) |> G.d
+  | Right (tok, tyopt) ->
+      (* given *)
+      let anys =
+        match tyopt with
+        | None -> []
+        | Some ty -> [ G.T (v_type_ ty) ]
+      in
+      OtherDirective (("given", tok), anys) |> G.d
+
+and v_import_spec tk path = function
+  | ImportNamed v1 -> [ v_named_selector tk path v1 ]
+  | ImportWildcard v1 -> [ v_wildcard_selector tk path v1 ]
+  | ImportSelectors (_, v1, _) -> v_list (v_import_selector tk path) v1
+
+and v_import (v1, v2) : G.directive list =
   let v1 = v_tok v1 in
   let v2 = v_list (v_import_expr v1) v2 in
   List.flatten v2
 
-let v_package (v1, v2) =
+and v_package (v1, v2) =
   let v1 = v_tok v1 and v2 = v_qualified_ident v2 in
   (v1, v2)
 
-let rec v_literal = function
+and v_literal = function
   | Symbol (tquote, id) -> Left (G.Atom (tquote, id))
   | Int v1 ->
       let v1 = v_wrap (v_option v_int) v1 in
