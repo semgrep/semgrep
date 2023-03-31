@@ -6,6 +6,9 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 (*
   Partially translated from nosemgrep.py
+
+  See https://semgrep.dev/docs/ignoring-files-folders-code/ for documentation
+  about nosemgrep.
 *)
 
 (*****************************************************************************)
