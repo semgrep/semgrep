@@ -51,7 +51,6 @@ handler.setFormatter(
 )
 logger.addHandler(handler)
 
-FINDINGS_SNAPSHOT_PATH = "snapshots/benchmark_findings.json"
 PERF_PATH = "semgrep/perf"
 PERF_RULE_PATH = "semgrep.perf"
 
@@ -424,7 +423,6 @@ def run_benchmarks(
     clean: bool,
     summary_file_path: str,
     findings_file_path: str,
-    findings_snapshot_update: bool,
     called_dir: str,
 ) -> None:
     def get_corpuses(config_file: Path) -> List[Corpus]:
@@ -564,10 +562,6 @@ def run_benchmarks(
             with open(findings_file_path, "w") as f:
                 json.dump(saved_findings, f)
 
-    if findings_snapshot_update:
-        with open(FINDINGS_SNAPSHOT_PATH, "w") as f:
-            json.dump(saved_findings, f)
-
     if plot_benchmarks:
         import matplotlib.pyplot as plt
         import pandas as pd
@@ -647,11 +641,6 @@ def main() -> None:
         help="save findings to the json file given by the argument",
     )
     parser.add_argument(
-        "--snapshot-update",
-        help="update the snapshot to compare findings against",
-        action="store_true",
-    )
-    parser.add_argument(
         "--plot-benchmarks",
         help="display a graph of the benchmark results",
         action="store_true",
@@ -700,7 +689,6 @@ def main() -> None:
             clean=args.clean,
             summary_file_path=args.save_to,
             findings_file_path=args.save_findings_to,
-            findings_snapshot_update=args.snapshot_update,
             called_dir=called_dir,
         )
 
