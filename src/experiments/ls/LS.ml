@@ -24,7 +24,6 @@ module Io =
       type output = Lwt_io.output_channel
 
       let read_line = Lwt_io.read_line_opt
-
       let write = Lwt_io.write
 
       let read_exactly inc n =
@@ -46,14 +45,13 @@ module Session = struct
     outgoing : Lwt_io.output_channel;
     config : Runner_config.t; (* ... *)
     root : string;
-    hrules : Rule.hrules;
+    cached_rules : Runner_config.rule_source option;
     documents :
       (Uri.t, (Semgrep_output_v1_t.core_match * Rule.rule) list) Hashtbl.t;
   }
 
   (* This is dynamic so if the targets file is updated we don't have to restart (and reparse rules...) *)
   let targets session =
-    let open Runner_config in
     let config = session.config in
     match config.target_source with
     | Some (Targets targets) -> targets
@@ -61,6 +59,29 @@ module Session = struct
         let targets, _ = Run_semgrep.targets_of_config config [] in
         targets
     | None -> failwith "No targets provided"
+
+  let load_rules session =
+    let config = session.config in
+    let rules =
+      match config.rule_source with
+      | Some (Rule_file file) ->
+          let (rules, _), _ =
+            Common.with_time (fun () ->
+                Parse_rule.parse_and_filter_invalid_rules file)
+          in
+          rules
+      | Some (Rules rules) -> rules
+      | None -> failwith "No rules provided"
+    in
+    { session with cached_rules = Some (Rules rules) }
+
+  let hrules session =
+    let rules =
+      match session.cached_rules with
+      | Some (Rules rules) -> rules
+      | _ -> []
+    in
+    Rule.hrules_of_rules rules
 end
 
 (* This probably should all go in a separate reporting file *)
@@ -86,7 +107,7 @@ let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
   in
   fix
 
-let postprocess_results results hrules files root =
+let postprocess_results results hrules files =
   let results =
     JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
       (List.length files) results
@@ -98,8 +119,6 @@ let postprocess_results results hrules files root =
         let m =
           {
             m with
-            location =
-              { m.location with path = Filename.concat root m.location.path };
             extra =
               {
                 m.extra with
@@ -119,12 +138,15 @@ let postprocess_results results hrules files root =
       matches
   in
   (* Canonicalize paths so we can convert them to URIs LSP supports later *)
-  let files = Common2.map (Filename.concat root) files in
   (matches, files)
 
 module Server = struct
   type t = { session : Session.t; state : State.t (* ... *) }
 
+  (* Why the atomic writes below? The LSP library we use does something weird, *)
+  (* it writes the jsonrpc header then body with seperate calls to write, which *)
+  (* means there's a race condition there. The below atomic calls ensures that *)
+  (* the ENTIRE packet is written at the same time *)
   let respond id json server =
     match json with
     | Some json ->
@@ -152,12 +174,7 @@ module Server = struct
   let run_semgrep ?(files = []) server =
     let config = server.session.config in
     let targets = Session.targets server.session in
-    let files =
-      Common.map
-        Uri.to_path
-        files
-    in
-    let _ = Common.map (fun f -> logger#info "Running on %s" f) files in
+    let files = Common.map Uri.to_path files in
     let target_source =
       match files with
       | [] -> config.target_source
@@ -165,13 +182,14 @@ module Server = struct
           let filtered_targets =
             Common2.filter
               (fun (target : Input_to_core_t.target) ->
-                 logger#info "Checking %s" target.path;
-                List.mem (Filename.concat server.session.root target.path) files)
+                List.mem target.path files)
               targets.target_mappings
           in
           Some (Targets { targets with target_mappings = filtered_targets })
     in
-    let config = { config with target_source } in
+    let config =
+      { config with target_source; rule_source = server.session.cached_rules }
+    in
     let _, res, files =
       Run_semgrep.semgrep_with_raw_results_and_exn_handler config
     in
@@ -179,42 +197,28 @@ module Server = struct
     let files = Common2.uniq files in
     logger#info "Server scanned %d files" (List.length files);
     let final_results, files =
-      postprocess_results res server.session.hrules files server.session.root
+      postprocess_results res (Session.hrules server.session) files
     in
     (final_results, files)
 
   let initialize_session server root =
-    let open Runner_config in
-    let config = server.session.config in
-    let rules =
-      match config.rule_source with
-      | Some (Rule_file file) ->
-          logger#info "Loading rules from %s" file;
-          let (rules, _), _ =
-            Common.with_time (fun () ->
-                Parse_rule.parse_and_filter_invalid_rules file)
-          in
-          rules
-      | Some (Rules rules) -> rules
-      | None -> failwith "No rules provided"
-    in
-    let config = { config with rule_source = Some (Rules rules) } in
-    let hrules = Rule.hrules_of_rules rules in
-    {
-      session = { server.session with hrules; root; config };
-      state = State.Running;
-    }
+    let session = Session.load_rules server.session in
+    { session = { session with root }; state = State.Running }
 
   let on_notification notification server =
-    let () =
+    let scan_workspace server =
+      let results, files = run_semgrep server in
+      (* Let's scan the whole workspace to get a nice overview and so users know the extension is running *)
+      let diagnostics = Diagnostics.diagnostics_of_results results files in
+      let _ = batch_notify server diagnostics in
+      ()
+    in
+    let server =
       match notification with
       | Client_notification.Initialized ->
-          let results, files = run_semgrep server in
-          (* Let's scan the whole workspace to get a nice overview and so users know the extension is running *)
-          let diagnostics = Diagnostics.diagnostics_of_results results files in
-          let _ = batch_notify server diagnostics in
-
-          ()
+          logger#info "Client initialized";
+          scan_workspace server;
+          server
       | Client_notification.DidSaveTextDocument { textDocument = { uri }; _ }
       | Client_notification.TextDocumentDidOpen { textDocument = { uri; _ } } ->
           let results, _ = run_semgrep server ~files:[ uri ] in
@@ -224,8 +228,21 @@ module Server = struct
             batch_notify server
               (Diagnostics.diagnostics_of_results results [ Uri.to_path uri ])
           in
-          ()
-      | _ -> logger#warning "Unhandled notification"
+          server
+      | Client_notification.UnknownNotification { method_ = "semgrep/loginFinish"; _ } ->
+          logger#info "Refreshing rules";
+          let session = Session.load_rules server.session in
+
+          let server = { server with session } in
+          scan_workspace server;
+          server
+
+      | Client_notification.UnknownNotification { method_ = "semgrep/scanWorkspace"; _ } ->
+          logger#info "Scanning workspace";
+          server
+      | _ ->
+          logger#warning "Unhandled notification";
+          server
     in
     server
 
@@ -336,7 +353,7 @@ module Server = struct
             outgoing = Lwt_io.stdout;
             config;
             root = "";
-            hrules = Rule.hrules_of_rules [];
+            cached_rules = None;
             documents = Hashtbl.create 10;
           };
       state = State.Uninitialized;

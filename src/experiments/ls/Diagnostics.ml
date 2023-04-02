@@ -7,12 +7,19 @@ open Lsp_util
 let diagnostic_of location severity message code codeDescription =
   let code = `String code in
   (* Provided Uri lib has no of_string so this is a little hack :) *)
-  let codeDescription =
-    CodeDescription.create ~href:(Uri.t_of_yojson (`String codeDescription))
+  let diagnostic =
+    Diagnostic.create
+      ~range:(range_of_location location)
+      ~code ~severity ~source:"Semgrep" ~message
   in
-  Diagnostic.create
-    ~range:(range_of_location location)
-    ~code ~codeDescription ~severity ~source:"Semgrep" ~message ()
+  match codeDescription with
+  | None -> diagnostic ()
+  | Some codeDescription ->
+      let codeDescription =
+        CodeDescription.create ~href:(Uri.t_of_yojson (`String codeDescription))
+      in
+
+      diagnostic ~codeDescription ()
 
 let diagnostic_of_match ((m, r) : Semgrep_output_v1_t.core_match * Rule.rule) =
   let message =
@@ -27,13 +34,18 @@ let diagnostic_of_match ((m, r) : Semgrep_output_v1_t.core_match * Rule.rule) =
     | None -> `Assoc []
     | Some json -> JSON.to_yojson json
   in
-  let shortlink =
-    (metadata :> Yojson.Safe.t) |> Yojson.Safe.Util.member "shortlink"
+  let metadata = (metadata :> Yojson.Safe.t) in
+  let source = metadata |> Yojson.Safe.Util.member "source" in
+  let source =
+    match source with
+    | `String s -> Some s
+    | _ -> None
   in
+  let shortlink = metadata |> Yojson.Safe.Util.member "shortlink" in
   let shortlink =
     match shortlink with
-    | `String s -> s
-    | _ -> "https://semgrep.dev/explore"
+    | `String s -> Some s
+    | _ -> source
   in
   diagnostic_of m.location severity message id shortlink
 
@@ -46,11 +58,12 @@ let diagnostics_of_file
       matches
   in
   let diagnostics = Common.map diagnostic_of_match matches in
-  let ranges_overlap (a: Diagnostic.t) (b: Diagnostic.t) =
+  let ranges_overlap (a : Diagnostic.t) (b : Diagnostic.t) =
     if a.range.start.line = b.range.start.line then
       a.range.start.character <= b.range.start.character
     else
-      a.range.start.line <= b.range.start.line && a.range.end_.line >= b.range.end_.line
+      a.range.start.line <= b.range.start.line
+      && a.range.end_.line >= b.range.end_.line
   in
   let diagnostics =
     Common.uniq_by
