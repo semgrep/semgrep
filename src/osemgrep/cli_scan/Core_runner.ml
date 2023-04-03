@@ -201,15 +201,13 @@ let pp_status rules targets lang_jobs respect_git_ignore ppf () =
   Fmt_helpers.pp_table
     ("Language", [ "Rules"; "Files" ])
     ppf
-    (List.combine
-       (Common.map
-          (fun (job : Runner_config.lang_job) ->
-            Xlang.to_string job.Runner_config.lang)
-          lang_jobs)
-       (Common.map
-          (fun Runner_config.{ targets; rules; _ } ->
-            [ List.length rules; List.length targets ])
-          lang_jobs))
+    (lang_jobs
+    |> List.fold_left
+         (fun acc Runner_config.{ lang; targets; rules } ->
+           (Xlang.to_string lang, [ List.length rules; List.length targets ])
+           :: acc)
+         []
+    |> List.rev)
 
 (*************************************************************************)
 (* Entry point *)
